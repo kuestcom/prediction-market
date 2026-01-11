@@ -58,9 +58,11 @@ export default function EventCommentItem({
       queueMicrotask(() => open())
       return
     }
-    const username = comment.username
-    onSetReplyingTo(replyingTo === comment.id ? null : comment.id)
-    onSetReplyText(`@${username} `)
+    const shouldOpen = replyingTo !== comment.id
+    onSetReplyingTo(shouldOpen ? comment.id : null)
+    if (shouldOpen) {
+      onSetReplyText('')
+    }
   }, [user, comment, replyingTo, onSetReplyingTo, onSetReplyText, open])
 
   const handleLikeToggle = useCallback(() => {
@@ -91,6 +93,8 @@ export default function EventCommentItem({
           proxy_wallet_address: comment.user_proxy_wallet_address ?? null,
         }}
         date={comment.created_at}
+        joinedAt={comment.user_created_at}
+        tooltipVariant="activity"
       >
         <div className="flex w-full flex-1 gap-3">
           <div className="flex-1">
@@ -155,6 +159,7 @@ export default function EventCommentItem({
             <EventCommentReplyItem
               key={reply.id}
               reply={reply}
+              parentUsername={comment.username}
               commentId={comment.id}
               eventId={eventId}
               user={user}

@@ -26,6 +26,21 @@ interface CancelMarketOrdersResult {
   error: string | null
 }
 
+function normalizeCancelResponse(payload: any) {
+  const cancelled = Array.isArray(payload?.cancelled)
+    ? payload.cancelled
+    : Array.isArray(payload?.canceled)
+      ? payload.canceled
+      : null
+  const notCanceled = payload?.notCanceled ?? payload?.not_canceled ?? null
+
+  if (!Array.isArray(cancelled) || !notCanceled || typeof notCanceled !== 'object' || Array.isArray(notCanceled)) {
+    return null
+  }
+
+  return { cancelled, notCanceled }
+}
+
 export async function cancelMarketOrdersAction(payload: { market?: string, assetId?: string }): Promise<CancelMarketOrdersResult> {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
@@ -95,13 +110,14 @@ export async function cancelMarketOrdersAction(payload: { market?: string, asset
       return { cancelled: [], notCanceled: {}, error: message || CANCEL_MARKET_ORDERS_ERROR }
     }
 
-    if (!responsePayload || !Array.isArray(responsePayload.cancelled) || responsePayload.notCanceled === null || typeof responsePayload.notCanceled !== 'object' || Array.isArray(responsePayload.notCanceled)) {
+    const normalized = normalizeCancelResponse(responsePayload)
+    if (!normalized) {
       return { cancelled: [], notCanceled: {}, error: CANCEL_MARKET_ORDERS_ERROR }
     }
 
     return {
-      cancelled: responsePayload.cancelled,
-      notCanceled: responsePayload.notCanceled ?? {},
+      cancelled: normalized.cancelled,
+      notCanceled: normalized.notCanceled ?? {},
       error: null,
     }
   }

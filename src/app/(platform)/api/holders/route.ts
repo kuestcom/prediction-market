@@ -10,6 +10,7 @@ interface HolderUser {
   username: string
   proxy_wallet_address?: string | null
   image: string
+  created_at?: string
 }
 
 interface Holder {
@@ -80,11 +81,15 @@ export async function GET(request: Request) {
         const normalizedAddress = normalizeAddressKey(profile.address)
         const normalizedProxyAddress = normalizeAddressKey(profile.proxy_wallet_address)
         const imageUrl = normalizeAvatarUrl(profile.image, fallbackAddress)
+        const createdAt = profile.created_at
+          ? new Date(profile.created_at).toISOString()
+          : undefined
         const profileData: HolderUser = {
           id: profile.id,
           username: profile.username || fallbackAddress,
           proxy_wallet_address: profile.proxy_wallet_address ?? null,
           image: imageUrl,
+          created_at: createdAt,
         }
 
         if (normalizedAddress) {
@@ -120,6 +125,7 @@ export async function GET(request: Request) {
             username: matchedProfile?.username || holder.user.username,
             proxy_wallet_address: matchedProfile?.proxy_wallet_address ?? holder.user.proxy_wallet_address,
             image: hydratedImage,
+            created_at: matchedProfile?.created_at ?? holder.user.created_at,
           },
         }
       })

@@ -104,7 +104,7 @@ export async function GET(request: Request) {
       }
     })
 
-    const profileLookup = new Map<string, { username?: string | null, image?: string | null }>()
+    const profileLookup = new Map<string, { username?: string | null, image?: string | null, created_at?: string }>()
 
     if (addressSet.size > 0) {
       const { data: profiles, error } = await UserRepository.getUsersByAddresses(Array.from(addressSet))
@@ -119,11 +119,15 @@ export async function GET(request: Request) {
         const fallbackAddress = profile.proxy_wallet_address ?? profile.address ?? ''
         const imageUrl = normalizeAvatarUrl(profile.image, fallbackAddress)
 
+        const createdAt = profile.created_at
+          ? new Date(profile.created_at).toISOString()
+          : undefined
+
         if (normalizedAddress) {
-          profileLookup.set(normalizedAddress, { username: profile.username, image: imageUrl })
+          profileLookup.set(normalizedAddress, { username: profile.username, image: imageUrl, created_at: createdAt })
         }
         if (normalizedProxy) {
-          profileLookup.set(normalizedProxy, { username: profile.username, image: imageUrl })
+          profileLookup.set(normalizedProxy, { username: profile.username, image: imageUrl, created_at: createdAt })
         }
       }
     }
@@ -142,6 +146,7 @@ export async function GET(request: Request) {
           ...activity.user,
           username,
           image,
+          created_at: matchedProfile?.created_at,
         },
       }
     })

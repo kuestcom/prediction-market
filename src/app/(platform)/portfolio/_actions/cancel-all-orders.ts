@@ -13,6 +13,21 @@ interface CancelAllOrdersResult {
   error: string | null
 }
 
+function normalizeCancelResponse(payload: any) {
+  const cancelled = Array.isArray(payload?.cancelled)
+    ? payload.cancelled
+    : Array.isArray(payload?.canceled)
+      ? payload.canceled
+      : null
+  const notCanceled = payload?.notCanceled ?? payload?.not_canceled ?? null
+
+  if (!Array.isArray(cancelled) || !notCanceled || typeof notCanceled !== 'object' || Array.isArray(notCanceled)) {
+    return null
+  }
+
+  return { cancelled, notCanceled }
+}
+
 export async function cancelAllOrdersAction(): Promise<CancelAllOrdersResult> {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
@@ -70,13 +85,14 @@ export async function cancelAllOrdersAction(): Promise<CancelAllOrdersResult> {
       return { cancelled: [], notCanceled: {}, error: message || CANCEL_ALL_ORDERS_ERROR }
     }
 
-    if (!responsePayload || !Array.isArray(responsePayload.cancelled) || typeof responsePayload.notCanceled !== 'object') {
+    const normalized = normalizeCancelResponse(responsePayload)
+    if (!normalized) {
       return { cancelled: [], notCanceled: {}, error: CANCEL_ALL_ORDERS_ERROR }
     }
 
     return {
-      cancelled: responsePayload.cancelled,
-      notCanceled: responsePayload.notCanceled ?? {},
+      cancelled: normalized.cancelled,
+      notCanceled: normalized.notCanceled ?? {},
       error: null,
     }
   }

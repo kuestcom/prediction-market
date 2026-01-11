@@ -12,6 +12,7 @@ import EventCommentReplyForm from './EventCommentReplyForm'
 
 interface ReplyItemProps {
   reply: Comment
+  parentUsername: string
   commentId: string
   eventId: string
   user: any
@@ -27,6 +28,7 @@ interface ReplyItemProps {
 
 export default function EventCommentReplyItem({
   reply,
+  parentUsername,
   commentId,
   eventId,
   user,
@@ -46,9 +48,11 @@ export default function EventCommentReplyItem({
       queueMicrotask(() => open())
       return
     }
-    const username = reply.username
-    onSetReplyingTo(replyingTo === reply.id ? null : reply.id)
-    onSetReplyText(`@${username} `)
+    const shouldOpen = replyingTo !== reply.id
+    onSetReplyingTo(shouldOpen ? reply.id : null)
+    if (shouldOpen) {
+      onSetReplyText('')
+    }
   }, [user, reply, replyingTo, onSetReplyingTo, onSetReplyText, open])
 
   const handleLikeToggle = useCallback(() => {
@@ -97,6 +101,13 @@ export default function EventCommentReplyItem({
               {formatTimeAgo(reply.created_at)}
             </span>
           </div>
+          <Link
+            href={`/@${parentUsername}`}
+            className="text-xs text-primary transition-colors hover:text-primary/80"
+          >
+            @
+            {parentUsername}
+          </Link>
           <p className="text-sm">{reply.content}</p>
           <div className="mt-2 flex items-center gap-3">
             <button

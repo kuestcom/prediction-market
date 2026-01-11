@@ -1,6 +1,6 @@
-import type { RefObject } from 'react'
 import type { TimeRange } from '@/app/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { ShuffleIcon } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
@@ -9,9 +9,6 @@ interface EventChartControlsProps {
   timeRanges: TimeRange[]
   activeTimeRange: TimeRange
   onTimeRangeChange: (value: TimeRange) => void
-  timeRangeContainerRef: RefObject<HTMLDivElement | null>
-  timeRangeIndicator: { width: number, left: number }
-  timeRangeIndicatorReady: boolean
   showOutcomeSwitch: boolean
   oppositeOutcomeLabel: string
   onShuffle: () => void
@@ -22,13 +19,50 @@ export default function EventChartControls({
   timeRanges,
   activeTimeRange,
   onTimeRangeChange,
-  timeRangeContainerRef,
-  timeRangeIndicator,
-  timeRangeIndicatorReady,
   showOutcomeSwitch,
   oppositeOutcomeLabel,
   onShuffle,
 }: EventChartControlsProps) {
+  const timeRangeContainerRef = useRef<HTMLDivElement | null>(null)
+  const timeRangeRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const [timeRangeIndicator, setTimeRangeIndicator] = useState({ width: 0, left: 0 })
+  const [timeRangeIndicatorReady, setTimeRangeIndicatorReady] = useState(false)
+
+  const updateIndicator = useCallback(() => {
+    if (!hasChartData) {
+      return
+    }
+    const activeIndex = timeRanges.findIndex(range => range === activeTimeRange)
+    if (activeIndex < 0) {
+      return
+    }
+    const activeButton = timeRangeRefs.current[activeIndex]
+
+    if (!activeButton) {
+      return
+    }
+
+    const { offsetLeft, offsetWidth } = activeButton
+
+    queueMicrotask(() => {
+      setTimeRangeIndicator({ left: offsetLeft, width: offsetWidth })
+      setTimeRangeIndicatorReady(true)
+    })
+  }, [activeTimeRange, hasChartData, timeRanges])
+
+  useLayoutEffect(() => {
+    updateIndicator()
+  }, [updateIndicator])
+
+  useEffect(() => {
+    if (!hasChartData) {
+      return
+    }
+    updateIndicator()
+    window.addEventListener('resize', updateIndicator)
+    return () => window.removeEventListener('resize', updateIndicator)
+  }, [hasChartData, updateIndicator])
+
   if (!hasChartData) {
     return null
   }
@@ -50,10 +84,13 @@ export default function EventChartControls({
           }}
           aria-hidden={!timeRangeIndicatorReady}
         />
-        {timeRanges.map(range => (
+        {timeRanges.map((range, index) => (
           <button
             key={range}
             type="button"
+            ref={(el) => {
+              timeRangeRefs.current[index] = el
+            }}
             className={cn(
               'relative rounded-md px-3 py-2 transition-colors',
               activeTimeRange === range

@@ -103,9 +103,6 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
     typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
   >(OUTCOME_INDEX.YES)
   const [cursorSnapshot, setCursorSnapshot] = useState<PredictionChartCursorSnapshot | null>(null)
-  const timeRangeContainerRef = useRef<HTMLDivElement | null>(null)
-  const [timeRangeIndicator, setTimeRangeIndicator] = useState({ width: 0, left: 0 })
-  const [timeRangeIndicatorReady, setTimeRangeIndicatorReady] = useState(false)
   const [tradeFlowItems, setTradeFlowItems] = useState<TradeFlowLabelItem[]>([])
   const tradeFlowIdRef = useRef(0)
 
@@ -443,23 +440,6 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
     }
   }, [hasTradeFlowLabels])
 
-  useEffect(() => {
-    const container = timeRangeContainerRef.current
-    if (!container) {
-      return
-    }
-    const target = container.querySelector<HTMLButtonElement>(`button[data-range="${activeTimeRange}"]`)
-    if (!target) {
-      return
-    }
-    const { offsetLeft, offsetWidth } = target
-    setTimeRangeIndicator({
-      width: offsetWidth,
-      left: offsetLeft,
-    })
-    setTimeRangeIndicatorReady(offsetWidth > 0)
-  }, [activeTimeRange])
-
   const legendContent = shouldRenderLegendEntries
     ? (
         <div className="flex min-h-5 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
@@ -543,9 +523,6 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
           timeRanges={TIME_RANGES}
           activeTimeRange={activeTimeRange}
           onTimeRangeChange={setActiveTimeRange}
-          timeRangeContainerRef={timeRangeContainerRef}
-          timeRangeIndicator={timeRangeIndicator}
-          timeRangeIndicatorReady={timeRangeIndicatorReady}
           showOutcomeSwitch={isSingleMarket}
           oppositeOutcomeLabel={oppositeOutcomeLabel}
           onShuffle={() => {

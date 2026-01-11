@@ -35,6 +35,7 @@ export function useInfiniteComments(eventSlug: string, sortBy: 'newest' | 'most_
   const queryClient = useQueryClient()
   const [infiniteScrollError, setInfiniteScrollError] = useState<Error | null>(null)
   const [loadingRepliesForComment, setLoadingRepliesForComment] = useState<string | null>(null)
+  const commentsQueryKey = ['event-comments', eventSlug, sortBy]
 
   const {
     data,
@@ -45,7 +46,7 @@ export function useInfiniteComments(eventSlug: string, sortBy: 'newest' | 'most_
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['event-comments', eventSlug, sortBy],
+    queryKey: commentsQueryKey,
     queryFn: ({ pageParam = 0 }) => fetchComments({ pageParam, eventSlug, sortBy }),
     getNextPageParam: (lastPage, allPages) => {
       const pageSize = 20
@@ -116,7 +117,7 @@ export function useInfiniteComments(eventSlug: string, sortBy: 'newest' | 'most_
 
       await queryClient.cancelQueries({ queryKey: ['event-comments', eventSlug] })
 
-      const previousComments = queryClient.getQueryData(['event-comments', eventSlug])
+      const previousComments = queryClient.getQueryData(commentsQueryKey)
 
       const optimisticComment: Comment = {
         id: `temp-${Date.now()}`,
@@ -135,7 +136,7 @@ export function useInfiniteComments(eventSlug: string, sortBy: 'newest' | 'most_
       }
 
       if (parentCommentId) {
-        queryClient.setQueryData(['event-comments', eventSlug], (oldData: any) => {
+        queryClient.setQueryData(commentsQueryKey, (oldData: any) => {
           if (!oldData) {
             return oldData
           }
@@ -157,7 +158,7 @@ export function useInfiniteComments(eventSlug: string, sortBy: 'newest' | 'most_
         })
       }
       else {
-        queryClient.setQueryData(['event-comments', eventSlug], (oldData: any) => {
+        queryClient.setQueryData(commentsQueryKey, (oldData: any) => {
           if (!oldData) {
             return { pages: [[optimisticComment]], pageParams: [0] }
           }
@@ -173,11 +174,11 @@ export function useInfiniteComments(eventSlug: string, sortBy: 'newest' | 'most_
     },
     onError: (_err, _variables, context) => {
       if (context?.previousComments) {
-        queryClient.setQueryData(['event-comments', eventSlug], context.previousComments)
+        queryClient.setQueryData(commentsQueryKey, context.previousComments)
       }
     },
     onSuccess: (newComment, variables, context) => {
-      queryClient.setQueryData(['event-comments', eventSlug], (oldData: any) => {
+      queryClient.setQueryData(commentsQueryKey, (oldData: any) => {
         if (!oldData) {
           return oldData
         }
@@ -218,11 +219,11 @@ export function useInfiniteComments(eventSlug: string, sortBy: 'newest' | 'most_
       return result.data
     },
     onMutate: async ({ commentId }) => {
-      await queryClient.cancelQueries({ queryKey: ['event-comments', eventSlug] })
+      await queryClient.cancelQueries({ queryKey: commentsQueryKey })
 
-      const previousComments = queryClient.getQueryData(['event-comments', eventSlug])
+      const previousComments = queryClient.getQueryData(commentsQueryKey)
 
-      queryClient.setQueryData(['event-comments', eventSlug], (oldData: any) => {
+      queryClient.setQueryData(commentsQueryKey, (oldData: any) => {
         if (!oldData) {
           return oldData
         }
@@ -267,12 +268,12 @@ export function useInfiniteComments(eventSlug: string, sortBy: 'newest' | 'most_
     },
     onError: (_err, _variables, context) => {
       if (context?.previousComments) {
-        queryClient.setQueryData(['event-comments', eventSlug], context.previousComments)
+        queryClient.setQueryData(commentsQueryKey, context.previousComments)
       }
     },
     onSuccess: (data, variables) => {
       if (data) {
-        queryClient.setQueryData(['event-comments', eventSlug], (oldData: any) => {
+        queryClient.setQueryData(commentsQueryKey, (oldData: any) => {
           if (!oldData) {
             return oldData
           }
@@ -321,11 +322,11 @@ export function useInfiniteComments(eventSlug: string, sortBy: 'newest' | 'most_
       return commentId
     },
     onMutate: async ({ commentId }) => {
-      await queryClient.cancelQueries({ queryKey: ['event-comments', eventSlug] })
+      await queryClient.cancelQueries({ queryKey: commentsQueryKey })
 
-      const previousComments = queryClient.getQueryData(['event-comments', eventSlug])
+      const previousComments = queryClient.getQueryData(commentsQueryKey)
 
-      queryClient.setQueryData(['event-comments', eventSlug], (oldData: any) => {
+      queryClient.setQueryData(commentsQueryKey, (oldData: any) => {
         if (!oldData) {
           return oldData
         }
@@ -356,7 +357,7 @@ export function useInfiniteComments(eventSlug: string, sortBy: 'newest' | 'most_
     },
     onError: (_err, _variables, context) => {
       if (context?.previousComments) {
-        queryClient.setQueryData(['event-comments', eventSlug], context.previousComments)
+        queryClient.setQueryData(commentsQueryKey, context.previousComments)
       }
     },
   })
@@ -398,7 +399,7 @@ export function useInfiniteComments(eventSlug: string, sortBy: 'newest' | 'most_
     },
     onSuccess: (replies, variables) => {
       setLoadingRepliesForComment(null)
-      queryClient.setQueryData(['event-comments', eventSlug], (oldData: any) => {
+      queryClient.setQueryData(commentsQueryKey, (oldData: any) => {
         if (!oldData) {
           return oldData
         }

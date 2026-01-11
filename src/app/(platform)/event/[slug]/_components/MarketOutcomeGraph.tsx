@@ -3,7 +3,7 @@
 import type { TimeRange } from '@/app/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { PredictionChartCursorSnapshot } from '@/components/PredictionChart'
 import type { Market, Outcome } from '@/types'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import EventChartControls from '@/app/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartHeader from '@/app/(platform)/event/[slug]/_components/EventChartHeader'
 import EventChartLayout from '@/app/(platform)/event/[slug]/_components/EventChartLayout'
@@ -28,9 +28,6 @@ export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventC
   const [activeTimeRange, setActiveTimeRange] = useState<TimeRange>('ALL')
   const [activeOutcomeIndex, setActiveOutcomeIndex] = useState(outcome.outcome_index)
   const [cursorSnapshot, setCursorSnapshot] = useState<PredictionChartCursorSnapshot | null>(null)
-  const timeRangeContainerRef = useRef<HTMLDivElement | null>(null)
-  const [timeRangeIndicator, setTimeRangeIndicator] = useState({ width: 0, left: 0 })
-  const [timeRangeIndicatorReady, setTimeRangeIndicatorReady] = useState(false)
   const marketTargets = useMemo(() => buildMarketTargets(allMarkets), [allMarkets])
   const { width: windowWidth } = useWindowSize()
   const chartWidth = isMobile ? ((windowWidth || 400) * 0.84) : Math.min((windowWidth ?? 1440) * 0.55, 900)
@@ -93,26 +90,6 @@ export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventC
     }),
     [],
   )
-
-  useEffect(() => {
-    if (!hasChartData) {
-      return
-    }
-    const container = timeRangeContainerRef.current
-    if (!container) {
-      return
-    }
-    const target = container.querySelector<HTMLButtonElement>(`button[data-range="${activeTimeRange}"]`)
-    if (!target) {
-      return
-    }
-    const { offsetLeft, offsetWidth } = target
-    setTimeRangeIndicator({
-      width: offsetWidth,
-      left: offsetLeft,
-    })
-    setTimeRangeIndicatorReady(offsetWidth > 0)
-  }, [activeTimeRange, hasChartData])
 
   const hoveredValue = cursorSnapshot?.values?.value
   const latestValue = useMemo(() => {
@@ -183,9 +160,6 @@ export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventC
                 timeRanges={TIME_RANGES}
                 activeTimeRange={activeTimeRange}
                 onTimeRangeChange={setActiveTimeRange}
-                timeRangeContainerRef={timeRangeContainerRef}
-                timeRangeIndicator={timeRangeIndicator}
-                timeRangeIndicatorReady={timeRangeIndicatorReady}
                 showOutcomeSwitch={showOutcomeSwitch}
                 oppositeOutcomeLabel={oppositeOutcome.outcome_text}
                 onShuffle={() => setActiveOutcomeIndex(oppositeOutcome.outcome_index)}

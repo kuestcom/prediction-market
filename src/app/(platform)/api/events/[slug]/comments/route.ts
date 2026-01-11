@@ -55,19 +55,26 @@ export async function GET(
     })
 
     const proxyLookup = new Map<string, string | null>()
+    const createdAtLookup = new Map<string, string | null>()
     if (userIds.size > 0) {
       const { data: commentUsers } = await UserRepository.getUsersByIds(Array.from(userIds))
       for (const profile of commentUsers ?? []) {
         proxyLookup.set(profile.id, profile.proxy_wallet_address ?? null)
+        const createdAt = profile.created_at
+          ? new Date(profile.created_at).toISOString()
+          : null
+        createdAtLookup.set(profile.id, createdAt)
       }
     }
 
     const commentsWithProfiles = normalizedComments.map((comment: any) => ({
       ...comment,
       user_proxy_wallet_address: proxyLookup.get(String(comment.user_id)) ?? null,
+      user_created_at: createdAtLookup.get(String(comment.user_id)) ?? null,
       recent_replies: (comment.recent_replies || []).map((reply: any) => ({
         ...reply,
         user_proxy_wallet_address: proxyLookup.get(String(reply.user_id)) ?? null,
+        user_created_at: createdAtLookup.get(String(reply.user_id)) ?? null,
       })),
     }))
 

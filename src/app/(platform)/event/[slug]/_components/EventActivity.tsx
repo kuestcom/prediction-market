@@ -355,6 +355,8 @@ export default function EventActivity({ event }: EventActivityProps) {
                       address: activity.user.address,
                     }}
                     layout="inline"
+                    tooltipVariant="activity"
+                    joinedAt={activity.user.created_at}
                     usernameClassName="font-semibold text-foreground"
                     usernameMaxWidthClassName="max-w-44 sm:max-w-56"
                     inlineNoTruncate={true}

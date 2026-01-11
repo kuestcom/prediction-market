@@ -352,6 +352,7 @@ export const UserRepository = {
           address: users.address,
           proxy_wallet_address: users.proxy_wallet_address,
           image: users.image,
+          created_at: users.created_at,
         })
         .from(users)
         .where(inArray(users.id, ids))
@@ -390,6 +391,7 @@ export const UserRepository = {
           address: users.address,
           proxy_wallet_address: users.proxy_wallet_address,
           image: users.image,
+          created_at: users.created_at,
         })
         .from(users)
         .where(whereClause)

@@ -3,7 +3,7 @@ import { normalizeAddress } from '@/lib/wallet'
 export interface ProfileLinkStats {
   positions: number
   profitLoss: number
-  volume: number | null
+  volume: string | null
   positionsValue: number
   biggestWin: number
 }
@@ -78,7 +78,7 @@ function parsePortfolioValue(body: unknown): number {
   return toNumber(body) ?? 0
 }
 
-function parseTradedVolume(body: unknown): number | null {
+function parseVolume(body: unknown): string | null {
   if (!body) {
     return null
   }
@@ -90,12 +90,24 @@ function parseTradedVolume(body: unknown): number | null {
       totalVolume?: unknown
       tradedVolume?: unknown
     }
-    return toNumber(
-      candidate.volume
+    const resolved = candidate.volume
       ?? candidate.total_volume
       ?? candidate.totalVolume
-      ?? candidate.tradedVolume,
-    )
+      ?? candidate.tradedVolume
+    return parseVolumeValue(resolved)
+  }
+
+  return parseVolumeValue(body)
+}
+
+function parseVolumeValue(value: unknown): string | null {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value.toString() : null
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return trimmed || null
   }
 
   return null
@@ -158,12 +170,14 @@ export async function fetchProfileLinkStats(
       })
       const valueUrl = `${DATA_API_URL}/value?user=${encodeURIComponent(address)}`
       const tradedUrl = `${DATA_API_URL}/traded?user=${encodeURIComponent(address)}`
+      const volumeUrl = `${DATA_API_URL}/volume?user=${encodeURIComponent(address)}`
 
-      const [valueResult, activePositionsResult, closedPositionsResult, tradedResult] = await Promise.allSettled([
+      const [valueResult, activePositionsResult, closedPositionsResult, tradedResult, volumeResult] = await Promise.allSettled([
         fetchJson(valueUrl, signal),
         fetchJson(`${DATA_API_URL}/positions?${activeParams.toString()}`, signal),
         fetchJson(`${DATA_API_URL}/closed-positions?${closedParams.toString()}`, signal),
         fetchJson(tradedUrl, signal),
+        fetchJson(volumeUrl, signal),
       ])
 
       const activePositions = activePositionsResult.status === 'fulfilled'
@@ -180,8 +194,8 @@ export async function fetchProfileLinkStats(
         ? parseTradedCount(tradedResult.value)
         : 0
 
-      const volume = tradedResult.status === 'fulfilled'
-        ? parseTradedVolume(tradedResult.value)
+      const volume = volumeResult.status === 'fulfilled'
+        ? parseVolume(volumeResult.value)
         : null
 
       const positionsValue = valueResult.status === 'fulfilled'

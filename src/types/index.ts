@@ -176,6 +176,7 @@ export interface Comment {
   user_avatar: string
   user_address: string
   user_proxy_wallet_address?: string | null
+  user_created_at?: string
   likes_count: number
   replies_count: number
   created_at: string
@@ -238,6 +239,7 @@ export interface ActivityOrder {
     username: string
     address: string
     image: string
+    created_at?: string
   }
   side: 'buy' | 'sell'
   amount: string
@@ -269,6 +271,7 @@ export interface TopHolder {
     address: string
     proxy_wallet_address?: string | null
     image: string
+    created_at?: string
   }
   net_position: string
   outcome_index: number

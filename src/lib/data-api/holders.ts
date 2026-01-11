@@ -30,6 +30,7 @@ export interface TopHoldersResult {
       address: string
       proxy_wallet_address?: string | null
       image: string
+      created_at?: string
     }
     net_position: string
     outcome_index: number
@@ -42,6 +43,7 @@ export interface TopHoldersResult {
       address: string
       proxy_wallet_address?: string | null
       image: string
+      created_at?: string
     }
     net_position: string
     outcome_index: number
