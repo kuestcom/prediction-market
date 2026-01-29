@@ -619,7 +619,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
               aria-expanded={showResolvedMarkets}
               data-state={showResolvedMarkets ? 'open' : 'closed'}
             >
-              <span>{showResolvedMarkets ? 'Hide resolved' : 'View resolved'}</span>
+              <span>{showResolvedMarkets ? t('Hide resolved') : t('View resolved')}</span>
               <ChevronDown
                 className="size-6 transition-transform duration-150 group-data-[state=open]:rotate-180"
               />
@@ -771,12 +771,12 @@ function ResolvedMarketRow({
             </div>
             <div className="text-sm text-muted-foreground">
               $
-              {resolvedVolume.toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
+              {t('{amount} Vol.', {
+                amount: `$${resolvedVolume.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`,
               })}
-              {' '}
-              Vol.
             </div>
           </div>
         </div>
@@ -798,7 +798,7 @@ function ResolvedMarketRow({
                 </span>
               )
             : (
-                <span className="text-sm font-semibold text-muted-foreground">Resolved</span>
+                <span className="text-sm font-semibold text-muted-foreground">{t('Resolved')}</span>
               )}
         </div>
       </div>
@@ -833,7 +833,7 @@ function OtherOutcomeRow({ shares, showMarketIcon }: { shares: number, showMarke
           {showMarketIcon && (
             <div className="size-10.5 shrink-0 rounded-md bg-muted/60" aria-hidden="true" />
           )}
-          <div className="text-sm font-bold text-foreground">Other</div>
+          <div className="text-sm font-bold text-foreground">{t('Other')}</div>
         </div>
         <div>
           <span className={cn(
@@ -946,28 +946,28 @@ function MarketDetailTabs({
   const visibleTabs = useMemo(() => {
     if (isResolvedView) {
       return [
-        { id: 'graph', label: 'Graph' },
-        { id: 'resolution', label: 'Resolution' },
+        { id: 'graph', label: t('Graph') },
+        { id: 'resolution', label: t('Resolution') },
       ] satisfies Array<{ id: MarketDetailTab, label: string }>
     }
 
     const tabs: Array<{ id: MarketDetailTab, label: string }> = [
-      { id: 'orderBook', label: 'Order Book' },
-      { id: 'graph', label: 'Graph' },
+      { id: 'orderBook', label: t('Order Book') },
+      { id: 'graph', label: t('Graph') },
     ]
 
     if (hasOpenOrders) {
-      tabs.splice(1, 0, { id: 'openOrders', label: 'Open Orders' })
+      tabs.splice(1, 0, { id: 'openOrders', label: t('Open Orders') })
     }
     if (hasPositions) {
-      tabs.unshift({ id: 'positions', label: 'Positions' })
+      tabs.unshift({ id: 'positions', label: t('Positions') })
     }
     if (hasHistory) {
-      tabs.push({ id: 'history', label: 'History' })
+      tabs.push({ id: 'history', label: t('History') })
     }
-    tabs.push({ id: 'resolution', label: 'Resolution' })
+    tabs.push({ id: 'resolution', label: t('Resolution') })
     return tabs
-  }, [hasHistory, hasOpenOrders, hasPositions, isResolvedView])
+  }, [hasHistory, hasOpenOrders, hasPositions, isResolvedView, t])
 
   const selectedTab = useMemo<MarketDetailTab>(() => {
     if (controlledTab && visibleTabs.some(tab => tab.id === controlledTab)) {
@@ -986,7 +986,7 @@ function MarketDetailTabs({
     ? t('No')
     : resolvedOutcomeIndex === OUTCOME_INDEX.YES
       ? t('Yes')
-      : 'Unknown'
+      : t('Unknown')
 
   useEffect(() => {
     if (selectedTab !== controlledTab) {
@@ -1034,8 +1034,8 @@ function MarketDetailTabs({
               'hover:bg-muted/70 hover:text-foreground',
               'focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none',
             )}
-            aria-label="Refresh order book"
-            title="Refresh order book"
+            aria-label={t('Refresh order book')}
+            title={t('Refresh order book')}
             onClick={() => { void orderBookData.refetch() }}
             disabled={orderBookData.isLoading || orderBookData.isRefetching}
           >
@@ -1101,7 +1101,7 @@ function MarketDetailTabs({
                         onClick={event => event.stopPropagation()}
                       >
                         <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
-                          Propose resolution
+                          {t('Propose resolution')}
                         </a>
                       </Button>
                     )
@@ -1113,7 +1113,7 @@ function MarketDetailTabs({
                         disabled
                         onClick={event => event.stopPropagation()}
                       >
-                        Propose resolution
+                        {t('Propose resolution')}
                       </Button>
                     )
               )
@@ -1132,6 +1132,7 @@ export function ResolvedResolutionPanel({
   settledUrl: string | null
   showLink?: boolean
 }) {
+  const t = useExtracted()
   const hasLink = Boolean(settledUrl) && showLink
 
   return (
@@ -1143,7 +1144,7 @@ export function ResolvedResolutionPanel({
             <Check className="size-3.5 text-primary-foreground" />
           </span>
           <span className="text-sm font-medium text-foreground">
-            Outcome proposed:
+            {t('Outcome proposed:')}
             {' '}
             {outcomeLabel}
           </span>
@@ -1152,14 +1153,14 @@ export function ResolvedResolutionPanel({
           <span className="relative flex size-6 items-center justify-center rounded-full bg-primary">
             <Check className="size-3.5 text-primary-foreground" />
           </span>
-          <span className="text-sm font-medium text-foreground">No dispute</span>
+          <span className="text-sm font-medium text-foreground">{t('No dispute')}</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="relative flex size-6 items-center justify-center rounded-full bg-primary">
             <Check className="size-3.5 text-primary-foreground" />
           </span>
           <span className="text-sm font-medium text-foreground">
-            Final outcome:
+            {t('Final outcome:')}
             {' '}
             {outcomeLabel}
           </span>
@@ -1173,7 +1174,7 @@ export function ResolvedResolutionPanel({
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:underline"
         >
-          View details
+          {t('View details')}
           <SquareArrowOutUpRight className="size-4" />
         </a>
       )}

@@ -3,6 +3,7 @@
 import type { Event, UserPosition } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { ShareIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { PositionShareDialog } from '@/app/[locale]/(platform)/_components/PositionShareDialog'
@@ -177,6 +178,7 @@ function MarketPositionRow({
   onShare: (position: UserPosition) => void
   onConvert?: (position: UserPosition) => void
 }) {
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const outcomeText = position.outcome_text
     || (position.outcome_index === 1 ? 'No' : 'Yes')
@@ -281,7 +283,9 @@ function MarketPositionRow({
         <div className="flex flex-col leading-tight">
           <span className="text-2xs font-semibold sm:text-sm">{valueLabel}</span>
           <span className="text-2xs font-medium tracking-wide text-muted-foreground uppercase">
-            {costLabel ? `Cost ${costLabel}` : 'Cost —'}
+            {costLabel
+              ? t('Cost {amount}', { amount: costLabel })
+              : t('Cost —')}
           </span>
         </div>
       </td>
@@ -310,16 +314,16 @@ function MarketPositionRow({
           >
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Unrealized</span>
+                <span className="text-muted-foreground">{t('Unrealized')}</span>
                 <span className="font-semibold text-no">{unrealizedLabel}</span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span>Realized</span>
+                <span>{t('Realized')}</span>
                 <span className="font-semibold">{realizedLabel}</span>
               </div>
               <div className="my-1 border-t border-border" />
               <div className="flex items-center justify-between gap-3">
-                <span>Total</span>
+                <span>{t('Total')}</span>
                 <span className="font-semibold">
                   {displayedReturnValue}
                   {!isNeutralReturn && (
@@ -345,7 +349,7 @@ function MarketPositionRow({
               aria-label="Convert position"
               onClick={() => onConvert?.(position)}
             >
-              Convert
+              {t('Convert')}
             </Button>
           )}
           <Button
@@ -355,7 +359,7 @@ function MarketPositionRow({
             aria-label="Sell position"
             onClick={() => onSell(position)}
           >
-            Sell
+            {t('Sell')}
           </Button>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -363,13 +367,13 @@ function MarketPositionRow({
                 type="button"
                 variant="outline"
                 size="sm"
-                aria-label={`Share ${outcomeButtonLabel} position`}
+                aria-label={t('Share {outcome} position', { outcome: outcomeButtonLabel })}
                 onClick={() => onShare(position)}
               >
                 <ShareIcon className="size-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Share</TooltipContent>
+            <TooltipContent>{t('Share')}</TooltipContent>
           </Tooltip>
         </div>
       </td>
@@ -392,14 +396,15 @@ function NetPositionsDialog({
     iconUrl?: string | null
   }>
 }) {
+  const t = useExtracted()
   const isMobile = useIsMobile()
 
   const body = (
     <div className="space-y-4 text-foreground">
       <div className="space-y-1 text-left">
-        <div className="text-lg font-semibold">Net Positions</div>
+        <div className="text-lg font-medium">{t('Net Positions')}</div>
         <div className="text-sm text-muted-foreground">
-          See your gains for each outcome scenario based on all your positions.
+          {t('See your gains for each outcome scenario based on all your positions.')}
         </div>
       </div>
 
@@ -409,9 +414,9 @@ function NetPositionsDialog({
           uppercase
         `}
         >
-          <span>Outcome</span>
-          <span className="text-right">Payout</span>
-          <span className="text-right">Net Value</span>
+          <span>{t('Outcome')}</span>
+          <span className="text-right">{t('Payout')}</span>
+          <span className="text-right">{t('Net Value')}</span>
         </div>
         <div className="border-t border-border" />
         <div className="max-h-[60vh] divide-y divide-border overflow-y-auto pr-2">
@@ -489,6 +494,7 @@ export default function EventMarketPositions({
   negRiskMarketId,
   isNegRiskAugmented,
 }: EventMarketPositionsProps) {
+  const t = useExtracted()
   const user = useUser()
   const userAddress = getUserPublicAddress(user)
   const isMobile = useIsMobile()
@@ -815,13 +821,13 @@ export default function EventMarketPositions({
   if (hasInitialError) {
     return (
       <AlertBanner
-        title="Failed to load positions"
+        title={t('Failed to load positions')}
         description={(
           <>
-            <span>We couldn&apos;t fetch your positions for this market.</span>
+            <span>{t('We couldn\'t fetch your positions for this market.')}</span>
             <div>
               <Button type="button" variant="secondary" size="sm" onClick={() => refetch()}>
-                Try again
+                {t('Try again')}
               </Button>
             </div>
           </>
@@ -839,25 +845,25 @@ export default function EventMarketPositions({
     <>
       {isSingleMarket && (
         <div className="p-4">
-          <h3 className="text-lg font-semibold">Positions</h3>
+          <h3 className="text-lg font-medium">{t('Positions')}</h3>
         </div>
       )}
       <div className="relative w-full overflow-x-auto">
         <table className="w-full border-collapse sm:table-auto">
           <thead>
             <tr className="border-b bg-background">
-              <th className={cn(tableHeaderClass, 'text-left')}>Outcome</th>
-              <th className={cn(tableHeaderClass, 'text-center')}>Qty</th>
-              <th className={cn(tableHeaderClass, 'text-center')}>Avg</th>
-              <th className={cn(tableHeaderClass, 'text-left')}>Value</th>
-              <th className={cn(tableHeaderClass, 'text-left')}>Return</th>
+              <th className={cn(tableHeaderClass, 'text-left')}>{t('Outcome')}</th>
+              <th className={cn(tableHeaderClass, 'text-center')}>{t('Qty')}</th>
+              <th className={cn(tableHeaderClass, 'text-center')}>{t('Avg')}</th>
+              <th className={cn(tableHeaderClass, 'text-left')}>{t('Value')}</th>
+              <th className={cn(tableHeaderClass, 'text-left')}>{t('Return')}</th>
               <th className={cn(tableHeaderClass, 'w-40 text-right')}>
                 <button
                   type="button"
                   onClick={() => setIsNetPositionsOpen(true)}
                   className="text-sm text-muted-foreground transition-colors hover:underline"
                 >
-                  View net positions
+                  {t('View net positions')}
                 </button>
               </th>
             </tr>

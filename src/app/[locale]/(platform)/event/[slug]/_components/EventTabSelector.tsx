@@ -1,3 +1,4 @@
+import { useExtracted } from 'next-intl'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import LiveCommentsStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/LiveCommentsStatusIndicator'
 import MarketChannelStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/MarketChannelStatusIndicator'
@@ -16,18 +17,21 @@ export default function EventTabSelector({
   commentsCount,
   liveCommentsStatus,
 }: EventTabSelectorProps) {
+  const t = useExtracted()
   const formattedCommentsCount = useMemo(
-    () => (commentsCount == null ? null : Number(commentsCount).toLocaleString('en-US')),
+    () => (commentsCount == null ? null : Number(commentsCount).toLocaleString(undefined)),
     [commentsCount],
   )
   const eventTabs = useMemo(() => ([
     {
       key: 'comments',
-      label: formattedCommentsCount == null ? 'Comments' : `Comments (${formattedCommentsCount})`,
+      label: formattedCommentsCount == null
+        ? t('Comments')
+        : t('Comments ({count})', { count: formattedCommentsCount }),
     },
-    { key: 'holders', label: 'Top Holders' },
-    { key: 'activity', label: 'Activity' },
-  ]), [formattedCommentsCount])
+    { key: 'holders', label: t('Top Holders') },
+    { key: 'activity', label: t('Activity') },
+  ]), [formattedCommentsCount, t])
   const tabRefs = useRef<(HTMLLIElement | null)[]>([])
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
   const [isInitialized, setIsInitialized] = useState(false)

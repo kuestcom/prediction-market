@@ -2,6 +2,7 @@
 
 import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSkeleton'
@@ -77,6 +78,7 @@ function useRelatedEvents(params: UseRelatedEventsParams) {
 }
 
 export default function EventRelated({ event }: EventRelatedProps) {
+  const t = useExtracted()
   const [activeTag, setActiveTagState] = useState('all')
   const [backgroundStyle, setBackgroundStyleState] = useState<BackgroundStyle>(INITIAL_BACKGROUND_STYLE)
   const [showLeftShadow, setShowLeftShadowState] = useState(false)
@@ -126,13 +128,13 @@ export default function EventRelated({ event }: EventRelatedProps) {
     }
 
     return [
-      { slug: 'all', label: 'All' },
+      { slug: 'all', label: t('All') },
       ...Array.from(uniqueTags.entries()).map(([slug, label]) => ({
         slug,
         label,
       })),
     ]
-  }, [event.tags])
+  }, [event.tags, t])
 
   const activeIndex = useMemo(
     () => tagItems.findIndex(item => item.slug === activeTag),
@@ -327,7 +329,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
         : error
           ? (
               <div className="rounded-lg border p-4 text-sm text-muted-foreground">
-                Failed to fetch related events.
+                {t('Failed to fetch related events.')}
               </div>
             )
           : events.length > 0
@@ -352,12 +354,12 @@ export default function EventRelated({ event }: EventRelatedProps) {
                             {relatedEvent.title}
                           </strong>
                           <span className={`
-                            min-w-[52px] text-right text-xl leading-none font-semibold text-foreground tabular-nums
+                            min-w-13 text-right text-xl leading-none font-semibold text-foreground tabular-nums
                           `}
                           >
                             {Number.isFinite(relatedEvent.chance)
                               ? `${Math.round(relatedEvent.chance ?? 0)}%`
-                              : '—'}
+                              : t('—')}
                           </span>
                         </div>
                       </Link>
@@ -367,7 +369,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
               )
             : (
                 <div className="rounded-lg border p-4 text-sm text-muted-foreground">
-                  No related events for this tag yet.
+                  {t('No related events for this tag yet.')}
                 </div>
               )}
     </div>

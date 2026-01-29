@@ -4,6 +4,7 @@ import type { InfiniteData } from '@tanstack/react-query'
 import type { ActivityOrder, Event } from '@/types'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { ExternalLinkIcon, Loader2Icon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   useMarketChannelSubscription,
@@ -13,6 +14,7 @@ import ProfileLink from '@/components/ProfileLink'
 import ProfileLinkSkeleton from '@/components/ProfileLinkSkeleton'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { MICRO_UNIT, POLYGON_SCAN_BASE } from '@/lib/constants'
 import { EVENT_ACTIVITY_PAGE_SIZE, fetchEventTrades } from '@/lib/data-api/trades'
 import { formatCurrency, formatSharePriceLabel, formatTimeAgo, fromMicro } from '@/lib/formatters'
@@ -37,6 +39,7 @@ function getEventTokenIds(event: Event) {
 }
 
 export default function EventActivity({ event }: EventActivityProps) {
+  const t = useExtracted()
   const [minAmountFilter, setMinAmountFilter] = useState('none')
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -44,6 +47,7 @@ export default function EventActivity({ event }: EventActivityProps) {
   const isPollingRef = useRef(false)
   const lastWsRefreshAtRef = useRef(0)
   const wsRefreshThrottleMs = 2000
+  const normalizeOutcomeLabel = useOutcomeLabel()
 
   useEffect(() => {
     queueMicrotask(() => setInfiniteScrollError(null))
@@ -117,7 +121,7 @@ export default function EventActivity({ event }: EventActivityProps) {
           && !infiniteScrollError
         ) {
           fetchNextPage().catch((error) => {
-            setInfiniteScrollError(error.message || 'Failed to load more activity')
+            setInfiniteScrollError(error.message || t('Failed to load more activity'))
           })
         }
       },
@@ -126,7 +130,7 @@ export default function EventActivity({ event }: EventActivityProps) {
 
     observer.observe(node)
     return () => observer.disconnect()
-  }, [activities.length, fetchNextPage, hasMarkets, hasNextPage, infiniteScrollError, isFetchingNextPage, loading])
+  }, [activities.length, fetchNextPage, hasMarkets, hasNextPage, infiniteScrollError, isFetchingNextPage, loading, t])
 
   const refreshLatestActivity = useCallback(async () => {
     if (!hasMarkets || loading || isPollingRef.current) {
@@ -229,14 +233,14 @@ export default function EventActivity({ event }: EventActivityProps) {
   function retryInfiniteScroll() {
     setInfiniteScrollError(null)
     fetchNextPage().catch((error) => {
-      setInfiniteScrollError(error.message || 'Failed to load more activity')
+      setInfiniteScrollError(error.message || t('Failed to load more activity'))
     })
   }
 
   if (!hasMarkets) {
     return (
       <div className="mt-6">
-        <AlertBanner title="No market available for this event" />
+        <AlertBanner title={t('No market available for this event')} />
       </div>
     )
   }
@@ -245,7 +249,7 @@ export default function EventActivity({ event }: EventActivityProps) {
     return (
       <div className="mt-6">
         <AlertBanner
-          title="Failed to load activity"
+          title={t('Failed to load activity')}
           description={(
             <Button
               type="button"
@@ -254,7 +258,7 @@ export default function EventActivity({ event }: EventActivityProps) {
               variant="link"
               className="-ml-3"
             >
-              Try again
+              {t('Try again')}
             </Button>
           )}
         />
@@ -267,10 +271,10 @@ export default function EventActivity({ event }: EventActivityProps) {
       <div className="flex items-center justify-between gap-2">
         <Select value={minAmountFilter} onValueChange={setMinAmountFilter}>
           <SelectTrigger className="dark:bg-transparent">
-            <SelectValue placeholder="Min Amount:" />
+            <SelectValue placeholder={t('Min Amount:')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">None</SelectItem>
+            <SelectItem value="none">{t('None')}</SelectItem>
             <SelectItem value="10">$10</SelectItem>
             <SelectItem value="100">$100</SelectItem>
             <SelectItem value="1000">$1,000</SelectItem>
@@ -304,14 +308,14 @@ export default function EventActivity({ event }: EventActivityProps) {
         <div className="text-center">
           <div className="text-sm text-muted-foreground">
             {minAmountFilter && minAmountFilter !== 'none'
-              ? `No activity found with minimum amount of ${
-                formatCurrency(Number.parseInt(minAmountFilter, 10) || 0, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-              }.`
-              : 'No trading activity yet for this event.'}
+              ? t('No activity found with minimum amount of {amount}.', {
+                  amount: formatCurrency(Number.parseInt(minAmountFilter, 10) || 0, { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
+                })
+              : t('No trading activity yet for this event.')}
           </div>
           {minAmountFilter && minAmountFilter !== 'none' && (
             <div className="mt-2 text-xs text-muted-foreground">
-              Try lowering the minimum amount filter to see more activity.
+              {t('Try lowering the minimum amount filter to see more activity.')}
             </div>
           )}
         </div>
@@ -363,7 +367,7 @@ export default function EventActivity({ event }: EventActivityProps) {
                             href={txUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            aria-label="View transaction on Polygonscan"
+                            aria-label={t('View transaction on Polygonscan')}
                             className="transition-colors hover:text-foreground"
                           >
                             <ExternalLinkIcon className="size-3.5" />
@@ -374,18 +378,18 @@ export default function EventActivity({ event }: EventActivityProps) {
                     inlineContent={(
                       <>
                         <span className="text-foreground">
-                          {activity.side === 'buy' ? 'bought' : 'sold'}
+                          {activity.side === 'buy' ? t('bought') : t('sold')}
                           {' '}
                         </span>
                         <span className={cn('font-semibold', outcomeColorClass)}>
                           {amountLabel}
                           {' '}
-                          {activity.outcome.text ? ` ${activity.outcome.text}` : ''}
+                          {activity.outcome.text ? ` ${normalizeOutcomeLabel(activity.outcome.text)}` : ''}
                           {' '}
                           {' '}
                         </span>
                         <span className="text-foreground">
-                          at
+                          {t('at')}
                           {' '}
                         </span>
                         <span className="font-semibold text-foreground">
@@ -408,14 +412,14 @@ export default function EventActivity({ event }: EventActivityProps) {
           {isFetchingNextPage && (
             <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
               <Loader2Icon className="size-4 animate-spin" />
-              Loading more
+              {t('Loading more')}
             </div>
           )}
 
           {infiniteScrollError && (
             <div className="bg-destructive/5 p-4">
               <AlertBanner
-                title="Failed to load more activity"
+                title={t('Failed to load more activity')}
                 description={(
                   <Button
                     type="button"
@@ -424,7 +428,7 @@ export default function EventActivity({ event }: EventActivityProps) {
                     variant="link"
                     className="-ml-3"
                   >
-                    Try again
+                    {t('Try again')}
                   </Button>
                 )}
               />

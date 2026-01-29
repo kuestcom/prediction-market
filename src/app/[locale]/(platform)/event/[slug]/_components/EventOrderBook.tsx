@@ -180,7 +180,7 @@ export default function EventOrderBook({
         throw new Error(response.error)
       }
 
-      toast.success('Order cancelled')
+      toast.success(t('Order cancelled'))
       removeOrderFromCache([orderId])
 
       await queryClient.invalidateQueries({ queryKey: openOrdersQueryKey })
@@ -195,7 +195,7 @@ export default function EventOrderBook({
     catch (error: any) {
       const message = typeof error?.message === 'string'
         ? error.message
-        : 'Failed to cancel order.'
+        : t('Failed to cancel order.')
       toast.error(message)
     }
     finally {
@@ -205,7 +205,7 @@ export default function EventOrderBook({
         return next
       })
     }
-  }, [eventOpenOrdersQueryKey, openOrdersQueryKey, pendingCancelIds, queryClient, removeOrderFromCache, scheduleOpenOrdersRefresh, openTradeRequirements])
+  }, [pendingCancelIds, t, removeOrderFromCache, queryClient, openOrdersQueryKey, eventOpenOrdersQueryKey, scheduleOpenOrdersRefresh, openTradeRequirements])
 
   useEffect(() => () => {
     if (refreshTimeoutRef.current) {
@@ -295,7 +295,7 @@ export default function EventOrderBook({
   if (!tokenId) {
     return (
       <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-        Order book data is unavailable for this outcome.
+        {t('Order book data is unavailable for this outcome.')}
       </div>
     )
   }
@@ -304,7 +304,7 @@ export default function EventOrderBook({
     return (
       <div className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-muted-foreground">
         <Loader2Icon className="size-4 animate-spin" />
-        Loading order book...
+        {t('Loading order book...')}
       </div>
     )
   }
@@ -319,7 +319,7 @@ export default function EventOrderBook({
           )}
         >
           <div className="flex h-full items-center gap-2">
-            <span className="inline-flex -translate-y-[1px]">{`${t('Trade')} ${displayOutcomeLabel}`}</span>
+            <span className="inline-flex -translate-y-px">{`${t('Trade')} ${displayOutcomeLabel}`}</span>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -330,24 +330,24 @@ export default function EventOrderBook({
                     hover:bg-muted/70 hover:text-foreground
                   `}
                   onClick={() => recenterOrderBook()}
-                  aria-label="Recenter order book"
+                  aria-label={t('Recenter order book')}
                 >
                   <AlignVerticalSpaceAroundIcon className="size-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="top">
-                Recenter Book (Shift + C)
+                {t('Recenter Book (Shift + C)')}
               </TooltipContent>
             </Tooltip>
           </div>
           <div className="flex h-full items-center justify-center">
-            <span className="inline-flex -translate-y-[1px]">Price</span>
+            <span className="inline-flex -translate-y-px">{t('Price')}</span>
           </div>
           <div className="flex h-full items-center justify-center">
-            <span className="inline-flex -translate-y-[1px]">Shares</span>
+            <span className="inline-flex -translate-y-px">{t('Shares')}</span>
           </div>
           <div className="flex h-full items-center justify-center">
-            <span className="inline-flex -translate-y-[1px]">Total</span>
+            <span className="inline-flex -translate-y-px">{t('Total')}</span>
           </div>
         </div>
 
@@ -369,7 +369,7 @@ export default function EventOrderBook({
                 )
               })
             )
-          : <EventOrderBookEmptyRow label="No asks" />}
+          : <EventOrderBookEmptyRow label={t('No asks')} />}
 
         <div
           ref={centerRowRef}
@@ -384,11 +384,13 @@ export default function EventOrderBook({
           role="presentation"
         >
           <div className="flex h-full cursor-pointer items-center">
-            Last:&nbsp;
+            {t('Last')}
+            :&nbsp;
             {formatOrderBookPrice(lastPrice)}
           </div>
           <div className="flex h-full cursor-pointer items-center justify-center">
-            Spread:&nbsp;
+            {t('Spread')}
+            :&nbsp;
             {formatOrderBookPrice(spread)}
           </div>
           <div className="flex h-full items-center justify-center" />
@@ -413,7 +415,7 @@ export default function EventOrderBook({
                 )
               })
             )
-          : <EventOrderBookEmptyRow label="No bids" />}
+          : <EventOrderBookEmptyRow label={t('No bids')} />}
       </div>
     </div>
   )

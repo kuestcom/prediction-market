@@ -88,7 +88,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
   if (!conditionId) {
     return (
       <div className="mt-6">
-        <AlertBanner title="No market available for this event" />
+        <AlertBanner title={t('No market available for this event')} />
       </div>
     )
   }
@@ -150,7 +150,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
   if (error) {
     return (
       <div className="mt-6">
-        <AlertBanner title="Failed to load holders" />
+        <AlertBanner title={t('Failed to load holders')} />
       </div>
     )
   }
@@ -161,7 +161,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
         <div className="mb-4">
           <Select value={selectedMarket} onValueChange={handleMarketChange}>
             <SelectTrigger className="dark:bg-transparent">
-              <SelectValue placeholder="Select market..." />
+              <SelectValue placeholder={t('Select market...')} />
             </SelectTrigger>
             <SelectContent>
               {event.markets.map(market => (
@@ -181,12 +181,12 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
               {t('Yes holders')}
             </span>
             <span className="text-2xs leading-none font-semibold tracking-wide text-muted-foreground">
-              SHARES
+              {t('SHARES')}
             </span>
           </div>
           <div className="mt-1 divide-y divide-border border-t">
             {!data?.yesHolders || data.yesHolders.length === 0
-              ? <p className="py-2 text-sm text-muted-foreground">No holders found</p>
+              ? <p className="py-2 text-sm text-muted-foreground">{t('No holders found')}</p>
               : (
                   data.yesHolders.map(holder => (
                     <ProfileLink
@@ -212,12 +212,12 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
               {t('No holders')}
             </span>
             <span className="text-2xs leading-none font-semibold tracking-wide text-muted-foreground">
-              SHARES
+              {t('SHARES')}
             </span>
           </div>
           <div className="mt-1 divide-y divide-border border-t">
             {!data?.noHolders || data.noHolders.length === 0
-              ? <p className="py-2 text-sm text-muted-foreground">No holders found</p>
+              ? <p className="py-2 text-sm text-muted-foreground">{t('No holders found')}</p>
               : (
                   data.noHolders.map(holder => (
                     <ProfileLink

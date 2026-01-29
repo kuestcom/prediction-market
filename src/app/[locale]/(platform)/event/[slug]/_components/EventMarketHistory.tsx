@@ -3,9 +3,11 @@
 import type { Event } from '@/types'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Loader2Icon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
+import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { MICRO_UNIT, POLYGON_SCAN_BASE } from '@/lib/constants'
 import { fetchUserActivityData, mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 import { formatCurrency, formatSharePriceLabel, formatSharesLabel, formatTimeAgo, fromMicro } from '@/lib/formatters'
@@ -19,11 +21,13 @@ interface EventMarketHistoryProps {
 }
 
 export default function EventMarketHistory({ market }: EventMarketHistoryProps) {
+  const t = useExtracted()
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const user = useUser()
   const isSingleMarket = useIsSingleMarket()
   const userAddress = getUserPublicAddress(user)
+  const normalizeOutcomeLabel = useOutcomeLabel()
 
   useEffect(() => {
     queueMicrotask(() => setInfiniteScrollError(null))
@@ -111,12 +115,12 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
       <>
         {isSingleMarket && (
           <div className="p-4">
-            <h3 className="text-lg font-semibold">History</h3>
+            <h3 className="text-lg font-medium">{t('History')}</h3>
           </div>
         )}
         <div className={cn(isSingleMarket ? 'border-t' : '', 'p-4')}>
           <AlertBanner
-            title="Failed to load activity"
+            title={t('Failed to load activity')}
             description={(
               <Button
                 type="button"
@@ -125,7 +129,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
                 variant="link"
                 className="-ml-3"
               >
-                Try again
+                {t('Try again')}
               </Button>
             )}
           />
@@ -152,7 +156,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
         ? <></>
         : (
             <div className="text-sm text-muted-foreground">
-              No activity for this outcome.
+              {t('No activity for this outcome.')}
             </div>
           )
     )
@@ -162,7 +166,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
     <>
       {isSingleMarket && (
         <div className="p-4">
-          <h3 className="text-lg font-semibold">History</h3>
+          <h3 className="text-lg font-medium">{t('History')}</h3>
         </div>
       )}
 
@@ -175,7 +179,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
           const outcomeColorClass = (activity.outcome.text || '').toLowerCase() === 'yes'
             ? 'text-yes'
             : 'text-no'
-          const actionLabel = activity.side === 'sell' ? 'Sold' : 'Bought'
+          const actionLabel = activity.side === 'sell' ? t('Sold') : t('Bought')
           const priceLabel = formatSharePriceLabel(Number(activity.price), { fallback: '—' })
           const totalValue = Number(activity.total_value) / MICRO_UNIT
           const totalValueLabel = formatCurrency(totalValue, {
@@ -183,7 +187,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
             maximumFractionDigits: 2,
           })
           const timeAgoLabel = formatTimeAgo(activity.created_at)
-          const fullDateLabel = new Date(activity.created_at).toLocaleString('en-US', {
+          const fullDateLabel = new Date(activity.created_at).toLocaleString(undefined, {
             month: 'long',
             day: 'numeric',
             year: 'numeric',
@@ -202,9 +206,9 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
                 <span className={cn('font-semibold', outcomeColorClass)}>
                   {sharesLabel}
                   {' '}
-                  {activity.outcome.text}
+                  {normalizeOutcomeLabel(activity.outcome.text)}
                 </span>
-                <span className="text-foreground">at</span>
+                <span className="text-foreground">{t('at')}</span>
                 <span className="font-semibold">{priceLabel}</span>
                 <span className="text-muted-foreground">
                   (
@@ -240,14 +244,14 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
       {isFetchingNextPage && (
         <div className={cn(isSingleMarket ? 'border-t' : '', `px-4 py-3 text-center text-xs text-muted-foreground`)}>
           <Loader2Icon className="mr-2 inline size-4 animate-spin align-middle" />
-          Loading more history...
+          {t('Loading more history...')}
         </div>
       )}
 
       {infiniteScrollError && (
         <div className={cn(isSingleMarket ? 'border-t' : '', 'px-4 py-3')}>
           <AlertBanner
-            title="Failed to load more activity"
+            title={t('Failed to load more activity')}
             description={(
               <Button
                 type="button"
@@ -256,7 +260,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
                 variant="link"
                 className="-ml-3"
               >
-                Try again
+                {t('Try again')}
               </Button>
             )}
           />

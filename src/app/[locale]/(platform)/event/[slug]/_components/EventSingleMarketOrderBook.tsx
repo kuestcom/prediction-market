@@ -88,7 +88,7 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
         )}
         aria-expanded={isExpanded}
       >
-        <h3 className="text-lg font-semibold">Order Book</h3>
+        <h3 className="text-lg font-medium">{t('Order Book')}</h3>
         <span
           aria-hidden="true"
           className={cn(
@@ -145,8 +145,8 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
                   'hover:bg-muted/70 hover:text-foreground',
                   'focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none',
                 )}
-                aria-label="Refresh order book"
-                title="Refresh order book"
+                aria-label={t('Refresh order book')}
+                title={t('Refresh order book')}
                 disabled={isOrderBookLoading || isOrderBookRefetching}
               >
                 <RefreshCwIcon

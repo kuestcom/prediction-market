@@ -1,5 +1,6 @@
 import type { Event } from '@/types'
 import { LoaderIcon, SparklesIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { generateMarketContextAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/generate-market-context'
 import { cn } from '@/lib/utils'
@@ -10,6 +11,7 @@ interface EventMarketContextProps {
 }
 
 export default function EventMarketContext({ event }: EventMarketContextProps) {
+  const t = useExtracted()
   const state = useOrder()
   const [contextExpanded, setContextExpanded] = useState(false)
   const [context, setContext] = useState<string | null>(null)
@@ -53,7 +55,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
       }
       catch (caughtError) {
         console.error('Failed to fetch market context.', caughtError)
-        setError('Unable to reach the market context service right now.')
+        setError(t('Unable to reach the market context service right now.'))
         setContext(null)
         setContextExpanded(false)
       }
@@ -153,7 +155,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
               )}
               aria-expanded={contextExpanded}
             >
-              <span className="text-lg font-medium">Market Context</span>
+              <h3 className="text-lg font-medium">{t('Market Context')}</h3>
               <span
                 aria-hidden="true"
                 className={cn(
@@ -199,7 +201,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
               )}
               disabled={isPending || !state.market}
             >
-              <span className="text-lg font-medium">Market Context</span>
+              <span className="text-lg font-medium">{t('Market Context')}</span>
               <span
                 className={`
                   flex items-center gap-1 rounded-md border bg-background px-3 py-1 text-sm font-medium text-foreground
@@ -207,7 +209,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
                 `}
               >
                 {isPending ? <LoaderIcon className="size-3 animate-spin" /> : <SparklesIcon className="size-3" />}
-                {isPending ? 'Generating...' : 'Generate'}
+                {isPending ? t('Generating...') : t('Generate')}
               </span>
             </button>
           )}
@@ -233,7 +235,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
             {!error && context && !isTyping && displayedContext === context && (
               <div className="flex justify-end">
                 <span className="font-mono text-2xs tracking-wide text-muted-foreground/80 uppercase">
-                  Results are experimental
+                  {t('Results are experimental')}
                 </span>
               </div>
             )}

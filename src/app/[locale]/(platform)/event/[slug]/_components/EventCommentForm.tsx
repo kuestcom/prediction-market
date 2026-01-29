@@ -1,6 +1,7 @@
 'use client'
 
 import type { Comment, User } from '@/types'
+import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -20,6 +21,7 @@ export default function EventCommentForm({
   createComment,
   isCreatingComment,
 }: EventCommentFormProps) {
+  const t = useExtracted()
   const { open } = useAppKit()
   const [content, setContent] = useState('')
 
@@ -37,11 +39,11 @@ export default function EventCommentForm({
 
     const trimmed = content.trim()
     if (!trimmed) {
-      toast.error('Comment content is required')
+      toast.error(t('Comment content is required'))
       return
     }
     if (trimmed.length > 2000) {
-      toast.error('Comment is too long (max 2000 characters).')
+      toast.error(t('Comment is too long (max 2000 characters).'))
       return
     }
 
@@ -51,7 +53,7 @@ export default function EventCommentForm({
       onCommentAddedAction(comment)
     }
     catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create comment.'
+      const message = err instanceof Error ? err.message : t('Failed to create comment.')
       toast.error(message)
     }
   }
@@ -69,7 +71,7 @@ export default function EventCommentForm({
             focus:border-primary focus:ring-primary/20
             focus-visible:border-primary focus-visible:ring-primary/20
           `}
-          placeholder="Add a comment"
+          placeholder={t('Add a comment')}
           required
           value={content}
           onChange={e => setContent(e.target.value)}
@@ -85,7 +87,7 @@ export default function EventCommentForm({
           `}
           disabled={isCreatingComment || !content.trim()}
         >
-          {isCreatingComment ? 'Posting...' : user ? 'Post' : 'Connect to Post'}
+          {isCreatingComment ? t('Posting...') : user ? t('Post') : t('Connect to Post')}
         </Button>
       </form>
     </div>

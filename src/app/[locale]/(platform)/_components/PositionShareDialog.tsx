@@ -2,6 +2,7 @@
 
 import type { ShareCardPayload } from '@/lib/share-card'
 import { CopyIcon, Loader2Icon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -15,10 +16,10 @@ interface PositionShareDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   payload: ShareCardPayload | null
-  title?: string
 }
 
-export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shill your bag' }: PositionShareDialogProps) {
+export function PositionShareDialog({ open, onOpenChange, payload }: PositionShareDialogProps) {
+  const t = useExtracted()
   const isMobile = useIsMobile()
   const [shareCardStatus, setShareCardStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [shareCardBlob, setShareCardBlob] = useState<Blob | null>(null)
@@ -90,8 +91,8 @@ export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shil
 
   const handleShareCardError = useCallback(() => {
     setShareCardStatus('error')
-    toast.error('Unable to generate a share card right now.')
-  }, [])
+    toast.error(t('Unable to generate a share card right now.'))
+  }, [t])
 
   const handleCopyShareImage = useCallback(async () => {
     if (!shareCardUrl) {
@@ -101,7 +102,7 @@ export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shil
     setIsCopyingShareImage(true)
     try {
       if (!shareCardBlob) {
-        toast.info('Share card is still preparing. Try again in a moment.')
+        toast.info(t('Share card is still preparing. Try again in a moment.'))
         return
       }
 
@@ -112,7 +113,7 @@ export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shil
         try {
           const clipboardItem = new ClipboardItem({ [blob.type || 'image/png']: blob })
           await navigator.clipboard.write([clipboardItem])
-          toast.success('Share card copied to clipboard.')
+          toast.success(t('Share card copied to clipboard.'))
           return
         }
         catch (error) {
@@ -128,16 +129,16 @@ export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shil
       link.click()
       link.remove()
       URL.revokeObjectURL(objectUrl)
-      toast.success('Share card downloaded.')
+      toast.success(t('Share card downloaded.'))
     }
     catch (error) {
       console.error('Failed to copy share card image.', error)
-      toast.error('Could not copy the share card image.')
+      toast.error(t('Could not copy the share card image.'))
     }
     finally {
       setIsCopyingShareImage(false)
     }
-  }, [shareCardBlob, shareCardUrl])
+  }, [shareCardBlob, shareCardUrl, t])
 
   const handleShareOnX = useCallback(() => {
     if (!payload) {
@@ -150,9 +151,9 @@ export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shil
       const baseUrl = window.location.origin
       const profileUrl = `${baseUrl}/@${encodeURIComponent(username)}`
       const shareText = [
-        'I just put my money where my mouth is on @kuest.',
+        t('I just put my money where my mouth is on @kuest.'),
         '',
-        `Trade against me: ${profileUrl}`,
+        t('Trade against me: {url}', { url: profileUrl }),
       ].join('\n')
 
       const shareUrl = new URL('https://x.com/intent/tweet')
@@ -164,7 +165,7 @@ export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shil
         setIsSharingOnX(false)
       }, 200)
     }
-  }, [payload])
+  }, [payload, t])
 
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     onOpenChange(nextOpen)
@@ -182,7 +183,7 @@ export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shil
           <img
             key={shareCardUrl}
             src={shareCardUrl}
-            alt={`${payload?.title ?? 'Position'} share card`}
+            alt={t('{title} share card', { title: payload?.title ?? t('Position') })}
             className={cn(
               'w-full max-w-md rounded-md shadow transition-opacity',
               isShareReady ? 'opacity-100' : 'opacity-0',
@@ -198,12 +199,12 @@ export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shil
           >
             {shareCardStatus === 'error'
               ? (
-                  <span>Unable to generate share card.</span>
+                  <span>{t('Unable to generate share card.')}</span>
                 )
               : (
                   <>
                     <Loader2Icon className="size-5 animate-spin" />
-                    <span>Generating share card...</span>
+                    <span>{t('Generating share card...')}</span>
                   </>
                 )}
           </div>
@@ -219,7 +220,7 @@ export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shil
           {isCopyingShareImage
             ? <Loader2Icon className="size-4 animate-spin" />
             : <CopyIcon className="size-4" />}
-          {isCopyingShareImage ? 'Copying...' : 'Copy image'}
+          {isCopyingShareImage ? t('Copying...') : t('Copy image')}
         </Button>
         <Button
           className="flex-1"
@@ -241,7 +242,7 @@ export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shil
                   />
                 </svg>
               )}
-          {isSharingOnX ? 'Opening...' : 'Share'}
+          {isSharingOnX ? t('Opening...') : t('Share')}
         </Button>
       </div>
     </div>
@@ -252,7 +253,7 @@ export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shil
         <Drawer open={open} onOpenChange={handleOpenChange}>
           <DrawerContent className="max-h-[90vh] w-full bg-background">
             <DrawerHeader className="p-3 text-center sm:text-center">
-              <DrawerTitle className="text-xl font-semibold">{title}</DrawerTitle>
+              <DrawerTitle className="text-xl font-semibold">{t('Shill your bag')}</DrawerTitle>
             </DrawerHeader>
             <div className="space-y-3 px-4 pb-2">
               {shareDialogBody}
@@ -264,7 +265,7 @@ export function PositionShareDialog({ open, onOpenChange, payload, title = 'Shil
         <Dialog open={open} onOpenChange={handleOpenChange}>
           <DialogContent className="max-w-md gap-2 p-4">
             <DialogHeader className="gap-1 text-center sm:text-center">
-              <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
+              <DialogTitle className="text-xl font-semibold">{t('Shill your bag')}</DialogTitle>
             </DialogHeader>
             {shareDialogBody}
           </DialogContent>

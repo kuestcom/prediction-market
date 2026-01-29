@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
@@ -12,6 +13,8 @@ export default function LiveCommentsStatusIndicator({
   status,
   className,
 }: LiveCommentsStatusIndicatorProps) {
+  const t = useExtracted()
+
   return (
     <div className={className}>
       <Tooltip>
@@ -31,7 +34,7 @@ export default function LiveCommentsStatusIndicator({
           </span>
         </TooltipTrigger>
         <TooltipContent collisionPadding={8}>
-          {`Live comments status: ${status}`}
+          {t('Live comments status: {status}', { status })}
         </TooltipContent>
       </Tooltip>
     </div>

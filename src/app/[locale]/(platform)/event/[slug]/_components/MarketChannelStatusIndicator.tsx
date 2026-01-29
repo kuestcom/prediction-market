@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import { useMarketChannelStatus } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -9,6 +10,7 @@ interface MarketChannelStatusIndicatorProps {
 }
 
 export default function MarketChannelStatusIndicator({ className }: MarketChannelStatusIndicatorProps) {
+  const t = useExtracted()
   const wsStatus = useMarketChannelStatus()
 
   return (
@@ -30,7 +32,7 @@ export default function MarketChannelStatusIndicator({ className }: MarketChanne
           </span>
         </TooltipTrigger>
         <TooltipContent collisionPadding={8}>
-          {`Live data status: ${wsStatus}`}
+          {t('Live data status: {status}', { status: wsStatus })}
         </TooltipContent>
       </Tooltip>
     </div>

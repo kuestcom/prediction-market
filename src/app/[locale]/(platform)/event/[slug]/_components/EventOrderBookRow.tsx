@@ -1,5 +1,6 @@
 import type { OrderBookLevel, OrderBookUserOrder } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import { CircleXIcon, Clock4Icon, Loader2Icon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { formatOrderBookPrice, formatTooltipShares } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatSharesLabel, usdFormatter } from '@/lib/formatters'
@@ -24,6 +25,7 @@ export default function EventOrderBookRow({
   isCancelling,
   onCancelUserOrder,
 }: EventOrderBookRowProps) {
+  const t = useExtracted()
   const isAsk = level.side === 'ask'
   const backgroundClass = isAsk ? 'bg-no/25 dark:bg-no/20' : 'bg-yes/25 dark:bg-yes/20'
   const hoverClass = isAsk ? 'hover:bg-no/10' : 'hover:bg-yes/10'
@@ -85,7 +87,7 @@ export default function EventOrderBookRow({
                   className="w-48 p-3 text-left"
                 >
                   <div className="flex items-center justify-between text-sm font-semibold">
-                    <span>Filled</span>
+                    <span>{t('Filled')}</span>
                     <span>
                       {formatTooltipShares(userOrder.filledShares)}
                       {' '}
@@ -111,7 +113,7 @@ export default function EventOrderBookRow({
                   <div className="mt-2 text-xs font-medium text-muted-foreground">
                     {formatTooltipShares(Math.max(userOrder.totalShares - userOrder.filledShares, 0))}
                     {' '}
-                    remaining
+                    {t('remaining')}
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -142,7 +144,7 @@ export default function EventOrderBookRow({
             `
           }
         >
-          {showBadge === 'ask' ? 'Asks' : 'Bids'}
+          {showBadge === 'ask' ? t('Asks') : t('Bids')}
         </span>
       )}
     </div>

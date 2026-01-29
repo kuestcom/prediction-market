@@ -1,5 +1,6 @@
 import type { Event } from '@/types'
 import { LinkIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -43,6 +44,7 @@ function getResolverGradient(address?: string) {
 }
 
 export default function EventRules({ event }: EventRulesProps) {
+  const t = useExtracted()
   const [rulesExpanded, setRulesExpanded] = useState(false)
 
   function formatRules(rules: string): string {
@@ -59,7 +61,7 @@ export default function EventRules({ event }: EventRulesProps) {
 
   function formatOracleAddress(address: string): string {
     if (!address || !address.startsWith('0x')) {
-      return '0x0000...0000'
+      return t('0x0000...0000')
     }
 
     const prefix = address.substring(0, 6)
@@ -70,10 +72,10 @@ export default function EventRules({ event }: EventRulesProps) {
   function formatCreatedAt(value: string): string {
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) {
-      return '—'
+      return t('—')
     }
 
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat(undefined, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -178,7 +180,7 @@ export default function EventRules({ event }: EventRulesProps) {
       </div>
       <div>
         <div className="text-xs text-muted-foreground">
-          Resolver
+          {t('Resolver')}
         </div>
         <a
           href={resolverAddress ? `https://polygonscan.com/address/${resolverAddress}` : '#'}
@@ -201,13 +203,13 @@ export default function EventRules({ event }: EventRulesProps) {
             ? (
                 <Button variant="outline" size="sm" asChild>
                   <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
-                    Propose resolution
+                    {t('Propose resolution')}
                   </a>
                 </Button>
               )
             : (
                 <Button variant="outline" size="sm" disabled>
-                  Propose resolution
+                  {t('Propose resolution')}
                 </Button>
               )
         )}
@@ -224,7 +226,7 @@ export default function EventRules({ event }: EventRulesProps) {
             </div>
             <div>
               <div className="text-xs text-muted-foreground">
-                Resolution Source
+                {t('Resolution Source')}
               </div>
               <a
                 href={resolutionSourceUrl}
@@ -254,7 +256,7 @@ export default function EventRules({ event }: EventRulesProps) {
         `}
         aria-expanded={rulesExpanded}
       >
-        <h3 className="text-lg font-semibold">Rules</h3>
+        <h3 className="text-lg font-medium">{t('Rules')}</h3>
         <span
           aria-hidden="true"
           className={`
@@ -291,11 +293,14 @@ export default function EventRules({ event }: EventRulesProps) {
               </div>
             )}
             <p className="mt-4 text-sm text-foreground">
-              <span className="font-semibold">Created At:</span>
+              <span className="font-semibold">
+                {t('Created At')}
+                :
+              </span>
               {' '}
               {createdAtLabel}
               {' '}
-              ET
+              {t('ET')}
             </p>
 
             {hasResolutionSourceUrl

@@ -151,9 +151,9 @@ function microToUnit(value?: number) {
   return value / MICRO_UNIT
 }
 
-function formatExpirationLabel(order: UserOpenOrder) {
+function formatExpirationLabel(order: UserOpenOrder, t: ReturnType<typeof useExtracted>) {
   if (order.type === 'GTC') {
-    return 'Until Cancelled'
+    return t('Until Cancelled')
   }
 
   const rawExpiration = typeof order.expiration === 'number'
@@ -161,7 +161,7 @@ function formatExpirationLabel(order: UserOpenOrder) {
     : Number(order.expiration)
 
   if (!Number.isFinite(rawExpiration) || rawExpiration <= 0) {
-    return '—'
+    return t('—')
   }
 
   const date = new Date(rawExpiration * 1000)
@@ -173,9 +173,9 @@ function formatExpirationLabel(order: UserOpenOrder) {
   })
 }
 
-function formatFilledLabel(filledShares: number, totalShares: number) {
+function formatFilledLabel(filledShares: number, totalShares: number, t: ReturnType<typeof useExtracted>) {
   if (!Number.isFinite(totalShares) || totalShares <= 0) {
-    return '—'
+    return t('—')
   }
 
   const normalizedFilled = Math.min(Math.max(filledShares, 0), totalShares)
@@ -190,13 +190,13 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
   const priceLabel = formatSharePriceLabel(order.price, { fallback: '—' })
   const totalShares = microToUnit(isBuy ? order.taker_amount : order.maker_amount)
   const filledShares = microToUnit(order.size_matched)
-  const filledLabel = formatFilledLabel(filledShares, totalShares)
+  const filledLabel = formatFilledLabel(filledShares, totalShares, t)
   const totalValueMicro = isBuy ? order.maker_amount : order.taker_amount
   const totalValueLabel = formatCurrency(microToUnit(totalValueMicro), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
-  const expirationLabel = formatExpirationLabel(order)
+  const expirationLabel = formatExpirationLabel(order, t)
   const isNoOutcome = order.outcome.index === OUTCOME_INDEX.NO
   const outcomeLabel = normalizeOutcomeLabel(order.outcome.text || (isNoOutcome ? 'No' : 'Yes'))
     || (isNoOutcome ? 'No' : 'Yes')
@@ -231,7 +231,7 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
             <TooltipTrigger asChild>
               <Button
                 type="button"
-                aria-label={`Cancel ${sideLabel} order for ${outcomeLabel}`}
+                aria-label={t('Cancel {side} order for {outcome}', { side: sideLabel, outcome: outcomeLabel })}
                 variant="outline"
                 size="sm"
                 disabled={isCancelling}
@@ -241,7 +241,7 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top">
-              Cancel
+              {t('Cancel')}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -252,6 +252,7 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
 
 export default function EventMarketOpenOrders({ market, eventSlug }: EventMarketOpenOrdersProps) {
   const sentinelRef = useRef<HTMLDivElement | null>(null)
+  const t = useExtracted()
   const user = useUser()
   const queryClient = useQueryClient()
   const { openTradeRequirements } = useTradingOnboarding()
@@ -340,7 +341,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
         throw new Error(response.error)
       }
 
-      toast.success('Order cancelled')
+      toast.success(t('Order cancelled'))
 
       removeOrdersFromCache([order.id])
       await queryClient.invalidateQueries({ queryKey: openOrdersQueryKey })
@@ -355,7 +356,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
     catch (error: any) {
       const message = typeof error?.message === 'string'
         ? error.message
-        : 'Failed to cancel order.'
+        : t('Failed to cancel order.')
       if (isTradingAuthRequiredError(message)) {
         openTradeRequirements()
       }
@@ -370,15 +371,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
         return next
       })
     }
-  }, [
-    eventOpenOrdersQueryKey,
-    openOrdersQueryKey,
-    openTradeRequirements,
-    pendingCancelIds,
-    queryClient,
-    removeOrdersFromCache,
-    scheduleOpenOrdersRefresh,
-  ])
+  }, [eventOpenOrdersQueryKey, openOrdersQueryKey, openTradeRequirements, pendingCancelIds, queryClient, removeOrdersFromCache, scheduleOpenOrdersRefresh, t])
 
   const handleSort = useCallback((column: SortColumn) => {
     setSortState((current) => {
@@ -415,10 +408,14 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
       const failedCount = failedIds.length
 
       if (failedCount === 0) {
-        toast.success('All open orders for this market were cancelled.')
+        toast.success(t('All open orders for this market were cancelled.'))
       }
       else {
-        toast.error(`Could not cancel ${failedCount} order${failedCount > 1 ? 's' : ''}.`)
+        const tUnsafe = t as unknown as (message: string, values?: Record<string, any>) => string
+        toast.error(tUnsafe(
+          'Could not cancel {count} order{count, plural, one {} other {s}}.',
+          { count: failedCount },
+        ))
       }
 
       if (result.cancelled.length) {
@@ -436,7 +433,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
     catch (error: any) {
       const message = typeof error?.message === 'string'
         ? error.message
-        : 'Failed to cancel open orders.'
+        : t('Failed to cancel open orders.')
       if (isTradingAuthRequiredError(message)) {
         openTradeRequirements()
       }
@@ -462,6 +459,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
     removeOrdersFromCache,
     scheduleOpenOrdersRefresh,
     sortedOrders,
+    t,
   ])
 
   const handleCancelAllConfirm = useCallback(() => {
@@ -502,13 +500,13 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
         if (error?.name === 'CanceledError' || error?.name === 'AbortError') {
           return
         }
-        setInfiniteScrollError(error?.message || 'Failed to load more open orders')
+        setInfiniteScrollError(error?.message || t('Failed to load more open orders'))
       })
     }, { rootMargin: '200px 0px' })
 
     observer.observe(sentinelRef.current)
     return () => observer.disconnect()
-  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage, status])
+  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage, status, t])
 
   const shouldRender = Boolean(user?.id && status === 'success' && hasOrders)
 
@@ -520,7 +518,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
     <>
       {isSingleMarket && (
         <div className="p-4">
-          <h3 className="text-lg font-semibold">Open Orders</h3>
+          <h3 className="text-lg font-medium">{t('Open Orders')}</h3>
         </div>
       )}
 
@@ -529,22 +527,22 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
           <thead>
             <tr className="border-b bg-background">
               <th className={cn(tableHeaderClass, 'text-left')}>
-                <SortHeaderButton column="side" label="Side" sortState={sortState} onSort={handleSort} />
+                <SortHeaderButton column="side" label={t('Side')} sortState={sortState} onSort={handleSort} />
               </th>
               <th className={cn(tableHeaderClass, 'text-left')}>
-                <SortHeaderButton column="outcome" label="Outcome" sortState={sortState} onSort={handleSort} />
+                <SortHeaderButton column="outcome" label={t('Outcome')} sortState={sortState} onSort={handleSort} />
               </th>
               <th className={cn(tableHeaderClass, 'text-center')}>
-                <SortHeaderButton column="price" label="Price" alignment="center" sortState={sortState} onSort={handleSort} />
+                <SortHeaderButton column="price" label={t('Price')} alignment="center" sortState={sortState} onSort={handleSort} />
               </th>
               <th className={cn(tableHeaderClass, 'text-center')}>
-                <SortHeaderButton column="filled" label="Filled" alignment="center" sortState={sortState} onSort={handleSort} />
+                <SortHeaderButton column="filled" label={t('Filled')} alignment="center" sortState={sortState} onSort={handleSort} />
               </th>
               <th className={cn(tableHeaderClass, 'text-center')}>
-                <SortHeaderButton column="total" label="Total" alignment="center" sortState={sortState} onSort={handleSort} />
+                <SortHeaderButton column="total" label={t('Total')} alignment="center" sortState={sortState} onSort={handleSort} />
               </th>
               <th className={cn(tableHeaderClass, 'text-left')}>
-                <SortHeaderButton column="expiration" label="Expiration" sortState={sortState} onSort={handleSort} />
+                <SortHeaderButton column="expiration" label={t('Expiration')} sortState={sortState} onSort={handleSort} />
               </th>
               <th className={cn(tableHeaderClass, 'text-right')}>
                 <button
@@ -556,7 +554,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
                   onClick={() => setIsCancelAllDialogOpen(true)}
                   disabled={isCancellingAll || !hasOrders}
                 >
-                  {isCancellingAll ? 'Cancelling…' : 'Cancel All'}
+                  {isCancellingAll ? t('Cancelling…') : t('Cancel All')}
                 </button>
               </th>
             </tr>
@@ -579,14 +577,14 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
 
       {hasOrders && isFetchingNextPage && (
         <div className={cn(isSingleMarket ? 'border-t' : '', `px-4 py-3 text-center text-xs text-muted-foreground`)}>
-          Loading more open orders...
+          {t('Loading more open orders...')}
         </div>
       )}
 
       {infiniteScrollError && (
         <div className={cn(isSingleMarket ? 'border-t' : '', 'px-4 py-3')}>
           <AlertBanner
-            title="Could not load more open orders"
+            title={t('Could not load more open orders')}
             description={(
               <Button
                 type="button"
@@ -599,11 +597,11 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
                     if (error?.name === 'CanceledError' || error?.name === 'AbortError') {
                       return
                     }
-                    setInfiniteScrollError(error?.message || 'Failed to load more open orders')
+                    setInfiniteScrollError(error?.message || t('Failed to load more open orders'))
                   })
                 }}
               >
-                Try again
+                {t('Try again')}
               </Button>
             )}
           />
@@ -615,10 +613,10 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
           <div className="space-y-6">
             <DialogHeader className="space-y-3">
               <DialogTitle className="text-center text-2xl font-bold">
-                Are you sure?
+                {t('Are you sure?')}
               </DialogTitle>
               <DialogDescription className="text-center text-sm text-muted-foreground">
-                Are you sure you want to cancel all open orders for this market?
+                {t('Are you sure you want to cancel all open orders for this market?')}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
@@ -628,7 +626,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
                 className="bg-background sm:w-36"
                 onClick={() => setIsCancelAllDialogOpen(false)}
               >
-                Never mind
+                {t('Never mind')}
               </Button>
               <Button
                 type="button"
@@ -637,7 +635,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
                 onClick={handleCancelAllConfirm}
                 disabled={isCancellingAll}
               >
-                {isCancellingAll ? 'Cancelling…' : 'Confirm'}
+                {isCancellingAll ? t('Cancelling…') : t('Confirm')}
               </Button>
             </DialogFooter>
           </div>

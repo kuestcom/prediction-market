@@ -2,6 +2,7 @@
 
 import type { Market } from '@/types'
 import { CheckIcon, CopyIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -245,6 +246,7 @@ export default function EventChartEmbedDialog({
   markets,
   initialMarketId,
 }: EventChartEmbedDialogProps) {
+  const t = useExtracted()
   const [theme, setTheme] = useState<EmbedTheme>('light')
   const [embedType, setEmbedType] = useState<EmbedType>('iframe')
   const [selectedMarketId, setSelectedMarketId] = useState<string>('')
@@ -420,13 +422,13 @@ export default function EventChartEmbedDialog({
       <DialogContent className="max-w-4xl sm:max-w-4xl sm:p-8">
         <div className="space-y-6">
           <DialogHeader>
-            <DialogTitle className="text-center text-2xl font-bold">Embed</DialogTitle>
+            <DialogTitle className="text-center text-2xl font-bold">{t('Embed')}</DialogTitle>
           </DialogHeader>
 
           <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="space-y-6">
               <div className="space-y-3">
-                <Label className="text-xs font-semibold tracking-wide text-muted-foreground">THEME</Label>
+                <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('THEME')}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {(['light', 'dark'] as EmbedTheme[]).map(option => (
                     <button
@@ -440,7 +442,7 @@ export default function EventChartEmbedDialog({
                       )}
                       onClick={() => setTheme(option)}
                     >
-                      {option === 'light' ? 'Light' : 'Dark'}
+                      {option === 'light' ? t('Light') : t('Dark')}
                     </button>
                   ))}
                 </div>
@@ -449,7 +451,7 @@ export default function EventChartEmbedDialog({
               {showMarketSelector
                 ? (
                     <div className="space-y-3">
-                      <Label className="text-xs font-semibold tracking-wide text-muted-foreground">MARKET</Label>
+                      <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('MARKET')}</Label>
                       <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
                         <SelectTrigger className={`
                           w-full bg-transparent text-sm
@@ -472,21 +474,21 @@ export default function EventChartEmbedDialog({
                 : null}
 
               <div className="space-y-3">
-                <Label className="text-xs font-semibold tracking-wide text-muted-foreground">OPTIONS</Label>
+                <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('OPTIONS')}</Label>
                 <div className="rounded-md border border-border p-3">
                   <div className="flex flex-col gap-3 text-sm font-semibold text-foreground">
                     <label className="flex items-center justify-between gap-4">
-                      <span>Show Volume</span>
+                      <span>{t('Show Volume')}</span>
                       <Switch checked={showVolume} onCheckedChange={setShowVolume} />
                     </label>
                     <label className="flex items-center justify-between gap-4">
-                      <span>Show Chart</span>
+                      <span>{t('Show Chart')}</span>
                       <Switch checked={showChart} onCheckedChange={setShowChart} />
                     </label>
                     {showChart
                       ? (
                           <label className="flex items-center justify-between gap-4">
-                            <span>Show Time Range Selector</span>
+                            <span>{t('Show Time Range Selector')}</span>
                             <Switch checked={showTimeRange} onCheckedChange={setShowTimeRange} />
                           </label>
                         )
@@ -497,20 +499,20 @@ export default function EventChartEmbedDialog({
 
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <Label className="text-xs font-semibold tracking-wide text-muted-foreground">EMBED CODE</Label>
+                  <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('EMBED CODE')}</Label>
                   <div className="flex items-center gap-2">
                     <Select value={embedType} onValueChange={value => setEmbedType(value as EmbedType)}>
                       <SelectTrigger size="sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="iframe">Iframe</SelectItem>
-                        <SelectItem value="web-component">Web component</SelectItem>
+                        <SelectItem value="iframe">{t('Iframe')}</SelectItem>
+                        <SelectItem value="web-component">{t('Web component')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button type="button" size="sm" variant="outline" onClick={handleCopy}>
                       {copied ? <CheckIcon /> : <CopyIcon />}
-                      Copy
+                      {t('Copy')}
                     </Button>
                   </div>
                 </div>
@@ -521,13 +523,13 @@ export default function EventChartEmbedDialog({
             </div>
 
             <div className="flex h-full flex-col gap-3">
-              <Label className="text-xs font-semibold tracking-wide text-muted-foreground">PREVIEW</Label>
+              <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('PREVIEW')}</Label>
               <div
                 className="flex flex-1 items-center justify-center overflow-hidden rounded-md bg-[#f7f7f9] p-2"
                 style={{ minHeight: `${iframeHeight}px` }}
               >
                 <iframe
-                  title="Embed preview"
+                  title={t('Embed preview')}
                   src={previewSrc}
                   style={{ height: `${iframeHeight}px` }}
                   className="w-100 max-w-full border-0 bg-transparent"

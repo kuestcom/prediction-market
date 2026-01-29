@@ -1,6 +1,7 @@
 'use client'
 
 import type { Route } from 'next'
+import { useExtracted } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -36,6 +37,7 @@ function clearSiweTwoFactorIntentCookie() {
 }
 
 export default function TwoFactorClient({ next }: { next?: string | null }) {
+  const t = useExtracted()
   const router = useRouter()
   const [code, setCode] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
@@ -86,7 +88,7 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
       })
 
       if (error) {
-        toast.error('Invalid code. Please try again.')
+        toast.error(t('Invalid code. Please try again.'))
         setCode('')
         setIsVerifying(false)
         return
@@ -106,7 +108,7 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
       router.replace(redirectTo as Route)
     }
     catch {
-      toast.error('Something went wrong while verifying your code.')
+      toast.error(t('Something went wrong while verifying your code.'))
       setCode('')
     }
     finally {
@@ -117,9 +119,9 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
   return (
     <Card className="py-6">
       <CardHeader className="space-y-2">
-        <CardTitle className="text-2xl">Two-Factor Authentication</CardTitle>
+        <CardTitle className="text-2xl">{t('Two-Factor Authentication')}</CardTitle>
         <CardDescription>
-          Enter the 6-digit code from your authenticator app to finish signing in.
+          {t('Enter the 6-digit code from your authenticator app to finish signing in.')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -143,11 +145,11 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
           </div>
 
           <Button type="submit" disabled={code.length !== CODE_LENGTH || isVerifying}>
-            {isVerifying ? 'Verifying...' : 'Verify'}
+            {isVerifying ? t('Verifying...') : t('Verify')}
           </Button>
           <Button variant="link" className="text-muted-foreground" asChild>
             <Link href={abortHref}>
-              or go to home
+              {t('or go to home')}
             </Link>
           </Button>
         </form>
