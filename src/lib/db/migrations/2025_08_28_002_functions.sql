@@ -1,5 +1,3 @@
--- ============================================================
-
 -- pgulid is based on OK Log's Go implementation of the ULID spec
 --
 -- https://github.com/oklog/ulid

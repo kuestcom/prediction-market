@@ -4,17 +4,23 @@
 
 CREATE TABLE conditions
 (
-  id           CHAR(66) PRIMARY KEY,
-  oracle       CHAR(42)    NOT NULL,
-  question_id  CHAR(66)    NOT NULL,
+  id                           CHAR(66) PRIMARY KEY,
+  oracle                       CHAR(42)    NOT NULL,
+  question_id                  CHAR(66)    NOT NULL,
   -- Resolution data
-  resolved     BOOLEAN              DEFAULT FALSE,
+  resolved                     BOOLEAN              DEFAULT FALSE,
+  uma_request_tx_hash          CHAR(66),
+  uma_request_log_index        INTEGER,
+  uma_oracle_address           CHAR(42),
+  mirror_uma_request_tx_hash   CHAR(66),
+  mirror_uma_request_log_index INTEGER,
+  mirror_uma_oracle_address    CHAR(42),
   -- Metadata
-  arweave_hash TEXT,     -- Arweave metadata hash
-  creator      CHAR(42), -- Market creator address
+  metadata_hash                TEXT,
+  creator                      CHAR(42), -- Market creator address
   -- Timestamps
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE tags
@@ -49,9 +55,10 @@ CREATE TABLE events
   active_markets_count INTEGER              DEFAULT 0,
   total_markets_count  INTEGER              DEFAULT 0,
   end_date             TIMESTAMPTZ,
+  resolved_at          TIMESTAMPTZ,
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CHECK (status IN ('draft', 'active', 'archived'))
+  CHECK (status IN ('draft', 'active', 'resolved', 'archived'))
 );
 
 CREATE TABLE event_tags
@@ -364,20 +371,39 @@ GROUP BY main_tag.id,
 -- 8. SEED
 -- ===========================================
 
--- Insert initial main tags
-INSERT INTO tags (name, slug, is_main_category, display_order)
-VALUES ('Politics', 'politics', TRUE, 1),
-       ('Middle East', 'middle-east', TRUE, 2),
-       ('Sports', 'sports', TRUE, 3),
-       ('Crypto', 'crypto', TRUE, 4),
-       ('Tech', 'tech', TRUE, 5),
-       ('Culture', 'culture', TRUE, 6),
-       ('World', 'world', TRUE, 7),
-       ('Economy', 'economy', TRUE, 8),
-       ('Trump', 'trump', TRUE, 9),
-       ('Elections', 'elections', TRUE, 10),
-       ('Mentions', 'mentions', TRUE, 11)
-ON CONFLICT (slug) DO NOTHING;
+WITH desired(name, slug, display_order) AS (
+  VALUES
+    ('Politics', 'politics', 1),
+    ('Sports', 'sports', 2),
+    ('Crypto', 'crypto', 3),
+    ('Finance', 'finance', 4),
+    ('Geopolitics', 'geopolitics', 5),
+    ('Earnings', 'earnings', 6),
+    ('Tech', 'tech', 7),
+    ('Culture', 'culture', 8),
+    ('World', 'world', 9),
+    ('Economy', 'economy', 10),
+    ('Climate & Science', 'climate-science', 11),
+    ('Elections', 'elections', 12),
+    ('Mentions', 'mentions', 13)
+),
+upserted AS (
+  INSERT INTO tags (name, slug, is_main_category, display_order, is_hidden, hide_events)
+  SELECT name, slug, TRUE, display_order, FALSE, FALSE
+  FROM desired
+  ON CONFLICT (slug) DO UPDATE
+  SET
+    name = EXCLUDED.name,
+    display_order = EXCLUDED.display_order,
+    is_main_category = TRUE,
+    is_hidden = FALSE,
+    hide_events = FALSE
+  RETURNING slug
+)
+UPDATE tags
+SET is_main_category = FALSE
+WHERE is_main_category = TRUE
+  AND slug NOT IN (SELECT slug FROM upserted);
 
 -- Hide specific categories by default to keep them out of the main feed
 UPDATE tags
