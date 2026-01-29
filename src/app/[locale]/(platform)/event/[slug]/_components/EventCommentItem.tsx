@@ -61,7 +61,7 @@ export default function EventCommentItem({
 }: CommentItemProps) {
   const { open } = useAppKit()
   const { displayName, profileSlug } = resolveCommentUserIdentity(comment)
-  const t = useExtracted('Event.Comments')
+  const t = useExtracted()
 
   const handleReplyClick = useCallback(() => {
     if (!user) {

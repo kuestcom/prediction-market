@@ -17,7 +17,7 @@ export default function EventOrderPanelSubmitButton({
   label,
   type = 'submit',
 }: EventOrderPanelSubmitButtonProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
 
   return (
     <div className="relative w-full pb-1.25">

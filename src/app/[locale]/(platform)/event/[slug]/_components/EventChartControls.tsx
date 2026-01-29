@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { SeriesConfig } from '@/types/PredictionChartTypes'
 import { CodeXmlIcon, FileTextIcon, ListTodoIcon, SettingsIcon, ShuffleIcon, XIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -13,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { cn } from '@/lib/utils'
 
 export const defaultChartSettings = {
@@ -63,6 +65,8 @@ export default function EventChartControls({
   onExportData,
   onEmbed,
 }: EventChartControlsProps) {
+  const t = useExtracted()
+  const normalizeOutcomeLabel = useOutcomeLabel()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const selectedSet = new Set(selectedMarketIds)
   const selectedOptions = marketOptions.filter(option => selectedSet.has(option.key))
@@ -70,13 +74,13 @@ export default function EventChartControls({
   const maxReached = maxSeriesCount > 0 && selectedMarketIds.length >= maxSeriesCount
   const hasMarketSelector = showMarketSelector && marketOptions.length > 0
   const baseSettingItems: Array<{ key: ChartSettingKey, label: string }> = [
-    { key: 'autoscale', label: 'Autoscale' },
-    { key: 'xAxis', label: 'X-Axis' },
-    { key: 'yAxis', label: 'Y-Axis' },
-    { key: 'horizontalGrid', label: 'Horizontal Grid' },
-    { key: 'verticalGrid', label: 'Vertical Grid' },
-    { key: 'annotations', label: 'Annotations' },
-    { key: 'bothOutcomes', label: 'Both Outcomes' },
+    { key: 'autoscale', label: t('Autoscale') },
+    { key: 'xAxis', label: t('X-Axis') },
+    { key: 'yAxis', label: t('Y-Axis') },
+    { key: 'horizontalGrid', label: t('Horizontal Grid') },
+    { key: 'verticalGrid', label: t('Vertical Grid') },
+    { key: 'annotations', label: t('Annotations') },
+    { key: 'bothOutcomes', label: t('Both Outcomes') },
   ]
   const settingItems = showOutcomeSwitch
     ? baseSettingItems
@@ -118,7 +122,7 @@ export default function EventChartControls({
                   hover:text-foreground
                 `
               }
-              aria-label="Show outcomes on chart"
+              aria-label={t('Show outcomes on chart')}
             >
               <ListTodoIcon className="size-4" />
             </button>
@@ -131,11 +135,9 @@ export default function EventChartControls({
             className="w-64 border border-border bg-background p-3 text-foreground shadow-xl"
           >
             <div className="flex flex-col gap-1">
-              <span className="text-base font-semibold text-foreground">Show on chart</span>
+              <span className="text-base font-semibold text-foreground">{t('Show on chart')}</span>
               <span className="text-sm text-muted-foreground">
-                Select a maximum of
-                {' '}
-                {maxSeriesCount}
+                {t('Select a maximum of {count}', { count: maxSeriesCount?.toString() })}
               </span>
             </div>
 
@@ -147,11 +149,13 @@ export default function EventChartControls({
                     event.preventDefault()
                     if (selectedMarketIds.length <= 1) {
                       toast.info(
-                        <span className="text-base font-semibold text-muted-foreground">At least one option required</span>,
+                        <span className="text-base font-semibold text-muted-foreground">
+                          {t('At least one option required')}
+                        </span>,
                         {
                           description: (
                             <span className="text-base text-muted-foreground">
-                              You cannot remove all options from the chart. Please keep at least one option selected.
+                              {t('You cannot remove all options from the chart. Please keep at least one option selected.')}
                             </span>
                           ),
                         },
@@ -176,7 +180,7 @@ export default function EventChartControls({
                         </span>
                       </TooltipTrigger>
                       <TooltipContent side="top">
-                        Remove
+                        {t('Remove')}
                       </TooltipContent>
                     </Tooltip>
                     <span className="truncate text-foreground">{option.name}</span>
@@ -233,15 +237,13 @@ export default function EventChartControls({
                 `
               }
               onClick={onShuffle}
-              aria-label={`Switch to ${oppositeOutcomeLabel}`}
+              aria-label={t('Switch to {outcome}', { outcome: normalizeOutcomeLabel(oppositeOutcomeLabel) })}
             >
               <ShuffleIcon className="size-4" />
             </button>
           </TooltipTrigger>
           <TooltipContent side="left">
-            Switch to
-            {' '}
-            {oppositeOutcomeLabel}
+            {t('Switch to {outcome}', { outcome: normalizeOutcomeLabel(oppositeOutcomeLabel) })}
           </TooltipContent>
         </Tooltip>
       )}
@@ -255,7 +257,7 @@ export default function EventChartControls({
               transition-colors
               hover:text-foreground
             `}
-            aria-label="Chart settings"
+            aria-label={t('Chart settings')}
           >
             <SettingsIcon className="size-4" />
           </button>
@@ -278,7 +280,7 @@ export default function EventChartControls({
                 }}
               >
                 <CodeXmlIcon className="size-4" />
-                <span>Embed</span>
+                <span>{t('Embed')}</span>
               </button>
               <button
                 type="button"
@@ -289,7 +291,7 @@ export default function EventChartControls({
                 }}
               >
                 <FileTextIcon className="size-4" />
-                <span>Export Data</span>
+                <span>{t('Export Data')}</span>
               </button>
             </div>
             <DropdownMenuSeparator className="my-0" />

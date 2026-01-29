@@ -3,7 +3,7 @@ import { useExtracted } from 'next-intl'
 type OutcomeLabel = string | null | undefined
 
 export function useOutcomeLabel() {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
 
   return function normalizeOutcomeLabel(label: OutcomeLabel) {
     if (label === 'Yes') {
@@ -12,6 +12,6 @@ export function useOutcomeLabel() {
     if (label === 'No') {
       return t('No')
     }
-    return label ?? undefined
+    return label ?? ''
   }
 }

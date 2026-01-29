@@ -13,7 +13,7 @@ export default function HeaderPortfolio() {
   const { isLoading, value: positionsValue } = usePortfolioValue()
   const isLoadingValue = isLoadingBalance || isLoading
   const totalPortfolioValue = (positionsValue ?? 0) + (balance?.raw ?? 0)
-  const t = useExtracted('Header')
+  const t = useExtracted()
   const formattedPortfolioValue = Number.isFinite(totalPortfolioValue)
     ? totalPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '0.00'

@@ -2,7 +2,7 @@ import { useExtracted } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 
 export default function EventOrderPanelTermsDisclaimer() {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
 
   return (
     <p className="mt-3 text-center text-2xs text-muted-foreground">

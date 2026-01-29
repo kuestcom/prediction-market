@@ -34,7 +34,7 @@ export default function EventOrderPanelEarnings({
   buyChangePct,
   buyMultiplier,
 }: EventOrderPanelEarningsProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const buyPayoutLabel = formatCurrency(Math.max(0, buyPayout))
   const buyProfitLabel = formatCurrency(buyProfit)
   const buyChangeLabel = `${buyChangePct >= 0 ? '+' : '-'}${Math.abs(buyChangePct).toFixed(0)}%`

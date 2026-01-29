@@ -11,7 +11,7 @@ interface EventOrderPanelUserSharesProps {
 }
 
 export default function EventOrderPanelUserShares({ yesShares, noShares, activeOutcome }: EventOrderPanelUserSharesProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const shouldShow = yesShares > 0 || noShares > 0
   if (!shouldShow) {
     return null

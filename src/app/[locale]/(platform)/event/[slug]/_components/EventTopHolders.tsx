@@ -42,7 +42,7 @@ function formatHolderShares(value: string | number | null | undefined) {
 }
 
 export default function EventTopHolders({ event }: EventTopHoldersProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const isSingleMarket = useIsSingleMarket()
   const orderState = useOrder()
   const [selectedMarket, setSelectedMarket] = useState<string>('')

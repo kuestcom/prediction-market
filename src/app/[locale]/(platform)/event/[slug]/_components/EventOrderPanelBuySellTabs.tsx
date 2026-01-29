@@ -50,7 +50,7 @@ export default function EventOrderPanelBuySellTabs({
   onAmountReset,
   onFocusInput,
 }: EventOrderPanelBuySellTabsProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const [typeMenuOpen, setTypeMenuOpen] = useState(false)
   const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false)
   const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false)

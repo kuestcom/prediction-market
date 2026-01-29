@@ -80,7 +80,7 @@ export default function EventOrderPanelLimitControls({
   onLimitExpirationTimestampChange,
   onAmountUpdateFromLimit,
 }: EventOrderPanelLimitControlsProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const { balance } = useBalance()
   const limitPriceNumber = useMemo(
     () => Number.parseFloat(limitPrice) || 0,

@@ -33,7 +33,7 @@ export default function EventCommentDeleteForm({
   open,
   onOpenChange,
 }: EventCommentDeleteFormProps) {
-  const t = useExtracted('Event.Comments')
+  const t = useExtracted()
   const isMobile = useIsMobile()
   function handleConfirm() {
     if (isDeleting) {

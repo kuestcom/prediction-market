@@ -40,7 +40,7 @@ interface EventContentProps {
 }
 
 export default function EventContent({ event, user, marketContextEnabled, marketSlug }: EventContentProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const setEvent = useOrder(state => state.setEvent)
   const setMarket = useOrder(state => state.setMarket)
   const setOutcome = useOrder(state => state.setOutcome)

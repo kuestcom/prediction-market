@@ -18,7 +18,7 @@ import { useAppKit } from '@/hooks/useAppKit'
 import { Link } from '@/i18n/navigation'
 
 export default function HeaderDropdownUserMenuGuest() {
-  const t = useExtracted('Header')
+  const t = useExtracted()
   const { open } = useAppKit()
   const [menuOpen, setMenuOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement | null>(null)

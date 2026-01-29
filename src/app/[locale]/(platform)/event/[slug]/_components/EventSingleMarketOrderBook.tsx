@@ -20,7 +20,7 @@ interface EventSingleMarketOrderBookProps {
 type OutcomeToggleIndex = typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
 
 export default function EventSingleMarketOrderBook({ market, eventSlug }: EventSingleMarketOrderBookProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const [isExpanded, setIsExpanded] = useState(false)
   const orderMarket = useOrder(state => state.market)
   const orderOutcome = useOrder(state => state.outcome)

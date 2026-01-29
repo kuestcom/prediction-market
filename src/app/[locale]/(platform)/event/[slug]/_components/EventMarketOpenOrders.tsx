@@ -183,7 +183,7 @@ function formatFilledLabel(filledShares: number, totalShares: number) {
 }
 
 function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const isBuy = order.side === 'buy'
   const sideLabel = isBuy ? t('Buy') : t('Sell')

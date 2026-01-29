@@ -42,7 +42,7 @@ export default function EventOrderBook({
   isLoadingSummaries,
   eventSlug,
 }: EventOrderBookProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const user = useUser()
   const { openTradeRequirements } = useTradingOnboarding()

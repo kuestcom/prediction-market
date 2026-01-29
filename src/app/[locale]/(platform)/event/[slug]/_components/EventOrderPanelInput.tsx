@@ -45,7 +45,7 @@ export default function EventOrderPanelInput({
   onAmountChange,
   shouldShake,
 }: EventOrderPanelInputProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
 
   function focusInput() {
     inputRef?.current?.focus()

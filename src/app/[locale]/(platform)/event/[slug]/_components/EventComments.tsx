@@ -44,7 +44,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
     return map
   }, [event.markets])
 
-  const t = useExtracted('Event.Comments')
+  const t = useExtracted()
 
   const {
     comments,

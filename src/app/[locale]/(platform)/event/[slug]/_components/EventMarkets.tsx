@@ -100,7 +100,7 @@ interface CashOutModalPayload {
 }
 
 export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const selectedMarketId = useOrder(state => state.market?.condition_id)
   const selectedOutcome = useOrder(state => state.outcome)
@@ -720,7 +720,7 @@ function ResolvedMarketRow({
   isExpanded: boolean
   onToggle: () => void
 }) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const { market } = row
   const resolvedOutcomeIndex = resolveWinningOutcomeIndex(market)
   const hasResolvedOutcome = resolvedOutcomeIndex === OUTCOME_INDEX.YES || resolvedOutcomeIndex === OUTCOME_INDEX.NO
@@ -807,7 +807,7 @@ function ResolvedMarketRow({
 }
 
 function OtherOutcomeRow({ shares, showMarketIcon }: { shares: number, showMarketIcon?: boolean }) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const sharesLabel = formatSharesLabel(shares, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -890,7 +890,7 @@ function MarketDetailTabs({
   orderBookData,
   sharesByCondition,
 }: MarketDetailTabsProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const user = useUser()
   const { selected: controlledTab, select } = tabController
   const positionSizeThreshold = 0.01

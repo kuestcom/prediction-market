@@ -13,7 +13,7 @@ interface CommentMenuProps {
 
 export default function EventCommentMenu({ comment, onDelete, isDeleting }: CommentMenuProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-  const t = useExtracted('Event.Comments')
+  const t = useExtracted()
 
   return (
     <>

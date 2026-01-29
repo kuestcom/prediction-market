@@ -46,7 +46,7 @@ export default function EventLimitExpirationCalendar({
   cancelLabel,
   applyLabel,
 }: EventLimitExpirationCalendarProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const initialDate = useMemo(() => value ?? new Date(), [value])
   const minDate = useMemo(() => new Date(), [])
   const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate)

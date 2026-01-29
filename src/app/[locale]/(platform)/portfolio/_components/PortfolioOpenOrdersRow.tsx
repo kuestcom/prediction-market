@@ -22,7 +22,7 @@ interface PortfolioOpenOrdersRowProps {
 }
 
 export default function PortfolioOpenOrdersRow({ order }: PortfolioOpenOrdersRowProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const totalShares = getOrderTotalShares(order)
   const filledShares = getOrderFilledShares(order)

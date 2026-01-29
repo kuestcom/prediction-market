@@ -20,7 +20,7 @@ import { useUser } from '@/stores/useUser'
 const { useSession } = authClient
 
 export default function HeaderMenu() {
-  const t = useExtracted('Header')
+  const t = useExtracted()
   const isMounted = useClientMounted()
   const { open, isReady } = useAppKit()
   const { isConnected, status } = useAppKitAccount()

@@ -2,6 +2,7 @@
 
 import type { Market } from '@/types'
 import { CalendarIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -212,6 +213,7 @@ export default function EventChartExportDialog({
   markets,
   isMultiMarket,
 }: EventChartExportDialogProps) {
+  const t = useExtracted()
   const optionsListId = useId()
   const eventStartDate = useMemo(() => new Date(eventCreatedAt), [eventCreatedAt])
   const [frequency, setFrequency] = useState<Frequency>(defaultFrequency)
@@ -261,6 +263,19 @@ export default function EventChartExportDialog({
     })),
     [markets],
   )
+  const localizedFrequencyOptions = useMemo(() => {
+    const labels: Record<Frequency, string> = {
+      minutely: t('Minutely'),
+      hourly: t('Hourly'),
+      daily: t('Daily'),
+      weekly: t('Weekly'),
+      monthly: t('Monthly'),
+    }
+    return frequencyOptions.map(option => ({
+      ...option,
+      label: labels[option.value],
+    }))
+  }, [t])
   const allOptionIds = useMemo(() => optionItems.map(item => item.id), [optionItems])
   const allSelected = optionItems.length > 0 && selectedOptions.length === optionItems.length
 
@@ -346,12 +361,14 @@ export default function EventChartExportDialog({
       <DialogContent className="sm:max-w-xl sm:p-8">
         <div className="space-y-6">
           <DialogHeader>
-            <DialogTitle className="text-center text-xl font-bold">Download Price History</DialogTitle>
+            <DialogTitle className="text-center text-xl font-bold">
+              {t('Download Price History')}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-foreground">From</Label>
+              <Label className="text-sm font-semibold text-foreground">{t('From')}</Label>
               <DropdownMenu open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <DropdownMenuTrigger asChild>
                   <button type="button" className={dateButtonClass}>
@@ -382,11 +399,11 @@ export default function EventChartExportDialog({
                   />
                 </DropdownMenuContent>
               </DropdownMenu>
-              <p className="text-xs text-muted-foreground">Market start pre-filled</p>
+              <p className="text-xs text-muted-foreground">{t('Market start pre-filled')}</p>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-foreground">To</Label>
+              <Label className="text-sm font-semibold text-foreground">{t('To')}</Label>
               <button type="button" className={dateButtonClass} disabled>
                 <span>{formatShortDate(toDate, locale)}</span>
                 <CalendarIcon className="size-4 text-muted-foreground" />
@@ -394,13 +411,13 @@ export default function EventChartExportDialog({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-foreground">Frequency</Label>
+              <Label className="text-sm font-semibold text-foreground">{t('Frequency')}</Label>
               <Select value={frequency} onValueChange={value => setFrequency(value as Frequency)}>
                 <SelectTrigger className="w-full text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {frequencyOptions.map(option => (
+                  {localizedFrequencyOptions.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -414,14 +431,14 @@ export default function EventChartExportDialog({
             ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-foreground">Options</span>
+                    <span className="text-sm font-semibold text-foreground">{t('Options')}</span>
                     <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
                       <Checkbox
                         checked={allSelected}
                         onCheckedChange={checked => setSelectedOptions(checked ? allOptionIds : [])}
                         className="size-5 rounded dark:bg-transparent"
                       />
-                      Select All
+                      {t('Select All')}
                     </label>
                   </div>
                   <div className={`
@@ -465,7 +482,7 @@ export default function EventChartExportDialog({
             : null}
 
           <Button type="button" className="w-full" onClick={handleDownload} disabled={isDownloading}>
-            {isDownloading ? 'Downloading...' : 'Download (.csv)'}
+            {isDownloading ? t('Downloading...') : t('Download (.csv)')}
           </Button>
 
         </div>

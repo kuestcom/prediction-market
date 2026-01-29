@@ -77,7 +77,7 @@ function createInitialForm(): EventForm {
 }
 
 export default function AdminCreateEventForm() {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const [isLoading, setIsLoading] = useState(false)
   const [availableTags, setAvailableTags] = useState<EventTag[]>([])
   const [eventIconFile, setEventIconFile] = useState<File | null>(null)

@@ -23,7 +23,7 @@ import { Link } from '@/i18n/navigation'
 import { useUser } from '@/stores/useUser'
 
 export default function HeaderDropdownUserMenuAuth() {
-  const t = useExtracted('Header')
+  const t = useExtracted()
   const { disconnect } = useDisconnect()
   const user = useUser()
   const pathname = usePathname()

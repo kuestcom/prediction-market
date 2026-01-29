@@ -85,7 +85,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
   const { open, close } = useAppKit()
   const { isConnected, embeddedWalletInfo } = useAppKitAccount()
   const { signTypedDataAsync } = useSignTypedData()
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const user = useUser()
   const state = useOrder()

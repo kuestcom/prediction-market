@@ -14,8 +14,7 @@ interface EventMetaInformationProps {
 }
 
 export default function EventMetaInformation({ event }: EventMetaInformationProps) {
-  const t = useExtracted('Event')
-  const tradeT = useExtracted('Event.Trade')
+  const t = useExtracted()
 
   const volumeRequestPayload = useMemo(() => {
     const conditions = event.markets
@@ -85,14 +84,17 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
   const shouldShowNew = event.markets.some(
     market => isMarketNew(market.created_at),
   )
-  const expiryTooltip = 'This is estimated end date.<br>See rules below for specific resolution details.'
+  const expiryTooltip = t.rich(
+    'This is estimated end date.<br></br>See rules below for specific resolution details.',
+    { br: () => <br /> },
+  )
   const formattedVolume = Number.isFinite(resolvedVolume)
     ? (resolvedVolume || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })
     : '0.00'
-  const volumeLabel = `$${formattedVolume} Vol.`
+  const volumeLabel = t('{amount} Vol.', { amount: `$${formattedVolume}` })
 
   const maybeEndDate = event.end_date ? new Date(event.end_date) : null
   const expiryDate = maybeEndDate && !Number.isNaN(maybeEndDate.getTime()) ? maybeEndDate : null
@@ -102,7 +104,7 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
       {shouldShowNew && (
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
           <SparkleIcon className="size-3.5 fill-current" stroke="currentColor" fill="currentColor" />
-          <span>New</span>
+          <span>{t('New')}</span>
         </span>
       )}
       {shouldShowNew && (
@@ -114,7 +116,7 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label="Negative risk details"
+                aria-label={t('Negative risk details')}
                 className="inline-flex items-center justify-center transition-colors"
               >
                 <TrophyIcon className="size-4" />
@@ -130,33 +132,26 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
                 <div className="flex flex-col gap-3">
                   <div className="flex items-start gap-3">
                     <CheckIcon className="mt-0.5 size-5 shrink-0 text-primary" />
-                    <span className="font-normal">Only 1 winner</span>
+                    <span className="font-normal">{t('Only 1 winner')}</span>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckIcon className="mt-0.5 size-5 shrink-0 text-primary" />
                     <span className="font-normal">
-                      Supports negative risk (convert
-                      {' '}
-                      {tradeT('No')}
-                      {' '}
-                      shares to
-                      {' '}
-                      {tradeT('Yes')}
-                      {' '}
-                      of the other options)
+                      {t('Supports negative risk (convert {no} shares to {yes} of the other options)', {
+                        no: t('No'),
+                        yes: t('Yes'),
+                      })}
                     </span>
                   </div>
                   {isNegRiskAugmented && (
                     <div className="flex items-start gap-3">
                       <PlusIcon className="mt-0.5 size-5 shrink-0 text-primary" />
                       <span className="font-normal">
-                        <span className="font-bold">Complete negative risk</span>
+                        <span className="font-bold">{t('Complete negative risk')}</span>
                         {' '}
-                        (users who convert will receive
-                        {' '}
-                        {tradeT('Yes')}
-                        {' '}
-                        shares in any outcomes added in the future)
+                        {t('Users who convert will receive {yes} shares in any outcomes added in the future', {
+                          yes: t('Yes'),
+                        })}
                       </span>
                     </div>
                   )}
@@ -182,9 +177,7 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
             side="bottom"
             collisionPadding={16}
           >
-            <p
-              dangerouslySetInnerHTML={{ __html: expiryTooltip! }}
-            />
+            <p>{expiryTooltip}</p>
           </TooltipContent>
         </Tooltip>
       )}

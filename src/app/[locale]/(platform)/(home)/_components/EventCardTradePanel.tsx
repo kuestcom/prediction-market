@@ -33,7 +33,7 @@ export default function EventCardTradePanel({
   onConfirmTrade,
   onCancelTrade,
 }: EventCardTradePanelProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const buyButtonClassName = activeOutcome.variant === 'yes'
     ? 'bg-yes-foreground text-white hover:bg-yes-foreground/90 dark:bg-yes dark:hover:bg-yes/90'

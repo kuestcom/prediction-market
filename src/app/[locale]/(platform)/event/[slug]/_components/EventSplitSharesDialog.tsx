@@ -57,7 +57,7 @@ export default function EventSplitSharesDialog({
   isNegRiskMarket = false,
   onOpenChange,
 }: EventSplitSharesDialogProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const queryClient = useQueryClient()
   const { ensureTradingReady } = useTradingOnboarding()
   const user = useUser()

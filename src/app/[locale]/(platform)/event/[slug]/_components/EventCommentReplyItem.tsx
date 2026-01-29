@@ -53,7 +53,7 @@ export default function EventCommentReplyItem({
   const { open } = useAppKit()
   const { displayName, profileSlug } = resolveCommentUserIdentity(reply)
   const parentHref = parentProfileSlug ? (`/@${parentProfileSlug}` as any) : ('#' as any)
-  const t = useExtracted('Event.Comments')
+  const t = useExtracted()
 
   const handleReplyClick = useCallback(() => {
     if (!user) {

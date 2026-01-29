@@ -41,7 +41,7 @@ const PredictionChart = dynamic<PredictionChartProps>(
 )
 
 export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventCreatedAt, isMobile }: MarketOutcomeGraphProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const [activeTimeRange, setActiveTimeRange] = useState<TimeRange>('ALL')
   const [activeOutcomeIndex, setActiveOutcomeIndex] = useState(outcome.outcome_index)
@@ -299,6 +299,7 @@ function buildChartData(
 }
 
 function MarketOutcomeMetaInformation({ market }: { market: Market }) {
+  const t = useExtracted()
   const volumeRequestPayload = useMemo(() => {
     const tokenIds = (market.outcomes ?? [])
       .map(outcome => outcome.token_id)
@@ -363,7 +364,10 @@ function MarketOutcomeMetaInformation({ market }: { market: Market }) {
       })
     : '0.00'
   const volumeLabel = `$${formattedVolume} Vol.`
-  const expiryTooltip = 'This is estimated end date.<br>See rules below for specific resolution details.'
+  const expiryTooltip = t.rich(
+    'This is estimated end date.<br></br>See rules below for specific resolution details.',
+    { br: () => <br /> },
+  )
   const maybeEndDate = market.end_time ? new Date(market.end_time) : null
   const expiryDate = maybeEndDate && !Number.isNaN(maybeEndDate.getTime()) ? maybeEndDate : null
 
@@ -393,9 +397,7 @@ function MarketOutcomeMetaInformation({ market }: { market: Market }) {
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            <p
-              dangerouslySetInnerHTML={{ __html: expiryTooltip }}
-            />
+            <p>{expiryTooltip}</p>
           </TooltipContent>
         </Tooltip>
       )}

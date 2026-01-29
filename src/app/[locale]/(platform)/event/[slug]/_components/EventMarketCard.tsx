@@ -47,7 +47,7 @@ function EventMarketCardComponent({
   openOrdersCount = 0,
   onCashOut,
 }: EventMarketCardProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const { market, yesOutcome, noOutcome, yesPriceValue, noPriceValue, chanceMeta } = row
   const yesOutcomeText = normalizeOutcomeLabel(yesOutcome?.outcome_text) ?? t('Yes')
@@ -325,7 +325,7 @@ function PositionTags({
   openOrdersCount?: number
   onCashOut?: (tag: MarketPositionTag) => void
 }) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const hasOpenOrders = openOrdersCount > 0
   const openOrdersLabel = `${openOrdersCount} open order${openOrdersCount === 1 ? '' : 's'}`

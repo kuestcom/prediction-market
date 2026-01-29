@@ -71,7 +71,7 @@ export default function EventConvertPositionsDialog({
   isNegRiskAugmented = false,
   onOpenChange,
 }: EventConvertPositionsDialogProps) {
-  const t = useExtracted('Event.Trade')
+  const t = useExtracted()
   const queryClient = useQueryClient()
   const { ensureTradingReady } = useTradingOnboarding()
   const user = useUser()
