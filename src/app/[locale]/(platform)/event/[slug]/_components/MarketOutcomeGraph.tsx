@@ -37,7 +37,7 @@ interface MarketOutcomeGraphProps {
 
 const PredictionChart = dynamic<PredictionChartProps>(
   () => import('@/components/PredictionChart'),
-  { ssr: false, loading: () => <Skeleton className="h-[318px] w-full" /> },
+  { ssr: false, loading: () => <Skeleton className="h-79.5 w-full" /> },
 )
 
 export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventCreatedAt, isMobile }: MarketOutcomeGraphProps) {
@@ -392,16 +392,9 @@ function MarketOutcomeMetaInformation({ market }: { market: Market }) {
               <span>{formatDate(expiryDate)}</span>
             </div>
           </TooltipTrigger>
-          <TooltipContent
-            side="bottom"
-            sideOffset={8}
-            collisionPadding={16}
-            hideArrow
-            className="border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-xl"
-          >
+          <TooltipContent side="bottom">
             <p
               dangerouslySetInnerHTML={{ __html: expiryTooltip }}
-              className="text-center"
             />
           </TooltipContent>
         </Tooltip>

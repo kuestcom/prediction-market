@@ -115,8 +115,6 @@ export default function EventOrderPanelEarnings({
                 </TooltipTrigger>
                 <TooltipContent
                   side="top"
-                  sideOffset={8}
-                  hideArrow
                   className={`
                     w-52 border border-border bg-background px-4 py-3 text-sm font-semibold text-muted-foreground
                     shadow-xl
@@ -180,12 +178,7 @@ export default function EventOrderPanelEarnings({
                 </TooltipTrigger>
                 <TooltipContent
                   side="top"
-                  sideOffset={8}
-                  hideArrow
-                  className={`
-                    w-52 border border-border bg-background px-4 py-3 text-sm font-semibold text-muted-foreground
-                    shadow-xl
-                  `}
+                  className="w-52 p-3"
                 >
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-3">

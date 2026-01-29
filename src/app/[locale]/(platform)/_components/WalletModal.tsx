@@ -501,10 +501,7 @@ function WalletSendForm({
                         <Info className="size-4" />
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent
-                      hideArrow
-                      className="border bg-background text-foreground shadow-lg"
-                    >
+                    <TooltipContent>
                       <div className="space-y-1 text-xs text-foreground">
                         <div className="flex items-center justify-between gap-4">
                           <span>Total cost</span>
@@ -534,10 +531,7 @@ function WalletSendForm({
                         <Info className="size-4" />
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent
-                      hideArrow
-                      className="border bg-background text-foreground shadow-lg"
-                    >
+                    <TooltipContent>
                       <div className="space-y-1 text-xs text-foreground">
                         <div className="flex items-center justify-between gap-4">
                           <span>Total impact</span>
@@ -564,13 +558,8 @@ function WalletSendForm({
                         <Info className="size-4" />
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent
-                      hideArrow
-                      className="max-w-56 border bg-background text-foreground shadow-lg"
-                    >
-                      <p className="text-xs text-foreground">
-                        Slippage occurs due to price changes during trade execution. Minimum received: $00.00
-                      </p>
+                    <TooltipContent>
+                      Slippage occurs due to price changes during trade execution. Minimum received: $0.00
                     </TooltipContent>
                   </Tooltip>
                   <span>Auto • 0.00%</span>
@@ -666,7 +655,7 @@ function WalletFundMenu({
                         <Info className="size-3" />
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent hideArrow>
+                    <TooltipContent>
                       Wallet deposits are not available in test mode.
                     </TooltipContent>
                   </Tooltip>
@@ -901,17 +890,12 @@ function WalletTokenList({
                         </span>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent
-                      hideArrow
-                      className="border bg-background text-foreground shadow-lg"
-                    >
-                      <p className="text-sm text-foreground">
-                        {item.symbol}
-                        {' '}
-                        on
-                        {' '}
-                        {item.network}
-                      </p>
+                    <TooltipContent>
+                      {item.symbol}
+                      {' '}
+                      on
+                      {' '}
+                      {item.network}
                     </TooltipContent>
                   </Tooltip>
                   <div className="space-y-0.5">
@@ -931,11 +915,8 @@ function WalletTokenList({
                           Low Balance
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent
-                        hideArrow
-                        className="border bg-background text-foreground shadow-lg"
-                      >
-                        <p className="text-sm text-foreground">Minimum required: $2.00</p>
+                      <TooltipContent>
+                        Minimum required: $2.00
                       </TooltipContent>
                     </Tooltip>
                   )}
@@ -1434,7 +1415,7 @@ function WalletConfirmStep({
                   <TooltipTrigger asChild>
                     <Info className="size-3" />
                   </TooltipTrigger>
-                  <TooltipContent hideArrow className="border bg-background text-foreground shadow-lg">
+                  <TooltipContent>
                     <div className="space-y-1 text-xs text-foreground">
                       <div className="flex items-center justify-between gap-4">
                         <span>Total cost</span>

@@ -398,19 +398,15 @@ function ProfitLossCard({
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      className="inline-flex translate-y-[1px] text-muted-foreground hover:text-foreground"
+                      className="inline-flex translate-y-px text-muted-foreground hover:text-foreground"
                     >
                       <CircleHelpIcon className="size-4" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent
                     side="bottom"
-                    align="start"
-                    sideOffset={8}
-                    hideArrow
-                    className={`
-                      w-56 rounded-md border bg-background p-3 text-left text-xs font-semibold text-foreground shadow-lg
-                    `}
+                    align="center"
+                    className="w-56 p-3 text-left"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">

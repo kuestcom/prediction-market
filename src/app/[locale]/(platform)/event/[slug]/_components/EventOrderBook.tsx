@@ -335,12 +335,7 @@ export default function EventOrderBook({
                   <AlignVerticalSpaceAroundIcon className="size-4" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                sideOffset={8}
-                hideArrow
-                className="border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-xl"
-              >
+              <TooltipContent side="top">
                 Recenter Book (Shift + C)
               </TooltipContent>
             </Tooltip>

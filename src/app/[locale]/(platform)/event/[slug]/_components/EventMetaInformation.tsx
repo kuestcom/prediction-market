@@ -108,35 +108,33 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
       {shouldShowNew && (
         <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />
       )}
-      <div className="flex items-center gap-2 text-foreground">
+      <div className="flex items-center gap-2">
         {isNegRiskEnabled && (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="button"
                 aria-label="Negative risk details"
-                className="inline-flex items-center justify-center text-foreground transition-colors"
+                className="inline-flex items-center justify-center transition-colors"
               >
                 <TrophyIcon className="size-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent
               side="bottom"
-              sideOffset={8}
               collisionPadding={16}
-              hideArrow
-              className="max-w-68 border border-border bg-background px-4 py-3 text-sm text-foreground shadow-xl"
+              className="max-w-68 p-3 text-left text-sm"
             >
-              <div className="flex flex-col gap-3 text-foreground">
-                <span className="text-base font-bold text-foreground">{t('Winner-take-all')}</span>
+              <div className="flex flex-col gap-3">
+                <span className="text-base font-bold">{t('Winner-take-all')}</span>
                 <div className="flex flex-col gap-3">
                   <div className="flex items-start gap-3">
                     <CheckIcon className="mt-0.5 size-5 shrink-0 text-primary" />
-                    <span className="text-foreground">Only 1 winner</span>
+                    <span className="font-normal">Only 1 winner</span>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckIcon className="mt-0.5 size-5 shrink-0 text-primary" />
-                    <span className="text-foreground">
+                    <span className="font-normal">
                       Supports negative risk (convert
                       {' '}
                       {tradeT('No')}
@@ -151,8 +149,8 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
                   {isNegRiskAugmented && (
                     <div className="flex items-start gap-3">
                       <PlusIcon className="mt-0.5 size-5 shrink-0 text-primary" />
-                      <span>
-                        <span className="font-bold text-foreground">Complete negative risk</span>
+                      <span className="font-normal">
+                        <span className="font-bold">Complete negative risk</span>
                         {' '}
                         (users who convert will receive
                         {' '}
@@ -167,7 +165,7 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
             </TooltipContent>
           </Tooltip>
         )}
-        <span className="text-sm font-semibold text-foreground">{volumeLabel}</span>
+        <span className="text-sm font-semibold">{volumeLabel}</span>
       </div>
       {expiryDate && (
         <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />
@@ -182,14 +180,10 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
           </TooltipTrigger>
           <TooltipContent
             side="bottom"
-            sideOffset={8}
             collisionPadding={16}
-            hideArrow
-            className="border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-xl"
           >
             <p
               dangerouslySetInnerHTML={{ __html: expiryTooltip! }}
-              className="text-center"
             />
           </TooltipContent>
         </Tooltip>

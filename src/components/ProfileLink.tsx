@@ -70,7 +70,7 @@ export default function ProfileLink({
   }[position ?? 0] ?? '#000000'
 
   const medalTextColor = medalColor === '#000000' ? '#ffffff' : '#1a1a1a'
-  const normalizedUsername = typeof user.username === 'string' ? user.username.trim() : ''
+  const normalizedUsername = user.username.trim()
   const addressSlug = user.proxy_wallet_address ?? user.address ?? ''
   const displayUsername = normalizedUsername || (addressSlug ? truncateAddress(addressSlug) : 'Anonymous')
   const titleValue = normalizedUsername || addressSlug || displayUsername
@@ -208,7 +208,7 @@ export default function ProfileLink({
                 </div>
               )}
           {!isInline && children
-            ? <div className="pl-[3.25rem]">{children}</div>
+            ? <div className="pl-13">{children}</div>
             : null}
         </div>
         {!isInline && trailing
@@ -222,8 +222,6 @@ export default function ProfileLink({
       <TooltipContent
         side="top"
         align="start"
-        sideOffset={8}
-        hideArrow
         className="max-w-[90vw] border-none bg-transparent p-0 text-popover-foreground shadow-none md:max-w-96"
       >
         <ProfileActivityTooltipCard

@@ -175,14 +175,7 @@ export default function EventChartControls({
                           <XIcon className="size-3.5" />
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent
-                        side="top"
-                        sideOffset={8}
-                        hideArrow
-                        className={`
-                          border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground shadow-xl
-                        `}
-                      >
+                      <TooltipContent side="top">
                         Remove
                       </TooltipContent>
                     </Tooltip>
@@ -245,12 +238,7 @@ export default function EventChartControls({
               <ShuffleIcon className="size-4" />
             </button>
           </TooltipTrigger>
-          <TooltipContent
-            side="left"
-            sideOffset={8}
-            hideArrow
-            className="border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-xl"
-          >
+          <TooltipContent side="left">
             Switch to
             {' '}
             {oppositeOutcomeLabel}

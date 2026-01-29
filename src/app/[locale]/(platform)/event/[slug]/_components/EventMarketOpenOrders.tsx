@@ -240,7 +240,7 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
                 <XIcon className="size-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" sideOffset={8}>
+            <TooltipContent side="top">
               Cancel
             </TooltipContent>
           </Tooltip>

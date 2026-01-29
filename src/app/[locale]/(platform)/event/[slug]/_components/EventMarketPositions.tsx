@@ -306,9 +306,7 @@ function MarketPositionRow({
           </TooltipTrigger>
           <TooltipContent
             side="bottom"
-            sideOffset={6}
-            hideArrow={true}
-            className="relative w-56 border border-border bg-background text-sm leading-tight text-foreground shadow-lg"
+            className="w-56 p-3"
           >
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between gap-3">

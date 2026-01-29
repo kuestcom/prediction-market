@@ -82,9 +82,7 @@ export default function EventOrderBookRow({
                 </TooltipTrigger>
                 <TooltipContent
                   side="left"
-                  sideOffset={8}
-                  hideArrow
-                  className="w-48 border border-border bg-background p-3 text-xs text-foreground shadow-xl"
+                  className="w-48 p-3 text-left"
                 >
                   <div className="flex items-center justify-between text-sm font-semibold">
                     <span>Filled</span>
