@@ -1,11 +1,11 @@
 import type { conditions, outcomes } from '@/lib/db/schema/events/tables'
-import type { Event, QueryResult } from '@/types'
+import type { ConditionChangeLogEntry, Event, QueryResult } from '@/types'
 import { and, desc, eq, exists, ilike, inArray, sql } from 'drizzle-orm'
 import { cacheTag } from 'next/cache'
 import { cacheTags } from '@/lib/cache-tags'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { bookmarks } from '@/lib/db/schema/bookmarks/tables'
-import { event_tags, events, markets, tags } from '@/lib/db/schema/events/tables'
+import { conditions_audit, event_tags, events, markets, tags } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { resolveDisplayPrice } from '@/lib/market-chance'
@@ -562,6 +562,48 @@ export const EventRepository = {
       }
 
       return { data: result[0], error: null }
+    })
+  },
+
+  async getEventConditionChangeLogBySlug(slug: string): Promise<QueryResult<ConditionChangeLogEntry[]>> {
+    'use cache'
+
+    return runQuery(async () => {
+      const eventResult = await db
+        .select({ id: events.id })
+        .from(events)
+        .where(eq(events.slug, slug))
+        .limit(1)
+
+      if (!eventResult.length) {
+        throw new Error('Event not found')
+      }
+
+      const eventId = eventResult[0]!.id
+      cacheTag(cacheTags.event(eventId))
+
+      const rows = await db
+        .select({
+          condition_id: conditions_audit.condition_id,
+          created_at: conditions_audit.created_at,
+          old_values: conditions_audit.old_values,
+          new_values: conditions_audit.new_values,
+        })
+        .from(conditions_audit)
+        .innerJoin(markets, eq(markets.condition_id, conditions_audit.condition_id))
+        .where(eq(markets.event_id, eventId))
+        .orderBy(desc(conditions_audit.created_at))
+
+      const data = rows.map(row => ({
+        condition_id: row.condition_id,
+        created_at: row.created_at instanceof Date
+          ? row.created_at.toISOString()
+          : new Date(row.created_at as unknown as string).toISOString(),
+        old_values: row.old_values as Record<string, unknown>,
+        new_values: row.new_values as Record<string, unknown>,
+      }))
+
+      return { data, error: null }
     })
   },
 

@@ -3,6 +3,7 @@ import {
   boolean,
   char,
   integer,
+  jsonb,
   numeric,
   pgTable,
   pgView,
@@ -28,6 +29,21 @@ export const conditions = pgTable(
     mirror_uma_oracle_address: char('mirror_uma_oracle_address', { length: 42 }),
     created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+)
+
+export const conditions_audit = pgTable(
+  'conditions_audit',
+  {
+    id: char({ length: 26 })
+      .primaryKey()
+      .default(sql`generate_ulid()`),
+    condition_id: text()
+      .notNull()
+      .references(() => conditions.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    old_values: jsonb().notNull(),
+    new_values: jsonb().notNull(),
+    created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
 )
 

@@ -823,16 +823,16 @@ export default function EventMarketPositions({
       <AlertBanner
         title={t('Failed to load positions')}
         description={(
-          <>
-            <span>{t('We couldn\'t fetch your positions for this market.')}</span>
-            <div>
-              <Button type="button" variant="secondary" size="sm" onClick={() => refetch()}>
-                {t('Try again')}
-              </Button>
-            </div>
-          </>
+          <Button
+            type="button"
+            onClick={() => refetch()}
+            size="sm"
+            variant="link"
+            className="-ml-3"
+          >
+            {t('Try again')}
+          </Button>
         )}
-        descriptionClassName="flex flex-col gap-2"
       />
     )
   }

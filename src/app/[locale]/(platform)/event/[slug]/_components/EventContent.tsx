@@ -1,11 +1,12 @@
 'use client'
 
-import type { Event, User } from '@/types'
+import type { ConditionChangeLogEntry, Event, User } from '@/types'
 import { ArrowUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import EventChangeLog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChangeLog'
 import EventHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventHeader'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventMarkets, { ResolvedResolutionPanel, resolveWinningOutcomeIndex } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarkets'
@@ -36,10 +37,17 @@ interface EventContentProps {
   event: Event
   user: User | null
   marketContextEnabled: boolean
+  changeLogEntries: ConditionChangeLogEntry[]
   marketSlug?: string
 }
 
-export default function EventContent({ event, user, marketContextEnabled, marketSlug }: EventContentProps) {
+export default function EventContent({
+  event,
+  user,
+  marketContextEnabled,
+  changeLogEntries,
+  marketSlug,
+}: EventContentProps) {
   const t = useExtracted()
   const setEvent = useOrder(state => state.setEvent)
   const setMarket = useOrder(state => state.setMarket)
@@ -297,6 +305,7 @@ export default function EventContent({ event, user, marketContextEnabled, market
           )}
           {marketContextEnabled && <EventMarketContext event={event} />}
           <EventRules event={event} />
+          <EventChangeLog entries={changeLogEntries} markets={event.markets} />
           {selectedMarketResolved && (
             <div className="rounded-xl border bg-background p-4">
               <ResolvedResolutionPanel

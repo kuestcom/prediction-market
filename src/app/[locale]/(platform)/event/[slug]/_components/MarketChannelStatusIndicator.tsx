@@ -31,7 +31,7 @@ export default function MarketChannelStatusIndicator({ className }: MarketChanne
             />
           </span>
         </TooltipTrigger>
-        <TooltipContent collisionPadding={8}>
+        <TooltipContent>
           {t('Live data status: {status}', { status: wsStatus })}
         </TooltipContent>
       </Tooltip>

@@ -27,14 +27,24 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
   ])
   const marketContextEnabled = marketContextSettings.enabled && Boolean(marketContextSettings.apiKey)
 
-  const { data: event, error } = await EventRepository.getEventBySlug(slug, user?.id ?? '')
+  const [eventResult, changeLogResult] = await Promise.all([
+    EventRepository.getEventBySlug(slug, user?.id ?? ''),
+    EventRepository.getEventConditionChangeLogBySlug(slug),
+  ])
+
+  const { data: event, error } = eventResult
   if (error || !event) {
     notFound()
+  }
+
+  if (changeLogResult.error) {
+    console.warn('Failed to load event change log:', changeLogResult.error)
   }
 
   return (
     <EventContent
       event={event}
+      changeLogEntries={changeLogResult.data ?? []}
       user={user}
       marketContextEnabled={marketContextEnabled}
       key={`is-bookmarked-${event.is_bookmarked}`}

@@ -243,7 +243,7 @@ export default function EventRules({ event }: EventRulesProps) {
     : null
 
   return (
-    <div className="rounded-xl border transition-all duration-200 ease-in-out">
+    <section className="rounded-xl border transition-all duration-200 ease-in-out">
       <button
         type="button"
         onClick={() => setRulesExpanded(!rulesExpanded)}
@@ -318,6 +318,6 @@ export default function EventRules({ event }: EventRulesProps) {
           </div>
         </div>
       )}
-    </div>
+    </section>
   )
 }

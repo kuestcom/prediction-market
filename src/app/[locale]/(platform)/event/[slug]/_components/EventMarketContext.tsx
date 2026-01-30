@@ -138,7 +138,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
   }
 
   return (
-    <div className="rounded-lg border transition-all duration-200 ease-in-out">
+    <section className="rounded-xl border transition-all duration-200 ease-in-out">
       {hasGenerated
         ? (
             <button
@@ -242,6 +242,6 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
           </div>
         </div>
       )}
-    </div>
+    </section>
   )
 }

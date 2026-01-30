@@ -30,6 +30,13 @@ export interface Event {
   is_trending: boolean
 }
 
+export interface ConditionChangeLogEntry {
+  condition_id: string
+  created_at: string
+  old_values: Record<string, unknown>
+  new_values: Record<string, unknown>
+}
+
 export interface Market {
   condition_id: string
   question_id: string
