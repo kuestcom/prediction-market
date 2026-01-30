@@ -141,6 +141,7 @@ export const auth = betterAuth({
   }),
   appName: process.env.NEXT_PUBLIC_SITE_NAME,
   secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: process.env.SITE_URL,
   advanced: {
     database: {
       generateId: false,

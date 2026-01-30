@@ -1,5 +1,6 @@
 'use cache'
 
+import { setRequestLocale } from 'next-intl/server'
 import AdminAffiliateOverview from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateOverview'
 import AdminAffiliateSettingsForm from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm'
 import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotalsByToken } from '@/lib/data-api/fees'
@@ -36,7 +37,10 @@ interface RowSummary {
   total_affiliate_fees: number
 }
 
-export default async function AdminSettingsPage(_: PageProps<'/[locale]/admin/affiliate'>) {
+export default async function AdminSettingsPage({ params }: PageProps<'/[locale]/admin/affiliate'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
   const [
     { data: allSettings },
     { data: overviewData },

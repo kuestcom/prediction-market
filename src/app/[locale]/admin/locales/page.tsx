@@ -1,11 +1,15 @@
 'use cache'
 
+import { setRequestLocale } from 'next-intl/server'
 import AdminLocalesSettingsForm from '@/app/[locale]/admin/locales/_components/AdminLocalesSettingsForm'
 import { getEnabledLocalesFromSettings } from '@/i18n/locale-settings'
 import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 
-export default async function AdminLocalesSettingsPage(_: PageProps<'/[locale]/admin/locales'>) {
+export default async function AdminLocalesSettingsPage({ params }: PageProps<'/[locale]/admin/locales'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
   const { data: allSettings } = await SettingsRepository.getSettings()
   const enabledLocales = getEnabledLocalesFromSettings(allSettings ?? undefined)
 

@@ -1,10 +1,14 @@
 'use cache'
 
 import type { Event } from '@/types'
+import { setRequestLocale } from 'next-intl/server'
 import HomeClient from '@/app/[locale]/(platform)/(home)/_components/HomeClient'
 import { EventRepository } from '@/lib/db/queries/event'
 
-export default async function HomePage(_: PageProps<'/[locale]'>) {
+export default async function HomePage({ params }: PageProps<'/[locale]'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
   let initialEvents: Event[] = []
 
   try {
