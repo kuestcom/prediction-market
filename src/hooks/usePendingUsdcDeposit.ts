@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 import { createPublicClient, formatUnits, getContract, http } from 'viem'
 import { defaultNetwork } from '@/lib/appkit'
 import { NATIVE_USDC_TOKEN_ADDRESS } from '@/lib/contracts'
+import { IS_TEST_MODE } from '@/lib/network'
 import { normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
 
@@ -28,7 +29,6 @@ const INITIAL_STATE: Balance = {
   text: '0.00',
   symbol: 'USDC',
 }
-
 export const PENDING_USDC_QUERY_KEY = 'safe-native-usdc-balance'
 
 interface UsePendingUsdcDepositOptions {
@@ -69,7 +69,7 @@ export function usePendingUsdcDeposit(options: UsePendingUsdcDepositOptions = {}
     ? normalizeAddress(user.proxy_wallet_address) as Address | null
     : null
 
-  const isOptionsEnabled = options.enabled ?? true
+  const isOptionsEnabled = (options.enabled ?? true) && !IS_TEST_MODE
   const isAwaitingConnection = Boolean(user && isOptionsEnabled && !isConnected)
   const isQueryEnabled = Boolean(isConnected && proxyWalletAddress && isOptionsEnabled)
 
