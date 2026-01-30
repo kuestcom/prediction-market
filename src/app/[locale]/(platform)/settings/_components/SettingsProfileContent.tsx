@@ -63,7 +63,8 @@ export default function SettingsProfileContent({ user }: { user: User }) {
     setIsPending(true)
 
     const formData = new FormData(event.currentTarget)
-    const email = (formData.get('email') as string | null)?.trim() || ''
+    const email = (formData.get('email') as string | null)?.trim() ?? ''
+    const emailValue = email.length > 0 ? email : undefined
     const username = (formData.get('username') as string | null)?.trim() || ''
     const imageFile = formData.get('image') as File | null
 
@@ -119,7 +120,9 @@ export default function SettingsProfileContent({ user }: { user: User }) {
       }
 
       const localForm = new FormData()
-      localForm.set('email', email)
+      if (emailValue) {
+        localForm.set('email', emailValue)
+      }
       localForm.set('username', communityUsername)
       if (avatarUrl) {
         localForm.set('avatar_url', avatarUrl)
@@ -134,7 +137,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
 
       useUser.setState({
         ...user,
-        email,
+        email: emailValue ?? user.email,
         username: communityUsername,
         image: avatarUrl ?? user.image,
       })
@@ -236,7 +239,6 @@ export default function SettingsProfileContent({ user }: { user: User }) {
               id="email"
               type="email"
               name="email"
-              required
               defaultValue={user.email}
               disabled={isPending}
               placeholder="Enter your email"

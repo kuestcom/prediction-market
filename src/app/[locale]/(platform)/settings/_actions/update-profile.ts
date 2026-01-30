@@ -16,8 +16,23 @@ export interface ActionState {
   errors?: Record<string, string | undefined>
 }
 
+function emptyStringToUndefined(value: unknown) {
+  if (value === null || value === undefined) {
+    return undefined
+  }
+
+  if (typeof value === 'string' && value.trim().length === 0) {
+    return undefined
+  }
+
+  return value
+}
+
 const UpdateUserSchema = z.object({
-  email: z.email({ pattern: z.regexes.html5Email, error: 'Invalid email address.' }),
+  email: z.preprocess(
+    emptyStringToUndefined,
+    z.email({ pattern: z.regexes.html5Email, error: 'Invalid email address.' }).optional(),
+  ),
   username: z
     .string()
     .min(3, 'Username must be at least 3 character long')
@@ -56,13 +71,14 @@ export async function updateUserAction(formData: FormData): Promise<ActionState>
     }
 
     const imageFile = formData.get('image') as File
+    const emailRaw = formData.get('email')
     const avatarUrlRaw = formData.get('avatar_url')
     const avatarUrl = typeof avatarUrlRaw === 'string' && avatarUrlRaw.trim().length > 0
       ? avatarUrlRaw.trim()
       : undefined
 
     const rawData = {
-      email: formData.get('email') as string,
+      email: typeof emailRaw === 'string' ? emailRaw : undefined,
       username: formData.get('username') as string,
       image: imageFile && imageFile.size > 0 ? imageFile : undefined,
       avatar_url: avatarUrl,
@@ -81,8 +97,11 @@ export async function updateUserAction(formData: FormData): Promise<ActionState>
     }
 
     const updateData: Record<string, unknown> = {
-      email: validated.data.email,
       username: validated.data.username,
+    }
+
+    if (validated.data.email) {
+      updateData.email = validated.data.email
     }
 
     if (validated.data.avatar_url) {
