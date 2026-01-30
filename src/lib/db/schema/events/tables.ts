@@ -118,7 +118,6 @@ export const outcomes = pgTable(
     token_id: text().notNull().primaryKey(),
     is_winning_outcome: boolean().default(false),
     payout_value: numeric({ precision: 20, scale: 6 }),
-    current_price: numeric({ precision: 8, scale: 4 }),
     created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },

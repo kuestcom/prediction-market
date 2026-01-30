@@ -6,10 +6,11 @@
 CREATE TABLE affiliate_referrals
 (
   id                CHAR(26) PRIMARY KEY DEFAULT generate_ulid(),
-  user_id           CHAR(26)    NOT NULL UNIQUE REFERENCES users (id) ON DELETE CASCADE, -- The referred user
-  affiliate_user_id CHAR(26)    NOT NULL REFERENCES users (id) ON DELETE CASCADE,        -- The referring affiliate
-  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()                                   -- When attribution was recorded
+  user_id           CHAR(26)    NOT NULL UNIQUE REFERENCES users (id) ON DELETE CASCADE,
+  affiliate_user_id CHAR(26)    NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
 -- ===========================================
 -- 2. ROW LEVEL SECURITY
 -- ===========================================

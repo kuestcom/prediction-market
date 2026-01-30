@@ -44,20 +44,17 @@ EXECUTE FUNCTION set_updated_at();
 -- 6. SEED
 -- ===========================================
 
--- Insert default affiliate settings
 INSERT INTO settings ("group", key, value)
-VALUES ('affiliate', 'trade_fee_bps', '200'),       -- 2.00% trading fee
-       ('affiliate', 'affiliate_share_bps', '5000') -- 50% of trading fees go to affiliates
+VALUES ('affiliate', 'trade_fee_bps', '200'),
+       ('affiliate', 'affiliate_share_bps', '5000')
 ON CONFLICT ("group", key) DO NOTHING;
 
--- Insert default AI settings
 INSERT INTO settings ("group", key, value)
 VALUES ('ai', 'openrouter_api_key', ''),
        ('ai', 'openrouter_model', ''),
        ('ai', 'openrouter_enabled', 'false')
 ON CONFLICT ("group", key) DO NOTHING;
 
--- Insert default locale settings
 INSERT INTO settings ("group", key, value)
 VALUES ('i18n', 'enabled_locales', '["en","de","es","pt","fr","zh"]')
 ON CONFLICT ("group", key) DO NOTHING;

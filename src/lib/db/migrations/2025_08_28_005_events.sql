@@ -7,7 +7,6 @@ CREATE TABLE conditions
   id                           CHAR(66) PRIMARY KEY,
   oracle                       CHAR(42)    NOT NULL,
   question_id                  CHAR(66)    NOT NULL,
-  -- Resolution data
   resolved                     BOOLEAN              DEFAULT FALSE,
   uma_request_tx_hash          CHAR(66),
   uma_request_log_index        INTEGER,
@@ -15,10 +14,8 @@ CREATE TABLE conditions
   mirror_uma_request_tx_hash   CHAR(66),
   mirror_uma_request_log_index INTEGER,
   mirror_uma_oracle_address    CHAR(42),
-  -- Metadata
   metadata_hash                TEXT,
-  creator                      CHAR(42), -- Market creator address
-  -- Timestamps
+  creator                      CHAR(42),
   created_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -43,7 +40,7 @@ CREATE TABLE events
   id                   CHAR(26) PRIMARY KEY DEFAULT generate_ulid(),
   slug                 TEXT        NOT NULL UNIQUE,
   title                TEXT        NOT NULL,
-  creator              CHAR(42), -- Ethereum address of creator
+  creator              CHAR(42),
   icon_url             TEXT,
   show_market_icons    BOOLEAN              DEFAULT TRUE,
   enable_neg_risk      BOOLEAN              DEFAULT FALSE,
@@ -51,7 +48,7 @@ CREATE TABLE events
   neg_risk             BOOLEAN              DEFAULT FALSE,
   neg_risk_market_id   CHAR(66),
   status               TEXT        NOT NULL DEFAULT 'active',
-  rules                TEXT,     -- Event-specific rules
+  rules                TEXT,
   active_markets_count INTEGER              DEFAULT 0,
   total_markets_count  INTEGER              DEFAULT 0,
   end_date             TIMESTAMPTZ,
@@ -70,11 +67,8 @@ CREATE TABLE event_tags
 
 CREATE TABLE markets
 (
-  -- IDs and Identifiers
   condition_id          TEXT PRIMARY KEY REFERENCES conditions (id) ON DELETE CASCADE ON UPDATE CASCADE,
-  -- Relationships
   event_id              CHAR(26)    NOT NULL REFERENCES events (id) ON DELETE CASCADE ON UPDATE CASCADE,
-  -- Market Information
   title                 TEXT        NOT NULL,
   slug                  TEXT        NOT NULL,
   short_title           TEXT,
@@ -89,21 +83,15 @@ CREATE TABLE markets
   neg_risk_request_id   CHAR(66),
   metadata_version      TEXT,
   metadata_schema       TEXT,
-  -- Images
-  icon_url              TEXT,  -- markets/icons/market-slug.jpg
-  -- Status and Data
+  icon_url              TEXT,
   is_active             BOOLEAN              DEFAULT TRUE,
   is_resolved           BOOLEAN              DEFAULT FALSE,
-  -- Metadata
-  metadata              JSONB, -- Metadata from Arweave
-  -- Cached Trading Metrics (from subgraphs)
+  metadata              JSONB,
   volume_24h            DECIMAL(20, 6)       DEFAULT 0,
   volume                DECIMAL(20, 6)       DEFAULT 0,
-  -- Timestamps
   end_time              TIMESTAMPTZ,
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  -- Constraints
   UNIQUE (event_id, slug),
   CHECK (volume_24h >= 0),
   CHECK (volume >= 0)
@@ -111,36 +99,29 @@ CREATE TABLE markets
 
 CREATE TABLE outcomes
 (
+  token_id           TEXT PRIMARY KEY,
   condition_id       CHAR(66)    NOT NULL REFERENCES conditions (id) ON DELETE CASCADE ON UPDATE CASCADE,
   outcome_text       TEXT        NOT NULL,
-  outcome_index      SMALLINT    NOT NULL,               -- 0, 1, 2... outcome order
-  token_id           TEXT PRIMARY KEY,                   -- ERC1155 token ID for this outcome
-  -- Resolution data
-  is_winning_outcome BOOLEAN              DEFAULT FALSE, -- When resolved
-  payout_value       DECIMAL(20, 6),                     -- Final payout value
-  -- Trading metrics (cached from subgraphs)
-  current_price      DECIMAL(8, 4),                      -- Current market price (0.0001 to 0.9999)
-  -- Timestamps
+  outcome_index      SMALLINT    NOT NULL,
+  is_winning_outcome BOOLEAN              DEFAULT FALSE,
+  payout_value       DECIMAL(20, 6),
   created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  -- Constraints
   UNIQUE (condition_id, outcome_index),
   CHECK (outcome_index >= 0),
-  CHECK (current_price IS NULL OR (current_price >= 0.0001 AND current_price <= 0.9999)),
   CHECK (payout_value IS NULL OR payout_value >= 0)
 );
 
 CREATE TABLE subgraph_syncs
 (
   id              SMALLINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  service_name    text        NOT NULL,                -- 'activity_sync', 'pnl_sync', etc.
-  subgraph_name   text        NOT NULL,                -- 'activity', 'pnl', 'oi', etc.
-  status          text                 DEFAULT 'idle', -- 'running', 'completed', 'error'
+  service_name    text        NOT NULL,
+  subgraph_name   text        NOT NULL,
+  status          text                 DEFAULT 'idle',
   total_processed INTEGER              DEFAULT 0,
   error_message   TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  -- Constraints
   UNIQUE (service_name, subgraph_name),
   CHECK (status IN ('idle', 'running', 'completed', 'error')),
   CHECK (total_processed >= 0)
@@ -188,14 +169,12 @@ CREATE POLICY "service_role_all_subgraph_syncs" ON "subgraph_syncs" AS PERMISSIV
 -- 5. FUNCTIONS
 -- ===========================================
 
--- Function to update active markets count per event (business logic)
 CREATE OR REPLACE FUNCTION update_event_markets_count()
   RETURNS TRIGGER
   SET search_path = 'public'
 AS
 $$
 BEGIN
-  -- Update affected event counter
   IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
     UPDATE events
     SET active_markets_count = (SELECT COUNT(*)
@@ -209,7 +188,6 @@ BEGIN
     WHERE id = NEW.event_id;
   END IF;
 
-  -- If DELETE or UPDATE that changed event_id
   IF TG_OP = 'DELETE' OR (TG_OP = 'UPDATE' AND OLD.event_id != NEW.event_id) THEN
     UPDATE events
     SET active_markets_count = (SELECT COUNT(*)
@@ -227,7 +205,6 @@ BEGIN
 END;
 $$ LANGUAGE 'plpgsql';
 
--- Function to update markets count per tag (business logic)
 CREATE OR REPLACE FUNCTION update_tag_markets_count()
   RETURNS TRIGGER
   SET search_path = 'public'
@@ -236,10 +213,8 @@ $$
 DECLARE
   affected_event_id CHAR(26);
 BEGIN
-  -- Get the event_id from NEW or OLD
   affected_event_id := COALESCE(NEW.event_id, OLD.event_id);
 
-  -- Update only tags linked to this specific event
   UPDATE tags
   SET active_markets_count = (SELECT COUNT(DISTINCT m.condition_id)
                               FROM markets m
@@ -405,7 +380,6 @@ SET is_main_category = FALSE
 WHERE is_main_category = TRUE
   AND slug NOT IN (SELECT slug FROM upserted);
 
--- Hide specific categories by default to keep them out of the main feed
 UPDATE tags
 SET hide_events = TRUE
 WHERE slug IN ('crypto-prices', 'recurring', 'today-', 'today', '4h', 'daily');
