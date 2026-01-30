@@ -89,12 +89,16 @@ export default function EventChangeLog({ entries, markets }: EventChangeLogProps
     return null
   }
 
+  const updateLabel = entries.length === 1 ? t('Update') : t('Updates')
+
   return (
     <section className="min-w-0 overflow-hidden rounded-xl border bg-background p-4">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-lg font-medium">{t('Event changes')}</h3>
         <span className="text-xs text-muted-foreground">
-          {t('{count} update{count, plural, one {} other {s}}', { count: entries.length })}
+          <span className="tabular-nums">{entries.length}</span>
+          {' '}
+          {updateLabel}
         </span>
       </div>
 
@@ -109,7 +113,7 @@ export default function EventChangeLog({ entries, markets }: EventChangeLogProps
               <th className={cn(tableHeaderClass, 'text-left whitespace-nowrap')}>{t('To')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/60">
+          <tbody className="divide-y">
             {rows.map(({ entry, field, isFirst, rowSpan }) => {
               const market = marketLookup.get(entry.condition_id)
               const marketLabel = formatConditionLabel(entry.condition_id, market)
@@ -130,13 +134,10 @@ export default function EventChangeLog({ entries, markets }: EventChangeLogProps
                   )}
                   {isFirst && (
                     <td className="px-2 py-3 sm:px-3" rowSpan={rowSpan}>
-                      <div className="whitespace-nowrap text-foreground">
+                      <div className="wrap-break-word text-foreground">
                         {marketLabel}
                       </div>
-                      <div className={`
-                        mt-1 font-mono text-2xs tracking-wide whitespace-nowrap text-muted-foreground uppercase
-                      `}
-                      >
+                      <div className="mt-1 font-mono text-2xs tracking-wide break-all text-muted-foreground uppercase">
                         {entry.condition_id}
                       </div>
                     </td>

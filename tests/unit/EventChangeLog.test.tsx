@@ -37,7 +37,7 @@ describe('eventChangeLog', () => {
 
     render(<EventChangeLog entries={entries} markets={markets} />)
 
-    expect(screen.getByText('Update history')).toBeInTheDocument()
+    expect(screen.getByText('Event changes')).toBeInTheDocument()
     expect(screen.getByText('metadata_hash')).toBeInTheDocument()
     expect(screen.getByText('resolved')).toBeInTheDocument()
     expect(screen.getByText('A')).toBeInTheDocument()
