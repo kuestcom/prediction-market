@@ -41,7 +41,7 @@ const RANGE_CONFIG: Record<Exclude<TimeRange, 'ALL'>, { interval: string, fideli
   '1W': { interval: '1w', fidelity: 30 },
   '1M': { interval: '1m', fidelity: 180 },
 }
-const ALL_FIDELITY = 60
+const ALL_FIDELITY = 720
 
 export const TIME_RANGES: TimeRange[] = ['1H', '6H', '1D', '1W', '1M', 'ALL']
 export const MINUTE_MS = 60 * 1000

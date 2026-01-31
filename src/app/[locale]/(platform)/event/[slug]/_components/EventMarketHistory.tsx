@@ -165,7 +165,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
   const content = (
     <>
       {isSingleMarket && (
-        <div className="p-4">
+        <div className="sticky top-0 z-10 bg-background/95 p-4 backdrop-blur">
           <h3 className="text-lg font-medium">{t('History')}</h3>
         </div>
       )}
@@ -273,12 +273,12 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
 
   return isSingleMarket
     ? (
-        <section className="max-h-96 overflow-auto rounded-xl border">
+        <section className="scrollbar-hide max-h-96 overflow-auto rounded-xl border">
           {content}
         </section>
       )
     : (
-        <div className="max-h-96 overflow-auto">
+        <div className="scrollbar-hide max-h-96 overflow-auto">
           {content}
         </div>
       )

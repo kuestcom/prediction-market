@@ -37,14 +37,90 @@ const FUTURE_LINE_COLOR_DARK = '#2C3F4F'
 const FUTURE_LINE_COLOR_LIGHT = '#99A6B5'
 const FUTURE_LINE_OPACITY_DARK = 0.55
 const FUTURE_LINE_OPACITY_LIGHT = 0.35
-const GRID_LINE_COLOR_DARK = '#3E5364'
-const GRID_LINE_COLOR_LIGHT = '#A7B4C2'
+const GRID_LINE_COLOR_DARK = '#51677A'
+const GRID_LINE_COLOR_LIGHT = '#8F9EAD'
 const GRID_LINE_OPACITY_DARK = 0.7
 const GRID_LINE_OPACITY_LIGHT = 0.35
 const CROSS_FADE_DURATION = 320
 const SURGE_DURATION = 520
 const SURGE_DASH_RATIO = 0.1
 const SURGE_COLOR_BLEND = 0.55
+const PATH_SEARCH_STEPS = 22
+const PATH_X_EPSILON = 0.35
+
+function resolvePathPointAtX(path: SVGPathElement, targetX: number) {
+  const totalLength = path.getTotalLength()
+  if (!Number.isFinite(totalLength) || totalLength <= 0) {
+    return null
+  }
+
+  const startPoint = path.getPointAtLength(0)
+  const endPoint = path.getPointAtLength(totalLength)
+  const minX = Math.min(startPoint.x, endPoint.x)
+  const maxX = Math.max(startPoint.x, endPoint.x)
+  const clampedX = Math.min(Math.max(targetX, minX), maxX)
+
+  let start = 0
+  let end = totalLength
+  let point = startPoint
+
+  for (let step = 0; step < PATH_SEARCH_STEPS; step += 1) {
+    const mid = (start + end) / 2
+    point = path.getPointAtLength(mid)
+    const delta = point.x - clampedX
+
+    if (Math.abs(delta) <= PATH_X_EPSILON) {
+      break
+    }
+
+    if (delta < 0) {
+      start = mid
+    }
+    else {
+      end = mid
+    }
+  }
+
+  return point
+}
+
+function resolvePointFromPaths(params: {
+  basePoint: DataPoint
+  series: SeriesConfig[]
+  seriesPaths: Record<string, SVGPathElement | null>
+  targetX: number
+  yScale: { invert: (value: number) => number }
+}) {
+  const { basePoint, series, seriesPaths, targetX, yScale } = params
+  let resolvedPoint = basePoint
+  let updated = false
+
+  for (const seriesItem of series) {
+    const path = seriesPaths[seriesItem.key]
+    if (!path) {
+      continue
+    }
+
+    const point = resolvePathPointAtX(path, targetX)
+    if (!point) {
+      continue
+    }
+
+    const value = yScale.invert(point.y)
+    if (!Number.isFinite(value)) {
+      continue
+    }
+
+    if (!updated) {
+      resolvedPoint = { ...basePoint }
+      updated = true
+    }
+
+    resolvedPoint[seriesItem.key] = value
+  }
+
+  return resolvedPoint
+}
 
 export function PredictionChart({
   data: providedData,
@@ -207,9 +283,43 @@ export function PredictionChart({
       const previousPoint = data[index - 1] ?? null
       const nextPoint = data[index] ?? null
 
-      return previousPoint ?? nextPoint ?? null
+      if (!previousPoint && !nextPoint) {
+        return null
+      }
+
+      if (!previousPoint) {
+        return { ...nextPoint, date: targetDate }
+      }
+
+      if (!nextPoint) {
+        return { ...previousPoint, date: targetDate }
+      }
+
+      const previousTime = previousPoint.date.getTime()
+      const nextTime = nextPoint.date.getTime()
+      const span = nextTime - previousTime
+      const ratio = span > 0 ? (targetTime - previousTime) / span : 0
+      const clampedRatio = Math.max(0, Math.min(1, ratio))
+      const interpolated: DataPoint = { date: targetDate }
+
+      series.forEach((seriesItem) => {
+        const previousValue = previousPoint[seriesItem.key]
+        const nextValue = nextPoint[seriesItem.key]
+
+        if (typeof previousValue === 'number' && typeof nextValue === 'number') {
+          interpolated[seriesItem.key] = previousValue + (nextValue - previousValue) * clampedRatio
+        }
+        else if (typeof previousValue === 'number') {
+          interpolated[seriesItem.key] = previousValue
+        }
+        else if (typeof nextValue === 'number') {
+          interpolated[seriesItem.key] = nextValue
+        }
+      })
+
+      return interpolated
     },
-    [data],
+    [data, series],
   )
 
   const handleTooltip = useCallback(
@@ -247,9 +357,18 @@ export function PredictionChart({
       lastCursorProgressRef.current = clamp01((targetTime - domainStart) / domainSpan)
       hasPointerInteractionRef.current = true
       stopRevealAnimation(revealAnimationFrameRef)
-      const cursorPoint = getClampedCursorPoint(targetDate)
-      const tooltipPoint = cursorPoint ?? data[0]
       const tooltipLeftPosition = xScale(targetDate)
+      const cursorPoint = getClampedCursorPoint(targetDate)
+      const resolvedPoint = cursorPoint
+        ? resolvePointFromPaths({
+            basePoint: cursorPoint,
+            series,
+            seriesPaths: seriesPathRef.current,
+            targetX: tooltipLeftPosition,
+            yScale,
+          })
+        : null
+      const tooltipPoint = resolvedPoint ?? cursorPoint ?? data[0]
 
       showTooltip({
         tooltipData: tooltipPoint,
@@ -257,12 +376,11 @@ export function PredictionChart({
         tooltipTop: yScale((tooltipPoint[series[0].key] as number) || 0),
       })
 
-      emitCursorDataChange(cursorPoint ?? tooltipPoint ?? null)
+      emitCursorDataChange(resolvedPoint ?? cursorPoint ?? tooltipPoint ?? null)
     },
     [
       showTooltip,
       data,
-      series,
       width,
       height,
       resolvedMargin.left,
@@ -274,6 +392,7 @@ export function PredictionChart({
       revealAnimationFrameRef,
       getClampedCursorPoint,
       emitCursorDataChange,
+      series,
       yAxisMin,
       yAxisMax,
     ],
@@ -708,7 +827,7 @@ export function PredictionChart({
   const cursorPoint = shouldSplitByCursor && cursorDate
     ? getClampedCursorPoint(cursorDate)
     : null
-  const effectiveTooltipData = cursorPoint ?? tooltipData ?? null
+  const effectiveTooltipData = tooltipData ?? cursorPoint ?? null
 
   let coloredPoints: DataPoint[] = data
   let mutedPoints: DataPoint[] = []
@@ -743,6 +862,7 @@ export function PredictionChart({
   const totalDurationHours = data.length > 1
     ? (data[data.length - 1].date.valueOf() - data[0].date.valueOf()) / 36e5
     : 0
+  const isMonthOnlyLabels = totalDurationHours > 24 * 45
   const verticalGridTicks = showVerticalGrid
     ? xScale.ticks(Math.max(2, xAxisTickCount * 2))
     : []
@@ -767,7 +887,6 @@ export function PredictionChart({
 
     return date.toLocaleDateString('en-US', {
       month: 'short',
-      year: 'numeric',
     })
   }
 
@@ -795,7 +914,7 @@ export function PredictionChart({
             value,
             initialTop: resolvedMargin.top
               + yScale(value)
-              - TOOLTIP_LABEL_HEIGHT / 2,
+              - TOOLTIP_LABEL_HEIGHT,
           }
         })
         .filter((entry): entry is TooltipEntry => entry !== null)
@@ -999,7 +1118,7 @@ export function PredictionChart({
                       x={d => xScale(getDate(d))}
                       y={d => yScale((d[seriesItem.key] as number) || 0)}
                       stroke={seriesColor}
-                      strokeWidth={2.2}
+                      strokeWidth={1.6}
                       strokeOpacity={ghostOpacity}
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -1014,7 +1133,7 @@ export function PredictionChart({
                       x={d => xScale(getDate(d))}
                       y={d => yScale(d[seriesItem.key] as number)}
                       stroke={futureLineColor}
-                      strokeWidth={1.9}
+                      strokeWidth={1.3}
                       strokeDasharray="2 4"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -1030,7 +1149,7 @@ export function PredictionChart({
                       x={d => xScale(getDate(d))}
                       y={d => yScale(d[seriesItem.key] as number)}
                       stroke={seriesColor}
-                      strokeWidth={1.9}
+                      strokeWidth={1.4}
                       strokeDasharray="2 4"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -1048,7 +1167,7 @@ export function PredictionChart({
                             x={d => xScale(getDate(d))}
                             y={d => yScale((d[seriesItem.key] as number) || 0)}
                             stroke={futureLineColor}
-                            strokeWidth={2.2}
+                            strokeWidth={1.4}
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeOpacity={futureLineOpacity * crossFadeIn}
@@ -1061,7 +1180,7 @@ export function PredictionChart({
                             x={d => xScale(getDate(d))}
                             y={d => yScale((d[seriesItem.key] as number) || 0)}
                             stroke={seriesColor}
-                            strokeWidth={2.2}
+                            strokeWidth={1.6}
                             strokeOpacity={crossFadeIn}
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -1080,7 +1199,7 @@ export function PredictionChart({
                               x={d => xScale(getDate(d))}
                               y={d => yScale((d[seriesItem.key] as number) || 0)}
                               stroke={futureLineColor}
-                              strokeWidth={2.2}
+                              strokeWidth={1.6}
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeOpacity={futureLineOpacity * crossFadeIn}
@@ -1110,7 +1229,7 @@ export function PredictionChart({
                             <path
                               d={pathDefinition}
                               stroke={seriesColor}
-                              strokeWidth={2.2}
+                              strokeWidth={1.6}
                               strokeOpacity={crossFadeIn}
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -1121,7 +1240,7 @@ export function PredictionChart({
                               <path
                                 d={pathDefinition}
                                 stroke={lightenSeriesColor(seriesColor)}
-                                strokeWidth={3}
+                                strokeWidth={2}
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 fill="transparent"
@@ -1219,13 +1338,14 @@ export function PredictionChart({
                       ? 'end'
                       : 'middle'
 
+                  const hideFirstMonthLabel = isMonthOnlyLabels && index === 0
                   return {
                     fill: axisLabelColor,
                     fontSize: 11,
                     fontFamily: 'Arial, sans-serif',
                     textAnchor,
                     dy: '0.6em',
-                    opacity: axisLabelOpacity,
+                    opacity: hideFirstMonthLabel ? 0 : axisLabelOpacity,
                   }
                 }}
                 numTicks={xAxisTickCount}

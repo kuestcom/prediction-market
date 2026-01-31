@@ -30,71 +30,47 @@ export default function PredictionChartTooltipOverlay({
     return null
   }
 
-  const dateLabel = tooltipData.date.toLocaleString('en-US', {
+  const rawDateLabel = tooltipData.date.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
   })
+  const dateLabel = rawDateLabel
+    .replace(/\bAM\b/g, 'am')
+    .replace(/\bPM\b/g, 'pm')
+
+  const pointerX = margin.left + clampedTooltipX
+  const chartLeft = margin.left + 4
+  const chartRight = margin.left + innerWidth - 4
+  const anchorOffset = 8
+  const switchThreshold = 0.86
+  const plotWidth = Math.max(1, chartRight - chartLeft)
+  const pointerRatio = (pointerX - chartLeft) / plotWidth
+  const placeRightByRatio = Number.isFinite(pointerRatio)
+    ? pointerRatio <= switchThreshold
+    : true
+  const totalWidth = Math.max(1, margin.left + innerWidth + margin.right)
+  const pointerPercent = (pointerX / totalWidth) * 100
+  const anchorRight = `calc(${pointerPercent}% + ${anchorOffset}px)`
+  const anchorLeft = `calc(${pointerPercent}% - ${anchorOffset}px)`
 
   const dateLabelStyle = (() => {
-    const dateLabelMaxWidth = 180
-    const pointerX = margin.left + clampedTooltipX
-    const offset = 6
-    const chartLeft = margin.left + 4
-    const chartRight = margin.left + innerWidth - 4
-    const preferRight = pointerX + offset + dateLabelMaxWidth <= chartRight
-    const anchorRightSide = preferRight
-      ? pointerX + offset
-      : pointerX - offset
+    const placeRight = placeRightByRatio
 
-    if (preferRight) {
-      return {
-        left: Math.min(
-          Math.max(anchorRightSide, chartLeft),
-          chartRight - dateLabelMaxWidth,
-        ),
-        transform: 'translateX(0)',
-      }
-    }
-
-    const minLeftForLeftAnchor = chartLeft + dateLabelMaxWidth
     return {
-      left: Math.min(
-        Math.max(anchorRightSide, minLeftForLeftAnchor),
-        chartRight,
-      ),
-      transform: 'translateX(-100%)',
+      left: placeRight ? anchorRight : anchorLeft,
+      transform: placeRight ? 'translateX(0)' : 'translateX(-100%)',
     }
   })()
 
   const tooltipLabelPosition = (() => {
-    const pointerX = margin.left + clampedTooltipX
-    const chartLeft = margin.left + 4
-    const chartRight = margin.left + innerWidth - 4
-    const anchorOffset = 6
-    const anchorBoundaryWidth = 180
-    const labelMaxWidth = TOOLTIP_LABEL_MAX_WIDTH
-
-    const preferRight = pointerX + anchorOffset + anchorBoundaryWidth <= chartRight
-    const anchor = preferRight
-      ? pointerX + anchorOffset
-      : pointerX - anchorOffset
-
-    const resolvedLeft = preferRight
-      ? Math.min(
-          Math.max(anchor, chartLeft),
-          chartRight - labelMaxWidth,
-        )
-      : Math.min(
-          Math.max(anchor, chartLeft + labelMaxWidth),
-          chartRight,
-        )
+    const placeRight = placeRightByRatio
 
     return {
-      left: resolvedLeft,
-      transform: preferRight ? 'translateX(0)' : 'translateX(-100%)',
+      left: placeRight ? anchorRight : anchorLeft,
+      transform: placeRight ? 'translateX(0)' : 'translateX(-100%)',
     }
   })()
 
