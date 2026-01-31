@@ -3,7 +3,7 @@
 import type { InfiniteData } from '@tanstack/react-query'
 import type { Event, UserOpenOrder } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ChevronUp, XIcon } from 'lucide-react'
+import { ChevronDownIcon, ChevronUpIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -120,7 +120,7 @@ function SortHeaderButton({
 }) {
   const isActive = sortState?.column === column
   const direction = isActive ? sortState?.direction : null
-  const Icon = direction === 'asc' ? ChevronUp : ChevronDown
+  const Icon = direction === 'asc' ? ChevronUpIcon : ChevronDownIcon
 
   return (
     <button

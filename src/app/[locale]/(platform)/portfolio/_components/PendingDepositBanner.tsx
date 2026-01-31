@@ -1,7 +1,7 @@
 'use client'
 
 import type { SafeOperationType } from '@/lib/safe/transactions'
-import { ArrowDownToLine, CheckIcon, Loader2Icon } from 'lucide-react'
+import { ArrowDownToLineIcon, CheckIcon, Loader2Icon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { hashTypedData } from 'viem'
@@ -184,7 +184,7 @@ export default function PendingDepositBanner() {
         onClick={() => setOpen(true)}
       >
         <span className="text-sm font-semibold">Confirm pending deposit</span>
-        <ArrowDownToLine className="size-4" />
+        <ArrowDownToLineIcon className="size-4" />
       </Button>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>

@@ -1,7 +1,7 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, MailIcon } from 'lucide-react'
+import { ArrowUpDownIcon, MailIcon } from 'lucide-react'
 import ProfileLink from '@/components/ProfileLink'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -58,7 +58,7 @@ export const columns: ColumnDef<AdminUserRow>[] = [
           className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
         >
           User
-          <ArrowUpDown className="ml-2 size-4" />
+          <ArrowUpDownIcon className="ml-2 size-4" />
         </Button>
       )
     },
@@ -93,7 +93,7 @@ export const columns: ColumnDef<AdminUserRow>[] = [
           className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
         >
           Email
-          <ArrowUpDown className="ml-2 size-4" />
+          <ArrowUpDownIcon className="ml-2 size-4" />
         </Button>
       )
     },
@@ -170,7 +170,7 @@ export const columns: ColumnDef<AdminUserRow>[] = [
             className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
           >
             Created
-            <ArrowUpDown className="ml-2 size-4" />
+            <ArrowUpDownIcon className="ml-2 size-4" />
           </Button>
         </div>
       )

@@ -1,4 +1,4 @@
-import { ArrowDown } from 'lucide-react'
+import { ArrowDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -58,7 +58,7 @@ export default function HeaderPortfolio() {
             <span>{t('Cash')}</span>
             {hasPendingDeposit && (
               <span className="inline-flex size-4 items-center justify-center rounded-full bg-primary">
-                <ArrowDown className="size-3 text-background" />
+                <ArrowDownIcon className="size-3 text-background" />
               </span>
             )}
           </div>

@@ -2,7 +2,7 @@
 
 import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import { useQueryClient } from '@tanstack/react-query'
-import { BadgeCheck, Loader2, LockKeyhole, MoveDown, MoveLeft } from 'lucide-react'
+import { BadgeCheckIcon, Loader2Icon, LockKeyholeIcon, MoveDownIcon, MoveLeftIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -499,7 +499,7 @@ export default function EventConvertPositionsDialog({
 
           <div className="relative z-10 -mt-2 -mb-2 flex items-center justify-center text-muted-foreground">
             <div className="rounded-md border-8 border-muted/60 bg-background p-1">
-              <MoveDown className="size-4" />
+              <MoveDownIcon className="size-4" />
             </div>
           </div>
 
@@ -537,7 +537,7 @@ export default function EventConvertPositionsDialog({
                       font-semibold text-yes
                     `}
                     >
-                      <LockKeyhole className="size-3" />
+                      <LockKeyholeIcon className="size-3" />
                       {t('Yes')}
                     </span>
                   </div>
@@ -567,8 +567,8 @@ export default function EventConvertPositionsDialog({
         disabled={!canSubmit}
         onClick={handleSubmit}
       >
-        {submitState === 'signing' && <Loader2 className="size-4 animate-spin" />}
-        {submitState === 'submitting' && <Loader2 className="size-4 animate-spin" />}
+        {submitState === 'signing' && <Loader2Icon className="size-4 animate-spin" />}
+        {submitState === 'submitting' && <Loader2Icon className="size-4 animate-spin" />}
         {submitState === 'signing'
           ? 'Awaiting signature'
           : submitState === 'submitting'
@@ -591,7 +591,7 @@ export default function EventConvertPositionsDialog({
       `}
       onClick={() => setStep('select')}
     >
-      <MoveLeft className="size-4" />
+      <MoveLeftIcon className="size-4" />
       Review
     </button>
   )
@@ -650,7 +650,7 @@ export default function EventConvertPositionsDialog({
 function ConvertSuccessIcon() {
   return (
     <span className="flex size-6 items-center justify-center rounded-full bg-yes/20 text-yes">
-      <BadgeCheck className="size-4" />
+      <BadgeCheckIcon className="size-4" />
     </span>
   )
 }

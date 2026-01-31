@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
-import { ArrowUpDown } from 'lucide-react'
+import { ArrowUpDownIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -34,7 +34,7 @@ export function createCategoryColumns({
           className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
         >
           Category
-          <ArrowUpDown className="ml-2 size-4" />
+          <ArrowUpDownIcon className="ml-2 size-4" />
         </Button>
       ),
       cell: ({ row }) => {
@@ -93,7 +93,7 @@ export function createCategoryColumns({
           className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
         >
           Active Markets
-          <ArrowUpDown className="ml-2 size-4" />
+          <ArrowUpDownIcon className="ml-2 size-4" />
         </Button>
       ),
       cell: ({ row }) => (

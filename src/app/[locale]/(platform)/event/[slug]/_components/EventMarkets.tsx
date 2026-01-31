@@ -6,7 +6,7 @@ import type { OrderBookSummariesResponse } from '@/app/[locale]/(platform)/event
 import type { DataApiActivity } from '@/lib/data-api/user'
 import type { Event, UserPosition } from '@/types'
 import { useQuery } from '@tanstack/react-query'
-import { Check, ChevronDown, LockKeyhole, RefreshCwIcon, SquareArrowOutUpRight, X } from 'lucide-react'
+import { CheckIcon, ChevronDownIcon, LockKeyholeIcon, RefreshCwIcon, SquareArrowOutUpRightIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -620,7 +620,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
               data-state={showResolvedMarkets ? 'open' : 'closed'}
             >
               <span>{showResolvedMarkets ? t('Hide resolved') : t('View resolved')}</span>
-              <ChevronDown
+              <ChevronDownIcon
                 className="size-6 transition-transform duration-150 group-data-[state=open]:rotate-180"
               />
             </button>
@@ -792,8 +792,8 @@ function ResolvedMarketRow({
                   )}
                   >
                     {isYesOutcome
-                      ? <Check className="size-3 text-background" strokeWidth={2.5} />
-                      : <X className="size-3 text-background" strokeWidth={2.5} />}
+                      ? <CheckIcon className="size-3 text-background" strokeWidth={2.5} />
+                      : <XIcon className="size-3 text-background" strokeWidth={2.5} />}
                   </span>
                 </span>
               )
@@ -843,7 +843,7 @@ function OtherOutcomeRow({ shares, showMarketIcon }: { shares: number, showMarke
             `,
           )}
           >
-            <LockKeyhole className="size-3 text-yes" />
+            <LockKeyholeIcon className="size-3 text-yes" />
             <span className="tabular-nums">{sharesLabel}</span>
             <span>{t('Yes')}</span>
           </span>
@@ -1141,7 +1141,7 @@ export function ResolvedResolutionPanel({
         <div className="absolute top-3 bottom-3 left-2.5 w-1 bg-primary" aria-hidden="true" />
         <div className="flex items-center gap-3">
           <span className="relative flex size-6 items-center justify-center rounded-full bg-primary">
-            <Check className="size-3.5 text-primary-foreground" />
+            <CheckIcon className="size-3.5 text-primary-foreground" />
           </span>
           <span className="text-sm font-medium text-foreground">
             {t('Outcome proposed:')}
@@ -1151,13 +1151,13 @@ export function ResolvedResolutionPanel({
         </div>
         <div className="flex items-center gap-3">
           <span className="relative flex size-6 items-center justify-center rounded-full bg-primary">
-            <Check className="size-3.5 text-primary-foreground" />
+            <CheckIcon className="size-3.5 text-primary-foreground" />
           </span>
           <span className="text-sm font-medium text-foreground">{t('No dispute')}</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="relative flex size-6 items-center justify-center rounded-full bg-primary">
-            <Check className="size-3.5 text-primary-foreground" />
+            <CheckIcon className="size-3.5 text-primary-foreground" />
           </span>
           <span className="text-sm font-medium text-foreground">
             {t('Final outcome:')}
@@ -1175,7 +1175,7 @@ export function ResolvedResolutionPanel({
           className="inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:underline"
         >
           {t('View details')}
-          <SquareArrowOutUpRight className="size-4" />
+          <SquareArrowOutUpRightIcon className="size-4" />
         </a>
       )}
     </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import type { ChangeEvent, FormEvent } from 'react'
-import { AlertCircle, Calendar, CheckCircle2, Image, Loader2, Plus, Tag, Trash2 } from 'lucide-react'
+import { AlertCircleIcon, CalendarIcon, CheckCircle2Icon, ImageIcon, Loader2Icon, PlusIcon, TagIcon, Trash2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -534,7 +534,7 @@ export default function AdminCreateEventForm() {
       <Card className="bg-background">
         <CardHeader className="pt-8 pb-6">
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="size-5" />
+            <CalendarIcon className="size-5" />
             Event Information
           </CardTitle>
           <CardDescription>
@@ -653,7 +653,7 @@ export default function AdminCreateEventForm() {
       <Card className="bg-background">
         <CardHeader className="pt-8 pb-6">
           <CardTitle className="flex items-center gap-2">
-            <Tag className="size-5" />
+            <TagIcon className="size-5" />
             Event Tags
           </CardTitle>
           <CardDescription>
@@ -706,12 +706,12 @@ export default function AdminCreateEventForm() {
                     onClick={() => removeTag(index)}
                     disabled={form.tags.length <= 1}
                   >
-                    <Trash2 className="size-4" />
+                    <Trash2Icon className="size-4" />
                   </Button>
                 </div>
               ))}
               <Button type="button" variant="outline" onClick={addTag}>
-                <Plus className="mr-2 size-4" />
+                <PlusIcon className="mr-2 size-4" />
                 Add Custom Tag
               </Button>
             </div>
@@ -722,7 +722,7 @@ export default function AdminCreateEventForm() {
       <Card className="bg-background">
         <CardHeader className="pt-8 pb-6">
           <CardTitle className="flex items-center gap-2">
-            <Image className="size-5" />
+            <ImageIcon className="size-5" />
             Prediction Markets
           </CardTitle>
           <CardDescription>
@@ -749,7 +749,7 @@ export default function AdminCreateEventForm() {
                     onClick={() => removeMarket(marketIndex)}
                     disabled={form.markets.length <= 1}
                   >
-                    <Trash2 className="mr-2 size-4" />
+                    <Trash2Icon className="mr-2 size-4" />
                     Remove
                   </Button>
                 </div>
@@ -821,7 +821,7 @@ export default function AdminCreateEventForm() {
             ))}
 
             <Button type="button" variant="outline" onClick={addMarket}>
-              <Plus className="mr-2 size-4" />
+              <PlusIcon className="mr-2 size-4" />
               Add Market
             </Button>
           </div>
@@ -833,7 +833,7 @@ export default function AdminCreateEventForm() {
       <Card className="bg-background">
         <CardContent className="pt-8 pb-8">
           <div className="flex items-start gap-3">
-            <AlertCircle className="mt-0.5 size-5 text-no" />
+            <AlertCircleIcon className="mt-0.5 size-5 text-no" />
             <div className="space-y-2">
               <h4 className="font-semibold">Development Status - Not Ready for Production</h4>
               <ul className="space-y-1 text-sm text-muted-foreground">
@@ -879,13 +879,13 @@ export default function AdminCreateEventForm() {
           {isLoading
             ? (
                 <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  <Loader2Icon className="mr-2 size-4 animate-spin" />
                   Validating...
                 </>
               )
             : (
                 <>
-                  <CheckCircle2 className="mr-2 size-4" />
+                  <CheckCircle2Icon className="mr-2 size-4" />
                   Validate Event Data
                 </>
               )}

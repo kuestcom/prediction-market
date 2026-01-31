@@ -1,7 +1,7 @@
 'use client'
 
 import type { AffiliateDataError } from '@/lib/affiliate-data'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCwIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ErrorDisplayProps {
@@ -37,7 +37,7 @@ export function ErrorDisplay({ fallbackValue, className = '', showRefresh = true
           className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
           title="Refresh to retry"
         >
-          <RefreshCw className="size-3" />
+          <RefreshCwIcon className="size-3" />
         </Button>
       )}
     </span>
@@ -73,7 +73,7 @@ export function ErrorDisplayBlock({
             onClick={handleRefresh}
             className="text-xs"
           >
-            <RefreshCw className="mr-1 size-3" />
+            <RefreshCwIcon className="mr-1 size-3" />
             Refresh Page
           </Button>
         </div>

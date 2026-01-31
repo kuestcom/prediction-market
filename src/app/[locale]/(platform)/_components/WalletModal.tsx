@@ -3,19 +3,19 @@
 import type { ChangeEventHandler, FormEventHandler } from 'react'
 import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
 import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  CircleDollarSign,
-  Copy,
-  CreditCard,
-  ExternalLink,
-  Fuel,
-  Info,
-  Loader2,
-  Wallet,
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CircleDollarSignIcon,
+  CopyIcon,
+  CreditCardIcon,
+  ExternalLinkIcon,
+  FuelIcon,
+  InfoIcon,
+  Loader2Icon,
+  WalletIcon,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
@@ -154,7 +154,7 @@ function WalletAddressCard({
           <p className="ml-2 text-xs font-bold break-all">{walletAddress}</p>
         </div>
         <span className="inline-flex size-8 items-center justify-center">
-          {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4 text-muted-foreground" />}
+          {copied ? <CheckIcon className="size-4 text-primary" /> : <CopyIcon className="size-4 text-muted-foreground" />}
         </span>
       </div>
     </div>
@@ -325,7 +325,7 @@ function WalletSendForm({
           className="flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
           onClick={onBack}
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeftIcon className="size-4" />
           Back
         </button>
       )}
@@ -351,7 +351,7 @@ function WalletSendForm({
                 disabled={!connectedWalletAddress}
                 className="absolute inset-y-2 right-2 text-xs"
               >
-                <Wallet className="size-3.5 shrink-0" />
+                <WalletIcon className="size-3.5 shrink-0" />
                 <span>use connected</span>
               </Button>
             )}
@@ -485,7 +485,7 @@ function WalletSendForm({
             <span>Transaction breakdown</span>
             <span className="flex items-center gap-1">
               {!isBreakdownOpen && <span>0.00%</span>}
-              <ChevronRight
+              <ChevronRightIcon
                 className={`size-4 transition ${isBreakdownOpen ? 'rotate-90' : ''}`}
               />
             </span>
@@ -498,7 +498,7 @@ function WalletSendForm({
                     <TooltipTrigger asChild>
                       <div className="flex items-center gap-2">
                         <span>Network cost</span>
-                        <Info className="size-4" />
+                        <InfoIcon className="size-4" />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -519,7 +519,7 @@ function WalletSendForm({
                     </TooltipContent>
                   </Tooltip>
                   <div className="flex items-center gap-1">
-                    <Fuel className="size-4" />
+                    <FuelIcon className="size-4" />
                     <span>$0.00</span>
                   </div>
                 </div>
@@ -528,7 +528,7 @@ function WalletSendForm({
                     <TooltipTrigger asChild>
                       <div className="flex items-center gap-2">
                         <span>Price impact</span>
-                        <Info className="size-4" />
+                        <InfoIcon className="size-4" />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -555,7 +555,7 @@ function WalletSendForm({
                     <TooltipTrigger asChild>
                       <div className="flex items-center gap-2">
                         <span>Max slippage</span>
-                        <Info className="size-4" />
+                        <InfoIcon className="size-4" />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -573,7 +573,7 @@ function WalletSendForm({
           <div className="rounded-lg bg-muted/60 p-4">
             <div className="flex items-start gap-3 text-xs text-foreground">
               <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-destructive">
-                <Info className="size-4 text-background" />
+                <InfoIcon className="size-4 text-background" />
               </div>
               <div className="space-y-1">
                 <p className="font-semibold">USDCe is not widely supported by most exchanges</p>
@@ -637,7 +637,7 @@ function WalletFundMenu({
       >
         <div className="flex items-center gap-3">
           <div className="flex size-12 items-center justify-center text-foreground">
-            <Wallet className="size-6" />
+            <WalletIcon className="size-6" />
           </div>
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">
@@ -652,7 +652,7 @@ function WalletFundMenu({
                         ml-2 inline-flex size-4 items-center justify-center rounded-full text-muted-foreground
                       `}
                       >
-                        <Info className="size-3" />
+                        <InfoIcon className="size-3" />
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -702,7 +702,7 @@ function WalletFundMenu({
       >
         <div className="flex items-center gap-3">
           <div className="flex size-12 items-center justify-center text-foreground">
-            <CreditCard className="size-6" />
+            <CreditCardIcon className="size-6" />
           </div>
           <div>
             <p className="text-sm font-semibold">Buy Crypto</p>
@@ -744,7 +744,7 @@ function WalletFundMenu({
       >
         <div className="flex items-center gap-3">
           <div className="flex size-12 items-center justify-center text-foreground">
-            <CircleDollarSign className="size-6" />
+            <CircleDollarSignIcon className="size-6" />
           </div>
           <div>
             <p className="text-sm font-semibold">Transfer Funds</p>
@@ -1090,7 +1090,7 @@ function WalletAmountStep({
               <p className="text-sm font-semibold text-foreground">{selectedTokenSymbol ?? 'Token'}</p>
             </div>
           </div>
-          <ArrowRight className="size-4 text-muted-foreground" />
+          <ArrowRightIcon className="size-4 text-muted-foreground" />
           <div className="flex items-center gap-3">
             <div className="relative">
               <Image
@@ -1285,7 +1285,7 @@ function WalletConfirmStep({
             <div className="flex items-center justify-between text-muted-foreground">
               <span>Source</span>
               <span className="flex items-center gap-2 font-semibold text-foreground">
-                <Wallet className="size-4" />
+                <WalletIcon className="size-4" />
                 Wallet (...
                 {eoaSuffix}
                 )
@@ -1401,7 +1401,7 @@ function WalletConfirmStep({
               : (
                   <>
                     {!isBreakdownOpen && <span>{gasUsdDisplay ? `$${gasUsdDisplay}` : '—'}</span>}
-                    <ChevronRight className={`size-3 transition ${isBreakdownOpen ? 'rotate-90' : ''}`} />
+                    <ChevronRightIcon className={`size-3 transition ${isBreakdownOpen ? 'rotate-90' : ''}`} />
                   </>
                 )}
           </span>
@@ -1413,7 +1413,7 @@ function WalletConfirmStep({
                 Network cost
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="size-3" />
+                    <InfoIcon className="size-3" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <div className="space-y-1 text-xs text-foreground">
@@ -1434,7 +1434,7 @@ function WalletConfirmStep({
                 </Tooltip>
               </span>
               <span className="flex items-center gap-2">
-                <Fuel className="size-3" />
+                <FuelIcon className="size-3" />
                 {gasUsdDisplay ? `$${gasUsdDisplay}` : '—'}
               </span>
             </div>
@@ -1473,7 +1473,7 @@ function WalletConfirmStep({
           }
         }}
       >
-        {(isLoadingQuote || isSubmitting || isExecuting) && <Loader2 className="size-4 animate-spin" />}
+        {(isLoadingQuote || isSubmitting || isExecuting) && <Loader2Icon className="size-4 animate-spin" />}
         {isSubmitting && 'Confirm transaction in your wallet'}
         {!isSubmitting && status === 'quote' && 'Preparing your quote...'}
         {!isSubmitting && status === 'gas' && 'Estimating gas...'}
@@ -1519,7 +1519,7 @@ function WalletSuccessStep({
         <div className="relative flex items-center justify-center">
           <div className="absolute size-20 rounded-full bg-emerald-500/25 blur-md" />
           <div className="relative flex size-14 items-center justify-center rounded-full bg-emerald-500">
-            <Check className="size-7 text-background" />
+            <CheckIcon className="size-7 text-background" />
           </div>
         </div>
         <div className="space-y-1">
@@ -1550,7 +1550,7 @@ function WalletSuccessStep({
             <div className="flex items-center justify-between text-muted-foreground">
               <span>Source</span>
               <span className="flex items-center gap-2 font-semibold text-foreground">
-                <Wallet className="size-4" />
+                <WalletIcon className="size-4" />
                 Wallet (...
                 {eoaSuffix}
                 )
@@ -1562,7 +1562,7 @@ function WalletSuccessStep({
                     className="inline-flex"
                     aria-label="View wallet on Polygonscan"
                   >
-                    <ExternalLink className="size-3" />
+                    <ExternalLinkIcon className="size-3" />
                   </a>
                 )}
               </span>
@@ -1594,7 +1594,7 @@ function WalletSuccessStep({
                     className="inline-flex"
                     aria-label="View wallet on Polygonscan"
                   >
-                    <ExternalLink className="size-3" />
+                    <ExternalLinkIcon className="size-3" />
                   </a>
                 )}
               </span>
@@ -1656,7 +1656,7 @@ function WalletSuccessStep({
 
       {supportUrl && (
         <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3 text-xs text-foreground">
-          <Info className="size-4 text-muted-foreground" />
+          <InfoIcon className="size-4 text-muted-foreground" />
           <span>
             Experiencing problems?
             {' '}
@@ -1860,7 +1860,7 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
                       `}
                       onClick={() => onViewChange('fund')}
                     >
-                      <ChevronLeft />
+                      <ChevronLeftIcon />
                     </button>
                   )
                 : (
@@ -1921,7 +1921,7 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
                     `}
                     onClick={() => onViewChange('fund')}
                   >
-                    <ChevronLeft />
+                    <ChevronLeftIcon />
                   </button>
                 )
               : (
