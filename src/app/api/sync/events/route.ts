@@ -919,8 +919,13 @@ function hashStringToHex(value: string) {
   return (hash >>> 0).toString(16).padStart(8, '0')
 }
 
-function normalizeStorageSlug(value: string, fallbackSeed: string) {
-  const sanitized = value
+function normalizeStorageSlug(value: unknown, fallbackSeed: string) {
+  const rawValue = typeof value === 'string'
+    ? value
+    : value === null || value === undefined
+      ? ''
+      : String(value)
+  const sanitized = rawValue
     .normalize('NFKD')
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '-')
@@ -931,7 +936,7 @@ function normalizeStorageSlug(value: string, fallbackSeed: string) {
     return sanitized
   }
 
-  return `icon-${hashStringToHex(fallbackSeed || value || 'fallback')}`
+  return `icon-${hashStringToHex(fallbackSeed || rawValue || 'fallback')}`
 }
 
 function normalizeIntegerField(value: unknown): number | null {
