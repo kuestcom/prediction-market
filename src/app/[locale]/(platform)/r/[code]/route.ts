@@ -25,8 +25,7 @@ export async function GET(request: Request, context: { params: Promise<{ code: s
   }
 
   const cookieValue = JSON.stringify({
-    code: affiliate.affiliate_code,
-    affiliateUserId: affiliate.id,
+    affiliateCode: affiliate.affiliate_code,
     timestamp: Date.now(),
   })
 

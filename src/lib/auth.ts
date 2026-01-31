@@ -45,9 +45,10 @@ function parseAffiliateCookie(rawValue: string | null) {
     return null
   }
   try {
-    return JSON.parse(rawValue) as {
-      affiliateUserId?: string
-      timestamp?: number
+    const parsed = JSON.parse(rawValue) as Record<string, unknown>
+    return {
+      affiliateCode: typeof parsed.affiliateCode === 'string' ? parsed.affiliateCode : undefined,
+      timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : undefined,
     }
   }
   catch {
@@ -188,7 +189,7 @@ export const auth = betterAuth({
           }
 
           const referral = parseAffiliateCookie(ctx.getCookie(AFFILIATE_COOKIE_NAME))
-          if (!referral?.affiliateUserId || referral.affiliateUserId === user.id) {
+          if (!referral?.affiliateCode) {
             return
           }
 
@@ -203,9 +204,16 @@ export const auth = betterAuth({
           }
 
           try {
+            const { data: affiliate } = await AffiliateRepository.getAffiliateByCode(referral.affiliateCode)
+            const affiliateUserId = affiliate?.id ?? null
+
+            if (!affiliateUserId || affiliateUserId === user.id) {
+              return
+            }
+
             await AffiliateRepository.recordReferral({
               user_id: user.id,
-              affiliate_user_id: referral.affiliateUserId,
+              affiliate_user_id: affiliateUserId,
             })
             ctx.setCookie(AFFILIATE_COOKIE_NAME, '', { path: '/', maxAge: 0 })
           }
