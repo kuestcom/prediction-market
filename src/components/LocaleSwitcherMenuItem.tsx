@@ -34,8 +34,8 @@ export default function LocaleSwitcherMenuItem() {
     localeLabels[0],
   ].filter(Boolean)
   const shouldAnimate = localeLabels.length > 1
-  const displayDurationMs = 1000
-  const transitionDurationMs = 200
+  const displayDurationMs = 1800
+  const transitionDurationMs = 240
   const itemHeightRem = 1.25
 
   useEffect(() => {
@@ -105,9 +105,9 @@ export default function LocaleSwitcherMenuItem() {
 
   return (
     <DropdownMenuSub>
-      <DropdownMenuSubTrigger disabled={isPending} className="py-2.5 text-[15px] font-semibold text-muted-foreground">
+      <DropdownMenuSubTrigger disabled={isPending} className="py-2.5 text-base font-semibold text-muted-foreground">
         <span className="sr-only">Language</span>
-        <span className="h-5 overflow-hidden text-sm">
+        <span className="h-5 overflow-hidden text-base">
           <span
             className="block transition-transform duration-200 ease-in-out"
             style={{
@@ -134,10 +134,7 @@ export default function LocaleSwitcherMenuItem() {
               <DropdownMenuRadioItem
                 key={option}
                 value={option}
-                className={`
-                  group flex items-center gap-2 pr-8 pl-2 text-[15px] font-semibold
-                  [&>span:first-child]:hidden
-                `}
+                className="group flex items-center gap-2 pr-8 pl-2 text-base font-semibold [&>span:first-child]:hidden"
               >
                 <span className="flex-1 font-medium">
                   {LOCALE_LABELS[option] ?? option.toUpperCase()}

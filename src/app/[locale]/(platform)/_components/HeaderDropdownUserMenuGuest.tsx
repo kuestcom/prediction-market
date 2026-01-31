@@ -90,18 +90,18 @@ export default function HeaderDropdownUserMenuGuest() {
           onInteractOutside={() => setMenuOpen(false)}
           onEscapeKeyDown={() => setMenuOpen(false)}
         >
-          <DropdownMenuItem className="py-2.5 text-[15px] font-semibold" onClick={() => open()}>{t('Sign Up')}</DropdownMenuItem>
-          <DropdownMenuItem className="py-2.5 text-[15px] font-semibold" onClick={() => open()}>{t('Log In')}</DropdownMenuItem>
+          <DropdownMenuItem className="py-2.5 text-base font-semibold" onClick={() => open()}>{t('Sign Up')}</DropdownMenuItem>
+          <DropdownMenuItem className="py-2.5 text-base font-semibold" onClick={() => open()}>{t('Log In')}</DropdownMenuItem>
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold">
+          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold">
             <Link href={'/' as Route}>{t('Rewards')}</Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold text-muted-foreground">
+          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold text-muted-foreground">
             <Link href="/docs/users" data-testid="header-docs-link">{t('Documentation')}</Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold text-muted-foreground">
+          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold text-muted-foreground">
             <Link href="/terms-of-use" data-testid="header-terms-link">{t('Terms of Use')}</Link>
           </DropdownMenuItem>
 
@@ -109,7 +109,7 @@ export default function HeaderDropdownUserMenuGuest() {
 
           <DropdownMenuSeparator />
 
-          <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-[15px] font-semibold">
+          <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-base font-semibold">
             <span>Dark Mode</span>
             <ThemeSelector />
           </div>

@@ -101,7 +101,7 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
   const remainingDays = expiryDate
     ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
     : null
-  const remainingLabel = remainingDays !== null ? t('In {days} days', { days: remainingDays }) : ''
+  const remainingLabel = remainingDays !== null ? t('In {days} days', { days: String(remainingDays) }) : ''
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">

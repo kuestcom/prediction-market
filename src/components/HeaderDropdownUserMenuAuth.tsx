@@ -132,21 +132,21 @@ export default function HeaderDropdownUserMenuAuth() {
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold">
+          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold">
             <Link href="/settings" className="flex w-full items-center gap-2">
               <SettingsIcon className="size-5 text-orange-500" />
               {t('Settings')}
             </Link>
           </DropdownMenuItem>
 
-          <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold">
+          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold">
             <Link href="/settings/affiliate" className="flex w-full items-center gap-2">
               <BadgePercentIcon className="size-5 text-emerald-600" />
               {t('Affiliate')}
             </Link>
           </DropdownMenuItem>
 
-          <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold">
+          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold">
             <Link href="/docs/api" target="_blank" rel="noreferrer" className="flex w-full items-center gap-2">
               <UnplugIcon className="size-5 text-pink-500" />
               APIs
@@ -154,37 +154,37 @@ export default function HeaderDropdownUserMenuAuth() {
           </DropdownMenuItem>
 
           {user?.is_admin && (
-            <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold">
+            <DropdownMenuItem asChild className="py-2.5 text-base font-semibold">
               <Link href="/admin">{t('Admin')}</Link>
             </DropdownMenuItem>
           )}
 
           {isMobile && (
-            <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold">
+            <DropdownMenuItem asChild className="py-2.5 text-base font-semibold">
               <div className="flex justify-center" onClickCapture={handleMenuClose}>
                 <HeaderPortfolio />
               </div>
             </DropdownMenuItem>
           )}
 
-          <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-[15px] font-semibold">
+          <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-base font-semibold">
             <span>Dark Mode</span>
             <ThemeSelector />
           </div>
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold text-muted-foreground">
+          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold text-muted-foreground">
             <Link href="/docs/users" data-testid="header-docs-link">{t('Documentation')}</Link>
           </DropdownMenuItem>
 
-          <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold text-muted-foreground">
+          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold text-muted-foreground">
             <Link href="/terms-of-use" data-testid="header-terms-link">{t('Terms of Use')}</Link>
           </DropdownMenuItem>
 
           <LocaleSwitcherMenuItem />
 
-          <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold">
+          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold">
             <button type="button" className="w-full text-destructive" onClick={() => disconnect()}>
               {t('Logout')}
             </button>
