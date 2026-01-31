@@ -475,7 +475,11 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
 
   let iconUrl: string | null = null
   if (eventData.icon) {
-    iconUrl = await downloadAndSaveImage(eventData.icon, `events/icons/${eventData.slug}`)
+    const eventIconSlug = normalizeStorageSlug(
+      eventData.slug,
+      `${eventData.title ?? 'event'}:${creatorAddress}`,
+    )
+    iconUrl = await downloadAndSaveImage(eventData.icon, `events/icons/${eventIconSlug}`)
   }
 
   console.log(`Creating new event: ${eventData.slug} by creator: ${creatorAddress}`)
@@ -541,7 +545,11 @@ async function processMarketData(
 
   let iconUrl: string | null = null
   if (metadata.icon) {
-    iconUrl = await downloadAndSaveImage(metadata.icon, `markets/icons/${metadata.slug}`)
+    const marketIconSlug = normalizeStorageSlug(
+      metadata.slug,
+      market.id,
+    )
+    iconUrl = await downloadAndSaveImage(metadata.icon, `markets/icons/${marketIconSlug}`)
   }
 
   console.log(`${marketAlreadyExists ? 'Updating' : 'Creating'} market ${market.id} with eventId: ${eventId}`)
@@ -900,6 +908,30 @@ function normalizeStringField(value: unknown): string | null {
   }
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+function hashStringToHex(value: string) {
+  let hash = 2166136261
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0')
+}
+
+function normalizeStorageSlug(value: string, fallbackSeed: string) {
+  const sanitized = value
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  if (sanitized) {
+    return sanitized
+  }
+
+  return `icon-${hashStringToHex(fallbackSeed || value || 'fallback')}`
 }
 
 function normalizeIntegerField(value: unknown): number | null {
