@@ -149,7 +149,7 @@ export default function HeaderDropdownUserMenuAuth() {
           <DropdownMenuItem asChild className="py-2.5 text-base font-semibold">
             <Link href="/docs/api" target="_blank" rel="noreferrer" className="flex w-full items-center gap-2">
               <UnplugIcon className="size-5 text-pink-500" />
-              APIs
+              {t('APIs')}
             </Link>
           </DropdownMenuItem>
 
@@ -168,7 +168,7 @@ export default function HeaderDropdownUserMenuAuth() {
           )}
 
           <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-base font-semibold">
-            <span>Dark Mode</span>
+            <span>{t('Dark Mode')}</span>
             <ThemeSelector />
           </div>
 
