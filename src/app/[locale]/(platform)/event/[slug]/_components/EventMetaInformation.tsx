@@ -86,7 +86,7 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
   )
   const expiryTooltip = t.rich(
     'This is estimated end date.<br></br>See rules below for specific resolution details.',
-    { br: () => <br /> },
+    { br: () => ' ' },
   )
   const formattedVolume = Number.isFinite(resolvedVolume)
     ? (resolvedVolume || 0).toLocaleString('en-US', {
@@ -98,6 +98,10 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
 
   const maybeEndDate = event.end_date ? new Date(event.end_date) : null
   const expiryDate = maybeEndDate && !Number.isNaN(maybeEndDate.getTime()) ? maybeEndDate : null
+  const remainingDays = expiryDate
+    ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+    : null
+  const remainingLabel = remainingDays !== null ? t('In {days} days', { days: remainingDays }) : ''
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -176,8 +180,12 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
           <TooltipContent
             side="bottom"
             collisionPadding={16}
+            className="max-w-64 text-left"
           >
-            <p>{expiryTooltip}</p>
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-semibold">{remainingLabel}</span>
+              <span className="text-xs text-foreground">{expiryTooltip}</span>
+            </div>
           </TooltipContent>
         </Tooltip>
       )}

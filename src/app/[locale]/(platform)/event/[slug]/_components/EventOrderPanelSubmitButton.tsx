@@ -21,7 +21,7 @@ export default function EventOrderPanelSubmitButton({
 
   return (
     <div className="relative w-full pb-1.25">
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-md bg-[oklch(0.50_0.11_237.323)]" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-md bg-primary/80" />
       <Button
         type={type}
         size="outcomeLg"

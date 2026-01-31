@@ -84,23 +84,24 @@ export default function HeaderDropdownUserMenuGuest() {
         </DropdownMenuTrigger>
         <DropdownMenuContent
           className="w-48"
+          align="end"
           collisionPadding={16}
           portalled={false}
           onInteractOutside={() => setMenuOpen(false)}
           onEscapeKeyDown={() => setMenuOpen(false)}
         >
-          <DropdownMenuItem onClick={() => open()}>{t('Sign Up')}</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => open()}>{t('Log In')}</DropdownMenuItem>
+          <DropdownMenuItem className="py-2.5 text-[15px] font-semibold" onClick={() => open()}>{t('Sign Up')}</DropdownMenuItem>
+          <DropdownMenuItem className="py-2.5 text-[15px] font-semibold" onClick={() => open()}>{t('Log In')}</DropdownMenuItem>
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem asChild>
+          <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold">
             <Link href={'/' as Route}>{t('Rewards')}</Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
+          <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold text-muted-foreground">
             <Link href="/docs/users" data-testid="header-docs-link">{t('Documentation')}</Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
+          <DropdownMenuItem asChild className="py-2.5 text-[15px] font-semibold text-muted-foreground">
             <Link href="/terms-of-use" data-testid="header-terms-link">{t('Terms of Use')}</Link>
           </DropdownMenuItem>
 
@@ -108,9 +109,10 @@ export default function HeaderDropdownUserMenuGuest() {
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem asChild>
+          <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-[15px] font-semibold">
+            <span>Dark Mode</span>
             <ThemeSelector />
-          </DropdownMenuItem>
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

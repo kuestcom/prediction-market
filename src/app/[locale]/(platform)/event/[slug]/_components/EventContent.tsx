@@ -6,7 +6,6 @@ import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import EventChangeLog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChangeLog'
 import EventHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventHeader'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventMarkets, { ResolvedResolutionPanel, resolveWinningOutcomeIndex } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarkets'
@@ -45,7 +44,7 @@ export default function EventContent({
   event,
   user,
   marketContextEnabled,
-  changeLogEntries,
+  changeLogEntries: _changeLogEntries,
   marketSlug,
 }: EventContentProps) {
   const t = useExtracted()
@@ -305,7 +304,6 @@ export default function EventContent({
           )}
           {marketContextEnabled && <EventMarketContext event={event} />}
           <EventRules event={event} />
-          <EventChangeLog entries={changeLogEntries} markets={event.markets} />
           {selectedMarketResolved && (
             <div className="rounded-xl border bg-background p-4">
               <ResolvedResolutionPanel

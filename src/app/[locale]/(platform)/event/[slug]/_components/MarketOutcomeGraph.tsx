@@ -366,10 +366,14 @@ function MarketOutcomeMetaInformation({ market }: { market: Market }) {
   const volumeLabel = `$${formattedVolume} Vol.`
   const expiryTooltip = t.rich(
     'This is estimated end date.<br></br>See rules below for specific resolution details.',
-    { br: () => <br /> },
+    { br: () => ' ' },
   )
   const maybeEndDate = market.end_time ? new Date(market.end_time) : null
   const expiryDate = maybeEndDate && !Number.isNaN(maybeEndDate.getTime()) ? maybeEndDate : null
+  const remainingDays = expiryDate
+    ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+    : null
+  const remainingLabel = remainingDays !== null ? t('In {days} days', { days: remainingDays }) : ''
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -396,8 +400,11 @@ function MarketOutcomeMetaInformation({ market }: { market: Market }) {
               <span>{formatDate(expiryDate)}</span>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p>{expiryTooltip}</p>
+          <TooltipContent side="bottom" className="max-w-64 text-left">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-semibold">{remainingLabel}</span>
+              <span className="text-xs text-foreground">{expiryTooltip}</span>
+            </div>
           </TooltipContent>
         </Tooltip>
       )}
