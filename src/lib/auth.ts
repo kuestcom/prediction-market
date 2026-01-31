@@ -10,6 +10,7 @@ import { customSession, siwe, twoFactor } from 'better-auth/plugins'
 import { createPublicClient, http } from 'viem'
 import { isAdminWallet } from '@/lib/admin'
 import { projectId } from '@/lib/appkit'
+import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { db } from '@/lib/drizzle'
 import { getSupabaseImageUrl } from '@/lib/supabase'
 import { ensureUserTradingAuthSecretFingerprint } from '@/lib/trading-auth/server'
@@ -22,6 +23,37 @@ const TRUST_DEVICE_COOKIE_MAX_AGE = 720 * 60 * 60
 const TWO_FACTOR_PENDING_MAX_AGE = 3 * 60
 const SIWE_TWO_FACTOR_PENDING_COOKIE = 'siwe_2fa_pending'
 const SIWE_TWO_FACTOR_INTENT_COOKIE = 'siwe_2fa_intent'
+const AFFILIATE_COOKIE_NAME = 'platform_affiliate'
+const AFFILIATE_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
+
+function parseTimestampMs(value: unknown): number | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+  if (value instanceof Date) {
+    return value.getTime()
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null
+  }
+  const parsed = Date.parse(String(value))
+  return Number.isNaN(parsed) ? null : parsed
+}
+
+function parseAffiliateCookie(rawValue: string | null) {
+  if (!rawValue) {
+    return null
+  }
+  try {
+    return JSON.parse(rawValue) as {
+      affiliateUserId?: string
+      timestamp?: number
+    }
+  }
+  catch {
+    return null
+  }
+}
 
 function clearSiweTwoFactorPendingCookie(ctx: any) {
   const pendingCookie = ctx.context.createAuthCookie(SIWE_TWO_FACTOR_PENDING_COOKIE)
@@ -145,6 +177,43 @@ export const auth = betterAuth({
   advanced: {
     database: {
       generateId: false,
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        async after(user, ctx) {
+          if (!ctx) {
+            return
+          }
+
+          const referral = parseAffiliateCookie(ctx.getCookie(AFFILIATE_COOKIE_NAME))
+          if (!referral?.affiliateUserId || referral.affiliateUserId === user.id) {
+            return
+          }
+
+          const referralTimestamp = parseTimestampMs(referral.timestamp)
+          if (referralTimestamp === null) {
+            return
+          }
+
+          const now = Date.now()
+          if (referralTimestamp > now || now - referralTimestamp > AFFILIATE_COOKIE_MAX_AGE_MS) {
+            return
+          }
+
+          try {
+            await AffiliateRepository.recordReferral({
+              user_id: user.id,
+              affiliate_user_id: referral.affiliateUserId,
+            })
+            ctx.setCookie(AFFILIATE_COOKIE_NAME, '', { path: '/', maxAge: 0 })
+          }
+          catch (error) {
+            ctx.context.logger.error('Failed to record affiliate referral', error)
+          }
+        },
+      },
     },
   },
   plugins: [

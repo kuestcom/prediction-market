@@ -1,6 +1,6 @@
 import type { MarketOrderType, ProxyWalletStatus, User } from '@/types'
 import { asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
-import { cookies, headers } from 'next/headers'
+import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
@@ -172,30 +172,6 @@ export const UserRepository = {
         }
         catch (error) {
           console.error('Failed to ensure affiliate code', error)
-        }
-      }
-
-      if (!user.referred_by_user_id) {
-        try {
-          const cookieStore = await cookies()
-          const referralCookie = cookieStore.get('platform_affiliate')
-
-          if (referralCookie?.value) {
-            const parsed = JSON.parse(referralCookie.value) as {
-              affiliateUserId?: string
-              timestamp?: number
-            }
-
-            if (parsed?.affiliateUserId && parsed.affiliateUserId !== user.id) {
-              await AffiliateRepository.recordReferral({
-                user_id: user.id,
-                affiliate_user_id: parsed.affiliateUserId,
-              })
-            }
-          }
-        }
-        catch (error) {
-          console.error('Failed to record affiliate referral', error)
         }
       }
 
