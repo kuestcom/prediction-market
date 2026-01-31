@@ -42,6 +42,13 @@ const RANGE_CONFIG: Record<Exclude<TimeRange, 'ALL'>, { interval: string, fideli
   '1M': { interval: '1m', fidelity: 180 },
 }
 const ALL_FIDELITY = 720
+const RANGE_WINDOW_SECONDS: Record<Exclude<TimeRange, 'ALL'>, number> = {
+  '1H': 60 * 60,
+  '6H': 6 * 60 * 60,
+  '1D': 24 * 60 * 60,
+  '1W': 7 * 24 * 60 * 60,
+  '1M': 30 * 24 * 60 * 60,
+}
 
 export const TIME_RANGES: TimeRange[] = ['1H', '6H', '1D', '1W', '1M', 'ALL']
 export const MINUTE_MS = 60 * 1000
@@ -56,22 +63,54 @@ export const CURSOR_STEP_MS: Record<TimeRange, number> = {
 }
 const PRICE_REFRESH_INTERVAL_MS = 60_000
 
+function resolveCreatedRange(createdAt: string) {
+  const created = new Date(createdAt)
+  const createdSeconds = Number.isFinite(created.getTime())
+    ? Math.floor(created.getTime() / 1000)
+    : Math.floor(Date.now() / 1000) - (60 * 60 * 24 * 30)
+  const nowSeconds = Math.max(createdSeconds + 60, Math.floor(Date.now() / 1000))
+  const ageSeconds = Math.max(0, nowSeconds - createdSeconds)
+  return { createdSeconds, nowSeconds, ageSeconds }
+}
+
+function resolveFidelityForSpan(spanSeconds: number) {
+  if (spanSeconds <= 2 * 24 * 60 * 60) {
+    return 5
+  }
+  if (spanSeconds <= 7 * 24 * 60 * 60) {
+    return 30
+  }
+  if (spanSeconds <= 30 * 24 * 60 * 60) {
+    return 180
+  }
+  return ALL_FIDELITY
+}
+
 function buildTimeRangeFilters(range: TimeRange, createdAt: string): RangeFilters {
   if (range === 'ALL') {
-    const created = new Date(createdAt)
-    const createdSeconds = Number.isFinite(created.getTime())
-      ? Math.floor(created.getTime() / 1000)
-      : Math.floor(Date.now() / 1000) - (60 * 60 * 24 * 30)
-    const nowSeconds = Math.max(createdSeconds + 60, Math.floor(Date.now() / 1000))
+    const { createdSeconds, nowSeconds, ageSeconds } = resolveCreatedRange(createdAt)
 
     return {
-      fidelity: ALL_FIDELITY.toString(),
+      fidelity: resolveFidelityForSpan(ageSeconds).toString(),
       startTs: createdSeconds.toString(),
       endTs: nowSeconds.toString(),
     }
   }
 
   const config = RANGE_CONFIG[range]
+  if (range === '1D' || range === '1W' || range === '1M') {
+    const { createdSeconds, nowSeconds, ageSeconds } = resolveCreatedRange(createdAt)
+    const windowSeconds = RANGE_WINDOW_SECONDS[range]
+
+    if (ageSeconds < windowSeconds) {
+      return {
+        fidelity: resolveFidelityForSpan(ageSeconds).toString(),
+        startTs: createdSeconds.toString(),
+        endTs: nowSeconds.toString(),
+      }
+    }
+  }
+
   return {
     fidelity: config.fidelity.toString(),
     interval: config.interval,
