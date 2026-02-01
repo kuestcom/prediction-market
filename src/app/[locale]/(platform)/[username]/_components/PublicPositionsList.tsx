@@ -195,8 +195,9 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     [sortBy, sortDirection, visiblePositions],
   )
 
-  const loading = status === 'pending'
-  const hasInitialError = status === 'error'
+  const hasUserAddress = Boolean(userAddress)
+  const loading = hasUserAddress && status === 'pending'
+  const hasInitialError = hasUserAddress && status === 'error'
 
   const isSearchActive = debouncedSearchQuery.trim().length > 0
   const mergeableMarkets = useMemo(

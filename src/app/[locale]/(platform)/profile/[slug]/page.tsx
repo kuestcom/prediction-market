@@ -1,5 +1,3 @@
-'use cache'
-
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
@@ -8,27 +6,46 @@ import PublicProfileTabs from '@/app/[locale]/(platform)/[username]/_components/
 import { UserRepository } from '@/lib/db/queries/user'
 import { truncateAddress } from '@/lib/formatters'
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
-import { normalizeAddress } from '@/lib/wallet'
 
-export async function generateMetadata({ params }: PageProps<'/[locale]/[username]'>): Promise<Metadata> {
-  const { username } = await params
+function normalizeProfileSlug(slug: string) {
+  const trimmed = slug.trim()
+  if (trimmed.startsWith('@')) {
+    const username = trimmed.slice(1).trim()
+    return { type: 'username' as const, value: username }
+  }
+  if (trimmed.toLowerCase().startsWith('0x')) {
+    return { type: 'address' as const, value: trimmed }
+  }
+  return { type: 'invalid' as const, value: trimmed }
+}
 
-  const isUsername = !username.startsWith('0x')
-  const displayName = isUsername ? username : truncateAddress(username)
+export async function generateMetadata({ params }: PageProps<'/[locale]/profile/[slug]'>): Promise<Metadata> {
+  const { slug } = await params
+  const normalized = normalizeProfileSlug(slug)
+  const displayName = normalized.type === 'address'
+    ? truncateAddress(normalized.value)
+    : normalized.type === 'username'
+      ? normalized.value
+      : slug
 
   return {
     title: `${displayName} - Profile`,
   }
 }
 
-export default async function ProfilePage({ params }: PageProps<'/[locale]/[username]'>) {
-  const { locale, username } = await params
+export default async function ProfileSlugPage({ params }: PageProps<'/[locale]/profile/[slug]'>) {
+  const { locale, slug } = await params
   setRequestLocale(locale)
 
-  const { data: profile } = await UserRepository.getProfileByUsernameOrProxyAddress(username)
+  const normalized = normalizeProfileSlug(slug)
+  if (normalized.type === 'invalid') {
+    notFound()
+  }
+
+  const { data: profile } = await UserRepository.getProfileByUsernameOrProxyAddress(normalized.value)
+
   if (!profile) {
-    const normalizedAddress = normalizeAddress(username)
-    if (!normalizedAddress) {
+    if (normalized.type === 'username') {
       notFound()
     }
 
@@ -39,7 +56,7 @@ export default async function ProfilePage({ params }: PageProps<'/[locale]/[user
         <PublicProfileHeroCards
           profile={{
             username: 'Anon',
-            avatarUrl: `https://avatar.vercel.sh/${normalizedAddress}.png`,
+            avatarUrl: `https://avatar.vercel.sh/${normalized.value}.png`,
             joinedAt: undefined,
             portfolioAddress: null,
           }}

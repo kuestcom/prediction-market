@@ -28,6 +28,7 @@ export default function PublicActivityList({ userAddress }: PublicActivityListPr
     refetch,
   } = usePublicActivityQuery({ userAddress, typeFilter, sortFilter })
 
+  const hasUserAddress = Boolean(userAddress)
   const activities = useMemo(
     () => data?.pages.flat() ?? [],
     [data?.pages],
@@ -54,8 +55,8 @@ export default function PublicActivityList({ userAddress }: PublicActivityListPr
     return sorted
   }, [activities, searchQuery, sortFilter, typeFilter])
 
-  const isLoading = status === 'pending'
-  const hasError = status === 'error'
+  const isLoading = hasUserAddress && status === 'pending'
+  const hasError = hasUserAddress && status === 'error'
   function handleExportCsv() {
     if (visibleActivities.length === 0) {
       return
