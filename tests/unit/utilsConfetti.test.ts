@@ -15,7 +15,9 @@ describe('utils (confetti/cn)', () => {
 
   it('cn merges class names', async () => {
     const { cn } = await import('@/lib/utils')
+    // eslint-disable-next-line better-tailwindcss/no-unknown-classes
     expect(cn('a', false, 'c')).toContain('a')
+    // eslint-disable-next-line better-tailwindcss/no-unknown-classes
     expect(cn('a', false, 'c')).toContain('c')
   })
 
