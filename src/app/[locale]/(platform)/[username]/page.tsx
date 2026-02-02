@@ -44,7 +44,7 @@ export default async function ProfilePage({ params }: PageProps<'/[locale]/[user
       notFound()
     }
 
-    const snapshot = await fetchPortfolioSnapshot(null)
+    const snapshot = await fetchPortfolioSnapshot(normalizedAddress)
 
     return (
       <>
@@ -53,11 +53,11 @@ export default async function ProfilePage({ params }: PageProps<'/[locale]/[user
             username: 'Anon',
             avatarUrl: `https://avatar.vercel.sh/${normalizedAddress}.png`,
             joinedAt: undefined,
-            portfolioAddress: null,
+            portfolioAddress: normalizedAddress,
           }}
           snapshot={snapshot}
         />
-        <PublicProfileTabs userAddress="" />
+        <PublicProfileTabs userAddress={normalizedAddress} />
       </>
     )
   }

@@ -7,6 +7,7 @@ import { UserRepository } from '@/lib/db/queries/user'
 import { truncateAddress } from '@/lib/formatters'
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { normalizeAddress } from '@/lib/wallet'
 
 function normalizeProfileSlug(slug: string) {
   const trimmed = slug.trim()
@@ -14,8 +15,9 @@ function normalizeProfileSlug(slug: string) {
     const username = trimmed.slice(1).trim()
     return { type: 'username' as const, value: username }
   }
-  if (trimmed.toLowerCase().startsWith('0x')) {
-    return { type: 'address' as const, value: trimmed }
+  const normalizedAddress = normalizeAddress(trimmed)
+  if (normalizedAddress) {
+    return { type: 'address' as const, value: normalizedAddress }
   }
   return { type: 'invalid' as const, value: trimmed }
 }
@@ -60,7 +62,7 @@ export default async function ProfileSlugPage({ params }: PageProps<'/[locale]/p
       notFound()
     }
 
-    const snapshot = await fetchPortfolioSnapshot(null)
+    const snapshot = await fetchPortfolioSnapshot(normalized.value)
 
     return (
       <>
@@ -69,11 +71,11 @@ export default async function ProfileSlugPage({ params }: PageProps<'/[locale]/p
             username: 'Anon',
             avatarUrl: `https://avatar.vercel.sh/${normalized.value}.png`,
             joinedAt: undefined,
-            portfolioAddress: null,
+            portfolioAddress: normalized.value,
           }}
           snapshot={snapshot}
         />
-        <PublicProfileTabs userAddress="" />
+        <PublicProfileTabs userAddress={normalized.value} />
       </>
     )
   }
