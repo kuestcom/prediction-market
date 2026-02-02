@@ -181,7 +181,7 @@ export default function HeaderHowItWorks() {
             <DialogTitle className="text-xl font-semibold">
               {currentStep.title}
             </DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed">
+            <DialogDescription className="text-sm/relaxed">
               {currentStep.description}
             </DialogDescription>
           </DialogHeader>

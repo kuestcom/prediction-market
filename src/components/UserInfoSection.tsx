@@ -43,8 +43,7 @@ export default function UserInfoSection() {
         <Link
           href={`/@${user.username}`}
           className={`
-            truncate text-base leading-tight font-semibold text-foreground underline-offset-2 transition-colors
-            duration-200
+            truncate text-base/tight font-semibold text-foreground underline-offset-2 transition-colors duration-200
             hover:underline
           `}
         >

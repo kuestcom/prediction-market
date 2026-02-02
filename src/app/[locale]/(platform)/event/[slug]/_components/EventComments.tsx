@@ -183,7 +183,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
             id={holdersCheckboxId}
             checked={holdersOnly}
             onCheckedChange={checked => setHoldersOnly(Boolean(checked))}
-            className="size-5 rounded dark:bg-transparent"
+            className="size-5 rounded-sm dark:bg-transparent"
           />
           {t('Holders')}
         </label>

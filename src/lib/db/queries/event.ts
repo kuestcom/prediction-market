@@ -23,6 +23,33 @@ interface LastTradePriceEntry {
   side: 'BUY' | 'SELL'
 }
 
+interface FetchPriceBatchResult {
+  data: PriceApiResponse | null
+  aborted: boolean
+}
+
+function isPrerenderAbortError(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false
+  }
+
+  const record = error as { digest?: string, name?: string, code?: string, message?: string }
+
+  if (record.digest === 'HANGING_PROMISE_REJECTION') {
+    return true
+  }
+
+  if (record.name === 'AbortError' || record.code === 'UND_ERR_ABORTED') {
+    return true
+  }
+
+  if (typeof record.message === 'string' && record.message.includes('fetch() rejects when the prerender is complete')) {
+    return true
+  }
+
+  return false
+}
+
 function normalizeTradePrice(value: string | undefined) {
   if (!value) {
     return null
@@ -40,7 +67,7 @@ function normalizeTradePrice(value: string | undefined) {
   return parsed
 }
 
-async function fetchPriceBatch(endpoint: string, tokenIds: string[]): Promise<PriceApiResponse | null> {
+async function fetchPriceBatch(endpoint: string, tokenIds: string[]): Promise<FetchPriceBatchResult> {
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -51,18 +78,20 @@ async function fetchPriceBatch(endpoint: string, tokenIds: string[]): Promise<Pr
       body: JSON.stringify(tokenIds.map(tokenId => ({
         token_id: tokenId,
       }))),
-      cache: 'no-store',
     })
 
     if (!response.ok) {
-      return null
+      return { data: null, aborted: false }
     }
 
-    return await response.json() as PriceApiResponse
+    return { data: await response.json() as PriceApiResponse, aborted: false }
   }
   catch (error) {
-    console.error('Failed to fetch outcome prices batch from CLOB.', error)
-    return null
+    const aborted = isPrerenderAbortError(error)
+    if (!aborted) {
+      console.error('Failed to fetch outcome prices batch from CLOB.', error)
+    }
+    return { data: null, aborted }
   }
 }
 
@@ -84,7 +113,6 @@ async function fetchLastTradePrices(tokenIds: string[]): Promise<Map<string, num
         'Accept': 'application/json',
       },
       body: JSON.stringify(uniqueTokenIds.map(tokenId => ({ token_id: tokenId }))),
-      cache: 'no-store',
     })
 
     if (!response.ok) {
@@ -100,7 +128,9 @@ async function fetchLastTradePrices(tokenIds: string[]): Promise<Map<string, num
     })
   }
   catch (error) {
-    console.error('Failed to fetch last trades prices', error)
+    if (!isPrerenderAbortError(error)) {
+      console.error('Failed to fetch last trades prices', error)
+    }
     return lastTradeMap
   }
 
@@ -148,12 +178,18 @@ async function fetchOutcomePrices(tokenIds: string[]): Promise<Map<string, Outco
   const endpoint = `${process.env.CLOB_URL!}/prices`
   const priceMap = new Map<string, OutcomePrices>()
   const missingTokenIds = new Set(uniqueTokenIds)
+  let wasAborted = false
 
   for (let i = 0; i < uniqueTokenIds.length; i += MAX_PRICE_BATCH) {
     const batch = uniqueTokenIds.slice(i, i + MAX_PRICE_BATCH)
-    const batchData = await fetchPriceBatch(endpoint, batch)
-    if (batchData) {
-      applyPriceBatch(batchData, priceMap, missingTokenIds)
+    const batchResult = await fetchPriceBatch(endpoint, batch)
+    if (batchResult.aborted) {
+      wasAborted = true
+      break
+    }
+
+    if (batchResult.data) {
+      applyPriceBatch(batchResult.data, priceMap, missingTokenIds)
       continue
     }
 
@@ -163,8 +199,16 @@ async function fetchOutcomePrices(tokenIds: string[]): Promise<Map<string, Outco
 
     for (const result of tokenResults) {
       if (result.status === 'fulfilled') {
-        applyPriceBatch(result.value, priceMap, missingTokenIds)
+        if (result.value.aborted) {
+          wasAborted = true
+          break
+        }
+        applyPriceBatch(result.value.data, priceMap, missingTokenIds)
       }
+    }
+
+    if (wasAborted) {
+      break
     }
   }
 
@@ -321,6 +365,15 @@ function eventResource(event: DrizzleEventResult, userId: string, priceMap: Map<
     is_bookmarked: event.bookmarks?.some(bookmark => bookmark.user_id === userId) || false,
     is_trending: isTrending,
   }
+}
+
+async function buildEventResource(eventResult: DrizzleEventResult, userId: string): Promise<Event> {
+  const outcomeTokenIds = (eventResult.markets ?? []).flatMap((market: any) =>
+    (market.condition?.outcomes ?? []).map((outcome: any) => outcome.token_id).filter(Boolean),
+  )
+
+  const priceMap = await fetchOutcomePrices(outcomeTokenIds)
+  return eventResource(eventResult, userId, priceMap)
 }
 
 function getEventMainTag(tags: any[] | undefined): string {
@@ -566,8 +619,6 @@ export const EventRepository = {
   },
 
   async getEventConditionChangeLogBySlug(slug: string): Promise<QueryResult<ConditionChangeLogEntry[]>> {
-    'use cache'
-
     return runQuery(async () => {
       const eventResult = await db
         .select({ id: events.id })
@@ -580,7 +631,6 @@ export const EventRepository = {
       }
 
       const eventId = eventResult[0]!.id
-      cacheTag(cacheTags.event(eventId))
 
       const rows = await db
         .select({
@@ -702,8 +752,6 @@ export const EventRepository = {
   },
 
   async getEventBySlug(slug: string, userId: string = ''): Promise<QueryResult<Event>> {
-    'use cache'
-
     return runQuery(async () => {
       const eventResult = await db.query.events.findFirst({
         where: eq(events.slug, slug),
@@ -730,18 +778,7 @@ export const EventRepository = {
         throw new Error('Event not found')
       }
 
-      const outcomeTokenIds = (eventResult.markets ?? []).flatMap((market: any) =>
-        (market.condition?.outcomes ?? []).map((outcome: any) => outcome.token_id).filter(Boolean),
-      )
-
-      const priceMap = await fetchOutcomePrices(outcomeTokenIds)
-      const transformedEvent = eventResource(
-        eventResult as DrizzleEventResult,
-        userId,
-        priceMap,
-      )
-
-      cacheTag(cacheTags.event(`${transformedEvent.id}:${userId}`))
+      const transformedEvent = await buildEventResource(eventResult as DrizzleEventResult, userId)
 
       return { data: transformedEvent, error: null }
     })

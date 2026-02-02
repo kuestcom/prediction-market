@@ -63,7 +63,7 @@ export default function HeaderMenu() {
         <Skeleton className="hidden h-9 w-18 lg:block" />
         <Skeleton className="hidden h-9 w-18 lg:block" />
         <Skeleton className="hidden h-9 w-20 lg:block" />
-        <Skeleton className="h-9 w-9" />
+        <Skeleton className="size-9" />
         <Skeleton className="h-9 w-18" />
       </div>
     )

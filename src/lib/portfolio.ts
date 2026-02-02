@@ -58,7 +58,7 @@ function parseTradedCount(body: any): number {
 }
 
 async function fetchJson(url: string) {
-  const response = await fetch(url, { cache: 'no-store' })
+  const response = await fetch(url)
 
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status}`)

@@ -30,8 +30,8 @@ export default function HeaderPortfolio() {
         asChild
       >
         <Link href="/portfolio">
-          <div className="translate-y-px text-xs leading-tight font-medium text-muted-foreground">{t('Portfolio')}</div>
-          <div className="-translate-y-px text-base leading-tight font-semibold text-yes">
+          <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Portfolio')}</div>
+          <div className="-translate-y-px text-base/tight font-semibold text-yes">
             {isLoadingValue
               ? <Skeleton className="h-5 w-12" />
               : (
@@ -51,10 +51,7 @@ export default function HeaderPortfolio() {
         asChild
       >
         <Link href="/portfolio">
-          <div className={`
-            flex translate-y-px items-center gap-1 text-xs leading-tight font-medium text-muted-foreground
-          `}
-          >
+          <div className="flex translate-y-px items-center gap-1 text-xs/tight font-medium text-muted-foreground">
             <span>{t('Cash')}</span>
             {hasPendingDeposit && (
               <span className="inline-flex size-4 items-center justify-center rounded-full bg-primary">
@@ -62,7 +59,7 @@ export default function HeaderPortfolio() {
               </span>
             )}
           </div>
-          <div className="-translate-y-px text-base leading-tight font-semibold text-yes">
+          <div className="-translate-y-px text-base/tight font-semibold text-yes">
             {isLoadingValue
               ? <Skeleton className="h-5 w-12" />
               : (

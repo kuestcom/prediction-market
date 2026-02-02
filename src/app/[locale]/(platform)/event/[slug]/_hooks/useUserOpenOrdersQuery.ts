@@ -68,7 +68,6 @@ export async function fetchUserOpenOrders({
 
   const response = await fetch(`/api/events/${encodeURIComponent(eventSlug)}/open-orders?${params}`, {
     signal,
-    cache: 'no-store',
   })
 
   if (!response.ok) {

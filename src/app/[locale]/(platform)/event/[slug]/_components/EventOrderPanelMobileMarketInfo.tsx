@@ -31,7 +31,7 @@ export default function EventOrderPanelMobileMarketInfo({
         alt={market.title}
         width={32}
         height={32}
-        className="shrink-0 rounded"
+        className="shrink-0 rounded-sm"
       />
       <div className="flex-1">
         <div className="line-clamp-2 text-sm font-medium">

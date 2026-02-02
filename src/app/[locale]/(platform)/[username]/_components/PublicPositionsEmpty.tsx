@@ -79,7 +79,7 @@ export default function PublicPositionsEmpty({
                     : 'No closed positions'}
             </h3>
 
-            <p className="text-sm leading-relaxed text-muted-foreground">
+            <p className="text-sm/relaxed text-muted-foreground">
               {isSearchActive
                 ? `No positions found matching "${searchQuery}". The search looks through market titles to find relevant positions.`
                 : isAmountFilterActive
@@ -114,7 +114,8 @@ export default function PublicPositionsEmpty({
                         className={`
                           mt-3 w-full border-orange-300 text-orange-800
                           hover:bg-orange-100
-                          dark:border-orange-700 dark:text-orange-200 dark:hover:bg-orange-900/40
+                          dark:border-orange-700 dark:text-orange-200
+                          dark:hover:bg-orange-900/40
                         `}
                       >
                         <XIcon className="mr-2 size-3" />

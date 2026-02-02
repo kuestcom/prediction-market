@@ -226,7 +226,7 @@ function tagEndLine(indent: string): CodeLine {
 
 function renderCode(lines: CodeLine[]) {
   return (
-    <pre className="min-w-max font-mono text-xs leading-5">
+    <pre className="min-w-max font-mono text-xs/5">
       {lines.map((line, lineIndex) => (
         <div key={lineIndex} className="whitespace-pre">
           {line.map((segment, segmentIndex) => (
@@ -456,7 +456,8 @@ export default function EventChartEmbedDialog({
                         <SelectTrigger className={`
                           w-full bg-transparent text-sm
                           hover:bg-transparent
-                          dark:bg-transparent dark:hover:bg-transparent
+                          dark:bg-transparent
+                          dark:hover:bg-transparent
                         `}
                         >
                           <SelectValue />

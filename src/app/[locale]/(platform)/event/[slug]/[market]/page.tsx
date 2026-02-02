@@ -21,17 +21,17 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/event/[s
 }
 
 export default async function EventMarketPage({ params }: PageProps<'/[locale]/event/[slug]/[market]'>) {
-  const userPromise = UserRepository.getCurrentUser()
-  const marketContextSettingsPromise = loadMarketContextSettings()
   const { locale, slug, market } = await params
   setRequestLocale(locale)
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
+
   const [user, marketContextSettings] = await Promise.all([
-    userPromise,
-    marketContextSettingsPromise,
+    UserRepository.getCurrentUser(),
+    loadMarketContextSettings(),
   ])
+
   const marketContextEnabled = marketContextSettings.enabled && Boolean(marketContextSettings.apiKey)
 
   const [eventResult, changeLogResult] = await Promise.all([
@@ -46,11 +46,6 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
 
   if (changeLogResult.error) {
     console.warn('Failed to load event change log:', changeLogResult.error)
-  }
-
-  const selectedMarket = event.markets.find(item => item.slug === market)
-  if (!selectedMarket) {
-    notFound()
   }
 
   return (

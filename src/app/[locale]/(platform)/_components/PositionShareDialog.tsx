@@ -61,7 +61,7 @@ export function PositionShareDialog({ open, onOpenChange, payload }: PositionSha
 
     let isCancelled = false
 
-    fetch(shareCardUrl, { cache: 'no-store' })
+    fetch(shareCardUrl)
       .then(async (response) => {
         if (!response.ok) {
           throw new Error('Share card fetch failed.')
@@ -185,7 +185,7 @@ export function PositionShareDialog({ open, onOpenChange, payload }: PositionSha
             src={shareCardUrl}
             alt={t('{title} share card', { title: payload?.title ?? t('Position') })}
             className={cn(
-              'w-full max-w-md rounded-md shadow transition-opacity',
+              'w-full max-w-md rounded-md shadow-sm transition-opacity',
               isShareReady ? 'opacity-100' : 'opacity-0',
             )}
             onLoad={handleShareCardLoaded}

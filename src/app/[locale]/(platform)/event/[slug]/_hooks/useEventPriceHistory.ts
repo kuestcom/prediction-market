@@ -127,7 +127,7 @@ async function fetchTokenPriceHistory(tokenId: string, filters: RangeFilters): P
     }
   })
 
-  const response = await fetch(url.toString(), { cache: 'no-store' })
+  const response = await fetch(url.toString())
   if (!response.ok) {
     throw new Error('Failed to fetch price history')
   }

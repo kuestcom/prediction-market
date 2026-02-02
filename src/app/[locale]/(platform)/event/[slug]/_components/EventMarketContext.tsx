@@ -215,7 +215,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
           )}
 
       {(contextExpanded || error) && (
-        <div className="border-t border-border/30 px-3 pt-3 pb-3">
+        <div className="border-t border-border/30 p-3">
           <div className="space-y-3">
             {error && (
               <p className="text-sm font-medium text-destructive">
@@ -226,7 +226,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
             {paragraphs.map(paragraph => (
               <p
                 key={paragraph}
-                className="text-sm leading-relaxed text-muted-foreground"
+                className="text-sm/relaxed text-muted-foreground"
               >
                 {paragraph}
               </p>

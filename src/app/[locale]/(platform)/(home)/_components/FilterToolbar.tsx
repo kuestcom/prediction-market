@@ -286,7 +286,7 @@ function SettingsToggle({ isActive, isOpen, onToggle }: SettingsToggleProps) {
         `
           size-10 rounded-sm border border-transparent bg-transparent p-0 text-muted-foreground transition-none
           hover:bg-transparent hover:text-muted-foreground
-          md:h-9 md:w-9
+          md:size-9
         `,
         (isOpen || isActive) && 'bg-muted/70 text-foreground hover:bg-muted/70 hover:text-foreground',
       )}

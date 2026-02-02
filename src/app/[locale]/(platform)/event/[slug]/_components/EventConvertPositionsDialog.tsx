@@ -411,7 +411,7 @@ export default function EventConvertPositionsDialog({
                 <div className="flex flex-1 items-center gap-2">
                   <span className="text-sm font-semibold text-foreground">{option.label}</span>
                   <span className={`
-                    inline-flex h-5 w-5 items-center justify-center rounded-sm bg-no/20 text-2xs font-semibold text-no
+                    inline-flex size-5 items-center justify-center rounded-sm bg-no/20 text-2xs font-semibold text-no
                   `}
                   >
                     {t('No')}
@@ -479,7 +479,7 @@ export default function EventConvertPositionsDialog({
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">{option.label}</span>
                     <span className={`
-                      inline-flex h-5 min-w-5 items-center justify-center rounded-sm bg-no/20 px-1 text-[10px]
+                      inline-flex h-5 min-w-5 items-center justify-center rounded-sm bg-no/20 px-1 text-2xs
                       font-semibold text-no
                     `}
                     >
@@ -497,7 +497,7 @@ export default function EventConvertPositionsDialog({
             </div>
           </div>
 
-          <div className="relative z-10 -mt-2 -mb-2 flex items-center justify-center text-muted-foreground">
+          <div className="relative z-10 -my-2 flex items-center justify-center text-muted-foreground">
             <div className="rounded-md border-8 border-muted/60 bg-background p-1">
               <MoveDownIcon className="size-4" />
             </div>
@@ -513,7 +513,7 @@ export default function EventConvertPositionsDialog({
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">{outcome.label}</span>
                     <span className={`
-                      inline-flex h-5 min-w-5 items-center justify-center rounded-sm bg-yes/20 px-1 text-[10px]
+                      inline-flex h-5 min-w-5 items-center justify-center rounded-sm bg-yes/20 px-1 text-2xs
                       font-semibold text-yes
                     `}
                     >
@@ -533,7 +533,7 @@ export default function EventConvertPositionsDialog({
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">Other</span>
                     <span className={`
-                      inline-flex h-5 min-w-5 items-center justify-center gap-1 rounded-sm bg-yes/20 px-1 text-[10px]
+                      inline-flex h-5 min-w-5 items-center justify-center gap-1 rounded-sm bg-yes/20 px-1 text-2xs
                       font-semibold text-yes
                     `}
                     >

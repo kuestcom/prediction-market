@@ -143,7 +143,7 @@ async function fetchTokenPriceHistory(
     url.searchParams.set(key, value)
   })
 
-  const response = await fetch(url.toString(), { cache: 'no-store' })
+  const response = await fetch(url.toString())
   if (!response.ok) {
     throw new Error('Failed to fetch price history')
   }
@@ -436,7 +436,7 @@ export default function EventChartExportDialog({
                       <Checkbox
                         checked={allSelected}
                         onCheckedChange={checked => setSelectedOptions(checked ? allOptionIds : [])}
-                        className="size-5 rounded dark:bg-transparent"
+                        className="size-5 rounded-sm dark:bg-transparent"
                       />
                       {t('Select All')}
                     </label>
@@ -469,7 +469,7 @@ export default function EventChartExportDialog({
                                   return prev.filter(item => item !== option.id)
                                 })
                               }}
-                              className="size-5 rounded dark:bg-transparent"
+                              className="size-5 rounded-sm dark:bg-transparent"
                             />
                             <span className="truncate">{option.label}</span>
                           </label>
