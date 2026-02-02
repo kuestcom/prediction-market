@@ -16,7 +16,6 @@ export async function fetchClobJson<T>(path: string, body: unknown): Promise<T> 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
-    cache: 'no-store',
   })
 
   const text = await response.text()

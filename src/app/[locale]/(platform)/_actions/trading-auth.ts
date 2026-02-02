@@ -24,8 +24,7 @@ async function requestApiKey(baseUrl: string, headers: Record<string, string>) {
     method: 'POST',
     headers,
     body: '',
-    cache: 'no-store',
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(10_000),
   })
 
   const payload = await response.json().catch(() => null)

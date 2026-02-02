@@ -51,7 +51,6 @@ async function fetchPriceBatch(endpoint: string, tokenIds: string[]): Promise<Pr
       body: JSON.stringify(tokenIds.map(tokenId => ({
         token_id: tokenId,
       }))),
-      cache: 'no-store',
     })
 
     if (!response.ok) {
@@ -84,7 +83,6 @@ async function fetchLastTradePrices(tokenIds: string[]): Promise<Map<string, num
         'Accept': 'application/json',
       },
       body: JSON.stringify(uniqueTokenIds.map(tokenId => ({ token_id: tokenId }))),
-      cache: 'no-store',
     })
 
     if (!response.ok) {
@@ -707,7 +705,7 @@ export const EventRepository = {
     })
   },
 
-  async getEventBySlugUncached(slug: string, userId: string = ''): Promise<QueryResult<Event>> {
+  async getEventBySlug(slug: string, userId: string = ''): Promise<QueryResult<Event>> {
     return runQuery(async () => {
       const eventResult = await db.query.events.findFirst({
         where: eq(events.slug, slug),
@@ -738,58 +736,6 @@ export const EventRepository = {
 
       return { data: transformedEvent, error: null }
     })
-  },
-
-  async getEventBySlugBase(slug: string, userId: string = ''): Promise<QueryResult<DrizzleEventResult>> {
-    'use cache'
-
-    return runQuery(async () => {
-      const eventResult = await db.query.events.findFirst({
-        where: eq(events.slug, slug),
-        with: {
-          markets: {
-            with: {
-              condition: {
-                with: { outcomes: true },
-              },
-            },
-          },
-          eventTags: {
-            with: { tag: true },
-          },
-          ...(userId && {
-            bookmarks: {
-              where: eq(bookmarks.user_id, userId),
-            },
-          }),
-        },
-      }) as DrizzleEventResult
-
-      if (!eventResult) {
-        throw new Error('Event not found')
-      }
-
-      return { data: eventResult, error: null }
-    })
-  },
-
-  async getEventBySlug(slug: string, userId: string = ''): Promise<QueryResult<Event>> {
-    let baseResult: QueryResult<DrizzleEventResult>
-
-    try {
-      baseResult = await EventRepository.getEventBySlugBase(slug, userId)
-    }
-    catch {
-      return EventRepository.getEventBySlugUncached(slug, userId)
-    }
-
-    if (!baseResult.data) {
-      return { data: null, error: baseResult.error }
-    }
-
-    const transformedEvent = await buildEventResource(baseResult.data, userId)
-
-    return { data: transformedEvent, error: null }
   },
 
   async getRelatedEventsBySlug(slug: string, options: RelatedEventOptions = {}): Promise<QueryResult<RelatedEvent[]>> {

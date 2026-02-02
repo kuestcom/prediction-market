@@ -114,7 +114,7 @@ export default function AdminCreateEventForm() {
   useEffect(() => {
     async function loadTags() {
       try {
-        const response = await fetch('/admin/api/main-tags', { cache: 'no-store' })
+        const response = await fetch('/admin/api/main-tags')
         if (!response.ok) {
           throw new Error(`Failed to load tags (${response.status})`)
         }
@@ -197,9 +197,7 @@ export default function AdminCreateEventForm() {
 
     const timeoutId = setTimeout(async () => {
       try {
-        const response = await fetch(`/admin/api/events/check-slug?slug=${encodeURIComponent(slug)}`, {
-          cache: 'no-store',
-        })
+        const response = await fetch(`/admin/api/events/check-slug?slug=${encodeURIComponent(slug)}`)
 
         if (!response.ok) {
           throw new Error(`Failed to validate slug (${response.status})`)
@@ -831,7 +829,7 @@ export default function AdminCreateEventForm() {
       <Separator />
 
       <Card className="bg-background">
-        <CardContent className="pt-8 pb-8">
+        <CardContent className="py-8">
           <div className="flex items-start gap-3">
             <AlertCircleIcon className="mt-0.5 size-5 text-no" />
             <div className="space-y-2">

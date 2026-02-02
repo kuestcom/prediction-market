@@ -177,8 +177,7 @@ async function fetchClobOpenOrders({
       KUEST_TIMESTAMP: timestamp.toString(),
       KUEST_SIGNATURE: signature,
     },
-    cache: 'no-store',
-    signal: AbortSignal.timeout(5000),
+    signal: AbortSignal.timeout(5_000),
   })
 
   if (!response.ok) {
