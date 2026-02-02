@@ -131,7 +131,7 @@ async function fetchDataApiPositions(address: string): Promise<DataApiPosition[]
 
     let response: Response
     try {
-      response = await fetch(`${DATA_API_URL}/positions?${params.toString()}`, { cache: 'no-store' })
+      response = await fetch(`${DATA_API_URL}/positions?${params.toString()}`)
     }
     catch {
       break

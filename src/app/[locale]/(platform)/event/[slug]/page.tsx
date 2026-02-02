@@ -21,17 +21,17 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/event/[s
 }
 
 export default async function EventPage({ params }: PageProps<'/[locale]/event/[slug]'>) {
-  const userPromise = UserRepository.getCurrentUser()
-  const marketContextSettingsPromise = loadMarketContextSettings()
   const { locale, slug } = await params
   setRequestLocale(locale)
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
+
   const [user, marketContextSettings] = await Promise.all([
-    userPromise,
-    marketContextSettingsPromise,
+    UserRepository.getCurrentUser(),
+    loadMarketContextSettings(),
   ])
+
   const marketContextEnabled = marketContextSettings.enabled && Boolean(marketContextSettings.apiKey)
 
   const [eventResult, changeLogResult] = await Promise.all([

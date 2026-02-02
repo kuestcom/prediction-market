@@ -36,7 +36,7 @@ export function PublicActivityItem({ item }: { item: PublicActivity }) {
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
         <Link
           href={eventHref}
-          className="size-10 shrink-0 overflow-hidden rounded bg-muted sm:size-12"
+          className="size-10 shrink-0 overflow-hidden rounded-sm bg-muted sm:size-12"
         >
           <Image
             src={`https://gateway.irys.xyz/${item.icon}`}

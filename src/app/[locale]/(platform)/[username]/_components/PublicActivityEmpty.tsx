@@ -27,7 +27,7 @@ export default function PublicActivityEmpty() {
               No trading activity yet
             </h3>
 
-            <p className="text-sm leading-relaxed text-muted-foreground">
+            <p className="text-sm/relaxed text-muted-foreground">
               This user hasn't made any trades yet. Activity will appear here once they start trading on markets.
             </p>
 

@@ -109,7 +109,7 @@ export function MergePositionsDialog({
               </div>
 
               <div className="min-w-0 flex-1 space-y-1">
-                <h3 className="text-sm leading-tight font-semibold text-foreground">
+                <h3 className="text-sm/tight font-semibold text-foreground">
                   {market.title}
                 </h3>
                 <p className="text-sm text-muted-foreground">

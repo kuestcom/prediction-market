@@ -172,7 +172,7 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
       {expiryDate && (
         <Tooltip>
           <TooltipTrigger>
-            <div className="flex items-center gap-1.5 text-sm leading-tight font-semibold text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-sm/tight font-semibold text-muted-foreground">
               <Clock3Icon className="size-4 text-muted-foreground" strokeWidth={2.5} />
               <span>{formatDate(expiryDate)}</span>
             </div>

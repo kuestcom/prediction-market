@@ -369,10 +369,9 @@ function WalletSendForm({
               onBlur={event => handleAmountBlur(event.target.value)}
               placeholder="0.00"
               className={`
-                h-12
-                [appearance:textfield]
-                pr-36 text-sm
-                [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none
+                h-12 [appearance:textfield] pr-36 text-sm
+                [&::-webkit-inner-spin-button]:appearance-none
+                [&::-webkit-outer-spin-button]:appearance-none
               `}
               required
             />
@@ -572,7 +571,7 @@ function WalletSendForm({
         {isUsdcESelected && (
           <div className="rounded-lg bg-muted/60 p-4">
             <div className="flex items-start gap-3 text-xs text-foreground">
-              <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-destructive">
+              <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-destructive">
                 <InfoIcon className="size-4 text-background" />
               </div>
               <div className="space-y-1">
@@ -1035,7 +1034,7 @@ function WalletAmountStep({
           style={{ width: `${Math.max(inputValue.length, minChWidth)}ch`, maxWidth: '70vw' }}
         />
         {selectedTokenSymbol && (
-          <span className="pb-1 text-xl leading-tight font-semibold text-muted-foreground">
+          <span className="pb-1 text-xl/tight font-semibold text-muted-foreground">
             {selectedTokenSymbol}
           </span>
         )}
@@ -1298,11 +1297,7 @@ function WalletConfirmStep({
               <span>Destination</span>
               <span className="flex items-center gap-2 font-semibold text-foreground">
                 <span
-                  className={`
-                    size-4 text-current
-                    [&_svg]:h-[1em] [&_svg]:w-[1em]
-                    [&_svg_*]:fill-current [&_svg_*]:stroke-current
-                  `}
+                  className="size-4 text-current [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
                   dangerouslySetInnerHTML={{ __html: logoSvg! }}
                 />
                 {siteLabel}
@@ -1574,11 +1569,7 @@ function WalletSuccessStep({
               <span>Destination</span>
               <span className="flex items-center gap-2 font-semibold text-foreground">
                 <span
-                  className={`
-                    size-4 text-current
-                    [&_svg]:h-[1em] [&_svg]:w-[1em]
-                    [&_svg_*]:fill-current [&_svg_*]:stroke-current
-                  `}
+                  className="size-4 text-current [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
                   dangerouslySetInnerHTML={{ __html: logoSvg! }}
                 />
                 {siteLabel}

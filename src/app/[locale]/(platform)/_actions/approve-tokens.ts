@@ -55,8 +55,7 @@ export async function getSafeNonceAction(): Promise<SafeNonceResult> {
         KUEST_TIMESTAMP: timestamp.toString(),
         KUEST_SIGNATURE: signature,
       },
-      cache: 'no-store',
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(10_000),
     })
 
     const payload = await response.json().catch(() => null)

@@ -406,7 +406,6 @@ export function normalizeOrderShares(value: number) {
 async function fetchMarketOutcomeAssetMap(eventSlug: string, conditionId: string): Promise<Record<number, string>> {
   const response = await fetch(
     `/api/events/${encodeURIComponent(eventSlug)}/market-metadata?conditionId=${encodeURIComponent(conditionId)}`,
-    { cache: 'no-store' },
   )
 
   if (!response.ok) {

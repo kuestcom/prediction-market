@@ -6,9 +6,9 @@ export default function Loading() {
     <>
       <div className="container py-4">
         <div className="flex items-center gap-3">
-          <Skeleton className="h-9 w-[75%] shrink-0 rounded md:w-56" />
-          <Skeleton className="size-9 shrink-0 rounded" />
-          <Skeleton className="size-9 shrink-0 rounded" />
+          <Skeleton className="h-9 w-[75%] shrink-0 rounded-sm md:w-56" />
+          <Skeleton className="size-9 shrink-0 rounded-sm" />
+          <Skeleton className="size-9 shrink-0 rounded-sm" />
         </div>
       </div>
 

@@ -102,7 +102,7 @@ export default function ProfileOverviewCard({
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-col gap-1">
                           <span className="text-sm font-semibold tracking-wide text-muted-foreground">Portfolio</span>
-                          <p className="text-3xl leading-tight font-bold text-foreground sm:text-4xl">
+                          <p className="text-3xl/tight font-bold text-foreground sm:text-4xl">
                             {formattedTotalValue}
                           </p>
                           <div
@@ -171,7 +171,7 @@ export default function ProfileOverviewCard({
                                 )}
                           </div>
                           <div className="min-w-0 flex-1 space-y-1">
-                            <p className="truncate text-lg leading-tight font-semibold sm:text-xl" title={profile.username}>
+                            <p className="truncate text-lg/tight font-semibold sm:text-xl" title={profile.username}>
                               {profile.username}
                             </p>
                             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">

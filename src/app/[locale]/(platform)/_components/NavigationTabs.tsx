@@ -1,5 +1,3 @@
-'use cache'
-
 import { Suspense } from 'react'
 import NavigationTab from '@/app/[locale]/(platform)/_components/NavigationTab'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -29,7 +27,7 @@ export default async function NavigationTabs() {
       <div id="navigation-main-tags" className="container scrollbar-hide flex gap-6 overflow-x-auto text-sm font-medium">
         {tags.map((tag, index) => (
           <div key={tag.slug} className="flex items-center">
-            <Suspense fallback={<Skeleton className="h-8 w-16 rounded" />}>
+            <Suspense fallback={<Skeleton className="h-8 w-16 rounded-sm" />}>
               <NavigationTab tag={tag} childParentMap={childParentMap} />
             </Suspense>
 

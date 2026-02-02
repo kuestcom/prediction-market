@@ -35,7 +35,7 @@ export default function EventCardHeader({
         <div
           className={`
             flex ${iconSizeClass}
-            shrink-0 items-center justify-center self-start overflow-hidden rounded bg-muted text-muted-foreground
+            shrink-0 items-center justify-center self-start overflow-hidden rounded-sm bg-muted text-muted-foreground
           `}
         >
           <Image
@@ -43,14 +43,14 @@ export default function EventCardHeader({
             alt={headerTitle || event.creator || 'Market'}
             width={40}
             height={40}
-            className="size-full rounded object-cover"
+            className="size-full rounded-sm object-cover"
           />
         </div>
 
         <h3
           className={
             `
-              line-clamp-2 w-fit text-sm leading-5 font-bold text-pretty underline-offset-2 transition-all duration-200
+              line-clamp-2 w-fit text-sm/5 font-bold text-pretty underline-offset-2 transition-all duration-200
               hover:line-clamp-none hover:text-foreground hover:underline
             `
           }
@@ -71,7 +71,8 @@ export default function EventCardHeader({
                 `
                   flex size-6 items-center justify-center rounded-md text-slate-600 transition-colors
                   hover:bg-slate-200
-                  dark:text-slate-400 dark:hover:bg-slate-600
+                  dark:text-slate-400
+                  dark:hover:bg-slate-600
                 `
               }
             >

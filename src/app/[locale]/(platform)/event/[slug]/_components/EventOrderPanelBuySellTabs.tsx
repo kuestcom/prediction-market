@@ -135,7 +135,9 @@ export default function EventOrderPanelBuySellTabs({
                 focus:bg-transparent!
                 focus-visible:bg-transparent! focus-visible:outline-none
                 active:bg-transparent!
-                dark:hover:bg-transparent! dark:focus:bg-transparent! dark:focus-visible:bg-transparent!
+                dark:hover:bg-transparent!
+                dark:focus:bg-transparent!
+                dark:focus-visible:bg-transparent!
                 dark:active:bg-transparent!
               `,
               side === ORDER_SIDE.BUY && 'border-foreground text-foreground',
@@ -154,7 +156,9 @@ export default function EventOrderPanelBuySellTabs({
                 focus:bg-transparent!
                 focus-visible:bg-transparent! focus-visible:outline-none
                 active:bg-transparent!
-                dark:hover:bg-transparent! dark:focus:bg-transparent! dark:focus-visible:bg-transparent!
+                dark:hover:bg-transparent!
+                dark:focus:bg-transparent!
+                dark:focus-visible:bg-transparent!
                 dark:active:bg-transparent!
               `,
               side === ORDER_SIDE.SELL && 'border-foreground text-foreground',

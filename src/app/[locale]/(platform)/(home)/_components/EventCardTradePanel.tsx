@@ -114,12 +114,11 @@ export default function EventCardTradePanel({
             }}
             className={
               `
-                w-full min-w-0
-                [appearance:textfield]
-                bg-transparent pr-9 text-sm font-medium text-foreground
+                w-full min-w-0 [appearance:textfield] bg-transparent pr-9 text-sm font-medium text-foreground
                 placeholder:text-muted-foreground
                 focus:outline-none
-                [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none
+                [&::-webkit-inner-spin-button]:appearance-none
+                [&::-webkit-outer-spin-button]:appearance-none
               `
             }
             onClick={e => e.stopPropagation()}
@@ -129,7 +128,7 @@ export default function EventCardTradePanel({
             <button
               type="button"
               className={`
-                h-6 rounded bg-muted px-0.5 text-xs leading-none font-medium text-muted-foreground transition-colors
+                h-6 rounded-sm bg-muted px-0.5 text-xs leading-none font-medium text-muted-foreground transition-colors
                 hover:text-foreground
               `}
               onClick={() => handleQuickAdd(1)}
@@ -139,7 +138,7 @@ export default function EventCardTradePanel({
             <button
               type="button"
               className={`
-                h-6 rounded bg-muted px-0.5 text-xs leading-none font-medium text-muted-foreground transition-colors
+                h-6 rounded-sm bg-muted px-0.5 text-xs leading-none font-medium text-muted-foreground transition-colors
                 hover:text-foreground
               `}
               onClick={() => handleQuickAdd(10)}

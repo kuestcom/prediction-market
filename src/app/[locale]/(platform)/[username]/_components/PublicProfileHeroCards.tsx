@@ -443,11 +443,7 @@ function ProfitLossCard({
 
           <div className="flex items-center gap-2 text-xl text-muted-foreground/70">
             <div
-              className={`
-                h-[1em] w-[1em] text-current
-                [&_svg]:h-[1em] [&_svg]:w-[1em]
-                [&_svg_*]:fill-current [&_svg_*]:stroke-current
-              `}
+              className="size-[1em] text-current [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
               dangerouslySetInnerHTML={{ __html: logoSvg }}
             />
             <span className="font-semibold">{platformName}</span>

@@ -161,10 +161,10 @@ export default function HeaderNotifications() {
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <h4 className="text-sm leading-tight font-semibold text-foreground">
+                          <h4 className="text-sm/tight font-semibold text-foreground">
                             {notification.title}
                           </h4>
-                          <p className="mt-1 line-clamp-2 text-xs leading-tight text-muted-foreground">
+                          <p className="mt-1 line-clamp-2 text-xs/tight text-muted-foreground">
                             {notification.description}
                           </p>
                         </div>

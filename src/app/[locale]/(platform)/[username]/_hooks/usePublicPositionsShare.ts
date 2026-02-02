@@ -51,7 +51,7 @@ export function usePublicPositionsShare({ userName, userImage }: UsePublicPositi
 
     let isCancelled = false
 
-    fetch(shareCardUrl, { cache: 'no-store' })
+    fetch(shareCardUrl)
       .then(async (response) => {
         if (!response.ok) {
           throw new Error('Share card fetch failed.')

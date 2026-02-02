@@ -114,7 +114,7 @@ function parseVolumeValue(value: unknown): string | null {
 }
 
 async function fetchJson(url: string, signal?: AbortSignal) {
-  const response = await fetch(url, { cache: 'no-store', signal })
+  const response = await fetch(url, { signal })
 
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status}`)

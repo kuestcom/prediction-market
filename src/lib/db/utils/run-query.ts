@@ -5,9 +5,7 @@ export async function runQuery<T>(queryFn: () => Promise<QueryResult<T>>): Promi
   try {
     return await queryFn()
   }
-  catch (err) {
-    // @ts-expect-error err is of unknow type
-    console.error('Query failed:', err.cause ?? err)
+  catch {
     return {
       data: null,
       error: DEFAULT_ERROR_MESSAGE,

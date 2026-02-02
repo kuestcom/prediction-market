@@ -41,7 +41,6 @@ async function fetchLastTradesByMarket(targets: MarketTokenTarget[]) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(uniqueTokenIds.map(tokenId => ({ token_id: tokenId }))),
-    cache: 'no-store',
   })
 
   if (!response.ok) {
