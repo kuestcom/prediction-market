@@ -333,8 +333,7 @@ function PositionTags({
     <div className="flex flex-wrap gap-1">
       {hasOpenOrders && (
         <div className={`
-          inline-flex items-center rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-xs leading-tight font-semibold
-          text-amber-700
+          inline-flex items-center rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-xs/tight font-semibold text-amber-700
           dark:text-amber-200
         `}
         >
@@ -351,10 +350,7 @@ function PositionTags({
           <div
             key={`${tag.outcomeIndex}-${label}`}
             className={cn(
-              `
-                group inline-flex items-center rounded-sm px-1.5 py-0.5 text-xs leading-tight font-semibold
-                transition-all
-              `,
+              `group inline-flex items-center rounded-sm px-1.5 py-0.5 text-xs/tight font-semibold transition-all`,
               isYes ? 'bg-yes/15 text-yes-foreground' : 'bg-no/15 text-no-foreground',
             )}
           >

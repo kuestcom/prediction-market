@@ -838,7 +838,7 @@ function OtherOutcomeRow({ shares, showMarketIcon }: { shares: number, showMarke
         <div>
           <span className={cn(
             `
-              inline-flex items-center gap-1 rounded-sm bg-yes/15 px-1.5 py-0.5 text-xs leading-tight font-semibold
+              inline-flex items-center gap-1 rounded-sm bg-yes/15 px-1.5 py-0.5 text-xs/tight font-semibold
               text-yes-foreground
             `,
           )}

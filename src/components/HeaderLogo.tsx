@@ -20,11 +20,7 @@ export default async function HeaderLogo({ locale }: HeaderLogoProps) {
       `}
     >
       <div
-        className={`
-          size-[1em] text-current
-          [&_svg]:h-[1em] [&_svg]:w-[1em]
-          [&_svg_*]:fill-current [&_svg_*]:stroke-current
-        `}
+        className="size-[1em] text-current [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
         dangerouslySetInnerHTML={{ __html: logoSvg! }}
       />
       <span>{siteName}</span>

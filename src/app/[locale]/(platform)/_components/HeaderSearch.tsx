@@ -58,7 +58,7 @@ export default function HeaderSearch() {
 
   return (
     <div
-      className="relative ms-2 me-2 hidden flex-1 sm:ms-4 sm:me-0 sm:flex sm:max-w-xl"
+      className="relative mx-2 hidden flex-1 sm:ms-4 sm:me-0 sm:flex sm:max-w-xl"
       ref={searchRef}
       data-testid="header-search-container"
     >

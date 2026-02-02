@@ -63,7 +63,7 @@ export default function EventCommentContent({
   className?: string
 }) {
   return (
-    <p className={cn('text-sm leading-5.25 font-normal wrap-break-word', className)}>
+    <p className={cn('text-sm/5.25 font-normal wrap-break-word', className)}>
       {splitContent(content)}
     </p>
   )

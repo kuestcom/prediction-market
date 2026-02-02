@@ -334,7 +334,7 @@ export default function EventContent({
                 onClick={handleBackToTop}
                 className={`
                   pointer-events-auto justify-self-center rounded-full border bg-background/90 px-4 py-2 text-sm
-                  font-semibold text-foreground shadow-lg backdrop-blur transition-colors
+                  font-semibold text-foreground shadow-lg backdrop-blur-sm transition-colors
                   hover:text-muted-foreground
                 `}
                 aria-label="Back to top"

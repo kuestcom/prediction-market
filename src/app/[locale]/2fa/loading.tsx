@@ -10,12 +10,12 @@ export default function Loading() {
 
       <div className="mt-6 grid gap-6">
         <div className="flex items-center justify-center gap-3">
-          <Skeleton className="h-12 w-12" />
-          <Skeleton className="h-12 w-12" />
-          <Skeleton className="h-12 w-12" />
-          <Skeleton className="h-12 w-12" />
-          <Skeleton className="h-12 w-12" />
-          <Skeleton className="h-12 w-12" />
+          <Skeleton className="size-12" />
+          <Skeleton className="size-12" />
+          <Skeleton className="size-12" />
+          <Skeleton className="size-12" />
+          <Skeleton className="size-12" />
+          <Skeleton className="size-12" />
         </div>
         <Skeleton className="h-10 w-full" />
       </div>

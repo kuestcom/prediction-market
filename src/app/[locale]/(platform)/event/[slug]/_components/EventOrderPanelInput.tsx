@@ -189,11 +189,10 @@ export default function EventOrderPanelInput({
                     type="text"
                     className={cn(
                       `
-                        w-full
-                        [appearance:textfield]
-                        border-0 bg-transparent text-center font-bold text-foreground placeholder-muted-foreground
-                        outline-hidden
-                        [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none
+                        w-full [appearance:textfield] border-0 bg-transparent text-center font-bold text-foreground
+                        placeholder-muted-foreground outline-hidden
+                        [&::-webkit-inner-spin-button]:appearance-none
+                        [&::-webkit-outer-spin-button]:appearance-none
                       `,
                       amountSizeClass,
                       shouldShake && 'animate-order-shake',
@@ -251,11 +250,11 @@ export default function EventOrderPanelInput({
                   type="text"
                   className={cn(
                     `
-                      h-14 w-full
-                      [appearance:textfield]
-                      border-0 bg-transparent text-right font-bold text-slate-700 placeholder-slate-400 outline-hidden
+                      h-14 w-full [appearance:textfield] border-0 bg-transparent text-right font-bold text-slate-700
+                      placeholder-slate-400 outline-hidden
                       dark:text-slate-300 dark:placeholder-slate-500
-                      [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none
+                      [&::-webkit-inner-spin-button]:appearance-none
+                      [&::-webkit-outer-spin-button]:appearance-none
                     `,
                     amountSizeClass,
                     shouldShake && 'animate-order-shake',

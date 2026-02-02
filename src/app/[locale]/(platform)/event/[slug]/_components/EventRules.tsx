@@ -298,7 +298,7 @@ export default function EventRules({ event }: EventRulesProps) {
         <div className="overflow-hidden border-t border-border/30 px-3 pb-3">
           <div className="space-y-2 pt-3">
             {formattedRules && (
-              <div className="text-sm leading-relaxed whitespace-pre-line text-foreground">
+              <div className="text-sm/relaxed whitespace-pre-line text-foreground">
                 {renderRulesTextWithLinks(formattedRules)}
               </div>
             )}

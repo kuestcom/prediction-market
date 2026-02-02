@@ -47,7 +47,7 @@ export default function PublicPositionsShareDialog({
             src={shareCardUrl}
             alt={`${shareCardPayload?.title ?? 'Position'} share card`}
             className={cn(
-              'w-full max-w-md rounded-md shadow transition-opacity',
+              'w-full max-w-md rounded-md shadow-sm transition-opacity',
               isShareReady ? 'opacity-100' : 'opacity-0',
             )}
             onLoad={onCardLoaded}
