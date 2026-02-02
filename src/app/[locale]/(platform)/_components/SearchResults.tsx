@@ -29,8 +29,7 @@ export function SearchResults({
   if ((isLoading.events && isLoading.profiles) && events.length === 0 && profiles.length === 0) {
     return (
       <div className={`
-        absolute top-full right-0 left-0 z-50 mt-0 w-full rounded-lg rounded-t-none border border-t-0 bg-background
-        shadow-lg
+        absolute inset-x-0 top-full z-50 mt-0 w-full rounded-lg rounded-t-none border border-t-0 bg-background shadow-lg
       `}
       >
         {showTabs && (
@@ -58,7 +57,7 @@ export function SearchResults({
     <div
       data-testid="search-results"
       className={`
-        absolute top-full right-0 left-0 z-50 mt-0 rounded-lg rounded-t-none border border-t-0 bg-background shadow-lg
+        absolute inset-x-0 top-full z-50 mt-0 rounded-lg rounded-t-none border border-t-0 bg-background shadow-lg
       `}
     >
       {showTabs && (
@@ -133,7 +132,7 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
           className="flex items-center justify-between p-3 transition-colors last:rounded-b-lg hover:bg-accent"
         >
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="size-8 shrink-0 overflow-hidden rounded">
+            <div className="size-8 shrink-0 overflow-hidden rounded-sm">
               <Image
                 src={result.icon_url}
                 alt={result.title}

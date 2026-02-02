@@ -15,10 +15,9 @@ export default function PublicPositionItemSkeleton({ isInfiniteScroll = false }:
       ${isInfiniteScroll ? 'animate-pulse' : ''}
     `}
     >
-
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
 
-        <Skeleton className="size-10 shrink-0 rounded bg-muted sm:size-12" />
+        <Skeleton className="size-10 shrink-0 rounded-sm bg-muted sm:size-12" />
 
         <div className="min-w-0 flex-1 space-y-2">
 

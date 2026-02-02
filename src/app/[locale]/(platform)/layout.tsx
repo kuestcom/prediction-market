@@ -12,16 +12,16 @@ function NavSkeleton() {
   return (
     <nav className="sticky top-14 z-10 border-b bg-background">
       <div className="container scrollbar-hide flex gap-6 overflow-x-auto text-sm font-medium">
-        <Skeleton className="h-8 w-16 rounded" />
-        <Skeleton className="h-8 w-16 rounded" />
-        <Skeleton className="h-8 w-16 rounded" />
-        <Skeleton className="h-8 w-16 rounded" />
-        <Skeleton className="h-8 w-16 rounded" />
-        <Skeleton className="h-8 w-16 rounded" />
-        <Skeleton className="h-8 w-16 rounded" />
-        <Skeleton className="h-8 w-16 rounded" />
-        <Skeleton className="h-8 w-16 rounded" />
-        <Skeleton className="h-8 w-16 rounded" />
+        <Skeleton className="h-8 w-16 rounded-sm" />
+        <Skeleton className="h-8 w-16 rounded-sm" />
+        <Skeleton className="h-8 w-16 rounded-sm" />
+        <Skeleton className="h-8 w-16 rounded-sm" />
+        <Skeleton className="h-8 w-16 rounded-sm" />
+        <Skeleton className="h-8 w-16 rounded-sm" />
+        <Skeleton className="h-8 w-16 rounded-sm" />
+        <Skeleton className="h-8 w-16 rounded-sm" />
+        <Skeleton className="h-8 w-16 rounded-sm" />
+        <Skeleton className="h-8 w-16 rounded-sm" />
       </div>
     </nav>
   )

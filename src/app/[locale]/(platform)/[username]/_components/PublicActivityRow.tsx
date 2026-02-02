@@ -38,11 +38,14 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
   const marketContent = isFundsFlow
     ? (
         <div className="flex min-w-0 items-center gap-2.5 pl-1">
-          <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded bg-primary/10 text-primary">
+          <div className="
+            grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm bg-primary/10 text-primary
+          "
+          >
             <CircleDollarSignIcon className="size-5" />
           </div>
           <div className="min-w-0 space-y-1">
-            <div className="block max-w-[64ch] truncate text-sm leading-tight font-semibold text-foreground">
+            <div className="block max-w-[64ch] truncate text-sm/tight font-semibold text-foreground">
               {variant === 'deposit' ? 'Deposited funds' : 'Withdrew funds'}
             </div>
           </div>
@@ -52,7 +55,7 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
         <div className="flex min-w-0 items-start gap-2.5 pl-1">
           <Link
             href={eventHref}
-            className="relative size-12 shrink-0 overflow-hidden rounded bg-muted"
+            className="relative size-12 shrink-0 overflow-hidden rounded-sm bg-muted"
           >
             {imageUrl
               ? (
@@ -76,7 +79,7 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
               href={eventHref}
               className={
                 `
-                  block max-w-[64ch] truncate text-sm leading-tight font-semibold text-foreground underline-offset-2
+                  block max-w-[64ch] truncate text-sm/tight font-semibold text-foreground underline-offset-2
                   hover:underline
                 `
               }

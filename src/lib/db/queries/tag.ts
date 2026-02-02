@@ -1,5 +1,3 @@
-'use cache'
-
 import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { revalidatePath } from 'next/cache'
@@ -60,6 +58,8 @@ interface MainTagsResult {
 
 export const TagRepository = {
   async getMainTags(): Promise<MainTagsResult> {
+    'use cache'
+
     const mainTagsQuery = db
       .select({
         id: tags.id,
@@ -216,6 +216,8 @@ export const TagRepository = {
     error: string | null
     totalCount: number
   }> {
+    'use cache'
+
     const cappedLimit = Math.min(Math.max(limit, 1), 100)
     const safeOffset = Math.max(offset, 0)
 

@@ -41,7 +41,7 @@ export default function PublicPositionsRow({
         <div className="flex min-w-0 items-start gap-3">
           <Link
             href={eventHref}
-            className="relative size-12 shrink-0 overflow-hidden rounded bg-muted"
+            className="relative size-12 shrink-0 overflow-hidden rounded-sm bg-muted"
           >
             {imageSrc
               ? (

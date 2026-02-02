@@ -23,6 +23,33 @@ interface LastTradePriceEntry {
   side: 'BUY' | 'SELL'
 }
 
+interface FetchPriceBatchResult {
+  data: PriceApiResponse | null
+  aborted: boolean
+}
+
+function isPrerenderAbortError(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false
+  }
+
+  const record = error as { digest?: string, name?: string, code?: string, message?: string }
+
+  if (record.digest === 'HANGING_PROMISE_REJECTION') {
+    return true
+  }
+
+  if (record.name === 'AbortError' || record.code === 'UND_ERR_ABORTED') {
+    return true
+  }
+
+  if (typeof record.message === 'string' && record.message.includes('fetch() rejects when the prerender is complete')) {
+    return true
+  }
+
+  return false
+}
+
 function normalizeTradePrice(value: string | undefined) {
   if (!value) {
     return null
@@ -40,7 +67,7 @@ function normalizeTradePrice(value: string | undefined) {
   return parsed
 }
 
-async function fetchPriceBatch(endpoint: string, tokenIds: string[]): Promise<PriceApiResponse | null> {
+async function fetchPriceBatch(endpoint: string, tokenIds: string[]): Promise<FetchPriceBatchResult> {
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -54,14 +81,17 @@ async function fetchPriceBatch(endpoint: string, tokenIds: string[]): Promise<Pr
     })
 
     if (!response.ok) {
-      return null
+      return { data: null, aborted: false }
     }
 
-    return await response.json() as PriceApiResponse
+    return { data: await response.json() as PriceApiResponse, aborted: false }
   }
   catch (error) {
-    console.error('Failed to fetch outcome prices batch from CLOB.', error)
-    return null
+    const aborted = isPrerenderAbortError(error)
+    if (!aborted) {
+      console.error('Failed to fetch outcome prices batch from CLOB.', error)
+    }
+    return { data: null, aborted }
   }
 }
 
@@ -98,7 +128,9 @@ async function fetchLastTradePrices(tokenIds: string[]): Promise<Map<string, num
     })
   }
   catch (error) {
-    console.error('Failed to fetch last trades prices', error)
+    if (!isPrerenderAbortError(error)) {
+      console.error('Failed to fetch last trades prices', error)
+    }
     return lastTradeMap
   }
 
@@ -146,12 +178,18 @@ async function fetchOutcomePrices(tokenIds: string[]): Promise<Map<string, Outco
   const endpoint = `${process.env.CLOB_URL!}/prices`
   const priceMap = new Map<string, OutcomePrices>()
   const missingTokenIds = new Set(uniqueTokenIds)
+  let wasAborted = false
 
   for (let i = 0; i < uniqueTokenIds.length; i += MAX_PRICE_BATCH) {
     const batch = uniqueTokenIds.slice(i, i + MAX_PRICE_BATCH)
-    const batchData = await fetchPriceBatch(endpoint, batch)
-    if (batchData) {
-      applyPriceBatch(batchData, priceMap, missingTokenIds)
+    const batchResult = await fetchPriceBatch(endpoint, batch)
+    if (batchResult.aborted) {
+      wasAborted = true
+      break
+    }
+
+    if (batchResult.data) {
+      applyPriceBatch(batchResult.data, priceMap, missingTokenIds)
       continue
     }
 
@@ -161,8 +199,16 @@ async function fetchOutcomePrices(tokenIds: string[]): Promise<Map<string, Outco
 
     for (const result of tokenResults) {
       if (result.status === 'fulfilled') {
-        applyPriceBatch(result.value, priceMap, missingTokenIds)
+        if (result.value.aborted) {
+          wasAborted = true
+          break
+        }
+        applyPriceBatch(result.value.data, priceMap, missingTokenIds)
       }
+    }
+
+    if (wasAborted) {
+      break
     }
   }
 
