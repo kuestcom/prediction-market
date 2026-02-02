@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { setRequestLocale } from 'next-intl/server'
 import SettingsAffiliateContent from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateContent'
 import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotalsByToken } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
@@ -9,7 +10,10 @@ export const metadata: Metadata = {
   title: 'Affiliate Settings',
 }
 
-export default async function AffiliateSettingsPage(_: PageProps<'/[locale]/settings/affiliate'>) {
+export default async function AffiliateSettingsPage({ params }: PageProps<'/[locale]/settings/affiliate'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   const affiliateCode = user.affiliate_code
   const receiverAddress = user.proxy_wallet_address ?? user.address

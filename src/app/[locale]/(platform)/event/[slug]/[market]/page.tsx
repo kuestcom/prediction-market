@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
@@ -7,7 +8,8 @@ import { UserRepository } from '@/lib/db/queries/user'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/event/[slug]/[market]'>): Promise<Metadata> {
-  const { slug } = await params
+  const { locale, slug } = await params
+  setRequestLocale(locale)
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
@@ -19,14 +21,17 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/event/[s
 }
 
 export default async function EventMarketPage({ params }: PageProps<'/[locale]/event/[slug]/[market]'>) {
-  const [user, { slug, market }, marketContextSettings] = await Promise.all([
-    UserRepository.getCurrentUser(),
-    params,
-    loadMarketContextSettings(),
-  ])
+  const userPromise = UserRepository.getCurrentUser()
+  const marketContextSettingsPromise = loadMarketContextSettings()
+  const { locale, slug, market } = await params
+  setRequestLocale(locale)
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
+  const [user, marketContextSettings] = await Promise.all([
+    userPromise,
+    marketContextSettingsPromise,
+  ])
   const marketContextEnabled = marketContextSettings.enabled && Boolean(marketContextSettings.apiKey)
 
   const [eventResult, changeLogResult] = await Promise.all([

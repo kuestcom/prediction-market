@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import SettingsTwoFactorAuthContent from '@/app/[locale]/(platform)/settings/_components/SettingsTwoFactorAuthContent'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -7,7 +8,10 @@ export const metadata: Metadata = {
   title: 'Two Factor Settings',
 }
 
-export default async function TwoFactorSettingsPage(_: PageProps<'/[locale]/settings/two-factor'>) {
+export default async function TwoFactorSettingsPage({ params }: PageProps<'/[locale]/settings/two-factor'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
     notFound()

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { setRequestLocale } from 'next-intl/server'
 import MentionsList from '@/app/[locale]/(platform)/mentions/_components/MentionsList'
 import { EventRepository } from '@/lib/db/queries/event'
 
@@ -6,7 +7,10 @@ export const metadata: Metadata = {
   title: 'Mentions',
 }
 
-export default async function MentionsPage(_: PageProps<'/[locale]/mentions'>) {
+export default async function MentionsPage({ params }: PageProps<'/[locale]/mentions'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
   const { data, error } = await EventRepository.listEvents({
     tag: 'mentions',
   })

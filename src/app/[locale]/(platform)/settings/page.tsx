@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import SettingsProfileContent from '@/app/[locale]/(platform)/settings/_components/SettingsProfileContent'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -7,7 +8,10 @@ export const metadata: Metadata = {
   title: 'Settings',
 }
 
-export default async function SettingsPage(_: PageProps<'/[locale]/settings'>) {
+export default async function SettingsPage({ params }: PageProps<'/[locale]/settings'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
     notFound()

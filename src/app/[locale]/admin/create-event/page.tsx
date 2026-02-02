@@ -1,6 +1,10 @@
+import { setRequestLocale } from 'next-intl/server'
 import AdminCreateEventForm from '@/app/[locale]/admin/create-event/_components/AdminCreateEventForm'
 
-export default async function AdminCreateEventPage(_: PageProps<'/[locale]/admin/categories'>) {
+export default async function AdminCreateEventPage({ params }: PageProps<'/[locale]/admin/categories'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
   return (
     <section className="grid gap-4">
       <div className="grid gap-2">

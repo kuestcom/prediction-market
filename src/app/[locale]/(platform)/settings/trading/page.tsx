@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import SettingsTradingContent from '@/app/[locale]/(platform)/settings/_components/SettingsTradingContent'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -7,7 +8,10 @@ export const metadata: Metadata = {
   title: 'Trading Settings',
 }
 
-export default async function TradingSettingsPage(_: PageProps<'/[locale]/settings/trading'>) {
+export default async function TradingSettingsPage({ params }: PageProps<'/[locale]/settings/trading'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
     notFound()

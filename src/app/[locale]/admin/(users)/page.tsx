@@ -1,6 +1,10 @@
+import { setRequestLocale } from 'next-intl/server'
 import AdminUsersTable from '@/app/[locale]/admin/(users)/_components/AdminUsersTable'
 
-export default async function AdminUsersPage(_: PageProps<'/[locale]/admin'>) {
+export default async function AdminUsersPage({ params }: PageProps<'/[locale]/admin'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
   return (
     <section className="grid gap-4">
       <div className="grid gap-2">

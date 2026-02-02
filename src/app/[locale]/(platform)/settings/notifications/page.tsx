@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import SettingsNotificationsContent from '@/app/[locale]/(platform)/settings/_components/SettingsNotificationsContent'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -7,7 +8,10 @@ export const metadata: Metadata = {
   title: 'Notification Settings',
 }
 
-export default async function NotificationsSettingsPage(_: PageProps<'/[locale]/settings/notifications'>) {
+export default async function NotificationsSettingsPage({ params }: PageProps<'/[locale]/settings/notifications'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
     notFound()
