@@ -4,9 +4,13 @@ import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/Eve
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
+import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/event/[slug]/[market]'>): Promise<Metadata> {
   const { slug } = await params
+  if (slug === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
   const { data } = await EventRepository.getEventTitleBySlug(slug)
 
   return {
@@ -20,6 +24,9 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
     params,
     loadMarketContextSettings(),
   ])
+  if (slug === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
   const marketContextEnabled = marketContextSettings.enabled && Boolean(marketContextSettings.apiKey)
 
   const [eventResult, changeLogResult] = await Promise.all([

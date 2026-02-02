@@ -6,6 +6,7 @@ import PublicProfileTabs from '@/app/[locale]/(platform)/[username]/_components/
 import { UserRepository } from '@/lib/db/queries/user'
 import { truncateAddress } from '@/lib/formatters'
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
+import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 function normalizeProfileSlug(slug: string) {
   const trimmed = slug.trim()
@@ -19,8 +20,15 @@ function normalizeProfileSlug(slug: string) {
   return { type: 'invalid' as const, value: trimmed }
 }
 
+export async function generateStaticParams() {
+  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
+}
+
 export async function generateMetadata({ params }: PageProps<'/[locale]/profile/[slug]'>): Promise<Metadata> {
   const { slug } = await params
+  if (slug === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
   const normalized = normalizeProfileSlug(slug)
   const displayName = normalized.type === 'address'
     ? truncateAddress(normalized.value)
@@ -36,6 +44,9 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/profile/
 export default async function ProfileSlugPage({ params }: PageProps<'/[locale]/profile/[slug]'>) {
   const { locale, slug } = await params
   setRequestLocale(locale)
+  if (slug === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
 
   const normalized = normalizeProfileSlug(slug)
   if (normalized.type === 'invalid') {

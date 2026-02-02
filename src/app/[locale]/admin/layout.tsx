@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { setRequestLocale } from 'next-intl/server'
 import AdminHeader from '@/app/[locale]/admin/_components/AdminHeader'
 import AdminSidebar from '@/app/[locale]/admin/_components/AdminSidebar'
 import { routing } from '@/i18n/routing'
@@ -12,7 +13,10 @@ export async function generateStaticParams() {
   return routing.locales.map(locale => ({ locale }))
 }
 
-export default async function AdminLayout({ children }: LayoutProps<'/[locale]/admin'>) {
+export default async function AdminLayout({ params, children }: LayoutProps<'/[locale]/admin'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
   return (
     <AppProviders>
       <AdminHeader />

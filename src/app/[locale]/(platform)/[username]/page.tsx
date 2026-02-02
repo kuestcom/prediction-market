@@ -8,10 +8,15 @@ import PublicProfileTabs from '@/app/[locale]/(platform)/[username]/_components/
 import { UserRepository } from '@/lib/db/queries/user'
 import { truncateAddress } from '@/lib/formatters'
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
+import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { normalizeAddress } from '@/lib/wallet'
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/[username]'>): Promise<Metadata> {
-  const { username } = await params
+  const { locale, username } = await params
+  setRequestLocale(locale)
+  if (username === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
 
   const isUsername = !username.startsWith('0x')
   const displayName = isUsername ? username : truncateAddress(username)
@@ -21,9 +26,16 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/[usernam
   }
 }
 
+export async function generateStaticParams() {
+  return [{ username: STATIC_PARAMS_PLACEHOLDER }]
+}
+
 export default async function ProfilePage({ params }: PageProps<'/[locale]/[username]'>) {
   const { locale, username } = await params
   setRequestLocale(locale)
+  if (username === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
 
   const { data: profile } = await UserRepository.getProfileByUsernameOrProxyAddress(username)
   if (!profile) {
