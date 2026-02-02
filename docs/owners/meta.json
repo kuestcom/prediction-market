@@ -9,6 +9,7 @@
     "launch-checklist",
     "---Configuration---",
     "environment-variables",
+    "cloudflare-reverse-proxy",
     "---Integrations---",
     "market-context-generator"
   ]

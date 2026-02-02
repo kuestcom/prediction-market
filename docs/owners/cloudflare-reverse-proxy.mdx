@@ -1,0 +1,108 @@
+---
+title: Cloudflare Reverse Proxy
+description: Proxy Kuest endpoints behind your own domain.
+icon: Cloud
+---
+
+# Cloudflare Reverse Proxy (Kuest endpoints)
+
+## Goal
+Use your own domain to call Kuest endpoints without exposing `kuest.com` in your frontend.
+
+---
+
+## Step 1: DNS
+1) **Cloudflare Dashboard → Select your Domain → DNS → Records**. Create DNS records (CNAME) and keep **Proxy ON - orange cloud** (replace `yourdomain.com`):
+
+- `api.yourdomain.com` → `api.kuest.com`
+- `relayer.yourdomain.com` → `relayer.kuest.com`
+- `clob.yourdomain.com` → `clob.kuest.com`
+- `data-api.yourdomain.com` → `data-api.kuest.com`
+- `user-pnl-api.yourdomain.com` → `user-pnl-api.kuest.com`
+- `community.yourdomain.com` → `community.kuest.com`
+- `ws-live-data.yourdomain.com` → `ws-live-data.kuest.com`
+- `ws-subscriptions-clob.yourdomain.com` → `ws-subscriptions-clob.kuest.com`
+
+---
+
+## Step 2: Worker
+1) **Cloudflare Dashboard → Workers & Pages → Create application → Worker**.
+2) Paste this script (replace `yourdomain.com`):
+
+```js
+const ORIGINS = {
+  'api.yourdomain.com': 'https://api.kuest.com',
+  'relayer.yourdomain.com': 'https://relayer.kuest.com',
+  'clob.yourdomain.com': 'https://clob.kuest.com',
+  'data-api.yourdomain.com': 'https://data-api.kuest.com',
+  'user-pnl-api.yourdomain.com': 'https://user-pnl-api.kuest.com',
+  'community.yourdomain.com': 'https://community.kuest.com',
+  'ws-live-data.yourdomain.com': 'https://ws-live-data.kuest.com',
+  'ws-subscriptions-clob.yourdomain.com': 'https://ws-subscriptions-clob.kuest.com',
+}
+
+export default {
+  async fetch(request) {
+    const incomingUrl = new URL(request.url)
+    const targetBase = ORIGINS[incomingUrl.hostname]
+    if (!targetBase) {
+      return new Response('Unknown host', { status: 404 })
+    }
+
+    const targetUrl = new URL(request.url)
+    const targetOrigin = new URL(targetBase)
+    targetUrl.protocol = targetOrigin.protocol
+    targetUrl.hostname = targetOrigin.hostname
+
+    const headers = new Headers(request.headers)
+    headers.set('Host', targetOrigin.hostname)
+    headers.set('X-Forwarded-Host', incomingUrl.hostname)
+
+    const init = { method: request.method, headers, redirect: 'manual' }
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      init.body = request.body
+    }
+
+    return fetch(new Request(targetUrl.toString(), init))
+  },
+}
+```
+
+3) **Worker → Settings → Triggers → Routes** (or **Domains & Routes**, depending on UI). Add these routes:
+
+- `api.yourdomain.com/*`
+- `relayer.yourdomain.com/*`
+- `clob.yourdomain.com/*`
+- `data-api.yourdomain.com/*`
+- `user-pnl-api.yourdomain.com/*`
+- `community.yourdomain.com/*`
+- `ws-live-data.yourdomain.com/*`
+- `ws-subscriptions-clob.yourdomain.com/*`
+
+4) Ensure the DNS records for these subdomains are still **Proxy ON** (orange cloud).
+
+---
+
+## Step 3: Update Vercel environment variables
+1) **Vercel Dashboard → Your Kuest Project → Settings → Environment Variables**.
+2) Add the variables below for **Production**.
+
+Use your subdomains:
+
+```
+DATA_URL=https://data-api.yourdomain.com
+CLOB_URL=https://clob.yourdomain.com
+RELAYER_URL=https://relayer.yourdomain.com
+USER_PNL_URL=https://user-pnl-api.yourdomain.com
+COMMUNITY_URL=https://community.yourdomain.com
+WS_LIVE_DATA_URL=wss://ws-live-data.yourdomain.com
+WS_CLOB_URL=wss://ws-subscriptions-clob.yourdomain.com
+```
+
+> Note: keep these exact names (no `NEXT_PUBLIC_` prefix).
+> This project already exposes them to the client via `next.config.ts`.
+
+---
+
+## Done
+Users will only see `yourdomain.com`, while traffic is proxied to `kuest.com` behind the scenes.
