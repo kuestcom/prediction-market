@@ -9,7 +9,7 @@ interface HeaderProps {
 
 export default async function Header({ locale }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-50 bg-background">
+    <header className="sticky top-0 z-50 my-2 bg-background">
       <div className="container flex h-14 items-center gap-4">
         <HeaderLogo locale={locale} />
         <div className="flex flex-1 items-center gap-2">

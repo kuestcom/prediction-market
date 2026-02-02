@@ -167,7 +167,7 @@
 }
 
 @utility container {
-  @apply max-w-7xl mx-auto px-4 2xl:px-0;
+  @apply max-w-333 mx-auto px-4 2xl:px-0;
 }
 
 @utility animate-order-shake {
