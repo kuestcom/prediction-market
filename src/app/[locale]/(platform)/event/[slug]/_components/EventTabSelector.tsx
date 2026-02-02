@@ -1,4 +1,4 @@
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import LiveCommentsStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/LiveCommentsStatusIndicator'
 import MarketChannelStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/MarketChannelStatusIndicator'
@@ -18,9 +18,10 @@ export default function EventTabSelector({
   liveCommentsStatus,
 }: EventTabSelectorProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const formattedCommentsCount = useMemo(
-    () => (commentsCount == null ? null : Number(commentsCount).toLocaleString(undefined)),
-    [commentsCount],
+    () => (commentsCount == null ? null : Number(commentsCount).toLocaleString(locale)),
+    [commentsCount, locale],
   )
   const eventTabs = useMemo(() => ([
     {

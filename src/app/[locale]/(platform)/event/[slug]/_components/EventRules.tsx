@@ -1,6 +1,6 @@
 import type { Event } from '@/types'
 import { LinkIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -47,6 +47,7 @@ function getResolverGradient(address?: string) {
 
 export default function EventRules({ event }: EventRulesProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const [isExpanded, setRulesExpanded] = useState(false)
 
   function formatRules(rules: string): string {
@@ -77,7 +78,7 @@ export default function EventRules({ event }: EventRulesProps) {
       return t('—')
     }
 
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',

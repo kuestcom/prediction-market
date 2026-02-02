@@ -1,6 +1,6 @@
 import type { RefObject } from 'react'
 import type { OrderSide } from '@/types'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDisplayAmount, getAmountSizeClass, MAX_AMOUNT_INPUT, sanitizeNumericInput } from '@/lib/amount-input'
 import { ORDER_SIDE } from '@/lib/constants'
@@ -158,9 +158,10 @@ export default function EventOrderPanelInput({
     ))
   }
 
+  const locale = useLocale()
   const amountSizeClass = getAmountSizeClass(amount)
   const formattedBalanceText = Number.isFinite(balance.raw)
-    ? balance.raw.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    ? balance.raw.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '0.00'
 
   const formattedAmount = formatDisplayAmount(amount)

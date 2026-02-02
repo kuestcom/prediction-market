@@ -2,7 +2,7 @@ import type { RefObject } from 'react'
 import type { LimitExpirationOption } from '@/stores/useOrder'
 import type { OrderSide } from '@/types'
 import { InfoIcon, TriangleAlertIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -131,6 +131,7 @@ export default function EventOrderPanelLimitControls({
 
   const maxSharesForSide = MAX_AMOUNT_INPUT
 
+  const locale = useLocale()
   const totalValueLabel = formatCurrency(totalValue)
   const safeTotalValueLabel = totalValueLabel.trim() ? totalValueLabel : '0'
   const americanOddsLabel = americanOdds != null
@@ -140,7 +141,7 @@ export default function EventOrderPanelLimitControls({
   const potentialWinLabel = formatCurrency(potentialWin)
   const showMinimumSharesWarning = showLimitMinimumWarning && isLimitOrder && limitSharesNumber < MIN_LIMIT_ORDER_SHARES
   const formattedBalanceText = Number.isFinite(balance?.raw)
-    ? (balance?.raw ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    ? (balance?.raw ?? 0).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '0.00'
   const maxLabel = t('Max')
   const matchingSharesLabel = matchingShares && matchingShares > 0
@@ -157,13 +158,13 @@ export default function EventOrderPanelLimitControls({
       return null
     }
     const date = new Date(limitExpirationTimestamp * 1000)
-    return date.toLocaleString(undefined, {
+    return date.toLocaleString(locale, {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     })
-  }, [limitExpirationTimestamp])
+  }, [limitExpirationTimestamp, locale])
 
   function syncAmount(priceValue: number, sharesValue: number) {
     if (!isLimitOrder) {

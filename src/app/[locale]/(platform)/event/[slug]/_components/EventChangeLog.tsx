@@ -1,7 +1,7 @@
 'use client'
 
 import type { ConditionChangeLogEntry, Market } from '@/types'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useMemo } from 'react'
 import { tableHeaderClass } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -11,13 +11,13 @@ interface EventChangeLogProps {
   markets: Market[]
 }
 
-function formatTimestamp(value: string, fallbackLabel: string) {
+function formatTimestamp(value: string, fallbackLabel: string, locale: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
     return fallbackLabel
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -67,6 +67,7 @@ function formatConditionLabel(conditionId: string, market?: Market) {
 
 export default function EventChangeLog({ entries, markets }: EventChangeLogProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const marketLookup = useMemo(() => {
     return new Map(markets.map(market => [market.condition_id, market]))
   }, [markets])
@@ -128,7 +129,7 @@ export default function EventChangeLog({ entries, markets }: EventChangeLogProps
                   {isFirst && (
                     <td className="px-2 py-3 sm:px-3" rowSpan={rowSpan}>
                       <div className="whitespace-nowrap text-foreground">
-                        {formatTimestamp(entry.created_at, t('—'))}
+                        {formatTimestamp(entry.created_at, t('—'), locale)}
                       </div>
                     </td>
                   )}

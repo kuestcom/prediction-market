@@ -4,7 +4,7 @@ import type { InfiniteData } from '@tanstack/react-query'
 import type { Event, UserOpenOrder } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronDownIcon, ChevronUpIcon, XIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
@@ -151,7 +151,7 @@ function microToUnit(value?: number) {
   return value / MICRO_UNIT
 }
 
-function formatExpirationLabel(order: UserOpenOrder, t: ReturnType<typeof useExtracted>) {
+function formatExpirationLabel(order: UserOpenOrder, t: ReturnType<typeof useExtracted>, locale: string) {
   if (order.type === 'GTC') {
     return t('Until Cancelled')
   }
@@ -165,7 +165,7 @@ function formatExpirationLabel(order: UserOpenOrder, t: ReturnType<typeof useExt
   }
 
   const date = new Date(rawExpiration * 1000)
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString(locale, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -184,6 +184,7 @@ function formatFilledLabel(filledShares: number, totalShares: number, t: ReturnT
 
 function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const isBuy = order.side === 'buy'
   const sideLabel = isBuy ? t('Buy') : t('Sell')
@@ -196,7 +197,7 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
-  const expirationLabel = formatExpirationLabel(order, t)
+  const expirationLabel = formatExpirationLabel(order, t, locale)
   const isNoOutcome = order.outcome.index === OUTCOME_INDEX.NO
   const outcomeLabel = normalizeOutcomeLabel(order.outcome.text || (isNoOutcome ? 'No' : 'Yes'))
     || (isNoOutcome ? 'No' : 'Yes')

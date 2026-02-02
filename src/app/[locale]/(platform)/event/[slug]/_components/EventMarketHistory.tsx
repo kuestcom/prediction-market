@@ -3,7 +3,7 @@
 import type { Event } from '@/types'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Loader2Icon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
@@ -22,6 +22,7 @@ interface EventMarketHistoryProps {
 
 export default function EventMarketHistory({ market }: EventMarketHistoryProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const user = useUser()
@@ -187,7 +188,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
             maximumFractionDigits: 2,
           })
           const timeAgoLabel = formatTimeAgo(activity.created_at)
-          const fullDateLabel = new Date(activity.created_at).toLocaleString(undefined, {
+          const fullDateLabel = new Date(activity.created_at).toLocaleString(locale, {
             month: 'long',
             day: 'numeric',
             year: 'numeric',

@@ -2,7 +2,7 @@ import type { Event } from '@/types'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { CheckIcon, TriangleAlertIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import Form from 'next/form'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSignTypedData } from 'wagmi'
@@ -86,6 +86,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
   const { isConnected, embeddedWalletInfo } = useAppKitAccount()
   const { signTypedDataAsync } = useSignTypedData()
   const t = useExtracted()
+  const locale = useLocale()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const user = useUser()
   const state = useOrder()
@@ -222,7 +223,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
 
   const availableBalanceForOrders = Math.max(0, balance.raw)
   const formattedBalanceText = Number.isFinite(balance.raw)
-    ? balance.raw.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    ? balance.raw.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '0.00'
 
   const mergedSharesByCondition = useMemo(() => {

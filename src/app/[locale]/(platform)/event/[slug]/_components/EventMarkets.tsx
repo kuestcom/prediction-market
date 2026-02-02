@@ -7,7 +7,7 @@ import type { DataApiActivity } from '@/lib/data-api/user'
 import type { Event, UserPosition } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, ChevronDownIcon, LockKeyholeIcon, RefreshCwIcon, SquareArrowOutUpRightIcon, XIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
@@ -721,6 +721,7 @@ function ResolvedMarketRow({
   onToggle: () => void
 }) {
   const t = useExtracted()
+  const locale = useLocale()
   const { market } = row
   const resolvedOutcomeIndex = resolveWinningOutcomeIndex(market)
   const hasResolvedOutcome = resolvedOutcomeIndex === OUTCOME_INDEX.YES || resolvedOutcomeIndex === OUTCOME_INDEX.NO
@@ -772,7 +773,7 @@ function ResolvedMarketRow({
             <div className="text-sm text-muted-foreground">
               $
               {t('{amount} Vol.', {
-                amount: `$${resolvedVolume.toLocaleString(undefined, {
+                amount: `$${resolvedVolume.toLocaleString(locale, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}`,
