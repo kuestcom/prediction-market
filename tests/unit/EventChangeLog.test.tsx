@@ -14,6 +14,7 @@ vi.mock('next-intl', () => ({
       key,
     )
   },
+  useLocale: () => 'en',
 }))
 
 const { default: EventChangeLog } = await import('@/app/[locale]/(platform)/event/[slug]/_components/EventChangeLog')
