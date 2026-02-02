@@ -2,13 +2,8 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { RootProvider } from 'fumadocs-ui/provider/next'
 import { BookOpenIcon, CodeIcon, GitForkIcon, HomeIcon } from 'lucide-react'
 import { setRequestLocale } from 'next-intl/server'
-import { routing } from '@/i18n/routing'
 import { source } from '@/lib/source'
 import { svgLogo } from '@/lib/utils'
-
-export async function generateStaticParams() {
-  return routing.locales.map(locale => ({ locale }))
-}
 
 export default async function Layout({ params, children }: LayoutProps<'/[locale]/docs'>) {
   const { locale } = await params

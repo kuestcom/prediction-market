@@ -2,15 +2,10 @@ import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import AdminHeader from '@/app/[locale]/admin/_components/AdminHeader'
 import AdminSidebar from '@/app/[locale]/admin/_components/AdminSidebar'
-import { routing } from '@/i18n/routing'
 import { AppProviders } from '@/providers/AppProviders'
 
 export const metadata: Metadata = {
   title: 'Admin',
-}
-
-export async function generateStaticParams() {
-  return routing.locales.map(locale => ({ locale }))
 }
 
 export default async function AdminLayout({ params, children }: LayoutProps<'/[locale]/admin'>) {
