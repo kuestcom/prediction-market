@@ -1,3 +1,5 @@
+'use cache'
+
 import { setRequestLocale } from 'next-intl/server'
 import AdminMarketContextSettingsForm from '@/app/[locale]/admin/market-context/_components/AdminMarketContextSettingsForm'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
@@ -6,8 +8,6 @@ import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 
 export default async function AdminMarketContextSettingsPage({ params }: PageProps<'/[locale]/admin/market-context'>) {
-  'use cache'
-
   const { locale } = await params
   setRequestLocale(locale)
 

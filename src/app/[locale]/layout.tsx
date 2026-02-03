@@ -39,15 +39,17 @@ export async function generateStaticParams() {
 
 export default async function LocaleLayout({ params, children }: LayoutProps<'/[locale]'>) {
   const { locale } = await params
+
   if (!hasLocale(routing.locales, locale)) {
     notFound()
   }
-  setRequestLocale(locale)
 
   const enabledLocales = await loadEnabledLocales()
   if (!enabledLocales.includes(locale)) {
     notFound()
   }
+
+  setRequestLocale(locale)
 
   return (
     <html lang={locale} className={`${openSauceOne.variable}`} suppressHydrationWarning>

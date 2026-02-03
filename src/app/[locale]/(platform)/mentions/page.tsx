@@ -1,3 +1,5 @@
+'use cache'
+
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import MentionsList from '@/app/[locale]/(platform)/mentions/_components/MentionsList'
@@ -8,8 +10,6 @@ export const metadata: Metadata = {
 }
 
 export default async function MentionsPage({ params }: PageProps<'/[locale]/mentions'>) {
-  'use cache'
-
   const { locale } = await params
   setRequestLocale(locale)
 
