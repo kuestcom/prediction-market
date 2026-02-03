@@ -69,7 +69,7 @@ export default function EventChartHeader({
     <div className="flex flex-row items-end justify-between gap-3">
       <div className="flex flex-row items-end gap-3">
         <div
-          className="flex flex-col gap-1 font-bold tabular-nums"
+          className="flex flex-col gap-1 font-semibold tabular-nums"
           style={{ color: primarySeriesColor }}
         >
           {activeOutcomeIndex === OUTCOME_INDEX.NO && activeOutcomeLabel && (
@@ -77,7 +77,7 @@ export default function EventChartHeader({
               {activeOutcomeLabel}
             </span>
           )}
-          <div className="inline-flex items-baseline gap-0">
+          <div className="inline-flex items-baseline gap-0 text-2xl leading-none font-semibold">
             {typeof yesChanceValue === 'number'
               ? (
                   <AnimatedCounter
@@ -89,7 +89,7 @@ export default function EventChartHeader({
                     incrementColor="currentColor"
                     decrementColor="currentColor"
                     digitStyles={{
-                      fontWeight: 800,
+                      fontWeight: 600,
                       letterSpacing: '-0.02em',
                       lineHeight: '1',
                       display: 'inline-block',
@@ -104,9 +104,9 @@ export default function EventChartHeader({
                   />
                 )
               : (
-                  <span className="text-2xl leading-none font-extrabold">--</span>
+                  <span>--</span>
                 )}
-            <span className="text-2xl leading-none font-extrabold">
+            <span>
               % chance
             </span>
           </div>

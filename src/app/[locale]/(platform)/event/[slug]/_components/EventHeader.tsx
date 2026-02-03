@@ -24,14 +24,14 @@ export default function EventHeader({ event }: EventHeaderProps) {
   return (
     <div
       className={cn(
-        'relative z-30 -mx-4 flex w-[calc(100%+32px)] items-center gap-3 px-4 transition-all ease-in-out',
-        scrolled ? 'sticky top-24 -translate-y-1.25 bg-background py-3 pr-6' : '',
+        'relative z-30 -mx-4 flex items-center gap-3 px-4 transition-all ease-in-out',
+        scrolled ? 'sticky top-26.5 -translate-y-px bg-background py-3 pr-6' : '',
       )}
     >
       {scrolled && (
-        <span className="pointer-events-none absolute right-4 bottom-0 left-4 border-b border-border" />
+        <span className="pointer-events-none absolute inset-x-4 bottom-0 border-b" />
       )}
-      <div className="relative z-10 flex flex-1 items-center gap-3">
+      <div className="relative z-10 flex flex-1 items-center gap-2 lg:gap-4">
         <Image
           src={event.icon_url}
           alt={event.creator || 'Market creator'}
@@ -39,13 +39,13 @@ export default function EventHeader({ event }: EventHeaderProps) {
           height={64}
           className={cn(
             'shrink-0 rounded-sm transition-all ease-in-out',
-            scrolled ? 'size-10' : 'size-16',
+            scrolled ? 'size-10' : 'size-10 lg:size-16',
           )}
         />
 
         <h1 className={cn(
-          'font-bold transition-all ease-in-out',
-          scrolled ? 'text-sm lg:text-base' : 'text-lg lg:text-2xl',
+          'leading-tight! font-bold transition-all ease-in-out',
+          scrolled ? 'text-sm lg:text-base' : 'text-xl lg:text-2xl',
         )}
         >
           {event.title}

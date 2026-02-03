@@ -337,8 +337,9 @@ export default function NavigationTab({ tag, childParentMap }: NavigationTabProp
         <Link
           href="/mentions"
           className={`
-  flex cursor-pointer items-center gap-1.5 border-b-2 py-2 pb-1 whitespace-nowrap transition-colors
-  ${
+            scrollbar-hide flex h-12 w-full min-w-0 snap-x snap-mandatory scroll-px-3 items-center overflow-x-auto pl-0
+            whitespace-nowrap
+            ${
         isActive
           ? 'border-primary text-foreground'
           : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -353,14 +354,17 @@ export default function NavigationTab({ tag, childParentMap }: NavigationTabProp
           <Link
             href={'/' as Route}
             onClick={() => handleTagClick(tag.slug)}
-            className={`flex cursor-pointer items-center gap-1.5 border-b-2 py-2 pb-1 whitespace-nowrap transition-colors ${
-              isActive
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
+            className={`
+              scrollbar-hide flex h-12 w-full min-w-0 snap-x snap-mandatory scroll-px-3 items-center overflow-x-auto
+              pl-0 whitespace-nowrap
+              ${
+        isActive
+          ? 'border-primary text-foreground'
+          : 'border-transparent text-muted-foreground hover:text-foreground'
+        }`}
           >
             {tag.slug === 'trending' && <TrendingUpIcon className="size-4" />}
-            <span>{tag.name}</span>
+            <span className="ml-2">{tag.name}</span>
           </Link>
         </span>
       )}

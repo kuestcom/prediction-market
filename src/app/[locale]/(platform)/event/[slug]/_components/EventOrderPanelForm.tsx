@@ -773,7 +773,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
       action={onSubmit}
       id="event-order-form"
       className={cn({
-        'rounded-lg border lg:w-85': !isMobile,
+        'rounded-xl border lg:w-85': !isMobile,
       }, 'w-full p-4 shadow-xl/5')}
     >
       {!isResolvedMarket && !isMobile && !isSingleMarket && <EventOrderPanelMarketInfo market={state.market} />}

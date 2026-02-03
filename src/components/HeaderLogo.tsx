@@ -9,7 +9,7 @@ export default async function HeaderLogo() {
     <Link
       href="/"
       className={`
-        flex shrink-0 items-center gap-2 text-2xl font-bold text-foreground transition-opacity
+        flex shrink-0 items-center gap-2 text-2xl font-medium text-foreground transition-opacity
         hover:opacity-80
       `}
     >

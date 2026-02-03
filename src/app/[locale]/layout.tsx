@@ -53,7 +53,7 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
 
   return (
     <html lang={locale} className={`${openSauceOne.variable}`} suppressHydrationWarning>
-      <body className="flex min-h-screen flex-col font-sans antialiased">
+      <body className="flex min-h-screen flex-col font-sans">
         <NextIntlClientProvider locale={locale}>
           {IS_TEST_MODE && <TestModeBanner />}
           {children}

@@ -328,7 +328,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
           )
         : error
           ? (
-              <div className="rounded-lg border p-4 text-sm text-muted-foreground">
+              <div className="rounded-xl border p-4 text-sm text-muted-foreground">
                 {t('Failed to fetch related events.')}
               </div>
             )
@@ -368,7 +368,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
                 </ul>
               )
             : (
-                <div className="rounded-lg border p-4 text-sm text-muted-foreground">
+                <div className="rounded-xl border p-4 text-sm text-muted-foreground">
                   {t('No related events for this tag yet.')}
                 </div>
               )}

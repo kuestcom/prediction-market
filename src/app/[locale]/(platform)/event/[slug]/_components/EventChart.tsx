@@ -79,7 +79,7 @@ const tradeFlowTextStrokeStyle = {
 
 const PredictionChart = dynamic<PredictionChartProps>(
   () => import('@/components/PredictionChart'),
-  { ssr: false, loading: () => <Skeleton className="h-[332px] w-full" /> },
+  { ssr: false, loading: () => <Skeleton className="h-83 w-full" /> },
 )
 
 function getOutcomeTokenIds(market: Market | null) {
@@ -466,7 +466,7 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
         return []
       }
       return [
-        { key: yesSeriesKey, name: yesOutcomeLabel, color: '#2D9CDB' },
+        { key: yesSeriesKey, name: yesOutcomeLabel, color: 'var(--primary)' },
         { key: noSeriesKey, name: noOutcomeLabel, color: '#FF6600' },
       ]
     },
@@ -480,7 +480,7 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
     if (!isSingleMarket || baseSeries.length === 0) {
       return baseSeries
     }
-    const primaryColor = activeOutcomeIndex === OUTCOME_INDEX.NO ? '#FF6600' : '#2D9CDB'
+    const primaryColor = activeOutcomeIndex === OUTCOME_INDEX.NO ? '#FF6600' : 'var(--primary)'
     return baseSeries.map((seriesItem, index) => (index === 0
       ? { ...seriesItem, color: primaryColor }
       : seriesItem))
@@ -592,7 +592,7 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
     ? (activeOutcomeIndex === OUTCOME_INDEX.NO ? noSeriesKey : yesSeriesKey)
     : legendSeries[0]?.key
   const primarySeriesColor = showBothOutcomes
-    ? (activeOutcomeIndex === OUTCOME_INDEX.NO ? '#FF6600' : '#2D9CDB')
+    ? (activeOutcomeIndex === OUTCOME_INDEX.NO ? '#FF6600' : 'var(--primary)')
     : (legendSeries[0]?.color ?? 'currentColor')
   const hoveredActiveChance = activeSeriesKey
     ? cursorSnapshot?.values?.[activeSeriesKey]
@@ -833,7 +833,7 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
           </div>
         )}
         controls={(
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <EventMetaInformation event={event} />
             {hasChartData
               ? (
