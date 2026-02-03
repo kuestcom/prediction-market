@@ -4,7 +4,6 @@ import { useDisconnect } from '@reown/appkit-controllers/react'
 import { BadgePercentIcon, ChevronDownIcon, SettingsIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
@@ -19,7 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import UserInfoSection from '@/components/UserInfoSection'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { Link } from '@/i18n/navigation'
+import { Link, usePathname } from '@/i18n/navigation'
 import { useUser } from '@/stores/useUser'
 
 export default function HeaderDropdownUserMenuAuth() {

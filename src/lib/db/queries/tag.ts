@@ -58,8 +58,6 @@ interface MainTagsResult {
 
 export const TagRepository = {
   async getMainTags(): Promise<MainTagsResult> {
-    'use cache'
-
     const mainTagsQuery = db
       .select({
         id: tags.id,

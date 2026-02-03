@@ -7,10 +7,14 @@ import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
+export async function generateStaticParams() {
+  return [{ market: STATIC_PARAMS_PLACEHOLDER }]
+}
+
 export async function generateMetadata({ params }: PageProps<'/[locale]/event/[slug]/[market]'>): Promise<Metadata> {
-  const { locale, slug } = await params
+  const { locale, slug, market } = await params
   setRequestLocale(locale)
-  if (slug === STATIC_PARAMS_PLACEHOLDER) {
+  if (slug === STATIC_PARAMS_PLACEHOLDER || market === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
   const { data } = await EventRepository.getEventTitleBySlug(slug)
@@ -23,7 +27,7 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/event/[s
 export default async function EventMarketPage({ params }: PageProps<'/[locale]/event/[slug]/[market]'>) {
   const { locale, slug, market } = await params
   setRequestLocale(locale)
-  if (slug === STATIC_PARAMS_PLACEHOLDER) {
+  if (slug === STATIC_PARAMS_PLACEHOLDER || market === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
 
