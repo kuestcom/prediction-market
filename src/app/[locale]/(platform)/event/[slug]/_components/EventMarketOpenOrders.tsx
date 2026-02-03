@@ -151,9 +151,9 @@ function microToUnit(value?: number) {
   return value / MICRO_UNIT
 }
 
-function formatExpirationLabel(order: UserOpenOrder, t: ReturnType<typeof useExtracted>, locale: string) {
+function formatExpirationLabel(order: UserOpenOrder, locale: string, untilCancelledLabel: string) {
   if (order.type === 'GTC') {
-    return t('Until Cancelled')
+    return untilCancelledLabel
   }
 
   const rawExpiration = typeof order.expiration === 'number'
@@ -161,7 +161,7 @@ function formatExpirationLabel(order: UserOpenOrder, t: ReturnType<typeof useExt
     : Number(order.expiration)
 
   if (!Number.isFinite(rawExpiration) || rawExpiration <= 0) {
-    return t('—')
+    return '—'
   }
 
   const date = new Date(rawExpiration * 1000)
@@ -173,9 +173,9 @@ function formatExpirationLabel(order: UserOpenOrder, t: ReturnType<typeof useExt
   })
 }
 
-function formatFilledLabel(filledShares: number, totalShares: number, t: ReturnType<typeof useExtracted>) {
+function formatFilledLabel(filledShares: number, totalShares: number) {
   if (!Number.isFinite(totalShares) || totalShares <= 0) {
-    return t('—')
+    return '—'
   }
 
   const normalizedFilled = Math.min(Math.max(filledShares, 0), totalShares)
@@ -191,13 +191,13 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
   const priceLabel = formatSharePriceLabel(order.price, { fallback: '—' })
   const totalShares = microToUnit(isBuy ? order.taker_amount : order.maker_amount)
   const filledShares = microToUnit(order.size_matched)
-  const filledLabel = formatFilledLabel(filledShares, totalShares, t)
+  const filledLabel = formatFilledLabel(filledShares, totalShares)
   const totalValueMicro = isBuy ? order.maker_amount : order.taker_amount
   const totalValueLabel = formatCurrency(microToUnit(totalValueMicro), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
-  const expirationLabel = formatExpirationLabel(order, t, locale)
+  const expirationLabel = formatExpirationLabel(order, locale, t('Until Cancelled'))
   const isNoOutcome = order.outcome.index === OUTCOME_INDEX.NO
   const outcomeLabel = normalizeOutcomeLabel(order.outcome.text || (isNoOutcome ? 'No' : 'Yes'))
     || (isNoOutcome ? 'No' : 'Yes')

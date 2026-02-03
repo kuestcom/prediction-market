@@ -1,6 +1,7 @@
 'use client'
 
 import { SearchIcon, XIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useEffect, useRef } from 'react'
 import { SearchResults } from '@/app/[locale]/(platform)/_components/SearchResults'
 import { Input } from '@/components/ui/input'
@@ -16,6 +17,7 @@ export default function HeaderSearch() {
   const inputHoverClass = showDropdown ? 'hover:bg-background' : 'hover:bg-[color:var(--input-hover)]'
   const inputFocusClass = 'focus:bg-background focus-visible:bg-background'
   const sitename = `${process.env.NEXT_PUBLIC_SITE_NAME || 'events and profiles'}`.toLowerCase()
+  const t = useExtracted()
 
   useEffect(() => {
     function handleSlashShortcut(event: KeyboardEvent) {
@@ -67,7 +69,7 @@ export default function HeaderSearch() {
         type="text"
         ref={inputRef}
         data-testid="header-search-input"
-        placeholder={`Search ${sitename}`}
+        placeholder={`${t('Search')} ${sitename}`}
         value={query}
         onChange={e => handleQueryChange(e.target.value)}
         className={`

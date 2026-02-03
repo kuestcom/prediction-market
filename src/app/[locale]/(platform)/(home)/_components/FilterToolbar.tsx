@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { BookmarkIcon, ClockIcon, DropletIcon, FlameIcon, HandFistIcon, Settings2Icon, SparklesIcon, TrendingUpIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import FilterToolbarSearchInput from '@/app/[locale]/(platform)/(home)/_components/FilterToolbarSearchInput'
 import { Button } from '@/components/ui/button'
@@ -51,33 +52,6 @@ interface FilterSettings {
   hideCrypto: boolean
   hideEarnings: boolean
 }
-
-const SORT_OPTIONS: ReadonlyArray<{ value: SortOption, label: string, icon: LucideIcon }> = [
-  { value: '24h-volume', label: '24h Volume', icon: TrendingUpIcon },
-  { value: 'total-volume', label: 'Total Volume', icon: FlameIcon },
-  { value: 'liquidity', label: 'Liquidity', icon: DropletIcon },
-  { value: 'newest', label: 'Newest', icon: SparklesIcon },
-  { value: 'ending-soon', label: 'Ending Soon', icon: ClockIcon },
-  { value: 'competitive', label: 'Competitive', icon: HandFistIcon },
-]
-
-const FREQUENCY_OPTIONS: ReadonlyArray<{ value: FrequencyOption, label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-]
-
-const STATUS_OPTIONS: ReadonlyArray<{ value: StatusOption, label: string }> = [
-  { value: 'active', label: 'Active' },
-  { value: 'resolved', label: 'Resolved' },
-]
-
-const FILTER_CHECKBOXES: ReadonlyArray<{ key: FilterCheckboxKey, label: string }> = [
-  { key: 'hideSports', label: 'Hide sports?' },
-  { key: 'hideCrypto', label: 'Hide crypto?' },
-  { key: 'hideEarnings', label: 'Hide earnings?' },
-]
 
 const BASE_FILTER_SETTINGS = {
   sortBy: '24h-volume',
@@ -260,13 +234,15 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
 }
 
 function BookmarkToggle({ isBookmarked, isConnected, onToggle, onConnect }: BookmarkToggleProps) {
+  const t = useExtracted()
+
   return (
     <Button
       type="button"
       variant="ghost"
       size="icon"
-      title={isBookmarked ? 'Show all items' : 'Show only bookmarked items'}
-      aria-label={isBookmarked ? 'Remove bookmark filter' : 'Filter by bookmarks'}
+      title={isBookmarked ? t('Show all items') : t('Show only bookmarked items')}
+      aria-label={isBookmarked ? t('Remove bookmark filter') : t('Filter by bookmarks')}
       aria-pressed={isBookmarked}
       onClick={isConnected ? onToggle : onConnect}
       className="text-muted-foreground"
@@ -277,6 +253,8 @@ function BookmarkToggle({ isBookmarked, isConnected, onToggle, onConnect }: Book
 }
 
 function SettingsToggle({ isActive, isOpen, onToggle }: SettingsToggleProps) {
+  const t = useExtracted()
+
   return (
     <Button
       type="button"
@@ -290,8 +268,8 @@ function SettingsToggle({ isActive, isOpen, onToggle }: SettingsToggleProps) {
         `,
         (isOpen || isActive) && 'bg-muted/70 text-foreground hover:bg-muted/70 hover:text-foreground',
       )}
-      title="Open filters"
-      aria-label="Open filters"
+      title={t('Open filters')}
+      aria-label={t('Open filters')}
       aria-pressed={isActive}
       aria-expanded={isOpen}
       onClick={onToggle}
@@ -310,6 +288,35 @@ interface FilterSettingsRowProps {
 }
 
 function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, className }: FilterSettingsRowProps) {
+  const t = useExtracted()
+
+  const SORT_OPTIONS: ReadonlyArray<{ value: SortOption, label: string, icon: LucideIcon }> = useMemo(() => [
+    { value: '24h-volume', label: t('24h Volume'), icon: TrendingUpIcon },
+    { value: 'total-volume', label: t('Total Volume'), icon: FlameIcon },
+    { value: 'liquidity', label: t('Liquidity'), icon: DropletIcon },
+    { value: 'newest', label: t('Newest'), icon: SparklesIcon },
+    { value: 'ending-soon', label: t('Ending Soon'), icon: ClockIcon },
+    { value: 'competitive', label: t('Competitive'), icon: HandFistIcon },
+  ], [t])
+
+  const FREQUENCY_OPTIONS: ReadonlyArray<{ value: FrequencyOption, label: string }> = useMemo(() => [
+    { value: 'all', label: t('All') },
+    { value: 'daily', label: t('Daily') },
+    { value: 'weekly', label: t('Weekly') },
+    { value: 'monthly', label: t('Monthly') },
+  ], [t])
+
+  const STATUS_OPTIONS: ReadonlyArray<{ value: StatusOption, label: string }> = useMemo(() => [
+    { value: 'active', label: t('Active') },
+    { value: 'resolved', label: t('Resolved') },
+  ], [t])
+
+  const FILTER_CHECKBOXES: ReadonlyArray<{ key: FilterCheckboxKey, label: string }> = useMemo(() => [
+    { key: 'hideSports', label: t('Hide sports?') },
+    { key: 'hideCrypto', label: t('Hide crypto?') },
+    { key: 'hideEarnings', label: t('Hide earnings?') },
+  ], [t])
+
   return (
     <div
       className={cn(
@@ -321,21 +328,21 @@ function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, class
       )}
     >
       <FilterSettingsSelect
-        label="Sort by:"
+        label={t('Sort by:')}
         value={filters.sortBy}
         options={SORT_OPTIONS}
         onChange={value => onChange({ sortBy: value as SortOption })}
       />
 
       <FilterSettingsSelect
-        label="Frequency:"
+        label={t('Frequency:')}
         value={filters.frequency}
         options={FREQUENCY_OPTIONS}
         onChange={value => onChange({ frequency: value as FrequencyOption })}
       />
 
       <FilterSettingsSelect
-        label="Status:"
+        label={t('Status:')}
         value={filters.status}
         options={STATUS_OPTIONS}
         onChange={value => onChange({ status: value as StatusOption })}
@@ -378,7 +385,7 @@ function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, class
           )}
           onClick={onClear}
         >
-          Clear filters
+          {t('Clear filters')}
         </Button>
       )}
     </div>

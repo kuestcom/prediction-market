@@ -1,5 +1,6 @@
 import type { Event, PublicProfile, SearchLoadingStates, SearchResultItems } from '@/types'
 import { LoaderIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import ProfileLink from '@/components/ProfileLink'
 import { Link } from '@/i18n/navigation'
@@ -22,6 +23,7 @@ export function SearchResults({
   onResultClick,
   onTabChange,
 }: SearchResultsProps) {
+  const t = useExtracted()
   const { events, profiles } = results
 
   const showTabs = query.length >= 2
@@ -43,7 +45,7 @@ export function SearchResults({
         )}
         <div className="flex items-center justify-center p-4">
           <LoaderIcon className="size-4 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-sm text-muted-foreground">Searching...</span>
+          <span className="ml-2 text-sm text-muted-foreground">{t('Searching...')}</span>
         </div>
       </div>
     )
@@ -77,7 +79,7 @@ export function SearchResults({
               ? (
                   <div className="flex items-center justify-center p-4">
                     <LoaderIcon className="size-4 animate-spin text-muted-foreground" />
-                    <span className="ml-2 text-sm text-muted-foreground">Searching events...</span>
+                    <span className="ml-2 text-sm text-muted-foreground">{t('Searching events...')}</span>
                   </div>
                 )
               : (
@@ -109,10 +111,12 @@ interface EventResultsProps {
 }
 
 function EventResults({ events, query, isLoading, onResultClick }: EventResultsProps) {
+  const t = useExtracted()
+
   if (events.length === 0 && !isLoading && query.length >= 2) {
     return (
       <div className="p-4 text-center text-sm text-muted-foreground">
-        No events found
+        {t('No events found')}
       </div>
     )
   }
@@ -169,11 +173,13 @@ interface ProfileResultsProps {
 }
 
 function ProfileResults({ profiles, isLoading, query, onResultClick }: ProfileResultsProps) {
+  const t = useExtracted()
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-4">
         <LoaderIcon className="size-4 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-sm text-muted-foreground">Searching...</span>
+        <span className="ml-2 text-sm text-muted-foreground">{t('Searching...')}</span>
       </div>
     )
   }
@@ -181,7 +187,7 @@ function ProfileResults({ profiles, isLoading, query, onResultClick }: ProfileRe
   if (profiles.length === 0 && query.length >= 2) {
     return (
       <div className="p-4 text-center text-sm text-muted-foreground">
-        No profiles found
+        {t('No profiles found')}
       </div>
     )
   }

@@ -1,6 +1,7 @@
 'use client'
 
 import { SearchIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 
@@ -13,6 +14,7 @@ export default function FilterToolbarSearchInput({ search, onSearchChange }: Fil
   const [searchQuery, setSearchQuery] = useState(search)
   const isFirstRender = useRef(true)
   const prevSearch = useRef(search)
+  const t = useExtracted()
 
   useEffect(() => {
     if (prevSearch.current !== search) {
@@ -42,7 +44,7 @@ export default function FilterToolbarSearchInput({ search, onSearchChange }: Fil
       <Input
         type="text"
         data-testid="filter-search-input"
-        placeholder="Search"
+        placeholder={t('Search')}
         value={searchQuery}
         onChange={e => setSearchQuery(e.target.value)}
         className={`

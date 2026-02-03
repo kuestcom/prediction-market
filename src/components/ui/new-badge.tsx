@@ -1,4 +1,5 @@
 import { SparkleIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 interface NewBadgeProps {
@@ -7,6 +8,8 @@ interface NewBadgeProps {
 }
 
 export function NewBadge({ variant = 'plain', className }: NewBadgeProps) {
+  const t = useExtracted()
+
   return (
     <span
       className={cn(
@@ -18,7 +21,7 @@ export function NewBadge({ variant = 'plain', className }: NewBadgeProps) {
       )}
     >
       <SparkleIcon className="size-2 text-current" strokeWidth={2.5} />
-      <span>New</span>
+      <span>{t('New')}</span>
     </span>
   )
 }

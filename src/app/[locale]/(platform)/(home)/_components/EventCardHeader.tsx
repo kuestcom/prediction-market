@@ -1,5 +1,6 @@
 import type { Event } from '@/types'
 import type { SelectedOutcome } from '@/types/EventCardTypes'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { Link } from '@/i18n/navigation'
 
@@ -20,6 +21,7 @@ export default function EventCardHeader({
   roundedPrimaryDisplayChance,
   onCancelTrade,
 }: EventCardHeaderProps) {
+  const t = useExtracted()
   const activeMarket = activeOutcome?.market
   const tradingTitle = !isSingleMarket
     ? activeMarket?.short_title || activeMarket?.title
@@ -126,7 +128,7 @@ export default function EventCardHeader({
                 </div>
 
                 <div className="-mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  chance
+                  {t('chance')}
                 </div>
               </div>
             )

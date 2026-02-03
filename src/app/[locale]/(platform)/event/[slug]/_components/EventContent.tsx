@@ -340,7 +340,7 @@ export default function EventContent({
                 aria-label="Back to top"
               >
                 <span className="inline-flex items-center gap-2">
-                  Back to top
+                  {t('Back to top')}
                   <ArrowUpIcon className="size-4" />
                 </span>
               </button>

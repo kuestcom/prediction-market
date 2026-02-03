@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -13,14 +14,15 @@ export default function TestModeBanner({
 }: TestModeBannerProps) {
   const [visible, setVisible] = useState<boolean | null>(null)
   const discordUrl = 'https://discord.gg/kuest'
+  const t = useExtracted()
   const message = (
     <>
-      Test mode is
+      {t('Test mode is')}
       {' '}
-      <span className="font-bold">ON</span>
+      <span className="font-bold">{t('ON')}</span>
       .
       {' '}
-      Get free Amoy USDC in Discord with
+      {t('Get free Amoy USDC in Discord with')}
       {' '}
       <span className="font-bold">/airdrop</span>
     </>
@@ -65,7 +67,7 @@ export default function TestModeBanner({
               className="size-3.5 shrink-0 brightness-0 invert"
               aria-hidden="true"
             />
-            Open Discord
+            {t('Open Discord')}
           </Link>
         </div>
         <button
