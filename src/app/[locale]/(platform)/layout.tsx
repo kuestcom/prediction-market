@@ -35,7 +35,7 @@ export default async function PlatformLayout({ params, children }: LayoutProps<'
     <AppProviders>
       <TradingOnboardingProvider>
         <FilterProvider>
-          <Header locale={locale} />
+          <Header />
           <Suspense fallback={<NavSkeleton />}>
             <NavigationTabs />
           </Suspense>

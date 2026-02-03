@@ -1,3 +1,5 @@
+'use cache'
+
 import { Suspense } from 'react'
 import NavigationTab from '@/app/[locale]/(platform)/_components/NavigationTab'
 import { Skeleton } from '@/components/ui/skeleton'

@@ -3,15 +3,11 @@ import HeaderMenu from '@/app/[locale]/(platform)/_components/HeaderMenu'
 import HeaderSearch from '@/app/[locale]/(platform)/_components/HeaderSearch'
 import HeaderLogo from '@/components/HeaderLogo'
 
-interface HeaderProps {
-  locale?: string
-}
-
-export default async function Header({ locale }: HeaderProps) {
+export default async function Header() {
   return (
     <header className="sticky top-0 z-50 my-2 bg-background">
       <div className="container flex h-14 items-center gap-4">
-        <HeaderLogo locale={locale} />
+        <HeaderLogo />
         <div className="flex flex-1 items-center gap-2">
           <HeaderSearch />
           <HeaderHowItWorks />

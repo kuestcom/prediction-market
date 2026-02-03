@@ -1,11 +1,7 @@
 import { Link } from '@/i18n/navigation'
 import { svgLogo } from '@/lib/utils'
 
-interface HeaderLogoProps {
-  locale?: string
-}
-
-export default async function HeaderLogo(_: HeaderLogoProps) {
+export default async function HeaderLogo() {
   const siteName = process.env.NEXT_PUBLIC_SITE_NAME
   const logoSvg = svgLogo()
 
