@@ -100,7 +100,18 @@ function ProfitLossCard({
           .map(point => ({ date: point.date as Date, value: point.value as number }))
           .sort((a, b) => a.date.getTime() - b.date.getTime())
 
-        setPnlSeries(normalized)
+        if (normalized.length === 0) {
+          setPnlSeries([])
+          return
+        }
+
+        const base = normalized[0].value
+        const rebased = normalized.map(point => ({
+          ...point,
+          value: point.value - base,
+        }))
+
+        setPnlSeries(rebased)
       })
       .catch((error) => {
         if (error?.name !== 'AbortError') {
