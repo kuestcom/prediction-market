@@ -60,8 +60,8 @@ export default function HeaderMenu() {
   if (showSkeleton) {
     return (
       <div className="flex gap-2">
-        <Skeleton className="hidden h-11 w-18 lg:block" />
-        <Skeleton className="hidden h-11 w-18 lg:block" />
+        <Skeleton className="hidden h-9 w-18 lg:block" />
+        <Skeleton className="hidden h-9 w-18 lg:block" />
         <Skeleton className="hidden h-9 w-20 lg:block" />
         <Skeleton className="size-9" />
         <Skeleton className="h-9 w-18" />

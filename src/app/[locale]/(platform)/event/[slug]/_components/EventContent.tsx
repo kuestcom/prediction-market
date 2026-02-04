@@ -275,7 +275,9 @@ export default function EventContent({
         <OrderLimitPriceSync />
         <div className="grid gap-6" ref={contentRef}>
           <EventHeader event={event} />
-          <EventChart event={event} isMobile={isMobile} />
+          <div className="-mt-3">
+            <EventChart event={event} isMobile={isMobile} />
+          </div>
           <div
             ref={eventMarketsRef}
             id="event-markets"
