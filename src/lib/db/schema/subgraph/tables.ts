@@ -1,4 +1,5 @@
 import {
+  bigint,
   integer,
   pgTable,
   smallint,
@@ -15,6 +16,8 @@ export const subgraph_syncs = pgTable(
     status: text().default('idle').notNull(),
     total_processed: integer().default(0).notNull(),
     error_message: text(),
+    cursor_updated_at: bigint({ mode: 'bigint' }),
+    cursor_id: text(),
     created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
