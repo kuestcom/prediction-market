@@ -1,5 +1,6 @@
 'use server'
 
+import { getLocale } from 'next-intl/server'
 import { z } from 'zod'
 import { generateMarketContext } from '@/lib/ai/market-context'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
@@ -40,7 +41,8 @@ export async function generateMarketContextAction(input: GenerateMarketContextIn
       return { error: 'No markets available for this event.' }
     }
 
-    const context = await generateMarketContext(event, market, settings)
+    const locale = await getLocale()
+    const context = await generateMarketContext(event, market, settings, locale)
     return { context }
   }
   catch (error) {
