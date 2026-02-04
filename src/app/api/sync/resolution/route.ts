@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export const maxDuration = 300
 
-const RESOLUTION_SUBGRAPH_URL = process.env.RESOLUTION_SUBGRAPH_URL
+const RESOLUTION_SUBGRAPH_URL = 'https://api.goldsky.com/api/public/project_cmkeqj653po3801t6ajbv1wcv/subgraphs/resolution-subgraph/1.0.0/gn'
 const SYNC_TIME_LIMIT_MS = 250_000
 const RESOLUTION_PAGE_SIZE = 200
 const SAFETY_PERIOD_SECONDS = 60 * 60
@@ -38,10 +38,6 @@ export async function GET(request: Request) {
   const auth = request.headers.get('authorization')
   if (!isCronAuthorized(auth, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
-  }
-
-  if (!RESOLUTION_SUBGRAPH_URL) {
-    return NextResponse.json({ error: 'RESOLUTION_SUBGRAPH_URL is required.' }, { status: 500 })
   }
 
   try {
