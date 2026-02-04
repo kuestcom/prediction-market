@@ -166,13 +166,11 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
         )}
         <span className="text-sm font-semibold">{volumeLabel}</span>
       </div>
-      {expiryDate && (
-        <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />
-      )}
+      {expiryDate && <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />}
       {expiryDate && (
         <Tooltip>
           <TooltipTrigger>
-            <div className="flex items-center gap-1.5 text-sm/tight font-semibold text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-sm/tight text-muted-foreground">
               <Clock3Icon className="size-4 text-muted-foreground" strokeWidth={2.5} />
               <span>{formatDate(expiryDate)}</span>
             </div>

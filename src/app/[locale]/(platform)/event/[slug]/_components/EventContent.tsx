@@ -274,10 +274,8 @@ export default function EventContent({
       <EventOutcomeChanceProvider eventId={event.id}>
         <OrderLimitPriceSync />
         <div className="grid gap-6" ref={contentRef}>
-          <div className="grid gap-3">
-            <EventHeader event={event} />
-            <EventChart event={event} isMobile={isMobile} />
-          </div>
+          <EventHeader event={event} />
+          <EventChart event={event} isMobile={isMobile} />
           <div
             ref={eventMarketsRef}
             id="event-markets"
