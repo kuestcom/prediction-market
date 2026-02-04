@@ -3,6 +3,8 @@ import { DialogTitle } from '@radix-ui/react-dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useExtracted } from 'next-intl'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
+import EventOrderPanelTermsDisclaimer
+  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
@@ -30,7 +32,7 @@ export default function EventOrderPanelMobile({ event }: EventMobileOrderPanelPr
     >
       <DrawerTrigger asChild>
         {isSingleMarket && (
-          <div className="fixed right-0 bottom-0 left-0 z-30 border-t bg-background p-4 lg:hidden">
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background p-4 lg:hidden">
             <div className="flex gap-2">
               <Button
                 variant="yes"
@@ -85,6 +87,7 @@ export default function EventOrderPanelMobile({ event }: EventMobileOrderPanelPr
         </VisuallyHidden>
 
         <EventOrderPanelForm event={event} isMobile={true} />
+        <EventOrderPanelTermsDisclaimer />
       </DrawerContent>
     </Drawer>
   )

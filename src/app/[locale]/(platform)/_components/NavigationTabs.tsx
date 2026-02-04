@@ -36,7 +36,7 @@ export default async function NavigationTabs() {
           "
         >
           {tags.map((tag, index) => (
-            <div key={tag.slug} className="flex items-center">
+            <div key={tag.slug} className="flex snap-start items-center">
               <Suspense fallback={<Skeleton className="h-8 w-16 rounded-sm" />}>
                 <NavigationTab tag={tag} childParentMap={childParentMap} tabIndex={index} />
               </Suspense>
