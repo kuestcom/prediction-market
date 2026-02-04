@@ -166,7 +166,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
   const content = (
     <>
       {isSingleMarket && (
-        <div className="sticky top-0 z-10 bg-background/95 p-4 backdrop-blur-sm">
+        <div className="sticky top-0 p-4">
           <h3 className="text-lg font-medium">{t('History')}</h3>
         </div>
       )}

@@ -513,7 +513,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
 
   return (
     <>
-      <div className="-mx-4 bg-background lg:mx-0">
+      <div className="-mr-2 -ml-4 bg-background lg:mx-0">
         {shouldShowActiveSection && (
           <div className="mt-4 mr-2 ml-4 border-b border-border lg:mx-0" />
         )}
