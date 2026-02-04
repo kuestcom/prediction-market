@@ -11,6 +11,8 @@ import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_
 import EventMarkets, { ResolvedResolutionPanel, resolveWinningOutcomeIndex } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarkets'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
 import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
+import EventOrderPanelTermsDisclaimer
+  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
 import { EventOutcomeChanceProvider } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOutcomeChanceProvider'
 import EventRelated from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelated'
 import EventRules from '@/app/[locale]/(platform)/event/[slug]/_components/EventRules'
@@ -271,9 +273,11 @@ export default function EventContent({
     <EventMarketChannelProvider markets={event.markets}>
       <EventOutcomeChanceProvider eventId={event.id}>
         <OrderLimitPriceSync />
-        <div className="grid gap-3.5" ref={contentRef}>
-          <EventHeader event={event} />
-          <EventChart event={event} isMobile={isMobile} />
+        <div className="grid gap-6" ref={contentRef}>
+          <div className="grid gap-3">
+            <EventHeader event={event} />
+            <EventChart event={event} isMobile={isMobile} />
+          </div>
           <div
             ref={eventMarketsRef}
             id="event-markets"
@@ -334,7 +338,7 @@ export default function EventContent({
                 onClick={handleBackToTop}
                 className={`
                   pointer-events-auto justify-self-center rounded-full border bg-background/90 px-4 py-2 text-sm
-                  font-semibold text-foreground shadow-lg backdrop-blur-sm transition-colors
+                  font-medium text-foreground shadow-lg backdrop-blur-sm transition-colors
                   hover:text-muted-foreground
                 `}
                 aria-label="Back to top"
@@ -352,8 +356,12 @@ export default function EventContent({
           ? <EventOrderPanelMobile event={event} />
           : (
               <Teleport to="#event-order-panel">
-                <EventOrderPanelForm event={event} isMobile={false} />
-                <EventRelated event={event} />
+                <div className="grid gap-6">
+                  <EventOrderPanelForm event={event} isMobile={false} />
+                  <EventOrderPanelTermsDisclaimer />
+                  <span className="border border-dashed"></span>
+                  <EventRelated event={event} />
+                </div>
               </Teleport>
             )}
       </EventOutcomeChanceProvider>

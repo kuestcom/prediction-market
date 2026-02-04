@@ -59,9 +59,9 @@ export default function HeaderMenu() {
 
   if (showSkeleton) {
     return (
-      <div className="flex gap-1 sm:gap-2 lg:gap-4">
-        <Skeleton className="hidden h-9 w-18 lg:block" />
-        <Skeleton className="hidden h-9 w-18 lg:block" />
+      <div className="flex gap-2">
+        <Skeleton className="hidden h-11 w-18 lg:block" />
+        <Skeleton className="hidden h-11 w-18 lg:block" />
         <Skeleton className="hidden h-9 w-20 lg:block" />
         <Skeleton className="size-9" />
         <Skeleton className="h-9 w-18" />
@@ -80,7 +80,7 @@ export default function HeaderMenu() {
             </Button>
           )}
           <HeaderNotifications />
-          <div className="h-6 w-px bg-border" aria-hidden="true" />
+          <div className="-ml-1 hidden h-5 w-px bg-border md:block" aria-hidden="true" />
           <HeaderDropdownUserMenuAuth />
         </>
       )}

@@ -16,7 +16,6 @@ import EventOrderPanelMarketInfo from '@/app/[locale]/(platform)/event/[slug]/_c
 import EventOrderPanelMobileMarketInfo from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobileMarketInfo'
 import EventOrderPanelOutcomeButton from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
 import EventOrderPanelSubmitButton from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelSubmitButton'
-import EventOrderPanelTermsDisclaimer from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
 import EventOrderPanelUserShares from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelUserShares'
 import { handleOrderCancelledFeedback, handleOrderErrorFeedback, handleOrderSuccessFeedback, handleValidationError, notifyWalletApprovalPrompt } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { useEventOrderPanelOpenOrders } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventOrderPanelOpenOrders'
@@ -997,7 +996,6 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
                   return t('Trade')
                 })()}
               />
-              <EventOrderPanelTermsDisclaimer />
             </>
           )}
     </Form>

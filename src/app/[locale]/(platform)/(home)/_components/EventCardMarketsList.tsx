@@ -59,11 +59,7 @@ export default function EventCardMarketsList({
           >
             <Link
               href={`/event/${event.slug}/${market.slug}`}
-              className={`
-                block min-w-0 flex-1 truncate text-[13px] font-medium underline-offset-2
-                hover:underline
-                dark:text-white
-              `}
+              className="block min-w-0 flex-1 truncate text-[13px] underline-offset-2 hover:underline dark:text-white"
               title={market.short_title || market.title}
             >
               {market.short_title || market.title}
@@ -95,7 +91,7 @@ export default function EventCardMarketsList({
                       const oppositeChance = Math.max(0, Math.min(100, 100 - displayChance))
                       return (
                         <>
-                          <span className="text-base font-extrabold text-foreground">
+                          <span className="text-base font-semibold text-foreground">
                             {displayChance}
                             %
                           </span>

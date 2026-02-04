@@ -25,7 +25,7 @@ export default function EventHeader({ event }: EventHeaderProps) {
     <div
       className={cn(
         'relative z-30 -mx-4 flex items-center gap-3 px-4 transition-all ease-in-out',
-        scrolled ? 'sticky top-26.5 -translate-y-px bg-background py-3 pr-6' : '',
+        scrolled ? 'sticky top-28 translate-y-1 bg-background py-3 pr-6' : '',
       )}
     >
       {scrolled && (
@@ -44,7 +44,7 @@ export default function EventHeader({ event }: EventHeaderProps) {
         />
 
         <h1 className={cn(
-          'leading-tight! font-bold transition-all ease-in-out',
+          'leading-tight! font-semibold transition-all ease-in-out',
           scrolled ? 'text-sm lg:text-base' : 'text-xl lg:text-2xl',
         )}
         >

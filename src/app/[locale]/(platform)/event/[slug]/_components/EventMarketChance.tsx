@@ -16,8 +16,8 @@ export default function EventMarketChance({ chanceMeta, layout, highlightKey }: 
   const shouldRenderDelta = chanceMeta.shouldShowChanceChange || shouldReserveDelta
 
   const baseClass = layout === 'mobile'
-    ? 'text-lg font-bold'
-    : 'text-3xl font-bold'
+    ? 'text-lg font-medium'
+    : 'text-3xl font-medium'
 
   return (
     <div

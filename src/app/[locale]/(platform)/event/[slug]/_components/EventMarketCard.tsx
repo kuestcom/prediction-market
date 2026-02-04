@@ -233,7 +233,7 @@ function EventMarketCardComponent({
                   />
                 )}
                 <div>
-                  <div className="font-bold underline-offset-2 group-hover:underline">
+                  <div className="font-semibold underline-offset-2 group-hover:underline">
                     {market.title}
                   </div>
                   <div className="text-xs text-muted-foreground">

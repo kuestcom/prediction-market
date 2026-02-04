@@ -123,7 +123,7 @@ export default function EventOrderPanelBuySellTabs({
 
   return (
     <div className="relative mb-4">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 text-sm font-semibold">
           <button
             type="button"
@@ -258,7 +258,7 @@ export default function EventOrderPanelBuySellTabs({
       </div>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-border"
+        className="pointer-events-none absolute -inset-x-4 bottom-0 h-px bg-border"
       />
 
       <EventMergeSharesDialog

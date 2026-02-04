@@ -60,11 +60,11 @@ export default function HeaderSearch() {
 
   return (
     <div
-      className="relative mx-2 hidden flex-1 sm:ms-4 sm:me-0 sm:flex sm:max-w-xl"
+      className="relative w-full lg:max-w-[600px] lg:min-w-[400px]"
       ref={searchRef}
       data-testid="header-search-container"
     >
-      <SearchIcon className="absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+      <SearchIcon className="absolute top-1/2 left-4 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         type="text"
         ref={inputRef}
@@ -73,7 +73,7 @@ export default function HeaderSearch() {
         value={query}
         onChange={e => handleQueryChange(e.target.value)}
         className={`
-          h-10 w-full pr-12 pl-9 shadow-none transition-colors
+          h-12 w-full pr-12 pl-11 shadow-none transition-colors lg:h-10
           ${inputBorderClass}
           ${inputBaseClass}
           ${showDropdown ? 'rounded-b-none' : ''}
@@ -86,10 +86,10 @@ export default function HeaderSearch() {
             <button
               type="button"
               className={`
-                absolute top-1/2 right-2 hidden -translate-y-1/2 items-center justify-center rounded-sm p-1
+                absolute top-1/2 right-3 hidden -translate-y-1/2 items-center justify-center rounded-sm p-1
                 text-muted-foreground transition-colors
                 hover:text-foreground
-                sm:inline-flex
+                lg:inline-flex
               `}
               onClick={() => {
                 clearSearch()
@@ -103,7 +103,7 @@ export default function HeaderSearch() {
         : (
             <span className={`
               absolute top-1/2 right-3 hidden -translate-y-1/2 font-mono text-xs text-muted-foreground
-              sm:inline-flex
+              lg:inline-flex
             `}
             >
               /

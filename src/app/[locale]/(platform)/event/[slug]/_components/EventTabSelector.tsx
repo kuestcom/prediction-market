@@ -58,7 +58,7 @@ export default function EventTabSelector({
 
   return (
     <div className="mt-3 flex items-center justify-between border-b border-border">
-      <ul className="relative flex h-8 gap-8 text-sm font-semibold">
+      <ul className="relative flex h-8 gap-8 text-sm font-medium">
         {eventTabs.map((tab, index) => (
           <li
             key={tab.key}

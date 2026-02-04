@@ -39,7 +39,6 @@ import {
   getOutcomeLabelForMarket,
   getTopMarketIds,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { formatSharePriceLabel } from '@/lib/formatters'
@@ -79,7 +78,7 @@ const tradeFlowTextStrokeStyle = {
 
 const PredictionChart = dynamic<PredictionChartProps>(
   () => import('@/components/PredictionChart'),
-  { ssr: false, loading: () => <Skeleton className="h-83 w-full" /> },
+  { ssr: false, loading: () => null },
 )
 
 function getOutcomeTokenIds(market: Market | null) {

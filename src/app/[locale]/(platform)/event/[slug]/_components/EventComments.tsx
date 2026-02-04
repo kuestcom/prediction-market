@@ -177,7 +177,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
         </Select>
         <label
           htmlFor={holdersCheckboxId}
-          className="ml-2 inline-flex items-center gap-2 text-sm font-semibold text-foreground"
+          className="ml-2 inline-flex items-center gap-2 text-sm font-medium text-foreground"
         >
           <Checkbox
             id={holdersCheckboxId}

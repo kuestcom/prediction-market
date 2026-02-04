@@ -22,11 +22,11 @@ export default function HeaderPortfolio() {
     : '0.00'
 
   return (
-    <div className="grid grid-cols-2">
+    <div className="grid grid-cols-2 gap-x-1">
       <Button
         variant="ghost"
         size="header"
-        className="flex flex-col justify-center gap-0.5"
+        className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1"
         asChild
       >
         <Link href="/portfolio">
@@ -47,7 +47,7 @@ export default function HeaderPortfolio() {
       <Button
         variant="ghost"
         size="header"
-        className="flex flex-col justify-center gap-0.5"
+        className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1"
         asChild
       >
         <Link href="/portfolio">

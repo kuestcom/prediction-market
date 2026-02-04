@@ -16,9 +16,10 @@ interface NavigationTabProps {
     childs: { name: string, slug: string }[]
   }
   childParentMap: Record<string, string>
+  tabIndex: number
 }
 
-export default function NavigationTab({ tag, childParentMap }: NavigationTabProps) {
+export default function NavigationTab({ tag, childParentMap, tabIndex }: NavigationTabProps) {
   const pathname = usePathname()
   const isHomePage = pathname === '/'
   const { filters, updateFilters } = useFilters()
@@ -56,6 +57,7 @@ export default function NavigationTab({ tag, childParentMap }: NavigationTabProp
     () => (tagItems.some(item => item.slug === tagFromFilters) ? tagFromFilters : tag.slug),
     [tag.slug, tagFromFilters, tagItems],
   )
+  const mainTabPadding = tabIndex === 0 ? 'px-2.5 pl-0' : 'px-3'
 
   const updateScrollShadows = useCallback(() => {
     const container = scrollContainerRef.current
@@ -337,11 +339,10 @@ export default function NavigationTab({ tag, childParentMap }: NavigationTabProp
         <Link
           href="/mentions"
           className={`
-            scrollbar-hide flex h-12 w-full min-w-0 snap-x snap-mandatory scroll-px-3 items-center overflow-x-auto pl-0
-            whitespace-nowrap
+            inline-flex h-full items-center justify-center rounded-md py-1 whitespace-nowrap ${mainTabPadding}
             ${
         isActive
-          ? 'border-primary text-foreground'
+          ? 'border-primary font-semibold text-foreground'
           : 'border-transparent text-muted-foreground hover:text-foreground'
         }`}
         >
@@ -355,16 +356,16 @@ export default function NavigationTab({ tag, childParentMap }: NavigationTabProp
             href={'/' as Route}
             onClick={() => handleTagClick(tag.slug)}
             className={`
-              scrollbar-hide flex h-12 w-full min-w-0 snap-x snap-mandatory scroll-px-3 items-center overflow-x-auto
-              pl-0 whitespace-nowrap
+              inline-flex h-full items-center justify-center rounded-md py-1 whitespace-nowrap ${mainTabPadding}
+              ${tag.slug === 'trending' ? 'gap-2' : ''}
               ${
         isActive
-          ? 'border-primary text-foreground'
+          ? 'border-primary font-semibold text-foreground'
           : 'border-transparent text-muted-foreground hover:text-foreground'
         }`}
           >
             {tag.slug === 'trending' && <TrendingUpIcon className="size-4" />}
-            <span className="ml-2">{tag.name}</span>
+            <span>{tag.name}</span>
           </Link>
         </span>
       )}
