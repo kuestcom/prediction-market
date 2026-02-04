@@ -6,13 +6,13 @@ export default async function Loading() {
     <div className="grid gap-4">
       <div className="space-y-4">
         <div className="mb-16 flex items-center gap-3">
-          <Skeleton className="size-12 rounded-sm" />
+          <Skeleton className="size-10 rounded-sm lg:size-16" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-5 w-2/4" />
           </div>
         </div>
 
-        <Skeleton className="mb-16 h-80 w-full rounded-lg border bg-card" />
+        <Skeleton className="mb-16 h-83 w-full bg-card" />
 
         <div className="grid gap-6">
           {Array.from({ length: 3 }).map((_, index) => (

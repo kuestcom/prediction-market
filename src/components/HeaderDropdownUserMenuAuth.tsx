@@ -158,6 +158,11 @@ export default function HeaderDropdownUserMenuAuth() {
             </DropdownMenuItem>
           )}
 
+          <div className="flex items-center justify-between gap-3 px-2 text-base font-semibold">
+            <span>{t('Dark Mode')}</span>
+            <ThemeSelector />
+          </div>
+
           {isMobile && (
             <DropdownMenuItem asChild className="py-2.5 text-base font-semibold">
               <div className="flex justify-center" onClickCapture={handleMenuClose}>
@@ -165,11 +170,6 @@ export default function HeaderDropdownUserMenuAuth() {
               </div>
             </DropdownMenuItem>
           )}
-
-          <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-base font-semibold">
-            <span>{t('Dark Mode')}</span>
-            <ThemeSelector />
-          </div>
 
           <DropdownMenuSeparator />
 

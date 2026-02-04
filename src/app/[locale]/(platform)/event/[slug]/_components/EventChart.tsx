@@ -78,7 +78,7 @@ const tradeFlowTextStrokeStyle = {
 
 const PredictionChart = dynamic<PredictionChartProps>(
   () => import('@/components/PredictionChart'),
-  { ssr: false, loading: () => null },
+  { ssr: false },
 )
 
 function getOutcomeTokenIds(market: Market | null) {
@@ -790,7 +790,7 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
           />
         )}
         chart={(
-          <div className="relative">
+          <div className="relative h-83 w-full">
             <PredictionChart
               data={chartData}
               series={legendSeries}
