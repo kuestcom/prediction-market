@@ -243,7 +243,7 @@ export default function EventRules({ event }: EventRulesProps) {
           </div>
         </div>
       )
-    : null
+    : <></>
 
   return (
     <section className="rounded-xl border transition-all duration-500 ease-in-out">
@@ -296,8 +296,15 @@ export default function EventRules({ event }: EventRulesProps) {
         `}
         aria-hidden={!isExpanded}
       >
-        <div className="overflow-hidden border-t border-border/30 px-3 pb-3">
-          <div className="space-y-2 pt-3">
+        <div
+          className={`
+            min-h-0 overflow-hidden
+            ${isExpanded ? 'border-t border-border/30' : ''}
+          `}
+        >
+          <div
+            className="space-y-2 p-3"
+          >
             {formattedRules && (
               <div className="text-sm/relaxed whitespace-pre-line text-foreground">
                 {renderRulesTextWithLinks(formattedRules)}
