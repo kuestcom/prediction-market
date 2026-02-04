@@ -81,7 +81,7 @@ export default function EventOrderPanelMobile({ event }: EventMobileOrderPanelPr
         )}
       </DrawerTrigger>
 
-      <DrawerContent className="overflow-y-auto">
+      <DrawerContent className="max-h-[95vh] w-full">
         <VisuallyHidden>
           <DialogTitle>{event.title}</DialogTitle>
         </VisuallyHidden>
