@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
+import { unstable_noStore } from 'next/cache'
 import LeaderboardClient from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardClient'
 import { parseLeaderboardFilters } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
 }
 
 export default async function LeaderboardPage({ params }: PageProps<'/[locale]/leaderboard/[[...filters]]'>) {
+  unstable_noStore()
   const { locale, filters } = await params
   setRequestLocale(locale)
 
