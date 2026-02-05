@@ -20,7 +20,10 @@ interface ProfileLinkProps {
   }
   profileSlug?: string
   profileHref?: string
-  layout?: 'default' | 'inline'
+  layout?: 'default' | 'inline' | 'stacked'
+  avatarSize?: number
+  avatarBadge?: ReactNode
+  tooltipTrigger?: 'all' | 'avatar-username'
   position?: number
   date?: string
   children?: ReactNode
@@ -48,11 +51,15 @@ export default function ProfileLink({
   joinedAt,
   profileSlug,
   profileHref: profileHrefOverride,
+  avatarSize,
+  avatarBadge,
+  tooltipTrigger = 'all',
 }: ProfileLinkProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [stats, setStats] = useState<Awaited<ReturnType<typeof fetchProfileLinkStats>>>(null)
   const [hasLoaded, setHasLoaded] = useState(false)
   const isInline = layout === 'inline'
+  const isStacked = layout === 'stacked'
   const inlineBody = inlineContent ?? children
   const inlineRowClassName = `
     flex min-w-0 flex-wrap items-center gap-1 text-foreground
@@ -81,9 +88,11 @@ export default function ProfileLink({
     ? (profileHrefOverride as any)
     : (resolvedProfileSlug ? (`/@${resolvedProfileSlug}` as any) : ('#' as any))
   const avatarSeed = addressSlug || resolvedProfileSlug || 'user'
-  const avatarSrc = user.image && user.image.trim()
+  const hasCustomAvatar = Boolean(user.image && user.image.trim())
+  const avatarSrc = hasCustomAvatar
     ? user.image
     : `https://avatar.vercel.sh/${avatarSeed}.png`
+  const resolvedAvatarSize = avatarSize ?? 32
   const statsAddress = useMemo(
     () => user.proxy_wallet_address ?? user.address,
     [user.address, user.proxy_wallet_address],
@@ -139,35 +148,56 @@ export default function ProfileLink({
       )
     : null
 
+  const avatarNode = (
+    <Link href={profileHref} className="relative shrink-0">
+      <Image
+        src={avatarSrc}
+        alt={displayUsername}
+        width={resolvedAvatarSize}
+        height={resolvedAvatarSize}
+        data-avatar="true"
+        className={cn(
+          'aspect-square rounded-full border border-border/80 object-cover object-center',
+          !hasCustomAvatar && 'blur-[0.3px]',
+        )}
+      />
+      {avatarBadge}
+      {position && (
+        <Badge
+          variant="secondary"
+          style={{ backgroundColor: medalColor, color: medalTextColor }}
+          className="absolute top-0 -right-2 size-5 rounded-full px-1 font-mono text-muted-foreground tabular-nums"
+        >
+          {position}
+        </Badge>
+      )}
+    </Link>
+  )
+
+  const usernameNode = (
+    <div className={usernameWrapperClassName}>
+      <Link
+        href={profileHref}
+        title={titleValue}
+        className={usernameLinkClassName}
+      >
+        {displayUsername}
+      </Link>
+    </div>
+  )
+
   const triggerContent = (
     <div className="inline-flex min-w-0 items-center gap-3">
-      <Link href={profileHref} className="relative shrink-0">
-        <Image
-          src={avatarSrc}
-          alt={displayUsername}
-          width={32}
-          height={32}
-          className="aspect-square rounded-full object-cover object-center"
-        />
-        {position && (
-          <Badge
-            variant="secondary"
-            style={{ backgroundColor: medalColor, color: medalTextColor }}
-            className="absolute top-0 -right-2 size-5 rounded-full px-1 font-mono text-muted-foreground tabular-nums"
-          >
-            {position}
-          </Badge>
-        )}
-      </Link>
-      <div className={usernameWrapperClassName}>
-        <Link
-          href={profileHref}
-          title={titleValue}
-          className={usernameLinkClassName}
-        >
-          {displayUsername}
-        </Link>
-      </div>
+      {avatarNode}
+      {usernameNode}
+    </div>
+  )
+
+  const stackedHeaderAddon = usernameAddon ? <span className="shrink-0">{usernameAddon}</span> : null
+  const stackedHeader = (
+    <div className="flex min-w-0 items-center gap-2">
+      {usernameNode}
+      {stackedHeaderAddon}
     </div>
   )
 
@@ -176,8 +206,14 @@ export default function ProfileLink({
       <div
         className={cn(
           'flex gap-3',
-          isInline ? 'items-center justify-between' : children ? 'items-start' : 'items-center',
-          isInline ? null : 'py-2',
+          isInline
+            ? 'items-center justify-between'
+            : isStacked
+              ? 'items-center'
+              : children
+                ? 'items-start'
+                : `items-center`,
+          isInline || isStacked ? null : 'py-2',
           containerClassName,
         )}
       >
@@ -202,20 +238,53 @@ export default function ProfileLink({
                     : null}
                 </div>
               )
-            : (
-                <div className="flex min-w-0 items-center gap-1">
-                  <TooltipTrigger asChild>
-                    {triggerContent}
-                  </TooltipTrigger>
-                  {usernameAddon ? <span className="shrink-0">{usernameAddon}</span> : null}
-                  {dateLabel}
-                </div>
-              )}
-          {!isInline && children
+            : isStacked
+              ? (
+                  <div className="flex min-w-0 items-center gap-3">
+                    {tooltipTrigger === 'avatar-username'
+                      ? (
+                          <>
+                            <TooltipTrigger asChild>
+                              {avatarNode}
+                            </TooltipTrigger>
+                            <div className="flex min-w-0 flex-col gap-1">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <TooltipTrigger asChild>
+                                  {usernameNode}
+                                </TooltipTrigger>
+                                {stackedHeaderAddon}
+                              </div>
+                              {children ?? null}
+                            </div>
+                          </>
+                        )
+                      : (
+                          <TooltipTrigger asChild>
+                            <div className="flex min-w-0 items-center gap-3">
+                              {avatarNode}
+                              <div className="flex min-w-0 flex-col gap-1">
+                                {stackedHeader}
+                                {children ?? null}
+                              </div>
+                            </div>
+                          </TooltipTrigger>
+                        )}
+                  </div>
+                )
+              : (
+                  <div className="flex min-w-0 items-center gap-1">
+                    <TooltipTrigger asChild>
+                      {triggerContent}
+                    </TooltipTrigger>
+                    {usernameAddon ? <span className="shrink-0">{usernameAddon}</span> : null}
+                    {dateLabel}
+                  </div>
+                )}
+          {!isInline && !isStacked && children
             ? <div className="pl-13">{children}</div>
             : null}
         </div>
-        {!isInline && trailing
+        {!isInline && !isStacked && trailing
           ? (
               <div className="ml-2 flex shrink-0 items-center text-right">
                 {trailing}
