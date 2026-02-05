@@ -142,6 +142,7 @@ function hasText(value?: string | null) {
 export default function ActivityFeed() {
   const normalizeOutcomeLabel = useOutcomeLabel()
   const wsUrl = process.env.WS_LIVE_DATA_URL
+  const wsUrlRef = useRef<string | null>(wsUrl ?? null)
   const router = useRouter()
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [minAmountFilter, setMinAmountFilter] = useState<string>('none')
@@ -154,6 +155,7 @@ export default function ActivityFeed() {
     if (!wsUrl) {
       return
     }
+    wsUrlRef.current = wsUrl
 
     let isActive = true
     let ws: WebSocket | null = null
@@ -260,7 +262,10 @@ export default function ActivityFeed() {
       if (!isActive || ws || document.hidden) {
         return
       }
-      ws = new WebSocket(wsUrl)
+      if (!wsUrlRef.current) {
+        return
+      }
+      ws = new WebSocket(wsUrlRef.current)
       ws.addEventListener('open', handleOpen)
       ws.addEventListener('message', handleMessage)
       ws.addEventListener('error', handleError)
