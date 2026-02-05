@@ -379,6 +379,20 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
   )
 
   const selectedPeriod = filters.period
+  const biggestWinsPeriodLabel = useMemo(() => {
+    switch (filters.period) {
+      case 'today':
+        return 'today'
+      case 'weekly':
+        return 'this week'
+      case 'monthly':
+        return 'this month'
+      case 'all':
+        return 'all time'
+      default:
+        return 'this month'
+    }
+  }, [filters.period])
   const pinnedEntry = useMemo(() => {
     if (!userAddress) {
       return null
@@ -764,7 +778,11 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
         >
           <div className="max-h-[38rem] min-h-[22rem] overflow-y-auto">
             <div className="sticky top-0 z-10 bg-background px-6 pt-6 pb-2">
-              <h2 className="text-xl font-semibold text-foreground">Biggest wins this month</h2>
+              <h2 className="text-xl font-semibold text-foreground">
+                Biggest wins
+                {' '}
+                {biggestWinsPeriodLabel}
+              </h2>
             </div>
             <div className="w-full px-5">
               {isBiggestWinsLoading && (
