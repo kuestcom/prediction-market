@@ -234,8 +234,8 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
   const showBothOutcomes = isSingleMarket && chartSettings.bothOutcomes
 
   const yesMarketTargets = useMemo(
-    () => (shouldHideChart ? [] : buildMarketTargets(event.markets, OUTCOME_INDEX.YES)),
-    [event.markets, shouldHideChart],
+    () => buildMarketTargets(event.markets, OUTCOME_INDEX.YES),
+    [event.markets],
   )
   const noMarketTargets = useMemo(
     () => (shouldHideChart || !isSingleMarket ? [] : buildMarketTargets(event.markets, OUTCOME_INDEX.NO)),

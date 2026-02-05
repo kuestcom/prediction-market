@@ -70,6 +70,8 @@ export default function EventContent({
   const appliedMarketSlugRef = useRef<string | null>(null)
   const appliedEventIdRef = useRef<string | null>(null)
   const currentUser = clientUser ?? user
+  const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
+  const shouldHideChart = event.total_markets_count > 1 && !isNegRiskEnabled
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [backToTopBounds, setBackToTopBounds] = useState<{ left: number, width: number } | null>(null)
   const selectedMarket = useMemo(() => {
@@ -276,7 +278,7 @@ export default function EventContent({
         <div className="grid gap-3" ref={contentRef}>
           <EventHeader event={event} />
 
-          <div className="min-h-96 w-full">
+          <div className={shouldHideChart ? 'w-full' : 'min-h-96 w-full'}>
             <EventChart event={event} isMobile={isMobile} />
           </div>
 
@@ -293,7 +295,7 @@ export default function EventContent({
                 {currentUser && (
                   <EventMarketPositions
                     market={event.markets[0]}
-                    isNegRiskEnabled={Boolean(event.enable_neg_risk || event.neg_risk)}
+                    isNegRiskEnabled={isNegRiskEnabled}
                     isNegRiskAugmented={Boolean(event.neg_risk_augmented)}
                     eventOutcomes={event.markets.map(market => ({
                       conditionId: market.condition_id,

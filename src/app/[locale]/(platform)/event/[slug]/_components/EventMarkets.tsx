@@ -1046,7 +1046,7 @@ function MarketDetailTabs({
         </div>
       </div>
 
-      <div className="px-0 py-4">
+      <div className={cn('px-0', selectedTab === 'orderBook' ? 'pt-4 pb-0' : 'py-4')}>
         {selectedTab === 'orderBook' && (
           <EventOrderBook
             market={market}
