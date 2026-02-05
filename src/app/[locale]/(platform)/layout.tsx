@@ -1,6 +1,7 @@
 'use cache'
 
 import { setRequestLocale } from 'next-intl/server'
+import { Suspense } from 'react'
 import AffiliateQueryHandler from '@/app/[locale]/(platform)/_components/AffiliateQueryHandler'
 import Header from '@/app/[locale]/(platform)/_components/Header'
 import NavigationTabs from '@/app/[locale]/(platform)/_components/NavigationTabs'
@@ -15,12 +16,14 @@ export default async function PlatformLayout({ params, children }: LayoutProps<'
   return (
     <AppProviders>
       <TradingOnboardingProvider>
-        <FilterProvider>
-          <Header />
-          <NavigationTabs />
-          {children}
-          <AffiliateQueryHandler />
-        </FilterProvider>
+        <Suspense fallback={null}>
+          <FilterProvider>
+            <Header />
+            <NavigationTabs />
+            {children}
+            <AffiliateQueryHandler />
+          </FilterProvider>
+        </Suspense>
       </TradingOnboardingProvider>
     </AppProviders>
   )
