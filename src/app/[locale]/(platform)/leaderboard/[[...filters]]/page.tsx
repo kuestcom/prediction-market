@@ -1,3 +1,5 @@
+'use cache'
+
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { unstable_noStore } from 'next/cache'
