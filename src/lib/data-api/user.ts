@@ -28,6 +28,7 @@ export interface DataApiActivity {
   pseudonym?: string
   profileImage?: string
   profileImageOptimized?: string
+  tags?: string[]
 }
 
 export interface DataApiPosition {

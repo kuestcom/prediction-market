@@ -22,6 +22,9 @@ type LiveActivityPayload = DataApiActivity & {
   mainCategory?: string
   main_category?: string
   tag?: string
+  tags?: string[]
+  eventTags?: string[]
+  event_tags?: string[]
   categoryName?: string
   eventCategory?: string
   eventTag?: string
@@ -35,7 +38,7 @@ interface LiveActivityMessage {
 
 interface LiveActivityItem {
   id: string
-  category?: string
+  categories: CategoryValue[]
   order: ActivityOrder
 }
 
@@ -70,6 +73,7 @@ const MIN_AMOUNT_OPTIONS = [
 ] as const
 
 const MAX_ITEMS = 100
+const MAX_SEEN_ITEMS = MAX_ITEMS * 6
 const ROW_HEIGHT_ESTIMATE = 64
 const MIN_VISIBLE_ITEMS = 12
 const MAX_VISIBLE_ITEMS = 28
@@ -107,7 +111,35 @@ function normalizeCategoryValue(value?: string | null) {
   return null
 }
 
-function resolveCategory(payload: LiveActivityPayload) {
+function resolveCategoryMatches(tags?: string[] | null) {
+  if (!tags || tags.length === 0) {
+    return []
+  }
+
+  const normalized = new Set<string>()
+  for (const tag of tags) {
+    const normalizedTag = normalizeCategoryValue(tag)
+    if (normalizedTag) {
+      normalized.add(normalizedTag)
+    }
+  }
+
+  if (normalized.size === 0) {
+    return []
+  }
+
+  return CATEGORY_OPTIONS
+    .filter(option => option.value !== 'all' && normalized.has(option.value))
+    .map(option => option.value)
+}
+
+function resolveCategories(payload: LiveActivityPayload) {
+  const categories = new Set<CategoryValue>()
+  const tagMatches = resolveCategoryMatches(payload.tags ?? payload.eventTags ?? payload.event_tags)
+  for (const match of tagMatches) {
+    categories.add(match)
+  }
+
   const rawCategory = payload.category
     ?? payload.mainCategory
     ?? payload.main_category
@@ -116,7 +148,12 @@ function resolveCategory(payload: LiveActivityPayload) {
     ?? payload.eventCategory
     ?? payload.eventTag
 
-  return normalizeCategoryValue(rawCategory) ?? undefined
+  const normalizedCategory = normalizeCategoryValue(rawCategory)
+  if (normalizedCategory) {
+    categories.add(normalizedCategory as CategoryValue)
+  }
+
+  return Array.from(categories)
 }
 
 function resolveMarketIcon(iconUrl?: string | null) {
@@ -150,6 +187,7 @@ export default function ActivityFeed() {
   const [baseVisibleCount, setBaseVisibleCount] = useState<number>(20)
   const [visibleCount, setVisibleCount] = useState<number>(20)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const seenIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (!wsUrl) {
@@ -228,22 +266,33 @@ export default function ActivityFeed() {
         if (hasOutcomeIndex) {
           order.outcome.index = rawPayload.outcomeIndex as number
         }
-        const category = resolveCategory(rawPayload)
+        const categories = resolveCategories(rawPayload)
         nextItems.push({
           id: order.id,
-          category,
+          categories,
           order,
         })
       }
 
-      if (nextItems.length === 0) {
+      const uniqueNextItems = nextItems.filter((item) => {
+        if (seenIdsRef.current.has(item.id)) {
+          return false
+        }
+        seenIdsRef.current.add(item.id)
+        return true
+      })
+
+      if (uniqueNextItems.length === 0) {
         return
       }
 
       setItems((prev) => {
-        const seen = new Set(nextItems.map(item => item.id))
-        const next = [...nextItems, ...prev.filter(existing => !seen.has(existing.id))]
-        return next.slice(0, MAX_ITEMS)
+        const next = [...uniqueNextItems, ...prev]
+        const trimmed = next.slice(0, MAX_ITEMS)
+        if (seenIdsRef.current.size > MAX_SEEN_ITEMS) {
+          seenIdsRef.current = new Set(trimmed.map(item => item.id))
+        }
+        return trimmed
       })
     }
 
@@ -345,7 +394,7 @@ export default function ActivityFeed() {
   const filteredOrders = useMemo(() => {
     let filtered = items
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(item => item.category === categoryFilter)
+      filtered = filtered.filter(item => item.categories.includes(categoryFilter as CategoryValue))
     }
     return filterActivitiesByMinAmount(filtered.map(item => item.order), minAmountMicro)
   }, [categoryFilter, items, minAmountMicro])
@@ -552,7 +601,7 @@ export default function ActivityFeed() {
                         profileHref={activity.user.address || username ? `/profile/${activity.user.address || username}` : undefined}
                         layout="inline"
                         containerClassName="gap-2 text-sm leading-tight [&_img]:h-6 [&_img]:w-6"
-                        usernameClassName="font-semibold text-foreground underline underline-offset-2"
+                        usernameClassName="font-semibold text-foreground underline-offset-2 hover:underline"
                         usernameMaxWidthClassName="max-w-32 sm:max-w-40"
                         inlineContent={(
                           <>
