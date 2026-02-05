@@ -1,7 +1,7 @@
 'use client'
 
 import { useDisconnect } from '@reown/appkit-controllers/react'
-import { BadgePercentIcon, ChevronDownIcon, SettingsIcon, UnplugIcon } from 'lucide-react'
+import { BadgePercentIcon, ChevronDownIcon, SettingsIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
@@ -135,6 +135,13 @@ export default function HeaderDropdownUserMenuAuth() {
             <Link href="/settings" className="flex w-full items-center gap-2">
               <SettingsIcon className="size-5 text-orange-500" />
               {t('Settings')}
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold">
+            <Link href="/leaderboard" className="flex w-full items-center gap-2">
+              <TrophyIcon className="size-5 text-amber-500" />
+              {t('Leaderboard')}
             </Link>
           </DropdownMenuItem>
 

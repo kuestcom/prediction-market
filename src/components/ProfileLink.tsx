@@ -19,6 +19,7 @@ interface ProfileLinkProps {
     username: string
   }
   profileSlug?: string
+  profileHref?: string
   layout?: 'default' | 'inline'
   position?: number
   date?: string
@@ -46,6 +47,7 @@ export default function ProfileLink({
   usernameAddon,
   joinedAt,
   profileSlug,
+  profileHref: profileHrefOverride,
 }: ProfileLinkProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [stats, setStats] = useState<Awaited<ReturnType<typeof fetchProfileLinkStats>>>(null)
@@ -75,7 +77,9 @@ export default function ProfileLink({
   const displayUsername = normalizedUsername || (addressSlug ? truncateAddress(addressSlug) : 'Anonymous')
   const titleValue = normalizedUsername || addressSlug || displayUsername
   const resolvedProfileSlug = profileSlug ?? (normalizedUsername || addressSlug)
-  const profileHref = resolvedProfileSlug ? (`/@${resolvedProfileSlug}` as any) : ('#' as any)
+  const profileHref = profileHrefOverride
+    ? (profileHrefOverride as any)
+    : (resolvedProfileSlug ? (`/@${resolvedProfileSlug}` as any) : ('#' as any))
   const avatarSeed = addressSlug || resolvedProfileSlug || 'user'
   const avatarSrc = user.image && user.image.trim()
     ? user.image

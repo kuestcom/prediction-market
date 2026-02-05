@@ -1,6 +1,7 @@
 'use cache'
 
 import { Suspense } from 'react'
+import NavigationMoreMenu from '@/app/[locale]/(platform)/_components/NavigationMoreMenu'
 import NavigationTab from '@/app/[locale]/(platform)/_components/NavigationTab'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TagRepository } from '@/lib/db/queries/tag'
@@ -30,10 +31,10 @@ export default async function NavigationTabs() {
       <div className="container mx-auto flex w-full min-w-0">
         <div
           id="navigation-main-tags"
-          className="
+          className={`
             scrollbar-hide flex h-12 w-full min-w-0 snap-x snap-mandatory scroll-px-3 items-center overflow-x-auto
             text-sm font-medium
-          "
+          `}
         >
           {tags.map((tag, index) => (
             <div key={tag.slug} className="flex snap-start items-center">
@@ -44,6 +45,9 @@ export default async function NavigationTabs() {
               {index === 1 && <div className="mx-3 h-5 w-px shrink-0 bg-border" />}
             </div>
           ))}
+          <div className="flex snap-start items-center">
+            <NavigationMoreMenu />
+          </div>
         </div>
       </div>
     </nav>

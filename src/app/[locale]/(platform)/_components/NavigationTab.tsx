@@ -38,7 +38,6 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
   const [showRightShadow, setShowRightShadow] = useState(false)
   const [showParentLeftShadow, setShowParentLeftShadow] = useState(false)
   const [showParentRightShadow, setShowParentRightShadow] = useState(false)
-
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([])
   const mainTabRef = useRef<HTMLButtonElement>(null)
