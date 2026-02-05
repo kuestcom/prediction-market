@@ -105,7 +105,7 @@ export default function EventCommentItem({
         profileSlug={profileSlug}
         date={comment.created_at}
         joinedAt={comment.user_created_at}
-        containerClassName="[&_img]:mt-2.5 [&_img]:h-10 [&_img]:w-10"
+        containerClassName="[&_[data-avatar-wrapper]]:mt-2.5 [&_[data-avatar]]:h-10 [&_[data-avatar]]:w-10"
         usernameClassName="text-sm font-semibold text-foreground hover:underline underline-offset-2"
         usernameAddon={(
           <CommentPositionsIndicator

@@ -234,7 +234,7 @@ export default function EventShare({ event }: EventShareProps) {
             align="end"
             sideOffset={8}
             collisionPadding={16}
-            className="max-h-80 w-48 border border-border bg-background p-2 text-foreground shadow-xl"
+            className="max-h-80 w-48 border border-border bg-background p-0 text-foreground shadow-xl"
           >
             <DropdownMenuItem
               onSelect={(menuEvent) => {
@@ -242,14 +242,14 @@ export default function EventShare({ event }: EventShareProps) {
                 void handleCopy('event', `/event/${event.slug}`)
               }}
               className={cn(
-                'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
+                'rounded-none px-3 py-2.5 text-sm font-semibold transition-colors first:rounded-t-md last:rounded-b-md',
                 copiedKey === 'event' ? 'text-foreground' : 'text-muted-foreground',
                 'hover:bg-muted/70 hover:text-foreground focus:bg-muted',
               )}
             >
               {copiedKey === 'event' ? 'Copied!' : 'Copy link'}
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-2 bg-border" />
+            <DropdownMenuSeparator className="my-0 bg-border" />
             {event.markets
               .filter(market => market.slug)
               .map((market) => {
@@ -263,7 +263,11 @@ export default function EventShare({ event }: EventShareProps) {
                       void handleCopy(key, `/event/${event.slug}/${market.slug}`)
                     }}
                     className={cn(
-                      'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
+                      `
+                        rounded-none px-3 py-2.5 text-sm font-semibold transition-colors
+                        first:rounded-t-md
+                        last:rounded-b-md
+                      `,
                       copiedKey === key ? 'text-foreground' : 'text-muted-foreground',
                       'hover:bg-muted/70 hover:text-foreground focus:bg-muted',
                     )}

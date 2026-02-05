@@ -4,7 +4,7 @@ import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { IS_BROWSER } from '@/lib/constants'
 
-export const NEW_MARKET_MAX_AGE_DAYS = 7
+export const NEW_MARKET_MAX_AGE_DAYS = 2
 const MS_IN_DAY = 86_400_000
 
 export function isMarketNew(createdAt: string, thresholdDays: number = NEW_MARKET_MAX_AGE_DAYS, currentTime?: number) {

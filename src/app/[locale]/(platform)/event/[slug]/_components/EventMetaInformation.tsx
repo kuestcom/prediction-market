@@ -84,6 +84,8 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
   const shouldShowNew = event.markets.some(
     market => isMarketNew(market.created_at),
   )
+  const shouldShowVolume = !shouldShowNew
+  const shouldShowMetaBlock = isNegRiskEnabled || shouldShowVolume
   const expiryTooltip = t.rich(
     'This is estimated end date.<br></br>See rules below for specific resolution details.',
     { br: () => ' ' },
@@ -102,6 +104,7 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
     ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
     : null
   const remainingLabel = remainingDays !== null ? t('In {days} days', { days: String(remainingDays) }) : ''
+  const shouldShowDividerAfterNew = shouldShowNew && (shouldShowMetaBlock || Boolean(expiryDate))
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -111,62 +114,66 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
           <span>{t('New')}</span>
         </span>
       )}
-      {shouldShowNew && (
+      {shouldShowDividerAfterNew && (
         <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />
       )}
-      <div className="flex items-center gap-2">
-        {isNegRiskEnabled && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                aria-label={t('Negative risk details')}
-                className="inline-flex items-center justify-center transition-colors"
+      {shouldShowMetaBlock && (
+        <div className="flex items-center gap-2">
+          {isNegRiskEnabled && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={t('Negative risk details')}
+                  className="inline-flex items-center justify-center transition-colors"
+                >
+                  <TrophyIcon className="size-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                collisionPadding={16}
+                className="max-w-68 p-3 text-left text-sm"
               >
-                <TrophyIcon className="size-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent
-              side="bottom"
-              collisionPadding={16}
-              className="max-w-68 p-3 text-left text-sm"
-            >
-              <div className="flex flex-col gap-3">
-                <span className="text-base font-bold">{t('Winner-take-all')}</span>
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-start gap-3">
-                    <CheckIcon className="mt-0.5 size-5 shrink-0 text-primary" />
-                    <span className="font-normal">{t('Only 1 winner')}</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckIcon className="mt-0.5 size-5 shrink-0 text-primary" />
-                    <span className="font-normal">
-                      {t('Supports negative risk (convert {no} shares to {yes} of the other options)', {
-                        no: t('No'),
-                        yes: t('Yes'),
-                      })}
-                    </span>
-                  </div>
-                  {isNegRiskAugmented && (
+                  <span className="text-base font-bold">{t('Winner-take-all')}</span>
+                  <div className="flex flex-col gap-3">
                     <div className="flex items-start gap-3">
-                      <PlusIcon className="mt-0.5 size-5 shrink-0 text-primary" />
+                      <CheckIcon className="mt-0.5 size-5 shrink-0 text-primary" />
+                      <span className="font-normal">{t('Only 1 winner')}</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <CheckIcon className="mt-0.5 size-5 shrink-0 text-primary" />
                       <span className="font-normal">
-                        <span className="font-bold">{t('Complete negative risk')}</span>
-                        {' '}
-                        {t('Users who convert will receive {yes} shares in any outcomes added in the future', {
+                        {t('Supports negative risk (convert {no} shares to {yes} of the other options)', {
+                          no: t('No'),
                           yes: t('Yes'),
                         })}
                       </span>
                     </div>
-                  )}
+                    {isNegRiskAugmented && (
+                      <div className="flex items-start gap-3">
+                        <PlusIcon className="mt-0.5 size-5 shrink-0 text-primary" />
+                        <span className="font-normal">
+                          <span className="font-bold">{t('Complete negative risk')}</span>
+                          {' '}
+                          {t('Users who convert will receive {yes} shares in any outcomes added in the future', {
+                            yes: t('Yes'),
+                          })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        )}
-        <span className="text-sm font-medium">{volumeLabel}</span>
-      </div>
-      {expiryDate && <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />}
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {shouldShowVolume && <span className="text-sm font-medium">{volumeLabel}</span>}
+        </div>
+      )}
+      {shouldShowMetaBlock && expiryDate && (
+        <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />
+      )}
       {expiryDate && (
         <Tooltip>
           <TooltipTrigger>

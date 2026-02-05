@@ -189,7 +189,7 @@ export default function ProfileLink({
     : null
 
   const avatarNode = (
-    <Link href={profileHref} className="relative shrink-0">
+    <Link href={profileHref} data-avatar-wrapper="true" className="relative isolate shrink-0">
       <Image
         src={avatarSrc}
         alt={displayUsername}
@@ -201,7 +201,7 @@ export default function ProfileLink({
       {!hasCustomAvatar && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-full"
+          className="pointer-events-none absolute inset-px rounded-full"
           style={fallbackOverlayStyle}
         />
       )}

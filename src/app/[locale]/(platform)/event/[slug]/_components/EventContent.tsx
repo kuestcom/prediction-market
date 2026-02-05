@@ -275,7 +275,7 @@ export default function EventContent({
     <EventMarketChannelProvider markets={event.markets}>
       <EventOutcomeChanceProvider eventId={event.id}>
         <OrderLimitPriceSync />
-        <div className="grid gap-3" ref={contentRef}>
+        <div className={shouldHideChart ? 'grid gap-2' : 'grid gap-3'} ref={contentRef}>
           <EventHeader event={event} />
 
           <div className={shouldHideChart ? 'w-full' : 'min-h-96 w-full'}>
