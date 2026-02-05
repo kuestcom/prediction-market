@@ -259,6 +259,17 @@ function ProfitLossCard({
     const ratio = span === 0 ? 0 : (targetTime - left.date.getTime()) / span
     return left.value + (right.value - left.value) * ratio
   }, [chartData, clampedCursorX, cursorDate, endDate, endValue])
+  const cursorY = clampedCursorX == null ? null : yScale(cursorValue)
+  const cursorDotPosition = useMemo(() => {
+    if (clampedCursorX == null || cursorY == null || innerWidth === 0 || innerHeight === 0) {
+      return null
+    }
+
+    return {
+      left: `${(clampedCursorX / innerWidth) * 100}%`,
+      top: `${(cursorY / innerHeight) * 100}%`,
+    }
+  }, [clampedCursorX, cursorY, innerHeight, innerWidth])
   const displayValue = clampedCursorX == null ? endValue : cursorValue
   const deltaValue = displayValue - startValue
   const isDeltaPositive = deltaValue > 0
@@ -554,6 +565,18 @@ function ProfitLossCard({
               />
             </Group>
           </svg>
+          {cursorDotPosition && (
+            <div
+              className="pointer-events-none absolute rounded-full"
+              style={{
+                ...cursorDotPosition,
+                width: 6,
+                height: 6,
+                transform: 'translate(-50%, -50%)',
+                background: 'radial-gradient(circle at 30% 30%, #7dd3fc 0%, #a855f7 70%)',
+              }}
+            />
+          )}
         </div>
       </CardContent>
     </Card>
