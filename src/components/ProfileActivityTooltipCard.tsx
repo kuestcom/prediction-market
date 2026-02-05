@@ -4,6 +4,54 @@ import Link from 'next/link'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
+function hashString(value: string) {
+  let hash = 0
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash)
+}
+
+function colorFromSeed(seed: string, offset: number, minLight = 40, maxLight = 70) {
+  const hash = hashString(`${seed}-${offset}`)
+  const hue = hash % 360
+  const saturation = 45 + (hash % 35)
+  const lightness = minLight + (hash % (maxLight - minLight))
+  return `hsl(${hue} ${saturation}% ${lightness}%)`
+}
+
+function getAvatarSeedFromUrl(url: string) {
+  try {
+    const parsed = new URL(url)
+    const filename = parsed.pathname.split('/').pop() || ''
+    return decodeURIComponent(filename.replace(/\.\w+$/, ''))
+  }
+  catch {
+    return ''
+  }
+}
+
+function buildMeshOverlayStyle(seed: string) {
+  const baseColor = colorFromSeed(seed, 0, 45, 65)
+  const gradientA = colorFromSeed(seed, 1, 35, 75)
+  const gradientB = colorFromSeed(seed, 2, 30, 70)
+  const gradientC = colorFromSeed(seed, 3, 25, 65)
+  const gradientD = colorFromSeed(seed, 4, 40, 75)
+
+  return {
+    backgroundColor: baseColor,
+    backgroundImage: `
+      radial-gradient(at 66% 77%, ${gradientA} 0px, transparent 50%),
+      radial-gradient(at 29% 97%, ${gradientB} 0px, transparent 50%),
+      radial-gradient(at 99% 86%, ${gradientC} 0px, transparent 50%),
+      radial-gradient(at 29% 88%, ${gradientD} 0px, transparent 50%)
+    `,
+    mixBlendMode: 'overlay' as const,
+    opacity: 0.9,
+  }
+}
+
 interface ProfileActivityTooltipCardProps {
   profile: {
     username: string
@@ -103,6 +151,9 @@ export default function ProfileActivityTooltipCard({
         : (profitLossRounded ?? 0) < 0
             ? 'text-no'
             : 'text-foreground'
+  const isVercelFallback = profile.avatarUrl.includes('avatar.vercel.sh')
+  const avatarSeed = isVercelFallback ? (getAvatarSeedFromUrl(profile.avatarUrl) || profile.username) : ''
+  const fallbackOverlayStyle = isVercelFallback ? buildMeshOverlayStyle(avatarSeed) : undefined
 
   return (
     <div className="w-64 rounded-lg border bg-secondary pb-3">
@@ -115,6 +166,13 @@ export default function ProfileActivityTooltipCard({
             sizes="56px"
             className="object-cover"
           />
+          {fallbackOverlayStyle && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 rounded-full"
+              style={fallbackOverlayStyle}
+            />
+          )}
         </div>
         <div className="min-w-0">
           <Link

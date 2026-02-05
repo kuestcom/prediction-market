@@ -558,7 +558,7 @@ export default function ActivityFeed() {
                   <Link
                     href={eventHref}
                     onClick={event => event.stopPropagation()}
-                    className="relative size-12 shrink-0 overflow-hidden rounded-md bg-muted"
+                    className="relative size-12 shrink-0 overflow-hidden rounded-md"
                   >
                     {marketIcon
                       ? (
