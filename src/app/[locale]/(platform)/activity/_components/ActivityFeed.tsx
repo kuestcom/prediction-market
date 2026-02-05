@@ -53,7 +53,12 @@ const CATEGORY_OPTIONS = [
   { value: 'climate-science', label: 'Climate & Science' },
 ] as const
 
-const CATEGORY_VALUES = new Set(CATEGORY_OPTIONS.map(option => option.value))
+type CategoryValue = typeof CATEGORY_OPTIONS[number]['value']
+const CATEGORY_VALUES = new Set<CategoryValue>(CATEGORY_OPTIONS.map(option => option.value))
+
+function isCategoryValue(value: string): value is CategoryValue {
+  return CATEGORY_VALUES.has(value as CategoryValue)
+}
 
 const MIN_AMOUNT_OPTIONS = [
   { value: 'none', label: 'None', display: 'Min amount' },
@@ -95,7 +100,7 @@ function normalizeCategoryValue(value?: string | null) {
   }
 
   const slug = normalized.replace(/\s+/g, '-')
-  if (CATEGORY_VALUES.has(slug)) {
+  if (isCategoryValue(slug)) {
     return slug
   }
 
