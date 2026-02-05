@@ -1,9 +1,16 @@
 import type { Metadata } from 'next'
-import { setRequestLocale } from 'next-intl/server'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
 import ActivityFeed from '@/app/[locale]/(platform)/activity/_components/ActivityFeed'
 
-export const metadata: Metadata = {
-  title: 'Activity',
+export async function generateMetadata({ params }: PageProps<'/[locale]/activity'>): Promise<Metadata> {
+  const { locale } = await params
+  setRequestLocale(locale)
+
+  const t = await getExtracted()
+
+  return {
+    title: t('Activity'),
+  }
 }
 
 export default async function ActivityPage({ params }: PageProps<'/[locale]/activity'>) {

@@ -4,6 +4,7 @@ import type { Route } from 'next'
 import type { DataApiActivity } from '@/lib/data-api/user'
 import type { ActivityOrder } from '@/types'
 import { Loader2Icon, SquareArrowOutUpRightIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ProfileLink from '@/components/ProfileLink'
@@ -177,6 +178,7 @@ function hasText(value?: string | null) {
 }
 
 export default function ActivityFeed() {
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const wsUrl = process.env.WS_LIVE_DATA_URL
   const wsUrlRef = useRef<string | null>(wsUrl ?? null)
@@ -452,9 +454,8 @@ export default function ActivityFeed() {
     `
       group relative z-0 flex w-full cursor-pointer flex-col gap-3 py-3 pr-2 pl-3 transition-all duration-200
       ease-in-out
-      before:pointer-events-none before:absolute before:inset-y-0 before:-right-3 before:-left-3 before:-z-10
-      before:rounded-lg before:bg-black/5 before:opacity-0 before:transition-opacity before:duration-200
-      before:content-['']
+      before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-lg
+      before:bg-black/5 before:opacity-0 before:transition-opacity before:duration-200 before:content-['']
       hover:before:opacity-100
       sm:flex-row sm:items-center sm:gap-4
       dark:before:bg-white/5
@@ -465,7 +466,7 @@ export default function ActivityFeed() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-semibold text-foreground md:text-3xl">
-          Activity
+          {t('Activity')}
         </h1>
         <div className="flex flex-wrap items-center gap-3">
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -660,7 +661,7 @@ export default function ActivityFeed() {
         {!isLoading && hasHiddenItems && (
           <div className="flex items-center justify-center gap-2 py-3 text-base text-muted-foreground">
             <Loader2Icon className="size-6 animate-spin" />
-            Loading more...
+            {t('Loading more...')}
           </div>
         )}
 

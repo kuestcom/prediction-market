@@ -412,7 +412,7 @@ export default function EventActivity({ event }: EventActivityProps) {
           {isFetchingNextPage && (
             <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
               <Loader2Icon className="size-4 animate-spin" />
-              {t('Loading more')}
+              {t('Loading more...')}
             </div>
           )}
 
