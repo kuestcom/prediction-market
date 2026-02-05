@@ -207,7 +207,7 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
 
         {isSettingsOpen && (
           <FilterSettingsRow
-            className="order-2 scrollbar-hide flex w-full items-center overflow-x-auto px-1 md:hidden"
+            className="order-2 flex w-full items-center overflow-x-auto px-1 md:hidden"
             filters={filterSettings}
             onChange={handleFilterChange}
             onClear={handleClearFilters}
@@ -321,7 +321,7 @@ function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, class
     <div
       className={cn(
         `
-          scrollbar-hide flex w-full max-w-full flex-nowrap items-center gap-2 overflow-x-auto
+          flex w-full max-w-full flex-nowrap items-center gap-2 overflow-x-auto
           md:flex-wrap md:gap-3 md:overflow-visible
         `,
         className,

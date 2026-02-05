@@ -234,7 +234,7 @@ export default function EventShare({ event }: EventShareProps) {
             align="end"
             sideOffset={8}
             collisionPadding={16}
-            className="scrollbar-hide max-h-80 w-48 border border-border bg-background p-2 text-foreground shadow-xl"
+            className="max-h-80 w-48 border border-border bg-background p-2 text-foreground shadow-xl"
           >
             <DropdownMenuItem
               onSelect={(menuEvent) => {

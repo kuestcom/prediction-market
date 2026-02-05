@@ -441,10 +441,7 @@ export default function EventChartExportDialog({
                       {t('Select All')}
                     </label>
                   </div>
-                  <div className={`
-                    scrollbar-hide max-h-36 overflow-y-auto rounded-md border border-border bg-background p-3
-                  `}
-                  >
+                  <div className="max-h-36 overflow-y-auto rounded-md border border-border bg-background p-3">
                     <div className="flex flex-col gap-2">
                       {optionItems.map((option, index) => {
                         const optionId = `${optionsListId}-${index}`

@@ -32,8 +32,7 @@ export default async function NavigationTabs() {
         <div
           id="navigation-main-tags"
           className={`
-            scrollbar-hide flex h-12 w-full min-w-0 snap-x snap-mandatory scroll-px-3 items-center overflow-x-auto
-            text-sm font-medium
+            flex h-12 w-full min-w-0 snap-x snap-mandatory scroll-px-3 items-center overflow-x-auto text-sm font-medium
           `}
         >
           {tags.map((tag, index) => (

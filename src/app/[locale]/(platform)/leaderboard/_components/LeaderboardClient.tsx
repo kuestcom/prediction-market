@@ -762,7 +762,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
           lg:sticky lg:top-[8.75rem] lg:h-fit lg:self-start
         `}
         >
-          <div className="scrollbar-hide max-h-[38rem] min-h-[22rem] overflow-y-auto">
+          <div className="max-h-[38rem] min-h-[22rem] overflow-y-auto">
             <div className="sticky top-0 z-10 bg-background px-6 pt-6 pb-2">
               <h2 className="text-xl font-semibold text-foreground">Biggest wins this month</h2>
             </div>

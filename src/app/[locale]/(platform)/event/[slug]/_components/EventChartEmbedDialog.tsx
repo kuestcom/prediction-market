@@ -456,8 +456,7 @@ export default function EventChartEmbedDialog({
                         <SelectTrigger className={`
                           w-full bg-transparent text-sm
                           hover:bg-transparent
-                          dark:bg-transparent
-                          dark:hover:bg-transparent
+                          dark:bg-transparent dark:hover:bg-transparent
                         `}
                         >
                           <SelectValue />
@@ -517,7 +516,7 @@ export default function EventChartEmbedDialog({
                     </Button>
                   </div>
                 </div>
-                <div className="scrollbar-hide overflow-x-auto rounded-md border border-border bg-muted/70 p-4">
+                <div className="overflow-x-auto rounded-md border border-border bg-muted/70 p-4">
                   {embedType === 'iframe' ? renderCode(iframeLines) : renderCode(webComponentLines)}
                 </div>
               </div>

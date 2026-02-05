@@ -310,7 +310,7 @@ export default function EventOrderBook({
   }
 
   return (
-    <div ref={orderBookScrollRef} className="relative scrollbar-hide max-h-90 overflow-y-auto">
+    <div ref={orderBookScrollRef} className="relative max-h-90 overflow-y-auto">
       <div>
         <div
           className={cn(
