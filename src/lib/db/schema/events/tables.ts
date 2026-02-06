@@ -7,6 +7,7 @@ import {
   numeric,
   pgTable,
   pgView,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -154,6 +155,22 @@ export const tags = pgTable(
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
+)
+
+export const tag_translations = pgTable(
+  'tag_translations',
+  {
+    tag_id: smallint()
+      .notNull()
+      .references(() => tags.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    locale: text().notNull(),
+    name: text().notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  table => ({
+    pk: primaryKey({ columns: [table.tag_id, table.locale] }),
+  }),
 )
 
 export const event_tags = pgTable(

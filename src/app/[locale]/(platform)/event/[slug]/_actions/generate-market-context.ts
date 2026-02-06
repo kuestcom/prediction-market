@@ -1,7 +1,9 @@
 'use server'
 
+import type { SupportedLocale } from '@/i18n/locales'
 import { getLocale } from 'next-intl/server'
 import { z } from 'zod'
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { generateMarketContext } from '@/lib/ai/market-context'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
@@ -28,7 +30,11 @@ export async function generateMarketContextAction(input: GenerateMarketContextIn
 
   try {
     const { slug, marketConditionId } = parsed.data
-    const { data: event, error } = await EventRepository.getEventBySlug(slug)
+    const locale = await getLocale()
+    const resolvedLocale = SUPPORTED_LOCALES.includes(locale as SupportedLocale)
+      ? locale as SupportedLocale
+      : DEFAULT_LOCALE
+    const { data: event, error } = await EventRepository.getEventBySlug(slug, '', resolvedLocale)
 
     if (error || !event) {
       console.error('Failed to fetch event for market context.', error)
@@ -41,7 +47,6 @@ export async function generateMarketContextAction(input: GenerateMarketContextIn
       return { error: 'No markets available for this event.' }
     }
 
-    const locale = await getLocale()
     const context = await generateMarketContext(event, market, settings, locale)
     return { context }
   }

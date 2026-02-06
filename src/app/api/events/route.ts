@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -9,6 +10,10 @@ export async function GET(request: Request) {
   const search = searchParams.get('search') || ''
   const bookmarked = searchParams.get('bookmarked') === 'true'
   const status = searchParams.get('status') || 'active'
+  const localeParam = searchParams.get('locale') ?? DEFAULT_LOCALE
+  const locale = SUPPORTED_LOCALES.includes(localeParam as typeof SUPPORTED_LOCALES[number])
+    ? localeParam as typeof SUPPORTED_LOCALES[number]
+    : DEFAULT_LOCALE
   const offset = Number.parseInt(searchParams.get('offset') || '0', 10)
   const clampedOffset = Number.isNaN(offset) ? 0 : Math.max(0, offset)
 
@@ -27,6 +32,7 @@ export async function GET(request: Request) {
       bookmarked,
       status,
       offset: clampedOffset,
+      locale,
     })
 
     if (error) {

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
@@ -27,6 +28,7 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/event/[s
 export default async function EventMarketPage({ params }: PageProps<'/[locale]/event/[slug]/[market]'>) {
   const { locale, slug, market } = await params
   setRequestLocale(locale)
+  const resolvedLocale = locale as SupportedLocale
   if (slug === STATIC_PARAMS_PLACEHOLDER || market === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
@@ -39,7 +41,7 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
   const marketContextEnabled = marketContextSettings.enabled && Boolean(marketContextSettings.apiKey)
 
   const [eventResult, changeLogResult] = await Promise.all([
-    EventRepository.getEventBySlug(slug, user?.id ?? ''),
+    EventRepository.getEventBySlug(slug, user?.id ?? '', resolvedLocale),
     EventRepository.getEventConditionChangeLogBySlug(slug),
   ])
 

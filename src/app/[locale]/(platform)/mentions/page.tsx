@@ -1,8 +1,11 @@
 'use cache'
 
 import type { Metadata } from 'next'
+import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
+import { cacheTag } from 'next/cache'
 import MentionsList from '@/app/[locale]/(platform)/mentions/_components/MentionsList'
+import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 
 export const metadata: Metadata = {
@@ -12,9 +15,12 @@ export const metadata: Metadata = {
 export default async function MentionsPage({ params }: PageProps<'/[locale]/mentions'>) {
   const { locale } = await params
   setRequestLocale(locale)
+  cacheTag(cacheTags.eventsGlobal)
+  const resolvedLocale = locale as SupportedLocale
 
   const { data, error } = await EventRepository.listEvents({
     tag: 'mentions',
+    locale: resolvedLocale,
   })
 
   const content = (

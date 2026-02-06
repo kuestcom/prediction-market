@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
-import { ArrowUpDownIcon } from 'lucide-react'
+import { ArrowUpDownIcon, LanguagesIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -9,6 +9,7 @@ interface CategoryColumnOptions {
   onToggleMain: (category: AdminCategoryRow, nextValue: boolean) => void
   onToggleHidden: (category: AdminCategoryRow, nextValue: boolean) => void
   onToggleHideEvents: (category: AdminCategoryRow, nextValue: boolean) => void
+  onOpenTranslations: (category: AdminCategoryRow) => void
   isUpdatingMain: (categoryId: number) => boolean
   isUpdatingHidden: (categoryId: number) => boolean
   isUpdatingHideEvents: (categoryId: number) => boolean
@@ -18,6 +19,7 @@ export function createCategoryColumns({
   onToggleMain,
   onToggleHidden,
   onToggleHideEvents,
+  onOpenTranslations,
   isUpdatingMain,
   isUpdatingHidden,
   isUpdatingHideEvents,
@@ -189,6 +191,37 @@ export function createCategoryColumns({
         )
       },
       enableSorting: false,
+    },
+    {
+      id: 'translations',
+      header: () => (
+        <div className="text-center text-xs font-medium text-muted-foreground uppercase">
+          Translations
+        </div>
+      ),
+      cell: ({ row }) => {
+        const category = row.original
+        return (
+          <div className="text-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => onOpenTranslations(category)}
+            >
+              <LanguagesIcon className="size-4" />
+              <span className="sr-only">
+                Open translations for
+                {' '}
+                {category.name}
+              </span>
+            </Button>
+          </div>
+        )
+      },
+      enableSorting: false,
+      enableHiding: false,
     },
   ]
 }

@@ -4,6 +4,7 @@ import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterPro
 import type { Event } from '@/types'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
+import { useLocale } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import EventCard from '@/app/[locale]/(platform)/(home)/_components/EventCard'
 import EventCardSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventCardSkeleton'
@@ -27,9 +28,11 @@ const EMPTY_EVENTS: Event[] = []
 async function fetchEvents({
   pageParam = 0,
   filters,
+  locale,
 }: {
   pageParam: number
   filters: FilterState
+  locale: string
 }): Promise<Event[]> {
   const params = new URLSearchParams({
     tag: filters.tag,
@@ -37,6 +40,7 @@ async function fetchEvents({
     bookmarked: filters.bookmarked.toString(),
     status: filters.status,
     offset: pageParam.toString(),
+    locale,
   })
   if (filters.hideSports) {
     params.set('hideSports', 'true')
@@ -58,6 +62,7 @@ export default function EventsGrid({
   filters,
   initialEvents = EMPTY_EVENTS,
 }: EventsGridProps) {
+  const locale = useLocale()
   const parentRef = useRef<HTMLDivElement | null>(null)
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
@@ -89,11 +94,13 @@ export default function EventsGrid({
       filters.hideSports,
       filters.hideCrypto,
       filters.hideEarnings,
+      locale,
       userCacheKey,
     ],
     queryFn: ({ pageParam }) => fetchEvents({
       pageParam,
       filters,
+      locale,
     }),
     getNextPageParam: (lastPage, allPages) => lastPage.length > 0 ? allPages.length * PAGE_SIZE : undefined,
     initialPageParam: 0,

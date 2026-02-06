@@ -118,12 +118,12 @@ export default function EventRelated({ event }: EventRelatedProps) {
           continue
         }
 
-        const tagLabel = tag.name?.trim()
-        if (tagLabel === 'Hide From New') {
+        if (tag.slug === 'hide-from-new') {
           continue
         }
 
-        uniqueTags.set(tag.slug, tagLabel ?? tag.slug)
+        const label = tag.name?.trim() || tag.slug
+        uniqueTags.set(tag.slug, label)
       }
     }
 
