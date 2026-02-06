@@ -58,28 +58,27 @@ interface MainTagsResult {
 
 export const TagRepository = {
   async getMainTags(): Promise<MainTagsResult> {
-    const mainTagsQuery = db
-      .select({
-        id: tags.id,
-        name: tags.name,
-        slug: tags.slug,
-        is_main_category: tags.is_main_category,
-        is_hidden: tags.is_hidden,
-        display_order: tags.display_order,
-        parent_tag_id: tags.parent_tag_id,
-        active_markets_count: tags.active_markets_count,
-        created_at: tags.created_at,
-        updated_at: tags.updated_at,
-      })
-      .from(tags)
-      .where(and(
-        eq(tags.is_main_category, true),
-        eq(tags.is_hidden, false),
-      ))
-      .orderBy(asc(tags.display_order), asc(tags.name))
-
     const { data: mainTagsResult, error } = await runQuery(async () => {
-      const result = await mainTagsQuery
+      const result = await db
+        .select({
+          id: tags.id,
+          name: tags.name,
+          slug: tags.slug,
+          is_main_category: tags.is_main_category,
+          is_hidden: tags.is_hidden,
+          display_order: tags.display_order,
+          parent_tag_id: tags.parent_tag_id,
+          active_markets_count: tags.active_markets_count,
+          created_at: tags.created_at,
+          updated_at: tags.updated_at,
+        })
+        .from(tags)
+        .where(and(
+          eq(tags.is_main_category, true),
+          eq(tags.is_hidden, false),
+        ))
+        .orderBy(asc(tags.display_order), asc(tags.name))
+
       return { data: result, error: null }
     })
 
@@ -91,25 +90,24 @@ export const TagRepository = {
     const mainVisibleTags = mainTagsResult
     const mainSlugs = mainVisibleTags.map(tag => tag.slug)
 
-    const subcategoriesQuery = db
-      .select({
-        main_tag_id: v_main_tag_subcategories.main_tag_id,
-        main_tag_slug: v_main_tag_subcategories.main_tag_slug,
-        main_tag_name: v_main_tag_subcategories.main_tag_name,
-        main_tag_is_hidden: v_main_tag_subcategories.main_tag_is_hidden,
-        sub_tag_id: v_main_tag_subcategories.sub_tag_id,
-        sub_tag_name: v_main_tag_subcategories.sub_tag_name,
-        sub_tag_slug: v_main_tag_subcategories.sub_tag_slug,
-        sub_tag_is_main_category: v_main_tag_subcategories.sub_tag_is_main_category,
-        sub_tag_is_hidden: v_main_tag_subcategories.sub_tag_is_hidden,
-        active_markets_count: v_main_tag_subcategories.active_markets_count,
-        last_market_activity_at: v_main_tag_subcategories.last_market_activity_at,
-      })
-      .from(v_main_tag_subcategories)
-      .where(inArray(v_main_tag_subcategories.main_tag_slug, mainSlugs))
-
     const { data: subcategoriesResult, error: viewError } = await runQuery(async () => {
-      const result = await subcategoriesQuery
+      const result = await db
+        .select({
+          main_tag_id: v_main_tag_subcategories.main_tag_id,
+          main_tag_slug: v_main_tag_subcategories.main_tag_slug,
+          main_tag_name: v_main_tag_subcategories.main_tag_name,
+          main_tag_is_hidden: v_main_tag_subcategories.main_tag_is_hidden,
+          sub_tag_id: v_main_tag_subcategories.sub_tag_id,
+          sub_tag_name: v_main_tag_subcategories.sub_tag_name,
+          sub_tag_slug: v_main_tag_subcategories.sub_tag_slug,
+          sub_tag_is_main_category: v_main_tag_subcategories.sub_tag_is_main_category,
+          sub_tag_is_hidden: v_main_tag_subcategories.sub_tag_is_hidden,
+          active_markets_count: v_main_tag_subcategories.active_markets_count,
+          last_market_activity_at: v_main_tag_subcategories.last_market_activity_at,
+        })
+        .from(v_main_tag_subcategories)
+        .where(inArray(v_main_tag_subcategories.main_tag_slug, mainSlugs))
+
       return { data: result, error: null }
     })
 
