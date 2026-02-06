@@ -28,14 +28,18 @@
 - Full web UI plus bot-ready APIs and SDKs (Python/Rust). No backend infrastructure to manage.
 
 <p>
-  <img src="https://github.com/user-attachments/assets/295d3cbe-d361-4205-991e-a9f855fa8c0e" height="52" alt="Polymarket" />
-  <img src="https://github.com/user-attachments/assets/ec0dbc79-33aa-4367-b292-aae7fbfc4490" height="52" alt="Kalshi (soon)" />
+
 </p>
 
 > [!TIP]
-> ### Want your own Polymarket-style prediction market?
+> <img src="https://github.com/user-attachments/assets/295d3cbe-d361-4205-991e-a9f855fa8c0e" height="52" alt="Polymarket" />
+> <img src="https://github.com/user-attachments/assets/49e860b0-8b12-460a-aa1d-e76c9c08be9b" height="52" alt="Polymarket" />
+> <img src="https://github.com/user-attachments/assets/ec0dbc79-33aa-4367-b292-aae7fbfc4490" height="52" alt="Kalshi (soon)" />
 >
-> Launch quickly with your own brand, rules, and fee configuration. Arbitrage flows are live (Kalshi connector soon) and [bot SDKs](https://github.com/kuestcom) are ready today.
+> ### Want your own Polymarket-style prediction market?
+> Launch quickly with your own brand, rules, and fee configuration.
+>
+> Automated test trading is already available on Polygon Amoy via our [bot SDKs](https://github.com/kuestcom), and the Kalshi arbitrage connector is coming soon.
 
 ## Core Web3 Stack
 
@@ -59,15 +63,13 @@
 > **Get Started Now!**
 > Follow these simple steps to launch your own prediction market:
 > <p>
->   <img src="https://github.com/user-attachments/assets/5386379f-7b96-4826-9d4e-1b7883bedf8e" height="42" alt="Vercel" />
->   <img src="https://github.com/user-attachments/assets/364a3525-7102-4a20-b096-12eb5337a62b" height="42" alt="Next.js" />
->   <img src="https://github.com/user-attachments/assets/88cc61ff-e068-46a4-b197-0c7b7d421bb3" height="42" alt="TypeScript" />
->   <img src="https://github.com/user-attachments/assets/d1c1f2a5-d6f8-44cb-ae47-262b1ecb195f" height="42" alt="Supabase" />
+>   <img src="https://github.com/user-attachments/assets/364a3525-7102-4a20-b096-12eb5337a62b" height="38" alt="Next.js" />
+>   <img src="https://github.com/user-attachments/assets/88cc61ff-e068-46a4-b197-0c7b7d421bb3" height="38" alt="TypeScript" />
 > </p>
 >
 > ### 1. Fork the Repository
-> 1. In the top right corner, click the [**⭐ Star**] button
-> 2. From the same menu, click [**Fork**]
+> 1. In the top right corner, click the **[⭐ Star]** button
+> 2. From the same menu, click **[Fork]**
 >
 > ### 2. Configure Environment Variables before Deploy
 > 1. Download `.env.example` from this repository
@@ -78,6 +80,8 @@
 >    - **CRON_SECRET**: Create a random secret of at least 16 characters
 >
 > ### 3. Create a New Project on Vercel
+> <img src="https://github.com/user-attachments/assets/5386379f-7b96-4826-9d4e-1b7883bedf8e" height="38" alt="Vercel" />
+>
 > 1. Go to [Vercel](https://vercel.com) dashboard
 > 2. Select **Add New** → **Project**
 > 3. Connect your **GitHub account**
@@ -87,7 +91,9 @@
 > 7. Select your edited `.env.example`
 > 8. Click **Deploy**
 >
-> ### 4. Create Database (Supabase)
+> ### 4. Create Supabase Database on Vercel
+> <img src="https://github.com/user-attachments/assets/d1c1f2a5-d6f8-44cb-ae47-262b1ecb195f" height="38" alt="Supabase" />
+>
 > 1. Open your Vercel project
 > 2. Go to **Storage**
 > 3. Create **Supabase** with default settings
@@ -96,7 +102,7 @@
 > ### 5. Redeploy your project
 > 1. Open **Deployments**
 > 2. Click **Redeploy** on the latest deployment
-> 3. Optional: add your domain in **Settings** → **Domains**
+> 3. Optional: wait 15 minutes, then add your custom domain in **Settings** → **Domains**
 > ### 6. Sync Your Fork (via GitHub Actions)
 > In your forked Kuest repository:
 > 1. Go to **Settings** → **Actions** → **General**
@@ -161,3 +167,8 @@
 ---
 
 License: [Kuest MIT+Commons](LICENSE).
+
+> [!IMPORTANT]
+> Forks are welcome for branding, frontend changes, and custom UX.
+> Production deployments must use Kuest infrastructure.
+> Running an independent trading stack or hosted fork requires a separate [commercial agreement](mailto:hello@kuest.com).
