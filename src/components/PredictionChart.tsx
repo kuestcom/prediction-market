@@ -144,6 +144,8 @@ export function PredictionChart({
   showLegend = true,
   yAxis,
   tooltipValueFormatter,
+  tooltipDatePlacement,
+  tooltipHeader,
   watermark,
 }: PredictionChartProps): ReactElement {
   const [data, setData] = useState<DataPoint[]>([])
@@ -1427,6 +1429,8 @@ export function PredictionChart({
           innerWidth={innerWidth}
           clampedTooltipX={clampedTooltipX}
           valueFormatter={tooltipValueFormatter}
+          datePlacement={tooltipDatePlacement}
+          header={tooltipHeader}
         />
       </div>
     </div>

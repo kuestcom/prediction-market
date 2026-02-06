@@ -17,6 +17,13 @@ interface PredictionChartTooltipOverlayProps {
   innerWidth: number
   clampedTooltipX: number
   valueFormatter?: (value: number) => string
+  datePlacement?: 'above' | 'inside'
+  header?: {
+    iconSrc: string
+    iconAlt?: string
+    color?: string
+    valueFormatter?: (value: number) => string
+  }
 }
 
 export default function PredictionChartTooltipOverlay({
@@ -27,6 +34,8 @@ export default function PredictionChartTooltipOverlay({
   innerWidth,
   clampedTooltipX,
   valueFormatter,
+  datePlacement = 'above',
+  header,
 }: PredictionChartTooltipOverlayProps) {
   if (!tooltipActive || !tooltipData || positionedTooltipEntries.length === 0) {
     return null
@@ -60,6 +69,14 @@ export default function PredictionChartTooltipOverlay({
   const anchorRight = `calc(${pointerPercent}% + ${anchorOffset}px)`
   const anchorLeft = `calc(${pointerPercent}% - ${anchorOffset}px)`
 
+  const headerEntry = positionedTooltipEntries[0]
+  const headerValue = typeof headerEntry?.value === 'number' && Number.isFinite(headerEntry.value)
+    ? headerEntry.value
+    : null
+  const headerText = headerValue !== null
+    ? (header?.valueFormatter ? header.valueFormatter(headerValue) : formatValue(headerValue))
+    : null
+
   const dateLabelStyle = (() => {
     const placeRight = placeRightByRatio
 
@@ -68,6 +85,24 @@ export default function PredictionChartTooltipOverlay({
       transform: placeRight ? 'translateX(0)' : 'translateX(-100%)',
     }
   })()
+
+  const headerStyle = (() => {
+    const placeRight = placeRightByRatio
+
+    return {
+      left: placeRight ? anchorRight : anchorLeft,
+      transform: placeRight ? 'translateX(0)' : 'translateX(-100%)',
+    }
+  })()
+
+  const headerTop = margin.top + 4
+  const dateTop = headerTop + 18
+  const dateLabelTop = datePlacement === 'inside'
+    ? dateTop
+    : Math.max(0, margin.top - 36)
+  const dateLabelClassName = datePlacement === 'inside'
+    ? 'text-[11px] font-medium text-muted-foreground'
+    : 'text-xs font-medium text-muted-foreground'
 
   const tooltipLabelPosition = (() => {
     const placeRight = placeRightByRatio
@@ -80,10 +115,30 @@ export default function PredictionChartTooltipOverlay({
 
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
+      {header && headerText && (
+        <div
+          className="absolute flex items-center gap-1 text-[12px] font-semibold"
+          style={{
+            top: headerTop,
+            left: headerStyle.left,
+            transform: headerStyle.transform,
+            color: header.color ?? 'currentColor',
+          }}
+        >
+          <img
+            src={header.iconSrc}
+            alt={header.iconAlt ?? ''}
+            className="inline-block size-4"
+          />
+          <span className="tabular-nums">
+            {headerText}
+          </span>
+        </div>
+      )}
       <div
-        className="absolute text-xs font-medium text-muted-foreground"
+        className={`absolute ${dateLabelClassName}`}
         style={{
-          top: Math.max(0, margin.top - 36),
+          top: dateLabelTop,
           left: dateLabelStyle.left,
           maxWidth: '180px',
           whiteSpace: 'nowrap',

@@ -490,6 +490,13 @@ export default function EventLiveBtcChart({ event, isMobile }: EventLiveBtcChart
                   margin={CHART_MARGIN}
                   dataSignature="btc-live-15m"
                   cursorStepMs={1000}
+                  tooltipDatePlacement="inside"
+                  tooltipHeader={{
+                    iconSrc: '/images/deposit/crypto/btc.svg',
+                    iconAlt: 'BTC',
+                    color: '#FF9900',
+                    valueFormatter: value => formatUsd(value, 2),
+                  }}
                   xAxisTickFormatter={date => date.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',

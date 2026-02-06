@@ -43,6 +43,13 @@ export interface PredictionChartProps {
     tickFormat?: (value: number) => string
   }
   tooltipValueFormatter?: (value: number) => string
+  tooltipDatePlacement?: 'above' | 'inside'
+  tooltipHeader?: {
+    iconSrc: string
+    iconAlt?: string
+    color?: string
+    valueFormatter?: (value: number) => string
+  }
   watermark?: {
     iconSvg?: string | null
     label?: string | null
