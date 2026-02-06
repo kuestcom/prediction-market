@@ -205,7 +205,7 @@ function buildAxis(values: number[]) {
 
 export function shouldUseLiveBtcChart(event: Event) {
   const has15mTag = (event.tags ?? []).some(tag =>
-    (tag.label ?? tag.slug ?? '').toLowerCase() === '15m',
+    (tag.name ?? tag.slug ?? '').toLowerCase() === '15m',
   )
   return has15mTag
 }
