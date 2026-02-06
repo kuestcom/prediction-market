@@ -69,42 +69,41 @@
 > 1. In the top right corner, click the [**⭐ Star**] button
 > 2. From the same menu, click [**Fork**]
 >
-> ### 2. Create a New Project on Vercel
-> 1. Go to [Vercel](https://vercel.com) dashboard
-> 2. Select **Add New** → **Project**
-> 3. Connect your **GitHub account**
-> 4. Import and Deploy your **forked repository**
->
-> *Note:* The site will be in a limited state (and some pages may error) until you complete Steps 3–5 and redeploy.
-> ### 3. Create Database (Supabase)
-> 1. Go to your project dashboard
-> 2. Navigate to the **Storage** tab
-> 3. Find **Supabase** in the database list and click **Create**
-> 4. Keep all default settings and click **Create** in the final step
-> 5. Once ready, click the **Connect Project** button to link to your project
-> ### 4. Configure Your Environment
-> 1. **Download** the `.env.example` file from this repository
+> ### 2. Configure Environment Variables before Deploy
+> 1. Download `.env.example` from this repository
 > 2. **Edit** it with your configuration:
 >    - **Kuest CLOB Ordersbook**: Connect your wallet at [auth.kuest.com](https://auth.kuest.com), sign to verify ownership, and copy the API key, secret, and passphrase
 >    - **Reown AppKit**: Get Project ID at [dashboard.reown.com](https://dashboard.reown.com)
 >    - **Better Auth**: Generate secret at [better-auth.com](https://www.better-auth.com/docs/installation#set-environment-variables)
 >    - **CRON_SECRET**: Create a random secret of at least 16 characters
-> 3. Go to your Vercel project dashboard
-> 4. Navigate to **Settings** → **Environment Variables**
-> 5. Click **"Import .env"** button
-> 6. Select your edited `.env.example` file
-> ### 5. Redeploy your project
-> Go to **Deployments** in your Vercel project and click **Redeploy**.
-> This run applies the database migrations and enables all features.
 >
-> Optionally, wait 15 minutes after deployment, then add your custom domain in **Settings** → **Domains** on your project dashboard.
+> ### 3. Create a New Project on Vercel
+> 1. Go to [Vercel](https://vercel.com) dashboard
+> 2. Select **Add New** → **Project**
+> 3. Connect your **GitHub account**
+> 4. Click **Import** on your forked repository
+> 5. In the import modal, open **Environment Variables**
+> 6. Click **Import .env**
+> 7. Select your edited `.env.example`
+> 8. Click **Deploy**
+>
+> ### 4. Create Database (Supabase)
+> 1. Open your Vercel project
+> 2. Go to **Storage**
+> 3. Create **Supabase** with default settings
+> 4. Click **Connect Project**
+>
+> ### 5. Redeploy your project
+> 1. Open **Deployments**
+> 2. Click **Redeploy** on the latest deployment
+> 3. Optional: add your domain in **Settings** → **Domains**
 > ### 6. Sync Your Fork (via GitHub Actions)
 > In your forked Kuest repository:
 > 1. Go to **Settings** → **Actions** → **General**
 > 2. Select **"Allow all actions and reusable workflows"**
-> 3. Click **Save** - This enables automatic sync with the main repository
+> 3. Click **Save**
 
-**Ready! 🎉** Your prediction market will be online with automatic database setup in a few minutes.
+**Ready! 🎉** Your prediction market will be online.
 
 ---
 

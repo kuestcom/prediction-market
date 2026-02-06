@@ -1,8 +1,9 @@
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './db/schema'
 
-type DrizzleDb = ReturnType<typeof drizzle>
+type DrizzleDb = PostgresJsDatabase<typeof schema>
 
 const globalForDb = globalThis as unknown as {
   client: postgres.Sql | undefined
