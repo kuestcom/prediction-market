@@ -16,6 +16,7 @@ interface PredictionChartTooltipOverlayProps {
   margin: { top: number, right: number, bottom: number, left: number }
   innerWidth: number
   clampedTooltipX: number
+  valueFormatter?: (value: number) => string
 }
 
 export default function PredictionChartTooltipOverlay({
@@ -25,10 +26,13 @@ export default function PredictionChartTooltipOverlay({
   margin,
   innerWidth,
   clampedTooltipX,
+  valueFormatter,
 }: PredictionChartTooltipOverlayProps) {
   if (!tooltipActive || !tooltipData || positionedTooltipEntries.length === 0) {
     return null
   }
+
+  const formatValue = valueFormatter ?? (value => `${value.toFixed(0)}%`)
 
   const rawDateLabel = tooltipData.date.toLocaleString('en-US', {
     month: 'short',
@@ -110,8 +114,7 @@ export default function PredictionChartTooltipOverlay({
             {entry.name}
           </span>
           <span className="tabular-nums">
-            {entry.value.toFixed(0)}
-            %
+            {formatValue(entry.value)}
           </span>
         </div>
       ))}

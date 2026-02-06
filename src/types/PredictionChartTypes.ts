@@ -26,6 +26,7 @@ export interface PredictionChartProps {
   onCursorDataChange?: (snapshot: PredictionChartCursorSnapshot | null) => void
   cursorStepMs?: number
   xAxisTickCount?: number
+  xAxisTickFormatter?: (value: Date) => string
   autoscale?: boolean
   showXAxis?: boolean
   showYAxis?: boolean
@@ -35,6 +36,13 @@ export interface PredictionChartProps {
   leadingGapStart?: Date | null
   legendContent?: ReactNode
   showLegend?: boolean
+  yAxis?: {
+    min?: number
+    max?: number
+    ticks?: number[]
+    tickFormat?: (value: number) => string
+  }
+  tooltipValueFormatter?: (value: number) => string
   watermark?: {
     iconSvg?: string | null
     label?: string | null

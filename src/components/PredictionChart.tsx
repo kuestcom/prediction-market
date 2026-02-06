@@ -132,6 +132,7 @@ export function PredictionChart({
   onCursorDataChange,
   cursorStepMs,
   xAxisTickCount = DEFAULT_X_AXIS_TICKS,
+  xAxisTickFormatter,
   autoscale = true,
   showXAxis = true,
   showYAxis = true,
@@ -141,6 +142,8 @@ export function PredictionChart({
   leadingGapStart = null,
   legendContent,
   showLegend = true,
+  yAxis,
+  tooltipValueFormatter,
   watermark,
 }: PredictionChartProps): ReactElement {
   const [data, setData] = useState<DataPoint[]>([])
@@ -222,7 +225,7 @@ export function PredictionChart({
   }, [margin.top, margin.left, margin.right, margin.bottom, showXAxis, showYAxis])
   const plotHeight = Math.max(1, height - resolvedMargin.top - resolvedMargin.bottom)
   const yAxisMinTicks = Math.max(4, Math.min(7, Math.round(plotHeight / 40)))
-  const { min: yAxisMin, max: yAxisMax, ticks: yAxisTicks } = useMemo(() => {
+  const { min: defaultYAxisMin, max: defaultYAxisMax, ticks: defaultYAxisTicks } = useMemo(() => {
     if (!autoscale) {
       return {
         min: 0,
@@ -232,6 +235,15 @@ export function PredictionChart({
     }
     return calculateYAxisBounds(data, series, yAxisMinTicks)
   }, [autoscale, data, series, yAxisMinTicks])
+  const yAxisMin = typeof yAxis?.min === 'number' && Number.isFinite(yAxis.min)
+    ? yAxis.min
+    : defaultYAxisMin
+  const yAxisMax = typeof yAxis?.max === 'number' && Number.isFinite(yAxis.max)
+    ? yAxis.max
+    : defaultYAxisMax
+  const formatYAxisTick = yAxis?.tickFormat ?? (value => `${value}%`)
+  const hasCustomDomain = (typeof yAxis?.min === 'number' && Number.isFinite(yAxis.min))
+    || (typeof yAxis?.max === 'number' && Number.isFinite(yAxis.max))
   const domainBounds = useMemo(() => {
     if (!data.length) {
       return { start: 0, end: 0 }
@@ -809,6 +821,11 @@ export function PredictionChart({
     domain: [yAxisMin, yAxisMax],
     nice: true,
   })
+  const resolvedYAxisTicks = Array.isArray(yAxis?.ticks)
+    ? yAxis.ticks
+    : hasCustomDomain
+      ? yScale.ticks(yAxisMinTicks)
+      : defaultYAxisTicks
 
   const clampedTooltipX = tooltipActive
     ? Math.max(0, Math.min(tooltipLeft as number, innerWidth))
@@ -870,6 +887,10 @@ export function PredictionChart({
   function formatAxisTick(value: number | { valueOf: () => number }) {
     const numericValue = typeof value === 'number' ? value : value.valueOf()
     const date = new Date(numericValue)
+
+    if (xAxisTickFormatter) {
+      return xAxisTickFormatter(date)
+    }
 
     if (totalDurationHours <= 48) {
       return date.toLocaleTimeString('en-US', {
@@ -1047,7 +1068,7 @@ export function PredictionChart({
               )
             })}
 
-            {showHorizontalGrid && yAxisTicks.map(value => (
+            {showHorizontalGrid && resolvedYAxisTicks.map(value => (
               <line
                 key={`grid-${value}`}
                 x1={0}
@@ -1306,8 +1327,8 @@ export function PredictionChart({
               <AxisRight
                 left={innerWidth}
                 scale={yScale}
-                tickFormat={value => `${value}%`}
-                tickValues={yAxisTicks}
+                tickFormat={formatYAxisTick}
+                tickValues={resolvedYAxisTicks}
                 stroke="transparent"
                 tickStroke="transparent"
                 tickLabelProps={{
@@ -1405,6 +1426,7 @@ export function PredictionChart({
           margin={resolvedMargin}
           innerWidth={innerWidth}
           clampedTooltipX={clampedTooltipX}
+          valueFormatter={tooltipValueFormatter}
         />
       </div>
     </div>

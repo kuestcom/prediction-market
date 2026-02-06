@@ -189,7 +189,7 @@ function buildCombinedOutcomeHistory(
   return { points, latestSnapshot }
 }
 
-function EventChartComponent({ event, isMobile }: EventChartProps) {
+function EventChartComponent({ event, isMobile, showControls = true }: EventChartProps) {
   const isSingleMarket = useIsSingleMarket()
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const shouldHideChart = !isSingleMarket && !isNegRiskEnabled
@@ -831,35 +831,37 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
               : null}
           </div>
         )}
-        controls={(
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <EventMetaInformation event={event} />
-            {hasChartData
-              ? (
-                  <EventChartControls
-                    timeRanges={TIME_RANGES}
-                    activeTimeRange={activeTimeRange}
-                    onTimeRangeChange={setActiveTimeRange}
-                    showOutcomeSwitch={isSingleMarket}
-                    oppositeOutcomeLabel={oppositeOutcomeLabel}
-                    onShuffle={() => {
-                      setActiveOutcomeIndex(oppositeOutcomeIndex)
-                      setCursorSnapshot(null)
-                    }}
-                    showMarketSelector={!isSingleMarket}
-                    marketOptions={marketOptions}
-                    selectedMarketIds={selectedMarketIds}
-                    maxSeriesCount={maxSeriesCount}
-                    onToggleMarket={handleToggleMarket}
-                    settings={chartSettings}
-                    onSettingsChange={setChartSettings}
-                    onExportData={() => setExportDialogOpen(true)}
-                    onEmbed={() => setEmbedDialogOpen(true)}
-                  />
-                )
-              : null}
-          </div>
-        )}
+        controls={showControls
+          ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <EventMetaInformation event={event} />
+                {hasChartData
+                  ? (
+                      <EventChartControls
+                        timeRanges={TIME_RANGES}
+                        activeTimeRange={activeTimeRange}
+                        onTimeRangeChange={setActiveTimeRange}
+                        showOutcomeSwitch={isSingleMarket}
+                        oppositeOutcomeLabel={oppositeOutcomeLabel}
+                        onShuffle={() => {
+                          setActiveOutcomeIndex(oppositeOutcomeIndex)
+                          setCursorSnapshot(null)
+                        }}
+                        showMarketSelector={!isSingleMarket}
+                        marketOptions={marketOptions}
+                        selectedMarketIds={selectedMarketIds}
+                        maxSeriesCount={maxSeriesCount}
+                        onToggleMarket={handleToggleMarket}
+                        settings={chartSettings}
+                        onSettingsChange={setChartSettings}
+                        onExportData={() => setExportDialogOpen(true)}
+                        onEmbed={() => setEmbedDialogOpen(true)}
+                      />
+                    )
+                  : null}
+              </div>
+            )
+          : null}
       />
       <EventChartExportDialog
         open={exportDialogOpen}
@@ -886,6 +888,9 @@ function areChartPropsEqual(prev: EventChartProps, next: EventChartProps) {
     return false
   }
   if (prev.event.updated_at !== next.event.updated_at) {
+    return false
+  }
+  if ((prev.showControls ?? true) !== (next.showControls ?? true)) {
     return false
   }
 

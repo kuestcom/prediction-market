@@ -25,6 +25,7 @@ import { formatAmountInputValue } from '@/lib/formatters'
 import { useOrder, useSyncLimitPriceWithOutcome } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
 import EventChart from './EventChart'
+import EventLiveBtcChart, { shouldUseLiveBtcChart } from './EventLiveBtcChart'
 import EventMarketHistory from './EventMarketHistory'
 import EventMarketOpenOrders from './EventMarketOpenOrders'
 import EventMarketPositions from './EventMarketPositions'
@@ -279,7 +280,9 @@ export default function EventContent({
           <EventHeader event={event} />
 
           <div className={shouldHideChart ? 'w-full' : 'min-h-96 w-full'}>
-            <EventChart event={event} isMobile={isMobile} />
+            {shouldUseLiveBtcChart(event)
+              ? <EventLiveBtcChart event={event} isMobile={isMobile} />
+              : <EventChart event={event} isMobile={isMobile} />}
           </div>
 
           <div className="grid gap-6">
