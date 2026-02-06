@@ -1,3 +1,5 @@
+'use cache'
+
 import type { Metadata } from 'next'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import ActivityFeed from '@/app/[locale]/(platform)/activity/_components/ActivityFeed'
@@ -18,7 +20,7 @@ export default async function ActivityPage({ params }: PageProps<'/[locale]/acti
   setRequestLocale(locale)
 
   return (
-    <main className="container py-8 md:py-12">
+    <main className="container py-6 md:py-8">
       <ActivityFeed />
     </main>
   )

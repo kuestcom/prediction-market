@@ -8,7 +8,6 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   buildLeaderboardPath,
   CATEGORY_OPTIONS,
-
   ORDER_OPTIONS,
   PERIOD_OPTIONS,
   resolveCategoryApiValue,
@@ -49,13 +48,13 @@ interface BiggestWinEntry {
   [key: string]: unknown
 }
 
-const DATA_API_URL = process.env.DATA_URL ?? 'https://data-api.kuest.com'
+const DATA_API_URL = process.env.DATA_URL!
 const LEADERBOARD_API_URL = DATA_API_URL.endsWith('/v1') ? DATA_API_URL : `${DATA_API_URL}/v1`
 const PAGE_SIZE = 20
 const BIGGEST_WINS_CACHE = new Map<string, BiggestWinEntry[]>()
 const BIGGEST_WINS_IN_FLIGHT = new Map<string, Promise<BiggestWinEntry[]>>()
 
-function fetchBiggestWins(category: string, period: string) {
+async function fetchBiggestWins(category: string, period: string) {
   const params = new URLSearchParams({
     limit: '20',
     offset: '0',
@@ -63,16 +62,15 @@ function fetchBiggestWins(category: string, period: string) {
     timePeriod: period,
   })
 
-  return fetch(`${LEADERBOARD_API_URL}/biggest-winners?${params.toString()}`)
-    .then(async (response) => {
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => null)
-        throw new Error(errorBody?.error || 'Failed to load biggest winners.')
-      }
-      return response.json()
-    })
-    .then(result => normalizeBiggestWinsResponse(result))
+  const response = await fetch(`${LEADERBOARD_API_URL}/biggest-winners?${params.toString()}`)
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null)
+    throw new Error(errorBody?.error || 'Failed to load biggest winners.')
+  }
+  const result_2 = await response.json()
+  return normalizeBiggestWinsResponse(result_2)
 }
+
 const LIST_ROW_COLUMNS = 'grid-cols-[minmax(0,1fr)_7.5rem] md:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem]'
 
 function normalizeLeaderboardResponse(payload: unknown): LeaderboardEntry[] {
@@ -342,9 +340,8 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     `
       group relative z-0 grid w-full ${LIST_ROW_COLUMNS}
       min-h-[82px] items-center gap-4 py-5 pr-2 pl-3 text-sm
-      before:pointer-events-none before:absolute before:inset-y-0 before:-right-3 before:-left-3 before:-z-10
-      before:rounded-lg before:bg-black/5 before:opacity-0 before:transition-opacity before:duration-200
-      before:content-['']
+      before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-lg
+      before:bg-black/5 before:opacity-0 before:transition-opacity before:duration-200 before:content-['']
       hover:before:opacity-100
       dark:before:bg-white/5
     `,
@@ -361,7 +358,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     return cn(
       'relative inline-flex w-fit items-center',
       isActive
-      && 'after:absolute after:right-0 after:-bottom-[calc(0.875rem-1px)] after:left-0 after:h-px after:bg-foreground',
+      && 'after:absolute after:inset-x-0 after:-bottom-[calc(0.875rem-1px)] after:h-px after:bg-foreground',
     )
   }
 
@@ -444,8 +441,8 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     `
       relative z-0 grid w-full ${LIST_ROW_COLUMNS}
       min-h-[70px] items-center gap-4 py-4 pr-2 pl-3 text-sm shadow-sm
-      before:pointer-events-none before:absolute before:inset-y-0 before:-right-3 before:-left-3 before:-z-10
-      before:rounded-xl before:bg-muted before:content-['']
+      before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-xl
+      before:bg-muted before:content-['']
       dark:before:bg-muted
     `,
   )
@@ -462,7 +459,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
 
   function paginationChevronClass(isDisabled: boolean) {
     return cn(
-      'flex h-8 w-8 items-center justify-center text-muted-foreground transition-opacity',
+      'flex size-8 items-center justify-center text-muted-foreground transition-opacity',
       isDisabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:text-foreground',
     )
   }
@@ -515,7 +512,8 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
                   h-10 min-w-40 bg-transparent px-4 text-sm font-medium text-foreground
                   hover:bg-transparent
                   data-[size=default]:h-10
-                  dark:bg-transparent dark:hover:bg-transparent
+                  dark:bg-transparent
+                  dark:hover:bg-transparent
                 `}
                 >
                   <SelectValue asChild>
@@ -571,7 +569,8 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
                         h-7 border-0 bg-transparent px-0 text-sm font-medium text-muted-foreground shadow-none
                         hover:bg-transparent
                         data-[size=default]:h-7
-                        dark:bg-transparent dark:hover:bg-transparent
+                        dark:bg-transparent
+                        dark:hover:bg-transparent
                       `}
                     >
                       <SelectValue />
@@ -581,7 +580,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
                         <SelectItem
                           key={option.value}
                           value={option.value}
-                          className="py-3 text-sm data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
+                          className="py-3 text-sm data-highlighted:bg-muted data-highlighted:text-foreground"
                         >
                           {option.label}
                         </SelectItem>
@@ -615,10 +614,10 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
                 {isLoading && (
                   Array.from({ length: 10 }).map((_, index) => (
                     <div key={`leaderboard-skeleton-${index}`} className={rowClassName}>
-                      <div className="flex min-w-0 items-center gap-3">
-                        <Skeleton className="h-4 w-5 rounded-full" />
+                      <div className="flex min-w-0 items-center gap-5">
+                        <Skeleton className="h-4 w-3 rounded-full" />
                         <div className="flex min-w-0 items-center gap-2">
-                          <Skeleton className="size-8 rounded-full" />
+                          <Skeleton className="size-10 rounded-full" />
                           <Skeleton className="h-4 w-44 rounded-full" />
                         </div>
                       </div>
@@ -773,10 +772,10 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
 
         <aside className={`
           w-full overflow-hidden rounded-2xl border bg-background shadow-md
-          lg:sticky lg:top-[8.75rem] lg:h-fit lg:self-start
+          lg:sticky lg:top-35 lg:h-fit lg:self-start
         `}
         >
-          <div className="max-h-[38rem] min-h-[22rem] overflow-y-auto">
+          <div className="max-h-152 min-h-88 overflow-y-auto">
             <div className="sticky top-0 z-10 bg-background px-6 pt-6 pb-2">
               <h2 className="text-xl font-semibold text-foreground">
                 Biggest wins
