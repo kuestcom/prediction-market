@@ -147,13 +147,20 @@ async function createSyncVolumeCron(sql) {
   console.log('✅ Cron sync-volume created successfully')
 }
 
+function shouldSkip(requiredEnvVars) {
+  const missing = requiredEnvVars.filter(envVar => !process.env[envVar])
+  if (missing.length === 0) {
+    return false
+  }
+
+  console.log(`Skipping db:push because required env vars are missing: ${missing.join(', ')}`)
+  return true
+}
+
 async function run() {
   const requiredEnvVars = ['POSTGRES_URL', 'VERCEL_PROJECT_PRODUCTION_URL', 'CRON_SECRET']
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      console.error(`ERROR: Required environment variable ${envVar} is not set.`)
-      process.exit(1)
-    }
+  if (shouldSkip(requiredEnvVars)) {
+    return
   }
 
   const connectionString = process.env.POSTGRES_URL.replace('require', 'disable')

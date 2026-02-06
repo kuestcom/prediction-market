@@ -34,7 +34,7 @@
 
 > [!TIP]
 > ### Want your own Polymarket-style prediction market?
-> 
+>
 > Launch quickly with your own brand, rules, and fee configuration. Arbitrage flows are live (Kalshi connector soon) and [bot SDKs](https://github.com/kuestcom) are ready today.
 
 ## Core Web3 Stack
@@ -66,7 +66,7 @@
 > </p>
 >
 > ### 1. Fork the Repository
-> 1. In the top right corner, click the [**⭐ Star**] button  
+> 1. In the top right corner, click the [**⭐ Star**] button
 > 2. From the same menu, click [**Fork**]
 >
 > ### 2. Create a New Project on Vercel
@@ -75,8 +75,7 @@
 > 3. Connect your **GitHub account**
 > 4. Import and Deploy your **forked repository**
 >
-> *Note: The initial deployment may fail due to missing environment variables. This is expected.
-> Complete Step 3 (Supabase) and Step 4 (environment) first, then redeploy from your project dashboard.*
+> *Note:* The site will be in a limited state (and some pages may error) until you complete Steps 3–5 and redeploy.
 > ### 3. Create Database (Supabase)
 > 1. Go to your project dashboard
 > 2. Navigate to the **Storage** tab
@@ -95,6 +94,9 @@
 > 5. Click **"Import .env"** button
 > 6. Select your edited `.env.example` file
 > ### 5. Redeploy your project
+> Go to **Deployments** in your Vercel project and click **Redeploy**.
+> This run applies the database migrations and enables all features.
+>
 > Optionally, wait 15 minutes after deployment, then add your custom domain in **Settings** → **Domains** on your project dashboard.
 > ### 6. Sync Your Fork (via GitHub Actions)
 > In your forked Kuest repository:
