@@ -243,7 +243,11 @@ export function PredictionChart({
   const yAxisMax = typeof yAxis?.max === 'number' && Number.isFinite(yAxis.max)
     ? yAxis.max
     : defaultYAxisMax
-  const formatYAxisTick = yAxis?.tickFormat ?? (value => `${value}%`)
+  function formatYAxisTick(value: { valueOf: () => number } | number) {
+    const numericValue = typeof value === 'number' ? value : value.valueOf()
+    const formatter = yAxis?.tickFormat ?? (v => `${v}%`)
+    return formatter(numericValue)
+  }
   const hasCustomDomain = (typeof yAxis?.min === 'number' && Number.isFinite(yAxis.min))
     || (typeof yAxis?.max === 'number' && Number.isFinite(yAxis.max))
   const domainBounds = useMemo(() => {
