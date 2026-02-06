@@ -132,7 +132,7 @@ export default function ProfileLink({
       mixBlendMode: 'overlay',
       opacity: 0.9,
     }
-  }, [avatarSeed, hasCustomAvatar, resolvedAvatarSize])
+  }, [avatarSeed, hasCustomAvatar])
   const statsAddress = useMemo(
     () => user.proxy_wallet_address ?? user.address,
     [user.address, user.proxy_wallet_address],

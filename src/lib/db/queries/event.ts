@@ -407,13 +407,15 @@ async function buildEventResource(
     (market.condition?.outcomes ?? []).map((outcome: any) => outcome.token_id).filter(Boolean),
   )
 
-  const priceMap = await fetchOutcomePrices(outcomeTokenIds)
   const tagIds = Array.from(new Set(
     (eventResult.eventTags ?? [])
       .map(eventTag => eventTag.tag?.id)
       .filter((tagId): tagId is number => typeof tagId === 'number'),
   ))
-  const localizedTagNamesById = await getLocalizedTagNamesById(tagIds, locale)
+  const [priceMap, localizedTagNamesById] = await Promise.all([
+    fetchOutcomePrices(outcomeTokenIds),
+    getLocalizedTagNamesById(tagIds, locale),
+  ])
   return eventResource(eventResult, userId, priceMap, localizedTagNamesById)
 }
 
@@ -615,7 +617,6 @@ export const EventRepository = {
         ),
       )
 
-      const priceMap = await fetchOutcomePrices(tokensForPricing)
       const tagIds = Array.from(new Set(
         eventsData.flatMap(event =>
           (event.eventTags ?? [])
@@ -623,7 +624,10 @@ export const EventRepository = {
             .filter((tagId): tagId is number => typeof tagId === 'number'),
         ),
       ))
-      const localizedTagNamesById = await getLocalizedTagNamesById(tagIds, locale)
+      const [priceMap, localizedTagNamesById] = await Promise.all([
+        fetchOutcomePrices(tokensForPricing),
+        getLocalizedTagNamesById(tagIds, locale),
+      ])
 
       const eventsWithMarkets = eventsData
         .filter(event => event.markets?.length > 0)

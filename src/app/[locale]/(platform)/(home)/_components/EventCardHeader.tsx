@@ -73,7 +73,8 @@ export default function EventCardHeader({
                 `
                   flex size-6 items-center justify-center rounded-md text-slate-600 transition-colors
                   hover:bg-slate-200
-                  dark:text-slate-400 dark:hover:bg-slate-600
+                  dark:text-slate-400
+                  dark:hover:bg-slate-600
                 `
               }
             >

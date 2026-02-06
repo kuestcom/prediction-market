@@ -8,13 +8,15 @@ import { cacheTags } from '@/lib/cache-tags'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { UserRepository } from '@/lib/db/queries/user'
 
-const UpdateCategoryTranslationsInputSchema = z.object({
-  de: z.string().optional(),
-  es: z.string().optional(),
-  pt: z.string().optional(),
-  fr: z.string().optional(),
-  zh: z.string().optional(),
-})
+const updateCategoryTranslationsShape = NON_DEFAULT_LOCALES.reduce(
+  (shape, locale) => {
+    shape[locale] = z.string().optional()
+    return shape
+  },
+  {} as Record<NonDefaultLocale, z.ZodOptional<z.ZodString>>,
+)
+
+const UpdateCategoryTranslationsInputSchema = z.object(updateCategoryTranslationsShape)
 
 export interface UpdateCategoryTranslationsResult {
   success: boolean

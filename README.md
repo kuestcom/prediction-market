@@ -34,7 +34,7 @@
 
 > [!TIP]
 > ### Want your own Polymarket-style prediction market?
-> 
+>
 > Launch quickly with your own brand, rules, and fee configuration. Arbitrage flows are live (Kalshi connector soon) and [bot SDKs](https://github.com/kuestcom) are ready today.
 
 ## Core Web3 Stack
@@ -66,7 +66,7 @@
 > </p>
 >
 > ### 1. Fork the Repository
-> 1. In the top right corner, click the [**⭐ Star**] button  
+> 1. In the top right corner, click the [**⭐ Star**] button
 > 2. From the same menu, click [**Fork**]
 >
 > ### 2. Create a New Project on Vercel
