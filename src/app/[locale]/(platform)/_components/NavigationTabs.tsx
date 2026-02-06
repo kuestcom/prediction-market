@@ -1,13 +1,24 @@
 'use cache'
 
+import type { SupportedLocale } from '@/i18n/locales'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { cacheTag } from 'next/cache'
 import { Suspense } from 'react'
 import NavigationMoreMenu from '@/app/[locale]/(platform)/_components/NavigationMoreMenu'
 import NavigationTab from '@/app/[locale]/(platform)/_components/NavigationTab'
 import { Skeleton } from '@/components/ui/skeleton'
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
+import { cacheTags } from '@/lib/cache-tags'
 import { TagRepository } from '@/lib/db/queries/tag'
 
-export default async function NavigationTabs() {
-  const { data, globalChilds = [] } = await TagRepository.getMainTags()
+export default async function NavigationTabs({ locale }: { locale: string }) {
+  setRequestLocale(locale)
+  const t = await getExtracted()
+  const resolvedLocale = SUPPORTED_LOCALES.includes(locale as SupportedLocale)
+    ? locale as SupportedLocale
+    : DEFAULT_LOCALE
+  cacheTag(cacheTags.mainTags(resolvedLocale))
+  const { data, globalChilds = [] } = await TagRepository.getMainTags(resolvedLocale)
 
   const sharedChilds = globalChilds.map(child => ({ ...child }))
   const baseTags = (data ?? []).map(tag => ({
@@ -20,8 +31,8 @@ export default async function NavigationTabs() {
   ) as Record<string, string>
 
   const tags = [
-    { slug: 'trending', name: 'Trending', childs: sharedChilds },
-    { slug: 'new', name: 'New', childs: sharedChilds.map(child => ({ ...child })) },
+    { slug: 'trending', name: t('Trending'), childs: sharedChilds },
+    { slug: 'new', name: t('New'), childs: sharedChilds.map(child => ({ ...child })) },
     ...baseTags,
   ]
 

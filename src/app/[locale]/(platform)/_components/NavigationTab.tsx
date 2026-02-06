@@ -2,6 +2,7 @@
 
 import type { Route } from 'next'
 import { TrendingUpIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { Teleport } from '@/components/Teleport'
@@ -20,6 +21,7 @@ interface NavigationTabProps {
 }
 
 export default function NavigationTab({ tag, childParentMap, tabIndex }: NavigationTabProps) {
+  const t = useExtracted()
   const pathname = usePathname()
   const isHomePage = pathname === '/'
   const { filters, updateFilters } = useFilters()
@@ -48,10 +50,10 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
 
   const tagItems = useMemo(() => {
     return [
-      { slug: tag.slug, label: 'All' },
+      { slug: tag.slug, label: t('All') },
       ...tag.childs.map(child => ({ slug: child.slug, label: child.name })),
     ]
-  }, [tag.slug, tag.childs])
+  }, [tag.slug, tag.childs, t])
   const activeSubtagSlug = useMemo(
     () => (tagItems.some(item => item.slug === tagFromFilters) ? tagFromFilters : tag.slug),
     [tag.slug, tagFromFilters, tagItems],
@@ -419,7 +421,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
-                All
+                {t('All')}
               </Button>
 
               {tag.childs.map((subtag, index) => (

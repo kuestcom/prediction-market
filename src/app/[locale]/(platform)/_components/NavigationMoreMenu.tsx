@@ -1,6 +1,7 @@
 'use client'
 
 import { ActivityIcon, ChevronDownIcon, TrophyIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -8,6 +9,7 @@ import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
 export default function NavigationMoreMenu() {
+  const t = useExtracted()
   const [open, setOpen] = useState(false)
   const closeTimeoutRef = useRef<number | null>(null)
 
@@ -54,7 +56,7 @@ export default function NavigationMoreMenu() {
             open ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
           )}
         >
-          <span>More</span>
+          <span>{t('More')}</span>
           <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
         </Button>
       </DropdownMenuTrigger>
@@ -78,7 +80,7 @@ export default function NavigationMoreMenu() {
         >
           <Link href="/activity">
             <ActivityIcon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
-            <span>Activity</span>
+            <span>{t('Activity')}</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -93,7 +95,7 @@ export default function NavigationMoreMenu() {
         >
           <Link href="/leaderboard">
             <TrophyIcon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
-            <span>Leaderboard</span>
+            <span>{t('Leaderboard')}</span>
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>

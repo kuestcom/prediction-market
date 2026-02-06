@@ -456,7 +456,8 @@ export default function EventChartEmbedDialog({
                         <SelectTrigger className={`
                           w-full bg-transparent text-sm
                           hover:bg-transparent
-                          dark:bg-transparent dark:hover:bg-transparent
+                          dark:bg-transparent
+                          dark:hover:bg-transparent
                         `}
                         >
                           <SelectValue />

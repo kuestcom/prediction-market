@@ -74,8 +74,8 @@
 > ### 2. Configure Environment Variables before Deploy
 > 1. Download `.env.example` from this repository
 > 2. **Edit** it with your configuration:
->    - **Kuest CLOB Ordersbook**: Connect your wallet at [auth.kuest.com](https://auth.kuest.com), sign to verify ownership, and copy the API key, secret, and passphrase
->    - **Reown AppKit**: Get Project ID at [dashboard.reown.com](https://dashboard.reown.com)
+     >    - **Kuest CLOB Ordersbook**: Connect your wallet at [auth.kuest.com](https://auth.kuest.com), sign to verify ownership, and copy the API key, secret, and passphrase
+     >    - **Reown AppKit**: Get Project ID at [dashboard.reown.com](https://dashboard.reown.com)
 >    - **Better Auth**: Generate secret at [better-auth.com](https://www.better-auth.com/docs/installation#set-environment-variables)
 >    - **CRON_SECRET**: Create a random secret of at least 16 characters
 >
@@ -90,18 +90,19 @@
 > 6. Click **Import .env**
 > 7. Select your edited `.env.example`
 > 8. Click **Deploy**
+> 9. After deployment finishes, click **Continue to Dashboard**
 >
 > ### 4. Create Supabase Database on Vercel
 > <img src="https://github.com/user-attachments/assets/d1c1f2a5-d6f8-44cb-ae47-262b1ecb195f" height="38" alt="Supabase" />
 >
 > 1. Open your Vercel project
 > 2. Go to **Storage**
-> 3. Create **Supabase** with default settings
-> 4. Click **Connect Project**
+> 3. Create **Supabase** with default settings (create Supabase account if prompted)
+> 4. After clicking **Done**, click **Connect Project** on the next screen
 >
 > ### 5. Redeploy your project
 > 1. Open **Deployments**
-> 2. Click **Redeploy** on the latest deployment
+> 2. Click the three dots (**...**) and select **Redeploy** on the latest deployment
 > 3. Optional: wait 15 minutes, then add your custom domain in **Settings** → **Domains**
 > ### 6. Sync Your Fork (via GitHub Actions)
 > In your forked Kuest repository:
@@ -161,7 +162,6 @@
   <a href="mailto:hello@kuest.com">
     <img alt="Email" src="https://img.shields.io/badge/Email-hello%40kuest.com-444?logo=gmail&style=social" />
   </a>
-</p>
 </p>
 
 ---

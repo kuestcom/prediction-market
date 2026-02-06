@@ -3,49 +3,33 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { revalidatePath, updateTag } from 'next/cache'
 import { z } from 'zod'
-import { SUPPORTED_LOCALES } from '@/i18n/locales'
+import { NON_DEFAULT_LOCALES, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { UserRepository } from '@/lib/db/queries/user'
 
-const UpdateCategoryInputSchema = z.object({
-  is_main_category: z.boolean().optional(),
-  is_hidden: z.boolean().optional(),
-  hide_events: z.boolean().optional(),
-})
+const updateCategoryTranslationsShape = NON_DEFAULT_LOCALES.reduce(
+  (shape, locale) => {
+    shape[locale] = z.string().optional()
+    return shape
+  },
+  {} as Record<NonDefaultLocale, z.ZodOptional<z.ZodString>>,
+)
 
-export interface UpdateCategoryInput {
-  is_main_category?: boolean
-  is_hidden?: boolean
-  hide_events?: boolean
-}
+const UpdateCategoryTranslationsInputSchema = z.object(updateCategoryTranslationsShape)
 
-export interface UpdateCategoryResult {
+export interface UpdateCategoryTranslationsResult {
   success: boolean
-  data?: {
-    id: number
-    name: string
-    slug: string
-    is_main_category: boolean
-    is_hidden: boolean
-    display_order: number
-    parent_tag_id: number | null
-    parent_name: string | null
-    parent_slug: string | null
-    active_markets_count: number
-    created_at: string
-    updated_at: string
-    translations: Partial<Record<NonDefaultLocale, string>>
-  }
+  data?: Partial<Record<NonDefaultLocale, string>>
   error?: string
 }
 
-export async function updateCategoryAction(
+export async function updateCategoryTranslationsAction(
   categoryId: number,
-  input: UpdateCategoryInput,
-): Promise<UpdateCategoryResult> {
+  input: Partial<Record<NonDefaultLocale, string>>,
+): Promise<UpdateCategoryTranslationsResult> {
   try {
-    const parsed = UpdateCategoryInputSchema.safeParse(input)
+    const parsed = UpdateCategoryTranslationsInputSchema.safeParse(input)
     if (!parsed.success) {
       return {
         success: false,
@@ -61,21 +45,22 @@ export async function updateCategoryAction(
       }
     }
 
-    const { data, error } = await TagRepository.updateTagById(categoryId, parsed.data)
+    const normalizedInput = NON_DEFAULT_LOCALES.reduce<Partial<Record<NonDefaultLocale, string>>>((acc, locale) => {
+      const value = parsed.data[locale]
+      if (typeof value === 'string') {
+        acc[locale] = value
+      }
+      return acc
+    }, {})
+
+    const { data, error } = await TagRepository.updateTagTranslationsById(categoryId, normalizedInput)
 
     if (error || !data) {
-      console.error('Error updating category:', error)
+      console.error('Error updating category translations:', error)
       return {
         success: false,
-        error: 'Failed to update category. Please try again.',
+        error: 'Failed to update category translations. Please try again.',
       }
-    }
-
-    const { parent, ...rest } = data
-    const transformedData = {
-      ...rest,
-      parent_name: parent?.name ?? null,
-      parent_slug: parent?.slug ?? null,
     }
 
     revalidatePath('/[locale]/admin/categories', 'page')
@@ -90,7 +75,7 @@ export async function updateCategoryAction(
 
     return {
       success: true,
-      data: transformedData,
+      data,
     }
   }
   catch (error) {
