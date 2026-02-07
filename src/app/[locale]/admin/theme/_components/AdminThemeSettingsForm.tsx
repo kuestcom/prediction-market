@@ -19,6 +19,7 @@ import {
   THEME_TOKENS,
   validateThemePresetId,
 } from '@/lib/theme'
+import { cn } from '@/lib/utils'
 
 const initialState = {
   error: null,
@@ -272,7 +273,7 @@ function ThemePreviewCard({
       <h3 className="text-sm font-semibold">{title}</h3>
       <div className="rounded-md border border-border bg-card p-3">
         <p className="text-sm font-medium">Market card</p>
-        <p className="mt-1 text-xs text-muted-foreground">This block previews background, card and text tokens.</p>
+        <p className="mt-1 text-xs text-muted-foreground">This block previews background, card, and text colors.</p>
         <div className="mt-3 flex items-center gap-2">
           <span className="inline-flex rounded-sm bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
             Primary
@@ -311,12 +312,49 @@ function ThemePreviewCard({
       </div>
       <div className="grid gap-2">
         <p className="text-xs text-muted-foreground">Chart palette</p>
-        <div className="grid grid-cols-5 gap-1">
-          <span className="h-2 rounded-sm" style={{ backgroundColor: 'var(--chart-1)' }} />
-          <span className="h-2 rounded-sm" style={{ backgroundColor: 'var(--chart-2)' }} />
-          <span className="h-2 rounded-sm" style={{ backgroundColor: 'var(--chart-3)' }} />
-          <span className="h-2 rounded-sm" style={{ backgroundColor: 'var(--chart-4)' }} />
-          <span className="h-2 rounded-sm" style={{ backgroundColor: 'var(--chart-5)' }} />
+        <div className="h-12 rounded-md bg-transparent px-1">
+          <svg
+            viewBox="0 0 120 48"
+            preserveAspectRatio="none"
+            className="h-12 w-full"
+            aria-hidden="true"
+          >
+            <path
+              d="M2 7 C 22 4, 38 10, 58 6 S 92 10, 118 7"
+              stroke="var(--chart-1)"
+              strokeWidth="1.4"
+              fill="none"
+              strokeLinecap="round"
+            />
+            <path
+              d="M2 16 C 22 13, 38 19, 58 15 S 92 19, 118 16"
+              stroke="var(--chart-2)"
+              strokeWidth="1.4"
+              fill="none"
+              strokeLinecap="round"
+            />
+            <path
+              d="M2 25 C 22 22, 38 28, 58 24 S 92 28, 118 25"
+              stroke="var(--chart-3)"
+              strokeWidth="1.4"
+              fill="none"
+              strokeLinecap="round"
+            />
+            <path
+              d="M2 34 C 22 31, 38 37, 58 33 S 92 37, 118 34"
+              stroke="var(--chart-4)"
+              strokeWidth="1.4"
+              fill="none"
+              strokeLinecap="round"
+            />
+            <path
+              d="M2 43 C 22 40, 38 46, 58 42 S 92 46, 118 43"
+              stroke="var(--chart-5)"
+              strokeWidth="1.4"
+              fill="none"
+              strokeLinecap="round"
+            />
+          </svg>
         </div>
       </div>
     </div>
@@ -440,7 +478,7 @@ function ThemeTokenMatrix({
   }, [presetId])
 
   return (
-    <div className="grid gap-3">
+    <div className="flex flex-col gap-3">
       <div
         ref={lightProbeRef}
         data-theme-mode="light"
@@ -454,7 +492,7 @@ function ThemeTokenMatrix({
         className="sr-only"
       />
 
-      <div className="grid gap-1">
+      <div className="flex flex-col gap-1">
         <h3 className="text-sm font-semibold">Theme tokens</h3>
         {(lightParseError || darkParseError) && (
           <div className="grid gap-1 text-xs text-destructive">
@@ -473,80 +511,91 @@ function ThemeTokenMatrix({
           </div>
         )}
 
-        <div className="grid gap-2">
-          {TOKEN_GROUPS.map(group => (
-            <details
-              key={group.id}
-              open={openGroups[group.id]}
-              onToggle={(event) => {
-                const isOpen = (event.currentTarget as HTMLDetailsElement).open
-                setOpenGroups(prev => ({ ...prev, [group.id]: isOpen }))
-              }}
-              className="rounded-md border border-border"
-            >
-              <summary className={`
-                flex cursor-pointer items-start justify-between px-3 py-1.5 text-sm font-medium text-foreground
-              `}
-              >
-                <span className="leading-tight">{group.label}</span>
-                <ChevronDown
-                  className={`h-4 w-4 text-muted-foreground transition-transform ${openGroups[group.id] ? 'rotate-180' : ''}
-                  `}
-                />
-              </summary>
-              <div className="border-t border-border px-2 py-2">
-                <div className="grid gap-1">
-                  <div className={`
-                    grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 px-2 text-[10px]
-                    text-muted-foreground uppercase
-                  `}
-                  >
-                    <span>Token</span>
-                    <span className="text-left">Light</span>
-                    <span className="text-left">Dark</span>
-                  </div>
-                  <div className="grid gap-1.5">
-                    {group.tokens.map((token) => {
-                      const lightOverride = lightOverrides[token]
-                      const darkOverride = darkOverrides[token]
-                      const lightValue = lightOverride ?? baseLightValues[token]
-                      const darkValue = darkOverride ?? baseDarkValues[token]
+        <div className="flex flex-col gap-2">
+          {TOKEN_GROUPS.map((group) => {
+            const isOpen = openGroups[group.id]
 
-                      return (
-                        <div
-                          key={token}
-                          className={`
-                            grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 rounded-md border
-                            border-border px-2 py-1.5
-                          `}
-                        >
-                          <code className="text-xs font-medium text-foreground">{token}</code>
-                          <ColorPickerSwatch
-                            presetId={presetId}
-                            value={lightValue}
-                            label={`${token} light color`}
-                            disabled={disabled}
-                            onChange={value => onLightChange(token, value)}
-                            onReset={() => onLightReset(token)}
-                            showReset={Boolean(lightOverride)}
-                          />
-                          <ColorPickerSwatch
-                            presetId={presetId}
-                            value={darkValue}
-                            label={`${token} dark color`}
-                            disabled={disabled}
-                            onChange={value => onDarkChange(token, value)}
-                            onReset={() => onDarkReset(token)}
-                            showReset={Boolean(darkOverride)}
-                          />
-                        </div>
-                      )
-                    })}
+            return (
+              <div key={group.id} className="overflow-hidden rounded-md border border-border">
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  aria-controls={`theme-group-${group.id}`}
+                  onClick={() => {
+                    setOpenGroups(prev => ({ ...prev, [group.id]: !isOpen }))
+                  }}
+                  className={cn(
+                    `
+                      flex h-12 w-full items-center justify-between px-3 text-left text-base font-medium text-foreground
+                      transition-colors
+                      hover:bg-muted/50
+                      focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+                      focus-visible:ring-offset-background focus-visible:outline-none
+                    `,
+                    isOpen ? 'border-b border-border/40' : '',
+                  )}
+                >
+                  <span className="leading-tight">{group.label}</span>
+                  <ChevronDown
+                    className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {isOpen && (
+                  <div id={`theme-group-${group.id}`} className="px-2 py-2">
+                    <div className="grid gap-1">
+                      <div className={`
+                        grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 px-2 text-[10px]
+                        text-muted-foreground uppercase
+                      `}
+                      >
+                        <span>Token</span>
+                        <span className="text-left">Light</span>
+                        <span className="text-left">Dark</span>
+                      </div>
+                      <div className="grid gap-1.5">
+                        {group.tokens.map((token) => {
+                          const lightOverride = lightOverrides[token]
+                          const darkOverride = darkOverrides[token]
+                          const lightValue = lightOverride ?? baseLightValues[token]
+                          const darkValue = darkOverride ?? baseDarkValues[token]
+
+                          return (
+                            <div
+                              key={token}
+                              className={`
+                                grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 rounded-md border
+                                border-border px-2 py-1.5
+                              `}
+                            >
+                              <code className="text-xs font-medium text-foreground">{token}</code>
+                              <ColorPickerSwatch
+                                presetId={presetId}
+                                value={lightValue}
+                                label={`${token} light color`}
+                                disabled={disabled}
+                                onChange={value => onLightChange(token, value)}
+                                onReset={() => onLightReset(token)}
+                                showReset={Boolean(lightOverride)}
+                              />
+                              <ColorPickerSwatch
+                                presetId={presetId}
+                                value={darkValue}
+                                label={`${token} dark color`}
+                                disabled={disabled}
+                                onChange={value => onDarkChange(token, value)}
+                                onReset={() => onDarkReset(token)}
+                                showReset={Boolean(darkOverride)}
+                              />
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
-            </details>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>
@@ -663,7 +712,7 @@ export default function AdminThemeSettingsForm({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="grid gap-6">
+        <div className="grid items-start gap-6 self-start">
           <ThemeTokenMatrix
             presetId={parsedPreset}
             lightOverrides={lightOverrides}
