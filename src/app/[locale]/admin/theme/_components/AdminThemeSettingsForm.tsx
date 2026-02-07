@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  buildPreviewThemeConfig,
   buildThemeCssText,
   DEFAULT_THEME_PRESET_ID,
   parseThemeOverridesJson,
@@ -55,15 +54,21 @@ function buildPreviewStyle(variables: ThemeOverrides): CSSProperties {
 
 function ThemePreviewCard({
   title,
-  variables,
+  presetId,
+  isDark,
+  overrides,
 }: {
   title: string
-  variables: ThemeOverrides
+  presetId: string
+  isDark: boolean
+  overrides: ThemeOverrides
 }) {
-  const style = useMemo(() => buildPreviewStyle(variables), [variables])
+  const style = useMemo(() => buildPreviewStyle(overrides), [overrides])
 
   return (
     <div
+      data-theme-preset={presetId}
+      data-theme-mode={isDark ? 'dark' : undefined}
       style={style}
       className="grid gap-4 rounded-lg border border-border bg-background p-4 text-foreground"
     >
@@ -171,17 +176,7 @@ export default function AdminThemeSettingsForm({
     wasPendingRef.current = isPending
   }, [darkParseResult.data, isPending, lightParseResult.data, parsedPreset, state.error])
 
-  const previewTheme = useMemo(() => {
-    if (lightParseResult.error || darkParseResult.error) {
-      return null
-    }
-
-    return buildPreviewThemeConfig(
-      parsedPreset,
-      lightParseResult.data ?? {},
-      darkParseResult.data ?? {},
-    )
-  }, [darkParseResult.data, darkParseResult.error, lightParseResult.data, lightParseResult.error, parsedPreset])
+  const hasPreviewError = Boolean(lightParseResult.error || darkParseResult.error)
 
   return (
     <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
@@ -254,11 +249,21 @@ export default function AdminThemeSettingsForm({
 
       <div className="grid gap-2">
         <Label>Preview</Label>
-        {previewTheme
+        {!hasPreviewError
           ? (
               <div className="grid gap-4 md:grid-cols-2">
-                <ThemePreviewCard title="Light" variables={previewTheme.light} />
-                <ThemePreviewCard title="Dark" variables={previewTheme.dark} />
+                <ThemePreviewCard
+                  title="Light"
+                  presetId={parsedPreset}
+                  isDark={false}
+                  overrides={lightParseResult.data ?? {}}
+                />
+                <ThemePreviewCard
+                  title="Dark"
+                  presetId={parsedPreset}
+                  isDark
+                  overrides={darkParseResult.data ?? {}}
+                />
               </div>
             )
           : (

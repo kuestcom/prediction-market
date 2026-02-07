@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildPreviewThemeConfig,
   buildResolvedThemeConfig,
   parseThemeOverridesJson,
   resolveThemePreset,
@@ -69,13 +68,5 @@ describe('theme helpers', () => {
     expect(resolved.cssText).toContain('.dark {')
     expect(resolved.cssText).toContain('--primary: #112233;')
     expect(resolved.cssText).not.toContain('--background: oklch(0.22 0.03 266);')
-  })
-
-  it('builds preview theme merged with preset overrides', () => {
-    const preview = buildPreviewThemeConfig('midnight', { primary: '#112233' }, {})
-
-    expect(preview.light.primary).toBe('#112233')
-    expect(preview.dark.background).toBe('oklch(0.22 0.03 266)')
-    expect(preview.cssText).toContain('--background: oklch(0.22 0.03 266);')
   })
 })

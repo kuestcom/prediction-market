@@ -96,61 +96,6 @@ export interface ThemePreset {
   id: ThemePresetId
   label: string
   description: string
-  lightOverrides: ThemeOverrides
-  darkOverrides: ThemeOverrides
-}
-
-const midnightLightOverrides: ThemeOverrides = {
-  'primary': 'oklch(0.52 0.18 262)',
-  'chart-1': 'oklch(0.59 0.24 290)',
-  'chart-2': 'oklch(0.57 0.18 240)',
-  'chart-3': 'oklch(0.48 0.16 215)',
-  'chart-4': 'oklch(0.72 0.16 310)',
-}
-
-const midnightDarkOverrides: ThemeOverrides = {
-  'background': 'oklch(0.22 0.03 266)',
-  'card': 'oklch(0.26 0.03 262)',
-  'card-hover': 'oklch(0.3 0.04 262)',
-  'popover': 'oklch(0.22 0.03 266)',
-  'primary': 'oklch(0.76 0.18 285)',
-  'primary-foreground': 'oklch(0.16 0.02 270)',
-  'ring': 'oklch(0.62 0.08 285)',
-  'chart-1': 'oklch(0.7 0.19 300)',
-  'chart-2': 'oklch(0.66 0.17 255)',
-  'chart-3': 'oklch(0.64 0.17 225)',
-  'chart-4': 'oklch(0.72 0.16 330)',
-  'chart-5': 'oklch(0.76 0.14 200)',
-}
-
-const limeLightOverrides: ThemeOverrides = {
-  'primary': 'oklch(0.67 0.2 145)',
-  'primary-foreground': 'oklch(0.2 0.03 145)',
-  'yes': 'oklch(0.74 0.2 146)',
-  'yes-foreground': 'oklch(0.28 0.07 147)',
-  'ring': 'oklch(0.64 0.11 146)',
-  'chart-1': 'oklch(0.72 0.23 145)',
-  'chart-2': 'oklch(0.66 0.19 175)',
-  'chart-3': 'oklch(0.57 0.15 205)',
-  'chart-4': 'oklch(0.77 0.2 120)',
-}
-
-const limeDarkOverrides: ThemeOverrides = {
-  'background': 'oklch(0.24 0.03 165)',
-  'card': 'oklch(0.28 0.03 165)',
-  'card-hover': 'oklch(0.31 0.04 165)',
-  'popover': 'oklch(0.24 0.03 165)',
-  'primary': 'oklch(0.78 0.2 145)',
-  'primary-foreground': 'oklch(0.2 0.03 145)',
-  'secondary': 'oklch(0.37 0.04 162)',
-  'muted': 'oklch(0.37 0.04 162)',
-  'accent': 'oklch(0.37 0.04 162)',
-  'ring': 'oklch(0.67 0.12 145)',
-  'chart-1': 'oklch(0.75 0.23 146)',
-  'chart-2': 'oklch(0.7 0.2 170)',
-  'chart-3': 'oklch(0.66 0.16 200)',
-  'chart-4': 'oklch(0.78 0.2 120)',
-  'chart-5': 'oklch(0.68 0.19 90)',
 }
 
 const THEME_PRESET_IDS = ['kuest', 'midnight', 'lime'] as const
@@ -163,22 +108,16 @@ const THEME_PRESETS: Record<ThemePresetId, ThemePreset> = {
     id: 'kuest',
     label: 'Kuest',
     description: 'Default Kuest palette.',
-    lightOverrides: {},
-    darkOverrides: {},
   },
   midnight: {
     id: 'midnight',
     label: 'Midnight',
     description: 'Cool blue-purple tones with deeper dark surfaces.',
-    lightOverrides: midnightLightOverrides,
-    darkOverrides: midnightDarkOverrides,
   },
   lime: {
     id: 'lime',
     label: 'Lime',
     description: 'High-energy green accent palette.',
-    lightOverrides: limeLightOverrides,
-    darkOverrides: limeDarkOverrides,
   },
 }
 
@@ -325,18 +264,6 @@ export function formatThemeOverridesJson(overrides: ThemeOverrides) {
   return JSON.stringify(sortThemeOverrides(overrides), null, 2)
 }
 
-function mergeThemeOverrides(base: ThemeOverrides, overrides: ThemeOverrides): ThemeOverrides {
-  const merged: ThemeOverrides = { ...base }
-
-  THEME_TOKENS.forEach((token) => {
-    if (typeof overrides[token] === 'string') {
-      merged[token] = overrides[token]
-    }
-  })
-
-  return sortThemeOverrides(merged)
-}
-
 function buildThemeConfig(
   presetId: ThemePresetId,
   light: ThemeOverrides,
@@ -359,18 +286,6 @@ export function buildResolvedThemeConfig(
   darkOverrides: ThemeOverrides = {},
 ): ResolvedThemeConfig {
   return buildThemeConfig(presetId, lightOverrides, darkOverrides)
-}
-
-export function buildPreviewThemeConfig(
-  presetId: ThemePresetId,
-  lightOverrides: ThemeOverrides = {},
-  darkOverrides: ThemeOverrides = {},
-): ResolvedThemeConfig {
-  const preset = THEME_PRESETS[presetId]
-  const light = mergeThemeOverrides(preset.lightOverrides, lightOverrides)
-  const dark = mergeThemeOverrides(preset.darkOverrides, darkOverrides)
-
-  return buildThemeConfig(presetId, light, dark)
 }
 
 export function buildThemeCssText(light: ThemeOverrides, dark: ThemeOverrides) {
