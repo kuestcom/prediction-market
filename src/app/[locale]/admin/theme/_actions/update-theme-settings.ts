@@ -19,14 +19,17 @@ export async function updateThemeSettingsAction(
     return { error: 'Unauthenticated.' }
   }
 
-  const preset = typeof formData.get('preset') === 'string'
-    ? formData.get('preset')
+  const presetValue = formData.get('preset')
+  const preset = typeof presetValue === 'string'
+    ? presetValue
     : ''
-  const lightJson = typeof formData.get('light_json') === 'string'
-    ? formData.get('light_json')
+  const lightJsonValue = formData.get('light_json')
+  const lightJson = typeof lightJsonValue === 'string'
+    ? lightJsonValue
     : '{}'
-  const darkJson = typeof formData.get('dark_json') === 'string'
-    ? formData.get('dark_json')
+  const darkJsonValue = formData.get('dark_json')
+  const darkJson = typeof darkJsonValue === 'string'
+    ? darkJsonValue
     : '{}'
 
   const validatedTheme = validateThemeSettingsInput({
