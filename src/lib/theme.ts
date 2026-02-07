@@ -29,14 +29,6 @@ type ThemeTokenTuple = readonly [
   'chart-3',
   'chart-4',
   'chart-5',
-  'sidebar',
-  'sidebar-foreground',
-  'sidebar-primary',
-  'sidebar-primary-foreground',
-  'sidebar-accent',
-  'sidebar-accent-foreground',
-  'sidebar-border',
-  'sidebar-ring',
 ]
 
 export const THEME_TOKENS: ThemeTokenTuple = [
@@ -70,14 +62,6 @@ export const THEME_TOKENS: ThemeTokenTuple = [
   'chart-3',
   'chart-4',
   'chart-5',
-  'sidebar',
-  'sidebar-foreground',
-  'sidebar-primary',
-  'sidebar-primary-foreground',
-  'sidebar-accent',
-  'sidebar-accent-foreground',
-  'sidebar-border',
-  'sidebar-ring',
 ]
 
 const THEME_TOKEN_SET = new Set(THEME_TOKENS)
@@ -98,7 +82,6 @@ export interface ThemePreset {
   description: string
 }
 
-const LEGACY_DEFAULT_PRESET_ID = 'kuest'
 const THEME_PRESET_IDS = ['default', 'midnight', 'lime', 'amber'] as const
 export type ThemePresetId = typeof THEME_PRESET_IDS[number]
 const THEME_PRESET_ID_SET = new Set<string>(THEME_PRESET_IDS)
@@ -175,8 +158,7 @@ export function getThemePresetOptions() {
 }
 
 export function validateThemePresetId(value: string | null | undefined): ThemePresetId | null {
-  const trimmed = typeof value === 'string' ? value.trim().toLowerCase() : ''
-  const normalizedValue = trimmed === LEGACY_DEFAULT_PRESET_ID ? DEFAULT_THEME_PRESET_ID : trimmed
+  const normalizedValue = typeof value === 'string' ? value.trim().toLowerCase() : ''
   if (!normalizedValue || !isThemePresetId(normalizedValue)) {
     return null
   }

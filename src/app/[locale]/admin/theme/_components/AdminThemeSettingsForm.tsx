@@ -81,20 +81,6 @@ const TOKEN_GROUPS: { id: string, label: string, tokens: ThemeToken[] }[] = [
       'chart-5',
     ],
   },
-  {
-    id: 'sidebar',
-    label: 'Sidebar',
-    tokens: [
-      'sidebar',
-      'sidebar-foreground',
-      'sidebar-primary',
-      'sidebar-primary-foreground',
-      'sidebar-accent',
-      'sidebar-accent-foreground',
-      'sidebar-border',
-      'sidebar-ring',
-    ],
-  },
 ]
 interface ThemePresetOption {
   id: string
@@ -304,7 +290,7 @@ function ThemePreviewCard({
               `}
             />
           </div>
-          <div className="rounded-md border border-border bg-popover px-2 py-2 text-xs">
+          <div className="rounded-md border border-border bg-popover p-2 text-xs">
             <p className="font-medium text-foreground">Popover</p>
             <p className="mt-0.5 text-muted-foreground">Muted sample text</p>
           </div>
@@ -383,7 +369,7 @@ function ColorPickerSwatch({
   return (
     <div className="flex w-14 items-center justify-start gap-1">
       <div
-        className="relative h-7 w-7 overflow-hidden rounded-md border border-border"
+        className="relative size-7 overflow-hidden rounded-md border border-border"
         style={{ backgroundColor: value ?? pickerValue }}
         data-theme-preset={presetId}
       >
@@ -393,10 +379,10 @@ function ColorPickerSwatch({
           value={pickerValue}
           disabled={disabled}
           onChange={event => onChange(event.target.value)}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          className="absolute inset-0 size-full cursor-pointer opacity-0"
         />
       </div>
-      <div className="flex h-5 w-5 items-center justify-center">
+      <div className="flex size-5 items-center justify-center">
         {showReset && onReset
           ? (
               <button
@@ -407,11 +393,11 @@ function ColorPickerSwatch({
                 title="Reset"
                 aria-label="Reset color"
               >
-                <RotateCcw className="h-3 w-3" />
+                <RotateCcw className="size-3" />
               </button>
             )
           : (
-              <span aria-hidden className="h-3 w-3" />
+              <span aria-hidden className="size-3" />
             )}
       </div>
     </div>
@@ -537,14 +523,14 @@ function ThemeTokenMatrix({
                 >
                   <span className="leading-tight">{group.label}</span>
                   <ChevronDown
-                    className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    className={`size-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
                 {isOpen && (
-                  <div id={`theme-group-${group.id}`} className="px-2 py-2">
+                  <div id={`theme-group-${group.id}`} className="p-2">
                     <div className="grid gap-1">
                       <div className={`
-                        grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 px-2 text-[10px]
+                        grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 px-2 text-2xs
                         text-muted-foreground uppercase
                       `}
                       >
