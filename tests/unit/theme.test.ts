@@ -51,8 +51,14 @@ describe('theme helpers', () => {
 
   it('falls back to default preset when preset id is invalid', () => {
     const resolution = resolveThemePreset('does-not-exist')
-    expect(resolution.preset.id).toBe('kuest')
+    expect(resolution.preset.id).toBe('default')
     expect(resolution.usedFallbackPreset).toBe(true)
+  })
+
+  it('maps legacy "kuest" preset id to default', () => {
+    const resolution = resolveThemePreset('kuest')
+    expect(resolution.preset.id).toBe('default')
+    expect(resolution.usedFallbackPreset).toBe(false)
   })
 
   it('builds custom override css without forcing preset defaults', () => {

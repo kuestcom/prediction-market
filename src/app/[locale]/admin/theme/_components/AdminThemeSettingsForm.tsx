@@ -7,6 +7,14 @@ import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { updateThemeSettingsAction } from '@/app/[locale]/admin/theme/_actions/update-theme-settings'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -22,6 +30,12 @@ import {
 const initialState = {
   error: null,
 }
+
+const THEME_OVERRIDES_EXAMPLE = `{
+  "primary": "#3b82f6",
+  "ring": "oklch(0.67 0.12 145)",
+  "chart-1": "#22c55e"
+}`
 
 interface ThemePresetOption {
   id: string
@@ -47,6 +61,57 @@ function buildPreviewStyle(variables: ThemeOverrides): CSSProperties {
   })
 
   return style as CSSProperties
+}
+
+function ThemeOverridesGuideDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline" size="sm">
+          How to customize colors
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Customize theme colors</DialogTitle>
+          <DialogDescription>
+            Use this guide to personalize light and dark colors.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 text-sm">
+          <div className="grid gap-2">
+            <p className="font-medium">Rules</p>
+            <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+              <li>You can change only the colors you want.</li>
+              <li>Root value must be a JSON object.</li>
+              <li>Keys must be one of the supported tokens listed below.</li>
+              <li>Values must be a color in `hex` or `oklch(...)` format.</li>
+              <li>You can use `primary` or `--primary` as the token key.</li>
+            </ul>
+          </div>
+
+          <div className="grid gap-2">
+            <p className="font-medium">Example</p>
+            <pre className="overflow-x-auto rounded-md border bg-muted/30 p-3 text-xs">
+              {THEME_OVERRIDES_EXAMPLE}
+            </pre>
+          </div>
+
+          <div className="grid gap-2">
+            <p className="font-medium">Available tokens</p>
+            <div className="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-3">
+              {THEME_TOKENS.map(token => (
+                <code key={token} className="rounded-sm bg-muted px-2 py-1 text-xs">
+                  {token}
+                </code>
+              ))}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function ThemePreviewCard({
@@ -125,11 +190,11 @@ export default function AdminThemeSettingsForm({
   }, [initialDarkJson])
 
   const lightParseResult = useMemo(
-    () => parseThemeOverridesJson(lightJson, 'Light theme overrides'),
+    () => parseThemeOverridesJson(lightJson, 'Light theme colors'),
     [lightJson],
   )
   const darkParseResult = useMemo(
-    () => parseThemeOverridesJson(darkJson, 'Dark theme overrides'),
+    () => parseThemeOverridesJson(darkJson, 'Dark theme colors'),
     [darkJson],
   )
   const parsedPreset = useMemo(
@@ -181,13 +246,13 @@ export default function AdminThemeSettingsForm({
       <div className="grid gap-2">
         <Label htmlFor="theme-preset">Preset</Label>
         <Select value={preset} onValueChange={setPreset} disabled={isPending}>
-          <SelectTrigger id="theme-preset" className="w-full max-w-sm">
+          <SelectTrigger id="theme-preset" className="h-12! w-full max-w-sm">
             <SelectValue placeholder="Select preset" />
           </SelectTrigger>
           <SelectContent>
             {presetOptions.map(option => (
               <SelectItem key={option.id} value={option.id}>
-                <div className="grid gap-0.5">
+                <div className="grid gap-0.5 text-left">
                   <span>{option.label}</span>
                   <span className="text-xs text-muted-foreground">{option.description}</span>
                 </div>
@@ -197,9 +262,13 @@ export default function AdminThemeSettingsForm({
         </Select>
       </div>
 
+      <div className="flex items-center justify-end">
+        <ThemeOverridesGuideDialog />
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="grid gap-2">
-          <Label htmlFor="light-json">Light overrides JSON</Label>
+          <Label htmlFor="light-json">Light theme colors</Label>
           <Textarea
             id="light-json"
             name="light_json"
@@ -215,7 +284,7 @@ export default function AdminThemeSettingsForm({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="dark-json">Dark overrides JSON</Label>
+          <Label htmlFor="dark-json">Dark theme colors</Label>
           <Textarea
             id="dark-json"
             name="dark_json"

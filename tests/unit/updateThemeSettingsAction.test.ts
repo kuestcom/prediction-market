@@ -31,7 +31,7 @@ describe('updateThemeSettingsAction', () => {
 
     const { updateThemeSettingsAction } = await import('@/app/[locale]/admin/theme/_actions/update-theme-settings')
     const formData = new FormData()
-    formData.set('preset', 'kuest')
+    formData.set('preset', 'default')
     formData.set('light_json', '{}')
     formData.set('dark_json', '{}')
 
@@ -44,7 +44,7 @@ describe('updateThemeSettingsAction', () => {
 
     const { updateThemeSettingsAction } = await import('@/app/[locale]/admin/theme/_actions/update-theme-settings')
     const formData = new FormData()
-    formData.set('preset', 'kuest')
+    formData.set('preset', 'default')
     formData.set('light_json', '{"primary":"rgb(255,0,0)"}')
     formData.set('dark_json', '{}')
 

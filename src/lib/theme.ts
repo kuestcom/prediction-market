@@ -98,16 +98,17 @@ export interface ThemePreset {
   description: string
 }
 
-const THEME_PRESET_IDS = ['kuest', 'midnight', 'lime'] as const
+const LEGACY_DEFAULT_PRESET_ID = 'kuest'
+const THEME_PRESET_IDS = ['default', 'midnight', 'lime'] as const
 export type ThemePresetId = typeof THEME_PRESET_IDS[number]
 const THEME_PRESET_ID_SET = new Set<string>(THEME_PRESET_IDS)
-export const DEFAULT_THEME_PRESET_ID: ThemePresetId = 'kuest'
+export const DEFAULT_THEME_PRESET_ID: ThemePresetId = 'default'
 
 const THEME_PRESETS: Record<ThemePresetId, ThemePreset> = {
-  kuest: {
-    id: 'kuest',
-    label: 'Kuest',
-    description: 'Default Kuest palette.',
+  default: {
+    id: 'default',
+    label: 'Default',
+    description: 'Default theme palette.',
   },
   midnight: {
     id: 'midnight',
@@ -170,10 +171,11 @@ export function getThemePresetOptions() {
 
 export function validateThemePresetId(value: string | null | undefined): ThemePresetId | null {
   const trimmed = typeof value === 'string' ? value.trim().toLowerCase() : ''
-  if (!trimmed || !isThemePresetId(trimmed)) {
+  const normalizedValue = trimmed === LEGACY_DEFAULT_PRESET_ID ? DEFAULT_THEME_PRESET_ID : trimmed
+  if (!normalizedValue || !isThemePresetId(normalizedValue)) {
     return null
   }
-  return trimmed
+  return normalizedValue
 }
 
 export function resolveThemePreset(value: string | null | undefined): ResolvedThemePreset {

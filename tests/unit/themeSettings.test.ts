@@ -21,7 +21,7 @@ describe('theme settings runtime resolver', () => {
     const state = await loadRuntimeThemeState()
 
     expect(state.source).toBe('default')
-    expect(state.theme.presetId).toBe('kuest')
+    expect(state.theme.presetId).toBe('default')
   })
 
   it('uses settings theme when DB values are valid', async () => {
@@ -61,7 +61,7 @@ describe('theme settings runtime resolver', () => {
     const state = await loadRuntimeThemeState()
 
     expect(state.source).toBe('default')
-    expect(state.theme.presetId).toBe('kuest')
+    expect(state.theme.presetId).toBe('default')
   })
 
   it('uses default theme when there are no stored settings', async () => {
@@ -71,6 +71,25 @@ describe('theme settings runtime resolver', () => {
     const state = await loadRuntimeThemeState()
 
     expect(state.source).toBe('default')
-    expect(state.theme.presetId).toBe('kuest')
+    expect(state.theme.presetId).toBe('default')
+  })
+
+  it('maps legacy kuest preset from settings to default', async () => {
+    mocks.getSettings.mockResolvedValueOnce({
+      data: {
+        theme: {
+          preset: { value: 'kuest', updated_at: '2026-01-01T00:00:00.000Z' },
+          light_json: { value: '{}', updated_at: '2026-01-01T00:00:00.000Z' },
+          dark_json: { value: '{}', updated_at: '2026-01-01T00:00:00.000Z' },
+        },
+      },
+      error: null,
+    })
+
+    const { loadRuntimeThemeState } = await import('@/lib/theme-settings')
+    const state = await loadRuntimeThemeState()
+
+    expect(state.source).toBe('settings')
+    expect(state.theme.presetId).toBe('default')
   })
 })
