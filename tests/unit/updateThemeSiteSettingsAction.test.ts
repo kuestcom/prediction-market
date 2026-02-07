@@ -129,7 +129,7 @@ describe('updateThemeSiteSettingsAction', () => {
     formData.set('logo_image', new File(['hello'], 'logo.txt', { type: 'text/plain' }))
 
     const result = await updateThemeSiteSettingsAction({ error: null }, formData)
-    expect(result).toEqual({ error: 'Logo image must be PNG or JPG.' })
+    expect(result).toEqual({ error: 'Logo image must be PNG, JPG, or WebP.' })
     expect(mocks.updateSettings).not.toHaveBeenCalled()
   })
 })

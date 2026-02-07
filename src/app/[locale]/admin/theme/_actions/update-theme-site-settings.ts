@@ -10,7 +10,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { validateThemeSiteSettingsInput } from '@/lib/theme-settings'
 
 const MAX_LOGO_FILE_SIZE = 2 * 1024 * 1024
-const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg']
+const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
 
 export interface ThemeSiteSettingsActionState {
   error: string | null
@@ -18,7 +18,7 @@ export interface ThemeSiteSettingsActionState {
 
 async function uploadThemeLogoImage(file: File) {
   if (!ACCEPTED_LOGO_TYPES.includes(file.type)) {
-    return { path: null, error: 'Logo image must be PNG or JPG.' }
+    return { path: null, error: 'Logo image must be PNG, JPG, or WebP.' }
   }
 
   if (file.size > MAX_LOGO_FILE_SIZE) {

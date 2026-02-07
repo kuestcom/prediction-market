@@ -35,7 +35,7 @@ const LOGO_MODE_OPTIONS: { value: ThemeSiteLogoMode, label: string, description:
   {
     value: 'image',
     label: 'Image logo',
-    description: 'Upload PNG or JPG and keep its original colors.',
+    description: 'Upload PNG, JPG, or WebP and keep original colors.',
   },
 ]
 
@@ -127,10 +127,9 @@ export default function AdminThemeSiteSettingsForm({
 
       <div className="grid gap-2">
         <Label htmlFor="theme-site-description">Platform description</Label>
-        <Textarea
+        <Input
           id="theme-site-description"
           name="site_description"
-          rows={3}
           maxLength={180}
           value={siteDescription}
           onChange={event => setSiteDescription(event.target.value)}
@@ -167,7 +166,7 @@ export default function AdminThemeSiteSettingsForm({
         <div className="grid gap-3 rounded-md border border-border p-3">
           <div className="grid gap-1">
             <p className="text-sm font-semibold">Logo image</p>
-            <p className="text-xs text-muted-foreground">Upload a PNG or JPG file up to 2MB.</p>
+            <p className="text-xs text-muted-foreground">Upload a PNG, JPG, or WebP file up to 2MB.</p>
           </div>
 
           {imagePreview && (
@@ -186,7 +185,7 @@ export default function AdminThemeSiteSettingsForm({
           <Input
             type="file"
             name="logo_image"
-            accept="image/png,image/jpeg"
+            accept="image/png,image/jpeg,image/webp"
             disabled={isPending}
             onChange={(event) => {
               const file = event.target.files?.[0] ?? null
