@@ -290,6 +290,24 @@ function ThemePreviewCard({
             No
           </span>
         </div>
+        <div className="mt-3 grid gap-2">
+          <div className="grid gap-1">
+            <label className="text-xs text-muted-foreground">Input</label>
+            <input
+              type="text"
+              placeholder="Type here"
+              className={`
+                h-8 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground shadow-none
+                ring-offset-background outline-none
+                focus-visible:ring-2 focus-visible:ring-ring
+              `}
+            />
+          </div>
+          <div className="rounded-md border border-border bg-popover px-2 py-2 text-xs">
+            <p className="font-medium text-foreground">Popover</p>
+            <p className="mt-0.5 text-muted-foreground">Muted sample text</p>
+          </div>
+        </div>
       </div>
       <div className="grid gap-2">
         <p className="text-xs text-muted-foreground">Chart palette</p>
