@@ -1,0 +1,39 @@
+'use cache'
+
+import { setRequestLocale } from 'next-intl/server'
+import AdminThemeSettingsForm from '@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm'
+import { SettingsRepository } from '@/lib/db/queries/settings'
+import { getThemePresetOptions } from '@/lib/theme'
+import { getThemeSettingsFormState, loadRuntimeThemeState } from '@/lib/theme-settings'
+
+export default async function AdminThemeSettingsPage({ params }: PageProps<'/[locale]/admin/theme'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
+  const [{ data: allSettings }, runtimeTheme] = await Promise.all([
+    SettingsRepository.getSettings(),
+    loadRuntimeThemeState(),
+  ])
+
+  const initialThemeSettings = getThemeSettingsFormState(allSettings ?? undefined)
+  const presetOptions = getThemePresetOptions()
+
+  return (
+    <section className="grid gap-4">
+      <div className="grid gap-2">
+        <h1 className="text-2xl font-semibold">Theme</h1>
+        <p className="text-sm text-muted-foreground">
+          Configure runtime theme presets and overrides without redeploying.
+        </p>
+      </div>
+
+      <AdminThemeSettingsForm
+        presetOptions={presetOptions}
+        initialPreset={initialThemeSettings.preset}
+        initialLightJson={initialThemeSettings.lightJson}
+        initialDarkJson={initialThemeSettings.darkJson}
+        runtimeSource={runtimeTheme.source}
+      />
+    </section>
+  )
+}

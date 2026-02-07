@@ -1,7 +1,7 @@
 import type { MarketQuote } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
 import type { Event } from '@/types'
 
-const CHART_COLORS = ['#FF6600', '#2D9CDB', '#4E6377', '#FDC500']
+const CHART_COLOR_VARIABLES = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
 const MAX_SERIES = 4
 const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000
 
@@ -172,7 +172,7 @@ export function buildChartSeries(event: Event, marketIds: string[]) {
       return {
         key: conditionId,
         name: getMarketSeriesLabel(market),
-        color: CHART_COLORS[index % CHART_COLORS.length],
+        color: CHART_COLOR_VARIABLES[index % CHART_COLOR_VARIABLES.length],
       }
     })
     .filter((entry): entry is { key: string, name: string, color: string } => entry !== null)

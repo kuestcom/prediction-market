@@ -14,6 +14,7 @@ const adminMenuItems: AdminMenuItem[] = [
   { id: 'users', label: 'Users', href: '/admin' as Route },
   { id: 'categories', label: 'Categories', href: '/admin/categories' as Route },
   { id: 'locales', label: 'Locales', href: '/admin/locales' as Route },
+  { id: 'theme', label: 'Theme', href: '/admin/theme' as Route },
   { id: 'affiliate', label: 'Affiliate Settings', href: '/admin/affiliate' as Route },
   { id: 'market-context', label: 'Market Context', href: '/admin/market-context' as Route },
 ]

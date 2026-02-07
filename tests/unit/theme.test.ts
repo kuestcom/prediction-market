@@ -1,0 +1,81 @@
+import { describe, expect, it } from 'vitest'
+import {
+  buildPreviewThemeConfig,
+  buildResolvedThemeConfig,
+  parseThemeOverridesJson,
+  resolveThemePreset,
+  sortThemeOverrides,
+} from '@/lib/theme'
+
+describe('theme helpers', () => {
+  it('parses JSON overrides with supported token names', () => {
+    const parsed = parseThemeOverridesJson(
+      '{"--primary":"#112233","chart-1":"oklch(0.7 0.2 145)"}',
+      'Light theme overrides',
+    )
+
+    expect(parsed.error).toBeNull()
+    expect(parsed.data).toEqual({
+      'primary': '#112233',
+      'chart-1': 'oklch(0.7 0.2 145)',
+    })
+  })
+
+  it('rejects unsupported tokens', () => {
+    const parsed = parseThemeOverridesJson(
+      '{"not-allowed":"#112233"}',
+      'Light theme overrides',
+    )
+
+    expect(parsed.error).toBe('Unsupported theme token: "not-allowed".')
+    expect(parsed.data).toBeNull()
+  })
+
+  it('rejects invalid color formats', () => {
+    const parsed = parseThemeOverridesJson(
+      '{"primary":"rgb(255,0,0)"}',
+      'Light theme overrides',
+    )
+
+    expect(parsed.error).toBe('Invalid color for "primary". Supported formats: hex and oklch().')
+    expect(parsed.data).toBeNull()
+  })
+
+  it('sorts overrides in stable token order', () => {
+    const sorted = sortThemeOverrides({
+      foreground: '#223344',
+      background: '#112233',
+    })
+
+    expect(Object.keys(sorted)).toEqual(['background', 'foreground'])
+  })
+
+  it('falls back to default preset when preset id is invalid', () => {
+    const resolution = resolveThemePreset('does-not-exist')
+    expect(resolution.preset.id).toBe('kuest')
+    expect(resolution.usedFallbackPreset).toBe(true)
+  })
+
+  it('builds custom override css without forcing preset defaults', () => {
+    const resolved = buildResolvedThemeConfig(
+      'midnight',
+      { primary: '#112233' },
+      { primary: '#445566' },
+    )
+
+    expect(resolved.light.primary).toBe('#112233')
+    expect(resolved.dark.primary).toBe('#445566')
+    expect(resolved.cssText).toContain(':root {')
+    expect(resolved.cssText).toContain('.dark {')
+    expect(resolved.cssText).toContain('--primary: #112233;')
+    expect(resolved.cssText).not.toContain('--background: oklch(0.22 0.03 266);')
+  })
+
+  it('builds preview theme merged with preset overrides', () => {
+    const preview = buildPreviewThemeConfig('midnight', { primary: '#112233' }, {})
+
+    expect(preview.light.primary).toBe('#112233')
+    expect(preview.dark.background).toBe('oklch(0.22 0.03 266)')
+    expect(preview.cssText).toContain('--background: oklch(0.22 0.03 266);')
+  })
+})
