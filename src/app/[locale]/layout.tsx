@@ -12,21 +12,24 @@ import { cacheTags } from '@/lib/cache-tags'
 import { openSauceOne } from '@/lib/fonts'
 import { IS_TEST_MODE } from '@/lib/network'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
-import { svgLogoUri } from '@/lib/utils'
+import SiteIdentityProvider from '@/providers/SiteIdentityProvider'
 import '../globals.css'
 
-const siteIcon = svgLogoUri()
+export async function generateMetadata(): Promise<Metadata> {
+  const runtimeTheme = await loadRuntimeThemeState()
+  const site = runtimeTheme.site
 
-export const metadata: Metadata = {
-  title: {
-    template: `${process.env.NEXT_PUBLIC_SITE_NAME} | %s`,
-    default: `${process.env.NEXT_PUBLIC_SITE_NAME} | ${process.env.NEXT_PUBLIC_SITE_DESCRIPTION}`,
-  },
-  description: process.env.NEXT_PUBLIC_SITE_DESCRIPTION,
-  applicationName: process.env.NEXT_PUBLIC_SITE_NAME,
-  icons: {
-    icon: siteIcon,
-  },
+  return {
+    title: {
+      template: `${site.name} | %s`,
+      default: `${site.name} | ${site.description}`,
+    },
+    description: site.description,
+    applicationName: site.name,
+    icons: {
+      icon: site.logoUrl,
+    },
+  }
 }
 
 export const viewport: Viewport = {
@@ -66,10 +69,12 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
     >
       <body className="flex min-h-screen flex-col font-sans">
         {runtimeTheme.theme.cssText && <style id="theme-vars" dangerouslySetInnerHTML={{ __html: runtimeTheme.theme.cssText }} />}
-        <NextIntlClientProvider locale={locale}>
-          {IS_TEST_MODE && <TestModeBanner />}
-          {children}
-        </NextIntlClientProvider>
+        <SiteIdentityProvider site={runtimeTheme.site}>
+          <NextIntlClientProvider locale={locale}>
+            {IS_TEST_MODE && <TestModeBanner />}
+            {children}
+          </NextIntlClientProvider>
+        </SiteIdentityProvider>
       </body>
     </html>
   )

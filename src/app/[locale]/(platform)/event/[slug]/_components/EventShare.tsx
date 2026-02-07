@@ -11,19 +11,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { fetchAffiliateSettingsFromAPI } from '@/lib/affiliate-data'
 import { maybeShowAffiliateToast } from '@/lib/affiliate-toast'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
 const headerIconButtonClass = 'size-10 rounded-sm border border-transparent bg-transparent text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring md:h-9 md:w-9'
-const SITE_NAME = (process.env.NEXT_PUBLIC_SITE_NAME || 'a plataforma').trim()
 
 interface EventShareProps {
   event: Event
 }
 
 export default function EventShare({ event }: EventShareProps) {
+  const site = useSiteIdentity()
   const [shareSuccess, setShareSuccess] = useState(false)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [affiliateSharePercent, setAffiliateSharePercent] = useState<number | null>(null)
@@ -118,10 +119,10 @@ export default function EventShare({ event }: EventShareProps) {
       affiliateCode,
       affiliateSharePercent,
       tradeFeePercent,
-      siteName: SITE_NAME,
+      siteName: site.name,
       context: 'link',
     })
-  }, [affiliateCode, affiliateSharePercent, tradeFeePercent])
+  }, [affiliateCode, affiliateSharePercent, site.name, tradeFeePercent])
 
   const debugPayload = useMemo(() => {
     return {

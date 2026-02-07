@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { fetchAffiliateSettingsFromAPI } from '@/lib/affiliate-data'
 import { maybeShowAffiliateToast } from '@/lib/affiliate-toast'
 import { cn } from '@/lib/utils'
@@ -31,7 +32,6 @@ function requireEnv(value: string | undefined, name: string) {
   return value
 }
 
-const SITE_NAME = requireEnv(process.env.NEXT_PUBLIC_SITE_NAME, 'NEXT_PUBLIC_SITE_NAME')
 const SITE_URL = normalizeBaseUrl(requireEnv(process.env.SITE_URL, 'SITE_URL'))
 
 function slugifySiteName(value: string) {
@@ -41,7 +41,7 @@ function slugifySiteName(value: string) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
   if (!slug) {
-    throw new Error('NEXT_PUBLIC_SITE_NAME must include at least one letter or number.')
+    throw new Error('Site name must include at least one letter or number.')
   }
   return slug
 }
@@ -50,11 +50,7 @@ function normalizeBaseUrl(value: string) {
   return value.replace(/\/$/, '')
 }
 
-const SITE_SLUG = slugifySiteName(SITE_NAME)
-const EMBED_BASE_URL = SITE_URL
 const EMBED_SCRIPT_URL = 'https://unpkg.com/@kuestcom/embeds/dist/index.js'
-const EMBED_ELEMENT_NAME = `${SITE_SLUG}-market-embed`
-const EMBED_IFRAME_TITLE = `${SITE_SLUG}-market-iframe`
 const IFRAME_HEIGHT_WITH_CHART = 400
 const IFRAME_HEIGHT_WITH_FILTERS = 440
 const IFRAME_HEIGHT_NO_CHART = 180
@@ -91,7 +87,7 @@ function buildFeatureList(showVolume: boolean, showChart: boolean, showTimeRange
   return features
 }
 
-function buildIframeSrc(marketSlug: string, theme: EmbedTheme, features: string[], affiliateCode?: string) {
+function buildIframeSrc(baseUrl: string, marketSlug: string, theme: EmbedTheme, features: string[], affiliateCode?: string) {
   const params = new URLSearchParams({ market: marketSlug, theme })
   if (features.length > 0) {
     params.set('features', features.join(','))
@@ -99,7 +95,7 @@ function buildIframeSrc(marketSlug: string, theme: EmbedTheme, features: string[
   if (affiliateCode) {
     params.set('r', affiliateCode)
   }
-  return `${EMBED_BASE_URL}/market.html?${params.toString()}`
+  return `${baseUrl}/market.html?${params.toString()}`
 }
 
 function buildPreviewSrc(marketSlug: string, theme: EmbedTheme, features: string[], affiliateCode?: string) {
@@ -113,10 +109,10 @@ function buildPreviewSrc(marketSlug: string, theme: EmbedTheme, features: string
   return `/market.html?${params.toString()}`
 }
 
-function buildIframeCode(src: string, height: number) {
+function buildIframeCode(src: string, height: number, iframeTitle: string) {
   return [
     '<iframe',
-    `\ttitle="${EMBED_IFRAME_TITLE}"`,
+    `\ttitle="${iframeTitle}"`,
     `\tsrc="${src}"`,
     '\twidth="400"',
     `\theight="${height}"`,
@@ -126,6 +122,7 @@ function buildIframeCode(src: string, height: number) {
 }
 
 function buildWebComponentCode(
+  elementName: string,
   marketSlug: string,
   theme: EmbedTheme,
   showVolume: boolean,
@@ -134,13 +131,13 @@ function buildWebComponentCode(
   affiliateCode?: string,
 ) {
   const lines = [
-    `<div id="${EMBED_ELEMENT_NAME}">`,
+    `<div id="${elementName}">`,
     '\t<script',
     '\t\ttype="module"',
     `\t\tsrc="${EMBED_SCRIPT_URL}"`,
     '\t>',
     '\t</script>',
-    `\t<${EMBED_ELEMENT_NAME}`,
+    `\t<${elementName}`,
     `\t\tmarket="${marketSlug}"`,
   ]
 
@@ -247,6 +244,7 @@ export default function EventChartEmbedDialog({
   initialMarketId,
 }: EventChartEmbedDialogProps) {
   const t = useExtracted()
+  const site = useSiteIdentity()
   const [theme, setTheme] = useState<EmbedTheme>('light')
   const [embedType, setEmbedType] = useState<EmbedType>('iframe')
   const [selectedMarketId, setSelectedMarketId] = useState<string>('')
@@ -255,6 +253,17 @@ export default function EventChartEmbedDialog({
   const [showTimeRange, setShowTimeRange] = useState(false)
   const [copied, setCopied] = useState(false)
   const showMarketSelector = markets.length > 1
+  const siteSlug = useMemo(() => {
+    try {
+      return slugifySiteName(site.name)
+    }
+    catch {
+      return 'market'
+    }
+  }, [site.name])
+  const embedBaseUrl = SITE_URL
+  const embedElementName = `${siteSlug}-market-embed`
+  const embedIframeTitle = `${siteSlug}-market-iframe`
   const user = useUser()
   const affiliateCode = user?.affiliate_code?.trim() ?? ''
   const [affiliateSharePercent, setAffiliateSharePercent] = useState<number | null>(null)
@@ -340,8 +349,8 @@ export default function EventChartEmbedDialog({
     [showVolume, showChart, showTimeRange],
   )
   const iframeSrc = useMemo(
-    () => buildIframeSrc(marketSlug, theme, features, affiliateCode),
-    [marketSlug, theme, features, affiliateCode],
+    () => buildIframeSrc(embedBaseUrl, marketSlug, theme, features, affiliateCode),
+    [embedBaseUrl, marketSlug, theme, features, affiliateCode],
   )
   const previewSrc = useMemo(
     () => buildPreviewSrc(marketSlug, theme, features, affiliateCode),
@@ -350,32 +359,35 @@ export default function EventChartEmbedDialog({
   const iframeHeight = showChart
     ? (showTimeRange ? IFRAME_HEIGHT_WITH_FILTERS : IFRAME_HEIGHT_WITH_CHART)
     : IFRAME_HEIGHT_NO_CHART
-  const iframeCode = useMemo(() => buildIframeCode(iframeSrc, iframeHeight), [iframeSrc, iframeHeight])
+  const iframeCode = useMemo(
+    () => buildIframeCode(iframeSrc, iframeHeight, embedIframeTitle),
+    [embedIframeTitle, iframeSrc, iframeHeight],
+  )
   const webComponentCode = useMemo(
-    () => buildWebComponentCode(marketSlug, theme, showVolume, showChart, showTimeRange, affiliateCode),
-    [marketSlug, theme, showVolume, showChart, showTimeRange, affiliateCode],
+    () => buildWebComponentCode(embedElementName, marketSlug, theme, showVolume, showChart, showTimeRange, affiliateCode),
+    [embedElementName, marketSlug, theme, showVolume, showChart, showTimeRange, affiliateCode],
   )
   const activeCode = embedType === 'iframe' ? iframeCode : webComponentCode
 
   const iframeLines = useMemo<CodeLine[]>(() => ([
     tagOpenLine('', 'iframe'),
-    attributeLine('\t', 'title', EMBED_IFRAME_TITLE),
+    attributeLine('\t', 'title', embedIframeTitle),
     attributeLine('\t', 'src', iframeSrc),
     attributeLine('\t', 'width', '400'),
     attributeLine('\t', 'height', String(iframeHeight)),
     attributeLine('\t', 'frameBorder', '0'),
     tagSelfCloseLine(''),
-  ]), [iframeSrc, iframeHeight])
+  ]), [embedIframeTitle, iframeSrc, iframeHeight])
 
   const webComponentLines = useMemo<CodeLine[]>(() => {
     const lines: CodeLine[] = [
-      tagWithAttributeLine('', 'div', 'id', EMBED_ELEMENT_NAME, '>'),
+      tagWithAttributeLine('', 'div', 'id', embedElementName, '>'),
       tagOpenLine('\t', 'script'),
       attributeLine('\t\t', 'type', 'module'),
       attributeLine('\t\t', 'src', EMBED_SCRIPT_URL),
       tagEndLine('\t'),
       tagCloseLine('\t', 'script'),
-      tagOpenLine('\t', EMBED_ELEMENT_NAME),
+      tagOpenLine('\t', embedElementName),
       attributeLine('\t\t', 'market', marketSlug),
     ]
 
@@ -397,7 +409,7 @@ export default function EventChartEmbedDialog({
     lines.push(tagCloseLine('', 'div'))
 
     return lines
-  }, [marketSlug, showVolume, showChart, showTimeRange, theme, affiliateCode])
+  }, [affiliateCode, embedElementName, marketSlug, showChart, showTimeRange, showVolume, theme])
 
   async function handleCopy() {
     try {
@@ -408,7 +420,7 @@ export default function EventChartEmbedDialog({
         affiliateCode,
         affiliateSharePercent,
         tradeFeePercent,
-        siteName: SITE_NAME,
+        siteName: site.name,
         context: 'embed',
       })
     }

@@ -23,6 +23,9 @@ describe('theme settings runtime resolver', () => {
     expect(state.source).toBe('default')
     expect(state.theme.presetId).toBe('default')
     expect(state.theme.radius).toBeNull()
+    expect(state.site.name).toBeTruthy()
+    expect(state.site.description).toBeTruthy()
+    expect(state.site.logoSvg).toContain('<svg')
   })
 
   it('uses settings theme when DB values are valid', async () => {
@@ -33,6 +36,10 @@ describe('theme settings runtime resolver', () => {
           radius: { value: '12px', updated_at: '2026-01-01T00:00:00.000Z' },
           light_json: { value: '{"primary":"#112233"}', updated_at: '2026-01-01T00:00:00.000Z' },
           dark_json: { value: '{"primary":"#445566"}', updated_at: '2026-01-01T00:00:00.000Z' },
+          site_name: { value: 'Kuest Lime', updated_at: '2026-01-01T00:00:00.000Z' },
+          site_description: { value: 'Lime branded market', updated_at: '2026-01-01T00:00:00.000Z' },
+          site_logo_mode: { value: 'svg', updated_at: '2026-01-01T00:00:00.000Z' },
+          site_logo_svg: { value: '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><circle cx=\"5\" cy=\"5\" r=\"4\"/></svg>', updated_at: '2026-01-01T00:00:00.000Z' },
         },
       },
       error: null,
@@ -47,6 +54,9 @@ describe('theme settings runtime resolver', () => {
     expect(state.theme.light.primary).toBe('#112233')
     expect(state.theme.dark.primary).toBe('#445566')
     expect(state.theme.cssText).toContain('--radius: 12px;')
+    expect(state.site.name).toBe('Kuest Lime')
+    expect(state.site.description).toBe('Lime branded market')
+    expect(state.site.logoMode).toBe('svg')
   })
 
   it('falls back when stored settings are invalid', async () => {
@@ -68,6 +78,8 @@ describe('theme settings runtime resolver', () => {
     expect(state.source).toBe('default')
     expect(state.theme.presetId).toBe('default')
     expect(state.theme.radius).toBeNull()
+    expect(state.site.name).toBeTruthy()
+    expect(state.site.description).toBeTruthy()
   })
 
   it('uses default theme when there are no stored settings', async () => {
@@ -79,5 +91,7 @@ describe('theme settings runtime resolver', () => {
     expect(state.source).toBe('default')
     expect(state.theme.presetId).toBe('default')
     expect(state.theme.radius).toBeNull()
+    expect(state.site.name).toBeTruthy()
+    expect(state.site.description).toBeTruthy()
   })
 })

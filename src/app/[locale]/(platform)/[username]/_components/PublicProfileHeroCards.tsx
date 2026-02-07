@@ -11,10 +11,12 @@ import { AreaClosed, LinePath } from '@visx/shape'
 import { CircleHelpIcon, MinusIcon, TriangleIcon } from 'lucide-react'
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import ProfileOverviewCard from '@/app/[locale]/(platform)/_components/ProfileOverviewCard'
+import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { formatCurrency } from '@/lib/formatters'
-import { cn, svgLogo } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 
 interface PnlPoint {
   date: Date
@@ -37,7 +39,8 @@ function ProfitLossCard({
   snapshot: PortfolioSnapshot
   portfolioAddress?: string | null
 }) {
-  const platformName = process.env.NEXT_PUBLIC_SITE_NAME ?? ''
+  const site = useSiteIdentity()
+  const platformName = site.name ?? ''
   const [activeTimeframe, setActiveTimeframe] = useState<(typeof PNL_TIMEFRAMES)[number]>('ALL')
   const [cursorX, setCursorX] = useState<number | null>(null)
   const [pnlSeries, setPnlSeries] = useState<PnlPoint[]>([])
@@ -50,7 +53,7 @@ function ProfitLossCard({
   const areaGradientId = `${chartId}-area`
   const areaFadeId = `${chartId}-fade`
   const areaMaskId = `${chartId}-mask`
-  const logoSvg = svgLogo()
+  const logoSvg = site.logoSvg
     .replace(/fill="url\([^"]+\)"/gi, 'fill="currentColor"')
   const pnlAddress = portfolioAddress
   const pnlBaseUrl = process.env.USER_PNL_URL!
@@ -464,9 +467,13 @@ function ProfitLossCard({
           </div>
 
           <div className="flex items-center gap-2 text-xl text-muted-foreground/70">
-            <div
+            <SiteLogoIcon
+              logoSvg={logoSvg}
+              logoImageUrl={site.logoImageUrl}
+              alt={`${platformName} logo`}
               className="size-[1em] text-current [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
-              dangerouslySetInnerHTML={{ __html: logoSvg }}
+              imageClassName="size-[1em] object-contain"
+              size={20}
             />
             <span className="font-semibold">{platformName}</span>
           </div>

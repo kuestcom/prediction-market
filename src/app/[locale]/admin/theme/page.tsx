@@ -2,9 +2,11 @@
 
 import { setRequestLocale } from 'next-intl/server'
 import AdminThemeSettingsForm from '@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm'
+import AdminThemeSiteSettingsForm from '@/app/[locale]/admin/theme/_components/AdminThemeSiteSettingsForm'
 import { SettingsRepository } from '@/lib/db/queries/settings'
+import { getSupabasePublicAssetUrl } from '@/lib/supabase'
 import { getThemePresetOptions } from '@/lib/theme'
-import { getThemeSettingsFormState } from '@/lib/theme-settings'
+import { getThemeSettingsFormState, getThemeSiteSettingsFormState } from '@/lib/theme-settings'
 
 export default async function AdminThemeSettingsPage({ params }: PageProps<'/[locale]/admin/theme'>) {
   const { locale } = await params
@@ -13,6 +15,8 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
   const { data: allSettings } = await SettingsRepository.getSettings()
 
   const initialThemeSettings = getThemeSettingsFormState(allSettings ?? undefined)
+  const initialThemeSiteSettings = getThemeSiteSettingsFormState(allSettings ?? undefined)
+  const initialThemeSiteImageUrl = getSupabasePublicAssetUrl(initialThemeSiteSettings.logoImagePath || null)
   const presetOptions = getThemePresetOptions()
 
   return (
@@ -20,9 +24,18 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold">Theme</h1>
         <p className="text-sm text-muted-foreground">
-          Select theme presets and colors.
+          Configure colors, radius, and platform identity.
         </p>
       </div>
+
+      <AdminThemeSiteSettingsForm
+        initialSiteName={initialThemeSiteSettings.siteName}
+        initialSiteDescription={initialThemeSiteSettings.siteDescription}
+        initialLogoMode={initialThemeSiteSettings.logoMode}
+        initialLogoSvg={initialThemeSiteSettings.logoSvg}
+        initialLogoImagePath={initialThemeSiteSettings.logoImagePath}
+        initialLogoImageUrl={initialThemeSiteImageUrl}
+      />
 
       <AdminThemeSettingsForm
         presetOptions={presetOptions}

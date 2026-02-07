@@ -35,16 +35,25 @@ export const supabaseAdmin = new Proxy({} as SupabaseClient, {
   },
 }) as SupabaseClient
 
-export function getSupabaseImageUrl(iconPath: string | null): string {
+export function getSupabasePublicAssetUrl(assetPath: string | null): string | null {
   const supabaseUrl = process.env.SUPABASE_URL
 
-  if (!iconPath || !supabaseUrl) {
+  if (!assetPath || !supabaseUrl) {
+    return null
+  }
+
+  if (assetPath.startsWith('http://') || assetPath.startsWith('https://')) {
+    return assetPath
+  }
+
+  return `${supabaseUrl}/storage/v1/object/public/kuest-assets/${assetPath}`
+}
+
+export function getSupabaseImageUrl(iconPath: string | null): string {
+  const publicUrl = getSupabasePublicAssetUrl(iconPath)
+  if (!publicUrl) {
     return 'https://avatar.vercel.sh/creator.png'
   }
 
-  if (iconPath.startsWith('http://') || iconPath.startsWith('https://')) {
-    return iconPath
-  }
-
-  return `${supabaseUrl}/storage/v1/object/public/kuest-assets/${iconPath}`
+  return publicUrl
 }
