@@ -4,16 +4,13 @@ import { setRequestLocale } from 'next-intl/server'
 import AdminThemeSettingsForm from '@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getThemePresetOptions } from '@/lib/theme'
-import { getThemeSettingsFormState, loadRuntimeThemeState } from '@/lib/theme-settings'
+import { getThemeSettingsFormState } from '@/lib/theme-settings'
 
 export default async function AdminThemeSettingsPage({ params }: PageProps<'/[locale]/admin/theme'>) {
   const { locale } = await params
   setRequestLocale(locale)
 
-  const [{ data: allSettings }, runtimeTheme] = await Promise.all([
-    SettingsRepository.getSettings(),
-    loadRuntimeThemeState(),
-  ])
+  const { data: allSettings } = await SettingsRepository.getSettings()
 
   const initialThemeSettings = getThemeSettingsFormState(allSettings ?? undefined)
   const presetOptions = getThemePresetOptions()
@@ -32,7 +29,6 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
         initialPreset={initialThemeSettings.preset}
         initialLightJson={initialThemeSettings.lightJson}
         initialDarkJson={initialThemeSettings.darkJson}
-        runtimeSource={runtimeTheme.source}
       />
     </section>
   )

@@ -29,14 +29,11 @@ interface ThemePresetOption {
   description: string
 }
 
-type ThemeSource = 'settings' | 'default'
-
 interface AdminThemeSettingsFormProps {
   presetOptions: ThemePresetOption[]
   initialPreset: string
   initialLightJson: string
   initialDarkJson: string
-  runtimeSource: ThemeSource
 }
 
 function buildPreviewStyle(variables: ThemeOverrides): CSSProperties {
@@ -68,7 +65,7 @@ function ThemePreviewCard({
   return (
     <div
       data-theme-preset={presetId}
-      data-theme-mode={isDark ? 'dark' : undefined}
+      data-theme-mode={isDark ? 'dark' : 'light'}
       style={style}
       className="grid gap-4 rounded-lg border border-border bg-background p-4 text-foreground"
     >
@@ -107,7 +104,6 @@ export default function AdminThemeSettingsForm({
   initialPreset,
   initialLightJson,
   initialDarkJson,
-  runtimeSource,
 }: AdminThemeSettingsFormProps) {
   const [state, formAction, isPending] = useActionState(updateThemeSettingsAction, initialState)
   const wasPendingRef = useRef(isPending)
@@ -181,18 +177,6 @@ export default function AdminThemeSettingsForm({
   return (
     <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
       <input type="hidden" name="preset" value={preset} />
-
-      <div className="grid gap-1">
-        <h2 className="text-xl font-semibold">Theme</h2>
-        <p className="text-sm text-muted-foreground">
-          Select a preset and optionally override light/dark tokens with JSON.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Runtime source:
-          {' '}
-          <span className="font-semibold uppercase">{runtimeSource}</span>
-        </p>
-      </div>
 
       <div className="grid gap-2">
         <Label htmlFor="theme-preset">Preset</Label>

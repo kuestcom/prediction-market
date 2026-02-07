@@ -5,7 +5,8 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
+:root,
+[data-theme-mode='light'] {
   --yes: oklch(70% 0.194 149.214);
   --yes-foreground: oklch(62% 0.154 150.069);
   --no: oklch(63.7% 0.237 25.331);
