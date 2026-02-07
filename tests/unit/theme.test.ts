@@ -4,6 +4,7 @@ import {
   parseThemeOverridesJson,
   resolveThemePreset,
   sortThemeOverrides,
+  validateThemeRadius,
 } from '@/lib/theme'
 
 describe('theme helpers', () => {
@@ -40,6 +41,12 @@ describe('theme helpers', () => {
     expect(parsed.data).toBeNull()
   })
 
+  it('validates radius values', () => {
+    expect(validateThemeRadius('10px', 'Corner roundness')).toEqual({ value: '10px', error: null })
+    expect(validateThemeRadius('0.75rem', 'Corner roundness')).toEqual({ value: '0.75rem', error: null })
+    expect(validateThemeRadius('12', 'Corner roundness').error).toContain('valid CSS length')
+  })
+
   it('sorts overrides in stable token order', () => {
     const sorted = sortThemeOverrides({
       foreground: '#223344',
@@ -55,23 +62,20 @@ describe('theme helpers', () => {
     expect(resolution.usedFallbackPreset).toBe(true)
   })
 
-  it('maps legacy "kuest" preset id to default', () => {
-    const resolution = resolveThemePreset('kuest')
-    expect(resolution.preset.id).toBe('default')
-    expect(resolution.usedFallbackPreset).toBe(false)
-  })
-
   it('builds custom override css without forcing preset defaults', () => {
     const resolved = buildResolvedThemeConfig(
       'midnight',
       { primary: '#112233' },
       { primary: '#445566' },
+      '8px',
     )
 
     expect(resolved.light.primary).toBe('#112233')
     expect(resolved.dark.primary).toBe('#445566')
+    expect(resolved.radius).toBe('8px')
     expect(resolved.cssText).toContain(':root {')
     expect(resolved.cssText).toContain('.dark {')
+    expect(resolved.cssText).toContain('--radius: 8px;')
     expect(resolved.cssText).toContain('--primary: #112233;')
     expect(resolved.cssText).not.toContain('--background: oklch(0.22 0.03 266);')
   })

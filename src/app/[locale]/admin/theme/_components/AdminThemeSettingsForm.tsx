@@ -18,6 +18,7 @@ import {
   parseThemeOverridesJson,
   THEME_TOKENS,
   validateThemePresetId,
+  validateThemeRadius,
 } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 
@@ -26,6 +27,12 @@ const initialState = {
 }
 
 const COLOR_PICKER_FALLBACK = '#000000'
+const DEFAULT_RADIUS_VALUE = '0.625rem'
+const RADIUS_PRESETS = [
+  { label: 'Sharp', value: '0' },
+  { label: 'Soft', value: DEFAULT_RADIUS_VALUE },
+  { label: 'Round', value: '16px' },
+] as const
 const TOKEN_GROUPS: { id: string, label: string, tokens: ThemeToken[] }[] = [
   {
     id: 'core',
@@ -91,12 +98,17 @@ interface ThemePresetOption {
 interface AdminThemeSettingsFormProps {
   presetOptions: ThemePresetOption[]
   initialPreset: string
+  initialRadius: string
   initialLightJson: string
   initialDarkJson: string
 }
 
-function buildPreviewStyle(variables: ThemeOverrides): CSSProperties {
+function buildPreviewStyle(variables: ThemeOverrides, radius: string | null): CSSProperties {
   const style: Record<string, string> = {}
+
+  if (radius) {
+    style['--radius'] = radius
+  }
 
   THEME_TOKENS.forEach((token) => {
     const value = variables[token]
@@ -236,18 +248,132 @@ function colorToHex(value: string | undefined) {
   return null
 }
 
+function parseRadiusPixels(value: string | null | undefined) {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  if (!normalized) {
+    return null
+  }
+  if (normalized === '0') {
+    return 0
+  }
+
+  const match = normalized.match(/^([+-]?(?:\d+(?:\.\d+)?|\.\d+))(px|rem|em)$/)
+  if (!match) {
+    return null
+  }
+
+  const numericValue = Number.parseFloat(match[1])
+  if (Number.isNaN(numericValue)) {
+    return null
+  }
+
+  if (match[2] === 'px') {
+    return numericValue
+  }
+
+  return numericValue * 16
+}
+
+function getRadiusPresetButtonStyle(presetValue: string): CSSProperties {
+  if (presetValue === '0') {
+    return { borderRadius: '0' }
+  }
+  if (presetValue === '16px') {
+    return { borderRadius: '9999px' }
+  }
+  return { borderRadius: DEFAULT_RADIUS_VALUE }
+}
+
+function RadiusControl({
+  radiusValue,
+  disabled,
+  onRadiusChange,
+  onRadiusReset,
+  error,
+}: {
+  radiusValue: string
+  disabled: boolean
+  onRadiusChange: (radius: string) => void
+  onRadiusReset: () => void
+  error: string | null
+}) {
+  const normalizedRadius = radiusValue.trim()
+  const effectiveRadius = normalizedRadius || DEFAULT_RADIUS_VALUE
+  const selectedPresetValue = useMemo(() => {
+    const normalizedPreset = parseRadiusPixels(effectiveRadius)
+    if (normalizedPreset === null) {
+      return null
+    }
+
+    const matchedPreset = RADIUS_PRESETS.find((preset) => {
+      const presetPixels = parseRadiusPixels(preset.value)
+      return presetPixels !== null && Math.abs(presetPixels - normalizedPreset) < 0.5
+    })
+
+    return matchedPreset?.value ?? null
+  }, [effectiveRadius])
+
+  return (
+    <div className="grid gap-3 rounded-md border border-border p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="grid gap-0.5">
+          <h3 className="text-sm font-semibold">Corner roundness</h3>
+          <p className="text-xs text-muted-foreground">
+            Adjust how rounded buttons, cards, and inputs look.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRadiusReset}
+          disabled={disabled || !normalizedRadius}
+          className="
+            text-muted-foreground transition
+            hover:text-foreground
+            disabled:cursor-not-allowed disabled:opacity-40
+          "
+          title="Use default"
+          aria-label="Use default roundness"
+        >
+          <RotateCcw className="size-4" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {RADIUS_PRESETS.map(preset => (
+          <Button
+            key={preset.value}
+            type="button"
+            size="sm"
+            variant={selectedPresetValue === preset.value ? 'default' : 'outline'}
+            onClick={() => onRadiusChange(preset.value)}
+            disabled={disabled}
+            className="h-11 justify-center"
+            style={getRadiusPresetButtonStyle(preset.value)}
+          >
+            {preset.label}
+          </Button>
+        ))}
+      </div>
+
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  )
+}
+
 function ThemePreviewCard({
   title,
   presetId,
   isDark,
   overrides,
+  radius,
 }: {
   title: string
   presetId: string
   isDark: boolean
   overrides: ThemeOverrides
+  radius: string | null
 }) {
-  const style = useMemo(() => buildPreviewStyle(overrides), [overrides])
+  const style = useMemo(() => buildPreviewStyle(overrides, radius), [overrides, radius])
 
   return (
     <div
@@ -591,6 +717,7 @@ function ThemeTokenMatrix({
 export default function AdminThemeSettingsForm({
   presetOptions,
   initialPreset,
+  initialRadius,
   initialLightJson,
   initialDarkJson,
 }: AdminThemeSettingsFormProps) {
@@ -598,6 +725,7 @@ export default function AdminThemeSettingsForm({
   const wasPendingRef = useRef(isPending)
 
   const [preset, setPreset] = useState(initialPreset)
+  const [radius, setRadius] = useState(initialRadius)
 
   const initialLightParse = useMemo(
     () => parseThemeOverridesJson(initialLightJson, 'Light theme colors'),
@@ -616,6 +744,10 @@ export default function AdminThemeSettingsForm({
   }, [initialPreset])
 
   useEffect(() => {
+    setRadius(initialRadius)
+  }, [initialRadius])
+
+  useEffect(() => {
     setLightOverrides(initialLightParse.data ?? {})
   }, [initialLightParse.data])
 
@@ -625,6 +757,10 @@ export default function AdminThemeSettingsForm({
   const parsedPreset = useMemo(
     () => validateThemePresetId(preset) ?? DEFAULT_THEME_PRESET_ID,
     [preset],
+  )
+  const radiusValidation = useMemo(
+    () => validateThemeRadius(radius, 'Corner roundness'),
+    [radius],
   )
 
   const lightJsonValue = useMemo(
@@ -644,7 +780,7 @@ export default function AdminThemeSettingsForm({
       const rootElement = document.documentElement
       rootElement.setAttribute('data-theme-preset', parsedPreset)
 
-      const cssText = buildThemeCssText(lightOverrides, darkOverrides)
+      const cssText = buildThemeCssText(lightOverrides, darkOverrides, radiusValidation.value)
       const currentThemeStyle = document.getElementById('theme-vars')
 
       if (cssText) {
@@ -670,11 +806,12 @@ export default function AdminThemeSettingsForm({
     }
 
     wasPendingRef.current = isPending
-  }, [darkOverrides, isPending, lightOverrides, parsedPreset, state.error])
+  }, [darkOverrides, isPending, lightOverrides, parsedPreset, radiusValidation.value, state.error])
 
   return (
     <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
       <input type="hidden" name="preset" value={preset} />
+      <input type="hidden" name="radius" value={radius} />
       <input type="hidden" name="light_json" value={lightJsonValue} />
       <input type="hidden" name="dark_json" value={darkJsonValue} />
 
@@ -699,6 +836,13 @@ export default function AdminThemeSettingsForm({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="grid items-start gap-6 self-start">
+          <RadiusControl
+            radiusValue={radius}
+            disabled={isPending}
+            onRadiusChange={setRadius}
+            onRadiusReset={() => setRadius('')}
+            error={radiusValidation.error}
+          />
           <ThemeTokenMatrix
             presetId={parsedPreset}
             lightOverrides={lightOverrides}
@@ -737,18 +881,20 @@ export default function AdminThemeSettingsForm({
               presetId={parsedPreset}
               isDark={false}
               overrides={lightOverrides}
+              radius={radiusValidation.value}
             />
             <ThemePreviewCard
               title="Dark"
               presetId={parsedPreset}
               isDark
               overrides={darkOverrides}
+              radius={radiusValidation.value}
             />
           </div>
           <Button
             type="submit"
             className="w-full"
-            disabled={isPending}
+            disabled={isPending || Boolean(radiusValidation.error)}
           >
             {isPending ? 'Saving...' : 'Save changes'}
           </Button>

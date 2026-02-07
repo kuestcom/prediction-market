@@ -1,4 +1,4 @@
-import type { ResolvedThemeConfig, ThemeOverrides, ThemePresetId } from '@/lib/theme'
+import type { ResolvedThemeConfig, ThemeOverrides, ThemePresetId, ThemeRadius } from '@/lib/theme'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import {
   buildResolvedThemeConfig,
@@ -7,12 +7,14 @@ import {
   parseThemeOverridesJson,
   resolveThemePreset,
   sortThemeOverrides,
+  validateThemeRadius,
 } from '@/lib/theme'
 
 const THEME_SETTINGS_GROUP = 'theme'
 const THEME_PRESET_KEY = 'preset'
 const THEME_LIGHT_JSON_KEY = 'light_json'
 const THEME_DARK_JSON_KEY = 'dark_json'
+const THEME_RADIUS_KEY = 'radius'
 
 type SettingsGroup = Record<string, { value: string, updated_at: string }>
 interface SettingsMap {
@@ -23,6 +25,8 @@ interface NormalizedThemeConfig {
   presetId: ThemePresetId
   lightOverrides: ThemeOverrides
   darkOverrides: ThemeOverrides
+  radius: ThemeRadius | null
+  radiusValue: string
   lightJson: string
   darkJson: string
 }
@@ -36,6 +40,7 @@ export interface RuntimeThemeState {
 
 export interface ThemeSettingsFormState {
   preset: ThemePresetId
+  radius: string
   lightJson: string
   darkJson: string
 }
@@ -47,9 +52,11 @@ export interface ThemeSettingsValidationResult {
 
 function normalizeThemeConfig(params: {
   presetValue: string | null | undefined
+  radiusValue: string | null | undefined
   lightJsonValue: string | null | undefined
   darkJsonValue: string | null | undefined
   presetErrorLabel: string
+  radiusErrorLabel: string
   lightErrorLabel: string
   darkErrorLabel: string
 }): ThemeSettingsValidationResult {
@@ -73,12 +80,18 @@ function normalizeThemeConfig(params: {
 
   const lightOverrides = sortThemeOverrides(lightParsed.data ?? {})
   const darkOverrides = sortThemeOverrides(darkParsed.data ?? {})
+  const radiusValidated = validateThemeRadius(params.radiusValue, params.radiusErrorLabel)
+  if (radiusValidated.error) {
+    return { data: null, error: radiusValidated.error }
+  }
 
   return {
     data: {
       presetId: presetResolution.preset.id,
       lightOverrides,
       darkOverrides,
+      radius: radiusValidated.value,
+      radiusValue: radiusValidated.value ?? '',
       lightJson: formatThemeOverridesJson(lightOverrides),
       darkJson: formatThemeOverridesJson(darkOverrides),
     },
@@ -103,6 +116,7 @@ function hasStoredThemeSettings(themeSettings?: SettingsGroup) {
   }
   return Boolean(
     themeSettings[THEME_PRESET_KEY]?.value?.trim()
+    || themeSettings[THEME_RADIUS_KEY]?.value?.trim()
     || themeSettings[THEME_LIGHT_JSON_KEY]?.value?.trim()
     || themeSettings[THEME_DARK_JSON_KEY]?.value?.trim(),
   )
@@ -111,15 +125,18 @@ function hasStoredThemeSettings(themeSettings?: SettingsGroup) {
 export function getThemeSettingsFormState(allSettings?: SettingsMap): ThemeSettingsFormState {
   const themeSettings = getThemeSettingsGroup(allSettings)
   const presetResolution = resolveThemePreset(themeSettings?.[THEME_PRESET_KEY]?.value)
+  const radiusRaw = themeSettings?.[THEME_RADIUS_KEY]?.value ?? ''
 
   const lightRaw = themeSettings?.[THEME_LIGHT_JSON_KEY]?.value ?? ''
   const darkRaw = themeSettings?.[THEME_DARK_JSON_KEY]?.value ?? ''
 
+  const radiusValidated = validateThemeRadius(radiusRaw, 'Theme radius')
   const lightParsed = parseThemeOverridesJson(lightRaw, 'Theme light overrides')
   const darkParsed = parseThemeOverridesJson(darkRaw, 'Theme dark overrides')
 
   return {
     preset: presetResolution.preset.id,
+    radius: radiusValidated.error ? radiusRaw.trim() : (radiusValidated.value ?? ''),
     lightJson: lightParsed.error ? lightRaw || '{}' : formatThemeOverridesJson(lightParsed.data ?? {}),
     darkJson: darkParsed.error ? darkRaw || '{}' : formatThemeOverridesJson(darkParsed.data ?? {}),
   }
@@ -127,14 +144,17 @@ export function getThemeSettingsFormState(allSettings?: SettingsMap): ThemeSetti
 
 export function validateThemeSettingsInput(params: {
   preset: string | null | undefined
+  radius: string | null | undefined
   lightJson: string | null | undefined
   darkJson: string | null | undefined
 }): ThemeSettingsValidationResult {
   return normalizeThemeConfig({
     presetValue: params.preset,
+    radiusValue: params.radius,
     lightJsonValue: params.lightJson,
     darkJsonValue: params.darkJson,
     presetErrorLabel: 'Theme preset',
+    radiusErrorLabel: 'Theme radius',
     lightErrorLabel: 'Light theme overrides',
     darkErrorLabel: 'Dark theme overrides',
   })
@@ -155,9 +175,11 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
 
   const normalizedFromSettings = normalizeThemeConfig({
     presetValue: themeSettings?.[THEME_PRESET_KEY]?.value,
+    radiusValue: themeSettings?.[THEME_RADIUS_KEY]?.value,
     lightJsonValue: themeSettings?.[THEME_LIGHT_JSON_KEY]?.value,
     darkJsonValue: themeSettings?.[THEME_DARK_JSON_KEY]?.value,
     presetErrorLabel: 'Theme preset in settings',
+    radiusErrorLabel: 'Theme radius in settings',
     lightErrorLabel: 'Theme light_json in settings',
     darkErrorLabel: 'Theme dark_json in settings',
   })
@@ -171,6 +193,7 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
       normalizedFromSettings.data.presetId,
       normalizedFromSettings.data.lightOverrides,
       normalizedFromSettings.data.darkOverrides,
+      normalizedFromSettings.data.radius,
     ),
     source: 'settings',
   }

@@ -22,6 +22,7 @@ describe('theme settings runtime resolver', () => {
 
     expect(state.source).toBe('default')
     expect(state.theme.presetId).toBe('default')
+    expect(state.theme.radius).toBeNull()
   })
 
   it('uses settings theme when DB values are valid', async () => {
@@ -29,6 +30,7 @@ describe('theme settings runtime resolver', () => {
       data: {
         theme: {
           preset: { value: 'lime', updated_at: '2026-01-01T00:00:00.000Z' },
+          radius: { value: '12px', updated_at: '2026-01-01T00:00:00.000Z' },
           light_json: { value: '{"primary":"#112233"}', updated_at: '2026-01-01T00:00:00.000Z' },
           dark_json: { value: '{"primary":"#445566"}', updated_at: '2026-01-01T00:00:00.000Z' },
         },
@@ -41,8 +43,10 @@ describe('theme settings runtime resolver', () => {
 
     expect(state.source).toBe('settings')
     expect(state.theme.presetId).toBe('lime')
+    expect(state.theme.radius).toBe('12px')
     expect(state.theme.light.primary).toBe('#112233')
     expect(state.theme.dark.primary).toBe('#445566')
+    expect(state.theme.cssText).toContain('--radius: 12px;')
   })
 
   it('falls back when stored settings are invalid', async () => {
@@ -50,6 +54,7 @@ describe('theme settings runtime resolver', () => {
       data: {
         theme: {
           preset: { value: 'lime', updated_at: '2026-01-01T00:00:00.000Z' },
+          radius: { value: 'invalid', updated_at: '2026-01-01T00:00:00.000Z' },
           light_json: { value: '{"bad-token":"#112233"}', updated_at: '2026-01-01T00:00:00.000Z' },
           dark_json: { value: '{}', updated_at: '2026-01-01T00:00:00.000Z' },
         },
@@ -62,6 +67,7 @@ describe('theme settings runtime resolver', () => {
 
     expect(state.source).toBe('default')
     expect(state.theme.presetId).toBe('default')
+    expect(state.theme.radius).toBeNull()
   })
 
   it('uses default theme when there are no stored settings', async () => {
@@ -72,24 +78,6 @@ describe('theme settings runtime resolver', () => {
 
     expect(state.source).toBe('default')
     expect(state.theme.presetId).toBe('default')
-  })
-
-  it('maps legacy kuest preset from settings to default', async () => {
-    mocks.getSettings.mockResolvedValueOnce({
-      data: {
-        theme: {
-          preset: { value: 'kuest', updated_at: '2026-01-01T00:00:00.000Z' },
-          light_json: { value: '{}', updated_at: '2026-01-01T00:00:00.000Z' },
-          dark_json: { value: '{}', updated_at: '2026-01-01T00:00:00.000Z' },
-        },
-      },
-      error: null,
-    })
-
-    const { loadRuntimeThemeState } = await import('@/lib/theme-settings')
-    const state = await loadRuntimeThemeState()
-
-    expect(state.source).toBe('settings')
-    expect(state.theme.presetId).toBe('default')
+    expect(state.theme.radius).toBeNull()
   })
 })

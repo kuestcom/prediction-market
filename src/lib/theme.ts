@@ -68,9 +68,11 @@ const THEME_TOKEN_SET = new Set(THEME_TOKENS)
 
 export type ThemeToken = ThemeTokenTuple[number]
 export type ThemeOverrides = Partial<Record<ThemeToken, string>>
+export type ThemeRadius = string
 
 const NUMBER_PATTERN = '[+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+)'
 const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i
+const RADIUS_PATTERN = new RegExp(`^(?:0|${NUMBER_PATTERN}(?:px|rem|em))$`, 'i')
 const OKLCH_COLOR_PATTERN = new RegExp(
   `^oklch\\(\\s*${NUMBER_PATTERN}%?\\s+${NUMBER_PATTERN}\\s+${NUMBER_PATTERN}(?:\\s*\\/\\s*${NUMBER_PATTERN}%?)?\\s*\\)$`,
   'i',
@@ -119,6 +121,7 @@ export interface ResolvedThemeConfig {
   presetId: ThemePresetId
   light: ThemeOverrides
   dark: ThemeOverrides
+  radius: ThemeRadius | null
   cssText: string
 }
 
@@ -237,6 +240,22 @@ export function parseThemeOverridesJson(rawValue: string | null | undefined, sou
   return parseThemeOverrides(parsedJson, sourceLabel)
 }
 
+export function validateThemeRadius(value: string | null | undefined, sourceLabel: string) {
+  const normalized = typeof value === 'string' ? value.trim() : ''
+  if (!normalized) {
+    return { value: null, error: null }
+  }
+
+  if (!RADIUS_PATTERN.test(normalized)) {
+    return {
+      value: null,
+      error: `${sourceLabel} must be a valid CSS length (0, px, rem, or em).`,
+    }
+  }
+
+  return { value: normalized, error: null }
+}
+
 export function sortThemeOverrides(overrides: ThemeOverrides): ThemeOverrides {
   const sorted: ThemeOverrides = {}
 
@@ -257,6 +276,7 @@ function buildThemeConfig(
   presetId: ThemePresetId,
   light: ThemeOverrides,
   dark: ThemeOverrides,
+  radius: ThemeRadius | null = null,
 ): ResolvedThemeConfig {
   const normalizedLight = sortThemeOverrides(light)
   const normalizedDark = sortThemeOverrides(dark)
@@ -265,7 +285,8 @@ function buildThemeConfig(
     presetId,
     light: normalizedLight,
     dark: normalizedDark,
-    cssText: buildThemeCssText(normalizedLight, normalizedDark),
+    radius,
+    cssText: buildThemeCssText(normalizedLight, normalizedDark, radius),
   }
 }
 
@@ -273,11 +294,13 @@ export function buildResolvedThemeConfig(
   presetId: ThemePresetId,
   lightOverrides: ThemeOverrides = {},
   darkOverrides: ThemeOverrides = {},
+  radius: ThemeRadius | null = null,
 ): ResolvedThemeConfig {
-  return buildThemeConfig(presetId, lightOverrides, darkOverrides)
+  return buildThemeConfig(presetId, lightOverrides, darkOverrides, radius)
 }
 
-export function buildThemeCssText(light: ThemeOverrides, dark: ThemeOverrides) {
+export function buildThemeCssText(light: ThemeOverrides, dark: ThemeOverrides, radius: ThemeRadius | null = null) {
+  const normalizedRadius = typeof radius === 'string' ? radius.trim() : ''
   const lightLines = THEME_TOKENS.flatMap((token) => {
     const value = light[token]
     return typeof value === 'string' ? [`  --${token}: ${value};`] : []
@@ -288,6 +311,9 @@ export function buildThemeCssText(light: ThemeOverrides, dark: ThemeOverrides) {
   })
 
   const blocks: string[] = []
+  if (normalizedRadius) {
+    lightLines.unshift(`  --radius: ${normalizedRadius};`)
+  }
   if (lightLines.length > 0) {
     blocks.push(`:root {\n${lightLines.join('\n')}\n}`)
   }

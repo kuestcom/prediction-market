@@ -23,6 +23,10 @@ export async function updateThemeSettingsAction(
   const preset = typeof presetValue === 'string'
     ? presetValue
     : ''
+  const radiusValue = formData.get('radius')
+  const radius = typeof radiusValue === 'string'
+    ? radiusValue
+    : ''
   const lightJsonValue = formData.get('light_json')
   const lightJson = typeof lightJsonValue === 'string'
     ? lightJsonValue
@@ -34,6 +38,7 @@ export async function updateThemeSettingsAction(
 
   const validatedTheme = validateThemeSettingsInput({
     preset,
+    radius,
     lightJson,
     darkJson,
   })
@@ -44,6 +49,7 @@ export async function updateThemeSettingsAction(
 
   const { error } = await SettingsRepository.updateSettings([
     { group: 'theme', key: 'preset', value: validatedTheme.data.presetId },
+    { group: 'theme', key: 'radius', value: validatedTheme.data.radiusValue },
     { group: 'theme', key: 'light_json', value: validatedTheme.data.lightJson },
     { group: 'theme', key: 'dark_json', value: validatedTheme.data.darkJson },
   ])

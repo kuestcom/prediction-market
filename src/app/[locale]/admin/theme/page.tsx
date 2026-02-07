@@ -27,6 +27,7 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
       <AdminThemeSettingsForm
         presetOptions={presetOptions}
         initialPreset={initialThemeSettings.preset}
+        initialRadius={initialThemeSettings.radius}
         initialLightJson={initialThemeSettings.lightJson}
         initialDarkJson={initialThemeSettings.darkJson}
       />
