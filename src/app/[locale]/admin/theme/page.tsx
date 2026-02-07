@@ -20,7 +20,7 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold">Theme</h1>
         <p className="text-sm text-muted-foreground">
-          Configure runtime theme presets and overrides without redeploying.
+          Select theme presets and colors.
         </p>
       </div>
 

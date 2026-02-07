@@ -99,7 +99,7 @@ export interface ThemePreset {
 }
 
 const LEGACY_DEFAULT_PRESET_ID = 'kuest'
-const THEME_PRESET_IDS = ['default', 'midnight', 'lime'] as const
+const THEME_PRESET_IDS = ['default', 'midnight', 'lime', 'amber'] as const
 export type ThemePresetId = typeof THEME_PRESET_IDS[number]
 const THEME_PRESET_ID_SET = new Set<string>(THEME_PRESET_IDS)
 export const DEFAULT_THEME_PRESET_ID: ThemePresetId = 'default'
@@ -119,6 +119,11 @@ const THEME_PRESETS: Record<ThemePresetId, ThemePreset> = {
     id: 'lime',
     label: 'Lime',
     description: 'High-energy green accent palette.',
+  },
+  amber: {
+    id: 'amber',
+    label: 'Amber',
+    description: 'Warm amber palette inspired by Binance.',
   },
 }
 

@@ -126,6 +126,12 @@
   --chart-4: oklch(0.77 0.2 120);
 }
 
+[data-theme-preset='amber'] {
+  --primary: #f8cc29;
+  --yes: #2fbd85;
+  --no: #f6465d;
+}
+
 .dark[data-theme-preset='lime'],
 [data-theme-mode='dark'][data-theme-preset='lime'] {
   --background: oklch(0.24 0.03 165);
@@ -145,6 +151,19 @@
   --chart-5: oklch(0.68 0.19 90);
 }
 
+.dark[data-theme-preset='amber'],
+[data-theme-mode='dark'][data-theme-preset='amber'] {
+  --background: #181a21;
+  --card: #29313d;
+  --card-hover: #29313d;
+  --popover: #181a21;
+  --primary: #f8cc29;
+  --primary-foreground: #1e242d;
+  --border: #29313d;
+  --input: #29313d;
+  --input-hover: #353d4b;
+  --ring: #29313d;
+}
 @theme inline {
   --color-yes: var(--yes);
   --color-yes-foreground: var(--yes-foreground);

@@ -1,27 +1,20 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import type { ThemeOverrides } from '@/lib/theme'
+import type { ThemeOverrides, ThemeToken } from '@/lib/theme'
+import { ChevronDown, RotateCcw } from 'lucide-react'
 import Form from 'next/form'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { updateThemeSettingsAction } from '@/app/[locale]/admin/theme/_actions/update-theme-settings'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import {
   buildThemeCssText,
   DEFAULT_THEME_PRESET_ID,
+  formatThemeOverridesJson,
   parseThemeOverridesJson,
   THEME_TOKENS,
   validateThemePresetId,
@@ -31,12 +24,77 @@ const initialState = {
   error: null,
 }
 
-const THEME_OVERRIDES_EXAMPLE = `{
-  "primary": "#3b82f6",
-  "ring": "oklch(0.67 0.12 145)",
-  "chart-1": "#22c55e"
-}`
-
+const COLOR_PICKER_FALLBACK = '#000000'
+const TOKEN_GROUPS: { id: string, label: string, tokens: ThemeToken[] }[] = [
+  {
+    id: 'core',
+    label: 'Core surfaces',
+    tokens: [
+      'background',
+      'foreground',
+      'card',
+      'card-foreground',
+      'card-hover',
+      'popover',
+      'popover-foreground',
+      'border',
+      'input',
+      'input-hover',
+      'ring',
+    ],
+  },
+  {
+    id: 'brand',
+    label: 'Brand + accents',
+    tokens: [
+      'primary',
+      'primary-foreground',
+      'secondary',
+      'secondary-foreground',
+      'muted',
+      'muted-foreground',
+      'accent',
+      'accent-foreground',
+    ],
+  },
+  {
+    id: 'outcomes',
+    label: 'Outcome + alerts',
+    tokens: [
+      'yes',
+      'yes-foreground',
+      'no',
+      'no-foreground',
+      'destructive',
+      'destructive-foreground',
+    ],
+  },
+  {
+    id: 'chart',
+    label: 'Chart palette',
+    tokens: [
+      'chart-1',
+      'chart-2',
+      'chart-3',
+      'chart-4',
+      'chart-5',
+    ],
+  },
+  {
+    id: 'sidebar',
+    label: 'Sidebar',
+    tokens: [
+      'sidebar',
+      'sidebar-foreground',
+      'sidebar-primary',
+      'sidebar-primary-foreground',
+      'sidebar-accent',
+      'sidebar-accent-foreground',
+      'sidebar-border',
+      'sidebar-ring',
+    ],
+  },
+]
 interface ThemePresetOption {
   id: string
   label: string
@@ -63,55 +121,132 @@ function buildPreviewStyle(variables: ThemeOverrides): CSSProperties {
   return style as CSSProperties
 }
 
-function ThemeOverridesGuideDialog() {
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button type="button" variant="outline" size="sm">
-          How to customize colors
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Customize theme colors</DialogTitle>
-          <DialogDescription>
-            Use this guide to personalize light and dark colors.
-          </DialogDescription>
-        </DialogHeader>
+function clampChannel(value: number) {
+  if (Number.isNaN(value)) {
+    return 0
+  }
+  return Math.min(255, Math.max(0, value))
+}
 
-        <div className="grid gap-4 text-sm">
-          <div className="grid gap-2">
-            <p className="font-medium">Rules</p>
-            <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
-              <li>You can change only the colors you want.</li>
-              <li>Root value must be a JSON object.</li>
-              <li>Keys must be one of the supported tokens listed below.</li>
-              <li>Values must be a color in `hex` or `oklch(...)` format.</li>
-              <li>You can use `primary` or `--primary` as the token key.</li>
-            </ul>
-          </div>
+function normalizeHexColor(value: string): string | null {
+  const trimmed = value.trim().toLowerCase()
+  if (!trimmed.startsWith('#')) {
+    return null
+  }
+  const hex = trimmed.slice(1)
+  if (hex.length === 3) {
+    const expanded = hex.split('').map(char => char + char).join('')
+    return `#${expanded}`
+  }
+  if (hex.length === 6) {
+    return `#${hex}`
+  }
+  if (hex.length === 8) {
+    return `#${hex.slice(0, 6)}`
+  }
+  return null
+}
 
-          <div className="grid gap-2">
-            <p className="font-medium">Example</p>
-            <pre className="overflow-x-auto rounded-md border bg-muted/30 p-3 text-xs">
-              {THEME_OVERRIDES_EXAMPLE}
-            </pre>
-          </div>
+function parseRgbChannel(value: string) {
+  const trimmed = value.trim()
+  if (trimmed.endsWith('%')) {
+    const percent = Number.parseFloat(trimmed.slice(0, -1))
+    return clampChannel(Math.round((percent / 100) * 255))
+  }
+  return clampChannel(Math.round(Number.parseFloat(trimmed)))
+}
 
-          <div className="grid gap-2">
-            <p className="font-medium">Available tokens</p>
-            <div className="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-3">
-              {THEME_TOKENS.map(token => (
-                <code key={token} className="rounded-sm bg-muted px-2 py-1 text-xs">
-                  {token}
-                </code>
-              ))}
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
+function parseRgbColor(value: string): [number, number, number] | null {
+  const match = value.match(/rgba?\(([^)]+)\)/i)
+  if (!match) {
+    return null
+  }
+  const parts = match[1]
+    .trim()
+    .split(/[\s,/]+/)
+    .filter(Boolean)
+  if (parts.length < 3) {
+    return null
+  }
+  const r = parseRgbChannel(parts[0])
+  const g = parseRgbChannel(parts[1])
+  const b = parseRgbChannel(parts[2])
+  return [r, g, b]
+}
+
+function parseOklchColor(value: string): { l: number, c: number, h: number } | null {
+  const match = value.match(/oklch\(\s*([+-]?[\d.]+%?)\s+([+-]?[\d.]+)\s+([+-]?[\d.]+)(?:\s*\/\s*([+-]?[\d.]+%?))?\s*\)/i)
+  if (!match) {
+    return null
+  }
+  let l = Number.parseFloat(match[1])
+  if (match[1].includes('%') || l > 1) {
+    l = l / 100
+  }
+  const c = Number.parseFloat(match[2])
+  const h = Number.parseFloat(match[3])
+  if (Number.isNaN(l) || Number.isNaN(c) || Number.isNaN(h)) {
+    return null
+  }
+  return { l, c, h }
+}
+
+function oklchToRgb({ l, c, h }: { l: number, c: number, h: number }): [number, number, number] {
+  const hRad = (h * Math.PI) / 180
+  const a = c * Math.cos(hRad)
+  const b = c * Math.sin(hRad)
+
+  const l_ = l + 0.3963377774 * a + 0.2158037573 * b
+  const m_ = l - 0.1055613458 * a - 0.0638541728 * b
+  const s_ = l - 0.0894841775 * a - 1.291485548 * b
+
+  const l3 = l_ ** 3
+  const m3 = m_ ** 3
+  const s3 = s_ ** 3
+
+  const rLinear = 4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3
+  const gLinear = -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3
+  const bLinear = -0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3
+
+  function toSrgb(channel: number) {
+    const clamped = Math.min(1, Math.max(0, channel))
+    return clamped <= 0.0031308
+      ? 12.92 * clamped
+      : 1.055 * clamped ** (1 / 2.4) - 0.055
+  }
+
+  return [
+    clampChannel(Math.round(toSrgb(rLinear) * 255)),
+    clampChannel(Math.round(toSrgb(gLinear) * 255)),
+    clampChannel(Math.round(toSrgb(bLinear) * 255)),
+  ]
+}
+
+function rgbToHex([r, g, b]: [number, number, number]) {
+  function toHex(channel: number) {
+    return clampChannel(channel).toString(16).padStart(2, '0')
+  }
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
+
+function colorToHex(value: string | undefined) {
+  if (!value) {
+    return null
+  }
+  const normalized = value.trim()
+  const hex = normalizeHexColor(normalized)
+  if (hex) {
+    return hex
+  }
+  const rgb = parseRgbColor(normalized)
+  if (rgb) {
+    return rgbToHex(rgb)
+  }
+  const oklch = parseOklchColor(normalized)
+  if (oklch) {
+    return rgbToHex(oklchToRgb(oklch))
+  }
+  return null
 }
 
 function ThemePreviewCard({
@@ -142,11 +277,17 @@ function ThemePreviewCard({
           <span className="inline-flex rounded-sm bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
             Primary
           </span>
-          <span className="
+          <span className={`
             inline-flex rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-secondary-foreground
-          "
+          `}
           >
             Secondary
+          </span>
+          <span className="inline-flex rounded-sm bg-yes px-2 py-1 text-xs font-semibold text-white">
+            Yes
+          </span>
+          <span className="inline-flex rounded-sm bg-no px-2 py-1 text-xs font-semibold text-white">
+            No
           </span>
         </div>
       </div>
@@ -164,6 +305,236 @@ function ThemePreviewCard({
   )
 }
 
+function ColorPickerSwatch({
+  presetId,
+  value,
+  label,
+  disabled,
+  onChange,
+  onReset,
+  showReset,
+}: {
+  presetId: string
+  value: string | undefined
+  label: string
+  disabled: boolean
+  onChange: (value: string) => void
+  onReset?: () => void
+  showReset?: boolean
+}) {
+  const pickerValue = colorToHex(value) ?? COLOR_PICKER_FALLBACK
+
+  return (
+    <div className="flex w-14 items-center justify-start gap-1">
+      <div
+        className="relative h-7 w-7 overflow-hidden rounded-md border border-border"
+        style={{ backgroundColor: value ?? pickerValue }}
+        data-theme-preset={presetId}
+      >
+        <input
+          type="color"
+          aria-label={label}
+          value={pickerValue}
+          disabled={disabled}
+          onChange={event => onChange(event.target.value)}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        />
+      </div>
+      <div className="flex h-5 w-5 items-center justify-center">
+        {showReset && onReset
+          ? (
+              <button
+                type="button"
+                onClick={onReset}
+                disabled={disabled}
+                className="text-muted-foreground transition hover:text-foreground"
+                title="Reset"
+                aria-label="Reset color"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </button>
+            )
+          : (
+              <span aria-hidden className="h-3 w-3" />
+            )}
+      </div>
+    </div>
+  )
+}
+
+function ThemeTokenMatrix({
+  presetId,
+  lightOverrides,
+  darkOverrides,
+  onLightChange,
+  onDarkChange,
+  onLightReset,
+  onDarkReset,
+  disabled,
+  lightParseError,
+  darkParseError,
+}: {
+  presetId: string
+  lightOverrides: ThemeOverrides
+  darkOverrides: ThemeOverrides
+  onLightChange: (token: ThemeToken, value: string) => void
+  onDarkChange: (token: ThemeToken, value: string) => void
+  onLightReset: (token: ThemeToken) => void
+  onDarkReset: (token: ThemeToken) => void
+  disabled: boolean
+  lightParseError: string | null
+  darkParseError: string | null
+}) {
+  const lightProbeRef = useRef<HTMLDivElement>(null)
+  const darkProbeRef = useRef<HTMLDivElement>(null)
+  const [baseLightValues, setBaseLightValues] = useState<ThemeOverrides>({})
+  const [baseDarkValues, setBaseDarkValues] = useState<ThemeOverrides>({})
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const initialState: Record<string, boolean> = {}
+    TOKEN_GROUPS.forEach((group) => {
+      initialState[group.id] = group.id === 'core'
+    })
+    return initialState
+  })
+
+  useEffect(() => {
+    if (!lightProbeRef.current || !darkProbeRef.current) {
+      return
+    }
+    const lightStyles = getComputedStyle(lightProbeRef.current)
+    const darkStyles = getComputedStyle(darkProbeRef.current)
+    const nextLight: ThemeOverrides = {}
+    const nextDark: ThemeOverrides = {}
+
+    THEME_TOKENS.forEach((token) => {
+      const lightValue = lightStyles.getPropertyValue(`--${token}`).trim()
+      const darkValue = darkStyles.getPropertyValue(`--${token}`).trim()
+      if (lightValue) {
+        nextLight[token] = lightValue
+      }
+      if (darkValue) {
+        nextDark[token] = darkValue
+      }
+    })
+
+    setBaseLightValues(nextLight)
+    setBaseDarkValues(nextDark)
+  }, [presetId])
+
+  return (
+    <div className="grid gap-3">
+      <div
+        ref={lightProbeRef}
+        data-theme-mode="light"
+        data-theme-preset={presetId}
+        className="sr-only"
+      />
+      <div
+        ref={darkProbeRef}
+        data-theme-mode="dark"
+        data-theme-preset={presetId}
+        className="sr-only"
+      />
+
+      <div className="grid gap-1">
+        <h3 className="text-sm font-semibold">Theme tokens</h3>
+        {(lightParseError || darkParseError) && (
+          <div className="grid gap-1 text-xs text-destructive">
+            {lightParseError && (
+              <p>
+                Light overrides:
+                {lightParseError}
+              </p>
+            )}
+            {darkParseError && (
+              <p>
+                Dark overrides:
+                {darkParseError}
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="grid gap-2">
+          {TOKEN_GROUPS.map(group => (
+            <details
+              key={group.id}
+              open={openGroups[group.id]}
+              onToggle={(event) => {
+                const isOpen = (event.currentTarget as HTMLDetailsElement).open
+                setOpenGroups(prev => ({ ...prev, [group.id]: isOpen }))
+              }}
+              className="rounded-md border border-border"
+            >
+              <summary className={`
+                flex cursor-pointer items-start justify-between px-3 py-1.5 text-sm font-medium text-foreground
+              `}
+              >
+                <span className="leading-tight">{group.label}</span>
+                <ChevronDown
+                  className={`h-4 w-4 text-muted-foreground transition-transform ${openGroups[group.id] ? 'rotate-180' : ''}
+                  `}
+                />
+              </summary>
+              <div className="border-t border-border px-2 py-2">
+                <div className="grid gap-1">
+                  <div className={`
+                    grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 px-2 text-[10px]
+                    text-muted-foreground uppercase
+                  `}
+                  >
+                    <span>Token</span>
+                    <span className="text-left">Light</span>
+                    <span className="text-left">Dark</span>
+                  </div>
+                  <div className="grid gap-1.5">
+                    {group.tokens.map((token) => {
+                      const lightOverride = lightOverrides[token]
+                      const darkOverride = darkOverrides[token]
+                      const lightValue = lightOverride ?? baseLightValues[token]
+                      const darkValue = darkOverride ?? baseDarkValues[token]
+
+                      return (
+                        <div
+                          key={token}
+                          className={`
+                            grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 rounded-md border
+                            border-border px-2 py-1.5
+                          `}
+                        >
+                          <code className="text-xs font-medium text-foreground">{token}</code>
+                          <ColorPickerSwatch
+                            presetId={presetId}
+                            value={lightValue}
+                            label={`${token} light color`}
+                            disabled={disabled}
+                            onChange={value => onLightChange(token, value)}
+                            onReset={() => onLightReset(token)}
+                            showReset={Boolean(lightOverride)}
+                          />
+                          <ColorPickerSwatch
+                            presetId={presetId}
+                            value={darkValue}
+                            label={`${token} dark color`}
+                            disabled={disabled}
+                            onChange={value => onDarkChange(token, value)}
+                            onReset={() => onDarkReset(token)}
+                            showReset={Boolean(darkOverride)}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminThemeSettingsForm({
   presetOptions,
   initialPreset,
@@ -174,32 +545,43 @@ export default function AdminThemeSettingsForm({
   const wasPendingRef = useRef(isPending)
 
   const [preset, setPreset] = useState(initialPreset)
-  const [lightJson, setLightJson] = useState(initialLightJson)
-  const [darkJson, setDarkJson] = useState(initialDarkJson)
+
+  const initialLightParse = useMemo(
+    () => parseThemeOverridesJson(initialLightJson, 'Light theme colors'),
+    [initialLightJson],
+  )
+  const initialDarkParse = useMemo(
+    () => parseThemeOverridesJson(initialDarkJson, 'Dark theme colors'),
+    [initialDarkJson],
+  )
+
+  const [lightOverrides, setLightOverrides] = useState<ThemeOverrides>(initialLightParse.data ?? {})
+  const [darkOverrides, setDarkOverrides] = useState<ThemeOverrides>(initialDarkParse.data ?? {})
 
   useEffect(() => {
     setPreset(initialPreset)
   }, [initialPreset])
 
   useEffect(() => {
-    setLightJson(initialLightJson)
-  }, [initialLightJson])
+    setLightOverrides(initialLightParse.data ?? {})
+  }, [initialLightParse.data])
 
   useEffect(() => {
-    setDarkJson(initialDarkJson)
-  }, [initialDarkJson])
-
-  const lightParseResult = useMemo(
-    () => parseThemeOverridesJson(lightJson, 'Light theme colors'),
-    [lightJson],
-  )
-  const darkParseResult = useMemo(
-    () => parseThemeOverridesJson(darkJson, 'Dark theme colors'),
-    [darkJson],
-  )
+    setDarkOverrides(initialDarkParse.data ?? {})
+  }, [initialDarkParse.data])
   const parsedPreset = useMemo(
     () => validateThemePresetId(preset) ?? DEFAULT_THEME_PRESET_ID,
     [preset],
+  )
+
+  const lightJsonValue = useMemo(
+    () => formatThemeOverridesJson(lightOverrides),
+    [lightOverrides],
+  )
+
+  const darkJsonValue = useMemo(
+    () => formatThemeOverridesJson(darkOverrides),
+    [darkOverrides],
   )
 
   useEffect(() => {
@@ -209,7 +591,7 @@ export default function AdminThemeSettingsForm({
       const rootElement = document.documentElement
       rootElement.setAttribute('data-theme-preset', parsedPreset)
 
-      const cssText = buildThemeCssText(lightParseResult.data ?? {}, darkParseResult.data ?? {})
+      const cssText = buildThemeCssText(lightOverrides, darkOverrides)
       const currentThemeStyle = document.getElementById('theme-vars')
 
       if (cssText) {
@@ -235,13 +617,13 @@ export default function AdminThemeSettingsForm({
     }
 
     wasPendingRef.current = isPending
-  }, [darkParseResult.data, isPending, lightParseResult.data, parsedPreset, state.error])
-
-  const hasPreviewError = Boolean(lightParseResult.error || darkParseResult.error)
+  }, [darkOverrides, isPending, lightOverrides, parsedPreset, state.error])
 
   return (
     <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
       <input type="hidden" name="preset" value={preset} />
+      <input type="hidden" name="light_json" value={lightJsonValue} />
+      <input type="hidden" name="dark_json" value={darkJsonValue} />
 
       <div className="grid gap-2">
         <Label htmlFor="theme-preset">Preset</Label>
@@ -262,79 +644,65 @@ export default function AdminThemeSettingsForm({
         </Select>
       </div>
 
-      <div className="flex items-center justify-end">
-        <ThemeOverridesGuideDialog />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="grid gap-2">
-          <Label htmlFor="light-json">Light theme colors</Label>
-          <Textarea
-            id="light-json"
-            name="light_json"
-            rows={16}
-            value={lightJson}
-            onChange={event => setLightJson(event.target.value)}
-            spellCheck={false}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6">
+          <ThemeTokenMatrix
+            presetId={parsedPreset}
+            lightOverrides={lightOverrides}
+            darkOverrides={darkOverrides}
+            onLightChange={(token, value) => {
+              setLightOverrides(prev => ({ ...prev, [token]: value }))
+            }}
+            onDarkChange={(token, value) => {
+              setDarkOverrides(prev => ({ ...prev, [token]: value }))
+            }}
+            onLightReset={(token) => {
+              setLightOverrides((prev) => {
+                const next = { ...prev }
+                delete next[token]
+                return next
+              })
+            }}
+            onDarkReset={(token) => {
+              setDarkOverrides((prev) => {
+                const next = { ...prev }
+                delete next[token]
+                return next
+              })
+            }}
             disabled={isPending}
+            lightParseError={initialLightParse.error}
+            darkParseError={initialDarkParse.error}
           />
-          {lightParseResult.error && (
-            <p className="text-xs text-destructive">{lightParseResult.error}</p>
-          )}
         </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="dark-json">Dark theme colors</Label>
-          <Textarea
-            id="dark-json"
-            name="dark_json"
-            rows={16}
-            value={darkJson}
-            onChange={event => setDarkJson(event.target.value)}
-            spellCheck={false}
+        <aside className="grid gap-2 lg:sticky lg:top-12 lg:self-start">
+          <h3 className="text-sm font-semibold">Preview</h3>
+          <div className="grid gap-4">
+            <ThemePreviewCard
+              title="Light"
+              presetId={parsedPreset}
+              isDark={false}
+              overrides={lightOverrides}
+            />
+            <ThemePreviewCard
+              title="Dark"
+              presetId={parsedPreset}
+              isDark
+              overrides={darkOverrides}
+            />
+          </div>
+          <Button
+            type="submit"
+            className="w-full"
             disabled={isPending}
-          />
-          {darkParseResult.error && (
-            <p className="text-xs text-destructive">{darkParseResult.error}</p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid gap-2">
-        <Label>Preview</Label>
-        {!hasPreviewError
-          ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                <ThemePreviewCard
-                  title="Light"
-                  presetId={parsedPreset}
-                  isDark={false}
-                  overrides={lightParseResult.data ?? {}}
-                />
-                <ThemePreviewCard
-                  title="Dark"
-                  presetId={parsedPreset}
-                  isDark
-                  overrides={darkParseResult.data ?? {}}
-                />
-              </div>
-            )
-          : (
-              <p className="text-sm text-destructive">
-                Preview unavailable until JSON is valid.
-              </p>
-            )}
+          >
+            {isPending ? 'Saving...' : 'Save changes'}
+          </Button>
+        </aside>
       </div>
 
       {state.error && <InputError message={state.error} />}
-
-      <Button
-        type="submit"
-        className="ms-auto w-40"
-        disabled={isPending || Boolean(lightParseResult.error || darkParseResult.error)}
-      >
-        {isPending ? 'Saving...' : 'Save changes'}
-      </Button>
     </Form>
   )
 }
