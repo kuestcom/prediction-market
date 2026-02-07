@@ -215,7 +215,7 @@ export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventC
                 margin={{ top: 20, right: 40, bottom: 48, left: 0 }}
                 dataSignature={chartSignature}
                 onCursorDataChange={setCursorSnapshot}
-                xAxisTickCount={isMobile ? 3 : 6}
+                xAxisTickCount={isMobile ? 2 : 4}
                 autoscale={chartSettings.autoscale}
                 showXAxis={chartSettings.xAxis}
                 showYAxis={chartSettings.yAxis}

@@ -799,7 +799,7 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
               margin={{ top: 30, right: 40, bottom: 52, left: 0 }}
               dataSignature={chartSignature}
               onCursorDataChange={setCursorSnapshot}
-              xAxisTickCount={isMobile ? 3 : 6}
+              xAxisTickCount={isMobile ? 2 : 4}
               autoscale={chartSettings.autoscale}
               showXAxis={chartSettings.xAxis}
               showYAxis={chartSettings.yAxis}
