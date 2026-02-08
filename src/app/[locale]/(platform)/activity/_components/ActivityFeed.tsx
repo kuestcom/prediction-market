@@ -598,10 +598,11 @@ export default function ActivityFeed() {
                           username,
                           address: activity.user.address,
                         }}
+                        avatarSize={24}
                         profileSlug={activity.user.address || username}
                         profileHref={activity.user.address || username ? `/profile/${activity.user.address || username}` : undefined}
                         layout="inline"
-                        containerClassName="gap-2 text-sm leading-tight [&_img]:h-6 [&_img]:w-6"
+                        containerClassName="gap-2 text-sm leading-tight [&_[data-avatar]]:h-6 [&_[data-avatar]]:w-6"
                         usernameClassName="font-semibold text-foreground underline-offset-2 hover:underline"
                         usernameMaxWidthClassName="max-w-32 sm:max-w-40"
                         inlineContent={(
