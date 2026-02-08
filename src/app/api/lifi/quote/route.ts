@@ -21,7 +21,7 @@ function findUsdcToken(stepChainTokens: TokenExtended[]) {
 }
 
 export async function POST(request: Request) {
-  ensureLiFiServerConfig()
+  await ensureLiFiServerConfig()
 
   let body: QuoteRequestBody
   try {

@@ -37,6 +37,9 @@ export default function AdminGeneralSettingsForm({
   const initialSupportUrl = initialThemeSiteSettings.supportUrl
   const initialFeeRecipientWallet = initialThemeSiteSettings.feeRecipientWallet
   const initialMarketCreators = initialThemeSiteSettings.marketCreators
+  const initialLiFiIntegrator = initialThemeSiteSettings.lifiIntegrator
+  const initialLiFiApiKey = initialThemeSiteSettings.lifiApiKey
+  const initialLiFiApiKeyConfigured = initialThemeSiteSettings.lifiApiKeyConfigured
 
   const router = useRouter()
   const [state, formAction, isPending] = useActionState(updateGeneralSettingsAction, initialState)
@@ -52,6 +55,8 @@ export default function AdminGeneralSettingsForm({
   const [supportUrl, setSupportUrl] = useState(initialSupportUrl)
   const [feeRecipientWallet, setFeeRecipientWallet] = useState(initialFeeRecipientWallet)
   const [marketCreators, setMarketCreators] = useState(initialMarketCreators)
+  const [lifiIntegrator, setLifiIntegrator] = useState(initialLiFiIntegrator)
+  const [lifiApiKey, setLifiApiKey] = useState(initialLiFiApiKey)
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null)
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
 
@@ -94,6 +99,14 @@ export default function AdminGeneralSettingsForm({
   useEffect(() => {
     setMarketCreators(initialMarketCreators)
   }, [initialMarketCreators])
+
+  useEffect(() => {
+    setLifiIntegrator(initialLiFiIntegrator)
+  }, [initialLiFiIntegrator])
+
+  useEffect(() => {
+    setLifiApiKey(initialLiFiApiKey)
+  }, [initialLiFiApiKey])
 
   useEffect(() => {
     return () => {
@@ -214,9 +227,8 @@ export default function AdminGeneralSettingsForm({
               />
               <span
                 className={`
-                  pointer-events-none absolute bottom-2 left-1/2 z-10 w-[120px] -translate-x-1/2 rounded-md
-                  bg-background/80 px-2 py-1 text-center text-2xs leading-tight font-medium text-muted-foreground
-                  opacity-0 transition
+                  pointer-events-none absolute bottom-2 left-1/2 z-10 w-30 -translate-x-1/2 rounded-md bg-background/80
+                  px-2 py-1 text-center text-2xs leading-tight font-medium text-muted-foreground opacity-0 transition
                   group-hover:opacity-100
                 `}
               >
@@ -297,6 +309,42 @@ export default function AdminGeneralSettingsForm({
               disabled={isPending}
               placeholder="help@company.com (optional)"
             />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="theme-lifi-integrator">LI.FI integrator</Label>
+            <Input
+              id="theme-lifi-integrator"
+              name="lifi_integrator"
+              maxLength={120}
+              value={lifiIntegrator}
+              onChange={event => setLifiIntegrator(event.target.value)}
+              disabled={isPending}
+              placeholder="your-app-id (optional)"
+            />
+            <p className="text-xs text-muted-foreground">
+              Used for LI.FI requests attribution.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="theme-lifi-api-key">LI.FI API key</Label>
+            <Input
+              id="theme-lifi-api-key"
+              name="lifi_api_key"
+              type="password"
+              autoComplete="off"
+              maxLength={256}
+              value={lifiApiKey}
+              onChange={event => setLifiApiKey(event.target.value)}
+              disabled={isPending}
+              placeholder={initialLiFiApiKeyConfigured ? 'Leave blank to keep current key' : 'Enter API key (optional)'}
+            />
+            {initialLiFiApiKeyConfigured && !lifiApiKey.trim() && (
+              <p className="text-xs text-muted-foreground">
+                A key is already saved. Keep this field empty to preserve it.
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2">

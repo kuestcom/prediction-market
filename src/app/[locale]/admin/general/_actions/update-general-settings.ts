@@ -6,6 +6,7 @@ import sharp from 'sharp'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
+import { encryptSecret } from '@/lib/encryption'
 import { supabaseAdmin } from '@/lib/supabase'
 import { validateThemeSiteSettingsInput } from '@/lib/theme-settings'
 
@@ -72,6 +73,8 @@ export async function updateGeneralSettingsAction(
   const supportUrlRaw = formData.get('support_url')
   const feeRecipientWalletRaw = formData.get('fee_recipient_wallet')
   const marketCreatorsRaw = formData.get('market_creators')
+  const lifiIntegratorRaw = formData.get('lifi_integrator')
+  const lifiApiKeyRaw = formData.get('lifi_api_key')
 
   const siteName = typeof siteNameRaw === 'string' ? siteNameRaw : ''
   const siteDescription = typeof siteDescriptionRaw === 'string' ? siteDescriptionRaw : ''
@@ -83,6 +86,8 @@ export async function updateGeneralSettingsAction(
   const supportUrl = typeof supportUrlRaw === 'string' ? supportUrlRaw : ''
   const feeRecipientWallet = typeof feeRecipientWalletRaw === 'string' ? feeRecipientWalletRaw : ''
   const marketCreators = typeof marketCreatorsRaw === 'string' ? marketCreatorsRaw : ''
+  const lifiIntegrator = typeof lifiIntegratorRaw === 'string' ? lifiIntegratorRaw : ''
+  const lifiApiKey = typeof lifiApiKeyRaw === 'string' ? lifiApiKeyRaw : ''
 
   if (logoFileRaw instanceof File && logoFileRaw.size > 0) {
     const processed = await processThemeLogoFile(logoFileRaw)
@@ -112,10 +117,29 @@ export async function updateGeneralSettingsAction(
     supportUrl,
     feeRecipientWallet,
     marketCreators,
+    lifiIntegrator,
+    lifiApiKey,
   })
 
   if (!validated.data) {
     return { error: validated.error ?? 'Invalid input.' }
+  }
+
+  let encryptedLiFiApiKey = ''
+  try {
+    const { data: allSettings, error: settingsError } = await SettingsRepository.getSettings()
+    if (settingsError) {
+      return { error: DEFAULT_ERROR_MESSAGE }
+    }
+
+    const existingEncryptedLiFiApiKey = allSettings?.general?.lifi_api_key?.value ?? ''
+    encryptedLiFiApiKey = validated.data.lifiApiKeyValue
+      ? encryptSecret(validated.data.lifiApiKeyValue)
+      : existingEncryptedLiFiApiKey
+  }
+  catch (error) {
+    console.error('Failed to encrypt LI.FI API key', error)
+    return { error: DEFAULT_ERROR_MESSAGE }
   }
 
   const { error } = await SettingsRepository.updateSettings([
@@ -129,13 +153,15 @@ export async function updateGeneralSettingsAction(
     { group: 'general', key: 'site_support_url', value: validated.data.supportUrlValue },
     { group: 'general', key: 'fee_recipient_wallet', value: validated.data.feeRecipientWalletValue },
     { group: 'general', key: 'market_creators', value: validated.data.marketCreatorsValue },
+    { group: 'general', key: 'lifi_integrator', value: validated.data.lifiIntegratorValue },
+    { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
   ])
 
   if (error) {
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 
-  revalidatePath('/[locale]/admin/general-settings', 'page')
+  revalidatePath('/[locale]/admin/general', 'page')
   revalidatePath('/[locale]/admin/theme', 'page')
   revalidatePath('/[locale]', 'layout')
 

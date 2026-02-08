@@ -7,7 +7,7 @@ interface BalancesRequestBody {
 }
 
 export async function POST(request: Request) {
-  ensureLiFiServerConfig()
+  await ensureLiFiServerConfig()
 
   let body: BalancesRequestBody
   try {

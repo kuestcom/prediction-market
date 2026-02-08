@@ -1,24 +1,53 @@
 import { createConfig } from '@lifi/sdk'
+import { SettingsRepository } from '@/lib/db/queries/settings'
+import { decryptSecret } from '@/lib/encryption'
 import 'server-only'
 
-let isConfigured = false
+const GENERAL_SETTINGS_GROUP = 'general'
+const LIFI_INTEGRATOR_KEY = 'lifi_integrator'
+const LIFI_API_KEY = 'lifi_api_key'
+const DEFAULT_LIFI_INTEGRATOR = 'lifi-sdk'
 
-export function ensureLiFiServerConfig() {
-  if (isConfigured) {
+let configuredSignature: string | null = null
+
+function normalizeSettingValue(value: string | undefined) {
+  const normalized = value?.trim()
+  return normalized && normalized.length > 0 ? normalized : null
+}
+
+export async function ensureLiFiServerConfig() {
+  const { data: allSettings, error } = await SettingsRepository.getSettings()
+  if (error) {
     return
   }
 
-  const integrator = process.env.LIFI_INTEGRATOR
-  const apiKey = process.env.LIFI_API_KEY
+  const generalSettings = allSettings?.[GENERAL_SETTINGS_GROUP]
+  const integrator = normalizeSettingValue(generalSettings?.[LIFI_INTEGRATOR_KEY]?.value)
+  const encryptedApiKey = generalSettings?.[LIFI_API_KEY]?.value
+  const apiKey = normalizeSettingValue(decryptSecret(encryptedApiKey))
 
-  if (!integrator || !apiKey) {
+  if (!integrator) {
+    if (configuredSignature !== null) {
+      createConfig({ integrator: DEFAULT_LIFI_INTEGRATOR })
+      configuredSignature = null
+    }
     return
   }
 
-  createConfig({
-    integrator,
-    apiKey,
-  })
+  const nextSignature = `${integrator}::${apiKey ?? ''}`
+  if (configuredSignature === nextSignature) {
+    return
+  }
 
-  isConfigured = true
+  if (apiKey) {
+    createConfig({
+      integrator,
+      apiKey,
+    })
+  }
+  else {
+    createConfig({ integrator })
+  }
+
+  configuredSignature = nextSignature
 }

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { ensureLiFiServerConfig } from '@/lib/lifi'
 
 export async function GET() {
-  ensureLiFiServerConfig()
+  await ensureLiFiServerConfig()
 
   try {
     const chains = await getChains()
