@@ -74,8 +74,8 @@
 > ### 2. Configure Environment Variables before Deploy
 > 1. Download `.env.example` from this repository
 > 2. **Edit** it with your configuration:
-     >    - **Kuest CLOB Ordersbook**: Connect your wallet at [auth.kuest.com](https://auth.kuest.com), sign to verify ownership, and copy the API key, secret, and passphrase
-     >    - **Reown AppKit**: Get Project ID at [dashboard.reown.com](https://dashboard.reown.com)
+>    - **Kuest CLOB Ordersbook**: Connect your wallet at [auth.kuest.com](https://auth.kuest.com), sign to verify ownership, and copy the API key, secret, and passphrase
+>    - **Reown AppKit**: Get Project ID at [dashboard.reown.com](https://dashboard.reown.com)
 >    - **Better Auth**: Generate secret at [better-auth.com](https://www.better-auth.com/docs/installation#set-environment-variables)
 >    - **CRON_SECRET**: Create a random secret of at least 16 characters
 >
