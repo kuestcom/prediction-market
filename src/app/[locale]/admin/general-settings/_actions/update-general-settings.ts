@@ -12,7 +12,7 @@ import { validateThemeSiteSettingsInput } from '@/lib/theme-settings'
 const MAX_LOGO_FILE_SIZE = 2 * 1024 * 1024
 const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
 
-export interface ThemeSiteSettingsActionState {
+export interface GeneralSettingsActionState {
   error: string | null
 }
 
@@ -52,10 +52,10 @@ async function processThemeLogoFile(file: File) {
   return { mode: 'image' as const, path: filePath, svg: null, error: null }
 }
 
-export async function updateThemeSiteSettingsAction(
-  _prevState: ThemeSiteSettingsActionState,
+export async function updateGeneralSettingsAction(
+  _prevState: GeneralSettingsActionState,
   formData: FormData,
-): Promise<ThemeSiteSettingsActionState> {
+): Promise<GeneralSettingsActionState> {
   const user = await UserRepository.getCurrentUser()
   if (!user || !user.is_admin) {
     return { error: 'Unauthenticated.' }
@@ -113,20 +113,21 @@ export async function updateThemeSiteSettingsAction(
   }
 
   const { error } = await SettingsRepository.updateSettings([
-    { group: 'theme', key: 'site_name', value: validated.data.siteNameValue },
-    { group: 'theme', key: 'site_description', value: validated.data.siteDescriptionValue },
-    { group: 'theme', key: 'site_logo_mode', value: validated.data.logoModeValue },
-    { group: 'theme', key: 'site_logo_svg', value: validated.data.logoSvgValue },
-    { group: 'theme', key: 'site_logo_image_path', value: validated.data.logoImagePathValue },
-    { group: 'theme', key: 'site_google_analytics', value: validated.data.googleAnalyticsIdValue },
-    { group: 'theme', key: 'site_discord_link', value: validated.data.discordLinkValue },
-    { group: 'theme', key: 'site_support_url', value: validated.data.supportUrlValue },
+    { group: 'general settings', key: 'site_name', value: validated.data.siteNameValue },
+    { group: 'general settings', key: 'site_description', value: validated.data.siteDescriptionValue },
+    { group: 'general settings', key: 'site_logo_mode', value: validated.data.logoModeValue },
+    { group: 'general settings', key: 'site_logo_svg', value: validated.data.logoSvgValue },
+    { group: 'general settings', key: 'site_logo_image_path', value: validated.data.logoImagePathValue },
+    { group: 'general settings', key: 'site_google_analytics', value: validated.data.googleAnalyticsIdValue },
+    { group: 'general settings', key: 'site_discord_link', value: validated.data.discordLinkValue },
+    { group: 'general settings', key: 'site_support_url', value: validated.data.supportUrlValue },
   ])
 
   if (error) {
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 
+  revalidatePath('/[locale]/admin/general-settings', 'page')
   revalidatePath('/[locale]/admin/theme', 'page')
   revalidatePath('/[locale]', 'layout')
 

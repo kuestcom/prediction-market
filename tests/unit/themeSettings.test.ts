@@ -31,11 +31,13 @@ describe('theme settings runtime resolver', () => {
   it('uses settings theme when DB values are valid', async () => {
     mocks.getSettings.mockResolvedValueOnce({
       data: {
-        theme: {
+        'theme': {
           preset: { value: 'lime', updated_at: '2026-01-01T00:00:00.000Z' },
           radius: { value: '12px', updated_at: '2026-01-01T00:00:00.000Z' },
           light_json: { value: '{"primary":"#112233"}', updated_at: '2026-01-01T00:00:00.000Z' },
           dark_json: { value: '{"primary":"#445566"}', updated_at: '2026-01-01T00:00:00.000Z' },
+        },
+        'general settings': {
           site_name: { value: 'Kuest Lime', updated_at: '2026-01-01T00:00:00.000Z' },
           site_description: { value: 'Lime branded market', updated_at: '2026-01-01T00:00:00.000Z' },
           site_logo_mode: { value: 'svg', updated_at: '2026-01-01T00:00:00.000Z' },
@@ -99,5 +101,23 @@ describe('theme settings runtime resolver', () => {
     expect(state.theme.radius).toBeNull()
     expect(state.site.name).toBeTruthy()
     expect(state.site.description).toBeTruthy()
+  })
+
+  it('does not read site identity from theme group', async () => {
+    mocks.getSettings.mockResolvedValueOnce({
+      data: {
+        theme: {
+          site_name: { value: 'Legacy Theme Name', updated_at: '2026-01-01T00:00:00.000Z' },
+          site_description: { value: 'Legacy Theme Description', updated_at: '2026-01-01T00:00:00.000Z' },
+        },
+      },
+      error: null,
+    })
+
+    const { loadRuntimeThemeState } = await import('@/lib/theme-settings')
+    const state = await loadRuntimeThemeState()
+
+    expect(state.site.name).not.toBe('Legacy Theme Name')
+    expect(state.site.description).not.toBe('Legacy Theme Description')
   })
 })

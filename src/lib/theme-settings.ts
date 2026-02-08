@@ -25,6 +25,7 @@ import {
 } from '@/lib/theme-site-identity'
 
 const THEME_SETTINGS_GROUP = 'theme'
+const GENERAL_SETTINGS_GROUP = 'general settings'
 const THEME_PRESET_KEY = 'preset'
 const THEME_LIGHT_JSON_KEY = 'light_json'
 const THEME_DARK_JSON_KEY = 'dark_json'
@@ -290,6 +291,10 @@ function getThemeSettingsGroup(allSettings?: SettingsMap): SettingsGroup | undef
   return allSettings?.[THEME_SETTINGS_GROUP]
 }
 
+function getGeneralSettingsGroup(allSettings?: SettingsMap): SettingsGroup | undefined {
+  return allSettings?.[GENERAL_SETTINGS_GROUP]
+}
+
 function hasStoredThemeSettings(themeSettings?: SettingsGroup) {
   if (!themeSettings) {
     return false
@@ -302,20 +307,20 @@ function hasStoredThemeSettings(themeSettings?: SettingsGroup) {
   )
 }
 
-function hasStoredThemeSiteSettings(themeSettings?: SettingsGroup) {
-  if (!themeSettings) {
+function hasStoredThemeSiteSettings(generalSettings?: SettingsGroup) {
+  if (!generalSettings) {
     return false
   }
 
   return Boolean(
-    themeSettings[THEME_SITE_NAME_KEY]?.value?.trim()
-    || themeSettings[THEME_SITE_DESCRIPTION_KEY]?.value?.trim()
-    || themeSettings[THEME_SITE_LOGO_MODE_KEY]?.value?.trim()
-    || themeSettings[THEME_SITE_LOGO_SVG_KEY]?.value?.trim()
-    || themeSettings[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value?.trim()
-    || themeSettings[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value?.trim()
-    || themeSettings[THEME_SITE_DISCORD_LINK_KEY]?.value?.trim()
-    || themeSettings[THEME_SITE_SUPPORT_URL_KEY]?.value?.trim(),
+    generalSettings[THEME_SITE_NAME_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_DESCRIPTION_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_LOGO_MODE_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_LOGO_SVG_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_DISCORD_LINK_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_SUPPORT_URL_KEY]?.value?.trim(),
   )
 }
 
@@ -341,25 +346,25 @@ export function getThemeSettingsFormState(allSettings?: SettingsMap): ThemeSetti
 
 export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeSiteSettingsFormState {
   const defaultSite = createDefaultThemeSiteIdentity()
-  const themeSettings = getThemeSettingsGroup(allSettings)
+  const generalSettings = getGeneralSettingsGroup(allSettings)
 
   const normalized = normalizeThemeSiteConfig({
-    siteNameValue: themeSettings?.[THEME_SITE_NAME_KEY]?.value ?? defaultSite.name,
-    siteDescriptionValue: themeSettings?.[THEME_SITE_DESCRIPTION_KEY]?.value ?? defaultSite.description,
-    logoModeValue: themeSettings?.[THEME_SITE_LOGO_MODE_KEY]?.value ?? defaultSite.logoMode,
-    logoSvgValue: themeSettings?.[THEME_SITE_LOGO_SVG_KEY]?.value ?? defaultSite.logoSvg,
-    logoImagePathValue: themeSettings?.[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value ?? defaultSite.logoImagePath,
-    googleAnalyticsIdValue: themeSettings?.[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value ?? defaultSite.googleAnalyticsId,
-    discordLinkValue: themeSettings?.[THEME_SITE_DISCORD_LINK_KEY]?.value ?? defaultSite.discordLink,
-    supportUrlValue: themeSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value ?? defaultSite.supportUrl,
-    siteNameErrorLabel: 'Theme site name',
-    siteDescriptionErrorLabel: 'Theme site description',
-    logoModeErrorLabel: 'Theme logo mode',
-    logoSvgErrorLabel: 'Theme logo SVG',
-    logoImagePathErrorLabel: 'Theme logo image path',
-    googleAnalyticsIdErrorLabel: 'Theme Google Analytics ID',
-    discordLinkErrorLabel: 'Theme Discord link',
-    supportUrlErrorLabel: 'Theme support URL',
+    siteNameValue: generalSettings?.[THEME_SITE_NAME_KEY]?.value ?? defaultSite.name,
+    siteDescriptionValue: generalSettings?.[THEME_SITE_DESCRIPTION_KEY]?.value ?? defaultSite.description,
+    logoModeValue: generalSettings?.[THEME_SITE_LOGO_MODE_KEY]?.value ?? defaultSite.logoMode,
+    logoSvgValue: generalSettings?.[THEME_SITE_LOGO_SVG_KEY]?.value ?? defaultSite.logoSvg,
+    logoImagePathValue: generalSettings?.[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value ?? defaultSite.logoImagePath,
+    googleAnalyticsIdValue: generalSettings?.[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value ?? defaultSite.googleAnalyticsId,
+    discordLinkValue: generalSettings?.[THEME_SITE_DISCORD_LINK_KEY]?.value ?? defaultSite.discordLink,
+    supportUrlValue: generalSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value ?? defaultSite.supportUrl,
+    siteNameErrorLabel: 'Site name',
+    siteDescriptionErrorLabel: 'Site description',
+    logoModeErrorLabel: 'Logo mode',
+    logoSvgErrorLabel: 'Logo SVG',
+    logoImagePathErrorLabel: 'Logo image path',
+    googleAnalyticsIdErrorLabel: 'Google Analytics ID',
+    discordLinkErrorLabel: 'Discord link',
+    supportUrlErrorLabel: 'Support URL',
   })
 
   if (normalized.data) {
@@ -444,8 +449,9 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
   }
 
   const themeSettings = getThemeSettingsGroup(allSettings ?? undefined)
+  const generalSettings = getGeneralSettingsGroup(allSettings ?? undefined)
   const hasTheme = hasStoredThemeSettings(themeSettings)
-  const hasSite = hasStoredThemeSiteSettings(themeSettings)
+  const hasSite = hasStoredThemeSiteSettings(generalSettings)
 
   const normalizedTheme = hasTheme
     ? normalizeThemeConfig({
@@ -462,22 +468,22 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
 
   const normalizedSite = hasSite
     ? normalizeThemeSiteConfig({
-        siteNameValue: themeSettings?.[THEME_SITE_NAME_KEY]?.value,
-        siteDescriptionValue: themeSettings?.[THEME_SITE_DESCRIPTION_KEY]?.value,
-        logoModeValue: themeSettings?.[THEME_SITE_LOGO_MODE_KEY]?.value,
-        logoSvgValue: themeSettings?.[THEME_SITE_LOGO_SVG_KEY]?.value,
-        logoImagePathValue: themeSettings?.[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value,
-        googleAnalyticsIdValue: themeSettings?.[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value,
-        discordLinkValue: themeSettings?.[THEME_SITE_DISCORD_LINK_KEY]?.value,
-        supportUrlValue: themeSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value,
-        siteNameErrorLabel: 'Theme site name in settings',
-        siteDescriptionErrorLabel: 'Theme site description in settings',
-        logoModeErrorLabel: 'Theme logo mode in settings',
-        logoSvgErrorLabel: 'Theme logo SVG in settings',
-        logoImagePathErrorLabel: 'Theme logo image path in settings',
-        googleAnalyticsIdErrorLabel: 'Theme Google Analytics ID in settings',
-        discordLinkErrorLabel: 'Theme Discord link in settings',
-        supportUrlErrorLabel: 'Theme support URL in settings',
+        siteNameValue: generalSettings?.[THEME_SITE_NAME_KEY]?.value,
+        siteDescriptionValue: generalSettings?.[THEME_SITE_DESCRIPTION_KEY]?.value,
+        logoModeValue: generalSettings?.[THEME_SITE_LOGO_MODE_KEY]?.value,
+        logoSvgValue: generalSettings?.[THEME_SITE_LOGO_SVG_KEY]?.value,
+        logoImagePathValue: generalSettings?.[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value,
+        googleAnalyticsIdValue: generalSettings?.[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value,
+        discordLinkValue: generalSettings?.[THEME_SITE_DISCORD_LINK_KEY]?.value,
+        supportUrlValue: generalSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value,
+        siteNameErrorLabel: 'Site name in settings',
+        siteDescriptionErrorLabel: 'Site description in settings',
+        logoModeErrorLabel: 'Logo mode in settings',
+        logoSvgErrorLabel: 'Logo SVG in settings',
+        logoImagePathErrorLabel: 'Logo image path in settings',
+        googleAnalyticsIdErrorLabel: 'Google Analytics ID in settings',
+        discordLinkErrorLabel: 'Discord link in settings',
+        supportUrlErrorLabel: 'Support URL in settings',
       })
     : null
 

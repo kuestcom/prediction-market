@@ -29,7 +29,7 @@ vi.mock('@/lib/supabase', () => ({
   },
 }))
 
-describe('updateThemeSiteSettingsAction', () => {
+describe('updateGeneralSettingsAction', () => {
   beforeEach(() => {
     vi.resetModules()
     mocks.revalidatePath.mockReset()
@@ -41,7 +41,7 @@ describe('updateThemeSiteSettingsAction', () => {
   it('rejects unauthenticated users', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce(null)
 
-    const { updateThemeSiteSettingsAction } = await import('@/app/[locale]/admin/theme/_actions/update-theme-site-settings')
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general-settings/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
@@ -49,14 +49,14 @@ describe('updateThemeSiteSettingsAction', () => {
     formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg"></svg>')
     formData.set('logo_image_path', '')
 
-    const result = await updateThemeSiteSettingsAction({ error: null }, formData)
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: 'Unauthenticated.' })
   })
 
   it('returns validation errors for invalid payloads', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
 
-    const { updateThemeSiteSettingsAction } = await import('@/app/[locale]/admin/theme/_actions/update-theme-site-settings')
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general-settings/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', '')
     formData.set('site_description', 'Prediction market')
@@ -64,7 +64,7 @@ describe('updateThemeSiteSettingsAction', () => {
     formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg"></svg>')
     formData.set('logo_image_path', '')
 
-    const result = await updateThemeSiteSettingsAction({ error: null }, formData)
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result.error).toContain('Site name')
     expect(mocks.updateSettings).not.toHaveBeenCalled()
   })
@@ -73,7 +73,7 @@ describe('updateThemeSiteSettingsAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateThemeSiteSettingsAction } = await import('@/app/[locale]/admin/theme/_actions/update-theme-site-settings')
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general-settings/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
@@ -84,11 +84,11 @@ describe('updateThemeSiteSettingsAction', () => {
     formData.set('discord_link', 'https://discord.gg/kuest')
     formData.set('support_url', 'https://kuest.com/support')
 
-    const result = await updateThemeSiteSettingsAction({ error: null }, formData)
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
     expect(mocks.updateSettings).toHaveBeenCalledTimes(1)
 
-    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ key: string, value: string }>
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
     expect(savedPayload).toHaveLength(8)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
@@ -97,7 +97,9 @@ describe('updateThemeSiteSettingsAction', () => {
     expect(savedPayload.find(entry => entry.key === 'site_google_analytics')?.value).toBe('G-TEST123')
     expect(savedPayload.find(entry => entry.key === 'site_discord_link')?.value).toBe('https://discord.gg/kuest')
     expect(savedPayload.find(entry => entry.key === 'site_support_url')?.value).toBe('https://kuest.com/support')
+    expect(savedPayload.every(entry => entry.group === 'general settings')).toBe(true)
 
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/general-settings', 'page')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/theme', 'page')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]', 'layout')
   })
@@ -106,7 +108,7 @@ describe('updateThemeSiteSettingsAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateThemeSiteSettingsAction } = await import('@/app/[locale]/admin/theme/_actions/update-theme-site-settings')
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general-settings/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
@@ -114,10 +116,10 @@ describe('updateThemeSiteSettingsAction', () => {
     formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
     formData.set('logo_image_path', 'theme/site-logo.png')
 
-    const result = await updateThemeSiteSettingsAction({ error: null }, formData)
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
 
-    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ key: string, value: string }>
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('image')
     expect(savedPayload.find(entry => entry.key === 'site_logo_image_path')?.value).toBe('theme/site-logo.png')
   })
@@ -125,7 +127,7 @@ describe('updateThemeSiteSettingsAction', () => {
   it('rejects unsupported logo upload types', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
 
-    const { updateThemeSiteSettingsAction } = await import('@/app/[locale]/admin/theme/_actions/update-theme-site-settings')
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general-settings/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
@@ -134,7 +136,7 @@ describe('updateThemeSiteSettingsAction', () => {
     formData.set('logo_image_path', '')
     formData.set('logo_image', new File(['hello'], 'logo.txt', { type: 'text/plain' }))
 
-    const result = await updateThemeSiteSettingsAction({ error: null }, formData)
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: 'Logo must be PNG, JPG, WebP, or SVG.' })
     expect(mocks.updateSettings).not.toHaveBeenCalled()
   })

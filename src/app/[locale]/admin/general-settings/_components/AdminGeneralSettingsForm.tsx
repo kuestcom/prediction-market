@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { updateThemeSiteSettingsAction } from '@/app/[locale]/admin/theme/_actions/update-theme-site-settings'
+import { updateGeneralSettingsAction } from '@/app/[locale]/admin/general-settings/_actions/update-general-settings'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
@@ -17,13 +17,13 @@ const initialState = {
   error: null,
 }
 
-interface AdminThemeSiteSettingsFormProps {
+interface AdminGeneralSettingsFormProps {
   initialThemeSiteSettings: AdminThemeSiteSettingsInitialState
 }
 
-export default function AdminThemeSiteSettingsForm({
+export default function AdminGeneralSettingsForm({
   initialThemeSiteSettings,
-}: AdminThemeSiteSettingsFormProps) {
+}: AdminGeneralSettingsFormProps) {
   const initialSiteName = initialThemeSiteSettings.siteName
   const initialSiteDescription = initialThemeSiteSettings.siteDescription
   const initialLogoMode = initialThemeSiteSettings.logoMode
@@ -35,7 +35,7 @@ export default function AdminThemeSiteSettingsForm({
   const initialSupportUrl = initialThemeSiteSettings.supportUrl
 
   const router = useRouter()
-  const [state, formAction, isPending] = useActionState(updateThemeSiteSettingsAction, initialState)
+  const [state, formAction, isPending] = useActionState(updateGeneralSettingsAction, initialState)
   const wasPendingRef = useRef(isPending)
 
   const [siteName, setSiteName] = useState(initialSiteName)
@@ -93,7 +93,7 @@ export default function AdminThemeSiteSettingsForm({
     const transitionedToIdle = wasPendingRef.current && !isPending
 
     if (transitionedToIdle && state.error === null) {
-      toast.success('Site identity updated successfully!')
+      toast.success('Settings saved successfully!')
       router.refresh()
     }
     else if (transitionedToIdle && state.error) {
@@ -281,13 +281,13 @@ export default function AdminThemeSiteSettingsForm({
               value={supportUrl}
               onChange={event => setSupportUrl(event.target.value)}
               disabled={isPending}
-              placeholder="https://yourdomain.com/support (optional)"
+              placeholder="help@company.com (optional)"
             />
           </div>
 
           <div className="flex justify-end">
             <Button type="submit" className="w-full sm:w-40" disabled={isPending}>
-              {isPending ? 'Saving...' : 'Save identity'}
+              {isPending ? 'Saving...' : 'Save settings'}
             </Button>
           </div>
         </div>
