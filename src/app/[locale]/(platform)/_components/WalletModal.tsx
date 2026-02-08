@@ -1506,7 +1506,7 @@ function WalletSuccessStep({
   const eoaSuffix = walletEoaAddress?.slice(-4) ?? '1234'
   const safeSuffix = walletAddress?.slice(-4) ?? '5678'
   const site = useSiteIdentity()
-  const supportUrl = process.env.NEXT_PUBLIC_SUPPORT_URL
+  const supportUrl = site.supportUrl
   const formattedAmount = formatDisplayAmount(amountValue)
   const displayAmount = formattedAmount && formattedAmount.trim() !== '' ? formattedAmount : '0.00'
   const sendSymbol = selectedToken?.symbol ?? 'Token'

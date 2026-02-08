@@ -1,6 +1,11 @@
 'use client'
 
 import type { CSSProperties } from 'react'
+import type {
+  AdminThemePresetOption,
+  AdminThemeSettingsInitialState,
+  AdminThemeSiteSettingsInitialState,
+} from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import type { ThemeOverrides, ThemeToken } from '@/lib/theme'
 import { ChevronDown, RotateCcw } from 'lucide-react'
 import Form from 'next/form'
@@ -90,21 +95,10 @@ const TOKEN_GROUPS: { id: string, label: string, tokens: ThemeToken[] }[] = [
     ],
   },
 ]
-interface ThemePresetOption {
-  id: string
-  label: string
-  description: string
-}
-
 interface AdminThemeSettingsFormProps {
-  presetOptions: ThemePresetOption[]
-  initialPreset: string
-  initialRadius: string
-  initialLightJson: string
-  initialDarkJson: string
-  siteName: string
-  logoSvg: string
-  logoImageUrl: string | null
+  presetOptions: AdminThemePresetOption[]
+  initialThemeSettings: AdminThemeSettingsInitialState
+  initialThemeSiteSettings: AdminThemeSiteSettingsInitialState
 }
 
 function buildPreviewStyle(variables: ThemeOverrides, radius: string | null): CSSProperties {
@@ -734,18 +728,21 @@ function ThemeTokenMatrix({
 
 export default function AdminThemeSettingsForm({
   presetOptions,
-  initialPreset,
-  initialRadius,
-  initialLightJson,
-  initialDarkJson,
-  siteName,
-  logoSvg,
-  logoImageUrl,
+  initialThemeSettings,
+  initialThemeSiteSettings,
 }: AdminThemeSettingsFormProps) {
+  const initialPreset = initialThemeSettings.preset
+  const initialRadius = initialThemeSettings.radius
+  const initialLightJson = initialThemeSettings.lightJson
+  const initialDarkJson = initialThemeSettings.darkJson
+  const siteName = initialThemeSiteSettings.siteName
+  const logoSvg = initialThemeSiteSettings.logoSvg
+  const logoImageUrl = initialThemeSiteSettings.logoImageUrl
+
   const [state, formAction, isPending] = useActionState(updateThemeSettingsAction, initialState)
   const wasPendingRef = useRef(isPending)
 
-  const [preset, setPreset] = useState(initialPreset)
+  const [preset, setPreset] = useState<string>(initialPreset)
   const [radius, setRadius] = useState(initialRadius)
 
   const initialLightParse = useMemo(

@@ -4,6 +4,8 @@ import {
   createDefaultThemeSiteIdentity,
   sanitizeThemeSiteLogoSvg,
   validateThemeSiteDescription,
+  validateThemeSiteExternalUrl,
+  validateThemeSiteGoogleAnalyticsId,
   validateThemeSiteLogoMode,
   validateThemeSiteName,
 } from '@/lib/theme-site-identity'
@@ -16,6 +18,9 @@ describe('theme site identity helpers', () => {
     expect(identity.description).toBeTruthy()
     expect(identity.logoSvg).toContain('<svg')
     expect(identity.logoUrl).toContain('data:image/svg+xml;utf8,')
+    expect(identity.googleAnalyticsId).toBeNull()
+    expect(identity.discordLink).toBeNull()
+    expect(identity.supportUrl).toBeNull()
   })
 
   it('validates required name and description fields', () => {
@@ -44,5 +49,15 @@ describe('theme site identity helpers', () => {
   it('builds SVG data URI', () => {
     const uri = buildSvgDataUri('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
     expect(uri.startsWith('data:image/svg+xml;utf8,')).toBe(true)
+  })
+
+  it('validates optional analytics id and links', () => {
+    expect(validateThemeSiteGoogleAnalyticsId('', 'Google Analytics ID')).toEqual({ value: null, error: null })
+    expect(validateThemeSiteGoogleAnalyticsId('G-TEST123', 'Google Analytics ID')).toEqual({ value: 'G-TEST123', error: null })
+    expect(validateThemeSiteGoogleAnalyticsId('bad id', 'Google Analytics ID').error).toContain('invalid format')
+
+    expect(validateThemeSiteExternalUrl('', 'Discord link')).toEqual({ value: null, error: null })
+    expect(validateThemeSiteExternalUrl('discord.gg/kuest', 'Discord link')).toEqual({ value: 'https://discord.gg/kuest', error: null })
+    expect(validateThemeSiteExternalUrl('ftp://example.com', 'Discord link').error).toContain('http:// or https://')
   })
 })

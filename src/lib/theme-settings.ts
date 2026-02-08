@@ -17,6 +17,8 @@ import {
   DEFAULT_THEME_SITE_LOGO_SVG,
   sanitizeThemeSiteLogoSvg,
   validateThemeSiteDescription,
+  validateThemeSiteExternalUrl,
+  validateThemeSiteGoogleAnalyticsId,
   validateThemeSiteLogoImagePath,
   validateThemeSiteLogoMode,
   validateThemeSiteName,
@@ -32,6 +34,9 @@ const THEME_SITE_DESCRIPTION_KEY = 'site_description'
 const THEME_SITE_LOGO_MODE_KEY = 'site_logo_mode'
 const THEME_SITE_LOGO_SVG_KEY = 'site_logo_svg'
 const THEME_SITE_LOGO_IMAGE_PATH_KEY = 'site_logo_image_path'
+const THEME_SITE_GOOGLE_ANALYTICS_KEY = 'site_google_analytics'
+const THEME_SITE_DISCORD_LINK_KEY = 'site_discord_link'
+const THEME_SITE_SUPPORT_URL_KEY = 'site_support_url'
 
 type SettingsGroup = Record<string, { value: string, updated_at: string }>
 interface SettingsMap {
@@ -59,6 +64,12 @@ interface NormalizedThemeSiteConfig {
   logoSvgValue: string
   logoImagePath: string | null
   logoImagePathValue: string
+  googleAnalyticsId: string | null
+  googleAnalyticsIdValue: string
+  discordLink: string | null
+  discordLinkValue: string
+  supportUrl: string | null
+  supportUrlValue: string
 }
 
 type RuntimeThemeSource = 'settings' | 'default'
@@ -82,6 +93,9 @@ export interface ThemeSiteSettingsFormState {
   logoMode: ThemeSiteLogoMode
   logoSvg: string
   logoImagePath: string
+  googleAnalyticsId: string
+  discordLink: string
+  supportUrl: string
 }
 
 export interface ThemeSettingsValidationResult {
@@ -158,11 +172,17 @@ function normalizeThemeSiteConfig(params: {
   logoModeValue: string | null | undefined
   logoSvgValue: string | null | undefined
   logoImagePathValue: string | null | undefined
+  googleAnalyticsIdValue: string | null | undefined
+  discordLinkValue: string | null | undefined
+  supportUrlValue: string | null | undefined
   siteNameErrorLabel: string
   siteDescriptionErrorLabel: string
   logoModeErrorLabel: string
   logoSvgErrorLabel: string
   logoImagePathErrorLabel: string
+  googleAnalyticsIdErrorLabel: string
+  discordLinkErrorLabel: string
+  supportUrlErrorLabel: string
 }): ThemeSiteSettingsValidationResult {
   const siteNameValidated = validateThemeSiteName(params.siteNameValue, params.siteNameErrorLabel)
   if (siteNameValidated.error) {
@@ -182,6 +202,24 @@ function normalizeThemeSiteConfig(params: {
   const logoImagePathValidated = validateThemeSiteLogoImagePath(params.logoImagePathValue, params.logoImagePathErrorLabel)
   if (logoImagePathValidated.error) {
     return { data: null, error: logoImagePathValidated.error }
+  }
+
+  const googleAnalyticsValidated = validateThemeSiteGoogleAnalyticsId(
+    params.googleAnalyticsIdValue,
+    params.googleAnalyticsIdErrorLabel,
+  )
+  if (googleAnalyticsValidated.error) {
+    return { data: null, error: googleAnalyticsValidated.error }
+  }
+
+  const discordLinkValidated = validateThemeSiteExternalUrl(params.discordLinkValue, params.discordLinkErrorLabel)
+  if (discordLinkValidated.error) {
+    return { data: null, error: discordLinkValidated.error }
+  }
+
+  const supportUrlValidated = validateThemeSiteExternalUrl(params.supportUrlValue, params.supportUrlErrorLabel)
+  if (supportUrlValidated.error) {
+    return { data: null, error: supportUrlValidated.error }
   }
 
   const logoSvgResolved = resolveLogoSvgOrDefault(params.logoSvgValue, params.logoSvgErrorLabel)
@@ -208,6 +246,12 @@ function normalizeThemeSiteConfig(params: {
       logoSvgValue: logoSvgResolved.value!,
       logoImagePath: logoImagePathValidated.value,
       logoImagePathValue: logoImagePathValidated.value ?? '',
+      googleAnalyticsId: googleAnalyticsValidated.value,
+      googleAnalyticsIdValue: googleAnalyticsValidated.value ?? '',
+      discordLink: discordLinkValidated.value,
+      discordLinkValue: discordLinkValidated.value ?? '',
+      supportUrl: supportUrlValidated.value,
+      supportUrlValue: supportUrlValidated.value ?? '',
     },
     error: null,
   }
@@ -228,6 +272,9 @@ function buildThemeSiteIdentity(config: NormalizedThemeSiteConfig): ThemeSiteIde
     logoImagePath: useImageLogo ? config.logoImagePath : null,
     logoImageUrl: useImageLogo ? logoImageUrl : null,
     logoUrl: useImageLogo && logoImageUrl ? logoImageUrl : buildSvgDataUri(config.logoSvg),
+    googleAnalyticsId: config.googleAnalyticsId,
+    discordLink: config.discordLink,
+    supportUrl: config.supportUrl,
   }
 }
 
@@ -265,7 +312,10 @@ function hasStoredThemeSiteSettings(themeSettings?: SettingsGroup) {
     || themeSettings[THEME_SITE_DESCRIPTION_KEY]?.value?.trim()
     || themeSettings[THEME_SITE_LOGO_MODE_KEY]?.value?.trim()
     || themeSettings[THEME_SITE_LOGO_SVG_KEY]?.value?.trim()
-    || themeSettings[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value?.trim(),
+    || themeSettings[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value?.trim()
+    || themeSettings[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value?.trim()
+    || themeSettings[THEME_SITE_DISCORD_LINK_KEY]?.value?.trim()
+    || themeSettings[THEME_SITE_SUPPORT_URL_KEY]?.value?.trim(),
   )
 }
 
@@ -299,11 +349,17 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     logoModeValue: themeSettings?.[THEME_SITE_LOGO_MODE_KEY]?.value ?? defaultSite.logoMode,
     logoSvgValue: themeSettings?.[THEME_SITE_LOGO_SVG_KEY]?.value ?? defaultSite.logoSvg,
     logoImagePathValue: themeSettings?.[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value ?? defaultSite.logoImagePath,
+    googleAnalyticsIdValue: themeSettings?.[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value ?? defaultSite.googleAnalyticsId,
+    discordLinkValue: themeSettings?.[THEME_SITE_DISCORD_LINK_KEY]?.value ?? defaultSite.discordLink,
+    supportUrlValue: themeSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value ?? defaultSite.supportUrl,
     siteNameErrorLabel: 'Theme site name',
     siteDescriptionErrorLabel: 'Theme site description',
     logoModeErrorLabel: 'Theme logo mode',
     logoSvgErrorLabel: 'Theme logo SVG',
     logoImagePathErrorLabel: 'Theme logo image path',
+    googleAnalyticsIdErrorLabel: 'Theme Google Analytics ID',
+    discordLinkErrorLabel: 'Theme Discord link',
+    supportUrlErrorLabel: 'Theme support URL',
   })
 
   if (normalized.data) {
@@ -313,6 +369,9 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
       logoMode: normalized.data.logoModeValue,
       logoSvg: normalized.data.logoSvgValue,
       logoImagePath: normalized.data.logoImagePathValue,
+      googleAnalyticsId: normalized.data.googleAnalyticsIdValue,
+      discordLink: normalized.data.discordLinkValue,
+      supportUrl: normalized.data.supportUrlValue,
     }
   }
 
@@ -322,6 +381,9 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     logoMode: defaultSite.logoMode,
     logoSvg: defaultSite.logoSvg,
     logoImagePath: defaultSite.logoImagePath ?? '',
+    googleAnalyticsId: defaultSite.googleAnalyticsId ?? '',
+    discordLink: defaultSite.discordLink ?? '',
+    supportUrl: defaultSite.supportUrl ?? '',
   }
 }
 
@@ -349,6 +411,9 @@ export function validateThemeSiteSettingsInput(params: {
   logoMode: string | null | undefined
   logoSvg: string | null | undefined
   logoImagePath: string | null | undefined
+  googleAnalyticsId: string | null | undefined
+  discordLink: string | null | undefined
+  supportUrl: string | null | undefined
 }): ThemeSiteSettingsValidationResult {
   return normalizeThemeSiteConfig({
     siteNameValue: params.siteName,
@@ -356,11 +421,17 @@ export function validateThemeSiteSettingsInput(params: {
     logoModeValue: params.logoMode,
     logoSvgValue: params.logoSvg,
     logoImagePathValue: params.logoImagePath,
+    googleAnalyticsIdValue: params.googleAnalyticsId,
+    discordLinkValue: params.discordLink,
+    supportUrlValue: params.supportUrl,
     siteNameErrorLabel: 'Site name',
     siteDescriptionErrorLabel: 'Site description',
     logoModeErrorLabel: 'Logo type',
     logoSvgErrorLabel: 'Logo SVG',
     logoImagePathErrorLabel: 'Logo image',
+    googleAnalyticsIdErrorLabel: 'Google Analytics ID',
+    discordLinkErrorLabel: 'Discord link',
+    supportUrlErrorLabel: 'Support URL',
   })
 }
 
@@ -396,11 +467,17 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
         logoModeValue: themeSettings?.[THEME_SITE_LOGO_MODE_KEY]?.value,
         logoSvgValue: themeSettings?.[THEME_SITE_LOGO_SVG_KEY]?.value,
         logoImagePathValue: themeSettings?.[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value,
+        googleAnalyticsIdValue: themeSettings?.[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value,
+        discordLinkValue: themeSettings?.[THEME_SITE_DISCORD_LINK_KEY]?.value,
+        supportUrlValue: themeSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value,
         siteNameErrorLabel: 'Theme site name in settings',
         siteDescriptionErrorLabel: 'Theme site description in settings',
         logoModeErrorLabel: 'Theme logo mode in settings',
         logoSvgErrorLabel: 'Theme logo SVG in settings',
         logoImagePathErrorLabel: 'Theme logo image path in settings',
+        googleAnalyticsIdErrorLabel: 'Theme Google Analytics ID in settings',
+        discordLinkErrorLabel: 'Theme Discord link in settings',
+        supportUrlErrorLabel: 'Theme support URL in settings',
       })
     : null
 

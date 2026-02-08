@@ -76,11 +76,11 @@ export default async function Layout({ params, children }: LayoutProps<'/[locale
             text: site.name,
             icon: <HomeIcon />,
           },
-          ...(process.env.NEXT_PUBLIC_DISCORD_LINK
+          ...(site.discordLink
             ? [
                 {
                   type: 'main' as const,
-                  url: process.env.NEXT_PUBLIC_DISCORD_LINK,
+                  url: site.discordLink,
                   text: 'Discord Community',
                   icon: (
                     <svg

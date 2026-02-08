@@ -80,17 +80,23 @@ describe('updateThemeSiteSettingsAction', () => {
     formData.set('logo_mode', 'svg')
     formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
     formData.set('logo_image_path', '')
+    formData.set('google_analytics_id', 'G-TEST123')
+    formData.set('discord_link', 'https://discord.gg/kuest')
+    formData.set('support_url', 'https://kuest.com/support')
 
     const result = await updateThemeSiteSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
     expect(mocks.updateSettings).toHaveBeenCalledTimes(1)
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ key: string, value: string }>
-    expect(savedPayload).toHaveLength(5)
+    expect(savedPayload).toHaveLength(8)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
     expect(savedPayload.find(entry => entry.key === 'site_logo_image_path')?.value).toBe('')
+    expect(savedPayload.find(entry => entry.key === 'site_google_analytics')?.value).toBe('G-TEST123')
+    expect(savedPayload.find(entry => entry.key === 'site_discord_link')?.value).toBe('https://discord.gg/kuest')
+    expect(savedPayload.find(entry => entry.key === 'site_support_url')?.value).toBe('https://kuest.com/support')
 
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/theme', 'page')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]', 'layout')

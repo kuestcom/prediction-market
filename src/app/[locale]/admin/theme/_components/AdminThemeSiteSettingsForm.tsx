@@ -1,6 +1,6 @@
 'use client'
 
-import type { ThemeSiteLogoMode } from '@/lib/theme-site-identity'
+import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import { ImageUp } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -18,31 +18,34 @@ const initialState = {
 }
 
 interface AdminThemeSiteSettingsFormProps {
-  initialSiteName: string
-  initialSiteDescription: string
-  initialLogoMode: ThemeSiteLogoMode
-  initialLogoSvg: string
-  initialLogoImagePath: string
-  initialLogoImageUrl: string | null
+  initialThemeSiteSettings: AdminThemeSiteSettingsInitialState
 }
 
 export default function AdminThemeSiteSettingsForm({
-  initialSiteName,
-  initialSiteDescription,
-  initialLogoMode,
-  initialLogoSvg,
-  initialLogoImagePath,
-  initialLogoImageUrl,
+  initialThemeSiteSettings,
 }: AdminThemeSiteSettingsFormProps) {
+  const initialSiteName = initialThemeSiteSettings.siteName
+  const initialSiteDescription = initialThemeSiteSettings.siteDescription
+  const initialLogoMode = initialThemeSiteSettings.logoMode
+  const initialLogoSvg = initialThemeSiteSettings.logoSvg
+  const initialLogoImagePath = initialThemeSiteSettings.logoImagePath
+  const initialLogoImageUrl = initialThemeSiteSettings.logoImageUrl
+  const initialGoogleAnalyticsId = initialThemeSiteSettings.googleAnalyticsId
+  const initialDiscordLink = initialThemeSiteSettings.discordLink
+  const initialSupportUrl = initialThemeSiteSettings.supportUrl
+
   const router = useRouter()
   const [state, formAction, isPending] = useActionState(updateThemeSiteSettingsAction, initialState)
   const wasPendingRef = useRef(isPending)
 
   const [siteName, setSiteName] = useState(initialSiteName)
   const [siteDescription, setSiteDescription] = useState(initialSiteDescription)
-  const [logoMode, setLogoMode] = useState<ThemeSiteLogoMode>(initialLogoMode)
+  const [logoMode, setLogoMode] = useState(initialLogoMode)
   const [logoSvg, setLogoSvg] = useState(initialLogoSvg)
   const [logoImagePath, setLogoImagePath] = useState(initialLogoImagePath)
+  const [googleAnalyticsId, setGoogleAnalyticsId] = useState(initialGoogleAnalyticsId)
+  const [discordLink, setDiscordLink] = useState(initialDiscordLink)
+  const [supportUrl, setSupportUrl] = useState(initialSupportUrl)
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null)
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
 
@@ -65,6 +68,18 @@ export default function AdminThemeSiteSettingsForm({
   useEffect(() => {
     setLogoImagePath(initialLogoImagePath)
   }, [initialLogoImagePath])
+
+  useEffect(() => {
+    setGoogleAnalyticsId(initialGoogleAnalyticsId)
+  }, [initialGoogleAnalyticsId])
+
+  useEffect(() => {
+    setDiscordLink(initialDiscordLink)
+  }, [initialDiscordLink])
+
+  useEffect(() => {
+    setSupportUrl(initialSupportUrl)
+  }, [initialSupportUrl])
 
   useEffect(() => {
     return () => {
@@ -142,7 +157,7 @@ export default function AdminThemeSiteSettingsForm({
               htmlFor="theme-logo-file"
               className={cn(
                 `
-                  group relative flex h-40 w-40 cursor-pointer items-center justify-center overflow-hidden rounded-xl
+                  group relative flex size-40 cursor-pointer items-center justify-center overflow-hidden rounded-xl
                   border border-dashed border-border bg-muted/20 text-muted-foreground transition
                   hover:border-primary/60
                 `,
@@ -177,8 +192,8 @@ export default function AdminThemeSiteSettingsForm({
               <ImageUp
                 className={cn(
                   `
-                    pointer-events-none absolute top-1/2 left-1/2 z-10 size-7 -translate-x-1/2 -translate-y-1/2
-                    text-foreground/70 opacity-0 transition
+                    pointer-events-none absolute top-1/2 left-1/2 z-10 size-7 -translate-1/2 text-foreground/70
+                    opacity-0 transition
                     group-hover:opacity-100
                   `,
                 )}
@@ -186,7 +201,7 @@ export default function AdminThemeSiteSettingsForm({
               <span
                 className={`
                   pointer-events-none absolute bottom-2 left-1/2 z-10 w-[120px] -translate-x-1/2 rounded-md
-                  bg-background/80 px-2 py-1 text-center text-[10px] leading-tight font-medium text-muted-foreground
+                  bg-background/80 px-2 py-1 text-center text-2xs leading-tight font-medium text-muted-foreground
                   opacity-0 transition
                   group-hover:opacity-100
                 `}
@@ -228,6 +243,45 @@ export default function AdminThemeSiteSettingsForm({
               onChange={event => setSiteDescription(event.target.value)}
               disabled={isPending}
               placeholder="Short description used in metadata and wallet dialogs"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="theme-google-analytics-id">Google Analytics ID</Label>
+            <Input
+              id="theme-google-analytics-id"
+              name="google_analytics_id"
+              maxLength={120}
+              value={googleAnalyticsId}
+              onChange={event => setGoogleAnalyticsId(event.target.value)}
+              disabled={isPending}
+              placeholder="G-XXXXXXXXXX (optional)"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="theme-discord-link">Discord community link</Label>
+            <Input
+              id="theme-discord-link"
+              name="discord_link"
+              maxLength={2048}
+              value={discordLink}
+              onChange={event => setDiscordLink(event.target.value)}
+              disabled={isPending}
+              placeholder="https://discord.gg/your-community (optional)"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="theme-support-link">Support link</Label>
+            <Input
+              id="theme-support-link"
+              name="support_url"
+              maxLength={2048}
+              value={supportUrl}
+              onChange={event => setSupportUrl(event.target.value)}
+              disabled={isPending}
+              placeholder="https://yourdomain.com/support (optional)"
             />
           </div>
 

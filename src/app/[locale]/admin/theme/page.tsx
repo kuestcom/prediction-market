@@ -1,5 +1,6 @@
 'use cache'
 
+import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import { setRequestLocale } from 'next-intl/server'
 import AdminThemeSettingsForm from '@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm'
 import AdminThemeSiteSettingsForm from '@/app/[locale]/admin/theme/_components/AdminThemeSiteSettingsForm'
@@ -19,6 +20,10 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
   const initialThemeSiteImageUrl = initialThemeSiteSettings.logoMode === 'image'
     ? getSupabasePublicAssetUrl(initialThemeSiteSettings.logoImagePath || null)
     : null
+  const initialThemeSiteSettingsWithImage: AdminThemeSiteSettingsInitialState = {
+    ...initialThemeSiteSettings,
+    logoImageUrl: initialThemeSiteImageUrl,
+  }
   const presetOptions = getThemePresetOptions()
 
   return (
@@ -31,23 +36,13 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
       </div>
 
       <AdminThemeSiteSettingsForm
-        initialSiteName={initialThemeSiteSettings.siteName}
-        initialSiteDescription={initialThemeSiteSettings.siteDescription}
-        initialLogoMode={initialThemeSiteSettings.logoMode}
-        initialLogoSvg={initialThemeSiteSettings.logoSvg}
-        initialLogoImagePath={initialThemeSiteSettings.logoImagePath}
-        initialLogoImageUrl={initialThemeSiteImageUrl}
+        initialThemeSiteSettings={initialThemeSiteSettingsWithImage}
       />
 
       <AdminThemeSettingsForm
         presetOptions={presetOptions}
-        initialPreset={initialThemeSettings.preset}
-        initialRadius={initialThemeSettings.radius}
-        initialLightJson={initialThemeSettings.lightJson}
-        initialDarkJson={initialThemeSettings.darkJson}
-        siteName={initialThemeSiteSettings.siteName}
-        logoSvg={initialThemeSiteSettings.logoSvg}
-        logoImageUrl={initialThemeSiteImageUrl}
+        initialThemeSettings={initialThemeSettings}
+        initialThemeSiteSettings={initialThemeSiteSettingsWithImage}
       />
     </section>
   )

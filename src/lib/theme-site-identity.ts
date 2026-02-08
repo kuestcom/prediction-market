@@ -24,6 +24,9 @@ export interface ThemeSiteIdentity {
   logoImagePath: string | null
   logoImageUrl: string | null
   logoUrl: string
+  googleAnalyticsId: string | null
+  discordLink: string | null
+  supportUrl: string | null
 }
 
 function sanitizeDefaultLogo() {
@@ -54,7 +57,60 @@ export function createDefaultThemeSiteIdentity(): ThemeSiteIdentity {
     logoImagePath: null,
     logoImageUrl: null,
     logoUrl: buildSvgDataUri(logoSvg),
+    googleAnalyticsId: null,
+    discordLink: null,
+    supportUrl: null,
   }
+}
+
+function normalizeOptionalString(value: string | null | undefined) {
+  const normalized = typeof value === 'string' ? value.trim() : ''
+  return normalized.length > 0 ? normalized : null
+}
+
+export function validateThemeSiteGoogleAnalyticsId(value: string | null | undefined, sourceLabel: string) {
+  const normalized = normalizeOptionalString(value)
+  if (!normalized) {
+    return { value: null, error: null as string | null }
+  }
+
+  if (normalized.length > 120) {
+    return { value: null, error: `${sourceLabel} is too long.` }
+  }
+
+  if (!/^[\w-]+$/.test(normalized)) {
+    return { value: null, error: `${sourceLabel} has an invalid format.` }
+  }
+
+  return { value: normalized, error: null }
+}
+
+export function validateThemeSiteExternalUrl(value: string | null | undefined, sourceLabel: string) {
+  const normalized = normalizeOptionalString(value)
+  if (!normalized) {
+    return { value: null, error: null as string | null }
+  }
+
+  if (normalized.length > 2048) {
+    return { value: null, error: `${sourceLabel} is too long.` }
+  }
+
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(normalized) && !/^https?:\/\//i.test(normalized)) {
+    return { value: null, error: `${sourceLabel} must start with http:// or https://.` }
+  }
+
+  const withProtocol = /^https?:\/\//i.test(normalized) ? normalized : `https://${normalized}`
+  try {
+    const parsed = new URL(withProtocol)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return { value: null, error: `${sourceLabel} must start with http:// or https://.` }
+    }
+  }
+  catch {
+    return { value: null, error: `${sourceLabel} must be a valid URL.` }
+  }
+
+  return { value: withProtocol, error: null }
 }
 
 export function validateThemeSiteName(value: string | null | undefined, sourceLabel: string) {

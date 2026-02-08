@@ -1,9 +1,11 @@
 'use client'
 
 import Script from 'next/script'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 
 export default function GoogleAnalytics() {
-  const gaId = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS
+  const site = useSiteIdentity()
+  const gaId = site.googleAnalyticsId
 
   if (!gaId) {
     return <></>

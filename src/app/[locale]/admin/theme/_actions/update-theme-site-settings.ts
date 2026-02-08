@@ -67,12 +67,18 @@ export async function updateThemeSiteSettingsAction(
   const logoSvgRaw = formData.get('logo_svg')
   const logoImagePathRaw = formData.get('logo_image_path')
   const logoFileRaw = formData.get('logo_image')
+  const googleAnalyticsIdRaw = formData.get('google_analytics_id')
+  const discordLinkRaw = formData.get('discord_link')
+  const supportUrlRaw = formData.get('support_url')
 
   const siteName = typeof siteNameRaw === 'string' ? siteNameRaw : ''
   const siteDescription = typeof siteDescriptionRaw === 'string' ? siteDescriptionRaw : ''
   let logoMode = typeof logoModeRaw === 'string' ? logoModeRaw : ''
   let logoSvg = typeof logoSvgRaw === 'string' ? logoSvgRaw : ''
   let logoImagePath = typeof logoImagePathRaw === 'string' ? logoImagePathRaw : ''
+  const googleAnalyticsId = typeof googleAnalyticsIdRaw === 'string' ? googleAnalyticsIdRaw : ''
+  const discordLink = typeof discordLinkRaw === 'string' ? discordLinkRaw : ''
+  const supportUrl = typeof supportUrlRaw === 'string' ? supportUrlRaw : ''
 
   if (logoFileRaw instanceof File && logoFileRaw.size > 0) {
     const processed = await processThemeLogoFile(logoFileRaw)
@@ -97,6 +103,9 @@ export async function updateThemeSiteSettingsAction(
     logoMode,
     logoSvg,
     logoImagePath,
+    googleAnalyticsId,
+    discordLink,
+    supportUrl,
   })
 
   if (!validated.data) {
@@ -109,6 +118,9 @@ export async function updateThemeSiteSettingsAction(
     { group: 'theme', key: 'site_logo_mode', value: validated.data.logoModeValue },
     { group: 'theme', key: 'site_logo_svg', value: validated.data.logoSvgValue },
     { group: 'theme', key: 'site_logo_image_path', value: validated.data.logoImagePathValue },
+    { group: 'theme', key: 'site_google_analytics', value: validated.data.googleAnalyticsIdValue },
+    { group: 'theme', key: 'site_discord_link', value: validated.data.discordLinkValue },
+    { group: 'theme', key: 'site_support_url', value: validated.data.supportUrlValue },
   ])
 
   if (error) {
