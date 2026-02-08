@@ -1,16 +1,23 @@
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
-export const metadata: Metadata = {
-  title: 'Terms of Use',
-  description: `Terms of Use for ${process.env.NEXT_PUBLIC_SITE_NAME?.trim() ?? 'this site'}`,
+export async function generateMetadata(): Promise<Metadata> {
+  const runtimeTheme = await loadRuntimeThemeState()
+  const siteName = runtimeTheme.site.name
+
+  return {
+    title: 'Terms of Use',
+    description: `Terms of Use for ${siteName}`,
+  }
 }
 
 export default async function TermsOfUsePage({ params }: PageProps<'/[locale]/terms-of-use'>) {
   const { locale } = await params
   setRequestLocale(locale)
 
-  const siteName = process.env.NEXT_PUBLIC_SITE_NAME?.trim() ?? 'this site'
+  const runtimeTheme = await loadRuntimeThemeState()
+  const siteName = runtimeTheme.site.name
   const siteNameUpper = siteName.toUpperCase()
   const siteUrl = (process.env.SITE_URL?.trim()?.replace(/\/$/, '') ?? '') || undefined
 

@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
 import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
@@ -75,9 +76,10 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
   const queryClient = useQueryClient()
   const user = useUser()
   const router = useRouter()
+  const site = useSiteIdentity()
 
   const latestMarket = summary.latestMarket ?? markets[0]
-  const siteName = process.env.NEXT_PUBLIC_SITE_NAME
+  const siteName = site.name
 
   const stats = useMemo(
     () => [

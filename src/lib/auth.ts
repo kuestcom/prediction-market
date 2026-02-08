@@ -13,6 +13,7 @@ import { projectId } from '@/lib/appkit'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { db } from '@/lib/drizzle'
 import { getSupabaseImageUrl } from '@/lib/supabase'
+import { DEFAULT_THEME_SITE_NAME } from '@/lib/theme-site-identity'
 import { ensureUserTradingAuthSecretFingerprint } from '@/lib/trading-auth/server'
 import { sanitizeTradingAuthSettings } from '@/lib/trading-auth/utils'
 import * as schema from './db/schema'
@@ -172,7 +173,7 @@ export const auth = betterAuth({
     provider: 'pg',
     schema,
   }),
-  appName: process.env.NEXT_PUBLIC_SITE_NAME,
+  appName: DEFAULT_THEME_SITE_NAME,
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.SITE_URL,
   advanced: {

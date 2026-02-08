@@ -269,13 +269,3 @@ export function clearNonHttpOnlyCookies() {
     document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax; Secure`
   })
 }
-
-export function svgLogo() {
-  return sanitizeSvg(process.env.NEXT_PUBLIC_SITE_LOGO_SVG!)
-}
-
-export function svgLogoUri() {
-  const sanitized = svgLogo()
-
-  return `data:image/svg+xml;utf8,${encodeURIComponent(sanitized)}`
-}

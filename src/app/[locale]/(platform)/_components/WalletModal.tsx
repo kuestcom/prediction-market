@@ -21,6 +21,7 @@ import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'react-qr-code'
+import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -33,11 +34,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useLiFiExecution } from '@/hooks/useLiFiExecution'
 import { useLiFiQuote } from '@/hooks/useLiFiQuote'
 import { useLiFiWalletTokens } from '@/hooks/useLiFiWalletTokens'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { formatDisplayAmount, getAmountSizeClass, MAX_AMOUNT_INPUT, sanitizeNumericInput } from '@/lib/amount-input'
 import { POLYGON_SCAN_BASE } from '@/lib/constants'
 import { formatAmountInputValue } from '@/lib/formatters'
 import { IS_TEST_MODE } from '@/lib/network'
-import { svgLogo } from '@/lib/utils'
 
 const MELD_PAYMENT_METHODS = [
   'apple_pay',
@@ -172,7 +173,8 @@ function WalletReceiveView({
   onCopy: () => void
   copied: boolean
 }) {
-  const siteLabel = siteName ?? process.env.NEXT_PUBLIC_SITE_NAME!
+  const site = useSiteIdentity()
+  const siteLabel = siteName ?? site.name
 
   return (
     <div className="space-y-4">
@@ -1240,7 +1242,7 @@ function WalletConfirmStep({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const eoaSuffix = walletEoaAddress?.slice(-4) ?? '542d'
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false)
-  const logoSvg = svgLogo()
+  const site = useSiteIdentity()
   const formattedAmount = formatDisplayAmount(amountValue)
   const displayAmount = formattedAmount && formattedAmount.trim() !== '' ? formattedAmount : '0.00'
   const { quote: fetchedQuote, isLoadingQuote } = useLiFiQuote({
@@ -1296,9 +1298,13 @@ function WalletConfirmStep({
             <div className="flex items-center justify-between text-muted-foreground">
               <span>Destination</span>
               <span className="flex items-center gap-2 font-semibold text-foreground">
-                <span
+                <SiteLogoIcon
+                  logoSvg={site.logoSvg}
+                  logoImageUrl={site.logoImageUrl}
+                  alt={`${siteLabel} logo`}
                   className="size-4 text-current [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
-                  dangerouslySetInnerHTML={{ __html: logoSvg! }}
+                  imageClassName="size-[1em] object-contain"
+                  size={16}
                 />
                 {siteLabel}
                 {' '}
@@ -1499,7 +1505,7 @@ function WalletSuccessStep({
 }) {
   const eoaSuffix = walletEoaAddress?.slice(-4) ?? '1234'
   const safeSuffix = walletAddress?.slice(-4) ?? '5678'
-  const logoSvg = svgLogo()
+  const site = useSiteIdentity()
   const supportUrl = process.env.NEXT_PUBLIC_SUPPORT_URL
   const formattedAmount = formatDisplayAmount(amountValue)
   const displayAmount = formattedAmount && formattedAmount.trim() !== '' ? formattedAmount : '0.00'
@@ -1568,9 +1574,13 @@ function WalletSuccessStep({
             <div className="flex items-center justify-between text-muted-foreground">
               <span>Destination</span>
               <span className="flex items-center gap-2 font-semibold text-foreground">
-                <span
+                <SiteLogoIcon
+                  logoSvg={site.logoSvg}
+                  logoImageUrl={site.logoImageUrl}
+                  alt={`${siteLabel} logo`}
                   className="size-4 text-current [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
-                  dangerouslySetInnerHTML={{ __html: logoSvg! }}
+                  imageClassName="size-[1em] object-contain"
+                  size={16}
                 />
                 {siteLabel}
                 {' '}
@@ -1694,7 +1704,8 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
   } = props
 
   const [copied, setCopied] = useState(false)
-  const siteLabel = siteName ?? process.env.NEXT_PUBLIC_SITE_NAME!
+  const site = useSiteIdentity()
+  const siteLabel = siteName ?? site.name
   const tokensQueryEnabled = open && (view === 'wallets' || view === 'amount' || view === 'confirm')
   const { items: walletTokenItems, isLoadingTokens } = useLiFiWalletTokens(walletEoaAddress, { enabled: tokensQueryEnabled })
   const [selectedTokenId, setSelectedTokenId] = useState('')
@@ -1954,6 +1965,8 @@ export function WalletWithdrawModal(props: WalletWithdrawModalProps) {
     onMax,
     isBalanceLoading,
   } = props
+  const site = useSiteIdentity()
+  const siteLabel = siteName ?? site.name
 
   const content = (
     <WalletSendForm
@@ -1979,7 +1992,7 @@ export function WalletWithdrawModal(props: WalletWithdrawModalProps) {
             <DrawerTitle className="text-center text-foreground">
               Withdraw from
               {' '}
-              {siteName}
+              {siteLabel}
             </DrawerTitle>
           </DrawerHeader>
           <div className="w-full px-4 pb-4">
@@ -1999,7 +2012,7 @@ export function WalletWithdrawModal(props: WalletWithdrawModalProps) {
           <DialogTitle className="text-center text-foreground">
             Withdraw from
             {' '}
-            {siteName}
+            {siteLabel}
           </DialogTitle>
         </DialogHeader>
         {content}

@@ -32,7 +32,7 @@ export default function HeaderHowItWorks() {
       title: t('1. Choose a Market'),
       description:
         t('Buy ‘Yes’ or ‘No’ shares based on what you honestly think will happen. Prices move in real time as other traders trade.'),
-      image: '/images/how-it-works/1.webp',
+      image: '/images/how-it-works/markets.svg',
       imageAlt: t('Illustration showing how to pick a market'),
       ctaLabel: t('Next'),
     },
@@ -40,15 +40,15 @@ export default function HeaderHowItWorks() {
       title: t('2. Make Your Trade'),
       description:
         t('Add funds with crypto, card, or bank transfer—then choose your position. Trade on real-world events with full transparency.'),
-      image: '/images/how-it-works/2.webp',
-      imageAlt: t('Illustration showing how to place a bet'),
+      image: '/images/how-it-works/trade.svg',
+      imageAlt: t('Illustration showing how to place an order'),
       ctaLabel: t('Next'),
     },
     {
       title: t('3. Cash Out 🤑'),
       description:
         t('Sell your ‘Yes’ or ‘No’ shares anytime, or wait until the market settles. Winning shares redeem for $1 each. Start trading in minutes.'),
-      image: '/images/how-it-works/3.png',
+      image: '/images/how-it-works/cashout.svg',
       imageAlt: t('Illustration showing how profits work'),
       ctaLabel: t('Get Started'),
     },

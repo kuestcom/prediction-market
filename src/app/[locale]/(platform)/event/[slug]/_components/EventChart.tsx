@@ -39,11 +39,12 @@ import {
   getOutcomeLabelForMarket,
   getTopMarketIds,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
+import SiteLogoIcon from '@/components/SiteLogoIcon'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { formatSharePriceLabel } from '@/lib/formatters'
 import { resolveDisplayPrice } from '@/lib/market-chance'
-import { svgLogo } from '@/lib/utils'
 import { useIsSingleMarket } from '@/stores/useOrder'
 import { loadStoredChartSettings, storeChartSettings } from '../_utils/chartSettingsStorage'
 import EventChartControls, { defaultChartSettings } from './EventChartControls'
@@ -190,6 +191,7 @@ function buildCombinedOutcomeHistory(
 }
 
 function EventChartComponent({ event, isMobile }: EventChartProps) {
+  const site = useSiteIdentity()
   const isSingleMarket = useIsSingleMarket()
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const shouldHideChart = !isSingleMarket && !isNegRiskEnabled
@@ -487,19 +489,24 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
 
   const watermark = useMemo(
     () => ({
-      iconSvg: svgLogo(),
-      label: process.env.NEXT_PUBLIC_SITE_NAME,
+      iconSvg: site.logoSvg,
+      iconImageUrl: site.logoImageUrl,
+      label: site.name,
     }),
-    [],
+    [site.logoImageUrl, site.logoSvg, site.name],
   )
   const chartLogo = (watermark.iconSvg || watermark.label)
     ? (
         <div className="flex items-center gap-1 text-xl text-muted-foreground opacity-50 select-none">
           {watermark.iconSvg
             ? (
-                <div
+                <SiteLogoIcon
+                  logoSvg={watermark.iconSvg}
+                  logoImageUrl={watermark.iconImageUrl}
+                  alt={`${watermark.label} logo`}
                   className="size-[1em] **:fill-current **:stroke-current"
-                  dangerouslySetInnerHTML={{ __html: watermark.iconSvg }}
+                  imageClassName="size-[1em] object-contain"
+                  size={20}
                 />
               )
             : null}
@@ -799,7 +806,7 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
               margin={{ top: 30, right: 40, bottom: 52, left: 0 }}
               dataSignature={chartSignature}
               onCursorDataChange={setCursorSnapshot}
-              xAxisTickCount={isMobile ? 3 : 6}
+              xAxisTickCount={isMobile ? 2 : 4}
               autoscale={chartSettings.autoscale}
               showXAxis={chartSettings.xAxis}
               showYAxis={chartSettings.yAxis}

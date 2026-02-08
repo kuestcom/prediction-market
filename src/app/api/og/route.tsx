@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { svgLogoUri } from '@/lib/utils'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 interface ShareCardPayload {
   title: string
@@ -144,7 +144,9 @@ export async function GET(request: Request) {
   const variant = payload.variant === 'no' ? 'no' : 'yes'
   const accent = variant === 'no' ? '#ef4444' : '#22c55e'
   const outcomeLabel = payload.outcome || (variant === 'no' ? 'No' : 'Yes')
-  const siteLogoSrc = svgLogoUri()
+  const runtimeTheme = await loadRuntimeThemeState()
+  const siteLogoSrc = runtimeTheme.site.logoUrl
+  const siteName = runtimeTheme.site.name
   const hasUserBadge = Boolean(payload.userName || payload.userImage)
   const dividerDots = Array.from({ length: 32 })
   const horizontalDots = Array.from({ length: 40 })
@@ -463,7 +465,7 @@ export async function GET(request: Request) {
               }}
             />
             <div style={{ color: '#fff', fontSize: '64px', fontWeight: 900 }}>
-              {process.env.NEXT_PUBLIC_SITE_NAME}
+              {siteName}
             </div>
           </div>
         )}

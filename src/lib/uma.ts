@@ -1,3 +1,5 @@
+import { DEFAULT_THEME_SITE_NAME } from '@/lib/theme-site-identity'
+
 interface UmaProposeSource {
   uma_request_tx_hash?: string | null
   uma_request_log_index?: number | null
@@ -16,6 +18,11 @@ interface UmaRequestParams {
   txHash: string
   logIndex: number
   isMirror: boolean
+}
+
+function resolveUmaProject(projectName: string | null | undefined) {
+  const normalized = projectName?.trim()
+  return normalized && normalized.length > 0 ? normalized : DEFAULT_THEME_SITE_NAME
 }
 
 function resolveUmaRequestParams(source?: UmaProposeSource | null): UmaRequestParams | null {
@@ -43,14 +50,14 @@ function resolveUmaRequestParams(source?: UmaProposeSource | null): UmaRequestPa
   }
 }
 
-export function resolveUmaProposeTarget(source?: UmaProposeSource | null): UmaProposeTarget | null {
+export function resolveUmaProposeTarget(source?: UmaProposeSource | null, projectName?: string | null): UmaProposeTarget | null {
   const requestParams = resolveUmaRequestParams(source)
   if (!requestParams) {
     return null
   }
 
   const baseUrl = UMA_ORACLE_BASE_URL.replace(/\/$/, '')
-  const project = process.env.NEXT_PUBLIC_SITE_NAME!
+  const project = resolveUmaProject(projectName)
 
   const query = new URLSearchParams()
   query.set('project', project)
@@ -63,18 +70,18 @@ export function resolveUmaProposeTarget(source?: UmaProposeSource | null): UmaPr
   }
 }
 
-export function buildUmaProposeUrl(source?: UmaProposeSource | null): string | null {
-  return resolveUmaProposeTarget(source)?.url ?? null
+export function buildUmaProposeUrl(source?: UmaProposeSource | null, projectName?: string | null): string | null {
+  return resolveUmaProposeTarget(source, projectName)?.url ?? null
 }
 
-export function buildUmaSettledUrl(source?: UmaProposeSource | null): string | null {
+export function buildUmaSettledUrl(source?: UmaProposeSource | null, projectName?: string | null): string | null {
   const requestParams = resolveUmaRequestParams(source)
   if (!requestParams) {
     return null
   }
 
   const baseUrl = UMA_ORACLE_BASE_URL.replace(/\/$/, '')
-  const project = process.env.NEXT_PUBLIC_SITE_NAME!
+  const project = resolveUmaProject(projectName)
   const query = new URLSearchParams()
   query.set('project', project)
   query.set('transactionHash', requestParams.txHash)

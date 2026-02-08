@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
@@ -213,6 +214,7 @@ export default function EventChartExportDialog({
   markets,
   isMultiMarket,
 }: EventChartExportDialogProps) {
+  const site = useSiteIdentity()
   const t = useExtracted()
   const optionsListId = useId()
   const eventStartDate = useMemo(() => new Date(eventCreatedAt), [eventCreatedAt])
@@ -327,7 +329,7 @@ export default function EventChartExportDialog({
       )
       const historyByMarket = Object.fromEntries(entries)
       const csv = buildCsvContent(historyByMarket, targets, isMultiMarket)
-      const siteName = slugifySiteName(process.env.NEXT_PUBLIC_SITE_NAME ?? '')
+      const siteName = slugifySiteName(site.name ?? '')
       const filename = `${siteName}-price-data-${formatFilenameDate(fromDate, locale)}-${formatFilenameDate(toDate, locale)}-${Date.now()}.csv`
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
       const url = window.URL.createObjectURL(blob)

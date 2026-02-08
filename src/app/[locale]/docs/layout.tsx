@@ -2,12 +2,15 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { RootProvider } from 'fumadocs-ui/provider/next'
 import { BookOpenIcon, CodeIcon, GitForkIcon, HomeIcon } from 'lucide-react'
 import { setRequestLocale } from 'next-intl/server'
+import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { source } from '@/lib/source'
-import { svgLogo } from '@/lib/utils'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export default async function Layout({ params, children }: LayoutProps<'/[locale]/docs'>) {
   const { locale } = await params
   setRequestLocale(locale)
+  const runtimeTheme = await loadRuntimeThemeState()
+  const site = runtimeTheme.site
 
   return (
     <RootProvider
@@ -21,14 +24,16 @@ export default async function Layout({ params, children }: LayoutProps<'/[locale
         nav={{
           title: (
             <>
-              <div
+              <SiteLogoIcon
+                logoSvg={site.logoSvg}
+                logoImageUrl={site.logoImageUrl}
+                alt={`${site.name} logo`}
                 className="size-6"
-                dangerouslySetInnerHTML={{
-                  __html: svgLogo(),
-                }}
+                imageClassName="object-contain"
+                size={24}
               />
               <span className="font-medium">
-                {`${process.env.NEXT_PUBLIC_SITE_NAME} Docs`}
+                {`${site.name} Docs`}
               </span>
             </>
           ),
@@ -68,7 +73,7 @@ export default async function Layout({ params, children }: LayoutProps<'/[locale
           {
             type: 'main',
             url: '/',
-            text: process.env.NEXT_PUBLIC_SITE_NAME,
+            text: site.name,
             icon: <HomeIcon />,
           },
           ...(process.env.NEXT_PUBLIC_DISCORD_LINK

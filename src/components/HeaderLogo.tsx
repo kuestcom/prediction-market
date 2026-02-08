@@ -1,9 +1,11 @@
-import { Link } from '@/i18n/navigation'
-import { svgLogo } from '@/lib/utils'
+'use client'
 
-export default async function HeaderLogo() {
-  const siteName = process.env.NEXT_PUBLIC_SITE_NAME
-  const logoSvg = svgLogo()
+import SiteLogoIcon from '@/components/SiteLogoIcon'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { Link } from '@/i18n/navigation'
+
+export default function HeaderLogo() {
+  const site = useSiteIdentity()
 
   return (
     <Link
@@ -13,11 +15,15 @@ export default async function HeaderLogo() {
         hover:opacity-80
       `}
     >
-      <div
+      <SiteLogoIcon
+        logoSvg={site.logoSvg}
+        logoImageUrl={site.logoImageUrl}
+        alt={`${site.name} logo`}
         className="size-[1em] text-current [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
-        dangerouslySetInnerHTML={{ __html: logoSvg! }}
+        imageClassName="size-[1em] object-contain"
+        size={32}
       />
-      <span>{siteName}</span>
+      <span>{site.name}</span>
     </Link>
   )
 }

@@ -1,3 +1,5 @@
+import { loadRuntimeThemeSiteName } from '@/lib/theme-settings'
+
 export interface OpenRouterMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
@@ -35,14 +37,7 @@ interface RequestCompletionOptions {
   apiKey?: string
 }
 
-export async function requestOpenRouterCompletion(messages: OpenRouterMessage[], options?: RequestCompletionOptions) {
-  const apiKey = options?.apiKey
-  if (!apiKey) {
-    throw new Error('OpenRouter API key is not configured.')
-  }
-
-  const model = options?.model
-
+async function buildOpenRouterHeaders(apiKey: string) {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${apiKey}`,
@@ -52,9 +47,22 @@ export async function requestOpenRouterCompletion(messages: OpenRouterMessage[],
     headers['HTTP-Referer'] = process.env.SITE_URL
   }
 
-  if (process.env.NEXT_PUBLIC_SITE_NAME) {
-    headers['X-Title'] = process.env.NEXT_PUBLIC_SITE_NAME
+  const siteName = await loadRuntimeThemeSiteName()
+  if (siteName) {
+    headers['X-Title'] = siteName
   }
+
+  return headers
+}
+
+export async function requestOpenRouterCompletion(messages: OpenRouterMessage[], options?: RequestCompletionOptions) {
+  const apiKey = options?.apiKey
+  if (!apiKey) {
+    throw new Error('OpenRouter API key is not configured.')
+  }
+
+  const model = options?.model
+  const headers = await buildOpenRouterHeaders(apiKey)
 
   const response = await fetch(OPENROUTER_API_URL, {
     method: 'POST',
@@ -98,18 +106,7 @@ export async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterM
     return []
   }
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${apiKey}`,
-  }
-
-  if (process.env.SITE_URL) {
-    headers['HTTP-Referer'] = process.env.SITE_URL
-  }
-
-  if (process.env.NEXT_PUBLIC_SITE_NAME) {
-    headers['X-Title'] = process.env.NEXT_PUBLIC_SITE_NAME
-  }
+  const headers = await buildOpenRouterHeaders(apiKey)
 
   const response = await fetch('https://openrouter.ai/api/v1/models', {
     method: 'GET',
