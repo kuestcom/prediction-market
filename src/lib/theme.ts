@@ -72,7 +72,7 @@ export type ThemeRadius = string
 
 const NUMBER_PATTERN = '[+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+)'
 const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i
-const RADIUS_PATTERN = new RegExp(`^(?:0|${NUMBER_PATTERN}(?:px|rem|em))$`, 'i')
+const RADIUS_PATTERN = /^(?:0|(?:\d+(?:\.\d+)?|\.\d+)(?:px|rem|em))$/i
 const OKLCH_COLOR_PATTERN = new RegExp(
   `^oklch\\(\\s*${NUMBER_PATTERN}%?\\s+${NUMBER_PATTERN}\\s+${NUMBER_PATTERN}(?:\\s*\\/\\s*${NUMBER_PATTERN}%?)?\\s*\\)$`,
   'i',
