@@ -107,7 +107,7 @@ export default function ProfileActivityTooltipCard({
   const avatarUrl = profile.avatarUrl?.trim() ?? ''
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
   const fallbackStyle = showPlaceholder
-    ? getAvatarPlaceholderStyle(avatarUrl || null, profile.username)
+    ? getAvatarPlaceholderStyle(profile.username)
     : undefined
 
   return (

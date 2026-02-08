@@ -13,26 +13,8 @@ function hsl(hue: number, saturation: number, lightness: number) {
   return `hsl(${hue} ${saturation}% ${lightness}%)`
 }
 
-export function isVercelAvatarUrl(url?: string | null) {
-  if (!url) {
-    return false
-  }
-  return url.includes('avatar.vercel.sh')
-}
-
-export function getAvatarSeedFromUrl(url: string) {
-  try {
-    const parsed = new URL(url)
-    const filename = parsed.pathname.split('/').pop() || ''
-    return decodeURIComponent(filename.replace(/\.\w+$/, ''))
-  }
-  catch {
-    return ''
-  }
-}
-
 export function shouldUseAvatarPlaceholder(url?: string | null) {
-  return !url || isVercelAvatarUrl(url)
+  return !url || !url.trim()
 }
 
 export function buildAvatarBackgroundStyle(seed: string): CSSProperties {
@@ -68,10 +50,6 @@ export function buildAvatarBackgroundStyle(seed: string): CSSProperties {
   }
 }
 
-export function getAvatarPlaceholderStyle(
-  url: string | null | undefined,
-  fallbackSeed: string,
-): CSSProperties {
-  const seed = isVercelAvatarUrl(url) ? (getAvatarSeedFromUrl(url!) || fallbackSeed) : fallbackSeed
-  return buildAvatarBackgroundStyle(seed)
+export function getAvatarPlaceholderStyle(fallbackSeed: string): CSSProperties {
+  return buildAvatarBackgroundStyle(fallbackSeed)
 }

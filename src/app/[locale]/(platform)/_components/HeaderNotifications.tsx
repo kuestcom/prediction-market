@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { getAvatarPlaceholderStyle, isVercelAvatarUrl } from '@/lib/avatar'
+import { getAvatarPlaceholderStyle } from '@/lib/avatar'
 import { useNotificationList, useNotifications, useNotificationsError, useNotificationsLoading, useUnreadNotificationCount } from '@/stores/useNotifications'
 
 function getNotificationTimeLabel(notification: Notification) {
@@ -140,8 +140,7 @@ export default function HeaderNotifications() {
                     <div className="shrink-0">
                       {(() => {
                         const avatarUrl = notification.user_avatar?.trim() ?? ''
-                        const isVercelFallback = isVercelAvatarUrl(avatarUrl)
-                        if (avatarUrl && !isVercelFallback) {
+                        if (avatarUrl) {
                           return (
                             <Image
                               src={avatarUrl}
@@ -152,20 +151,11 @@ export default function HeaderNotifications() {
                             />
                           )
                         }
-                        if (isVercelFallback) {
-                          return (
-                            <div
-                              aria-hidden="true"
-                              className="size-10.5 rounded-md"
-                              style={getAvatarPlaceholderStyle(avatarUrl, notification.title)}
-                            />
-                          )
-                        }
                         return (
                           <div
                             aria-hidden="true"
                             className="size-10.5 rounded-md"
-                            style={getAvatarPlaceholderStyle(null, notification.id || notification.title)}
+                            style={getAvatarPlaceholderStyle(notification.id || notification.title)}
                           />
                         )
                       })()}

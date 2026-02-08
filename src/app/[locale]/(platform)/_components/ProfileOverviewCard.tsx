@@ -71,7 +71,7 @@ export default function ProfileOverviewCard({
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
   const avatarSeed = profile.portfolioAddress || profile.username || 'user'
   const avatarFallbackStyle = showPlaceholder
-    ? getAvatarPlaceholderStyle(avatarUrl || null, avatarSeed)
+    ? getAvatarPlaceholderStyle(avatarSeed)
     : undefined
   const joinedText = useMemo(() => {
     if (!profile.joinedAt) {

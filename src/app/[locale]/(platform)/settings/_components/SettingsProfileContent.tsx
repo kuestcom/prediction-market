@@ -33,7 +33,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
   const avatarSeed = user.proxy_wallet_address || user.address || user.username || 'user'
   const showPlaceholder = !previewImage && shouldUseAvatarPlaceholder(avatarUrl)
   const placeholderStyle = showPlaceholder
-    ? getAvatarPlaceholderStyle(avatarUrl || null, avatarSeed)
+    ? getAvatarPlaceholderStyle(avatarSeed)
     : undefined
 
   useEffect(() => {

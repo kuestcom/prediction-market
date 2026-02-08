@@ -56,7 +56,7 @@ export default function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewP
               const avatarSeed = row.proxy_wallet_address || row.address || row.username || row.id
               const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
               const placeholderStyle = showPlaceholder
-                ? getAvatarPlaceholderStyle(avatarUrl || null, avatarSeed)
+                ? getAvatarPlaceholderStyle(avatarSeed)
                 : undefined
               return (
                 <tr key={row.id} className="border-b last:border-b-0">
@@ -118,7 +118,7 @@ export default function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewP
           const avatarSeed = row.proxy_wallet_address || row.address || row.username || row.id
           const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
           const placeholderStyle = showPlaceholder
-            ? getAvatarPlaceholderStyle(avatarUrl || null, avatarSeed)
+            ? getAvatarPlaceholderStyle(avatarSeed)
             : undefined
           return (
             <div key={row.id} className="space-y-3 p-4">

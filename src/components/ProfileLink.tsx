@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   getAvatarPlaceholderStyle,
-  isVercelAvatarUrl,
   shouldUseAvatarPlaceholder,
 } from '@/lib/avatar'
 import { fetchProfileLinkStats } from '@/lib/data-api/profile-link-stats'
@@ -94,19 +93,19 @@ export default function ProfileLink({
     : (resolvedProfileSlug ? (`/@${resolvedProfileSlug}` as any) : ('#' as any))
   const rawAvatarUrl = user.image?.trim() ?? ''
   const avatarSeed = addressSlug || resolvedProfileSlug || 'user'
-  const hasCustomAvatar = Boolean(rawAvatarUrl) && !isVercelAvatarUrl(rawAvatarUrl)
+  const hasCustomAvatar = Boolean(rawAvatarUrl)
   const resolvedAvatarSize = avatarSize ?? 32
   const showPlaceholder = shouldUseAvatarPlaceholder(rawAvatarUrl)
   const tooltipAvatarUrl = showPlaceholder
-    ? (rawAvatarUrl || `https://avatar.vercel.sh/${avatarSeed}.png`)
+    ? null
     : rawAvatarUrl
   const fallbackStyle = useMemo<CSSProperties | undefined>(() => {
     if (!showPlaceholder) {
       return undefined
     }
 
-    return getAvatarPlaceholderStyle(rawAvatarUrl || null, avatarSeed)
-  }, [avatarSeed, rawAvatarUrl, showPlaceholder])
+    return getAvatarPlaceholderStyle(avatarSeed)
+  }, [avatarSeed, showPlaceholder])
   const statsAddress = useMemo(
     () => user.proxy_wallet_address ?? user.address,
     [user.address, user.proxy_wallet_address],

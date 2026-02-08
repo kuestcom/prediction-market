@@ -29,7 +29,7 @@ export default function PublicProfileHeader({ profile }: PublicProfileHeaderProp
   const avatarSeed = profile.proxy_wallet_address || profile.address || profile.username || 'user'
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
   const placeholderStyle = showPlaceholder
-    ? getAvatarPlaceholderStyle(avatarUrl || null, avatarSeed)
+    ? getAvatarPlaceholderStyle(avatarSeed)
     : undefined
 
   return (

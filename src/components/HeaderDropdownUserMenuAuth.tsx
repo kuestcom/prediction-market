@@ -36,7 +36,7 @@ export default function HeaderDropdownUserMenuAuth() {
   const avatarSeed = user?.proxy_wallet_address || user?.address || user?.username || 'user'
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
   const placeholderStyle = showPlaceholder
-    ? getAvatarPlaceholderStyle(avatarUrl || null, avatarSeed)
+    ? getAvatarPlaceholderStyle(avatarSeed)
     : undefined
 
   useEffect(() => () => clearCloseTimeout(), [])
@@ -101,6 +101,7 @@ export default function HeaderDropdownUserMenuAuth() {
             type="button"
             variant="ghost"
             size="header"
+            aria-label="User menu"
             className={`
               group flex cursor-pointer items-center gap-2 px-2 transition-colors
               hover:bg-accent/70 hover:text-accent-foreground

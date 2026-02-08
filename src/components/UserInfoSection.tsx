@@ -23,7 +23,7 @@ export default function UserInfoSection() {
   const avatarSeed = user.proxy_wallet_address || user.address || user.username || 'user'
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
   const placeholderStyle = showPlaceholder
-    ? getAvatarPlaceholderStyle(avatarUrl || null, avatarSeed)
+    ? getAvatarPlaceholderStyle(avatarSeed)
     : undefined
 
   const polygonscanUrl = `https://polygonscan.com/address/${proxyWalletAddress}`
