@@ -3,6 +3,7 @@ import { LinkIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import {
   UMA_CTF_ADAPTER_ADDRESS,
   UMA_CTF_ADAPTER_POLYMARKET_ADDRESS,
@@ -49,6 +50,7 @@ function getResolverGradient(address?: string) {
 export default function EventRules({ event }: EventRulesProps) {
   const t = useExtracted()
   const locale = useLocale()
+  const siteIdentity = useSiteIdentity()
   const [isExpanded, setRulesExpanded] = useState(false)
 
   function formatRules(rules: string): string {
@@ -137,7 +139,7 @@ export default function EventRules({ event }: EventRulesProps) {
   }
 
   const primaryMarket = event.markets[0]
-  const proposeTarget = resolveUmaProposeTarget(primaryMarket?.condition)
+  const proposeTarget = resolveUmaProposeTarget(primaryMarket?.condition, siteIdentity.name)
   const resolverAddress = proposeTarget?.isMirror
     ? primaryMarket?.resolver
     : primaryMarket?.condition?.oracle

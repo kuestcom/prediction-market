@@ -423,3 +423,8 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
     source: normalizedTheme?.data || normalizedSite?.data ? 'settings' : 'default',
   }
 }
+
+export async function loadRuntimeThemeSiteName() {
+  const runtimeTheme = await loadRuntimeThemeState()
+  return runtimeTheme.site.name
+}

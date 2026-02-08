@@ -26,6 +26,7 @@ import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_ho
 import { calculateMarketFill, normalizeBookLevels } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData, fetchUserOtherBalance, fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatAmountInputValue, formatSharesLabel, fromMicro } from '@/lib/formatters'
@@ -888,6 +889,7 @@ function MarketDetailTabs({
   sharesByCondition,
 }: MarketDetailTabsProps) {
   const t = useExtracted()
+  const { name: siteName } = useSiteIdentity()
   const user = useUser()
   const { selected: controlledTab, select } = tabController
   const positionSizeThreshold = 0.01
@@ -973,10 +975,13 @@ function MarketDetailTabs({
     return visibleTabs[0]?.id ?? 'orderBook'
   }, [controlledTab, visibleTabs])
 
-  const proposeUrl = useMemo(() => buildUmaProposeUrl(market.condition), [market.condition])
+  const proposeUrl = useMemo(
+    () => buildUmaProposeUrl(market.condition, siteName),
+    [market.condition, siteName],
+  )
   const settledUrl = useMemo(
-    () => buildUmaSettledUrl(market.condition) ?? buildUmaProposeUrl(market.condition),
-    [market.condition],
+    () => buildUmaSettledUrl(market.condition, siteName) ?? buildUmaProposeUrl(market.condition, siteName),
+    [market.condition, siteName],
   )
   const resolvedOutcomeIndex = useMemo(() => resolveWinningOutcomeIndex(market), [market])
   const resolvedOutcomeLabel = resolvedOutcomeIndex === OUTCOME_INDEX.NO
