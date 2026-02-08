@@ -9,6 +9,9 @@ function hashString(value: string) {
   return Math.abs(hash)
 }
 
+interface AvatarColor { h: number, s: number, l: number }
+type AvatarPalette = readonly AvatarColor[]
+
 function hsl(hue: number, saturation: number, lightness: number) {
   return `hsl(${hue} ${saturation}% ${lightness}%)`
 }
@@ -17,7 +20,7 @@ function hsla(hue: number, saturation: number, lightness: number, alpha: number)
   return `hsl(${hue} ${saturation}% ${lightness}% / ${alpha})`
 }
 
-const AVATAR_PALETTES = [
+const AVATAR_PALETTES: readonly AvatarPalette[] = [
   [
     { h: 334, s: 82, l: 58 },
     { h: 270, s: 76, l: 56 },
@@ -114,7 +117,7 @@ const AVATAR_PALETTES = [
     { h: 220, s: 80, l: 52 },
     { h: 150, s: 70, l: 46 },
   ],
-] as const
+]
 
 function rotatePalette<T>(palette: readonly T[], offset: number) {
   if (offset <= 0) {
