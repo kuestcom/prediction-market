@@ -7,6 +7,7 @@ import Form from 'next/form'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { updateThemeSettingsAction } from '@/app/[locale]/admin/theme/_actions/update-theme-settings'
+import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
@@ -101,6 +102,9 @@ interface AdminThemeSettingsFormProps {
   initialRadius: string
   initialLightJson: string
   initialDarkJson: string
+  siteName: string
+  logoSvg: string
+  logoImageUrl: string | null
 }
 
 function buildPreviewStyle(variables: ThemeOverrides, radius: string | null): CSSProperties {
@@ -326,11 +330,11 @@ function RadiusControl({
           type="button"
           onClick={onRadiusReset}
           disabled={disabled || !normalizedRadius}
-          className="
+          className={`
             text-muted-foreground transition
             hover:text-foreground
             disabled:cursor-not-allowed disabled:opacity-40
-          "
+          `}
           title="Use default"
           aria-label="Use default roundness"
         >
@@ -361,17 +365,21 @@ function RadiusControl({
 }
 
 function ThemePreviewCard({
-  title,
   presetId,
   isDark,
   overrides,
   radius,
+  siteName,
+  logoSvg,
+  logoImageUrl,
 }: {
-  title: string
   presetId: string
   isDark: boolean
   overrides: ThemeOverrides
   radius: string | null
+  siteName: string
+  logoSvg: string
+  logoImageUrl: string | null
 }) {
   const style = useMemo(() => buildPreviewStyle(overrides, radius), [overrides, radius])
 
@@ -382,7 +390,17 @@ function ThemePreviewCard({
       style={style}
       className="grid gap-4 rounded-lg border border-border bg-background p-4 text-foreground"
     >
-      <h3 className="text-sm font-semibold">{title}</h3>
+      <div className="flex items-center gap-2">
+        <SiteLogoIcon
+          logoSvg={logoSvg}
+          logoImageUrl={logoImageUrl}
+          alt={`${siteName} logo`}
+          className="size-[1em] text-foreground [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
+          imageClassName="size-[1em] object-contain"
+          size={20}
+        />
+        <span className="text-sm font-semibold">{siteName}</span>
+      </div>
       <div className="rounded-md border border-border bg-card p-3">
         <p className="text-sm font-medium">Market card</p>
         <p className="mt-1 text-xs text-muted-foreground">This block previews background, card, and text colors.</p>
@@ -720,6 +738,9 @@ export default function AdminThemeSettingsForm({
   initialRadius,
   initialLightJson,
   initialDarkJson,
+  siteName,
+  logoSvg,
+  logoImageUrl,
 }: AdminThemeSettingsFormProps) {
   const [state, formAction, isPending] = useActionState(updateThemeSettingsAction, initialState)
   const wasPendingRef = useRef(isPending)
@@ -815,27 +836,26 @@ export default function AdminThemeSettingsForm({
       <input type="hidden" name="light_json" value={lightJsonValue} />
       <input type="hidden" name="dark_json" value={darkJsonValue} />
 
-      <div className="grid gap-2">
-        <Label htmlFor="theme-preset">Preset</Label>
-        <Select value={preset} onValueChange={setPreset} disabled={isPending}>
-          <SelectTrigger id="theme-preset" className="h-12! w-full max-w-sm">
-            <SelectValue placeholder="Select preset" />
-          </SelectTrigger>
-          <SelectContent>
-            {presetOptions.map(option => (
-              <SelectItem key={option.id} value={option.id}>
-                <div className="grid gap-0.5 text-left">
-                  <span>{option.label}</span>
-                  <span className="text-xs text-muted-foreground">{option.description}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="grid items-start gap-6 self-start">
+          <div className="grid gap-2">
+            <Label htmlFor="theme-preset">Preset</Label>
+            <Select value={preset} onValueChange={setPreset} disabled={isPending}>
+              <SelectTrigger id="theme-preset" className="h-12! w-full">
+                <SelectValue placeholder="Select preset" />
+              </SelectTrigger>
+              <SelectContent>
+                {presetOptions.map(option => (
+                  <SelectItem key={option.id} value={option.id}>
+                    <div className="grid gap-0.5 text-left">
+                      <span>{option.label}</span>
+                      <span className="text-xs text-muted-foreground">{option.description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <RadiusControl
             radiusValue={radius}
             disabled={isPending}
@@ -871,26 +891,6 @@ export default function AdminThemeSettingsForm({
             lightParseError={initialLightParse.error}
             darkParseError={initialDarkParse.error}
           />
-        </div>
-
-        <aside className="grid gap-2 lg:sticky lg:top-12 lg:self-start">
-          <h3 className="text-sm font-semibold">Preview</h3>
-          <div className="grid gap-4">
-            <ThemePreviewCard
-              title="Light"
-              presetId={parsedPreset}
-              isDark={false}
-              overrides={lightOverrides}
-              radius={radiusValidation.value}
-            />
-            <ThemePreviewCard
-              title="Dark"
-              presetId={parsedPreset}
-              isDark
-              overrides={darkOverrides}
-              radius={radiusValidation.value}
-            />
-          </div>
           <Button
             type="submit"
             className="w-full"
@@ -898,6 +898,35 @@ export default function AdminThemeSettingsForm({
           >
             {isPending ? 'Saving...' : 'Save changes'}
           </Button>
+        </div>
+
+        <aside className="grid gap-2 lg:sticky lg:top-12 lg:self-start">
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <h3 className="text-sm font-semibold">Preview Light</h3>
+              <ThemePreviewCard
+                presetId={parsedPreset}
+                isDark={false}
+                overrides={lightOverrides}
+                radius={radiusValidation.value}
+                siteName={siteName}
+                logoSvg={logoSvg}
+                logoImageUrl={logoImageUrl}
+              />
+            </div>
+            <div className="grid gap-2">
+              <h3 className="text-sm font-semibold">Preview Dark</h3>
+              <ThemePreviewCard
+                presetId={parsedPreset}
+                isDark
+                overrides={darkOverrides}
+                radius={radiusValidation.value}
+                siteName={siteName}
+                logoSvg={logoSvg}
+                logoImageUrl={logoImageUrl}
+              />
+            </div>
+          </div>
         </aside>
       </div>
 

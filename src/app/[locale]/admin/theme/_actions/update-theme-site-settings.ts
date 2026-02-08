@@ -10,19 +10,24 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { validateThemeSiteSettingsInput } from '@/lib/theme-settings'
 
 const MAX_LOGO_FILE_SIZE = 2 * 1024 * 1024
-const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
 
 export interface ThemeSiteSettingsActionState {
   error: string | null
 }
 
-async function uploadThemeLogoImage(file: File) {
+async function processThemeLogoFile(file: File) {
   if (!ACCEPTED_LOGO_TYPES.includes(file.type)) {
-    return { path: null, error: 'Logo image must be PNG, JPG, or WebP.' }
+    return { mode: null, path: null, svg: null, error: 'Logo must be PNG, JPG, WebP, or SVG.' }
   }
 
   if (file.size > MAX_LOGO_FILE_SIZE) {
-    return { path: null, error: 'Logo image must be 2MB or smaller.' }
+    return { mode: null, path: null, svg: null, error: 'Logo image must be 2MB or smaller.' }
+  }
+
+  if (file.type === 'image/svg+xml') {
+    const svg = await file.text()
+    return { mode: 'svg' as const, path: null, svg, error: null }
   }
 
   const buffer = Buffer.from(await file.arrayBuffer())
@@ -41,10 +46,10 @@ async function uploadThemeLogoImage(file: File) {
     })
 
   if (error) {
-    return { path: null, error: DEFAULT_ERROR_MESSAGE }
+    return { mode: null, path: null, svg: null, error: DEFAULT_ERROR_MESSAGE }
   }
 
-  return { path: filePath, error: null }
+  return { mode: 'image' as const, path: filePath, svg: null, error: null }
 }
 
 export async function updateThemeSiteSettingsAction(
@@ -65,17 +70,25 @@ export async function updateThemeSiteSettingsAction(
 
   const siteName = typeof siteNameRaw === 'string' ? siteNameRaw : ''
   const siteDescription = typeof siteDescriptionRaw === 'string' ? siteDescriptionRaw : ''
-  const logoMode = typeof logoModeRaw === 'string' ? logoModeRaw : ''
-  const logoSvg = typeof logoSvgRaw === 'string' ? logoSvgRaw : ''
+  let logoMode = typeof logoModeRaw === 'string' ? logoModeRaw : ''
+  let logoSvg = typeof logoSvgRaw === 'string' ? logoSvgRaw : ''
   let logoImagePath = typeof logoImagePathRaw === 'string' ? logoImagePathRaw : ''
 
   if (logoFileRaw instanceof File && logoFileRaw.size > 0) {
-    const uploaded = await uploadThemeLogoImage(logoFileRaw)
-    if (!uploaded.path) {
-      return { error: uploaded.error ?? DEFAULT_ERROR_MESSAGE }
+    const processed = await processThemeLogoFile(logoFileRaw)
+    if (!processed.mode) {
+      return { error: processed.error ?? DEFAULT_ERROR_MESSAGE }
     }
 
-    logoImagePath = uploaded.path
+    if (processed.mode === 'svg') {
+      logoMode = 'svg'
+      logoSvg = processed.svg ?? ''
+      logoImagePath = ''
+    }
+    else {
+      logoMode = 'image'
+      logoImagePath = processed.path ?? logoImagePath
+    }
   }
 
   const validated = validateThemeSiteSettingsInput({

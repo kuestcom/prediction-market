@@ -16,7 +16,9 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
 
   const initialThemeSettings = getThemeSettingsFormState(allSettings ?? undefined)
   const initialThemeSiteSettings = getThemeSiteSettingsFormState(allSettings ?? undefined)
-  const initialThemeSiteImageUrl = getSupabasePublicAssetUrl(initialThemeSiteSettings.logoImagePath || null)
+  const initialThemeSiteImageUrl = initialThemeSiteSettings.logoMode === 'image'
+    ? getSupabasePublicAssetUrl(initialThemeSiteSettings.logoImagePath || null)
+    : null
   const presetOptions = getThemePresetOptions()
 
   return (
@@ -24,7 +26,7 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold">Theme</h1>
         <p className="text-sm text-muted-foreground">
-          Configure colors, radius, and platform identity.
+          Configure brand identity, colors, and radius.
         </p>
       </div>
 
@@ -43,6 +45,9 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
         initialRadius={initialThemeSettings.radius}
         initialLightJson={initialThemeSettings.lightJson}
         initialDarkJson={initialThemeSettings.darkJson}
+        siteName={initialThemeSiteSettings.siteName}
+        logoSvg={initialThemeSiteSettings.logoSvg}
+        logoImageUrl={initialThemeSiteImageUrl}
       />
     </section>
   )
