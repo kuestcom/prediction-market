@@ -41,7 +41,7 @@ describe('updateGeneralSettingsAction', () => {
   it('rejects unauthenticated users', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce(null)
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general-settings/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
@@ -56,7 +56,7 @@ describe('updateGeneralSettingsAction', () => {
   it('returns validation errors for invalid payloads', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general-settings/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', '')
     formData.set('site_description', 'Prediction market')
@@ -69,11 +69,29 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.updateSettings).not.toHaveBeenCalled()
   })
 
+  it('validates wallet fields', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general/_actions/update-general-settings')
+    const formData = new FormData()
+    formData.set('site_name', 'Kuest')
+    formData.set('site_description', 'Prediction market')
+    formData.set('logo_mode', 'svg')
+    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+    formData.set('logo_image_path', '')
+    formData.set('fee_recipient_wallet', 'not-a-wallet')
+    formData.set('market_creators', '0x3333333333333333333333333333333333333333')
+
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
+    expect(result.error).toContain('Fee recipient wallet')
+    expect(mocks.updateSettings).not.toHaveBeenCalled()
+  })
+
   it('saves normalized SVG site settings for valid payloads', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general-settings/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
@@ -83,13 +101,15 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('google_analytics_id', 'G-TEST123')
     formData.set('discord_link', 'https://discord.gg/kuest')
     formData.set('support_url', 'https://kuest.com/support')
+    formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
+    formData.set('market_creators', '0x2222222222222222222222222222222222222222\n0x3333333333333333333333333333333333333333')
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
     expect(mocks.updateSettings).toHaveBeenCalledTimes(1)
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload).toHaveLength(8)
+    expect(savedPayload).toHaveLength(10)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
@@ -97,7 +117,9 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.find(entry => entry.key === 'site_google_analytics')?.value).toBe('G-TEST123')
     expect(savedPayload.find(entry => entry.key === 'site_discord_link')?.value).toBe('https://discord.gg/kuest')
     expect(savedPayload.find(entry => entry.key === 'site_support_url')?.value).toBe('https://kuest.com/support')
-    expect(savedPayload.every(entry => entry.group === 'general settings')).toBe(true)
+    expect(savedPayload.find(entry => entry.key === 'fee_recipient_wallet')?.value).toBe('0x1111111111111111111111111111111111111111')
+    expect(savedPayload.find(entry => entry.key === 'market_creators')?.value).toBe('0x2222222222222222222222222222222222222222\n0x3333333333333333333333333333333333333333')
+    expect(savedPayload.every(entry => entry.group === 'general')).toBe(true)
 
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/general-settings', 'page')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/theme', 'page')
@@ -108,13 +130,15 @@ describe('updateGeneralSettingsAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general-settings/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
     formData.set('logo_mode', 'image')
     formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
     formData.set('logo_image_path', 'theme/site-logo.png')
+    formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
+    formData.set('market_creators', '')
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
@@ -127,7 +151,7 @@ describe('updateGeneralSettingsAction', () => {
   it('rejects unsupported logo upload types', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general-settings/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/general/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')

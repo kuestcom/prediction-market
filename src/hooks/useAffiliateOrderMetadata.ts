@@ -9,10 +9,8 @@ interface AffiliateInfoResponse {
   tradeFeeBps: number
 }
 
-const DEFAULT_REFERRER = (process.env.NEXT_PUBLIC_FEE_RECIPIENT_WALLET ?? ZERO_ADDRESS) as `0x${string}`
-
 const DEFAULT_RESPONSE: AffiliateInfoResponse = {
-  referrerAddress: DEFAULT_REFERRER,
+  referrerAddress: ZERO_ADDRESS,
   affiliateAddress: ZERO_ADDRESS,
   affiliateSharePercent: 0,
   tradeFeeBps: 200,

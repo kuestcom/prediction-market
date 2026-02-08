@@ -4,17 +4,20 @@ import { ZERO_ADDRESS } from '@/lib/contracts'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 
-function getFeeRecipientAddress() {
-  const address = process.env.NEXT_PUBLIC_FEE_RECIPIENT_WALLET!
+const GENERAL_SETTINGS_GROUP = 'general'
+const FEE_RECIPIENT_WALLET_KEY = 'fee_recipient_wallet'
+
+function getFeeRecipientAddress(settings?: Record<string, Record<string, { value: string, updated_at: string }>>) {
+  const address = settings?.[GENERAL_SETTINGS_GROUP]?.[FEE_RECIPIENT_WALLET_KEY]?.value
   return typeof address === 'string' && /^0x[0-9a-fA-F]{40}$/.test(address)
-    ? address
+    ? address as `0x${string}`
     : ZERO_ADDRESS
 }
 
 export async function GET() {
   try {
-    const referrerAddress = getFeeRecipientAddress()
     const { data: settings } = await SettingsRepository.getSettings()
+    const referrerAddress = getFeeRecipientAddress(settings ?? undefined)
     const affiliateSettings = settings?.affiliate
 
     const tradeFeeBps = (() => {

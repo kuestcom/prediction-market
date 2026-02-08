@@ -1,5 +1,6 @@
 import type { ResolvedThemeConfig, ThemeOverrides, ThemePresetId, ThemeRadius } from '@/lib/theme'
 import type { ThemeSiteIdentity, ThemeSiteLogoMode } from '@/lib/theme-site-identity'
+import { ZERO_ADDRESS } from '@/lib/contracts'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getSupabasePublicAssetUrl } from '@/lib/supabase'
 import {
@@ -25,7 +26,7 @@ import {
 } from '@/lib/theme-site-identity'
 
 const THEME_SETTINGS_GROUP = 'theme'
-const GENERAL_SETTINGS_GROUP = 'general settings'
+const GENERAL_SETTINGS_GROUP = 'general'
 const THEME_PRESET_KEY = 'preset'
 const THEME_LIGHT_JSON_KEY = 'light_json'
 const THEME_DARK_JSON_KEY = 'dark_json'
@@ -38,6 +39,9 @@ const THEME_SITE_LOGO_IMAGE_PATH_KEY = 'site_logo_image_path'
 const THEME_SITE_GOOGLE_ANALYTICS_KEY = 'site_google_analytics'
 const THEME_SITE_DISCORD_LINK_KEY = 'site_discord_link'
 const THEME_SITE_SUPPORT_URL_KEY = 'site_support_url'
+const GENERAL_FEE_RECIPIENT_WALLET_KEY = 'fee_recipient_wallet'
+const GENERAL_MARKET_CREATORS_KEY = 'market_creators'
+const WALLET_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/
 
 type SettingsGroup = Record<string, { value: string, updated_at: string }>
 interface SettingsMap {
@@ -71,6 +75,10 @@ interface NormalizedThemeSiteConfig {
   discordLinkValue: string
   supportUrl: string | null
   supportUrlValue: string
+  feeRecipientWallet: `0x${string}`
+  feeRecipientWalletValue: string
+  marketCreators: Array<`0x${string}`>
+  marketCreatorsValue: string
 }
 
 type RuntimeThemeSource = 'settings' | 'default'
@@ -97,6 +105,8 @@ export interface ThemeSiteSettingsFormState {
   googleAnalyticsId: string
   discordLink: string
   supportUrl: string
+  feeRecipientWallet: string
+  marketCreators: string
 }
 
 export interface ThemeSettingsValidationResult {
@@ -167,6 +177,53 @@ function resolveLogoSvgOrDefault(value: string | null | undefined, sourceLabel: 
   return sanitizeThemeSiteLogoSvg(normalized, sourceLabel)
 }
 
+function normalizeRequiredWalletAddress(value: string | null | undefined, sourceLabel: string) {
+  const normalized = typeof value === 'string' ? value.trim() : ''
+  if (!normalized) {
+    return { value: null as `0x${string}` | null, error: `${sourceLabel} is required.` }
+  }
+
+  if (!WALLET_ADDRESS_PATTERN.test(normalized)) {
+    return { value: null as `0x${string}` | null, error: `${sourceLabel} must be a valid wallet address.` }
+  }
+
+  return { value: normalized as `0x${string}`, error: null as string | null }
+}
+
+function normalizeWalletAddressList(value: string | null | undefined, sourceLabel: string) {
+  const normalized = typeof value === 'string' ? value : ''
+  const rawItems = normalized
+    .split(/[\n,]+/)
+    .map(item => item.trim())
+    .filter(item => item.length > 0)
+
+  const deduped: Array<`0x${string}`> = []
+  const seen = new Set<string>()
+
+  for (const item of rawItems) {
+    if (!WALLET_ADDRESS_PATTERN.test(item)) {
+      return {
+        value: null as Array<`0x${string}`> | null,
+        error: `${sourceLabel} contains an invalid wallet address: ${item}.`,
+      }
+    }
+
+    const lower = item.toLowerCase()
+    if (seen.has(lower)) {
+      continue
+    }
+
+    seen.add(lower)
+    deduped.push(item as `0x${string}`)
+  }
+
+  return { value: deduped, error: null as string | null }
+}
+
+function formatWalletAddressList(value: Array<`0x${string}`>) {
+  return value.join('\n')
+}
+
 function normalizeThemeSiteConfig(params: {
   siteNameValue: string | null | undefined
   siteDescriptionValue: string | null | undefined
@@ -176,6 +233,8 @@ function normalizeThemeSiteConfig(params: {
   googleAnalyticsIdValue: string | null | undefined
   discordLinkValue: string | null | undefined
   supportUrlValue: string | null | undefined
+  feeRecipientWalletValue: string | null | undefined
+  marketCreatorsValue: string | null | undefined
   siteNameErrorLabel: string
   siteDescriptionErrorLabel: string
   logoModeErrorLabel: string
@@ -184,6 +243,8 @@ function normalizeThemeSiteConfig(params: {
   googleAnalyticsIdErrorLabel: string
   discordLinkErrorLabel: string
   supportUrlErrorLabel: string
+  feeRecipientWalletErrorLabel: string
+  marketCreatorsErrorLabel: string
 }): ThemeSiteSettingsValidationResult {
   const siteNameValidated = validateThemeSiteName(params.siteNameValue, params.siteNameErrorLabel)
   if (siteNameValidated.error) {
@@ -223,6 +284,22 @@ function normalizeThemeSiteConfig(params: {
     return { data: null, error: supportUrlValidated.error }
   }
 
+  const feeRecipientWalletValidated = normalizeRequiredWalletAddress(
+    params.feeRecipientWalletValue,
+    params.feeRecipientWalletErrorLabel,
+  )
+  if (feeRecipientWalletValidated.error) {
+    return { data: null, error: feeRecipientWalletValidated.error }
+  }
+
+  const marketCreatorsValidated = normalizeWalletAddressList(
+    params.marketCreatorsValue,
+    params.marketCreatorsErrorLabel,
+  )
+  if (marketCreatorsValidated.error) {
+    return { data: null, error: marketCreatorsValidated.error }
+  }
+
   const logoSvgResolved = resolveLogoSvgOrDefault(params.logoSvgValue, params.logoSvgErrorLabel)
   if (logoSvgResolved.error) {
     return { data: null, error: logoSvgResolved.error }
@@ -253,6 +330,10 @@ function normalizeThemeSiteConfig(params: {
       discordLinkValue: discordLinkValidated.value ?? '',
       supportUrl: supportUrlValidated.value,
       supportUrlValue: supportUrlValidated.value ?? '',
+      feeRecipientWallet: feeRecipientWalletValidated.value!,
+      feeRecipientWalletValue: feeRecipientWalletValidated.value!,
+      marketCreators: marketCreatorsValidated.value ?? [],
+      marketCreatorsValue: formatWalletAddressList(marketCreatorsValidated.value ?? []),
     },
     error: null,
   }
@@ -320,7 +401,9 @@ function hasStoredThemeSiteSettings(generalSettings?: SettingsGroup) {
     || generalSettings[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value?.trim()
     || generalSettings[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value?.trim()
     || generalSettings[THEME_SITE_DISCORD_LINK_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_SUPPORT_URL_KEY]?.value?.trim(),
+    || generalSettings[THEME_SITE_SUPPORT_URL_KEY]?.value?.trim()
+    || generalSettings[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value?.trim()
+    || generalSettings[GENERAL_MARKET_CREATORS_KEY]?.value?.trim(),
   )
 }
 
@@ -357,6 +440,8 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     googleAnalyticsIdValue: generalSettings?.[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value ?? defaultSite.googleAnalyticsId,
     discordLinkValue: generalSettings?.[THEME_SITE_DISCORD_LINK_KEY]?.value ?? defaultSite.discordLink,
     supportUrlValue: generalSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value ?? defaultSite.supportUrl,
+    feeRecipientWalletValue: generalSettings?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value ?? ZERO_ADDRESS,
+    marketCreatorsValue: generalSettings?.[GENERAL_MARKET_CREATORS_KEY]?.value ?? '',
     siteNameErrorLabel: 'Site name',
     siteDescriptionErrorLabel: 'Site description',
     logoModeErrorLabel: 'Logo mode',
@@ -365,6 +450,8 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     googleAnalyticsIdErrorLabel: 'Google Analytics ID',
     discordLinkErrorLabel: 'Discord link',
     supportUrlErrorLabel: 'Support URL',
+    feeRecipientWalletErrorLabel: 'Fee recipient wallet',
+    marketCreatorsErrorLabel: 'Market creators',
   })
 
   if (normalized.data) {
@@ -377,6 +464,8 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
       googleAnalyticsId: normalized.data.googleAnalyticsIdValue,
       discordLink: normalized.data.discordLinkValue,
       supportUrl: normalized.data.supportUrlValue,
+      feeRecipientWallet: normalized.data.feeRecipientWalletValue,
+      marketCreators: normalized.data.marketCreatorsValue,
     }
   }
 
@@ -389,6 +478,8 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     googleAnalyticsId: defaultSite.googleAnalyticsId ?? '',
     discordLink: defaultSite.discordLink ?? '',
     supportUrl: defaultSite.supportUrl ?? '',
+    feeRecipientWallet: ZERO_ADDRESS,
+    marketCreators: '',
   }
 }
 
@@ -419,6 +510,8 @@ export function validateThemeSiteSettingsInput(params: {
   googleAnalyticsId: string | null | undefined
   discordLink: string | null | undefined
   supportUrl: string | null | undefined
+  feeRecipientWallet: string | null | undefined
+  marketCreators: string | null | undefined
 }): ThemeSiteSettingsValidationResult {
   return normalizeThemeSiteConfig({
     siteNameValue: params.siteName,
@@ -429,6 +522,8 @@ export function validateThemeSiteSettingsInput(params: {
     googleAnalyticsIdValue: params.googleAnalyticsId,
     discordLinkValue: params.discordLink,
     supportUrlValue: params.supportUrl,
+    feeRecipientWalletValue: params.feeRecipientWallet,
+    marketCreatorsValue: params.marketCreators,
     siteNameErrorLabel: 'Site name',
     siteDescriptionErrorLabel: 'Site description',
     logoModeErrorLabel: 'Logo type',
@@ -437,6 +532,8 @@ export function validateThemeSiteSettingsInput(params: {
     googleAnalyticsIdErrorLabel: 'Google Analytics ID',
     discordLinkErrorLabel: 'Discord link',
     supportUrlErrorLabel: 'Support URL',
+    feeRecipientWalletErrorLabel: 'Fee recipient wallet',
+    marketCreatorsErrorLabel: 'Market creators',
   })
 }
 
@@ -476,6 +573,8 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
         googleAnalyticsIdValue: generalSettings?.[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value,
         discordLinkValue: generalSettings?.[THEME_SITE_DISCORD_LINK_KEY]?.value,
         supportUrlValue: generalSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value,
+        feeRecipientWalletValue: generalSettings?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value ?? ZERO_ADDRESS,
+        marketCreatorsValue: generalSettings?.[GENERAL_MARKET_CREATORS_KEY]?.value ?? '',
         siteNameErrorLabel: 'Site name in settings',
         siteDescriptionErrorLabel: 'Site description in settings',
         logoModeErrorLabel: 'Logo mode in settings',
@@ -484,6 +583,8 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
         googleAnalyticsIdErrorLabel: 'Google Analytics ID in settings',
         discordLinkErrorLabel: 'Discord link in settings',
         supportUrlErrorLabel: 'Support URL in settings',
+        feeRecipientWalletErrorLabel: 'Fee recipient wallet in settings',
+        marketCreatorsErrorLabel: 'Market creators in settings',
       })
     : null
 

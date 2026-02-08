@@ -1,16 +1,18 @@
 'use client'
 
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
-import { ImageUp } from 'lucide-react'
+import { CircleHelp, ImageUp } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { updateGeneralSettingsAction } from '@/app/[locale]/admin/general-settings/_actions/update-general-settings'
+import { updateGeneralSettingsAction } from '@/app/[locale]/admin/general/_actions/update-general-settings'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 const initialState = {
@@ -33,6 +35,8 @@ export default function AdminGeneralSettingsForm({
   const initialGoogleAnalyticsId = initialThemeSiteSettings.googleAnalyticsId
   const initialDiscordLink = initialThemeSiteSettings.discordLink
   const initialSupportUrl = initialThemeSiteSettings.supportUrl
+  const initialFeeRecipientWallet = initialThemeSiteSettings.feeRecipientWallet
+  const initialMarketCreators = initialThemeSiteSettings.marketCreators
 
   const router = useRouter()
   const [state, formAction, isPending] = useActionState(updateGeneralSettingsAction, initialState)
@@ -46,6 +50,8 @@ export default function AdminGeneralSettingsForm({
   const [googleAnalyticsId, setGoogleAnalyticsId] = useState(initialGoogleAnalyticsId)
   const [discordLink, setDiscordLink] = useState(initialDiscordLink)
   const [supportUrl, setSupportUrl] = useState(initialSupportUrl)
+  const [feeRecipientWallet, setFeeRecipientWallet] = useState(initialFeeRecipientWallet)
+  const [marketCreators, setMarketCreators] = useState(initialMarketCreators)
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null)
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
 
@@ -80,6 +86,14 @@ export default function AdminGeneralSettingsForm({
   useEffect(() => {
     setSupportUrl(initialSupportUrl)
   }, [initialSupportUrl])
+
+  useEffect(() => {
+    setFeeRecipientWallet(initialFeeRecipientWallet)
+  }, [initialFeeRecipientWallet])
+
+  useEffect(() => {
+    setMarketCreators(initialMarketCreators)
+  }, [initialMarketCreators])
 
   useEffect(() => {
     return () => {
@@ -283,6 +297,58 @@ export default function AdminGeneralSettingsForm({
               disabled={isPending}
               placeholder="help@company.com (optional)"
             />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="theme-fee-recipient-wallet">Fee recipient wallet</Label>
+            <Input
+              id="theme-fee-recipient-wallet"
+              name="fee_recipient_wallet"
+              maxLength={42}
+              value={feeRecipientWallet}
+              onChange={event => setFeeRecipientWallet(event.target.value)}
+              disabled={isPending}
+              placeholder="0x1234..."
+            />
+            <p className="text-xs text-muted-foreground">
+              This wallet receives platform trading fees.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            <div className="flex items-center gap-1">
+              <Label htmlFor="theme-market-creators">Allowed market creator wallets</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="
+                      inline-flex size-4 items-center justify-center text-muted-foreground
+                      hover:text-foreground
+                    "
+                    aria-label="Market creator wallets help"
+                  >
+                    <CircleHelp className="size-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-left">
+                  Markets from these addresses will only appear on this fork&apos;s site. Leave empty to only show main Kuest markets.
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <Textarea
+              id="theme-market-creators"
+              name="market_creators"
+              rows={4}
+              maxLength={8000}
+              value={marketCreators}
+              onChange={event => setMarketCreators(event.target.value)}
+              disabled={isPending}
+              placeholder={'One wallet per line\n0xabc...\n0xdef...'}
+            />
+            <p className="text-xs text-muted-foreground">
+              Add one wallet per line or separate with commas.
+            </p>
           </div>
 
           <div className="flex justify-end">

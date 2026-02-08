@@ -31,13 +31,13 @@ describe('theme settings runtime resolver', () => {
   it('uses settings theme when DB values are valid', async () => {
     mocks.getSettings.mockResolvedValueOnce({
       data: {
-        'theme': {
+        theme: {
           preset: { value: 'lime', updated_at: '2026-01-01T00:00:00.000Z' },
           radius: { value: '12px', updated_at: '2026-01-01T00:00:00.000Z' },
           light_json: { value: '{"primary":"#112233"}', updated_at: '2026-01-01T00:00:00.000Z' },
           dark_json: { value: '{"primary":"#445566"}', updated_at: '2026-01-01T00:00:00.000Z' },
         },
-        'general settings': {
+        general: {
           site_name: { value: 'Kuest Lime', updated_at: '2026-01-01T00:00:00.000Z' },
           site_description: { value: 'Lime branded market', updated_at: '2026-01-01T00:00:00.000Z' },
           site_logo_mode: { value: 'svg', updated_at: '2026-01-01T00:00:00.000Z' },

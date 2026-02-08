@@ -70,6 +70,8 @@ export async function updateGeneralSettingsAction(
   const googleAnalyticsIdRaw = formData.get('google_analytics_id')
   const discordLinkRaw = formData.get('discord_link')
   const supportUrlRaw = formData.get('support_url')
+  const feeRecipientWalletRaw = formData.get('fee_recipient_wallet')
+  const marketCreatorsRaw = formData.get('market_creators')
 
   const siteName = typeof siteNameRaw === 'string' ? siteNameRaw : ''
   const siteDescription = typeof siteDescriptionRaw === 'string' ? siteDescriptionRaw : ''
@@ -79,6 +81,8 @@ export async function updateGeneralSettingsAction(
   const googleAnalyticsId = typeof googleAnalyticsIdRaw === 'string' ? googleAnalyticsIdRaw : ''
   const discordLink = typeof discordLinkRaw === 'string' ? discordLinkRaw : ''
   const supportUrl = typeof supportUrlRaw === 'string' ? supportUrlRaw : ''
+  const feeRecipientWallet = typeof feeRecipientWalletRaw === 'string' ? feeRecipientWalletRaw : ''
+  const marketCreators = typeof marketCreatorsRaw === 'string' ? marketCreatorsRaw : ''
 
   if (logoFileRaw instanceof File && logoFileRaw.size > 0) {
     const processed = await processThemeLogoFile(logoFileRaw)
@@ -106,6 +110,8 @@ export async function updateGeneralSettingsAction(
     googleAnalyticsId,
     discordLink,
     supportUrl,
+    feeRecipientWallet,
+    marketCreators,
   })
 
   if (!validated.data) {
@@ -113,14 +119,16 @@ export async function updateGeneralSettingsAction(
   }
 
   const { error } = await SettingsRepository.updateSettings([
-    { group: 'general settings', key: 'site_name', value: validated.data.siteNameValue },
-    { group: 'general settings', key: 'site_description', value: validated.data.siteDescriptionValue },
-    { group: 'general settings', key: 'site_logo_mode', value: validated.data.logoModeValue },
-    { group: 'general settings', key: 'site_logo_svg', value: validated.data.logoSvgValue },
-    { group: 'general settings', key: 'site_logo_image_path', value: validated.data.logoImagePathValue },
-    { group: 'general settings', key: 'site_google_analytics', value: validated.data.googleAnalyticsIdValue },
-    { group: 'general settings', key: 'site_discord_link', value: validated.data.discordLinkValue },
-    { group: 'general settings', key: 'site_support_url', value: validated.data.supportUrlValue },
+    { group: 'general', key: 'site_name', value: validated.data.siteNameValue },
+    { group: 'general', key: 'site_description', value: validated.data.siteDescriptionValue },
+    { group: 'general', key: 'site_logo_mode', value: validated.data.logoModeValue },
+    { group: 'general', key: 'site_logo_svg', value: validated.data.logoSvgValue },
+    { group: 'general', key: 'site_logo_image_path', value: validated.data.logoImagePathValue },
+    { group: 'general', key: 'site_google_analytics', value: validated.data.googleAnalyticsIdValue },
+    { group: 'general', key: 'site_discord_link', value: validated.data.discordLinkValue },
+    { group: 'general', key: 'site_support_url', value: validated.data.supportUrlValue },
+    { group: 'general', key: 'fee_recipient_wallet', value: validated.data.feeRecipientWalletValue },
+    { group: 'general', key: 'market_creators', value: validated.data.marketCreatorsValue },
   ])
 
   if (error) {

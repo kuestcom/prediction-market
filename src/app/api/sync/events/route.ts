@@ -1,14 +1,17 @@
 import { NextResponse } from 'next/server'
 import { isCronAuthorized } from '@/lib/auth-cron'
+import { SettingsRepository } from '@/lib/db/queries/settings'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const maxDuration = 300
 
 const PNL_SUBGRAPH_URL = 'https://api.goldsky.com/api/public/project_cmfbr456t4gud01w483uu2d9d/subgraphs/pnl-subgraph/1.0.0/gn'
-const MARKET_CREATORS_ADDRESS = process.env.MARKET_CREATORS_ADDRESS
 const IRYS_GATEWAY = process.env.IRYS_GATEWAY || 'https://gateway.irys.xyz'
 const SYNC_TIME_LIMIT_MS = 250_000
 const PNL_PAGE_SIZE = 200
+const GENERAL_SETTINGS_GROUP = 'general'
+const GENERAL_MARKET_CREATORS_KEY = 'market_creators'
+const WALLET_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/
 
 interface SyncCursor {
   conditionId: string
@@ -39,15 +42,42 @@ interface SyncStats {
   timeLimitReached: boolean
 }
 
-function getAllowedCreators(): string[] {
+async function getAllowedCreators(): Promise<string[]> {
   const fixedCreators = [
     '0x1FD81E09dA67D84f02DB0c0eBabd5a217D1B928d', // Polymarket cloned markets on Amoy
   ]
-  const envCreators = MARKET_CREATORS_ADDRESS
-    ? MARKET_CREATORS_ADDRESS.split(',').map(addr => addr.trim()).filter(addr => addr.length > 0)
-    : []
+  const fixedCreatorsNormalized = fixedCreators.map(addr => addr.toLowerCase())
 
-  return [...new Set([...fixedCreators, ...envCreators].map(addr => addr.toLowerCase()))]
+  const { data: allSettings, error } = await SettingsRepository.getSettings()
+  if (error) {
+    return [...new Set(fixedCreatorsNormalized)]
+  }
+
+  const rawCreators = allSettings?.[GENERAL_SETTINGS_GROUP]?.[GENERAL_MARKET_CREATORS_KEY]?.value ?? ''
+  const parsedCreators = rawCreators
+    .split(/[\n,]+/)
+    .map(addr => addr.trim())
+    .filter(addr => addr.length > 0)
+
+  const validCreators: string[] = []
+  const invalidCreators: string[] = []
+
+  for (const creator of parsedCreators) {
+    if (WALLET_ADDRESS_PATTERN.test(creator)) {
+      validCreators.push(creator.toLowerCase())
+    }
+    else {
+      invalidCreators.push(creator)
+    }
+  }
+
+  if (invalidCreators.length > 0) {
+    console.error(
+      `Invalid market creator addresses in settings: ${invalidCreators.join(', ')}`,
+    )
+  }
+
+  return [...new Set([...fixedCreatorsNormalized, ...validCreators])]
 }
 /**
  * 🔄 Market Synchronization Script for Vercel Functions
@@ -81,7 +111,8 @@ export async function GET(request: Request) {
     const updatedAt = await getLastUpdatedAt()
     console.log(`📊 Last processed at: ${updatedAt}`)
 
-    const syncResult = await syncMarkets()
+    const allowedCreators = new Set(await getAllowedCreators())
+    const syncResult = await syncMarkets(allowedCreators)
 
     await updateSyncStatus('completed', null, syncResult.processedCount)
 
@@ -138,7 +169,7 @@ async function getLastUpdatedAt() {
   return data?.updated_at || 0
 }
 
-async function syncMarkets(): Promise<SyncStats> {
+async function syncMarkets(allowedCreators: Set<string>): Promise<SyncStats> {
   const syncStartedAt = Date.now()
   let cursor = await getLastProcessedConditionCursor()
 
@@ -149,8 +180,6 @@ async function syncMarkets(): Promise<SyncStats> {
   else {
     console.log('📥 No existing markets found, starting full sync')
   }
-
-  const allowedCreators = new Set(getAllowedCreators())
 
   let fetchedCount = 0
   let processedCount = 0
@@ -188,7 +217,8 @@ async function syncMarkets(): Promise<SyncStats> {
         continue
       }
 
-      if (!allowedCreators.has(condition.creator)) {
+      const creatorAddress = condition.creator.toLowerCase()
+      if (!allowedCreators.has(creatorAddress)) {
         skippedCreatorCount++
         console.log(`🚫 Skipping market ${condition.id} - creator ${condition.creator} not in allowed list`)
         cursor = conditionCursor
