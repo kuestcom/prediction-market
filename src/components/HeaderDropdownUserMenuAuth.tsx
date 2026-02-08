@@ -19,6 +19,7 @@ import {
 import UserInfoSection from '@/components/UserInfoSection'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { Link, usePathname } from '@/i18n/navigation'
+import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { useUser } from '@/stores/useUser'
 
 export default function HeaderDropdownUserMenuAuth() {
@@ -31,6 +32,12 @@ export default function HeaderDropdownUserMenuAuth() {
   const [menuOpen, setMenuOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const avatarUrl = user?.image?.trim() ?? ''
+  const avatarSeed = user?.proxy_wallet_address || user?.address || user?.username || 'user'
+  const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
+  const placeholderStyle = showPlaceholder
+    ? getAvatarPlaceholderStyle(avatarUrl || null, avatarSeed)
+    : undefined
 
   useEffect(() => () => clearCloseTimeout(), [])
 
@@ -101,13 +108,23 @@ export default function HeaderDropdownUserMenuAuth() {
             `}
             data-testid="header-menu-button"
           >
-            <Image
-              src={user.image}
-              alt="User avatar"
-              width={32}
-              height={32}
-              className="aspect-square shrink-0 rounded-full object-cover"
-            />
+            {showPlaceholder
+              ? (
+                  <div
+                    aria-hidden="true"
+                    className="aspect-square size-8 shrink-0 rounded-full"
+                    style={placeholderStyle}
+                  />
+                )
+              : (
+                  <Image
+                    src={avatarUrl}
+                    alt="User avatar"
+                    width={32}
+                    height={32}
+                    className="aspect-square shrink-0 rounded-full object-cover"
+                  />
+                )}
             <ChevronDownIcon className={`
               size-4 transition-transform duration-150
               group-hover:rotate-180

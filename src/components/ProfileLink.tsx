@@ -7,26 +7,14 @@ import { useEffect, useMemo, useState } from 'react'
 import ProfileActivityTooltipCard from '@/components/ProfileActivityTooltipCard'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  getAvatarPlaceholderStyle,
+  isVercelAvatarUrl,
+  shouldUseAvatarPlaceholder,
+} from '@/lib/avatar'
 import { fetchProfileLinkStats } from '@/lib/data-api/profile-link-stats'
 import { formatTimeAgo, truncateAddress } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
-
-function hashString(value: string) {
-  let hash = 0
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(i)
-    hash |= 0
-  }
-  return Math.abs(hash)
-}
-
-function colorFromSeed(seed: string, offset: number, minLight = 40, maxLight = 70) {
-  const hash = hashString(`${seed}-${offset}`)
-  const hue = hash % 360
-  const saturation = 45 + (hash % 35)
-  const lightness = minLight + (hash % (maxLight - minLight))
-  return `hsl(${hue} ${saturation}% ${lightness}%)`
-}
 
 interface ProfileLinkProps {
   user: {
@@ -104,35 +92,21 @@ export default function ProfileLink({
   const profileHref = profileHrefOverride
     ? (profileHrefOverride as any)
     : (resolvedProfileSlug ? (`/@${resolvedProfileSlug}` as any) : ('#' as any))
+  const rawAvatarUrl = user.image?.trim() ?? ''
   const avatarSeed = addressSlug || resolvedProfileSlug || 'user'
-  const hasCustomAvatar = Boolean(user.image && user.image.trim())
-  const avatarSrc = hasCustomAvatar
-    ? user.image
-    : `https://avatar.vercel.sh/${avatarSeed}.png`
+  const hasCustomAvatar = Boolean(rawAvatarUrl) && !isVercelAvatarUrl(rawAvatarUrl)
   const resolvedAvatarSize = avatarSize ?? 32
-  const fallbackOverlayStyle = useMemo<CSSProperties | undefined>(() => {
-    if (hasCustomAvatar) {
+  const showPlaceholder = shouldUseAvatarPlaceholder(rawAvatarUrl)
+  const tooltipAvatarUrl = showPlaceholder
+    ? (rawAvatarUrl || `https://avatar.vercel.sh/${avatarSeed}.png`)
+    : rawAvatarUrl
+  const fallbackStyle = useMemo<CSSProperties | undefined>(() => {
+    if (!showPlaceholder) {
       return undefined
     }
 
-    const baseColor = colorFromSeed(avatarSeed, 0, 45, 65)
-    const gradientA = colorFromSeed(avatarSeed, 1, 35, 75)
-    const gradientB = colorFromSeed(avatarSeed, 2, 30, 70)
-    const gradientC = colorFromSeed(avatarSeed, 3, 25, 65)
-    const gradientD = colorFromSeed(avatarSeed, 4, 40, 75)
-
-    return {
-      backgroundColor: baseColor,
-      backgroundImage: `
-        radial-gradient(at 66% 77%, ${gradientA} 0px, transparent 50%),
-        radial-gradient(at 29% 97%, ${gradientB} 0px, transparent 50%),
-        radial-gradient(at 99% 86%, ${gradientC} 0px, transparent 50%),
-        radial-gradient(at 29% 88%, ${gradientD} 0px, transparent 50%)
-      `,
-      mixBlendMode: 'overlay',
-      opacity: 0.9,
-    }
-  }, [avatarSeed, hasCustomAvatar])
+    return getAvatarPlaceholderStyle(rawAvatarUrl || null, avatarSeed)
+  }, [avatarSeed, rawAvatarUrl, showPlaceholder])
   const statsAddress = useMemo(
     () => user.proxy_wallet_address ?? user.address,
     [user.address, user.proxy_wallet_address],
@@ -190,21 +164,25 @@ export default function ProfileLink({
 
   const avatarNode = (
     <Link href={profileHref} data-avatar-wrapper="true" className="relative isolate shrink-0">
-      <Image
-        src={avatarSrc}
-        alt={displayUsername}
-        width={resolvedAvatarSize}
-        height={resolvedAvatarSize}
-        data-avatar="true"
-        className="aspect-square rounded-full border border-border/80 object-cover object-center"
-      />
-      {!hasCustomAvatar && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-px rounded-full"
-          style={fallbackOverlayStyle}
-        />
-      )}
+      {!showPlaceholder && hasCustomAvatar
+        ? (
+            <Image
+              src={rawAvatarUrl}
+              alt={displayUsername}
+              width={resolvedAvatarSize}
+              height={resolvedAvatarSize}
+              data-avatar="true"
+              className="aspect-square rounded-full border border-border/80 object-cover object-center"
+            />
+          )
+        : (
+            <div
+              aria-hidden="true"
+              data-avatar="true"
+              className="aspect-square rounded-full border border-border/80"
+              style={{ ...fallbackStyle, width: resolvedAvatarSize, height: resolvedAvatarSize }}
+            />
+          )}
       {avatarBadge}
       {position && (
         <Badge
@@ -344,7 +322,7 @@ export default function ProfileLink({
         <ProfileActivityTooltipCard
           profile={{
             username: displayUsername,
-            avatarUrl: avatarSrc,
+            avatarUrl: tooltipAvatarUrl,
             href: profileHref,
             joinedAt,
           }}
