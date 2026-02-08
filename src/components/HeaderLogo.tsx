@@ -1,10 +1,11 @@
-import SiteLogoIcon from '@/components/SiteLogoIcon'
-import { Link } from '@/i18n/navigation'
-import { loadRuntimeThemeState } from '@/lib/theme-settings'
+'use client'
 
-export default async function HeaderLogo() {
-  const runtimeTheme = await loadRuntimeThemeState()
-  const site = runtimeTheme.site
+import SiteLogoIcon from '@/components/SiteLogoIcon'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { Link } from '@/i18n/navigation'
+
+export default function HeaderLogo() {
+  const site = useSiteIdentity()
 
   return (
     <Link
