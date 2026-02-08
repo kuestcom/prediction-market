@@ -240,7 +240,7 @@ export const auth = betterAuth({
         user: {
           ...user,
           settings,
-          image: user.image ? getSupabaseImageUrl(user.image) : `https://avatar.vercel.sh/${user.name}.png`,
+          image: user.image ? getSupabaseImageUrl(user.image) : '',
           is_admin: isAdminWallet(user.name),
         },
         session,

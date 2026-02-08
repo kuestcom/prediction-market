@@ -339,8 +339,7 @@ export default function EventActivity({ event }: EventActivityProps) {
               const normalizedUsername = rawUsername.startsWith('@')
                 ? rawUsername.slice(1)
                 : rawUsername
-              const displayImage = activity.user.image
-                || `https://avatar.vercel.sh/${activity.user.address || normalizedUsername}.png`
+              const displayImage = activity.user.image || ''
 
               return (
                 <div

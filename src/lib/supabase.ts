@@ -52,7 +52,7 @@ export function getSupabasePublicAssetUrl(assetPath: string | null): string | nu
 export function getSupabaseImageUrl(iconPath: string | null): string {
   const publicUrl = getSupabasePublicAssetUrl(iconPath)
   if (!publicUrl) {
-    return 'https://avatar.vercel.sh/creator.png'
+    return ''
   }
 
   return publicUrl

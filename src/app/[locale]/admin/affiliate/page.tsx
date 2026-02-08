@@ -108,7 +108,6 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
   const rows: RowSummary[] = overview.map((item) => {
     const profile = profileMap.get(item.affiliate_user_id)
 
-    const profileAddress = profile?.proxy_wallet_address ?? ''
     const receiverAddress = (profile?.proxy_wallet_address || profile?.address || '').toLowerCase()
     const onchainFees = receiverAddress ? feeTotalsByAddress.get(receiverAddress) : undefined
 
@@ -117,7 +116,7 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
       username: profile?.username as string,
       address: profile?.address ?? '',
       proxy_wallet_address: profile?.proxy_wallet_address ?? null,
-      image: profile?.image ? getSupabaseImageUrl(profile.image) : `https://avatar.vercel.sh/${profileAddress || item.affiliate_user_id}.png`,
+      image: profile?.image ? getSupabaseImageUrl(profile.image) : '',
       affiliate_code: profile?.affiliate_code ?? null,
       total_referrals: Number(item.total_referrals ?? 0),
       volume: Number(item.volume ?? 0),

@@ -33,9 +33,9 @@ interface DataApiActivity {
   profileImageOptimized?: string
 }
 
-function normalizeAvatarUrl(image: string | null | undefined, fallbackAddress: string) {
+function normalizeAvatarUrl(image: string | null | undefined) {
   if (!image) {
-    return `https://avatar.vercel.sh/${fallbackAddress}.png`
+    return ''
   }
 
   if (image.startsWith('http')) {
@@ -116,8 +116,7 @@ export async function GET(request: Request) {
       for (const profile of profiles || []) {
         const normalizedAddress = normalizeAddress(profile.address)?.toLowerCase()
         const normalizedProxy = normalizeAddress(profile.proxy_wallet_address)?.toLowerCase()
-        const fallbackAddress = profile.proxy_wallet_address ?? profile.address ?? ''
-        const imageUrl = normalizeAvatarUrl(profile.image, fallbackAddress)
+        const imageUrl = normalizeAvatarUrl(profile.image)
 
         const createdAt = profile.created_at
           ? new Date(profile.created_at).toISOString()
@@ -138,7 +137,7 @@ export async function GET(request: Request) {
       const fallbackAddress = activity.user.address || activity.user.id
 
       const username = matchedProfile?.username || activity.user.username || fallbackAddress || 'trader'
-      const image = normalizeAvatarUrl(matchedProfile?.image || activity.user.image, fallbackAddress)
+      const image = normalizeAvatarUrl(matchedProfile?.image || activity.user.image)
 
       return {
         ...activity,

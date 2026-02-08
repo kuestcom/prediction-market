@@ -28,7 +28,7 @@ export default async function PortfolioPage({ params }: PageProps<'/[locale]/por
       <PublicProfileHeroCards
         profile={{
           username: user?.username ?? 'Your portfolio',
-          avatarUrl: user?.image ?? `https://avatar.vercel.sh/${publicAddress ?? user?.id ?? 'user'}.png`,
+          avatarUrl: user?.image ?? '',
           joinedAt: (user as any)?.created_at?.toString?.() ?? (user as any)?.createdAt?.toString?.(),
           portfolioAddress: publicAddress ?? undefined,
         }}
