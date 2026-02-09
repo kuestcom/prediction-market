@@ -19,7 +19,7 @@
     "test:e2e": "npx playwright test",
     "test:unit": "vitest run",
     "prepare": "husky",
-    "db:push": "node supabase/migrate.js"
+    "db:push": "node scripts/migrate.js"
   },
   "dependencies": {
     "@bprogress/next": "^3.2.12",
