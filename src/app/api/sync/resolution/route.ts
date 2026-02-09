@@ -9,6 +9,9 @@ const SYNC_TIME_LIMIT_MS = 250_000
 const RESOLUTION_PAGE_SIZE = 200
 const SAFETY_PERIOD_SECONDS = 60 * 60
 const RESOLUTION_LIVENESS_DEFAULT_SECONDS = parseOptionalInt(process.env.RESOLUTION_LIVENESS_DEFAULT_SECONDS)
+const RESOLUTION_UNPROPOSED_PRICE_SENTINEL = 69n
+const RESOLUTION_PRICE_YES = 1000000000000000000n
+const RESOLUTION_PRICE_INVALID = 500000000000000000n
 
 interface ResolutionCursor {
   lastUpdateTimestamp: number
@@ -151,38 +154,46 @@ async function syncResolutions(): Promise<SyncStats> {
     fetchedCount += page.resolutions.length
 
     const questionIds = page.resolutions.map(resolution => resolution.id.toLowerCase())
-    const { data: conditions, error: conditionsError } = await supabaseAdmin
-      .from('conditions')
-      .select('id,question_id')
-      .in('question_id', questionIds)
+    let conditions: { id: string, question_id: string }[] = []
+    if (questionIds.length > 0) {
+      const { data, error: conditionsError } = await supabaseAdmin
+        .from('conditions')
+        .select('id,question_id')
+        .in('question_id', questionIds)
 
-    if (conditionsError) {
-      throw new Error(`Failed to load conditions: ${conditionsError.message}`)
+      if (conditionsError) {
+        throw new Error(`Failed to load conditions: ${conditionsError.message}`)
+      }
+      conditions = data ?? []
     }
 
     const conditionMap = new Map<string, { id: string, question_id: string }>()
-    for (const condition of conditions ?? []) {
+    for (const condition of conditions) {
       if (condition.question_id) {
         conditionMap.set(condition.question_id.toLowerCase(), condition)
       }
     }
 
     const conditionIds = Array.from(conditionMap.values()).map(condition => condition.id)
-    const { data: markets, error: marketsError } = await supabaseAdmin
-      .from('markets')
-      .select('condition_id,event_id')
-      .in('condition_id', conditionIds)
+    let markets: { condition_id: string, event_id: string | null }[] = []
+    if (conditionIds.length > 0) {
+      const { data, error: marketsError } = await supabaseAdmin
+        .from('markets')
+        .select('condition_id,event_id')
+        .in('condition_id', conditionIds)
 
-    if (marketsError) {
-      throw new Error(`Failed to load markets: ${marketsError.message}`)
+      if (marketsError) {
+        throw new Error(`Failed to load markets: ${marketsError.message}`)
+      }
+      markets = data ?? []
     }
 
     const marketEventMap = new Map<string, string | null>()
-    for (const market of markets ?? []) {
+    for (const market of markets) {
       marketEventMap.set(market.condition_id, market.event_id ?? null)
     }
 
-    let lastCursor: ResolutionCursor | null = null
+    let lastPersistableCursor: ResolutionCursor | null = null
 
     for (const resolution of page.resolutions) {
       if (Date.now() - syncStartedAt >= SYNC_TIME_LIMIT_MS) {
@@ -199,15 +210,15 @@ async function syncResolutions(): Promise<SyncStats> {
         continue
       }
 
-      lastCursor = {
-        lastUpdateTimestamp,
-        id: resolution.id,
-      }
-
       const condition = conditionMap.get(resolution.id.toLowerCase())
       if (!condition) {
         skippedCount++
         continue
+      }
+
+      const nextCursor = {
+        lastUpdateTimestamp,
+        id: resolution.id,
       }
 
       try {
@@ -220,18 +231,26 @@ async function syncResolutions(): Promise<SyncStats> {
           eventIdsNeedingStatusUpdate.add(eventId)
         }
         processedCount++
+        lastPersistableCursor = nextCursor
       }
       catch (error: any) {
         errors.push({
           questionId: resolution.id,
           error: error.message ?? String(error),
         })
+        // Avoid blocking the sync forever on a single malformed row.
+        lastPersistableCursor = nextCursor
       }
     }
 
-    if (lastCursor) {
-      await updateResolutionCursor(lastCursor)
-      cursor = lastCursor
+    if (lastPersistableCursor) {
+      await updateResolutionCursor(lastPersistableCursor)
+      cursor = lastPersistableCursor
+    }
+    else if (!timeLimitReached) {
+      // If no known condition was processed in this page, keep the cursor unchanged.
+      // This prevents skipping rows whose markets have not yet been imported.
+      break
     }
 
     if (eventIdsNeedingStatusUpdate.size > 0) {
@@ -443,7 +462,7 @@ function computeResolutionDeadline(status: string, flagged: boolean, lastUpdateT
     return new Date((lastUpdateTimestamp + SAFETY_PERIOD_SECONDS) * 1000).toISOString()
   }
 
-  if (status === 'proposed' || status === 'reproposed' || status === 'challenged' || status === 'disputed') {
+  if (status === 'posed' || status === 'proposed' || status === 'reproposed' || status === 'challenged' || status === 'disputed') {
     if (RESOLUTION_LIVENESS_DEFAULT_SECONDS == null) {
       return null
     }
@@ -461,16 +480,22 @@ function normalizeResolutionPrice(rawValue: string | null): number | null {
 
   try {
     const value = BigInt(rawValue)
+    if (value === RESOLUTION_UNPROPOSED_PRICE_SENTINEL) {
+      return null
+    }
+    if (value < 0n) {
+      return null
+    }
     if (value === 0n) {
       return 0
     }
-    if (value === 1000000000000000000n) {
+    if (value === RESOLUTION_PRICE_YES) {
       return 1
     }
-    if (value === 500000000000000000n) {
+    if (value === RESOLUTION_PRICE_INVALID) {
       return 0.5
     }
-    return Number(value) / 1e18
+    return null
   }
   catch {
     return null
