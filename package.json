@@ -47,7 +47,7 @@
     "drizzle-orm": "^0.45.1",
     "fumadocs-core": "^16.5.0",
     "fumadocs-mdx": "^14.2.6",
-    "fumadocs-ui": "^16.5.0",
+    "fumadocs-ui": "^16.5.2",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.562.0",
     "next": "^16.1.6",
