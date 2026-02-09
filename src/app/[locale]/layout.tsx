@@ -40,7 +40,7 @@ export const viewport: Viewport = {
 }
 
 export async function generateStaticParams() {
-  return routing.locales.map(locale => ({ locale }))
+  return [{ locale: 'en' }]
 }
 
 export default async function LocaleLayout({ params, children }: LayoutProps<'/[locale]'>) {
