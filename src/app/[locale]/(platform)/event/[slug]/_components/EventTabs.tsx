@@ -28,7 +28,7 @@ export default function EventTabs({ event, user }: EventTabsProps) {
   }, [commentMetrics?.comments_count])
 
   return (
-    <>
+    <div className="mt-6">
       <EventTabSelector
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -38,6 +38,6 @@ export default function EventTabs({ event, user }: EventTabsProps) {
       {activeTab === 'comments' && <EventComments event={event} user={user} />}
       {activeTab === 'holders' && <EventTopHolders event={event} />}
       {activeTab === 'activity' && <EventActivity event={event} />}
-    </>
+    </div>
   )
 }

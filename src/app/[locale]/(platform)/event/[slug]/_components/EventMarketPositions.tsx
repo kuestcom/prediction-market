@@ -845,7 +845,7 @@ export default function EventMarketPositions({
     <>
       {isSingleMarket && (
         <div className="p-4">
-          <h3 className="text-lg font-medium">{t('Positions')}</h3>
+          <h3 className="text-base font-medium">{t('Positions')}</h3>
         </div>
       )}
       <div className="relative w-full overflow-x-auto">

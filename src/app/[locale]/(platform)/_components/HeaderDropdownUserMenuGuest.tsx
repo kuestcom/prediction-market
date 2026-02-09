@@ -1,6 +1,6 @@
 'use client'
 
-import { MenuIcon, UnplugIcon } from 'lucide-react'
+import { MenuIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
@@ -87,6 +87,13 @@ export default function HeaderDropdownUserMenuGuest() {
           onInteractOutside={() => setMenuOpen(false)}
           onEscapeKeyDown={() => setMenuOpen(false)}
         >
+          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold text-foreground">
+            <Link href="/leaderboard" className="flex w-full items-center gap-2">
+              <TrophyIcon className="size-5 text-amber-500" />
+              {t('Leaderboard')}
+            </Link>
+          </DropdownMenuItem>
+
           <DropdownMenuItem asChild className="py-2.5 text-base font-semibold text-foreground">
             <Link href="/docs/api" target="_blank" rel="noreferrer" className="flex w-full items-center gap-2">
               <UnplugIcon className="size-5 text-pink-500" />

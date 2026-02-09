@@ -13,7 +13,7 @@ interface EventMarketContextProps {
 export default function EventMarketContext({ event }: EventMarketContextProps) {
   const t = useExtracted()
   const state = useOrder()
-  const [contextExpanded, setContextExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
   const [context, setContext] = useState<string | null>(null)
   const [displayedContext, setDisplayedContext] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -22,6 +22,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
   const [isTyping, setIsTyping] = useState(false)
   const hasAnimatedRef = useRef(false)
   const contextRef = useRef<string | null>(null)
+  const isContentExpanded = isExpanded || Boolean(error)
 
   async function generateMarketContext() {
     if (!state.market) {
@@ -43,13 +44,13 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
         if (response?.error) {
           setError(response.error)
           setContext(null)
-          setContextExpanded(false)
+          setIsExpanded(false)
           return
         }
 
         if (response?.context) {
           setContext(response.context)
-          setContextExpanded(true)
+          setIsExpanded(true)
           setHasGenerated(true)
         }
       }
@@ -57,7 +58,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
         console.error('Failed to fetch market context.', caughtError)
         setError(t('Unable to reach the market context service right now.'))
         setContext(null)
-        setContextExpanded(false)
+        setIsExpanded(false)
       }
     })
   }
@@ -74,7 +75,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
       return
     }
 
-    if (!contextExpanded) {
+    if (!isExpanded) {
       setDisplayedContext(context)
       setIsTyping(false)
       return
@@ -120,7 +121,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
         window.cancelAnimationFrame(animationFrame)
       }
     }
-  }, [context, contextExpanded])
+  }, [context, isExpanded])
 
   const paragraphs = useMemo(() => {
     if (!displayedContext) {
@@ -134,37 +135,30 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
   }, [displayedContext])
 
   function toggleCollapse() {
-    setContextExpanded(current => !current)
+    setIsExpanded(current => !current)
   }
 
   return (
-    <section className="rounded-xl border transition-all duration-200 ease-in-out">
+    <section className="rounded-xl border transition-all duration-500 ease-in-out">
       {hasGenerated
         ? (
             <button
               type="button"
               onClick={toggleCollapse}
               className={cn(
-                'flex w-full items-center justify-between rounded-lg p-4 text-left transition-colors',
                 `
+                  flex h-18 w-full items-center justify-between p-4 text-left transition-colors
                   hover:bg-muted/50
                   focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
                   focus-visible:ring-offset-background focus-visible:outline-none
                 `,
-                contextExpanded ? 'rounded-b-none' : '',
               )}
-              aria-expanded={contextExpanded}
+              aria-expanded={isExpanded}
             >
-              <h3 className="text-lg font-medium">{t('Market Context')}</h3>
+              <h3 className="text-base font-medium">{t('Market Context')}</h3>
               <span
                 aria-hidden="true"
-                className={cn(
-                  `
-                    pointer-events-none flex size-8 items-center justify-center rounded-md border bg-background
-                    text-muted-foreground transition
-                  `,
-                  contextExpanded ? 'bg-muted/50' : '',
-                )}
+                className="pointer-events-none flex size-8 items-center justify-center"
               >
                 <svg
                   width="16"
@@ -172,7 +166,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
                   viewBox="0 0 16 16"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                  className={cn('transition-transform', { 'rotate-180': contextExpanded })}
+                  className={cn('size-6 text-muted-foreground transition-transform', { 'rotate-180': isExpanded })}
                 >
                   <path
                     d="M4 6L8 10L12 6"
@@ -190,18 +184,17 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
               type="button"
               onClick={generateMarketContext}
               className={cn(
-                'flex w-full items-center justify-between rounded-lg p-4 text-left transition-colors',
                 `
+                  flex h-18 w-full items-center justify-between p-4 text-left transition-colors
                   hover:bg-muted/50
                   focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
                   focus-visible:ring-offset-background focus-visible:outline-none
-                  disabled:cursor-not-allowed disabled:opacity-60
                 `,
-                contextExpanded ? 'rounded-b-none' : '',
+                isContentExpanded ? 'rounded-b-none' : '',
               )}
               disabled={isPending || !state.market}
             >
-              <span className="text-lg font-medium">{t('Market Context')}</span>
+              <span className="text-base font-medium">{t('Market Context')}</span>
               <span
                 className={`
                   flex items-center gap-1 rounded-md border bg-background px-3 py-1 text-sm font-medium text-foreground
@@ -214,9 +207,22 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
             </button>
           )}
 
-      {(contextExpanded || error) && (
-        <div className="border-t border-border/30 p-3">
-          <div className="space-y-3">
+      <div
+        className={`
+          grid overflow-hidden transition-all duration-500 ease-in-out
+          ${isContentExpanded
+      ? 'pointer-events-auto grid-rows-[1fr] opacity-100'
+      : 'pointer-events-none grid-rows-[0fr] opacity-0'}
+        `}
+        aria-hidden={!isContentExpanded}
+      >
+        <div
+          className={`
+            min-h-0 overflow-hidden
+            ${isContentExpanded ? 'border-t border-border/30' : ''}
+          `}
+        >
+          <div className="space-y-3 p-3">
             {error && (
               <p className="text-sm font-medium text-destructive">
                 {error}
@@ -241,7 +247,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
             )}
           </div>
         </div>
-      )}
+      </div>
     </section>
   )
 }

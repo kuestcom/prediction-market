@@ -16,10 +16,10 @@ interface DataApiHoldersResponse {
   holders: DataApiHolder[]
 }
 
-function getAvatar(address: string, holder: DataApiHolder) {
+function getAvatar(holder: DataApiHolder) {
   return holder.profileImageOptimized
     || holder.profileImage
-    || `https://avatar.vercel.sh/${address}.png`
+    || ''
 }
 
 export interface TopHoldersResult {
@@ -64,7 +64,7 @@ function mapHolder(holder: DataApiHolder, outcomeHint: 'yes' | 'no' | null) {
       username: holder.pseudonym || holder.name || address,
       address,
       proxy_wallet_address: address,
-      image: getAvatar(address, holder),
+      image: getAvatar(holder),
     },
     net_position: amount.toString(),
     outcome_index: outcomeIndex,

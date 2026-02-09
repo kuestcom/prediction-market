@@ -43,7 +43,7 @@ export default function EventCardMarketsList({
     : event.markets
 
   return (
-    <div className="mb-1 scrollbar-hide max-h-16 space-y-2 overflow-y-auto">
+    <div className="mb-1 max-h-16 space-y-2 overflow-y-auto">
       {marketsToRender.map((market) => {
         const resolvedOutcome = isResolvedEvent
           ? market.outcomes.find(outcome => outcome.is_winning_outcome)

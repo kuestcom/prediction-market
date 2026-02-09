@@ -1,3 +1,4 @@
+import type { NonDefaultLocale } from '@/i18n/locales'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -16,6 +17,7 @@ export interface AdminCategoryRow {
   active_markets_count: number
   created_at: string
   updated_at: string
+  translations: Partial<Record<NonDefaultLocale, string>>
 }
 
 interface UseAdminCategoriesParams {

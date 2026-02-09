@@ -28,6 +28,7 @@ export interface DataApiActivity {
   pseudonym?: string
   profileImage?: string
   profileImageOptimized?: string
+  tags?: string[]
 }
 
 export interface DataApiPosition {
@@ -244,7 +245,7 @@ export function mapDataApiActivityToActivityOrder(activity: DataApiActivity): Ac
   const displayName = activity.pseudonym || activity.name || address || 'Trader'
   const avatarUrl = activity.profileImageOptimized
     || activity.profileImage
-    || (address ? `https://avatar.vercel.sh/${address}.png` : 'https://avatar.vercel.sh/trader.png')
+    || ''
   const txHash = activity.transactionHash || undefined
 
   return {

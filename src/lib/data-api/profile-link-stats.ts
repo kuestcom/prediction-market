@@ -9,6 +9,7 @@ export interface ProfileLinkStats {
 }
 
 const DATA_API_URL = process.env.DATA_URL!
+const LEADERBOARD_API_URL = DATA_API_URL.endsWith('/v1') ? DATA_API_URL : `${DATA_API_URL}/v1`
 
 const CACHE_TTL_MS = 5 * 60 * 1000
 const CACHE_MAX_ENTRIES = 200
@@ -113,6 +114,36 @@ function parseVolumeValue(value: unknown): string | null {
   return null
 }
 
+function parseLeaderboardPnl(body: unknown): number | null {
+  if (!body) {
+    return null
+  }
+
+  function resolveEntry(entry: unknown): number | null {
+    if (!entry || typeof entry !== 'object') {
+      return null
+    }
+    return toNumber((entry as { pnl?: unknown }).pnl)
+  }
+
+  if (Array.isArray(body)) {
+    return resolveEntry(body[0]) ?? null
+  }
+
+  if (typeof body === 'object') {
+    const data = (body as { data?: unknown }).data
+    if (Array.isArray(data)) {
+      return resolveEntry(data[0]) ?? null
+    }
+    const leaderboard = (body as { leaderboard?: unknown }).leaderboard
+    if (Array.isArray(leaderboard)) {
+      return resolveEntry(leaderboard[0]) ?? null
+    }
+  }
+
+  return null
+}
+
 async function fetchJson(url: string, signal?: AbortSignal) {
   const response = await fetch(url, { signal })
 
@@ -172,13 +203,30 @@ export async function fetchProfileLinkStats(
       const valueUrl = `${DATA_API_URL}/value?user=${encodeURIComponent(address)}`
       const tradedUrl = `${DATA_API_URL}/traded?user=${encodeURIComponent(address)}`
       const volumeUrl = `${DATA_API_URL}/volume?user=${encodeURIComponent(address)}`
+      const leaderboardParams = new URLSearchParams({
+        user: address,
+        timePeriod: 'all',
+        orderBy: 'PNL',
+        category: 'overall',
+        limit: '1',
+        offset: '0',
+      })
+      const leaderboardUrl = `${LEADERBOARD_API_URL}/leaderboard?${leaderboardParams.toString()}`
 
-      const [valueResult, activePositionsResult, closedPositionsResult, tradedResult, volumeResult] = await Promise.allSettled([
+      const [
+        valueResult,
+        activePositionsResult,
+        closedPositionsResult,
+        tradedResult,
+        volumeResult,
+        leaderboardResult,
+      ] = await Promise.allSettled([
         fetchJson(valueUrl, signal),
         fetchJson(`${DATA_API_URL}/positions?${activeParams.toString()}`, signal),
         fetchJson(`${DATA_API_URL}/closed-positions?${closedParams.toString()}`, signal),
         fetchJson(tradedUrl, signal),
         fetchJson(volumeUrl, signal),
+        fetchJson(leaderboardUrl, signal),
       ])
 
       const activePositions = activePositionsResult.status === 'fulfilled'
@@ -205,14 +253,9 @@ export async function fetchProfileLinkStats(
 
       const positions = tradedCount || (activePositions.length + closedPositions.length)
 
-      const profitLossActive = activePositions.reduce(
-        (total, position) => total + (toNumber((position as any).cashPnl) ?? 0),
-        0,
-      )
-      const profitLossClosed = closedPositions.reduce(
-        (total, position) => total + (toNumber((position as any).realizedPnl) ?? 0),
-        0,
-      )
+      const leaderboardPnl = leaderboardResult.status === 'fulfilled'
+        ? parseLeaderboardPnl(leaderboardResult.value)
+        : null
       const biggestWin = closedPositions.reduce((max, position) => {
         const realized = toNumber((position as any).realizedPnl) ?? 0
         return realized > max ? realized : max
@@ -220,7 +263,7 @@ export async function fetchProfileLinkStats(
 
       return {
         positions,
-        profitLoss: profitLossActive + profitLossClosed,
+        profitLoss: leaderboardPnl ?? 0,
         volume,
         positionsValue,
         biggestWin,

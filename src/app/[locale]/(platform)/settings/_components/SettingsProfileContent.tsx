@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Link } from '@/i18n/navigation'
+import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import {
   clearCommunityAuth,
   ensureCommunityToken,
@@ -28,6 +29,12 @@ export default function SettingsProfileContent({ user }: { user: User }) {
   const [isPending, setIsPending] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const avatarUrl = user.image?.trim() ?? ''
+  const avatarSeed = user.proxy_wallet_address || user.address || user.username || 'user'
+  const showPlaceholder = !previewImage && shouldUseAvatarPlaceholder(avatarUrl)
+  const placeholderStyle = showPlaceholder
+    ? getAvatarPlaceholderStyle(avatarSeed)
+    : undefined
 
   useEffect(() => {
     return () => {
@@ -166,26 +173,34 @@ export default function SettingsProfileContent({ user }: { user: User }) {
       <form onSubmit={handleSubmit} className="grid gap-6" encType="multipart/form-data">
         <div className="rounded-lg border p-6">
           <div className="flex items-center gap-4">
-            <div className={`
-              flex size-16 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-primary
-              to-primary/60
-            `}
-            >
-              {previewImage || user.image
+            <div className="flex size-16 items-center justify-center overflow-hidden rounded-full bg-muted/40">
+              {previewImage
                 ? (
                     <Image
                       width={42}
                       height={42}
-                      src={previewImage || user.image}
+                      src={previewImage}
                       alt="Profile"
                       className="size-full object-cover"
                     />
                   )
-                : (
-                    <span className="text-lg font-semibold text-white">
-                      U
-                    </span>
-                  )}
+                : (showPlaceholder
+                    ? (
+                        <div
+                          aria-hidden="true"
+                          className="size-full rounded-full"
+                          style={placeholderStyle}
+                        />
+                      )
+                    : (
+                        <Image
+                          width={42}
+                          height={42}
+                          src={avatarUrl}
+                          alt="Profile"
+                          className="size-full object-cover"
+                        />
+                      ))}
             </div>
             <div className="flex flex-col gap-2">
               <Button

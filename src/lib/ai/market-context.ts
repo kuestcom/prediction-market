@@ -1,6 +1,8 @@
+import type { SupportedLocale } from '@/i18n/locales'
 import type { MarketContextSettings } from '@/lib/ai/market-context-config'
 import type { OpenRouterMessage } from '@/lib/ai/openrouter'
 import type { Event, Market, Outcome } from '@/types'
+import { DEFAULT_LOCALE, LOCALE_LABELS, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion, sanitizeForPrompt } from '@/lib/ai/openrouter'
 import { formatCentsLabel, formatCurrency as formatUsd } from '@/lib/formatters'
@@ -97,7 +99,30 @@ function applyPromptTemplate(template: string, variables: Record<string, string>
   })
 }
 
-export async function generateMarketContext(event: Event, market: Market, providedSettings?: MarketContextSettings) {
+function normalizeLocale(locale?: string): SupportedLocale {
+  if (!locale) {
+    return DEFAULT_LOCALE
+  }
+
+  const normalized = locale.toLowerCase()
+  if (SUPPORTED_LOCALES.includes(normalized as SupportedLocale)) {
+    return normalized as SupportedLocale
+  }
+
+  const base = normalized.split('-')[0]
+  if (SUPPORTED_LOCALES.includes(base as SupportedLocale)) {
+    return base as SupportedLocale
+  }
+
+  return DEFAULT_LOCALE
+}
+
+export async function generateMarketContext(
+  event: Event,
+  market: Market,
+  providedSettings?: MarketContextSettings,
+  locale?: string,
+) {
   const settings = providedSettings ?? await loadMarketContextSettings()
   const { prompt, model, apiKey } = settings
 
@@ -107,12 +132,15 @@ export async function generateMarketContext(event: Event, market: Market, provid
 
   const variables = buildMarketContextVariables(event, market)
   const userPrompt = applyPromptTemplate(prompt, variables)
+  const resolvedLocale = normalizeLocale(locale)
+  const localeInstruction = `Write the response in ${LOCALE_LABELS[resolvedLocale]} (locale: ${resolvedLocale}).`
 
   const systemMessage = [
     'You are a research assistant specializing in prediction markets.',
     'Blend on-chain trading data with timely news research to craft insightful market briefings.',
     'When the provided data is sparse, explicitly acknowledge the gap while focusing on actionable intelligence.',
     'Use neutral, professional tone. Avoid marketing language.',
+    localeInstruction,
   ].join(' ')
 
   const messages: OpenRouterMessage[] = [

@@ -2,12 +2,13 @@ import type { ProfileLinkStats } from '@/lib/data-api/profile-link-stats'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { cn } from '@/lib/utils'
 
 interface ProfileActivityTooltipCardProps {
   profile: {
     username: string
-    avatarUrl: string
+    avatarUrl?: string | null
     href: string
     joinedAt?: string | null
   }
@@ -103,18 +104,33 @@ export default function ProfileActivityTooltipCard({
         : (profitLossRounded ?? 0) < 0
             ? 'text-no'
             : 'text-foreground'
+  const avatarUrl = profile.avatarUrl?.trim() ?? ''
+  const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
+  const fallbackStyle = showPlaceholder
+    ? getAvatarPlaceholderStyle(profile.username)
+    : undefined
 
   return (
     <div className="w-64 rounded-lg border bg-secondary pb-3">
       <div className="flex items-center gap-3 rounded-lg border bg-background px-3 py-2">
         <div className="relative size-14 shrink-0 overflow-hidden rounded-full bg-muted">
-          <Image
-            src={profile.avatarUrl}
-            alt={`${profile.username} avatar`}
-            fill
-            sizes="56px"
-            className="object-cover"
-          />
+          {showPlaceholder
+            ? (
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 rounded-full"
+                  style={fallbackStyle}
+                />
+              )
+            : (
+                <Image
+                  src={avatarUrl}
+                  alt={`${profile.username} avatar`}
+                  fill
+                  sizes="56px"
+                  className="object-cover"
+                />
+              )}
         </div>
         <div className="min-w-0">
           <Link

@@ -51,7 +51,7 @@ export default async function ProfilePage({ params }: PageProps<'/[locale]/[user
         <PublicProfileHeroCards
           profile={{
             username: 'Anon',
-            avatarUrl: `https://avatar.vercel.sh/${normalizedAddress}.png`,
+            avatarUrl: '',
             joinedAt: undefined,
             portfolioAddress: normalizedAddress,
           }}

@@ -249,6 +249,7 @@ export interface AffiliateData {
     username: string
     address: string
     proxy_wallet_address?: string | null
+    image?: string | null
     created_at: string
   }[]
 }

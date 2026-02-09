@@ -21,13 +21,13 @@ export function SearchTabs({
   isLoading,
 }: SearchTabsProps) {
   const searchTabs = useMemo(() => ['events', 'profiles'] as const, [])
-  const tabRefs = useRef<(HTMLLIElement | null)[]>([])
+  const tabRef = useRef<(HTMLLIElement | null)[]>([])
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
   const [isInitialized, setIsInitialized] = useState(false)
 
   useLayoutEffect(() => {
     const activeTabIndex = searchTabs.indexOf(activeTab)
-    const activeTabElement = tabRefs.current[activeTabIndex]
+    const activeTabElement = tabRef.current[activeTabIndex]
 
     if (activeTabElement) {
       const { offsetLeft, offsetWidth } = activeTabElement
@@ -63,7 +63,7 @@ export function SearchTabs({
             <li
               key={tab}
               ref={(el) => {
-                tabRefs.current[index] = el
+                tabRef.current[index] = el
               }}
               className={cn(
                 'flex cursor-pointer items-center px-4 text-sm font-medium transition-colors duration-200',

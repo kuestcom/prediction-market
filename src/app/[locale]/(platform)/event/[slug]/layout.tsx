@@ -17,7 +17,7 @@ export default async function EventLayout({ params, children }: LayoutProps<'/[l
         id="event-order-panel"
         className={`
           hidden gap-4
-          lg:sticky lg:top-38 lg:scrollbar-hide lg:grid lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto
+          lg:sticky lg:top-38 lg:grid lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto
         `}
       />
     </main>

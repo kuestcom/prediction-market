@@ -95,7 +95,7 @@ export default function EventChangeLog({ entries, markets }: EventChangeLogProps
   return (
     <section className="min-w-0 overflow-hidden rounded-xl border bg-background p-4">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-lg font-medium">{t('Event changes')}</h3>
+        <h3 className="text-base font-medium">{t('Event changes')}</h3>
         <span className="text-xs text-muted-foreground">
           <span className="tabular-nums">{entries.length}</span>
           {' '}

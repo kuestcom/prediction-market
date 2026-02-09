@@ -21,7 +21,7 @@ type OutcomeToggleIndex = typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
 
 export default function EventSingleMarketOrderBook({ market, eventSlug }: EventSingleMarketOrderBookProps) {
   const t = useExtracted()
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(true)
   const orderMarket = useOrder(state => state.market)
   const orderOutcome = useOrder(state => state.outcome)
   const setOrderMarket = useOrder(state => state.setMarket)
@@ -80,7 +80,7 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
         onClick={() => setIsExpanded(current => !current)}
         className={cn(
           `
-            flex w-full items-center justify-between p-4 text-left transition-colors
+            flex h-18 w-full items-center justify-between p-4 text-left transition-colors
             hover:bg-muted/50
             focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
             focus-visible:ring-offset-background focus-visible:outline-none
@@ -88,16 +88,10 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
         )}
         aria-expanded={isExpanded}
       >
-        <h3 className="text-lg font-medium">{t('Order Book')}</h3>
+        <h3 className="text-base font-medium">{t('Order Book')}</h3>
         <span
           aria-hidden="true"
-          className={cn(
-            `
-              pointer-events-none flex size-8 items-center justify-center rounded-md border bg-background
-              text-muted-foreground transition
-            `,
-            isExpanded ? 'bg-muted/50' : '',
-          )}
+          className="pointer-events-none flex size-8 items-center justify-center"
         >
           <svg
             width="16"
@@ -105,7 +99,7 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
             viewBox="0 0 16 16"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className={cn('transition-transform', { 'rotate-180': isExpanded })}
+            className={cn('size-6 text-muted-foreground transition-transform', { 'rotate-180': isExpanded })}
           >
             <path
               d="M4 6L8 10L12 6"

@@ -11,10 +11,12 @@ import { AreaClosed, LinePath } from '@visx/shape'
 import { CircleHelpIcon, MinusIcon, TriangleIcon } from 'lucide-react'
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import ProfileOverviewCard from '@/app/[locale]/(platform)/_components/ProfileOverviewCard'
+import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { formatCurrency } from '@/lib/formatters'
-import { cn, svgLogo } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 
 interface PnlPoint {
   date: Date
@@ -37,12 +39,13 @@ function ProfitLossCard({
   snapshot: PortfolioSnapshot
   portfolioAddress?: string | null
 }) {
-  const platformName = process.env.NEXT_PUBLIC_SITE_NAME ?? ''
+  const site = useSiteIdentity()
+  const platformName = site.name ?? ''
   const [activeTimeframe, setActiveTimeframe] = useState<(typeof PNL_TIMEFRAMES)[number]>('ALL')
   const [cursorX, setCursorX] = useState<number | null>(null)
   const [pnlSeries, setPnlSeries] = useState<PnlPoint[]>([])
   const timeRangeContainerRef = useRef<HTMLDivElement | null>(null)
-  const timeRangeRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const timeRangeRef = useRef<(HTMLButtonElement | null)[]>([])
   const [timeRangeIndicator, setTimeRangeIndicator] = useState({ width: 0, left: 0 })
   const [timeRangeIndicatorReady, setTimeRangeIndicatorReady] = useState(false)
   const chartId = useId().replace(/:/g, '')
@@ -50,7 +53,7 @@ function ProfitLossCard({
   const areaGradientId = `${chartId}-area`
   const areaFadeId = `${chartId}-fade`
   const areaMaskId = `${chartId}-mask`
-  const logoSvg = svgLogo()
+  const logoSvg = site.logoSvg
     .replace(/fill="url\([^"]+\)"/gi, 'fill="currentColor"')
   const pnlAddress = portfolioAddress
   const pnlBaseUrl = process.env.USER_PNL_URL!
@@ -124,7 +127,7 @@ function ProfitLossCard({
 
   const updateIndicator = useCallback(() => {
     const activeIndex = PNL_TIMEFRAMES.findIndex(range => range === activeTimeframe)
-    const activeButton = timeRangeRefs.current[activeIndex]
+    const activeButton = timeRangeRef.current[activeIndex]
     const container = timeRangeContainerRef.current
     if (!activeButton || !container) {
       return
@@ -259,6 +262,17 @@ function ProfitLossCard({
     const ratio = span === 0 ? 0 : (targetTime - left.date.getTime()) / span
     return left.value + (right.value - left.value) * ratio
   }, [chartData, clampedCursorX, cursorDate, endDate, endValue])
+  const cursorY = clampedCursorX == null ? null : yScale(cursorValue)
+  const cursorDotPosition = useMemo(() => {
+    if (clampedCursorX == null || cursorY == null || innerWidth === 0 || innerHeight === 0) {
+      return null
+    }
+
+    return {
+      left: `${(clampedCursorX / innerWidth) * 100}%`,
+      top: `${(cursorY / innerHeight) * 100}%`,
+    }
+  }, [clampedCursorX, cursorY, innerHeight, innerWidth])
   const displayValue = clampedCursorX == null ? endValue : cursorValue
   const deltaValue = displayValue - startValue
   const isDeltaPositive = deltaValue > 0
@@ -380,7 +394,7 @@ function ProfitLossCard({
               <button
                 key={timeframe}
                 ref={(el) => {
-                  timeRangeRefs.current[index] = el
+                  timeRangeRef.current[index] = el
                 }}
                 type="button"
                 className={cn(
@@ -453,9 +467,13 @@ function ProfitLossCard({
           </div>
 
           <div className="flex items-center gap-2 text-xl text-muted-foreground/70">
-            <div
+            <SiteLogoIcon
+              logoSvg={logoSvg}
+              logoImageUrl={site.logoImageUrl}
+              alt={`${platformName} logo`}
               className="size-[1em] text-current [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
-              dangerouslySetInnerHTML={{ __html: logoSvg }}
+              imageClassName="size-[1em] object-contain"
+              size={20}
             />
             <span className="font-semibold">{platformName}</span>
           </div>
@@ -554,6 +572,18 @@ function ProfitLossCard({
               />
             </Group>
           </svg>
+          {cursorDotPosition && (
+            <div
+              className="pointer-events-none absolute rounded-full"
+              style={{
+                ...cursorDotPosition,
+                width: 6,
+                height: 6,
+                transform: 'translate(-50%, -50%)',
+                background: 'radial-gradient(circle at 30% 30%, #7dd3fc 0%, #a855f7 70%)',
+              }}
+            />
+          )}
         </div>
       </CardContent>
     </Card>

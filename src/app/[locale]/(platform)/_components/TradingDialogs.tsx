@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { cn } from '@/lib/utils'
 
 type ProxyStep = 'idle' | 'signing' | 'deploying' | 'completed'
@@ -29,6 +30,10 @@ interface TradingStepsProps {
   onProxyAction: () => void
   onTradingAuthAction: () => void
   onApprovalsAction: () => void
+}
+
+interface TradingStepsListProps extends TradingStepsProps {
+  siteName: string
 }
 
 interface EnableTradingDialogProps extends TradingStepsProps {
@@ -53,6 +58,8 @@ export function EnableTradingDialog({
   onOpenChange,
   ...stepsProps
 }: EnableTradingDialogProps) {
+  const site = useSiteIdentity()
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md border bg-background p-8 text-center">
@@ -62,11 +69,11 @@ export function EnableTradingDialog({
           </div>
           <DialogTitle className="text-center text-2xl font-bold">Enable Trading</DialogTitle>
           <DialogDescription className="text-center text-base text-muted-foreground">
-            {`Let's set up your wallet to trade on ${process.env.NEXT_PUBLIC_SITE_NAME}.`}
+            {`Let's set up your wallet to trade on ${site.name}.`}
           </DialogDescription>
         </DialogHeader>
 
-        <TradingStepsList {...stepsProps} />
+        <TradingStepsList siteName={site.name} {...stepsProps} />
       </DialogContent>
     </Dialog>
   )
@@ -111,6 +118,8 @@ export function TradeRequirementsDialog({
   onOpenChange,
   ...stepsProps
 }: TradeRequirementsDialogProps) {
+  const site = useSiteIdentity()
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="max-w-xl border bg-background p-6">
@@ -118,7 +127,7 @@ export function TradeRequirementsDialog({
           <DialogTitle className="text-center text-lg font-semibold">
             Trade on
             {' '}
-            {process.env.NEXT_PUBLIC_SITE_NAME}
+            {site.name}
           </DialogTitle>
         </DialogHeader>
         <DialogClose asChild>
@@ -134,13 +143,14 @@ export function TradeRequirementsDialog({
           </button>
         </DialogClose>
 
-        <TradingStepsList {...stepsProps} />
+        <TradingStepsList siteName={site.name} {...stepsProps} />
       </DialogContent>
     </Dialog>
   )
 }
 
 function TradingStepsList({
+  siteName,
   proxyStep,
   tradingAuthStep,
   approvalsStep,
@@ -152,7 +162,7 @@ function TradingStepsList({
   onProxyAction,
   onTradingAuthAction,
   onApprovalsAction,
-}: TradingStepsProps) {
+}: TradingStepsListProps) {
   const tradingAuthSatisfied = hasTradingAuth || tradingAuthStep === 'completed'
   const proxyReadyForTrading = hasDeployedProxyWallet || proxyStep === 'deploying' || proxyStep === 'completed'
 
@@ -160,7 +170,7 @@ function TradingStepsList({
     <div className="mt-6 space-y-6 text-left">
       <TradingRequirementStep
         title="Deploy Proxy Wallet"
-        description={`Deploy your proxy wallet to trade on ${process.env.NEXT_PUBLIC_SITE_NAME}.`}
+        description={`Deploy your proxy wallet to trade on ${siteName}.`}
         actionLabel={proxyStep === 'signing' ? 'Signing…' : proxyStep === 'deploying' ? 'Deploying' : 'Deploy'}
         isLoading={proxyStep === 'signing'}
         disabled={proxyStep === 'signing' || proxyStep === 'deploying'}

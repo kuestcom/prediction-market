@@ -26,6 +26,7 @@ import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_ho
 import { calculateMarketFill, normalizeBookLevels } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData, fetchUserOtherBalance, fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatAmountInputValue, formatSharesLabel, fromMicro } from '@/lib/formatters'
@@ -514,9 +515,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   return (
     <>
       <div className="-mr-2 -ml-4 bg-background lg:mx-0">
-        {shouldShowActiveSection && (
-          <div className="mt-4 mr-2 ml-4 border-b border-border lg:mx-0" />
-        )}
+        {shouldShowActiveSection && <div className="mt-4 mr-2 ml-4 border-b border-border lg:mx-0" />}
         {primaryMarketRows
           .map((row, index, orderedMarkets) => {
             const { market } = row
@@ -592,9 +591,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                   />
                 </div>
 
-                {shouldShowSeparator && (
-                  <div className="mr-2 ml-4 border-b border-border lg:mx-0" />
-                )}
+                {shouldShowSeparator && <div className="mr-2 ml-4 border-b border-border lg:mx-0" />}
               </div>
             )
           })}
@@ -892,6 +889,7 @@ function MarketDetailTabs({
   sharesByCondition,
 }: MarketDetailTabsProps) {
   const t = useExtracted()
+  const { name: siteName } = useSiteIdentity()
   const user = useUser()
   const { selected: controlledTab, select } = tabController
   const positionSizeThreshold = 0.01
@@ -977,10 +975,13 @@ function MarketDetailTabs({
     return visibleTabs[0]?.id ?? 'orderBook'
   }, [controlledTab, visibleTabs])
 
-  const proposeUrl = useMemo(() => buildUmaProposeUrl(market.condition), [market.condition])
+  const proposeUrl = useMemo(
+    () => buildUmaProposeUrl(market.condition, siteName),
+    [market.condition, siteName],
+  )
   const settledUrl = useMemo(
-    () => buildUmaSettledUrl(market.condition) ?? buildUmaProposeUrl(market.condition),
-    [market.condition],
+    () => buildUmaSettledUrl(market.condition, siteName) ?? buildUmaProposeUrl(market.condition, siteName),
+    [market.condition, siteName],
   )
   const resolvedOutcomeIndex = useMemo(() => resolveWinningOutcomeIndex(market), [market])
   const resolvedOutcomeLabel = resolvedOutcomeIndex === OUTCOME_INDEX.NO
@@ -996,10 +997,10 @@ function MarketDetailTabs({
   }, [controlledTab, select, selectedTab])
 
   return (
-    <div className="pt-2">
+    <div className="pt-0">
       <div className="px-0">
         <div className="flex items-center gap-2 border-b">
-          <div className="scrollbar-hide flex w-0 flex-1 gap-4 overflow-x-auto">
+          <div className="flex w-0 flex-1 gap-4 overflow-x-auto">
             {visibleTabs.map((tab) => {
               const isActive = selectedTab === tab.id
               return (
@@ -1050,7 +1051,7 @@ function MarketDetailTabs({
         </div>
       </div>
 
-      <div className="px-0 py-4">
+      <div className={cn('px-0', selectedTab === 'orderBook' ? 'pt-4 pb-0' : 'py-4')}>
         {selectedTab === 'orderBook' && (
           <EventOrderBook
             market={market}

@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useClipboard } from '@/hooks/useClipboard'
+import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { truncateAddress } from '@/lib/formatters'
 import { useUser } from '@/stores/useUser'
 
@@ -18,6 +19,12 @@ export default function UserInfoSection() {
   const displayUsername = user.username?.length > 12
     ? `${user.username.slice(0, 12)}...`
     : user.username
+  const avatarUrl = user.image?.trim() ?? ''
+  const avatarSeed = user.proxy_wallet_address || user.address || user.username || 'user'
+  const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
+  const placeholderStyle = showPlaceholder
+    ? getAvatarPlaceholderStyle(avatarSeed)
+    : undefined
 
   const polygonscanUrl = `https://polygonscan.com/address/${proxyWalletAddress}`
 
@@ -28,16 +35,27 @@ export default function UserInfoSection() {
   return (
     <div className="flex items-center gap-4 p-4">
       <div className="shrink-0">
-        <Image
-          src={user.image}
-          alt="User avatar"
-          width={48}
-          height={48}
-          className={`
-            aspect-square rounded-full object-cover object-center ring-2 ring-border/20 transition-all duration-200
-            hover:ring-border/40
-          `}
-        />
+        {showPlaceholder
+          ? (
+              <div
+                aria-hidden="true"
+                className="size-12 rounded-full ring-2 ring-border/20 transition-all duration-200 hover:ring-border/40"
+                style={placeholderStyle}
+              />
+            )
+          : (
+              <Image
+                src={avatarUrl}
+                alt="User avatar"
+                width={48}
+                height={48}
+                className={`
+                  aspect-square rounded-full object-cover object-center ring-2 ring-border/20 transition-all
+                  duration-200
+                  hover:ring-border/40
+                `}
+              />
+            )}
       </div>
       <div className="min-w-0 flex-1 space-y-1.5">
         <Link

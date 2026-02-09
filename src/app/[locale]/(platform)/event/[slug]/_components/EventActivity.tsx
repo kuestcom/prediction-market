@@ -339,8 +339,7 @@ export default function EventActivity({ event }: EventActivityProps) {
               const normalizedUsername = rawUsername.startsWith('@')
                 ? rawUsername.slice(1)
                 : rawUsername
-              const displayImage = activity.user.image
-                || `https://avatar.vercel.sh/${activity.user.address || normalizedUsername}.png`
+              const displayImage = activity.user.image || ''
 
               return (
                 <div
@@ -412,7 +411,7 @@ export default function EventActivity({ event }: EventActivityProps) {
           {isFetchingNextPage && (
             <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
               <Loader2Icon className="size-4 animate-spin" />
-              {t('Loading more')}
+              {t('Loading more...')}
             </div>
           )}
 

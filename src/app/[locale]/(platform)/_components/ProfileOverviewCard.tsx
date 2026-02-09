@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
 import { useClipboard } from '@/hooks/useClipboard'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
+import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { formatCompactCount, formatCompactCurrency, formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
@@ -66,6 +67,12 @@ export default function ProfileOverviewCard({
   const formattedCashValue = variant === 'portfolio'
     ? formatCurrency(balance?.raw ?? 0, { minimumFractionDigits: 2, maximumFractionDigits: 2, includeSymbol: false })
     : formatCompactCurrency(balance?.raw ?? 0).replace('$', '')
+  const avatarUrl = profile.avatarUrl?.trim() ?? ''
+  const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
+  const avatarSeed = profile.portfolioAddress || profile.username || 'user'
+  const avatarFallbackStyle = showPlaceholder
+    ? getAvatarPlaceholderStyle(avatarSeed)
+    : undefined
   const joinedText = useMemo(() => {
     if (!profile.joinedAt) {
       return null
@@ -153,22 +160,19 @@ export default function ProfileOverviewCard({
                               relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full
                               border bg-muted/40
                             `}
+                            style={avatarFallbackStyle}
                           >
-                            {profile.avatarUrl
+                            {!showPlaceholder && avatarUrl
                               ? (
                                   <Image
-                                    src={profile.avatarUrl}
+                                    src={avatarUrl}
                                     alt={`${profile.username} avatar`}
                                     fill
                                     sizes="48px"
                                     className="object-cover"
                                   />
                                 )
-                              : (
-                                  <span className="text-lg font-semibold text-muted-foreground uppercase">
-                                    {profile.username.slice(0, 2)}
-                                  </span>
-                                )}
+                              : null}
                           </div>
                           <div className="min-w-0 flex-1 space-y-1">
                             <p className="truncate text-lg/tight font-semibold sm:text-xl" title={profile.username}>

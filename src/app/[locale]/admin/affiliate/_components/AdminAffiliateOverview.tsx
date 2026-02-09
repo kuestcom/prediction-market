@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { Link } from '@/i18n/navigation'
+import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { tableHeaderClass } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -51,17 +52,33 @@ export default function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewP
           </thead>
           <tbody>
             {rows.map((row) => {
+              const avatarUrl = row.image?.trim() ?? ''
+              const avatarSeed = row.proxy_wallet_address || row.address || row.username || row.id
+              const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
+              const placeholderStyle = showPlaceholder
+                ? getAvatarPlaceholderStyle(avatarSeed)
+                : undefined
               return (
                 <tr key={row.id} className="border-b last:border-b-0">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <Image
-                        src={row.image}
-                        alt="Affiliate avatar"
-                        width={32}
-                        height={32}
-                        className="rounded-full"
-                      />
+                      {showPlaceholder
+                        ? (
+                            <div
+                              aria-hidden="true"
+                              className="size-8 rounded-full"
+                              style={placeholderStyle}
+                            />
+                          )
+                        : (
+                            <Image
+                              src={avatarUrl}
+                              alt="Affiliate avatar"
+                              width={32}
+                              height={32}
+                              className="rounded-full"
+                            />
+                          )}
                       <div className="space-y-0.5">
                         <Link
                           href={`/@${row.username}`}
@@ -97,16 +114,32 @@ export default function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewP
 
       <div className="divide-y md:hidden">
         {rows.map((row) => {
+          const avatarUrl = row.image?.trim() ?? ''
+          const avatarSeed = row.proxy_wallet_address || row.address || row.username || row.id
+          const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
+          const placeholderStyle = showPlaceholder
+            ? getAvatarPlaceholderStyle(avatarSeed)
+            : undefined
           return (
             <div key={row.id} className="space-y-3 p-4">
               <div className="flex items-center gap-3">
-                <Image
-                  src={row.image}
-                  alt="Affiliate avatar"
-                  width={32}
-                  height={32}
-                  className="rounded-full"
-                />
+                {showPlaceholder
+                  ? (
+                      <div
+                        aria-hidden="true"
+                        className="size-8 rounded-full"
+                        style={placeholderStyle}
+                      />
+                    )
+                  : (
+                      <Image
+                        src={avatarUrl}
+                        alt="Affiliate avatar"
+                        width={32}
+                        height={32}
+                        className="rounded-full"
+                      />
+                    )}
                 <div className="flex-1 space-y-0.5">
                   <Link
                     href={`/@${row.username}`}

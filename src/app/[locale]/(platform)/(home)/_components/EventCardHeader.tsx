@@ -37,7 +37,7 @@ export default function EventCardHeader({
         <div
           className={`
             flex ${iconSizeClass}
-            shrink-0 items-center justify-center self-start overflow-hidden rounded-sm bg-muted text-muted-foreground
+            shrink-0 items-center justify-center self-start overflow-hidden rounded-sm
           `}
         >
           <Image

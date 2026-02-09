@@ -37,12 +37,11 @@ export const UserRepository = {
         return { data: null, error: null }
       }
 
-      const avatarSeed = rawData.proxy_wallet_address || rawData.id || rawData.username
       const data = {
         id: rawData.id,
         proxy_wallet_address: rawData.proxy_wallet_address,
         username: rawData.username!,
-        image: rawData.image ? getSupabaseImageUrl(rawData.image) : `https://avatar.vercel.sh/${avatarSeed || 'user'}.png`,
+        image: rawData.image ? getSupabaseImageUrl(rawData.image) : '',
         created_at: rawData.created_at,
       }
 

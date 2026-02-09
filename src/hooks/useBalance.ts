@@ -1,4 +1,4 @@
-import type { Address } from 'viem'
+import type { Address, PublicClient } from 'viem'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
@@ -33,33 +33,34 @@ interface UseBalanceOptions {
   enabled?: boolean
 }
 
+const RPC_URL = defaultNetwork.rpcUrls.default.http[0]
+
 export function useBalance(options: UseBalanceOptions = {}) {
   const { isConnected } = useAppKitAccount()
   const user = useUser()
 
-  const rpcUrl = useMemo(
-    () => defaultNetwork.rpcUrls.default.http[0],
-    [],
-  )
+  const client = useMemo<PublicClient | null>(() => {
+    if (typeof window === 'undefined') {
+      return null
+    }
 
-  const client = useMemo(
-    () =>
-      createPublicClient({
-        chain: defaultNetwork,
-        transport: http(rpcUrl),
-      }),
-    [rpcUrl],
-  )
+    return createPublicClient({
+      chain: defaultNetwork,
+      transport: http(RPC_URL),
+    })
+  }, [])
 
-  const contract = useMemo(
-    () =>
-      getContract({
-        address: COLLATERAL_TOKEN_ADDRESS,
-        abi: ERC20_ABI,
-        client,
-      }),
-    [client],
-  )
+  const contract = useMemo(() => {
+    if (!client) {
+      return null
+    }
+
+    return getContract({
+      address: COLLATERAL_TOKEN_ADDRESS,
+      abi: ERC20_ABI,
+      client,
+    })
+  }, [client])
 
   const proxyWalletAddress: Address | null = user?.proxy_wallet_address
     ? normalizeAddress(user.proxy_wallet_address) as Address | null
@@ -67,7 +68,7 @@ export function useBalance(options: UseBalanceOptions = {}) {
 
   const isOptionsEnabled = options.enabled ?? true
   const isAwaitingConnection = Boolean(user && isOptionsEnabled && !isConnected)
-  const isQueryEnabled = Boolean(isConnected && proxyWalletAddress && isOptionsEnabled)
+  const isQueryEnabled = Boolean(client && isConnected && proxyWalletAddress && isOptionsEnabled)
 
   const {
     data,
@@ -82,7 +83,7 @@ export function useBalance(options: UseBalanceOptions = {}) {
     refetchInterval: 10_000,
     refetchIntervalInBackground: true,
     queryFn: async (): Promise<Balance> => {
-      if (!proxyWalletAddress) {
+      if (!proxyWalletAddress || !contract) {
         return INITIAL_STATE
       }
 

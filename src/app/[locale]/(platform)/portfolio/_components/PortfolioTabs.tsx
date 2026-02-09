@@ -20,14 +20,14 @@ interface PortfolioTabsProps {
 
 export default function PortfolioTabs({ userAddress }: PortfolioTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>('positions')
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const tabRef = useRef<(HTMLButtonElement | null)[]>([])
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
   const [isInitialized, setIsInitialized] = useState(false)
   const tabs = useMemo(() => baseTabs, [])
 
   useLayoutEffect(() => {
     const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab)
-    const activeTabElement = tabRefs.current[activeTabIndex]
+    const activeTabElement = tabRef.current[activeTabIndex]
 
     if (activeTabElement) {
       const { offsetLeft, offsetWidth } = activeTabElement
@@ -52,7 +52,7 @@ export default function PortfolioTabs({ userAddress }: PortfolioTabsProps) {
             <button
               key={tab.id}
               ref={(el) => {
-                tabRefs.current[index] = el
+                tabRef.current[index] = el
               }}
               type="button"
               onClick={() => setActiveTab(tab.id)}

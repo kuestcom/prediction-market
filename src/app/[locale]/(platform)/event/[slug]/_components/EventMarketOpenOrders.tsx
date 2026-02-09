@@ -519,7 +519,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
     <>
       {isSingleMarket && (
         <div className="p-4">
-          <h3 className="text-lg font-medium">{t('Open Orders')}</h3>
+          <h3 className="text-base font-medium">{t('Open Orders')}</h3>
         </div>
       )}
 

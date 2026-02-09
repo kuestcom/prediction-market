@@ -18,14 +18,14 @@ interface PublicProfileTabsProps {
 
 export default function PublicProfileTabs({ userAddress }: PublicProfileTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>('positions')
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const tabRef = useRef<(HTMLButtonElement | null)[]>([])
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
   const [isInitialized, setIsInitialized] = useState(false)
   const tabs = useMemo(() => baseTabs, [])
 
   useLayoutEffect(() => {
     const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab)
-    const activeTabElement = tabRefs.current[activeTabIndex]
+    const activeTabElement = tabRef.current[activeTabIndex]
 
     if (activeTabElement) {
       const { offsetLeft, offsetWidth } = activeTabElement
@@ -50,7 +50,7 @@ export default function PublicProfileTabs({ userAddress }: PublicProfileTabsProp
             <button
               key={tab.id}
               ref={(el) => {
-                tabRefs.current[index] = el
+                tabRef.current[index] = el
               }}
               type="button"
               onClick={() => setActiveTab(tab.id)}
@@ -66,7 +66,7 @@ export default function PublicProfileTabs({ userAddress }: PublicProfileTabsProp
           ))}
         </div>
 
-        <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-px bg-border/80" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-border/80" />
         <div
           className={cn(
             'pointer-events-none absolute bottom-0 h-0.5 bg-primary',

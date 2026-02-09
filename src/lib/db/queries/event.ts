@@ -1,11 +1,13 @@
+import type { SupportedLocale } from '@/i18n/locales'
 import type { conditions, outcomes } from '@/lib/db/schema/events/tables'
 import type { ConditionChangeLogEntry, Event, QueryResult } from '@/types'
 import { and, desc, eq, exists, ilike, inArray, sql } from 'drizzle-orm'
 import { cacheTag } from 'next/cache'
+import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { bookmarks } from '@/lib/db/schema/bookmarks/tables'
-import { conditions_audit, event_tags, events, markets, tags } from '@/lib/db/schema/events/tables'
+import { conditions_audit, event_tags, events, markets, tag_translations, tags } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { resolveDisplayPrice } from '@/lib/market-chance'
@@ -226,6 +228,7 @@ interface ListEventsProps {
   bookmarked?: boolean
   status?: Event['status']
   offset?: number
+  locale?: SupportedLocale
 }
 
 interface RelatedEventOptions {
@@ -267,10 +270,38 @@ interface RelatedEvent {
   chance: number | null
 }
 
-function eventResource(event: DrizzleEventResult, userId: string, priceMap: Map<string, OutcomePrices>): Event {
+async function getLocalizedTagNamesById(tagIds: number[], locale: SupportedLocale): Promise<Map<number, string>> {
+  if (!tagIds.length || locale === DEFAULT_LOCALE) {
+    return new Map()
+  }
+
+  const rows = await db
+    .select({
+      tag_id: tag_translations.tag_id,
+      name: tag_translations.name,
+    })
+    .from(tag_translations)
+    .where(and(
+      inArray(tag_translations.tag_id, tagIds),
+      eq(tag_translations.locale, locale),
+    ))
+
+  return new Map(rows.map(row => [row.tag_id, row.name]))
+}
+
+function eventResource(
+  event: DrizzleEventResult,
+  userId: string,
+  priceMap: Map<string, OutcomePrices>,
+  localizedTagNamesById: Map<number, string> = new Map(),
+): Event {
   const tagRecords = (event.eventTags ?? [])
     .map(et => et.tag)
     .filter(tag => Boolean(tag?.slug))
+    .map(tag => ({
+      ...tag,
+      name: localizedTagNamesById.get(tag.id) ?? tag.name,
+    }))
 
   const marketsWithDerivedValues = event.markets.map((market: any) => {
     const rawOutcomes = (market.condition?.outcomes || []) as Array<typeof outcomes.$inferSelect>
@@ -367,13 +398,25 @@ function eventResource(event: DrizzleEventResult, userId: string, priceMap: Map<
   }
 }
 
-async function buildEventResource(eventResult: DrizzleEventResult, userId: string): Promise<Event> {
+async function buildEventResource(
+  eventResult: DrizzleEventResult,
+  userId: string,
+  locale: SupportedLocale = DEFAULT_LOCALE,
+): Promise<Event> {
   const outcomeTokenIds = (eventResult.markets ?? []).flatMap((market: any) =>
     (market.condition?.outcomes ?? []).map((outcome: any) => outcome.token_id).filter(Boolean),
   )
 
-  const priceMap = await fetchOutcomePrices(outcomeTokenIds)
-  return eventResource(eventResult, userId, priceMap)
+  const tagIds = Array.from(new Set(
+    (eventResult.eventTags ?? [])
+      .map(eventTag => eventTag.tag?.id)
+      .filter((tagId): tagId is number => typeof tagId === 'number'),
+  ))
+  const [priceMap, localizedTagNamesById] = await Promise.all([
+    fetchOutcomePrices(outcomeTokenIds),
+    getLocalizedTagNamesById(tagIds, locale),
+  ])
+  return eventResource(eventResult, userId, priceMap, localizedTagNamesById)
 }
 
 function getEventMainTag(tags: any[] | undefined): string {
@@ -393,9 +436,11 @@ export const EventRepository = {
     bookmarked = false,
     status = 'active',
     offset = 0,
+    locale = DEFAULT_LOCALE,
   }: ListEventsProps): Promise<QueryResult<Event[]>> {
     'use cache'
-    cacheTag(cacheTags.events(userId))
+    cacheTag(cacheTags.events(userId || 'guest'))
+    cacheTag(cacheTags.eventsGlobal)
 
     return await runQuery(async () => {
       const limit = 40
@@ -572,11 +617,21 @@ export const EventRepository = {
         ),
       )
 
-      const priceMap = await fetchOutcomePrices(tokensForPricing)
+      const tagIds = Array.from(new Set(
+        eventsData.flatMap(event =>
+          (event.eventTags ?? [])
+            .map(eventTag => eventTag.tag?.id)
+            .filter((tagId): tagId is number => typeof tagId === 'number'),
+        ),
+      ))
+      const [priceMap, localizedTagNamesById] = await Promise.all([
+        fetchOutcomePrices(tokensForPricing),
+        getLocalizedTagNamesById(tagIds, locale),
+      ])
 
       const eventsWithMarkets = eventsData
         .filter(event => event.markets?.length > 0)
-        .map(event => eventResource(event as DrizzleEventResult, userId, priceMap))
+        .map(event => eventResource(event as DrizzleEventResult, userId, priceMap, localizedTagNamesById))
 
       return { data: eventsWithMarkets, error: null }
     })
@@ -751,7 +806,11 @@ export const EventRepository = {
     })
   },
 
-  async getEventBySlug(slug: string, userId: string = ''): Promise<QueryResult<Event>> {
+  async getEventBySlug(
+    slug: string,
+    userId: string = '',
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<QueryResult<Event>> {
     return runQuery(async () => {
       const eventResult = await db.query.events.findFirst({
         where: eq(events.slug, slug),
@@ -778,7 +837,7 @@ export const EventRepository = {
         throw new Error('Event not found')
       }
 
-      const transformedEvent = await buildEventResource(eventResult as DrizzleEventResult, userId)
+      const transformedEvent = await buildEventResource(eventResult as DrizzleEventResult, userId, locale)
 
       return { data: transformedEvent, error: null }
     })

@@ -22,10 +22,11 @@ import { loadStoredChartSettings, storeChartSettings } from '@/app/[locale]/(pla
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { formatDate } from '@/lib/formatters'
-import { isMarketNew, svgLogo } from '@/lib/utils'
+import { isMarketNew } from '@/lib/utils'
 
 interface MarketOutcomeGraphProps {
   market: Market
@@ -42,6 +43,7 @@ const PredictionChart = dynamic<PredictionChartProps>(
 
 export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventCreatedAt, isMobile }: MarketOutcomeGraphProps) {
   const t = useExtracted()
+  const site = useSiteIdentity()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const [activeTimeRange, setActiveTimeRange] = useState<TimeRange>('ALL')
   const [activeOutcomeIndex, setActiveOutcomeIndex] = useState(outcome.outcome_index)
@@ -133,10 +135,10 @@ export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventC
   const hasChartData = chartData.length > 0
   const watermark = useMemo(
     () => ({
-      iconSvg: svgLogo(),
-      label: process.env.NEXT_PUBLIC_SITE_NAME,
+      iconSvg: site.logoSvg,
+      label: site.name,
     }),
-    [],
+    [site.logoSvg, site.name],
   )
 
   const activeSeriesKey = showBothOutcomes
@@ -215,7 +217,7 @@ export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventC
                 margin={{ top: 20, right: 40, bottom: 48, left: 0 }}
                 dataSignature={chartSignature}
                 onCursorDataChange={setCursorSnapshot}
-                xAxisTickCount={isMobile ? 3 : 6}
+                xAxisTickCount={isMobile ? 2 : 4}
                 autoscale={chartSettings.autoscale}
                 showXAxis={chartSettings.xAxis}
                 showYAxis={chartSettings.yAxis}

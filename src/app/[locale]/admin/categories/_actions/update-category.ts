@@ -1,7 +1,9 @@
 'use server'
 
+import type { NonDefaultLocale } from '@/i18n/locales'
 import { revalidatePath, updateTag } from 'next/cache'
 import { z } from 'zod'
+import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -33,6 +35,7 @@ export interface UpdateCategoryResult {
     active_markets_count: number
     created_at: string
     updated_at: string
+    translations: Partial<Record<NonDefaultLocale, string>>
   }
   error?: string
 }
@@ -75,9 +78,15 @@ export async function updateCategoryAction(
       parent_slug: parent?.slug ?? null,
     }
 
-    revalidatePath('/admin/categories')
-    revalidatePath('/')
+    revalidatePath('/[locale]/admin/categories', 'page')
+    revalidatePath('/[locale]', 'layout')
+    updateTag(cacheTags.adminCategories)
+    updateTag(cacheTags.eventsGlobal)
     updateTag(cacheTags.events(currentUser.id))
+
+    for (const locale of SUPPORTED_LOCALES) {
+      updateTag(cacheTags.mainTags(locale))
+    }
 
     return {
       success: true,

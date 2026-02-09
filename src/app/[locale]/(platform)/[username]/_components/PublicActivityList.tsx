@@ -4,6 +4,7 @@ import type { ActivitySort, ActivityTypeFilter } from '@/app/[locale]/(platform)
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePublicActivityQuery } from '@/app/[locale]/(platform)/[username]/_hooks/usePublicActivityQuery'
 import { buildActivityCsv, getActivityTimestampMs, matchesSearchQuery, matchesTypeFilter, toNumeric } from '@/app/[locale]/(platform)/[username]/_utils/PublicActivityUtils'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import PublicActivityFilters from './PublicActivityFilters'
 import PublicActivityTable from './PublicActivityTable'
 
@@ -18,6 +19,7 @@ export default function PublicActivityList({ userAddress }: PublicActivityListPr
   const [sortFilter, setSortFilter] = useState<ActivitySort>('newest')
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const site = useSiteIdentity()
 
   const {
     status,
@@ -62,7 +64,7 @@ export default function PublicActivityList({ userAddress }: PublicActivityListPr
       return
     }
 
-    const siteName = process.env.NEXT_PUBLIC_SITE_NAME!
+    const siteName = site.name
     const { csvContent, filename } = buildActivityCsv(visibleActivities, siteName)
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)

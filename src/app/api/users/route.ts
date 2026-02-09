@@ -27,14 +27,11 @@ export async function GET(request: Request) {
     }
 
     const profiles: PublicProfile[] = (data || []).map((user) => {
-      const publicAddress = getUserPublicAddress(user as unknown as User) || ''
-      const avatarSeed = publicAddress || user.id
-
       return {
-        address: publicAddress,
+        address: getUserPublicAddress(user as unknown as User) || '',
         proxy_wallet_address: user.proxy_wallet_address ?? null,
         username: user.username!,
-        image: user.image ? getSupabaseImageUrl(user.image) : `https://avatar.vercel.sh/${avatarSeed}.png`,
+        image: user.image ? getSupabaseImageUrl(user.image) : '',
         created_at: new Date(user.created_at),
       }
     })

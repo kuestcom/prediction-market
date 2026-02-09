@@ -10,12 +10,10 @@ import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
 
 | Variable | Why it matters | How to obtain it |
 | --- | --- | --- |
-| `NEXT_PUBLIC_FEE_RECIPIENT_WALLET` | Routes your fork's trading fees (defaults to 1% unless you change it in admin settings). | Polygon-compatible wallet address in checksum format (`0x...`). |
 | `ADMIN_WALLETS` | Grants access to the admin dashboard. | Comma-separated list of wallet addresses for trusted operators. |
 | `NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID` | Enables wallet logins through Reown (WalletConnect). | Copy from the [Reown dashboard](https://dashboard.reown.com/). |
 | `BETTER_AUTH_SECRET` | Master secret for Better Auth sessions and encrypted trading credentials. | Generate a 32-character value in the [Better Auth docs](https://www.better-auth.com/docs/installation#set-environment-variables). |
 | `CRON_SECRET` | Secures scheduled Vercel cron jobs. | Create any random string with at least 16 characters. |
-| `NEXT_PUBLIC_SITE_NAME` / `NEXT_PUBLIC_SITE_DESCRIPTION` | Controls the branding used in headings and SEO metadata. | Set to the public name and tagline for your fork. |
 
 <Callout type="info">
   Market syncs now use the Kuest-managed Goldsky subgraph at `https://api.goldsky.com/api/public/project_cmfbr456t4gud01w483uu2d9d/subgraphs/pnl-subgraph/1.0.0/gn`. Override it only if you're running custom infrastructure.
@@ -25,9 +23,7 @@ import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
 
 ## Recommended adjustments
 
-- `NEXT_PUBLIC_SITE_LOGO_SVG`: replace with inline SVG markup for your brand identity.
-- `NEXT_PUBLIC_DISCORD_LINK`: adds a support CTA across the interface when set.
-- `NEXT_PUBLIC_GOOGLE_ANALYTICS`: enables analytics without code changes.
+- Branding, support links, analytics ID, fee recipient wallet, allowed market creators, and LI.FI credentials are managed in **Admin > General Settings**.
 
 ---
 
@@ -38,6 +34,6 @@ import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
     Set `NEXT_PUBLIC_FORK_OWNER_GUIDE=true` to expose the **Fork Owner Guide** section in your hosted docs - helpful for operators without repo access.
   </Accordion>
   <Accordion title="Restrict markets to specific creators" icon="Users">
-    Use `MARKET_CREATORS_ADDRESS` with a comma-separated list of addresses to only show markets created by those wallets. Leave it blank to display the full network catalog.
+    Configure **Allowed market creator wallets** in **Admin > General Settings**. Add one wallet per line (or comma-separated) to restrict your market catalog.
   </Accordion>
 </Accordions>

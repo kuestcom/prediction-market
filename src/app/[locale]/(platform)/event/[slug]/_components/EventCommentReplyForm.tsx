@@ -6,6 +6,7 @@ import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 
 interface EventCommentReplyFormProps {
   user: User | null
@@ -54,15 +55,32 @@ export default function EventCommentReplyForm({
     return <></>
   }
 
+  const avatarUrl = user.image?.trim() ?? ''
+  const avatarSeed = user.proxy_wallet_address || user.address || user.username || 'user'
+  const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
+  const placeholderStyle = showPlaceholder
+    ? getAvatarPlaceholderStyle(avatarSeed)
+    : undefined
+
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-3">
-      <Image
-        src={user.image}
-        alt={user.username!}
-        width={32}
-        height={32}
-        className="size-8 shrink-0 rounded-full object-cover"
-      />
+      {showPlaceholder
+        ? (
+            <div
+              aria-hidden="true"
+              className="size-8 shrink-0 rounded-full"
+              style={placeholderStyle}
+            />
+          )
+        : (
+            <Image
+              src={avatarUrl}
+              alt={user.username!}
+              width={32}
+              height={32}
+              className="size-8 shrink-0 rounded-full object-cover"
+            />
+          )}
       <div className="flex-1 space-y-2">
         <div className="relative">
           <Input

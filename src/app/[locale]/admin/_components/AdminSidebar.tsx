@@ -11,17 +11,19 @@ interface AdminMenuItem {
 }
 
 const adminMenuItems: AdminMenuItem[] = [
-  { id: 'users', label: 'Users', href: '/admin' as Route },
+  { id: 'general', label: 'General', href: '/admin' as Route },
+  { id: 'theme', label: 'Theme', href: '/admin/theme' as Route },
   { id: 'categories', label: 'Categories', href: '/admin/categories' as Route },
-  { id: 'locales', label: 'Locales', href: '/admin/locales' as Route },
-  { id: 'affiliate', label: 'Affiliate Settings', href: '/admin/affiliate' as Route },
   { id: 'market-context', label: 'Market Context', href: '/admin/market-context' as Route },
+  { id: 'affiliate', label: 'Affiliate', href: '/admin/affiliate' as Route },
+  { id: 'users', label: 'Users', href: '/admin/users' as Route },
+  { id: 'locales', label: 'Locales', href: '/admin/locales' as Route },
 ]
 
 export default function AdminSidebar() {
   const pathname = usePathname()
   const activeItem = adminMenuItems.find(item => pathname === item.href)
-  const active = activeItem?.id ?? 'users'
+  const active = activeItem?.id ?? 'general'
 
   return (
     <aside className="lg:sticky lg:top-28 lg:self-start">

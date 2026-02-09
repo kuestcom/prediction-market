@@ -8,7 +8,7 @@ interface StepTransactionRequestBody {
 }
 
 export async function POST(request: Request) {
-  ensureLiFiServerConfig()
+  await ensureLiFiServerConfig()
 
   let body: StepTransactionRequestBody
   try {

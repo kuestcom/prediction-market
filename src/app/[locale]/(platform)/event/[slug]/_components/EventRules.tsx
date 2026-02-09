@@ -3,6 +3,7 @@ import { LinkIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import {
   UMA_CTF_ADAPTER_ADDRESS,
   UMA_CTF_ADAPTER_POLYMARKET_ADDRESS,
@@ -10,6 +11,7 @@ import {
   UMA_NEG_RISK_ADAPTER_POLYMARKET_ADDRESS,
 } from '@/lib/contracts'
 import { resolveUmaProposeTarget } from '@/lib/uma'
+import { cn } from '@/lib/utils'
 import { normalizeAddress } from '@/lib/wallet'
 
 interface EventRulesProps {
@@ -48,7 +50,8 @@ function getResolverGradient(address?: string) {
 export default function EventRules({ event }: EventRulesProps) {
   const t = useExtracted()
   const locale = useLocale()
-  const [isExpanded, setRulesExpanded] = useState(false)
+  const siteIdentity = useSiteIdentity()
+  const [isExpanded, setIsExpanded] = useState(false)
 
   function formatRules(rules: string): string {
     if (!rules) {
@@ -136,7 +139,7 @@ export default function EventRules({ event }: EventRulesProps) {
   }
 
   const primaryMarket = event.markets[0]
-  const proposeTarget = resolveUmaProposeTarget(primaryMarket?.condition)
+  const proposeTarget = resolveUmaProposeTarget(primaryMarket?.condition, siteIdentity.name)
   const resolverAddress = proposeTarget?.isMirror
     ? primaryMarket?.resolver
     : primaryMarket?.condition?.oracle
@@ -249,24 +252,21 @@ export default function EventRules({ event }: EventRulesProps) {
     <section className="rounded-xl border transition-all duration-500 ease-in-out">
       <button
         type="button"
-        onClick={() => setRulesExpanded(!isExpanded)}
-        className={`
-          flex w-full items-center justify-between rounded-xl p-4 text-left transition-colors
-          hover:bg-muted/50
-          focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
-          focus-visible:outline-none
-          ${isExpanded ? 'rounded-b-none' : ''}
-        `}
+        onClick={() => setIsExpanded(!isExpanded)}
+        className={cn(
+          `
+            flex h-18 w-full items-center justify-between p-4 text-left transition-colors
+            hover:bg-muted/50
+            focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+            focus-visible:ring-offset-background focus-visible:outline-none
+          `,
+        )}
         aria-expanded={isExpanded}
       >
-        <h3 className="text-lg font-medium">{t('Rules')}</h3>
+        <h3 className="text-base font-medium">{t('Rules')}</h3>
         <span
           aria-hidden="true"
-          className={`
-            pointer-events-none flex size-8 items-center justify-center rounded-md border bg-background
-            text-muted-foreground transition
-            ${isExpanded ? 'bg-muted/50' : ''}
-          `}
+          className="pointer-events-none flex size-8 items-center justify-center"
         >
           <svg
             width="16"
@@ -274,7 +274,7 @@ export default function EventRules({ event }: EventRulesProps) {
             viewBox="0 0 16 16"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+            className={cn('size-6 text-muted-foreground transition-transform', { 'rotate-180': isExpanded })}
           >
             <path
               d="M4 6L8 10L12 6"
@@ -302,9 +302,7 @@ export default function EventRules({ event }: EventRulesProps) {
             ${isExpanded ? 'border-t border-border/30' : ''}
           `}
         >
-          <div
-            className="space-y-2 p-3"
-          >
+          <div className="space-y-2 p-3">
             {formattedRules && (
               <div className="text-sm/relaxed whitespace-pre-line text-foreground">
                 {renderRulesTextWithLinks(formattedRules)}

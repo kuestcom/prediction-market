@@ -1,7 +1,10 @@
-import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm'
+import type { NonDefaultLocale, SupportedLocale } from '@/i18n/locales'
+import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
-import { revalidatePath } from 'next/cache'
-import { tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
+import { cacheTag, revalidatePath } from 'next/cache'
+import { DEFAULT_LOCALE, NON_DEFAULT_LOCALES } from '@/i18n/locales'
+import { cacheTags } from '@/lib/cache-tags'
+import { tag_translations, tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 
@@ -21,6 +24,8 @@ interface ParentTagPreview {
   slug: string
 }
 
+export type TagTranslationsMap = Partial<Record<NonDefaultLocale, string>>
+
 interface AdminTagRow {
   id: number
   name: string
@@ -34,6 +39,7 @@ interface AdminTagRow {
   created_at: string
   updated_at: string
   parent?: ParentTagPreview | null
+  translations: TagTranslationsMap
 }
 
 interface TagWithChilds {
@@ -56,30 +62,129 @@ interface MainTagsResult {
   globalChilds: { name: string, slug: string }[]
 }
 
-export const TagRepository = {
-  async getMainTags(): Promise<MainTagsResult> {
-    const mainTagsQuery = db
-      .select({
-        id: tags.id,
-        name: tags.name,
-        slug: tags.slug,
-        is_main_category: tags.is_main_category,
-        is_hidden: tags.is_hidden,
-        display_order: tags.display_order,
-        parent_tag_id: tags.parent_tag_id,
-        active_markets_count: tags.active_markets_count,
-        created_at: tags.created_at,
-        updated_at: tags.updated_at,
-      })
-      .from(tags)
-      .where(and(
-        eq(tags.is_main_category, true),
-        eq(tags.is_hidden, false),
-      ))
-      .orderBy(asc(tags.display_order), asc(tags.name))
+interface TagTranslationRecord {
+  tag_id: number
+  locale: string
+  name: string
+}
 
+function normalizeTranslationLocale(locale: string): NonDefaultLocale | null {
+  return NON_DEFAULT_LOCALES.includes(locale as NonDefaultLocale)
+    ? locale as NonDefaultLocale
+    : null
+}
+
+function buildTagTranslationsByTagId(rows: TagTranslationRecord[]): Map<number, TagTranslationsMap> {
+  const mapByTagId = new Map<number, TagTranslationsMap>()
+
+  for (const row of rows) {
+    const locale = normalizeTranslationLocale(row.locale)
+    if (!locale) {
+      continue
+    }
+
+    const current = mapByTagId.get(row.tag_id) ?? {}
+    current[locale] = row.name
+    mapByTagId.set(row.tag_id, current)
+  }
+
+  return mapByTagId
+}
+
+async function getTranslationsByTagIds(tagIds: number[]): Promise<{
+  data: Map<number, TagTranslationsMap>
+  error: string | null
+}> {
+  if (tagIds.length === 0) {
+    return { data: new Map(), error: null }
+  }
+
+  const { data, error } = await runQuery(async () => {
+    const result = await db
+      .select({
+        tag_id: tag_translations.tag_id,
+        locale: tag_translations.locale,
+        name: tag_translations.name,
+      })
+      .from(tag_translations)
+      .where(inArray(tag_translations.tag_id, tagIds))
+
+    return { data: result as TagTranslationRecord[], error: null }
+  })
+
+  if (error || !data) {
+    return {
+      data: new Map(),
+      error: typeof error === 'string' ? error : 'Unknown error',
+    }
+  }
+
+  return { data: buildTagTranslationsByTagId(data), error: null }
+}
+
+async function getLocalizedNamesByTagId(tagIds: number[], locale: SupportedLocale): Promise<{
+  data: Map<number, string>
+  error: string | null
+}> {
+  if (locale === DEFAULT_LOCALE || tagIds.length === 0) {
+    return { data: new Map(), error: null }
+  }
+
+  const { data, error } = await runQuery(async () => {
+    const result = await db
+      .select({
+        tag_id: tag_translations.tag_id,
+        name: tag_translations.name,
+      })
+      .from(tag_translations)
+      .where(and(
+        inArray(tag_translations.tag_id, tagIds),
+        eq(tag_translations.locale, locale),
+      ))
+
+    return { data: result, error: null }
+  })
+
+  if (error || !data) {
+    return {
+      data: new Map(),
+      error: typeof error === 'string' ? error : 'Unknown error',
+    }
+  }
+
+  const localized = new Map<number, string>()
+  for (const row of data) {
+    localized.set(row.tag_id, row.name)
+  }
+
+  return { data: localized, error: null }
+}
+
+export const TagRepository = {
+  async getMainTags(locale: SupportedLocale = DEFAULT_LOCALE): Promise<MainTagsResult> {
+    'use cache'
+    cacheTag(cacheTags.mainTags(locale))
     const { data: mainTagsResult, error } = await runQuery(async () => {
-      const result = await mainTagsQuery
+      const result = await db
+        .select({
+          id: tags.id,
+          name: tags.name,
+          slug: tags.slug,
+          is_main_category: tags.is_main_category,
+          is_hidden: tags.is_hidden,
+          display_order: tags.display_order,
+          parent_tag_id: tags.parent_tag_id,
+          active_markets_count: tags.active_markets_count,
+          created_at: tags.created_at,
+          updated_at: tags.updated_at,
+        })
+        .from(tags)
+        .where(and(
+          eq(tags.is_main_category, true),
+          eq(tags.is_hidden, false),
+        ))
+        .orderBy(asc(tags.display_order), asc(tags.name))
+
       return { data: result, error: null }
     })
 
@@ -91,25 +196,24 @@ export const TagRepository = {
     const mainVisibleTags = mainTagsResult
     const mainSlugs = mainVisibleTags.map(tag => tag.slug)
 
-    const subcategoriesQuery = db
-      .select({
-        main_tag_id: v_main_tag_subcategories.main_tag_id,
-        main_tag_slug: v_main_tag_subcategories.main_tag_slug,
-        main_tag_name: v_main_tag_subcategories.main_tag_name,
-        main_tag_is_hidden: v_main_tag_subcategories.main_tag_is_hidden,
-        sub_tag_id: v_main_tag_subcategories.sub_tag_id,
-        sub_tag_name: v_main_tag_subcategories.sub_tag_name,
-        sub_tag_slug: v_main_tag_subcategories.sub_tag_slug,
-        sub_tag_is_main_category: v_main_tag_subcategories.sub_tag_is_main_category,
-        sub_tag_is_hidden: v_main_tag_subcategories.sub_tag_is_hidden,
-        active_markets_count: v_main_tag_subcategories.active_markets_count,
-        last_market_activity_at: v_main_tag_subcategories.last_market_activity_at,
-      })
-      .from(v_main_tag_subcategories)
-      .where(inArray(v_main_tag_subcategories.main_tag_slug, mainSlugs))
-
     const { data: subcategoriesResult, error: viewError } = await runQuery(async () => {
-      const result = await subcategoriesQuery
+      const result = await db
+        .select({
+          main_tag_id: v_main_tag_subcategories.main_tag_id,
+          main_tag_slug: v_main_tag_subcategories.main_tag_slug,
+          main_tag_name: v_main_tag_subcategories.main_tag_name,
+          main_tag_is_hidden: v_main_tag_subcategories.main_tag_is_hidden,
+          sub_tag_id: v_main_tag_subcategories.sub_tag_id,
+          sub_tag_name: v_main_tag_subcategories.sub_tag_name,
+          sub_tag_slug: v_main_tag_subcategories.sub_tag_slug,
+          sub_tag_is_main_category: v_main_tag_subcategories.sub_tag_is_main_category,
+          sub_tag_is_hidden: v_main_tag_subcategories.sub_tag_is_hidden,
+          active_markets_count: v_main_tag_subcategories.active_markets_count,
+          last_market_activity_at: v_main_tag_subcategories.last_market_activity_at,
+        })
+        .from(v_main_tag_subcategories)
+        .where(inArray(v_main_tag_subcategories.main_tag_slug, mainSlugs))
+
       return { data: result, error: null }
     })
 
@@ -117,6 +221,28 @@ export const TagRepository = {
       const tagsWithChilds = mainVisibleTags.map((tag: any) => ({ ...tag, childs: [] }))
       const errorMessage = typeof viewError === 'string' ? viewError : 'Unknown error'
       return { data: tagsWithChilds, error: errorMessage, globalChilds: [] }
+    }
+
+    const translationTagIds = new Set<number>()
+    for (const tag of mainVisibleTags) {
+      translationTagIds.add(tag.id)
+    }
+    for (const subtag of subcategoriesResult) {
+      if (subtag.main_tag_id) {
+        translationTagIds.add(subtag.main_tag_id)
+      }
+      if (subtag.sub_tag_id) {
+        translationTagIds.add(subtag.sub_tag_id)
+      }
+    }
+
+    const { data: localizedNamesByTagId, error: translationError } = await getLocalizedNamesByTagId(
+      Array.from(translationTagIds),
+      locale,
+    )
+
+    if (translationError) {
+      return { data: null, error: translationError, globalChilds: [] }
     }
 
     const grouped = new Map<string, { name: string, slug: string, count: number }[]>()
@@ -136,20 +262,21 @@ export const TagRepository = {
         continue
       }
 
+      const localizedSubTagName = localizedNamesByTagId.get(subtag.sub_tag_id ?? -1) ?? subtag.sub_tag_name!
       const current = grouped.get(subtag.main_tag_slug!) ?? []
       const existingIndex = current.findIndex(item => item.slug === subtag.sub_tag_slug)
       const nextCount = subtag.active_markets_count ?? 0
 
       if (existingIndex >= 0) {
         current[existingIndex] = {
-          name: subtag.sub_tag_name!,
+          name: localizedSubTagName,
           slug: subtag.sub_tag_slug,
           count: Math.max(current[existingIndex].count, nextCount),
         }
       }
       else {
         current.push({
-          name: subtag.sub_tag_name!,
+          name: localizedSubTagName,
           slug: subtag.sub_tag_slug,
           count: nextCount,
         })
@@ -171,7 +298,7 @@ export const TagRepository = {
 
       const globalExisting = globalCounts.get(subtag.sub_tag_slug)
       globalCounts.set(subtag.sub_tag_slug, {
-        name: subtag.sub_tag_name!,
+        name: localizedSubTagName,
         slug: subtag.sub_tag_slug,
         count: (globalExisting?.count ?? 0) + nextCount,
       })
@@ -179,6 +306,7 @@ export const TagRepository = {
 
     const enhanced = mainVisibleTags.map(tag => ({
       ...tag,
+      name: localizedNamesByTagId.get(tag.id) ?? tag.name,
       childs: (grouped.get(tag.slug) ?? [])
         .filter(child => bestMainBySubSlug.get(child.slug)?.mainSlug === tag.slug)
         .sort((a, b) => {
@@ -215,6 +343,7 @@ export const TagRepository = {
     totalCount: number
   }> {
     'use cache'
+    cacheTag(cacheTags.adminCategories)
 
     const cappedLimit = Math.min(Math.max(limit, 1), 100)
     const safeOffset = Math.max(offset, 0)
@@ -314,7 +443,19 @@ export const TagRepository = {
       }
     }
 
-    const formattedData: AdminTagRow[] = (data || []).map((row: any) => ({
+    const rawRows = data || []
+    const tagIds = rawRows.map((row: any) => row.id)
+    const { data: translationsByTagId, error: translationError } = await getTranslationsByTagIds(tagIds)
+
+    if (translationError) {
+      return {
+        data: [],
+        error: translationError,
+        totalCount: 0,
+      }
+    }
+
+    const formattedData: AdminTagRow[] = rawRows.map((row: any) => ({
       id: row.id,
       name: row.name,
       slug: row.slug,
@@ -333,6 +474,7 @@ export const TagRepository = {
             slug: row.parent.slug,
           }
         : null,
+      translations: translationsByTagId.get(row.id) ?? {},
     }))
 
     return {
@@ -395,6 +537,12 @@ export const TagRepository = {
       return { data: null, error: selectError ?? 'Unknown error' }
     }
 
+    const { data: translationsByTagId, error: translationError } = await getTranslationsByTagIds([id])
+
+    if (translationError) {
+      return { data: null, error: translationError }
+    }
+
     revalidatePath('/')
 
     const row = selectResult[0]
@@ -417,10 +565,98 @@ export const TagRepository = {
             slug: row.parent.slug,
           }
         : null,
+      translations: translationsByTagId.get(row.id) ?? {},
     }
 
     return {
       data: formattedData,
+      error: null,
+    }
+  },
+
+  async updateTagTranslationsById(tagId: number, translations: TagTranslationsMap): Promise<{
+    data: TagTranslationsMap | null
+    error: string | null
+  }> {
+    const normalizedEntries = NON_DEFAULT_LOCALES.map((locale) => {
+      const rawValue = translations[locale]
+      const value = typeof rawValue === 'string' ? rawValue.trim() : ''
+      return { locale, value }
+    })
+
+    const localesToDelete = normalizedEntries
+      .filter(entry => entry.value.length === 0)
+      .map(entry => entry.locale)
+
+    const rowsToUpsert = normalizedEntries
+      .filter(entry => entry.value.length > 0)
+      .map(entry => ({
+        tag_id: tagId,
+        locale: entry.locale,
+        name: entry.value,
+      }))
+
+    const { data: tagExists, error: tagCheckError } = await runQuery(async () => {
+      const result = await db
+        .select({ id: tags.id })
+        .from(tags)
+        .where(eq(tags.id, tagId))
+        .limit(1)
+
+      return { data: result.length > 0, error: null }
+    })
+
+    if (tagCheckError || !tagExists) {
+      return { data: null, error: tagCheckError ?? 'Tag not found.' }
+    }
+
+    const { error } = await runQuery(async () => {
+      await db.transaction(async (tx) => {
+        if (localesToDelete.length > 0) {
+          await tx
+            .delete(tag_translations)
+            .where(and(
+              eq(tag_translations.tag_id, tagId),
+              inArray(tag_translations.locale, localesToDelete),
+            ))
+        }
+
+        if (rowsToUpsert.length > 0) {
+          await tx
+            .insert(tag_translations)
+            .values(rowsToUpsert)
+            .onConflictDoUpdate({
+              target: [tag_translations.tag_id, tag_translations.locale],
+              set: {
+                name: sql`EXCLUDED.name`,
+              },
+            })
+        }
+      })
+
+      return { data: true, error: null }
+    })
+
+    if (error) {
+      return {
+        data: null,
+        error: typeof error === 'string' ? error : 'Unknown error',
+      }
+    }
+
+    const { data: translationsByTagId, error: translationError } = await getTranslationsByTagIds([tagId])
+
+    if (translationError) {
+      return {
+        data: null,
+        error: translationError,
+      }
+    }
+
+    revalidatePath('/')
+
+    return {
+      data: translationsByTagId.get(tagId) ?? {},
       error: null,
     }
   },

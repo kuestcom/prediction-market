@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { getAvatarPlaceholderStyle } from '@/lib/avatar'
 import { useNotificationList, useNotifications, useNotificationsError, useNotificationsLoading, useUnreadNotificationCount } from '@/stores/useNotifications'
 
 function getNotificationTimeLabel(notification: Notification) {
@@ -137,25 +138,27 @@ export default function HeaderNotifications() {
                     className="flex cursor-pointer items-start gap-3 p-3 transition-colors hover:bg-accent/50"
                   >
                     <div className="shrink-0">
-                      {notification.user_avatar
-                        ? (
+                      {(() => {
+                        const avatarUrl = notification.user_avatar?.trim() ?? ''
+                        if (avatarUrl) {
+                          return (
                             <Image
-                              src={notification.user_avatar}
+                              src={avatarUrl}
                               alt="User avatar"
                               width={42}
                               height={42}
                               className="rounded-md object-cover"
                             />
                           )
-                        : (
-                            <div className={`
-                              flex size-10.5 items-center justify-center rounded-md bg-muted text-xs font-semibold
-                              text-muted-foreground uppercase
-                            `}
-                            >
-                              {notification.title.slice(0, 2)}
-                            </div>
-                          )}
+                        }
+                        return (
+                          <div
+                            aria-hidden="true"
+                            className="size-10.5 rounded-md"
+                            style={getAvatarPlaceholderStyle(notification.id || notification.title)}
+                          />
+                        )
+                      })()}
                     </div>
 
                     <div className="min-w-0 flex-1">

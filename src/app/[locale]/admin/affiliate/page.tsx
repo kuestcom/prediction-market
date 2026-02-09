@@ -1,9 +1,11 @@
 'use cache'
 
+import { InfoIcon } from 'lucide-react'
 import { setRequestLocale } from 'next-intl/server'
 import AdminAffiliateOverview from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateOverview'
 import AdminAffiliateSettingsForm from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm'
-import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotalsByToken } from '@/lib/data-api/fees'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { fetchMaxExchangeBaseFeeRate } from '@/lib/exchange'
@@ -76,7 +78,7 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
   }
 
   const profileMap = new Map<string, AffiliateProfile>(profiles.map(profile => [profile.id, profile]))
-  const feeTotalsByAddress = new Map<string, number>()
+  const feeTotalsByAddress = new Map<string, { fees: number, volume: number }>()
 
   if (profiles.length > 0) {
     const uniqueReceivers = Array.from(
@@ -97,10 +99,14 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
         console.warn('Failed to load affiliate fee totals', result.reason)
         return
       }
-      const usdcTotal = sumFeeTotalsByToken(result.value, '0')
+      const usdcTotal = sumFeeTotals(result.value)
+      const volumeTotal = sumFeeVolumes(result.value)
       feeTotalsByAddress.set(
         uniqueReceivers[idx].toLowerCase(),
-        baseUnitsToNumber(usdcTotal, 6),
+        {
+          fees: baseUnitsToNumber(usdcTotal, 6),
+          volume: baseUnitsToNumber(volumeTotal, 6),
+        },
       )
     })
   }
@@ -108,20 +114,19 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
   const rows: RowSummary[] = overview.map((item) => {
     const profile = profileMap.get(item.affiliate_user_id)
 
-    const profileAddress = profile?.proxy_wallet_address ?? ''
     const receiverAddress = (profile?.proxy_wallet_address || profile?.address || '').toLowerCase()
-    const onchainFees = receiverAddress ? feeTotalsByAddress.get(receiverAddress) : undefined
+    const onchainData = receiverAddress ? feeTotalsByAddress.get(receiverAddress) : undefined
 
     return {
       id: item.affiliate_user_id,
       username: profile?.username as string,
       address: profile?.address ?? '',
       proxy_wallet_address: profile?.proxy_wallet_address ?? null,
-      image: profile?.image ? getSupabaseImageUrl(profile.image) : `https://avatar.vercel.sh/${profileAddress || item.affiliate_user_id}.png`,
+      image: profile?.image ? getSupabaseImageUrl(profile.image) : '',
       affiliate_code: profile?.affiliate_code ?? null,
       total_referrals: Number(item.total_referrals ?? 0),
-      volume: Number(item.volume ?? 0),
-      total_affiliate_fees: onchainFees ?? 0,
+      volume: onchainData?.volume ?? 0,
+      total_affiliate_fees: onchainData?.fees ?? 0,
     }
   })
 
@@ -161,9 +166,28 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
             </div>
             <div className="rounded-lg bg-muted/40 p-4">
               <p className="text-xs text-muted-foreground uppercase">Affiliate fees</p>
-              <p className="mt-1 text-2xl font-semibold">
-                {usdFormatter.format(aggregate.totalAffiliateFees)}
-              </p>
+              <div className="mt-1 flex items-center gap-1 text-2xl font-semibold">
+                <span>{usdFormatter.format(aggregate.totalAffiliateFees)}</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className={`
+                        inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground
+                        transition-colors
+                        hover:text-foreground
+                        focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none
+                      `}
+                      aria-label="Affiliate fee info"
+                    >
+                      <InfoIcon className="size-3" aria-hidden />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-64 text-left">
+                    Commission is taken from the trading fee at execution, not from volume. The exchange base fee comes out first.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
           </div>
         </div>

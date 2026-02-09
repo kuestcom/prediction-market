@@ -11,6 +11,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { WagmiProvider } from 'wagmi'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { defaultNetwork, networks, projectId, wagmiAdapter, wagmiConfig } from '@/lib/appkit'
 import { authClient } from '@/lib/auth-client'
 import { IS_BROWSER } from '@/lib/constants'
@@ -58,7 +59,10 @@ function clearAppKitLocalStorage() {
   clearNonHttpOnlyCookies()
 }
 
-function initializeAppKitSingleton(themeMode: 'light' | 'dark') {
+function initializeAppKitSingleton(
+  themeMode: 'light' | 'dark',
+  site: { name: string, description: string, logoUrl: string },
+) {
   if (hasInitializedAppKit || !IS_BROWSER) {
     return appKitInstance
   }
@@ -70,10 +74,10 @@ function initializeAppKitSingleton(themeMode: 'light' | 'dark') {
       themeMode,
       defaultAccountTypes: { eip155: 'eoa' },
       metadata: {
-        name: process.env.NEXT_PUBLIC_SITE_NAME!,
-        description: process.env.NEXT_PUBLIC_SITE_DESCRIPTION!,
+        name: site.name,
+        description: site.description,
         url: process.env.SITE_URL!,
-        icons: ['https://avatar.vercel.sh/bitcoin.png'],
+        icons: [site.logoUrl],
       },
       themeVariables: {
         '--w3m-font-family': 'var(--font-sans)',
@@ -201,6 +205,7 @@ function AppKitThemeSynchronizer({ themeMode }: { themeMode: 'light' | 'dark' })
 }
 
 export default function AppKitProvider({ children }: { children: ReactNode }) {
+  const site = useSiteIdentity()
   const { resolvedTheme } = useTheme()
   const [appKitThemeMode, setAppKitThemeMode] = useState<'light' | 'dark'>('light')
   const [canSyncTheme, setCanSyncTheme] = useState(false)
@@ -212,7 +217,11 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
     }
 
     const nextThemeMode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light'
-    const instance = initializeAppKitSingleton(nextThemeMode)
+    const instance = initializeAppKitSingleton(nextThemeMode, {
+      name: site.name,
+      description: site.description,
+      logoUrl: site.logoUrl,
+    })
 
     if (instance) {
       setAppKitThemeMode(nextThemeMode)
@@ -228,7 +237,7 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
         isReady: true,
       })
     }
-  }, [resolvedTheme])
+  }, [resolvedTheme, site.description, site.logoUrl, site.name])
 
   return (
     <WagmiProvider config={wagmiConfig}>

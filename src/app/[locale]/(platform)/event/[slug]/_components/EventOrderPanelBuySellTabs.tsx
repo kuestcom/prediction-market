@@ -55,18 +55,18 @@ export default function EventOrderPanelBuySellTabs({
   const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false)
   const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false)
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hasHydratedType = useRef(false)
+  const hasHydratedTypeRef = useRef(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return
     }
 
-    if (hasHydratedType.current) {
+    if (hasHydratedTypeRef.current) {
       return
     }
 
-    hasHydratedType.current = true
+    hasHydratedTypeRef.current = true
     const storedType = window.localStorage.getItem(ORDER_TYPE_STORAGE_KEY) as OrderType
     if (storedType && Object.values(ORDER_TYPE).includes(storedType as any) && storedType !== type) {
       onTypeChange(storedType)

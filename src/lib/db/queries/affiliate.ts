@@ -7,6 +7,8 @@ import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 
 const AFFILIATE_CODE_BYTES = 4
+const AFFILIATE_VOLUME_DECIMALS = 6
+const AFFILIATE_VOLUME_SCALE = 10 ** AFFILIATE_VOLUME_DECIMALS
 
 interface AffiliateUser {
   id: string
@@ -76,11 +78,15 @@ function convertToNumber(value: any): number {
   return Number.isNaN(num) ? 0 : num
 }
 
+function convertAffiliateVolume(value: any): number {
+  return convertToNumber(value) / AFFILIATE_VOLUME_SCALE
+}
+
 function convertAffiliateStats(rawData: any): AffiliateStats {
   return {
     total_referrals: convertToNumber(rawData.total_referrals),
     active_referrals: convertToNumber(rawData.active_referrals),
-    volume: convertToNumber(rawData.volume),
+    volume: convertAffiliateVolume(rawData.volume),
   }
 }
 
@@ -88,7 +94,7 @@ function convertAffiliateOverview(rawData: any[]): AffiliateOverview[] {
   return rawData.map(item => ({
     affiliate_user_id: item.affiliate_user_id,
     total_referrals: convertToNumber(item.total_referrals),
-    volume: convertToNumber(item.volume),
+    volume: convertAffiliateVolume(item.volume),
   }))
 }
 

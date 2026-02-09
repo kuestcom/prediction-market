@@ -12,6 +12,7 @@ import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/Tradi
 import { useBalance } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useLiFiWalletUsdBalance } from '@/hooks/useLiFiWalletUsdBalance'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { MAX_AMOUNT_INPUT } from '@/lib/amount-input'
 import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
@@ -53,6 +54,7 @@ export function WalletFlow({
     formattedUsdBalance,
     isLoadingUsdBalance,
   } = useLiFiWalletUsdBalance(user?.address, { enabled: depositOpen })
+  const site = useSiteIdentity()
   const connectedWalletAddress = user?.address ?? null
   const { openTradeRequirements } = useTradingOnboarding()
 
@@ -215,7 +217,7 @@ export function WalletFlow({
         isMobile={isMobile}
         walletAddress={user?.proxy_wallet_address ?? null}
         walletEoaAddress={user?.address ?? null}
-        siteName={process.env.NEXT_PUBLIC_SITE_NAME}
+        siteName={site.name}
         meldUrl={meldUrl}
         hasDeployedProxyWallet={hasDeployedProxyWallet}
         view={depositView}
@@ -228,7 +230,7 @@ export function WalletFlow({
         open={withdrawOpen}
         onOpenChange={handleWithdrawModalChange}
         isMobile={isMobile}
-        siteName={process.env.NEXT_PUBLIC_SITE_NAME}
+        siteName={site.name}
         sendTo={walletSendTo}
         onChangeSendTo={event => setWalletSendTo(event.target.value)}
         sendAmount={walletSendAmount}

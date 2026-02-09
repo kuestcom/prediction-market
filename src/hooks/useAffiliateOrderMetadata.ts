@@ -9,10 +9,19 @@ interface AffiliateInfoResponse {
   tradeFeeBps: number
 }
 
-const DEFAULT_REFERRER = (process.env.NEXT_PUBLIC_FEE_RECIPIENT_WALLET ?? ZERO_ADDRESS) as `0x${string}`
+const WALLET_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/
+
+function resolveDefaultReferrerAddress() {
+  const envAddress = process.env.NEXT_PUBLIC_FEE_RECIPIENT_WALLET?.trim()
+  if (envAddress && WALLET_ADDRESS_PATTERN.test(envAddress)) {
+    return envAddress as `0x${string}`
+  }
+
+  return ZERO_ADDRESS
+}
 
 const DEFAULT_RESPONSE: AffiliateInfoResponse = {
-  referrerAddress: DEFAULT_REFERRER,
+  referrerAddress: resolveDefaultReferrerAddress(),
   affiliateAddress: ZERO_ADDRESS,
   affiliateSharePercent: 0,
   tradeFeeBps: 200,

@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
       return {
         ...user,
         is_admin: isAdminWallet(user.address),
-        avatarUrl: user.image ? getSupabaseImageUrl(user.image) : `https://avatar.vercel.sh/${proxyWalletAddress}.png`,
+        avatarUrl: user.image ? getSupabaseImageUrl(user.image) : '',
         referred_by_display: referredDisplay,
         referred_by_profile_url: referredProfile,
         created_label: createdLabel,

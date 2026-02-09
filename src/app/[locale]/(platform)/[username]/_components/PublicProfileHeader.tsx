@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { useClipboard } from '@/hooks/useClipboard'
 import { Link } from '@/i18n/navigation'
+import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { truncateAddress } from '@/lib/formatters'
 import { useUser } from '@/stores/useUser'
 
@@ -24,17 +25,33 @@ export default function PublicProfileHeader({ profile }: PublicProfileHeaderProp
 
   const address = truncateAddress(proxyWalletAddress)
   const joinDate = new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const avatarUrl = profile.image?.trim() ?? ''
+  const avatarSeed = profile.proxy_wallet_address || profile.address || profile.username || 'user'
+  const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
+  const placeholderStyle = showPlaceholder
+    ? getAvatarPlaceholderStyle(avatarSeed)
+    : undefined
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-8">
       <div className="size-28 overflow-hidden rounded-full border border-border shadow-sm">
-        <Image
-          src={profile.image}
-          alt={`${profile.username} avatar`}
-          width={112}
-          height={112}
-          className="size-full object-cover"
-        />
+        {showPlaceholder
+          ? (
+              <div
+                aria-hidden="true"
+                className="size-full rounded-full"
+                style={placeholderStyle}
+              />
+            )
+          : (
+              <Image
+                src={avatarUrl}
+                alt={`${profile.username} avatar`}
+                width={112}
+                height={112}
+                className="size-full object-cover"
+              />
+            )}
       </div>
 
       <div className="flex-1 space-y-3">

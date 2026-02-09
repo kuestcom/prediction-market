@@ -1,8 +1,12 @@
 import type { Route } from 'next'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
-export default function NotFound() {
+export default async function NotFound() {
+  const runtimeTheme = await loadRuntimeThemeState()
+  const discordLink = runtimeTheme.site.discordLink
+
   return (
     <main className="container flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
       <div className="h-auto w-24">
@@ -74,19 +78,19 @@ export default function NotFound() {
       <p className="mt-5 text-2xl font-medium text-primary">
         Oops...we didn&apos;t forecast this
       </p>
-      {process.env.NEXT_PUBLIC_DISCORD_LINK && (
+      {discordLink && (
         <p className="mt-3 text-sm text-muted-foreground">
           If reloading doesn&apos;t fix it, let us know via
           {' '}
           <span className="inline">
-            <Link
-              href={process.env.NEXT_PUBLIC_DISCORD_LINK as Route}
+            <a
+              href={discordLink}
               target="_blank"
               rel="noreferrer"
               className="underline underline-offset-2"
             >
               Discord
-            </Link>
+            </a>
             .
           </span>
         </p>

@@ -59,7 +59,7 @@ export default function EventCommentForm({
   }
 
   return (
-    <div className="mt-4 grid gap-2">
+    <div className="mt-2 grid gap-2">
       <form
         className="relative"
         onSubmit={handleSubmit}

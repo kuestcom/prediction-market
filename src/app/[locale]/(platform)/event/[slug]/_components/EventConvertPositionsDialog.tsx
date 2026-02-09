@@ -384,7 +384,7 @@ export default function EventConvertPositionsDialog({
     <div className="space-y-5 text-foreground">
       <div className="space-y-2">
         <p className="text-sm font-semibold">Select one or more</p>
-        <div className="scrollbar-hide max-h-36 overflow-y-auto rounded-lg border bg-background">
+        <div className="max-h-36 overflow-y-auto rounded-lg border bg-background">
           {options.map((option, index) => {
             const checkboxId = `${checkboxBaseId}-${index}`
             const sharesLabel = formatSharesLabel(option.shares, {
@@ -467,7 +467,7 @@ export default function EventConvertPositionsDialog({
 
   const reviewContent = (
     <div className="space-y-5 text-foreground">
-      <div className="scrollbar-hide max-h-72 overflow-y-auto rounded-xl border border-border/70 bg-muted/60 p-3">
+      <div className="max-h-72 overflow-y-auto rounded-xl border border-border/70 bg-muted/60 p-3">
         <div className="space-y-0">
           <div className="rounded-lg border bg-background p-3">
             <div className="flex flex-col gap-4">

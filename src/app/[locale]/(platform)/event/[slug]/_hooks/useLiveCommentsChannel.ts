@@ -44,7 +44,7 @@ function buildLiveComment(payload: LiveCommentPayload, user: User | null): Comme
   const userAddress = payload.userAddress ?? profile.baseAddress ?? ''
   const createdAt = payload.createdAt ?? new Date().toISOString()
   const username = profile.name || profile.pseudonym || 'Anonymous'
-  const profileImage = profile.profileImage ?? `https://avatar.vercel.sh/${payload.id}.png`
+  const profileImage = profile.profileImage ?? ''
 
   const positions = Array.isArray(payload.positions) ? payload.positions : undefined
 

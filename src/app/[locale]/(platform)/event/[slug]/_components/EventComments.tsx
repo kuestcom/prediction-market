@@ -134,7 +134,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
 
   if (error) {
     return (
-      <div className="mt-6">
+      <div className="mt-2">
         <AlertBanner
           title="Internal server error"
           description={(
@@ -165,7 +165,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
         <ShieldIcon />
         {t('Beware of external links')}
       </Badge>
-      <div className="mt-2 flex items-center gap-3">
+      <div className="mt-1 flex items-center gap-3">
         <Select value={sortBy} onValueChange={value => setSortBy(value as 'newest' | 'most_liked')}>
           <SelectTrigger size="default" className="h-9 px-3 text-sm dark:bg-transparent">
             <SelectValue />
@@ -193,7 +193,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
         </Badge>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-1">
         {status === 'pending'
           ? (
               <>

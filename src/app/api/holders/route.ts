@@ -25,9 +25,9 @@ function normalizeAddressKey(address?: string | null) {
   return normalized || null
 }
 
-function normalizeAvatarUrl(image: string | null | undefined, fallbackAddress: string) {
+function normalizeAvatarUrl(image: string | null | undefined) {
   if (!image) {
-    return `https://avatar.vercel.sh/${fallbackAddress}.png`
+    return ''
   }
 
   if (image.startsWith('http')) {
@@ -80,7 +80,7 @@ export async function GET(request: Request) {
         const fallbackAddress = profile.proxy_wallet_address ?? profile.address
         const normalizedAddress = normalizeAddressKey(profile.address)
         const normalizedProxyAddress = normalizeAddressKey(profile.proxy_wallet_address)
-        const imageUrl = normalizeAvatarUrl(profile.image, fallbackAddress)
+        const imageUrl = normalizeAvatarUrl(profile.image)
         const createdAt = profile.created_at
           ? new Date(profile.created_at).toISOString()
           : undefined
@@ -111,11 +111,7 @@ export async function GET(request: Request) {
           .map(key => profileLookup.get(key))
           .find(Boolean)
 
-        const fallbackAddress = holder.user.proxy_wallet_address ?? holder.user.id
-        const hydratedImage = normalizeAvatarUrl(
-          matchedProfile?.image ?? holder.user.image,
-          fallbackAddress,
-        )
+        const hydratedImage = normalizeAvatarUrl(matchedProfile?.image ?? holder.user.image)
 
         return {
           ...holder,

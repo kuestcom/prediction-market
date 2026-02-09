@@ -33,13 +33,13 @@ export default function EventTabSelector({
     { key: 'holders', label: t('Top Holders') },
     { key: 'activity', label: t('Activity') },
   ]), [formattedCommentsCount, t])
-  const tabRefs = useRef<(HTMLLIElement | null)[]>([])
+  const tabRef = useRef<(HTMLLIElement | null)[]>([])
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
   const [isInitialized, setIsInitialized] = useState(false)
 
   useLayoutEffect(() => {
     const activeTabIndex = eventTabs.findIndex(tab => tab.key === activeTab)
-    const activeTabElement = tabRefs.current[activeTabIndex]
+    const activeTabElement = tabRef.current[activeTabIndex]
 
     if (activeTabElement) {
       const { offsetLeft, offsetWidth } = activeTabElement
@@ -63,7 +63,7 @@ export default function EventTabSelector({
           <li
             key={tab.key}
             ref={(el) => {
-              tabRefs.current[index] = el
+              tabRef.current[index] = el
             }}
             className={cn(
               'cursor-pointer transition-colors duration-200',

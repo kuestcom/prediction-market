@@ -11,19 +11,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { fetchAffiliateSettingsFromAPI } from '@/lib/affiliate-data'
 import { maybeShowAffiliateToast } from '@/lib/affiliate-toast'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
 const headerIconButtonClass = 'size-10 rounded-sm border border-transparent bg-transparent text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring md:h-9 md:w-9'
-const SITE_NAME = (process.env.NEXT_PUBLIC_SITE_NAME || 'a plataforma').trim()
 
 interface EventShareProps {
   event: Event
 }
 
 export default function EventShare({ event }: EventShareProps) {
+  const site = useSiteIdentity()
   const [shareSuccess, setShareSuccess] = useState(false)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [affiliateSharePercent, setAffiliateSharePercent] = useState<number | null>(null)
@@ -118,10 +119,10 @@ export default function EventShare({ event }: EventShareProps) {
       affiliateCode,
       affiliateSharePercent,
       tradeFeePercent,
-      siteName: SITE_NAME,
+      siteName: site.name,
       context: 'link',
     })
-  }, [affiliateCode, affiliateSharePercent, tradeFeePercent])
+  }, [affiliateCode, affiliateSharePercent, site.name, tradeFeePercent])
 
   const debugPayload = useMemo(() => {
     return {
@@ -234,7 +235,7 @@ export default function EventShare({ event }: EventShareProps) {
             align="end"
             sideOffset={8}
             collisionPadding={16}
-            className="scrollbar-hide max-h-80 w-48 border border-border bg-background p-2 text-foreground shadow-xl"
+            className="max-h-80 w-48 border border-border bg-background p-0 text-foreground shadow-xl"
           >
             <DropdownMenuItem
               onSelect={(menuEvent) => {
@@ -242,14 +243,14 @@ export default function EventShare({ event }: EventShareProps) {
                 void handleCopy('event', `/event/${event.slug}`)
               }}
               className={cn(
-                'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
+                'rounded-none px-3 py-2.5 text-sm font-semibold transition-colors first:rounded-t-md last:rounded-b-md',
                 copiedKey === 'event' ? 'text-foreground' : 'text-muted-foreground',
                 'hover:bg-muted/70 hover:text-foreground focus:bg-muted',
               )}
             >
               {copiedKey === 'event' ? 'Copied!' : 'Copy link'}
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-2 bg-border" />
+            <DropdownMenuSeparator className="my-0 bg-border" />
             {event.markets
               .filter(market => market.slug)
               .map((market) => {
@@ -263,7 +264,11 @@ export default function EventShare({ event }: EventShareProps) {
                       void handleCopy(key, `/event/${event.slug}/${market.slug}`)
                     }}
                     className={cn(
-                      'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
+                      `
+                        rounded-none px-3 py-2.5 text-sm font-semibold transition-colors
+                        first:rounded-t-md
+                        last:rounded-b-md
+                      `,
                       copiedKey === key ? 'text-foreground' : 'text-muted-foreground',
                       'hover:bg-muted/70 hover:text-foreground focus:bg-muted',
                     )}
