@@ -5,6 +5,7 @@ import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotalsByToken } from '
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
+import { getSupabasePublicAssetUrl } from '@/lib/supabase'
 
 export const metadata: Metadata = {
   title: 'Affiliate Settings',
@@ -72,12 +73,14 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
             username: string
             address?: string
             proxy_wallet_address?: string
+            image?: string | null
           }
           return {
             user_id: referral.user_id as string,
             username: userInfo.username,
             address: (userInfo?.address as string | undefined) ?? referral.user_id as string,
             proxy_wallet_address: userInfo?.proxy_wallet_address as string | undefined,
+            image: getSupabasePublicAssetUrl(userInfo?.image ?? null) ?? '',
             created_at: referral.created_at as string,
           }
         }),

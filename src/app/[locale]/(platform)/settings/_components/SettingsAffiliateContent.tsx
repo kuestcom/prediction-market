@@ -2,6 +2,7 @@
 
 import type { AffiliateData } from '@/types'
 import { CheckIcon, CopyIcon } from 'lucide-react'
+import ProfileLink from '@/components/ProfileLink'
 import { Button } from '@/components/ui/button'
 import { useClipboard } from '@/hooks/useClipboard'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
@@ -84,20 +85,33 @@ export default function SettingsAffiliateContent({ affiliateData }: SettingsAffi
               No referrals yet. Share your link to get started.
             </div>
           )}
-          {affiliateData.recentReferrals.map(referral => (
-            <div key={referral.user_id} className="flex items-center justify-between p-4 sm:px-6">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">
-                  {referral.username}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Joined
-                  {' '}
-                  {new Date(referral.created_at).toLocaleDateString()}
-                </p>
+          {affiliateData.recentReferrals.map((referral) => {
+            const profileSlug = referral.address || referral.username
+            return (
+              <div key={referral.user_id} className="p-4 sm:px-6">
+                <ProfileLink
+                  user={{
+                    image: referral.image ?? '',
+                    username: referral.username,
+                    address: referral.address,
+                    proxy_wallet_address: referral.proxy_wallet_address ?? null,
+                  }}
+                  profileHref={profileSlug ? `/profile/${profileSlug}` : undefined}
+                  layout="stacked"
+                  avatarSize={32}
+                  containerClassName="gap-3"
+                  usernameClassName="text-sm font-medium text-foreground"
+                  usernameMaxWidthClassName="max-w-48 sm:max-w-64"
+                >
+                  <p className="text-xs text-muted-foreground">
+                    Joined
+                    {' '}
+                    {new Date(referral.created_at).toLocaleDateString()}
+                  </p>
+                </ProfileLink>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>
