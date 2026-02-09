@@ -152,6 +152,36 @@ async function createSyncVolumeCron(sql) {
   console.log('✅ Cron sync-volume created successfully')
 }
 
+async function createSyncResolutionCron(sql) {
+  console.log('Creating sync-resolution cron job...')
+  const sqlQuery = `
+  DO $$
+  DECLARE
+    job_id int;
+    cmd text := $c$
+      SELECT net.http_get(
+        url := 'https://<<VERCEL_URL>>/api/sync/resolution',
+        headers := '{"Content-Type": "application/json", "Authorization": "Bearer <<CRON_SECRET>>"}'
+      );
+    $c$;
+  BEGIN
+    SELECT jobid INTO job_id FROM cron.job WHERE jobname = 'sync-resolution';
+
+    IF job_id IS NOT NULL THEN
+      PERFORM cron.unschedule(job_id);
+    END IF;
+
+    PERFORM cron.schedule('sync-resolution', '*/5 * * * *', cmd);
+  END $$;`
+
+  const updatedSQL = sqlQuery
+    .replace('<<VERCEL_URL>>', process.env.VERCEL_PROJECT_PRODUCTION_URL)
+    .replace('<<CRON_SECRET>>', process.env.CRON_SECRET)
+
+  await sql.unsafe(updatedSQL, [], { simple: true })
+  console.log('✅ Cron sync-resolution created successfully')
+}
+
 function shouldSkip(requiredEnvVars) {
   const missing = requiredEnvVars.filter(envVar => !process.env[envVar])
   if (missing.length === 0) {
@@ -207,6 +237,7 @@ async function run() {
     await applyMigrations(sql)
     await createCleanCronDetailsCron(sql)
     await createSyncEventsCron(sql)
+    await createSyncResolutionCron(sql)
     await createSyncVolumeCron(sql)
   }
   catch (error) {
