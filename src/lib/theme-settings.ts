@@ -186,10 +186,10 @@ function resolveLogoSvgOrDefault(value: string | null | undefined, sourceLabel: 
   return sanitizeThemeSiteLogoSvg(normalized, sourceLabel)
 }
 
-function normalizeRequiredWalletAddress(value: string | null | undefined, sourceLabel: string) {
+function normalizeFeeRecipientWalletAddress(value: string | null | undefined, sourceLabel: string) {
   const normalized = typeof value === 'string' ? value.trim() : ''
   if (!normalized) {
-    return { value: null as `0x${string}` | null, error: `${sourceLabel} is required.` }
+    return { value: ZERO_ADDRESS, error: null as string | null }
   }
 
   if (!WALLET_ADDRESS_PATTERN.test(normalized)) {
@@ -197,6 +197,10 @@ function normalizeRequiredWalletAddress(value: string | null | undefined, source
   }
 
   return { value: normalized as `0x${string}`, error: null as string | null }
+}
+
+function isZeroAddress(value: string | null | undefined) {
+  return (value ?? '').toLowerCase() === ZERO_ADDRESS.toLowerCase()
 }
 
 function normalizeWalletAddressList(value: string | null | undefined, sourceLabel: string) {
@@ -331,7 +335,7 @@ function normalizeThemeSiteConfig(params: {
     return { data: null, error: supportUrlValidated.error }
   }
 
-  const feeRecipientWalletValidated = normalizeRequiredWalletAddress(
+  const feeRecipientWalletValidated = normalizeFeeRecipientWalletAddress(
     params.feeRecipientWalletValue,
     params.feeRecipientWalletErrorLabel,
   )
@@ -539,7 +543,9 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
       googleAnalyticsId: normalized.data.googleAnalyticsIdValue,
       discordLink: normalized.data.discordLinkValue,
       supportUrl: normalized.data.supportUrlValue,
-      feeRecipientWallet: normalized.data.feeRecipientWalletValue,
+      feeRecipientWallet: isZeroAddress(normalized.data.feeRecipientWalletValue)
+        ? ''
+        : normalized.data.feeRecipientWalletValue,
       marketCreators: normalized.data.marketCreatorsValue,
       lifiIntegrator,
       lifiApiKey: '',
@@ -556,7 +562,7 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     googleAnalyticsId: defaultSite.googleAnalyticsId ?? '',
     discordLink: defaultSite.discordLink ?? '',
     supportUrl: defaultSite.supportUrl ?? '',
-    feeRecipientWallet: ZERO_ADDRESS,
+    feeRecipientWallet: '',
     marketCreators: '',
     lifiIntegrator,
     lifiApiKey: '',
