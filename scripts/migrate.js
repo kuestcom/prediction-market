@@ -163,9 +163,7 @@ function shouldSkip(requiredEnvVars) {
 }
 
 function resolveMigrationConnectionString() {
-  const migrationUrl = process.env.POSTGRES_URL_NON_POOLING
-    || process.env.POSTGRES_MIGRATION_URL
-    || process.env.POSTGRES_URL
+  const migrationUrl = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL
 
   if (!migrationUrl) {
     return null
