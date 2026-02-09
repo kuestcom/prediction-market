@@ -45,7 +45,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.45.1",
-    "fumadocs-core": "^16.5.0",
+    "fumadocs-core": "^16.5.2",
     "fumadocs-mdx": "^14.2.6",
     "fumadocs-ui": "^16.5.0",
     "input-otp": "^1.4.2",
