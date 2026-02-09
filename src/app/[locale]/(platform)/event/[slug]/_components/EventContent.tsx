@@ -63,7 +63,7 @@ export default function EventContent({
   const isMobile = useIsMobile()
   const searchParams = useSearchParams()
   const clientUser = useUser()
-  const prevUserId = useRef<string | null>(null)
+  const prevUserIdRef = useRef<string | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
   const eventMarketsRef = useRef<HTMLDivElement | null>(null)
   const appliedOrderParamsRef = useRef<string | null>(null)
@@ -95,13 +95,13 @@ export default function EventContent({
 
   useEffect(() => {
     if (user?.id) {
-      prevUserId.current = user.id
+      prevUserIdRef.current = user.id
       useUser.setState(user)
       return
     }
 
-    if (!user && prevUserId.current) {
-      prevUserId.current = null
+    if (!user && prevUserIdRef.current) {
+      prevUserIdRef.current = null
       useUser.setState(null)
     }
   }, [user])

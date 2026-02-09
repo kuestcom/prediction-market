@@ -12,20 +12,20 @@ interface FilterToolbarSearchInputProps {
 
 export default function FilterToolbarSearchInput({ search, onSearchChange }: FilterToolbarSearchInputProps) {
   const [searchQuery, setSearchQuery] = useState(search)
-  const isFirstRender = useRef(true)
-  const prevSearch = useRef(search)
+  const isFirstRenderRef = useRef(true)
+  const prevSearchRef = useRef(search)
   const t = useExtracted()
 
   useEffect(() => {
-    if (prevSearch.current !== search) {
-      prevSearch.current = search
+    if (prevSearchRef.current !== search) {
+      prevSearchRef.current = search
       setSearchQuery(search)
     }
   }, [search])
 
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false
       return
     }
 

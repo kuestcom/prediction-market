@@ -41,7 +41,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
   const [showParentLeftShadow, setShowParentLeftShadow] = useState(false)
   const [showParentRightShadow, setShowParentRightShadow] = useState(false)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const buttonRef = useRef<(HTMLButtonElement | null)[]>([])
   const mainTabRef = useRef<HTMLButtonElement>(null)
   const parentScrollContainerRef = useRef<HTMLDivElement>(null)
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
@@ -86,7 +86,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
     }
 
     const activeIndex = tagItems.findIndex(item => item.slug === activeSubtagSlug)
-    const activeButton = buttonRefs.current[activeIndex]
+    const activeButton = buttonRef.current[activeIndex]
 
     if (!activeButton) {
       if (indicatorRetryRef.current === null) {
@@ -121,7 +121,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
   }, [])
 
   useEffect(() => {
-    buttonRefs.current = Array.from({ length: tagItems.length }).map((_, index) => buttonRefs.current[index] ?? null)
+    buttonRef.current = Array.from({ length: tagItems.length }).map((_, index) => buttonRef.current[index] ?? null)
   }, [tagItems.length])
 
   useEffect(() => {
@@ -232,11 +232,11 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
     }
 
     const buttonIndex = childIndex + 1
-    const activeButton = buttonRefs.current[buttonIndex]
+    const activeButton = buttonRef.current[buttonIndex]
 
     if (!activeButton) {
       const timeoutId = setTimeout(() => {
-        const retryButton = buttonRefs.current[buttonIndex]
+        const retryButton = buttonRef.current[buttonIndex]
         if (retryButton) {
           retryButton.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
         }
@@ -408,7 +408,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
               />
               <Button
                 ref={(el: HTMLButtonElement | null) => {
-                  buttonRefs.current[0] = el
+                  buttonRef.current[0] = el
                 }}
                 onClick={() => handleTagClick(tag.slug, tag.slug)}
                 variant="ghost"
@@ -428,7 +428,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
                 <Button
                   key={subtag.slug}
                   ref={(el: HTMLButtonElement | null) => {
-                    buttonRefs.current[index + 1] = el
+                    buttonRef.current[index + 1] = el
                   }}
                   onClick={() => handleTagClick(subtag.slug, tag.slug)}
                   variant="ghost"

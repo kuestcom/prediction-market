@@ -14,14 +14,14 @@ interface HomeClientProps {
 
 export default function HomeClient({ initialEvents, initialTag }: HomeClientProps) {
   const { filters, updateFilters } = useFilters()
-  const hasInitialized = useRef(false)
+  const hasInitializedRef = useRef(false)
 
   useEffect(() => {
-    if (hasInitialized.current) {
+    if (hasInitializedRef.current) {
       return
     }
 
-    hasInitialized.current = true
+    hasInitializedRef.current = true
 
     if (initialTag) {
       updateFilters({ tag: initialTag, mainTag: initialTag })

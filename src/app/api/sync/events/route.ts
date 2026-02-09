@@ -482,9 +482,7 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
     const existingCreatedAtMs = Date.parse(existingEvent.created_at)
     const incomingCreatedAtMs = Date.parse(createdAtIso)
     if (!Number.isNaN(incomingCreatedAtMs)
-      && (Number.isNaN(existingCreatedAtMs) || incomingCreatedAtMs < existingCreatedAtMs)) {
-      updatePayload.created_at = createdAtIso
-    }
+      && (Number.isNaN(existingCreatedAtMs) || incomingCreatedAtMs < existingCreatedAtMs)) { updatePayload.created_at = createdAtIso }
 
     if (normalizedEndDate && normalizedEndDate !== existingEvent.end_date) {
       updatePayload.end_date = normalizedEndDate
@@ -865,9 +863,7 @@ function resolveImageMeta(contentType: string | null, bytes: Uint8Array | null) 
       && bytes[4] === 0x0D
       && bytes[5] === 0x0A
       && bytes[6] === 0x1A
-      && bytes[7] === 0x0A) {
-      return { extension: 'png', contentType: 'image/png' }
-    }
+      && bytes[7] === 0x0A) { return { extension: 'png', contentType: 'image/png' } }
     if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xD8) {
       return { extension: 'jpg', contentType: 'image/jpeg' }
     }
@@ -879,9 +875,7 @@ function resolveImageMeta(contentType: string | null, bytes: Uint8Array | null) 
       && bytes[8] === 0x57
       && bytes[9] === 0x45
       && bytes[10] === 0x42
-      && bytes[11] === 0x50) {
-      return { extension: 'webp', contentType: 'image/webp' }
-    }
+      && bytes[11] === 0x50) { return { extension: 'webp', contentType: 'image/webp' } }
   }
 
   return { extension: 'jpg', contentType: 'image/jpeg' }

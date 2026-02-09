@@ -51,7 +51,7 @@ export default function EventRules({ event }: EventRulesProps) {
   const t = useExtracted()
   const locale = useLocale()
   const siteIdentity = useSiteIdentity()
-  const [isExpanded, setRulesExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   function formatRules(rules: string): string {
     if (!rules) {
@@ -252,7 +252,7 @@ export default function EventRules({ event }: EventRulesProps) {
     <section className="rounded-xl border transition-all duration-500 ease-in-out">
       <button
         type="button"
-        onClick={() => setRulesExpanded(!isExpanded)}
+        onClick={() => setIsExpanded(!isExpanded)}
         className={cn(
           `
             flex h-18 w-full items-center justify-between p-4 text-left transition-colors

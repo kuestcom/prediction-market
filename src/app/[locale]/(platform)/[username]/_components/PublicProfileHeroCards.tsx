@@ -45,7 +45,7 @@ function ProfitLossCard({
   const [cursorX, setCursorX] = useState<number | null>(null)
   const [pnlSeries, setPnlSeries] = useState<PnlPoint[]>([])
   const timeRangeContainerRef = useRef<HTMLDivElement | null>(null)
-  const timeRangeRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const timeRangeRef = useRef<(HTMLButtonElement | null)[]>([])
   const [timeRangeIndicator, setTimeRangeIndicator] = useState({ width: 0, left: 0 })
   const [timeRangeIndicatorReady, setTimeRangeIndicatorReady] = useState(false)
   const chartId = useId().replace(/:/g, '')
@@ -127,7 +127,7 @@ function ProfitLossCard({
 
   const updateIndicator = useCallback(() => {
     const activeIndex = PNL_TIMEFRAMES.findIndex(range => range === activeTimeframe)
-    const activeButton = timeRangeRefs.current[activeIndex]
+    const activeButton = timeRangeRef.current[activeIndex]
     const container = timeRangeContainerRef.current
     if (!activeButton || !container) {
       return
@@ -394,7 +394,7 @@ function ProfitLossCard({
               <button
                 key={timeframe}
                 ref={(el) => {
-                  timeRangeRefs.current[index] = el
+                  timeRangeRef.current[index] = el
                 }}
                 type="button"
                 className={cn(

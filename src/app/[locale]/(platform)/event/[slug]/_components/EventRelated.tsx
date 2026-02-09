@@ -79,10 +79,10 @@ function useRelatedEvents(params: UseRelatedEventsParams) {
 
 export default function EventRelated({ event }: EventRelatedProps) {
   const t = useExtracted()
-  const [activeTag, setActiveTagState] = useState('all')
-  const [backgroundStyle, setBackgroundStyleState] = useState<BackgroundStyle>(INITIAL_BACKGROUND_STYLE)
-  const [showLeftShadow, setShowLeftShadowState] = useState(false)
-  const [showRightShadow, setShowRightShadowState] = useState(false)
+  const [activeTag, setActiveTag] = useState('all')
+  const [backgroundStyle, setBackgroundStyle] = useState<BackgroundStyle>(INITIAL_BACKGROUND_STYLE)
+  const [showLeftShadow, setShowLeftShadow] = useState(false)
+  const [showRightShadow, setShowRightShadow] = useState(false)
 
   const { data: events = [], isLoading: loading, error } = useRelatedEvents({
     eventSlug: event.slug,
@@ -90,24 +90,24 @@ export default function EventRelated({ event }: EventRelatedProps) {
   })
 
   function resetActiveTag() {
-    setActiveTagState('all')
+    setActiveTag('all')
   }
 
   function resetBackgroundStyle() {
-    setBackgroundStyleState({ ...INITIAL_BACKGROUND_STYLE })
+    setBackgroundStyle({ ...INITIAL_BACKGROUND_STYLE })
   }
 
   function applyBackgroundStyle(style: BackgroundStyle) {
-    setBackgroundStyleState(style)
+    setBackgroundStyle(style)
   }
 
   function updateScrollShadowState(left: boolean, right: boolean) {
-    setShowLeftShadowState(left)
-    setShowRightShadowState(right)
+    setShowLeftShadow(left)
+    setShowRightShadow(right)
   }
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const buttonsWrapperRef = useRef<HTMLDivElement>(null)
-  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const buttonRef = useRef<(HTMLButtonElement | null)[]>([])
 
   const tagItems = useMemo(() => {
     const uniqueTags = new Map<string, string>()
@@ -146,7 +146,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
   }, [event.slug])
 
   useEffect(() => {
-    buttonRefs.current = Array.from({ length: tagItems.length }).map((_, index) => buttonRefs.current[index] ?? null)
+    buttonRef.current = Array.from({ length: tagItems.length }).map((_, index) => buttonRef.current[index] ?? null)
   }, [tagItems.length])
 
   const updateBackgroundPosition = useCallback(() => {
@@ -155,7 +155,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
       return
     }
 
-    const activeButton = buttonRefs.current[activeIndex]
+    const activeButton = buttonRef.current[activeIndex]
     const container = buttonsWrapperRef.current
 
     if (!activeButton || !container) {
@@ -238,7 +238,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
       return
     }
 
-    const activeButton = buttonRefs.current[activeIndex]
+    const activeButton = buttonRef.current[activeIndex]
     if (!activeButton) {
       return
     }
@@ -253,7 +253,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
   }, [activeIndex])
 
   function handleTagClick(slug: string) {
-    setActiveTagState(current => (current === slug ? current : slug))
+    setActiveTag(current => (current === slug ? current : slug))
   }
 
   return (
@@ -299,7 +299,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
               <Button
                 key={item.slug}
                 ref={(el: HTMLButtonElement | null) => {
-                  buttonRefs.current[index] = el
+                  buttonRef.current[index] = el
                 }}
                 variant="ghost"
                 size="sm"
