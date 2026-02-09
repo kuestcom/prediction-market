@@ -161,7 +161,7 @@ export async function updateGeneralSettingsAction(
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 
-  revalidatePath('/[locale]/admin/general', 'page')
+  revalidatePath('/[locale]/admin', 'page')
   revalidatePath('/[locale]/admin/theme', 'page')
   revalidatePath('/[locale]', 'layout')
 

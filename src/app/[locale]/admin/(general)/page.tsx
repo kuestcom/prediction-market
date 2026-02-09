@@ -2,7 +2,7 @@
 
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import { setRequestLocale } from 'next-intl/server'
-import AdminGeneralSettingsForm from '@/app/[locale]/admin/general/_components/AdminGeneralSettingsForm'
+import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getSupabasePublicAssetUrl } from '@/lib/supabase'
 import { getThemeSiteSettingsFormState } from '@/lib/theme-settings'

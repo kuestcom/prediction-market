@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { updateGeneralSettingsAction } from '@/app/[locale]/admin/general/_actions/update-general-settings'
+import { updateGeneralSettingsAction } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
@@ -341,7 +341,23 @@ export default function AdminGeneralSettingsForm({
 
       <section className="overflow-hidden rounded-xl border">
         <div className="p-4">
-          <h3 className="text-base font-medium">LI.FI integration</h3>
+          <div className="flex items-center gap-1">
+            <h3 className="text-base font-medium">LI.FI integration</h3>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex size-4 items-center justify-center text-muted-foreground hover:text-foreground"
+                  aria-label="LI.FI integration help"
+                >
+                  <CircleHelp className="size-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs text-left">
+                LI.FI powers swap routes and token balances used in trading and deposits. It works without an API key (default: 200 requests per 2 hours). With an API key, the default limit is 200 requests per minute (enforced on a 2-hour rolling window).
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
         <div className="border-t p-4">
