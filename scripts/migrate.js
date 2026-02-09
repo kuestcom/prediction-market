@@ -9,49 +9,6 @@ function readPositiveInt(name, fallback) {
   return Number.isInteger(value) && value > 0 ? value : fallback
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-function isConnectionLimitError(error) {
-  if (!error || typeof error !== 'object') {
-    return false
-  }
-
-  const code = typeof error.code === 'string' ? error.code : ''
-  const message = typeof error.message === 'string' ? error.message : ''
-
-  if (code === '53300') {
-    return true
-  }
-
-  if (code === 'XX000' && /max client connections reached/i.test(message)) {
-    return true
-  }
-
-  return /too many clients/i.test(message)
-}
-
-async function withRetry(label, fn, attempts, baseDelayMs) {
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      return await fn()
-    }
-    catch (error) {
-      const shouldRetry = isConnectionLimitError(error) && attempt < attempts
-      if (!shouldRetry) {
-        throw error
-      }
-
-      const delay = baseDelayMs * attempt
-      console.warn(
-        `${label} failed due to DB connection limits (attempt ${attempt}/${attempts}). Retrying in ${delay}ms...`,
-      )
-      await sleep(delay)
-    }
-  }
-}
-
 async function applyMigrations(sql) {
   console.log('Applying migrations...')
 
@@ -205,17 +162,39 @@ function shouldSkip(requiredEnvVars) {
   return true
 }
 
+function resolveMigrationConnectionString() {
+  const migrationUrl = process.env.POSTGRES_URL_NON_POOLING
+    || process.env.POSTGRES_MIGRATION_URL
+    || process.env.POSTGRES_URL
+
+  if (!migrationUrl) {
+    return null
+  }
+
+  return migrationUrl.replace('require', 'disable')
+}
+
 async function run() {
-  const requiredEnvVars = ['POSTGRES_URL', 'VERCEL_PROJECT_PRODUCTION_URL', 'CRON_SECRET']
+  const requiredEnvVars = ['VERCEL_PROJECT_PRODUCTION_URL', 'CRON_SECRET']
   if (shouldSkip(requiredEnvVars)) {
     return
   }
 
-  const maxConnections = readPositiveInt('DB_PUSH_MAX_CONNECTIONS', 1)
-  const retryAttempts = readPositiveInt('DB_PUSH_MAX_RETRIES', 8)
-  const retryDelayMs = readPositiveInt('DB_PUSH_RETRY_DELAY_MS', 1000)
+  const connectionString = resolveMigrationConnectionString()
+  if (!connectionString) {
+    console.log('Skipping db:push because required env vars are missing: POSTGRES_URL_NON_POOLING, POSTGRES_MIGRATION_URL or POSTGRES_URL')
+    return
+  }
 
-  const connectionString = process.env.POSTGRES_URL.replace('require', 'disable')
+  if (process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_MIGRATION_URL) {
+    console.log('Using non-pooling database URL for migrations.')
+  }
+  else {
+    console.log('Using POSTGRES_URL for migrations (set POSTGRES_URL_NON_POOLING to use direct/session pooler URL).')
+  }
+
+  const maxConnections = readPositiveInt('DB_PUSH_MAX_CONNECTIONS', 1)
+
   const sql = postgres(connectionString, {
     max: maxConnections,
     connect_timeout: 30,
@@ -224,20 +203,13 @@ async function run() {
 
   try {
     console.log('Connecting to database...')
-    await withRetry(
-      'Database ping',
-      async () => {
-        await sql`SELECT 1`
-      },
-      retryAttempts,
-      retryDelayMs,
-    )
+    await sql`SELECT 1`
     console.log('Connected to database successfully')
 
-    await withRetry('Apply migrations', async () => applyMigrations(sql), retryAttempts, retryDelayMs)
-    await withRetry('Create clean cron', async () => createCleanCronDetailsCron(sql), retryAttempts, retryDelayMs)
-    await withRetry('Create sync-events cron', async () => createSyncEventsCron(sql), retryAttempts, retryDelayMs)
-    await withRetry('Create sync-volume cron', async () => createSyncVolumeCron(sql), retryAttempts, retryDelayMs)
+    await applyMigrations(sql)
+    await createCleanCronDetailsCron(sql)
+    await createSyncEventsCron(sql)
+    await createSyncVolumeCron(sql)
   }
   catch (error) {
     console.error('An error occurred:', error)
