@@ -91,4 +91,24 @@ describe('buildEventMarketRows', () => {
 
     expect(result.rows.map(row => row.market.condition_id)).toEqual(['m2', 'm1'])
   })
+
+  it('displays <1% for any chance below 1, including zero', () => {
+    const event = createEvent([
+      createMarket({ condition_id: 'm0', title: 'Zero' }),
+      createMarket({ condition_id: 'm095', title: 'Zero Point Ninety Five' }),
+      createMarket({ condition_id: 'm1', title: 'One' }),
+    ])
+
+    const result = buildEventMarketRows(event, {
+      outcomeChances: { m0: 0, m095: 0.95, m1: 1 },
+      outcomeChanceChanges: { m0: 0, m095: 0, m1: 0 },
+      marketYesPrices: {},
+    })
+
+    const byId = Object.fromEntries(result.rows.map(row => [row.market.condition_id, row]))
+
+    expect(byId.m0?.chanceMeta.chanceDisplay).toBe('<1%')
+    expect(byId.m095?.chanceMeta.chanceDisplay).toBe('<1%')
+    expect(byId.m1?.chanceMeta.chanceDisplay).toBe('1%')
+  })
 })

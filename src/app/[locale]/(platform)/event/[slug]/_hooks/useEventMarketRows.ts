@@ -82,8 +82,7 @@ export function buildEventMarketRows(
       : null
     const normalizedChanceValue = normalizedChance ?? 0
     const roundedChance = Math.round(normalizedChanceValue)
-    const roundedThresholdChance = Math.round(normalizedChanceValue * 10) / 10
-    const isSubOnePercent = normalizedChance != null && roundedThresholdChance > 0 && roundedThresholdChance < 1
+    const isSubOnePercent = normalizedChance != null && normalizedChance < 1
     const chanceDisplay = normalizedChance != null
       ? (isSubOnePercent ? '<1%' : `${roundedChance}%`)
       : '—'
