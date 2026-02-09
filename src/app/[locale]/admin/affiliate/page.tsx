@@ -3,7 +3,7 @@
 import { setRequestLocale } from 'next-intl/server'
 import AdminAffiliateOverview from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateOverview'
 import AdminAffiliateSettingsForm from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm'
-import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotalsByToken } from '@/lib/data-api/fees'
+import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { fetchMaxExchangeBaseFeeRate } from '@/lib/exchange'
@@ -97,7 +97,7 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
         console.warn('Failed to load affiliate fee totals', result.reason)
         return
       }
-      const usdcTotal = sumFeeTotalsByToken(result.value, '0')
+      const usdcTotal = sumFeeTotals(result.value)
       feeTotalsByAddress.set(
         uniqueReceivers[idx].toLowerCase(),
         baseUnitsToNumber(usdcTotal, 6),

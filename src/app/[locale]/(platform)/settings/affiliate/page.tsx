@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import SettingsAffiliateContent from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateContent'
-import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotalsByToken } from '@/lib/data-api/fees'
+import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -43,7 +43,7 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
   let totalAffiliateFees = 0
 
   if (feeTotals) {
-    const usdcTotal = sumFeeTotalsByToken(feeTotals, '0')
+    const usdcTotal = sumFeeTotals(feeTotals)
     totalAffiliateFees = baseUnitsToNumber(usdcTotal, 6)
   }
 

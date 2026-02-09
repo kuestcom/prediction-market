@@ -77,6 +77,17 @@ export function sumFeeTotalsByToken(totals: FeeReceiverTotal[], tokenId: string)
   }, 0n)
 }
 
+export function sumFeeTotals(totals: FeeReceiverTotal[]): bigint {
+  return totals.reduce((acc, total) => {
+    try {
+      return acc + BigInt(total.totalAmount)
+    }
+    catch {
+      return acc
+    }
+  }, 0n)
+}
+
 export function baseUnitsToNumber(amount: bigint, decimals = 6): number {
   if (decimals <= 0) {
     return Number(amount)
