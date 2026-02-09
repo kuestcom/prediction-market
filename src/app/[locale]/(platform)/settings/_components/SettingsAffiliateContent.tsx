@@ -1,9 +1,10 @@
 'use client'
 
 import type { AffiliateData } from '@/types'
-import { CheckIcon, CopyIcon } from 'lucide-react'
+import { CheckIcon, CopyIcon, InfoIcon } from 'lucide-react'
 import ProfileLink from '@/components/ProfileLink'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useClipboard } from '@/hooks/useClipboard'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
 
@@ -49,7 +50,27 @@ export default function SettingsAffiliateContent({ affiliateData }: SettingsAffi
             </div>
           </div>
           <div className="shrink-0 text-left sm:text-right">
-            <div className="text-lg font-medium text-primary">{formatPercent(affiliateData.commissionPercent)}</div>
+            <div className="flex items-center justify-start gap-1 text-lg font-medium text-primary sm:justify-end">
+              <span>{formatPercent(affiliateData.commissionPercent)}</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className={`
+                      inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors
+                      hover:text-foreground
+                      focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none
+                    `}
+                    aria-label="Commission info"
+                  >
+                    <InfoIcon className="size-3" aria-hidden />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-64 text-left">
+                  Commission is taken from the trading fee at execution, not from volume. The exchange base fee comes out first.
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <div className="text-sm text-muted-foreground">Commission</div>
           </div>
         </div>

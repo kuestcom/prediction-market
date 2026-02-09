@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import SettingsAffiliateContent from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateContent'
-import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals } from '@/lib/data-api/fees'
+import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -42,10 +42,13 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
   ])
   const affiliateSettings = allSettings?.affiliate
   let totalAffiliateFees = 0
+  let referredVolume = 0
 
   if (feeTotals) {
     const usdcTotal = sumFeeTotals(feeTotals)
+    const volumeTotal = sumFeeVolumes(feeTotals)
     totalAffiliateFees = baseUnitsToNumber(usdcTotal, 6)
+    referredVolume = baseUnitsToNumber(volumeTotal, 6)
   }
 
   const tradeFeeBps = Number.parseInt(affiliateSettings?.trade_fee_bps?.value || '100', 10)
@@ -65,7 +68,7 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
         stats: {
           total_referrals: Number(statsData?.total_referrals ?? 0),
           active_referrals: Number(statsData?.active_referrals ?? 0),
-          volume: Number(statsData?.volume ?? 0),
+          volume: referredVolume,
           total_affiliate_fees: totalAffiliateFees,
         },
         recentReferrals: (referralsData ?? []).map((referral: any) => {

@@ -3,6 +3,7 @@ export interface FeeReceiverTotal {
   receiver: string
   tokenId: string
   totalAmount: string
+  totalVolume: string
   updatedAt: number
 }
 
@@ -81,6 +82,17 @@ export function sumFeeTotals(totals: FeeReceiverTotal[]): bigint {
   return totals.reduce((acc, total) => {
     try {
       return acc + BigInt(total.totalAmount)
+    }
+    catch {
+      return acc
+    }
+  }, 0n)
+}
+
+export function sumFeeVolumes(totals: FeeReceiverTotal[]): bigint {
+  return totals.reduce((acc, total) => {
+    try {
+      return acc + BigInt(total.totalVolume)
     }
     catch {
       return acc
