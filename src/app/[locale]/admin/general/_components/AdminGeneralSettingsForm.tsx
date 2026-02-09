@@ -13,7 +13,7 @@ import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
+import { cn, sanitizeSvg } from '@/lib/utils'
 
 const initialState = {
   error: null,
@@ -134,8 +134,14 @@ export default function AdminGeneralSettingsForm({
     return logoPreviewUrl ?? initialLogoImageUrl
   }, [initialLogoImageUrl, logoPreviewUrl])
 
+  const sanitizedLogoSvg = useMemo(() => sanitizeSvg(logoSvg), [logoSvg])
+  const svgPreviewUrl = useMemo(
+    () => `data:image/svg+xml;utf8,${encodeURIComponent(sanitizedLogoSvg)}`,
+    [sanitizedLogoSvg],
+  )
+
   const showImagePreview = Boolean(imagePreview)
-  const showSvgPreview = !showImagePreview && Boolean(logoSvg?.trim())
+  const showSvgPreview = !showImagePreview && Boolean(sanitizedLogoSvg.trim())
 
   return (
     <form action={formAction} encType="multipart/form-data" className="grid gap-6">
@@ -176,7 +182,7 @@ export default function AdminGeneralSettingsForm({
                       setLogoMode('svg')
                       setLogoImagePath('')
                       void file.text().then((text) => {
-                        setLogoSvg(text)
+                        setLogoSvg(sanitizeSvg(text))
                       })
                     }
                     else {
@@ -216,13 +222,13 @@ export default function AdminGeneralSettingsForm({
                   />
                 )}
                 {!showImagePreview && showSvgPreview && (
-                  <span
-                    className={`
-                      relative z-0 flex size-full items-center justify-center text-foreground/80
-                      [&_svg]:size-[70%]
-                      [&_svg_*]:fill-current [&_svg_*]:stroke-current
-                    `}
-                    dangerouslySetInnerHTML={{ __html: logoSvg }}
+                  <Image
+                    src={svgPreviewUrl}
+                    alt="Platform logo"
+                    fill
+                    sizes="160px"
+                    className="object-contain"
+                    unoptimized
                   />
                 )}
                 <ImageUp
