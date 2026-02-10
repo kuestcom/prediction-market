@@ -16,22 +16,6 @@ interface ResolutionTimelinePanelProps {
   className?: string
 }
 
-function getOutcomeLabel(
-  outcome: ResolutionTimelineOutcome | null,
-  t: ReturnType<typeof useExtracted>,
-): string {
-  if (outcome === 'yes') {
-    return t('Yes')
-  }
-  if (outcome === 'no') {
-    return t('No')
-  }
-  if (outcome === 'invalid') {
-    return t('Invalid')
-  }
-  return t('Unknown')
-}
-
 function TimelineIcon({ item }: { item: ResolutionTimelineItem }) {
   if (item.icon === 'gavel') {
     return (
@@ -60,17 +44,30 @@ function TimelineIcon({ item }: { item: ResolutionTimelineItem }) {
 
 function TimelineLabel({
   item,
-  t,
 }: {
   item: ResolutionTimelineItem
-  t: ReturnType<typeof useExtracted>
 }) {
+  const t = useExtracted()
+
+  function outcomeLabel(outcome: ResolutionTimelineOutcome | null): string {
+    if (outcome === 'yes') {
+      return t('Yes')
+    }
+    if (outcome === 'no') {
+      return t('No')
+    }
+    if (outcome === 'invalid') {
+      return t('Invalid')
+    }
+    return t('Unknown')
+  }
+
   if (item.type === 'outcomeProposed') {
     return (
       <span className="text-sm font-medium text-foreground">
         {t('Outcome proposed:')}
         {' '}
-        {getOutcomeLabel(item.outcome, t)}
+        {outcomeLabel(item.outcome)}
       </span>
     )
   }
@@ -98,7 +95,7 @@ function TimelineLabel({
     <span className="text-sm font-medium text-foreground">
       {t('Final outcome:')}
       {' '}
-      {getOutcomeLabel(item.outcome, t)}
+      {outcomeLabel(item.outcome)}
     </span>
   )
 }
@@ -157,7 +154,7 @@ export default function ResolutionTimelinePanel({
         {timeline.items.map(item => (
           <div key={item.id} className="relative flex items-center gap-3">
             <TimelineIcon item={item} />
-            <TimelineLabel item={item} t={t} />
+            <TimelineLabel item={item} />
           </div>
         ))}
       </div>
