@@ -10,6 +10,7 @@ ALTER TABLE conditions
   ADD COLUMN resolution_price DECIMAL(20, 6),
   ADD COLUMN resolution_was_disputed BOOLEAN,
   ADD COLUMN resolution_approved BOOLEAN,
+  ADD COLUMN resolution_liveness_seconds BIGINT,
   ADD COLUMN resolution_deadline_at TIMESTAMPTZ;
 
 ALTER TABLE subgraph_syncs

@@ -7,7 +7,8 @@ export const maxDuration = 300
 const RESOLUTION_SUBGRAPH_URL = 'https://api.goldsky.com/api/public/project_cmkeqj653po3801t6ajbv1wcv/subgraphs/resolution-subgraph/1.0.0/gn'
 const SYNC_TIME_LIMIT_MS = 250_000
 const RESOLUTION_PAGE_SIZE = 200
-const SAFETY_PERIOD_SECONDS = 60 * 60
+const SAFETY_PERIOD_V4_SECONDS = 60 * 60
+const SAFETY_PERIOD_NEGRISK_SECONDS = 2 * 24 * 60 * 60
 const RESOLUTION_LIVENESS_DEFAULT_SECONDS = parseOptionalInt(process.env.RESOLUTION_LIVENESS_DEFAULT_SECONDS)
 const RESOLUTION_UNPROPOSED_PRICE_SENTINEL = 69n
 const RESOLUTION_PRICE_YES = 1000000000000000000n
@@ -27,6 +28,12 @@ interface SubgraphResolution {
   approved?: boolean | null
   lastUpdateTimestamp: string
   price: string | null
+  liveness?: string | null
+}
+
+interface MarketContext {
+  eventId: string | null
+  negRisk: boolean
 }
 
 interface SyncStats {
@@ -153,13 +160,15 @@ async function syncResolutions(): Promise<SyncStats> {
 
     fetchedCount += page.resolutions.length
 
-    const questionIds = page.resolutions.map(resolution => resolution.id.toLowerCase())
+    const resolutionIds = page.resolutions.map(resolution => resolution.id.toLowerCase())
+    const conditionIdByResolutionId = new Map<string, string>()
+
     let conditions: { id: string, question_id: string }[] = []
-    if (questionIds.length > 0) {
+    if (resolutionIds.length > 0) {
       const { data, error: conditionsError } = await supabaseAdmin
         .from('conditions')
         .select('id,question_id')
-        .in('question_id', questionIds)
+        .in('question_id', resolutionIds)
 
       if (conditionsError) {
         throw new Error(`Failed to load conditions: ${conditionsError.message}`)
@@ -167,19 +176,46 @@ async function syncResolutions(): Promise<SyncStats> {
       conditions = data ?? []
     }
 
-    const conditionMap = new Map<string, { id: string, question_id: string }>()
     for (const condition of conditions) {
       if (condition.question_id) {
-        conditionMap.set(condition.question_id.toLowerCase(), condition)
+        conditionIdByResolutionId.set(condition.question_id.toLowerCase(), condition.id)
       }
     }
 
-    const conditionIds = Array.from(conditionMap.values()).map(condition => condition.id)
-    let markets: { condition_id: string, event_id: string | null }[] = []
+    let negRiskRequestMatches: {
+      condition_id: string
+      event_id: string | null
+      neg_risk: boolean | null
+      neg_risk_request_id: string | null
+    }[] = []
+    if (resolutionIds.length > 0) {
+      const { data, error: negRiskLookupError } = await supabaseAdmin
+        .from('markets')
+        .select('condition_id,event_id,neg_risk,neg_risk_request_id')
+        .in('neg_risk_request_id', resolutionIds)
+
+      if (negRiskLookupError) {
+        throw new Error(`Failed to load neg-risk request mappings: ${negRiskLookupError.message}`)
+      }
+      negRiskRequestMatches = data ?? []
+    }
+
+    for (const market of negRiskRequestMatches) {
+      if (market.neg_risk_request_id) {
+        conditionIdByResolutionId.set(market.neg_risk_request_id.toLowerCase(), market.condition_id)
+      }
+    }
+
+    const conditionIds = Array.from(new Set([
+      ...conditions.map(condition => condition.id),
+      ...negRiskRequestMatches.map(market => market.condition_id),
+    ]))
+
+    let markets: { condition_id: string, event_id: string | null, neg_risk: boolean | null }[] = []
     if (conditionIds.length > 0) {
       const { data, error: marketsError } = await supabaseAdmin
         .from('markets')
-        .select('condition_id,event_id')
+        .select('condition_id,event_id,neg_risk')
         .in('condition_id', conditionIds)
 
       if (marketsError) {
@@ -188,9 +224,19 @@ async function syncResolutions(): Promise<SyncStats> {
       markets = data ?? []
     }
 
-    const marketEventMap = new Map<string, string | null>()
+    const marketContextMap = new Map<string, MarketContext>()
     for (const market of markets) {
-      marketEventMap.set(market.condition_id, market.event_id ?? null)
+      marketContextMap.set(market.condition_id, {
+        eventId: market.event_id ?? null,
+        negRisk: Boolean(market.neg_risk),
+      })
+    }
+    for (const market of negRiskRequestMatches) {
+      const current = marketContextMap.get(market.condition_id)
+      marketContextMap.set(market.condition_id, {
+        eventId: current?.eventId ?? market.event_id ?? null,
+        negRisk: current?.negRisk ?? Boolean(market.neg_risk),
+      })
     }
 
     let lastPersistableCursor: ResolutionCursor | null = null
@@ -210,8 +256,8 @@ async function syncResolutions(): Promise<SyncStats> {
         continue
       }
 
-      const condition = conditionMap.get(resolution.id.toLowerCase())
-      if (!condition) {
+      const conditionId = conditionIdByResolutionId.get(resolution.id.toLowerCase())
+      if (!conditionId) {
         skippedCount++
         continue
       }
@@ -222,10 +268,11 @@ async function syncResolutions(): Promise<SyncStats> {
       }
 
       try {
+        const marketContext = marketContextMap.get(conditionId) ?? { eventId: null, negRisk: false }
         const eventId = await processResolution(
           resolution,
-          condition.id,
-          marketEventMap.get(condition.id) ?? null,
+          conditionId,
+          marketContext,
         )
         if (eventId) {
           eventIdsNeedingStatusUpdate.add(eventId)
@@ -248,9 +295,18 @@ async function syncResolutions(): Promise<SyncStats> {
       cursor = lastPersistableCursor
     }
     else if (!timeLimitReached) {
-      // If no known condition was processed in this page, keep the cursor unchanged.
-      // This prevents skipping rows whose markets have not yet been imported.
-      break
+      // Avoid stalling forever when a page only contains unknown IDs.
+      const lastResolutionInPage = page.resolutions[page.resolutions.length - 1]
+      const pageEndTimestamp = Number(lastResolutionInPage?.lastUpdateTimestamp)
+      if (!lastResolutionInPage || Number.isNaN(pageEndTimestamp)) {
+        break
+      }
+      const pageEndCursor = {
+        lastUpdateTimestamp: pageEndTimestamp,
+        id: lastResolutionInPage.id,
+      }
+      await updateResolutionCursor(pageEndCursor)
+      cursor = pageEndCursor
     }
 
     if (eventIdsNeedingStatusUpdate.size > 0) {
@@ -349,6 +405,7 @@ async function fetchResolutionPage(afterCursor: ResolutionCursor | null): Promis
         approved
         lastUpdateTimestamp
         price
+        liveness
       }
     }
   `
@@ -405,14 +462,21 @@ function normalizeBooleanField(value: unknown): boolean {
 async function processResolution(
   resolution: SubgraphResolution,
   conditionId: string,
-  eventId: string | null,
+  marketContext: MarketContext,
 ) {
   const lastUpdateTimestamp = Number(resolution.lastUpdateTimestamp)
   const lastUpdateIso = new Date(lastUpdateTimestamp * 1000).toISOString()
   const status = resolution.status?.toLowerCase() ?? 'posed'
   const isResolved = status === 'resolved'
   const resolutionPrice = normalizeResolutionPrice(resolution.price)
-  const deadlineAt = computeResolutionDeadline(status, resolution.flagged, lastUpdateTimestamp)
+  const resolutionLivenessSeconds = normalizeResolutionLiveness(resolution.liveness)
+  const deadlineAt = computeResolutionDeadline(
+    status,
+    resolution.flagged,
+    lastUpdateTimestamp,
+    resolutionLivenessSeconds,
+    marketContext.negRisk,
+  )
 
   const { error: conditionError } = await supabaseAdmin
     .from('conditions')
@@ -426,6 +490,7 @@ async function processResolution(
       resolution_was_disputed: resolution.wasDisputed,
       resolution_approved: resolution.approved,
       resolution_deadline_at: deadlineAt,
+      resolution_liveness_seconds: resolutionLivenessSeconds,
     })
     .eq('id', conditionId)
 
@@ -454,23 +519,44 @@ async function processResolution(
     await updateOutcomePayouts(conditionId, resolutionPrice)
   }
 
-  return eventId ?? null
+  return marketContext.eventId ?? null
 }
 
-function computeResolutionDeadline(status: string, flagged: boolean, lastUpdateTimestamp: number): string | null {
+function computeResolutionDeadline(
+  status: string,
+  flagged: boolean,
+  lastUpdateTimestamp: number,
+  livenessSeconds: number | null,
+  negRisk: boolean,
+): string | null {
   if (flagged) {
-    return new Date((lastUpdateTimestamp + SAFETY_PERIOD_SECONDS) * 1000).toISOString()
+    const safetyPeriod = negRisk ? SAFETY_PERIOD_NEGRISK_SECONDS : SAFETY_PERIOD_V4_SECONDS
+    return new Date((lastUpdateTimestamp + safetyPeriod) * 1000).toISOString()
   }
 
   if (status === 'posed' || status === 'proposed' || status === 'reproposed' || status === 'challenged' || status === 'disputed') {
-    if (RESOLUTION_LIVENESS_DEFAULT_SECONDS == null) {
+    const effectiveLiveness = livenessSeconds ?? RESOLUTION_LIVENESS_DEFAULT_SECONDS
+    if (effectiveLiveness == null) {
       return null
     }
 
-    return new Date((lastUpdateTimestamp + RESOLUTION_LIVENESS_DEFAULT_SECONDS) * 1000).toISOString()
+    return new Date((lastUpdateTimestamp + effectiveLiveness) * 1000).toISOString()
   }
 
   return null
+}
+
+function normalizeResolutionLiveness(rawValue: string | null | undefined): number | null {
+  if (!rawValue) {
+    return null
+  }
+
+  const parsed = Number.parseInt(rawValue, 10)
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null
+  }
+
+  return parsed
 }
 
 function normalizeResolutionPrice(rawValue: string | null): number | null {

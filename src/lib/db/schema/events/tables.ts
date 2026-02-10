@@ -35,6 +35,7 @@ export const conditions = pgTable(
     resolution_price: numeric({ precision: 20, scale: 6 }),
     resolution_was_disputed: boolean(),
     resolution_approved: boolean(),
+    resolution_liveness_seconds: integer(),
     resolution_deadline_at: timestamp({ withTimezone: true }),
     created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
