@@ -112,6 +112,9 @@ async function tryAcquireSyncLock(): Promise<boolean> {
     .limit(1)
 
   if (claimError) {
+    if (isMissingColumnError(claimError, 'status')) {
+      return tryAcquireLegacySyncLock()
+    }
     throw new Error(`Failed to claim sync lock: ${claimError.message}`)
   }
 
@@ -134,6 +137,50 @@ async function tryAcquireSyncLock(): Promise<boolean> {
   }
 
   throw new Error(`Failed to initialize sync lock: ${insertError.message}`)
+}
+
+function isMissingColumnError(error: { message?: string } | null | undefined, column: string): boolean {
+  const message = error?.message ?? ''
+  return message.includes(`column subgraph_syncs.${column} does not exist`)
+}
+
+async function tryAcquireLegacySyncLock(): Promise<boolean> {
+  const legacyPayload = {
+    service_name: 'resolution_sync',
+    subgraph_name: 'resolution',
+    error_message: null,
+  }
+
+  // Legacy fallback: keep the sync progressing even when status-based lock columns are not visible.
+  const { data: updatedRows, error: updateError } = await supabaseAdmin
+    .from('subgraph_syncs')
+    .update(legacyPayload)
+    .eq('service_name', 'resolution_sync')
+    .eq('subgraph_name', 'resolution')
+    .select('id')
+    .limit(1)
+
+  if (updateError) {
+    throw new Error(`Failed to claim legacy sync lock: ${updateError.message}`)
+  }
+
+  if ((updatedRows?.length ?? 0) > 0) {
+    return true
+  }
+
+  const { error: insertError } = await supabaseAdmin
+    .from('subgraph_syncs')
+    .insert(legacyPayload)
+
+  if (!insertError) {
+    return true
+  }
+
+  if (insertError.code === '23505') {
+    return false
+  }
+
+  throw new Error(`Failed to initialize legacy sync lock: ${insertError.message}`)
 }
 
 async function updateSyncStatus(
@@ -162,6 +209,9 @@ async function updateSyncStatus(
     })
 
   if (error) {
+    if (isMissingColumnError(error, 'status')) {
+      return
+    }
     console.error(`Failed to update sync status to ${status}:`, error)
   }
 }

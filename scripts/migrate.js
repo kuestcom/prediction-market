@@ -185,15 +185,14 @@ async function createSyncResolutionCron(sql) {
 function shouldSkip(requiredEnvVars) {
   const missing = requiredEnvVars.filter(envVar => !process.env[envVar])
   if (missing.length === 0) {
-    return false
+    return { skip: false, missing: [] }
   }
 
-  console.log(`Skipping db:push because required env vars are missing: ${missing.join(', ')}`)
-  return true
+  return { skip: true, missing }
 }
 
 function resolveMigrationConnectionString() {
-  const migrationUrl = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL
+  const migrationUrl = process.env.POSTGRES_MIGRATION_URL || process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL
 
   if (!migrationUrl) {
     return null
@@ -203,11 +202,6 @@ function resolveMigrationConnectionString() {
 }
 
 async function run() {
-  const requiredEnvVars = ['VERCEL_PROJECT_PRODUCTION_URL', 'CRON_SECRET']
-  if (shouldSkip(requiredEnvVars)) {
-    return
-  }
-
   const connectionString = resolveMigrationConnectionString()
   if (!connectionString) {
     console.log('Skipping db:push because required env vars are missing: POSTGRES_URL_NON_POOLING, POSTGRES_MIGRATION_URL or POSTGRES_URL')
@@ -236,6 +230,13 @@ async function run() {
 
     await applyMigrations(sql)
     await createCleanCronDetailsCron(sql)
+
+    const cronEnv = shouldSkip(['VERCEL_PROJECT_PRODUCTION_URL', 'CRON_SECRET'])
+    if (cronEnv.skip) {
+      console.log(`Skipping sync cron setup because required env vars are missing: ${cronEnv.missing.join(', ')}`)
+      return
+    }
+
     await createSyncEventsCron(sql)
     await createSyncResolutionCron(sql)
     await createSyncVolumeCron(sql)
