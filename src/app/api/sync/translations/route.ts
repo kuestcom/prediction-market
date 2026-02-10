@@ -63,6 +63,13 @@ interface JobUpsertRow {
   last_error: null
 }
 
+interface ExistingDiscoveryJobRow {
+  job_type: string
+  dedupe_key: string
+  status: TranslationJobRow['status']
+  payload: unknown
+}
+
 interface EventSourceRow {
   id: string
   title: string
@@ -222,19 +229,105 @@ function isTimeLimitReached(startedAtMs: number) {
   return Date.now() - startedAtMs >= SYNC_TIME_LIMIT_MS
 }
 
+function buildJobConflictKey(jobType: string, dedupeKey: string) {
+  return `${jobType}:${dedupeKey}`
+}
+
+function getSourceHashFromUpsertPayload(payload: JobUpsertRow['payload']) {
+  return typeof payload.source_hash === 'string' ? payload.source_hash : null
+}
+
+function getSourceHashFromStoredJobPayload(job: Pick<TranslationJobRow, 'job_type' | 'payload' | 'dedupe_key'>) {
+  try {
+    if (job.job_type === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
+      const parsed = parseEventJobPayload(job.payload, job.dedupe_key)
+      return parsed.source_hash ?? null
+    }
+
+    if (job.job_type === TAG_NAME_TRANSLATION_JOB_TYPE) {
+      const parsed = parseTagJobPayload(job.payload, job.dedupe_key)
+      return parsed.source_hash ?? null
+    }
+  }
+  catch {
+    // Treat malformed payload as unknown hash.
+  }
+
+  return null
+}
+
+function shouldUpsertDiscoveryRow(existing: ExistingDiscoveryJobRow | undefined, next: JobUpsertRow) {
+  if (!existing) {
+    return true
+  }
+
+  if (existing.status === 'pending' || existing.status === 'processing') {
+    return false
+  }
+
+  if (existing.status === 'completed') {
+    return true
+  }
+
+  if (existing.status === 'failed') {
+    const existingSourceHash = getSourceHashFromStoredJobPayload(existing)
+    const nextSourceHash = getSourceHashFromUpsertPayload(next.payload)
+
+    if (!existingSourceHash || !nextSourceHash) {
+      return true
+    }
+
+    return existingSourceHash !== nextSourceHash
+  }
+
+  return true
+}
+
 async function upsertJobs(rows: JobUpsertRow[]) {
+  let persistedRows = 0
+
   for (let index = 0; index < rows.length; index += JOB_UPSERT_BATCH_SIZE) {
     const chunk = rows.slice(index, index + JOB_UPSERT_BATCH_SIZE)
+    const dedupeKeys = [...new Set(chunk.map(row => row.dedupe_key))]
+
+    const { data: existingRows, error: existingRowsError } = await supabaseAdmin
+      .from('jobs')
+      .select('job_type,dedupe_key,status,payload')
+      .in('job_type', [...TRANSLATION_JOB_TYPES])
+      .in('dedupe_key', dedupeKeys)
+
+    if (existingRowsError) {
+      throw new Error(`Failed to inspect existing translation jobs: ${existingRowsError.message}`)
+    }
+
+    const existingMap = new Map<string, ExistingDiscoveryJobRow>()
+    for (const existing of (existingRows ?? []) as ExistingDiscoveryJobRow[]) {
+      existingMap.set(buildJobConflictKey(existing.job_type, existing.dedupe_key), existing)
+    }
+
+    const rowsToUpsert = chunk.filter((row) => {
+      const key = buildJobConflictKey(row.job_type, row.dedupe_key)
+      return shouldUpsertDiscoveryRow(existingMap.get(key), row)
+    })
+
+    if (rowsToUpsert.length === 0) {
+      continue
+    }
+
     const { error } = await supabaseAdmin
       .from('jobs')
-      .upsert(chunk, {
+      .upsert(rowsToUpsert, {
         onConflict: 'job_type,dedupe_key',
       })
 
     if (error) {
       throw new Error(`Failed to upsert translation discovery jobs: ${error.message}`)
     }
+
+    persistedRows += rowsToUpsert.length
   }
+
+  return persistedRows
 }
 
 function buildEventTranslationMetaMap(rows: EventTranslationMetaRow[]) {
@@ -360,8 +453,7 @@ async function enqueueEventDiscoveryJobs(startedAtMs: number, maxJobs: number): 
       }
 
       if (rowsToUpsert.length > 0) {
-        await upsertJobs(rowsToUpsert)
-        enqueued += rowsToUpsert.length
+        enqueued += await upsertJobs(rowsToUpsert)
       }
     }
 
@@ -464,8 +556,7 @@ async function enqueueTagDiscoveryJobs(startedAtMs: number, maxJobs: number): Pr
       }
 
       if (rowsToUpsert.length > 0) {
-        await upsertJobs(rowsToUpsert)
-        enqueued += rowsToUpsert.length
+        enqueued += await upsertJobs(rowsToUpsert)
       }
     }
 

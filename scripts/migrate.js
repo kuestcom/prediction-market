@@ -196,7 +196,7 @@ async function createSyncVolumeCron(sql) {
   console.log('✅ Cron sync-volume created successfully')
 }
 
-async function createSyncEventTranslationsCron(sql) {
+async function createSyncTranslationsCron(sql) {
   console.log('Creating sync-translations cron job...')
   const sqlQuery = `
   DO $$
@@ -282,7 +282,7 @@ async function run() {
     await createCleanCronDetailsCron(sql)
     await createCleanJobsCron(sql)
     await createSyncEventsCron(sql)
-    await createSyncEventTranslationsCron(sql)
+    await createSyncTranslationsCron(sql)
     await createSyncVolumeCron(sql)
   }
   catch (error) {

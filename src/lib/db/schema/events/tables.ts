@@ -11,6 +11,7 @@ import {
   smallint,
   text,
   timestamp,
+  unique,
 } from 'drizzle-orm/pg-core'
 
 export const conditions = pgTable(
@@ -125,6 +126,9 @@ export const jobs = pgTable(
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
+  table => ({
+    job_type_dedupe_key_unique: unique('jobs_job_type_dedupe_key_key').on(table.job_type, table.dedupe_key),
+  }),
 )
 
 export const markets = pgTable(
