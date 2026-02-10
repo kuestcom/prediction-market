@@ -72,12 +72,10 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
   const marketForTokens = event.markets.find(m => m.condition_id === conditionId)
   const yesToken = marketForTokens?.outcomes?.find(o => o.outcome_index === 0)?.token_id
   const noToken = marketForTokens?.outcomes?.find(o => o.outcome_index === 1)?.token_id
-  const yesOutcomeLabel = normalizeOutcomeLabel(
-    marketForTokens?.outcomes?.find(o => o.outcome_index === 0)?.outcome_text,
-  ) ?? t('Yes')
-  const noOutcomeLabel = normalizeOutcomeLabel(
-    marketForTokens?.outcomes?.find(o => o.outcome_index === 1)?.outcome_text,
-  ) ?? t('No')
+  const yesOutcomeText = marketForTokens?.outcomes?.find(o => o.outcome_index === 0)?.outcome_text
+  const noOutcomeText = marketForTokens?.outcomes?.find(o => o.outcome_index === 1)?.outcome_text
+  const yesOutcomeLabel = (yesOutcomeText ? normalizeOutcomeLabel(yesOutcomeText) : '') || yesOutcomeText || t('Yes')
+  const noOutcomeLabel = (noOutcomeText ? normalizeOutcomeLabel(noOutcomeText) : '') || noOutcomeText || t('No')
 
   const { data, isLoading, error } = useEventHolders(conditionId, yesToken, noToken)
 

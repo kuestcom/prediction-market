@@ -59,8 +59,10 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
   } = useOrderBookSummaries(tokenIds, { enabled: isExpanded })
 
   const selectedOutcome: Outcome | undefined = market.outcomes[selectedOutcomeIndex] ?? market.outcomes[0]
-  const yesOutcomeLabel = normalizeOutcomeLabel(market.outcomes[OUTCOME_INDEX.YES]?.outcome_text) ?? t('Yes')
-  const noOutcomeLabel = normalizeOutcomeLabel(market.outcomes[OUTCOME_INDEX.NO]?.outcome_text) ?? t('No')
+  const yesOutcomeText = market.outcomes[OUTCOME_INDEX.YES]?.outcome_text
+  const noOutcomeText = market.outcomes[OUTCOME_INDEX.NO]?.outcome_text
+  const yesOutcomeLabel = (yesOutcomeText ? normalizeOutcomeLabel(yesOutcomeText) : '') || yesOutcomeText || t('Yes')
+  const noOutcomeLabel = (noOutcomeText ? normalizeOutcomeLabel(noOutcomeText) : '') || noOutcomeText || t('No')
   const isLoadingSummaries = isExpanded && isOrderBookLoading && !orderBookSummaries
 
   function handleOutcomeSelection(outcomeIndex: OutcomeToggleIndex) {

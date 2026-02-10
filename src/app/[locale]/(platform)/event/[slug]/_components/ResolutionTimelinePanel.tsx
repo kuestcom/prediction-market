@@ -158,12 +158,10 @@ export default function ResolutionTimelinePanel({
   const normalizeOutcomeLabel = useOutcomeLabel()
   const siteIdentity = useSiteIdentity()
   const [nowMs, setNowMs] = useState(() => Date.now())
-  const yesOutcomeLabel = normalizeOutcomeLabel(
-    market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_text,
-  ) ?? t('Yes')
-  const noOutcomeLabel = normalizeOutcomeLabel(
-    market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)?.outcome_text,
-  ) ?? t('No')
+  const yesOutcomeText = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_text
+  const noOutcomeText = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)?.outcome_text
+  const yesOutcomeLabel = (yesOutcomeText ? normalizeOutcomeLabel(yesOutcomeText) : '') || yesOutcomeText || t('Yes')
+  const noOutcomeLabel = (noOutcomeText ? normalizeOutcomeLabel(noOutcomeText) : '') || noOutcomeText || t('No')
 
   useEffect(() => {
     setNowMs(Date.now())

@@ -742,9 +742,9 @@ function ResolvedMarketRow({
   const resolvedOutcomeText = market.outcomes.find(
     outcome => outcome.outcome_index === resolvedOutcomeIndex,
   )?.outcome_text
-  const resolvedOutcomeLabel = normalizeOutcomeLabel(resolvedOutcomeText)
-    ?? resolvedOutcomeText
-    ?? (isYesOutcome ? t('Yes') : t('No'))
+  const resolvedOutcomeLabel = (resolvedOutcomeText ? normalizeOutcomeLabel(resolvedOutcomeText) : '')
+    || resolvedOutcomeText
+    || (isYesOutcome ? t('Yes') : t('No'))
   const resolvedVolume = Number.isFinite(market.volume) ? market.volume : 0
   const shouldShowIcon = showMarketIcon && Boolean(market.icon_url)
 
