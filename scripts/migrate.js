@@ -92,6 +92,50 @@ async function createCleanCronDetailsCron(sql) {
   console.log('✅ Cron clean-cron-details created successfully')
 }
 
+async function createCleanJobsCron(sql) {
+  console.log('Creating clean-jobs cron job...')
+  const sqlQuery = `
+  DO $$
+  DECLARE
+    job_id int;
+    cmd text := $c$
+      UPDATE jobs
+      SET
+        status = 'pending',
+        available_at = NOW(),
+        reserved_at = NULL,
+        last_error = CASE
+          WHEN COALESCE(last_error, '') = '' THEN '[Recovered stale processing job]'
+          ELSE last_error || ' [Recovered stale processing job]'
+        END
+      WHERE status = 'processing'
+        AND (
+          reserved_at IS NULL
+          OR reserved_at < NOW() - interval '30 minutes'
+        );
+
+      DELETE FROM jobs
+      WHERE status = 'completed'
+        AND updated_at < NOW() - interval '14 days';
+
+      DELETE FROM jobs
+      WHERE status = 'failed'
+        AND updated_at < NOW() - interval '30 days';
+    $c$;
+  BEGIN
+    SELECT jobid INTO job_id FROM cron.job WHERE jobname = 'clean-jobs';
+
+    IF job_id IS NOT NULL THEN
+      PERFORM cron.unschedule(job_id);
+    END IF;
+
+    PERFORM cron.schedule('clean-jobs', '15 * * * *', cmd);
+  END $$;`
+
+  await sql.unsafe(sqlQuery, [], { simple: true })
+  console.log('✅ Cron clean-jobs created successfully')
+}
+
 async function createSyncEventsCron(sql) {
   console.log('Creating sync-events cron job...')
   const sqlQuery = `
@@ -236,6 +280,7 @@ async function run() {
 
     await applyMigrations(sql)
     await createCleanCronDetailsCron(sql)
+    await createCleanJobsCron(sql)
     await createSyncEventsCron(sql)
     await createSyncEventTranslationsCron(sql)
     await createSyncVolumeCron(sql)

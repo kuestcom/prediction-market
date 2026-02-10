@@ -4,7 +4,7 @@
 
 CREATE TABLE jobs
 (
-  id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id          CHAR(26)     PRIMARY KEY DEFAULT generate_ulid(),
   job_type    TEXT        NOT NULL,
   dedupe_key  TEXT        NOT NULL,
   payload     JSONB       NOT NULL DEFAULT '{}'::jsonb,
@@ -28,6 +28,8 @@ CREATE TABLE jobs
 
 CREATE INDEX idx_jobs_status_available_at ON jobs (status, available_at);
 CREATE INDEX idx_jobs_job_type_status_available_at ON jobs (job_type, status, available_at);
+CREATE INDEX idx_jobs_status_updated_at ON jobs (status, updated_at);
+CREATE INDEX idx_jobs_status_reserved_at ON jobs (status, reserved_at);
 
 -- ===========================================
 -- 3. ROW LEVEL SECURITY

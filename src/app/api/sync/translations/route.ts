@@ -36,7 +36,7 @@ interface TagTranslationJobPayload {
 }
 
 interface TranslationJobRow {
-  id: number
+  id: string
   job_type: string
   dedupe_key: string
   payload: unknown

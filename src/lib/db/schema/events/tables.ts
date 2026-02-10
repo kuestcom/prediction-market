@@ -110,7 +110,9 @@ export const event_translations = pgTable(
 export const jobs = pgTable(
   'jobs',
   {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    id: char({ length: 26 })
+      .primaryKey()
+      .default(sql`generate_ulid()`),
     job_type: text().notNull(),
     dedupe_key: text().notNull(),
     payload: jsonb().notNull(),
