@@ -15,10 +15,11 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<'/[locale]/event/[slug]/[market]'>): Promise<Metadata> {
   const { locale, slug, market } = await params
   setRequestLocale(locale)
+  const resolvedLocale = locale as SupportedLocale
   if (slug === STATIC_PARAMS_PLACEHOLDER || market === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
-  const { data } = await EventRepository.getEventTitleBySlug(slug)
+  const { data } = await EventRepository.getEventTitleBySlug(slug, resolvedLocale)
 
   return {
     title: data?.title,

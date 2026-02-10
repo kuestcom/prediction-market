@@ -152,6 +152,36 @@ async function createSyncVolumeCron(sql) {
   console.log('✅ Cron sync-volume created successfully')
 }
 
+async function createSyncEventTranslationsCron(sql) {
+  console.log('Creating sync-event-translations cron job...')
+  const sqlQuery = `
+  DO $$
+  DECLARE
+    job_id int;
+    cmd text := $c$
+      SELECT net.http_get(
+        url := 'https://<<VERCEL_URL>>/api/sync/event-translations',
+        headers := '{"Content-Type": "application/json", "Authorization": "Bearer <<CRON_SECRET>>"}'
+      );
+    $c$;
+  BEGIN
+    SELECT jobid INTO job_id FROM cron.job WHERE jobname = 'sync-event-translations';
+
+    IF job_id IS NOT NULL THEN
+      PERFORM cron.unschedule(job_id);
+    END IF;
+
+    PERFORM cron.schedule('sync-event-translations', '*/10 * * * *', cmd);
+  END $$;`
+
+  const updatedSQL = sqlQuery
+    .replace('<<VERCEL_URL>>', process.env.VERCEL_PROJECT_PRODUCTION_URL)
+    .replace('<<CRON_SECRET>>', process.env.CRON_SECRET)
+
+  await sql.unsafe(updatedSQL, [], { simple: true })
+  console.log('✅ Cron sync-event-translations created successfully')
+}
+
 function shouldSkip(requiredEnvVars) {
   const missing = requiredEnvVars.filter(envVar => !process.env[envVar])
   if (missing.length === 0) {
@@ -207,6 +237,7 @@ async function run() {
     await applyMigrations(sql)
     await createCleanCronDetailsCron(sql)
     await createSyncEventsCron(sql)
+    await createSyncEventTranslationsCron(sql)
     await createSyncVolumeCron(sql)
   }
   catch (error) {

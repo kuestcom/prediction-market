@@ -2,7 +2,7 @@
 
 import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSkeleton'
@@ -33,6 +33,7 @@ interface RelatedEvent {
 interface UseRelatedEventsParams {
   eventSlug: string
   tag?: string
+  locale?: string
   enabled?: boolean
 }
 
@@ -45,11 +46,14 @@ const INITIAL_BACKGROUND_STYLE: BackgroundStyle = {
 }
 
 async function fetchRelatedEvents(params: UseRelatedEventsParams): Promise<RelatedEvent[]> {
-  const { eventSlug, tag } = params
+  const { eventSlug, tag, locale } = params
 
   const url = new URL(`/api/events/${eventSlug}/related`, window.location.origin)
   if (tag && tag !== 'all') {
     url.searchParams.set('tag', tag)
+  }
+  if (locale) {
+    url.searchParams.set('locale', locale)
   }
 
   const response = await fetch(url.toString())
@@ -62,13 +66,13 @@ async function fetchRelatedEvents(params: UseRelatedEventsParams): Promise<Relat
 }
 
 function useRelatedEvents(params: UseRelatedEventsParams) {
-  const { eventSlug, tag = 'all', enabled = true } = params
+  const { eventSlug, tag = 'all', locale, enabled = true } = params
 
-  const queryKey = ['related-events', eventSlug, tag] as const
+  const queryKey = ['related-events', eventSlug, tag, locale] as const
 
   return useQuery({
     queryKey,
-    queryFn: () => fetchRelatedEvents({ eventSlug, tag }),
+    queryFn: () => fetchRelatedEvents({ eventSlug, tag, locale }),
     enabled,
     staleTime: 30_000,
     gcTime: 300_000,
@@ -79,6 +83,7 @@ function useRelatedEvents(params: UseRelatedEventsParams) {
 
 export default function EventRelated({ event }: EventRelatedProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const [activeTag, setActiveTag] = useState('all')
   const [backgroundStyle, setBackgroundStyle] = useState<BackgroundStyle>(INITIAL_BACKGROUND_STYLE)
   const [showLeftShadow, setShowLeftShadow] = useState(false)
@@ -87,6 +92,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
   const { data: events = [], isLoading: loading, error } = useRelatedEvents({
     eventSlug: event.slug,
     tag: activeTag,
+    locale,
   })
 
   function resetActiveTag() {

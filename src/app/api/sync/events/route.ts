@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto'
 import { NextResponse } from 'next/server'
+import { NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { isCronAuthorized } from '@/lib/auth-cron'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { supabaseAdmin } from '@/lib/supabase'
@@ -459,6 +461,11 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
     throw new Error(`Invalid event data: ${JSON.stringify(eventData)}`)
   }
 
+  const normalizedEventTitle = String(eventData.title).trim()
+  if (!normalizedEventTitle) {
+    throw new Error(`Invalid event title for slug ${eventData.slug}`)
+  }
+
   const normalizedEndDate = normalizeTimestamp(eventData.end_time)
   const enableNegRiskFlag = normalizeBooleanField(eventData.enable_neg_risk)
   const negRiskAugmentedFlag = normalizeBooleanField(eventData.neg_risk_augmented)
@@ -467,16 +474,22 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
 
   const { data: existingEvent } = await supabaseAdmin
     .from('events')
-    .select('id, end_date, created_at')
+    .select('id, title, end_date, created_at')
     .eq('slug', eventData.slug)
     .maybeSingle()
 
   if (existingEvent) {
+    let shouldQueueTitleTranslations = false
     const updatePayload: Record<string, any> = {
       enable_neg_risk: enableNegRiskFlag,
       neg_risk_augmented: negRiskAugmentedFlag,
       neg_risk: eventNegRiskFlag,
       neg_risk_market_id: eventNegRiskMarketId ?? null,
+    }
+
+    if (existingEvent.title !== normalizedEventTitle) {
+      updatePayload.title = normalizedEventTitle
+      shouldQueueTitleTranslations = true
     }
 
     const existingCreatedAtMs = Date.parse(existingEvent.created_at)
@@ -495,6 +508,15 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
 
     if (updateError) {
       console.error(`Failed to update event ${existingEvent.id}:`, updateError)
+    }
+
+    if (shouldQueueTitleTranslations) {
+      try {
+        await enqueueEventTitleTranslationJobs(existingEvent.id, normalizedEventTitle)
+      }
+      catch (error) {
+        console.error(`Failed to enqueue title translation jobs for existing event ${existingEvent.id}:`, error)
+      }
     }
 
     console.log(`Event ${eventData.slug} already exists, using existing ID: ${existingEvent.id}`)
@@ -516,7 +538,7 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
     .from('events')
     .insert({
       slug: eventData.slug,
-      title: eventData.title,
+      title: normalizedEventTitle,
       creator: creatorAddress,
       icon_url: iconUrl,
       show_market_icons: eventData.show_market_icons !== false,
@@ -543,6 +565,13 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
 
   if (eventData.tags?.length > 0) {
     await processTags(newEvent.id, eventData.tags)
+  }
+
+  try {
+    await enqueueEventTitleTranslationJobs(newEvent.id, normalizedEventTitle)
+  }
+  catch (error) {
+    console.error(`Failed to enqueue title translation jobs for new event ${newEvent.id}:`, error)
   }
 
   return newEvent.id
@@ -838,6 +867,43 @@ async function processTags(eventId: string, tagNames: any[]) {
         ignoreDuplicates: true,
       },
     )
+  }
+}
+
+function buildTitleSourceHash(title: string) {
+  return createHash('sha256')
+    .update(title)
+    .digest('hex')
+}
+
+async function enqueueEventTitleTranslationJobs(eventId: string, sourceTitle: string) {
+  const normalizedSourceTitle = sourceTitle.trim()
+  if (!normalizedSourceTitle) {
+    return
+  }
+
+  const sourceHash = buildTitleSourceHash(normalizedSourceTitle)
+  const nowIso = new Date().toISOString()
+
+  const rows = NON_DEFAULT_LOCALES.map(locale => ({
+    event_id: eventId,
+    locale,
+    source_title: normalizedSourceTitle,
+    source_hash: sourceHash,
+    status: 'pending',
+    attempts: 0,
+    next_attempt_at: nowIso,
+    last_error: null,
+  }))
+
+  const { error } = await supabaseAdmin
+    .from('event_translation_jobs')
+    .upsert(rows, {
+      onConflict: 'event_id,locale',
+    })
+
+  if (error) {
+    throw new Error(`Failed to upsert event translation jobs: ${error.message}`)
   }
 }
 

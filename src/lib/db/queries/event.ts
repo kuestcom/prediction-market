@@ -7,7 +7,7 @@ import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { bookmarks } from '@/lib/db/schema/bookmarks/tables'
-import { conditions_audit, event_tags, events, markets, tag_translations, tags } from '@/lib/db/schema/events/tables'
+import { conditions_audit, event_tags, event_translations, events, markets, tag_translations, tags } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { resolveDisplayPrice } from '@/lib/market-chance'
@@ -233,6 +233,7 @@ interface ListEventsProps {
 
 interface RelatedEventOptions {
   tagSlug?: string
+  locale?: SupportedLocale
 }
 
 type EventWithTags = typeof events.$inferSelect & {
@@ -289,11 +290,31 @@ async function getLocalizedTagNamesById(tagIds: number[], locale: SupportedLocal
   return new Map(rows.map(row => [row.tag_id, row.name]))
 }
 
+async function getLocalizedEventTitlesById(eventIds: string[], locale: SupportedLocale): Promise<Map<string, string>> {
+  if (!eventIds.length || locale === DEFAULT_LOCALE) {
+    return new Map()
+  }
+
+  const rows = await db
+    .select({
+      event_id: event_translations.event_id,
+      title: event_translations.title,
+    })
+    .from(event_translations)
+    .where(and(
+      inArray(event_translations.event_id, eventIds),
+      eq(event_translations.locale, locale),
+    ))
+
+  return new Map(rows.map(row => [row.event_id, row.title]))
+}
+
 function eventResource(
   event: DrizzleEventResult,
   userId: string,
   priceMap: Map<string, OutcomePrices>,
   localizedTagNamesById: Map<number, string> = new Map(),
+  localizedEventTitlesById: Map<string, string> = new Map(),
 ): Event {
   const tagRecords = (event.eventTags ?? [])
     .map(et => et.tag)
@@ -365,7 +386,7 @@ function eventResource(
   return {
     id: event.id || '',
     slug: event.slug || '',
-    title: event.title || '',
+    title: (localizedEventTitlesById.get(event.id) ?? event.title) || '',
     creator: event.creator || '',
     icon_url: getSupabaseImageUrl(event.icon_url),
     show_market_icons: event.show_market_icons ?? true,
@@ -412,11 +433,12 @@ async function buildEventResource(
       .map(eventTag => eventTag.tag?.id)
       .filter((tagId): tagId is number => typeof tagId === 'number'),
   ))
-  const [priceMap, localizedTagNamesById] = await Promise.all([
+  const [priceMap, localizedTagNamesById, localizedEventTitlesById] = await Promise.all([
     fetchOutcomePrices(outcomeTokenIds),
     getLocalizedTagNamesById(tagIds, locale),
+    getLocalizedEventTitlesById([eventResult.id], locale),
   ])
-  return eventResource(eventResult, userId, priceMap, localizedTagNamesById)
+  return eventResource(eventResult, userId, priceMap, localizedTagNamesById, localizedEventTitlesById)
 }
 
 function getEventMainTag(tags: any[] | undefined): string {
@@ -624,14 +646,22 @@ export const EventRepository = {
             .filter((tagId): tagId is number => typeof tagId === 'number'),
         ),
       ))
-      const [priceMap, localizedTagNamesById] = await Promise.all([
+      const eventIds = eventsData.map(event => event.id)
+      const [priceMap, localizedTagNamesById, localizedEventTitlesById] = await Promise.all([
         fetchOutcomePrices(tokensForPricing),
         getLocalizedTagNamesById(tagIds, locale),
+        getLocalizedEventTitlesById(eventIds, locale),
       ])
 
       const eventsWithMarkets = eventsData
         .filter(event => event.markets?.length > 0)
-        .map(event => eventResource(event as DrizzleEventResult, userId, priceMap, localizedTagNamesById))
+        .map(event => eventResource(
+          event as DrizzleEventResult,
+          userId,
+          priceMap,
+          localizedTagNamesById,
+          localizedEventTitlesById,
+        ))
 
       return { data: eventsWithMarkets, error: null }
     })
@@ -655,12 +685,15 @@ export const EventRepository = {
     })
   },
 
-  async getEventTitleBySlug(slug: string): Promise<QueryResult<{ title: string }>> {
+  async getEventTitleBySlug(
+    slug: string,
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<QueryResult<{ title: string }>> {
     'use cache'
 
     return runQuery(async () => {
       const result = await db
-        .select({ title: events.title })
+        .select({ id: events.id, title: events.title })
         .from(events)
         .where(eq(events.slug, slug))
         .limit(1)
@@ -669,7 +702,23 @@ export const EventRepository = {
         throw new Error('Event not found')
       }
 
-      return { data: result[0], error: null }
+      const eventRow = result[0]
+      if (!eventRow) {
+        throw new Error('Event not found')
+      }
+
+      if (locale === DEFAULT_LOCALE) {
+        return { data: { title: eventRow.title }, error: null }
+      }
+
+      const localizedTitles = await getLocalizedEventTitlesById([eventRow.id], locale)
+
+      return {
+        data: {
+          title: localizedTitles.get(eventRow.id) ?? eventRow.title,
+        },
+        error: null,
+      }
     })
   },
 
@@ -848,6 +897,7 @@ export const EventRepository = {
 
     return runQuery(async () => {
       const tagSlug = options.tagSlug?.toLowerCase()
+      const locale = options.locale ?? DEFAULT_LOCALE
 
       const currentEvent = await db.query.events.findFirst({
         where: eq(events.slug, slug),
@@ -944,7 +994,11 @@ export const EventRepository = {
       const tokenIds = topResults
         .map(event => event.yes_token_id)
         .filter((tokenId): tokenId is string => Boolean(tokenId))
-      const priceMap = await fetchOutcomePrices(tokenIds)
+      const eventIds = topResults.map(event => event.id)
+      const [priceMap, localizedEventTitlesById] = await Promise.all([
+        fetchOutcomePrices(tokenIds),
+        getLocalizedEventTitlesById(eventIds, locale),
+      ])
       const lastTradesByToken = await fetchLastTradePrices(tokenIds)
 
       const transformedResults = topResults.map((row) => {
@@ -960,7 +1014,7 @@ export const EventRepository = {
         return {
           id: String(row.id),
           slug: String(row.slug),
-          title: String(row.title),
+          title: localizedEventTitlesById.get(row.id) ?? String(row.title),
           icon_url: getSupabaseImageUrl(String(row.icon_url || '')),
           common_tags_count: Number(row.common_tags_count),
           chance,
