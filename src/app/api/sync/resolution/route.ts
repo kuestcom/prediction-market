@@ -7,6 +7,7 @@ export const maxDuration = 300
 const RESOLUTION_SUBGRAPH_URL = 'https://api.goldsky.com/api/public/project_cmkeqj653po3801t6ajbv1wcv/subgraphs/resolution-subgraph/1.0.0/gn'
 const SYNC_TIME_LIMIT_MS = 250_000
 const RESOLUTION_PAGE_SIZE = 200
+const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000
 const SAFETY_PERIOD_V4_SECONDS = 60 * 60
 const SAFETY_PERIOD_NEGRISK_SECONDS = 2 * 24 * 60 * 60
 const RESOLUTION_LIVENESS_DEFAULT_SECONDS = parseOptionalInt(process.env.RESOLUTION_LIVENESS_DEFAULT_SECONDS)
@@ -51,16 +52,14 @@ export async function GET(request: Request) {
   }
 
   try {
-    const isRunning = await checkSyncRunning()
-    if (isRunning) {
+    const lockAcquired = await tryAcquireSyncLock()
+    if (!lockAcquired) {
       return NextResponse.json({
         success: false,
         message: 'Sync already running',
         skipped: true,
       }, { status: 409 })
     }
-
-    await updateSyncStatus('running')
 
     const syncResult = await syncResolutions()
 
@@ -93,21 +92,48 @@ function parseOptionalInt(rawValue?: string): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-async function checkSyncRunning(): Promise<boolean> {
-  const { data, error } = await supabaseAdmin
-    .from('subgraph_syncs')
-    .select('status')
-    .eq('service_name', 'resolution_sync')
-    .eq('subgraph_name', 'resolution')
-    .eq('status', 'running')
-    .gt('updated_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
-    .maybeSingle()
-
-  if (error && error.code !== 'PGRST116') {
-    throw new Error(`Failed to check sync status: ${error.message}`)
+async function tryAcquireSyncLock(): Promise<boolean> {
+  const staleThreshold = new Date(Date.now() - SYNC_RUNNING_STALE_MS).toISOString()
+  const runningPayload = {
+    service_name: 'resolution_sync',
+    subgraph_name: 'resolution',
+    status: 'running' as const,
+    error_message: null,
   }
 
-  return Boolean(data)
+  // Atomic claim for existing row: only transitions to running when unlocked or stale.
+  const { data: claimedRows, error: claimError } = await supabaseAdmin
+    .from('subgraph_syncs')
+    .update(runningPayload)
+    .eq('service_name', 'resolution_sync')
+    .eq('subgraph_name', 'resolution')
+    .or(`status.neq.running,updated_at.lt.${staleThreshold}`)
+    .select('id')
+    .limit(1)
+
+  if (claimError) {
+    throw new Error(`Failed to claim sync lock: ${claimError.message}`)
+  }
+
+  if ((claimedRows?.length ?? 0) > 0) {
+    return true
+  }
+
+  // First run bootstrap path: create lock row as running.
+  const { error: insertError } = await supabaseAdmin
+    .from('subgraph_syncs')
+    .insert(runningPayload)
+
+  if (!insertError) {
+    return true
+  }
+
+  // Unique key conflict means another worker claimed/created the lock first.
+  if (insertError.code === '23505') {
+    return false
+  }
+
+  throw new Error(`Failed to initialize sync lock: ${insertError.message}`)
 }
 
 async function updateSyncStatus(
