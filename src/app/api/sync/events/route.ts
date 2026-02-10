@@ -469,6 +469,10 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
   const negRiskAugmentedFlag = normalizeBooleanField(eventData.neg_risk_augmented)
   const eventNegRiskFlag = normalizeBooleanField(eventData.neg_risk)
   const eventNegRiskMarketId = normalizeHexField(eventData.neg_risk_market_id)
+  const eventSeriesSlug = normalizeStringField(eventData.series_slug)
+  const eventSeriesId = normalizeStringField(eventData.series_id)
+  const eventSeriesRecurrence = normalizeStringField(eventData.series_recurrence)
+    ?? normalizeStringField(eventData.recurrence)
 
   const { data: existingEvent } = await supabaseAdmin
     .from('events')
@@ -482,6 +486,9 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
       neg_risk_augmented: negRiskAugmentedFlag,
       neg_risk: eventNegRiskFlag,
       neg_risk_market_id: eventNegRiskMarketId ?? null,
+      series_slug: eventSeriesSlug ?? null,
+      series_id: eventSeriesId ?? null,
+      series_recurrence: eventSeriesRecurrence ?? null,
     }
 
     if (existingEvent.title !== normalizedEventTitle) {
@@ -533,6 +540,9 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
       neg_risk_augmented: negRiskAugmentedFlag,
       neg_risk: eventNegRiskFlag,
       neg_risk_market_id: eventNegRiskMarketId ?? null,
+      series_slug: eventSeriesSlug ?? null,
+      series_id: eventSeriesId ?? null,
+      series_recurrence: eventSeriesRecurrence ?? null,
       rules: eventData.rules || null,
       end_date: normalizedEndDate,
       created_at: createdAtIso,

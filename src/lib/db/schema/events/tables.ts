@@ -80,6 +80,9 @@ export const events = pgTable(
     neg_risk: boolean()
       .default(false),
     neg_risk_market_id: char({ length: 66 }),
+    series_slug: text(),
+    series_id: text(),
+    series_recurrence: text(),
     status: text()
       .notNull()
       .default('active'),

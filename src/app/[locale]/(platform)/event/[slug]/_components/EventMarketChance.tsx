@@ -1,11 +1,17 @@
 'use client'
 
 import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
-import { TriangleIcon } from 'lucide-react'
+import { ExternalLinkIcon, TriangleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import { useMemo, useState } from 'react'
+import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { buildUmaProposeUrl, buildUmaSettledUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 
 interface EventMarketChanceProps {
+  market: EventMarketRow['market']
   chanceMeta: EventMarketRow['chanceMeta']
   layout: 'mobile' | 'desktop'
   highlightKey: string
@@ -13,15 +19,22 @@ interface EventMarketChanceProps {
 }
 
 export default function EventMarketChance({
+  market,
   chanceMeta,
   layout,
   highlightKey,
   showInReviewTag = false,
 }: EventMarketChanceProps) {
   const t = useExtracted()
+  const siteIdentity = useSiteIdentity()
+  const [isResolutionDialogOpen, setIsResolutionDialogOpen] = useState(false)
   const chanceChangeColorClass = chanceMeta.isChanceChangePositive ? 'text-yes' : 'text-no'
   const shouldReserveDelta = layout === 'desktop'
   const shouldRenderDelta = chanceMeta.shouldShowChanceChange || shouldReserveDelta
+  const umaDetailsUrl = useMemo(
+    () => buildUmaSettledUrl(market.condition, siteIdentity.name) ?? buildUmaProposeUrl(market.condition, siteIdentity.name),
+    [market.condition, siteIdentity.name],
+  )
 
   const baseClass = layout === 'mobile'
     ? 'text-lg font-medium'
@@ -47,13 +60,20 @@ export default function EventMarketChance({
           {chanceMeta.chanceDisplay}
         </span>
         {showInReviewTag && (
-          <span className={`
-            inline-flex items-center rounded-sm bg-primary px-1.5 py-0.5 text-xs/tight font-semibold
-            text-primary-foreground
-          `}
+          <button
+            type="button"
+            className={`
+              inline-flex items-center rounded-sm px-1.5 py-0.5 text-xs/tight font-semibold text-primary
+              transition-colors
+              hover:bg-primary/15
+            `}
+            onClick={(event) => {
+              event.stopPropagation()
+              setIsResolutionDialogOpen(true)
+            }}
           >
             {t('In Review')}
-          </span>
+          </button>
         )}
       </div>
       {shouldRenderDelta && (
@@ -73,6 +93,32 @@ export default function EventMarketChance({
             {chanceMeta.chanceChangeLabel}
           </span>
         </div>
+      )}
+
+      {showInReviewTag && (
+        <Dialog open={isResolutionDialogOpen} onOpenChange={setIsResolutionDialogOpen}>
+          <DialogContent className="sm:max-w-lg sm:p-6">
+            <DialogHeader>
+              <DialogTitle className="text-center text-2xl font-bold">{t('Resolution')}</DialogTitle>
+            </DialogHeader>
+            <div className="mt-2">
+              <ResolutionTimelinePanel market={market} settledUrl={umaDetailsUrl} showLink={false} />
+            </div>
+            {umaDetailsUrl && (
+              <div className="mt-3 flex justify-end">
+                <a
+                  href={umaDetailsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:underline"
+                >
+                  <span>{t('View details')}</span>
+                  <ExternalLinkIcon className="size-3.5" />
+                </a>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

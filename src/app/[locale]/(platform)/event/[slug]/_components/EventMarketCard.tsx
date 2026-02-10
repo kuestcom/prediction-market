@@ -165,6 +165,7 @@ function EventMarketCardComponent({
                 </div>
               </div>
               <EventMarketChance
+                market={market}
                 chanceMeta={chanceMeta}
                 layout="mobile"
                 highlightKey={chanceHighlightKey}
@@ -254,6 +255,7 @@ function EventMarketCardComponent({
 
             <div className="flex w-1/5 justify-center">
               <EventMarketChance
+                market={market}
                 chanceMeta={chanceMeta}
                 layout="desktop"
                 highlightKey={chanceHighlightKey}
