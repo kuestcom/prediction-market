@@ -6,7 +6,7 @@ import type { OrderBookSummariesResponse } from '@/app/[locale]/(platform)/event
 import type { DataApiActivity } from '@/lib/data-api/user'
 import type { Event, UserPosition } from '@/types'
 import { useQuery } from '@tanstack/react-query'
-import { CheckIcon, ChevronDownIcon, LockKeyholeIcon, RefreshCwIcon, SquareArrowOutUpRightIcon, XIcon } from 'lucide-react'
+import { CheckIcon, ChevronDownIcon, LockKeyholeIcon, RefreshCwIcon, XIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -18,12 +18,14 @@ import EventMarketPositions from '@/app/[locale]/(platform)/event/[slug]/_compon
 import EventOrderBook, { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import MarketChannelStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/MarketChannelStatusIndicator'
 import MarketOutcomeGraph from '@/app/[locale]/(platform)/event/[slug]/_components/MarketOutcomeGraph'
+import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
 import { useChanceRefresh } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useChanceRefresh'
 import { useEventMarketRows } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 import { useMarketDetailController } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useMarketDetailController'
 import { useUserOpenOrdersQuery } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import { calculateMarketFill, normalizeBookLevels } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
+import { isResolutionReviewActive } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -164,6 +166,16 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     selectDetailTab,
     getSelectedDetailTab,
   } = useMarketDetailController(event.id)
+  const reviewConditionIds = useMemo(() => {
+    const ids = new Set<string>()
+    event.markets.forEach((market) => {
+      if (isResolutionReviewActive(market)) {
+        ids.add(market.condition_id)
+      }
+    })
+    return ids
+  }, [event.markets])
+  const hasAnyMarketInReview = reviewConditionIds.size > 0
   const chanceRefreshQueryKeys = useMemo(
     () => [
       ['event-price-history', event.id] as const,
@@ -530,6 +542,8 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
             const positionTags = positionTagsByCondition[market.condition_id] ?? []
             const shouldShowSeparator = index !== orderedMarkets.length - 1 || shouldShowOtherRow
             const isResolvedInlineRow = showResolvedInline
+            const showInReviewTag = hasAnyMarketInReview
+              && (isNegRiskEnabled || reviewConditionIds.has(market.condition_id))
 
             return (
               <div key={market.condition_id} className="transition-colors">
@@ -548,6 +562,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                         showMarketIcon={Boolean(event.show_market_icons)}
                         isExpanded={isExpanded}
                         isActiveMarket={selectedMarketId === market.condition_id}
+                        showInReviewTag={showInReviewTag}
                         activeOutcomeIndex={activeOutcomeIndex}
                         onToggle={() => handleToggle(market)}
                         onBuy={(cardMarket, outcomeIndex, source) => handleBuy(cardMarket, outcomeIndex, source)}
@@ -983,12 +998,6 @@ function MarketDetailTabs({
     () => buildUmaSettledUrl(market.condition, siteName) ?? buildUmaProposeUrl(market.condition, siteName),
     [market.condition, siteName],
   )
-  const resolvedOutcomeIndex = useMemo(() => resolveWinningOutcomeIndex(market), [market])
-  const resolvedOutcomeLabel = resolvedOutcomeIndex === OUTCOME_INDEX.NO
-    ? t('No')
-    : resolvedOutcomeIndex === OUTCOME_INDEX.YES
-      ? t('Yes')
-      : t('Unknown')
 
   useEffect(() => {
     if (selectedTab !== controlledTab) {
@@ -1088,98 +1097,38 @@ function MarketDetailTabs({
         {selectedTab === 'history' && <EventMarketHistory market={market} />}
 
         {selectedTab === 'resolution' && (
-          isResolvedView
-            ? (
-                <ResolvedResolutionPanel outcomeLabel={resolvedOutcomeLabel} settledUrl={settledUrl} />
-              )
-            : (
-                proposeUrl
-                  ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mb-3"
-                        asChild
-                        onClick={event => event.stopPropagation()}
-                      >
-                        <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
-                          {t('Propose resolution')}
-                        </a>
-                      </Button>
-                    )
-                  : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mb-3"
-                        disabled
-                        onClick={event => event.stopPropagation()}
-                      >
+          <div className="flex flex-col gap-3">
+            <ResolutionTimelinePanel market={market} settledUrl={settledUrl} />
+            {!isMarketResolved(market) && (
+              proposeUrl
+                ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mb-3"
+                      asChild
+                      onClick={event => event.stopPropagation()}
+                    >
+                      <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
                         {t('Propose resolution')}
-                      </Button>
-                    )
-              )
+                      </a>
+                    </Button>
+                  )
+                : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mb-3"
+                      disabled
+                      onClick={event => event.stopPropagation()}
+                    >
+                      {t('Propose resolution')}
+                    </Button>
+                  )
+            )}
+          </div>
         )}
       </div>
-    </div>
-  )
-}
-
-export function ResolvedResolutionPanel({
-  outcomeLabel,
-  settledUrl,
-  showLink = true,
-}: {
-  outcomeLabel: string
-  settledUrl: string | null
-  showLink?: boolean
-}) {
-  const t = useExtracted()
-  const hasLink = Boolean(settledUrl) && showLink
-
-  return (
-    <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-      <div className="relative flex flex-col gap-6">
-        <div className="absolute top-3 bottom-3 left-2.5 w-1 bg-primary" aria-hidden="true" />
-        <div className="flex items-center gap-3">
-          <span className="relative flex size-6 items-center justify-center rounded-full bg-primary">
-            <CheckIcon className="size-3.5 text-primary-foreground" />
-          </span>
-          <span className="text-sm font-medium text-foreground">
-            {t('Outcome proposed:')}
-            {' '}
-            {outcomeLabel}
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="relative flex size-6 items-center justify-center rounded-full bg-primary">
-            <CheckIcon className="size-3.5 text-primary-foreground" />
-          </span>
-          <span className="text-sm font-medium text-foreground">{t('No dispute')}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="relative flex size-6 items-center justify-center rounded-full bg-primary">
-            <CheckIcon className="size-3.5 text-primary-foreground" />
-          </span>
-          <span className="text-sm font-medium text-foreground">
-            {t('Final outcome:')}
-            {' '}
-            {outcomeLabel}
-          </span>
-        </div>
-      </div>
-
-      {hasLink && (
-        <a
-          href={settledUrl ?? undefined}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:underline"
-        >
-          {t('View details')}
-          <SquareArrowOutUpRightIcon className="size-4" />
-        </a>
-      )}
     </div>
   )
 }

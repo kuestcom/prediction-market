@@ -2,15 +2,23 @@
 
 import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 import { TriangleIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 interface EventMarketChanceProps {
   chanceMeta: EventMarketRow['chanceMeta']
   layout: 'mobile' | 'desktop'
   highlightKey: string
+  showInReviewTag?: boolean
 }
 
-export default function EventMarketChance({ chanceMeta, layout, highlightKey }: EventMarketChanceProps) {
+export default function EventMarketChance({
+  chanceMeta,
+  layout,
+  highlightKey,
+  showInReviewTag = false,
+}: EventMarketChanceProps) {
+  const t = useExtracted()
   const chanceChangeColorClass = chanceMeta.isChanceChangePositive ? 'text-yes' : 'text-no'
   const shouldReserveDelta = layout === 'desktop'
   const shouldRenderDelta = chanceMeta.shouldShowChanceChange || shouldReserveDelta
@@ -26,17 +34,28 @@ export default function EventMarketChance({ chanceMeta, layout, highlightKey }: 
         layout === 'desktop' && 'flex-row items-center gap-2',
       )}
     >
-      <span
-        key={`${layout}-chance-${highlightKey}`}
-        className={cn(
-          baseClass,
-          chanceMeta.isSubOnePercent ? 'text-muted-foreground' : 'text-foreground',
-          'motion-safe:animate-[pulse_0.8s_ease-out] motion-reduce:animate-none',
-          'inline-block w-[4ch] text-right tabular-nums',
+      <div className="flex items-center justify-end gap-1.5">
+        <span
+          key={`${layout}-chance-${highlightKey}`}
+          className={cn(
+            baseClass,
+            chanceMeta.isSubOnePercent ? 'text-muted-foreground' : 'text-foreground',
+            'motion-safe:animate-[pulse_0.8s_ease-out] motion-reduce:animate-none',
+            'inline-block w-[4ch] text-right tabular-nums',
+          )}
+        >
+          {chanceMeta.chanceDisplay}
+        </span>
+        {showInReviewTag && (
+          <span className={`
+            inline-flex items-center rounded-sm bg-primary px-1.5 py-0.5 text-xs/tight font-semibold
+            text-primary-foreground
+          `}
+          >
+            {t('In Review')}
+          </span>
         )}
-      >
-        {chanceMeta.chanceDisplay}
-      </span>
+      </div>
       {shouldRenderDelta && (
         <div
           className={cn(

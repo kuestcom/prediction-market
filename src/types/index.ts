@@ -101,6 +101,15 @@ interface Condition {
   mirror_uma_request_tx_hash?: string
   mirror_uma_request_log_index?: number
   mirror_uma_oracle_address?: string
+  resolution_status?: string | null
+  resolution_flagged?: boolean | null
+  resolution_paused?: boolean | null
+  resolution_last_update?: string | null
+  resolution_price?: number | null
+  resolution_was_disputed?: boolean | null
+  resolution_approved?: boolean | null
+  resolution_liveness_seconds?: number | null
+  resolution_deadline_at?: string | null
   volume: number
   open_interest: number
   active_positions_count: number

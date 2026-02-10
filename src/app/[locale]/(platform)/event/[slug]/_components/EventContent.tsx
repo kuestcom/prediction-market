@@ -8,7 +8,7 @@ import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import EventHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventHeader'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
-import EventMarkets, { ResolvedResolutionPanel, resolveWinningOutcomeIndex } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarkets'
+import EventMarkets from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarkets'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
 import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
 import EventOrderPanelTermsDisclaimer
@@ -18,9 +18,11 @@ import EventRelated from '@/app/[locale]/(platform)/event/[slug]/_components/Eve
 import EventRules from '@/app/[locale]/(platform)/event/[slug]/_components/EventRules'
 import EventSingleMarketOrderBook from '@/app/[locale]/(platform)/event/[slug]/_components/EventSingleMarketOrderBook'
 import EventTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabs'
+import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
+import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import { Teleport } from '@/components/Teleport'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
+import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { formatAmountInputValue } from '@/lib/formatters'
 import { useOrder, useSyncLimitPriceWithOutcome } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
@@ -80,18 +82,6 @@ export default function EventContent({
     }
     return event.markets.find(market => market.condition_id === currentMarketId) ?? null
   }, [currentMarketId, event.markets])
-  const selectedMarketResolved = Boolean(selectedMarket?.is_resolved || selectedMarket?.condition?.resolved)
-  const selectedResolvedOutcomeIndex = useMemo(() => {
-    if (!selectedMarket) {
-      return null
-    }
-    return resolveWinningOutcomeIndex(selectedMarket)
-  }, [selectedMarket])
-  const selectedResolvedOutcomeLabel = selectedResolvedOutcomeIndex === OUTCOME_INDEX.NO
-    ? t('No')
-    : selectedResolvedOutcomeIndex === OUTCOME_INDEX.YES
-      ? t('Yes')
-      : 'Unknown'
 
   useEffect(() => {
     if (user?.id) {
@@ -313,13 +303,9 @@ export default function EventContent({
             )}
             {marketContextEnabled && <EventMarketContext event={event} />}
             <EventRules event={event} />
-            {selectedMarketResolved && (
+            {selectedMarket && shouldDisplayResolutionTimeline(selectedMarket) && (
               <div className="rounded-xl border bg-background p-4">
-                <ResolvedResolutionPanel
-                  outcomeLabel={selectedResolvedOutcomeLabel}
-                  settledUrl={null}
-                  showLink={false}
-                />
+                <ResolutionTimelinePanel market={selectedMarket} settledUrl={null} showLink={false} />
               </div>
             )}
           </div>
