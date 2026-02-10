@@ -102,7 +102,6 @@ describe('updateGeneralSettingsAction', () => {
 
   it('saves normalized SVG site settings for valid payloads', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
-    mocks.encryptSecret.mockReturnValueOnce('enc.v1.lifi-123')
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
     const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
@@ -119,14 +118,17 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('market_creators', '0x2222222222222222222222222222222222222222\n0x3333333333333333333333333333333333333333')
     formData.set('lifi_integrator', 'kuest-fork')
     formData.set('lifi_api_key', 'lifi-123')
+    formData.set('openrouter_api_key', 'openrouter-123')
+    formData.set('openrouter_model', 'openai/gpt-4o-mini')
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
     expect(mocks.updateSettings).toHaveBeenCalledTimes(1)
     expect(mocks.encryptSecret).toHaveBeenCalledWith('lifi-123')
+    expect(mocks.encryptSecret).toHaveBeenCalledWith('openrouter-123')
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload).toHaveLength(12)
+    expect(savedPayload).toHaveLength(14)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
@@ -138,10 +140,12 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.find(entry => entry.key === 'market_creators')?.value).toBe('0x2222222222222222222222222222222222222222\n0x3333333333333333333333333333333333333333')
     expect(savedPayload.find(entry => entry.key === 'lifi_integrator')?.value).toBe('kuest-fork')
     expect(savedPayload.find(entry => entry.key === 'lifi_api_key')?.value).toBe('enc.v1.lifi-123')
-    expect(savedPayload.every(entry => entry.group === 'general')).toBe(true)
+    expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_model')?.value).toBe('openai/gpt-4o-mini')
+    expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_api_key')?.value).toBe('enc.v1.openrouter-123')
 
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin', 'page')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/theme', 'page')
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/market-context', 'page')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]', 'layout')
   })
 
@@ -174,6 +178,9 @@ describe('updateGeneralSettingsAction', () => {
         general: {
           lifi_api_key: { value: 'enc.v1.existing', updated_at: '2026-01-01T00:00:00.000Z' },
         },
+        ai: {
+          openrouter_api_key: { value: 'enc.v1.existing-openrouter', updated_at: '2026-01-01T00:00:00.000Z' },
+        },
       },
       error: null,
     })
@@ -190,6 +197,8 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('market_creators', '')
     formData.set('lifi_integrator', 'kuest-fork')
     formData.set('lifi_api_key', '')
+    formData.set('openrouter_api_key', '')
+    formData.set('openrouter_model', '')
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
@@ -197,6 +206,7 @@ describe('updateGeneralSettingsAction', () => {
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
     expect(savedPayload.find(entry => entry.key === 'lifi_api_key')?.value).toBe('enc.v1.existing')
+    expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_api_key')?.value).toBe('enc.v1.existing-openrouter')
   })
 
   it('rejects unsupported logo upload types', async () => {

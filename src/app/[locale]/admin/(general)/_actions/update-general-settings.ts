@@ -75,6 +75,8 @@ export async function updateGeneralSettingsAction(
   const marketCreatorsRaw = formData.get('market_creators')
   const lifiIntegratorRaw = formData.get('lifi_integrator')
   const lifiApiKeyRaw = formData.get('lifi_api_key')
+  const openRouterModelRaw = formData.get('openrouter_model')
+  const openRouterApiKeyRaw = formData.get('openrouter_api_key')
 
   const siteName = typeof siteNameRaw === 'string' ? siteNameRaw : ''
   const siteDescription = typeof siteDescriptionRaw === 'string' ? siteDescriptionRaw : ''
@@ -88,6 +90,16 @@ export async function updateGeneralSettingsAction(
   const marketCreators = typeof marketCreatorsRaw === 'string' ? marketCreatorsRaw : ''
   const lifiIntegrator = typeof lifiIntegratorRaw === 'string' ? lifiIntegratorRaw : ''
   const lifiApiKey = typeof lifiApiKeyRaw === 'string' ? lifiApiKeyRaw : ''
+  const openRouterModel = typeof openRouterModelRaw === 'string' ? openRouterModelRaw.trim() : ''
+  const openRouterApiKey = typeof openRouterApiKeyRaw === 'string' ? openRouterApiKeyRaw.trim() : ''
+
+  if (openRouterModel.length > 160) {
+    return { error: 'OpenRouter model is too long.' }
+  }
+
+  if (openRouterApiKey.length > 256) {
+    return { error: 'OpenRouter API key is too long.' }
+  }
 
   if (logoFileRaw instanceof File && logoFileRaw.size > 0) {
     const processed = await processThemeLogoFile(logoFileRaw)
@@ -126,6 +138,7 @@ export async function updateGeneralSettingsAction(
   }
 
   let encryptedLiFiApiKey = ''
+  let encryptedOpenRouterApiKey = ''
   try {
     const { data: allSettings, error: settingsError } = await SettingsRepository.getSettings()
     if (settingsError) {
@@ -133,12 +146,16 @@ export async function updateGeneralSettingsAction(
     }
 
     const existingEncryptedLiFiApiKey = allSettings?.general?.lifi_api_key?.value ?? ''
+    const existingEncryptedOpenRouterApiKey = allSettings?.ai?.openrouter_api_key?.value ?? ''
     encryptedLiFiApiKey = validated.data.lifiApiKeyValue
       ? encryptSecret(validated.data.lifiApiKeyValue)
       : existingEncryptedLiFiApiKey
+    encryptedOpenRouterApiKey = openRouterApiKey
+      ? encryptSecret(openRouterApiKey)
+      : existingEncryptedOpenRouterApiKey
   }
   catch (error) {
-    console.error('Failed to encrypt LI.FI API key', error)
+    console.error('Failed to encrypt API keys', error)
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 
@@ -155,6 +172,8 @@ export async function updateGeneralSettingsAction(
     { group: 'general', key: 'market_creators', value: validated.data.marketCreatorsValue },
     { group: 'general', key: 'lifi_integrator', value: validated.data.lifiIntegratorValue },
     { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
+    { group: 'ai', key: 'openrouter_model', value: openRouterModel },
+    { group: 'ai', key: 'openrouter_api_key', value: encryptedOpenRouterApiKey },
   ])
 
   if (error) {
@@ -163,6 +182,7 @@ export async function updateGeneralSettingsAction(
 
   revalidatePath('/[locale]/admin', 'page')
   revalidatePath('/[locale]/admin/theme', 'page')
+  revalidatePath('/[locale]/admin/market-context', 'page')
   revalidatePath('/[locale]', 'layout')
 
   return { error: null }

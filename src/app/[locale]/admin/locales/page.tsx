@@ -18,7 +18,7 @@ export default async function AdminLocalesSettingsPage({ params }: PageProps<'/[
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold">Locales</h1>
         <p className="text-sm text-muted-foreground">
-          Enable or disable locales available to users. English remains the default and cannot be turned off.
+          Set your OpenRouter credentials in General Settings to have automatic events and categories translations.
         </p>
       </div>
 

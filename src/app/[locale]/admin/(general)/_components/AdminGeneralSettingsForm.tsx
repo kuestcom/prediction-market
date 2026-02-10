@@ -1,7 +1,7 @@
 'use client'
 
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
-import { CircleHelp, ImageUp } from 'lucide-react'
+import { CircleHelp, ImageUp, RefreshCwIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn, sanitizeSvg } from '@/lib/utils'
@@ -19,12 +20,30 @@ const initialState = {
   error: null,
 }
 
+const AUTOMATIC_MODEL_VALUE = '__AUTOMATIC__'
+
+interface ModelOption {
+  id: string
+  label: string
+  contextWindow?: number
+}
+
+interface OpenRouterGeneralSettings {
+  defaultModel?: string
+  isApiKeyConfigured: boolean
+  isModelSelectEnabled: boolean
+  modelOptions: ModelOption[]
+  modelsError?: string
+}
+
 interface AdminGeneralSettingsFormProps {
   initialThemeSiteSettings: AdminThemeSiteSettingsInitialState
+  openRouterSettings: OpenRouterGeneralSettings
 }
 
 export default function AdminGeneralSettingsForm({
   initialThemeSiteSettings,
+  openRouterSettings,
 }: AdminGeneralSettingsFormProps) {
   const initialSiteName = initialThemeSiteSettings.siteName
   const initialSiteDescription = initialThemeSiteSettings.siteDescription
@@ -40,6 +59,8 @@ export default function AdminGeneralSettingsForm({
   const initialLiFiIntegrator = initialThemeSiteSettings.lifiIntegrator
   const initialLiFiApiKey = initialThemeSiteSettings.lifiApiKey
   const initialLiFiApiKeyConfigured = initialThemeSiteSettings.lifiApiKeyConfigured
+  const initialOpenRouterModel = openRouterSettings.defaultModel ?? ''
+  const initialOpenRouterApiKeyConfigured = openRouterSettings.isApiKeyConfigured
 
   const router = useRouter()
   const [state, formAction, isPending] = useActionState(updateGeneralSettingsAction, initialState)
@@ -57,6 +78,14 @@ export default function AdminGeneralSettingsForm({
   const [marketCreators, setMarketCreators] = useState(initialMarketCreators)
   const [lifiIntegrator, setLifiIntegrator] = useState(initialLiFiIntegrator)
   const [lifiApiKey, setLifiApiKey] = useState(initialLiFiApiKey)
+  const [openRouterApiKey, setOpenRouterApiKey] = useState('')
+  const [openRouterModel, setOpenRouterModel] = useState(initialOpenRouterModel)
+  const [openRouterSelectValue, setOpenRouterSelectValue] = useState(
+    initialOpenRouterModel || AUTOMATIC_MODEL_VALUE,
+  )
+  const [openRouterModelOptions, setOpenRouterModelOptions] = useState<ModelOption[]>(openRouterSettings.modelOptions)
+  const [openRouterModelsError, setOpenRouterModelsError] = useState<string | undefined>(openRouterSettings.modelsError)
+  const [isRefreshingOpenRouterModels, setIsRefreshingOpenRouterModels] = useState(false)
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null)
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
 
@@ -109,6 +138,21 @@ export default function AdminGeneralSettingsForm({
   }, [initialLiFiApiKey])
 
   useEffect(() => {
+    setOpenRouterModel(initialOpenRouterModel)
+    setOpenRouterSelectValue(initialOpenRouterModel || AUTOMATIC_MODEL_VALUE)
+  }, [initialOpenRouterModel])
+
+  useEffect(() => {
+    queueMicrotask(() => setOpenRouterModelOptions(openRouterSettings.modelOptions))
+  }, [openRouterSettings.modelOptions])
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setOpenRouterModelsError(previous => (previous === openRouterSettings.modelsError ? previous : openRouterSettings.modelsError))
+    })
+  }, [openRouterSettings.modelsError])
+
+  useEffect(() => {
     return () => {
       if (logoPreviewUrl) {
         URL.revokeObjectURL(logoPreviewUrl)
@@ -142,12 +186,60 @@ export default function AdminGeneralSettingsForm({
 
   const showImagePreview = Boolean(imagePreview)
   const showSvgPreview = !showImagePreview && Boolean(sanitizedLogoSvg.trim())
+  const trimmedOpenRouterApiKey = openRouterApiKey.trim()
+  const openRouterModelSelectEnabled = openRouterSettings.isModelSelectEnabled || Boolean(trimmedOpenRouterApiKey)
+
+  function handleOpenRouterModelChange(nextValue: string) {
+    setOpenRouterSelectValue(nextValue)
+    setOpenRouterModel(nextValue === AUTOMATIC_MODEL_VALUE ? '' : nextValue)
+  }
+
+  async function handleRefreshOpenRouterModels() {
+    if (!trimmedOpenRouterApiKey) {
+      return
+    }
+
+    try {
+      setIsRefreshingOpenRouterModels(true)
+      setOpenRouterModelsError(undefined)
+      const response = await fetch('/admin/api/openrouter-models', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ apiKey: trimmedOpenRouterApiKey }),
+      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        setOpenRouterModelsError(payload?.error ?? 'Unable to load models. Please verify the API key.')
+        return
+      }
+
+      const payload = await response.json() as { models?: ModelOption[] }
+      const refreshedModels = Array.isArray(payload?.models) ? payload.models : []
+      setOpenRouterModelOptions(refreshedModels)
+
+      if (openRouterSelectValue !== AUTOMATIC_MODEL_VALUE && refreshedModels.every(model => model.id !== openRouterSelectValue)) {
+        setOpenRouterSelectValue(AUTOMATIC_MODEL_VALUE)
+        setOpenRouterModel('')
+      }
+    }
+    catch (error) {
+      console.error('Failed to refresh OpenRouter models', error)
+      setOpenRouterModelsError('Unable to load models. Please verify the API key.')
+    }
+    finally {
+      setIsRefreshingOpenRouterModels(false)
+    }
+  }
 
   return (
     <form action={formAction} encType="multipart/form-data" className="grid gap-6">
       <input type="hidden" name="logo_mode" value={logoMode} />
       <input type="hidden" name="logo_image_path" value={logoImagePath} />
       <input type="hidden" name="logo_svg" value={logoSvg} />
+      <input type="hidden" name="openrouter_model" value={openRouterModel} />
 
       <section className="overflow-hidden rounded-xl border">
         <div className="p-4">
@@ -335,6 +427,131 @@ export default function AdminGeneralSettingsForm({
                 placeholder="Discord, Telegram, WhatsApp link, or support email (optional)"
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border">
+        <div className="p-4">
+          <div className="flex items-center gap-1">
+            <h3 className="text-base font-medium">OpenRouter integration</h3>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex size-4 items-center justify-center text-muted-foreground hover:text-foreground"
+                  aria-label="OpenRouter integration help"
+                >
+                  <CircleHelp className="size-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs text-left">
+                OpenRouter powers AI requests used in market context generation and automatic translations (events and tags).
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+
+        <div className="grid gap-6 border-t p-4">
+          <div className="grid gap-2">
+            <Label htmlFor="openrouter_key">API key</Label>
+            <Input
+              id="openrouter_key"
+              name="openrouter_api_key"
+              type="password"
+              autoComplete="off"
+              maxLength={256}
+              value={openRouterApiKey}
+              onChange={event => setOpenRouterApiKey(event.target.value)}
+              disabled={isPending}
+              placeholder={
+                initialOpenRouterApiKeyConfigured && !trimmedOpenRouterApiKey
+                  ? '••••••••••••••••'
+                  : 'Enter OpenRouter API key'
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              Generate an API key at
+              {' '}
+              <a
+                href="https://openrouter.ai/settings/keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+              >
+                openrouter.ai/settings/keys
+              </a>
+              .
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="openrouter_model">Preferred OpenRouter model</Label>
+            <div className="flex items-center gap-2">
+              <Select
+                value={openRouterSelectValue}
+                onValueChange={handleOpenRouterModelChange}
+                disabled={!openRouterModelSelectEnabled || isPending}
+              >
+                <SelectTrigger id="openrouter_model" className="h-12! w-full max-w-md justify-between text-left">
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={AUTOMATIC_MODEL_VALUE}>
+                    Let OpenRouter decide
+                  </SelectItem>
+                  {openRouterModelOptions.map(model => (
+                    <SelectItem key={model.id} value={model.id}>
+                      <div className="flex flex-col gap-0.5">
+                        <span>{model.label}</span>
+                        {model.contextWindow
+                          ? (
+                              <span className="text-xs text-muted-foreground">
+                                Context window:
+                                {' '}
+                                {model.contextWindow.toLocaleString()}
+                              </span>
+                            )
+                          : null}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                className="size-12 shrink-0"
+                disabled={!trimmedOpenRouterApiKey || isPending || isRefreshingOpenRouterModels}
+                onClick={handleRefreshOpenRouterModels}
+                title="Refresh models"
+                aria-label="Refresh models"
+              >
+                <RefreshCwIcon className={`size-4 ${isRefreshingOpenRouterModels ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Models with live browsing (for example
+              {' '}
+              <code>perplexity/sonar</code>
+              ) perform best. Explore available models at
+              {' '}
+              <a
+                href="https://openrouter.ai/models"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+              >
+                openrouter.ai/models
+              </a>
+              .
+            </p>
+            {openRouterModelsError
+              ? (
+                  <p className="text-xs text-destructive">{openRouterModelsError}</p>
+                )
+              : null}
           </div>
         </div>
       </section>
