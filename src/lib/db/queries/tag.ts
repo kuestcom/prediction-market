@@ -5,13 +5,11 @@ import { alias } from 'drizzle-orm/pg-core'
 import { cacheTag, revalidatePath } from 'next/cache'
 import { DEFAULT_LOCALE, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
-import { jobs, tag_translations, tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
+import { tag_translations, tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 
 const EXCLUDED_SUB_SLUGS = new Set(['hide-from-new'])
-const TAG_NAME_TRANSLATION_JOB_TYPE = 'translate_tag_name'
-const TAG_NAME_TRANSLATION_MAX_ATTEMPTS = 5
 
 interface ListTagsParams {
   limit?: number
@@ -79,59 +77,6 @@ function normalizeTranslationLocale(locale: string): NonDefaultLocale | null {
 
 function buildSourceHash(value: string) {
   return createHash('sha256').update(value).digest('hex')
-}
-
-async function enqueueTagNameTranslationJobs(tagId: number, sourceName: string): Promise<string | null> {
-  const normalizedSourceName = sourceName.trim()
-  if (!normalizedSourceName) {
-    return null
-  }
-
-  const sourceHash = buildSourceHash(normalizedSourceName)
-  const now = new Date()
-
-  const rows = NON_DEFAULT_LOCALES.map(locale => ({
-    job_type: TAG_NAME_TRANSLATION_JOB_TYPE,
-    dedupe_key: `${tagId}:${locale}`,
-    payload: {
-      tag_id: tagId,
-      locale,
-      source_name: normalizedSourceName,
-      source_hash: sourceHash,
-    },
-    status: 'pending' as const,
-    attempts: 0,
-    max_attempts: TAG_NAME_TRANSLATION_MAX_ATTEMPTS,
-    available_at: now,
-    reserved_at: null,
-    last_error: null,
-  }))
-
-  const { error } = await runQuery(async () => {
-    await db
-      .insert(jobs)
-      .values(rows)
-      .onConflictDoUpdate({
-        target: [jobs.job_type, jobs.dedupe_key],
-        set: {
-          payload: sql`EXCLUDED.payload`,
-          status: 'pending',
-          attempts: 0,
-          max_attempts: TAG_NAME_TRANSLATION_MAX_ATTEMPTS,
-          available_at: sql`EXCLUDED.available_at`,
-          reserved_at: null,
-          last_error: null,
-        },
-      })
-
-    return { data: true, error: null }
-  })
-
-  if (error) {
-    return typeof error === 'string' ? error : 'Unknown error'
-  }
-
-  return null
 }
 
 function buildTagTranslationsByTagId(rows: TagTranslationRecord[]): Map<number, TagTranslationsMap> {
@@ -601,13 +546,6 @@ export const TagRepository = {
 
     if (translationError) {
       return { data: null, error: translationError }
-    }
-
-    if (typeof payload?.name === 'string') {
-      const enqueueError = await enqueueTagNameTranslationJobs(id, selectResult[0].name)
-      if (enqueueError) {
-        console.error(`Failed to enqueue tag translation jobs for tag ${id}:`, enqueueError)
-      }
     }
 
     revalidatePath('/')

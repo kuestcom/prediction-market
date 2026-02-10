@@ -11,6 +11,9 @@ export const maxDuration = 300
 
 const SYNC_TIME_LIMIT_MS = 250_000
 const JOB_BATCH_SIZE = 20
+const DISCOVERY_SCAN_PAGE_SIZE = 200
+const DISCOVERY_ENQUEUE_TARGET = 200
+const JOB_UPSERT_BATCH_SIZE = 200
 const DEFAULT_MAX_ATTEMPTS = 5
 const EVENT_TITLE_TRANSLATION_JOB_TYPE = 'translate_event_title'
 const TAG_NAME_TRANSLATION_JOB_TYPE = 'translate_tag_name'
@@ -48,6 +51,42 @@ interface JobIdentity {
   locale: string
 }
 
+interface JobUpsertRow {
+  job_type: TranslationJobType
+  dedupe_key: string
+  payload: EventTranslationJobPayload | TagTranslationJobPayload
+  status: 'pending'
+  attempts: number
+  max_attempts: number
+  available_at: string
+  reserved_at: null
+  last_error: null
+}
+
+interface EventSourceRow {
+  id: string
+  title: string
+}
+
+interface TagSourceRow {
+  id: number
+  name: string
+}
+
+interface EventTranslationMetaRow {
+  event_id: string
+  locale: string
+  source_hash: string | null
+  is_manual: boolean | null
+}
+
+interface TagTranslationMetaRow {
+  tag_id: number
+  locale: string
+  source_hash: string | null
+  is_manual: boolean | null
+}
+
 interface TranslationJobStats {
   scanned: number
   completed: number
@@ -55,6 +94,8 @@ interface TranslationJobStats {
   failed: number
   skippedManual: number
   skippedUpToDate: number
+  enqueuedEventJobs: number
+  enqueuedTagJobs: number
   timeLimitReached: boolean
   errors: { jobType: string, targetId: string, locale: string, error: string }[]
 }
@@ -175,6 +216,278 @@ function getJobIdentity(job: Pick<TranslationJobRow, 'job_type' | 'payload' | 'd
   }
 
   return splitDedupeKey(job.dedupe_key)
+}
+
+function isTimeLimitReached(startedAtMs: number) {
+  return Date.now() - startedAtMs >= SYNC_TIME_LIMIT_MS
+}
+
+async function upsertJobs(rows: JobUpsertRow[]) {
+  for (let index = 0; index < rows.length; index += JOB_UPSERT_BATCH_SIZE) {
+    const chunk = rows.slice(index, index + JOB_UPSERT_BATCH_SIZE)
+    const { error } = await supabaseAdmin
+      .from('jobs')
+      .upsert(chunk, {
+        onConflict: 'job_type,dedupe_key',
+      })
+
+    if (error) {
+      throw new Error(`Failed to upsert translation discovery jobs: ${error.message}`)
+    }
+  }
+}
+
+function buildEventTranslationMetaMap(rows: EventTranslationMetaRow[]) {
+  const map = new Map<string, { source_hash: string | null, is_manual: boolean }>()
+
+  for (const row of rows) {
+    if (!isNonDefaultLocale(row.locale)) {
+      continue
+    }
+
+    map.set(`${row.event_id}:${row.locale}`, {
+      source_hash: typeof row.source_hash === 'string' ? row.source_hash : null,
+      is_manual: Boolean(row.is_manual),
+    })
+  }
+
+  return map
+}
+
+function buildTagTranslationMetaMap(rows: TagTranslationMetaRow[]) {
+  const map = new Map<string, { source_hash: string | null, is_manual: boolean }>()
+
+  for (const row of rows) {
+    if (!isNonDefaultLocale(row.locale)) {
+      continue
+    }
+
+    map.set(`${row.tag_id}:${row.locale}`, {
+      source_hash: typeof row.source_hash === 'string' ? row.source_hash : null,
+      is_manual: Boolean(row.is_manual),
+    })
+  }
+
+  return map
+}
+
+async function enqueueEventDiscoveryJobs(startedAtMs: number, maxJobs: number): Promise<number> {
+  if (maxJobs <= 0) {
+    return 0
+  }
+
+  let offset = 0
+  let enqueued = 0
+
+  while (enqueued < maxJobs && !isTimeLimitReached(startedAtMs)) {
+    const { data: events, error: eventsError } = await supabaseAdmin
+      .from('events')
+      .select('id,title')
+      .order('id', { ascending: true })
+      .range(offset, offset + DISCOVERY_SCAN_PAGE_SIZE - 1)
+
+    if (eventsError) {
+      throw new Error(`Failed to load events for translation discovery: ${eventsError.message}`)
+    }
+
+    const sourceRows = ((events ?? []) as EventSourceRow[])
+      .map(row => ({
+        id: row.id,
+        title: typeof row.title === 'string' ? row.title.trim() : '',
+      }))
+      .filter(row => row.title.length > 0)
+
+    if (!events?.length) {
+      break
+    }
+
+    if (sourceRows.length > 0) {
+      const eventIds = sourceRows.map(row => row.id)
+      const { data: translationRows, error: translationRowsError } = await supabaseAdmin
+        .from('event_translations')
+        .select('event_id,locale,source_hash,is_manual')
+        .in('event_id', eventIds)
+        .in('locale', NON_DEFAULT_LOCALES)
+
+      if (translationRowsError) {
+        throw new Error(`Failed to load event translation metadata: ${translationRowsError.message}`)
+      }
+
+      const metaMap = buildEventTranslationMetaMap((translationRows ?? []) as EventTranslationMetaRow[])
+      const availableAt = new Date().toISOString()
+      const rowsToUpsert: JobUpsertRow[] = []
+      let reachedJobLimit = false
+
+      for (const sourceRow of sourceRows) {
+        if (reachedJobLimit) {
+          break
+        }
+
+        const sourceHash = buildSourceHash(sourceRow.title)
+
+        for (const locale of NON_DEFAULT_LOCALES) {
+          if (enqueued + rowsToUpsert.length >= maxJobs) {
+            reachedJobLimit = true
+            break
+          }
+
+          const key = `${sourceRow.id}:${locale}`
+          const existing = metaMap.get(key)
+          if (existing?.is_manual) {
+            continue
+          }
+          if (existing?.source_hash === sourceHash) {
+            continue
+          }
+
+          rowsToUpsert.push({
+            job_type: EVENT_TITLE_TRANSLATION_JOB_TYPE,
+            dedupe_key: key,
+            payload: {
+              event_id: sourceRow.id,
+              locale,
+              source_title: sourceRow.title,
+              source_hash: sourceHash,
+            },
+            status: 'pending',
+            attempts: 0,
+            max_attempts: DEFAULT_MAX_ATTEMPTS,
+            available_at: availableAt,
+            reserved_at: null,
+            last_error: null,
+          })
+        }
+      }
+
+      if (rowsToUpsert.length > 0) {
+        await upsertJobs(rowsToUpsert)
+        enqueued += rowsToUpsert.length
+      }
+    }
+
+    if (events.length < DISCOVERY_SCAN_PAGE_SIZE) {
+      break
+    }
+
+    offset += events.length
+  }
+
+  return enqueued
+}
+
+async function enqueueTagDiscoveryJobs(startedAtMs: number, maxJobs: number): Promise<number> {
+  if (maxJobs <= 0) {
+    return 0
+  }
+
+  let offset = 0
+  let enqueued = 0
+
+  while (enqueued < maxJobs && !isTimeLimitReached(startedAtMs)) {
+    const { data: tags, error: tagsError } = await supabaseAdmin
+      .from('tags')
+      .select('id,name')
+      .order('id', { ascending: true })
+      .range(offset, offset + DISCOVERY_SCAN_PAGE_SIZE - 1)
+
+    if (tagsError) {
+      throw new Error(`Failed to load tags for translation discovery: ${tagsError.message}`)
+    }
+
+    const sourceRows = ((tags ?? []) as TagSourceRow[])
+      .map(row => ({
+        id: row.id,
+        name: typeof row.name === 'string' ? row.name.trim() : '',
+      }))
+      .filter(row => row.name.length > 0)
+
+    if (!tags?.length) {
+      break
+    }
+
+    if (sourceRows.length > 0) {
+      const tagIds = sourceRows.map(row => row.id)
+      const { data: translationRows, error: translationRowsError } = await supabaseAdmin
+        .from('tag_translations')
+        .select('tag_id,locale,source_hash,is_manual')
+        .in('tag_id', tagIds)
+        .in('locale', NON_DEFAULT_LOCALES)
+
+      if (translationRowsError) {
+        throw new Error(`Failed to load tag translation metadata: ${translationRowsError.message}`)
+      }
+
+      const metaMap = buildTagTranslationMetaMap((translationRows ?? []) as TagTranslationMetaRow[])
+      const availableAt = new Date().toISOString()
+      const rowsToUpsert: JobUpsertRow[] = []
+      let reachedJobLimit = false
+
+      for (const sourceRow of sourceRows) {
+        if (reachedJobLimit) {
+          break
+        }
+
+        const sourceHash = buildSourceHash(sourceRow.name)
+
+        for (const locale of NON_DEFAULT_LOCALES) {
+          if (enqueued + rowsToUpsert.length >= maxJobs) {
+            reachedJobLimit = true
+            break
+          }
+
+          const key = `${sourceRow.id}:${locale}`
+          const existing = metaMap.get(key)
+          if (existing?.is_manual) {
+            continue
+          }
+          if (existing?.source_hash === sourceHash) {
+            continue
+          }
+
+          rowsToUpsert.push({
+            job_type: TAG_NAME_TRANSLATION_JOB_TYPE,
+            dedupe_key: key,
+            payload: {
+              tag_id: sourceRow.id,
+              locale,
+              source_name: sourceRow.name,
+              source_hash: sourceHash,
+            },
+            status: 'pending',
+            attempts: 0,
+            max_attempts: DEFAULT_MAX_ATTEMPTS,
+            available_at: availableAt,
+            reserved_at: null,
+            last_error: null,
+          })
+        }
+      }
+
+      if (rowsToUpsert.length > 0) {
+        await upsertJobs(rowsToUpsert)
+        enqueued += rowsToUpsert.length
+      }
+    }
+
+    if (tags.length < DISCOVERY_SCAN_PAGE_SIZE) {
+      break
+    }
+
+    offset += tags.length
+  }
+
+  return enqueued
+}
+
+async function enqueueMissingOrOutdatedTranslationJobs(startedAtMs: number) {
+  const perTypeTarget = Math.max(1, Math.floor(DISCOVERY_ENQUEUE_TARGET / 2))
+  const enqueuedEventJobs = await enqueueEventDiscoveryJobs(startedAtMs, perTypeTarget)
+  const enqueuedTagJobs = await enqueueTagDiscoveryJobs(startedAtMs, perTypeTarget)
+
+  return {
+    enqueuedEventJobs,
+    enqueuedTagJobs,
+  }
 }
 
 async function fetchCandidateJobs(nowIso: string): Promise<TranslationJobRow[]> {
@@ -435,6 +748,8 @@ export async function GET(request: Request) {
     failed: 0,
     skippedManual: 0,
     skippedUpToDate: 0,
+    enqueuedEventJobs: 0,
+    enqueuedTagJobs: 0,
     timeLimitReached: false,
     errors: [],
   }
@@ -457,7 +772,15 @@ export async function GET(request: Request) {
       const candidates = await fetchCandidateJobs(nowIso)
 
       if (!candidates.length) {
-        break
+        const discovery = await enqueueMissingOrOutdatedTranslationJobs(startedAt)
+        stats.enqueuedEventJobs += discovery.enqueuedEventJobs
+        stats.enqueuedTagJobs += discovery.enqueuedTagJobs
+
+        if ((discovery.enqueuedEventJobs + discovery.enqueuedTagJobs) === 0) {
+          break
+        }
+
+        continue
       }
 
       for (const candidate of candidates) {
@@ -589,6 +912,10 @@ export async function GET(request: Request) {
       if (stats.timeLimitReached) {
         break
       }
+    }
+
+    if (isTimeLimitReached(startedAt)) {
+      stats.timeLimitReached = true
     }
 
     return NextResponse.json({

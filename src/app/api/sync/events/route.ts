@@ -1,6 +1,4 @@
-import { createHash } from 'node:crypto'
 import { NextResponse } from 'next/server'
-import { NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { isCronAuthorized } from '@/lib/auth-cron'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { supabaseAdmin } from '@/lib/supabase'
@@ -14,10 +12,6 @@ const PNL_PAGE_SIZE = 200
 const GENERAL_SETTINGS_GROUP = 'general'
 const GENERAL_MARKET_CREATORS_KEY = 'market_creators'
 const WALLET_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/
-const EVENT_TITLE_TRANSLATION_JOB_TYPE = 'translate_event_title'
-const EVENT_TITLE_TRANSLATION_MAX_ATTEMPTS = 5
-const TAG_NAME_TRANSLATION_JOB_TYPE = 'translate_tag_name'
-const TAG_NAME_TRANSLATION_MAX_ATTEMPTS = 5
 
 interface SyncCursor {
   conditionId: string
@@ -483,7 +477,6 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
     .maybeSingle()
 
   if (existingEvent) {
-    let shouldQueueTitleTranslations = false
     const updatePayload: Record<string, any> = {
       enable_neg_risk: enableNegRiskFlag,
       neg_risk_augmented: negRiskAugmentedFlag,
@@ -493,7 +486,6 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
 
     if (existingEvent.title !== normalizedEventTitle) {
       updatePayload.title = normalizedEventTitle
-      shouldQueueTitleTranslations = true
     }
 
     const existingCreatedAtMs = Date.parse(existingEvent.created_at)
@@ -512,15 +504,6 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
 
     if (updateError) {
       console.error(`Failed to update event ${existingEvent.id}:`, updateError)
-    }
-
-    if (shouldQueueTitleTranslations) {
-      try {
-        await enqueueEventTitleTranslationJobs(existingEvent.id, normalizedEventTitle)
-      }
-      catch (error) {
-        console.error(`Failed to enqueue title translation jobs for existing event ${existingEvent.id}:`, error)
-      }
     }
 
     console.log(`Event ${eventData.slug} already exists, using existing ID: ${existingEvent.id}`)
@@ -569,13 +552,6 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
 
   if (eventData.tags?.length > 0) {
     await processTags(newEvent.id, eventData.tags)
-  }
-
-  try {
-    await enqueueEventTitleTranslationJobs(newEvent.id, normalizedEventTitle)
-  }
-  catch (error) {
-    console.error(`Failed to enqueue title translation jobs for new event ${newEvent.id}:`, error)
   }
 
   return newEvent.id
@@ -859,13 +835,6 @@ async function processTags(eventId: string, tagNames: any[]) {
         continue
       }
       tag = newTag
-
-      try {
-        await enqueueTagNameTranslationJobs(tag.id, truncatedName)
-      }
-      catch (enqueueError) {
-        console.error(`Failed to enqueue tag translation jobs for tag ${tag.id}:`, enqueueError)
-      }
     }
 
     await supabaseAdmin.from('event_tags').upsert(
@@ -878,86 +847,6 @@ async function processTags(eventId: string, tagNames: any[]) {
         ignoreDuplicates: true,
       },
     )
-  }
-}
-
-function buildTitleSourceHash(title: string) {
-  return createHash('sha256')
-    .update(title)
-    .digest('hex')
-}
-
-async function enqueueEventTitleTranslationJobs(eventId: string, sourceTitle: string) {
-  const normalizedSourceTitle = sourceTitle.trim()
-  if (!normalizedSourceTitle) {
-    return
-  }
-
-  const sourceHash = buildTitleSourceHash(normalizedSourceTitle)
-  const nowIso = new Date().toISOString()
-
-  const rows = NON_DEFAULT_LOCALES.map(locale => ({
-    job_type: EVENT_TITLE_TRANSLATION_JOB_TYPE,
-    dedupe_key: `${eventId}:${locale}`,
-    payload: {
-      event_id: eventId,
-      locale,
-      source_title: normalizedSourceTitle,
-      source_hash: sourceHash,
-    },
-    status: 'pending',
-    attempts: 0,
-    max_attempts: EVENT_TITLE_TRANSLATION_MAX_ATTEMPTS,
-    available_at: nowIso,
-    reserved_at: null,
-    last_error: null,
-  }))
-
-  const { error } = await supabaseAdmin
-    .from('jobs')
-    .upsert(rows, {
-      onConflict: 'job_type,dedupe_key',
-    })
-
-  if (error) {
-    throw new Error(`Failed to upsert translation jobs: ${error.message}`)
-  }
-}
-
-async function enqueueTagNameTranslationJobs(tagId: number, sourceName: string) {
-  const normalizedSourceName = sourceName.trim()
-  if (!normalizedSourceName) {
-    return
-  }
-
-  const sourceHash = buildTitleSourceHash(normalizedSourceName)
-  const nowIso = new Date().toISOString()
-
-  const rows = NON_DEFAULT_LOCALES.map(locale => ({
-    job_type: TAG_NAME_TRANSLATION_JOB_TYPE,
-    dedupe_key: `${tagId}:${locale}`,
-    payload: {
-      tag_id: tagId,
-      locale,
-      source_name: normalizedSourceName,
-      source_hash: sourceHash,
-    },
-    status: 'pending',
-    attempts: 0,
-    max_attempts: TAG_NAME_TRANSLATION_MAX_ATTEMPTS,
-    available_at: nowIso,
-    reserved_at: null,
-    last_error: null,
-  }))
-
-  const { error } = await supabaseAdmin
-    .from('jobs')
-    .upsert(rows, {
-      onConflict: 'job_type,dedupe_key',
-    })
-
-  if (error) {
-    throw new Error(`Failed to upsert tag translation jobs: ${error.message}`)
   }
 }
 
