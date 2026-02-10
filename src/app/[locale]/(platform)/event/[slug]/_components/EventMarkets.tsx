@@ -734,11 +734,17 @@ function ResolvedMarketRow({
 }) {
   const t = useExtracted()
   const locale = useLocale()
+  const normalizeOutcomeLabel = useOutcomeLabel()
   const { market } = row
   const resolvedOutcomeIndex = resolveWinningOutcomeIndex(market)
   const hasResolvedOutcome = resolvedOutcomeIndex === OUTCOME_INDEX.YES || resolvedOutcomeIndex === OUTCOME_INDEX.NO
   const isYesOutcome = resolvedOutcomeIndex !== OUTCOME_INDEX.NO
-  const resolvedOutcomeLabel = isYesOutcome ? t('Yes') : t('No')
+  const resolvedOutcomeText = market.outcomes.find(
+    outcome => outcome.outcome_index === resolvedOutcomeIndex,
+  )?.outcome_text
+  const resolvedOutcomeLabel = normalizeOutcomeLabel(resolvedOutcomeText)
+    ?? resolvedOutcomeText
+    ?? (isYesOutcome ? t('Yes') : t('No'))
   const resolvedVolume = Number.isFinite(market.volume) ? market.volume : 0
   const shouldShowIcon = showMarketIcon && Boolean(market.icon_url)
 

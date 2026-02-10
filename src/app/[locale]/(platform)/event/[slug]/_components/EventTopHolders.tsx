@@ -9,6 +9,7 @@ import ProfileLink from '@/components/ProfileLink'
 import ProfileLinkSkeleton from '@/components/ProfileLinkSkeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { fetchTopHolders } from '@/lib/data-api/holders'
 import { formatSharesLabel } from '@/lib/formatters'
 import { useIsSingleMarket, useOrder } from '@/stores/useOrder'
@@ -43,6 +44,7 @@ function formatHolderShares(value: string | number | null | undefined) {
 
 export default function EventTopHolders({ event }: EventTopHoldersProps) {
   const t = useExtracted()
+  const normalizeOutcomeLabel = useOutcomeLabel()
   const isSingleMarket = useIsSingleMarket()
   const orderState = useOrder()
   const [selectedMarket, setSelectedMarket] = useState<string>('')
@@ -70,6 +72,12 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
   const marketForTokens = event.markets.find(m => m.condition_id === conditionId)
   const yesToken = marketForTokens?.outcomes?.find(o => o.outcome_index === 0)?.token_id
   const noToken = marketForTokens?.outcomes?.find(o => o.outcome_index === 1)?.token_id
+  const yesOutcomeLabel = normalizeOutcomeLabel(
+    marketForTokens?.outcomes?.find(o => o.outcome_index === 0)?.outcome_text,
+  ) ?? t('Yes')
+  const noOutcomeLabel = normalizeOutcomeLabel(
+    marketForTokens?.outcomes?.find(o => o.outcome_index === 1)?.outcome_text,
+  ) ?? t('No')
 
   const { data, isLoading, error } = useEventHolders(conditionId, yesToken, noToken)
 
@@ -178,7 +186,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
         <div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">
-              {t('Yes holders')}
+              {t('{outcome} holders', { outcome: yesOutcomeLabel })}
             </span>
             <span className="text-2xs leading-none font-semibold tracking-wide text-muted-foreground">
               {t('SHARES')}
@@ -209,7 +217,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
         <div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">
-              {t('No holders')}
+              {t('{outcome} holders', { outcome: noOutcomeLabel })}
             </span>
             <span className="text-2xs leading-none font-semibold tracking-wide text-muted-foreground">
               {t('SHARES')}

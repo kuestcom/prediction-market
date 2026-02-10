@@ -139,7 +139,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
   }
 
   return (
-    <section className="rounded-xl border transition-all duration-500 ease-in-out">
+    <section className="overflow-hidden rounded-xl border transition-all duration-500 ease-in-out">
       {hasGenerated
         ? (
             <button

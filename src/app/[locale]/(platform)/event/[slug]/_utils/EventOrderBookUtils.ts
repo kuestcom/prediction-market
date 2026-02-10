@@ -134,7 +134,7 @@ export function buildOrderBookSnapshot(
     maxTotal,
     lastPrice,
     spread,
-    outcomeLabel: outcomeToUse?.outcome_index === OUTCOME_INDEX.YES ? 'Yes' : 'No',
+    outcomeLabel: outcomeToUse?.outcome_text?.trim() || (outcomeToUse?.outcome_index === OUTCOME_INDEX.NO ? 'No' : 'Yes'),
   }
 }
 

@@ -8,6 +8,7 @@ import EventOrderBook, {
   useOrderBookSummaries,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import MarketChannelStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/MarketChannelStatusIndicator'
+import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
@@ -21,6 +22,7 @@ type OutcomeToggleIndex = typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
 
 export default function EventSingleMarketOrderBook({ market, eventSlug }: EventSingleMarketOrderBookProps) {
   const t = useExtracted()
+  const normalizeOutcomeLabel = useOutcomeLabel()
   const [isExpanded, setIsExpanded] = useState(true)
   const orderMarket = useOrder(state => state.market)
   const orderOutcome = useOrder(state => state.outcome)
@@ -57,6 +59,8 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
   } = useOrderBookSummaries(tokenIds, { enabled: isExpanded })
 
   const selectedOutcome: Outcome | undefined = market.outcomes[selectedOutcomeIndex] ?? market.outcomes[0]
+  const yesOutcomeLabel = normalizeOutcomeLabel(market.outcomes[OUTCOME_INDEX.YES]?.outcome_text) ?? t('Yes')
+  const noOutcomeLabel = normalizeOutcomeLabel(market.outcomes[OUTCOME_INDEX.NO]?.outcome_text) ?? t('No')
   const isLoadingSummaries = isExpanded && isOrderBookLoading && !orderBookSummaries
 
   function handleOutcomeSelection(outcomeIndex: OutcomeToggleIndex) {
@@ -127,12 +131,12 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
           >
             <div className="flex flex-wrap gap-4">
               <OutcomeToggle
-                label={t('Trade {outcome}', { outcome: t('Yes') })}
+                label={t('Trade {outcome}', { outcome: yesOutcomeLabel })}
                 selected={selectedOutcomeIndex === OUTCOME_INDEX.YES}
                 onClick={() => handleOutcomeSelection(OUTCOME_INDEX.YES)}
               />
               <OutcomeToggle
-                label={t('Trade {outcome}', { outcome: t('No') })}
+                label={t('Trade {outcome}', { outcome: noOutcomeLabel })}
                 selected={selectedOutcomeIndex === OUTCOME_INDEX.NO}
                 onClick={() => handleOutcomeSelection(OUTCOME_INDEX.NO)}
               />

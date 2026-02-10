@@ -8,7 +8,9 @@ import {
   formatResolutionCountdown,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import { Button } from '@/components/ui/button'
+import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { OUTCOME_INDEX } from '@/lib/constants'
 import { buildUmaProposeUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 
@@ -48,18 +50,22 @@ function TimelineIcon({ item }: { item: ResolutionTimelineItem }) {
 function TimelineLabel({
   item,
   disputeUrl,
+  yesOutcomeLabel,
+  noOutcomeLabel,
 }: {
   item: ResolutionTimelineItem
   disputeUrl: string | null
+  yesOutcomeLabel: string
+  noOutcomeLabel: string
 }) {
   const t = useExtracted()
 
   function outcomeLabel(outcome: ResolutionTimelineOutcome | null): string {
     if (outcome === 'yes') {
-      return t('Yes')
+      return yesOutcomeLabel
     }
     if (outcome === 'no') {
-      return t('No')
+      return noOutcomeLabel
     }
     if (outcome === 'invalid') {
       return t('Invalid')
@@ -149,8 +155,15 @@ export default function ResolutionTimelinePanel({
   className,
 }: ResolutionTimelinePanelProps) {
   const t = useExtracted()
+  const normalizeOutcomeLabel = useOutcomeLabel()
   const siteIdentity = useSiteIdentity()
   const [nowMs, setNowMs] = useState(() => Date.now())
+  const yesOutcomeLabel = normalizeOutcomeLabel(
+    market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_text,
+  ) ?? t('Yes')
+  const noOutcomeLabel = normalizeOutcomeLabel(
+    market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)?.outcome_text,
+  ) ?? t('No')
 
   useEffect(() => {
     setNowMs(Date.now())
@@ -201,7 +214,12 @@ export default function ResolutionTimelinePanel({
         {timeline.items.map(item => (
           <div key={item.id} className="relative flex items-center gap-3">
             <TimelineIcon item={item} />
-            <TimelineLabel item={item} disputeUrl={disputeUrl} />
+            <TimelineLabel
+              item={item}
+              disputeUrl={disputeUrl}
+              yesOutcomeLabel={yesOutcomeLabel}
+              noOutcomeLabel={noOutcomeLabel}
+            />
           </div>
         ))}
       </div>
