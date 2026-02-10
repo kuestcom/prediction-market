@@ -289,6 +289,32 @@ async function getLocalizedTagNamesById(tagIds: number[], locale: SupportedLocal
   return new Map(rows.map(row => [row.tag_id, row.name]))
 }
 
+function toOptionalNumber(value: unknown): number | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) ? numericValue : null
+}
+
+function toOptionalIsoString(value: unknown): string | null {
+  if (!value) {
+    return null
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString()
+  }
+
+  if (typeof value === 'string') {
+    const parsedTimestamp = Date.parse(value)
+    return Number.isFinite(parsedTimestamp) ? new Date(parsedTimestamp).toISOString() : null
+  }
+
+  return null
+}
+
 function eventResource(
   event: DrizzleEventResult,
   userId: string,
@@ -345,6 +371,17 @@ function eventResource(
             ...market.condition,
             outcome_slot_count: Number(market.condition.outcome_slot_count || 0),
             payout_denominator: market.condition.payout_denominator ? Number(market.condition.payout_denominator) : undefined,
+            resolution_status: market.condition.resolution_status?.toLowerCase?.() ?? null,
+            resolution_flagged: market.condition.resolution_flagged == null ? null : Boolean(market.condition.resolution_flagged),
+            resolution_paused: market.condition.resolution_paused == null ? null : Boolean(market.condition.resolution_paused),
+            resolution_last_update: toOptionalIsoString(market.condition.resolution_last_update),
+            resolution_price: toOptionalNumber(market.condition.resolution_price),
+            resolution_was_disputed: market.condition.resolution_was_disputed == null
+              ? null
+              : Boolean(market.condition.resolution_was_disputed),
+            resolution_approved: market.condition.resolution_approved == null ? null : Boolean(market.condition.resolution_approved),
+            resolution_liveness_seconds: toOptionalNumber(market.condition.resolution_liveness_seconds),
+            resolution_deadline_at: toOptionalIsoString(market.condition.resolution_deadline_at),
             volume: Number(market.condition.volume || 0),
             open_interest: Number(market.condition.open_interest || 0),
             active_positions_count: Number(market.condition.active_positions_count || 0),
