@@ -153,25 +153,25 @@ async function createSyncVolumeCron(sql) {
 }
 
 async function createSyncEventTranslationsCron(sql) {
-  console.log('Creating sync-event-translations cron job...')
+  console.log('Creating sync-translations cron job...')
   const sqlQuery = `
   DO $$
   DECLARE
     job_id int;
     cmd text := $c$
       SELECT net.http_get(
-        url := 'https://<<VERCEL_URL>>/api/sync/event-translations',
+        url := 'https://<<VERCEL_URL>>/api/sync/translations',
         headers := '{"Content-Type": "application/json", "Authorization": "Bearer <<CRON_SECRET>>"}'
       );
     $c$;
   BEGIN
-    SELECT jobid INTO job_id FROM cron.job WHERE jobname = 'sync-event-translations';
+    SELECT jobid INTO job_id FROM cron.job WHERE jobname = 'sync-translations';
 
     IF job_id IS NOT NULL THEN
       PERFORM cron.unschedule(job_id);
     END IF;
 
-    PERFORM cron.schedule('sync-event-translations', '*/10 * * * *', cmd);
+    PERFORM cron.schedule('sync-translations', '*/10 * * * *', cmd);
   END $$;`
 
   const updatedSQL = sqlQuery
@@ -179,7 +179,7 @@ async function createSyncEventTranslationsCron(sql) {
     .replace('<<CRON_SECRET>>', process.env.CRON_SECRET)
 
   await sql.unsafe(updatedSQL, [], { simple: true })
-  console.log('✅ Cron sync-event-translations created successfully')
+  console.log('✅ Cron sync-translations created successfully')
 }
 
 function shouldSkip(requiredEnvVars) {

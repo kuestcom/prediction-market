@@ -1,14 +1,17 @@
 import type { NonDefaultLocale, SupportedLocale } from '@/i18n/locales'
+import { createHash } from 'node:crypto'
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { cacheTag, revalidatePath } from 'next/cache'
 import { DEFAULT_LOCALE, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
-import { tag_translations, tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
+import { jobs, tag_translations, tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 
 const EXCLUDED_SUB_SLUGS = new Set(['hide-from-new'])
+const TAG_NAME_TRANSLATION_JOB_TYPE = 'translate_tag_name'
+const TAG_NAME_TRANSLATION_MAX_ATTEMPTS = 5
 
 interface ListTagsParams {
   limit?: number
@@ -72,6 +75,63 @@ function normalizeTranslationLocale(locale: string): NonDefaultLocale | null {
   return NON_DEFAULT_LOCALES.includes(locale as NonDefaultLocale)
     ? locale as NonDefaultLocale
     : null
+}
+
+function buildSourceHash(value: string) {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+async function enqueueTagNameTranslationJobs(tagId: number, sourceName: string): Promise<string | null> {
+  const normalizedSourceName = sourceName.trim()
+  if (!normalizedSourceName) {
+    return null
+  }
+
+  const sourceHash = buildSourceHash(normalizedSourceName)
+  const now = new Date()
+
+  const rows = NON_DEFAULT_LOCALES.map(locale => ({
+    job_type: TAG_NAME_TRANSLATION_JOB_TYPE,
+    dedupe_key: `${tagId}:${locale}`,
+    payload: {
+      tag_id: tagId,
+      locale,
+      source_name: normalizedSourceName,
+      source_hash: sourceHash,
+    },
+    status: 'pending' as const,
+    attempts: 0,
+    max_attempts: TAG_NAME_TRANSLATION_MAX_ATTEMPTS,
+    available_at: now,
+    reserved_at: null,
+    last_error: null,
+  }))
+
+  const { error } = await runQuery(async () => {
+    await db
+      .insert(jobs)
+      .values(rows)
+      .onConflictDoUpdate({
+        target: [jobs.job_type, jobs.dedupe_key],
+        set: {
+          payload: sql`EXCLUDED.payload`,
+          status: 'pending',
+          attempts: 0,
+          max_attempts: TAG_NAME_TRANSLATION_MAX_ATTEMPTS,
+          available_at: sql`EXCLUDED.available_at`,
+          reserved_at: null,
+          last_error: null,
+        },
+      })
+
+    return { data: true, error: null }
+  })
+
+  if (error) {
+    return typeof error === 'string' ? error : 'Unknown error'
+  }
+
+  return null
 }
 
 function buildTagTranslationsByTagId(rows: TagTranslationRecord[]): Map<number, TagTranslationsMap> {
@@ -543,6 +603,13 @@ export const TagRepository = {
       return { data: null, error: translationError }
     }
 
+    if (typeof payload?.name === 'string') {
+      const enqueueError = await enqueueTagNameTranslationJobs(id, selectResult[0].name)
+      if (enqueueError) {
+        console.error(`Failed to enqueue tag translation jobs for tag ${id}:`, enqueueError)
+      }
+    }
+
     revalidatePath('/')
 
     const row = selectResult[0]
@@ -588,27 +655,30 @@ export const TagRepository = {
       .filter(entry => entry.value.length === 0)
       .map(entry => entry.locale)
 
+    const { data: tagRecord, error: tagCheckError } = await runQuery(async () => {
+      const result = await db
+        .select({ id: tags.id, name: tags.name })
+        .from(tags)
+        .where(eq(tags.id, tagId))
+        .limit(1)
+
+      return { data: result[0] ?? null, error: null }
+    })
+
+    if (tagCheckError || !tagRecord) {
+      return { data: null, error: tagCheckError ?? 'Tag not found.' }
+    }
+
+    const sourceHash = buildSourceHash(tagRecord.name)
     const rowsToUpsert = normalizedEntries
       .filter(entry => entry.value.length > 0)
       .map(entry => ({
         tag_id: tagId,
         locale: entry.locale,
         name: entry.value,
+        source_hash: sourceHash,
+        is_manual: true,
       }))
-
-    const { data: tagExists, error: tagCheckError } = await runQuery(async () => {
-      const result = await db
-        .select({ id: tags.id })
-        .from(tags)
-        .where(eq(tags.id, tagId))
-        .limit(1)
-
-      return { data: result.length > 0, error: null }
-    })
-
-    if (tagCheckError || !tagExists) {
-      return { data: null, error: tagCheckError ?? 'Tag not found.' }
-    }
 
     const { error } = await runQuery(async () => {
       await db.transaction(async (tx) => {
@@ -629,6 +699,8 @@ export const TagRepository = {
               target: [tag_translations.tag_id, tag_translations.locale],
               set: {
                 name: sql`EXCLUDED.name`,
+                source_hash: sql`EXCLUDED.source_hash`,
+                is_manual: true,
               },
             })
         }

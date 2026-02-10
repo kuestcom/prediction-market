@@ -107,25 +107,22 @@ export const event_translations = pgTable(
   }),
 )
 
-export const event_translation_jobs = pgTable(
-  'event_translation_jobs',
+export const jobs = pgTable(
+  'jobs',
   {
-    event_id: char({ length: 26 })
-      .notNull()
-      .references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-    locale: text().notNull(),
-    source_title: text().notNull(),
-    source_hash: text().notNull(),
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    job_type: text().notNull(),
+    dedupe_key: text().notNull(),
+    payload: jsonb().notNull(),
     status: text().notNull().default('pending'),
     attempts: smallint().notNull().default(0),
-    next_attempt_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    max_attempts: smallint().notNull().default(5),
+    available_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    reserved_at: timestamp({ withTimezone: true }),
     last_error: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
-  table => ({
-    pk: primaryKey({ columns: [table.event_id, table.locale] }),
-  }),
 )
 
 export const markets = pgTable(
@@ -204,6 +201,8 @@ export const tag_translations = pgTable(
       .references(() => tags.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     locale: text().notNull(),
     name: text().notNull(),
+    source_hash: text(),
+    is_manual: boolean().notNull().default(false),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },

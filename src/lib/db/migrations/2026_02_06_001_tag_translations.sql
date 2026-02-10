@@ -7,6 +7,8 @@ CREATE TABLE tag_translations
   tag_id     SMALLINT    NOT NULL REFERENCES tags (id) ON DELETE CASCADE ON UPDATE CASCADE,
   locale     TEXT        NOT NULL,
   name       TEXT        NOT NULL,
+  source_hash TEXT,
+  is_manual  BOOLEAN     NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (tag_id, locale),
@@ -126,8 +128,8 @@ WITH defaults(slug, locale, name) AS (
     ('world', 'fr', 'Monde'),
     ('world', 'zh', '世界')
 )
-INSERT INTO tag_translations (tag_id, locale, name)
-SELECT t.id, d.locale, d.name
+INSERT INTO tag_translations (tag_id, locale, name, source_hash, is_manual)
+SELECT t.id, d.locale, d.name, NULL, TRUE
 FROM defaults d
 INNER JOIN tags t ON t.slug = d.slug
 ON CONFLICT (tag_id, locale) DO NOTHING;
