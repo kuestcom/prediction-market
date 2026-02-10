@@ -25,6 +25,7 @@ interface EventMarketCardProps {
   showMarketIcon: boolean
   isExpanded: boolean
   isActiveMarket: boolean
+  showInReviewTag?: boolean
   activeOutcomeIndex: number | null
   onToggle: () => void
   onBuy: (market: EventMarketRow['market'], outcomeIndex: number, source: 'mobile' | 'desktop') => void
@@ -39,6 +40,7 @@ function EventMarketCardComponent({
   showMarketIcon,
   isExpanded,
   isActiveMarket,
+  showInReviewTag = false,
   activeOutcomeIndex,
   onToggle,
   onBuy,
@@ -166,6 +168,7 @@ function EventMarketCardComponent({
                 chanceMeta={chanceMeta}
                 layout="mobile"
                 highlightKey={chanceHighlightKey}
+                showInReviewTag={showInReviewTag}
               />
             </div>
           </div>
@@ -254,6 +257,7 @@ function EventMarketCardComponent({
                 chanceMeta={chanceMeta}
                 layout="desktop"
                 highlightKey={chanceHighlightKey}
+                showInReviewTag={showInReviewTag}
               />
             </div>
 

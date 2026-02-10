@@ -19,6 +19,7 @@ export type ResolutionTimelineItemType
   = | 'outcomeProposed'
     | 'noDispute'
     | 'disputed'
+    | 'disputeWindow'
     | 'finalReview'
     | 'finalOutcome'
 
@@ -42,6 +43,7 @@ export interface ResolutionTimelineModel {
   outcome: ResolutionTimelineOutcome | null
   isResolved: boolean
   isDisputed: boolean
+  isReviewActive: boolean
   deadlineMs: number | null
   items: ResolutionTimelineItem[]
 }
@@ -193,7 +195,11 @@ export function buildResolutionTimeline(
   const deadlineMs = resolveResolutionDeadlineMs(market)
   const isFlagged = Boolean(condition?.resolution_flagged)
   const hasOpenDeadline = deadlineMs != null && deadlineMs > nowMs
+  const isDisputeWindowActive = !isFlagged
+    && hasOpenDeadline
+    && (status === 'proposed' || status === 'reproposed' || status === 'challenged' || status === 'disputed')
   const isFinalReviewActive = isFlagged && hasOpenDeadline
+  const isReviewActive = isDisputeWindowActive || isFinalReviewActive
   const resolutionTimestampMs = parseTimestampToMs(condition?.resolution_last_update)
 
   const shouldShowOutcomeProposed = isResolved
@@ -247,6 +253,20 @@ export function buildResolutionTimeline(
     })
   }
 
+  if (isDisputeWindowActive && deadlineMs != null) {
+    const remainingSeconds = Math.max(0, Math.ceil((deadlineMs - nowMs) / 1000))
+    items.push({
+      id: 'dispute-window',
+      type: 'disputeWindow',
+      icon: 'open',
+      state: 'active',
+      outcome: null,
+      timestampMs: resolutionTimestampMs,
+      deadlineMs,
+      remainingSeconds,
+    })
+  }
+
   if (isFinalReviewActive && deadlineMs != null) {
     const remainingSeconds = Math.max(0, Math.ceil((deadlineMs - nowMs) / 1000))
     items.push({
@@ -279,9 +299,14 @@ export function buildResolutionTimeline(
     outcome,
     isResolved,
     isDisputed,
+    isReviewActive,
     deadlineMs,
     items,
   }
+}
+
+export function isResolutionReviewActive(market: TimelineMarket, options: BuildResolutionTimelineOptions = {}): boolean {
+  return buildResolutionTimeline(market, options).isReviewActive
 }
 
 export function shouldDisplayResolutionTimeline(market: TimelineMarket | null | undefined): boolean {

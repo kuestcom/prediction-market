@@ -25,6 +25,7 @@ import { useMarketDetailController } from '@/app/[locale]/(platform)/event/[slug
 import { useUserOpenOrdersQuery } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import { calculateMarketFill, normalizeBookLevels } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
+import { isResolutionReviewActive } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -165,6 +166,16 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     selectDetailTab,
     getSelectedDetailTab,
   } = useMarketDetailController(event.id)
+  const reviewConditionIds = useMemo(() => {
+    const ids = new Set<string>()
+    event.markets.forEach((market) => {
+      if (isResolutionReviewActive(market)) {
+        ids.add(market.condition_id)
+      }
+    })
+    return ids
+  }, [event.markets])
+  const hasAnyMarketInReview = reviewConditionIds.size > 0
   const chanceRefreshQueryKeys = useMemo(
     () => [
       ['event-price-history', event.id] as const,
@@ -531,6 +542,8 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
             const positionTags = positionTagsByCondition[market.condition_id] ?? []
             const shouldShowSeparator = index !== orderedMarkets.length - 1 || shouldShowOtherRow
             const isResolvedInlineRow = showResolvedInline
+            const showInReviewTag = hasAnyMarketInReview
+              && (isNegRiskEnabled || reviewConditionIds.has(market.condition_id))
 
             return (
               <div key={market.condition_id} className="transition-colors">
@@ -549,6 +562,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                         showMarketIcon={Boolean(event.show_market_icons)}
                         isExpanded={isExpanded}
                         isActiveMarket={selectedMarketId === market.condition_id}
+                        showInReviewTag={showInReviewTag}
                         activeOutcomeIndex={activeOutcomeIndex}
                         onToggle={() => handleToggle(market)}
                         onBuy={(cardMarket, outcomeIndex, source) => handleBuy(cardMarket, outcomeIndex, source)}

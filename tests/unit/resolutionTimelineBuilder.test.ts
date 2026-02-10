@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildResolutionTimeline,
   formatResolutionCountdown,
+  isResolutionReviewActive,
   resolveResolutionDeadlineMs,
   shouldDisplayResolutionTimeline,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
@@ -124,10 +125,13 @@ describe('resolution timeline builder', () => {
 
     const timeline = buildResolutionTimeline(market, { nowMs: BASE_TIMESTAMP_MS })
     const disputedItem = timeline.items.find(item => item.type === 'disputed')
+    const disputeWindow = timeline.items.find(item => item.type === 'disputeWindow')
 
-    expect(timeline.items.map(item => item.type)).toEqual(['outcomeProposed', 'disputed'])
+    expect(timeline.items.map(item => item.type)).toEqual(['outcomeProposed', 'disputed', 'disputeWindow'])
     expect(disputedItem?.icon).toBe('gavel')
     expect(disputedItem?.state).toBe('active')
+    expect(disputeWindow?.icon).toBe('open')
+    expect(disputeWindow?.state).toBe('active')
   })
 
   it('renders final review with active countdown when flagged and deadline is open', () => {
@@ -208,5 +212,35 @@ describe('resolution timeline builder', () => {
 
     expect(shouldDisplayResolutionTimeline(posedMarket)).toBe(false)
     expect(shouldDisplayResolutionTimeline(proposedMarket)).toBe(true)
+  })
+
+  it('marks market as in review when dispute or final-review windows are active', () => {
+    const disputeWindowMarket = createMarket({
+      condition: {
+        resolution_status: 'proposed',
+        resolution_deadline_at: '2026-02-10T01:00:00.000Z',
+        resolution_flagged: false,
+      },
+    })
+
+    const finalReviewMarket = createMarket({
+      condition: {
+        resolution_status: 'resolved',
+        resolution_flagged: true,
+        resolution_deadline_at: '2026-02-10T01:00:00.000Z',
+      },
+    })
+
+    const closedMarket = createMarket({
+      condition: {
+        resolution_status: 'resolved',
+        resolution_deadline_at: '2026-02-09T23:00:00.000Z',
+        resolution_flagged: false,
+      },
+    })
+
+    expect(isResolutionReviewActive(disputeWindowMarket, { nowMs: BASE_TIMESTAMP_MS })).toBe(true)
+    expect(isResolutionReviewActive(finalReviewMarket, { nowMs: BASE_TIMESTAMP_MS })).toBe(true)
+    expect(isResolutionReviewActive(closedMarket, { nowMs: BASE_TIMESTAMP_MS })).toBe(false)
   })
 })

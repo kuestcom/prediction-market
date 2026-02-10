@@ -7,6 +7,9 @@ import {
   buildResolutionTimeline,
   formatResolutionCountdown,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
+import { Button } from '@/components/ui/button'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { buildUmaProposeUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 
 interface ResolutionTimelinePanelProps {
@@ -44,8 +47,10 @@ function TimelineIcon({ item }: { item: ResolutionTimelineItem }) {
 
 function TimelineLabel({
   item,
+  disputeUrl,
 }: {
   item: ResolutionTimelineItem
+  disputeUrl: string | null
 }) {
   const t = useExtracted()
 
@@ -91,6 +96,43 @@ function TimelineLabel({
     )
   }
 
+  if (item.type === 'disputeWindow') {
+    const countdown = formatResolutionCountdown(item.remainingSeconds ?? 0)
+
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-foreground">
+          {t('Dispute window')}
+          {' '}
+          <span className="font-semibold text-primary">{countdown}</span>
+        </span>
+        {disputeUrl
+          ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 bg-transparent px-2.5 text-xs font-semibold"
+                asChild
+              >
+                <a href={disputeUrl} target="_blank" rel="noopener noreferrer">
+                  {t('Dispute')}
+                </a>
+              </Button>
+            )
+          : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 bg-transparent px-2.5 text-xs font-semibold"
+                disabled
+              >
+                {t('Dispute')}
+              </Button>
+            )}
+      </div>
+    )
+  }
+
   return (
     <span className="text-sm font-medium text-foreground">
       {t('Final outcome:')}
@@ -107,6 +149,7 @@ export default function ResolutionTimelinePanel({
   className,
 }: ResolutionTimelinePanelProps) {
   const t = useExtracted()
+  const siteIdentity = useSiteIdentity()
   const [nowMs, setNowMs] = useState(() => Date.now())
 
   useEffect(() => {
@@ -117,9 +160,13 @@ export default function ResolutionTimelinePanel({
     () => buildResolutionTimeline(market, { nowMs }),
     [market, nowMs],
   )
+  const disputeUrl = useMemo(
+    () => buildUmaProposeUrl(market.condition, siteIdentity.name),
+    [market.condition, siteIdentity.name],
+  )
 
   const hasActiveCountdown = timeline.items.some(item =>
-    item.type === 'finalReview'
+    (item.type === 'finalReview' || item.type === 'disputeWindow')
     && item.state === 'active'
     && (item.remainingSeconds ?? 0) > 0)
 
@@ -154,7 +201,7 @@ export default function ResolutionTimelinePanel({
         {timeline.items.map(item => (
           <div key={item.id} className="relative flex items-center gap-3">
             <TimelineIcon item={item} />
-            <TimelineLabel item={item} />
+            <TimelineLabel item={item} disputeUrl={disputeUrl} />
           </div>
         ))}
       </div>
