@@ -18,7 +18,7 @@ export default async function AdminLocalesSettingsPage({ params }: PageProps<'/[
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold">Locales</h1>
         <p className="text-sm text-muted-foreground">
-          Set your OpenRouter credentials in General Settings to have automatic events and categories translations.
+          Set your OpenRouter credentials in General Settings to enable automatic event and category translations.
         </p>
       </div>
 
