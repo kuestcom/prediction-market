@@ -162,7 +162,7 @@ function formatValueOrDash(value?: number) {
   if (!Number.isFinite(value)) {
     return '—'
   }
-  return formatCurrency(value as number, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  return formatCurrency(value as number, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
 export default function LeaderboardClient({ initialFilters }: { initialFilters: LeaderboardFilters }) {
