@@ -72,7 +72,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
   const { summary, markets } = data
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isClaimSubmitted, setIsClaimSubmitted] = useState(false)
+  const [hiddenClaimSignature, setHiddenClaimSignature] = useState<string | null>(null)
   const { ensureTradingReady } = useTradingOnboarding()
   const { signMessageAsync } = useSignMessage()
   const queryClient = useQueryClient()
@@ -91,6 +91,18 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     ],
     [summary],
   )
+
+  const claimableSignature = useMemo(() => {
+    const claimableMarkets = markets
+      .filter(market => market.indexSets.length > 0)
+      .map((market) => {
+        const sortedIndexSets = [...market.indexSets].sort((a, b) => a - b)
+        return `${market.conditionId}:${sortedIndexSets.join(',')}`
+      })
+      .sort()
+
+    return claimableMarkets.join('|')
+  }, [markets])
 
   useEffect(() => {
     if (!isDialogOpen) {
@@ -186,7 +198,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           : 'We sent your claim transaction.',
       })
 
-      setIsClaimSubmitted(true)
+      setHiddenClaimSignature(claimableSignature)
       setIsDialogOpen(false)
       queryClient.invalidateQueries({ queryKey: ['user-positions'] })
       queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
@@ -204,7 +216,11 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     }
   }
 
-  if (isClaimSubmitted || markets.length === 0) {
+  const shouldHideClaimCard = hiddenClaimSignature != null
+    && hiddenClaimSignature === claimableSignature
+    && claimableSignature.length > 0
+
+  if (shouldHideClaimCard || markets.length === 0) {
     return null
   }
 
