@@ -915,6 +915,8 @@ function MarketDetailTabs({
   const { selected: controlledTab, select } = tabController
   const positionSizeThreshold = 0.01
   const isResolvedView = variant === 'resolved'
+  const isResolvedMarket = isMarketResolved(market)
+  const shouldHideOrderBook = isResolvedView || isResolvedMarket
   const marketShares = sharesByCondition?.[market.condition_id]
   const yesShares = marketShares?.[OUTCOME_INDEX.YES] ?? 0
   const noShares = marketShares?.[OUTCOME_INDEX.NO] ?? 0
@@ -972,12 +974,17 @@ function MarketDetailTabs({
     }
 
     const tabs: Array<{ id: MarketDetailTab, label: string }> = [
-      { id: 'orderBook', label: t('Order Book') },
       { id: 'graph', label: t('Graph') },
     ]
 
+    if (!shouldHideOrderBook) {
+      tabs.unshift({ id: 'orderBook', label: t('Order Book') })
+    }
+
     if (hasOpenOrders) {
-      tabs.splice(1, 0, { id: 'openOrders', label: t('Open Orders') })
+      const graphTabIndex = tabs.findIndex(tab => tab.id === 'graph')
+      const insertionIndex = graphTabIndex === -1 ? tabs.length : graphTabIndex
+      tabs.splice(insertionIndex, 0, { id: 'openOrders', label: t('Open Orders') })
     }
     if (hasPositions) {
       tabs.unshift({ id: 'positions', label: t('Positions') })
@@ -987,13 +994,13 @@ function MarketDetailTabs({
     }
     tabs.push({ id: 'resolution', label: t('Resolution') })
     return tabs
-  }, [hasHistory, hasOpenOrders, hasPositions, isResolvedView, t])
+  }, [hasHistory, hasOpenOrders, hasPositions, isResolvedView, shouldHideOrderBook, t])
 
   const selectedTab = useMemo<MarketDetailTab>(() => {
     if (controlledTab && visibleTabs.some(tab => tab.id === controlledTab)) {
       return controlledTab
     }
-    return visibleTabs[0]?.id ?? 'orderBook'
+    return visibleTabs[0]?.id ?? 'graph'
   }, [controlledTab, visibleTabs])
 
   const proposeUrl = useMemo(
@@ -1041,33 +1048,35 @@ function MarketDetailTabs({
 
           <MarketChannelStatusIndicator className="-mt-2" />
 
-          <button
-            type="button"
-            className={cn(
-              `
-                -mt-1 ml-auto inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground
-                transition-colors
-              `,
-              'hover:bg-muted/70 hover:text-foreground',
-              'focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none',
-            )}
-            aria-label={t('Refresh order book')}
-            title={t('Refresh order book')}
-            onClick={() => { void orderBookData.refetch() }}
-            disabled={orderBookData.isLoading || orderBookData.isRefetching}
-          >
-            <RefreshCwIcon
+          {!shouldHideOrderBook && (
+            <button
+              type="button"
               className={cn(
-                'size-3',
-                (orderBookData.isLoading || orderBookData.isRefetching) && 'animate-spin',
+                `
+                  -mt-1 ml-auto inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground
+                  transition-colors
+                `,
+                'hover:bg-muted/70 hover:text-foreground',
+                'focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none',
               )}
-            />
-          </button>
+              aria-label={t('Refresh order book')}
+              title={t('Refresh order book')}
+              onClick={() => { void orderBookData.refetch() }}
+              disabled={orderBookData.isLoading || orderBookData.isRefetching}
+            >
+              <RefreshCwIcon
+                className={cn(
+                  'size-3',
+                  (orderBookData.isLoading || orderBookData.isRefetching) && 'animate-spin',
+                )}
+              />
+            </button>
+          )}
         </div>
       </div>
 
       <div className={cn('px-0', selectedTab === 'orderBook' ? 'pt-4 pb-0' : 'py-4')}>
-        {selectedTab === 'orderBook' && (
+        {selectedTab === 'orderBook' && !shouldHideOrderBook && (
           <EventOrderBook
             market={market}
             outcome={activeOutcomeForMarket}

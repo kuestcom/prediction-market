@@ -44,6 +44,10 @@ interface EventContentProps {
   marketSlug?: string
 }
 
+function isMarketResolved(market: Event['markets'][number] | null | undefined) {
+  return Boolean(market?.is_resolved || market?.condition?.resolved)
+}
+
 export default function EventContent({
   event,
   user,
@@ -82,6 +86,8 @@ export default function EventContent({
     }
     return event.markets.find(market => market.condition_id === currentMarketId) ?? null
   }, [currentMarketId, event.markets])
+  const singleMarket = event.markets[0]
+  const isSingleMarketResolved = isMarketResolved(singleMarket)
 
   useEffect(() => {
     if (user?.id) {
@@ -280,11 +286,11 @@ export default function EventContent({
             >
               {event.total_markets_count > 1 && <EventMarkets event={event} isMobile={isMobile} />}
             </div>
-            {event.total_markets_count === 1 && (
+            {event.total_markets_count === 1 && singleMarket && (
               <>
                 {currentUser && (
                   <EventMarketPositions
-                    market={event.markets[0]}
+                    market={singleMarket}
                     isNegRiskEnabled={isNegRiskEnabled}
                     isNegRiskAugmented={Boolean(event.neg_risk_augmented)}
                     eventOutcomes={event.markets.map(market => ({
@@ -296,9 +302,9 @@ export default function EventContent({
                     negRiskMarketId={event.neg_risk_market_id}
                   />
                 )}
-                <EventSingleMarketOrderBook market={event.markets[0]} eventSlug={event.slug} />
-                { currentUser && <EventMarketOpenOrders market={event.markets[0]} eventSlug={event.slug} />}
-                { currentUser && <EventMarketHistory market={event.markets[0]} /> }
+                {!isSingleMarketResolved && <EventSingleMarketOrderBook market={singleMarket} eventSlug={event.slug} />}
+                { currentUser && <EventMarketOpenOrders market={singleMarket} eventSlug={event.slug} />}
+                { currentUser && <EventMarketHistory market={singleMarket} /> }
               </>
             )}
             {marketContextEnabled && <EventMarketContext event={event} />}

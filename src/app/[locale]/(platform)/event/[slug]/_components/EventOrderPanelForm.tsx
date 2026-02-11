@@ -802,7 +802,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
                 {' '}
                 {resolvedOutcomeLabel}
               </div>
-              {resolvedMarketTitle && (
+              {!isSingleMarket && resolvedMarketTitle && (
                 <div className="text-sm text-muted-foreground">{resolvedMarketTitle}</div>
               )}
             </div>
