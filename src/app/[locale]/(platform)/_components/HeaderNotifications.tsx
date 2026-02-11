@@ -133,7 +133,7 @@ export default function HeaderNotifications() {
             </div>
           )}
 
-          {!isLoading && !hasNotifications && (
+          {!isLoading && !error && !hasNotifications && (
             <div className="p-4 text-center text-muted-foreground">
               <BellIcon className="mx-auto mb-2 size-8 opacity-50" />
               <p className="text-sm">You have no notifications.</p>
