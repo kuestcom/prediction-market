@@ -1,6 +1,8 @@
 'use client'
 
+import type { LucideIcon } from 'lucide-react'
 import type { Route } from 'next'
+import { BadgePercentIcon, BellIcon, CoinsIcon, FingerprintIcon, UserIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Link, usePathname } from '@/i18n/navigation'
@@ -9,17 +11,18 @@ interface MenuItem {
   id: string
   label: string
   href: Route
+  icon: LucideIcon
 }
 
 export default function SettingsSidebar() {
   const t = useExtracted()
   const pathname = usePathname()
   const menuItems: MenuItem[] = [
-    { id: 'profile', label: t('Profile'), href: '/settings' as Route },
-    { id: 'notifications', label: t('Notifications'), href: '/settings/notifications' as Route },
-    { id: 'trading', label: t('Trading'), href: '/settings/trading' as Route },
-    { id: 'affiliate', label: t('Affiliate'), href: '/settings/affiliate' as Route },
-    { id: 'two-factor', label: t('Two-Factor Auth'), href: '/settings/two-factor' as Route },
+    { id: 'profile', label: t('Profile'), href: '/settings' as Route, icon: UserIcon },
+    { id: 'notifications', label: t('Notifications'), href: '/settings/notifications' as Route, icon: BellIcon },
+    { id: 'trading', label: t('Trading'), href: '/settings/trading' as Route, icon: CoinsIcon },
+    { id: 'affiliate', label: t('Affiliate'), href: '/settings/affiliate' as Route, icon: BadgePercentIcon },
+    { id: 'two-factor', label: t('Two-Factor Auth'), href: '/settings/two-factor' as Route, icon: FingerprintIcon },
   ]
   const activeItem = menuItems.find(item => pathname === item.href)
   const active = activeItem?.id ?? 'profile'
@@ -31,11 +34,14 @@ export default function SettingsSidebar() {
           <Button
             key={item.id}
             type="button"
-            variant={active === item.id ? 'outline' : 'ghost'}
-            className="justify-start text-muted-foreground"
+            variant="ghost"
+            className={`h-11 justify-start text-foreground ${active === item.id ? 'bg-accent hover:bg-accent' : ''}`}
             asChild
           >
-            <Link href={item.href}>{item.label}</Link>
+            <Link href={item.href}>
+              <item.icon className="size-5 text-muted-foreground" />
+              {item.label}
+            </Link>
           </Button>
         ))}
       </nav>

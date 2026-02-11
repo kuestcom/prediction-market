@@ -19,7 +19,7 @@ export default async function SettingsLayout({ params, children }: LayoutProps<'
   return (
     <main className="container py-8">
       <div className="mx-auto max-w-6xl">
-        <div className="grid gap-8 lg:grid-cols-[240px_1fr] lg:gap-16">
+        <div className="grid gap-8 lg:grid-cols-[200px_1fr] lg:gap-16">
           <SettingsSidebar />
           {children}
         </div>
