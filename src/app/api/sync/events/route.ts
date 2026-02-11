@@ -8,6 +8,7 @@ export const maxDuration = 300
 const PNL_SUBGRAPH_URL = 'https://api.goldsky.com/api/public/project_cmfbr456t4gud01w483uu2d9d/subgraphs/pnl-subgraph/1.0.0/gn'
 const IRYS_GATEWAY = process.env.IRYS_GATEWAY || 'https://gateway.irys.xyz'
 const SYNC_TIME_LIMIT_MS = 250_000
+const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000
 const PNL_PAGE_SIZE = 200
 const GENERAL_SETTINGS_GROUP = 'general'
 const GENERAL_MARKET_CREATORS_KEY = 'market_creators'
@@ -94,8 +95,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const isRunning = await checkSyncRunning()
-    if (isRunning) {
+    const lockAcquired = await tryAcquireSyncLock()
+    if (!lockAcquired) {
       console.log('🚫 Sync already running, skipping...')
       return NextResponse.json({
         success: false,
@@ -103,8 +104,6 @@ export async function GET(request: Request) {
         skipped: true,
       }, { status: 409 })
     }
-
-    await updateSyncStatus('running')
 
     console.log('🚀 Starting incremental market synchronization...')
 
@@ -698,8 +697,102 @@ async function processMarketData(
 }
 
 async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
-  for (const eventId of eventIds) {
-    await updateEventStatusFromMarkets(eventId)
+  const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
+  if (uniqueEventIds.length === 0) {
+    return
+  }
+
+  const { data: currentEvents, error: currentEventsError } = await supabaseAdmin
+    .from('events')
+    .select('id,status,resolved_at')
+    .in('id', uniqueEventIds)
+
+  if (currentEventsError) {
+    console.error('Failed to load current statuses for events:', currentEventsError)
+    return
+  }
+
+  const { data: markets, error: marketsError } = await supabaseAdmin
+    .from('markets')
+    .select('event_id,is_active,is_resolved')
+    .in('event_id', uniqueEventIds)
+
+  if (marketsError) {
+    console.error('Failed to load market statuses for events:', marketsError)
+    return
+  }
+
+  const currentEventById = new Map(
+    (currentEvents ?? []).map(event => [event.id, event]),
+  )
+  const countsByEventId = new Map<string, { total: number, active: number, unresolved: number }>()
+
+  for (const eventId of uniqueEventIds) {
+    countsByEventId.set(eventId, { total: 0, active: 0, unresolved: 0 })
+  }
+
+  for (const market of markets ?? []) {
+    const eventId = market.event_id
+    if (!eventId || !countsByEventId.has(eventId)) {
+      continue
+    }
+
+    const bucket = countsByEventId.get(eventId)!
+    bucket.total += 1
+
+    const isActiveMarket = market.is_active === true
+      || (market.is_active == null && market.is_resolved === false)
+    if (isActiveMarket) {
+      bucket.active += 1
+    }
+
+    const isUnresolvedMarket = market.is_resolved === false || market.is_resolved == null
+    if (isUnresolvedMarket) {
+      bucket.unresolved += 1
+    }
+  }
+
+  for (const eventId of uniqueEventIds) {
+    const currentEvent = currentEventById.get(eventId)
+    if (!currentEvent) {
+      continue
+    }
+
+    const counts = countsByEventId.get(eventId) ?? { total: 0, active: 0, unresolved: 0 }
+    const hasMarkets = counts.total > 0
+    const hasActiveMarket = counts.active > 0
+    const hasUnresolvedMarket = counts.unresolved > 0
+
+    const nextStatus: 'draft' | 'active' | 'resolved' | 'archived'
+      = !hasMarkets
+        ? 'draft'
+        : !hasUnresolvedMarket
+            ? 'resolved'
+            : hasActiveMarket
+              ? 'active'
+              : 'archived'
+
+    const shouldSetResolvedAt = nextStatus === 'resolved'
+      && (currentEvent.resolved_at == null)
+    const resolvedAtUpdate = shouldSetResolvedAt
+      ? new Date().toISOString()
+      : nextStatus === 'resolved'
+        ? currentEvent.resolved_at ?? null
+        : null
+
+    const currentResolvedAt = currentEvent.resolved_at ?? null
+    if (currentEvent.status === nextStatus && currentResolvedAt === resolvedAtUpdate) {
+      continue
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('events')
+      .update({ status: nextStatus, resolved_at: resolvedAtUpdate })
+      .eq('id', eventId)
+
+    if (updateError) {
+      console.error(`Failed to update status for event ${eventId}:`, updateError)
+    }
   }
 }
 
@@ -727,81 +820,6 @@ function getMarketTimestamps(market: SubgraphCondition): MarketTimestamps {
   }
 }
 
-async function updateEventStatusFromMarkets(eventId: string) {
-  const { data: currentEvent, error: currentEventError } = await supabaseAdmin
-    .from('events')
-    .select('status,resolved_at')
-    .eq('id', eventId)
-    .maybeSingle()
-
-  if (currentEventError) {
-    console.error(`Failed to load current status for event ${eventId}:`, currentEventError)
-    return
-  }
-
-  const { count: totalCount, error: totalError } = await supabaseAdmin
-    .from('markets')
-    .select('condition_id', { count: 'exact', head: true })
-    .eq('event_id', eventId)
-
-  if (totalError) {
-    console.error(`Failed to compute market counts for event ${eventId}:`, totalError)
-    return
-  }
-
-  const { count: activeCount, error: activeError } = await supabaseAdmin
-    .from('markets')
-    .select('condition_id', { count: 'exact', head: true })
-    .eq('event_id', eventId)
-    .or('is_active.eq.true,and(is_active.is.null,is_resolved.eq.false)')
-
-  if (activeError) {
-    console.error(`Failed to compute active market count for event ${eventId}:`, activeError)
-    return
-  }
-
-  const { count: unresolvedCount, error: unresolvedError } = await supabaseAdmin
-    .from('markets')
-    .select('condition_id', { count: 'exact', head: true })
-    .eq('event_id', eventId)
-    .or('is_resolved.eq.false,is_resolved.is.null')
-
-  if (unresolvedError) {
-    console.error(`Failed to compute unresolved market count for event ${eventId}:`, unresolvedError)
-    return
-  }
-
-  const hasMarkets = (totalCount ?? 0) > 0
-  const hasActiveMarket = (activeCount ?? 0) > 0
-  const hasUnresolvedMarket = (unresolvedCount ?? 0) > 0
-
-  const nextStatus: 'draft' | 'active' | 'resolved' | 'archived'
-    = !hasMarkets
-      ? 'draft'
-      : !hasUnresolvedMarket
-          ? 'resolved'
-          : hasActiveMarket
-            ? 'active'
-            : 'archived'
-
-  const shouldSetResolvedAt = nextStatus === 'resolved'
-    && (currentEvent?.resolved_at == null)
-  const resolvedAtUpdate = shouldSetResolvedAt
-    ? new Date().toISOString()
-    : nextStatus === 'resolved'
-      ? currentEvent?.resolved_at ?? null
-      : null
-
-  const { error: updateError } = await supabaseAdmin
-    .from('events')
-    .update({ status: nextStatus, resolved_at: resolvedAtUpdate })
-    .eq('id', eventId)
-
-  if (updateError) {
-    console.error(`Failed to update status for event ${eventId}:`, updateError)
-  }
-}
-
 async function processOutcomes(conditionId: string, outcomes: any[]) {
   const outcomeData = outcomes.map((outcome, index) => ({
     condition_id: conditionId,
@@ -818,45 +836,120 @@ async function processOutcomes(conditionId: string, outcomes: any[]) {
 }
 
 async function processTags(eventId: string, tagNames: any[]) {
+  const normalizedTagBySlug = new Map<string, string>()
+
   for (const tagName of tagNames) {
     if (typeof tagName !== 'string') {
       console.warn(`Skipping invalid tag:`, tagName)
       continue
     }
 
-    const truncatedName = tagName.substring(0, 100)
-    const slug = truncatedName.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 100)
-
-    let { data: tag } = await supabaseAdmin
-      .from('tags')
-      .select('id')
-      .eq('slug', slug)
-      .maybeSingle()
-
-    if (!tag) {
-      const { data: newTag, error } = await supabaseAdmin
-        .from('tags')
-        .insert({ name: truncatedName, slug })
-        .select('id')
-        .single()
-
-      if (error) {
-        console.error(`Failed to create tag ${truncatedName}:`, error)
-        continue
-      }
-      tag = newTag
+    const truncatedName = tagName.trim().substring(0, 100)
+    if (!truncatedName) {
+      continue
     }
 
-    await supabaseAdmin.from('event_tags').upsert(
-      {
-        event_id: eventId,
-        tag_id: tag.id,
-      },
-      {
-        onConflict: 'event_id,tag_id',
-        ignoreDuplicates: true,
-      },
-    )
+    const slug = truncatedName.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 100)
+    if (!slug) {
+      continue
+    }
+
+    if (!normalizedTagBySlug.has(slug)) {
+      normalizedTagBySlug.set(slug, truncatedName)
+    }
+  }
+
+  if (normalizedTagBySlug.size === 0) {
+    return
+  }
+
+  const slugs = Array.from(normalizedTagBySlug.keys())
+  const tagIdBySlug = new Map<string, number>()
+
+  const { data: existingTags, error: existingTagsError } = await supabaseAdmin
+    .from('tags')
+    .select('id,slug')
+    .in('slug', slugs)
+
+  if (existingTagsError) {
+    console.error(`Failed to load existing tags for event ${eventId}:`, existingTagsError)
+    return
+  }
+
+  for (const tag of existingTags ?? []) {
+    if (typeof tag.slug === 'string' && typeof tag.id === 'number') {
+      tagIdBySlug.set(tag.slug, tag.id)
+    }
+  }
+
+  const rowsToInsert = slugs
+    .filter(slug => !tagIdBySlug.has(slug))
+    .map(slug => ({
+      name: normalizedTagBySlug.get(slug)!,
+      slug,
+    }))
+
+  if (rowsToInsert.length > 0) {
+    const { data: insertedTags, error: insertTagsError } = await supabaseAdmin
+      .from('tags')
+      .insert(rowsToInsert)
+      .select('id,slug')
+
+    if (insertTagsError) {
+      if (insertTagsError.code !== '23505') {
+        console.error(`Failed to create tags for event ${eventId}:`, insertTagsError)
+        return
+      }
+    }
+    else {
+      for (const tag of insertedTags ?? []) {
+        if (typeof tag.slug === 'string' && typeof tag.id === 'number') {
+          tagIdBySlug.set(tag.slug, tag.id)
+        }
+      }
+    }
+
+    if (tagIdBySlug.size < slugs.length) {
+      const { data: refreshedTags, error: refreshedTagsError } = await supabaseAdmin
+        .from('tags')
+        .select('id,slug')
+        .in('slug', slugs)
+
+      if (refreshedTagsError) {
+        console.error(`Failed to refresh tags for event ${eventId}:`, refreshedTagsError)
+        return
+      }
+
+      for (const tag of refreshedTags ?? []) {
+        if (typeof tag.slug === 'string' && typeof tag.id === 'number') {
+          tagIdBySlug.set(tag.slug, tag.id)
+        }
+      }
+    }
+  }
+
+  const eventTagRows = slugs
+    .map(slug => tagIdBySlug.get(slug))
+    .filter((tagId): tagId is number => Number.isInteger(tagId))
+    .map(tagId => ({
+      event_id: eventId,
+      tag_id: tagId,
+    }))
+
+  if (eventTagRows.length === 0) {
+    return
+  }
+
+  const { error: eventTagsError } = await supabaseAdmin.from('event_tags').upsert(
+    eventTagRows,
+    {
+      onConflict: 'event_id,tag_id',
+      ignoreDuplicates: true,
+    },
+  )
+
+  if (eventTagsError) {
+    console.error(`Failed to upsert event_tags for event ${eventId}:`, eventTagsError)
   }
 }
 
@@ -1040,21 +1133,95 @@ function normalizeBooleanField(value: unknown): boolean {
   return Boolean(value)
 }
 
-async function checkSyncRunning(): Promise<boolean> {
-  const { data, error } = await supabaseAdmin
-    .from('subgraph_syncs')
-    .select('status')
-    .eq('service_name', 'market_sync')
-    .eq('subgraph_name', 'pnl')
-    .eq('status', 'running')
-    .gt('updated_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
-    .maybeSingle()
-
-  if (error && error.code !== 'PGRST116') {
-    throw new Error(`Failed to check sync status: ${error.message}`)
+async function tryAcquireSyncLock(): Promise<boolean> {
+  const staleThreshold = new Date(Date.now() - SYNC_RUNNING_STALE_MS).toISOString()
+  const runningPayload = {
+    service_name: 'market_sync',
+    subgraph_name: 'pnl',
+    status: 'running' as const,
+    error_message: null,
   }
 
-  return Boolean(data)
+  const { data: claimedRows, error: claimError } = await supabaseAdmin
+    .from('subgraph_syncs')
+    .update(runningPayload)
+    .eq('service_name', 'market_sync')
+    .eq('subgraph_name', 'pnl')
+    .or(`status.neq."running",updated_at.lt.${staleThreshold}`)
+    .select('id')
+    .limit(1)
+
+  if (claimError) {
+    if (isMissingColumnError(claimError, 'status')) {
+      return tryAcquireLegacySyncLock()
+    }
+    throw new Error(`Failed to claim sync lock: ${claimError.message}`)
+  }
+
+  if ((claimedRows?.length ?? 0) > 0) {
+    return true
+  }
+
+  const { error: insertError } = await supabaseAdmin
+    .from('subgraph_syncs')
+    .insert(runningPayload)
+
+  if (!insertError) {
+    return true
+  }
+
+  if (insertError.code === '23505') {
+    return false
+  }
+
+  if (isMissingColumnError(insertError, 'status')) {
+    return tryAcquireLegacySyncLock()
+  }
+
+  throw new Error(`Failed to initialize sync lock: ${insertError.message}`)
+}
+
+function isMissingColumnError(error: { message?: string } | null | undefined, column: string): boolean {
+  const message = error?.message ?? ''
+  return message.includes(`column subgraph_syncs.${column} does not exist`)
+}
+
+async function tryAcquireLegacySyncLock(): Promise<boolean> {
+  const legacyPayload = {
+    service_name: 'market_sync',
+    subgraph_name: 'pnl',
+    error_message: null,
+  }
+
+  const { data: updatedRows, error: updateError } = await supabaseAdmin
+    .from('subgraph_syncs')
+    .update(legacyPayload)
+    .eq('service_name', 'market_sync')
+    .eq('subgraph_name', 'pnl')
+    .select('id')
+    .limit(1)
+
+  if (updateError) {
+    throw new Error(`Failed to claim legacy sync lock: ${updateError.message}`)
+  }
+
+  if ((updatedRows?.length ?? 0) > 0) {
+    return true
+  }
+
+  const { error: insertError } = await supabaseAdmin
+    .from('subgraph_syncs')
+    .insert(legacyPayload)
+
+  if (!insertError) {
+    return true
+  }
+
+  if (insertError.code === '23505') {
+    return false
+  }
+
+  throw new Error(`Failed to initialize legacy sync lock: ${insertError.message}`)
 }
 
 async function updateSyncStatus(
@@ -1083,6 +1250,9 @@ async function updateSyncStatus(
     })
 
   if (error) {
+    if (isMissingColumnError(error, 'status')) {
+      return
+    }
     console.error(`Failed to update sync status to ${status}:`, error)
   }
 }

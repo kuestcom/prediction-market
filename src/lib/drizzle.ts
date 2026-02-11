@@ -10,13 +10,32 @@ const globalForDb = globalThis as unknown as {
   db: DrizzleDb | undefined
 }
 
+function readPositiveIntEnv(name: string, fallback: number): number {
+  const rawValue = process.env[name]
+  if (!rawValue) {
+    return fallback
+  }
+
+  const parsed = Number.parseInt(rawValue, 10)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
+}
+
 function createDb(): DrizzleDb {
   const url = process.env.POSTGRES_URL
   if (!url) {
     throw new Error('POSTGRES_URL is not set. Configure the database env vars to enable DB features.')
   }
 
-  const client = globalForDb.client ?? postgres(url, { prepare: false })
+  const maxConnections = readPositiveIntEnv('DB_POOL_MAX_CONNECTIONS', 3)
+  const connectTimeout = readPositiveIntEnv('DB_POOL_CONNECT_TIMEOUT_SECONDS', 10)
+  const idleTimeout = readPositiveIntEnv('DB_POOL_IDLE_TIMEOUT_SECONDS', 20)
+
+  const client = globalForDb.client ?? postgres(url, {
+    prepare: false,
+    max: maxConnections,
+    connect_timeout: connectTimeout,
+    idle_timeout: idleTimeout,
+  })
   globalForDb.client = client
 
   const database = globalForDb.db ?? drizzle(client, { schema })

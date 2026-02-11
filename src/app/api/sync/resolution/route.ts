@@ -690,82 +690,101 @@ async function updateOutcomePayouts(conditionId: string, price: number) {
 }
 
 async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
-  for (const eventId of eventIds) {
-    await updateEventStatusFromMarkets(eventId)
+  const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
+  if (uniqueEventIds.length === 0) {
+    return
   }
-}
 
-async function updateEventStatusFromMarkets(eventId: string) {
-  const { data: currentEvent, error: currentEventError } = await supabaseAdmin
+  const { data: currentEvents, error: currentEventsError } = await supabaseAdmin
     .from('events')
-    .select('status,resolved_at')
-    .eq('id', eventId)
-    .maybeSingle()
+    .select('id,status,resolved_at')
+    .in('id', uniqueEventIds)
 
-  if (currentEventError) {
-    console.error(`Failed to load current status for event ${eventId}:`, currentEventError)
+  if (currentEventsError) {
+    console.error('Failed to load current statuses for events:', currentEventsError)
     return
   }
 
-  const { count: totalCount, error: totalError } = await supabaseAdmin
+  const { data: markets, error: marketsError } = await supabaseAdmin
     .from('markets')
-    .select('condition_id', { count: 'exact', head: true })
-    .eq('event_id', eventId)
+    .select('event_id,is_active,is_resolved')
+    .in('event_id', uniqueEventIds)
 
-  if (totalError) {
-    console.error(`Failed to compute market counts for event ${eventId}:`, totalError)
+  if (marketsError) {
+    console.error('Failed to load market statuses for events:', marketsError)
     return
   }
 
-  const { count: activeCount, error: activeError } = await supabaseAdmin
-    .from('markets')
-    .select('condition_id', { count: 'exact', head: true })
-    .eq('event_id', eventId)
-    .or('is_active.eq.true,and(is_active.is.null,is_resolved.eq.false)')
+  const currentEventById = new Map(
+    (currentEvents ?? []).map(event => [event.id, event]),
+  )
+  const countsByEventId = new Map<string, { total: number, active: number, unresolved: number }>()
 
-  if (activeError) {
-    console.error(`Failed to compute active market count for event ${eventId}:`, activeError)
-    return
+  for (const eventId of uniqueEventIds) {
+    countsByEventId.set(eventId, { total: 0, active: 0, unresolved: 0 })
   }
 
-  const { count: unresolvedCount, error: unresolvedError } = await supabaseAdmin
-    .from('markets')
-    .select('condition_id', { count: 'exact', head: true })
-    .eq('event_id', eventId)
-    .or('is_resolved.eq.false,is_resolved.is.null')
+  for (const market of markets ?? []) {
+    const eventId = market.event_id
+    if (!eventId || !countsByEventId.has(eventId)) {
+      continue
+    }
 
-  if (unresolvedError) {
-    console.error(`Failed to compute unresolved market count for event ${eventId}:`, unresolvedError)
-    return
+    const bucket = countsByEventId.get(eventId)!
+    bucket.total += 1
+
+    const isActiveMarket = market.is_active === true
+      || (market.is_active == null && market.is_resolved === false)
+    if (isActiveMarket) {
+      bucket.active += 1
+    }
+
+    const isUnresolvedMarket = market.is_resolved === false || market.is_resolved == null
+    if (isUnresolvedMarket) {
+      bucket.unresolved += 1
+    }
   }
 
-  const hasMarkets = (totalCount ?? 0) > 0
-  const hasActiveMarket = (activeCount ?? 0) > 0
-  const hasUnresolvedMarket = (unresolvedCount ?? 0) > 0
+  for (const eventId of uniqueEventIds) {
+    const currentEvent = currentEventById.get(eventId)
+    if (!currentEvent) {
+      continue
+    }
 
-  const nextStatus: 'draft' | 'active' | 'resolved' | 'archived'
-    = !hasMarkets
-      ? 'draft'
-      : !hasUnresolvedMarket
-          ? 'resolved'
-          : hasActiveMarket
-            ? 'active'
-            : 'archived'
+    const counts = countsByEventId.get(eventId) ?? { total: 0, active: 0, unresolved: 0 }
+    const hasMarkets = counts.total > 0
+    const hasActiveMarket = counts.active > 0
+    const hasUnresolvedMarket = counts.unresolved > 0
 
-  const shouldSetResolvedAt = nextStatus === 'resolved'
-    && (currentEvent?.resolved_at == null)
-  const resolvedAtUpdate = shouldSetResolvedAt
-    ? new Date().toISOString()
-    : nextStatus === 'resolved'
-      ? currentEvent?.resolved_at ?? null
-      : null
+    const nextStatus: 'draft' | 'active' | 'resolved' | 'archived'
+      = !hasMarkets
+        ? 'draft'
+        : !hasUnresolvedMarket
+            ? 'resolved'
+            : hasActiveMarket
+              ? 'active'
+              : 'archived'
 
-  const { error: updateError } = await supabaseAdmin
-    .from('events')
-    .update({ status: nextStatus, resolved_at: resolvedAtUpdate })
-    .eq('id', eventId)
+    const shouldSetResolvedAt = nextStatus === 'resolved'
+      && (currentEvent.resolved_at == null)
+    const resolvedAtUpdate = shouldSetResolvedAt
+      ? new Date().toISOString()
+      : nextStatus === 'resolved'
+        ? currentEvent.resolved_at ?? null
+        : null
 
-  if (updateError) {
-    console.error(`Failed to update status for event ${eventId}:`, updateError)
+    const currentResolvedAt = currentEvent.resolved_at ?? null
+    if (currentEvent.status === nextStatus && currentResolvedAt === resolvedAtUpdate) {
+      continue
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('events')
+      .update({ status: nextStatus, resolved_at: resolvedAtUpdate })
+      .eq('id', eventId)
+
+    if (updateError) {
+      console.error(`Failed to update status for event ${eventId}:`, updateError)
+    }
   }
 }
