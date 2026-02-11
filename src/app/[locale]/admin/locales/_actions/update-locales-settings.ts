@@ -1,5 +1,6 @@
 'use server'
 
+import { getExtracted } from 'next-intl/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { ensureEnabledLocales, serializeEnabledLocales } from '@/i18n/locale-settings'
@@ -25,10 +26,11 @@ export async function updateLocalesSettingsAction(
   _prevState: LocalesSettingsActionState,
   formData: FormData,
 ): Promise<LocalesSettingsActionState> {
+  const t = await getExtracted()
   const user = await UserRepository.getCurrentUser()
 
   if (!user || !user.is_admin) {
-    return { error: 'Unauthenticated.' }
+    return { error: t('Unauthenticated.') }
   }
 
   const rawLocales = formData.getAll('enabled_locales')
@@ -39,7 +41,7 @@ export async function updateLocalesSettingsAction(
   })
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'Invalid input.' }
+    return { error: t('Invalid input.') }
   }
 
   const value = serializeEnabledLocales(parsed.data.enabledLocales)

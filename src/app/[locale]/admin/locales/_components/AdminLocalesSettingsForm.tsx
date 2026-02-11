@@ -1,6 +1,7 @@
 'use client'
 
 import type { SupportedLocale } from '@/i18n/locales'
+import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -24,6 +25,7 @@ export default function AdminLocalesSettingsForm({
   supportedLocales,
   enabledLocales,
 }: AdminLocalesSettingsFormProps) {
+  const t = useExtracted()
   const [state, formAction, isPending] = useActionState(updateLocalesSettingsAction, initialState)
   const wasPendingRef = useRef(isPending)
   const initialStateMap = useMemo(() => {
@@ -43,14 +45,14 @@ export default function AdminLocalesSettingsForm({
     const transitionedToIdle = wasPendingRef.current && !isPending
 
     if (transitionedToIdle && state.error === null) {
-      toast.success('Locales updated successfully!')
+      toast.success(t('Locales updated successfully!'))
     }
     else if (transitionedToIdle && state.error) {
       toast.error(state.error)
     }
 
     wasPendingRef.current = isPending
-  }, [isPending, state.error])
+  }, [isPending, state.error, t])
 
   function handleToggle(locale: SupportedLocale, nextValue: boolean) {
     setEnabledState(prev => ({
@@ -70,7 +72,7 @@ export default function AdminLocalesSettingsForm({
             <div className="grid gap-1">
               <Label className="text-sm font-medium">{LOCALE_LABELS[locale]}</Label>
               <span className="text-xs text-muted-foreground">
-                {isDefault ? 'Default locale' : locale.toUpperCase()}
+                {isDefault ? t('Default locale') : locale.toUpperCase()}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -90,7 +92,7 @@ export default function AdminLocalesSettingsForm({
       {state.error && <InputError message={state.error} />}
 
       <Button type="submit" className="ms-auto w-40" disabled={isPending}>
-        {isPending ? 'Saving...' : 'Save changes'}
+        {isPending ? t('Saving...') : t('Save changes')}
       </Button>
     </Form>
   )
