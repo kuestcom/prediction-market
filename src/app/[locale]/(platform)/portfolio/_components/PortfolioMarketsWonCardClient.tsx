@@ -4,10 +4,10 @@ import type { Route } from 'next'
 import { DialogTitle } from '@radix-ui/react-dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useQueryClient } from '@tanstack/react-query'
-import { BanknoteArrowDownIcon, CircleCheckIcon } from 'lucide-react'
+import { BanknoteArrowDownIcon, CheckIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { hashTypedData } from 'viem'
 import { useSignMessage } from 'wagmi'
@@ -28,6 +28,7 @@ import {
   getSafeTxTypedData,
   packSafeSignature,
 } from '@/lib/safe/transactions'
+import { triggerConfetti } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
 export interface PortfolioClaimMarket {
@@ -71,6 +72,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
   const { summary, markets } = data
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isClaimSubmitted, setIsClaimSubmitted] = useState(false)
   const { ensureTradingReady } = useTradingOnboarding()
   const { signMessageAsync } = useSignMessage()
   const queryClient = useQueryClient()
@@ -89,6 +91,14 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     ],
     [summary],
   )
+
+  useEffect(() => {
+    if (!isDialogOpen) {
+      return
+    }
+
+    triggerConfetti('yes')
+  }, [isDialogOpen])
 
   async function handleClaimAll() {
     if (isSubmitting) {
@@ -176,6 +186,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           : 'We sent your claim transaction.',
       })
 
+      setIsClaimSubmitted(true)
       setIsDialogOpen(false)
       queryClient.invalidateQueries({ queryKey: ['user-positions'] })
       queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
@@ -191,6 +202,10 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (isClaimSubmitted || markets.length === 0) {
+    return null
   }
 
   return (
@@ -247,14 +262,16 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
         </CardContent>
       </Card>
 
-      <DialogContent className="max-w-md space-y-6 text-center sm:p-8">
+      <DialogContent className="max-w-104 space-y-6 text-center sm:p-8">
         <VisuallyHidden>
           <DialogTitle>You Won</DialogTitle>
         </VisuallyHidden>
 
         <div className="flex justify-center">
-          <div className="flex size-16 items-center justify-center rounded-full bg-yes/15">
-            <CircleCheckIcon className="size-14 text-yes" />
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-yes/15">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-yes/20 ring-1 ring-yes/30">
+              <CheckIcon className="size-5 text-yes" strokeWidth={2.75} />
+            </div>
           </div>
         </div>
 
