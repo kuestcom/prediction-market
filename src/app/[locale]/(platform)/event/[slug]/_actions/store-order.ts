@@ -161,6 +161,45 @@ function mapClobErrorMessage(rawError: string | null) {
   return normalized
 }
 
+async function readClobResponsePayload(response: {
+  text?: () => Promise<string>
+  json?: () => Promise<unknown>
+}) {
+  let responseText = ''
+  let payload: Record<string, unknown> | null = null
+
+  if (typeof response.text === 'function') {
+    responseText = await response.text()
+    if (responseText) {
+      try {
+        const parsed = JSON.parse(responseText) as unknown
+        if (isRecord(parsed)) {
+          payload = parsed
+        }
+      }
+      catch (error) {
+        console.error('Failed to parse CLOB response payload.', error)
+      }
+    }
+    return { responseText, payload }
+  }
+
+  if (typeof response.json === 'function') {
+    try {
+      const parsed = await response.json()
+      if (isRecord(parsed)) {
+        payload = parsed
+        responseText = JSON.stringify(parsed)
+      }
+    }
+    catch (error) {
+      console.error('Failed to parse CLOB response payload.', error)
+    }
+  }
+
+  return { responseText, payload }
+}
+
 async function ensureSufficientSellShares(maker: string, tokenId: string, makerAmount: string) {
   const normalizedMaker = normalizeAddress(maker)
   if (!normalizedMaker) {
@@ -284,19 +323,7 @@ export async function storeOrderAction(payload: StoreOrderInput) {
       signal: AbortSignal.timeout(CLOB_REQUEST_TIMEOUT_MS),
     })
 
-    const responseText = await clobStoreOrderResponse.text()
-    let clobStoreOrderResponseJson: Record<string, unknown> | null = null
-    if (responseText) {
-      try {
-        const parsed = JSON.parse(responseText) as unknown
-        if (isRecord(parsed)) {
-          clobStoreOrderResponseJson = parsed
-        }
-      }
-      catch (error) {
-        console.error('Failed to parse CLOB response payload.', error)
-      }
-    }
+    const { responseText, payload: clobStoreOrderResponseJson } = await readClobResponsePayload(clobStoreOrderResponse)
 
     if (!clobStoreOrderResponse.ok) {
       const responseError = getStringField(clobStoreOrderResponseJson, 'error')
