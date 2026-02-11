@@ -890,22 +890,22 @@ async function processTags(eventId: string, tagNames: any[]) {
     }))
 
   if (rowsToInsert.length > 0) {
-    const { data: insertedTags, error: insertTagsError } = await supabaseAdmin
+    const { data: insertedTags, error: upsertTagsError } = await supabaseAdmin
       .from('tags')
-      .insert(rowsToInsert)
+      .upsert(rowsToInsert, {
+        onConflict: 'slug',
+        ignoreDuplicates: true,
+      })
       .select('id,slug')
 
-    if (insertTagsError) {
-      if (insertTagsError.code !== '23505') {
-        console.error(`Failed to create tags for event ${eventId}:`, insertTagsError)
-        return
-      }
+    if (upsertTagsError) {
+      console.error(`Failed to create tags for event ${eventId}:`, upsertTagsError)
+      return
     }
-    else {
-      for (const tag of insertedTags ?? []) {
-        if (typeof tag.slug === 'string' && typeof tag.id === 'number') {
-          tagIdBySlug.set(tag.slug, tag.id)
-        }
+
+    for (const tag of insertedTags ?? []) {
+      if (typeof tag.slug === 'string' && typeof tag.id === 'number') {
+        tagIdBySlug.set(tag.slug, tag.id)
       }
     }
 
