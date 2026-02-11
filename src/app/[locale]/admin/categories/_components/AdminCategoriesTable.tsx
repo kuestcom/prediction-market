@@ -3,12 +3,13 @@
 import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useMemo, useState } from 'react'
+import { useExtracted } from 'next-intl'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { DataTable } from '@/app/[locale]/admin/_components/DataTable'
 import { updateCategoryAction } from '@/app/[locale]/admin/categories/_actions/update-category'
 import { updateCategoryTranslationsAction } from '@/app/[locale]/admin/categories/_actions/update-category-translations'
-import { createCategoryColumns } from '@/app/[locale]/admin/categories/_components/columns'
+import { useAdminCategoryColumns } from '@/app/[locale]/admin/categories/_components/columns'
 import { useAdminCategoriesTable } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,6 +26,7 @@ import { Label } from '@/components/ui/label'
 import { LOCALE_LABELS, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 
 export default function AdminCategoriesTable() {
+  const t = useExtracted()
   const queryClient = useQueryClient()
 
   const {
@@ -67,15 +69,17 @@ export default function AdminCategoriesTable() {
     })
 
     if (result.success) {
-      toast.success(`${category.name} ${checked ? 'is now shown as a main category.' : 'is no longer marked as main.'}`)
+      toast.success(checked
+        ? t('{name} is now shown as a main category.', { name: category.name })
+        : t('{name} is no longer marked as main.', { name: category.name }))
       void queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
     }
     else {
-      toast.error(result.error || 'Failed to update category')
+      toast.error(result.error || t('Failed to update category'))
     }
 
     setPendingMainId(null)
-  }, [queryClient])
+  }, [queryClient, t])
 
   const handleToggleHidden = useCallback(async (category: AdminCategoryRow, checked: boolean) => {
     setPendingHiddenId(category.id)
@@ -85,15 +89,17 @@ export default function AdminCategoriesTable() {
     })
 
     if (result.success) {
-      toast.success(`${category.name} is now ${checked ? 'hidden' : 'visible'} on the site.`)
+      toast.success(checked
+        ? t('{name} is now hidden on the site.', { name: category.name })
+        : t('{name} is now visible on the site.', { name: category.name }))
       void queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
     }
     else {
-      toast.error(result.error || 'Failed to update category')
+      toast.error(result.error || t('Failed to update category'))
     }
 
     setPendingHiddenId(null)
-  }, [queryClient])
+  }, [queryClient, t])
 
   const handleToggleHideEvents = useCallback(async (category: AdminCategoryRow, checked: boolean) => {
     setPendingHideEventsId(category.id)
@@ -103,15 +109,17 @@ export default function AdminCategoriesTable() {
     })
 
     if (result.success) {
-      toast.success(`Events with category "${category.name}" are now ${checked ? 'hidden' : 'visible'} on the site.`)
+      toast.success(checked
+        ? t('Events with category "{name}" are now hidden on the site.', { name: category.name })
+        : t('Events with category "{name}" are now visible on the site.', { name: category.name }))
       void queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
     }
     else {
-      toast.error(result.error || 'Failed to update category')
+      toast.error(result.error || t('Failed to update category'))
     }
 
     setPendingHideEventsId(null)
-  }, [queryClient])
+  }, [queryClient, t])
 
   const handleOpenTranslations = useCallback((category: AdminCategoryRow) => {
     setTranslationCategory(category)
@@ -164,17 +172,17 @@ export default function AdminCategoriesTable() {
         },
       )
 
-      toast.success(`Translations updated for ${translationCategory.name}.`)
+      toast.success(t('Translations updated for {name}.', { name: translationCategory.name }))
       void queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
       closeTranslationsDialog()
       return
     }
 
-    setTranslationError(result.error ?? 'Failed to update category translations')
+    setTranslationError(result.error ?? t('Failed to update category translations'))
     setIsSavingTranslations(false)
-  }, [closeTranslationsDialog, queryClient, translationCategory, translationValues])
+  }, [closeTranslationsDialog, queryClient, t, translationCategory, translationValues])
 
-  const columns = useMemo(() => createCategoryColumns({
+  const columns = useAdminCategoryColumns({
     onToggleMain: handleToggleMain,
     onToggleHidden: handleToggleHidden,
     onToggleHideEvents: handleToggleHideEvents,
@@ -182,15 +190,7 @@ export default function AdminCategoriesTable() {
     isUpdatingMain: id => pendingMainId === id,
     isUpdatingHidden: id => pendingHiddenId === id,
     isUpdatingHideEvents: id => pendingHideEventsId === id,
-  }), [
-    handleOpenTranslations,
-    handleToggleHideEvents,
-    handleToggleHidden,
-    handleToggleMain,
-    pendingHideEventsId,
-    pendingHiddenId,
-    pendingMainId,
-  ])
+  })
 
   function handleSortChangeWithTranslation(column: string | null, order: 'asc' | 'desc' | null) {
     if (column === null || order === null) {
@@ -213,15 +213,15 @@ export default function AdminCategoriesTable() {
         columns={columns}
         data={categories}
         totalCount={totalCount}
-        searchPlaceholder="Search categories..."
+        searchPlaceholder={t('Search categories...')}
         enableSelection={false}
         enablePagination
         enableColumnVisibility={false}
         isLoading={isLoading}
         error={error}
         onRetry={retry}
-        emptyMessage="No categories found"
-        emptyDescription="Once categories are synced they will appear here."
+        emptyMessage={t('No categories found')}
+        emptyDescription={t('Once categories are synced they will appear here.')}
         search={search}
         onSearchChange={handleSearchChange}
         sortBy={sortBy}
@@ -249,15 +249,15 @@ export default function AdminCategoriesTable() {
             }}
           >
             <DialogHeader>
-              <DialogTitle>Category translations</DialogTitle>
+              <DialogTitle>{t('Category translations')}</DialogTitle>
               <DialogDescription>
-                Update non-English labels for this category. English remains the value in the main category table.
+                {t('Update non-English labels for this category. English remains the value in the main category table.')}
               </DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="translation-en">English (source)</Label>
+                <Label htmlFor="translation-en">{t('English (source)')}</Label>
                 <Input
                   id="translation-en"
                   value={translationCategory?.name ?? ''}
@@ -275,7 +275,7 @@ export default function AdminCategoriesTable() {
                       id={fieldId}
                       value={translationValues[locale] ?? ''}
                       onChange={event => handleTranslationChange(locale, event.target.value)}
-                      placeholder={`Translation for ${LOCALE_LABELS[locale]}`}
+                      placeholder={t('Translation for {locale}', { locale: LOCALE_LABELS[locale] })}
                       disabled={isSavingTranslations}
                     />
                   </div>
@@ -292,13 +292,13 @@ export default function AdminCategoriesTable() {
                 onClick={closeTranslationsDialog}
                 disabled={isSavingTranslations}
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 type="submit"
                 disabled={isSavingTranslations}
               >
-                {isSavingTranslations ? 'Saving...' : 'Save'}
+                {isSavingTranslations ? t('Saving...') : t('Save')}
               </Button>
             </DialogFooter>
           </form>

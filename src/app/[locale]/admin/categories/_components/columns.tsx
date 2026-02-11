@@ -1,6 +1,9 @@
+'use client'
+
 import type { ColumnDef } from '@tanstack/react-table'
 import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
 import { ArrowUpDownIcon, LanguagesIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -15,7 +18,7 @@ interface CategoryColumnOptions {
   isUpdatingHideEvents: (categoryId: number) => boolean
 }
 
-export function createCategoryColumns({
+export function useAdminCategoryColumns({
   onToggleMain,
   onToggleHidden,
   onToggleHideEvents,
@@ -24,6 +27,8 @@ export function createCategoryColumns({
   isUpdatingHidden,
   isUpdatingHideEvents,
 }: CategoryColumnOptions): ColumnDef<AdminCategoryRow>[] {
+  const t = useExtracted()
+
   return [
     {
       accessorKey: 'name',
@@ -35,7 +40,7 @@ export function createCategoryColumns({
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
         >
-          Category
+          {t('Category')}
           <ArrowUpDownIcon className="ml-2 size-4" />
         </Button>
       ),
@@ -47,36 +52,30 @@ export function createCategoryColumns({
               <span className="font-medium text-foreground">{category.name}</span>
               {category.is_hidden && (
                 <Badge variant="outline" className="text-xs">
-                  Hidden
+                  {t('Hidden')}
                 </Badge>
               )}
               {category.hide_events && (
                 <Badge variant="destructive" className="text-xs">
-                  Hide events
+                  {t('Hide events')}
                 </Badge>
               )}
               {category.is_main_category && (
                 <Badge variant="secondary" className="text-xs">
-                  Main
+                  {t('Main')}
                 </Badge>
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              slug:
-              {' '}
-              {category.slug}
+              {`slug: ${category.slug}`}
             </p>
             <p className="text-xs text-muted-foreground">
               {category.parent_name
                 ? (
-                    <>
-                      Parent:
-                      {' '}
-                      {category.parent_name}
-                    </>
+                    `Parent: ${category.parent_name}`
                   )
                 : (
-                    <>No parent</>
+                    t('No parent')
                   )}
             </p>
           </div>
@@ -94,7 +93,7 @@ export function createCategoryColumns({
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
         >
-          Active Markets
+          {t('Active Markets')}
           <ArrowUpDownIcon className="ml-2 size-4" />
         </Button>
       ),
@@ -110,7 +109,7 @@ export function createCategoryColumns({
       id: 'is_main_category',
       header: () => (
         <div className="text-center text-xs font-medium text-muted-foreground uppercase">
-          Main Category
+          {t('Main Category')}
         </div>
       ),
       cell: ({ row }) => {
@@ -125,9 +124,7 @@ export function createCategoryColumns({
               onCheckedChange={checked => onToggleMain(category, checked)}
             />
             <span className="sr-only">
-              Toggle main category for
-              {' '}
-              {category.name}
+              {t('Toggle main category for {name}', { name: category.name })}
             </span>
           </div>
         )
@@ -139,7 +136,7 @@ export function createCategoryColumns({
       id: 'is_hidden',
       header: () => (
         <div className="text-center text-xs font-medium text-muted-foreground uppercase">
-          Hide Category
+          {t('Hide Category')}
         </div>
       ),
       cell: ({ row }) => {
@@ -154,9 +151,7 @@ export function createCategoryColumns({
               onCheckedChange={checked => onToggleHidden(category, checked)}
             />
             <span className="sr-only">
-              Toggle hide for
-              {' '}
-              {category.name}
+              {t('Toggle hide for {name}', { name: category.name })}
             </span>
           </div>
         )
@@ -168,7 +163,7 @@ export function createCategoryColumns({
       id: 'hide_events',
       header: () => (
         <div className="text-center text-xs font-medium text-muted-foreground uppercase">
-          Hide Events
+          {t('Hide Events')}
         </div>
       ),
       cell: ({ row }) => {
@@ -183,9 +178,7 @@ export function createCategoryColumns({
               onCheckedChange={checked => onToggleHideEvents(category, checked)}
             />
             <span className="sr-only">
-              Toggle hide for
-              {' '}
-              {category.name}
+              {t('Toggle hide for {name}', { name: category.name })}
             </span>
           </div>
         )
@@ -196,7 +189,7 @@ export function createCategoryColumns({
       id: 'translations',
       header: () => (
         <div className="text-center text-xs font-medium text-muted-foreground uppercase">
-          Translations
+          {t('Translations')}
         </div>
       ),
       cell: ({ row }) => {
@@ -212,9 +205,7 @@ export function createCategoryColumns({
             >
               <LanguagesIcon className="size-4" />
               <span className="sr-only">
-                Open translations for
-                {' '}
-                {category.name}
+                {t('Open translations for {name}', { name: category.name })}
               </span>
             </Button>
           </div>
