@@ -1,6 +1,7 @@
 'use client'
 
 import type { Route } from 'next'
+import { useExtracted } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Link, usePathname } from '@/i18n/navigation'
 
@@ -10,17 +11,17 @@ interface AdminMenuItem {
   href: Route
 }
 
-const adminMenuItems: AdminMenuItem[] = [
-  { id: 'general', label: 'General', href: '/admin' as Route },
-  { id: 'theme', label: 'Theme', href: '/admin/theme' as Route },
-  { id: 'categories', label: 'Categories', href: '/admin/categories' as Route },
-  { id: 'market-context', label: 'Market Context', href: '/admin/market-context' as Route },
-  { id: 'affiliate', label: 'Affiliate', href: '/admin/affiliate' as Route },
-  { id: 'users', label: 'Users', href: '/admin/users' as Route },
-  { id: 'locales', label: 'Locales', href: '/admin/locales' as Route },
-]
-
 export default function AdminSidebar() {
+  const t = useExtracted()
+  const adminMenuItems: AdminMenuItem[] = [
+    { id: 'general', label: t('General'), href: '/admin' as Route },
+    { id: 'theme', label: t('Theme'), href: '/admin/theme' as Route },
+    { id: 'categories', label: t('Categories'), href: '/admin/categories' as Route },
+    { id: 'market-context', label: t('Market Context'), href: '/admin/market-context' as Route },
+    { id: 'affiliate', label: t('Affiliate'), href: '/admin/affiliate' as Route },
+    { id: 'users', label: t('Users'), href: '/admin/users' as Route },
+    { id: 'locales', label: t('Locales'), href: '/admin/locales' as Route },
+  ]
   const pathname = usePathname()
   const activeItem = adminMenuItems.find(item => pathname === item.href)
   const active = activeItem?.id ?? 'general'
