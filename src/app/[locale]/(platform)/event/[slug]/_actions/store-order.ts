@@ -158,7 +158,8 @@ function mapClobErrorMessage(rawError: string | null) {
     }
   }
 
-  return normalized
+  console.error('Unmapped CLOB error message.', normalized)
+  return DEFAULT_ERROR_MESSAGE
 }
 
 async function readClobResponsePayload(response: {

@@ -210,4 +210,39 @@ describe('storeOrderAction', () => {
       slug: 'event-1',
     }))
   })
+
+  it('returns default message for unmapped CLOB errors', async () => {
+    process.env.CLOB_URL = 'https://clob.local'
+    const proxy = address('01')
+
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'user-1',
+      address: address('aa'),
+      proxy_wallet_address: proxy,
+      referred_by_user_id: null,
+      settings: { trading: { market_order_type: 'FAK' } },
+    })
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
+      clob: { key: 'k', passphrase: 'p', secret: 's' },
+    })
+
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      status: 200,
+      statusText: 'OK',
+      ok: true,
+      json: async () => ({ success: false, errorMsg: 'some internal-only clob detail' }),
+    })
+    globalThis.fetch = fetchMock as any
+
+    const { storeOrderAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
+    const result = await storeOrderAction(basePayload({
+      maker: proxy,
+      signer: proxy,
+      type: 'MARKET',
+    }))
+
+    expect(result).toEqual({
+      error: 'Something went wrong while processing your order. Please try again.',
+    })
+  })
 })
