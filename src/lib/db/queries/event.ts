@@ -433,6 +433,8 @@ function eventResource(
     neg_risk_market_id: event.neg_risk_market_id || undefined,
     status: (event.status ?? 'draft') as Event['status'],
     rules: event.rules || undefined,
+    series_slug: event.series_slug ?? null,
+    series_recurrence: event.series_recurrence ?? null,
     active_markets_count: Number(event.active_markets_count || 0),
     total_markets_count: Number(event.total_markets_count || 0),
     created_at: event.created_at?.toISOString() || new Date().toISOString(),

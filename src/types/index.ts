@@ -11,6 +11,8 @@ export interface Event {
   neg_risk_market_id?: string
   status: 'draft' | 'active' | 'resolved' | 'archived'
   rules?: string
+  series_slug?: string | null
+  series_recurrence?: string | null
   active_markets_count: number
   total_markets_count: number
   volume: number
