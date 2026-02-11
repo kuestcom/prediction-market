@@ -2,6 +2,7 @@
 
 import type { Table } from '@tanstack/react-table'
 import { SlidersHorizontalIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -20,6 +21,8 @@ interface DataTableViewOptionsProps<TData> {
 export function DataTableViewOptions<TData>({
   table,
 }: DataTableViewOptionsProps<TData>) {
+  const t = useExtracted()
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -29,11 +32,11 @@ export function DataTableViewOptions<TData>({
           className="ml-auto hidden h-8 lg:flex"
         >
           <SlidersHorizontalIcon className="mr-2 size-4" />
-          View
+          {t('View')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-37.5">
-        <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('Toggle columns')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {table
           .getAllColumns()

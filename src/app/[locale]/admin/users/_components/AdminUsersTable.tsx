@@ -1,10 +1,13 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import { DataTable } from '@/app/[locale]/admin/_components/DataTable'
 import { useAdminUsersTable } from '@/app/[locale]/admin/_hooks/useAdminUsers'
-import { columns } from './columns'
+import { useAdminUsersColumns } from './columns'
 
 export default function AdminUsersTable() {
+  const t = useExtracted()
+  const columns = useAdminUsersColumns()
   const {
     users,
     totalCount,
@@ -43,15 +46,15 @@ export default function AdminUsersTable() {
       columns={columns}
       data={users}
       totalCount={totalCount}
-      searchPlaceholder="Search users..."
+      searchPlaceholder={t('Search users...')}
       enableSelection={true}
       enablePagination={true}
       enableColumnVisibility={true}
       isLoading={isLoading}
       error={error}
       onRetry={retry}
-      emptyMessage="No users found"
-      emptyDescription="There are no users in the system yet."
+      emptyMessage={t('No users found')}
+      emptyDescription={t('There are no users in the system yet.')}
       search={search}
       onSearchChange={handleSearchChange}
       sortBy={sortBy}

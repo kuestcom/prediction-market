@@ -2,6 +2,7 @@
 
 import type { ColumnDef, SortingState, VisibilityState } from '@tanstack/react-table'
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
+import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
 import { DataTableToolbar } from '@/app/[locale]/admin/_components/DataTableToolbar'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -46,14 +47,14 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   totalCount,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder,
   enableSelection = false,
   enablePagination = true,
   enableColumnVisibility = true,
   isLoading = false,
   error = null,
-  emptyMessage = 'No entries found',
-  emptyDescription = 'There are no entries to display yet.',
+  emptyMessage,
+  emptyDescription,
   onRetry,
   search,
   onSearchChange,
@@ -65,6 +66,10 @@ export function DataTable<TData, TValue>({
   onPageChange,
   onPageSizeChange,
 }: DataTableProps<TData, TValue>) {
+  const t = useExtracted()
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t('Search...')
+  const resolvedEmptyMessage = emptyMessage ?? t('No entries found')
+  const resolvedEmptyDescription = emptyDescription ?? t('There are no entries to display yet.')
   const [rowSelection, setRowSelection] = useState({})
 
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -119,7 +124,7 @@ export function DataTable<TData, TValue>({
         <DataTableToolbar
           search={search}
           onSearchChange={onSearchChange}
-          searchPlaceholder={searchPlaceholder}
+          searchPlaceholder={resolvedSearchPlaceholder}
           table={table}
           enableColumnVisibility={enableColumnVisibility}
           enableSelection={enableSelection}
@@ -143,7 +148,7 @@ export function DataTable<TData, TValue>({
                 />
               </svg>
             </div>
-            <h3 className="mb-2 text-lg font-medium text-foreground">Something went wrong</h3>
+            <h3 className="mb-2 text-lg font-medium text-foreground">{t('Something went wrong')}</h3>
             <p className="mb-4 text-sm text-muted-foreground">{error}</p>
             {onRetry && (
               <button
@@ -156,7 +161,7 @@ export function DataTable<TData, TValue>({
                   focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none
                 `}
               >
-                Try again
+                {t('Try again')}
               </button>
             )}
           </div>
@@ -170,7 +175,7 @@ export function DataTable<TData, TValue>({
       <DataTableToolbar
         search={search}
         onSearchChange={onSearchChange}
-        searchPlaceholder={searchPlaceholder}
+        searchPlaceholder={resolvedSearchPlaceholder}
         table={table}
         enableColumnVisibility={enableColumnVisibility}
         enableSelection={enableSelection}
@@ -252,8 +257,8 @@ export function DataTable<TData, TValue>({
                                     />
                                   </svg>
                                 </div>
-                                <h3 className="mb-1 text-sm font-medium text-foreground">{emptyMessage}</h3>
-                                <p className="text-xs text-muted-foreground">{emptyDescription}</p>
+                                <h3 className="mb-1 text-sm font-medium text-foreground">{resolvedEmptyMessage}</h3>
+                                <p className="text-xs text-muted-foreground">{resolvedEmptyDescription}</p>
                               </div>
                             )
                           : (
@@ -274,9 +279,9 @@ export function DataTable<TData, TValue>({
                                     />
                                   </svg>
                                 </div>
-                                <h3 className="mb-1 text-sm font-medium text-foreground">No results found</h3>
+                                <h3 className="mb-1 text-sm font-medium text-foreground">{t('No results found')}</h3>
                                 <p className="text-xs text-muted-foreground">
-                                  Try adjusting your search or filter to find what you're looking for.
+                                  {t('Try adjusting your search or filter to find what you\'re looking for.')}
                                 </p>
                               </div>
                             )}
