@@ -73,6 +73,7 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isNavigationTagsReady, setIsNavigationTagsReady] = useState(false)
   const [filterSettings, setFilterSettings] = useState<FilterSettings>(() => createDefaultFilters({
     status: filters.status,
     hideSports: filters.hideSports,
@@ -97,6 +98,10 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
     || filterSettings.hideCrypto !== BASE_FILTER_SETTINGS.hideCrypto
     || filterSettings.hideEarnings !== BASE_FILTER_SETTINGS.hideEarnings
   ), [filterSettings])
+
+  useEffect(() => {
+    setIsNavigationTagsReady(true)
+  }, [])
 
   useEffect(() => {
     setFilterSettings((prev) => {
@@ -217,7 +222,11 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
 
         <Separator orientation="vertical" className="order-4 hidden shrink-0 md:order-2 md:flex" />
 
-        <div id="navigation-tags" className="order-3 max-w-full min-w-0 flex-1 overflow-hidden md:order-3" />
+        <div
+          id="navigation-tags"
+          data-teleport-ready={isNavigationTagsReady ? 'true' : 'false'}
+          className="order-3 max-w-full min-w-0 flex-1 overflow-hidden md:order-3"
+        />
       </div>
 
       {isSettingsOpen && (

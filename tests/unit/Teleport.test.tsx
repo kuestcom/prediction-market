@@ -52,4 +52,23 @@ describe('teleport', () => {
 
     expect(document.querySelector('#teleport-sticky-target')).not.toBeNull()
   })
+
+  it('waits for target readiness attribute before rendering content', async () => {
+    document.body.innerHTML = '<div id="teleport-ready-target" data-teleport-ready="false"></div>'
+
+    render(
+      <Teleport to="#teleport-ready-target" requireReadyAttribute="data-teleport-ready">
+        <span>Ready-gated content</span>
+      </Teleport>,
+    )
+
+    expect(screen.queryByText('Ready-gated content')).not.toBeInTheDocument()
+
+    const target = document.querySelector('#teleport-ready-target')
+    target?.setAttribute('data-teleport-ready', 'true')
+
+    await waitFor(() => {
+      expect(screen.getByText('Ready-gated content')).toBeInTheDocument()
+    })
+  })
 })

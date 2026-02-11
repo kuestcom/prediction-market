@@ -372,7 +372,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
       )}
 
       {isActive && (
-        <Teleport to="#navigation-tags">
+        <Teleport to="#navigation-tags" requireReadyAttribute="data-teleport-ready">
           <div className="relative w-full max-w-full">
             <div
               ref={scrollContainerRef}
