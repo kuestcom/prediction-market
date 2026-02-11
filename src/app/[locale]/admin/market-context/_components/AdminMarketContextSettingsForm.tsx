@@ -1,6 +1,7 @@
 'use client'
 
 import type { MarketContextVariable } from '@/lib/ai/market-context-template'
+import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -26,6 +27,7 @@ export default function AdminMarketContextSettingsForm({
   isEnabled,
   variables,
 }: AdminMarketContextSettingsFormProps) {
+  const t = useExtracted()
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const [promptValue, setPromptValue] = useState(defaultPrompt)
   const [enabled, setEnabled] = useState(isEnabled)
@@ -44,14 +46,45 @@ export default function AdminMarketContextSettingsForm({
     const transitionedToIdle = wasPendingRef.current && !isPending
 
     if (transitionedToIdle && state.error === null) {
-      toast.success('Settings updated successfully!')
+      toast.success(t('Settings updated successfully!'))
     }
     else if (transitionedToIdle && state.error) {
       toast.error(state.error)
     }
 
     wasPendingRef.current = isPending
-  }, [isPending, state.error])
+  }, [isPending, state.error, t])
+
+  function getVariableDescription(variable: MarketContextVariable) {
+    switch (variable.key) {
+      case 'event-title':
+        return t('Full event headline.')
+      case 'event-description':
+        return t('Primary description provided for the event.')
+      case 'event-main-tag':
+        return t('Primary tag associated with the event.')
+      case 'event-creator':
+        return t('Event creator name or address.')
+      case 'event-created-at':
+        return t('ISO timestamp for when the event was created.')
+      case 'market-estimated-end-date':
+        return t('Best estimate for when the market should resolve.')
+      case 'market-title':
+        return t('Title for the selected market.')
+      case 'market-probability':
+        return t('Probability formatted as a percentage.')
+      case 'market-price':
+        return t('Current YES share price formatted in cents.')
+      case 'market-volume-24h':
+        return t('24 hour trading volume in USD.')
+      case 'market-volume-total':
+        return t('Lifetime trading volume in USD.')
+      case 'market-outcomes':
+        return t('Multi-line bullet list detailing each outcome.')
+      default:
+        return variable.description
+    }
+  }
 
   function handleInsertVariable(key: string) {
     const placeholder = `[${key}]`
@@ -81,7 +114,7 @@ export default function AdminMarketContextSettingsForm({
 
       <section className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <Label htmlFor="openrouter_enabled">Enable market context</Label>
+          <Label htmlFor="openrouter_enabled">{t('Enable market context')}</Label>
           <Switch
             id="openrouter_enabled"
             checked={enabled}
@@ -91,7 +124,7 @@ export default function AdminMarketContextSettingsForm({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="market_context_prompt">Prompt template</Label>
+          <Label htmlFor="market_context_prompt">{t('Prompt template')}</Label>
           <Textarea
             id="market_context_prompt"
             name="market_context_prompt"
@@ -102,12 +135,12 @@ export default function AdminMarketContextSettingsForm({
             disabled={isPending}
           />
           <p className="text-xs text-muted-foreground">
-            Use the variables below to blend live market data into the instructions. They will be replaced before the request is sent.
+            {t('Use the variables below to blend live market data into the instructions. They will be replaced before the request is sent.')}
           </p>
         </div>
 
         <div className="grid gap-3">
-          <span className="text-xs font-medium text-muted-foreground uppercase">Available variables</span>
+          <span className="text-xs font-medium text-muted-foreground uppercase">{t('Available variables')}</span>
           <div className="flex flex-wrap gap-2">
             {variables.map(variable => (
               <Button
@@ -117,7 +150,7 @@ export default function AdminMarketContextSettingsForm({
                 size="sm"
                 disabled={isPending}
                 onClick={() => handleInsertVariable(variable.key)}
-                title={variable.description}
+                title={getVariableDescription(variable)}
                 className="rounded-full"
               >
                 [
@@ -135,7 +168,7 @@ export default function AdminMarketContextSettingsForm({
                   ]
                 </span>
                 {' – '}
-                {variable.description}
+                {getVariableDescription(variable)}
               </li>
             ))}
           </ul>
@@ -146,7 +179,7 @@ export default function AdminMarketContextSettingsForm({
 
       <div className="flex justify-end">
         <Button type="submit" className="w-40" disabled={isPending}>
-          {isPending ? 'Saving...' : 'Save changes'}
+          {isPending ? t('Saving...') : t('Save changes')}
         </Button>
       </div>
     </Form>
