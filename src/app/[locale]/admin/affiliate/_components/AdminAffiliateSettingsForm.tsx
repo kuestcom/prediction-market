@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useActionState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
@@ -26,6 +27,7 @@ export default function AdminAffiliateSettingsForm({
   minTradeFeeBps = 0,
   updatedAtLabel,
 }: AdminAffiliateSettingsFormProps) {
+  const t = useExtracted()
   const [state, formAction, isPending] = useActionState(updateForkSettingsAction, initialState)
   const wasPendingRef = useRef(isPending)
   const minTradeFeePercent = (minTradeFeeBps / 100).toFixed(2)
@@ -34,34 +36,32 @@ export default function AdminAffiliateSettingsForm({
     const transitionedToIdle = wasPendingRef.current && !isPending
 
     if (transitionedToIdle && state.error === null) {
-      toast.success('Settings updated successfully!')
+      toast.success(t('Settings updated successfully!'))
     }
     else if (transitionedToIdle && state.error) {
       toast.error(state.error)
     }
 
     wasPendingRef.current = isPending
-  }, [isPending, state.error])
+  }, [isPending, state.error, t])
 
   return (
     <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
       <div>
-        <h2 className="text-xl font-semibold">Trading Fees</h2>
+        <h2 className="text-xl font-semibold">{t('Trading Fees')}</h2>
         <p className="text-sm text-muted-foreground">
-          Configure the trading fee charged on your platform and the share paid to affiliates.
+          {t('Configure the trading fee charged on your platform and the share paid to affiliates.')}
         </p>
         {updatedAtLabel && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Last updated
-            {' '}
-            {updatedAtLabel}
+            {t('Last updated {timestamp}', { timestamp: updatedAtLabel })}
           </p>
         )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
-          <Label htmlFor="trade_fee_percent">Trading fee (%)</Label>
+          <Label htmlFor="trade_fee_percent">{t('Trading fee (%)')}</Label>
           <Input
             id="trade_fee_percent"
             name="trade_fee_percent"
@@ -73,14 +73,11 @@ export default function AdminAffiliateSettingsForm({
             disabled={isPending}
           />
           <p className="text-xs text-muted-foreground">
-            Minimum
-            {' '}
-            {minTradeFeePercent}
-            % (onchain base fee)
+            {t('Minimum {value}% (onchain base fee)', { value: minTradeFeePercent })}
           </p>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="affiliate_share_percent">Affiliate share (%)</Label>
+          <Label htmlFor="affiliate_share_percent">{t('Affiliate share (%)')}</Label>
           <Input
             id="affiliate_share_percent"
             name="affiliate_share_percent"
@@ -92,7 +89,7 @@ export default function AdminAffiliateSettingsForm({
             disabled={isPending}
           />
           <p className="text-xs text-muted-foreground">
-            Affiliate share of trading fee.
+            {t('Affiliate share of trading fee.')}
           </p>
         </div>
       </div>
@@ -100,7 +97,7 @@ export default function AdminAffiliateSettingsForm({
       {state.error && <InputError message={state.error} />}
 
       <Button type="submit" className="ms-auto w-40" disabled={isPending}>
-        {isPending ? 'Saving...' : 'Save changes'}
+        {isPending ? t('Saving...') : t('Save changes')}
       </Button>
     </Form>
   )

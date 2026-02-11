@@ -1,3 +1,4 @@
+import { getExtracted } from 'next-intl/server'
 import Image from 'next/image'
 import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
@@ -21,12 +22,14 @@ interface AdminAffiliateOverviewProps {
   rows: AffiliateRow[]
 }
 
-export default function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewProps) {
+export default async function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewProps) {
+  const t = await getExtracted()
+
   if (!rows.length) {
     return (
       <div className="rounded-lg border p-6">
-        <h2 className="text-xl font-semibold">Affiliate performance</h2>
-        <p className="mt-2 text-sm text-muted-foreground">No affiliate activity recorded yet.</p>
+        <h2 className="text-xl font-semibold">{t('Affiliate performance')}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{t('No affiliate activity recorded yet.')}</p>
       </div>
     )
   }
@@ -35,8 +38,8 @@ export default function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewP
     <div className="rounded-lg border">
       <div className="flex items-center justify-between border-b p-4 md:px-6">
         <div>
-          <h2 className="text-xl font-semibold">Affiliate performance</h2>
-          <p className="text-sm text-muted-foreground">Top referring partners and their earnings.</p>
+          <h2 className="text-xl font-semibold">{t('Affiliate performance')}</h2>
+          <p className="text-sm text-muted-foreground">{t('Top referring partners and their earnings.')}</p>
         </div>
       </div>
 
@@ -44,10 +47,10 @@ export default function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewP
         <table className="min-w-full divide-y">
           <thead>
             <tr>
-              <th className={cn(tableHeaderClass, 'px-6 text-left')}>Affiliate</th>
-              <th className={cn(tableHeaderClass, 'px-6 text-right')}>Referrals</th>
-              <th className={cn(tableHeaderClass, 'px-6 text-right')}>Volume</th>
-              <th className={cn(tableHeaderClass, 'px-6 text-right')}>Affiliate fees</th>
+              <th className={cn(tableHeaderClass, 'px-6 text-left')}>{t('Affiliate')}</th>
+              <th className={cn(tableHeaderClass, 'px-6 text-right')}>{t('Referrals')}</th>
+              <th className={cn(tableHeaderClass, 'px-6 text-right')}>{t('Volume')}</th>
+              <th className={cn(tableHeaderClass, 'px-6 text-right')}>{t('Affiliate fees')}</th>
             </tr>
           </thead>
           <tbody>
@@ -73,7 +76,7 @@ export default function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewP
                         : (
                             <Image
                               src={avatarUrl}
-                              alt="Affiliate avatar"
+                              alt={t('Affiliate avatar')}
                               width={32}
                               height={32}
                               className="rounded-full"
@@ -88,7 +91,7 @@ export default function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewP
                         </Link>
                         {row.affiliate_code && (
                           <p className="text-xs text-muted-foreground">
-                            Code:
+                            {t('Code:')}
                             {' '}
                             {row.affiliate_code}
                           </p>
@@ -134,7 +137,7 @@ export default function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewP
                   : (
                       <Image
                         src={avatarUrl}
-                        alt="Affiliate avatar"
+                        alt={t('Affiliate avatar')}
                         width={32}
                         height={32}
                         className="rounded-full"
@@ -149,7 +152,7 @@ export default function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewP
                   </Link>
                   {row.affiliate_code && (
                     <p className="text-xs text-muted-foreground">
-                      Code:
+                      {t('Code:')}
                       {' '}
                       {row.affiliate_code}
                     </p>
@@ -158,15 +161,15 @@ export default function AdminAffiliateOverview({ rows }: AdminAffiliateOverviewP
               </div>
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div className="text-center">
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Referrals</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">{t('Referrals')}</p>
                   <p className="font-medium">{row.total_referrals}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Volume</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">{t('Volume')}</p>
                   <p className="font-medium">{formatCurrency(row.volume, { includeSymbol: false })}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Fees</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">{t('Fees')}</p>
                   <p className="font-medium">{formatCurrency(row.total_affiliate_fees, { includeSymbol: false })}</p>
                 </div>
               </div>
