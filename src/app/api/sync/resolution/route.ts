@@ -107,7 +107,7 @@ async function tryAcquireSyncLock(): Promise<boolean> {
     .update(runningPayload)
     .eq('service_name', 'resolution_sync')
     .eq('subgraph_name', 'resolution')
-    .or(`status.neq."running",updated_at.lt.${staleThreshold}`)
+    .or(`status.neq."running",updated_at.lt."${staleThreshold}"`)
     .select('id')
     .limit(1)
 
@@ -705,14 +705,38 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
     return
   }
 
-  const { data: markets, error: marketsError } = await supabaseAdmin
-    .from('markets')
-    .select('event_id,is_active,is_resolved')
-    .in('event_id', uniqueEventIds)
+  const marketRows: Array<{
+    event_id: string | null
+    is_active: boolean | null
+    is_resolved: boolean | null
+  }> = []
+  let marketRowsOffset = 0
+  const marketRowsPageSize = 1000
 
-  if (marketsError) {
-    console.error('Failed to load market statuses for events:', marketsError)
-    return
+  while (true) {
+    const { data: marketRowsPage, error: marketRowsError } = await supabaseAdmin
+      .from('markets')
+      .select('event_id,is_active,is_resolved')
+      .in('event_id', uniqueEventIds)
+      .order('id', { ascending: true })
+      .range(marketRowsOffset, marketRowsOffset + marketRowsPageSize - 1)
+
+    if (marketRowsError) {
+      console.error('Failed to load market statuses for events:', marketRowsError)
+      return
+    }
+
+    if (!marketRowsPage || marketRowsPage.length === 0) {
+      break
+    }
+
+    marketRows.push(...marketRowsPage)
+
+    if (marketRowsPage.length < marketRowsPageSize) {
+      break
+    }
+
+    marketRowsOffset += marketRowsPageSize
   }
 
   const currentEventById = new Map(
@@ -724,7 +748,7 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
     countsByEventId.set(eventId, { total: 0, active: 0, unresolved: 0 })
   }
 
-  for (const market of markets ?? []) {
+  for (const market of marketRows) {
     const eventId = market.event_id
     if (!eventId || !countsByEventId.has(eventId)) {
       continue
