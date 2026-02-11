@@ -18,6 +18,7 @@ interface SubmitSafeTransactionResult {
     enabled: boolean
     updatedAt: string
   }
+  txHash?: string
 }
 
 export async function getSafeNonceAction(): Promise<SafeNonceResult> {
@@ -142,7 +143,17 @@ export async function submitSafeTransactionAction(request: SafeTransactionReques
       approvals = await markTokenApprovalsCompleted(user.id)
     }
 
-    return { error: null, approvals }
+    const txHash = typeof payload?.txHash === 'string'
+      ? payload.txHash
+      : typeof payload?.tx_hash === 'string'
+        ? payload.tx_hash
+        : typeof payload?.transactionHash === 'string'
+          ? payload.transactionHash
+          : typeof payload?.hash === 'string'
+            ? payload.hash
+            : undefined
+
+    return { error: null, approvals, txHash }
   }
   catch (error) {
     console.error('Failed to submit safe transaction', error)

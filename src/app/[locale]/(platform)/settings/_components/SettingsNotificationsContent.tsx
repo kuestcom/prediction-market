@@ -107,6 +107,7 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
                 id="email-resolutions"
                 checked={optimisticSettings?.email_resolutions}
                 onCheckedChange={checked => handleSwitchChange('email_resolutions', checked)}
+                disabled
               />
             </div>
           </div>
@@ -146,6 +147,7 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
                   id="inapp-hide-small"
                   checked={optimisticSettings?.inapp_hide_small_fills}
                   onCheckedChange={checked => handleSwitchChange('inapp_hide_small_fills', checked)}
+                  disabled
                 />
               </div>
 
@@ -162,6 +164,7 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
                   id="inapp-resolutions"
                   checked={optimisticSettings?.inapp_resolutions}
                   onCheckedChange={checked => handleSwitchChange('inapp_resolutions', checked)}
+                  disabled
                 />
               </div>
             </div>

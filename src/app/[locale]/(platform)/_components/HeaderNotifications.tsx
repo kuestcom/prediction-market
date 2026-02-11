@@ -7,7 +7,14 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { getAvatarPlaceholderStyle } from '@/lib/avatar'
-import { useNotificationList, useNotifications, useNotificationsError, useNotificationsLoading, useUnreadNotificationCount } from '@/stores/useNotifications'
+import {
+  isLocalOrderFillNotification,
+  useNotificationList,
+  useNotifications,
+  useNotificationsError,
+  useNotificationsLoading,
+  useUnreadNotificationCount,
+} from '@/stores/useNotifications'
 
 function getNotificationTimeLabel(notification: Notification) {
   if (notification.time_ago) {
@@ -63,6 +70,7 @@ export default function HeaderNotifications() {
   const notifications = useNotificationList()
   const unreadCount = useUnreadNotificationCount()
   const setNotifications = useNotifications(state => state.setNotifications)
+  const removeNotification = useNotifications(state => state.removeNotification)
   const isLoading = useNotificationsLoading()
   const error = useNotificationsError()
   const hasNotifications = notifications.length > 0
@@ -70,6 +78,20 @@ export default function HeaderNotifications() {
   useEffect(() => {
     queueMicrotask(() => setNotifications())
   }, [setNotifications])
+
+  function handleLocalOrderFillClick(notification: Notification) {
+    if (!isLocalOrderFillNotification(notification)) {
+      return
+    }
+
+    if (notification.link_url) {
+      window.open(notification.link_url, '_blank', 'noopener,noreferrer')
+    }
+
+    queueMicrotask(() => {
+      void removeNotification(notification.id)
+    })
+  }
 
   return (
     <DropdownMenu>
@@ -79,12 +101,10 @@ export default function HeaderNotifications() {
           {unreadCount > 0 && (
             <span
               className={`
-                absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-destructive text-xs
+                absolute top-0.5 right-1.5 flex size-3 items-center justify-center rounded-full bg-primary text-xs
                 font-medium text-destructive-foreground
               `}
-            >
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
+            />
           )}
         </Button>
       </DropdownMenuTrigger>
@@ -106,26 +126,27 @@ export default function HeaderNotifications() {
             </div>
           )}
 
-          {error && (
+          {error && !hasNotifications && (
             <div className="p-4 text-center text-muted-foreground">
               <BellIcon className="mx-auto mb-2 size-8 opacity-50" />
               <p className="text-sm text-destructive">Failed to load notifications</p>
             </div>
           )}
 
-          {!isLoading && !error && !hasNotifications && (
+          {!isLoading && !hasNotifications && (
             <div className="p-4 text-center text-muted-foreground">
               <BellIcon className="mx-auto mb-2 size-8 opacity-50" />
               <p className="text-sm">You have no notifications.</p>
             </div>
           )}
 
-          {!isLoading && !error && hasNotifications && (
+          {!isLoading && hasNotifications && (
             <div className="divide-y divide-border">
               {notifications.map((notification) => {
                 const timeLabel = getNotificationTimeLabel(notification)
                 const hasLink = Boolean(notification.link_url)
                 const linkIsExternal = notification.link_type === 'external'
+                const isLocalOrderFill = isLocalOrderFillNotification(notification)
                 const linkIcon = (
                   <ExternalLinkIcon
                     className={`size-3 text-muted-foreground ${hasLink ? '' : 'opacity-0'}`}
@@ -135,7 +156,21 @@ export default function HeaderNotifications() {
                 return (
                   <div
                     key={notification.id}
-                    className="flex cursor-pointer items-start gap-3 p-3 transition-colors hover:bg-accent/50"
+                    className={`
+                      flex items-start gap-3 p-3 transition-colors hover:bg-accent/50
+                      ${isLocalOrderFill ? 'cursor-pointer' : 'cursor-default'}
+                    `}
+                    role={isLocalOrderFill ? 'button' : undefined}
+                    tabIndex={isLocalOrderFill ? 0 : undefined}
+                    onClick={isLocalOrderFill ? () => handleLocalOrderFillClick(notification) : undefined}
+                    onKeyDown={isLocalOrderFill
+                      ? (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            handleLocalOrderFillClick(notification)
+                          }
+                        }
+                      : undefined}
                   >
                     <div className="shrink-0">
                       {(() => {
@@ -176,7 +211,7 @@ export default function HeaderNotifications() {
                           <span className="text-xs text-muted-foreground">
                             {timeLabel}
                           </span>
-                          {hasLink
+                          {hasLink && !isLocalOrderFill
                             ? (
                                 <a
                                   href={notification.link_url ?? undefined}
@@ -184,6 +219,7 @@ export default function HeaderNotifications() {
                                   target={linkIsExternal ? '_blank' : undefined}
                                   rel={linkIsExternal ? 'noreferrer noopener' : undefined}
                                   aria-label={notification.link_label ?? 'View notification details'}
+                                  onClick={event => event.stopPropagation()}
                                 >
                                   {linkIcon}
                                 </a>

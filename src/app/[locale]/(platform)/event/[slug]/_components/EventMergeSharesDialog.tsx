@@ -38,6 +38,7 @@ import {
 
 } from '@/lib/safe/transactions'
 import { cn } from '@/lib/utils'
+import { useNotifications } from '@/stores/useNotifications'
 import { useUser } from '@/stores/useUser'
 
 interface EventMergeSharesDialogProps {
@@ -45,6 +46,7 @@ interface EventMergeSharesDialogProps {
   availableShares: number
   conditionId?: string
   marketTitle?: string
+  marketIconUrl?: string | null
   isNegRiskMarket?: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -54,6 +56,7 @@ export default function EventMergeSharesDialog({
   availableShares,
   conditionId,
   marketTitle,
+  marketIconUrl,
   isNegRiskMarket = false,
   onOpenChange,
 }: EventMergeSharesDialogProps) {
@@ -61,6 +64,7 @@ export default function EventMergeSharesDialog({
   const queryClient = useQueryClient()
   const { ensureTradingReady } = useTradingOnboarding()
   const user = useUser()
+  const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
   const isMobile = useIsMobile()
   const { signMessageAsync } = useSignMessage()
   const [amount, setAmount] = useState('')
@@ -212,6 +216,16 @@ export default function EventMergeSharesDialog({
         toast.error(response.error)
         setIsSubmitting(false)
         return
+      }
+
+      if (user?.settings?.notifications?.inapp_order_fills && response?.txHash) {
+        addLocalOrderFillNotification({
+          action: 'merge',
+          txHash: response.txHash,
+          title: t('Merge shares'),
+          description: marketTitle ?? t('Request submitted.'),
+          marketIconUrl,
+        })
       }
 
       toast.success(t('Merge shares'), {

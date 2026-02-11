@@ -14,6 +14,7 @@ import { DEFAULT_CONDITION_PARTITION, DEFAULT_ERROR_MESSAGE } from '@/lib/consta
 import { ZERO_COLLECTION_ID } from '@/lib/contracts'
 import { toMicro } from '@/lib/formatters'
 import { aggregateSafeTransactions, buildMergePositionTransaction, getSafeTxTypedData, packSafeSignature } from '@/lib/safe/transactions'
+import { useNotifications } from '@/stores/useNotifications'
 
 interface UseMergePositionsActionOptions {
   mergeableMarkets: MergeableMarket[]
@@ -38,6 +39,7 @@ export function useMergePositionsAction({
 }: UseMergePositionsActionOptions) {
   const [isMergeProcessing, setIsMergeProcessing] = useState(false)
   const [mergeBatchCount, setMergeBatchCount] = useState(0)
+  const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
 
   const handleMergeAll = useCallback(async () => {
     if (!hasMergeableMarkets) {
@@ -164,6 +166,17 @@ export function useMergePositionsAction({
         return
       }
 
+      if (user?.settings?.notifications?.inapp_order_fills && response?.txHash) {
+        addLocalOrderFillNotification({
+          action: 'merge',
+          txHash: response.txHash,
+          title: 'Merge shares',
+          description: preparedMerges.length > 1
+            ? 'Request submitted for multiple markets.'
+            : 'Request submitted.',
+        })
+      }
+
       onSuccess?.()
 
       void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
@@ -193,8 +206,10 @@ export function useMergePositionsAction({
     positionsByCondition,
     queryClient,
     signMessageAsync,
+    addLocalOrderFillNotification,
     user?.address,
     user?.proxy_wallet_address,
+    user?.settings?.notifications?.inapp_order_fills,
   ])
 
   return {

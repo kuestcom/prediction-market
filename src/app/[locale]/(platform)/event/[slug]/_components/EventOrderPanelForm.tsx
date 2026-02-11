@@ -817,6 +817,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
                 isNegRiskMarket={isNegRiskMarket}
                 conditionId={state.market?.condition_id}
                 marketTitle={state.market?.title || state.market?.short_title}
+                marketIconUrl={state.market?.icon_url}
                 onSideChange={state.setSide}
                 onTypeChange={handleTypeChange}
                 onAmountReset={() => state.setAmount('')}
