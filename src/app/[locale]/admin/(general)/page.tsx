@@ -1,7 +1,7 @@
 'use cache'
 
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
-import { setRequestLocale } from 'next-intl/server'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
@@ -16,6 +16,7 @@ interface AdminGeneralSettingsPageProps {
 export default async function AdminGeneralSettingsPage({ params }: AdminGeneralSettingsPageProps) {
   const { locale } = await params
   setRequestLocale(locale)
+  const t = await getExtracted()
 
   const { data: allSettings } = await SettingsRepository.getSettings()
 
@@ -39,7 +40,7 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
     }
     catch (error) {
       console.error('Failed to load OpenRouter models', error)
-      openRouterModelsError = 'Unable to load models from OpenRouter. Please try again later.'
+      openRouterModelsError = t('Unable to load models from OpenRouter. Please try again later.')
     }
   }
 
@@ -59,9 +60,9 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
   return (
     <section className="grid gap-4">
       <div className="grid gap-2">
-        <h1 className="text-2xl font-semibold">General Settings</h1>
+        <h1 className="text-2xl font-semibold">{t('General Settings')}</h1>
         <p className="text-sm text-muted-foreground">
-          Configure company identity, analytics, support links, and AI provider settings.
+          {t('Configure company identity, analytics, support links, and AI provider settings.')}
         </p>
       </div>
 

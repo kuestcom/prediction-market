@@ -2,6 +2,7 @@
 
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import { CircleHelp, ImageUp, RefreshCwIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
@@ -45,6 +46,7 @@ export default function AdminGeneralSettingsForm({
   initialThemeSiteSettings,
   openRouterSettings,
 }: AdminGeneralSettingsFormProps) {
+  const t = useExtracted()
   const initialSiteName = initialThemeSiteSettings.siteName
   const initialSiteDescription = initialThemeSiteSettings.siteDescription
   const initialLogoMode = initialThemeSiteSettings.logoMode
@@ -164,7 +166,7 @@ export default function AdminGeneralSettingsForm({
     const transitionedToIdle = wasPendingRef.current && !isPending
 
     if (transitionedToIdle && state.error === null) {
-      toast.success('Settings saved successfully!')
+      toast.success(t('Settings saved successfully!'))
       router.refresh()
     }
     else if (transitionedToIdle && state.error) {
@@ -172,7 +174,7 @@ export default function AdminGeneralSettingsForm({
     }
 
     wasPendingRef.current = isPending
-  }, [isPending, router, state.error])
+  }, [isPending, router, state.error, t])
 
   const imagePreview = useMemo(() => {
     return logoPreviewUrl ?? initialLogoImageUrl
@@ -212,7 +214,7 @@ export default function AdminGeneralSettingsForm({
 
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}))
-        setOpenRouterModelsError(payload?.error ?? 'Unable to load models. Please verify the API key.')
+        setOpenRouterModelsError(payload?.error ?? t('Unable to load models. Please verify the API key.'))
         return
       }
 
@@ -227,7 +229,7 @@ export default function AdminGeneralSettingsForm({
     }
     catch (error) {
       console.error('Failed to refresh OpenRouter models', error)
-      setOpenRouterModelsError('Unable to load models. Please verify the API key.')
+      setOpenRouterModelsError(t('Unable to load models. Please verify the API key.'))
     }
     finally {
       setIsRefreshingOpenRouterModels(false)
@@ -243,13 +245,13 @@ export default function AdminGeneralSettingsForm({
 
       <section className="overflow-hidden rounded-xl border">
         <div className="p-4">
-          <h3 className="text-base font-medium">Brand identity</h3>
+          <h3 className="text-base font-medium">{t('Brand identity')}</h3>
         </div>
 
         <div className="border-t p-4">
           <div className="grid gap-6 md:grid-cols-[11rem_1fr]">
             <div className="grid gap-3">
-              <Label>Logo icon</Label>
+              <Label>{t('Logo icon')}</Label>
               <div className="grid gap-2">
                 <Input
                   id="theme-logo-file"
@@ -304,7 +306,7 @@ export default function AdminGeneralSettingsForm({
                   {showImagePreview && (
                     <Image
                       src={imagePreview ?? ''}
-                      alt="Platform logo"
+                      alt={t('Platform logo')}
                       fill
                       sizes="160px"
                       className="object-contain"
@@ -314,7 +316,7 @@ export default function AdminGeneralSettingsForm({
                   {!showImagePreview && showSvgPreview && (
                     <Image
                       src={svgPreviewUrl}
-                      alt="Platform logo"
+                      alt={t('Platform logo')}
                       fill
                       sizes="160px"
                       className="object-contain"
@@ -338,13 +340,13 @@ export default function AdminGeneralSettingsForm({
                       group-hover:opacity-100
                     `}
                   >
-                    SVG, PNG, JPG or WebP
+                    {t('SVG, PNG, JPG or WebP')}
                   </span>
                 </label>
               </div>
               {selectedLogoFile && (
                 <p className="text-xs text-muted-foreground">
-                  Selected file:
+                  {t('Selected file:')}
                   {' '}
                   {selectedLogoFile.name}
                 </p>
@@ -353,7 +355,7 @@ export default function AdminGeneralSettingsForm({
 
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="theme-site-name">Company name</Label>
+                <Label htmlFor="theme-site-name">{t('Company name')}</Label>
                 <Input
                   id="theme-site-name"
                   name="site_name"
@@ -361,12 +363,12 @@ export default function AdminGeneralSettingsForm({
                   value={siteName}
                   onChange={event => setSiteName(event.target.value)}
                   disabled={isPending}
-                  placeholder="Your company name"
+                  placeholder={t('Your company name')}
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="theme-site-description">Company description</Label>
+                <Label htmlFor="theme-site-description">{t('Company description')}</Label>
                 <Input
                   id="theme-site-description"
                   name="site_description"
@@ -374,7 +376,7 @@ export default function AdminGeneralSettingsForm({
                   value={siteDescription}
                   onChange={event => setSiteDescription(event.target.value)}
                   disabled={isPending}
-                  placeholder="Short description used in metadata and wallet dialogs"
+                  placeholder={t('Short description used in metadata and wallet dialogs')}
                 />
               </div>
             </div>
@@ -384,13 +386,13 @@ export default function AdminGeneralSettingsForm({
 
       <section className="overflow-hidden rounded-xl border">
         <div className="p-4">
-          <h3 className="text-base font-medium">Community and analytics</h3>
+          <h3 className="text-base font-medium">{t('Community and analytics')}</h3>
         </div>
 
         <div className="border-t p-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="theme-google-analytics-id">Google Analytics ID</Label>
+              <Label htmlFor="theme-google-analytics-id">{t('Google Analytics ID')}</Label>
               <Input
                 id="theme-google-analytics-id"
                 name="google_analytics_id"
@@ -398,12 +400,12 @@ export default function AdminGeneralSettingsForm({
                 value={googleAnalyticsId}
                 onChange={event => setGoogleAnalyticsId(event.target.value)}
                 disabled={isPending}
-                placeholder="G-XXXXXXXXXX (optional)"
+                placeholder={t('G-XXXXXXXXXX (optional)')}
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="theme-discord-link">Discord community link</Label>
+              <Label htmlFor="theme-discord-link">{t('Discord community link')}</Label>
               <Input
                 id="theme-discord-link"
                 name="discord_link"
@@ -411,12 +413,12 @@ export default function AdminGeneralSettingsForm({
                 value={discordLink}
                 onChange={event => setDiscordLink(event.target.value)}
                 disabled={isPending}
-                placeholder="https://discord.gg/invite-url (optional)"
+                placeholder={t('https://discord.gg/invite-url (optional)')}
               />
             </div>
 
             <div className="grid gap-2 md:col-span-2">
-              <Label htmlFor="theme-support-link">Support link</Label>
+              <Label htmlFor="theme-support-link">{t('Support link')}</Label>
               <Input
                 id="theme-support-link"
                 name="support_url"
@@ -424,7 +426,7 @@ export default function AdminGeneralSettingsForm({
                 value={supportUrl}
                 onChange={event => setSupportUrl(event.target.value)}
                 disabled={isPending}
-                placeholder="Discord, Telegram, WhatsApp link, or support email (optional)"
+                placeholder={t('Discord, Telegram, WhatsApp link, or support email (optional)')}
               />
             </div>
           </div>
@@ -434,19 +436,19 @@ export default function AdminGeneralSettingsForm({
       <section className="overflow-hidden rounded-xl border">
         <div className="p-4">
           <div className="flex items-center gap-1">
-            <h3 className="text-base font-medium">OpenRouter integration</h3>
+            <h3 className="text-base font-medium">{t('OpenRouter integration')}</h3>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   type="button"
                   className="inline-flex size-4 items-center justify-center text-muted-foreground hover:text-foreground"
-                  aria-label="OpenRouter integration help"
+                  aria-label={t('OpenRouter integration help')}
                 >
                   <CircleHelp className="size-3.5" />
                 </button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs text-left">
-                OpenRouter powers AI requests used in market context generation and automatic translations (events and tags).
+                {t('OpenRouter powers AI requests used in market context generation and automatic translations (events and tags).')}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -454,7 +456,7 @@ export default function AdminGeneralSettingsForm({
 
         <div className="grid gap-6 border-t p-4">
           <div className="grid gap-2">
-            <Label htmlFor="openrouter_key">API key</Label>
+            <Label htmlFor="openrouter_key">{t('API key')}</Label>
             <Input
               id="openrouter_key"
               name="openrouter_api_key"
@@ -467,11 +469,11 @@ export default function AdminGeneralSettingsForm({
               placeholder={
                 initialOpenRouterApiKeyConfigured && !trimmedOpenRouterApiKey
                   ? '••••••••••••••••'
-                  : 'Enter OpenRouter API key'
+                  : t('Enter OpenRouter API key')
               }
             />
             <p className="text-xs text-muted-foreground">
-              Generate an API key at
+              {t('Generate an API key at')}
               {' '}
               <a
                 href="https://openrouter.ai/settings/keys"
@@ -486,7 +488,7 @@ export default function AdminGeneralSettingsForm({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="openrouter_model">Preferred OpenRouter model</Label>
+            <Label htmlFor="openrouter_model">{t('Preferred OpenRouter model')}</Label>
             <div className="flex items-center gap-2">
               <Select
                 value={openRouterSelectValue}
@@ -494,11 +496,11 @@ export default function AdminGeneralSettingsForm({
                 disabled={!openRouterModelSelectEnabled || isPending}
               >
                 <SelectTrigger id="openrouter_model" className="h-12! w-full max-w-md justify-between text-left">
-                  <SelectValue placeholder="Select a model" />
+                  <SelectValue placeholder={t('Select a model')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={AUTOMATIC_MODEL_VALUE}>
-                    Let OpenRouter decide
+                    {t('Let OpenRouter decide')}
                   </SelectItem>
                   {openRouterModelOptions.map(model => (
                     <SelectItem key={model.id} value={model.id}>
@@ -507,7 +509,7 @@ export default function AdminGeneralSettingsForm({
                         {model.contextWindow
                           ? (
                               <span className="text-xs text-muted-foreground">
-                                Context window:
+                                {t('Context window:')}
                                 {' '}
                                 {model.contextWindow.toLocaleString()}
                               </span>
@@ -525,17 +527,17 @@ export default function AdminGeneralSettingsForm({
                 className="size-12 shrink-0"
                 disabled={!trimmedOpenRouterApiKey || isPending || isRefreshingOpenRouterModels}
                 onClick={handleRefreshOpenRouterModels}
-                title="Refresh models"
-                aria-label="Refresh models"
+                title={t('Refresh models')}
+                aria-label={t('Refresh models')}
               >
                 <RefreshCwIcon className={`size-4 ${isRefreshingOpenRouterModels ? 'animate-spin' : ''}`} />
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Models with live browsing (for example
+              {t('Models with live browsing (for example')}
               {' '}
               <code>perplexity/sonar</code>
-              ) perform best. Explore available models at
+              {t(') perform best. Explore available models at')}
               {' '}
               <a
                 href="https://openrouter.ai/models"
@@ -559,19 +561,19 @@ export default function AdminGeneralSettingsForm({
       <section className="overflow-hidden rounded-xl border">
         <div className="p-4">
           <div className="flex items-center gap-1">
-            <h3 className="text-base font-medium">LI.FI integration</h3>
+            <h3 className="text-base font-medium">{t('LI.FI integration')}</h3>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   type="button"
                   className="inline-flex size-4 items-center justify-center text-muted-foreground hover:text-foreground"
-                  aria-label="LI.FI integration help"
+                  aria-label={t('LI.FI integration help')}
                 >
                   <CircleHelp className="size-3.5" />
                 </button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs text-left">
-                LI.FI powers swap routes and token balances used in trading and deposits. It works without an API key (default: 200 requests per 2 hours). With an API key, the default limit is 200 requests per minute (enforced on a 2-hour rolling window).
+                {t('LI.FI powers swap routes and token balances used in trading and deposits. It works without an API key (default: 200 requests per 2 hours). With an API key, the default limit is 200 requests per minute (enforced on a 2-hour rolling window).')}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -580,7 +582,7 @@ export default function AdminGeneralSettingsForm({
         <div className="border-t p-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="theme-lifi-integrator">Integrator name</Label>
+              <Label htmlFor="theme-lifi-integrator">{t('Integrator name')}</Label>
               <Input
                 id="theme-lifi-integrator"
                 name="lifi_integrator"
@@ -588,10 +590,10 @@ export default function AdminGeneralSettingsForm({
                 value={lifiIntegrator}
                 onChange={event => setLifiIntegrator(event.target.value)}
                 disabled={isPending}
-                placeholder="your-app-id (optional)"
+                placeholder={t('your-app-id (optional)')}
               />
               <p className="text-xs text-muted-foreground">
-                Create an account and generate one at
+                {t('Create an account and generate one at')}
                 {' '}
                 <a
                   href="https://li.fi"
@@ -606,7 +608,7 @@ export default function AdminGeneralSettingsForm({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="theme-lifi-api-key">API key</Label>
+              <Label htmlFor="theme-lifi-api-key">{t('API key')}</Label>
               <Input
                 id="theme-lifi-api-key"
                 name="lifi_api_key"
@@ -619,11 +621,11 @@ export default function AdminGeneralSettingsForm({
                 placeholder={
                   initialLiFiApiKeyConfigured && !lifiApiKey.trim()
                     ? '••••••••••••••••'
-                    : 'Enter API key (optional)'
+                    : t('Enter API key (optional)')
                 }
               />
               <p className="invisible text-xs text-muted-foreground" aria-hidden="true">
-                Spacer
+                {t('Spacer')}
               </p>
             </div>
           </div>
@@ -632,13 +634,13 @@ export default function AdminGeneralSettingsForm({
 
       <section className="overflow-hidden rounded-xl border">
         <div className="p-4">
-          <h3 className="text-base font-medium">Market and fee settings</h3>
+          <h3 className="text-base font-medium">{t('Market and fee settings')}</h3>
         </div>
 
         <div className="border-t p-4">
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="theme-fee-recipient-wallet">Your Polygon wallet address to receive transaction fees</Label>
+              <Label htmlFor="theme-fee-recipient-wallet">{t('Your Polygon wallet address to receive transaction fees')}</Label>
               <Input
                 id="theme-fee-recipient-wallet"
                 name="fee_recipient_wallet"
@@ -646,13 +648,13 @@ export default function AdminGeneralSettingsForm({
                 value={feeRecipientWallet}
                 onChange={event => setFeeRecipientWallet(event.target.value)}
                 disabled={isPending}
-                placeholder="0xabc"
+                placeholder={t('0xabc')}
               />
             </div>
 
             <div className="grid gap-2">
               <div className="flex items-center gap-1">
-                <Label htmlFor="theme-market-creators">Allowed market creator wallets (one per line)</Label>
+                <Label htmlFor="theme-market-creators">{t('Allowed market creator wallets (one per line)')}</Label>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
@@ -661,13 +663,13 @@ export default function AdminGeneralSettingsForm({
                         inline-flex size-4 items-center justify-center text-muted-foreground
                         hover:text-foreground
                       "
-                      aria-label="Market creator wallets help"
+                      aria-label={t('Market creator wallets help')}
                     >
                       <CircleHelp className="size-3.5" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs text-left">
-                    Markets from these addresses will only appear on this fork&apos;s site. Leave empty to only show main Kuest markets.
+                    {t('Markets from these addresses will only appear on this fork\'s site. Leave empty to only show main Kuest markets.')}
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -679,7 +681,7 @@ export default function AdminGeneralSettingsForm({
                 value={marketCreators}
                 onChange={event => setMarketCreators(event.target.value)}
                 disabled={isPending}
-                placeholder={'0xabc...\n0xdef...'}
+                placeholder={t('0xabc...\n0xdef...')}
               />
             </div>
           </div>
@@ -690,7 +692,7 @@ export default function AdminGeneralSettingsForm({
 
       <div className="flex justify-end">
         <Button type="submit" className="w-full sm:w-40" disabled={isPending}>
-          {isPending ? 'Saving...' : 'Save settings'}
+          {isPending ? t('Saving...') : t('Save settings')}
         </Button>
       </div>
     </form>
