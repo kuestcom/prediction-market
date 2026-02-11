@@ -322,6 +322,10 @@ export async function storeOrderAction(payload: StoreOrderInput) {
 
     const clobOrderId = getStringField(clobStoreOrderResponseJson, 'orderID')
       ?? getStringField(clobStoreOrderResponseJson, 'orderId')
+    if (!clobOrderId) {
+      console.error('CLOB response did not include an order id.', clobStoreOrderResponseJson)
+      return { error: DEFAULT_ERROR_MESSAGE }
+    }
 
     void OrderRepository.createOrder({
       ...validated.data,
