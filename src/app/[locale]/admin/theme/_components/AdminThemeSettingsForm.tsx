@@ -8,6 +8,7 @@ import type {
 } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import type { ThemeOverrides, ThemeToken } from '@/lib/theme'
 import { ChevronDown, RotateCcw } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -35,14 +36,13 @@ const initialState = {
 const COLOR_PICKER_FALLBACK = '#000000'
 const DEFAULT_RADIUS_VALUE = '0.625rem'
 const RADIUS_PRESETS = [
-  { label: 'Sharp', value: '0' },
-  { label: 'Soft', value: DEFAULT_RADIUS_VALUE },
-  { label: 'Round', value: '16px' },
+  { id: 'sharp', value: '0' },
+  { id: 'soft', value: DEFAULT_RADIUS_VALUE },
+  { id: 'round', value: '16px' },
 ] as const
-const TOKEN_GROUPS: { id: string, label: string, tokens: ThemeToken[] }[] = [
+const TOKEN_GROUPS: { id: string, tokens: ThemeToken[] }[] = [
   {
     id: 'core',
-    label: 'Core surfaces',
     tokens: [
       'background',
       'foreground',
@@ -59,7 +59,6 @@ const TOKEN_GROUPS: { id: string, label: string, tokens: ThemeToken[] }[] = [
   },
   {
     id: 'brand',
-    label: 'Brand + accents',
     tokens: [
       'primary',
       'primary-foreground',
@@ -73,7 +72,6 @@ const TOKEN_GROUPS: { id: string, label: string, tokens: ThemeToken[] }[] = [
   },
   {
     id: 'outcomes',
-    label: 'Outcome + alerts',
     tokens: [
       'yes',
       'yes-foreground',
@@ -85,7 +83,6 @@ const TOKEN_GROUPS: { id: string, label: string, tokens: ThemeToken[] }[] = [
   },
   {
     id: 'chart',
-    label: 'Chart palette',
     tokens: [
       'chart-1',
       'chart-2',
@@ -295,6 +292,7 @@ function RadiusControl({
   onRadiusReset: () => void
   error: string | null
 }) {
+  const t = useExtracted()
   const normalizedRadius = radiusValue.trim()
   const effectiveRadius = normalizedRadius || DEFAULT_RADIUS_VALUE
   const selectedPresetValue = useMemo(() => {
@@ -315,9 +313,9 @@ function RadiusControl({
     <div className="grid gap-3 rounded-md border border-border p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="grid gap-0.5">
-          <h3 className="text-sm font-semibold">Corner roundness</h3>
+          <h3 className="text-sm font-semibold">{t('Corner roundness')}</h3>
           <p className="text-xs text-muted-foreground">
-            Adjust how rounded buttons, cards, and inputs look.
+            {t('Adjust how rounded buttons, cards, and inputs look.')}
           </p>
         </div>
         <button
@@ -329,8 +327,8 @@ function RadiusControl({
             hover:text-foreground
             disabled:cursor-not-allowed disabled:opacity-40
           `}
-          title="Use default"
-          aria-label="Use default roundness"
+          title={t('Use default')}
+          aria-label={t('Use default roundness')}
         >
           <RotateCcw className="size-4" />
         </button>
@@ -348,7 +346,11 @@ function RadiusControl({
             className="h-11 justify-center"
             style={getRadiusPresetButtonStyle(preset.value)}
           >
-            {preset.label}
+            {preset.id === 'sharp'
+              ? t('Sharp')
+              : preset.id === 'soft'
+                ? t('Soft')
+                : t('Round')}
           </Button>
         ))}
       </div>
@@ -375,6 +377,7 @@ function ThemePreviewCard({
   logoSvg: string
   logoImageUrl: string | null
 }) {
+  const t = useExtracted()
   const style = useMemo(() => buildPreviewStyle(overrides, radius), [overrides, radius])
 
   return (
@@ -388,7 +391,7 @@ function ThemePreviewCard({
         <SiteLogoIcon
           logoSvg={logoSvg}
           logoImageUrl={logoImageUrl}
-          alt={`${siteName} logo`}
+          alt={t('{siteName} logo', { siteName })}
           className="size-[1em] text-foreground [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
           imageClassName="size-[1em] object-contain"
           size={20}
@@ -396,31 +399,31 @@ function ThemePreviewCard({
         <span className="text-sm font-semibold">{siteName}</span>
       </div>
       <div className="rounded-md border border-border bg-card p-3">
-        <p className="text-sm font-medium">Market card</p>
-        <p className="mt-1 text-xs text-muted-foreground">This block previews background, card, and text colors.</p>
+        <p className="text-sm font-medium">{t('Market card')}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t('This block previews background, card, and text colors.')}</p>
         <div className="mt-3 flex items-center gap-2">
           <span className="inline-flex rounded-sm bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
-            Primary
+            {t('Primary')}
           </span>
           <span className={`
             inline-flex rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-secondary-foreground
           `}
           >
-            Secondary
+            {t('Secondary')}
           </span>
           <span className="inline-flex rounded-sm bg-yes px-2 py-1 text-xs font-semibold text-white">
-            Yes
+            {t('Yes')}
           </span>
           <span className="inline-flex rounded-sm bg-no px-2 py-1 text-xs font-semibold text-white">
-            No
+            {t('No')}
           </span>
         </div>
         <div className="mt-3 grid gap-2">
           <div className="grid gap-1">
-            <label className="text-xs text-muted-foreground">Input</label>
+            <label className="text-xs text-muted-foreground">{t('Input')}</label>
             <input
               type="text"
-              placeholder="Type here"
+              placeholder={t('Type here')}
               className={`
                 h-8 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground shadow-none
                 ring-offset-background outline-none
@@ -429,13 +432,13 @@ function ThemePreviewCard({
             />
           </div>
           <div className="rounded-md border border-border bg-popover p-2 text-xs">
-            <p className="font-medium text-foreground">Popover</p>
-            <p className="mt-0.5 text-muted-foreground">Muted sample text</p>
+            <p className="font-medium text-foreground">{t('Popover')}</p>
+            <p className="mt-0.5 text-muted-foreground">{t('Muted sample text')}</p>
           </div>
         </div>
       </div>
       <div className="grid gap-2">
-        <p className="text-xs text-muted-foreground">Chart palette</p>
+        <p className="text-xs text-muted-foreground">{t('Chart palette')}</p>
         <div className="h-12 rounded-md bg-transparent px-1">
           <svg
             viewBox="0 0 120 48"
@@ -502,6 +505,7 @@ function ColorPickerSwatch({
   onReset?: () => void
   showReset?: boolean
 }) {
+  const t = useExtracted()
   const pickerValue = colorToHex(value) ?? COLOR_PICKER_FALLBACK
 
   return (
@@ -528,8 +532,8 @@ function ColorPickerSwatch({
                 onClick={onReset}
                 disabled={disabled}
                 className="text-muted-foreground transition hover:text-foreground"
-                title="Reset"
-                aria-label="Reset color"
+                title={t('Reset')}
+                aria-label={t('Reset color')}
               >
                 <RotateCcw className="size-3" />
               </button>
@@ -565,6 +569,7 @@ function ThemeTokenMatrix({
   lightParseError: string | null
   darkParseError: string | null
 }) {
+  const t = useExtracted()
   const lightProbeRef = useRef<HTMLDivElement>(null)
   const darkProbeRef = useRef<HTMLDivElement>(null)
   const [baseLightValues, setBaseLightValues] = useState<ThemeOverrides>({})
@@ -617,18 +622,18 @@ function ThemeTokenMatrix({
       />
 
       <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-semibold">Theme tokens</h3>
+        <h3 className="text-sm font-semibold">{t('Theme tokens')}</h3>
         {(lightParseError || darkParseError) && (
           <div className="grid gap-1 text-xs text-destructive">
             {lightParseError && (
               <p>
-                Light overrides:
+                {t('Light overrides:')}
                 {lightParseError}
               </p>
             )}
             {darkParseError && (
               <p>
-                Dark overrides:
+                {t('Dark overrides:')}
                 {darkParseError}
               </p>
             )}
@@ -659,7 +664,15 @@ function ThemeTokenMatrix({
                     isOpen ? 'border-b border-border/40' : '',
                   )}
                 >
-                  <span className="leading-tight">{group.label}</span>
+                  <span className="leading-tight">
+                    {group.id === 'core'
+                      ? t('Core surfaces')
+                      : group.id === 'brand'
+                        ? t('Brand + accents')
+                        : group.id === 'outcomes'
+                          ? t('Outcome + alerts')
+                          : t('Chart palette')}
+                  </span>
                   <ChevronDown
                     className={`size-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
                   />
@@ -672,9 +685,9 @@ function ThemeTokenMatrix({
                         text-muted-foreground uppercase
                       `}
                       >
-                        <span>Token</span>
-                        <span className="text-left">Light</span>
-                        <span className="text-left">Dark</span>
+                        <span>{t('Token')}</span>
+                        <span className="text-left">{t('Light')}</span>
+                        <span className="text-left">{t('Dark')}</span>
                       </div>
                       <div className="grid gap-1.5">
                         {group.tokens.map((token) => {
@@ -695,7 +708,7 @@ function ThemeTokenMatrix({
                               <ColorPickerSwatch
                                 presetId={presetId}
                                 value={lightValue}
-                                label={`${token} light color`}
+                                label={t('{token} light color', { token })}
                                 disabled={disabled}
                                 onChange={value => onLightChange(token, value)}
                                 onReset={() => onLightReset(token)}
@@ -704,7 +717,7 @@ function ThemeTokenMatrix({
                               <ColorPickerSwatch
                                 presetId={presetId}
                                 value={darkValue}
-                                label={`${token} dark color`}
+                                label={t('{token} dark color', { token })}
                                 disabled={disabled}
                                 onChange={value => onDarkChange(token, value)}
                                 onReset={() => onDarkReset(token)}
@@ -731,6 +744,7 @@ export default function AdminThemeSettingsForm({
   initialThemeSettings,
   initialThemeSiteSettings,
 }: AdminThemeSettingsFormProps) {
+  const t = useExtracted()
   const initialPreset = initialThemeSettings.preset
   const initialRadius = initialThemeSettings.radius
   const initialLightJson = initialThemeSettings.lightJson
@@ -746,12 +760,12 @@ export default function AdminThemeSettingsForm({
   const [radius, setRadius] = useState(initialRadius)
 
   const initialLightParse = useMemo(
-    () => parseThemeOverridesJson(initialLightJson, 'Light theme colors'),
-    [initialLightJson],
+    () => parseThemeOverridesJson(initialLightJson, t('Light theme colors')),
+    [initialLightJson, t],
   )
   const initialDarkParse = useMemo(
-    () => parseThemeOverridesJson(initialDarkJson, 'Dark theme colors'),
-    [initialDarkJson],
+    () => parseThemeOverridesJson(initialDarkJson, t('Dark theme colors')),
+    [initialDarkJson, t],
   )
 
   const [lightOverrides, setLightOverrides] = useState<ThemeOverrides>(initialLightParse.data ?? {})
@@ -777,8 +791,8 @@ export default function AdminThemeSettingsForm({
     [preset],
   )
   const radiusValidation = useMemo(
-    () => validateThemeRadius(radius, 'Corner roundness'),
-    [radius],
+    () => validateThemeRadius(radius, t('Corner roundness')),
+    [radius, t],
   )
 
   const lightJsonValue = useMemo(
@@ -817,14 +831,14 @@ export default function AdminThemeSettingsForm({
         currentThemeStyle.remove()
       }
 
-      toast.success('Theme settings updated successfully!')
+      toast.success(t('Theme settings updated successfully!'))
     }
     else if (transitionedToIdle && state.error) {
       toast.error(state.error)
     }
 
     wasPendingRef.current = isPending
-  }, [darkOverrides, isPending, lightOverrides, parsedPreset, radiusValidation.value, state.error])
+  }, [darkOverrides, isPending, lightOverrides, parsedPreset, radiusValidation.value, state.error, t])
 
   return (
     <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
@@ -836,10 +850,10 @@ export default function AdminThemeSettingsForm({
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="grid items-start gap-6 self-start">
           <div className="grid gap-2">
-            <Label htmlFor="theme-preset">Preset</Label>
+            <Label htmlFor="theme-preset">{t('Preset')}</Label>
             <Select value={preset} onValueChange={setPreset} disabled={isPending}>
               <SelectTrigger id="theme-preset" className="h-12! w-full">
-                <SelectValue placeholder="Select preset" />
+                <SelectValue placeholder={t('Select preset')} />
               </SelectTrigger>
               <SelectContent>
                 {presetOptions.map(option => (
@@ -893,14 +907,14 @@ export default function AdminThemeSettingsForm({
             className="w-full"
             disabled={isPending || Boolean(radiusValidation.error)}
           >
-            {isPending ? 'Saving...' : 'Save changes'}
+            {isPending ? t('Saving...') : t('Save changes')}
           </Button>
         </div>
 
         <aside className="grid gap-2 lg:sticky lg:top-12 lg:self-start">
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <h3 className="text-sm font-semibold">Preview Light</h3>
+              <h3 className="text-sm font-semibold">{t('Preview Light')}</h3>
               <ThemePreviewCard
                 presetId={parsedPreset}
                 isDark={false}
@@ -912,7 +926,7 @@ export default function AdminThemeSettingsForm({
               />
             </div>
             <div className="grid gap-2">
-              <h3 className="text-sm font-semibold">Preview Dark</h3>
+              <h3 className="text-sm font-semibold">{t('Preview Dark')}</h3>
               <ThemePreviewCard
                 presetId={parsedPreset}
                 isDark
