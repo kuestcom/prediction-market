@@ -82,14 +82,20 @@ export const UserRepository = {
 
   async updateUserNotificationSettings(currentUser: User, preferences: any) {
     return await runQuery(async () => {
+      const preferencesJson = JSON.stringify(preferences ?? {})
+
       const result = await db
         .update(users)
         .set({
           settings: sql`
             jsonb_set(
-              coalesce(${users.settings}, '{}'::jsonb),
+              CASE
+                WHEN jsonb_typeof(coalesce(${users.settings}, '{}'::jsonb)) = 'object'
+                  THEN coalesce(${users.settings}, '{}'::jsonb)
+                ELSE '{}'::jsonb
+              END,
               '{notifications}',
-              (${preferences}::jsonb),
+              ${preferencesJson}::jsonb,
               true
             )
           `,
@@ -110,15 +116,29 @@ export const UserRepository = {
   async updateUserTradingSettings(currentUser: User, preferences: { market_order_type: MarketOrderType }) {
     return await runQuery(async () => {
       const marketOrderType = preferences.market_order_type
+      const normalizedSettings = sql`
+        CASE
+          WHEN jsonb_typeof(coalesce(${users.settings}, '{}'::jsonb)) = 'object'
+            THEN coalesce(${users.settings}, '{}'::jsonb)
+          ELSE '{}'::jsonb
+        END
+      `
 
       const result = await db
         .update(users)
         .set({
           settings: sql`
             jsonb_set(
-              coalesce(${users.settings}, '{}'::jsonb),
-              '{trading,market_order_type}',
-              to_jsonb(${marketOrderType}::text),
+              ${normalizedSettings},
+              '{trading}',
+              (
+                CASE
+                  WHEN jsonb_typeof(${normalizedSettings}->'trading') = 'object'
+                    THEN ${normalizedSettings}->'trading'
+                  ELSE '{}'::jsonb
+                END
+                || jsonb_build_object('market_order_type', to_jsonb(${marketOrderType}::text))
+              ),
               true
             )
           `,
