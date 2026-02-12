@@ -2,7 +2,13 @@ import type { Event } from '@/types'
 import type { SelectedOutcome } from '@/types/EventCardTypes'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
+import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { Link } from '@/i18n/navigation'
+import { OUTCOME_INDEX } from '@/lib/constants'
+
+function normalizeOutcomeText(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? ''
+}
 
 interface EventCardHeaderProps {
   event: Event
@@ -22,6 +28,7 @@ export default function EventCardHeader({
   onCancelTrade,
 }: EventCardHeaderProps) {
   const t = useExtracted()
+  const normalizeOutcomeLabel = useOutcomeLabel()
   const activeMarket = activeOutcome?.market
   const tradingTitle = !isSingleMarket
     ? activeMarket?.short_title || activeMarket?.title
@@ -30,6 +37,21 @@ export default function EventCardHeader({
   const headerIcon = (isInTradingMode && activeMarket?.icon_url) ? activeMarket.icon_url : event.icon_url
   const iconSizeClass = isInTradingMode ? 'size-7' : 'size-10'
   const isResolvedEvent = event.status === 'resolved'
+  const primaryMarket = event.markets[0]
+  const yesOutcome = primaryMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES) ?? primaryMarket?.outcomes[0]
+  const noOutcome = primaryMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO) ?? primaryMarket?.outcomes[1]
+  const outcomeLabels = new Set([
+    normalizeOutcomeText(yesOutcome?.outcome_text),
+    normalizeOutcomeText(noOutcome?.outcome_text),
+  ])
+  const hasStandardYesNoOutcomes = outcomeLabels.has('yes') && outcomeLabels.has('no')
+  const isTiedChance = roundedPrimaryDisplayChance === 50
+  const leadingOutcomeLabel = roundedPrimaryDisplayChance > 50
+    ? yesOutcome?.outcome_text
+    : noOutcome?.outcome_text
+  const chanceFooterLabel = !hasStandardYesNoOutcomes && !isTiedChance
+    ? (normalizeOutcomeLabel(leadingOutcomeLabel) || t('chance'))
+    : t('chance')
 
   return (
     <div className="mb-3 flex items-start justify-between">
@@ -128,7 +150,7 @@ export default function EventCardHeader({
                 </div>
 
                 <div className="-mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {t('chance')}
+                  {chanceFooterLabel}
                 </div>
               </div>
             )
