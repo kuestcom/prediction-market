@@ -949,14 +949,55 @@ export const EventRepository = {
         .from(events)
         .where(and(
           eq(events.series_slug, normalizedSeriesSlug),
-          inArray(events.status, ['active', 'resolved']),
+          inArray(events.status, ['active', 'resolved', 'archived']),
         ))
         .orderBy(desc(events.end_date), desc(events.created_at))
 
+      const eventIds = rows.map(row => row.id)
+      const marketRows = eventIds.length > 0
+        ? await db
+            .select({
+              event_id: markets.event_id,
+              is_resolved: markets.is_resolved,
+            })
+            .from(markets)
+            .where(inArray(markets.event_id, eventIds))
+        : []
+
+      const marketStateByEventId = new Map<string, { total: number, unresolved: number }>()
+      for (const eventId of eventIds) {
+        marketStateByEventId.set(eventId, { total: 0, unresolved: 0 })
+      }
+
+      for (const marketRow of marketRows) {
+        const bucket = marketStateByEventId.get(marketRow.event_id)
+        if (!bucket) {
+          continue
+        }
+
+        bucket.total += 1
+        if (marketRow.is_resolved !== true) {
+          bucket.unresolved += 1
+        }
+      }
+
       const data: EventSeriesEntry[] = rows.map(row => ({
+        // Series headers should treat events as resolved as soon as all markets are resolved,
+        // even if events.status lags behind sync updates.
+        status: (() => {
+          const marketState = marketStateByEventId.get(row.id)
+          if (row.status === 'resolved') {
+            return 'resolved' as Event['status']
+          }
+
+          if (marketState && marketState.total > 0 && marketState.unresolved === 0) {
+            return 'resolved' as Event['status']
+          }
+
+          return row.status as Event['status']
+        })(),
         id: row.id,
         slug: row.slug,
-        status: row.status as Event['status'],
         end_date: row.end_date?.toISOString() ?? null,
         resolved_at: row.resolved_at?.toISOString() ?? null,
         created_at: row.created_at.toISOString(),

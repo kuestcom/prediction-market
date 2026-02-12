@@ -3,7 +3,7 @@ import { ChevronDownIcon, GavelIcon, TriangleIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { AnimatedCounter } from 'react-animated-counter'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { cn, sanitizeSvg } from '@/lib/utils'
 
@@ -19,6 +19,9 @@ interface EventChartHeaderProps {
   currentEventSlug?: string
   seriesEvents?: EventSeriesEntry[]
 }
+
+const PAST_EVENTS_WINDOW_DAYS = 7
+const PAST_EVENTS_WINDOW_MS = PAST_EVENTS_WINDOW_DAYS * 24 * 60 * 60 * 1000
 
 function parseSeriesEventDate(value: string | null | undefined) {
   if (!value) {
@@ -44,6 +47,24 @@ function getSeriesEventTimestamp(event: EventSeriesEntry) {
   return date ? date.getTime() : Number.NEGATIVE_INFINITY
 }
 
+function isSeriesEventWithinPastWindow(event: EventSeriesEntry, nowTimestamp: number) {
+  const eventTimestamp = getSeriesEventTimestamp(event)
+
+  if (!Number.isFinite(eventTimestamp)) {
+    return false
+  }
+
+  return eventTimestamp <= nowTimestamp && eventTimestamp >= nowTimestamp - PAST_EVENTS_WINDOW_MS
+}
+
+function isSeriesEventResolved(event: EventSeriesEntry) {
+  if (event.status === 'resolved') {
+    return true
+  }
+
+  return parseSeriesEventDate(event.resolved_at) !== null
+}
+
 function getSeriesEventLabel(event: EventSeriesEntry) {
   const date = getSeriesEventDate(event)
   return date
@@ -67,25 +88,26 @@ export default function EventChartHeader({
   currentEventSlug,
   seriesEvents = [],
 }: EventChartHeaderProps) {
-  const [isPastDialogOpen, setIsPastDialogOpen] = useState(false)
+  const [isPastMenuOpen, setIsPastMenuOpen] = useState(false)
 
   const { pastResolvedEvents, unresolvedEvents, currentResolvedEvent, hasSeriesNavigation } = useMemo(() => {
+    const nowTimestamp = Date.now()
     const filteredSeriesEvents = seriesEvents.filter(event => Boolean(event?.slug))
     const hasComparableSeriesEvents = filteredSeriesEvents.some(event => event.slug !== currentEventSlug)
     const currentEvent = filteredSeriesEvents.find(event => event.slug === currentEventSlug) ?? null
 
     const past = filteredSeriesEvents
-      .filter(event => event.status === 'resolved' && event.slug !== currentEventSlug)
+      .filter(event => isSeriesEventResolved(event) && isSeriesEventWithinPastWindow(event, nowTimestamp))
       .sort((a, b) => getSeriesEventTimestamp(b) - getSeriesEventTimestamp(a))
 
     const unresolved = filteredSeriesEvents
-      .filter(event => event.status !== 'resolved')
+      .filter(event => !isSeriesEventResolved(event))
       .sort((a, b) => getSeriesEventTimestamp(a) - getSeriesEventTimestamp(b))
 
     return {
       pastResolvedEvents: past,
       unresolvedEvents: unresolved,
-      currentResolvedEvent: currentEvent?.status === 'resolved' ? currentEvent : null,
+      currentResolvedEvent: currentEvent && isSeriesEventResolved(currentEvent) ? currentEvent : null,
       hasSeriesNavigation: hasComparableSeriesEvents && (past.length > 0 || unresolved.length > 0),
     }
   }, [currentEventSlug, seriesEvents])
@@ -93,6 +115,8 @@ export default function EventChartHeader({
   if (!isSingleMarket) {
     return null
   }
+
+  const shouldShowPastDropdown = pastResolvedEvents.length > 0
 
   const changeIndicator = (() => {
     if (
@@ -135,9 +159,9 @@ export default function EventChartHeader({
     <div className="flex flex-col gap-2">
       {hasSeriesNavigation && (
         <div className="flex flex-wrap items-center gap-2">
-          {pastResolvedEvents.length > 0 && (
-            <Dialog open={isPastDialogOpen} onOpenChange={setIsPastDialogOpen}>
-              <DialogTrigger asChild>
+          {shouldShowPastDropdown && (
+            <DropdownMenu open={isPastMenuOpen} onOpenChange={setIsPastMenuOpen} modal={false}>
+              <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   className={`
@@ -147,32 +171,20 @@ export default function EventChartHeader({
                   `}
                 >
                   <span>Past</span>
-                  <ChevronDownIcon className={cn('size-4 transition-transform', isPastDialogOpen && 'rotate-180')} />
+                  <ChevronDownIcon className={cn('size-4 transition-transform', isPastMenuOpen && 'rotate-180')} />
                 </button>
-              </DialogTrigger>
-              <DialogContent className="gap-0 p-0 sm:max-w-sm">
-                <DialogHeader className="border-b px-4 py-3">
-                  <DialogTitle className="text-base">Past</DialogTitle>
-                </DialogHeader>
-                <div className="max-h-72 overflow-y-auto p-2">
-                  {pastResolvedEvents.map(event => (
-                    <Link
-                      key={event.id}
-                      href={`/event/${event.slug}`}
-                      onClick={() => setIsPastDialogOpen(false)}
-                      className={`
-                        flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground
-                        transition-colors
-                        hover:bg-muted
-                      `}
-                    >
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="max-h-72 min-w-44 overflow-y-auto p-1">
+                {pastResolvedEvents.map(event => (
+                  <DropdownMenuItem key={event.id} asChild className="cursor-pointer py-2 text-sm font-medium">
+                    <Link href={`/event/${event.slug}`}>
                       <GavelIcon className="size-4 shrink-0 text-muted-foreground" />
                       <span>{getSeriesEventLabel(event)}</span>
                     </Link>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {currentResolvedEvent && (
