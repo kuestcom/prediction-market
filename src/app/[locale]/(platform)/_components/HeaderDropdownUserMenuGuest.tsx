@@ -87,31 +87,31 @@ export default function HeaderDropdownUserMenuGuest() {
           onInteractOutside={() => setMenuOpen(false)}
           onEscapeKeyDown={() => setMenuOpen(false)}
         >
-          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold text-foreground">
-            <Link href="/leaderboard" className="flex w-full items-center gap-2">
-              <TrophyIcon className="size-5 text-amber-500" />
+          <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-foreground">
+            <Link href="/leaderboard" className="flex w-full items-center gap-1.5">
+              <TrophyIcon className="size-4 text-amber-500" />
               {t('Leaderboard')}
             </Link>
           </DropdownMenuItem>
 
-          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold text-foreground">
-            <Link href="/docs/api" target="_blank" rel="noreferrer" className="flex w-full items-center gap-2">
-              <UnplugIcon className="size-5 text-pink-500" />
+          <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-foreground">
+            <Link href="/docs/api" target="_blank" rel="noreferrer" className="flex w-full items-center gap-1.5">
+              <UnplugIcon className="size-4 text-pink-500" />
               {t('APIs')}
             </Link>
           </DropdownMenuItem>
 
-          <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-base font-semibold text-foreground">
+          <div className="flex items-center justify-between gap-2 px-2 py-1 text-sm font-semibold text-foreground">
             <span>{t('Dark Mode')}</span>
             <ThemeSelector />
           </div>
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold text-muted-foreground">
+          <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
             <Link href="/docs/users" data-testid="header-docs-link">{t('Documentation')}</Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild className="py-2.5 text-base font-semibold text-muted-foreground">
+          <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
             <Link href="/terms-of-use" data-testid="header-terms-link">{t('Terms of Use')}</Link>
           </DropdownMenuItem>
 

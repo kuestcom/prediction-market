@@ -105,9 +105,9 @@ export default function LocaleSwitcherMenuItem() {
 
   return (
     <DropdownMenuSub>
-      <DropdownMenuSubTrigger disabled={isPending} className="py-2.5 text-base font-semibold text-muted-foreground">
+      <DropdownMenuSubTrigger disabled={isPending} className="py-2 text-sm font-semibold text-muted-foreground">
         <span className="sr-only">Language</span>
-        <span className="h-5 overflow-hidden text-base">
+        <span className="h-5 overflow-hidden text-sm">
           <span
             className="block transition-transform duration-200 ease-in-out"
             style={{
@@ -134,7 +134,7 @@ export default function LocaleSwitcherMenuItem() {
               <DropdownMenuRadioItem
                 key={option}
                 value={option}
-                className="group flex items-center gap-2 pr-8 pl-2 text-base font-semibold [&>span:first-child]:hidden"
+                className="group flex items-center gap-1.5 pr-7 pl-2 text-sm font-semibold [&>span:first-child]:hidden"
               >
                 <span className="flex-1 font-medium">
                   {LOCALE_LABELS[option] ?? option.toUpperCase()}

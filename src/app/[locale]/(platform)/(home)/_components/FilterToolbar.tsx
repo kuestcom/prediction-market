@@ -330,8 +330,8 @@ function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, class
     <div
       className={cn(
         `
-          flex w-full max-w-full flex-nowrap items-center gap-2 overflow-x-auto
-          md:flex-wrap md:gap-3 md:overflow-visible
+          flex w-full max-w-full flex-nowrap items-center gap-3 overflow-x-auto
+          md:flex-wrap md:gap-4 md:overflow-visible
         `,
         className,
       )}
@@ -422,20 +422,27 @@ function FilterSettingsSelect({ label, value, options, onChange }: FilterSetting
       <SelectTrigger
         size="sm"
         className={cn(
-          `h-9 min-w-40 shrink-0 gap-2 rounded-full border-none bg-muted/60 px-3 text-xs font-medium text-foreground/90`,
+          `
+            h-9 min-w-40 shrink-0 cursor-pointer gap-2 rounded-full border-none bg-muted/60 px-3 text-xs font-medium
+            text-foreground
+          `,
           'shadow-none',
-          'hover:bg-muted',
+          'hover:bg-muted/85',
         )}
       >
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
         <span className="text-xs font-semibold text-foreground">{activeOption?.label ?? ''}</span>
       </SelectTrigger>
-      <SelectContent align="start" position="popper" side="bottom" sideOffset={6}>
+      <SelectContent align="start" position="popper" side="bottom" sideOffset={8} className="p-1">
         {options.map((option) => {
           const OptionIcon = option.icon
 
           return (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              className="my-0.5 cursor-pointer rounded-md py-2 pl-2.5 text-sm"
+            >
               <span className="flex items-center gap-2">
                 {OptionIcon && <OptionIcon className="size-4 text-muted-foreground" />}
                 <span>{option.label}</span>

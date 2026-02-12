@@ -97,7 +97,7 @@ export default function HeaderNotifications() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button type="button" size="headerIconCompact" variant="ghost" className="relative">
-          <BellIcon className="size-5" />
+          <BellIcon className="size-[1.35rem]" />
           {unreadCount > 0 && (
             <span
               className={`
