@@ -2,6 +2,7 @@ import type { Event, Market } from '@/types'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { Skeleton } from '@/components/ui/skeleton'
+import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 
 interface EventOrderPanelMobileMarketInfoProps {
   event: Event
@@ -19,6 +20,7 @@ export default function EventOrderPanelMobileMarketInfo({
   isBalanceLoading = false,
 }: EventOrderPanelMobileMarketInfoProps) {
   const t = useExtracted()
+  const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
 
   if (!market) {
     return <></>
@@ -45,8 +47,7 @@ export default function EventOrderPanelMobileMarketInfo({
               ? <Skeleton className="inline-block h-3 w-10 align-middle" />
               : (
                   <>
-                    $
-                    {balanceText}
+                    {areValuesHidden ? '****' : `$${balanceText}`}
                   </>
                 )}
           </span>

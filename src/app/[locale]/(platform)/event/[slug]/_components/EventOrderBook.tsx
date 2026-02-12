@@ -335,7 +335,7 @@ export default function EventOrderBook({
                   <AlignVerticalSpaceAroundIcon className="size-4" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="top">
+              <TooltipContent side="right">
                 {t('Recenter Book (Shift + C)')}
               </TooltipContent>
             </Tooltip>

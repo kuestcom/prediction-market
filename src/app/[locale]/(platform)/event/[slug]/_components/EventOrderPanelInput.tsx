@@ -6,6 +6,7 @@ import { formatDisplayAmount, getAmountSizeClass, MAX_AMOUNT_INPUT, sanitizeNume
 import { ORDER_SIDE } from '@/lib/constants'
 import { formatAmountInputValue } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 
 interface BalanceSummary {
   raw: number
@@ -46,6 +47,7 @@ export default function EventOrderPanelInput({
   shouldShake,
 }: EventOrderPanelInputProps) {
   const t = useExtracted()
+  const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
 
   function focusInput() {
     inputRef?.current?.focus()
@@ -239,8 +241,7 @@ export default function EventOrderPanelInput({
                           >
                             {t('Balance')}
                             {' '}
-                            $
-                            {formattedBalanceText}
+                            {areValuesHidden ? '****' : `$${formattedBalanceText}`}
                           </button>
                         )}
                 </div>

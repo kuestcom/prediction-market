@@ -29,6 +29,7 @@ import { ORDER_SIDE } from '@/lib/constants'
 import { formatAmountInputValue, formatCurrency, formatSharesLabel } from '@/lib/formatters'
 import { MIN_LIMIT_ORDER_SHARES } from '@/lib/orders/validation'
 import { cn } from '@/lib/utils'
+import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 
 const QUICK_BUTTON_CLASS = `
   h-8 rounded-md bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground transition-colors
@@ -82,6 +83,7 @@ export default function EventOrderPanelLimitControls({
 }: EventOrderPanelLimitControlsProps) {
   const t = useExtracted()
   const { balance } = useBalance()
+  const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
   const limitPriceNumber = useMemo(
     () => Number.parseFloat(limitPrice) || 0,
     [limitPrice],
@@ -261,8 +263,7 @@ export default function EventOrderPanelLimitControls({
             <span className="text-xs text-muted-foreground">
               {t('Balance')}
               {' '}
-              $
-              {formattedBalanceText}
+              {areValuesHidden ? '****' : `$${formattedBalanceText}`}
             </span>
           )}
         </div>
