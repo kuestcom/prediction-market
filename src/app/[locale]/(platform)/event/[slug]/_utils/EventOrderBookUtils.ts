@@ -113,16 +113,7 @@ export function buildOrderBookSnapshot(
   const bestAsk = normalizedAsks[0]?.priceCents
   const bestBid = normalizedBids[0]?.priceCents
   const lastTradeOverride = toCents(summary?.last_trade_price)
-
-  let lastPrice: number | null = lastTradeOverride ?? null
-  if (lastPrice === null) {
-    if (typeof bestBid === 'number') {
-      lastPrice = bestBid
-    }
-    else if (typeof bestAsk === 'number') {
-      lastPrice = bestAsk
-    }
-  }
+  const lastPrice = lastTradeOverride ?? null
 
   const spread = typeof bestAsk === 'number' && typeof bestBid === 'number'
     ? Math.max(0, Number((bestAsk - bestBid).toFixed(1)))

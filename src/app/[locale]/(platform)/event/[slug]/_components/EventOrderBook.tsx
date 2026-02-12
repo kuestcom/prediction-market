@@ -386,7 +386,7 @@ export default function EventOrderBook({
           <div className="flex h-full cursor-pointer items-center">
             {t('Last')}
             :&nbsp;
-            {formatOrderBookPrice(lastPrice)}
+            {lastPrice == null ? '--' : formatOrderBookPrice(lastPrice)}
           </div>
           <div className="flex h-full cursor-pointer items-center justify-center">
             {t('Spread')}
