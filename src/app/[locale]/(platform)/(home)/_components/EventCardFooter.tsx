@@ -6,7 +6,7 @@ import { formatVolume } from '@/lib/formatters'
 
 interface EventCardFooterProps {
   event: Event
-  hasRecentMarket: boolean
+  shouldShowNewBadge: boolean
   resolvedVolume: number
   isInTradingMode: boolean
   endedLabel?: string | null
@@ -14,7 +14,7 @@ interface EventCardFooterProps {
 
 export default function EventCardFooter({
   event,
-  hasRecentMarket,
+  shouldShowNewBadge,
   resolvedVolume,
   isInTradingMode,
   endedLabel,
@@ -32,7 +32,7 @@ export default function EventCardFooter({
   return (
     <div className="flex items-center justify-between gap-2 text-xs/tight text-muted-foreground">
       <div className="flex items-center gap-2">
-        {hasRecentMarket
+        {shouldShowNewBadge
           ? <NewBadge />
           : (
               <span>

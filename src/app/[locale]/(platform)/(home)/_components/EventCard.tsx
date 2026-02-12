@@ -23,12 +23,12 @@ import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { formatDisplayAmount } from '@/lib/amount-input'
 import { getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { calculateMarketFill } from '@/lib/event-card-orderbook'
+import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { buildChanceByMarket } from '@/lib/market-chance'
 import { buildOrderPayload, submitOrder } from '@/lib/orders'
 import { signOrderPayload } from '@/lib/orders/signing'
 import { validateOrder } from '@/lib/orders/validation'
-import { isMarketNew } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
 
@@ -68,7 +68,7 @@ export default function EventCard({ event, priceOverridesByMarket = EMPTY_PRICE_
   const yesOutcome = event.markets[0].outcomes[0]
   const noOutcome = event.markets[0].outcomes[1]
   const isResolvedEvent = event.status === 'resolved'
-  const hasRecentMarket = event.markets.some(market => isMarketNew(market.created_at))
+  const shouldShowNewBadge = shouldShowEventNewBadge(event)
   const isNegRiskEnabled = Boolean(event.enable_neg_risk)
   const orderDomain = useMemo(() => getExchangeEip712Domain(isNegRiskEnabled), [isNegRiskEnabled])
   const availableBalance = balance.raw
@@ -360,7 +360,7 @@ export default function EventCard({ event, priceOverridesByMarket = EMPTY_PRICE_
 
         <EventCardFooter
           event={event}
-          hasRecentMarket={hasRecentMarket}
+          shouldShowNewBadge={shouldShowNewBadge}
           resolvedVolume={resolvedVolume}
           isInTradingMode={isInTradingMode}
           endedLabel={endedLabel}
