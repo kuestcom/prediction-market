@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { PortfolioSnapshot } from '@/lib/portfolio'
-import { CheckIcon, EyeIcon, FocusIcon } from 'lucide-react'
+import { CheckIcon, EyeIcon, EyeOffIcon, FocusIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,7 @@ import { usePortfolioValue } from '@/hooks/usePortfolioValue'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { formatCompactCount, formatCompactCurrency, formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 
 export interface ProfileForCards {
   username: string
@@ -61,6 +62,8 @@ export default function ProfileOverviewCard({
 
   const isReady = hasLoaded
   const totalPortfolioValue = (positionsValue ?? 0) + (balance?.raw ?? 0)
+  const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
+  const toggleValuesHidden = usePortfolioValueVisibility(state => state.toggle)
   const formattedTotalValue = variant === 'portfolio'
     ? formatCurrency(totalPortfolioValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : formatCompactCurrency(totalPortfolioValue)
@@ -109,9 +112,21 @@ export default function ProfileOverviewCard({
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-col gap-1">
                           <span className="text-sm font-semibold tracking-wide text-muted-foreground">Portfolio</span>
-                          <p className="text-3xl/tight font-bold text-foreground sm:text-4xl">
-                            {formattedTotalValue}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-3xl/tight font-bold text-foreground sm:text-4xl">
+                              {areValuesHidden ? '****' : formattedTotalValue}
+                            </p>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 rounded-full text-muted-foreground hover:text-foreground"
+                              aria-label={areValuesHidden ? 'Show portfolio value' : 'Hide portfolio value'}
+                              onClick={toggleValuesHidden}
+                            >
+                              {areValuesHidden ? <EyeIcon className="size-4" /> : <EyeOffIcon className="size-4" />}
+                            </Button>
+                          </div>
                           <div
                             className={cn(
                               'flex items-center gap-2 text-sm font-semibold',
@@ -123,32 +138,40 @@ export default function ProfileOverviewCard({
                             )}
                           >
                             <span>
-                              {snapshot.profitLoss >= 0 ? '+' : '-'}
-                              {formatCompactCurrency(Math.abs(snapshot.profitLoss))}
+                              {areValuesHidden
+                                ? '****'
+                                : (
+                                    <>
+                                      {snapshot.profitLoss >= 0 ? '+' : '-'}
+                                      {formatCompactCurrency(Math.abs(snapshot.profitLoss))}
+                                    </>
+                                  )}
                             </span>
-                            <span>
-                              (
-                              {positionsValue > 0
-                                ? `${((snapshot.profitLoss / positionsValue) * 100).toFixed(2)}%`
-                                : '0.00%'}
-                              )
-                            </span>
-                            <span className="text-muted-foreground">Today</span>
+                            {!areValuesHidden && (
+                              <span>
+                                (
+                                {positionsValue > 0
+                                  ? `${((snapshot.profitLoss / positionsValue) * 100).toFixed(2)}%`
+                                  : '0.00%'}
+                                )
+                              </span>
+                            )}
+                            <span className="text-muted-foreground">past day</span>
                           </div>
                         </div>
 
-                        <div
-                          className="flex shrink-0 items-center gap-2 rounded-full bg-card/70 px-3 py-2 shadow-sm"
-                        >
-                          <div className="relative size-6">
-                            <Image src="/images/trade/money.svg" alt="Cash" fill sizes="24px" className="object-contain" />
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-extrabold text-foreground">
-                              $
-                              {formattedCashValue}
-                            </span>
-                          </div>
+                        <div className="flex shrink-0 flex-col items-end text-right">
+                          <span className="text-xs font-medium text-muted-foreground">Available to trade</span>
+                          <span className="text-xl font-semibold text-foreground sm:text-2xl">
+                            {areValuesHidden
+                              ? '****'
+                              : (
+                                  <>
+                                    $
+                                    {formattedCashValue}
+                                  </>
+                                )}
+                          </span>
                         </div>
                       </div>
                     )

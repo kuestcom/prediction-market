@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 
 interface PnlPoint {
   date: Date
@@ -277,6 +278,7 @@ function ProfitLossCard({
   const deltaValue = displayValue - startValue
   const isDeltaPositive = deltaValue > 0
   const isDeltaNegative = deltaValue < 0
+  const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
   const [gainTotal, lossTotal] = useMemo(() => {
     if (!chartData.length) {
       return [0, 0]
@@ -416,8 +418,14 @@ function ProfitLossCard({
             <div className="flex items-center gap-2">
               <p className="flex items-center gap-2 text-2xl leading-none font-bold tracking-tight sm:text-3xl">
                 <span>
-                  {displayValue < 0 ? '-' : '+'}
-                  {formatCurrency(Math.abs(displayValue))}
+                  {areValuesHidden
+                    ? '****'
+                    : (
+                        <>
+                          {displayValue < 0 ? '-' : '+'}
+                          {formatCurrency(Math.abs(displayValue))}
+                        </>
+                      )}
                 </span>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -437,23 +445,41 @@ function ProfitLossCard({
                       <div className="flex items-center justify-between">
                         <span>Gain</span>
                         <span>
-                          +
-                          {formatCurrency(Math.abs(gainTotal))}
+                          {areValuesHidden
+                            ? '****'
+                            : (
+                                <>
+                                  +
+                                  {formatCurrency(Math.abs(gainTotal))}
+                                </>
+                              )}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span>Loss</span>
                         <span>
-                          -
-                          {formatCurrency(Math.abs(lossTotal))}
+                          {areValuesHidden
+                            ? '****'
+                            : (
+                                <>
+                                  -
+                                  {formatCurrency(Math.abs(lossTotal))}
+                                </>
+                              )}
                         </span>
                       </div>
                       <div className="h-px w-full bg-border/60" />
                       <div className="flex items-center justify-between">
                         <span>Net total</span>
                         <span>
-                          {displayValue < 0 ? '-' : '+'}
-                          {formatCurrency(Math.abs(displayValue))}
+                          {areValuesHidden
+                            ? '****'
+                            : (
+                                <>
+                                  {displayValue < 0 ? '-' : '+'}
+                                  {formatCurrency(Math.abs(displayValue))}
+                                </>
+                              )}
                         </span>
                       </div>
                     </div>
@@ -466,7 +492,13 @@ function ProfitLossCard({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-xl text-muted-foreground/70">
+          <div
+            className="
+              pointer-events-none flex items-center gap-2 text-xl text-muted-foreground/50 opacity-80 select-none
+            "
+            aria-hidden="true"
+            draggable={false}
+          >
             <SiteLogoIcon
               logoSvg={logoSvg}
               logoImageUrl={site.logoImageUrl}

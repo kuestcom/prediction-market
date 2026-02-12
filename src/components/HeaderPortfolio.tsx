@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
 import { usePendingUsdcDeposit } from '@/hooks/usePendingUsdcDeposit'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
+import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 
 export default function HeaderPortfolio() {
   const { balance, isLoadingBalance } = useBalance()
@@ -14,6 +15,7 @@ export default function HeaderPortfolio() {
   const isLoadingValue = isLoadingBalance || isLoading
   const totalPortfolioValue = (positionsValue ?? 0) + (balance?.raw ?? 0)
   const t = useExtracted()
+  const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
   const formattedPortfolioValue = Number.isFinite(totalPortfolioValue)
     ? totalPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '0.00'
@@ -34,12 +36,14 @@ export default function HeaderPortfolio() {
           <div className="-translate-y-px text-base/tight font-semibold text-yes">
             {isLoadingValue
               ? <Skeleton className="h-5 w-12" />
-              : (
-                  <>
-                    $
-                    {formattedPortfolioValue}
-                  </>
-                )}
+              : areValuesHidden
+                ? '****'
+                : (
+                    <>
+                      $
+                      {formattedPortfolioValue}
+                    </>
+                  )}
           </div>
         </Link>
       </Button>
@@ -62,12 +66,14 @@ export default function HeaderPortfolio() {
           <div className="-translate-y-px text-base/tight font-semibold text-yes">
             {isLoadingValue
               ? <Skeleton className="h-5 w-12" />
-              : (
-                  <>
-                    $
-                    {formattedCashValue}
-                  </>
-                )}
+              : areValuesHidden
+                ? '****'
+                : (
+                    <>
+                      $
+                      {formattedCashValue}
+                    </>
+                  )}
           </div>
         </Link>
       </Button>
