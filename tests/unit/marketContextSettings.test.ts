@@ -34,7 +34,7 @@ describe('market context settings parser', () => {
     expect(parsed.enabled).toBe(true)
   })
 
-  it('defaults market context to disabled when key is missing even if OpenRouter is configured', async () => {
+  it('defaults market context to enabled when key is missing even if OpenRouter is configured', async () => {
     const { parseMarketContextSettings } = await import('@/lib/ai/market-context-config')
 
     const parsed = parseMarketContextSettings({
@@ -44,14 +44,15 @@ describe('market context settings parser', () => {
     })
 
     expect(parsed.apiKey).toBe('openrouter-key')
-    expect(parsed.enabled).toBe(false)
+    expect(parsed.enabled).toBe(true)
   })
 
-  it('ignores legacy openrouter_enabled value', async () => {
+  it('prioritizes market_context_enabled over legacy openrouter_enabled value', async () => {
     const { parseMarketContextSettings } = await import('@/lib/ai/market-context-config')
 
     const parsed = parseMarketContextSettings({
       ai: {
+        market_context_enabled: setting('false'),
         openrouter_enabled: setting('true'),
       },
     })
