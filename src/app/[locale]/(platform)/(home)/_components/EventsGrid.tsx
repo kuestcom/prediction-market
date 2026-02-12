@@ -57,6 +57,54 @@ function isMoreRecentEvent(candidate: Event, current: Event) {
   return candidate.id > current.id
 }
 
+function isResolvedLike(event: Event) {
+  if (event.status === 'resolved') {
+    return true
+  }
+
+  if (!event.markets || event.markets.length === 0) {
+    return false
+  }
+
+  return event.markets.every(market => market.is_resolved)
+}
+
+function isPreferredSeriesEvent(candidate: Event, current: Event, nowMs: number) {
+  const candidateEnd = toTimestamp(candidate.end_date)
+  const currentEnd = toTimestamp(current.end_date)
+  const candidateHasFutureEnd = candidateEnd >= nowMs
+  const currentHasFutureEnd = currentEnd >= nowMs
+  const candidateResolved = isResolvedLike(candidate)
+  const currentResolved = isResolvedLike(current)
+
+  if (candidateHasFutureEnd && currentHasFutureEnd) {
+    if (candidateResolved !== currentResolved) {
+      return !candidateResolved
+    }
+
+    if (candidateEnd !== currentEnd) {
+      // Among upcoming series events, keep the one ending sooner (current cycle).
+      return candidateEnd < currentEnd
+    }
+
+    return isMoreRecentEvent(candidate, current)
+  }
+
+  if (candidateHasFutureEnd !== currentHasFutureEnd) {
+    return candidateHasFutureEnd
+  }
+
+  if (candidateResolved !== currentResolved) {
+    return !candidateResolved
+  }
+
+  if (candidateEnd !== currentEnd) {
+    return candidateEnd > currentEnd
+  }
+
+  return isMoreRecentEvent(candidate, current)
+}
+
 async function fetchEvents({
   pageParam = 0,
   filters,
@@ -190,7 +238,12 @@ export default function EventsGrid({
       return !(filters.hideEarnings && hasEarningsTag)
     })
 
+    if (filters.status === 'resolved') {
+      return eventsMatchingTagFilters
+    }
+
     const newestBySeriesSlug = new Map<string, Event>()
+    const nowMs = Date.now()
 
     for (const event of eventsMatchingTagFilters) {
       const seriesSlug = normalizeSeriesSlug(event.series_slug)
@@ -199,7 +252,7 @@ export default function EventsGrid({
       }
 
       const currentNewest = newestBySeriesSlug.get(seriesSlug)
-      if (!currentNewest || isMoreRecentEvent(event, currentNewest)) {
+      if (!currentNewest || isPreferredSeriesEvent(event, currentNewest, nowMs)) {
         newestBySeriesSlug.set(seriesSlug, event)
       }
     }
@@ -216,7 +269,7 @@ export default function EventsGrid({
 
       return newestBySeriesSlug.get(seriesSlug)?.id === event.id
     })
-  }, [allEvents, filters.hideSports, filters.hideCrypto, filters.hideEarnings])
+  }, [allEvents, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status])
 
   const marketTargets = useMemo(
     () => visibleEvents.flatMap(event => buildMarketTargets(event.markets)),
@@ -237,6 +290,7 @@ export default function EventsGrid({
       const displayPrice = resolveDisplayPrice({
         bid: quote?.bid ?? null,
         ask: quote?.ask ?? null,
+        midpoint: quote?.mid ?? null,
         lastTrade,
       })
       if (displayPrice != null) {

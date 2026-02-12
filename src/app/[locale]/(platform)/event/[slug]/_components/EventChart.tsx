@@ -274,6 +274,7 @@ function EventChartComponent({ event, isMobile, seriesEvents = [] }: EventChartP
       const displayPrice = resolveDisplayPrice({
         bid: quote?.bid ?? null,
         ask: quote?.ask ?? null,
+        midpoint: quote?.mid ?? null,
         lastTrade,
       })
 

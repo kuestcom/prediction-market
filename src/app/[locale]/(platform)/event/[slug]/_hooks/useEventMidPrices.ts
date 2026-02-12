@@ -6,6 +6,10 @@ interface PriceApiResponse {
   [tokenId: string]: { BUY?: string, SELL?: string } | undefined
 }
 
+interface MidpointApiResponse {
+  mid?: string
+}
+
 export interface MarketQuote {
   bid: number | null
   ask: number | null
@@ -17,7 +21,7 @@ export type MarketQuotesByMarket = Record<string, MarketQuote>
 const PRICE_REFRESH_INTERVAL_MS = 60_000
 const CLOB_BASE_URL = process.env.CLOB_URL
 
-function normalizePrice(value: string | undefined) {
+function normalizePrice(value: string | number | undefined | null) {
   if (value == null) {
     return null
   }
@@ -34,14 +38,38 @@ function normalizePrice(value: string | undefined) {
   return parsed
 }
 
-function resolveQuote(priceBySide: { BUY?: string, SELL?: string } | undefined): MarketQuote {
-  const bid = normalizePrice(priceBySide?.BUY)
-  const ask = normalizePrice(priceBySide?.SELL)
+function resolveQuote(
+  priceBySide: { BUY?: string, SELL?: string } | undefined,
+  midpoint: number | null,
+): MarketQuote {
+  // CLOB /prices returns BUY as best ask and SELL as best bid for the token.
+  const ask = normalizePrice(priceBySide?.BUY)
+  const bid = normalizePrice(priceBySide?.SELL)
+  const normalizedMidpoint = normalizePrice(midpoint)
   const mid = bid != null && ask != null
-    ? (bid + ask) / 2
-    : (ask ?? bid ?? null)
+    ? (normalizedMidpoint ?? (bid + ask) / 2)
+    : (normalizedMidpoint ?? ask ?? bid ?? null)
 
   return { bid, ask, mid }
+}
+
+async function fetchMidpointByToken(tokenId: string): Promise<number | null> {
+  if (!CLOB_BASE_URL) {
+    return null
+  }
+
+  try {
+    const response = await fetch(`${CLOB_BASE_URL}/midpoint?token_id=${encodeURIComponent(tokenId)}`)
+    if (!response.ok) {
+      return null
+    }
+
+    const payload = await response.json() as MidpointApiResponse
+    return normalizePrice(payload?.mid)
+  }
+  catch {
+    return null
+  }
 }
 
 async function fetchQuotesByMarket(targets: MarketTokenTarget[]): Promise<MarketQuotesByMarket> {
@@ -72,11 +100,20 @@ async function fetchQuotesByMarket(targets: MarketTokenTarget[]): Promise<Market
     throw new Error(message)
   }
 
-  const data = await response.json() as PriceApiResponse
+  const [data, midpointResults] = await Promise.all([
+    response.json() as Promise<PriceApiResponse>,
+    Promise.allSettled(uniqueTokenIds.map(tokenId => fetchMidpointByToken(tokenId))),
+  ])
   const quotesByToken = new Map<string, MarketQuote>()
+  const midpointByToken = new Map<string, number | null>()
+
+  midpointResults.forEach((result, index) => {
+    const tokenId = uniqueTokenIds[index]
+    midpointByToken.set(tokenId, result.status === 'fulfilled' ? result.value : null)
+  })
 
   uniqueTokenIds.forEach((tokenId) => {
-    quotesByToken.set(tokenId, resolveQuote(data?.[tokenId]))
+    quotesByToken.set(tokenId, resolveQuote(data?.[tokenId], midpointByToken.get(tokenId) ?? null))
   })
 
   return targets.reduce<MarketQuotesByMarket>((acc, target) => {
