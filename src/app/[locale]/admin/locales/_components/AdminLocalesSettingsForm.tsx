@@ -120,13 +120,13 @@ export default function AdminLocalesSettingsForm({
         <div className="flex items-center justify-between gap-3">
           <div className="grid gap-1">
             <Label htmlFor="automatic_translations_enabled" className="text-sm font-medium">
-              {t('Enable automatic translations of events title and categories')}
+              {t('Automatic translations of event titles and categories')}
             </Label>
             <p className="text-xs text-muted-foreground">
-              {t('You need to enable OpenRouter first,')}
+              {t('You need to enable OpenRouter, the credentials and model selection are in')}
               {' '}
               <Link href="/admin" className="underline underline-offset-4">
-                {t('settings')}
+                {t('General Settings')}
               </Link>
               .
             </p>

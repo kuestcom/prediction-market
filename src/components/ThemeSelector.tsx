@@ -6,7 +6,7 @@ export default function ThemeSelector() {
   const { theme, setTheme } = useTheme()
 
   return (
-    <div className="flex items-center justify-center gap-2 py-2">
+    <div className="flex items-center justify-center gap-2">
       <Button
         type="button"
         size="icon"

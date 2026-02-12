@@ -112,6 +112,7 @@
 
 [data-theme-preset='amber'] {
   --primary: #f8cc29;
+  --primary-foreground: #1e242d;
   --yes: #2fbd85;
   --no: #f6465d;
 }
@@ -141,8 +142,6 @@
   --card: #29313d;
   --card-hover: #29313d;
   --popover: #181a21;
-  --primary: #f8cc29;
-  --primary-foreground: #1e242d;
   --border: #29313d;
   --input: #29313d;
   --input-hover: #353d4b;

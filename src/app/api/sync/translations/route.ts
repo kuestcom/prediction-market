@@ -1,7 +1,7 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { createHash } from 'node:crypto'
 import { NextResponse } from 'next/server'
-import { loadAutomaticTranslationsEnabled } from '@/i18n/locale-settings'
+import { loadAutomaticTranslationsEnabled, loadEnabledLocales } from '@/i18n/locale-settings'
 import { LOCALE_LABELS, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
@@ -414,8 +414,15 @@ function buildTagTranslationMetaMap(rows: TagTranslationMetaRow[]) {
   return map
 }
 
-async function enqueueEventDiscoveryJobs(startedAtMs: number, maxJobs: number): Promise<number> {
+async function enqueueEventDiscoveryJobs(
+  startedAtMs: number,
+  maxJobs: number,
+  locales: NonDefaultLocale[],
+): Promise<number> {
   if (maxJobs <= 0) {
+    return 0
+  }
+  if (locales.length === 0) {
     return 0
   }
 
@@ -450,7 +457,7 @@ async function enqueueEventDiscoveryJobs(startedAtMs: number, maxJobs: number): 
         .from('event_translations')
         .select('event_id,locale,source_hash,is_manual')
         .in('event_id', eventIds)
-        .in('locale', NON_DEFAULT_LOCALES)
+        .in('locale', locales)
 
       if (translationRowsError) {
         throw new Error(`Failed to load event translation metadata: ${translationRowsError.message}`)
@@ -468,7 +475,7 @@ async function enqueueEventDiscoveryJobs(startedAtMs: number, maxJobs: number): 
 
         const sourceHash = buildSourceHash(sourceRow.title)
 
-        for (const locale of NON_DEFAULT_LOCALES) {
+        for (const locale of locales) {
           if (enqueued + rowsToUpsert.length >= maxJobs) {
             reachedJobLimit = true
             break
@@ -517,8 +524,15 @@ async function enqueueEventDiscoveryJobs(startedAtMs: number, maxJobs: number): 
   return enqueued
 }
 
-async function enqueueTagDiscoveryJobs(startedAtMs: number, maxJobs: number): Promise<number> {
+async function enqueueTagDiscoveryJobs(
+  startedAtMs: number,
+  maxJobs: number,
+  locales: NonDefaultLocale[],
+): Promise<number> {
   if (maxJobs <= 0) {
+    return 0
+  }
+  if (locales.length === 0) {
     return 0
   }
 
@@ -553,7 +567,7 @@ async function enqueueTagDiscoveryJobs(startedAtMs: number, maxJobs: number): Pr
         .from('tag_translations')
         .select('tag_id,locale,source_hash,is_manual')
         .in('tag_id', tagIds)
-        .in('locale', NON_DEFAULT_LOCALES)
+        .in('locale', locales)
 
       if (translationRowsError) {
         throw new Error(`Failed to load tag translation metadata: ${translationRowsError.message}`)
@@ -571,7 +585,7 @@ async function enqueueTagDiscoveryJobs(startedAtMs: number, maxJobs: number): Pr
 
         const sourceHash = buildSourceHash(sourceRow.name)
 
-        for (const locale of NON_DEFAULT_LOCALES) {
+        for (const locale of locales) {
           if (enqueued + rowsToUpsert.length >= maxJobs) {
             reachedJobLimit = true
             break
@@ -620,10 +634,10 @@ async function enqueueTagDiscoveryJobs(startedAtMs: number, maxJobs: number): Pr
   return enqueued
 }
 
-async function enqueueMissingOrOutdatedTranslationJobs(startedAtMs: number) {
+async function enqueueMissingOrOutdatedTranslationJobs(startedAtMs: number, locales: NonDefaultLocale[]) {
   const perTypeTarget = Math.max(1, Math.floor(DISCOVERY_ENQUEUE_TARGET / 2))
-  const enqueuedEventJobs = await enqueueEventDiscoveryJobs(startedAtMs, perTypeTarget)
-  const enqueuedTagJobs = await enqueueTagDiscoveryJobs(startedAtMs, perTypeTarget)
+  const enqueuedEventJobs = await enqueueEventDiscoveryJobs(startedAtMs, perTypeTarget, locales)
+  const enqueuedTagJobs = await enqueueTagDiscoveryJobs(startedAtMs, perTypeTarget, locales)
 
   return {
     enqueuedEventJobs,
@@ -631,13 +645,23 @@ async function enqueueMissingOrOutdatedTranslationJobs(startedAtMs: number) {
   }
 }
 
-async function fetchCandidateJobs(nowIso: string): Promise<TranslationJobRow[]> {
+function buildEnabledLocalesCandidateFilter(locales: NonDefaultLocale[]) {
+  return locales.map(locale => `dedupe_key.like.%:${locale}`).join(',')
+}
+
+async function fetchCandidateJobs(nowIso: string, locales: NonDefaultLocale[]): Promise<TranslationJobRow[]> {
+  if (locales.length === 0) {
+    return []
+  }
+
+  const localesFilter = buildEnabledLocalesCandidateFilter(locales)
   const { data, error } = await supabaseAdmin
     .from('jobs')
     .select('id,job_type,dedupe_key,payload,status,attempts,max_attempts,available_at')
     .in('job_type', [...TRANSLATION_JOB_TYPES])
     .eq('status', 'pending')
     .lte('available_at', nowIso)
+    .or(localesFilter)
     .order('available_at', { ascending: true })
     .order('updated_at', { ascending: true })
     .limit(JOB_BATCH_SIZE)
@@ -1193,10 +1217,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [openRouterSettings, automaticTranslationsEnabled] = await Promise.all([
+    const [openRouterSettings, automaticTranslationsEnabled, enabledLocales] = await Promise.all([
       loadOpenRouterProviderSettings(),
       loadAutomaticTranslationsEnabled(),
+      loadEnabledLocales(),
     ])
+    const enabledTranslationLocales = enabledLocales.filter(isNonDefaultLocale)
 
     if (!openRouterSettings.configured || !openRouterSettings.apiKey) {
       return NextResponse.json({
@@ -1216,14 +1242,23 @@ export async function GET(request: Request) {
       })
     }
 
+    if (enabledTranslationLocales.length === 0) {
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        reason: 'No non-default locales are enabled in Locale Settings.',
+        ...stats,
+      })
+    }
+
     const startedAt = Date.now()
 
     while (Date.now() - startedAt < SYNC_TIME_LIMIT_MS) {
       const nowIso = new Date().toISOString()
-      const candidates = await fetchCandidateJobs(nowIso)
+      const candidates = await fetchCandidateJobs(nowIso, enabledTranslationLocales)
 
       if (!candidates.length) {
-        const discovery = await enqueueMissingOrOutdatedTranslationJobs(startedAt)
+        const discovery = await enqueueMissingOrOutdatedTranslationJobs(startedAt, enabledTranslationLocales)
         stats.enqueuedEventJobs += discovery.enqueuedEventJobs
         stats.enqueuedTagJobs += discovery.enqueuedTagJobs
 

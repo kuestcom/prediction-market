@@ -117,10 +117,10 @@ export default function AdminMarketContextSettingsForm({
         <div className="grid gap-1">
           <Label htmlFor="openrouter_enabled" className="text-sm font-medium">{t('Enable market context')}</Label>
           <p className="text-xs text-muted-foreground">
-            {t('You need to enable OpenRouter first,')}
+            {t('You need to enable OpenRouter, the credentials and model selection are in')}
             {' '}
             <Link href="/admin" className="underline underline-offset-4">
-              {t('settings')}
+              {t('General Settings')}
             </Link>
             .
           </p>

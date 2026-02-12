@@ -15,6 +15,13 @@ import { loadRuntimeThemeState } from '@/lib/theme-settings'
 import SiteIdentityProvider from '@/providers/SiteIdentityProvider'
 import '../globals.css'
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#1e293b' },
+  ],
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const runtimeTheme = await loadRuntimeThemeState()
   const site = runtimeTheme.site
@@ -30,13 +37,6 @@ export async function generateMetadata(): Promise<Metadata> {
       icon: site.logoUrl,
     },
   }
-}
-
-export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#1e293b' },
-  ],
 }
 
 export async function generateStaticParams() {
