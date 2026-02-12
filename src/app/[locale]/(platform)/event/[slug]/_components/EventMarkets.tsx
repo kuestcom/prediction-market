@@ -969,6 +969,7 @@ function MarketDetailTabs({
     if (isResolvedView) {
       return [
         { id: 'graph', label: t('Graph') },
+        { id: 'history', label: t('History') },
         { id: 'resolution', label: t('Resolution') },
       ] satisfies Array<{ id: MarketDetailTab, label: string }>
     }
