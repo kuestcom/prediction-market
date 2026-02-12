@@ -560,7 +560,7 @@
   "29PsCI": "Multi-line bullet list detailing each outcome.",
   "u20mgu": "Enable market context",
   "z49sh0": "Prompt template",
-  "G3zuq8": "Edit the prompt text used by AI to generate market context on event pages.",
+  "G3zuq8": "Use the variables below to blend live market data into the instructions. They will be replaced before the request is sent.",
   "d6NWjJ": "Available variables",
   "HjpLjr": "Corner roundness",
   "Gizp4+": "Adjust how rounded buttons, cards, and inputs look.",

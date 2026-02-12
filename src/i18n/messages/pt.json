@@ -560,7 +560,7 @@
   "29PsCI": "Lista em múltiplas linhas com marcadores detalhando cada resultado.",
   "u20mgu": "Ativar contexto de mercado",
   "z49sh0": "Modelo de prompt",
-  "G3zuq8": "Edite o texto do prompt usado pela IA para gerar o contexto de mercado nas páginas de eventos.",
+  "G3zuq8": "Use as variáveis abaixo para incorporar dados de mercado em tempo real nas instruções. Elas serão substituídas antes de a solicitação ser enviada.",
   "d6NWjJ": "Variáveis disponíveis",
   "HjpLjr": "Arredondamento dos cantos",
   "Gizp4+": "Ajuste o quão arredondados ficam botões, cards e campos de entrada.",

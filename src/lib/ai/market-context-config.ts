@@ -68,8 +68,8 @@ function parseMarketContextSettingsFromMap(allSettings?: SettingsMap): MarketCon
   const prompt = aiSettings?.market_context_prompt?.value?.trim() || MARKET_CONTEXT_PROMPT_DEFAULT
 
   const enabled = normalizeBoolean(
-    aiSettings?.openrouter_enabled?.value,
-    openRouter.configured,
+    aiSettings?.market_context_enabled?.value,
+    true,
   )
 
   return {

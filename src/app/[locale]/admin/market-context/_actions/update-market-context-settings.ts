@@ -30,11 +30,11 @@ const UpdateMarketContextSettingsSchema = z.object({
   market_context_prompt: z.string()
     .min(20, 'Please provide at least 20 characters for the prompt.')
     .max(6000, 'Prompt is too long.'),
-  openrouter_enabled: z.string().optional(),
-}).transform(({ market_context_prompt, openrouter_enabled }) => {
+  market_context_enabled: z.string().optional(),
+}).transform(({ market_context_prompt, market_context_enabled }) => {
   return {
     prompt: market_context_prompt.trim(),
-    enabled: normalizeBoolean(openrouter_enabled, false),
+    enabled: normalizeBoolean(market_context_enabled, false),
   }
 })
 
@@ -52,8 +52,8 @@ export async function updateMarketContextSettingsAction(
     market_context_prompt: typeof formData.get('market_context_prompt') === 'string'
       ? formData.get('market_context_prompt')
       : '',
-    openrouter_enabled: typeof formData.get('openrouter_enabled') === 'string'
-      ? formData.get('openrouter_enabled')
+    market_context_enabled: typeof formData.get('market_context_enabled') === 'string'
+      ? formData.get('market_context_enabled')
       : undefined,
   })
 
@@ -63,7 +63,7 @@ export async function updateMarketContextSettingsAction(
 
   const { error } = await SettingsRepository.updateSettings([
     { group: 'ai', key: 'market_context_prompt', value: parsed.data.prompt },
-    { group: 'ai', key: 'openrouter_enabled', value: parsed.data.enabled ? 'true' : 'false' },
+    { group: 'ai', key: 'market_context_enabled', value: parsed.data.enabled ? 'true' : 'false' },
   ])
 
   if (error) {

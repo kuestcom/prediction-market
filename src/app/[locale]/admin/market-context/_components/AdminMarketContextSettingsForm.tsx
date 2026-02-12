@@ -147,12 +147,12 @@ export default function AdminMarketContextSettingsForm({
   }
 
   return (
-    <Form action={formAction} className="grid max-w-3xl gap-8">
-      <input type="hidden" name="openrouter_enabled" value={enabled ? 'true' : 'false'} />
+    <Form action={formAction} className="grid gap-4">
+      <input type="hidden" name="market_context_enabled" value={enabled ? 'true' : 'false'} />
 
       <section className="flex items-center justify-between gap-3 rounded-lg border p-6">
         <div className="grid gap-1">
-          <Label htmlFor="openrouter_enabled" className="text-base font-semibold">{t('Enable market context')}</Label>
+          <Label htmlFor="market_context_enabled" className="text-base font-semibold">{t('Enable market context')}</Label>
           <p className="text-xs text-muted-foreground">
             {t('You need to enable OpenRouter, the credentials and model selection are in')}
             {' '}
@@ -163,7 +163,7 @@ export default function AdminMarketContextSettingsForm({
           </p>
         </div>
         <Switch
-          id="openrouter_enabled"
+          id="market_context_enabled"
           checked={enabled}
           onCheckedChange={setEnabled}
           disabled={isPending}

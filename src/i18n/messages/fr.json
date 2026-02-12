@@ -560,7 +560,7 @@
   "29PsCI": "Liste à puces sur plusieurs lignes détaillant chaque issue.",
   "u20mgu": "Activer le contexte de marché",
   "z49sh0": "Modèle de prompt",
-  "G3zuq8": "Modifiez le texte du prompt utilisé par l'IA pour générer le contexte de marché sur les pages d'événement.",
+  "G3zuq8": "Utilisez les variables ci-dessous pour intégrer des données de marché en temps réel aux instructions. Elles seront remplacées avant l'envoi de la requête.",
   "d6NWjJ": "Variables disponibles",
   "HjpLjr": "Arrondi des coins",
   "Gizp4+": "Ajustez le niveau d'arrondi des boutons, cartes et champs de saisie.",

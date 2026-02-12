@@ -560,7 +560,7 @@
   "29PsCI": "Mehrzeilige Aufzählung, die jedes Ergebnis beschreibt.",
   "u20mgu": "Marktkontext aktivieren",
   "z49sh0": "Prompt-Vorlage",
-  "G3zuq8": "Bearbeite den Prompt-Text, den die KI verwendet, um den Marktkontext auf Event-Seiten zu erstellen.",
+  "G3zuq8": "Verwende die untenstehenden Variablen, um Live-Marktdaten in die Anweisungen einzubinden. Sie werden ersetzt, bevor die Anfrage gesendet wird.",
   "d6NWjJ": "Verfügbare Variablen",
   "HjpLjr": "Eckenrundung",
   "Gizp4+": "Passe an, wie stark Buttons, Karten und Eingabefelder abgerundet sind.",

@@ -560,7 +560,7 @@
   "29PsCI": "Lista con viñetas en varias líneas que detalla cada resultado.",
   "u20mgu": "Habilitar contexto de mercado",
   "z49sh0": "Plantilla de prompt",
-  "G3zuq8": "Edita el texto del prompt que la IA usa para generar el contexto de mercado en las páginas de eventos.",
+  "G3zuq8": "Usa las variables de abajo para incorporar datos de mercado en vivo en las instrucciones. Se reemplazarán antes de enviar la solicitud.",
   "d6NWjJ": "Variables disponibles",
   "HjpLjr": "Redondeo de esquinas",
   "Gizp4+": "Ajusta qué tan redondeados se ven los botones, las tarjetas y los campos de entrada.",
