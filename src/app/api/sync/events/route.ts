@@ -725,7 +725,7 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
       .from('markets')
       .select('event_id,is_active,is_resolved')
       .in('event_id', uniqueEventIds)
-      .order('id', { ascending: true })
+      .order('condition_id', { ascending: true })
       .range(marketRowsOffset, marketRowsOffset + marketRowsPageSize - 1)
 
     if (marketRowsError) {

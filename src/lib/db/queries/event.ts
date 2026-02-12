@@ -1,7 +1,7 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { conditions, outcomes } from '@/lib/db/schema/events/tables'
 import type { ConditionChangeLogEntry, Event, EventSeriesEntry, QueryResult } from '@/types'
-import { and, desc, eq, exists, ilike, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
 import { cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
@@ -508,8 +508,31 @@ export const EventRepository = {
       const validOffset = Number.isNaN(offset) || offset < 0 ? 0 : offset
 
       const whereConditions = []
+      const hasAnyMarkets = exists(
+        db.select({ condition_id: markets.condition_id })
+          .from(markets)
+          .where(eq(markets.event_id, events.id)),
+      )
+      const hasUnresolvedMarkets = exists(
+        db.select({ condition_id: markets.condition_id })
+          .from(markets)
+          .where(and(
+            eq(markets.event_id, events.id),
+            eq(markets.is_resolved, false),
+          )),
+      )
+      const statusFilterCondition = status === 'resolved'
+        ? or(
+            eq(events.status, 'resolved'),
+            and(
+              eq(events.status, 'active'),
+              hasAnyMarkets,
+              sql`NOT ${hasUnresolvedMarkets}`,
+            ),
+          )
+        : eq(events.status, status)
 
-      whereConditions.push(eq(events.status, status))
+      whereConditions.push(statusFilterCondition)
 
       if (search) {
         const normalizedSearch = search.trim().toLowerCase()
@@ -565,7 +588,7 @@ export const EventRepository = {
       }
 
       whereConditions[0] = and(
-        eq(events.status, status),
+        statusFilterCondition,
         sql`NOT EXISTS (
           SELECT 1
           FROM ${event_tags} et
