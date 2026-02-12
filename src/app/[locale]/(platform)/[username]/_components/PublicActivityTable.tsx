@@ -115,13 +115,13 @@ export default function PublicActivityTable({
 
   return (
     <div className="relative w-full overflow-x-auto">
-      <table className="w-full border-collapse">
+      <table className="w-full min-w-[860px] table-fixed border-collapse">
         <thead>
           <tr className="border-b bg-background">
-            <th className={cn(tableHeaderClass, 'text-left')}>Activity</th>
-            <th className={cn(tableHeaderClass, 'text-left')}>Market</th>
-            <th className={cn(tableHeaderClass, 'text-right')}>Value</th>
-            <th className={cn(tableHeaderClass, 'text-right')}>
+            <th className={cn(tableHeaderClass, 'w-48 text-left')}>Activity</th>
+            <th className={cn(tableHeaderClass, 'w-[46%] text-left')}>Market</th>
+            <th className={cn(tableHeaderClass, 'w-32 text-right')}>Value</th>
+            <th className={cn(tableHeaderClass, 'w-32 text-right')}>
               <span className="sr-only">Time</span>
             </th>
           </tr>

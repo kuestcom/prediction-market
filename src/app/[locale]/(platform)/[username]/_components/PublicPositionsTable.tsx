@@ -88,10 +88,10 @@ export default function PublicPositionsTable({
 
   return (
     <div className="relative w-full overflow-x-auto">
-      <table className="w-full border-collapse">
+      <table className="w-full min-w-[1000px] table-fixed border-collapse">
         <thead>
           <tr className="border-b">
-            <th className={cn(tableHeaderClass, 'text-left')}>
+            <th className={cn(tableHeaderClass, 'w-[32%] text-left')}>
               <SortHeaderButton
                 label="Market"
                 sortKey="alpha"
@@ -100,7 +100,7 @@ export default function PublicPositionsTable({
                 onSortHeaderClick={onSortHeaderClick}
               />
             </th>
-            <th className={cn(tableHeaderClass, 'text-center')}>
+            <th className={cn(tableHeaderClass, 'w-[14%] text-center')}>
               <SortHeaderButton
                 label="Avg → Now"
                 sortKey="latestPrice"
@@ -109,7 +109,7 @@ export default function PublicPositionsTable({
                 onSortHeaderClick={onSortHeaderClick}
               />
             </th>
-            <th className={cn(tableHeaderClass, 'text-center')}>
+            <th className={cn(tableHeaderClass, 'w-[11%] text-center')}>
               <SortHeaderButton
                 label="Trade"
                 sortKey="trade"
@@ -118,7 +118,7 @@ export default function PublicPositionsTable({
                 onSortHeaderClick={onSortHeaderClick}
               />
             </th>
-            <th className={cn(tableHeaderClass, 'text-center')}>
+            <th className={cn(tableHeaderClass, 'w-[11%] text-center')}>
               <SortHeaderButton
                 label="To win"
                 sortKey="payout"
@@ -127,16 +127,18 @@ export default function PublicPositionsTable({
                 onSortHeaderClick={onSortHeaderClick}
               />
             </th>
-            <th className={cn(tableHeaderClass, 'text-center')}>
-              <SortHeaderButton
-                label="Value"
-                sortKey="currentValue"
-                sortBy={sortBy}
-                sortDirection={sortDirection}
-                onSortHeaderClick={onSortHeaderClick}
-              />
+            <th className={cn(tableHeaderClass, 'w-[12%] text-right')}>
+              <div className="flex justify-end">
+                <SortHeaderButton
+                  label="Value"
+                  sortKey="currentValue"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSortHeaderClick={onSortHeaderClick}
+                />
+              </div>
             </th>
-            <th className={cn(tableHeaderClass, 'text-right')}>
+            <th className={cn(tableHeaderClass, 'w-35 text-right')}>
               <span className="sr-only">Actions</span>
             </th>
           </tr>

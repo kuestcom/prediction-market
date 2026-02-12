@@ -37,7 +37,7 @@ export default function PublicPositionsRow({
 
   return (
     <tr className="transition-colors hover:bg-muted/50">
-      <td className="px-2 py-3 align-middle sm:px-3">
+      <td className="max-w-0 px-2 py-3 align-middle sm:px-3">
         <div className="flex min-w-0 items-start gap-3">
           <Link
             href={eventHref}
@@ -57,13 +57,12 @@ export default function PublicPositionsRow({
                   <div className="grid size-full place-items-center text-sm text-muted-foreground">No image</div>
                 )}
           </Link>
-          <div className="min-w-0 space-y-1">
+          <div className="min-w-0 flex-1 space-y-1">
             <Link
               href={eventHref}
               className={`
-                block max-w-[44ch] truncate text-[13px] leading-tight font-semibold text-foreground underline-offset-2
+                block max-w-full truncate text-[13px] leading-tight font-semibold text-foreground underline-offset-2
                 hover:underline
-                sm:max-w-[56ch]
               `}
               title={position.title}
             >
@@ -126,11 +125,11 @@ export default function PublicPositionsRow({
       </td>
 
       <td className="px-2 py-3 align-middle sm:px-3">
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-1.5 whitespace-nowrap">
           {onSellClick && (
             <Button
               size="sm"
-              className="w-20"
+              className="w-18 shrink-0"
               onClick={() => onSellClick(position)}
             >
               Sell
@@ -141,6 +140,7 @@ export default function PublicPositionsRow({
               <Button
                 size="sm"
                 variant="outline"
+                className="shrink-0"
                 onClick={() => onShareClick(position)}
                 aria-label={`Share ${position.title}`}
               >

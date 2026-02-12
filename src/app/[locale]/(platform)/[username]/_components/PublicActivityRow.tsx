@@ -44,8 +44,8 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
           >
             <CircleDollarSignIcon className="size-5" />
           </div>
-          <div className="min-w-0 space-y-1">
-            <div className="block max-w-[64ch] truncate text-sm/tight font-semibold text-foreground">
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="block max-w-full truncate text-sm/tight font-semibold text-foreground">
               {variant === 'deposit' ? 'Deposited funds' : 'Withdrew funds'}
             </div>
           </div>
@@ -74,12 +74,12 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
                 )}
           </Link>
 
-          <div className="min-w-0 space-y-1">
+          <div className="min-w-0 flex-1 space-y-1">
             <Link
               href={eventHref}
               className={
                 `
-                  block max-w-[64ch] truncate text-sm/tight font-semibold text-foreground underline-offset-2
+                  block max-w-full truncate text-sm/tight font-semibold text-foreground underline-offset-2
                   hover:underline
                 `
               }
@@ -110,7 +110,7 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
         </div>
       </td>
 
-      <td className="px-2 py-3 sm:px-3">
+      <td className="max-w-0 px-2 py-3 sm:px-3">
         {marketContent}
       </td>
 

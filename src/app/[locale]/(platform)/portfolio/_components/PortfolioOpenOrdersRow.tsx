@@ -43,7 +43,7 @@ export default function PortfolioOpenOrdersRow({ order }: PortfolioOpenOrdersRow
 
   return (
     <tr className="border-b transition-colors hover:bg-muted/50">
-      <td className="px-2 py-3 sm:px-3">
+      <td className="max-w-0 px-2 py-3 sm:px-3">
         <div className="flex min-w-0 items-start gap-3">
           <Link
             href={eventHref}
@@ -65,10 +65,10 @@ export default function PortfolioOpenOrdersRow({ order }: PortfolioOpenOrdersRow
                   </div>
                 )}
           </Link>
-          <div className="min-w-0 space-y-1">
+          <div className="min-w-0 flex-1 space-y-1">
             <Link
               href={eventHref}
-              className="block text-sm font-semibold whitespace-nowrap underline-offset-2 hover:underline"
+              className="block max-w-full truncate text-sm font-semibold underline-offset-2 hover:underline"
               title={order.market.title}
             >
               {order.market.title}

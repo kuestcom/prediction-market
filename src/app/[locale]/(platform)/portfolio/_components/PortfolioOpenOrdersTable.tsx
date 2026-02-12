@@ -69,17 +69,17 @@ export default function PortfolioOpenOrdersTable({
 
   return (
     <div className="relative w-full overflow-x-auto">
-      <table className="w-full border-collapse">
+      <table className="w-full min-w-[980px] table-fixed border-collapse">
         <thead>
           <tr className="border-b bg-background">
-            <th className={cn(tableHeaderClass, 'text-left')}>Market</th>
-            <th className={cn(tableHeaderClass, 'text-center')}>Side</th>
-            <th className={cn(tableHeaderClass, 'text-left')}>Outcome</th>
-            <th className={cn(tableHeaderClass, 'text-center')}>Price</th>
-            <th className={cn(tableHeaderClass, 'text-center')}>Filled</th>
-            <th className={cn(tableHeaderClass, 'text-center')}>Total</th>
-            <th className={cn(tableHeaderClass, 'text-left sm:text-center')}>Expiration</th>
-            <th className={cn(tableHeaderClass, 'text-right')}>
+            <th className={cn(tableHeaderClass, 'w-[34%] text-left')}>Market</th>
+            <th className={cn(tableHeaderClass, 'w-22 text-center')}>Side</th>
+            <th className={cn(tableHeaderClass, 'w-28 text-left')}>Outcome</th>
+            <th className={cn(tableHeaderClass, 'w-20 text-center')}>Price</th>
+            <th className={cn(tableHeaderClass, 'w-32 text-center')}>Filled</th>
+            <th className={cn(tableHeaderClass, 'w-28 text-center')}>Total</th>
+            <th className={cn(tableHeaderClass, 'w-32 text-left sm:text-center')}>Expiration</th>
+            <th className={cn(tableHeaderClass, 'w-16 text-right')}>
               <span className="sr-only">Actions</span>
             </th>
           </tr>
