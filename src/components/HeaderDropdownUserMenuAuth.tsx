@@ -1,7 +1,7 @@
 'use client'
 
 import { useDisconnect } from '@reown/appkit-controllers/react'
-import { BadgePercentIcon, ChevronDownIcon, SettingsIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
+import { BadgePercentIcon, ChevronDownIcon, SettingsIcon, ShieldIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
@@ -179,7 +179,10 @@ export default function HeaderDropdownUserMenuAuth() {
 
           {user?.is_admin && (
             <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
-              <Link href="/admin">{t('Admin')}</Link>
+              <Link href="/admin" className="flex w-full items-center gap-1.5">
+                <ShieldIcon className="size-4 text-current" />
+                {t('Admin')}
+              </Link>
             </DropdownMenuItem>
           )}
 
