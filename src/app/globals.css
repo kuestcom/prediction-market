@@ -275,8 +275,14 @@
     stroke-dashoffset: var(--surge-offset-start, 0);
     opacity: 0;
   }
-  12% {
-    opacity: 0.9;
+  10% {
+    opacity: 0.45;
+  }
+  24% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 0.95;
   }
   100% {
     stroke-dashoffset: var(--surge-offset-end, 0);

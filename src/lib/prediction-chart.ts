@@ -189,7 +189,10 @@ export function calculateYAxisBounds(
   data: DataPoint[],
   series: SeriesConfig[],
   minTicks = 3,
+  maxTicks = 6,
 ) {
+  const resolvedMaxTicks = Math.max(2, Math.floor(maxTicks))
+  const resolvedMinTicks = Math.max(2, Math.min(Math.floor(minTicks), resolvedMaxTicks))
   const values = collectSeriesValues(data, series)
 
   if (!values.length) {
@@ -209,7 +212,7 @@ export function calculateYAxisBounds(
   }
 
   const rawSpan = Math.max(5, dataMax - dataMin)
-  const intervalCount = Math.max(1, minTicks - 1)
+  const intervalCount = Math.max(1, resolvedMinTicks - 1)
   const rawStep = rawSpan / intervalCount
   let step = Math.min(
     50,
@@ -222,13 +225,13 @@ export function calculateYAxisBounds(
     return Math.floor((axisMax - axisMin) / step) + 1
   }
 
-  if (tickCount() < minTicks && step > 5) {
+  if (tickCount() < resolvedMinTicks && step > 5) {
     step = 5
     axisMin = Math.max(0, Math.floor(dataMin / step) * step)
     axisMax = Math.min(100, Math.ceil(dataMax / step) * step)
   }
 
-  while (tickCount() < minTicks) {
+  while (tickCount() < resolvedMinTicks) {
     if (axisMin > 0) {
       axisMin = Math.max(0, axisMin - step)
     }
@@ -238,6 +241,49 @@ export function calculateYAxisBounds(
     else {
       break
     }
+  }
+
+  while (tickCount() > resolvedMaxTicks && step < 50) {
+    step = Math.min(50, step + 5)
+    axisMin = Math.max(0, Math.floor(dataMin / step) * step)
+    axisMax = Math.min(100, Math.ceil(dataMax / step) * step)
+
+    while (tickCount() < resolvedMinTicks) {
+      if (axisMin > 0) {
+        axisMin = Math.max(0, axisMin - step)
+      }
+      else if (axisMax < 100) {
+        axisMax = Math.min(100, axisMax + step)
+      }
+      else {
+        break
+      }
+    }
+  }
+
+  // Trim fully empty outer bands (top/bottom) to avoid unnecessary extra grid lines
+  // while keeping at least the preferred minimum tick count.
+  while (tickCount() > resolvedMinTicks) {
+    const topGap = axisMax - dataMax
+    const bottomGap = dataMin - axisMin
+    const canTrimTop = topGap >= step && (axisMax - step) >= axisMin
+    const canTrimBottom = bottomGap >= step && (axisMin + step) <= axisMax
+
+    if (!canTrimTop && !canTrimBottom) {
+      break
+    }
+
+    if (canTrimTop && (!canTrimBottom || topGap >= bottomGap)) {
+      axisMax -= step
+      continue
+    }
+
+    if (canTrimBottom) {
+      axisMin += step
+      continue
+    }
+
+    break
   }
 
   const ticks: number[] = []

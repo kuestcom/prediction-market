@@ -42,11 +42,13 @@ const GRID_LINE_COLOR_LIGHT = '#8F9EAD'
 const GRID_LINE_OPACITY_DARK = 0.7
 const GRID_LINE_OPACITY_LIGHT = 0.35
 const CROSS_FADE_DURATION = 320
-const SURGE_DURATION = 520
-const SURGE_DASH_RATIO = 0.1
-const SURGE_COLOR_BLEND = 0.55
+const SURGE_DURATION = 760
+const SURGE_DASH_RATIO = 0.14
 const PATH_SEARCH_STEPS = 22
 const PATH_X_EPSILON = 0.35
+const MIN_Y_AXIS_TICKS = 3
+const PREFERRED_MAX_Y_AXIS_TICKS = 5
+const MAX_Y_AXIS_TICKS = 6
 
 function resolvePathPointAtX(path: SVGPathElement, targetX: number) {
   const totalLength = path.getTotalLength()
@@ -221,7 +223,10 @@ export function PredictionChart({
     }
   }, [margin.top, margin.left, margin.right, margin.bottom, showXAxis, showYAxis])
   const plotHeight = Math.max(1, height - resolvedMargin.top - resolvedMargin.bottom)
-  const yAxisMinTicks = Math.max(4, Math.min(7, Math.round(plotHeight / 40)))
+  const yAxisMinTicks = Math.max(
+    MIN_Y_AXIS_TICKS,
+    Math.min(PREFERRED_MAX_Y_AXIS_TICKS, Math.round(plotHeight / 56)),
+  )
   const { min: yAxisMin, max: yAxisMax, ticks: yAxisTicks } = useMemo(() => {
     if (!autoscale) {
       return {
@@ -230,7 +235,7 @@ export function PredictionChart({
         ticks: [0, 25, 50, 75, 100],
       }
     }
-    return calculateYAxisBounds(data, series, yAxisMinTicks)
+    return calculateYAxisBounds(data, series, yAxisMinTicks, MAX_Y_AXIS_TICKS)
   }, [autoscale, data, series, yAxisMinTicks])
   const domainBounds = useMemo(() => {
     if (!data.length) {
@@ -349,9 +354,28 @@ export function PredictionChart({
 
       const rawDate = xScale.invert(x - resolvedMargin.left)
       const clampedTime = Math.max(domainStart, Math.min(domainEnd, rawDate.getTime()))
-      const targetTime = cursorStepMs && cursorStepMs > 0
-        ? snapTimestampToInterval(clampedTime, cursorStepMs, domainStart)
-        : clampedTime
+      const localX = x - resolvedMargin.left
+      let targetTime = clampedTime
+      if (localX >= innerWidth - 1) {
+        targetTime = domainEnd
+      }
+      else if (localX <= 1) {
+        targetTime = domainStart
+      }
+      else if (cursorStepMs && cursorStepMs > 0) {
+        const snappedTime = snapTimestampToInterval(clampedTime, cursorStepMs, domainStart)
+        const snapThreshold = Math.max(1, cursorStepMs / 2)
+
+        if (domainEnd - clampedTime <= snapThreshold) {
+          targetTime = domainEnd
+        }
+        else if (clampedTime - domainStart <= snapThreshold) {
+          targetTime = domainStart
+        }
+        else {
+          targetTime = snappedTime
+        }
+      }
       const targetDate = new Date(targetTime)
       const domainSpan = Math.max(1, domainEnd - domainStart)
       lastCursorProgressRef.current = clamp01((targetTime - domainStart) / domainSpan)
@@ -617,15 +641,20 @@ export function PredictionChart({
     const seriesChanged = addedSeries.length > 0 || removedSeries.length > 0
     const hasPreviousSeries = previousSeriesKeys.length > 0
     const shouldPartialReveal = seriesChanged && addedSeries.length > 0 && hasPreviousSeries
-    const nextRevealSeries = shouldPartialReveal ? addedSeries : currentSeriesKeys
+    const nextRevealSeries = currentSeriesKeys
 
     setRevealSeriesKeys(nextRevealSeries)
     previousSeriesKeysRef.current = currentSeriesKeys
     const shouldRunSurge = updateType === 'reset'
-      && (!previousData || previousData.length === 0)
     surgePendingRef.current = shouldRunSurge
 
-    if (updateType === 'reset' && previousData && previousData.length > 0 && !shouldPartialReveal) {
+    const canUseCrossFade = updateType === 'reset'
+      && previousData
+      && previousData.length > 0
+      && !shouldPartialReveal
+      && currentSeriesKeys.length <= 1
+
+    if (canUseCrossFade) {
       hasPointerInteractionRef.current = false
       lastCursorProgressRef.current = 0
       stopRevealAnimation(revealAnimationFrameRef)
@@ -692,22 +721,16 @@ export function PredictionChart({
 
   const crossFadeAnimating = Boolean(crossFadeData && crossFadeProgress < 0.999)
   const revealSeriesSet = useMemo(() => new Set(revealSeriesKeys), [revealSeriesKeys])
+  const surgeFilter = isDarkMode
+    ? 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.75))'
+    : 'drop-shadow(0 0 1.5px rgba(15, 23, 42, 0.45))'
 
-  const lightenSeriesColor = useCallback((color: string) => {
-    const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color)
-    if (!match) {
-      return color
+  const resolveSurgeColor = useCallback((_color: string) => {
+    if (isDarkMode) {
+      return 'rgba(255, 255, 255, 0.82)'
     }
-
-    const r = Number.parseInt(match[1], 16)
-    const g = Number.parseInt(match[2], 16)
-    const b = Number.parseInt(match[3], 16)
-    function mix(channel: number) {
-      return Math.round(channel + (255 - channel) * SURGE_COLOR_BLEND)
-    }
-
-    return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`
-  }, [])
+    return 'rgba(15, 23, 42, 0.55)'
+  }, [isDarkMode])
 
   useEffect(() => {
     if (!surgePendingRef.current) {
@@ -1063,12 +1086,12 @@ export function PredictionChart({
 
             {series.map((seriesItem) => {
               const seriesColor = seriesItem.color
-              const isSeriesRevealing = revealSeriesSet.has(seriesItem.key)
+              const isSeriesRevealing = revealProgress < 0.999 || revealSeriesSet.has(seriesItem.key)
               const seriesColoredPoints = isSeriesRevealing ? coloredPoints : data
               const seriesMutedPoints = isSeriesRevealing ? mutedPoints : []
               const surgeLength = surgeLengthsRef.current[seriesItem.key]
               const surgeDashLength = typeof surgeLength === 'number' && Number.isFinite(surgeLength)
-                ? Math.max(12, surgeLength * SURGE_DASH_RATIO)
+                ? Math.max(18, surgeLength * SURGE_DASH_RATIO)
                 : 0
               const surgeDashGap = surgeLength ?? 0
               const shouldRenderSurge = Boolean(
@@ -1239,17 +1262,19 @@ export function PredictionChart({
                             {shouldRenderSurge && (
                               <path
                                 d={pathDefinition}
-                                stroke={lightenSeriesColor(seriesColor)}
-                                strokeWidth={2}
+                                stroke={resolveSurgeColor(seriesColor)}
+                                strokeWidth={2.8}
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 fill="transparent"
                                 strokeDasharray={`${surgeDashLength} ${surgeDashGap}`}
                                 strokeDashoffset={0}
+                                opacity={1}
                                 style={{
                                   'animation': `prediction-chart-surge ${SURGE_DURATION}ms ease-out`,
                                   '--surge-offset-start': '0',
                                   '--surge-offset-end': `${-(surgeLength + surgeDashLength)}`,
+                                  'filter': surgeFilter,
                                 } as CSSProperties}
                               />
                             )}
@@ -1354,9 +1379,9 @@ export function PredictionChart({
             )}
 
             <rect
-              x={0}
+              x={-4}
               y={0}
-              width={innerWidth}
+              width={innerWidth + 8}
               height={innerHeight}
               fill="transparent"
               onTouchStart={handleTooltip}
