@@ -436,7 +436,7 @@ async function enqueueEventDiscoveryJobs(startedAtMs: number, maxJobs: number): 
     const sourceRows = ((events ?? []) as EventSourceRow[])
       .map(row => ({
         id: row.id,
-        title: row.title.trim(),
+        title: typeof row.title === 'string' ? row.title.trim() : '',
       }))
       .filter(row => row.title.length > 0)
 
