@@ -32,6 +32,15 @@ export interface Event {
   is_trending: boolean
 }
 
+export interface EventSeriesEntry {
+  id: string
+  slug: string
+  status: Event['status']
+  end_date: string | null
+  resolved_at: string | null
+  created_at: string
+}
+
 export interface ConditionChangeLogEntry {
   condition_id: string
   created_at: string

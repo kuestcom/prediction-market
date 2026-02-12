@@ -25,6 +25,38 @@ interface EventsGridProps {
 
 const EMPTY_EVENTS: Event[] = []
 
+function normalizeSeriesSlug(value: string | null | undefined) {
+  const normalized = value?.trim().toLowerCase()
+  return normalized || null
+}
+
+function toTimestamp(value: string | null | undefined) {
+  if (!value) {
+    return Number.NEGATIVE_INFINITY
+  }
+
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp) ? timestamp : Number.NEGATIVE_INFINITY
+}
+
+function isMoreRecentEvent(candidate: Event, current: Event) {
+  const candidateCreatedAt = toTimestamp(candidate.created_at)
+  const currentCreatedAt = toTimestamp(current.created_at)
+
+  if (candidateCreatedAt !== currentCreatedAt) {
+    return candidateCreatedAt > currentCreatedAt
+  }
+
+  const candidateUpdatedAt = toTimestamp(candidate.updated_at)
+  const currentUpdatedAt = toTimestamp(current.updated_at)
+
+  if (candidateUpdatedAt !== currentUpdatedAt) {
+    return candidateUpdatedAt > currentUpdatedAt
+  }
+
+  return candidate.id > current.id
+}
+
 async function fetchEvents({
   pageParam = 0,
   filters,
@@ -129,7 +161,7 @@ export default function EventsGrid({
       return EMPTY_EVENTS
     }
 
-    return allEvents.filter((event) => {
+    const eventsMatchingTagFilters = allEvents.filter((event) => {
       const tagSlugs = new Set<string>()
 
       if (event.main_tag) {
@@ -156,6 +188,33 @@ export default function EventsGrid({
       }
 
       return !(filters.hideEarnings && hasEarningsTag)
+    })
+
+    const newestBySeriesSlug = new Map<string, Event>()
+
+    for (const event of eventsMatchingTagFilters) {
+      const seriesSlug = normalizeSeriesSlug(event.series_slug)
+      if (!seriesSlug) {
+        continue
+      }
+
+      const currentNewest = newestBySeriesSlug.get(seriesSlug)
+      if (!currentNewest || isMoreRecentEvent(event, currentNewest)) {
+        newestBySeriesSlug.set(seriesSlug, event)
+      }
+    }
+
+    if (newestBySeriesSlug.size === 0) {
+      return eventsMatchingTagFilters
+    }
+
+    return eventsMatchingTagFilters.filter((event) => {
+      const seriesSlug = normalizeSeriesSlug(event.series_slug)
+      if (!seriesSlug) {
+        return true
+      }
+
+      return newestBySeriesSlug.get(seriesSlug)?.id === event.id
     })
   }, [allEvents, filters.hideSports, filters.hideCrypto, filters.hideEarnings])
 

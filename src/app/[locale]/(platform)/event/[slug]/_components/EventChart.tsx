@@ -190,7 +190,7 @@ function buildCombinedOutcomeHistory(
   return { points, latestSnapshot }
 }
 
-function EventChartComponent({ event, isMobile }: EventChartProps) {
+function EventChartComponent({ event, isMobile, seriesEvents = [] }: EventChartProps) {
   const site = useSiteIdentity()
   const isSingleMarket = useIsSingleMarket()
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
@@ -794,6 +794,8 @@ function EventChartComponent({ event, isMobile }: EventChartProps) {
             effectiveBaselineYesChance={effectiveBaselineYesChance}
             effectiveCurrentYesChance={effectiveCurrentYesChance}
             watermark={watermark}
+            currentEventSlug={event.slug}
+            seriesEvents={seriesEvents}
           />
         )}
         chart={(

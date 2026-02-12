@@ -1,6 +1,6 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { conditions, outcomes } from '@/lib/db/schema/events/tables'
-import type { ConditionChangeLogEntry, Event, QueryResult } from '@/types'
+import type { ConditionChangeLogEntry, Event, EventSeriesEntry, QueryResult } from '@/types'
 import { and, desc, eq, exists, ilike, inArray, sql } from 'drizzle-orm'
 import { cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
@@ -728,8 +728,6 @@ export const EventRepository = {
     slug: string,
     locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<QueryResult<{ title: string }>> {
-    'use cache'
-
     return runQuery(async () => {
       const result = await db
         .select({ id: events.id, title: events.title })
@@ -931,6 +929,43 @@ export const EventRepository = {
     })
   },
 
+  async getSeriesEventsBySeriesSlug(seriesSlug: string): Promise<QueryResult<EventSeriesEntry[]>> {
+    return runQuery(async () => {
+      const normalizedSeriesSlug = seriesSlug.trim()
+
+      if (!normalizedSeriesSlug) {
+        return { data: [], error: null }
+      }
+
+      const rows = await db
+        .select({
+          id: events.id,
+          slug: events.slug,
+          status: events.status,
+          end_date: events.end_date,
+          resolved_at: events.resolved_at,
+          created_at: events.created_at,
+        })
+        .from(events)
+        .where(and(
+          eq(events.series_slug, normalizedSeriesSlug),
+          inArray(events.status, ['active', 'resolved']),
+        ))
+        .orderBy(desc(events.end_date), desc(events.created_at))
+
+      const data: EventSeriesEntry[] = rows.map(row => ({
+        id: row.id,
+        slug: row.slug,
+        status: row.status as Event['status'],
+        end_date: row.end_date?.toISOString() ?? null,
+        resolved_at: row.resolved_at?.toISOString() ?? null,
+        created_at: row.created_at.toISOString(),
+      }))
+
+      return { data, error: null }
+    })
+  },
+
   async getRelatedEventsBySlug(slug: string, options: RelatedEventOptions = {}): Promise<QueryResult<RelatedEvent[]>> {
     'use cache'
 
@@ -965,6 +1000,8 @@ export const EventRepository = {
         return { data: [], error: null }
       }
 
+      const normalizedCurrentSeriesSlug = currentEvent.series_slug?.trim().toLowerCase() ?? null
+
       const relatedEvents = await db.query.events.findMany({
         where: sql`${events.slug} != ${slug}`,
         with: {
@@ -994,6 +1031,13 @@ export const EventRepository = {
         .filter((event) => {
           if (event.markets.length !== 1) {
             return false
+          }
+
+          if (normalizedCurrentSeriesSlug) {
+            const normalizedRelatedSeriesSlug = event.series_slug?.trim().toLowerCase() ?? null
+            if (normalizedRelatedSeriesSlug === normalizedCurrentSeriesSlug) {
+              return false
+            }
           }
 
           const eventTagIds = event.eventTags.map(et => et.tag_id)

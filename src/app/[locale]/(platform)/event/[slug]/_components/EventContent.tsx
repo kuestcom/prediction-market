@@ -1,6 +1,6 @@
 'use client'
 
-import type { ConditionChangeLogEntry, Event, User } from '@/types'
+import type { ConditionChangeLogEntry, Event, EventSeriesEntry, User } from '@/types'
 import { ArrowUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
@@ -42,6 +42,7 @@ interface EventContentProps {
   marketContextEnabled: boolean
   changeLogEntries: ConditionChangeLogEntry[]
   marketSlug?: string
+  seriesEvents?: EventSeriesEntry[]
 }
 
 function isMarketResolved(market: Event['markets'][number] | null | undefined) {
@@ -54,6 +55,7 @@ export default function EventContent({
   marketContextEnabled,
   changeLogEntries: _changeLogEntries,
   marketSlug,
+  seriesEvents = [],
 }: EventContentProps) {
   const t = useExtracted()
   const setEvent = useOrder(state => state.setEvent)
@@ -275,7 +277,7 @@ export default function EventContent({
           <EventHeader event={event} />
 
           <div className={shouldHideChart ? 'w-full' : 'min-h-96 w-full'}>
-            <EventChart event={event} isMobile={isMobile} />
+            <EventChart event={event} isMobile={isMobile} seriesEvents={seriesEvents} />
           </div>
 
           <div className="grid gap-6">

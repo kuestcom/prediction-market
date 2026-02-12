@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
+import type { EventSeriesEntry } from '@/types'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
@@ -51,12 +52,25 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
     console.warn('Failed to load event change log:', changeLogResult.error)
   }
 
+  let seriesEvents: EventSeriesEntry[] = []
+
+  if (event.series_slug) {
+    const seriesEventsResult = await EventRepository.getSeriesEventsBySeriesSlug(event.series_slug)
+    if (seriesEventsResult.error) {
+      console.warn('Failed to load event series events:', seriesEventsResult.error)
+    }
+    else {
+      seriesEvents = seriesEventsResult.data ?? []
+    }
+  }
+
   return (
     <EventContent
       event={event}
       changeLogEntries={changeLogResult.data ?? []}
       user={user}
       marketContextEnabled={marketContextEnabled}
+      seriesEvents={seriesEvents}
       key={`is-bookmarked-${event.is_bookmarked}`}
     />
   )
