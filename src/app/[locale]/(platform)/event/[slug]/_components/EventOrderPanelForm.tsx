@@ -795,7 +795,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
         ? (
             <div className="flex flex-col items-center gap-3 px-2 py-4 text-center">
               <div className="flex size-10 items-center justify-center rounded-full bg-primary">
-                <CheckIcon className="size-7 text-background" />
+                <CheckIcon className="size-7 text-background" strokeWidth={3} />
               </div>
               <div className="text-lg font-bold text-primary">
                 {t('Outcome:')}
