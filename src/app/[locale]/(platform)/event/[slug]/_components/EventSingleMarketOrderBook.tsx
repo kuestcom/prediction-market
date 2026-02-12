@@ -102,6 +102,12 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
               <span
                 className="inline-flex size-4 items-center justify-center text-muted-foreground hover:text-foreground"
                 aria-label="Order book information"
+                onClick={(event) => {
+                  event.stopPropagation()
+                }}
+                onPointerDown={(event) => {
+                  event.stopPropagation()
+                }}
               >
                 <InfoIcon className="size-3.5" aria-hidden />
               </span>
@@ -143,7 +149,12 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
         )}
         aria-hidden={!isExpanded}
       >
-        <div className="overflow-hidden border-t border-border/30">
+        <div
+          className={cn(
+            'overflow-hidden',
+            isExpanded && 'border-t border-border/30',
+          )}
+        >
           <div
             className="flex flex-wrap items-center justify-between gap-3 border-b p-3 pb-0 text-sm font-semibold"
           >
