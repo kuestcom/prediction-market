@@ -97,7 +97,7 @@ export default function PortfolioTabs({ userAddress }: PortfolioTabsProps) {
   }, [activeTab, tabs])
 
   return (
-    <div className="overflow-hidden rounded-2xl border">
+    <div className="overflow-hidden rounded-lg border">
       <div className="relative">
         <div className="flex items-center gap-6 px-4 pt-4 sm:px-6">
           {tabs.map((tab, index) => (

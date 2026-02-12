@@ -7,12 +7,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { BanknoteArrowDownIcon, CheckIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { hashTypedData } from 'viem'
 import { useSignMessage } from 'wagmi'
 import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
+import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
@@ -80,17 +81,9 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
   const router = useRouter()
   const site = useSiteIdentity()
 
-  const latestMarket = summary.latestMarket ?? markets[0]
   const siteName = site.name
-
-  const stats = useMemo(
-    () => [
-      { label: 'Markets won', value: summary.marketsWon.toString() },
-      { label: 'Total return', value: formatSignedPercent(summary.totalReturnPercent, 2) },
-      { label: 'Proceeds', value: formatCurrency(summary.totalProceeds) },
-    ],
-    [summary],
-  )
+  const previewMarkets = useMemo(() => markets.slice(0, 3), [markets])
+  const previewExtraCount = Math.max(0, markets.length - 3)
 
   const claimableSignature = useMemo(() => {
     const claimableMarkets = markets
@@ -103,6 +96,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
     return claimableMarkets.join('|')
   }, [markets])
+  const hasClaimableMarkets = claimableSignature.length > 0
 
   useEffect(() => {
     if (!isDialogOpen) {
@@ -226,51 +220,79 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <Card className="border bg-transparent">
-        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4 md:flex-nowrap md:gap-6 md:p-6">
-          <div className="flex flex-wrap items-center gap-4 md:flex-nowrap md:gap-6">
-            <div className="relative size-12 overflow-hidden rounded-md border">
-              {latestMarket?.imageUrl
-                ? (
-                    <Image
-                      src={latestMarket.imageUrl}
-                      alt={latestMarket.title}
-                      fill
-                      sizes="48px"
-                      className="object-cover"
-                    />
-                  )
-                : (
-                    <div className="grid size-full place-items-center text-2xs text-muted-foreground">
-                      No image
-                    </div>
-                  )}
+      <Card className="w-full rounded-lg border bg-transparent">
+        <CardContent
+          className={`
+            flex flex-wrap items-center justify-between gap-4 py-3 pr-3 pl-5
+            md:flex-nowrap md:gap-6 md:py-4 md:pr-4 md:pl-6
+          `}
+        >
+          <div className="flex min-w-0 items-center gap-5">
+            <div className="relative ml-2 h-12 w-17 shrink-0">
+              {previewMarkets.map((market, index) => {
+                const stackClass = (() => {
+                  if (previewMarkets.length <= 1) {
+                    return 'left-[0.5rem] top-[0.125rem] z-20'
+                  }
+
+                  const stackClassByIndex = [
+                    'left-[-0.875rem] top-0 -rotate-[13deg] z-10',
+                    'left-[0.5rem] top-[0.125rem] z-20',
+                    'right-[-0.875rem] top-[0.125rem] rotate-[19deg] z-30',
+                  ] as const
+                  return stackClassByIndex[Math.min(index, 2)]
+                })()
+                const showOverflowCount = index === 2 && previewExtraCount > 0
+
+                return (
+                  <div
+                    key={market.conditionId}
+                    className={`
+                      absolute size-11 overflow-hidden rounded-lg border-2 border-foreground bg-muted shadow-sm
+                      motion-safe:animate-in motion-safe:duration-300 motion-safe:fade-in-0 motion-safe:zoom-in-95
+                      motion-reduce:animate-none
+                      ${stackClass}
+                    `}
+                    style={{ animationDelay: `${index * 55}ms` }}
+                  >
+                    {market?.imageUrl
+                      ? (
+                          <Image
+                            src={market.imageUrl}
+                            alt={market.title}
+                            fill
+                            sizes="44px"
+                            className="object-cover"
+                          />
+                        )
+                      : (
+                          <div className="grid size-full place-items-center text-2xs text-muted-foreground">
+                            ?
+                          </div>
+                        )}
+                    {showOverflowCount && (
+                      <div className="absolute inset-0 grid place-items-center bg-black/40 text-sm font-bold text-white">
+                        +
+                        {previewExtraCount}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 md:gap-8">
-              {stats.map((stat, index) => (
-                <Fragment key={stat.label}>
-                  <div className="flex min-w-27.5 flex-col justify-center text-sm">
-                    <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                      {stat.label}
-                    </span>
-                    <span className="text-lg font-semibold text-foreground">
-                      {stat.value}
-                    </span>
-                  </div>
-                  {index < stats.length - 1 && (
-                    <span
-                      aria-hidden="true"
-                      className="mx-2 hidden h-10 w-px rounded-full bg-border/60 md:block"
-                    />
-                  )}
-                </Fragment>
-              ))}
+            <div className="min-w-0 pl-2 text-left">
+              <p className="inline-flex items-center gap-2 text-base font-semibold text-muted-foreground">
+                <span>You won</span>
+                <span className="text-2xl font-semibold text-foreground tabular-nums">
+                  {formatCurrency(summary.totalProceeds)}
+                </span>
+              </p>
             </div>
           </div>
 
           <DialogTrigger asChild>
-            <Button className="h-11 shrink-0 px-6">
+            <Button className="h-10 shrink-0 rounded-md px-7" disabled={!hasClaimableMarkets}>
               <BanknoteArrowDownIcon className="size-4" />
               Claim
             </Button>
@@ -291,6 +313,20 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           </div>
         </div>
 
+        <div className="flex justify-center">
+          <div className="inline-flex items-center gap-2 text-lg font-semibold text-foreground">
+            <SiteLogoIcon
+              logoSvg={site.logoSvg}
+              logoImageUrl={site.logoImageUrl}
+              alt={`${site.name} logo`}
+              className="size-7 text-current [&_svg]:size-7 [&_svg_*]:fill-current [&_svg_*]:stroke-current"
+              imageClassName="size-7 object-contain"
+              size={28}
+            />
+            <span>{siteName}</span>
+          </div>
+        </div>
+
         <div className="space-y-2">
           <p className="text-2xl font-semibold text-foreground dark:text-white">
             You won
@@ -298,10 +334,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
             {formatCurrency(summary.totalProceeds)}
           </p>
           <p className="text-sm text-muted-foreground">
-            Great job predicting the future on
-            {' '}
-            {siteName}
-            !
+            Great job predicting the future!
           </p>
         </div>
 
