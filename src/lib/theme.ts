@@ -318,7 +318,15 @@ export function buildThemeCssText(light: ThemeOverrides, dark: ThemeOverrides, r
     blocks.push(`:root {\n${lightLines.join('\n')}\n}`)
   }
   if (darkLines.length > 0) {
-    blocks.push(`.dark {\n${darkLines.join('\n')}\n}`)
+    blocks.push(
+      `
+.dark,
+[data-theme-mode='dark'],
+.dark[data-theme-preset],
+[data-theme-mode='dark'][data-theme-preset] {
+${darkLines.join('\n')}
+}`.trim(),
+    )
   }
 
   return blocks.join('\n')
