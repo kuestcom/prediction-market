@@ -269,6 +269,8 @@ async function syncMarkets(allowedCreators: Set<string>): Promise<SyncStats> {
     eventIdsNeedingStatusUpdate.clear()
   }
 
+  await reconcileActiveEventStatusesFromMarkets()
+
   return {
     fetchedCount,
     processedCount,
@@ -818,6 +820,48 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
       console.error(`Failed to update status for event ${eventId}:`, updateError)
     }
   }
+}
+
+async function reconcileActiveEventStatusesFromMarkets() {
+  const activeEventIds: string[] = []
+  let offset = 0
+  const pageSize = 1000
+
+  while (true) {
+    const { data: eventsPage, error: eventsError } = await supabaseAdmin
+      .from('events')
+      .select('id')
+      .eq('status', 'active')
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1)
+
+    if (eventsError) {
+      console.error('Failed to load active events for status reconciliation:', eventsError)
+      return
+    }
+
+    if (!eventsPage || eventsPage.length === 0) {
+      break
+    }
+
+    for (const eventRow of eventsPage) {
+      if (eventRow.id) {
+        activeEventIds.push(eventRow.id)
+      }
+    }
+
+    if (eventsPage.length < pageSize) {
+      break
+    }
+
+    offset += pageSize
+  }
+
+  if (activeEventIds.length === 0) {
+    return
+  }
+
+  await updateEventStatusesFromMarketsBatch(activeEventIds)
 }
 
 function requireSubgraphTimestampIso(
