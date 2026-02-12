@@ -175,14 +175,36 @@ export default function EventChartHeader({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="max-h-72 min-w-44 overflow-y-auto p-1">
-                {pastResolvedEvents.map(event => (
-                  <DropdownMenuItem key={event.id} asChild className="cursor-pointer py-2 text-sm font-medium">
-                    <Link href={`/event/${event.slug}`}>
-                      <GavelIcon className="size-4 shrink-0 text-muted-foreground" />
-                      <span>{getSeriesEventLabel(event)}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
+                {pastResolvedEvents.map((event) => {
+                  const isCurrentEvent = event.slug === currentEventSlug
+
+                  if (isCurrentEvent) {
+                    return (
+                      <DropdownMenuItem
+                        key={event.id}
+                        disabled
+                        className={`
+                          cursor-default bg-muted/70 py-2 text-sm font-medium text-muted-foreground
+                          data-disabled:opacity-100
+                        `}
+                      >
+                        <span className="flex w-full items-center gap-2">
+                          <GavelIcon className="size-4 shrink-0 text-muted-foreground" />
+                          <span>{getSeriesEventLabel(event)}</span>
+                        </span>
+                      </DropdownMenuItem>
+                    )
+                  }
+
+                  return (
+                    <DropdownMenuItem key={event.id} asChild className="cursor-pointer py-2 text-sm font-medium">
+                      <Link href={`/event/${event.slug}`} className="flex w-full items-center gap-2">
+                        <GavelIcon className="size-4 shrink-0 text-muted-foreground" />
+                        <span>{getSeriesEventLabel(event)}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
