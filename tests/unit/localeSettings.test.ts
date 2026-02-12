@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { getAutomaticTranslationsEnabledFromSettings } from '@/i18n/locale-settings'
 import { DEFAULT_LOCALE, normalizeEnabledLocales, parseEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
 
 describe('locale settings helpers', () => {
@@ -21,5 +22,31 @@ describe('locale settings helpers', () => {
 
   it('falls back to default locale on empty list', () => {
     expect(parseEnabledLocales('[]')).toEqual([DEFAULT_LOCALE])
+  })
+
+  it('enables automatic translations by default when setting is missing', () => {
+    expect(getAutomaticTranslationsEnabledFromSettings(undefined)).toBe(true)
+  })
+
+  it('reads automatic translations disabled flag from settings', () => {
+    expect(getAutomaticTranslationsEnabledFromSettings({
+      i18n: {
+        automatic_translations_enabled: {
+          value: 'false',
+          updated_at: new Date().toISOString(),
+        },
+      },
+    })).toBe(false)
+  })
+
+  it('reads automatic translations enabled flag from settings', () => {
+    expect(getAutomaticTranslationsEnabledFromSettings({
+      i18n: {
+        automatic_translations_enabled: {
+          value: 'true',
+          updated_at: new Date().toISOString(),
+        },
+      },
+    })).toBe(true)
   })
 })

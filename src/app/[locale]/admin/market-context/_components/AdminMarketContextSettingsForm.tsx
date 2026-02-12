@@ -11,6 +11,7 @@ import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { Link } from '@/i18n/navigation'
 
 const initialState = {
   error: null,
@@ -112,17 +113,27 @@ export default function AdminMarketContextSettingsForm({
     <Form action={formAction} className="grid max-w-3xl gap-8">
       <input type="hidden" name="openrouter_enabled" value={enabled ? 'true' : 'false'} />
 
-      <section className="grid gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <Label htmlFor="openrouter_enabled">{t('Enable market context')}</Label>
-          <Switch
-            id="openrouter_enabled"
-            checked={enabled}
-            onCheckedChange={setEnabled}
-            disabled={isPending}
-          />
+      <section className="flex items-center justify-between gap-3 rounded-lg border p-6">
+        <div className="grid gap-1">
+          <Label htmlFor="openrouter_enabled" className="text-sm font-medium">{t('Enable market context')}</Label>
+          <p className="text-xs text-muted-foreground">
+            {t('You need to enable OpenRouter first,')}
+            {' '}
+            <Link href="/admin" className="underline underline-offset-4">
+              {t('settings')}
+            </Link>
+            .
+          </p>
         </div>
+        <Switch
+          id="openrouter_enabled"
+          checked={enabled}
+          onCheckedChange={setEnabled}
+          disabled={isPending}
+        />
+      </section>
 
+      <section className="grid gap-4 rounded-lg border p-6">
         <div className="grid gap-2">
           <Label htmlFor="market_context_prompt">{t('Prompt template')}</Label>
           <Textarea

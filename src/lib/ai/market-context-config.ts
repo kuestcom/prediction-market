@@ -8,6 +8,14 @@ interface SettingsMap {
   [group: string]: SettingsGroup | undefined
 }
 
+export interface OpenRouterProviderSettings {
+  model?: string
+  apiKey?: string
+  configured: boolean
+  allSettings?: SettingsMap
+  aiSettings?: SettingsGroup
+}
+
 export interface MarketContextSettings {
   prompt: string
   model?: string
@@ -36,30 +44,51 @@ function normalizeBoolean(value: string | undefined, fallback: boolean): boolean
   return fallback
 }
 
-function parseMarketContextSettingsFromMap(allSettings?: SettingsMap): MarketContextSettingsResult {
+function parseOpenRouterProviderSettingsFromMap(allSettings?: SettingsMap): OpenRouterProviderSettings {
   const aiSettings = allSettings?.ai
-
-  const prompt = aiSettings?.market_context_prompt?.value?.trim() || MARKET_CONTEXT_PROMPT_DEFAULT
-
   const model = aiSettings?.openrouter_model?.value?.trim() || undefined
-
   const encryptedApiKey = aiSettings?.openrouter_api_key?.value
   const decryptedApiKey = encryptedApiKey ? decryptSecret(encryptedApiKey) : ''
   const apiKey = decryptedApiKey.trim() || undefined
+  const configured = Boolean(apiKey)
+
+  return {
+    model,
+    apiKey,
+    configured,
+    allSettings,
+    aiSettings,
+  }
+}
+
+function parseMarketContextSettingsFromMap(allSettings?: SettingsMap): MarketContextSettingsResult {
+  const openRouter = parseOpenRouterProviderSettingsFromMap(allSettings)
+  const aiSettings = openRouter.aiSettings
+
+  const prompt = aiSettings?.market_context_prompt?.value?.trim() || MARKET_CONTEXT_PROMPT_DEFAULT
 
   const enabled = normalizeBoolean(
     aiSettings?.openrouter_enabled?.value,
-    Boolean(apiKey),
+    openRouter.configured,
   )
 
   return {
     prompt,
-    model,
-    apiKey,
+    model: openRouter.model,
+    apiKey: openRouter.apiKey,
     enabled,
     allSettings,
     aiSettings,
   }
+}
+
+export async function loadOpenRouterProviderSettings(): Promise<OpenRouterProviderSettings> {
+  const { data } = await SettingsRepository.getSettings()
+  return parseOpenRouterProviderSettingsFromMap(data ?? undefined)
+}
+
+export function parseOpenRouterProviderSettings(allSettings?: SettingsMap): OpenRouterProviderSettings {
+  return parseOpenRouterProviderSettingsFromMap(allSettings)
 }
 
 export async function loadMarketContextSettings(): Promise<MarketContextSettingsResult> {

@@ -1,8 +1,9 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { createHash } from 'node:crypto'
 import { NextResponse } from 'next/server'
+import { loadAutomaticTranslationsEnabled } from '@/i18n/locale-settings'
 import { LOCALE_LABELS, NON_DEFAULT_LOCALES } from '@/i18n/locales'
-import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
+import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
 import { isCronAuthorized } from '@/lib/auth-cron'
 import { supabaseAdmin } from '@/lib/supabase'
@@ -106,6 +107,55 @@ interface TranslationJobStats {
   timeLimitReached: boolean
   errors: { jobType: string, targetId: string, locale: string, error: string }[]
 }
+
+type TranslationSourceLabel = 'event title' | 'tag name'
+
+interface TranslationBatchInputRow {
+  id: string
+  sourceText: string
+  locale: NonDefaultLocale
+  sourceLabel: TranslationSourceLabel
+}
+
+interface PendingEventTranslationJob {
+  kind: typeof EVENT_TITLE_TRANSLATION_JOB_TYPE
+  claimed: TranslationJobRow
+  identity: JobIdentity
+  eventId: string
+  locale: NonDefaultLocale
+  sourceHash: string
+  sourceText: string
+  nextPayload: EventTranslationJobPayload
+}
+
+interface PendingTagTranslationJob {
+  kind: typeof TAG_NAME_TRANSLATION_JOB_TYPE
+  claimed: TranslationJobRow
+  identity: JobIdentity
+  tagId: number
+  locale: NonDefaultLocale
+  sourceHash: string
+  sourceText: string
+  nextPayload: TagTranslationJobPayload
+}
+
+type PendingTranslationJob = PendingEventTranslationJob | PendingTagTranslationJob
+
+interface ClaimedEventTranslationJob {
+  kind: typeof EVENT_TITLE_TRANSLATION_JOB_TYPE
+  claimed: TranslationJobRow
+  identity: JobIdentity
+  payload: EventTranslationJobPayload
+}
+
+interface ClaimedTagTranslationJob {
+  kind: typeof TAG_NAME_TRANSLATION_JOB_TYPE
+  claimed: TranslationJobRow
+  identity: JobIdentity
+  payload: TagTranslationJobPayload
+}
+
+type ClaimedTranslationJob = ClaimedEventTranslationJob | ClaimedTagTranslationJob
 
 function buildSourceHash(value: string) {
   return createHash('sha256').update(value).digest('hex')
@@ -386,7 +436,7 @@ async function enqueueEventDiscoveryJobs(startedAtMs: number, maxJobs: number): 
     const sourceRows = ((events ?? []) as EventSourceRow[])
       .map(row => ({
         id: row.id,
-        title: typeof row.title === 'string' ? row.title.trim() : '',
+        title: row.title.trim(),
       }))
       .filter(row => row.title.length > 0)
 
@@ -673,82 +723,98 @@ async function scheduleRetry(job: TranslationJobRow, rawError: unknown): Promise
   return { retryScheduled: !exhausted }
 }
 
-async function loadCurrentSourceTitle(eventId: string) {
+async function loadEventSourcesMap(eventIds: string[]) {
+  const uniqueIds = [...new Set(eventIds)]
+  const map = new Map<string, string>()
+  if (uniqueIds.length === 0) {
+    return map
+  }
+
   const { data, error } = await supabaseAdmin
     .from('events')
-    .select('title')
-    .eq('id', eventId)
-    .maybeSingle()
+    .select('id,title')
+    .in('id', uniqueIds)
 
   if (error) {
-    throw new Error(`Failed to load source title for event ${eventId}: ${error.message}`)
+    throw new Error(`Failed to load event sources for translation sync: ${error.message}`)
   }
 
-  const title = typeof data?.title === 'string' ? data.title.trim() : ''
-  if (!title) {
-    throw new Error(`Event ${eventId} does not have a valid source title`)
+  for (const row of (data ?? []) as EventSourceRow[]) {
+    const title = typeof row.title === 'string' ? row.title.trim() : ''
+    if (!title) {
+      continue
+    }
+    map.set(row.id, title)
   }
 
-  return title
+  return map
 }
 
-async function loadCurrentTagName(tagId: number) {
+async function loadTagSourcesMap(tagIds: number[]) {
+  const uniqueIds = [...new Set(tagIds)]
+  const map = new Map<number, string>()
+  if (uniqueIds.length === 0) {
+    return map
+  }
+
   const { data, error } = await supabaseAdmin
     .from('tags')
-    .select('name')
-    .eq('id', tagId)
-    .maybeSingle()
+    .select('id,name')
+    .in('id', uniqueIds)
 
   if (error) {
-    throw new Error(`Failed to load source name for tag ${tagId}: ${error.message}`)
+    throw new Error(`Failed to load tag sources for translation sync: ${error.message}`)
   }
 
-  const name = typeof data?.name === 'string' ? data.name.trim() : ''
-  if (!name) {
-    throw new Error(`Tag ${tagId} does not have a valid source name`)
+  for (const row of (data ?? []) as TagSourceRow[]) {
+    const name = typeof row.name === 'string' ? row.name.trim() : ''
+    if (!name) {
+      continue
+    }
+    map.set(row.id, name)
   }
 
-  return name
+  return map
 }
 
-async function loadEventTranslationMeta(eventId: string, locale: NonDefaultLocale) {
+async function loadEventTranslationMetaMapForJobs(eventIds: string[], locales: NonDefaultLocale[]) {
+  const uniqueEventIds = [...new Set(eventIds)]
+  const uniqueLocales = [...new Set(locales)]
+  if (uniqueEventIds.length === 0 || uniqueLocales.length === 0) {
+    return new Map<string, { source_hash: string | null, is_manual: boolean }>()
+  }
+
   const { data, error } = await supabaseAdmin
     .from('event_translations')
-    .select('is_manual,source_hash')
-    .eq('event_id', eventId)
-    .eq('locale', locale)
-    .maybeSingle()
+    .select('event_id,locale,is_manual,source_hash')
+    .in('event_id', uniqueEventIds)
+    .in('locale', uniqueLocales)
 
   if (error) {
-    throw new Error(`Failed to inspect translation metadata for event ${eventId}/${locale}: ${error.message}`)
+    throw new Error(`Failed to load event translation metadata for sync jobs: ${error.message}`)
   }
 
-  return data
-    ? {
-        is_manual: Boolean(data.is_manual),
-        source_hash: typeof data.source_hash === 'string' ? data.source_hash : null,
-      }
-    : null
+  return buildEventTranslationMetaMap((data ?? []) as EventTranslationMetaRow[])
 }
 
-async function loadTagTranslationMeta(tagId: number, locale: NonDefaultLocale) {
-  const { data, error } = await supabaseAdmin
-    .from('tag_translations')
-    .select('is_manual,source_hash')
-    .eq('tag_id', tagId)
-    .eq('locale', locale)
-    .maybeSingle()
-
-  if (error) {
-    throw new Error(`Failed to inspect translation metadata for tag ${tagId}/${locale}: ${error.message}`)
+async function loadTagTranslationMetaMapForJobs(tagIds: number[], locales: NonDefaultLocale[]) {
+  const uniqueTagIds = [...new Set(tagIds)]
+  const uniqueLocales = [...new Set(locales)]
+  if (uniqueTagIds.length === 0 || uniqueLocales.length === 0) {
+    return new Map<string, { source_hash: string | null, is_manual: boolean }>()
   }
 
-  return data
-    ? {
-        is_manual: Boolean(data.is_manual),
-        source_hash: typeof data.source_hash === 'string' ? data.source_hash : null,
-      }
-    : null
+  const { data, error } = await supabaseAdmin
+    .from('tag_translations')
+    .select('tag_id,locale,is_manual,source_hash')
+    .in('tag_id', uniqueTagIds)
+    .in('locale', uniqueLocales)
+
+  if (error) {
+    throw new Error(`Failed to load tag translation metadata for sync jobs: ${error.message}`)
+  }
+
+  return buildTagTranslationMetaMap((data ?? []) as TagTranslationMetaRow[])
 }
 
 async function upsertAutoEventTranslation(eventId: string, locale: NonDefaultLocale, title: string, sourceHash: string) {
@@ -787,43 +853,324 @@ async function upsertAutoTagTranslation(tagId: number, locale: NonDefaultLocale,
   }
 }
 
-async function translateText(sourceText: string, locale: NonDefaultLocale, sourceLabel: 'event title' | 'tag name', model?: string, apiKey?: string) {
+function extractJsonObject(raw: string) {
+  const trimmed = raw.trim()
+  if (!trimmed) {
+    return ''
+  }
+
+  let withoutFences = trimmed
+  if (withoutFences.startsWith('```')) {
+    const firstNewline = withoutFences.indexOf('\n')
+    if (firstNewline !== -1) {
+      withoutFences = withoutFences.slice(firstNewline + 1)
+      if (withoutFences.endsWith('```')) {
+        withoutFences = withoutFences.slice(0, -3)
+      }
+      withoutFences = withoutFences.trim()
+    }
+  }
+
+  const firstBrace = withoutFences.indexOf('{')
+  const lastBrace = withoutFences.lastIndexOf('}')
+
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    return withoutFences
+  }
+
+  return withoutFences.slice(firstBrace, lastBrace + 1)
+}
+
+function parseBatchTranslationResponse(raw: string) {
+  const jsonPayload = extractJsonObject(raw)
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(jsonPayload)
+  }
+  catch {
+    throw new Error('Model returned invalid JSON for translation batch.')
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Model returned an unexpected translation batch payload.')
+  }
+
+  const rows = (parsed as { translations?: unknown }).translations
+  if (!Array.isArray(rows)) {
+    throw new TypeError('Model did not return a translations array.')
+  }
+
+  const result = new Map<string, string>()
+
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') {
+      continue
+    }
+
+    const id = typeof (row as { id?: unknown }).id === 'string' ? (row as { id: string }).id : ''
+    const translatedText = typeof (row as { text?: unknown }).text === 'string' ? (row as { text: string }).text : ''
+    const normalizedText = normalizeTranslatedText(translatedText)
+
+    if (!id || !normalizedText) {
+      continue
+    }
+
+    result.set(id, normalizedText)
+  }
+
+  if (result.size === 0) {
+    throw new Error('Model returned no valid translations in the batch payload.')
+  }
+
+  return result
+}
+
+async function translateBatchText(rows: TranslationBatchInputRow[], model?: string, apiKey?: string) {
   if (!apiKey) {
     throw new Error('OpenRouter API key is not configured.')
   }
 
-  const localeLabel = LOCALE_LABELS[locale]
+  if (rows.length === 0) {
+    return new Map<string, string>()
+  }
+
+  const payload = rows.map(row => ({
+    id: row.id,
+    source_label: row.sourceLabel,
+    source_text: row.sourceText,
+    locale: row.locale,
+    locale_label: LOCALE_LABELS[row.locale],
+  }))
 
   const translated = await requestOpenRouterCompletion([
     {
       role: 'system',
-      content: 'You are a translation engine specialized in short labels and event titles. Return only the translated text.',
+      content: [
+        'You are a translation engine specialized in short labels and event titles.',
+        'Translate every item independently based on its locale.',
+        'Return only valid JSON.',
+      ].join(' '),
     },
     {
       role: 'user',
       content: [
-        `Translate the following ${sourceLabel} from English to ${localeLabel} (locale: ${locale}).`,
+        'Translate each item from English to the target locale.',
         'Rules:',
-        '- Return only the translated text and nothing else.',
-        '- Do not add quotes, bullet points, prefixes, suffixes, or explanations.',
+        '- Return only JSON in this exact shape: {"translations":[{"id":"...","text":"..."}]}.',
+        '- Include each input id exactly once in the output.',
+        '- Keep translation concise and neutral.',
         '- Preserve names, acronyms, tickers, numbers, and dates exactly when appropriate.',
-        '- Keep the tone neutral and concise.',
-        `Source ${sourceLabel}: ${sourceText}`,
+        '- Do not add notes, explanations, markdown, or extra keys.',
+        `Input JSON: ${JSON.stringify(payload)}`,
       ].join('\n'),
     },
   ], {
     apiKey,
     model,
     temperature: 0,
-    maxTokens: 120,
+    maxTokens: Math.min(4_000, Math.max(250, rows.length * 120)),
   })
 
-  const normalized = normalizeTranslatedText(translated)
-  if (!normalized) {
-    throw new Error('Model returned an empty translation.')
+  return parseBatchTranslationResponse(translated)
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function pushJobError(stats: TranslationJobStats, jobType: string, identity: JobIdentity, error: unknown) {
+  stats.errors.push({
+    jobType,
+    targetId: identity.targetId,
+    locale: identity.locale,
+    error: getErrorMessage(error),
+  })
+}
+
+async function retryClaimedJob(claimed: TranslationJobRow, identity: JobIdentity, error: unknown, stats: TranslationJobStats) {
+  pushJobError(stats, claimed.job_type, identity, error)
+
+  try {
+    const { retryScheduled } = await scheduleRetry(claimed, error)
+    if (retryScheduled) {
+      stats.retried += 1
+    }
+    else {
+      stats.failed += 1
+    }
+  }
+  catch (rescheduleError) {
+    stats.failed += 1
+    pushJobError(stats, claimed.job_type, identity, rescheduleError)
+  }
+}
+
+async function processPendingTranslationJobs(
+  pendingJobs: PendingTranslationJob[],
+  model: string | undefined,
+  apiKey: string | undefined,
+  stats: TranslationJobStats,
+) {
+  if (pendingJobs.length === 0) {
+    return
   }
 
-  return normalized
+  const batchRows: TranslationBatchInputRow[] = pendingJobs.map(job => ({
+    id: job.claimed.id,
+    sourceText: job.sourceText,
+    locale: job.locale,
+    sourceLabel: job.kind === EVENT_TITLE_TRANSLATION_JOB_TYPE ? 'event title' : 'tag name',
+  }))
+
+  let translatedById: Map<string, string>
+
+  try {
+    translatedById = await translateBatchText(batchRows, model, apiKey)
+  }
+  catch (error) {
+    for (const pendingJob of pendingJobs) {
+      await retryClaimedJob(pendingJob.claimed, pendingJob.identity, error, stats)
+    }
+    return
+  }
+
+  for (const pendingJob of pendingJobs) {
+    const translatedText = translatedById.get(pendingJob.claimed.id)
+    if (!translatedText) {
+      await retryClaimedJob(
+        pendingJob.claimed,
+        pendingJob.identity,
+        new Error(`Missing translated text for job ${pendingJob.claimed.id} in batch response.`),
+        stats,
+      )
+      continue
+    }
+
+    try {
+      if (pendingJob.kind === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
+        await upsertAutoEventTranslation(pendingJob.eventId, pendingJob.locale, translatedText, pendingJob.sourceHash)
+        await completeJob(pendingJob.claimed, pendingJob.nextPayload)
+        stats.completed += 1
+        continue
+      }
+
+      await upsertAutoTagTranslation(pendingJob.tagId, pendingJob.locale, translatedText, pendingJob.sourceHash)
+      await completeJob(pendingJob.claimed, pendingJob.nextPayload)
+      stats.completed += 1
+    }
+    catch (error) {
+      await retryClaimedJob(pendingJob.claimed, pendingJob.identity, error, stats)
+    }
+  }
+}
+
+async function preparePendingTranslationJobs(
+  claimedJobs: ClaimedTranslationJob[],
+  stats: TranslationJobStats,
+) {
+  const pendingJobs: PendingTranslationJob[] = []
+  if (claimedJobs.length === 0) {
+    return pendingJobs
+  }
+
+  const eventJobs = claimedJobs.filter(job => job.kind === EVENT_TITLE_TRANSLATION_JOB_TYPE)
+  const tagJobs = claimedJobs.filter(job => job.kind === TAG_NAME_TRANSLATION_JOB_TYPE)
+
+  const [eventSourceMap, tagSourceMap, eventMetaMap, tagMetaMap] = await Promise.all([
+    loadEventSourcesMap(eventJobs.map(job => job.payload.event_id)),
+    loadTagSourcesMap(tagJobs.map(job => job.payload.tag_id)),
+    loadEventTranslationMetaMapForJobs(
+      eventJobs.map(job => job.payload.event_id),
+      eventJobs.map(job => job.payload.locale),
+    ),
+    loadTagTranslationMetaMapForJobs(
+      tagJobs.map(job => job.payload.tag_id),
+      tagJobs.map(job => job.payload.locale),
+    ),
+  ])
+
+  for (const claimedJob of claimedJobs) {
+    try {
+      if (claimedJob.kind === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
+        const sourceTitle = eventSourceMap.get(claimedJob.payload.event_id)
+        if (!sourceTitle) {
+          throw new Error(`Event ${claimedJob.payload.event_id} does not have a valid source title`)
+        }
+
+        const sourceHash = buildSourceHash(sourceTitle)
+        const nextPayload: EventTranslationJobPayload = {
+          event_id: claimedJob.payload.event_id,
+          locale: claimedJob.payload.locale,
+          source_title: sourceTitle,
+          source_hash: sourceHash,
+        }
+        const currentTranslation = eventMetaMap.get(`${claimedJob.payload.event_id}:${claimedJob.payload.locale}`)
+        if (currentTranslation?.is_manual) {
+          await completeJob(claimedJob.claimed, nextPayload)
+          stats.skippedManual += 1
+          continue
+        }
+        if (currentTranslation?.source_hash === sourceHash) {
+          await completeJob(claimedJob.claimed, nextPayload)
+          stats.skippedUpToDate += 1
+          continue
+        }
+
+        pendingJobs.push({
+          kind: EVENT_TITLE_TRANSLATION_JOB_TYPE,
+          claimed: claimedJob.claimed,
+          identity: claimedJob.identity,
+          eventId: claimedJob.payload.event_id,
+          locale: claimedJob.payload.locale,
+          sourceHash,
+          sourceText: sourceTitle,
+          nextPayload,
+        })
+        continue
+      }
+
+      const sourceName = tagSourceMap.get(claimedJob.payload.tag_id)
+      if (!sourceName) {
+        throw new Error(`Tag ${claimedJob.payload.tag_id} does not have a valid source name`)
+      }
+
+      const sourceHash = buildSourceHash(sourceName)
+      const nextPayload: TagTranslationJobPayload = {
+        tag_id: claimedJob.payload.tag_id,
+        locale: claimedJob.payload.locale,
+        source_name: sourceName,
+        source_hash: sourceHash,
+      }
+      const currentTranslation = tagMetaMap.get(`${claimedJob.payload.tag_id}:${claimedJob.payload.locale}`)
+      if (currentTranslation?.is_manual) {
+        await completeJob(claimedJob.claimed, nextPayload)
+        stats.skippedManual += 1
+        continue
+      }
+      if (currentTranslation?.source_hash === sourceHash) {
+        await completeJob(claimedJob.claimed, nextPayload)
+        stats.skippedUpToDate += 1
+        continue
+      }
+
+      pendingJobs.push({
+        kind: TAG_NAME_TRANSLATION_JOB_TYPE,
+        claimed: claimedJob.claimed,
+        identity: claimedJob.identity,
+        tagId: claimedJob.payload.tag_id,
+        locale: claimedJob.payload.locale,
+        sourceHash,
+        sourceText: sourceName,
+        nextPayload,
+      })
+    }
+    catch (error) {
+      await retryClaimedJob(claimedJob.claimed, claimedJob.identity, error, stats)
+    }
+  }
+
+  return pendingJobs
 }
 
 export async function GET(request: Request) {
@@ -846,12 +1193,25 @@ export async function GET(request: Request) {
   }
 
   try {
-    const settings = await loadMarketContextSettings()
-    if (!settings.enabled || !settings.apiKey) {
+    const [openRouterSettings, automaticTranslationsEnabled] = await Promise.all([
+      loadOpenRouterProviderSettings(),
+      loadAutomaticTranslationsEnabled(),
+    ])
+
+    if (!openRouterSettings.configured || !openRouterSettings.apiKey) {
       return NextResponse.json({
         success: true,
         skipped: true,
-        reason: 'OpenRouter is disabled or not configured.',
+        reason: 'OpenRouter is not configured.',
+        ...stats,
+      })
+    }
+
+    if (!automaticTranslationsEnabled) {
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        reason: 'Automatic translations are disabled in Locale Settings.',
         ...stats,
       })
     }
@@ -874,6 +1234,8 @@ export async function GET(request: Request) {
         continue
       }
 
+      const claimedJobs: ClaimedTranslationJob[] = []
+
       for (const candidate of candidates) {
         if (Date.now() - startedAt >= SYNC_TIME_LIMIT_MS) {
           stats.timeLimitReached = true
@@ -894,71 +1256,35 @@ export async function GET(request: Request) {
 
           if (claimed.job_type === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
             const payload = parseEventJobPayload(claimed.payload, claimed.dedupe_key)
-            claimedIdentity = {
+            const identity = {
               targetId: payload.event_id,
               locale: payload.locale,
             }
+            claimedIdentity = identity
 
-            const sourceTitle = await loadCurrentSourceTitle(payload.event_id)
-            const sourceHash = buildSourceHash(sourceTitle)
-            const nextPayload: EventTranslationJobPayload = {
-              event_id: payload.event_id,
-              locale: payload.locale,
-              source_title: sourceTitle,
-              source_hash: sourceHash,
-            }
-
-            const currentTranslation = await loadEventTranslationMeta(payload.event_id, payload.locale)
-            if (currentTranslation?.is_manual) {
-              await completeJob(claimed, nextPayload)
-              stats.skippedManual += 1
-              continue
-            }
-            if (currentTranslation?.source_hash === sourceHash) {
-              await completeJob(claimed, nextPayload)
-              stats.skippedUpToDate += 1
-              continue
-            }
-
-            const translatedTitle = await translateText(sourceTitle, payload.locale, 'event title', settings.model, settings.apiKey)
-            await upsertAutoEventTranslation(payload.event_id, payload.locale, translatedTitle, sourceHash)
-            await completeJob(claimed, nextPayload)
-            stats.completed += 1
+            claimedJobs.push({
+              kind: EVENT_TITLE_TRANSLATION_JOB_TYPE,
+              claimed,
+              identity,
+              payload,
+            })
             continue
           }
 
           if (claimed.job_type === TAG_NAME_TRANSLATION_JOB_TYPE) {
             const payload = parseTagJobPayload(claimed.payload, claimed.dedupe_key)
-            claimedIdentity = {
+            const identity = {
               targetId: String(payload.tag_id),
               locale: payload.locale,
             }
+            claimedIdentity = identity
 
-            const sourceName = await loadCurrentTagName(payload.tag_id)
-            const sourceHash = buildSourceHash(sourceName)
-            const nextPayload: TagTranslationJobPayload = {
-              tag_id: payload.tag_id,
-              locale: payload.locale,
-              source_name: sourceName,
-              source_hash: sourceHash,
-            }
-
-            const currentTranslation = await loadTagTranslationMeta(payload.tag_id, payload.locale)
-            if (currentTranslation?.is_manual) {
-              await completeJob(claimed, nextPayload)
-              stats.skippedManual += 1
-              continue
-            }
-            if (currentTranslation?.source_hash === sourceHash) {
-              await completeJob(claimed, nextPayload)
-              stats.skippedUpToDate += 1
-              continue
-            }
-
-            const translatedName = await translateText(sourceName, payload.locale, 'tag name', settings.model, settings.apiKey)
-            await upsertAutoTagTranslation(payload.tag_id, payload.locale, translatedName, sourceHash)
-            await completeJob(claimed, nextPayload)
-            stats.completed += 1
+            claimedJobs.push({
+              kind: TAG_NAME_TRANSLATION_JOB_TYPE,
+              claimed,
+              identity,
+              payload,
+            })
             continue
           }
 
@@ -967,36 +1293,28 @@ export async function GET(request: Request) {
         catch (error) {
           const identity = claimedIdentity ?? (claimed ? getJobIdentity(claimed) : candidateIdentity)
 
-          stats.errors.push({
-            jobType: claimed?.job_type ?? candidate.job_type,
-            targetId: identity.targetId,
-            locale: identity.locale,
-            error: error instanceof Error ? error.message : String(error),
-          })
-
           if (!claimed) {
+            pushJobError(stats, candidate.job_type, identity, error)
             stats.failed += 1
             continue
           }
 
-          try {
-            const { retryScheduled } = await scheduleRetry(claimed, error)
-            if (retryScheduled) {
-              stats.retried += 1
-            }
-            else {
-              stats.failed += 1
-            }
-          }
-          catch (rescheduleError) {
-            stats.failed += 1
-            stats.errors.push({
-              jobType: claimed.job_type,
-              targetId: identity.targetId,
-              locale: identity.locale,
-              error: rescheduleError instanceof Error ? rescheduleError.message : String(rescheduleError),
-            })
-          }
+          await retryClaimedJob(claimed, identity, error, stats)
+        }
+      }
+
+      try {
+        const pendingTranslations = await preparePendingTranslationJobs(claimedJobs, stats)
+        await processPendingTranslationJobs(
+          pendingTranslations,
+          openRouterSettings.model,
+          openRouterSettings.apiKey,
+          stats,
+        )
+      }
+      catch (error) {
+        for (const claimedJob of claimedJobs) {
+          await retryClaimedJob(claimedJob.claimed, claimedJob.identity, error, stats)
         }
       }
 
