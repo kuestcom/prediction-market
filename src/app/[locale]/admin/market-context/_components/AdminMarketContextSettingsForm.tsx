@@ -1,6 +1,7 @@
 'use client'
 
 import type { MarketContextVariable } from '@/lib/ai/market-context-template'
+import { PlusIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useActionState, useEffect, useRef, useState } from 'react'
@@ -11,6 +12,7 @@ import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Link } from '@/i18n/navigation'
 
 const initialState = {
@@ -30,8 +32,12 @@ export default function AdminMarketContextSettingsForm({
 }: AdminMarketContextSettingsFormProps) {
   const t = useExtracted()
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const variableLiftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [promptValue, setPromptValue] = useState(defaultPrompt)
   const [enabled, setEnabled] = useState(isEnabled)
+  const [isPromptHighlighted, setIsPromptHighlighted] = useState(false)
+  const [liftedVariableKey, setLiftedVariableKey] = useState<string | null>(null)
   const [state, formAction, isPending] = useActionState(updateMarketContextSettingsAction, initialState)
   const wasPendingRef = useRef(isPending)
 
@@ -42,6 +48,17 @@ export default function AdminMarketContextSettingsForm({
   useEffect(() => {
     setEnabled(isEnabled)
   }, [isEnabled])
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current)
+      }
+      if (variableLiftTimeoutRef.current) {
+        clearTimeout(variableLiftTimeoutRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const transitionedToIdle = wasPendingRef.current && !isPending
@@ -91,6 +108,22 @@ export default function AdminMarketContextSettingsForm({
     const placeholder = `[${key}]`
     const textarea = textareaRef.current
 
+    if (variableLiftTimeoutRef.current) {
+      clearTimeout(variableLiftTimeoutRef.current)
+    }
+    setLiftedVariableKey(key)
+    variableLiftTimeoutRef.current = setTimeout(() => {
+      setLiftedVariableKey(null)
+    }, 260)
+
+    if (highlightTimeoutRef.current) {
+      clearTimeout(highlightTimeoutRef.current)
+    }
+    setIsPromptHighlighted(true)
+    highlightTimeoutRef.current = setTimeout(() => {
+      setIsPromptHighlighted(false)
+    }, 550)
+
     if (!textarea) {
       setPromptValue(prev => `${prev}${placeholder}`)
       return
@@ -106,6 +139,10 @@ export default function AdminMarketContextSettingsForm({
       textarea.focus()
       const cursor = start + placeholder.length
       textarea.setSelectionRange(cursor, cursor)
+      textarea.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
     })
   }
 
@@ -115,7 +152,7 @@ export default function AdminMarketContextSettingsForm({
 
       <section className="flex items-center justify-between gap-3 rounded-lg border p-6">
         <div className="grid gap-1">
-          <Label htmlFor="openrouter_enabled" className="text-sm font-medium">{t('Enable market context')}</Label>
+          <Label htmlFor="openrouter_enabled" className="text-base font-semibold">{t('Enable market context')}</Label>
           <p className="text-xs text-muted-foreground">
             {t('You need to enable OpenRouter, the credentials and model selection are in')}
             {' '}
@@ -135,7 +172,7 @@ export default function AdminMarketContextSettingsForm({
 
       <section className="grid gap-4 rounded-lg border p-6">
         <div className="grid gap-2">
-          <Label htmlFor="market_context_prompt">{t('Prompt template')}</Label>
+          <Label htmlFor="market_context_prompt" className="text-base font-semibold">{t('Prompt template')}</Label>
           <Textarea
             id="market_context_prompt"
             name="market_context_prompt"
@@ -144,45 +181,72 @@ export default function AdminMarketContextSettingsForm({
             value={promptValue}
             onChange={event => setPromptValue(event.target.value)}
             disabled={isPending}
+            className={isPromptHighlighted ? 'bg-primary/5 ring-2 ring-primary/35 transition-colors' : undefined}
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {t('Use the variables below to blend live market data into the instructions. They will be replaced before the request is sent.')}
           </p>
         </div>
 
         <div className="grid gap-3">
-          <span className="text-xs font-medium text-muted-foreground uppercase">{t('Available variables')}</span>
-          <div className="flex flex-wrap gap-2">
-            {variables.map(variable => (
-              <Button
-                key={variable.key}
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={isPending}
-                onClick={() => handleInsertVariable(variable.key)}
-                title={getVariableDescription(variable)}
-                className="rounded-full"
-              >
-                [
-                {variable.key}
-                ]
-              </Button>
-            ))}
+          <span className="text-base font-semibold">{t('Available variables')}</span>
+          <div className="-mx-6 -mb-6 border-t">
+            <table className="w-full table-fixed border-collapse text-sm">
+              <thead>
+                <tr className="border-b bg-muted/20 text-foreground">
+                  <th className="w-80 px-4 py-2 text-left font-semibold">
+                    Variables
+                  </th>
+                  <th className="px-6 py-2 text-left font-semibold">
+                    Description
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {variables.map(variable => (
+                  <tr key={variable.key} className="group border-b transition-colors last:border-b-0 hover:bg-muted/50">
+                    <td className="px-4 py-2 font-mono text-sm">
+                      <span
+                        className={`
+                          inline-flex items-center gap-2 text-nowrap transition-transform duration-200
+                          ${liftedVariableKey === variable.key ? '-translate-y-0.5' : ''}
+                        `}
+                      >
+                        <span>
+                          [
+                          {variable.key}
+                          ]
+                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              size="icon"
+                              disabled={isPending}
+                              onClick={() => handleInsertVariable(variable.key)}
+                              aria-label={`Add [${variable.key}] variable`}
+                              className={`
+                                size-5 rounded-full bg-primary p-0 text-background shadow-none transition-transform
+                                duration-200
+                                hover:bg-primary/90
+                                ${liftedVariableKey === variable.key ? '-translate-y-0.5' : ''}
+                              `}
+                            >
+                              <PlusIcon className="size-2.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">Insert into prompt</TooltipContent>
+                        </Tooltip>
+                      </span>
+                    </td>
+                    <td className="p-2 text-sm/5 text-muted-foreground">
+                      {getVariableDescription(variable)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <ul className="list-disc space-y-1 ps-5 text-xs text-muted-foreground">
-            {variables.map(variable => (
-              <li key={`${variable.key}-description`}>
-                <span className="font-medium">
-                  [
-                  {variable.key}
-                  ]
-                </span>
-                {' – '}
-                {getVariableDescription(variable)}
-              </li>
-            ))}
-          </ul>
         </div>
       </section>
 
