@@ -165,7 +165,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
         <ShieldIcon />
         {t('Beware of external links')}
       </Badge>
-      <div className="mt-1 flex items-center gap-3">
+      <div className="mt-3 flex items-center gap-3">
         <Select value={sortBy} onValueChange={value => setSortBy(value as 'newest' | 'most_liked')}>
           <SelectTrigger size="default" className="h-9 px-3 text-sm dark:bg-transparent">
             <SelectValue />

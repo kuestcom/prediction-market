@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
-import { MICRO_UNIT, POLYGON_SCAN_BASE } from '@/lib/constants'
+import { MICRO_UNIT, OUTCOME_INDEX, POLYGON_SCAN_BASE } from '@/lib/constants'
 import { fetchUserActivityData, mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 import { formatCurrency, formatSharePriceLabel, formatSharesLabel, formatTimeAgo, fromMicro } from '@/lib/formatters'
 import { getUserPublicAddress } from '@/lib/user-address'
@@ -177,7 +177,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
           const sharesLabel = Number.isFinite(sharesValue)
             ? formatSharesLabel(sharesValue)
             : '—'
-          const outcomeColorClass = (activity.outcome.text || '').toLowerCase() === 'yes'
+          const outcomeColorClass = activity.outcome.index === OUTCOME_INDEX.YES
             ? 'text-yes'
             : 'text-no'
           const actionLabel = activity.side === 'sell' ? t('Sold') : t('Bought')
