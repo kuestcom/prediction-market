@@ -25,6 +25,9 @@ export default function EventCardFooter({
 
   const isResolvedEvent = event.status === 'resolved'
   const recurrenceLabel = event.series_recurrence?.trim() || null
+  const recurrenceDisplayLabel = recurrenceLabel
+    ? `${recurrenceLabel.charAt(0).toUpperCase()}${recurrenceLabel.slice(1)}`
+    : null
 
   return (
     <div className="flex items-center justify-between gap-2 text-xs/tight text-muted-foreground">
@@ -38,10 +41,10 @@ export default function EventCardFooter({
                 Vol.
               </span>
             )}
-        {recurrenceLabel && (
+        {recurrenceDisplayLabel && (
           <span className="inline-flex items-center gap-1 text-muted-foreground">
             <Repeat className="size-3" />
-            <span>{recurrenceLabel}</span>
+            <span>{recurrenceDisplayLabel}</span>
           </span>
         )}
       </div>

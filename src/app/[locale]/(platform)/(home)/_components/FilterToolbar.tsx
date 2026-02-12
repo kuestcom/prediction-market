@@ -423,7 +423,7 @@ function FilterSettingsSelect({ label, value, options, onChange }: FilterSetting
         size="sm"
         className={cn(
           `
-            h-9 min-w-40 shrink-0 cursor-pointer gap-2 rounded-full border-none bg-muted/60 px-3 text-xs font-medium
+            h-9 min-w-40 shrink-0 cursor-pointer gap-2 rounded-md border-none bg-muted/60 px-3 text-xs font-medium
             text-foreground
           `,
           'shadow-none',
@@ -441,7 +441,7 @@ function FilterSettingsSelect({ label, value, options, onChange }: FilterSetting
             <SelectItem
               key={option.value}
               value={option.value}
-              className="my-0.5 cursor-pointer rounded-md py-2 pl-2.5 text-sm"
+              className="my-0.5 cursor-pointer rounded-sm py-2 pl-2.5 text-sm"
             >
               <span className="flex items-center gap-2">
                 {OptionIcon && <OptionIcon className="size-4 text-muted-foreground" />}

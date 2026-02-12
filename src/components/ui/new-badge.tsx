@@ -21,7 +21,7 @@ export function NewBadge({ variant = 'plain', className }: NewBadgeProps) {
       )}
     >
       <SparkleIcon className="size-2 text-current" strokeWidth={2.5} />
-      <span>{t('New')}</span>
+      <span className="uppercase">{t('New')}</span>
     </span>
   )
 }
