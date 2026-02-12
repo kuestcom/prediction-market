@@ -190,6 +190,10 @@ export default function EventsGrid({
       return !(filters.hideEarnings && hasEarningsTag)
     })
 
+    if (filters.status === 'resolved') {
+      return eventsMatchingTagFilters
+    }
+
     const newestBySeriesSlug = new Map<string, Event>()
 
     for (const event of eventsMatchingTagFilters) {
@@ -216,7 +220,7 @@ export default function EventsGrid({
 
       return newestBySeriesSlug.get(seriesSlug)?.id === event.id
     })
-  }, [allEvents, filters.hideSports, filters.hideCrypto, filters.hideEarnings])
+  }, [allEvents, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status])
 
   const marketTargets = useMemo(
     () => visibleEvents.flatMap(event => buildMarketTargets(event.markets)),
