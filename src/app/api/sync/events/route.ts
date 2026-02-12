@@ -269,7 +269,12 @@ async function syncMarkets(allowedCreators: Set<string>): Promise<SyncStats> {
     eventIdsNeedingStatusUpdate.clear()
   }
 
-  await reconcileActiveEventStatusesFromMarkets()
+  if (!timeLimitReached) {
+    await reconcileActiveEventStatusesFromMarkets()
+  }
+  else {
+    console.warn('⏭️ Skipping active event status reconciliation due to sync time limit')
+  }
 
   return {
     fetchedCount,
