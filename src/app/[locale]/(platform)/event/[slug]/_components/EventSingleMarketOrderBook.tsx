@@ -112,7 +112,7 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
                 <InfoIcon className="size-3.5" aria-hidden />
               </span>
             </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-64 text-left">
+            <TooltipContent side="top" className="max-w-68 text-left">
               The order book shows all open buy and sell orders for this market. Use it to place limit orders at your preferred price.
             </TooltipContent>
           </Tooltip>
