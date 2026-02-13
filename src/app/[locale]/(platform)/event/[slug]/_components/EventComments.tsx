@@ -161,7 +161,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
         isCreatingComment={isCreatingComment}
         onCommentAddedAction={() => refetch()}
       />
-      <Badge className="h-8 w-full md:hidden [&>svg]:size-4" variant="outline">
+      <Badge className="mt-2 h-8 w-full md:hidden [&>svg]:size-4" variant="outline">
         <ShieldIcon />
         {t('Beware of external links')}
       </Badge>

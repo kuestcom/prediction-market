@@ -239,7 +239,7 @@ export default function EventActivity({ event }: EventActivityProps) {
 
   if (!hasMarkets) {
     return (
-      <div className="mt-6">
+      <div className="mt-2">
         <AlertBanner title={t('No market available for this event')} />
       </div>
     )
@@ -247,7 +247,7 @@ export default function EventActivity({ event }: EventActivityProps) {
 
   if (hasInitialError) {
     return (
-      <div className="mt-6">
+      <div className="mt-2">
         <AlertBanner
           title={t('Failed to load activity')}
           description={(
@@ -267,7 +267,7 @@ export default function EventActivity({ event }: EventActivityProps) {
   }
 
   return (
-    <div className="mt-6 grid gap-6">
+    <div className="mt-2 grid gap-6">
       <div className="flex items-center justify-between gap-2">
         <Select value={minAmountFilter} onValueChange={setMinAmountFilter}>
           <SelectTrigger className="dark:bg-transparent">

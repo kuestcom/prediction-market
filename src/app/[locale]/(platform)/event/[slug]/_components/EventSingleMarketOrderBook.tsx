@@ -4,10 +4,11 @@ import type { Market, Outcome } from '@/types'
 import { InfoIcon, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
+import ConnectionStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/ConnectionStatusIndicator'
+import { useMarketChannelStatus } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventOrderBook, {
   useOrderBookSummaries,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
-import MarketChannelStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/MarketChannelStatusIndicator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { OUTCOME_INDEX } from '@/lib/constants'
@@ -24,6 +25,7 @@ type OutcomeToggleIndex = typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
 export default function EventSingleMarketOrderBook({ market, eventSlug }: EventSingleMarketOrderBookProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
+  const marketChannelStatus = useMarketChannelStatus()
   const [isExpanded, setIsExpanded] = useState(true)
   const orderMarket = useOrder(state => state.market)
   const orderOutcome = useOrder(state => state.outcome)
@@ -171,7 +173,10 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
               />
             </div>
             <div className="flex items-center gap-2">
-              <MarketChannelStatusIndicator className="flex items-center justify-end py-2" />
+              <ConnectionStatusIndicator
+                className="flex items-center justify-end py-2"
+                status={marketChannelStatus}
+              />
               <button
                 type="button"
                 onClick={() => { void refetchOrderBook() }}

@@ -1,7 +1,6 @@
 import { useExtracted, useLocale } from 'next-intl'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
-import LiveCommentsStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/LiveCommentsStatusIndicator'
-import MarketChannelStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/MarketChannelStatusIndicator'
+import ConnectionStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/ConnectionStatusIndicator'
 import { cn } from '@/lib/utils'
 
 interface EventTabSelectorProps {
@@ -9,6 +8,7 @@ interface EventTabSelectorProps {
   setActiveTab: (activeTab: string) => void
   commentsCount: number | null
   liveCommentsStatus: 'connecting' | 'live' | 'offline'
+  marketChannelStatus: 'connecting' | 'live' | 'offline'
 }
 
 export default function EventTabSelector({
@@ -16,6 +16,7 @@ export default function EventTabSelector({
   setActiveTab,
   commentsCount,
   liveCommentsStatus,
+  marketChannelStatus,
 }: EventTabSelectorProps) {
   const t = useExtracted()
   const locale = useLocale()
@@ -88,12 +89,8 @@ export default function EventTabSelector({
           }}
         />
       </ul>
-      {activeTab === 'comments' && (
-        <LiveCommentsStatusIndicator className="-mt-3" status={liveCommentsStatus} />
-      )}
-      {activeTab === 'activity' && (
-        <MarketChannelStatusIndicator className="-mt-3" />
-      )}
+      {activeTab === 'comments' && <ConnectionStatusIndicator status={liveCommentsStatus} />}
+      {activeTab === 'activity' && <ConnectionStatusIndicator status={marketChannelStatus} />}
     </div>
   )
 }

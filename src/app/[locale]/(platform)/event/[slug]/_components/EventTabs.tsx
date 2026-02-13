@@ -2,6 +2,7 @@ import type { Event, User } from '@/types'
 import { useMemo, useState } from 'react'
 import EventActivity from '@/app/[locale]/(platform)/event/[slug]/_components/EventActivity'
 import EventComments from '@/app/[locale]/(platform)/event/[slug]/_components/EventComments'
+import { useMarketChannelStatus } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventTabSelector from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabSelector'
 import EventTopHolders from '@/app/[locale]/(platform)/event/[slug]/_components/EventTopHolders'
 import { useCommentMetrics } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
@@ -20,6 +21,7 @@ export default function EventTabs({ event, user }: EventTabsProps) {
     user,
     enabled: activeTab === 'comments',
   })
+  const marketChannelStatus = useMarketChannelStatus()
   const commentsCount = useMemo(() => {
     if (commentMetrics?.comments_count != null) {
       return commentMetrics.comments_count
@@ -34,6 +36,7 @@ export default function EventTabs({ event, user }: EventTabsProps) {
         setActiveTab={setActiveTab}
         commentsCount={commentsCount}
         liveCommentsStatus={liveCommentsStatus}
+        marketChannelStatus={marketChannelStatus}
       />
       {activeTab === 'comments' && <EventComments event={event} user={user} />}
       {activeTab === 'holders' && <EventTopHolders event={event} />}

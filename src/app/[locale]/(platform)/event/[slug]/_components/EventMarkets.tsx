@@ -11,12 +11,13 @@ import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
+import ConnectionStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/ConnectionStatusIndicator'
 import EventMarketCard from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketCard'
+import { useMarketChannelStatus } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventMarketHistory from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketHistory'
 import EventMarketOpenOrders from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketOpenOrders'
 import EventMarketPositions from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketPositions'
 import EventOrderBook, { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
-import MarketChannelStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/MarketChannelStatusIndicator'
 import MarketOutcomeGraph from '@/app/[locale]/(platform)/event/[slug]/_components/MarketOutcomeGraph'
 import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
 import { useChanceRefresh } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useChanceRefresh'
@@ -912,6 +913,7 @@ function MarketDetailTabs({
   const t = useExtracted()
   const { name: siteName } = useSiteIdentity()
   const user = useUser()
+  const marketChannelStatus = useMarketChannelStatus()
   const { selected: controlledTab, select } = tabController
   const positionSizeThreshold = 0.01
   const isResolvedView = variant === 'resolved'
@@ -1047,7 +1049,7 @@ function MarketDetailTabs({
             })}
           </div>
 
-          <MarketChannelStatusIndicator className="-mt-2" />
+          <ConnectionStatusIndicator className="-mt-2" status={marketChannelStatus} />
 
           {!shouldHideOrderBook && (
             <button
