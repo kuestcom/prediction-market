@@ -1,6 +1,7 @@
 import type { RefObject } from 'react'
 import type { OrderSide } from '@/types'
 import { useExtracted, useLocale } from 'next-intl'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDisplayAmount, getAmountSizeClass, MAX_AMOUNT_INPUT, sanitizeNumericInput } from '@/lib/amount-input'
 import { ORDER_SIDE } from '@/lib/constants'
@@ -29,10 +30,6 @@ interface EventOrderPanelInputProps {
 
 const BUY_CHIPS_DESKTOP = ['+$5', '+$25', '+$100']
 const BUY_CHIPS_MOBILE = ['+$1', '+$20', '+$100']
-const QUICK_BUTTON_CLASS = `
-  h-8 rounded-md bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground transition-colors
-  hover:bg-muted/80
-`
 
 export default function EventOrderPanelInput({
   isMobile,
@@ -116,11 +113,13 @@ export default function EventOrderPanelInput({
     if (side === ORDER_SIDE.SELL) {
       const isDisabled = availableShares <= 0
       return ['25%', '50%', '75%'].map(percentage => (
-        <button
+        <Button
           type="button"
           key={percentage}
+          size="sm"
+          variant="outline"
           className={cn(
-            QUICK_BUTTON_CLASS,
+            'text-xs',
             isDisabled && 'cursor-not-allowed opacity-50',
           )}
           disabled={isDisabled}
@@ -136,16 +135,18 @@ export default function EventOrderPanelInput({
           }}
         >
           {percentage}
-        </button>
+        </Button>
       ))
     }
 
     const chipValues = isMobile ? BUY_CHIPS_MOBILE : BUY_CHIPS_DESKTOP
     return chipValues.map(chip => (
-      <button
+      <Button
         type="button"
         key={chip}
-        className={QUICK_BUTTON_CLASS}
+        size="sm"
+        variant="outline"
+        className="text-xs"
         onClick={() => {
           const chipValue = Number.parseInt(chip.substring(2), 10)
           const newValue = amountNumber + chipValue
@@ -156,7 +157,7 @@ export default function EventOrderPanelInput({
         }}
       >
         {chip}
-      </button>
+      </Button>
     ))
   }
 
@@ -176,23 +177,21 @@ export default function EventOrderPanelInput({
         ? (
             <div className="mb-4">
               <div className="mb-4 flex items-center justify-center gap-4">
-                <button
+                <Button
                   type="button"
                   onClick={() => decrementAmount(side === ORDER_SIDE.SELL ? 0.1 : 1)}
-                  className={`
-                    flex size-12 items-center justify-center rounded-lg bg-muted text-2xl font-bold transition-colors
-                    hover:bg-muted/80
-                  `}
+                  size="icon"
+                  variant="ghost"
                 >
                   −
-                </button>
+                </Button>
                 <div className="flex-1 text-center">
                   <input
                     ref={inputRef}
                     type="text"
                     className={cn(
                       `
-                        w-full [appearance:textfield] border-0 bg-transparent text-center font-bold text-foreground
+                        w-full [appearance:textfield] border-0 bg-transparent text-center font-semibold text-foreground
                         placeholder-muted-foreground outline-hidden
                         [&::-webkit-inner-spin-button]:appearance-none
                         [&::-webkit-outer-spin-button]:appearance-none
@@ -200,22 +199,20 @@ export default function EventOrderPanelInput({
                       amountSizeClass,
                       shouldShake && 'animate-order-shake',
                     )}
-                    placeholder={side === ORDER_SIDE.SELL ? '0' : '$0.00'}
+                    placeholder={side === ORDER_SIDE.SELL ? '0' : '$0'}
                     value={inputValue}
                     onChange={e => handleInputChange(e.target.value)}
                     onBlur={e => handleBlur(e.target.value)}
                   />
                 </div>
-                <button
+                <Button
                   type="button"
                   onClick={() => incrementAmount(side === ORDER_SIDE.SELL ? 0.1 : 1)}
-                  className={`
-                    flex size-12 items-center justify-center rounded-lg bg-muted text-2xl font-bold transition-colors
-                    hover:bg-muted/80
-                  `}
+                  size="icon"
+                  variant="ghost"
                 >
                   +
-                </button>
+                </Button>
               </div>
             </div>
           )
@@ -252,7 +249,7 @@ export default function EventOrderPanelInput({
                   type="text"
                   className={cn(
                     `
-                      h-14 w-full [appearance:textfield] border-0 bg-transparent text-right font-bold text-slate-700
+                      h-14 w-full [appearance:textfield] border-0 bg-transparent text-right font-semibold text-slate-700
                       placeholder-slate-400 outline-hidden
                       dark:text-slate-300 dark:placeholder-slate-500
                       [&::-webkit-inner-spin-button]:appearance-none
@@ -261,7 +258,7 @@ export default function EventOrderPanelInput({
                     amountSizeClass,
                     shouldShake && 'animate-order-shake',
                   )}
-                  placeholder={side === ORDER_SIDE.SELL ? '0' : '$0.00'}
+                  placeholder={side === ORDER_SIDE.SELL ? '0' : '$0'}
                   value={inputValue}
                   onChange={e => handleInputChange(e.target.value)}
                   onBlur={e => handleBlur(e.target.value)}
@@ -277,10 +274,12 @@ export default function EventOrderPanelInput({
         )}
       >
         {renderActionButtons()}
-        <button
+        <Button
           type="button"
+          size="sm"
+          variant="outline"
           className={cn(
-            QUICK_BUTTON_CLASS,
+            'text-xs',
             side === ORDER_SIDE.SELL && availableShares <= 0 && 'cursor-not-allowed opacity-50',
           )}
           disabled={side === ORDER_SIDE.SELL && availableShares <= 0}
@@ -300,7 +299,7 @@ export default function EventOrderPanelInput({
           }}
         >
           {t('Max')}
-        </button>
+        </Button>
       </div>
     </>
   )

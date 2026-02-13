@@ -29,12 +29,11 @@ export default function EventOrderPanelSubmitButton({
         aria-disabled={isDisabled}
         onClick={onClick}
         className={`
-          relative w-full translate-y-0 rounded-md text-base font-bold transition-transform duration-150 ease-out
+          relative mt-2 w-full translate-y-0 rounded-md text-base font-bold transition-transform duration-150 ease-out
           hover:translate-y-px hover:bg-primary
           active:translate-y-0.5
           disabled:opacity-100
         `}
-
       >
         {isLoading
           ? (

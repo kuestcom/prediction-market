@@ -131,8 +131,8 @@ export default function EventOrderPanelBuySellTabs({
             type="button"
             className={cn(
               `
-                cursor-pointer rounded-none border-b-2 border-transparent bg-transparent px-0 pb-2 text-sm font-semibold
-                text-muted-foreground transition-colors duration-200
+                cursor-pointer rounded-none border-b-3 border-transparent bg-transparent px-0 pb-2 text-base
+                font-semibold text-muted-foreground transition-colors duration-200
                 hover:bg-transparent! hover:text-foreground
                 focus:bg-transparent!
                 focus-visible:bg-transparent! focus-visible:outline-none
@@ -152,8 +152,8 @@ export default function EventOrderPanelBuySellTabs({
             type="button"
             className={cn(
               `
-                cursor-pointer rounded-none border-b-2 border-transparent bg-transparent px-0 pb-2 text-sm font-semibold
-                text-muted-foreground transition-colors duration-200
+                cursor-pointer rounded-none border-b-3 border-transparent bg-transparent px-0 pb-2 text-base
+                font-semibold text-muted-foreground transition-colors duration-200
                 hover:bg-transparent! hover:text-foreground
                 focus:bg-transparent!
                 focus-visible:bg-transparent! focus-visible:outline-none
@@ -178,8 +178,7 @@ export default function EventOrderPanelBuySellTabs({
                 type="button"
                 className={cn(`
                   group flex cursor-pointer items-center gap-1 bg-transparent pb-2 text-sm font-semibold
-                  text-muted-foreground transition-colors duration-200
-                  hover:text-foreground
+                  transition-colors duration-200
                   focus:outline-none
                   focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none
                 `, typeMenuOpen && 'text-foreground')}
