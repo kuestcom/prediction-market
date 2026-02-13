@@ -436,6 +436,7 @@ export function mapDataApiPositionToUserPosition(
     cashPnl: Number.isFinite(position.cashPnl) ? Number(position.cashPnl) : undefined,
     percentPnl: Number.isFinite(position.percentPnl) ? Number(position.percentPnl) : undefined,
     percentRealizedPnl: Number.isFinite(position.percentRealizedPnl) ? Number(position.percentRealizedPnl) : undefined,
+    redeemable: Boolean(position.redeemable),
     opposite_outcome_text: oppositeOutcomeText,
     order_count: orderCount,
     last_activity_at: new Date(timestampMs).toISOString(),

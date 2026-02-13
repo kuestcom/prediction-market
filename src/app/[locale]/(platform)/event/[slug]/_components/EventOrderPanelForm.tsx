@@ -1,3 +1,4 @@
+import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { Event } from '@/types'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -5,7 +6,10 @@ import { CheckIcon, TriangleAlertIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Form from 'next/form'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useSignTypedData } from 'wagmi'
+import { toast } from 'sonner'
+import { hashTypedData } from 'viem'
+import { useSignMessage, useSignTypedData } from 'wagmi'
+import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import EventOrderPanelBuySellTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelBuySellTabs'
@@ -26,15 +30,23 @@ import {
   calculateMarketFill,
   normalizeBookLevels,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
+import { Button } from '@/components/ui/button'
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { SAFE_BALANCE_QUERY_KEY, useBalance } from '@/hooks/useBalance'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
-import { CLOB_ORDER_TYPE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
-import { formatCentsLabel, formatCurrency, toCents } from '@/lib/formatters'
+import { defaultNetwork } from '@/lib/appkit'
+import { CLOB_ORDER_TYPE, DEFAULT_ERROR_MESSAGE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
+import { formatCentsLabel, formatCurrency, formatSharesLabel, toCents } from '@/lib/formatters'
 import { buildOrderPayload, submitOrder } from '@/lib/orders'
 import { signOrderPayload } from '@/lib/orders/signing'
 import { MIN_LIMIT_ORDER_SHARES, validateOrder } from '@/lib/orders/validation'
+import {
+  aggregateSafeTransactions,
+  buildRedeemPositionTransaction,
+  getSafeTxTypedData,
+  packSafeSignature,
+} from '@/lib/safe/transactions'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
@@ -80,10 +92,21 @@ function resolveWinningOutcomeIndex(market: Event['markets'][number] | null | un
   return null
 }
 
+function resolveIndexSetFromOutcomeIndex(outcomeIndex: number | undefined) {
+  if (outcomeIndex === OUTCOME_INDEX.YES) {
+    return 1
+  }
+  if (outcomeIndex === OUTCOME_INDEX.NO) {
+    return 2
+  }
+  return null
+}
+
 export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanelFormProps) {
   const { open, close } = useAppKit()
   const { isConnected, embeddedWalletInfo } = useAppKitAccount()
   const { signTypedDataAsync } = useSignTypedData()
+  const { signMessageAsync } = useSignMessage()
   const t = useExtracted()
   const locale = useLocale()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -104,6 +127,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
   const [showNoLiquidityWarning, setShowNoLiquidityWarning] = useState(false)
   const [shouldShakeInput, setShouldShakeInput] = useState(false)
   const [shouldShakeLimitShares, setShouldShakeLimitShares] = useState(false)
+  const [isClaimSubmitting, setIsClaimSubmitting] = useState(false)
   const limitSharesInputRef = useRef<HTMLInputElement | null>(null)
   const limitSharesNumber = Number.parseFloat(state.limitShares) || 0
   const { balance, isLoadingBalance } = useBalance()
@@ -165,6 +189,18 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
   const resolvedOutcomeText = state.market?.outcomes.find(
     outcome => outcome.outcome_index === resolvedOutcomeIndex,
   )?.outcome_text
+  const resolvedYesOutcomeText = state.market?.outcomes.find(
+    outcome => outcome.outcome_index === OUTCOME_INDEX.YES,
+  )?.outcome_text
+  const resolvedNoOutcomeText = state.market?.outcomes.find(
+    outcome => outcome.outcome_index === OUTCOME_INDEX.NO,
+  )?.outcome_text
+  const resolvedYesOutcomeLabel = (resolvedYesOutcomeText ? normalizeOutcomeLabel(resolvedYesOutcomeText) : '')
+    || resolvedYesOutcomeText
+    || t('Yes')
+  const resolvedNoOutcomeLabel = (resolvedNoOutcomeText ? normalizeOutcomeLabel(resolvedNoOutcomeText) : '')
+    || resolvedNoOutcomeText
+    || t('No')
   const normalizedResolvedOutcomeLabel = resolvedOutcomeText
     ? normalizeOutcomeLabel(resolvedOutcomeText)
     : ''
@@ -181,7 +217,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
     return Math.floor(now.getTime() / 1000)
   }, [])
   const [showLimitMinimumWarning, setShowLimitMinimumWarning] = useState(false)
-  const { aggregatedPositionShares } = useEventOrderPanelPositions({
+  const { positionsQuery, aggregatedPositionShares } = useEventOrderPanelPositions({
     makerAddress,
     conditionId: state.market?.condition_id,
   })
@@ -305,6 +341,117 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
       : outcomeIndex === OUTCOME_INDEX.YES
         ? t('Yes')
         : undefined)
+  const claimablePositionsForMarket = useMemo(() => {
+    if (!isResolvedMarket || !state.market?.condition_id) {
+      return []
+    }
+
+    const positions = positionsQuery.data ?? []
+    return positions.filter((position) => {
+      if (!position.redeemable || position.market?.condition_id !== state.market?.condition_id) {
+        return false
+      }
+      const shares = typeof position.total_shares === 'number' ? position.total_shares : 0
+      return shares > 0
+    })
+  }, [isResolvedMarket, positionsQuery.data, state.market?.condition_id])
+  const claimableShares = useMemo(
+    () =>
+      claimablePositionsForMarket.reduce((sum, position) => {
+        const shares = typeof position.total_shares === 'number' ? position.total_shares : 0
+        return shares > 0 ? sum + shares : sum
+      }, 0),
+    [claimablePositionsForMarket],
+  )
+  const claimIndexSets = useMemo(() => {
+    const indexSetCollection = new Set<number>()
+    claimablePositionsForMarket.forEach((position) => {
+      const indexSet = resolveIndexSetFromOutcomeIndex(position.outcome_index)
+      if (indexSet) {
+        indexSetCollection.add(indexSet)
+      }
+    })
+
+    if (indexSetCollection.size === 0) {
+      const fallbackIndexSet = resolveIndexSetFromOutcomeIndex(resolvedOutcomeIndex ?? undefined)
+      if (fallbackIndexSet) {
+        indexSetCollection.add(fallbackIndexSet)
+      }
+    }
+
+    return Array.from(indexSetCollection).sort((a, b) => a - b)
+  }, [claimablePositionsForMarket, resolvedOutcomeIndex])
+  const hasClaimableWinnings = Boolean(state.market?.condition_id) && claimableShares > 0 && claimIndexSets.length > 0
+  const claimOutcomeLabel = useMemo(() => {
+    const positionOutcomeText = claimablePositionsForMarket.find(position => position.outcome_text)?.outcome_text
+    const normalizedOutcome = positionOutcomeText ? normalizeOutcomeLabel(positionOutcomeText) : ''
+    return normalizedOutcome || positionOutcomeText || resolvedOutcomeLabel
+  }, [claimablePositionsForMarket, normalizeOutcomeLabel, resolvedOutcomeLabel])
+  const yesPositionLabel = useMemo(
+    () =>
+      formatSharesLabel(yesPositionShares, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    [yesPositionShares],
+  )
+  const noPositionLabel = useMemo(
+    () =>
+      formatSharesLabel(noPositionShares, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    [noPositionShares],
+  )
+  const hasYesAndNoPosition = yesPositionShares > 0 && noPositionShares > 0
+  const claimPositionLabel = useMemo(() => {
+    if (hasYesAndNoPosition) {
+      return `${yesPositionLabel} ${resolvedYesOutcomeLabel} / ${noPositionLabel} ${resolvedNoOutcomeLabel}`
+    }
+
+    if (yesPositionShares > 0) {
+      return `${yesPositionLabel} ${resolvedYesOutcomeLabel}`
+    }
+
+    if (noPositionShares > 0) {
+      return `${noPositionLabel} ${resolvedNoOutcomeLabel}`
+    }
+
+    const sharesLabel = formatSharesLabel(claimableShares, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    return `${sharesLabel} ${claimOutcomeLabel}`
+  }, [
+    claimOutcomeLabel,
+    claimableShares,
+    hasYesAndNoPosition,
+    noPositionLabel,
+    noPositionShares,
+    resolvedNoOutcomeLabel,
+    resolvedYesOutcomeLabel,
+    yesPositionLabel,
+    yesPositionShares,
+  ])
+  const claimValuePerShareLabel = useMemo(() => {
+    const yesValuePerShare = resolvedOutcomeIndex === OUTCOME_INDEX.YES ? formatCurrency(1) : formatCurrency(0)
+    const noValuePerShare = resolvedOutcomeIndex === OUTCOME_INDEX.NO ? formatCurrency(1) : formatCurrency(0)
+
+    if (hasYesAndNoPosition) {
+      return `${yesValuePerShare} / ${noValuePerShare}`
+    }
+
+    if (yesPositionShares > 0) {
+      return yesValuePerShare
+    }
+
+    if (noPositionShares > 0) {
+      return noValuePerShare
+    }
+
+    return formatCurrency(1)
+  }, [hasYesAndNoPosition, noPositionShares, resolvedOutcomeIndex, yesPositionShares])
+  const claimTotalLabel = useMemo(() => formatCurrency(claimableShares), [claimableShares])
 
   const marketSellFill = useMemo(() => {
     if (state.side !== ORDER_SIDE.SELL || isLimitOrder) {
@@ -754,6 +901,98 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
     }
   }
 
+  async function handleClaimWinnings() {
+    if (isClaimSubmitting) {
+      return
+    }
+
+    if (!state.market?.condition_id || claimIndexSets.length === 0 || claimableShares <= 0) {
+      toast.info('No claimable winnings available for this market.')
+      return
+    }
+
+    if (!ensureTradingReady()) {
+      return
+    }
+
+    if (!user?.proxy_wallet_address || !user?.address) {
+      toast.error('Deploy your proxy wallet before claiming.')
+      return
+    }
+
+    setIsClaimSubmitting(true)
+
+    try {
+      const nonceResult = await getSafeNonceAction()
+      if (nonceResult.error || !nonceResult.nonce) {
+        toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
+        return
+      }
+
+      const transaction = buildRedeemPositionTransaction({
+        conditionId: state.market.condition_id as `0x${string}`,
+        indexSets: claimIndexSets,
+      })
+      const aggregated = aggregateSafeTransactions([transaction])
+      const typedData = getSafeTxTypedData({
+        chainId: defaultNetwork.id,
+        safeAddress: user.proxy_wallet_address as `0x${string}`,
+        transaction: aggregated,
+        nonce: nonceResult.nonce,
+      })
+
+      const { signatureParams, ...safeTypedData } = typedData
+      const structHash = hashTypedData({
+        domain: safeTypedData.domain,
+        types: safeTypedData.types,
+        primaryType: safeTypedData.primaryType,
+        message: safeTypedData.message,
+      }) as `0x${string}`
+
+      const signature = await signMessageAsync({
+        message: { raw: structHash },
+      })
+
+      const payload: SafeTransactionRequestPayload = {
+        type: 'SAFE',
+        from: user.address,
+        to: aggregated.to,
+        proxyWallet: user.proxy_wallet_address,
+        data: aggregated.data,
+        nonce: nonceResult.nonce,
+        signature: packSafeSignature(signature as `0x${string}`),
+        signatureParams,
+        metadata: 'redeem_positions',
+      }
+
+      const response = await submitSafeTransactionAction(payload)
+
+      if (response?.error) {
+        toast.error(response.error)
+        return
+      }
+
+      toast.success('Claim submitted', {
+        description: 'We sent your claim transaction.',
+      })
+
+      void queryClient.invalidateQueries({ queryKey: ['order-panel-user-positions'] })
+      void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
+      void queryClient.invalidateQueries({ queryKey: ['event-user-positions'] })
+      void queryClient.invalidateQueries({ queryKey: ['user-event-positions'] })
+      void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
+      void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
+      void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+    }
+    catch (error) {
+      console.error('Failed to submit claim.', error)
+      toast.error('We could not submit your claim. Please try again.')
+    }
+    finally {
+      setIsClaimSubmitting(false)
+    }
+  }
+
   const yesOutcome = state.market?.outcomes[OUTCOME_INDEX.YES]
   const noOutcome = state.market?.outcomes[OUTCOME_INDEX.NO]
   function handleTypeChange(nextType: typeof state.type) {
@@ -804,6 +1043,34 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
               </div>
               {!isSingleMarket && resolvedMarketTitle && (
                 <div className="text-sm text-muted-foreground">{resolvedMarketTitle}</div>
+              )}
+              {hasClaimableWinnings && (
+                <div className="mt-2 w-full space-y-3 text-left">
+                  <div className="w-full border-t border-border" />
+                  <p className="text-center text-base font-semibold text-foreground">Your Earnings</p>
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">{t('Position')}</span>
+                      <span className="text-right font-medium text-foreground">{claimPositionLabel}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">Value per share</span>
+                      <span className="text-right font-medium text-foreground">{claimValuePerShareLabel}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">{t('Total')}</span>
+                      <span className="text-right font-medium text-foreground">{claimTotalLabel}</span>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    className="h-10 w-full"
+                    onClick={handleClaimWinnings}
+                    disabled={isClaimSubmitting || positionsQuery.isLoading}
+                  >
+                    {isClaimSubmitting ? 'Submitting...' : 'Claim winnings'}
+                  </Button>
+                </div>
               )}
             </div>
           )

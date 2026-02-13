@@ -414,6 +414,7 @@ export interface UserPosition {
   percentRealizedPnl?: number
   realizedPnl?: number
   cashPnl?: number
+  redeemable?: boolean
   opposite_outcome_text?: string
   order_count: number
   last_activity_at: string
