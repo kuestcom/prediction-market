@@ -4,7 +4,7 @@ import type { Route } from 'next'
 import { DialogTitle } from '@radix-ui/react-dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useQueryClient } from '@tanstack/react-query'
-import { BanknoteArrowDownIcon, CheckIcon } from 'lucide-react'
+import { BanknoteArrowDownIcon, TrophyIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -220,7 +220,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <Card className="w-full rounded-lg border bg-transparent">
+      <Card className="relative z-0 w-full rounded-lg border bg-transparent">
         <CardContent
           className={`
             flex flex-wrap items-center justify-between gap-4 py-3 pr-3 pl-5
@@ -228,7 +228,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           `}
         >
           <div className="flex min-w-0 items-center gap-5">
-            <div className="relative ml-2 h-12 w-17 shrink-0">
+            <div className="relative isolate ml-2 h-12 w-17 shrink-0">
               {previewMarkets.map((market, index) => {
                 const stackClass = (() => {
                   if (previewMarkets.length <= 1) {
@@ -300,63 +300,72 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
         </CardContent>
       </Card>
 
-      <DialogContent className="max-w-104 space-y-6 text-center sm:p-8">
+      <DialogContent className="max-w-88 space-y-4 p-5 text-center sm:p-6">
         <VisuallyHidden>
           <DialogTitle>You Won</DialogTitle>
         </VisuallyHidden>
 
         <div className="flex justify-center">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-yes/15">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-yes/20 ring-1 ring-yes/30">
-              <CheckIcon className="size-5 text-yes" strokeWidth={2.75} />
+          <div className="
+            flex size-14 items-center justify-center rounded-xl bg-yes/15
+            motion-safe:animate-pulse
+            motion-reduce:animate-none
+          "
+          >
+            <div className="flex size-9 items-center justify-center rounded-lg bg-yes/20 ring-1 ring-yes/30">
+              <TrophyIcon className="size-4 text-yes" strokeWidth={2.75} />
             </div>
           </div>
         </div>
 
         <div className="flex justify-center">
-          <div className="inline-flex items-center gap-2 text-lg font-semibold text-foreground">
+          <div className="
+            pointer-events-none inline-flex items-center gap-2 text-2xl font-semibold text-foreground select-none
+          "
+          >
             <SiteLogoIcon
               logoSvg={site.logoSvg}
               logoImageUrl={site.logoImageUrl}
               alt={`${site.name} logo`}
-              className="size-7 text-current [&_svg]:size-7 [&_svg_*]:fill-current [&_svg_*]:stroke-current"
-              imageClassName="size-7 object-contain"
-              size={28}
+              className="size-8 text-current [&_svg]:size-8 [&_svg_*]:fill-current [&_svg_*]:stroke-current"
+              imageClassName="size-8 object-contain"
+              size={32}
             />
             <span>{siteName}</span>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <p className="text-2xl font-semibold text-foreground dark:text-white">
-            You won
-            {' '}
-            {formatCurrency(summary.totalProceeds)}
+        <div className="space-y-1.5">
+          <p className="inline-flex items-center gap-2 text-foreground dark:text-white">
+            <span className="text-xl font-semibold">You won</span>
+            <span className="text-3xl leading-none font-semibold tabular-nums">
+              {formatCurrency(summary.totalProceeds)}
+            </span>
           </p>
           <p className="text-sm text-muted-foreground">
             Great job predicting the future!
           </p>
         </div>
 
-        <div className="max-h-[45vh] space-y-2 overflow-y-auto pr-1 text-left">
+        <div className="scrollbar-hide max-h-[min(40vh,12rem)] space-y-2 overflow-y-auto pr-1 text-left">
           {markets.map((market) => {
             const href = market.eventSlug ? (`/event/${market.eventSlug}` as Route) : null
             const itemClassName = [
-              'flex w-full items-center gap-4 rounded-md p-4 transition-colors',
+              'flex w-full items-center gap-3 rounded-md p-3 transition-colors',
               href
                 ? 'hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none dark:hover:bg-muted/20'
                 : 'cursor-default',
             ].join(' ')
             const content = (
               <>
-                <div className="relative size-14 overflow-hidden rounded-md">
+                <div className="relative size-12 overflow-hidden rounded-md">
                   {market.imageUrl
                     ? (
                         <Image
                           src={market.imageUrl}
                           alt={market.title}
                           fill
-                          sizes="56px"
+                          sizes="48px"
                           className="object-cover"
                         />
                       )
@@ -399,7 +408,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           })}
         </div>
 
-        <Button className="h-11 w-full" onClick={handleClaimAll} disabled={isSubmitting}>
+        <Button className="h-10 w-full" onClick={handleClaimAll} disabled={isSubmitting}>
           {isSubmitting ? 'Submitting...' : markets.length > 1 ? 'Claim all proceeds' : 'Claim proceeds'}
         </Button>
       </DialogContent>
