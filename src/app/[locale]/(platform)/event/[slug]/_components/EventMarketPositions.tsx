@@ -196,7 +196,7 @@ function MarketPositionRow({
   const canConvert = Boolean(onConvert) && isNoOutcome && quantity > 0
   const formattedQuantity = quantity > 0
     ? formatSharesLabel(quantity)
-    : '—'
+    : '0'
   const averagePriceDollars = toNumber(position.avgPrice)
     ?? Number(fromMicro(String(position.average_position ?? 0), 6))
   const averageLabel = formatCentsLabel(averagePriceDollars, { fallback: '—' })
