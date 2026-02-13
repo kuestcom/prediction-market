@@ -66,15 +66,13 @@ export default function NavigationMoreMenu() {
         sideOffset={6}
         onMouseEnter={handleEnter}
         onMouseLeave={handleLeave}
-        className="min-w-44 overflow-hidden p-0"
+        className="min-w-36"
       >
         <DropdownMenuItem
           asChild
           className={`
-            group flex w-full items-center gap-2 rounded-none px-3 py-2 text-base font-medium text-muted-foreground
+            group flex w-full items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-muted-foreground
             transition-colors
-            first:rounded-t-md
-            last:rounded-b-md
             hover:text-foreground
           `}
         >
@@ -86,10 +84,8 @@ export default function NavigationMoreMenu() {
         <DropdownMenuItem
           asChild
           className={`
-            group flex w-full items-center gap-2 rounded-none px-3 py-2 text-base font-medium text-muted-foreground
+            group flex w-full items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-muted-foreground
             transition-colors
-            first:rounded-t-md
-            last:rounded-b-md
             hover:text-foreground
           `}
         >
