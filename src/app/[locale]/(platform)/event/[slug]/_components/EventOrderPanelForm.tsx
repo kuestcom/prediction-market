@@ -128,6 +128,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
   const [shouldShakeInput, setShouldShakeInput] = useState(false)
   const [shouldShakeLimitShares, setShouldShakeLimitShares] = useState(false)
   const [isClaimSubmitting, setIsClaimSubmitting] = useState(false)
+  const [claimedConditionId, setClaimedConditionId] = useState<string | null>(null)
   const limitSharesInputRef = useRef<HTMLInputElement | null>(null)
   const limitSharesNumber = Number.parseFloat(state.limitShares) || 0
   const { balance, isLoadingBalance } = useBalance()
@@ -381,7 +382,14 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
 
     return Array.from(indexSetCollection).sort((a, b) => a - b)
   }, [claimablePositionsForMarket, resolvedOutcomeIndex])
-  const hasClaimableWinnings = Boolean(state.market?.condition_id) && claimableShares > 0 && claimIndexSets.length > 0
+  const hasSubmittedClaimForMarket = Boolean(
+    state.market?.condition_id
+    && claimedConditionId === state.market.condition_id,
+  )
+  const hasClaimableWinnings = Boolean(state.market?.condition_id)
+    && claimableShares > 0
+    && claimIndexSets.length > 0
+    && !hasSubmittedClaimForMarket
   const claimOutcomeLabel = useMemo(() => {
     const positionOutcomeText = claimablePositionsForMarket.find(position => position.outcome_text)?.outcome_text
     const normalizedOutcome = positionOutcomeText ? normalizeOutcomeLabel(positionOutcomeText) : ''
@@ -593,6 +601,10 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
       setShowLimitMinimumWarning(false)
     }
   }, [isLimitOrder, limitSharesNumber])
+
+  useEffect(() => {
+    setClaimedConditionId(null)
+  }, [state.market?.condition_id])
 
   useEffect(() => {
     setShowInsufficientSharesWarning(false)
@@ -906,7 +918,9 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
       return
     }
 
-    if (!state.market?.condition_id || claimIndexSets.length === 0 || claimableShares <= 0) {
+    const conditionId = state.market?.condition_id
+
+    if (!conditionId || claimIndexSets.length === 0 || claimableShares <= 0) {
       toast.info(t('No claimable winnings available for this market.'))
       return
     }
@@ -930,7 +944,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
       }
 
       const transaction = buildRedeemPositionTransaction({
-        conditionId: state.market.condition_id as `0x${string}`,
+        conditionId: conditionId as `0x${string}`,
         indexSets: claimIndexSets,
       })
       const aggregated = aggregateSafeTransactions([transaction])
@@ -975,6 +989,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
       toast.success(t('Claim submitted'), {
         description: t('We sent your claim transaction.'),
       })
+      setClaimedConditionId(conditionId)
 
       void queryClient.invalidateQueries({ queryKey: ['order-panel-user-positions'] })
       void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
