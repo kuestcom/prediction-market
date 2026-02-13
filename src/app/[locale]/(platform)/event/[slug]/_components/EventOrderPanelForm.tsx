@@ -907,7 +907,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
     }
 
     if (!state.market?.condition_id || claimIndexSets.length === 0 || claimableShares <= 0) {
-      toast.info('No claimable winnings available for this market.')
+      toast.info(t('No claimable winnings available for this market.'))
       return
     }
 
@@ -916,7 +916,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
     }
 
     if (!user?.proxy_wallet_address || !user?.address) {
-      toast.error('Deploy your proxy wallet before claiming.')
+      toast.error(t('Deploy your proxy wallet before claiming.'))
       return
     }
 
@@ -972,8 +972,8 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
         return
       }
 
-      toast.success('Claim submitted', {
-        description: 'We sent your claim transaction.',
+      toast.success(t('Claim submitted'), {
+        description: t('We sent your claim transaction.'),
       })
 
       void queryClient.invalidateQueries({ queryKey: ['order-panel-user-positions'] })
@@ -986,7 +986,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
     }
     catch (error) {
       console.error('Failed to submit claim.', error)
-      toast.error('We could not submit your claim. Please try again.')
+      toast.error(t('We could not submit your claim. Please try again.'))
     }
     finally {
       setIsClaimSubmitting(false)
@@ -1047,14 +1047,14 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
               {hasClaimableWinnings && (
                 <div className="mt-2 w-full space-y-3 text-left">
                   <div className="w-full border-t border-border" />
-                  <p className="text-center text-base font-semibold text-foreground">Your Earnings</p>
+                  <p className="text-center text-base font-semibold text-foreground">{t('Your Earnings')}</p>
                   <div className="space-y-1.5 text-sm">
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-muted-foreground">{t('Position')}</span>
                       <span className="text-right font-medium text-foreground">{claimPositionLabel}</span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-muted-foreground">Value per share</span>
+                      <span className="text-muted-foreground">{t('Value per share')}</span>
                       <span className="text-right font-medium text-foreground">{claimValuePerShareLabel}</span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
@@ -1068,7 +1068,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
                     onClick={handleClaimWinnings}
                     disabled={isClaimSubmitting || positionsQuery.isLoading}
                   >
-                    {isClaimSubmitting ? 'Submitting...' : 'Claim winnings'}
+                    {isClaimSubmitting ? t('Submitting...') : t('Claim winnings')}
                   </Button>
                 </div>
               )}
