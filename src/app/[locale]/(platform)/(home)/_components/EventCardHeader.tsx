@@ -118,6 +118,7 @@ export default function EventCardHeader({
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="5"
+                      strokeLinecap="round"
                       className="text-slate-200 dark:text-slate-600"
                     />
 
