@@ -7,6 +7,7 @@ import { SearchResults } from '@/app/[locale]/(platform)/_components/SearchResul
 import { Input } from '@/components/ui/input'
 import { useSearch } from '@/hooks/useSearch'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { cn } from '@/lib/utils'
 
 export default function HeaderSearch() {
   const searchRef = useRef<HTMLDivElement>(null)
@@ -74,14 +75,16 @@ export default function HeaderSearch() {
         placeholder={`${t('Search')} ${sitename}`}
         value={query}
         onChange={e => handleQueryChange(e.target.value)}
-        className={`
-          h-12 w-full pr-12 pl-11 shadow-none transition-colors lg:h-10
-          ${inputBorderClass}
-          ${inputBaseClass}
-          ${showDropdown ? 'rounded-b-none' : ''}
-          ${inputHoverClass}
-          focus-visible:border-border ${inputFocusClass} focus-visible:ring-0 focus-visible:ring-offset-0
-        `}
+        className={cn(
+          'h-12 w-full pr-12 pl-11 shadow-none transition-colors lg:h-10',
+          inputBorderClass,
+          inputBaseClass,
+          { 'rounded-b-none': showDropdown },
+          inputHoverClass,
+          'focus-visible:border-border',
+          inputFocusClass,
+          'focus-visible:ring-0 focus-visible:ring-offset-0',
+        )}
       />
       {query.length > 0
         ? (

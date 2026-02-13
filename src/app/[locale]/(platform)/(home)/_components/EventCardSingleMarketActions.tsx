@@ -3,6 +3,7 @@ import { CheckIcon, XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import { cn } from '@/lib/utils'
 
 interface EventCardSingleMarketActionsProps {
   yesOutcome: Outcome
@@ -43,9 +44,9 @@ export default function EventCardSingleMarketActions({
               `}
               >
                 <span className="min-w-8 text-right">{resolvedLabel}</span>
-                <span className={`flex size-4 items-center justify-center rounded-full ${isYesOutcome
+                <span className={cn(`flex size-4 items-center justify-center rounded-full ${isYesOutcome
                   ? 'bg-yes'
-                  : `bg-no`}`}
+                  : `bg-no`}`)}
                 >
                   {isYesOutcome
                     ? <CheckIcon className="size-3 text-background" strokeWidth={2.5} />

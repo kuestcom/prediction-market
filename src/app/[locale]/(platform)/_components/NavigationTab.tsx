@@ -339,13 +339,13 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
       {tag.slug === 'mentions' && (
         <Link
           href="/mentions"
-          className={`
-            inline-flex h-full items-center justify-center rounded-md py-1 whitespace-nowrap ${mainTabPadding}
-            ${
-        isActive
-          ? 'border-primary font-semibold text-foreground'
-          : 'border-transparent text-muted-foreground hover:text-foreground'
-        }`}
+          className={cn(
+            'inline-flex h-full items-center justify-center rounded-md py-1 whitespace-nowrap',
+            mainTabPadding,
+            isActive
+              ? 'border-primary font-semibold text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground',
+          )}
         >
           <span>{tag.name}</span>
         </Link>
@@ -356,14 +356,14 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
           <Link
             href={'/' as Route}
             onClick={() => handleTagClick(tag.slug)}
-            className={`
-              inline-flex h-full items-center justify-center rounded-md py-1 whitespace-nowrap ${mainTabPadding}
-              ${tag.slug === 'trending' ? 'gap-2' : ''}
-              ${
-        isActive
-          ? 'border-primary font-semibold text-foreground'
-          : 'border-transparent text-muted-foreground hover:text-foreground'
-        }`}
+            className={cn(
+              'inline-flex h-full items-center justify-center rounded-md py-1 whitespace-nowrap',
+              mainTabPadding,
+              { 'gap-2': tag.slug === 'trending' },
+              isActive
+                ? 'border-primary font-semibold text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground',
+            )}
           >
             {tag.slug === 'trending' && <TrendingUpIcon className="size-4" />}
             <span>{tag.name}</span>
@@ -398,7 +398,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
               <div
                 className={cn(
                   'pointer-events-none absolute inset-y-0 rounded-sm bg-primary/30',
-                  indicatorReady && 'transition-all duration-300 ease-out',
+                  { 'transition-all duration-300 ease-out': indicatorReady },
                 )}
                 style={{
                   left: `${indicatorStyle.left}px`,

@@ -171,7 +171,7 @@ export default function EventChartHeader({
                   `}
                 >
                   <span>Past</span>
-                  <ChevronDownIcon className={cn('size-4 transition-transform', isPastMenuOpen && 'rotate-180')} />
+                  <ChevronDownIcon className={cn('size-4 transition-transform', { 'rotate-180': isPastMenuOpen })} />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="max-h-72 min-w-44 overflow-y-auto p-1">

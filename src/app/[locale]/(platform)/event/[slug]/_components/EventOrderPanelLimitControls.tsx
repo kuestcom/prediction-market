@@ -281,7 +281,7 @@ export default function EventOrderPanelLimitControls({
           <span
             className={cn(
               'text-lg font-medium text-foreground',
-              shouldShakeShares && 'animate-order-shake',
+              { 'animate-order-shake': shouldShakeShares },
             )}
           >
             {t('Shares')}
@@ -296,7 +296,7 @@ export default function EventOrderPanelLimitControls({
               className={cn(
                 'h-10 bg-transparent! text-right font-bold',
                 limitSharesSizeClass,
-                shouldShakeShares && 'animate-order-shake',
+                { 'animate-order-shake': shouldShakeShares },
               )}
             />
           </div>

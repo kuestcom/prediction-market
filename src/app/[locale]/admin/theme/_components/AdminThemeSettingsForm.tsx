@@ -661,7 +661,7 @@ function ThemeTokenMatrix({
                       focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
                       focus-visible:ring-offset-background focus-visible:outline-none
                     `,
-                    isOpen ? 'border-b border-border/40' : '',
+                    { 'border-b border-border/40': isOpen },
                   )}
                 >
                   <span className="leading-tight">
@@ -674,7 +674,7 @@ function ThemeTokenMatrix({
                           : t('Chart palette')}
                   </span>
                   <ChevronDown
-                    className={`size-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    className={cn('size-5 text-muted-foreground transition-transform', { 'rotate-180': isOpen })}
                   />
                 </button>
                 {isOpen && (

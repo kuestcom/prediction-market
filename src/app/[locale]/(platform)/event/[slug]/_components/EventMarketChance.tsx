@@ -44,7 +44,7 @@ export default function EventMarketChance({
     <div
       className={cn(
         'flex flex-col items-end gap-1',
-        layout === 'desktop' && 'flex-row items-center gap-2',
+        { 'flex-row items-center gap-2': layout === 'desktop' },
       )}
     >
       <div className="flex items-center justify-end gap-1.5">
@@ -81,12 +81,12 @@ export default function EventMarketChance({
           className={cn(
             'flex items-center justify-end gap-0.5 text-xs font-semibold',
             chanceChangeColorClass,
-            !chanceMeta.shouldShowChanceChange && 'invisible',
-            layout === 'desktop' && 'w-[5.5ch]',
+            { invisible: !chanceMeta.shouldShowChanceChange },
+            { 'w-[5.5ch]': layout === 'desktop' },
           )}
         >
           <TriangleIcon
-            className={cn('size-3 fill-current', chanceMeta.isChanceChangePositive ? '' : 'rotate-180')}
+            className={cn('size-3 fill-current', { 'rotate-180': !chanceMeta.isChanceChangePositive })}
             fill="currentColor"
           />
           <span className="inline-block tabular-nums">

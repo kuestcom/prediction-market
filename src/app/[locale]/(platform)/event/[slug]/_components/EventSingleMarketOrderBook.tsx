@@ -154,7 +154,7 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
         <div
           className={cn(
             'overflow-hidden',
-            isExpanded && 'border-t border-border/30',
+            { 'border-t border-border/30': isExpanded },
           )}
         >
           <div
@@ -192,7 +192,7 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
                 <RefreshCwIcon
                   className={cn(
                     'size-3',
-                    (isOrderBookLoading || isOrderBookRefetching) && 'animate-spin',
+                    { 'animate-spin': isOrderBookLoading || isOrderBookRefetching },
                   )}
                 />
               </button>
@@ -223,7 +223,7 @@ function OutcomeToggle({ label, selected, onClick }: OutcomeToggleProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        `-mb-0.5 border-b-2 border-transparent pt-1 pb-2 text-sm font-semibold transition-colors`,
+        `-mb-0.5 border-b-3 border-transparent pt-1 pb-2 text-sm font-semibold transition-colors`,
         selected
           ? 'border-primary text-foreground'
           : 'text-muted-foreground hover:text-foreground',

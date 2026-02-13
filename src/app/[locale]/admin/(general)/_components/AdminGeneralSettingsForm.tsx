@@ -295,7 +295,7 @@ export default function AdminGeneralSettingsForm({
                       border border-dashed border-border bg-muted/20 text-muted-foreground transition
                       hover:border-primary/60
                     `,
-                    isPending ? 'cursor-not-allowed opacity-60 hover:border-border hover:bg-muted/20' : '',
+                    { 'cursor-not-allowed opacity-60 hover:border-border hover:bg-muted/20': isPending },
                   )}
                 >
                   <span className={`
@@ -530,7 +530,7 @@ export default function AdminGeneralSettingsForm({
                 title={t('Refresh models')}
                 aria-label={t('Refresh models')}
               >
-                <RefreshCwIcon className={`size-4 ${isRefreshingOpenRouterModels ? 'animate-spin' : ''}`} />
+                <RefreshCwIcon className={cn('size-4', { 'animate-spin': isRefreshingOpenRouterModels })} />
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">

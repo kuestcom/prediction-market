@@ -493,9 +493,9 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
                         isActive
                           ? 'bg-muted text-foreground'
                           : 'bg-background text-muted-foreground hover:bg-muted/40',
-                        !isLast && 'border-r border-border',
-                        isFirst && 'rounded-l-lg',
-                        isLast && 'rounded-r-lg',
+                        { 'border-r border-border': !isLast },
+                        { 'rounded-l-lg': isFirst },
+                        { 'rounded-r-lg': isLast },
                       )}
                     >
                       {option.label}

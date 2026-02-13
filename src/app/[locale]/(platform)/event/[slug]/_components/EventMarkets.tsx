@@ -1070,7 +1070,7 @@ function MarketDetailTabs({
               <RefreshCwIcon
                 className={cn(
                   'size-3',
-                  (orderBookData.isLoading || orderBookData.isRefetching) && 'animate-spin',
+                  { 'animate-spin': orderBookData.isLoading || orderBookData.isRefetching },
                 )}
               />
             </button>

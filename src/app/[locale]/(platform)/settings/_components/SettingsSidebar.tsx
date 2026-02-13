@@ -6,6 +6,7 @@ import { BadgePercentIcon, BellIcon, CoinsIcon, FingerprintIcon, UserIcon } from
 import { useExtracted } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Link, usePathname } from '@/i18n/navigation'
+import { cn } from '@/lib/utils'
 
 interface MenuItem {
   id: string
@@ -35,7 +36,7 @@ export default function SettingsSidebar() {
             key={item.id}
             type="button"
             variant="ghost"
-            className={`h-11 justify-start text-foreground ${active === item.id ? 'bg-accent hover:bg-accent' : ''}`}
+            className={cn('h-11 justify-start text-foreground', { 'bg-accent hover:bg-accent': active === item.id })}
             asChild
           >
             <Link href={item.href}>

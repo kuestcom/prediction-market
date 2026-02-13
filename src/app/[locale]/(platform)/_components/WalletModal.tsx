@@ -39,6 +39,7 @@ import { formatDisplayAmount, getAmountSizeClass, MAX_AMOUNT_INPUT, sanitizeNume
 import { POLYGON_SCAN_BASE } from '@/lib/constants'
 import { formatAmountInputValue } from '@/lib/formatters'
 import { IS_TEST_MODE } from '@/lib/network'
+import { cn } from '@/lib/utils'
 
 const MELD_PAYMENT_METHODS = [
   'apple_pay',
@@ -342,7 +343,7 @@ function WalletSendForm({
               value={sendTo}
               onChange={onChangeSendTo}
               placeholder="0x..."
-              className={`${showConnectedWalletButton ? 'pr-28' : ''} h-12 text-sm placeholder:text-sm`}
+              className={cn('h-12 text-sm placeholder:text-sm', { 'pr-28': showConnectedWalletButton })}
               required
             />
             {showConnectedWalletButton && (
@@ -488,7 +489,7 @@ function WalletSendForm({
             <span className="flex items-center gap-1">
               {!isBreakdownOpen && <span>0.00%</span>}
               <ChevronRightIcon
-                className={`size-4 transition ${isBreakdownOpen ? 'rotate-90' : ''}`}
+                className={cn('size-4 transition', { 'rotate-90': isBreakdownOpen })}
               />
             </span>
           </button>
@@ -895,11 +896,14 @@ function WalletTokenList({
                     onSelect(item.id)
                   }
                 }}
-                className={`
-                  flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-left transition
-                  ${isSelected ? 'border border-foreground/20' : 'border border-transparent'}
-                  ${isDisabled ? 'cursor-not-allowed opacity-50' : isSelected ? '' : 'hover:bg-muted/50'}
-                `}
+                className={cn(
+                  'flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-left transition',
+                  isSelected ? 'border border-foreground/20' : 'border border-transparent',
+                  {
+                    'cursor-not-allowed opacity-50': isDisabled,
+                    'hover:bg-muted/50': !isDisabled && !isSelected,
+                  },
+                )}
               >
                 <div className="flex items-center gap-3">
                   <Tooltip>
@@ -1092,10 +1096,7 @@ function WalletAmountStep({
           <button
             key={label}
             type="button"
-            className={`
-              rounded-md bg-muted/60 px-4 py-2 text-sm text-foreground transition hover:bg-muted
-              ${!hasAvailableTokenAmount ? 'cursor-not-allowed opacity-50' : ''}
-            `}
+            className={cn('rounded-md bg-muted/60 px-4 py-2 text-sm text-foreground transition hover:bg-muted', { 'cursor-not-allowed opacity-50': !hasAvailableTokenAmount })}
             disabled={!hasAvailableTokenAmount}
             onClick={() => handleQuickFill(label)}
           >
@@ -1448,7 +1449,7 @@ function WalletConfirmStep({
               : (
                   <>
                     {!isBreakdownOpen && <span>{gasUsdDisplay ? `$${gasUsdDisplay}` : '—'}</span>}
-                    <ChevronRightIcon className={`size-3 transition ${isBreakdownOpen ? 'rotate-90' : ''}`} />
+                    <ChevronRightIcon className={cn('size-3 transition', { 'rotate-90': isBreakdownOpen })} />
                   </>
                 )}
           </span>

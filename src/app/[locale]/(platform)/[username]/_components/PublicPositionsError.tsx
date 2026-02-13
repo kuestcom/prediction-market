@@ -51,7 +51,7 @@ export default function PublicPositionsError({
                     className="flex items-center gap-2"
                     disabled={isLoading}
                   >
-                    <RefreshCwIcon className={cn('size-3', isLoading && 'animate-spin')} />
+                    <RefreshCwIcon className={cn('size-3', { 'animate-spin': isLoading })} />
                     {isLoading ? 'Retrying...' : 'Try again'}
                   </Button>
                 )}

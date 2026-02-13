@@ -190,7 +190,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
                   focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
                   focus-visible:ring-offset-background focus-visible:outline-none
                 `,
-                isContentExpanded ? 'rounded-b-none' : '',
+                { 'rounded-b-none': isContentExpanded },
               )}
               disabled={isPending || !state.market}
             >
@@ -208,19 +208,16 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
           )}
 
       <div
-        className={`
+        className={cn(`
           grid overflow-hidden transition-all duration-500 ease-in-out
           ${isContentExpanded
       ? 'pointer-events-auto grid-rows-[1fr] opacity-100'
       : 'pointer-events-none grid-rows-[0fr] opacity-0'}
-        `}
+        `)}
         aria-hidden={!isContentExpanded}
       >
         <div
-          className={`
-            min-h-0 overflow-hidden
-            ${isContentExpanded ? 'border-t border-border/30' : ''}
-          `}
+          className={cn('min-h-0 overflow-hidden', { 'border-t border-border/30': isContentExpanded })}
         >
           <div className="space-y-3 p-3">
             {error && (

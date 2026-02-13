@@ -142,7 +142,7 @@ export default function EventOrderPanelBuySellTabs({
                 dark:focus-visible:bg-transparent!
                 dark:active:bg-transparent!
               `,
-              side === ORDER_SIDE.BUY && 'border-foreground text-foreground',
+              { 'border-foreground text-foreground': side === ORDER_SIDE.BUY },
             )}
             onClick={() => handleSideChange(ORDER_SIDE.BUY)}
           >
@@ -163,7 +163,7 @@ export default function EventOrderPanelBuySellTabs({
                 dark:focus-visible:bg-transparent!
                 dark:active:bg-transparent!
               `,
-              side === ORDER_SIDE.SELL && 'border-foreground text-foreground',
+              { 'border-foreground text-foreground': side === ORDER_SIDE.SELL },
             )}
             onClick={() => handleSideChange(ORDER_SIDE.SELL)}
           >
@@ -181,7 +181,7 @@ export default function EventOrderPanelBuySellTabs({
                   transition-colors duration-200
                   focus:outline-none
                   focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none
-                `, typeMenuOpen && 'text-foreground')}
+                `, { 'text-foreground': typeMenuOpen })}
                 aria-haspopup="menu"
                 aria-expanded={typeMenuOpen}
               >
@@ -193,7 +193,7 @@ export default function EventOrderPanelBuySellTabs({
                       group-hover:rotate-180
                       group-data-[state=open]:rotate-180
                     `,
-                    typeMenuOpen && 'text-foreground',
+                    { 'text-foreground': typeMenuOpen },
                   )}
                 />
               </button>

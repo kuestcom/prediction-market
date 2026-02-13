@@ -120,7 +120,7 @@ export default function EventOrderPanelInput({
           variant="outline"
           className={cn(
             'text-xs',
-            isDisabled && 'cursor-not-allowed opacity-50',
+            { 'cursor-not-allowed opacity-50': isDisabled },
           )}
           disabled={isDisabled}
           onClick={() => {
@@ -197,7 +197,7 @@ export default function EventOrderPanelInput({
                         [&::-webkit-outer-spin-button]:appearance-none
                       `,
                       amountSizeClass,
-                      shouldShake && 'animate-order-shake',
+                      { 'animate-order-shake': shouldShake },
                     )}
                     placeholder={side === ORDER_SIDE.SELL ? '0' : '$0'}
                     value={inputValue}
@@ -256,7 +256,7 @@ export default function EventOrderPanelInput({
                       [&::-webkit-outer-spin-button]:appearance-none
                     `,
                     amountSizeClass,
-                    shouldShake && 'animate-order-shake',
+                    { 'animate-order-shake': shouldShake },
                   )}
                   placeholder={side === ORDER_SIDE.SELL ? '0' : '$0'}
                   value={inputValue}
@@ -280,7 +280,7 @@ export default function EventOrderPanelInput({
           variant="outline"
           className={cn(
             'text-xs',
-            side === ORDER_SIDE.SELL && availableShares <= 0 && 'cursor-not-allowed opacity-50',
+            { 'cursor-not-allowed opacity-50': side === ORDER_SIDE.SELL && availableShares <= 0 },
           )}
           disabled={side === ORDER_SIDE.SELL && availableShares <= 0}
           onClick={() => {

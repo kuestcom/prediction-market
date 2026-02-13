@@ -253,7 +253,7 @@ function TradingRequirementStep({
           : (
               <Button
                 size="sm"
-                className={cn('min-w-27.5', isLoading && 'pointer-events-none opacity-80')}
+                className={cn('min-w-27.5', { 'pointer-events-none opacity-80': isLoading })}
                 disabled={Boolean(disabled) || isLoading}
                 onClick={onAction}
               >

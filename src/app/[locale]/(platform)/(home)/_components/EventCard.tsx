@@ -29,6 +29,7 @@ import { buildChanceByMarket } from '@/lib/market-chance'
 import { buildOrderPayload, submitOrder } from '@/lib/orders'
 import { signOrderPayload } from '@/lib/orders/signing'
 import { validateOrder } from '@/lib/orders/validation'
+import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
 
@@ -276,20 +277,18 @@ export default function EventCard({ event, priceOverridesByMarket = EMPTY_PRICE_
   return (
     <Card
       className={
-        `
-          flex h-45 cursor-pointer flex-col transition-all
+        cn(`
+          flex h-45 cursor-pointer flex-col overflow-hidden transition-all
           hover:-translate-y-0.5 hover:bg-(--card-hover) hover:shadow-lg
-          ${isInTradingMode ? 'ring-2 ring-primary/20' : ''}
-          overflow-hidden
-        `
+        `, { 'ring-2 ring-primary/20': isInTradingMode })
       }
     >
       <CardContent
         className={
-          `
+          cn(`
             flex h-full flex-col px-3 pt-3
             ${isResolvedEvent ? 'pb-3' : 'pb-1'}
-          `
+          `)
         }
       >
         <EventCardHeader
@@ -326,11 +325,11 @@ export default function EventCard({ event, priceOverridesByMarket = EMPTY_PRICE_
             : (
                 <div
                   className={
-                    isResolvedEvent && isSingleMarket
+                    cn(isResolvedEvent && isSingleMarket
                       ? 'mt-6'
                       : isResolvedEvent && !isSingleMarket
                         ? 'mt-1'
-                        : 'mt-auto'
+                        : 'mt-auto')
                   }
                 >
                   {!isSingleMarket && (

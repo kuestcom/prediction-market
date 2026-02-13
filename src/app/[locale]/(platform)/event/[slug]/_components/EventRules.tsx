@@ -202,7 +202,7 @@ export default function EventRules({ event }: EventRulesProps) {
 
   const resolverBlock = (
     <div className="rounded-lg border p-3">
-      <div className={hasResolutionSourceUrl ? 'flex items-center' : 'flex items-center justify-between'}>
+      <div className={cn(hasResolutionSourceUrl ? 'flex items-center' : 'flex items-center justify-between')}>
         {resolverDetails}
         {!hasResolutionSourceUrl && (
           proposeUrl
@@ -288,19 +288,16 @@ export default function EventRules({ event }: EventRulesProps) {
       </button>
 
       <div
-        className={`
+        className={cn(`
           grid overflow-hidden transition-all duration-500 ease-in-out
           ${isExpanded
       ? 'pointer-events-auto grid-rows-[1fr] opacity-100'
       : 'pointer-events-none grid-rows-[0fr] opacity-0'}
-        `}
+        `)}
         aria-hidden={!isExpanded}
       >
         <div
-          className={`
-            min-h-0 overflow-hidden
-            ${isExpanded ? 'border-t border-border/30' : ''}
-          `}
+          className={cn('min-h-0 overflow-hidden', { 'border-t border-border/30': isExpanded })}
         >
           <div className="space-y-2 p-3">
             {formattedRules && (

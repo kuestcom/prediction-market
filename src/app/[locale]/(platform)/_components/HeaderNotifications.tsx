@@ -7,6 +7,7 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { getAvatarPlaceholderStyle } from '@/lib/avatar'
+import { cn } from '@/lib/utils'
 import {
   isLocalOrderFillNotification,
   useNotificationList,
@@ -149,17 +150,17 @@ export default function HeaderNotifications() {
                 const isLocalOrderFill = isLocalOrderFillNotification(notification)
                 const linkIcon = (
                   <ExternalLinkIcon
-                    className={`size-3 text-muted-foreground ${hasLink ? '' : 'opacity-0'}`}
+                    className={cn('size-3 text-muted-foreground', { 'opacity-0': !(hasLink) })}
                   />
                 )
 
                 return (
                   <div
                     key={notification.id}
-                    className={`
+                    className={cn(`
                       flex items-start gap-3 p-3 transition-colors hover:bg-accent/50
                       ${isLocalOrderFill ? 'cursor-pointer' : 'cursor-default'}
-                    `}
+                    `)}
                     role={isLocalOrderFill ? 'button' : undefined}
                     tabIndex={isLocalOrderFill ? 0 : undefined}
                     onClick={isLocalOrderFill ? () => handleLocalOrderFillClick(notification) : undefined}

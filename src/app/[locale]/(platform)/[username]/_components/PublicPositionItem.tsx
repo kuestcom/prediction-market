@@ -4,6 +4,7 @@ import type { Route } from 'next'
 import Image from 'next/image'
 import { Link } from '@/i18n/navigation'
 import { formatCurrency, formatSharesLabel, formatTimeAgo } from '@/lib/formatters'
+import { cn } from '@/lib/utils'
 
 export interface PublicPosition {
   id: string
@@ -68,13 +69,13 @@ export default function PublicPositionItem({ item }: PositionItemProps) {
           </h4>
 
           <div className="flex flex-col gap-1 text-xs sm:flex-row sm:items-center sm:gap-2">
-            <span className={`
+            <span className={cn(`
               inline-flex w-fit rounded-md px-2 py-1 text-xs font-medium
               ${item.status === 'active'
       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
       : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
     }
-            `}
+            `)}
             >
               {item.status === 'active' ? 'Active' : 'Closed'}
             </span>

@@ -1,6 +1,7 @@
 'use client'
 
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 interface PositionItemSkeletonProps {
   isInfiniteScroll?: boolean
@@ -8,12 +9,11 @@ interface PositionItemSkeletonProps {
 
 export default function PublicPositionItemSkeleton({ isInfiniteScroll = false }: PositionItemSkeletonProps) {
   return (
-    <div className={`
+    <div className={cn(`
       flex items-center gap-3 border-b border-border px-3 py-4 transition-colors
       last:border-b-0
       sm:gap-4 sm:px-5
-      ${isInfiniteScroll ? 'animate-pulse' : ''}
-    `}
+    `, { 'animate-pulse': isInfiniteScroll })}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
 

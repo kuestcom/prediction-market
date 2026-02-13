@@ -22,9 +22,9 @@ export default function ConnectionStatusIndicator({
           <span
             className={cn(
               'relative inline-flex size-2 rounded-full',
-              status === 'live' && 'bg-yes',
-              status === 'connecting' && 'bg-amber-500',
-              status === 'offline' && 'bg-muted-foreground/40',
+              { 'bg-yes': status === 'live' },
+              { 'bg-amber-500': status === 'connecting' },
+              { 'bg-muted-foreground/40': status === 'offline' },
             )}
           />
         </span>

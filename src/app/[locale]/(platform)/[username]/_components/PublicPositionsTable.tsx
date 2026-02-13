@@ -38,7 +38,7 @@ function SortHeaderButton({
           transition-colors
           hover:bg-muted/70 hover:shadow-sm
         `,
-        isActive && 'text-foreground',
+        { 'text-foreground': isActive },
       )}
     >
       <span>{label}</span>

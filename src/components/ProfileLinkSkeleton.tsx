@@ -36,7 +36,7 @@ export default function ProfileLinkSkeleton({
       <div
         className={cn(
           'flex min-w-0 flex-1 items-center gap-3',
-          showTrailing ? 'justify-between' : '',
+          { 'justify-between': showTrailing },
         )}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">

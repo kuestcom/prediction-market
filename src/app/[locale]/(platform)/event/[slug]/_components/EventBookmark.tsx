@@ -68,7 +68,7 @@ export default function EventBookmark({ event }: EventBookmarkProps) {
       className={cn(
         headerIconButtonClass,
         'size-auto p-0',
-        isPending && 'opacity-50',
+        { 'opacity-50': isPending },
       )}
     >
       <BookmarkIcon className={cn({ 'fill-current text-primary': isBookmarked })} />

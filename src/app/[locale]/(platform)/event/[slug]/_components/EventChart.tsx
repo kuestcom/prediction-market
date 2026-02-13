@@ -45,6 +45,7 @@ import { useWindowSize } from '@/hooks/useWindowSize'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { formatSharePriceLabel } from '@/lib/formatters'
 import { resolveDisplayPrice } from '@/lib/market-chance'
+import { cn } from '@/lib/utils'
 import { useIsSingleMarket } from '@/stores/useOrder'
 import { loadStoredChartSettings, storeChartSettings } from '../_utils/chartSettingsStorage'
 import EventChartControls, { defaultChartSettings } from './EventChartControls'
@@ -829,7 +830,7 @@ function EventChartComponent({ event, isMobile, seriesEvents = [] }: EventChartP
                     {tradeFlowItems.map(item => (
                       <span
                         key={item.id}
-                        className={`${item.outcome === 'yes' ? 'text-yes' : 'text-no'} animate-trade-flow-rise`}
+                        className={cn(`${item.outcome === 'yes' ? 'text-yes' : 'text-no'} animate-trade-flow-rise`)}
                         style={tradeFlowTextStrokeStyle}
                       >
                         +

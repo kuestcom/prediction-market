@@ -127,9 +127,9 @@ function SortHeaderButton({
       type="button"
       className={cn(
         'group flex w-full items-center gap-2 whitespace-nowrap uppercase transition-colors',
-        alignment === 'center' && 'justify-center',
-        alignment === 'right' && 'justify-end',
-        alignment === 'left' && 'justify-start',
+        { 'justify-center': alignment === 'center' },
+        { 'justify-end': alignment === 'right' },
+        { 'justify-start': alignment === 'left' },
       )}
       onClick={() => onSort(column)}
     >
@@ -577,13 +577,13 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
       </div>
 
       {hasOrders && isFetchingNextPage && (
-        <div className={cn(isSingleMarket ? 'border-t' : '', `px-4 py-3 text-center text-xs text-muted-foreground`)}>
+        <div className={cn({ 'border-t': isSingleMarket }, `px-4 py-3 text-center text-xs text-muted-foreground`)}>
           {t('Loading more open orders...')}
         </div>
       )}
 
       {infiniteScrollError && (
-        <div className={cn(isSingleMarket ? 'border-t' : '', 'px-4 py-3')}>
+        <div className={cn({ 'border-t': isSingleMarket }, 'px-4 py-3')}>
           <AlertBanner
             title={t('Could not load more open orders')}
             description={(

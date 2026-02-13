@@ -69,7 +69,7 @@ export default function EventOrderBookRow({
                     className={cn(
                       'group inline-flex size-5 items-center justify-center text-base transition-colors',
                       userOrder.side === 'ask' ? 'text-no' : 'text-yes',
-                      isCancelling && 'cursor-not-allowed opacity-60',
+                      { 'cursor-not-allowed opacity-60': isCancelling },
                     )}
                   >
                     {isCancelling
@@ -137,11 +137,11 @@ export default function EventOrderBookRow({
       {showBadge && (
         <span
           className={
-            `
+            cn(`
               absolute top-1/2 left-2 -translate-y-1/2 rounded-sm px-1.5 py-0.5 text-2xs font-semibold uppercase
               sm:left-3
               ${showBadge === 'ask' ? 'bg-no text-white' : 'bg-yes text-white'}
-            `
+            `)
           }
         >
           {showBadge === 'ask' ? t('Asks') : t('Bids')}

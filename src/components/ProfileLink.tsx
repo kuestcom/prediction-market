@@ -234,7 +234,7 @@ export default function ProfileLink({
               : children
                 ? 'items-start'
                 : `items-center`,
-          isInline || isStacked ? null : 'py-2',
+          { 'py-2': !(isInline || isStacked) },
           containerClassName,
         )}
       >

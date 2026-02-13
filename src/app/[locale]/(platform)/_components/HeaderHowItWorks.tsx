@@ -121,7 +121,7 @@ export default function HeaderHowItWorks() {
       </DialogTrigger>
 
       {showMobileBanner && (
-        <div className="fixed right-0 bottom-0 left-0 z-40 border-t bg-background sm:hidden" data-testid="how-it-works-mobile-banner">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background sm:hidden" data-testid="how-it-works-mobile-banner">
           <div className="container flex items-center justify-between gap-2 py-3">
             <DialogTrigger asChild>
               <Button
@@ -171,7 +171,7 @@ export default function HeaderHowItWorks() {
                 key={step.title}
                 className={cn(
                   'h-1.5 w-8 rounded-full bg-muted transition-colors',
-                  index === activeStep && 'bg-primary',
+                  { 'bg-primary': index === activeStep },
                 )}
               />
             ))}

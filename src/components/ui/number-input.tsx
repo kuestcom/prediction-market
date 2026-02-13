@@ -3,6 +3,7 @@ import * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 export function NumberInput({
   value,
@@ -137,7 +138,7 @@ export function NumberInput({
           style={{ width: `${inputSize}ch` }}
         />
         <span
-          className={`text-lg font-bold ${hasValue ? 'text-foreground' : 'text-muted-foreground'}`}
+          className={cn(`text-lg font-bold ${hasValue ? 'text-foreground' : 'text-muted-foreground'}`)}
         >
           ¢
         </span>

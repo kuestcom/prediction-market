@@ -90,10 +90,10 @@ export default function EventOrderPanelEarnings({
   )
 
   return (
-    <div className={`${isMobile ? 'mb-4 text-center' : 'mb-4'}`}>
+    <div className={cn(`${isMobile ? 'mb-4 text-center' : 'mb-4'}`)}>
       {!isMobile && <hr className="mb-3 border" />}
       <div className={cn('flex', isMobile ? 'flex-col' : 'items-center justify-between')}>
-        <div className={isMobile ? 'mb-1' : ''}>
+        <div className={cn({ 'mb-1': isMobile })}>
           <div className={cn(
             'flex items-center gap-1 font-bold text-foreground',
             isMobile ? 'justify-center text-lg' : 'text-sm',
@@ -109,7 +109,7 @@ export default function EventOrderPanelEarnings({
                       alt=""
                       width={20}
                       height={14}
-                      className={isMobile ? 'h-5 w-8' : 'ml-1 h-4 w-6'}
+                      className={cn(isMobile ? 'h-5 w-8' : 'ml-1 h-4 w-6')}
                     />
                   </span>
                 </TooltipTrigger>

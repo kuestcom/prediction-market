@@ -398,7 +398,7 @@ export default function EventConvertPositionsDialog({
                 htmlFor={checkboxId}
                 className={cn(
                   `flex items-center gap-3 px-3 py-2.5 text-sm transition-colors`,
-                  index < options.length - 1 && 'border-b',
+                  { 'border-b': index < options.length - 1 },
                   selectedIds.has(option.id) ? 'opacity-100' : 'opacity-80',
                 )}
               >

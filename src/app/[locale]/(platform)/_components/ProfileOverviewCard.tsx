@@ -250,7 +250,7 @@ export default function ProfileOverviewCard({
                           key={stat.label}
                           className={cn(
                             'flex h-full flex-col rounded-lg bg-background/40 p-2 shadow-sm',
-                            index > 0 && 'border-l',
+                            { 'border-l': index > 0 },
                           )}
                         >
                           <p className="text-sm font-medium text-muted-foreground">

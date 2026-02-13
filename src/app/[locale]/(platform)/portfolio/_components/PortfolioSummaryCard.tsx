@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
 import { useClientMounted } from '@/hooks/useClientMounted'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
+import { cn } from '@/lib/utils'
 
 export default function PortfolioSummaryCard() {
   const dailyChange = 0.00
@@ -71,7 +72,7 @@ export default function PortfolioSummaryCard() {
         </div>
 
         <div className="mb-6">
-          <div className={`flex items-center gap-1 text-sm ${isPositive ? 'text-yes' : 'text-no'}`}>
+          <div className={cn(`flex items-center gap-1 text-sm ${isPositive ? 'text-yes' : 'text-no'}`)}>
             <span>
               $
               {dailyChange.toFixed(2)}

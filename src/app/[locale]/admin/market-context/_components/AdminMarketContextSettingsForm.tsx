@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Link } from '@/i18n/navigation'
+import { cn } from '@/lib/utils'
 
 const initialState = {
   error: null,
@@ -181,7 +182,7 @@ export default function AdminMarketContextSettingsForm({
             value={promptValue}
             onChange={event => setPromptValue(event.target.value)}
             disabled={isPending}
-            className={isPromptHighlighted ? 'bg-primary/5 ring-2 ring-primary/35 transition-colors' : undefined}
+            className={cn({ 'bg-primary/5 ring-2 ring-primary/35 transition-colors': isPromptHighlighted })}
           />
           <p className="text-sm text-muted-foreground">
             {t('Use the variables below to blend live market data into the instructions. They will be replaced before the request is sent.')}
@@ -207,10 +208,7 @@ export default function AdminMarketContextSettingsForm({
                   <tr key={variable.key} className="group border-b transition-colors last:border-b-0 hover:bg-muted/50">
                     <td className="px-4 py-2 font-mono text-sm">
                       <span
-                        className={`
-                          inline-flex items-center gap-2 text-nowrap transition-transform duration-200
-                          ${liftedVariableKey === variable.key ? '-translate-y-0.5' : ''}
-                        `}
+                        className={cn('inline-flex items-center gap-2 text-nowrap transition-transform duration-200', { '-translate-y-0.5': liftedVariableKey === variable.key })}
                       >
                         <span>
                           [
@@ -225,12 +223,11 @@ export default function AdminMarketContextSettingsForm({
                               disabled={isPending}
                               onClick={() => handleInsertVariable(variable.key)}
                               aria-label={`Add [${variable.key}] variable`}
-                              className={`
+                              className={cn(`
                                 size-5 rounded-full bg-primary p-0 text-background shadow-none transition-transform
                                 duration-200
                                 hover:bg-primary/90
-                                ${liftedVariableKey === variable.key ? '-translate-y-0.5' : ''}
-                              `}
+                              `, { '-translate-y-0.5': liftedVariableKey === variable.key })}
                             >
                               <PlusIcon className="size-2.5" />
                             </Button>

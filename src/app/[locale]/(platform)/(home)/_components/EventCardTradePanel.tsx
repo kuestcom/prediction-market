@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { MAX_AMOUNT_INPUT, sanitizeNumericInput } from '@/lib/amount-input'
 import { formatAmountInputValue } from '@/lib/formatters'
+import { cn } from '@/lib/utils'
 
 interface EventCardTradePanelProps {
   activeOutcome: SelectedOutcome
@@ -87,12 +88,12 @@ export default function EventCardTradePanel({
       <div className="grid grid-cols-5 gap-4">
         <div
           className={
-            `
+            cn(`
               relative col-span-3 flex items-center gap-0 rounded-md border px-2 py-2.5 transition-colors
               ${amountNumber > availableBalance ? 'border-red-500' : 'border-border/70'}
               bg-background
               focus-within:border-border focus-within:ring-0
-            `
+            `)
           }
         >
           <DollarSignIcon className="size-3 text-foreground" />

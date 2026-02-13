@@ -275,7 +275,7 @@ function SettingsToggle({ isActive, isOpen, onToggle }: SettingsToggleProps) {
           hover:bg-transparent hover:text-muted-foreground
           md:size-9
         `,
-        (isOpen || isActive) && 'bg-muted/70 text-foreground hover:bg-muted/70 hover:text-foreground',
+        { 'bg-muted/70 text-foreground hover:bg-muted/70 hover:text-foreground': isOpen || isActive },
       )}
       title={t('Open filters')}
       aria-label={t('Open filters')}

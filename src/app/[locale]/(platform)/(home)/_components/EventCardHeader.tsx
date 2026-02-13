@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { Link } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import { cn } from '@/lib/utils'
 
 function normalizeOutcomeText(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? ''
@@ -129,13 +130,13 @@ export default function EventCardHeader({
                       strokeWidth="5"
                       strokeLinecap="round"
                       className={
-                        `transition-all duration-300 ${
+                        cn(`transition-all duration-300 ${
                           roundedPrimaryDisplayChance < 40
                             ? 'text-no'
                             : roundedPrimaryDisplayChance === 50
                               ? 'text-slate-400'
                               : 'text-yes'
-                        }`
+                        }`)
                       }
                       strokeDasharray={`${(roundedPrimaryDisplayChance / 100) * 94.25} 94.25`}
                       strokeDashoffset="0"

@@ -24,6 +24,7 @@ import { Teleport } from '@/components/Teleport'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { formatAmountInputValue } from '@/lib/formatters'
+import { cn } from '@/lib/utils'
 import { useOrder, useSyncLimitPriceWithOutcome } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
 import EventChart from './EventChart'
@@ -273,10 +274,10 @@ export default function EventContent({
     <EventMarketChannelProvider markets={event.markets}>
       <EventOutcomeChanceProvider eventId={event.id}>
         <OrderLimitPriceSync />
-        <div className={shouldHideChart ? 'grid gap-2' : 'grid gap-3'} ref={contentRef}>
+        <div className={cn(shouldHideChart ? 'grid gap-2' : 'grid gap-3')} ref={contentRef}>
           <EventHeader event={event} />
 
-          <div className={shouldHideChart ? 'w-full' : 'min-h-96 w-full'}>
+          <div className={cn(shouldHideChart ? 'w-full' : 'min-h-96 w-full')}>
             <EventChart event={event} isMobile={isMobile} seriesEvents={seriesEvents} />
           </div>
 

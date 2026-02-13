@@ -124,7 +124,7 @@ export default function PortfolioTabs({ userAddress }: PortfolioTabsProps) {
         <div
           className={cn(
             'pointer-events-none absolute bottom-0 h-0.5 bg-primary',
-            isInitialized && 'transition-all duration-300 ease-out',
+            { 'transition-all duration-300 ease-out': isInitialized },
           )}
           style={{
             left: `${indicatorStyle.left}px`,

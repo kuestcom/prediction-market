@@ -50,7 +50,7 @@ export default function PublicPositionsInfiniteScrollError({
                   className="flex items-center gap-2"
                   disabled={isLoadingMore}
                 >
-                  <RefreshCwIcon className={cn('size-3', isLoadingMore && 'animate-spin')} />
+                  <RefreshCwIcon className={cn('size-3', { 'animate-spin': isLoadingMore })} />
                   {isLoadingMore ? 'Retrying...' : 'Try again'}
                 </Button>
               )}
