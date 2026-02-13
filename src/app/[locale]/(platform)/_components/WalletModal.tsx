@@ -55,6 +55,7 @@ const TRANSFER_PAYMENT_METHODS = [
   'polygon',
   'usdc',
 ] as const
+const TEST_MODE_DISCORD_URL = 'https://discord.gg/kuest'
 
 const WITHDRAW_TOKEN_OPTIONS = [
   { value: 'USDC', label: 'USDC', icon: '/images/withdraw/token/usdc.svg', enabled: false },
@@ -625,6 +626,51 @@ function WalletFundMenu({
 
   return (
     <div className="grid gap-2">
+      {IS_TEST_MODE && (
+        <a
+          href={TEST_MODE_DISCORD_URL}
+          target="_blank"
+          rel="noreferrer"
+          className={`
+            group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left
+            transition
+            hover:bg-muted/50
+          `}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex size-12 items-center justify-center text-foreground">
+              <Image
+                src="/images/deposit/social-media/discord.svg"
+                alt="Discord"
+                width={24}
+                height={24}
+                className="size-6 dark:brightness-0 dark:invert"
+              />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Get free Amoy USDC</p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>
+                  Use
+                  {' '}
+                  <span className="font-semibold text-foreground">/airdrop</span>
+                </span>
+                <span className="size-1 rounded-full bg-muted-foreground" />
+                <span>on Discord</span>
+              </div>
+            </div>
+          </div>
+          <span className="
+            inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors
+            group-hover:text-foreground
+          "
+          >
+            <span>Open Discord</span>
+            <ExternalLinkIcon className="size-3.5" />
+          </span>
+        </a>
+      )}
+
       <button
         type="button"
         className={`
