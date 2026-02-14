@@ -68,7 +68,7 @@ export default function EventCardSingleMarketActions({
   }
 
   return (
-    <div className="mt-auto mb-1 grid grid-cols-2 gap-2">
+    <div className="mt-auto mb-2 grid grid-cols-2 gap-2">
       <Button
         type="button"
         onClick={(e) => {

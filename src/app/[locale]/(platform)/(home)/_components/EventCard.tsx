@@ -287,7 +287,7 @@ export default function EventCard({ event, priceOverridesByMarket = EMPTY_PRICE_
         className={
           cn(`
             flex h-full flex-col px-3 pt-3
-            ${isResolvedEvent ? 'pb-3' : 'pb-1'}
+            ${isResolvedEvent ? 'pb-3' : 'pb-3 md:pb-1'}
           `)
         }
       >

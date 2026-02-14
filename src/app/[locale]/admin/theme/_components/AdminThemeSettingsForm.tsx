@@ -34,7 +34,7 @@ const initialState = {
 }
 
 const COLOR_PICKER_FALLBACK = '#000000'
-const DEFAULT_RADIUS_VALUE = '0.625rem'
+const DEFAULT_RADIUS_VALUE = '0.75rem'
 const RADIUS_PRESETS = [
   { id: 'sharp', value: '0' },
   { id: 'soft', value: DEFAULT_RADIUS_VALUE },

@@ -11,7 +11,7 @@
   --yes-foreground: oklch(62% 0.154 150.069);
   --no: oklch(63.7% 0.237 25.331);
   --no-foreground: oklch(50.5% 0.213 27.518);
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
