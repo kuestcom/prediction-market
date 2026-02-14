@@ -2,7 +2,7 @@ import type { NonDefaultLocale, SupportedLocale } from '@/i18n/locales'
 import { createHash } from 'node:crypto'
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
-import { cacheTag, revalidatePath, updateTag } from 'next/cache'
+import { cacheTag, revalidatePath } from 'next/cache'
 import { DEFAULT_LOCALE, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { tag_translations, tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
@@ -346,11 +346,7 @@ export const TagRepository = {
       return cachedResult
     }
 
-    const liveResult = await fetchMainTagsFromDatabase(locale)
-    if (!liveResult.error) {
-      updateTag(cacheTags.mainTags(locale))
-    }
-    return liveResult
+    return await fetchMainTagsFromDatabase(locale)
   },
 
   async listTags({
