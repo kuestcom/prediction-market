@@ -3,7 +3,7 @@
 import type { CSSProperties, ReactElement } from 'react'
 import type { DataPoint, PredictionChartCursorSnapshot, PredictionChartProps, SeriesConfig } from '@/types/PredictionChartTypes'
 import { AxisBottom, AxisRight } from '@visx/axis'
-import { curveCatmullRom } from '@visx/curve'
+import { curveCatmullRom, curveMonotoneX } from '@visx/curve'
 import { localPoint } from '@visx/event'
 import { Group } from '@visx/group'
 import { scaleLinear, scaleTime } from '@visx/scale'
@@ -134,6 +134,11 @@ export function PredictionChart({
   onCursorDataChange,
   cursorStepMs,
   xAxisTickCount = DEFAULT_X_AXIS_TICKS,
+  xAxisTickFormatter,
+  xAxisTickFontSize = 11,
+  yAxisTickFontSize = 11,
+  showXAxisTopRule = false,
+  cursorGuideTop,
   autoscale = true,
   showXAxis = true,
   showYAxis = true,
@@ -143,6 +148,15 @@ export function PredictionChart({
   leadingGapStart = null,
   legendContent,
   showLegend = true,
+  yAxis,
+  disableCursorSplit = false,
+  markerOuterRadius = 6,
+  markerInnerRadius = 2.8,
+  lineCurve = 'catmullRom',
+  tooltipValueFormatter,
+  tooltipDateFormatter,
+  showTooltipSeriesLabels = true,
+  tooltipHeader,
   watermark,
 }: PredictionChartProps): ReactElement {
   const [data, setData] = useState<DataPoint[]>([])
@@ -204,6 +218,7 @@ export function PredictionChart({
     },
     [onCursorDataChange, series],
   )
+  const resolvedLineCurve = lineCurve === 'monotoneX' ? curveMonotoneX : curveCatmullRom
 
   const {
     tooltipData,
@@ -227,7 +242,7 @@ export function PredictionChart({
     MIN_Y_AXIS_TICKS,
     Math.min(PREFERRED_MAX_Y_AXIS_TICKS, Math.round(plotHeight / 56)),
   )
-  const { min: yAxisMin, max: yAxisMax, ticks: yAxisTicks } = useMemo(() => {
+  const { min: defaultYAxisMin, max: defaultYAxisMax, ticks: defaultYAxisTicks } = useMemo(() => {
     if (!autoscale) {
       return {
         min: 0,
@@ -237,6 +252,18 @@ export function PredictionChart({
     }
     return calculateYAxisBounds(data, series, yAxisMinTicks, MAX_Y_AXIS_TICKS)
   }, [autoscale, data, series, yAxisMinTicks])
+  const yAxisMin = typeof yAxis?.min === 'number' && Number.isFinite(yAxis.min)
+    ? yAxis.min
+    : defaultYAxisMin
+  const yAxisMax = typeof yAxis?.max === 'number' && Number.isFinite(yAxis.max)
+    ? yAxis.max
+    : defaultYAxisMax
+  const resolvedYAxisTicks = useMemo(() => {
+    if (Array.isArray(yAxis?.ticks)) {
+      return yAxis.ticks
+    }
+    return defaultYAxisTicks
+  }, [defaultYAxisTicks, yAxis?.ticks])
   const domainBounds = useMemo(() => {
     if (!data.length) {
       return { start: 0, end: 0 }
@@ -839,7 +866,7 @@ export function PredictionChart({
   const cursorDate = tooltipActive
     ? xScale.invert(clampedTooltipX)
     : null
-  const shouldSplitByCursor = Boolean(tooltipActive && cursorDate)
+  const shouldSplitByCursor = !disableCursorSplit && Boolean(tooltipActive && cursorDate)
   const leftClipWidth = shouldSplitByCursor ? clampedTooltipX : innerWidth
   const rightClipWidth = shouldSplitByCursor ? Math.max(0, innerWidth - clampedTooltipX) : 0
   const domainSpan = Math.max(1, domainBounds.end - domainBounds.start)
@@ -878,7 +905,7 @@ export function PredictionChart({
     && effectiveTooltipData !== null
     && effectiveTooltipData.date.getTime() === lastDataPoint.date.getTime()
   const canShowMarkers = Boolean(lastDataPoint)
-    && (!tooltipActive || isTooltipAtLastPoint)
+    && (disableCursorSplit || !tooltipActive || isTooltipAtLastPoint)
   const crossFadeActive = Boolean(crossFadeData && crossFadeProgress < 0.999 && !shouldSplitByCursor)
   const crossFadeIn = crossFadeActive ? crossFadeProgress : 1
   const crossFadeOut = crossFadeActive ? 1 - crossFadeProgress : 0
@@ -893,6 +920,10 @@ export function PredictionChart({
   function formatAxisTick(value: number | { valueOf: () => number }) {
     const numericValue = typeof value === 'number' ? value : value.valueOf()
     const date = new Date(numericValue)
+
+    if (xAxisTickFormatter) {
+      return xAxisTickFormatter(date)
+    }
 
     if (totalDurationHours <= 48) {
       return date.toLocaleTimeString('en-US', {
@@ -1015,6 +1046,9 @@ export function PredictionChart({
   const axisLabelOpacity = Math.min(1, gridLineOpacity + 0.25)
   const leadingGapStartMs = leadingGapStart instanceof Date ? leadingGapStart.getTime() : Number.NaN
   const clipPadding = 2
+  const resolvedCursorGuideTop = typeof cursorGuideTop === 'number'
+    ? cursorGuideTop
+    : -resolvedMargin.top
 
   return (
     <div className="flex w-full flex-col gap-3">
@@ -1070,7 +1104,7 @@ export function PredictionChart({
               )
             })}
 
-            {showHorizontalGrid && yAxisTicks.map(value => (
+            {showHorizontalGrid && resolvedYAxisTicks.map(value => (
               <line
                 key={`grid-${value}`}
                 x1={0}
@@ -1145,7 +1179,7 @@ export function PredictionChart({
                       strokeOpacity={ghostOpacity}
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      curve={curveCatmullRom}
+                      curve={resolvedLineCurve}
                       fill="transparent"
                     />
                   )}
@@ -1161,7 +1195,7 @@ export function PredictionChart({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeOpacity={futureLineOpacity}
-                      curve={curveCatmullRom}
+                      curve={resolvedLineCurve}
                       fill="transparent"
                     />
                   )}
@@ -1177,7 +1211,7 @@ export function PredictionChart({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeOpacity={0.9}
-                      curve={curveCatmullRom}
+                      curve={resolvedLineCurve}
                       fill="transparent"
                     />
                   )}
@@ -1194,7 +1228,7 @@ export function PredictionChart({
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeOpacity={futureLineOpacity * crossFadeIn}
-                            curve={curveCatmullRom}
+                            curve={resolvedLineCurve}
                             fill="transparent"
                             clipPath={`url(#${rightClipId})`}
                           />
@@ -1207,7 +1241,7 @@ export function PredictionChart({
                             strokeOpacity={crossFadeIn}
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            curve={curveCatmullRom}
+                            curve={resolvedLineCurve}
                             fill="transparent"
                             clipPath={`url(#${leftClipId})`}
                             innerRef={registerSeriesPath(seriesItem.key)}
@@ -1226,7 +1260,7 @@ export function PredictionChart({
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeOpacity={futureLineOpacity * crossFadeIn}
-                              curve={curveCatmullRom}
+                              curve={resolvedLineCurve}
                               fill="transparent"
                             />
                           )}
@@ -1239,7 +1273,7 @@ export function PredictionChart({
                       data={seriesColoredPoints}
                       x={d => xScale(getDate(d))}
                       y={d => yScale((d[seriesItem.key] as number) || 0)}
-                      curve={curveCatmullRom}
+                      curve={resolvedLineCurve}
                     >
                       {({ path }) => {
                         const pathDefinition = path(seriesColoredPoints)
@@ -1306,7 +1340,7 @@ export function PredictionChart({
                 return (
                   <g key={`${seriesItem.key}-marker`} transform={`translate(${cx}, ${cy})`}>
                     <circle
-                      r={6}
+                      r={markerOuterRadius}
                       fill={seriesItem.color}
                       fillOpacity={0.4}
                       pointerEvents="none"
@@ -1317,7 +1351,7 @@ export function PredictionChart({
                       }}
                     />
                     <circle
-                      r={2.8}
+                      r={markerInnerRadius}
                       fill={seriesItem.color}
                       stroke={seriesItem.color}
                       strokeWidth={1.5}
@@ -1331,13 +1365,17 @@ export function PredictionChart({
               <AxisRight
                 left={innerWidth}
                 scale={yScale}
-                tickFormat={value => `${value}%`}
-                tickValues={yAxisTicks}
+                tickFormat={(value) => {
+                  const numericValue = typeof value === 'number' ? value : value.valueOf()
+                  const formatter = yAxis?.tickFormat ?? (v => `${v}%`)
+                  return formatter(numericValue)
+                }}
+                tickValues={resolvedYAxisTicks}
                 stroke="transparent"
                 tickStroke="transparent"
                 tickLabelProps={{
                   fill: axisLabelColor,
-                  fontSize: 11,
+                  fontSize: yAxisTickFontSize,
                   fontFamily: 'Arial, sans-serif',
                   textAnchor: 'start',
                   dy: '0.33em',
@@ -1349,33 +1387,46 @@ export function PredictionChart({
             )}
 
             {showXAxis && (
-              <AxisBottom
-                top={innerHeight}
-                scale={xScale}
-                tickFormat={formatAxisTick}
-                stroke="transparent"
-                tickStroke="transparent"
-                tickLabelProps={(_value, index, values) => {
-                  const lastIndex = Array.isArray(values) ? values.length - 1 : -1
-                  const textAnchor = index === 0
-                    ? 'start'
-                    : index === lastIndex
-                      ? 'end'
-                      : 'middle'
+              <>
+                {showXAxisTopRule && (
+                  <line
+                    x1={0}
+                    x2={innerWidth}
+                    y1={innerHeight}
+                    y2={innerHeight}
+                    stroke={gridLineColor}
+                    strokeWidth={1}
+                    opacity={Math.min(1, gridLineOpacity + 0.2)}
+                  />
+                )}
+                <AxisBottom
+                  top={innerHeight}
+                  scale={xScale}
+                  tickFormat={formatAxisTick}
+                  stroke="transparent"
+                  tickStroke="transparent"
+                  tickLabelProps={(_value, index, values) => {
+                    const lastIndex = Array.isArray(values) ? values.length - 1 : -1
+                    const textAnchor = index === 0
+                      ? 'start'
+                      : index === lastIndex
+                        ? 'end'
+                        : 'middle'
 
-                  const hideFirstMonthLabel = isMonthOnlyLabels && index === 0
-                  return {
-                    fill: axisLabelColor,
-                    fontSize: 11,
-                    fontFamily: 'Arial, sans-serif',
-                    textAnchor,
-                    dy: '0.6em',
-                    opacity: hideFirstMonthLabel ? 0 : axisLabelOpacity,
-                  }
-                }}
-                numTicks={xAxisTickCount}
-                tickLength={0}
-              />
+                    const hideFirstMonthLabel = isMonthOnlyLabels && index === 0
+                    return {
+                      fill: axisLabelColor,
+                      fontSize: xAxisTickFontSize,
+                      fontFamily: 'Arial, sans-serif',
+                      textAnchor,
+                      dy: showXAxisTopRule ? '1.05em' : '0.6em',
+                      opacity: hideFirstMonthLabel ? 0 : axisLabelOpacity,
+                    }
+                  }}
+                  numTicks={xAxisTickCount}
+                  tickLength={0}
+                />
+              </>
             )}
 
             <rect
@@ -1396,7 +1447,7 @@ export function PredictionChart({
               <line
                 x1={clampedTooltipX}
                 x2={clampedTooltipX}
-                y1={-32}
+                y1={resolvedCursorGuideTop}
                 y2={innerHeight}
                 stroke="#2C3F4F"
                 strokeWidth={1.5}
@@ -1430,6 +1481,10 @@ export function PredictionChart({
           margin={resolvedMargin}
           innerWidth={innerWidth}
           clampedTooltipX={clampedTooltipX}
+          valueFormatter={tooltipValueFormatter}
+          dateFormatter={tooltipDateFormatter}
+          showSeriesLabels={showTooltipSeriesLabels}
+          header={tooltipHeader}
         />
       </div>
     </div>

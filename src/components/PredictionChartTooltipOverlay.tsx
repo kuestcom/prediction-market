@@ -16,6 +16,13 @@ interface PredictionChartTooltipOverlayProps {
   margin: { top: number, right: number, bottom: number, left: number }
   innerWidth: number
   clampedTooltipX: number
+  valueFormatter?: (value: number) => string
+  dateFormatter?: (value: Date) => string
+  showSeriesLabels?: boolean
+  header?: {
+    iconPath?: string | null
+    color?: string
+  }
 }
 
 export default function PredictionChartTooltipOverlay({
@@ -25,61 +32,134 @@ export default function PredictionChartTooltipOverlay({
   margin,
   innerWidth,
   clampedTooltipX,
+  valueFormatter,
+  dateFormatter,
+  showSeriesLabels = true,
+  header,
 }: PredictionChartTooltipOverlayProps) {
   if (!tooltipActive || !tooltipData || positionedTooltipEntries.length === 0) {
     return null
   }
 
-  const rawDateLabel = tooltipData.date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-  const dateLabel = rawDateLabel
-    .replace(/\bAM\b/g, 'am')
-    .replace(/\bPM\b/g, 'pm')
+  const dateLabel = dateFormatter
+    ? dateFormatter(tooltipData.date)
+    : tooltipData.date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }).replace(/\bAM\b/g, 'am').replace(/\bPM\b/g, 'pm')
 
   const pointerX = margin.left + clampedTooltipX
   const chartLeft = margin.left + 4
   const chartRight = margin.left + innerWidth - 4
   const anchorOffset = 8
-  const switchThreshold = 0.86
+  const leftSwitchThreshold = 0.14
+  const rightSwitchThreshold = 0.86
   const plotWidth = Math.max(1, chartRight - chartLeft)
   const pointerRatio = (pointerX - chartLeft) / plotWidth
-  const placeRightByRatio = Number.isFinite(pointerRatio)
-    ? pointerRatio <= switchThreshold
-    : true
+  const anchorPlacement: 'left' | 'center' | 'right' = Number.isFinite(pointerRatio)
+    ? pointerRatio >= rightSwitchThreshold
+      ? 'left'
+      : pointerRatio <= leftSwitchThreshold
+        ? 'right'
+        : 'center'
+    : 'center'
   const totalWidth = Math.max(1, margin.left + innerWidth + margin.right)
   const pointerPercent = (pointerX / totalWidth) * 100
+  const anchorCenter = `${pointerPercent}%`
   const anchorRight = `calc(${pointerPercent}% + ${anchorOffset}px)`
   const anchorLeft = `calc(${pointerPercent}% - ${anchorOffset}px)`
 
   const dateLabelStyle = (() => {
-    const placeRight = placeRightByRatio
+    if (anchorPlacement === 'left') {
+      return {
+        left: anchorLeft,
+        transform: 'translateX(-100%)',
+      }
+    }
+
+    if (anchorPlacement === 'right') {
+      return {
+        left: anchorRight,
+        transform: 'translateX(0)',
+      }
+    }
 
     return {
-      left: placeRight ? anchorRight : anchorLeft,
-      transform: placeRight ? 'translateX(0)' : 'translateX(-100%)',
+      left: anchorCenter,
+      transform: 'translateX(-50%)',
     }
   })()
 
   const tooltipLabelPosition = (() => {
-    const placeRight = placeRightByRatio
+    if (anchorPlacement === 'left') {
+      return {
+        left: anchorLeft,
+        transform: 'translateX(-100%)',
+      }
+    }
+
+    if (anchorPlacement === 'right') {
+      return {
+        left: anchorRight,
+        transform: 'translateX(0)',
+      }
+    }
 
     return {
-      left: placeRight ? anchorRight : anchorLeft,
-      transform: placeRight ? 'translateX(0)' : 'translateX(-100%)',
+      left: anchorCenter,
+      transform: 'translateX(-50%)',
     }
   })()
 
+  const formatValue = valueFormatter ?? (value => `${value.toFixed(0)}%`)
+  const headerEntry = positionedTooltipEntries[0] ?? null
+  const headerColor = header?.color ?? headerEntry?.color ?? 'currentColor'
+  const showHeader = Boolean(header && headerEntry)
+  const topLabelTop = Math.max(0, margin.top - (showHeader ? 54 : 36))
+
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
+      {showHeader && headerEntry && (
+        <div
+          className="absolute inline-flex items-center gap-2 text-sm font-semibold tabular-nums"
+          style={{
+            top: topLabelTop,
+            left: dateLabelStyle.left,
+            transform: dateLabelStyle.transform,
+            color: headerColor,
+          }}
+        >
+          {header?.iconPath
+            ? (
+                <span
+                  className="block size-4 shrink-0 bg-current"
+                  aria-hidden
+                  style={{
+                    WebkitMaskImage: `url(${header.iconPath})`,
+                    maskImage: `url(${header.iconPath})`,
+                    WebkitMaskPosition: 'center',
+                    maskPosition: 'center',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskSize: 'contain',
+                    maskSize: 'contain',
+                  }}
+                />
+              )
+            : (
+                <span className="size-2.5 rounded-full bg-current" />
+              )}
+          <span>{formatValue(headerEntry.value)}</span>
+        </div>
+      )}
+
       <div
         className="absolute text-xs font-medium text-muted-foreground"
         style={{
-          top: Math.max(0, margin.top - 36),
+          top: topLabelTop + (showHeader ? 20 : 0),
           left: dateLabelStyle.left,
           maxWidth: '180px',
           whiteSpace: 'nowrap',
@@ -89,7 +169,7 @@ export default function PredictionChartTooltipOverlay({
         {dateLabel}
       </div>
 
-      {positionedTooltipEntries.map(entry => (
+      {showSeriesLabels && positionedTooltipEntries.map(entry => (
         <div
           key={`${entry.key}-label`}
           className={
@@ -110,8 +190,7 @@ export default function PredictionChartTooltipOverlay({
             {entry.name}
           </span>
           <span className="tabular-nums">
-            {entry.value.toFixed(0)}
-            %
+            {formatValue(entry.value)}
           </span>
         </div>
       ))}

@@ -4,4 +4,6 @@ export interface EventChartProps {
   event: Event
   isMobile: boolean
   seriesEvents?: EventSeriesEntry[]
+  showControls?: boolean
+  showSeriesNavigation?: boolean
 }
