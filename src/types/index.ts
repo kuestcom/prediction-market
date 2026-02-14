@@ -13,6 +13,7 @@ export interface Event {
   rules?: string
   series_slug?: string | null
   series_recurrence?: string | null
+  has_live_chart?: boolean
   active_markets_count: number
   total_markets_count: number
   volume: number
@@ -39,6 +40,19 @@ export interface EventSeriesEntry {
   end_date: string | null
   resolved_at: string | null
   created_at: string
+  resolved_direction?: 'up' | 'down' | null
+}
+
+export interface EventLiveChartConfig {
+  series_slug: string
+  topic: string
+  event_type: string
+  symbol: string
+  display_name: string
+  display_symbol: string
+  line_color: string
+  icon_path: string | null
+  enabled: boolean
 }
 
 export interface ConditionChangeLogEntry {
