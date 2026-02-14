@@ -367,6 +367,21 @@ function toOptionalIsoString(value: unknown): string | null {
   return null
 }
 
+async function getEnabledLiveChartSeriesSlugs() {
+  const liveChartRows = await db
+    .select({
+      series_slug: event_live_chart_configs.series_slug,
+    })
+    .from(event_live_chart_configs)
+    .where(eq(event_live_chart_configs.enabled, true))
+
+  return new Set(
+    liveChartRows
+      .map(row => row.series_slug?.trim().toLowerCase())
+      .filter((slug): slug is string => Boolean(slug)),
+  )
+}
+
 function eventResource(
   event: DrizzleEventResult,
   userId: string,
@@ -512,12 +527,20 @@ async function buildEventResource(
       .map(eventTag => eventTag.tag?.id)
       .filter((tagId): tagId is number => typeof tagId === 'number'),
   ))
-  const [priceMap, localizedTagNamesById, localizedEventTitlesById] = await Promise.all([
+  const [priceMap, localizedTagNamesById, localizedEventTitlesById, liveChartSeriesSlugs] = await Promise.all([
     fetchOutcomePrices(outcomeTokenIds),
     getLocalizedTagNamesById(tagIds, locale),
     getLocalizedEventTitlesById([eventResult.id], locale),
+    getEnabledLiveChartSeriesSlugs(),
   ])
-  return eventResource(eventResult, userId, priceMap, localizedTagNamesById, localizedEventTitlesById)
+  return eventResource(
+    eventResult,
+    userId,
+    priceMap,
+    localizedTagNamesById,
+    localizedEventTitlesById,
+    liveChartSeriesSlugs,
+  )
 }
 
 function getEventMainTag(tags: any[] | undefined): string {
@@ -760,17 +783,7 @@ export const EventRepository = {
         getLocalizedTagNamesById(tagIds, locale),
         getLocalizedEventTitlesById(eventIds, locale),
       ])
-      const liveChartRows = await db
-        .select({
-          series_slug: event_live_chart_configs.series_slug,
-        })
-        .from(event_live_chart_configs)
-        .where(eq(event_live_chart_configs.enabled, true))
-      const liveChartSeriesSlugs = new Set(
-        liveChartRows
-          .map(row => row.series_slug?.trim().toLowerCase())
-          .filter((slug): slug is string => Boolean(slug)),
-      )
+      const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
 
       const eventsWithMarkets = eventsData
         .filter(event => event.markets?.length > 0)

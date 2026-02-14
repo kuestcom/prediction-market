@@ -414,6 +414,15 @@ function formatDateAtTimezone(timestamp: number, timeZone: string) {
   }).format(new Date(timestamp))
 }
 
+function formatTimeAtTimezone(timestamp: number, timeZone: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone,
+  }).format(new Date(timestamp))
+}
+
 function isUsEquityMarketOpen(timestamp: number) {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
@@ -850,12 +859,18 @@ export default function EventLiveSeriesChart({
     () => formatDateAtTimezone(endTimestamp, 'America/New_York'),
     [endTimestamp],
   )
-  const etTimeLabel = '4:00 PM'
+  const etTimeLabel = useMemo(
+    () => formatTimeAtTimezone(endTimestamp, 'America/New_York'),
+    [endTimestamp],
+  )
   const utcDateLabel = useMemo(
     () => formatDateAtTimezone(endTimestamp, 'UTC'),
     [endTimestamp],
   )
-  const utcTimeLabel = '9:00 PM'
+  const utcTimeLabel = useMemo(
+    () => formatTimeAtTimezone(endTimestamp, 'UTC'),
+    [endTimestamp],
+  )
   const isMarketView = activeView === 'market'
   const isLiveChartView = activeView === 'live'
   const liveSwitchIconStyle = isLiveChartView

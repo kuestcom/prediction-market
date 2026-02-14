@@ -3,10 +3,10 @@
 import type { ReactNode } from 'react'
 import type { EventSeriesEntry } from '@/types'
 import { ChevronDownIcon, GavelIcon, TriangleIcon } from 'lucide-react'
-import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
 const PAST_EVENTS_WINDOW_DAYS = 7
