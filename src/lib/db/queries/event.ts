@@ -226,6 +226,7 @@ interface ListEventsProps {
   search?: string
   userId?: string | undefined
   bookmarked?: boolean
+  frequency?: 'all' | 'daily' | 'weekly' | 'monthly'
   status?: Event['status']
   offset?: number
   locale?: SupportedLocale
@@ -495,6 +496,7 @@ export const EventRepository = {
     search = '',
     userId = '',
     bookmarked = false,
+    frequency = 'all',
     status = 'active',
     offset = 0,
     locale = DEFAULT_LOCALE,
@@ -544,6 +546,11 @@ export const EventRepository = {
             and(...searchTerms.map(term => ilike(loweredTitle, `%${term}%`))),
           )
         }
+      }
+
+      if (frequency !== 'all') {
+        const normalizedSeriesRecurrence = sql<string>`LOWER(TRIM(COALESCE(${events.series_recurrence}, '')))`
+        whereConditions.push(eq(normalizedSeriesRecurrence, frequency))
       }
 
       if (tag && tag !== 'trending' && tag !== 'new') {

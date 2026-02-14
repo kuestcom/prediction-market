@@ -9,6 +9,7 @@ export async function GET(request: Request) {
   const tag = searchParams.get('tag') || 'trending'
   const search = searchParams.get('search') || ''
   const bookmarked = searchParams.get('bookmarked') === 'true'
+  const frequency = searchParams.get('frequency') || 'all'
   const status = searchParams.get('status') || 'active'
   const localeParam = searchParams.get('locale') ?? DEFAULT_LOCALE
   const locale = SUPPORTED_LOCALES.includes(localeParam as typeof SUPPORTED_LOCALES[number])
@@ -21,6 +22,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Invalid status filter.' }, { status: 400 })
   }
 
+  if (frequency !== 'all' && frequency !== 'daily' && frequency !== 'weekly' && frequency !== 'monthly') {
+    return NextResponse.json({ error: 'Invalid frequency filter.' }, { status: 400 })
+  }
+
   const user = await UserRepository.getCurrentUser()
   const userId = user?.id
 
@@ -30,6 +35,7 @@ export async function GET(request: Request) {
       search,
       userId,
       bookmarked,
+      frequency,
       status,
       offset: clampedOffset,
       locale,

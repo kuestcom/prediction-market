@@ -39,8 +39,8 @@ interface SettingsToggleProps {
 }
 
 type SortOption = '24h-volume' | 'total-volume' | 'liquidity' | 'newest' | 'ending-soon' | 'competitive'
-type FrequencyOption = 'all' | 'daily' | 'weekly' | 'monthly'
-type StatusOption = 'active' | 'resolved'
+type FrequencyOption = FilterState['frequency']
+type StatusOption = FilterState['status']
 
 type FilterCheckboxKey = 'hideSports' | 'hideCrypto' | 'hideEarnings'
 
@@ -75,6 +75,7 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isNavigationTagsReady, setIsNavigationTagsReady] = useState(false)
   const [filterSettings, setFilterSettings] = useState<FilterSettings>(() => createDefaultFilters({
+    frequency: filters.frequency,
     status: filters.status,
     hideSports: filters.hideSports,
     hideCrypto: filters.hideCrypto,
@@ -106,7 +107,8 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
   useEffect(() => {
     setFilterSettings((prev) => {
       if (
-        prev.status === filters.status
+        prev.frequency === filters.frequency
+        && prev.status === filters.status
         && prev.hideSports === filters.hideSports
         && prev.hideCrypto === filters.hideCrypto
         && prev.hideEarnings === filters.hideEarnings
@@ -116,13 +118,14 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
 
       return {
         ...prev,
+        frequency: filters.frequency,
         status: filters.status,
         hideSports: filters.hideSports,
         hideCrypto: filters.hideCrypto,
         hideEarnings: filters.hideEarnings,
       }
     })
-  }, [filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status])
+  }, [filters.frequency, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status])
 
   const handleBookmarkToggle = useCallback(() => {
     onFiltersChange({ bookmarked: !filters.bookmarked })
@@ -157,6 +160,9 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
         }
         onFiltersChange(filterUpdates)
       }
+      if ('frequency' in updates && updates.frequency !== undefined && updates.frequency !== prev.frequency) {
+        onFiltersChange({ frequency: updates.frequency })
+      }
       if ('status' in updates && updates.status && updates.status !== prev.status) {
         onFiltersChange({ status: updates.status })
       }
@@ -172,6 +178,7 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
     onFiltersChange({
       search: '',
       bookmarked: false,
+      frequency: defaultFilters.frequency,
       status: defaultFilters.status,
       hideSports: defaultFilters.hideSports,
       hideCrypto: defaultFilters.hideCrypto,

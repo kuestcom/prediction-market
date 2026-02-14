@@ -8,6 +8,7 @@ export interface FilterState {
   tag: string
   mainTag: string
   bookmarked: boolean
+  frequency: 'all' | 'daily' | 'weekly' | 'monthly'
   status: 'active' | 'resolved'
   hideSports: boolean
   hideCrypto: boolean
@@ -31,6 +32,7 @@ const DEFAULT_FILTERS: FilterState = {
   tag: 'trending',
   mainTag: 'trending',
   bookmarked: false,
+  frequency: 'all',
   status: 'active',
   hideSports: false,
   hideCrypto: false,

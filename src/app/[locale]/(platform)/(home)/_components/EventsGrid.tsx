@@ -118,6 +118,7 @@ async function fetchEvents({
     tag: filters.tag,
     search: filters.search,
     bookmarked: filters.bookmarked.toString(),
+    frequency: filters.frequency,
     status: filters.status,
     offset: pageParam.toString(),
     locale,
@@ -152,6 +153,7 @@ export default function EventsGrid({
   const isDefaultState = filters.tag === 'trending'
     && filters.search === ''
     && !filters.bookmarked
+    && filters.frequency === 'all'
     && filters.status === 'active'
   const shouldUseInitialData = isDefaultState && initialEvents.length > 0
 
@@ -170,6 +172,7 @@ export default function EventsGrid({
       filters.tag,
       filters.search,
       filters.bookmarked,
+      filters.frequency,
       filters.status,
       filters.hideSports,
       filters.hideCrypto,
