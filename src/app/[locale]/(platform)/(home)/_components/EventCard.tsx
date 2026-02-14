@@ -70,6 +70,7 @@ export default function EventCard({ event, priceOverridesByMarket = EMPTY_PRICE_
   const noOutcome = event.markets[0].outcomes[1]
   const isResolvedEvent = event.status === 'resolved'
   const shouldShowNewBadge = shouldShowEventNewBadge(event)
+  const shouldShowLiveBadge = !isResolvedEvent && Boolean(event.has_live_chart)
   const isNegRiskEnabled = Boolean(event.enable_neg_risk)
   const orderDomain = useMemo(() => getExchangeEip712Domain(isNegRiskEnabled), [isNegRiskEnabled])
   const availableBalance = balance.raw
@@ -360,6 +361,7 @@ export default function EventCard({ event, priceOverridesByMarket = EMPTY_PRICE_
         <EventCardFooter
           event={event}
           shouldShowNewBadge={shouldShowNewBadge}
+          showLiveBadge={shouldShowLiveBadge}
           resolvedVolume={resolvedVolume}
           isInTradingMode={isInTradingMode}
           endedLabel={endedLabel}
