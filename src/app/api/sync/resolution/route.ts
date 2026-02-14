@@ -574,18 +574,25 @@ async function processResolution(
     throw new Error(`Failed to update condition ${conditionId}: ${conditionError.message}`)
   }
 
-  const marketUpdate: Record<string, any> = {
-    is_resolved: isResolved,
-  }
+  const marketUpdate: Record<string, any> = isResolved
+    ? {
+        is_resolved: true,
+        is_active: false,
+      }
+    : {
+        is_resolved: false,
+      }
 
-  if (isResolved) {
-    marketUpdate.is_active = false
-  }
-
-  const { error: marketError } = await supabaseAdmin
+  let marketUpdateQuery = supabaseAdmin
     .from('markets')
     .update(marketUpdate)
     .eq('condition_id', conditionId)
+
+  marketUpdateQuery = isResolved
+    ? marketUpdateQuery.or('is_resolved.neq.true,is_active.neq.false')
+    : marketUpdateQuery.neq('is_resolved', false)
+
+  const { error: marketError } = await marketUpdateQuery
 
   if (marketError) {
     throw new Error(`Failed to update market ${conditionId}: ${marketError.message}`)
@@ -674,14 +681,16 @@ async function updateOutcomePayouts(conditionId: string, price: number) {
   ]
 
   for (const update of updates) {
+    const isWinningOutcome = update.payout > 0
     const { error } = await supabaseAdmin
       .from('outcomes')
       .update({
-        is_winning_outcome: update.payout > 0,
+        is_winning_outcome: isWinningOutcome,
         payout_value: update.payout,
       })
       .eq('condition_id', conditionId)
       .eq('outcome_index', update.index)
+      .or(`is_winning_outcome.neq.${isWinningOutcome ? 'true' : 'false'},payout_value.is.null,payout_value.neq.${update.payout}`)
 
     if (error) {
       throw new Error(`Failed to update outcomes for ${conditionId}: ${error.message}`)

@@ -368,8 +368,8 @@ export const UserRepository = {
     }
 
     return await runQuery(async () => {
-      const addressClauses = normalizedAddresses.map(addr => ilike(users.address, addr))
-      const proxyClauses = normalizedAddresses.map(addr => ilike(users.proxy_wallet_address, addr))
+      const addressClauses = normalizedAddresses.map(addr => eq(sql`LOWER(${users.address})`, addr))
+      const proxyClauses = normalizedAddresses.map(addr => eq(sql`LOWER(${users.proxy_wallet_address})`, addr))
       const whereConditions = [...addressClauses, ...proxyClauses].filter(Boolean)
       const whereClause = whereConditions.length > 1
         ? or(...whereConditions)

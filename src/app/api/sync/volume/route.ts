@@ -116,6 +116,14 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
 
         const totalVolume = normalizeVolumeValue(response.volume)
         const volume24h = normalizeVolumeValue(response.volume_24h ?? '0')
+        const hasVolumeChanged
+          = normalizeComparableDecimal(totalVolume) !== normalizeComparableDecimal(workItem.previousTotalVolume)
+            || normalizeComparableDecimal(volume24h) !== normalizeComparableDecimal(workItem.previousVolume24h)
+
+        if (!hasVolumeChanged) {
+          stats.skipped++
+          continue
+        }
 
         try {
           await updateMarketVolume(workItem.conditionId, totalVolume, volume24h)
@@ -219,6 +227,21 @@ function buildOutcomeMap(outcomes: OutcomeRow[]): Map<string, string[]> {
   return map
 }
 
+function normalizeComparableDecimal(value: string) {
+  const normalized = normalizeVolumeValue(value).trim()
+  if (!normalized) {
+    return '0'
+  }
+
+  const withoutSign = normalized.startsWith('-') ? normalized.slice(1) : normalized
+  const [integerPartRaw, fractionalPartRaw = ''] = withoutSign.split('.')
+  const integerPart = (integerPartRaw || '0').replace(/^0+(?=\d)/, '') || '0'
+  const fractionalPart = fractionalPartRaw.replace(/0+$/, '')
+  const base = fractionalPart.length > 0 ? `${integerPart}.${fractionalPart}` : integerPart
+
+  return normalized.startsWith('-') && base !== '0' ? `-${base}` : base
+}
+
 async function fetchVolumeBatch(batch: VolumeWorkItem[]): Promise<VolumeResponseItem[]> {
   if (batch.length === 0) {
     return []
@@ -257,7 +280,6 @@ async function updateMarketVolume(conditionId: string, totalVolume: string, volu
     .update({
       volume: totalVolume,
       volume_24h: volume24h,
-      updated_at: new Date().toISOString(),
     })
     .eq('condition_id', conditionId)
 
