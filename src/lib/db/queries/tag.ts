@@ -2,7 +2,7 @@ import type { NonDefaultLocale, SupportedLocale } from '@/i18n/locales'
 import { createHash } from 'node:crypto'
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
-import { cacheTag, revalidatePath } from 'next/cache'
+import { cacheTag, revalidatePath, updateTag } from 'next/cache'
 import { DEFAULT_LOCALE, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { tag_translations, tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
@@ -165,175 +165,192 @@ async function getLocalizedNamesByTagId(tagIds: number[], locale: SupportedLocal
   return { data: localized, error: null }
 }
 
-export const TagRepository = {
-  async getMainTags(locale: SupportedLocale = DEFAULT_LOCALE): Promise<MainTagsResult> {
-    'use cache'
-    cacheTag(cacheTags.mainTags(locale))
-    const { data: mainTagsResult, error } = await runQuery(async () => {
-      const result = await db
-        .select({
-          id: tags.id,
-          name: tags.name,
-          slug: tags.slug,
-          is_main_category: tags.is_main_category,
-          is_hidden: tags.is_hidden,
-          display_order: tags.display_order,
-          parent_tag_id: tags.parent_tag_id,
-          active_markets_count: tags.active_markets_count,
-          created_at: tags.created_at,
-          updated_at: tags.updated_at,
-        })
-        .from(tags)
-        .where(and(
-          eq(tags.is_main_category, true),
-          eq(tags.is_hidden, false),
-        ))
-        .orderBy(asc(tags.display_order), asc(tags.name))
+async function fetchMainTagsFromDatabase(locale: SupportedLocale): Promise<MainTagsResult> {
+  const { data: mainTagsResult, error } = await runQuery(async () => {
+    const result = await db
+      .select({
+        id: tags.id,
+        name: tags.name,
+        slug: tags.slug,
+        is_main_category: tags.is_main_category,
+        is_hidden: tags.is_hidden,
+        display_order: tags.display_order,
+        parent_tag_id: tags.parent_tag_id,
+        active_markets_count: tags.active_markets_count,
+        created_at: tags.created_at,
+        updated_at: tags.updated_at,
+      })
+      .from(tags)
+      .where(and(
+        eq(tags.is_main_category, true),
+        eq(tags.is_hidden, false),
+      ))
+      .orderBy(asc(tags.display_order), asc(tags.name))
 
-      return { data: result, error: null }
-    })
+    return { data: result, error: null }
+  })
 
-    if (error || !mainTagsResult) {
-      const errorMessage = typeof error === 'string' ? error : 'Unknown error'
-      return { data: null, error: errorMessage, globalChilds: [] }
+  if (error || !mainTagsResult) {
+    const errorMessage = typeof error === 'string' ? error : 'Unknown error'
+    return { data: null, error: errorMessage, globalChilds: [] }
+  }
+
+  const mainVisibleTags = mainTagsResult
+  const mainSlugs = mainVisibleTags.map(tag => tag.slug)
+
+  const { data: subcategoriesResult, error: viewError } = await runQuery(async () => {
+    const result = await db
+      .select({
+        main_tag_id: v_main_tag_subcategories.main_tag_id,
+        main_tag_slug: v_main_tag_subcategories.main_tag_slug,
+        main_tag_name: v_main_tag_subcategories.main_tag_name,
+        main_tag_is_hidden: v_main_tag_subcategories.main_tag_is_hidden,
+        sub_tag_id: v_main_tag_subcategories.sub_tag_id,
+        sub_tag_name: v_main_tag_subcategories.sub_tag_name,
+        sub_tag_slug: v_main_tag_subcategories.sub_tag_slug,
+        sub_tag_is_main_category: v_main_tag_subcategories.sub_tag_is_main_category,
+        sub_tag_is_hidden: v_main_tag_subcategories.sub_tag_is_hidden,
+        active_markets_count: v_main_tag_subcategories.active_markets_count,
+        last_market_activity_at: v_main_tag_subcategories.last_market_activity_at,
+      })
+      .from(v_main_tag_subcategories)
+      .where(inArray(v_main_tag_subcategories.main_tag_slug, mainSlugs))
+
+    return { data: result, error: null }
+  })
+
+  if (viewError || !subcategoriesResult) {
+    const tagsWithChilds = mainVisibleTags.map((tag: any) => ({ ...tag, childs: [] }))
+    const errorMessage = typeof viewError === 'string' ? viewError : 'Unknown error'
+    return { data: tagsWithChilds, error: errorMessage, globalChilds: [] }
+  }
+
+  const translationTagIds = new Set<number>()
+  for (const tag of mainVisibleTags) {
+    translationTagIds.add(tag.id)
+  }
+  for (const subtag of subcategoriesResult) {
+    if (subtag.main_tag_id) {
+      translationTagIds.add(subtag.main_tag_id)
+    }
+    if (subtag.sub_tag_id) {
+      translationTagIds.add(subtag.sub_tag_id)
+    }
+  }
+
+  const { data: localizedNamesByTagId, error: translationError } = await getLocalizedNamesByTagId(
+    Array.from(translationTagIds),
+    locale,
+  )
+
+  if (translationError) {
+    return { data: null, error: translationError, globalChilds: [] }
+  }
+
+  const grouped = new Map<string, { name: string, slug: string, count: number }[]>()
+  const bestMainBySubSlug = new Map<string, { mainSlug: string, count: number }>()
+  const globalCounts = new Map<string, { name: string, slug: string, count: number }>()
+
+  const mainSlugSet = new Set(mainSlugs)
+
+  for (const subtag of subcategoriesResult) {
+    if (
+      !subtag.sub_tag_slug
+      || mainSlugSet.has(subtag.sub_tag_slug)
+      || EXCLUDED_SUB_SLUGS.has(subtag.sub_tag_slug)
+      || subtag.sub_tag_is_hidden
+      || subtag.main_tag_is_hidden
+    ) {
+      continue
     }
 
-    const mainVisibleTags = mainTagsResult
-    const mainSlugs = mainVisibleTags.map(tag => tag.slug)
+    const localizedSubTagName = localizedNamesByTagId.get(subtag.sub_tag_id ?? -1) ?? subtag.sub_tag_name!
+    const current = grouped.get(subtag.main_tag_slug!) ?? []
+    const existingIndex = current.findIndex(item => item.slug === subtag.sub_tag_slug)
+    const nextCount = subtag.active_markets_count ?? 0
 
-    const { data: subcategoriesResult, error: viewError } = await runQuery(async () => {
-      const result = await db
-        .select({
-          main_tag_id: v_main_tag_subcategories.main_tag_id,
-          main_tag_slug: v_main_tag_subcategories.main_tag_slug,
-          main_tag_name: v_main_tag_subcategories.main_tag_name,
-          main_tag_is_hidden: v_main_tag_subcategories.main_tag_is_hidden,
-          sub_tag_id: v_main_tag_subcategories.sub_tag_id,
-          sub_tag_name: v_main_tag_subcategories.sub_tag_name,
-          sub_tag_slug: v_main_tag_subcategories.sub_tag_slug,
-          sub_tag_is_main_category: v_main_tag_subcategories.sub_tag_is_main_category,
-          sub_tag_is_hidden: v_main_tag_subcategories.sub_tag_is_hidden,
-          active_markets_count: v_main_tag_subcategories.active_markets_count,
-          last_market_activity_at: v_main_tag_subcategories.last_market_activity_at,
-        })
-        .from(v_main_tag_subcategories)
-        .where(inArray(v_main_tag_subcategories.main_tag_slug, mainSlugs))
-
-      return { data: result, error: null }
-    })
-
-    if (viewError || !subcategoriesResult) {
-      const tagsWithChilds = mainVisibleTags.map((tag: any) => ({ ...tag, childs: [] }))
-      const errorMessage = typeof viewError === 'string' ? viewError : 'Unknown error'
-      return { data: tagsWithChilds, error: errorMessage, globalChilds: [] }
-    }
-
-    const translationTagIds = new Set<number>()
-    for (const tag of mainVisibleTags) {
-      translationTagIds.add(tag.id)
-    }
-    for (const subtag of subcategoriesResult) {
-      if (subtag.main_tag_id) {
-        translationTagIds.add(subtag.main_tag_id)
-      }
-      if (subtag.sub_tag_id) {
-        translationTagIds.add(subtag.sub_tag_id)
-      }
-    }
-
-    const { data: localizedNamesByTagId, error: translationError } = await getLocalizedNamesByTagId(
-      Array.from(translationTagIds),
-      locale,
-    )
-
-    if (translationError) {
-      return { data: null, error: translationError, globalChilds: [] }
-    }
-
-    const grouped = new Map<string, { name: string, slug: string, count: number }[]>()
-    const bestMainBySubSlug = new Map<string, { mainSlug: string, count: number }>()
-    const globalCounts = new Map<string, { name: string, slug: string, count: number }>()
-
-    const mainSlugSet = new Set(mainSlugs)
-
-    for (const subtag of subcategoriesResult) {
-      if (
-        !subtag.sub_tag_slug
-        || mainSlugSet.has(subtag.sub_tag_slug)
-        || EXCLUDED_SUB_SLUGS.has(subtag.sub_tag_slug)
-        || subtag.sub_tag_is_hidden
-        || subtag.main_tag_is_hidden
-      ) {
-        continue
-      }
-
-      const localizedSubTagName = localizedNamesByTagId.get(subtag.sub_tag_id ?? -1) ?? subtag.sub_tag_name!
-      const current = grouped.get(subtag.main_tag_slug!) ?? []
-      const existingIndex = current.findIndex(item => item.slug === subtag.sub_tag_slug)
-      const nextCount = subtag.active_markets_count ?? 0
-
-      if (existingIndex >= 0) {
-        current[existingIndex] = {
-          name: localizedSubTagName,
-          slug: subtag.sub_tag_slug,
-          count: Math.max(current[existingIndex].count, nextCount),
-        }
-      }
-      else {
-        current.push({
-          name: localizedSubTagName,
-          slug: subtag.sub_tag_slug,
-          count: nextCount,
-        })
-      }
-
-      grouped.set(subtag.main_tag_slug!, current)
-
-      const best = bestMainBySubSlug.get(subtag.sub_tag_slug)
-      if (
-        !best
-        || nextCount > best.count
-        || (nextCount === best.count && subtag.main_tag_slug!.localeCompare(best.mainSlug) < 0)
-      ) {
-        bestMainBySubSlug.set(subtag.sub_tag_slug, {
-          mainSlug: subtag.main_tag_slug!,
-          count: nextCount,
-        })
-      }
-
-      const globalExisting = globalCounts.get(subtag.sub_tag_slug)
-      globalCounts.set(subtag.sub_tag_slug, {
+    if (existingIndex >= 0) {
+      current[existingIndex] = {
         name: localizedSubTagName,
         slug: subtag.sub_tag_slug,
-        count: (globalExisting?.count ?? 0) + nextCount,
+        count: Math.max(current[existingIndex].count, nextCount),
+      }
+    }
+    else {
+      current.push({
+        name: localizedSubTagName,
+        slug: subtag.sub_tag_slug,
+        count: nextCount,
       })
     }
 
-    const enhanced = mainVisibleTags.map(tag => ({
-      ...tag,
-      name: localizedNamesByTagId.get(tag.id) ?? tag.name,
-      childs: (grouped.get(tag.slug) ?? [])
-        .filter(child => bestMainBySubSlug.get(child.slug)?.mainSlug === tag.slug)
-        .sort((a, b) => {
-          if (b.count === a.count) {
-            return a.name.localeCompare(b.name)
-          }
-          return b.count - a.count
-        })
-        .map(({ name, slug }) => ({ name, slug })),
-    }))
+    grouped.set(subtag.main_tag_slug!, current)
 
-    const globalChilds = Array.from(globalCounts.values())
-      .filter(child => child.count > 0)
+    const best = bestMainBySubSlug.get(subtag.sub_tag_slug)
+    if (
+      !best
+      || nextCount > best.count
+      || (nextCount === best.count && subtag.main_tag_slug!.localeCompare(best.mainSlug) < 0)
+    ) {
+      bestMainBySubSlug.set(subtag.sub_tag_slug, {
+        mainSlug: subtag.main_tag_slug!,
+        count: nextCount,
+      })
+    }
+
+    const globalExisting = globalCounts.get(subtag.sub_tag_slug)
+    globalCounts.set(subtag.sub_tag_slug, {
+      name: localizedSubTagName,
+      slug: subtag.sub_tag_slug,
+      count: (globalExisting?.count ?? 0) + nextCount,
+    })
+  }
+
+  const enhanced = mainVisibleTags.map(tag => ({
+    ...tag,
+    name: localizedNamesByTagId.get(tag.id) ?? tag.name,
+    childs: (grouped.get(tag.slug) ?? [])
+      .filter(child => bestMainBySubSlug.get(child.slug)?.mainSlug === tag.slug)
       .sort((a, b) => {
         if (b.count === a.count) {
           return a.name.localeCompare(b.name)
         }
         return b.count - a.count
       })
-      .map(({ name, slug }) => ({ name, slug }))
+      .map(({ name, slug }) => ({ name, slug })),
+  }))
 
-    return { data: enhanced, error: null, globalChilds }
+  const globalChilds = Array.from(globalCounts.values())
+    .filter(child => child.count > 0)
+    .sort((a, b) => {
+      if (b.count === a.count) {
+        return a.name.localeCompare(b.name)
+      }
+      return b.count - a.count
+    })
+    .map(({ name, slug }) => ({ name, slug }))
+
+  return { data: enhanced, error: null, globalChilds }
+}
+
+async function getMainTagsCached(locale: SupportedLocale): Promise<MainTagsResult> {
+  'use cache'
+  cacheTag(cacheTags.mainTags(locale))
+  return fetchMainTagsFromDatabase(locale)
+}
+
+export const TagRepository = {
+  async getMainTags(locale: SupportedLocale = DEFAULT_LOCALE): Promise<MainTagsResult> {
+    const cachedResult = await getMainTagsCached(locale)
+    if (!cachedResult.error) {
+      return cachedResult
+    }
+
+    const liveResult = await fetchMainTagsFromDatabase(locale)
+    if (!liveResult.error) {
+      updateTag(cacheTags.mainTags(locale))
+    }
+    return liveResult
   },
 
   async listTags({
