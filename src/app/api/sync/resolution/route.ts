@@ -589,8 +589,8 @@ async function processResolution(
     .eq('condition_id', conditionId)
 
   marketUpdateQuery = isResolved
-    ? marketUpdateQuery.or('is_resolved.neq.true,is_active.neq.false')
-    : marketUpdateQuery.neq('is_resolved', false)
+    ? marketUpdateQuery.or('is_resolved.neq.true,is_resolved.is.null,is_active.neq.false,is_active.is.null')
+    : marketUpdateQuery.or('is_resolved.neq.false,is_resolved.is.null')
 
   const { error: marketError } = await marketUpdateQuery
 
@@ -690,7 +690,7 @@ async function updateOutcomePayouts(conditionId: string, price: number) {
       })
       .eq('condition_id', conditionId)
       .eq('outcome_index', update.index)
-      .or(`is_winning_outcome.neq.${isWinningOutcome ? 'true' : 'false'},payout_value.is.null,payout_value.neq.${update.payout}`)
+      .or(`is_winning_outcome.neq.${isWinningOutcome ? 'true' : 'false'},is_winning_outcome.is.null,payout_value.is.null,payout_value.neq.${update.payout}`)
 
     if (error) {
       throw new Error(`Failed to update outcomes for ${conditionId}: ${error.message}`)
