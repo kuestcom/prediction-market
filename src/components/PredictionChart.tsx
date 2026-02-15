@@ -134,6 +134,7 @@ export function PredictionChart({
   onCursorDataChange,
   cursorStepMs,
   xAxisTickCount = DEFAULT_X_AXIS_TICKS,
+  xAxisTickValues,
   xAxisTickFormatter,
   xAxisTickFontSize = 11,
   yAxisTickFontSize = 11,
@@ -152,6 +153,7 @@ export function PredictionChart({
   disableCursorSplit = false,
   markerOuterRadius = 6,
   markerInnerRadius = 2.8,
+  lineStrokeWidth = 1.6,
   lineCurve = 'catmullRom',
   tooltipValueFormatter,
   tooltipDateFormatter,
@@ -191,6 +193,10 @@ export function PredictionChart({
   const shouldRenderWatermark = Boolean(
     watermark && (watermark.iconSvg || watermark.label),
   )
+  const resolvedLineStrokeWidth = Number.isFinite(lineStrokeWidth) && lineStrokeWidth > 0
+    ? lineStrokeWidth
+    : 1.6
+  const resolvedSurgeStrokeWidth = Math.max(resolvedLineStrokeWidth + 1.2, 2.8)
   const emitCursorDataChange = useCallback(
     (point: DataPoint | null) => {
       if (!onCursorDataChange) {
@@ -835,6 +841,22 @@ export function PredictionChart({
 
     return result
   }, [data, series])
+  const resolvedXAxisTickValues = useMemo(() => {
+    if (!Array.isArray(xAxisTickValues) || xAxisTickValues.length === 0) {
+      return null
+    }
+
+    const filtered = xAxisTickValues
+      .filter((tick) => {
+        const timestamp = tick.getTime()
+        return Number.isFinite(timestamp)
+          && timestamp >= domainBounds.start
+          && timestamp <= domainBounds.end
+      })
+      .sort((a, b) => a.getTime() - b.getTime())
+
+    return filtered.length >= 2 ? filtered : null
+  }, [domainBounds.end, domainBounds.start, xAxisTickValues])
 
   if (!isClient || data.length === 0 || series.length === 0) {
     return (
@@ -914,7 +936,10 @@ export function PredictionChart({
     : 0
   const isMonthOnlyLabels = totalDurationHours > 24 * 45
   const verticalGridTicks = showVerticalGrid
-    ? xScale.ticks(Math.max(2, xAxisTickCount * 2))
+    ? (
+        resolvedXAxisTickValues
+        ?? xScale.ticks(Math.max(2, xAxisTickCount * 2))
+      )
     : []
 
   function formatAxisTick(value: number | { valueOf: () => number }) {
@@ -1175,7 +1200,7 @@ export function PredictionChart({
                       x={d => xScale(getDate(d))}
                       y={d => yScale((d[seriesItem.key] as number) || 0)}
                       stroke={seriesColor}
-                      strokeWidth={1.6}
+                      strokeWidth={resolvedLineStrokeWidth}
                       strokeOpacity={ghostOpacity}
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -1237,7 +1262,7 @@ export function PredictionChart({
                             x={d => xScale(getDate(d))}
                             y={d => yScale((d[seriesItem.key] as number) || 0)}
                             stroke={seriesColor}
-                            strokeWidth={1.6}
+                            strokeWidth={resolvedLineStrokeWidth}
                             strokeOpacity={crossFadeIn}
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -1286,7 +1311,7 @@ export function PredictionChart({
                             <path
                               d={pathDefinition}
                               stroke={seriesColor}
-                              strokeWidth={1.6}
+                              strokeWidth={resolvedLineStrokeWidth}
                               strokeOpacity={crossFadeIn}
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -1297,7 +1322,7 @@ export function PredictionChart({
                               <path
                                 d={pathDefinition}
                                 stroke={resolveSurgeColor(seriesColor)}
-                                strokeWidth={2.8}
+                                strokeWidth={resolvedSurgeStrokeWidth}
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 fill="transparent"
@@ -1403,6 +1428,7 @@ export function PredictionChart({
                   top={innerHeight}
                   scale={xScale}
                   tickFormat={formatAxisTick}
+                  tickValues={resolvedXAxisTickValues ?? undefined}
                   stroke="transparent"
                   tickStroke="transparent"
                   tickLabelProps={(_value, index, values) => {

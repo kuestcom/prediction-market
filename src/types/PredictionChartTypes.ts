@@ -26,6 +26,7 @@ export interface PredictionChartProps {
   onCursorDataChange?: (snapshot: PredictionChartCursorSnapshot | null) => void
   cursorStepMs?: number
   xAxisTickCount?: number
+  xAxisTickValues?: Date[]
   xAxisTickFormatter?: (value: Date) => string
   xAxisTickFontSize?: number
   yAxisTickFontSize?: number
@@ -49,6 +50,7 @@ export interface PredictionChartProps {
   disableCursorSplit?: boolean
   markerOuterRadius?: number
   markerInnerRadius?: number
+  lineStrokeWidth?: number
   lineCurve?: 'catmullRom' | 'monotoneX'
   tooltipValueFormatter?: (value: number) => string
   tooltipDateFormatter?: (value: Date) => string
