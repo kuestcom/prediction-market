@@ -100,7 +100,7 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
   return (
     <section className="grid gap-8">
       <div className="grid gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('Affiliate Program')}</h1>
+        <h1 className="text-2xl font-medium tracking-tight">{t('Affiliate Program')}</h1>
         <p className="text-muted-foreground">
           {t('Share your referral link to earn a percentage of every trade from users you invite.')}
         </p>

@@ -4,16 +4,23 @@ import type { Metadata, Viewport } from 'next'
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
+import { Inter } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import TestModeBanner from '@/components/TestModeBanner'
 import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { routing } from '@/i18n/routing'
 import { cacheTags } from '@/lib/cache-tags'
-import { openSauceOne } from '@/lib/fonts'
 import { IS_TEST_MODE } from '@/lib/network'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 import SiteIdentityProvider from '@/providers/SiteIdentityProvider'
 import '../globals.css'
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-sans',
+})
 
 export const viewport: Viewport = {
   themeColor: [
@@ -63,7 +70,7 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
   return (
     <html
       lang={locale}
-      className={`${openSauceOne.variable}`}
+      className={`${inter.variable}`}
       data-theme-preset={runtimeTheme.theme.presetId}
       suppressHydrationWarning
     >

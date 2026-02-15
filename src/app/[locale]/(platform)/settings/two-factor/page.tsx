@@ -27,7 +27,7 @@ export default async function TwoFactorSettingsPage({ params }: PageProps<'/[loc
   return (
     <section className="grid gap-8">
       <div className="grid gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('Two-Factor Authentication')}</h1>
+        <h1 className="text-2xl font-medium tracking-tight">{t('Two-Factor Authentication')}</h1>
         <p className="text-muted-foreground">
           {t('Add an extra layer of security to your account.')}
         </p>

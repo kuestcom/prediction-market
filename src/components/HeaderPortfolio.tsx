@@ -33,7 +33,7 @@ export default function HeaderPortfolio() {
       >
         <Link href="/portfolio">
           <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Portfolio')}</div>
-          <div className="-translate-y-px text-base/tight font-semibold text-yes">
+          <div className="-translate-y-px text-sm/tight font-semibold text-yes">
             {isLoadingValue
               ? <Skeleton className="h-5 w-12" />
               : areValuesHidden
@@ -63,7 +63,7 @@ export default function HeaderPortfolio() {
               </span>
             )}
           </div>
-          <div className="-translate-y-px text-base/tight font-semibold text-yes">
+          <div className="-translate-y-px text-sm/tight font-semibold text-yes">
             {isLoadingValue
               ? <Skeleton className="h-5 w-12" />
               : areValuesHidden

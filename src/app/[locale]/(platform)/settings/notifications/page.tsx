@@ -27,7 +27,7 @@ export default async function NotificationsSettingsPage({ params }: PageProps<'/
   return (
     <section className="grid gap-8">
       <div className="grid gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('Notifications')}</h1>
+        <h1 className="text-2xl font-medium tracking-tight">{t('Notifications')}</h1>
         <p className="text-muted-foreground">
           {t('Configure how you receive notifications.')}
         </p>
