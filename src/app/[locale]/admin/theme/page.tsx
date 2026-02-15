@@ -7,6 +7,7 @@ import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getSupabasePublicAssetUrl } from '@/lib/supabase'
 import { getThemePresetOptions } from '@/lib/theme'
 import { getThemeSettingsFormState, getThemeSiteSettingsFormState } from '@/lib/theme-settings'
+import { DEFAULT_THEME_SITE_PWA_ICON_192_URL, DEFAULT_THEME_SITE_PWA_ICON_512_URL } from '@/lib/theme-site-identity'
 
 export default async function AdminThemeSettingsPage({ params }: PageProps<'/[locale]/admin/theme'>) {
   const { locale } = await params
@@ -20,9 +21,15 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
   const initialThemeSiteImageUrl = initialThemeSiteSettings.logoMode === 'image'
     ? getSupabasePublicAssetUrl(initialThemeSiteSettings.logoImagePath || null)
     : null
+  const initialPwaIcon192Url = getSupabasePublicAssetUrl(initialThemeSiteSettings.pwaIcon192Path || null)
+    ?? DEFAULT_THEME_SITE_PWA_ICON_192_URL
+  const initialPwaIcon512Url = getSupabasePublicAssetUrl(initialThemeSiteSettings.pwaIcon512Path || null)
+    ?? DEFAULT_THEME_SITE_PWA_ICON_512_URL
   const initialThemeSiteSettingsWithImage: AdminThemeSiteSettingsInitialState = {
     ...initialThemeSiteSettings,
     logoImageUrl: initialThemeSiteImageUrl,
+    pwaIcon192Url: initialPwaIcon192Url,
+    pwaIcon512Url: initialPwaIcon512Url,
   }
   const presetOptions = getThemePresetOptions()
 

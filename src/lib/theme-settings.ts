@@ -39,6 +39,8 @@ const THEME_SITE_LOGO_IMAGE_PATH_KEY = 'site_logo_image_path'
 const THEME_SITE_GOOGLE_ANALYTICS_KEY = 'site_google_analytics'
 const THEME_SITE_DISCORD_LINK_KEY = 'site_discord_link'
 const THEME_SITE_SUPPORT_URL_KEY = 'site_support_url'
+const GENERAL_PWA_ICON_192_PATH_KEY = 'pwa_icon_192_path'
+const GENERAL_PWA_ICON_512_PATH_KEY = 'pwa_icon_512_path'
 const GENERAL_FEE_RECIPIENT_WALLET_KEY = 'fee_recipient_wallet'
 const GENERAL_MARKET_CREATORS_KEY = 'market_creators'
 const GENERAL_LIFI_INTEGRATOR_KEY = 'lifi_integrator'
@@ -71,6 +73,10 @@ interface NormalizedThemeSiteConfig {
   logoSvgValue: string
   logoImagePath: string | null
   logoImagePathValue: string
+  pwaIcon192Path: string | null
+  pwaIcon192PathValue: string
+  pwaIcon512Path: string | null
+  pwaIcon512PathValue: string
   googleAnalyticsId: string | null
   googleAnalyticsIdValue: string
   discordLink: string | null
@@ -108,6 +114,8 @@ export interface ThemeSiteSettingsFormState {
   logoMode: ThemeSiteLogoMode
   logoSvg: string
   logoImagePath: string
+  pwaIcon192Path: string
+  pwaIcon512Path: string
   googleAnalyticsId: string
   discordLink: string
   supportUrl: string
@@ -277,6 +285,8 @@ function normalizeThemeSiteConfig(params: {
   logoModeValue: string | null | undefined
   logoSvgValue: string | null | undefined
   logoImagePathValue: string | null | undefined
+  pwaIcon192PathValue: string | null | undefined
+  pwaIcon512PathValue: string | null | undefined
   googleAnalyticsIdValue: string | null | undefined
   discordLinkValue: string | null | undefined
   supportUrlValue: string | null | undefined
@@ -289,6 +299,8 @@ function normalizeThemeSiteConfig(params: {
   logoModeErrorLabel: string
   logoSvgErrorLabel: string
   logoImagePathErrorLabel: string
+  pwaIcon192PathErrorLabel: string
+  pwaIcon512PathErrorLabel: string
   googleAnalyticsIdErrorLabel: string
   discordLinkErrorLabel: string
   supportUrlErrorLabel: string
@@ -315,6 +327,16 @@ function normalizeThemeSiteConfig(params: {
   const logoImagePathValidated = validateThemeSiteLogoImagePath(params.logoImagePathValue, params.logoImagePathErrorLabel)
   if (logoImagePathValidated.error) {
     return { data: null, error: logoImagePathValidated.error }
+  }
+
+  const pwaIcon192PathValidated = validateThemeSiteLogoImagePath(params.pwaIcon192PathValue, params.pwaIcon192PathErrorLabel)
+  if (pwaIcon192PathValidated.error) {
+    return { data: null, error: pwaIcon192PathValidated.error }
+  }
+
+  const pwaIcon512PathValidated = validateThemeSiteLogoImagePath(params.pwaIcon512PathValue, params.pwaIcon512PathErrorLabel)
+  if (pwaIcon512PathValidated.error) {
+    return { data: null, error: pwaIcon512PathValidated.error }
   }
 
   const googleAnalyticsValidated = validateThemeSiteGoogleAnalyticsId(
@@ -391,6 +413,10 @@ function normalizeThemeSiteConfig(params: {
       logoSvgValue: logoSvgResolved.value!,
       logoImagePath: logoImagePathValidated.value,
       logoImagePathValue: logoImagePathValidated.value ?? '',
+      pwaIcon192Path: pwaIcon192PathValidated.value,
+      pwaIcon192PathValue: pwaIcon192PathValidated.value ?? '',
+      pwaIcon512Path: pwaIcon512PathValidated.value,
+      pwaIcon512PathValue: pwaIcon512PathValidated.value ?? '',
       googleAnalyticsId: googleAnalyticsValidated.value,
       googleAnalyticsIdValue: googleAnalyticsValidated.value ?? '',
       discordLink: discordLinkValidated.value,
@@ -411,9 +437,12 @@ function normalizeThemeSiteConfig(params: {
 }
 
 function buildThemeSiteIdentity(config: NormalizedThemeSiteConfig): ThemeSiteIdentity {
+  const defaultSite = createDefaultThemeSiteIdentity()
   const logoImageUrl = config.logoMode === 'image'
     ? getSupabasePublicAssetUrl(config.logoImagePath)
     : null
+  const pwaIcon192Url = getSupabasePublicAssetUrl(config.pwaIcon192Path) ?? defaultSite.pwaIcon192Url
+  const pwaIcon512Url = getSupabasePublicAssetUrl(config.pwaIcon512Path) ?? defaultSite.pwaIcon512Url
 
   const useImageLogo = config.logoMode === 'image' && Boolean(logoImageUrl)
 
@@ -428,6 +457,11 @@ function buildThemeSiteIdentity(config: NormalizedThemeSiteConfig): ThemeSiteIde
     googleAnalyticsId: config.googleAnalyticsId,
     discordLink: config.discordLink,
     supportUrl: config.supportUrl,
+    pwaIcon192Path: config.pwaIcon192Path,
+    pwaIcon512Path: config.pwaIcon512Path,
+    pwaIcon192Url,
+    pwaIcon512Url,
+    appleTouchIconUrl: pwaIcon192Url,
   }
 }
 
@@ -473,6 +507,8 @@ function hasStoredThemeSiteSettings(generalSettings?: SettingsGroup) {
     || generalSettings[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value?.trim()
     || generalSettings[THEME_SITE_DISCORD_LINK_KEY]?.value?.trim()
     || generalSettings[THEME_SITE_SUPPORT_URL_KEY]?.value?.trim()
+    || generalSettings[GENERAL_PWA_ICON_192_PATH_KEY]?.value?.trim()
+    || generalSettings[GENERAL_PWA_ICON_512_PATH_KEY]?.value?.trim()
     || generalSettings[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value?.trim()
     || generalSettings[GENERAL_MARKET_CREATORS_KEY]?.value?.trim()
     || generalSettings[GENERAL_LIFI_INTEGRATOR_KEY]?.value?.trim()
@@ -516,6 +552,8 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     logoModeValue: generalSettings?.[THEME_SITE_LOGO_MODE_KEY]?.value ?? defaultSite.logoMode,
     logoSvgValue: generalSettings?.[THEME_SITE_LOGO_SVG_KEY]?.value ?? defaultSite.logoSvg,
     logoImagePathValue: generalSettings?.[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value ?? defaultSite.logoImagePath,
+    pwaIcon192PathValue: generalSettings?.[GENERAL_PWA_ICON_192_PATH_KEY]?.value ?? defaultSite.pwaIcon192Path,
+    pwaIcon512PathValue: generalSettings?.[GENERAL_PWA_ICON_512_PATH_KEY]?.value ?? defaultSite.pwaIcon512Path,
     googleAnalyticsIdValue: generalSettings?.[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value ?? defaultSite.googleAnalyticsId,
     discordLinkValue: generalSettings?.[THEME_SITE_DISCORD_LINK_KEY]?.value ?? defaultSite.discordLink,
     supportUrlValue: generalSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value ?? defaultSite.supportUrl,
@@ -526,6 +564,8 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     logoModeErrorLabel: 'Logo mode',
     logoSvgErrorLabel: 'Logo SVG',
     logoImagePathErrorLabel: 'Logo image path',
+    pwaIcon192PathErrorLabel: 'PWA icon (192x192)',
+    pwaIcon512PathErrorLabel: 'PWA icon (512x512)',
     googleAnalyticsIdErrorLabel: 'Google Analytics ID',
     discordLinkErrorLabel: 'Discord link',
     supportUrlErrorLabel: 'Support URL',
@@ -540,6 +580,8 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
       logoMode: normalized.data.logoModeValue,
       logoSvg: normalized.data.logoSvgValue,
       logoImagePath: normalized.data.logoImagePathValue,
+      pwaIcon192Path: normalized.data.pwaIcon192PathValue,
+      pwaIcon512Path: normalized.data.pwaIcon512PathValue,
       googleAnalyticsId: normalized.data.googleAnalyticsIdValue,
       discordLink: normalized.data.discordLinkValue,
       supportUrl: normalized.data.supportUrlValue,
@@ -559,6 +601,8 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     logoMode: defaultSite.logoMode,
     logoSvg: defaultSite.logoSvg,
     logoImagePath: defaultSite.logoImagePath ?? '',
+    pwaIcon192Path: defaultSite.pwaIcon192Path ?? '',
+    pwaIcon512Path: defaultSite.pwaIcon512Path ?? '',
     googleAnalyticsId: defaultSite.googleAnalyticsId ?? '',
     discordLink: defaultSite.discordLink ?? '',
     supportUrl: defaultSite.supportUrl ?? '',
@@ -594,6 +638,8 @@ export function validateThemeSiteSettingsInput(params: {
   logoMode: string | null | undefined
   logoSvg: string | null | undefined
   logoImagePath: string | null | undefined
+  pwaIcon192Path: string | null | undefined
+  pwaIcon512Path: string | null | undefined
   googleAnalyticsId: string | null | undefined
   discordLink: string | null | undefined
   supportUrl: string | null | undefined
@@ -608,6 +654,8 @@ export function validateThemeSiteSettingsInput(params: {
     logoModeValue: params.logoMode,
     logoSvgValue: params.logoSvg,
     logoImagePathValue: params.logoImagePath,
+    pwaIcon192PathValue: params.pwaIcon192Path,
+    pwaIcon512PathValue: params.pwaIcon512Path,
     googleAnalyticsIdValue: params.googleAnalyticsId,
     discordLinkValue: params.discordLink,
     supportUrlValue: params.supportUrl,
@@ -620,6 +668,8 @@ export function validateThemeSiteSettingsInput(params: {
     logoModeErrorLabel: 'Logo type',
     logoSvgErrorLabel: 'Logo SVG',
     logoImagePathErrorLabel: 'Logo image',
+    pwaIcon192PathErrorLabel: 'PWA icon (192x192)',
+    pwaIcon512PathErrorLabel: 'PWA icon (512x512)',
     googleAnalyticsIdErrorLabel: 'Google Analytics ID',
     discordLinkErrorLabel: 'Discord link',
     supportUrlErrorLabel: 'Support URL',
@@ -663,6 +713,8 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
         logoModeValue: generalSettings?.[THEME_SITE_LOGO_MODE_KEY]?.value,
         logoSvgValue: generalSettings?.[THEME_SITE_LOGO_SVG_KEY]?.value,
         logoImagePathValue: generalSettings?.[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value,
+        pwaIcon192PathValue: generalSettings?.[GENERAL_PWA_ICON_192_PATH_KEY]?.value,
+        pwaIcon512PathValue: generalSettings?.[GENERAL_PWA_ICON_512_PATH_KEY]?.value,
         googleAnalyticsIdValue: generalSettings?.[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value,
         discordLinkValue: generalSettings?.[THEME_SITE_DISCORD_LINK_KEY]?.value,
         supportUrlValue: generalSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value,
@@ -673,6 +725,8 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
         logoModeErrorLabel: 'Logo mode in settings',
         logoSvgErrorLabel: 'Logo SVG in settings',
         logoImagePathErrorLabel: 'Logo image path in settings',
+        pwaIcon192PathErrorLabel: 'PWA icon (192x192) in settings',
+        pwaIcon512PathErrorLabel: 'PWA icon (512x512) in settings',
         googleAnalyticsIdErrorLabel: 'Google Analytics ID in settings',
         discordLinkErrorLabel: 'Discord link in settings',
         supportUrlErrorLabel: 'Support URL in settings',

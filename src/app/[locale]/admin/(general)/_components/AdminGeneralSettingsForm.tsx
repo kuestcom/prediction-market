@@ -53,6 +53,10 @@ export default function AdminGeneralSettingsForm({
   const initialLogoSvg = initialThemeSiteSettings.logoSvg
   const initialLogoImagePath = initialThemeSiteSettings.logoImagePath
   const initialLogoImageUrl = initialThemeSiteSettings.logoImageUrl
+  const initialPwaIcon192Path = initialThemeSiteSettings.pwaIcon192Path
+  const initialPwaIcon512Path = initialThemeSiteSettings.pwaIcon512Path
+  const initialPwaIcon192Url = initialThemeSiteSettings.pwaIcon192Url
+  const initialPwaIcon512Url = initialThemeSiteSettings.pwaIcon512Url
   const initialGoogleAnalyticsId = initialThemeSiteSettings.googleAnalyticsId
   const initialDiscordLink = initialThemeSiteSettings.discordLink
   const initialSupportUrl = initialThemeSiteSettings.supportUrl
@@ -73,6 +77,8 @@ export default function AdminGeneralSettingsForm({
   const [logoMode, setLogoMode] = useState(initialLogoMode)
   const [logoSvg, setLogoSvg] = useState(initialLogoSvg)
   const [logoImagePath, setLogoImagePath] = useState(initialLogoImagePath)
+  const [pwaIcon192Path, setPwaIcon192Path] = useState(initialPwaIcon192Path)
+  const [pwaIcon512Path, setPwaIcon512Path] = useState(initialPwaIcon512Path)
   const [googleAnalyticsId, setGoogleAnalyticsId] = useState(initialGoogleAnalyticsId)
   const [discordLink, setDiscordLink] = useState(initialDiscordLink)
   const [supportUrl, setSupportUrl] = useState(initialSupportUrl)
@@ -90,6 +96,8 @@ export default function AdminGeneralSettingsForm({
   const [isRefreshingOpenRouterModels, setIsRefreshingOpenRouterModels] = useState(false)
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null)
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
+  const [pwaIcon192PreviewUrl, setPwaIcon192PreviewUrl] = useState<string | null>(null)
+  const [pwaIcon512PreviewUrl, setPwaIcon512PreviewUrl] = useState<string | null>(null)
 
   useEffect(() => {
     setSiteName(initialSiteName)
@@ -110,6 +118,14 @@ export default function AdminGeneralSettingsForm({
   useEffect(() => {
     setLogoImagePath(initialLogoImagePath)
   }, [initialLogoImagePath])
+
+  useEffect(() => {
+    setPwaIcon192Path(initialPwaIcon192Path)
+  }, [initialPwaIcon192Path])
+
+  useEffect(() => {
+    setPwaIcon512Path(initialPwaIcon512Path)
+  }, [initialPwaIcon512Path])
 
   useEffect(() => {
     setGoogleAnalyticsId(initialGoogleAnalyticsId)
@@ -159,8 +175,14 @@ export default function AdminGeneralSettingsForm({
       if (logoPreviewUrl) {
         URL.revokeObjectURL(logoPreviewUrl)
       }
+      if (pwaIcon192PreviewUrl) {
+        URL.revokeObjectURL(pwaIcon192PreviewUrl)
+      }
+      if (pwaIcon512PreviewUrl) {
+        URL.revokeObjectURL(pwaIcon512PreviewUrl)
+      }
     }
-  }, [logoPreviewUrl])
+  }, [logoPreviewUrl, pwaIcon192PreviewUrl, pwaIcon512PreviewUrl])
 
   useEffect(() => {
     const transitionedToIdle = wasPendingRef.current && !isPending
@@ -179,6 +201,12 @@ export default function AdminGeneralSettingsForm({
   const imagePreview = useMemo(() => {
     return logoPreviewUrl ?? initialLogoImageUrl
   }, [initialLogoImageUrl, logoPreviewUrl])
+  const pwaIcon192Preview = useMemo(() => {
+    return pwaIcon192PreviewUrl ?? initialPwaIcon192Url
+  }, [initialPwaIcon192Url, pwaIcon192PreviewUrl])
+  const pwaIcon512Preview = useMemo(() => {
+    return pwaIcon512PreviewUrl ?? initialPwaIcon512Url
+  }, [initialPwaIcon512Url, pwaIcon512PreviewUrl])
 
   const sanitizedLogoSvg = useMemo(() => sanitizeSvg(logoSvg), [logoSvg])
   const svgPreviewUrl = useMemo(
@@ -241,6 +269,8 @@ export default function AdminGeneralSettingsForm({
       <input type="hidden" name="logo_mode" value={logoMode} />
       <input type="hidden" name="logo_image_path" value={logoImagePath} />
       <input type="hidden" name="logo_svg" value={logoSvg} />
+      <input type="hidden" name="pwa_icon_192_path" value={pwaIcon192Path} />
+      <input type="hidden" name="pwa_icon_512_path" value={pwaIcon512Path} />
       <input type="hidden" name="openrouter_model" value={openRouterModel} />
 
       <section className="overflow-hidden rounded-xl border">
@@ -683,6 +713,145 @@ export default function AdminGeneralSettingsForm({
                 disabled={isPending}
                 placeholder={t('0xabc...\n0xdef...')}
               />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-border/70">
+        <div className="p-4">
+          <h3 className="text-sm font-medium">{t('App install icon (PWA)')}</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t('Used by browser install prompts and home screen shortcuts.')}
+          </p>
+        </div>
+
+        <div className="border-t p-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>{t('Icon 192x192')}</Label>
+              <Input
+                id="theme-pwa-icon-192-file"
+                type="file"
+                name="pwa_icon_192"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                disabled={isPending}
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null
+                  if (pwaIcon192PreviewUrl) {
+                    URL.revokeObjectURL(pwaIcon192PreviewUrl)
+                  }
+                  setPwaIcon192PreviewUrl(file ? URL.createObjectURL(file) : null)
+                }}
+              />
+              <label
+                htmlFor="theme-pwa-icon-192-file"
+                className={cn(
+                  `
+                    group relative flex size-28 cursor-pointer items-center justify-center overflow-hidden rounded-xl
+                    border border-dashed border-border bg-muted/20 text-muted-foreground transition
+                    hover:border-primary/60
+                  `,
+                  { 'cursor-not-allowed opacity-60 hover:border-border hover:bg-muted/20': isPending },
+                )}
+              >
+                <span className={`
+                  pointer-events-none absolute inset-0 bg-foreground/0 transition
+                  group-hover:bg-foreground/5
+                `}
+                />
+                <Image
+                  src={pwaIcon192Preview}
+                  alt={t('PWA icon 192x192')}
+                  fill
+                  sizes="112px"
+                  className="object-contain"
+                  unoptimized
+                />
+                <ImageUp
+                  className={cn(
+                    `
+                      pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2 text-foreground/70
+                      opacity-0 transition
+                      group-hover:opacity-100
+                    `,
+                  )}
+                />
+                <span
+                  className={`
+                    pointer-events-none absolute bottom-1.5 left-1/2 z-10 w-20 -translate-x-1/2 rounded-md
+                    bg-background/80 px-1.5 py-0.5 text-center text-2xs leading-tight font-medium text-muted-foreground
+                    opacity-0 transition
+                    group-hover:opacity-100
+                  `}
+                >
+                  {t('PNG, JPG, WebP or SVG')}
+                </span>
+              </label>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>{t('Icon 512x512')}</Label>
+              <Input
+                id="theme-pwa-icon-512-file"
+                type="file"
+                name="pwa_icon_512"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                disabled={isPending}
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null
+                  if (pwaIcon512PreviewUrl) {
+                    URL.revokeObjectURL(pwaIcon512PreviewUrl)
+                  }
+                  setPwaIcon512PreviewUrl(file ? URL.createObjectURL(file) : null)
+                }}
+              />
+              <label
+                htmlFor="theme-pwa-icon-512-file"
+                className={cn(
+                  `
+                    group relative flex size-28 cursor-pointer items-center justify-center overflow-hidden rounded-xl
+                    border border-dashed border-border bg-muted/20 text-muted-foreground transition
+                    hover:border-primary/60
+                  `,
+                  { 'cursor-not-allowed opacity-60 hover:border-border hover:bg-muted/20': isPending },
+                )}
+              >
+                <span className={`
+                  pointer-events-none absolute inset-0 bg-foreground/0 transition
+                  group-hover:bg-foreground/5
+                `}
+                />
+                <Image
+                  src={pwaIcon512Preview}
+                  alt={t('PWA icon 512x512')}
+                  fill
+                  sizes="112px"
+                  className="object-contain"
+                  unoptimized
+                />
+                <ImageUp
+                  className={cn(
+                    `
+                      pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2 text-foreground/70
+                      opacity-0 transition
+                      group-hover:opacity-100
+                    `,
+                  )}
+                />
+                <span
+                  className={`
+                    pointer-events-none absolute bottom-1.5 left-1/2 z-10 w-20 -translate-x-1/2 rounded-md
+                    bg-background/80 px-1.5 py-0.5 text-center text-2xs leading-tight font-medium text-muted-foreground
+                    opacity-0 transition
+                    group-hover:opacity-100
+                  `}
+                >
+                  {t('PNG, JPG, WebP or SVG')}
+                </span>
+              </label>
             </div>
           </div>
         </div>

@@ -16,6 +16,12 @@ const DEFAULT_SITE_LOGO_SVG_FALLBACK = `
 </svg>
 `
 
+const SVG_ROOT_TAG_PATTERN = /<svg\b[^>]*>/i
+const SVG_DIMENSION_ATTR_PATTERN = /\s(?:width|height)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi
+const SVG_WIDTH_ATTR_PATTERN = /\swidth\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i
+const SVG_HEIGHT_ATTR_PATTERN = /\sheight\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i
+const SVG_VIEWBOX_ATTR_PATTERN = /\sviewbox\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i
+
 export interface ThemeSiteIdentity {
   name: string
   description: string
@@ -27,12 +33,17 @@ export interface ThemeSiteIdentity {
   googleAnalyticsId: string | null
   discordLink: string | null
   supportUrl: string | null
+  pwaIcon192Path: string | null
+  pwaIcon512Path: string | null
+  pwaIcon192Url: string
+  pwaIcon512Url: string
+  appleTouchIconUrl: string
 }
 
 function sanitizeDefaultLogo() {
-  const sanitized = sanitizeSvg(DEFAULT_SITE_LOGO_SVG_FALLBACK).trim()
+  const sanitized = normalizeRootSvgDimensions(sanitizeSvg(DEFAULT_SITE_LOGO_SVG_FALLBACK).trim())
   if (!sanitized || !/<svg[\s>]/i.test(sanitized)) {
-    return sanitizeSvg(DEFAULT_SITE_LOGO_SVG_FALLBACK).trim()
+    return normalizeRootSvgDimensions(sanitizeSvg(DEFAULT_SITE_LOGO_SVG_FALLBACK).trim())
   }
 
   return sanitized
@@ -41,6 +52,8 @@ function sanitizeDefaultLogo() {
 export const DEFAULT_THEME_SITE_NAME = DEFAULT_SITE_NAME_FALLBACK
 export const DEFAULT_THEME_SITE_DESCRIPTION = DEFAULT_SITE_DESCRIPTION_FALLBACK
 export const DEFAULT_THEME_SITE_LOGO_SVG = sanitizeDefaultLogo()
+export const DEFAULT_THEME_SITE_PWA_ICON_192_URL = '/images/pwa/default-icon-192.png'
+export const DEFAULT_THEME_SITE_PWA_ICON_512_URL = '/images/pwa/default-icon-512.png'
 
 export function buildSvgDataUri(svg: string) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
@@ -60,12 +73,55 @@ export function createDefaultThemeSiteIdentity(): ThemeSiteIdentity {
     googleAnalyticsId: null,
     discordLink: null,
     supportUrl: null,
+    pwaIcon192Path: null,
+    pwaIcon512Path: null,
+    pwaIcon192Url: DEFAULT_THEME_SITE_PWA_ICON_192_URL,
+    pwaIcon512Url: DEFAULT_THEME_SITE_PWA_ICON_512_URL,
+    appleTouchIconUrl: DEFAULT_THEME_SITE_PWA_ICON_192_URL,
   }
 }
 
 function normalizeOptionalString(value: string | null | undefined) {
   const normalized = typeof value === 'string' ? value.trim() : ''
   return normalized.length > 0 ? normalized : null
+}
+
+function extractAttributeValue(match: RegExpMatchArray | null) {
+  return (match?.[1] ?? match?.[2] ?? match?.[3] ?? '').trim()
+}
+
+function parseSvgDimension(value: string) {
+  const parsed = Number.parseFloat(value)
+  return Number.isFinite(parsed) && parsed > 0
+    ? Math.round(parsed * 1000) / 1000
+    : null
+}
+
+function addViewBoxAttribute(svgRootTag: string, viewBoxValue: string) {
+  if (svgRootTag.endsWith('/>')) {
+    return `${svgRootTag.slice(0, -2)} viewBox="${viewBoxValue}" />`
+  }
+  return `${svgRootTag.slice(0, -1)} viewBox="${viewBoxValue}">`
+}
+
+function normalizeRootSvgDimensions(svg: string) {
+  const rootTagMatch = svg.match(SVG_ROOT_TAG_PATTERN)
+  if (!rootTagMatch) {
+    return svg
+  }
+
+  const rootTag = rootTagMatch[0]
+  const hasViewBox = SVG_VIEWBOX_ATTR_PATTERN.test(rootTag.toLowerCase())
+  const widthValue = parseSvgDimension(extractAttributeValue(rootTag.match(SVG_WIDTH_ATTR_PATTERN)))
+  const heightValue = parseSvgDimension(extractAttributeValue(rootTag.match(SVG_HEIGHT_ATTR_PATTERN)))
+
+  let normalizedRootTag = rootTag.replace(SVG_DIMENSION_ATTR_PATTERN, '')
+
+  if (!hasViewBox && widthValue && heightValue) {
+    normalizedRootTag = addViewBoxAttribute(normalizedRootTag, `0 0 ${widthValue} ${heightValue}`)
+  }
+
+  return svg.replace(rootTag, normalizedRootTag)
 }
 
 export function validateThemeSiteGoogleAnalyticsId(value: string | null | undefined, sourceLabel: string) {
@@ -165,7 +221,7 @@ export function sanitizeThemeSiteLogoSvg(value: string | null | undefined, sourc
     return { value: null, error: `${sourceLabel} is required.` }
   }
 
-  const sanitized = sanitizeSvg(normalized).trim()
+  const sanitized = normalizeRootSvgDimensions(sanitizeSvg(normalized).trim())
   if (!sanitized || !/<svg[\s>]/i.test(sanitized)) {
     return { value: null, error: `${sourceLabel} must be a valid SVG.` }
   }

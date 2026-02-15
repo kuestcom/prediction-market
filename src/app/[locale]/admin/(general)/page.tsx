@@ -8,6 +8,7 @@ import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getSupabasePublicAssetUrl } from '@/lib/supabase'
 import { getThemeSiteSettingsFormState } from '@/lib/theme-settings'
+import { DEFAULT_THEME_SITE_PWA_ICON_192_URL, DEFAULT_THEME_SITE_PWA_ICON_512_URL } from '@/lib/theme-site-identity'
 
 interface AdminGeneralSettingsPageProps {
   params: Promise<{ locale: string }>
@@ -52,9 +53,15 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
   const initialThemeSiteImageUrl = initialThemeSiteSettings.logoMode === 'image'
     ? getSupabasePublicAssetUrl(initialThemeSiteSettings.logoImagePath || null)
     : null
+  const initialPwaIcon192Url = getSupabasePublicAssetUrl(initialThemeSiteSettings.pwaIcon192Path || null)
+    ?? DEFAULT_THEME_SITE_PWA_ICON_192_URL
+  const initialPwaIcon512Url = getSupabasePublicAssetUrl(initialThemeSiteSettings.pwaIcon512Path || null)
+    ?? DEFAULT_THEME_SITE_PWA_ICON_512_URL
   const initialThemeSiteSettingsWithImage: AdminThemeSiteSettingsInitialState = {
     ...initialThemeSiteSettings,
     logoImageUrl: initialThemeSiteImageUrl,
+    pwaIcon192Url: initialPwaIcon192Url,
+    pwaIcon512Url: initialPwaIcon512Url,
   }
 
   return (
