@@ -23,6 +23,7 @@ import {
   UMA_NEG_RISK_ADAPTER_ADDRESS,
 } from '@/lib/contracts'
 import { fetchReferralLocked } from '@/lib/exchange'
+import { storeL2AuthContextId } from '@/lib/l2-auth-context-client'
 import {
   getSafeProxyDomain,
   SAFE_PROXY_CREATE_PROXY_MESSAGE,
@@ -340,6 +341,11 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
           settings: nextSettings,
         }
       })
+
+      // Store L2 auth context ID in localStorage for future requests
+      if (result.data?.l2AuthContextId) {
+        storeL2AuthContextId(result.data.l2AuthContextId)
+      }
 
       void refreshSessionUserState()
       setTradingAuthStep('completed')

@@ -12,7 +12,7 @@ import {
   isProxyWalletDeployed,
   SAFE_PROXY_CREATE_PROXY_MESSAGE,
 } from '@/lib/safe-proxy'
-import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
+import { getUserTradingAuthSecretsWithL2Validation } from '@/lib/trading-auth/server'
 
 interface SaveProxyWalletSignatureArgs {
   signature: string
@@ -42,7 +42,7 @@ export async function saveProxyWalletSignature({ signature }: SaveProxyWalletSig
   }
 
   try {
-    const tradingAuth = await getUserTradingAuthSecrets(currentUser.id)
+    const tradingAuth = await getUserTradingAuthSecretsWithL2Validation(currentUser.id)
     const relayerAuth = tradingAuth?.relayer
       ? {
           key: tradingAuth.relayer.key,

@@ -5,7 +5,7 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
-import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
+import { getUserTradingAuthSecretsWithL2Validation } from '@/lib/trading-auth/server'
 
 export interface PendingDepositBuildResponse {
   nonce: string
@@ -52,7 +52,7 @@ export async function buildPendingUsdcSwapAction(params: {
     return { error: 'Deploy your proxy wallet first.' }
   }
 
-  const auth = await getUserTradingAuthSecrets(user.id)
+  const auth = await getUserTradingAuthSecretsWithL2Validation(user.id)
   if (!auth?.relayer) {
     return { error: TRADING_AUTH_REQUIRED_ERROR }
   }
@@ -118,7 +118,7 @@ export async function submitPendingUsdcSwapAction(
     return { error: 'Unauthenticated.' }
   }
 
-  const auth = await getUserTradingAuthSecrets(user.id)
+  const auth = await getUserTradingAuthSecretsWithL2Validation(user.id)
   if (!auth?.relayer) {
     return { error: TRADING_AUTH_REQUIRED_ERROR }
   }

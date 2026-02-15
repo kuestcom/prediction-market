@@ -3,7 +3,7 @@
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
-import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
+import { getUserTradingAuthSecretsWithL2Validation } from '@/lib/trading-auth/server'
 
 const CANCEL_ALL_ORDERS_ERROR = 'Unable to cancel open orders right now. Please try again.'
 
@@ -34,7 +34,7 @@ export async function cancelAllOrdersAction(): Promise<CancelAllOrdersResult> {
     return { cancelled: [], notCanceled: {}, error: 'Unauthenticated.' }
   }
 
-  const auth = await getUserTradingAuthSecrets(user.id)
+  const auth = await getUserTradingAuthSecretsWithL2Validation(user.id)
   if (!auth?.clob) {
     return { cancelled: [], notCanceled: {}, error: TRADING_AUTH_REQUIRED_ERROR }
   }

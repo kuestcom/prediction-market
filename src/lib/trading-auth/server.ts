@@ -4,6 +4,11 @@ import { eq } from 'drizzle-orm'
 import { users } from '@/lib/db/schema/auth/tables'
 import { db } from '@/lib/drizzle'
 import { decryptSecret, encryptSecret } from '@/lib/encryption'
+import {
+  createL2AuthContext,
+  isL2AuthContextExpired,
+  isValidL2AuthContextId,
+} from '@/lib/l2-auth-context'
 import { getBetterAuthSecretHash } from '@/lib/trading-auth/secret-hash'
 
 interface TradingAuthSecretEntry {
@@ -47,6 +52,110 @@ export interface TradingAuthSecrets {
     secret: string
     passphrase: string
   }
+}
+
+export interface L2AuthContextValidationResult {
+  valid: boolean
+  error?: string
+  requiresReauth?: boolean
+}
+
+/**
+ * Generate and store a new L2 auth context for a user
+ */
+export async function generateL2AuthContext(userId: string): Promise<string> {
+  const context = createL2AuthContext()
+
+  await db
+    .update(users)
+    .set({
+      l2_auth_context_id: context.contextId,
+      l2_auth_context_expires_at: context.expiresAt,
+    })
+    .where(eq(users.id, userId))
+
+  return context.contextId
+}
+
+/**
+ * Validate L2 auth context from client parameter
+ */
+export async function validateL2AuthContext(userId: string, contextIdFromClient: string | null | undefined): Promise<L2AuthContextValidationResult> {
+  if (!contextIdFromClient) {
+    return {
+      valid: false,
+      error: 'Missing L2 auth context',
+      requiresReauth: true,
+    }
+  }
+
+  if (!isValidL2AuthContextId(contextIdFromClient)) {
+    return {
+      valid: false,
+      error: 'Invalid L2 auth context format',
+      requiresReauth: true,
+    }
+  }
+
+  // Get user's stored context
+  const [userRow] = await db
+    .select({
+      l2_auth_context_id: users.l2_auth_context_id,
+      l2_auth_context_expires_at: users.l2_auth_context_expires_at,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+
+  if (!userRow) {
+    return {
+      valid: false,
+      error: 'User not found',
+      requiresReauth: true,
+    }
+  }
+
+  // Check if context exists
+  if (!userRow.l2_auth_context_id) {
+    return {
+      valid: false,
+      error: 'No L2 auth context found for user',
+      requiresReauth: true,
+    }
+  }
+
+  // Check if context matches
+  if (userRow.l2_auth_context_id !== contextIdFromClient) {
+    return {
+      valid: false,
+      error: 'L2 auth context mismatch',
+      requiresReauth: true,
+    }
+  }
+
+  // Check if context is expired
+  if (isL2AuthContextExpired(userRow.l2_auth_context_expires_at)) {
+    return {
+      valid: false,
+      error: 'L2 auth context expired',
+      requiresReauth: true,
+    }
+  }
+
+  return { valid: true }
+}
+
+/**
+ * Clear L2 auth context for a user (on logout or revocation)
+ */
+export async function clearL2AuthContext(userId: string): Promise<void> {
+  await db
+    .update(users)
+    .set({
+      l2_auth_context_id: null,
+      l2_auth_context_expires_at: null,
+    })
+    .where(eq(users.id, userId))
 }
 
 function hasStoredTradingCredentials(tradingAuth: TradingAuthSecretSettings) {
@@ -98,6 +207,10 @@ export async function ensureUserTradingAuthSecretFingerprint(userId: string, raw
   return result.settings
 }
 
+/**
+ * Get user trading auth secrets without L2 context validation
+ * @deprecated Use getUserTradingAuthSecretsWithL2Validation instead
+ */
 export async function getUserTradingAuthSecrets(userId: string): Promise<TradingAuthSecrets | null> {
   const [row] = await db
     .select({ settings: users.settings })
@@ -131,6 +244,22 @@ export async function getUserTradingAuthSecrets(userId: string): Promise<Trading
     relayer: decodeEntry(tradingAuth.relayer),
     clob: decodeEntry(tradingAuth.clob),
   }
+}
+
+/**
+ * Get user trading auth secrets with L2 context validation
+ * Returns null if L2 auth context is missing, invalid, or expired
+ */
+export async function getUserTradingAuthSecretsWithL2Validation(userId: string, l2AuthContextId?: string | null): Promise<TradingAuthSecrets | null> {
+  // First validate L2 auth context
+  const l2Validation = await validateL2AuthContext(userId, l2AuthContextId)
+  if (!l2Validation.valid) {
+    console.warn(`L2 auth context validation failed for user ${userId}:`, l2Validation.error)
+    return null
+  }
+
+  // If L2 context is valid, get the trading secrets
+  return getUserTradingAuthSecrets(userId)
 }
 
 export async function saveUserTradingAuthCredentials(userId: string, payload: TradingAuthStorePayload) {
@@ -171,10 +300,19 @@ export async function saveUserTradingAuthCredentials(userId: string, payload: Tr
 
   settings.tradingAuth = tradingAuth
 
+  // Generate new L2 auth context when credentials are updated
+  const context = createL2AuthContext()
+
   await db
     .update(users)
-    .set({ settings })
+    .set({
+      settings,
+      l2_auth_context_id: context.contextId,
+      l2_auth_context_expires_at: context.expiresAt,
+    })
     .where(eq(users.id, userId))
+
+  return context.contextId
 }
 
 export async function markTokenApprovalsCompleted(userId: string) {

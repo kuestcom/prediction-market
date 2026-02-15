@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
-import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
+import { getUserTradingAuthSecretsWithL2Validation } from '@/lib/trading-auth/server'
 
 const OptionalNonEmptyString = z.preprocess(
   value => (typeof value === 'string' && value.trim().length === 0 ? undefined : value),
@@ -47,7 +47,7 @@ export async function cancelMarketOrdersAction(payload: { market?: string, asset
     return { cancelled: [], notCanceled: {}, error: 'Unauthenticated.' }
   }
 
-  const auth = await getUserTradingAuthSecrets(user.id)
+  const auth = await getUserTradingAuthSecretsWithL2Validation(user.id)
   if (!auth?.clob) {
     return { cancelled: [], notCanceled: {}, error: TRADING_AUTH_REQUIRED_ERROR }
   }
