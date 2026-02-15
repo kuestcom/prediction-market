@@ -279,6 +279,28 @@ function buildAxis(values: number[]) {
   return { min: axisMin, max: axisMax, ticks }
 }
 
+function keepWithinLiveWindow(points: DataPoint[], cutoffMs: number) {
+  if (!points.length) {
+    return points
+  }
+
+  const trimmed = points.filter(point => point.date.getTime() >= cutoffMs)
+  if (trimmed.length > 0) {
+    return trimmed
+  }
+
+  const lastPoint = points[points.length - 1]
+  const lastPrice = lastPoint?.[SERIES_KEY]
+  if (typeof lastPrice !== 'number' || !Number.isFinite(lastPrice)) {
+    return []
+  }
+
+  return [{
+    date: new Date(cutoffMs + 1),
+    [SERIES_KEY]: lastPrice,
+  }]
+}
+
 function formatUsd(value: number, digits = 2) {
   return formatCurrency(value, {
     minimumFractionDigits: digits,
@@ -662,7 +684,9 @@ export default function EventLiveSeriesChart({
           : payload.latest_price
 
         if (typeof fallbackPrice === 'number' && Number.isFinite(fallbackPrice) && fallbackPrice > 0) {
-          const fallbackTimestamp = payload.latest_source_timestamp_ms ?? payload.event_window_end_ms ?? Date.now()
+          const rawFallbackTimestamp = payload.latest_source_timestamp_ms ?? payload.event_window_end_ms ?? Date.now()
+          const minTimestamp = Date.now() - LIVE_WINDOW_MS + 1000
+          const fallbackTimestamp = Math.max(rawFallbackTimestamp, minTimestamp)
           writePersistedLivePrice(config.topic, subscriptionSymbol, fallbackPrice, fallbackTimestamp)
           setData((previous) => {
             if (previous.length > 0 && !payload.is_event_closed) {
@@ -687,6 +711,54 @@ export default function EventLiveSeriesChart({
       controller.abort()
     }
   }, [config.series_slug, config.topic, endTimestamp, subscriptionSymbol])
+
+  useEffect(() => {
+    if (!isLiveView) {
+      return
+    }
+
+    setData((previous) => {
+      if (!previous.length) {
+        return previous
+      }
+
+      const cutoff = nowMs - LIVE_WINDOW_MS
+      let next = keepWithinLiveWindow(previous, cutoff)
+
+      if (!isEventClosed) {
+        const lastPoint = next[next.length - 1]
+        const lastPrice = lastPoint?.[SERIES_KEY]
+        const lastTimestamp = lastPoint?.date?.getTime?.() ?? Number.NaN
+
+        if (
+          typeof lastPrice === 'number'
+          && Number.isFinite(lastPrice)
+          && Number.isFinite(lastTimestamp)
+          && nowMs > lastTimestamp
+        ) {
+          next = [
+            ...next,
+            {
+              date: new Date(nowMs),
+              [SERIES_KEY]: lastPrice,
+            },
+          ].slice(-MAX_POINTS)
+        }
+      }
+
+      if (
+        next.length === previous.length
+        && next.every((point, index) => (
+          point.date.getTime() === previous[index]?.date?.getTime?.()
+          && point[SERIES_KEY] === previous[index]?.[SERIES_KEY]
+        ))
+      ) {
+        return previous
+      }
+
+      return next
+    })
+  }, [isEventClosed, isLiveView, nowMs])
 
   useEffect(() => {
     if (!isLiveView) {
@@ -779,7 +851,7 @@ export default function EventLiveSeriesChart({
 
       setData((prev) => {
         const cutoff = Date.now() - LIVE_WINDOW_MS
-        let next = prev.filter(point => point.date.getTime() >= cutoff)
+        let next = keepWithinLiveWindow(prev, cutoff)
         let lastTimestamp = next.length ? next[next.length - 1].date.getTime() : null
 
         for (const update of updates) {
@@ -788,11 +860,6 @@ export default function EventLiveSeriesChart({
           if (lastTimestamp !== null && pointTimestamp <= lastTimestamp) {
             pointTimestamp = lastTimestamp + 1
           }
-
-          if (pointTimestamp < cutoff) {
-            continue
-          }
-
           const nextPoint: DataPoint = {
             date: new Date(pointTimestamp),
             [SERIES_KEY]: update.price,
@@ -895,6 +962,26 @@ export default function EventLiveSeriesChart({
     return referenceSnapshot.latest_price ?? null
   }, [referenceSnapshot])
 
+  useEffect(() => {
+    if (data.length > 0) {
+      return
+    }
+
+    if (typeof fallbackCurrentPrice !== 'number' || !Number.isFinite(fallbackCurrentPrice) || fallbackCurrentPrice <= 0) {
+      return
+    }
+
+    const fallbackTimestamp = Math.max(
+      referenceSnapshot?.latest_source_timestamp_ms ?? nowMs,
+      nowMs - LIVE_WINDOW_MS + 1000,
+    )
+
+    setData([{
+      date: new Date(fallbackTimestamp),
+      [SERIES_KEY]: fallbackCurrentPrice,
+    }])
+  }, [data.length, fallbackCurrentPrice, nowMs, referenceSnapshot?.latest_source_timestamp_ms])
+
   const tradingWindowMs = useMemo(() => {
     const fromSnapshot = Number(referenceSnapshot?.interval_ms)
     if (Number.isFinite(fromSnapshot) && fromSnapshot > 0) {
@@ -906,83 +993,7 @@ export default function EventLiveSeriesChart({
   const tradingWindowStartMs = endTimestamp - tradingWindowMs
   const isTradingWindowActive = !isEventClosed && nowMs >= tradingWindowStartMs
 
-  const renderData = useMemo(() => {
-    const cutoff = nowMs - LIVE_WINDOW_MS
-    let trimmed = data.filter(point => point.date.getTime() >= cutoff)
-    if (!trimmed.length && data.length) {
-      const lastKnownPoint = data[data.length - 1]
-      const lastKnownPrice = lastKnownPoint?.[SERIES_KEY]
-      const lastKnownTimestamp = lastKnownPoint?.date?.getTime?.() ?? Number.NaN
-
-      if (typeof lastKnownPrice === 'number' && Number.isFinite(lastKnownPrice)) {
-        const rebasedTimestamp = Number.isFinite(lastKnownTimestamp) && lastKnownTimestamp >= cutoff
-          ? lastKnownTimestamp
-          : cutoff + 1000
-        trimmed = [{
-          date: new Date(rebasedTimestamp),
-          [SERIES_KEY]: lastKnownPrice,
-        }]
-      }
-    }
-
-    const seedPrice = typeof fallbackCurrentPrice === 'number' && Number.isFinite(fallbackCurrentPrice)
-      ? fallbackCurrentPrice
-      : null
-
-    if (!trimmed.length && seedPrice != null) {
-      const seedTimestamp = isEventClosed
-        ? Math.max(0, endTimestamp - 1000)
-        : nowMs - Math.max(1000, LIVE_WINDOW_MS - 1000)
-      trimmed = [{
-        date: new Date(seedTimestamp),
-        [SERIES_KEY]: seedPrice,
-      }]
-    }
-
-    const firstPoint = trimmed[0]
-    const firstPrice = firstPoint?.[SERIES_KEY]
-    if (
-      firstPoint
-      && typeof firstPrice === 'number'
-      && Number.isFinite(firstPrice)
-      && firstPoint.date.getTime() > cutoff
-    ) {
-      trimmed = [
-        {
-          date: new Date(cutoff),
-          [SERIES_KEY]: firstPrice,
-        },
-        ...trimmed,
-      ]
-    }
-
-    if (isEventClosed) {
-      return trimmed
-    }
-
-    const lastPoint = trimmed[trimmed.length - 1]
-    if (!lastPoint) {
-      return trimmed
-    }
-
-    const lastPrice = lastPoint[SERIES_KEY]
-    if (typeof lastPrice !== 'number' || !Number.isFinite(lastPrice)) {
-      return trimmed
-    }
-
-    const lastTimestamp = lastPoint.date.getTime()
-    if (nowMs <= lastTimestamp) {
-      return trimmed
-    }
-
-    return [
-      ...trimmed,
-      {
-        date: new Date(nowMs),
-        [SERIES_KEY]: lastPrice,
-      },
-    ]
-  }, [data, endTimestamp, fallbackCurrentPrice, isEventClosed, nowMs])
+  const renderData = data
 
   const lastPoint = renderData[renderData.length - 1]
   const currentPrice = typeof lastPoint?.[SERIES_KEY] === 'number'
@@ -1231,25 +1242,15 @@ export default function EventLiveSeriesChart({
                     <TooltipContent align="end" className="w-72 rounded-xl p-3 text-left">
                       <div className="grid gap-2.5">
                         <div className="flex items-center justify-between gap-3">
-                          <div
-                            className={cn(
-                              'inline-flex items-center gap-2',
-                              isTradingWindowActive ? 'text-red-500' : 'text-muted-foreground',
-                            )}
-                          >
+                          <div className="inline-flex items-center gap-2 text-red-500">
                             <span className="relative inline-flex size-2.5 items-center justify-center">
-                              {isTradingWindowActive && (
-                                <span
-                                  className="
-                                    absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45
-                                  "
-                                />
-                              )}
                               <span
-                                className={cn(
-                                  'relative inline-flex size-2 rounded-full',
-                                  isTradingWindowActive ? 'bg-red-500' : 'bg-muted-foreground',
-                                )}
+                                className="
+                                  absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45
+                                "
+                              />
+                              <span
+                                className="relative inline-flex size-2 rounded-full bg-red-500"
                               />
                             </span>
                             <span className="text-xs font-semibold tracking-[0.08em] uppercase">Live</span>
@@ -1370,6 +1371,7 @@ export default function EventLiveSeriesChart({
                   showXAxisTopRule
                   cursorGuideTop={LIVE_CURSOR_GUIDE_TOP}
                   disableCursorSplit
+                  disableResetAnimation
                   markerOuterRadius={10}
                   markerInnerRadius={4.2}
                   lineStrokeWidth={2.15}

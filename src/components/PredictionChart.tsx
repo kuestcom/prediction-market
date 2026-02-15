@@ -151,6 +151,7 @@ export function PredictionChart({
   showLegend = true,
   yAxis,
   disableCursorSplit = false,
+  disableResetAnimation = false,
   markerOuterRadius = 6,
   markerInnerRadius = 2.8,
   lineStrokeWidth = 1.6,
@@ -410,10 +411,12 @@ export function PredictionChart({
         }
       }
       const targetDate = new Date(targetTime)
-      const domainSpan = Math.max(1, domainEnd - domainStart)
-      lastCursorProgressRef.current = clamp01((targetTime - domainStart) / domainSpan)
-      hasPointerInteractionRef.current = true
-      stopRevealAnimation(revealAnimationFrameRef)
+      if (!disableCursorSplit) {
+        const domainSpan = Math.max(1, domainEnd - domainStart)
+        lastCursorProgressRef.current = clamp01((targetTime - domainStart) / domainSpan)
+        hasPointerInteractionRef.current = true
+        stopRevealAnimation(revealAnimationFrameRef)
+      }
       const tooltipLeftPosition = xScale(targetDate)
       const cursorPoint = getClampedCursorPoint(targetDate)
       const resolvedPoint = cursorPoint
@@ -452,6 +455,7 @@ export function PredictionChart({
       series,
       yAxisMin,
       yAxisMax,
+      disableCursorSplit,
     ],
   )
 
@@ -462,6 +466,10 @@ export function PredictionChart({
     emitCursorDataChange(null)
 
     if (!dataLength) {
+      return
+    }
+
+    if (disableCursorSplit) {
       return
     }
 
@@ -482,7 +490,7 @@ export function PredictionChart({
       frameRef: revealAnimationFrameRef,
       setProgress: setRevealProgress,
     })
-  }, [hideTooltip, emitCursorDataChange, dataLength, revealAnimationFrameRef])
+  }, [hideTooltip, emitCursorDataChange, dataLength, revealAnimationFrameRef, disableCursorSplit])
 
   const registerSeriesPath = useCallback((seriesKey: string) => {
     return (node: SVGPathElement | null) => {
@@ -678,10 +686,11 @@ export function PredictionChart({
 
     setRevealSeriesKeys(nextRevealSeries)
     previousSeriesKeysRef.current = currentSeriesKeys
-    const shouldRunSurge = updateType === 'reset'
+    const shouldRunSurge = updateType === 'reset' && !disableResetAnimation
     surgePendingRef.current = shouldRunSurge
 
     const canUseCrossFade = updateType === 'reset'
+      && !disableResetAnimation
       && previousData
       && previousData.length > 0
       && !shouldPartialReveal
@@ -706,7 +715,7 @@ export function PredictionChart({
       setCrossFadeProgress(1)
       setCrossFadeData(null)
 
-      if (updateType === 'reset') {
+      if (updateType === 'reset' && !disableResetAnimation) {
         hasPointerInteractionRef.current = false
         lastCursorProgressRef.current = 0
         runRevealAnimation({
@@ -725,7 +734,7 @@ export function PredictionChart({
 
     lastDataUpdateTypeRef.current = 'none'
     previousDataRef.current = data
-  }, [data, series, revealAnimationFrameRef, crossFadeFrameRef])
+  }, [data, series, revealAnimationFrameRef, crossFadeFrameRef, disableResetAnimation])
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -904,7 +913,11 @@ export function PredictionChart({
   let coloredPoints: DataPoint[] = data
   let mutedPoints: DataPoint[] = []
 
-  if (shouldSplitByCursor) {
+  if (disableCursorSplit) {
+    coloredPoints = data
+    mutedPoints = []
+  }
+  else if (shouldSplitByCursor) {
     coloredPoints = data
     mutedPoints = data
   }

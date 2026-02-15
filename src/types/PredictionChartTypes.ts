@@ -48,6 +48,7 @@ export interface PredictionChartProps {
     tickFormat?: (value: number) => string
   }
   disableCursorSplit?: boolean
+  disableResetAnimation?: boolean
   markerOuterRadius?: number
   markerInnerRadius?: number
   lineStrokeWidth?: number
