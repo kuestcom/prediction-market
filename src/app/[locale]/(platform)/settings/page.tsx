@@ -27,7 +27,7 @@ export default async function SettingsPage({ params }: PageProps<'/[locale]/sett
   return (
     <section className="grid gap-8">
       <div className="grid gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('Profile Settings')}</h1>
+        <h1 className="text-2xl font-medium tracking-tight">{t('Profile Settings')}</h1>
         <p className="text-muted-foreground">
           {t('Manage your account profile and preferences.')}
         </p>

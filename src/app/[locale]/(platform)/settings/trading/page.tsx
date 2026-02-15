@@ -27,7 +27,7 @@ export default async function TradingSettingsPage({ params }: PageProps<'/[local
   return (
     <section className="grid gap-8">
       <div className="grid gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('Market Order Type')}</h1>
+        <h1 className="text-2xl font-medium tracking-tight">{t('Market Order Type')}</h1>
         <p className="text-muted-foreground">
           {t('Choose how your market orders are executed.')}
         </p>

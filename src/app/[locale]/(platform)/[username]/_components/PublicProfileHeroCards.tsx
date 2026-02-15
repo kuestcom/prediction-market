@@ -372,7 +372,7 @@ function ProfitLossCard({
             {isDeltaPositive && <TriangleIcon className="size-4 -translate-y-px fill-yes text-yes" />}
             {isDeltaNegative && <TriangleIcon className="size-4 translate-y-px rotate-180 fill-no text-no" />}
             {!isDeltaPositive && !isDeltaNegative && <MinusIcon className="size-4 text-muted-foreground" />}
-            <span className="text-base font-semibold text-foreground">
+            <span className="text-sm font-medium text-foreground">
               Profit/Loss
             </span>
           </div>
@@ -416,8 +416,8 @@ function ProfitLossCard({
         <div className="flex items-start justify-between gap-3 sm:gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <p className="flex items-center gap-2 text-2xl leading-none font-bold tracking-tight sm:text-3xl">
-                <span>
+              <p className="-mt-2 flex items-center gap-2">
+                <span className="text-3xl/tight font-semibold text-foreground">
                   {areValuesHidden
                     ? '****'
                     : (

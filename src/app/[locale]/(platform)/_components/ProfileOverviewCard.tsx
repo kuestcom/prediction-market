@@ -111,9 +111,9 @@ export default function ProfileOverviewCard({
                   ? (
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-col gap-1">
-                          <span className="text-sm font-semibold tracking-wide text-muted-foreground">Portfolio</span>
+                          <span className="text-sm font-medium text-muted-foreground">Portfolio</span>
                           <div className="flex items-center gap-2">
-                            <p className="text-3xl/tight font-bold text-foreground sm:text-4xl">
+                            <p className="text-3xl/tight font-semibold text-foreground">
                               {areValuesHidden ? '****' : formattedTotalValue}
                             </p>
                             <Button
@@ -129,7 +129,7 @@ export default function ProfileOverviewCard({
                           </div>
                           <div
                             className={cn(
-                              'flex items-center gap-2 text-sm font-semibold',
+                              'flex items-center gap-2 text-xs',
                               snapshot.profitLoss > 0
                                 ? 'text-yes'
                                 : snapshot.profitLoss < 0
