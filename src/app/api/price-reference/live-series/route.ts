@@ -172,10 +172,16 @@ export async function GET(request: Request) {
 
     const latestMarket = (latestPayload.markets ?? []).find(market =>
       market.instrument === seriesEntry.instrument
-      && market.interval === seriesEntry.interval,
+      && market.interval === seriesEntry.interval
+      && market.source === seriesEntry.source,
     )
 
     const historyRows = (historyPayload.rows ?? [])
+      .filter(row =>
+        row.instrument === seriesEntry.instrument
+        && row.interval === seriesEntry.interval
+        && row.source === seriesEntry.source,
+      )
       .slice()
       .sort((a, b) => b.window_end_ms - a.window_end_ms)
 

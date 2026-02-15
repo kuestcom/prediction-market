@@ -71,6 +71,10 @@ interface SeriesPageProps {
   params: Promise<{ locale: string, slug: string }>
 }
 
+export async function generateStaticParams() {
+  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
+}
+
 export default async function SeriesPage({ params }: SeriesPageProps) {
   const { locale, slug } = await params
   setRequestLocale(locale)
