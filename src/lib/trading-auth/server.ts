@@ -264,15 +264,6 @@ export async function getUserTradingAuthSecrets(userId: string): Promise<Trading
   }
 }
 
-// Backward-compatible alias used by existing actions.
-// L2 validation is handled server-side via HttpOnly cookie context binding.
-export async function getUserTradingAuthSecretsWithL2Validation(
-  userId: string,
-  _l2AuthContextId?: string | null,
-): Promise<TradingAuthSecrets | null> {
-  return getUserTradingAuthSecrets(userId)
-}
-
 export async function saveUserTradingAuthCredentials(userId: string, payload: TradingAuthStorePayload) {
   if (!payload.relayer && !payload.clob) {
     return

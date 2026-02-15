@@ -16,7 +16,6 @@ interface TradingAuthActionResult {
   data: {
     relayer?: { enabled: boolean, updatedAt: string }
     clob?: { enabled: boolean, updatedAt: string }
-    l2AuthContextId?: string
   } | null
 }
 
@@ -121,7 +120,6 @@ export async function generateTradingAuthAction(input: z.input<typeof GenerateTr
       data: {
         relayer: { enabled: true, updatedAt },
         clob: { enabled: true, updatedAt },
-        l2AuthContextId,
       },
     }
   }

@@ -4,22 +4,21 @@ import { z } from 'zod'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
-import { getUserTradingAuthSecretsWithL2Validation } from '@/lib/trading-auth/server'
+import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 
 const CancelOrderSchema = z.object({
   orderId: z.string().min(1, 'Order id is required.'),
-  l2_auth_context_id: z.string().optional(),
 })
 
 const CANCEL_ORDER_ERROR = 'Unable to cancel this order right now. Please try again.'
 
-export async function cancelOrderAction(rawOrderId: string, l2AuthContextId?: string) {
+export async function cancelOrderAction(rawOrderId: string) {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
     return { error: 'Unauthenticated.' }
   }
 
-  const auth = await getUserTradingAuthSecretsWithL2Validation(user.id, l2AuthContextId)
+  const auth = await getUserTradingAuthSecrets(user.id)
   if (!auth?.clob) {
     return { error: TRADING_AUTH_REQUIRED_ERROR }
   }
@@ -27,7 +26,7 @@ export async function cancelOrderAction(rawOrderId: string, l2AuthContextId?: st
     return { error: 'Deploy your proxy wallet before trading.' }
   }
 
-  const parsed = CancelOrderSchema.safeParse({ orderId: rawOrderId, l2_auth_context_id: l2AuthContextId })
+  const parsed = CancelOrderSchema.safeParse({ orderId: rawOrderId })
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? 'Invalid order.' }
   }

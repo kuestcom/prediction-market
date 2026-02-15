@@ -11,7 +11,7 @@ import { OrderRepository } from '@/lib/db/queries/order'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
-import { getUserTradingAuthSecretsWithL2Validation } from '@/lib/trading-auth/server'
+import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 import { normalizeAddress } from '@/lib/wallet'
 
 const StoreOrderSchema = z.object({
@@ -35,7 +35,6 @@ const StoreOrderSchema = z.object({
   clob_type: z.enum(CLOB_ORDER_TYPE).optional(),
   condition_id: z.string(),
   slug: z.string(),
-  l2_auth_context_id: z.string().optional(),
 })
 
 type StoreOrderInput = z.infer<typeof StoreOrderSchema>
@@ -237,7 +236,7 @@ export async function storeOrderAction(payload: StoreOrderInput) {
     return { error: 'Unauthenticated.' }
   }
 
-  const auth = await getUserTradingAuthSecretsWithL2Validation(user.id, payload.l2_auth_context_id)
+  const auth = await getUserTradingAuthSecrets(user.id)
   if (!auth?.clob) {
     return { error: TRADING_AUTH_REQUIRED_ERROR }
   }

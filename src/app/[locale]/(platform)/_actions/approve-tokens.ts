@@ -5,7 +5,7 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
-import { getUserTradingAuthSecretsWithL2Validation, markTokenApprovalsCompleted } from '@/lib/trading-auth/server'
+import { getUserTradingAuthSecrets, markTokenApprovalsCompleted } from '@/lib/trading-auth/server'
 
 interface SafeNonceResult {
   error: string | null
@@ -30,7 +30,7 @@ export async function getSafeNonceAction(): Promise<SafeNonceResult> {
     return { error: 'Deploy your proxy wallet before approving tokens.' }
   }
 
-  const auth = await getUserTradingAuthSecretsWithL2Validation(user.id)
+  const auth = await getUserTradingAuthSecrets(user.id)
   if (!auth?.relayer) {
     return { error: TRADING_AUTH_REQUIRED_ERROR }
   }
@@ -81,7 +81,7 @@ export async function submitSafeTransactionAction(request: SafeTransactionReques
     return { error: 'Unauthenticated.' }
   }
 
-  const auth = await getUserTradingAuthSecretsWithL2Validation(user.id)
+  const auth = await getUserTradingAuthSecrets(user.id)
   if (!auth?.relayer) {
     return { error: TRADING_AUTH_REQUIRED_ERROR }
   }
