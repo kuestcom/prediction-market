@@ -35,8 +35,6 @@ export const users = pgTable('users', {
   proxy_wallet_tx_hash: text('proxy_wallet_tx_hash'),
   affiliate_code: text(),
   referred_by_user_id: text().references((): any => users.id, { onDelete: 'set null' }),
-  l2_auth_context_id: text(),
-  l2_auth_context_expires_at: timestamp(),
 })
 
 export const sessions = pgTable('sessions', {

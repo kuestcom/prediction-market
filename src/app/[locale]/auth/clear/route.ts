@@ -7,6 +7,8 @@ const COOKIE_NAMES = [
   'better-auth.two_factor',
   '__Secure-better-auth.two_factor',
   'siwe_2fa_intent',
+  'kuest_l2_auth_context',
+  '__Secure-kuest_l2_auth_context',
   'better-auth.session_token',
   '__Secure-better-auth.session_token',
   'better-auth.session_data',

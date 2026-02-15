@@ -856,7 +856,8 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
 
       if (result?.error) {
         if (isTradingAuthRequiredError(result.error)) {
-          openTradeRequirements()
+          openTradeRequirements({ forceTradingAuth: true })
+          return
         }
         handleOrderErrorFeedback(t('Trade failed'), result.error)
         return
@@ -939,7 +940,12 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
     try {
       const nonceResult = await getSafeNonceAction()
       if (nonceResult.error || !nonceResult.nonce) {
-        toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
+        if (isTradingAuthRequiredError(nonceResult.error)) {
+          openTradeRequirements({ forceTradingAuth: true })
+        }
+        else {
+          toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
+        }
         return
       }
 
@@ -982,7 +988,12 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
       const response = await submitSafeTransactionAction(payload)
 
       if (response?.error) {
-        toast.error(response.error)
+        if (isTradingAuthRequiredError(response.error)) {
+          openTradeRequirements({ forceTradingAuth: true })
+        }
+        else {
+          toast.error(response.error)
+        }
         return
       }
 

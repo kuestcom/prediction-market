@@ -13,6 +13,7 @@ vi.mock('@/lib/hmac', () => ({
 
 vi.mock('@/lib/trading-auth/server', () => ({
   getUserTradingAuthSecrets: mocks.getUserTradingAuthSecrets,
+  getUserTradingAuthSecretsWithL2Validation: mocks.getUserTradingAuthSecrets,
 }))
 
 vi.mock('@/lib/db/queries/user', () => ({

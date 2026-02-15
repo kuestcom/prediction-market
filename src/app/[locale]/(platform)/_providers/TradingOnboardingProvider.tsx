@@ -23,7 +23,6 @@ import {
   UMA_NEG_RISK_ADAPTER_ADDRESS,
 } from '@/lib/contracts'
 import { fetchReferralLocked } from '@/lib/exchange'
-import { storeL2AuthContextId } from '@/lib/l2-auth-context-client'
 import {
   getSafeProxyDomain,
   SAFE_PROXY_CREATE_PROXY_MESSAGE,
@@ -43,13 +42,14 @@ import {
   TRADING_AUTH_PRIMARY_TYPE,
   TRADING_AUTH_TYPES,
 } from '@/lib/trading-auth/client'
+import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { useUser } from '@/stores/useUser'
 
 interface TradingOnboardingContextValue {
   startDepositFlow: () => void
   startWithdrawFlow: () => void
   ensureTradingReady: () => boolean
-  openTradeRequirements: () => void
+  openTradeRequirements: (options?: { forceTradingAuth?: boolean }) => void
   hasProxyWallet: boolean
   openWalletModal: () => void
 }
@@ -72,6 +72,7 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
   const [proxyStep, setProxyStep] = useState<'idle' | 'signing' | 'deploying' | 'completed'>('idle')
   const [tradingAuthStep, setTradingAuthStep] = useState<'idle' | 'signing' | 'completed'>('idle')
   const [approvalsStep, setApprovalsStep] = useState<'idle' | 'signing' | 'completed'>('idle')
+  const [requiresTradingAuthRefresh, setRequiresTradingAuthRefresh] = useState(false)
   const [depositModalOpen, setDepositModalOpen] = useState(false)
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
 
@@ -91,15 +92,16 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
     tradingAuthSettings?.relayer?.enabled
     && tradingAuthSettings?.clob?.enabled,
   )
+  const hasEffectiveTradingAuth = hasTradingAuth && !requiresTradingAuthRefresh
   const approvalsSettings = tradingAuthSettings?.approvals ?? null
   const hasTokenApprovals = Boolean(approvalsSettings?.enabled)
-  const tradingAuthSatisfied = hasTradingAuth || tradingAuthStep === 'completed'
+  const tradingAuthSatisfied = hasEffectiveTradingAuth || tradingAuthStep === 'completed'
   const localStepsComplete
     = proxyStep === 'completed'
       && tradingAuthStep === 'completed'
       && approvalsStep === 'completed'
   const tradingReady
-    = (hasTradingAuth && hasDeployedProxyWallet && hasTokenApprovals)
+    = (tradingAuthSatisfied && hasDeployedProxyWallet && hasTokenApprovals)
       || localStepsComplete
   const previousUserIdRef = useRef<string | null>(null)
 
@@ -114,6 +116,7 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
     setTradingAuthError(null)
     setTokenApprovalError(null)
     setShouldShowFundAfterProxy(false)
+    setRequiresTradingAuthRefresh(false)
 
     if (!nextUserId) {
       setProxyStep('idle')
@@ -137,10 +140,10 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
   }, [hasDeployedProxyWallet, isProxyWalletDeploying])
 
   useEffect(() => {
-    if (hasTradingAuth) {
+    if (hasTradingAuth && !requiresTradingAuthRefresh) {
       setTradingAuthStep('completed')
     }
-  }, [hasTradingAuth])
+  }, [hasTradingAuth, requiresTradingAuthRefresh])
 
   useEffect(() => {
     if (hasTokenApprovals) {
@@ -211,13 +214,13 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
     if (proxyStep !== 'completed') {
       setProxyStep('idle')
     }
-    if (!hasTradingAuth) {
+    if (!hasTradingAuth || requiresTradingAuthRefresh) {
       setTradingAuthStep('idle')
     }
     if (!hasTokenApprovals) {
       setApprovalsStep('idle')
     }
-  }, [hasTokenApprovals, hasTradingAuth, proxyStep])
+  }, [hasTokenApprovals, hasTradingAuth, proxyStep, requiresTradingAuthRefresh])
 
   const handleProxyWalletSignature = useCallback(async () => {
     setProxyWalletError(null)
@@ -236,6 +239,15 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
       const result = await saveProxyWalletSignature({ signature })
 
       if (result.error || !result.data) {
+        if (isTradingAuthRequiredError(result.error)) {
+          setProxyStep('idle')
+          resetEnableFlowState()
+          setRequiresTradingAuthRefresh(true)
+          setTradingAuthStep('idle')
+          setTradingAuthError(null)
+          setTradeModalOpen(true)
+          return
+        }
         setProxyStep('idle')
         setProxyWalletError(result.error ?? DEFAULT_ERROR_MESSAGE)
         return
@@ -287,7 +299,7 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
         setProxyStep('idle')
       }
     }
-  }, [refreshSessionUserState, resetPendingFundState, shouldShowFundAfterProxy, signTypedDataAsync])
+  }, [refreshSessionUserState, resetEnableFlowState, resetPendingFundState, shouldShowFundAfterProxy, signTypedDataAsync])
 
   const handleTradingAuthSignature = useCallback(async () => {
     if (!user?.address) {
@@ -342,12 +354,8 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
         }
       })
 
-      // Store L2 auth context ID in localStorage for future requests
-      if (result.data?.l2AuthContextId) {
-        storeL2AuthContextId(result.data.l2AuthContextId)
-      }
-
       void refreshSessionUserState()
+      setRequiresTradingAuthRefresh(false)
       setTradingAuthStep('completed')
     }
     catch (error) {
@@ -521,7 +529,7 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
     return false
   }, [open, resetEnableFlowState, tradingReady, user])
 
-  const openTradeRequirements = useCallback(() => {
+  const openTradeRequirements = useCallback((options?: { forceTradingAuth?: boolean }) => {
     if (!user) {
       queueMicrotask(() => {
         void open()
@@ -530,6 +538,11 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
     }
 
     resetEnableFlowState()
+    if (options?.forceTradingAuth) {
+      setRequiresTradingAuthRefresh(true)
+      setTradingAuthStep('idle')
+      setTradingAuthError(null)
+    }
     setTradeModalOpen(true)
   }, [open, resetEnableFlowState, user])
 
@@ -622,7 +635,7 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
         proxyStep={proxyStep}
         tradingAuthStep={tradingAuthStep}
         approvalsStep={approvalsStep}
-        hasTradingAuth={hasTradingAuth}
+        hasTradingAuth={hasEffectiveTradingAuth}
         hasDeployedProxyWallet={hasDeployedProxyWallet}
         proxyWalletError={proxyWalletError}
         tradingAuthError={tradingAuthError}

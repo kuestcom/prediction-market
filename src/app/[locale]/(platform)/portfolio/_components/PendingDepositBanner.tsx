@@ -91,7 +91,7 @@ export default function PendingDepositBanner() {
       if (buildResult.error || !buildResult.payload) {
         if (isTradingAuthRequiredError(buildResult.error)) {
           setOpen(false)
-          openTradeRequirements()
+          openTradeRequirements({ forceTradingAuth: true })
         }
         else {
           toast.error(buildResult.error ?? DEFAULT_ERROR_MESSAGE)
@@ -138,7 +138,7 @@ export default function PendingDepositBanner() {
       if (submitResult.error) {
         if (isTradingAuthRequiredError(submitResult.error)) {
           setOpen(false)
-          openTradeRequirements()
+          openTradeRequirements({ forceTradingAuth: true })
         }
         else {
           toast.error(submitResult.error)

@@ -100,7 +100,7 @@ export function WalletFlow({
       if (nonceResult.error || !nonceResult.nonce) {
         if (isTradingAuthRequiredError(nonceResult.error)) {
           handleWithdrawModalChange(false)
-          openTradeRequirements()
+          openTradeRequirements({ forceTradingAuth: true })
         }
         else {
           toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
@@ -147,7 +147,7 @@ export function WalletFlow({
       if (result.error) {
         if (isTradingAuthRequiredError(result.error)) {
           handleWithdrawModalChange(false)
-          openTradeRequirements()
+          openTradeRequirements({ forceTradingAuth: true })
         }
         else {
           toast.error(result.error)

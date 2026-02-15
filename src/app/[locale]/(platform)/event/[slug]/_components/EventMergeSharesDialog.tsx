@@ -37,6 +37,7 @@ import {
   packSafeSignature,
 
 } from '@/lib/safe/transactions'
+import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
 import { useNotifications } from '@/stores/useNotifications'
 import { useUser } from '@/stores/useUser'
@@ -62,7 +63,7 @@ export default function EventMergeSharesDialog({
 }: EventMergeSharesDialogProps) {
   const t = useExtracted()
   const queryClient = useQueryClient()
-  const { ensureTradingReady } = useTradingOnboarding()
+  const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
   const user = useUser()
   const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
   const isMobile = useIsMobile()
@@ -163,7 +164,13 @@ export default function EventMergeSharesDialog({
     try {
       const nonceResult = await getSafeNonceAction()
       if (nonceResult.error || !nonceResult.nonce) {
-        toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
+        if (isTradingAuthRequiredError(nonceResult.error)) {
+          onOpenChange(false)
+          openTradeRequirements({ forceTradingAuth: true })
+        }
+        else {
+          toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
+        }
         setIsSubmitting(false)
         return
       }
@@ -213,7 +220,13 @@ export default function EventMergeSharesDialog({
       const response = await submitSafeTransactionAction(payload)
 
       if (response?.error) {
-        toast.error(response.error)
+        if (isTradingAuthRequiredError(response.error)) {
+          onOpenChange(false)
+          openTradeRequirements({ forceTradingAuth: true })
+        }
+        else {
+          toast.error(response.error)
+        }
         setIsSubmitting(false)
         return
       }

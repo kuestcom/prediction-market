@@ -359,7 +359,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
         ? error.message
         : t('Failed to cancel order.')
       if (isTradingAuthRequiredError(message)) {
-        openTradeRequirements()
+        openTradeRequirements({ forceTradingAuth: true })
       }
       else {
         toast.error(message)
@@ -436,7 +436,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
         ? error.message
         : t('Failed to cancel open orders.')
       if (isTradingAuthRequiredError(message)) {
-        openTradeRequirements()
+        openTradeRequirements({ forceTradingAuth: true })
       }
       else {
         toast.error(message)
