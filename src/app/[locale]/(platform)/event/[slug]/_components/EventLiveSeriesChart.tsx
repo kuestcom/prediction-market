@@ -412,47 +412,40 @@ function inferIntervalMsFromSeriesSlug(seriesSlug: string | null | undefined) {
   return 24 * 60 * 60 * 1000
 }
 
-function countdownLabel(unit: 'hr' | 'min' | 'sec', value: number) {
+type CountdownUnit = 'day' | 'hr' | 'min' | 'sec'
+
+function countdownLabel(unit: CountdownUnit, value: number) {
+  if (unit === 'day') {
+    return value === 1 ? 'DAY' : 'DAYS'
+  }
+
   const singular = unit.toUpperCase()
   const plural = `${singular}S`
   return value === 1 ? singular : plural
 }
 
-function toCountdownLeftLabel(hours: number, minutes: number, seconds: number) {
-  const parts: string[] = []
-
-  if (hours > 0) {
-    parts.push(`${hours} ${hours === 1 ? 'Hr' : 'Hrs'}`)
+function toCountdownLeftLabel(showDays: boolean, days: number, hours: number, minutes: number, seconds: number) {
+  if (showDays) {
+    return `${days} ${days === 1 ? 'Day' : 'Days'} ${hours} ${hours === 1 ? 'Hr' : 'Hrs'} ${minutes} ${minutes === 1 ? 'Min' : 'Mins'}`
   }
 
-  if (minutes > 0) {
-    parts.push(`${minutes} ${minutes === 1 ? 'Min' : 'Mins'}`)
-  }
-
-  if (parts.length === 0) {
-    parts.push(`${seconds} ${seconds === 1 ? 'Sec' : 'Secs'}`)
-  }
-
-  return parts.join(' ')
+  return `${hours} ${hours === 1 ? 'Hr' : 'Hrs'} ${minutes} ${minutes === 1 ? 'Min' : 'Mins'} ${seconds} ${seconds === 1 ? 'Sec' : 'Secs'}`
 }
 
-function getVisibleCountdownUnits(hours: number, minutes: number, seconds: number) {
-  if (hours > 0) {
+function getVisibleCountdownUnits(showDays: boolean, days: number, hours: number, minutes: number, seconds: number) {
+  if (showDays) {
     return [
+      { unit: 'day' as const, value: days },
       { unit: 'hr' as const, value: hours },
       { unit: 'min' as const, value: minutes },
-      { unit: 'sec' as const, value: seconds },
     ]
   }
 
-  if (minutes > 0) {
-    return [
-      { unit: 'min' as const, value: minutes },
-      { unit: 'sec' as const, value: seconds },
-    ]
-  }
-
-  return [{ unit: 'sec' as const, value: seconds }]
+  return [
+    { unit: 'hr' as const, value: hours },
+    { unit: 'min' as const, value: minutes },
+    { unit: 'sec' as const, value: seconds },
+  ]
 }
 
 function formatDateAtTimezone(timestamp: number, timeZone: string) {
@@ -1047,12 +1040,18 @@ export default function EventLiveSeriesChart({
   }, [axisValues.max, axisValues.min, isTradingWindowActive, resolvedBaselinePrice])
   const countdown = useMemo(() => {
     const totalSeconds = Math.max(0, Math.floor((endTimestamp - nowMs) / 1000))
-    const hours = Math.floor(totalSeconds / 3600)
+    const showDays = totalSeconds > 24 * 60 * 60
+    const days = showDays ? Math.floor(totalSeconds / (24 * 60 * 60)) : 0
+    const hours = showDays
+      ? Math.floor((totalSeconds % (24 * 60 * 60)) / 3600)
+      : Math.floor(totalSeconds / 3600)
     const minutes = Math.floor((totalSeconds % 3600) / 60)
     const seconds = totalSeconds % 60
 
     return {
       totalSeconds,
+      showDays,
+      days,
       hours,
       minutes,
       seconds,
@@ -1071,12 +1070,24 @@ export default function EventLiveSeriesChart({
     })
   }, [endTimestamp, isEventClosed, nowMs])
   const visibleCountdownUnits = useMemo(
-    () => getVisibleCountdownUnits(countdown.hours, countdown.minutes, countdown.seconds),
-    [countdown.hours, countdown.minutes, countdown.seconds],
+    () => getVisibleCountdownUnits(
+      countdown.showDays,
+      countdown.days,
+      countdown.hours,
+      countdown.minutes,
+      countdown.seconds,
+    ),
+    [countdown.showDays, countdown.days, countdown.hours, countdown.minutes, countdown.seconds],
   )
   const countdownLeftLabel = useMemo(
-    () => toCountdownLeftLabel(countdown.hours, countdown.minutes, countdown.seconds),
-    [countdown.hours, countdown.minutes, countdown.seconds],
+    () => toCountdownLeftLabel(
+      countdown.showDays,
+      countdown.days,
+      countdown.hours,
+      countdown.minutes,
+      countdown.seconds,
+    ),
+    [countdown.showDays, countdown.days, countdown.hours, countdown.minutes, countdown.seconds],
   )
   const etDateLabel = useMemo(
     () => formatDateAtTimezone(endTimestamp, 'America/New_York'),
