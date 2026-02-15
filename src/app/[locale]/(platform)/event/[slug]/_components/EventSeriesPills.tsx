@@ -100,6 +100,17 @@ function isSeriesEventTradingNow(event: EventSeriesEntry, nowTimestamp: number) 
   return nowTimestamp >= tradingWindowStart && nowTimestamp < eventTimestamp
 }
 
+function isSameEtDay(leftTimestamp: number, rightTimestamp: number) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+
+  return formatter.format(new Date(leftTimestamp)) === formatter.format(new Date(rightTimestamp))
+}
+
 type EventSeriesPillsVariant = 'header' | 'live'
 
 interface EventSeriesPillsProps {
@@ -344,7 +355,8 @@ export default function EventSeriesPills({
             const eventTimestamp = getSeriesEventTimestamp(event)
             const isEndedUnresolved = Number.isFinite(eventTimestamp) && nowTimestamp >= eventTimestamp
             const isTradingNow = event.id === currentTradingEventId
-            const pillLabel = isTradingNow
+            const isTodayInEt = Number.isFinite(eventTimestamp) && isSameEtDay(eventTimestamp, nowTimestamp)
+            const pillLabel = isTodayInEt
               ? LIVE_ET_TIME_SHORT
               : `${LIVE_ET_TIME_SHORT} ${getSeriesEventLabel(event)}`
 
