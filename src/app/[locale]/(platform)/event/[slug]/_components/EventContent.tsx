@@ -94,6 +94,7 @@ export default function EventContent({
   }, [currentMarketId, event.markets])
   const singleMarket = event.markets[0]
   const isSingleMarketResolved = isMarketResolved(singleMarket)
+  const usesLiveSeriesChart = Boolean(liveChartConfig && shouldUseLiveSeriesChart(event, liveChartConfig))
 
   useEffect(() => {
     if (user?.id) {
@@ -281,13 +282,13 @@ export default function EventContent({
           <EventHeader event={event} />
 
           <div className={cn(shouldHideChart ? 'w-full' : 'min-h-96 w-full')}>
-            {liveChartConfig && shouldUseLiveSeriesChart(event, liveChartConfig)
+            {usesLiveSeriesChart
               ? (
                   <EventLiveSeriesChart
                     event={event}
                     isMobile={isMobile}
                     seriesEvents={seriesEvents}
-                    config={liveChartConfig}
+                    config={liveChartConfig!}
                   />
                 )
               : (
@@ -319,7 +320,13 @@ export default function EventContent({
                     negRiskMarketId={event.neg_risk_market_id}
                   />
                 )}
-                {!isSingleMarketResolved && <EventSingleMarketOrderBook market={singleMarket} eventSlug={event.slug} />}
+                {!isSingleMarketResolved && (
+                  <EventSingleMarketOrderBook
+                    market={singleMarket}
+                    eventSlug={event.slug}
+                    showCompactVolume={usesLiveSeriesChart}
+                  />
+                )}
                 { currentUser && <EventMarketOpenOrders market={singleMarket} eventSlug={event.slug} />}
                 { currentUser && <EventMarketHistory market={singleMarket} /> }
               </>

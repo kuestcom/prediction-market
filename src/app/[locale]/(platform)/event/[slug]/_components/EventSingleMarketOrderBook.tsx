@@ -18,11 +18,16 @@ import { useOrder } from '@/stores/useOrder'
 interface EventSingleMarketOrderBookProps {
   market: Market
   eventSlug: string
+  showCompactVolume?: boolean
 }
 
 type OutcomeToggleIndex = typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
 
-export default function EventSingleMarketOrderBook({ market, eventSlug }: EventSingleMarketOrderBookProps) {
+export default function EventSingleMarketOrderBook({
+  market,
+  eventSlug,
+  showCompactVolume = false,
+}: EventSingleMarketOrderBookProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const marketChannelStatus = useMarketChannelStatus()
@@ -67,6 +72,21 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
   const yesOutcomeLabel = (yesOutcomeText ? normalizeOutcomeLabel(yesOutcomeText) : '') || yesOutcomeText || t('Yes')
   const noOutcomeLabel = (noOutcomeText ? normalizeOutcomeLabel(noOutcomeText) : '') || noOutcomeText || t('No')
   const isLoadingSummaries = isExpanded && isOrderBookLoading && !orderBookSummaries
+  const compactVolumeLabel = useMemo(() => {
+    if (!showCompactVolume) {
+      return null
+    }
+
+    const resolvedVolume = Number.isFinite(market.volume) ? market.volume : 0
+    if (resolvedVolume <= 0) {
+      return null
+    }
+
+    return `$${resolvedVolume.toLocaleString('en-US', {
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    })} Vol.`
+  }, [market.volume, showCompactVolume])
 
   function handleOutcomeSelection(outcomeIndex: OutcomeToggleIndex) {
     setSelectedOutcomeIndex(outcomeIndex)
@@ -119,27 +139,29 @@ export default function EventSingleMarketOrderBook({ market, eventSlug }: EventS
             </TooltipContent>
           </Tooltip>
         </div>
-        <span
-          aria-hidden="true"
-          className="pointer-events-none flex size-8 items-center justify-center"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className={cn('size-6 text-muted-foreground transition-transform', { 'rotate-180': isExpanded })}
-          >
-            <path
-              d="M4 6L8 10L12 6"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
+        <div className="pointer-events-none flex items-center gap-2">
+          {compactVolumeLabel && (
+            <span className="text-sm font-medium text-muted-foreground">{compactVolumeLabel}</span>
+          )}
+          <span aria-hidden="true" className="flex size-8 items-center justify-center">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className={cn('size-6 text-muted-foreground transition-transform', { 'rotate-180': isExpanded })}
+            >
+              <path
+                d="M4 6L8 10L12 6"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        </div>
       </button>
 
       <div
