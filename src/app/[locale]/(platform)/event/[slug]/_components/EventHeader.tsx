@@ -52,7 +52,7 @@ export default function EventHeader({ event }: EventHeaderProps) {
         </h1>
       </div>
 
-      <div className="flex items-center gap-3 text-muted-foreground">
+      <div className="flex items-center gap-3 text-foreground">
         <EventShare event={event} />
         <EventBookmark event={event} />
       </div>
