@@ -24,6 +24,7 @@
   "dependencies": {
     "@bprogress/next": "^3.2.12",
     "@lifi/sdk": "^3.15.6",
+    "@next/third-parties": "^16.1.6",
     "@reown/appkit": "1.8.17",
     "@reown/appkit-adapter-wagmi": "1.8.17",
     "@reown/appkit-siwe": "1.8.17",

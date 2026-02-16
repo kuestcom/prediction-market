@@ -1,19 +1,17 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { GoogleAnalytics } from '@next/third-parties/google'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from 'next-themes'
 import dynamic from 'next/dynamic'
 import { Toaster } from '@/components/ui/sonner'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import AppKitProvider from '@/providers/AppKitProvider'
 import ProgressIndicatorProvider from '@/providers/ProgressIndicatorProvider'
 
 const SpeedInsights = dynamic(
   () => import('@vercel/speed-insights/next').then(mod => mod.SpeedInsights),
-  { ssr: false },
-)
-const GoogleAnalytics = dynamic(
-  () => import('@/components/GoogleAnalytics'),
   { ssr: false },
 )
 
@@ -25,6 +23,8 @@ interface AppProvidersProps {
 }
 
 export function AppProviders({ children, disableAppKit }: AppProvidersProps) {
+  const site = useSiteIdentity()
+  const gaId = site.googleAnalyticsId
   const shouldLoadAppKit = !disableAppKit
 
   const content = (
@@ -32,7 +32,7 @@ export function AppProviders({ children, disableAppKit }: AppProvidersProps) {
       {children}
       <Toaster position="bottom-left" />
       {process.env.NODE_ENV === 'production' && <SpeedInsights />}
-      {process.env.NODE_ENV === 'production' && <GoogleAnalytics />}
+      {process.env.NODE_ENV === 'production' && gaId && <GoogleAnalytics gaId={gaId} />}
     </div>
   )
 

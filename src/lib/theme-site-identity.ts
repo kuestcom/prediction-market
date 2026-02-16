@@ -134,7 +134,7 @@ export function validateThemeSiteGoogleAnalyticsId(value: string | null | undefi
     return { value: null, error: `${sourceLabel} is too long.` }
   }
 
-  if (!/^[\w-]+$/.test(normalized)) {
+  if (!/^G-[A-Z0-9]+$/.test(normalized)) {
     return { value: null, error: `${sourceLabel} has an invalid format.` }
   }
 

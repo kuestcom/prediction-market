@@ -85,6 +85,8 @@ describe('theme site identity helpers', () => {
   it('validates optional analytics id and links', () => {
     expect(validateThemeSiteGoogleAnalyticsId('', 'Google Analytics ID')).toEqual({ value: null, error: null })
     expect(validateThemeSiteGoogleAnalyticsId('G-TEST123', 'Google Analytics ID')).toEqual({ value: 'G-TEST123', error: null })
+    expect(validateThemeSiteGoogleAnalyticsId('UA-123', 'Google Analytics ID').error).toContain('invalid format')
+    expect(validateThemeSiteGoogleAnalyticsId('g-test123', 'Google Analytics ID').error).toContain('invalid format')
     expect(validateThemeSiteGoogleAnalyticsId('bad id', 'Google Analytics ID').error).toContain('invalid format')
 
     expect(validateThemeSiteExternalUrl('', 'Discord link')).toEqual({ value: null, error: null })
