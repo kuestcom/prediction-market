@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { connection } from 'next/server'
 import SettingsAffiliateContent from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateContent'
 import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
@@ -20,6 +21,9 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/settings
 export default async function AffiliateSettingsPage({ params }: PageProps<'/[locale]/settings/affiliate'>) {
   const { locale } = await params
   setRequestLocale(locale)
+
+  await connection()
+
   const t = await getExtracted()
 
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
