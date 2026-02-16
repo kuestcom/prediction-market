@@ -3,8 +3,6 @@ import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { resolvePwaThemeColors } from '@/lib/pwa-colors'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
-export const dynamic = 'force-dynamic'
-
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const runtimeTheme = await loadRuntimeThemeState()
   const site = runtimeTheme.site
