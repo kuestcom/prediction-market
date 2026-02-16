@@ -114,7 +114,7 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
         ? error.message
         : 'Failed to cancel open orders.'
       if (isTradingAuthRequiredError(message)) {
-        openTradeRequirements()
+        openTradeRequirements({ forceTradingAuth: true })
       }
       else {
         toast.error(message)

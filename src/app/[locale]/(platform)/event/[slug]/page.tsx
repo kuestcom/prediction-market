@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
-import type { EventSeriesEntry } from '@/types'
+import type { EventLiveChartConfig, EventSeriesEntry } from '@/types'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
@@ -53,14 +53,26 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
   }
 
   let seriesEvents: EventSeriesEntry[] = []
+  let liveChartConfig: EventLiveChartConfig | null = null
 
   if (event.series_slug) {
-    const seriesEventsResult = await EventRepository.getSeriesEventsBySeriesSlug(event.series_slug)
+    const [seriesEventsResult, liveChartConfigResult] = await Promise.all([
+      EventRepository.getSeriesEventsBySeriesSlug(event.series_slug),
+      EventRepository.getLiveChartConfigBySeriesSlug(event.series_slug),
+    ])
+
     if (seriesEventsResult.error) {
       console.warn('Failed to load event series events:', seriesEventsResult.error)
     }
     else {
       seriesEvents = seriesEventsResult.data ?? []
+    }
+
+    if (liveChartConfigResult.error) {
+      console.warn('Failed to load event live chart config:', liveChartConfigResult.error)
+    }
+    else {
+      liveChartConfig = liveChartConfigResult.data ?? null
     }
   }
 
@@ -71,6 +83,7 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
       user={user}
       marketContextEnabled={marketContextEnabled}
       seriesEvents={seriesEvents}
+      liveChartConfig={liveChartConfig}
       key={`is-bookmarked-${event.is_bookmarked}`}
     />
   )

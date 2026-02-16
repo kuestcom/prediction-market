@@ -1,6 +1,6 @@
 'use client'
 
-import type { ConditionChangeLogEntry, Event, EventSeriesEntry, User } from '@/types'
+import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, User } from '@/types'
 import { ArrowUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils'
 import { useOrder, useSyncLimitPriceWithOutcome } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
 import EventChart from './EventChart'
+import EventLiveSeriesChart, { shouldUseLiveSeriesChart } from './EventLiveSeriesChart'
 import EventMarketHistory from './EventMarketHistory'
 import EventMarketOpenOrders from './EventMarketOpenOrders'
 import EventMarketPositions from './EventMarketPositions'
@@ -44,6 +45,7 @@ interface EventContentProps {
   changeLogEntries: ConditionChangeLogEntry[]
   marketSlug?: string
   seriesEvents?: EventSeriesEntry[]
+  liveChartConfig?: EventLiveChartConfig | null
 }
 
 function isMarketResolved(market: Event['markets'][number] | null | undefined) {
@@ -57,6 +59,7 @@ export default function EventContent({
   changeLogEntries: _changeLogEntries,
   marketSlug,
   seriesEvents = [],
+  liveChartConfig = null,
 }: EventContentProps) {
   const t = useExtracted()
   const setEvent = useOrder(state => state.setEvent)
@@ -91,6 +94,7 @@ export default function EventContent({
   }, [currentMarketId, event.markets])
   const singleMarket = event.markets[0]
   const isSingleMarketResolved = isMarketResolved(singleMarket)
+  const usesLiveSeriesChart = Boolean(liveChartConfig && shouldUseLiveSeriesChart(event, liveChartConfig))
 
   useEffect(() => {
     if (user?.id) {
@@ -278,7 +282,18 @@ export default function EventContent({
           <EventHeader event={event} />
 
           <div className={cn(shouldHideChart ? 'w-full' : 'min-h-96 w-full')}>
-            <EventChart event={event} isMobile={isMobile} seriesEvents={seriesEvents} />
+            {usesLiveSeriesChart
+              ? (
+                  <EventLiveSeriesChart
+                    event={event}
+                    isMobile={isMobile}
+                    seriesEvents={seriesEvents}
+                    config={liveChartConfig!}
+                  />
+                )
+              : (
+                  <EventChart event={event} isMobile={isMobile} seriesEvents={seriesEvents} />
+                )}
           </div>
 
           <div className="grid gap-6">
@@ -305,7 +320,13 @@ export default function EventContent({
                     negRiskMarketId={event.neg_risk_market_id}
                   />
                 )}
-                {!isSingleMarketResolved && <EventSingleMarketOrderBook market={singleMarket} eventSlug={event.slug} />}
+                {!isSingleMarketResolved && (
+                  <EventSingleMarketOrderBook
+                    market={singleMarket}
+                    eventSlug={event.slug}
+                    showCompactVolume={usesLiveSeriesChart}
+                  />
+                )}
                 { currentUser && <EventMarketOpenOrders market={singleMarket} eventSlug={event.slug} />}
                 { currentUser && <EventMarketHistory market={singleMarket} /> }
               </>

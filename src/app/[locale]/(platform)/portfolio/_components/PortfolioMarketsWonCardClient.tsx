@@ -29,6 +29,7 @@ import {
   getSafeTxTypedData,
   packSafeSignature,
 } from '@/lib/safe/transactions'
+import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { triggerConfetti } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
@@ -74,7 +75,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hiddenClaimSignature, setHiddenClaimSignature] = useState<string | null>(null)
-  const { ensureTradingReady } = useTradingOnboarding()
+  const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
   const { signMessageAsync } = useSignMessage()
   const queryClient = useQueryClient()
   const user = useUser()
@@ -136,7 +137,13 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     try {
       const nonceResult = await getSafeNonceAction()
       if (nonceResult.error || !nonceResult.nonce) {
-        toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
+        if (isTradingAuthRequiredError(nonceResult.error)) {
+          setIsDialogOpen(false)
+          openTradeRequirements({ forceTradingAuth: true })
+        }
+        else {
+          toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
+        }
         return
       }
 
@@ -182,7 +189,13 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
       const response = await submitSafeTransactionAction(payload)
 
       if (response?.error) {
-        toast.error(response.error)
+        if (isTradingAuthRequiredError(response.error)) {
+          setIsDialogOpen(false)
+          openTradeRequirements({ forceTradingAuth: true })
+        }
+        else {
+          toast.error(response.error)
+        }
         return
       }
 

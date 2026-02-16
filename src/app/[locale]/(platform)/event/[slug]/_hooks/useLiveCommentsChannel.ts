@@ -125,7 +125,7 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
           {
             topic: 'comments',
             type: '*',
-            filters: { event_slug: eventSlug },
+            filters: JSON.stringify({ event_slug: eventSlug }),
           },
         ],
       })

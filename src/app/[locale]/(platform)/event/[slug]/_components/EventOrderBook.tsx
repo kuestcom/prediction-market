@@ -175,7 +175,8 @@ export default function EventOrderBook({
       const response = await cancelOrderAction(orderId)
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
-          openTradeRequirements()
+          openTradeRequirements({ forceTradingAuth: true })
+          return
         }
         throw new Error(response.error)
       }

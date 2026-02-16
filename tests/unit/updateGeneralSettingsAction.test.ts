@@ -128,11 +128,13 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.encryptSecret).toHaveBeenCalledWith('openrouter-123')
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload).toHaveLength(14)
+    expect(savedPayload).toHaveLength(16)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
     expect(savedPayload.find(entry => entry.key === 'site_logo_image_path')?.value).toBe('')
+    expect(savedPayload.find(entry => entry.key === 'pwa_icon_192_path')?.value).toBe('')
+    expect(savedPayload.find(entry => entry.key === 'pwa_icon_512_path')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'site_google_analytics')?.value).toBe('G-TEST123')
     expect(savedPayload.find(entry => entry.key === 'site_discord_link')?.value).toBe('https://discord.gg/kuest')
     expect(savedPayload.find(entry => entry.key === 'site_support_url')?.value).toBe('https://kuest.com/support')

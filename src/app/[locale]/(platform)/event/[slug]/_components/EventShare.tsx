@@ -1,6 +1,6 @@
 import type { RefObject } from 'react'
 import type { Event } from '@/types'
-import { CheckIcon, LinkIcon } from 'lucide-react'
+import { CheckIcon, ShareIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getMarketSeriesLabel } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ import { maybeShowAffiliateToast } from '@/lib/affiliate-toast'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
-const headerIconButtonClass = 'size-10 rounded-sm border border-transparent bg-transparent text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring md:h-9 md:w-9'
+const headerIconButtonClass = 'size-10 rounded-sm border border-transparent bg-transparent text-foreground transition-colors hover:bg-muted/80 focus-visible:ring-1 focus-visible:ring-ring md:h-9 md:w-9'
 
 interface EventShareProps {
   event: Event
@@ -227,7 +227,7 @@ export default function EventShare({ event }: EventShareProps) {
               aria-label="Copy event link"
               onPointerDown={maybeHandleDebugCopy}
             >
-              <LinkIcon className="size-4 -scale-x-100" />
+              <ShareIcon className="size-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -299,7 +299,7 @@ export default function EventShare({ event }: EventShareProps) {
     >
       {shareSuccess
         ? <CheckIcon className="size-4 text-primary" />
-        : <LinkIcon className="size-4 -scale-x-100" />}
+        : <ShareIcon className="size-4" />}
     </Button>
   )
 }

@@ -12,9 +12,16 @@ import { validateThemeSiteSettingsInput } from '@/lib/theme-settings'
 
 const MAX_LOGO_FILE_SIZE = 2 * 1024 * 1024
 const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
+const MAX_PWA_ICON_FILE_SIZE = 2 * 1024 * 1024
+const ACCEPTED_PWA_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
 
 export interface GeneralSettingsActionState {
   error: string | null
+}
+
+function buildThemeAssetPath(prefix: string) {
+  const random = Math.random().toString(36).slice(2, 8)
+  return `theme/${prefix}-${Date.now()}-${random}.png`
 }
 
 async function processThemeLogoFile(file: File) {
@@ -37,7 +44,7 @@ async function processThemeLogoFile(file: File) {
     .png({ quality: 90 })
     .toBuffer()
 
-  const filePath = `theme/site-logo-${Date.now()}.png`
+  const filePath = buildThemeAssetPath('site-logo')
 
   const { error } = await supabaseAdmin.storage
     .from('kuest-assets')
@@ -51,6 +58,39 @@ async function processThemeLogoFile(file: File) {
   }
 
   return { mode: 'image' as const, path: filePath, svg: null, error: null }
+}
+
+async function processPwaIconFile(file: File, size: number, label: string) {
+  if (!ACCEPTED_PWA_ICON_TYPES.includes(file.type)) {
+    return { path: null as string | null, error: `${label} must be PNG, JPG, WebP, or SVG.` }
+  }
+
+  if (file.size > MAX_PWA_ICON_FILE_SIZE) {
+    return { path: null as string | null, error: `${label} must be 2MB or smaller.` }
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer())
+  const output = await sharp(buffer)
+    .resize(size, size, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png({ quality: 92 })
+    .toBuffer()
+
+  const filePath = buildThemeAssetPath(`pwa-icon-${size}`)
+  const { error } = await supabaseAdmin.storage
+    .from('kuest-assets')
+    .upload(filePath, output, {
+      contentType: 'image/png',
+      cacheControl: '31536000',
+    })
+
+  if (error) {
+    return { path: null as string | null, error: DEFAULT_ERROR_MESSAGE }
+  }
+
+  return { path: filePath, error: null as string | null }
 }
 
 export async function updateGeneralSettingsAction(
@@ -67,7 +107,11 @@ export async function updateGeneralSettingsAction(
   const logoModeRaw = formData.get('logo_mode')
   const logoSvgRaw = formData.get('logo_svg')
   const logoImagePathRaw = formData.get('logo_image_path')
+  const pwaIcon192PathRaw = formData.get('pwa_icon_192_path')
+  const pwaIcon512PathRaw = formData.get('pwa_icon_512_path')
   const logoFileRaw = formData.get('logo_image')
+  const pwaIcon192FileRaw = formData.get('pwa_icon_192')
+  const pwaIcon512FileRaw = formData.get('pwa_icon_512')
   const googleAnalyticsIdRaw = formData.get('google_analytics_id')
   const discordLinkRaw = formData.get('discord_link')
   const supportUrlRaw = formData.get('support_url')
@@ -83,6 +127,8 @@ export async function updateGeneralSettingsAction(
   let logoMode = typeof logoModeRaw === 'string' ? logoModeRaw : ''
   let logoSvg = typeof logoSvgRaw === 'string' ? logoSvgRaw : ''
   let logoImagePath = typeof logoImagePathRaw === 'string' ? logoImagePathRaw : ''
+  let pwaIcon192Path = typeof pwaIcon192PathRaw === 'string' ? pwaIcon192PathRaw : ''
+  let pwaIcon512Path = typeof pwaIcon512PathRaw === 'string' ? pwaIcon512PathRaw : ''
   const googleAnalyticsId = typeof googleAnalyticsIdRaw === 'string' ? googleAnalyticsIdRaw : ''
   const discordLink = typeof discordLinkRaw === 'string' ? discordLinkRaw : ''
   const supportUrl = typeof supportUrlRaw === 'string' ? supportUrlRaw : ''
@@ -118,12 +164,30 @@ export async function updateGeneralSettingsAction(
     }
   }
 
+  if (pwaIcon192FileRaw instanceof File && pwaIcon192FileRaw.size > 0) {
+    const processed = await processPwaIconFile(pwaIcon192FileRaw, 192, 'PWA icon (192x192)')
+    if (!processed.path) {
+      return { error: processed.error ?? DEFAULT_ERROR_MESSAGE }
+    }
+    pwaIcon192Path = processed.path
+  }
+
+  if (pwaIcon512FileRaw instanceof File && pwaIcon512FileRaw.size > 0) {
+    const processed = await processPwaIconFile(pwaIcon512FileRaw, 512, 'PWA icon (512x512)')
+    if (!processed.path) {
+      return { error: processed.error ?? DEFAULT_ERROR_MESSAGE }
+    }
+    pwaIcon512Path = processed.path
+  }
+
   const validated = validateThemeSiteSettingsInput({
     siteName,
     siteDescription,
     logoMode,
     logoSvg,
     logoImagePath,
+    pwaIcon192Path,
+    pwaIcon512Path,
     googleAnalyticsId,
     discordLink,
     supportUrl,
@@ -165,6 +229,8 @@ export async function updateGeneralSettingsAction(
     { group: 'general', key: 'site_logo_mode', value: validated.data.logoModeValue },
     { group: 'general', key: 'site_logo_svg', value: validated.data.logoSvgValue },
     { group: 'general', key: 'site_logo_image_path', value: validated.data.logoImagePathValue },
+    { group: 'general', key: 'pwa_icon_192_path', value: validated.data.pwaIcon192PathValue },
+    { group: 'general', key: 'pwa_icon_512_path', value: validated.data.pwaIcon512PathValue },
     { group: 'general', key: 'site_google_analytics', value: validated.data.googleAnalyticsIdValue },
     { group: 'general', key: 'site_discord_link', value: validated.data.discordLinkValue },
     { group: 'general', key: 'site_support_url', value: validated.data.supportUrlValue },

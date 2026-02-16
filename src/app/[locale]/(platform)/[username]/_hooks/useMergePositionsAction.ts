@@ -14,6 +14,7 @@ import { DEFAULT_CONDITION_PARTITION, DEFAULT_ERROR_MESSAGE } from '@/lib/consta
 import { ZERO_COLLECTION_ID } from '@/lib/contracts'
 import { toMicro } from '@/lib/formatters'
 import { aggregateSafeTransactions, buildMergePositionTransaction, getSafeTxTypedData, packSafeSignature } from '@/lib/safe/transactions'
+import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { useNotifications } from '@/stores/useNotifications'
 
 interface UseMergePositionsActionOptions {
@@ -22,6 +23,7 @@ interface UseMergePositionsActionOptions {
   hasMergeableMarkets: boolean
   user: User | null
   ensureTradingReady: () => boolean
+  openTradeRequirements: (options?: { forceTradingAuth?: boolean }) => void
   queryClient: QueryClient
   signMessageAsync: (args: { message: { raw: `0x${string}` } }) => Promise<`0x${string}`>
   onSuccess?: () => void
@@ -33,6 +35,7 @@ export function useMergePositionsAction({
   hasMergeableMarkets,
   user,
   ensureTradingReady,
+  openTradeRequirements,
   queryClient,
   signMessageAsync,
   onSuccess,
@@ -123,7 +126,12 @@ export function useMergePositionsAction({
       setMergeBatchCount(preparedMerges.length)
 
       if (nonceResult.error || !nonceResult.nonce) {
-        toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
+        if (isTradingAuthRequiredError(nonceResult.error)) {
+          openTradeRequirements({ forceTradingAuth: true })
+        }
+        else {
+          toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
+        }
         return
       }
 
@@ -162,7 +170,12 @@ export function useMergePositionsAction({
       const response = await submitSafeTransactionAction(payload)
 
       if (response?.error) {
-        toast.error(response.error)
+        if (isTradingAuthRequiredError(response.error)) {
+          openTradeRequirements({ forceTradingAuth: true })
+        }
+        else {
+          toast.error(response.error)
+        }
         return
       }
 
@@ -203,6 +216,7 @@ export function useMergePositionsAction({
     hasMergeableMarkets,
     mergeableMarkets,
     onSuccess,
+    openTradeRequirements,
     positionsByCondition,
     queryClient,
     signMessageAsync,

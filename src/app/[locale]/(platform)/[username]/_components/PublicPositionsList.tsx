@@ -309,6 +309,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     hasMergeableMarkets,
     user,
     ensureTradingReady,
+    openTradeRequirements,
     queryClient,
     signMessageAsync,
     onSuccess: () => setMergeSuccess(true),
@@ -619,8 +620,8 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
 
       if (result?.error) {
         if (isTradingAuthRequiredError(result.error)) {
-          openTradeRequirements()
-          handleOrderErrorFeedback('Trade failed', 'Complete trading setup to continue.')
+          openTradeRequirements({ forceTradingAuth: true })
+          return
         }
         else {
           handleOrderErrorFeedback('Trade failed', result.error)

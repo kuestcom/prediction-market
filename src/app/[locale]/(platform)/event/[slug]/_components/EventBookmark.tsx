@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useAppKit } from '@/hooks/useAppKit'
 import { cn } from '@/lib/utils'
 
-const headerIconButtonClass = 'size-10 rounded-sm border border-transparent bg-transparent text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring md:size-9'
+const headerIconButtonClass = 'size-10 rounded-sm border border-transparent bg-transparent text-foreground transition-colors hover:bg-muted/80 focus-visible:ring-1 focus-visible:ring-ring md:size-9'
 
 interface EventBookmarkProps {
   event: {

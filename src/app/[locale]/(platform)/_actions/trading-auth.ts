@@ -1,8 +1,14 @@
 'use server'
 
+import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
+import {
+  L2_AUTH_CONTEXT_COOKIE_NAME,
+  L2_AUTH_CONTEXT_COOKIE_NAME_SECURE,
+  L2_AUTH_CONTEXT_TTL_SECONDS,
+} from '@/lib/l2-auth-context'
 import { saveUserTradingAuthCredentials } from '@/lib/trading-auth/server'
 
 interface TradingAuthActionResult {
@@ -87,9 +93,25 @@ export async function generateTradingAuthAction(input: z.input<typeof GenerateTr
       requestApiKey(clobUrl, headers),
     ])
 
-    await saveUserTradingAuthCredentials(user.id, {
+    const l2AuthContextId = await saveUserTradingAuthCredentials(user.id, {
       relayer: relayerCreds,
       clob: clobCreds,
+    })
+    if (!l2AuthContextId) {
+      return { error: DEFAULT_ERROR_MESSAGE, data: null }
+    }
+
+    const cookieStore = await cookies()
+    const isProduction = process.env.NODE_ENV === 'production'
+
+    cookieStore.set({
+      name: isProduction ? L2_AUTH_CONTEXT_COOKIE_NAME_SECURE : L2_AUTH_CONTEXT_COOKIE_NAME,
+      value: l2AuthContextId,
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isProduction,
+      path: '/',
+      maxAge: L2_AUTH_CONTEXT_TTL_SECONDS,
     })
 
     const updatedAt = new Date().toISOString()

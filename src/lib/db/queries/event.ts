@@ -1,13 +1,23 @@
 import type { SupportedLocale } from '@/i18n/locales'
-import type { conditions, outcomes } from '@/lib/db/schema/events/tables'
-import type { ConditionChangeLogEntry, Event, EventSeriesEntry, QueryResult } from '@/types'
+import type { conditions } from '@/lib/db/schema/events/tables'
+import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, QueryResult } from '@/types'
 import { and, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
 import { cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { bookmarks } from '@/lib/db/schema/bookmarks/tables'
-import { conditions_audit, event_tags, event_translations, events, markets, tag_translations, tags } from '@/lib/db/schema/events/tables'
+import {
+  conditions_audit,
+  event_live_chart_configs,
+  event_tags,
+  event_translations,
+  events,
+  markets,
+  outcomes,
+  tag_translations,
+  tags,
+} from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { resolveDisplayPrice } from '@/lib/market-chance'
@@ -28,6 +38,27 @@ interface LastTradePriceEntry {
 interface FetchPriceBatchResult {
   data: PriceApiResponse | null
   aborted: boolean
+}
+
+function resolveSeriesEventDirection(outcomeText: string | null | undefined): 'up' | 'down' | null {
+  if (!outcomeText) {
+    return null
+  }
+
+  const normalized = outcomeText.trim().toLowerCase()
+  if (!normalized) {
+    return null
+  }
+
+  if (normalized.includes('up')) {
+    return 'up'
+  }
+
+  if (normalized.includes('down')) {
+    return 'down'
+  }
+
+  return null
 }
 
 function isPrerenderAbortError(error: unknown) {
@@ -336,12 +367,28 @@ function toOptionalIsoString(value: unknown): string | null {
   return null
 }
 
+async function getEnabledLiveChartSeriesSlugs() {
+  const liveChartRows = await db
+    .select({
+      series_slug: event_live_chart_configs.series_slug,
+    })
+    .from(event_live_chart_configs)
+    .where(eq(event_live_chart_configs.enabled, true))
+
+  return new Set(
+    liveChartRows
+      .map(row => row.series_slug?.trim().toLowerCase())
+      .filter((slug): slug is string => Boolean(slug)),
+  )
+}
+
 function eventResource(
   event: DrizzleEventResult,
   userId: string,
   priceMap: Map<string, OutcomePrices>,
   localizedTagNamesById: Map<number, string> = new Map(),
   localizedEventTitlesById: Map<string, string> = new Map(),
+  liveChartSeriesSlugs: Set<string> = new Set(),
 ): Event {
   const tagRecords = (event.eventTags ?? [])
     .map(et => et.tag)
@@ -416,6 +463,12 @@ function eventResource(
     (sum: number, market: any) => sum + (typeof market.volume_24h === 'number' ? market.volume_24h : 0),
     0,
   )
+  const normalizedSeriesSlug = event.series_slug?.trim().toLowerCase() ?? null
+  const hasLiveChart = Boolean(
+    normalizedSeriesSlug
+    && liveChartSeriesSlugs.has(normalizedSeriesSlug)
+    && marketsWithDerivedValues.length === 1,
+  )
   const isRecentlyUpdated = event.updated_at instanceof Date
     ? (Date.now() - event.updated_at.getTime()) < 1000 * 60 * 60 * 24 * 3
     : false
@@ -436,6 +489,7 @@ function eventResource(
     rules: event.rules || undefined,
     series_slug: event.series_slug ?? null,
     series_recurrence: event.series_recurrence ?? null,
+    has_live_chart: hasLiveChart,
     active_markets_count: Number(event.active_markets_count || 0),
     total_markets_count: Number(event.total_markets_count || 0),
     created_at: event.created_at?.toISOString() || new Date().toISOString(),
@@ -473,12 +527,20 @@ async function buildEventResource(
       .map(eventTag => eventTag.tag?.id)
       .filter((tagId): tagId is number => typeof tagId === 'number'),
   ))
-  const [priceMap, localizedTagNamesById, localizedEventTitlesById] = await Promise.all([
+  const [priceMap, localizedTagNamesById, localizedEventTitlesById, liveChartSeriesSlugs] = await Promise.all([
     fetchOutcomePrices(outcomeTokenIds),
     getLocalizedTagNamesById(tagIds, locale),
     getLocalizedEventTitlesById([eventResult.id], locale),
+    getEnabledLiveChartSeriesSlugs(),
   ])
-  return eventResource(eventResult, userId, priceMap, localizedTagNamesById, localizedEventTitlesById)
+  return eventResource(
+    eventResult,
+    userId,
+    priceMap,
+    localizedTagNamesById,
+    localizedEventTitlesById,
+    liveChartSeriesSlugs,
+  )
 }
 
 function getEventMainTag(tags: any[] | undefined): string {
@@ -721,6 +783,7 @@ export const EventRepository = {
         getLocalizedTagNamesById(tagIds, locale),
         getLocalizedEventTitlesById(eventIds, locale),
       ])
+      const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
 
       const eventsWithMarkets = eventsData
         .filter(event => event.markets?.length > 0)
@@ -730,6 +793,7 @@ export const EventRepository = {
           priceMap,
           localizedTagNamesById,
           localizedEventTitlesById,
+          liveChartSeriesSlugs,
         ))
 
       return { data: eventsWithMarkets, error: null }
@@ -994,6 +1058,20 @@ export const EventRepository = {
             .where(inArray(markets.event_id, eventIds))
         : []
 
+      const winningOutcomeRows = eventIds.length > 0
+        ? await db
+            .select({
+              event_id: markets.event_id,
+              outcome_text: outcomes.outcome_text,
+            })
+            .from(markets)
+            .innerJoin(outcomes, and(
+              eq(outcomes.condition_id, markets.condition_id),
+              eq(outcomes.is_winning_outcome, true),
+            ))
+            .where(inArray(markets.event_id, eventIds))
+        : []
+
       const marketStateByEventId = new Map<string, { total: number, unresolved: number }>()
       for (const eventId of eventIds) {
         marketStateByEventId.set(eventId, { total: 0, unresolved: 0 })
@@ -1009,6 +1087,20 @@ export const EventRepository = {
         if (marketRow.is_resolved !== true) {
           bucket.unresolved += 1
         }
+      }
+
+      const outcomeDirectionByEventId = new Map<string, 'up' | 'down'>()
+      for (const winningOutcomeRow of winningOutcomeRows) {
+        if (outcomeDirectionByEventId.has(winningOutcomeRow.event_id)) {
+          continue
+        }
+
+        const direction = resolveSeriesEventDirection(winningOutcomeRow.outcome_text)
+        if (!direction) {
+          continue
+        }
+
+        outcomeDirectionByEventId.set(winningOutcomeRow.event_id, direction)
       }
 
       const data: EventSeriesEntry[] = rows.map(row => ({
@@ -1031,9 +1123,38 @@ export const EventRepository = {
         end_date: row.end_date?.toISOString() ?? null,
         resolved_at: row.resolved_at?.toISOString() ?? null,
         created_at: row.created_at.toISOString(),
+        resolved_direction: outcomeDirectionByEventId.get(row.id) ?? null,
       }))
 
       return { data, error: null }
+    })
+  },
+
+  async getLiveChartConfigBySeriesSlug(seriesSlug: string): Promise<QueryResult<EventLiveChartConfig | null>> {
+    return runQuery(async () => {
+      const normalizedSeriesSlug = seriesSlug.trim()
+
+      if (!normalizedSeriesSlug) {
+        return { data: null, error: null }
+      }
+
+      const row = await db
+        .select({
+          series_slug: event_live_chart_configs.series_slug,
+          topic: event_live_chart_configs.topic,
+          event_type: event_live_chart_configs.event_type,
+          symbol: event_live_chart_configs.symbol,
+          display_name: event_live_chart_configs.display_name,
+          display_symbol: event_live_chart_configs.display_symbol,
+          line_color: event_live_chart_configs.line_color,
+          icon_path: event_live_chart_configs.icon_path,
+          enabled: event_live_chart_configs.enabled,
+        })
+        .from(event_live_chart_configs)
+        .where(eq(event_live_chart_configs.series_slug, normalizedSeriesSlug))
+        .limit(1)
+
+      return { data: row[0] ?? null, error: null }
     })
   },
 

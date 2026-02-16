@@ -191,7 +191,13 @@ function buildCombinedOutcomeHistory(
   return { points, latestSnapshot }
 }
 
-function EventChartComponent({ event, isMobile, seriesEvents = [] }: EventChartProps) {
+function EventChartComponent({
+  event,
+  isMobile,
+  seriesEvents = [],
+  showControls = true,
+  showSeriesNavigation = true,
+}: EventChartProps) {
   const site = useSiteIdentity()
   const isSingleMarket = useIsSingleMarket()
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
@@ -798,6 +804,7 @@ function EventChartComponent({ event, isMobile, seriesEvents = [] }: EventChartP
             watermark={watermark}
             currentEventSlug={event.slug}
             seriesEvents={seriesEvents}
+            showSeriesNavigation={showSeriesNavigation}
           />
         )}
         chart={(
@@ -842,35 +849,37 @@ function EventChartComponent({ event, isMobile, seriesEvents = [] }: EventChartP
               : null}
           </div>
         )}
-        controls={(
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <EventMetaInformation event={event} />
-            {hasChartData
-              ? (
-                  <EventChartControls
-                    timeRanges={TIME_RANGES}
-                    activeTimeRange={activeTimeRange}
-                    onTimeRangeChange={setActiveTimeRange}
-                    showOutcomeSwitch={isSingleMarket}
-                    oppositeOutcomeLabel={oppositeOutcomeLabel}
-                    onShuffle={() => {
-                      setActiveOutcomeIndex(oppositeOutcomeIndex)
-                      setCursorSnapshot(null)
-                    }}
-                    showMarketSelector={!isSingleMarket}
-                    marketOptions={marketOptions}
-                    selectedMarketIds={selectedMarketIds}
-                    maxSeriesCount={maxSeriesCount}
-                    onToggleMarket={handleToggleMarket}
-                    settings={chartSettings}
-                    onSettingsChange={setChartSettings}
-                    onExportData={() => setExportDialogOpen(true)}
-                    onEmbed={() => setEmbedDialogOpen(true)}
-                  />
-                )
-              : null}
-          </div>
-        )}
+        controls={showControls
+          ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <EventMetaInformation event={event} />
+                {hasChartData
+                  ? (
+                      <EventChartControls
+                        timeRanges={TIME_RANGES}
+                        activeTimeRange={activeTimeRange}
+                        onTimeRangeChange={setActiveTimeRange}
+                        showOutcomeSwitch={isSingleMarket}
+                        oppositeOutcomeLabel={oppositeOutcomeLabel}
+                        onShuffle={() => {
+                          setActiveOutcomeIndex(oppositeOutcomeIndex)
+                          setCursorSnapshot(null)
+                        }}
+                        showMarketSelector={!isSingleMarket}
+                        marketOptions={marketOptions}
+                        selectedMarketIds={selectedMarketIds}
+                        maxSeriesCount={maxSeriesCount}
+                        onToggleMarket={handleToggleMarket}
+                        settings={chartSettings}
+                        onSettingsChange={setChartSettings}
+                        onExportData={() => setExportDialogOpen(true)}
+                        onEmbed={() => setEmbedDialogOpen(true)}
+                      />
+                    )
+                  : null}
+              </div>
+            )
+          : undefined}
       />
       <EventChartExportDialog
         open={exportDialogOpen}
@@ -891,6 +900,12 @@ function EventChartComponent({ event, isMobile, seriesEvents = [] }: EventChartP
 
 function areChartPropsEqual(prev: EventChartProps, next: EventChartProps) {
   if (prev.isMobile !== next.isMobile) {
+    return false
+  }
+  if ((prev.showControls ?? true) !== (next.showControls ?? true)) {
+    return false
+  }
+  if ((prev.showSeriesNavigation ?? true) !== (next.showSeriesNavigation ?? true)) {
     return false
   }
   if (prev.event.id !== next.event.id) {

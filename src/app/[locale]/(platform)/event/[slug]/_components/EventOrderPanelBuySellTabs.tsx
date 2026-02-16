@@ -225,7 +225,14 @@ export default function EventOrderPanelBuySellTabs({
               <DropdownMenuSeparator />
 
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="cursor-pointer">
+                <DropdownMenuSubTrigger
+                  className="
+                    cursor-pointer text-muted-foreground
+                    focus:text-muted-foreground
+                    data-[state=open]:text-muted-foreground
+                    [&_svg]:text-muted-foreground
+                  "
+                >
                   {t('More')}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>

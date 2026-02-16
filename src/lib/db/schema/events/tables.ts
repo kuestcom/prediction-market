@@ -102,6 +102,23 @@ export const events = pgTable(
   },
 )
 
+export const event_live_chart_configs = pgTable(
+  'event_live_chart_configs',
+  {
+    series_slug: text().primaryKey(),
+    topic: text().notNull().default('crypto_prices_chainlink'),
+    event_type: text().notNull().default('update'),
+    symbol: text().notNull(),
+    display_name: text().notNull(),
+    display_symbol: text().notNull(),
+    line_color: text().notNull().default('#F59E0B'),
+    icon_path: text(),
+    enabled: boolean().notNull().default(true),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+)
+
 export const event_translations = pgTable(
   'event_translations',
   {

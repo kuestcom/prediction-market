@@ -38,6 +38,7 @@ import {
   getSafeTxTypedData,
   packSafeSignature,
 } from '@/lib/safe/transactions'
+import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
@@ -73,7 +74,7 @@ export default function EventConvertPositionsDialog({
 }: EventConvertPositionsDialogProps) {
   const t = useExtracted()
   const queryClient = useQueryClient()
-  const { ensureTradingReady } = useTradingOnboarding()
+  const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
   const user = useUser()
   const isMobile = useIsMobile()
   const { signMessageAsync } = useSignMessage()
@@ -295,7 +296,13 @@ export default function EventConvertPositionsDialog({
     try {
       const nonceResult = await getSafeNonceAction()
       if (nonceResult.error || !nonceResult.nonce) {
-        toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
+        if (isTradingAuthRequiredError(nonceResult.error)) {
+          onOpenChange(false)
+          openTradeRequirements({ forceTradingAuth: true })
+        }
+        else {
+          toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
+        }
         setSubmitState('idle')
         return
       }
@@ -344,7 +351,13 @@ export default function EventConvertPositionsDialog({
 
       const response = await submitSafeTransactionAction(payload)
       if (response?.error) {
-        toast.error(response.error)
+        if (isTradingAuthRequiredError(response.error)) {
+          onOpenChange(false)
+          openTradeRequirements({ forceTradingAuth: true })
+        }
+        else {
+          toast.error(response.error)
+        }
         setSubmitState('idle')
         return
       }

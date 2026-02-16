@@ -12,6 +12,7 @@ import {
   isProxyWalletDeployed,
   SAFE_PROXY_CREATE_PROXY_MESSAGE,
 } from '@/lib/safe-proxy'
+import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 
 interface SaveProxyWalletSignatureArgs {
@@ -42,7 +43,12 @@ export async function saveProxyWalletSignature({ signature }: SaveProxyWalletSig
   }
 
   try {
+    const hasStoredRelayerAuth = Boolean(currentUser.settings?.tradingAuth?.relayer?.enabled)
     const tradingAuth = await getUserTradingAuthSecrets(currentUser.id)
+    if (hasStoredRelayerAuth && !tradingAuth?.relayer) {
+      return { data: null, error: TRADING_AUTH_REQUIRED_ERROR }
+    }
+
     const relayerAuth = tradingAuth?.relayer
       ? {
           key: tradingAuth.relayer.key,

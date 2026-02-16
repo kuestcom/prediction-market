@@ -21,6 +21,9 @@ describe('theme site identity helpers', () => {
     expect(identity.googleAnalyticsId).toBeNull()
     expect(identity.discordLink).toBeNull()
     expect(identity.supportUrl).toBeNull()
+    expect(identity.pwaIcon192Url).toContain('/images/pwa/default-icon-192.png')
+    expect(identity.pwaIcon512Url).toContain('/images/pwa/default-icon-512.png')
+    expect(identity.appleTouchIconUrl).toContain('/images/pwa/default-icon-192.png')
   })
 
   it('validates required name and description fields', () => {
@@ -44,6 +47,34 @@ describe('theme site identity helpers', () => {
     expect(result.error).toBeNull()
     expect(result.value).toContain('<svg')
     expect(result.value).not.toContain('<script')
+  })
+
+  it('removes fixed root dimensions from uploaded svg logos', () => {
+    const result = sanitizeThemeSiteLogoSvg(
+      '<svg width="339" height="320" xmlns="http://www.w3.org/2000/svg"><rect width="339" height="320"/></svg>',
+      'Logo SVG',
+    )
+
+    const rootTag = result.value?.match(/<svg\b[^>]*>/i)?.[0] ?? ''
+
+    expect(result.error).toBeNull()
+    expect(rootTag).not.toContain(' width=')
+    expect(rootTag).not.toContain(' height=')
+    expect(result.value).toContain('viewBox="0 0 339 320"')
+  })
+
+  it('keeps existing viewBox while removing fixed root dimensions', () => {
+    const result = sanitizeThemeSiteLogoSvg(
+      '<svg width="339" height="320" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40"/></svg>',
+      'Logo SVG',
+    )
+
+    const rootTag = result.value?.match(/<svg\b[^>]*>/i)?.[0] ?? ''
+
+    expect(result.error).toBeNull()
+    expect(rootTag).toContain('viewBox="0 0 100 100"')
+    expect(rootTag).not.toContain(' width=')
+    expect(rootTag).not.toContain(' height=')
   })
 
   it('builds SVG data URI', () => {
