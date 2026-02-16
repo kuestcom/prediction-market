@@ -19,12 +19,12 @@ export async function GET(request: Request) {
 
     const normalizedSlug = rawSlug.toLowerCase()
 
-    const { data, error } = await EventRepository.getIdBySlug(normalizedSlug)
+    const { data, error } = await EventRepository.existsBySlug(normalizedSlug)
     if (error) {
       return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
     }
 
-    return NextResponse.json({ exists: Boolean(data) })
+    return NextResponse.json({ exists: data })
   }
   catch (error) {
     console.error('API Error:', error)

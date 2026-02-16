@@ -818,6 +818,21 @@ export const EventRepository = {
     })
   },
 
+  async existsBySlug(slug: string): Promise<QueryResult<boolean>> {
+    return runQuery(async () => {
+      const result = await db
+        .select({ id: events.id })
+        .from(events)
+        .where(eq(events.slug, slug))
+        .limit(1)
+
+      return {
+        data: result.length > 0,
+        error: null,
+      }
+    })
+  },
+
   async getEventTitleBySlug(
     slug: string,
     locale: SupportedLocale = DEFAULT_LOCALE,

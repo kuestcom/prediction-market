@@ -67,7 +67,7 @@ export async function requestOpenRouterCompletion(messages: OpenRouterMessage[],
   const response = await fetch(OPENROUTER_API_URL, {
     method: 'POST',
     headers,
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(45_000),
     body: JSON.stringify({
       model,
       messages,

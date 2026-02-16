@@ -67,6 +67,7 @@ export const EIP712_TYPES = {
 export const POLYGON_SCAN_BASE = IS_TEST_MODE
   ? 'https://amoy.polygonscan.com'
   : 'https://polygonscan.com'
+export const CREATE_MARKET_API_BASE_URL = (process.env.NEXT_PUBLIC_CREATE_MARKET_API_URL || 'https://create-market.kuest.com').replace(/\/+$/, '')
 
 export function getExchangeEip712Domain(isNegRisk?: boolean) {
   return isNegRisk ? NEG_RISK_EIP712_DOMAIN : EIP712_DOMAIN

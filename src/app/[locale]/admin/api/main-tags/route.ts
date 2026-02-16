@@ -10,17 +10,22 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
     }
 
-    const { data, error } = await TagRepository.getMainTags()
+    const { data, error, globalChilds } = await TagRepository.getMainTags()
     if (error) {
       return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
     }
 
-    const tags = (data ?? []).map(tag => ({
+    const mainCategories = (data ?? []).map(tag => ({
+      id: tag.id,
       name: tag.name,
       slug: tag.slug,
+      childs: tag.childs ?? [],
     }))
 
-    return NextResponse.json({ tags })
+    return NextResponse.json({
+      mainCategories,
+      globalCategories: globalChilds ?? [],
+    })
   }
   catch (error) {
     console.error('API Error:', error)
