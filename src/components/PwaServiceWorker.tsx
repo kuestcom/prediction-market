@@ -4,7 +4,9 @@ import { useEffect } from 'react'
 
 export default function PwaServiceWorker() {
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production') {
+    const enableInDevelopment = process.env.NEXT_PUBLIC_ENABLE_PWA_IN_DEV === 'true'
+
+    if (process.env.NODE_ENV !== 'production' && !enableInDevelopment) {
       return
     }
 
@@ -12,9 +14,14 @@ export default function PwaServiceWorker() {
       return
     }
 
-    void navigator.serviceWorker.register('/sw.js').catch((error) => {
-      console.error('Failed to register service worker', error)
-    })
+    void navigator.serviceWorker
+      .register('/sw.js', {
+        scope: '/',
+        updateViaCache: 'none',
+      })
+      .catch((error) => {
+        console.error('Failed to register service worker', error)
+      })
   }, [])
 
   return null

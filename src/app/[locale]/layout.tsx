@@ -5,6 +5,7 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
 import { notFound } from 'next/navigation'
+import PwaInstallPrompt from '@/components/PwaInstallPrompt'
 import PwaServiceWorker from '@/components/PwaServiceWorker'
 import TestModeBanner from '@/components/TestModeBanner'
 import { loadEnabledLocales } from '@/i18n/locale-settings'
@@ -92,6 +93,7 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
         <SiteIdentityProvider site={runtimeTheme.site}>
           <NextIntlClientProvider locale={locale}>
             {IS_TEST_MODE && <TestModeBanner />}
+            <PwaInstallPrompt />
             {children}
           </NextIntlClientProvider>
         </SiteIdentityProvider>
