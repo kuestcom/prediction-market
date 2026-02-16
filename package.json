@@ -86,7 +86,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.39.2",
-    "eslint-plugin-better-tailwindcss": "^4.1.1",
+    "eslint-plugin-better-tailwindcss": "^4.3.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.26",
     "husky": "^9.1.7",
