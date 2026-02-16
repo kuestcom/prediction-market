@@ -1,4 +1,4 @@
-export const SUPPORTED_LOCALES = ['en', 'de'] as const
+export const SUPPORTED_LOCALES = ['en', 'de', 'es', 'pt', 'fr', 'zh'] as const
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
 
@@ -11,11 +11,19 @@ export const NON_DEFAULT_LOCALES = SUPPORTED_LOCALES.filter(
 export const LOCALE_LABELS: Record<SupportedLocale, string> = {
   en: 'English',
   de: 'Deutsch',
+  es: 'Spanish',
+  pt: 'Português',
+  fr: 'French',
+  zh: '中文',
 }
 
 export const LOOP_LABELS: Record<SupportedLocale, string> = {
   en: 'Language',
   de: 'Sprache',
+  es: 'Idioma',
+  pt: 'Língua',
+  fr: 'Langue',
+  zh: '语言',
 }
 
 export function normalizeEnabledLocales(locales: string[]): SupportedLocale[] {
