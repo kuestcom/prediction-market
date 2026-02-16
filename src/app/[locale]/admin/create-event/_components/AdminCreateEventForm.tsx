@@ -415,9 +415,9 @@ function extractTitleCategorySuggestions(title: string): CategorySuggestion[] {
   return Array.from(bySlug.values())
 }
 
-function createOption(): OptionItem {
+function createOption(id: string): OptionItem {
   return {
-    id: `opt-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`,
+    id,
     question: '',
     title: '',
     shortName: '',
@@ -438,7 +438,7 @@ function createInitialForm(): FormState {
     binaryQuestion: '',
     binaryOutcomeYes: 'Yes',
     binaryOutcomeNo: 'No',
-    options: [createOption(), createOption()],
+    options: [createOption('opt-1'), createOption('opt-2')],
     resolutionSource: '',
     resolutionRules: '',
   }
@@ -801,9 +801,9 @@ export default function AdminCreateEventForm() {
   const [isAddressCopied, setIsAddressCopied] = useState(false)
   const [isBinaryOutcomesEditable, setIsBinaryOutcomesEditable] = useState(false)
   const [areMultiOutcomesEditable, setAreMultiOutcomesEditable] = useState(false)
+  const [slugSeed, setSlugSeed] = useState('0')
 
   const titleTimeoutRef = useRef<number | null>(null)
-  const slugSeedRef = useRef<string>(Math.floor(Date.now() / 1000).toString())
   const copyTimeoutRef = useRef<number | null>(null)
   const contentCheckProgressRef = useRef<number | null>(null)
   const contentCheckFinishedTimeoutRef = useRef<number | null>(null)
@@ -879,8 +879,8 @@ export default function AdminCreateEventForm() {
     },
   }), [eoaAddress, form, marketCount, targetChainId])
   const slugSuffix = useMemo(
-    () => `${slugSeedRef.current}${creatorSlugTail}`,
-    [creatorSlugTail],
+    () => `${slugSeed}${creatorSlugTail}`,
+    [creatorSlugTail, slugSeed],
   )
   const optionQuestionPlaceholder = useMemo(
     () => form.marketMode === 'multi_unique'
@@ -1209,6 +1209,7 @@ export default function AdminCreateEventForm() {
 
     const raw = window.localStorage.getItem(CREATE_EVENT_DRAFT_STORAGE_KEY)
     if (!raw) {
+      setSlugSeed(Math.floor(Date.now() / 1000).toString())
       return
     }
 
@@ -1222,15 +1223,17 @@ export default function AdminCreateEventForm() {
         areMultiOutcomesEditable?: boolean
       }
 
-      if (typeof parsed.slugSeed === 'string' && parsed.slugSeed.trim()) {
-        slugSeedRef.current = parsed.slugSeed.trim()
-      }
+      setSlugSeed(
+        typeof parsed.slugSeed === 'string' && parsed.slugSeed.trim()
+          ? parsed.slugSeed.trim()
+          : Math.floor(Date.now() / 1000).toString(),
+      )
 
       if (parsed.form && typeof parsed.form === 'object') {
         const fallback = createInitialForm()
         const parsedOptions = Array.isArray(parsed.form.options)
           ? parsed.form.options
-              .map((item) => {
+              .map((item, optionIndex) => {
                 if (!item || typeof item !== 'object') {
                   return null
                 }
@@ -1238,7 +1241,7 @@ export default function AdminCreateEventForm() {
                 return {
                   id: typeof candidate.id === 'string' && candidate.id.trim()
                     ? candidate.id
-                    : createOption().id,
+                    : `opt-loaded-${optionIndex + 1}`,
                   question: typeof candidate.question === 'string' ? candidate.question : '',
                   title: typeof candidate.title === 'string' ? candidate.title : '',
                   shortName: typeof candidate.shortName === 'string' ? candidate.shortName : '',
@@ -1309,6 +1312,7 @@ export default function AdminCreateEventForm() {
     }
     catch (error) {
       console.error('Error loading create-event draft:', error)
+      setSlugSeed(Math.floor(Date.now() / 1000).toString())
     }
   }, [])
 
@@ -1321,13 +1325,13 @@ export default function AdminCreateEventForm() {
       form,
       currentStep,
       maxVisitedStep,
-      slugSeed: slugSeedRef.current,
+      slugSeed,
       isBinaryOutcomesEditable,
       areMultiOutcomesEditable,
     }
 
     window.localStorage.setItem(CREATE_EVENT_DRAFT_STORAGE_KEY, JSON.stringify(payload))
-  }, [areMultiOutcomesEditable, currentStep, form, isBinaryOutcomesEditable, maxVisitedStep])
+  }, [areMultiOutcomesEditable, currentStep, form, isBinaryOutcomesEditable, maxVisitedStep, slugSeed])
 
   useEffect(() => {
     if (titleTimeoutRef.current !== null) {
@@ -1517,10 +1521,20 @@ export default function AdminCreateEventForm() {
   }, [])
 
   const addOption = useCallback(() => {
-    setForm(prev => ({
-      ...prev,
-      options: [...prev.options, createOption()],
-    }))
+    setForm((prev) => {
+      const existingIds = new Set(prev.options.map(option => option.id))
+      let nextIndex = prev.options.length + 1
+      let nextId = `opt-${nextIndex}`
+      while (existingIds.has(nextId)) {
+        nextIndex += 1
+        nextId = `opt-${nextIndex}`
+      }
+
+      return {
+        ...prev,
+        options: [...prev.options, createOption(nextId)],
+      }
+    })
   }, [])
 
   const removeOption = useCallback((optionId: string) => {
@@ -2197,8 +2211,9 @@ export default function AdminCreateEventForm() {
     if (!publicClient) {
       throw new Error('Public client not available.')
     }
+    const activeWalletClient = walletClient
 
-    if (walletClient.chain?.id && walletClient.chain.id !== preparedSignaturePlan.chainId) {
+    if (activeWalletClient.chain?.id && activeWalletClient.chain.id !== preparedSignaturePlan.chainId) {
       throw new Error(`Switch wallet to ${getChainLabel(preparedSignaturePlan.chainId)} before signing.`)
     }
 
@@ -2238,9 +2253,9 @@ export default function AdminCreateEventForm() {
           maxFeePerGas?: bigint
           maxPriorityFeePerGas?: bigint
         }) {
-          return walletClient.sendTransaction({
+          return activeWalletClient.sendTransaction({
             account: eoaAddress,
-            chain: walletClient.chain,
+            chain: activeWalletClient.chain,
             to: toAddress,
             data: tx.data as `0x${string}`,
             value: BigInt(tx.value || '0'),

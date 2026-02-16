@@ -413,7 +413,7 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
       })
     }
 
-    const shortNameMissing = input.options.some(option => !normalizeText(option.shortName))
+    const shortNameMissing = validOptions.some(option => !normalizeText(option.shortName))
     if (shortNameMissing) {
       errors.push({
         code: 'mandatory',
@@ -422,7 +422,7 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
       })
     }
 
-    const questionMissing = input.options.some(option => !normalizeText(option.question))
+    const questionMissing = validOptions.some(option => !normalizeText(option.question))
     if (questionMissing) {
       errors.push({
         code: 'mandatory',
@@ -470,33 +470,36 @@ function sanitizeAiErrors(errors: AiError[]): AiError[] {
 }
 
 function humanizeAiReason(reason: string) {
-  const replacements: Array<[RegExp, string]> = [
-    [/\bendDateIso\b/gi, 'End date'],
-    [/\bendDate\b/gi, 'End date'],
-    [/\bmainCategorySlug\b/gi, 'Main category'],
-    [/\bmainCategory\b/gi, 'Main category'],
-    [/\bcategories\b/gi, 'Sub categories'],
-    [/\bsubCategories\b/gi, 'Sub categories'],
-    [/\bbinaryQuestion\b/gi, 'Binary question'],
-    [/\bbinaryOutcomeYes\b/gi, 'Outcome 1'],
-    [/\bbinaryOutcomeNo\b/gi, 'Outcome 2'],
-    [/\bbinaryOutcomes\.?outcome1\b/gi, 'Outcome 1'],
-    [/\bbinaryOutcomes\.?outcome2\b/gi, 'Outcome 2'],
-    [/\beventType\b/gi, 'Event type'],
-    [/\beventTitle\b/gi, 'Event title'],
-    [/\bresolutionSource\b/gi, 'Resolution source URL'],
-    [/\bresolutionSourceUrl\b/gi, 'Resolution source URL'],
-    [/\bresolutionRules\b/gi, 'Resolution rules'],
-    [/\bshortName\b/gi, 'Short name'],
-    [/\boptions\b/gi, 'Market options'],
-    [/\bmarketOptions\b/gi, 'Market options'],
-    [/\bslug\b/gi, 'Slug'],
-    [/\btitle\b/gi, 'Event title'],
-  ]
+  const labels: Record<string, string> = {
+    'binaryoutcomes.outcome1': 'Outcome 1',
+    'binaryoutcomesoutcome1': 'Outcome 1',
+    'binaryoutcomes.outcome2': 'Outcome 2',
+    'binaryoutcomesoutcome2': 'Outcome 2',
+    'resolutionsourceurl': 'Resolution source URL',
+    'resolutionsource': 'Resolution source URL',
+    'resolutionrules': 'Resolution rules',
+    'maincategoryslug': 'Main category',
+    'maincategory': 'Main category',
+    'subcategories': 'Sub categories',
+    'categories': 'Sub categories',
+    'binaryquestion': 'Binary question',
+    'binaryoutcomeyes': 'Outcome 1',
+    'binaryoutcomeno': 'Outcome 2',
+    'marketoptions': 'Market options',
+    'options': 'Market options',
+    'eventtitle': 'Event title',
+    'eventtype': 'Event type',
+    'enddateiso': 'End date',
+    'enddate': 'End date',
+    'shortname': 'Short name',
+    'slug': 'Slug',
+    'title': 'Event title',
+  }
 
-  let normalized = reason
-  replacements.forEach(([pattern, label]) => {
-    normalized = normalized.replace(pattern, label)
+  const tokenPattern = /\b(binaryOutcomes\.?outcome1|binaryOutcomes\.?outcome2|resolutionSourceUrl|resolutionSource|resolutionRules|mainCategorySlug|mainCategory|subCategories|categories|binaryQuestion|binaryOutcomeYes|binaryOutcomeNo|marketOptions|options|eventTitle|eventType|endDateIso|endDate|shortName|slug|title)\b/gi
+
+  const normalized = reason.replace(tokenPattern, (match) => {
+    return labels[match.toLowerCase()] ?? match
   })
 
   return normalized.replace(/\s+/g, ' ').trim()
