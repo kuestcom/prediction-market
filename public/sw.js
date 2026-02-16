@@ -6,6 +6,31 @@ globalThis.addEventListener('activate', (event) => {
   event.waitUntil(globalThis.clients.claim())
 })
 
+function resolveSafeNotificationUrl(rawUrl) {
+  const fallbackUrl = `${globalThis.location.origin}/`
+
+  if (typeof rawUrl !== 'string' || !rawUrl.trim()) {
+    return fallbackUrl
+  }
+
+  try {
+    const parsedUrl = new URL(rawUrl, globalThis.location.origin)
+
+    if (parsedUrl.origin !== globalThis.location.origin) {
+      return fallbackUrl
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return fallbackUrl
+    }
+
+    return parsedUrl.toString()
+  }
+  catch {
+    return fallbackUrl
+  }
+}
+
 globalThis.addEventListener('push', (event) => {
   if (!event.data) {
     return
@@ -30,7 +55,7 @@ globalThis.addEventListener('push', (event) => {
   const badge = typeof data.badge === 'string' && data.badge.trim()
     ? data.badge
     : '/images/pwa/default-icon-192.png'
-  const url = typeof data.url === 'string' && data.url.trim() ? data.url : '/'
+  const url = resolveSafeNotificationUrl(data.url)
 
   event.waitUntil(
     globalThis.registration.showNotification(title, {
@@ -45,13 +70,9 @@ globalThis.addEventListener('push', (event) => {
 globalThis.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
-  const fallbackUrl = '/'
-  const targetUrl = typeof event.notification.data?.url === 'string'
-    ? event.notification.data.url
-    : fallbackUrl
+  const targetUrl = resolveSafeNotificationUrl(event.notification.data?.url)
 
   event.waitUntil((async () => {
-    const absoluteTargetUrl = new URL(targetUrl, globalThis.location.origin).toString()
     const windowClients = await globalThis.clients.matchAll({
       type: 'window',
       includeUncontrolled: true,
@@ -60,8 +81,8 @@ globalThis.addEventListener('notificationclick', (event) => {
     for (const client of windowClients) {
       if ('focus' in client && 'navigate' in client) {
         try {
-          if (client.url !== absoluteTargetUrl) {
-            await client.navigate(absoluteTargetUrl)
+          if (client.url !== targetUrl) {
+            await client.navigate(targetUrl)
           }
 
           await client.focus()
@@ -74,7 +95,7 @@ globalThis.addEventListener('notificationclick', (event) => {
     }
 
     if ('openWindow' in globalThis.clients) {
-      await globalThis.clients.openWindow(absoluteTargetUrl)
+      await globalThis.clients.openWindow(targetUrl)
     }
   })())
 })
