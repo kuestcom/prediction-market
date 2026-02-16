@@ -3,6 +3,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import type { EventSeriesEntry } from '@/types'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -34,6 +35,7 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
   if (slug === STATIC_PARAMS_PLACEHOLDER || market === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
+  await connection()
 
   const [user, marketContextSettings] = await Promise.all([
     UserRepository.getCurrentUser(),

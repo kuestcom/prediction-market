@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
+import { connection } from 'next/server'
 import PublicProfileHeroCards from '@/app/[locale]/(platform)/[username]/_components/PublicProfileHeroCards'
 import PendingDepositBanner from '@/app/[locale]/(platform)/portfolio/_components/PendingDepositBanner'
 import PortfolioMarketsWonCard from '@/app/[locale]/(platform)/portfolio/_components/PortfolioMarketsWonCard'
@@ -15,6 +16,8 @@ export const metadata: Metadata = {
 export default async function PortfolioPage({ params }: PageProps<'/[locale]/portfolio'>) {
   const { locale } = await params
   setRequestLocale(locale)
+
+  await connection()
 
   const user = await UserRepository.getCurrentUser()
   const userAddress = user?.proxy_wallet_address ?? ''
