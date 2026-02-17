@@ -69,7 +69,7 @@
 >
 > ### 1. Fork the Repository
 > 1. In the top right corner, click the **[⭐ Star]** button
-> 2. From the same menu, click **[Fork]**
+> 2. [Fork it here](https://github.com/kuestcom/prediction-market/fork)
 >
 > ### 2. Configure Environment Variables before Deploy
 > 1. Download [`.env.example`](./.env.example) from this repository
@@ -139,12 +139,14 @@
 - [x] Public bot SDK (Python/Rust)
 - [x] Activity page
 - [x] Traders Ranking
-- [ ] UMA Oracle implementation
+- [x] Multi-language UI
+- [x] Auto‑renew Crypto and Nasdaq markets
+- [x] Fork-created markets with opt-in cross-fork sharing
+- [x] UMA Oracle implementation
 - [ ] 🏆 MVP Ready (stress tests, security and calculation checks)
 - [ ] Move matching engine to mainnet
-- [ ] Auto‑renew Crypto and X counter markets (soon)
+- [ ] Auto‑renew X counter markets (soon)
 - [ ] Sports markets (soon)
-- [ ] Fork-created markets with opt-in cross-fork sharing (soon)
 - [ ] Kalshi arbitrage connector (soon)
 
 ---
