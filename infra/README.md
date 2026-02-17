@@ -6,9 +6,10 @@ This folder provides a portable deployment foundation outside Vercel.
 
 - `docker/`: production image and local compose profile
 - `kubernetes/`: baseline manifests for app deployment and ingress
-- `terraform/`: reusable deployment target modules and production stacks for Kubernetes, Cloud Run, and Fly.io
+- `terraform/`: reusable deployment target modules and production stacks for Kubernetes, Cloud Run, Fly.io, and DigitalOcean
 - `cloud-run/`: Google Cloud Run deployment target and runbooks
 - `fly/`: Fly.io deployment target and runbooks
+- `digital-ocean/`: beginner-friendly manual deploy guide for DigitalOcean
 - `scripts/`: shared env and image validation helpers
 
 ## Environment contract
@@ -63,6 +64,7 @@ Additional Terraform targets:
 - `infra/terraform/environments/production/gke` (creates GKE Autopilot cluster)
 - `infra/terraform/environments/production/cloud-run` (declarative Cloud Run deployment via `hashicorp/google`)
 - `infra/terraform/environments/production/fly` (orchestrates `infra/fly` scripts)
+- `infra/terraform/environments/production/digital-ocean` (DigitalOcean App Platform deploy)
 
 See `infra/terraform/README.md` for full target-specific instructions.
 
@@ -108,8 +110,16 @@ Rollback (redeploy previous digest):
 FLY_APP=<fly-app-name> IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<previous-digest> ENV_FILE=.env ./infra/fly/deploy.sh
 ```
 
+### DigitalOcean (manual)
+
+See step-by-step guide for beginners:
+
+```bash
+cat infra/digital-ocean/README.md
+```
+
 ## Scheduler note
 
 Sync scheduling remains managed by Supabase/pg_cron via `npm run db:push` (`scripts/migrate.js`).
-Kubernetes, Terraform, Cloud Run, and Fly.io do not create scheduler jobs in this phase.
+Kubernetes, Terraform, Cloud Run, Fly.io, and DigitalOcean manual deploy do not create scheduler jobs in this phase.
 `SITE_URL` must point to the canonical public endpoint used by Supabase callbacks (`/api/sync/*`).

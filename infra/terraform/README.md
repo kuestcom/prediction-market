@@ -6,6 +6,7 @@ Terraform environments available:
 - `environments/production/kubernetes`: Kubernetes deployment target (`modules/target-kubernetes`)
 - `environments/production/cloud-run`: Cloud Run deployment target (`modules/target-cloud-run`)
 - `environments/production/fly`: Fly.io deployment target (`modules/target-fly`)
+- `environments/production/digital-ocean`: DigitalOcean App Platform deployment target
 
 ## GKE Autopilot target
 
@@ -66,6 +67,24 @@ Prerequisites:
 
 ```bash
 cd infra/terraform/environments/production/fly
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform plan
+terraform apply
+```
+
+## DigitalOcean target
+
+This target creates and manages the app on DigitalOcean App Platform using the official Terraform provider (`digitalocean/digitalocean`).
+
+Prerequisites:
+
+- DigitalOcean API token exported as `DIGITALOCEAN_TOKEN`
+- Repository access configured in DigitalOcean App Platform (GitHub integration)
+
+```bash
+export DIGITALOCEAN_TOKEN=<your-token>
+cd infra/terraform/environments/production/digital-ocean
 cp terraform.tfvars.example terraform.tfvars
 terraform init
 terraform plan
