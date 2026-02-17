@@ -59,6 +59,7 @@ const config: NextConfig = {
     ]
   },
   env: {
+    IS_VERCEL: isVercel ? 'true' : 'false',
     SITE_URL: siteUrl,
     CLOB_URL: process.env.CLOB_URL ?? 'https://clob.kuest.com',
     RELAYER_URL: process.env.RELAYER_URL ?? 'https://relayer.kuest.com',
