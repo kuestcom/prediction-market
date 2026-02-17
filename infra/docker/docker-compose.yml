@@ -10,7 +10,7 @@ services:
       - ../../.env
     environment:
       NODE_ENV: production
-      SITE_URL: http://localhost:3000
+      SITE_URL: ${SITE_URL:?SITE_URL is required}
     ports:
       - '3000:3000'
     restart: unless-stopped

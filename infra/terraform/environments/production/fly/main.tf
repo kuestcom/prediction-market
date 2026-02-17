@@ -16,9 +16,7 @@ module "target_fly" {
   fly_app                              = var.fly_app
   app_image                            = var.app_image
   site_url                             = var.site_url
-  supabase_url                         = var.supabase_url
   next_public_reown_appkit_project_id  = var.next_public_reown_appkit_project_id
-  next_public_fork_owner_guide         = var.next_public_fork_owner_guide
   app_env                              = var.app_env
   secret_env                           = var.secret_env
   sync_secrets                         = var.sync_secrets

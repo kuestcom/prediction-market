@@ -30,23 +30,17 @@ else
 fi
 
 secret_names=(
+  SUPABASE_URL
   SUPABASE_SERVICE_ROLE_KEY
   POSTGRES_URL
   CRON_SECRET
   BETTER_AUTH_SECRET
+  ADMIN_WALLETS
   KUEST_ADDRESS
   KUEST_API_KEY
   KUEST_API_SECRET
   KUEST_PASSPHRASE
 )
-
-if [[ -n "${POSTGRES_URL_NON_POOLING:-}" ]]; then
-  secret_names+=(POSTGRES_URL_NON_POOLING)
-fi
-
-if [[ -n "${ADMIN_WALLETS:-}" ]]; then
-  secret_names+=(ADMIN_WALLETS)
-fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "Dry-run: would sync these secrets to Google Secret Manager in project ${PROJECT_ID}:"

@@ -10,7 +10,7 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import AppKitProvider from '@/providers/AppKitProvider'
 import ProgressIndicatorProvider from '@/providers/ProgressIndicatorProvider'
 
-const SpeedInsights = process.env.IS_VERCEL
+const SpeedInsights = process.env.IS_VERCEL === 'true'
   ? dynamic(
       () => import('@vercel/speed-insights/next').then(mod => mod.SpeedInsights),
       { ssr: false },

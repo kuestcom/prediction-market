@@ -60,24 +60,16 @@ Mark secrets as encrypted in the UI (the lock icon). At minimum:
 Plain/env values:
 
 - `SITE_URL` (canonical public URL)
-- `SUPABASE_URL`
 - `NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID`
-- `NEXT_PUBLIC_FORK_OWNER_GUIDE` (`false` unless needed)
-- `CLOB_URL`
-- `RELAYER_URL`
-- `DATA_URL`
-- `USER_PNL_URL`
-- `COMMUNITY_URL`
-- `WS_CLOB_URL`
-- `WS_LIVE_DATA_URL`
 
 Secret values:
 
+- `SUPABASE_URL`
 - `BETTER_AUTH_SECRET`
 - `CRON_SECRET`
 - `POSTGRES_URL`
-- `POSTGRES_URL_NON_POOLING` (recommended)
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `ADMIN_WALLETS`
 - `KUEST_ADDRESS`
 - `KUEST_API_KEY`
 - `KUEST_API_SECRET`

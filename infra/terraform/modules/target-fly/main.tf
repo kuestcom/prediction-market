@@ -11,9 +11,7 @@ locals {
   base_env = {
     NODE_ENV                             = "production"
     SITE_URL                             = var.site_url
-    SUPABASE_URL                         = var.supabase_url
     NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID  = var.next_public_reown_appkit_project_id
-    NEXT_PUBLIC_FORK_OWNER_GUIDE         = var.next_public_fork_owner_guide
     FLY_APP                              = var.fly_app
     IMAGE_REF                            = var.app_image
     ENV_FILE                             = "/dev/null"
@@ -26,9 +24,7 @@ locals {
     fly_app                              = var.fly_app
     app_image                            = var.app_image
     site_url                             = var.site_url
-    supabase_url                         = var.supabase_url
     next_public_reown_appkit_project_id  = var.next_public_reown_appkit_project_id
-    next_public_fork_owner_guide         = var.next_public_fork_owner_guide
     app_env                              = var.app_env
   }))
 

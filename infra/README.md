@@ -16,10 +16,10 @@ This folder provides a portable deployment foundation outside Vercel.
 
 Use these environment variables across all deployment targets:
 
-- `SITE_URL`: canonical public app URL
-- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `POSTGRES_URL` (`POSTGRES_URL_NON_POOLING` recommended for `db:push`)
+- `SITE_URL` (required): canonical public app URL
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `POSTGRES_URL` (all treated as secrets in infra targets)
 - `CRON_SECRET`: shared secret for `/api/sync/*` routes
-- `BETTER_AUTH_SECRET`, `NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID`, and Kuest API credentials
+- `BETTER_AUTH_SECRET`, `NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID`, `ADMIN_WALLETS`, and Kuest API credentials
 
 On Vercel, some Supabase/DB variables may be auto-injected by integrations. On Kubernetes/Terraform/self-hosted, you must define them explicitly.
 

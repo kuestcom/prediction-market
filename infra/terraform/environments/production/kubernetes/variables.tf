@@ -19,11 +19,6 @@ variable "site_url" {
   description = "Canonical app URL"
 }
 
-variable "supabase_url" {
-  type        = string
-  description = "Supabase project URL"
-}
-
 variable "secret_env" {
   type        = map(string)
   description = "Sensitive application env vars"

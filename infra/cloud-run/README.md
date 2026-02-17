@@ -58,7 +58,7 @@ ENV_FILE=.env \
 ```bash
 gcloud builds submit \
   --config infra/cloud-run/cloudbuild.yaml \
-  --substitutions _SERVICE=kuest-web,_REGION=us-central1,_AR_REGION=us-central1,_AR_REPOSITORY=kuest,_IMAGE_NAME=prediction-market,_SITE_URL=https://markets.example.com,_SUPABASE_URL=https://your-project.supabase.co,_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=replace-me
+  --substitutions _SERVICE=kuest-web,_REGION=us-central1,_AR_REGION=us-central1,_AR_REPOSITORY=kuest,_IMAGE_NAME=prediction-market,_SITE_URL=https://markets.example.com,_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=replace-me
 ```
 
 Before running this pipeline:
@@ -84,7 +84,6 @@ Use Cloud Build Triggers to deploy automatically from GitHub commits.
    - `_AR_REPOSITORY`
    - `_IMAGE_NAME`
    - `_SITE_URL`
-   - `_SUPABASE_URL`
    - `_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID`
 5. Save trigger.
 
@@ -98,6 +97,7 @@ Use Cloud Build Triggers to deploy automatically from GitHub commits.
 ### Notes for dashboard workflow
 
 - Secrets are still read from Secret Manager during deploy, so run `infra/cloud-run/sync-secrets.sh` whenever secret values change.
+- `SUPABASE_URL` is resolved from Secret Manager (not from Cloud Build substitutions).
 - Keep production substitutions pinned to your canonical production values (especially `_SITE_URL`).
 
 ## Rollback

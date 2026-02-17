@@ -23,7 +23,10 @@ spec:
             - name: SITE_URL
               value: https://markets.example.com
             - name: SUPABASE_URL
-              value: https://your-project.supabase.co
+              valueFrom:
+                secretKeyRef:
+                  name: SUPABASE_URL
+                  key: latest
             - name: NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID
               value: replace-me
             - name: SUPABASE_SERVICE_ROLE_KEY

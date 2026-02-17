@@ -23,9 +23,7 @@ module "target_cloud_run" {
   app_image                             = var.app_image
   secret_version                        = var.secret_version
   site_url                              = var.site_url
-  supabase_url                          = var.supabase_url
   next_public_reown_appkit_project_id   = var.next_public_reown_appkit_project_id
-  next_public_fork_owner_guide          = var.next_public_fork_owner_guide
   app_env                               = var.app_env
   secret_env                            = var.secret_env
   allow_unauthenticated                 = var.allow_unauthenticated

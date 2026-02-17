@@ -26,16 +26,5 @@ module "target_kubernetes" {
   ingress_host            = "markets.example.com"
   ingress_tls_secret_name = "kuest-prod-tls"
 
-  app_env = {
-    SUPABASE_URL     = var.supabase_url
-    CLOB_URL         = "https://clob.kuest.com"
-    RELAYER_URL      = "https://relayer.kuest.com"
-    DATA_URL         = "https://data-api.kuest.com"
-    USER_PNL_URL     = "https://user-pnl-api.kuest.com"
-    COMMUNITY_URL    = "https://community.kuest.com"
-    WS_CLOB_URL      = "wss://ws-subscriptions-clob.kuest.com"
-    WS_LIVE_DATA_URL = "wss://ws-live-data.kuest.com"
-  }
-
   secret_env = var.secret_env
 }

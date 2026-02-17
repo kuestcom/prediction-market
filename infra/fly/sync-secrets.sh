@@ -36,6 +36,7 @@ required_vars=(
   POSTGRES_URL
   CRON_SECRET
   BETTER_AUTH_SECRET
+  ADMIN_WALLETS
   NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID
   KUEST_ADDRESS
   KUEST_API_KEY
@@ -43,41 +44,15 @@ required_vars=(
   KUEST_PASSPHRASE
 )
 
-optional_vars=(
-  POSTGRES_URL_NON_POOLING
-  ADMIN_WALLETS
-  CLOB_URL
-  RELAYER_URL
-  DATA_URL
-  USER_PNL_URL
-  COMMUNITY_URL
-  WS_CLOB_URL
-  WS_LIVE_DATA_URL
-  NEXT_PUBLIC_FORK_OWNER_GUIDE
-)
-
 secret_pairs=()
 for key in "${required_vars[@]}"; do
   secret_pairs+=("${key}=${!key}")
-done
-
-for key in "${optional_vars[@]}"; do
-  value="${!key:-}"
-  if [[ -n "$value" ]]; then
-    secret_pairs+=("${key}=${value}")
-  fi
 done
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "Dry-run: would set these Fly secrets on app ${FLY_APP}:"
   for key in "${required_vars[@]}"; do
     echo "- ${key}"
-  done
-  for key in "${optional_vars[@]}"; do
-    value="${!key:-}"
-    if [[ -n "$value" ]]; then
-      echo "- ${key}"
-    fi
   done
   exit 0
 fi

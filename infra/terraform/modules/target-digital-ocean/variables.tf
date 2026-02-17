@@ -68,20 +68,9 @@ variable "site_url" {
   description = "Canonical public URL for the app"
 }
 
-variable "supabase_url" {
-  type        = string
-  description = "Supabase project URL"
-}
-
 variable "next_public_reown_appkit_project_id" {
   type        = string
   description = "Reown AppKit project id"
-}
-
-variable "next_public_fork_owner_guide" {
-  type        = string
-  description = "NEXT_PUBLIC_FORK_OWNER_GUIDE value"
-  default     = "false"
 }
 
 variable "app_env" {
@@ -99,12 +88,14 @@ variable "secret_env" {
       contains(keys(var.secret_env), "BETTER_AUTH_SECRET"),
       contains(keys(var.secret_env), "CRON_SECRET"),
       contains(keys(var.secret_env), "POSTGRES_URL"),
+      contains(keys(var.secret_env), "SUPABASE_URL"),
       contains(keys(var.secret_env), "SUPABASE_SERVICE_ROLE_KEY"),
+      contains(keys(var.secret_env), "ADMIN_WALLETS"),
       contains(keys(var.secret_env), "KUEST_ADDRESS"),
       contains(keys(var.secret_env), "KUEST_API_KEY"),
       contains(keys(var.secret_env), "KUEST_API_SECRET"),
       contains(keys(var.secret_env), "KUEST_PASSPHRASE"),
     ])
-    error_message = "secret_env must include BETTER_AUTH_SECRET, CRON_SECRET, POSTGRES_URL, SUPABASE_SERVICE_ROLE_KEY, and KUEST credentials."
+    error_message = "secret_env must include BETTER_AUTH_SECRET, CRON_SECRET, POSTGRES_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ADMIN_WALLETS, and KUEST credentials."
   }
 }
