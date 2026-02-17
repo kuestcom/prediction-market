@@ -140,7 +140,8 @@
 - [x] Activity page
 - [x] Traders Ranking
 - [x] Multi-language UI
-- [x] Auto‑renew Crypto and Nasdaq markets
+- [x] Theme customization
+- [x] Auto-renewed Crypto and Nasdaq markets with live charts
 - [x] Fork-created markets with opt-in cross-fork sharing
 - [ ] UMA Oracle implementation
 - [ ] 🏆 MVP Ready (stress tests, security and calculation checks)
