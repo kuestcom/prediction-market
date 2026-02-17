@@ -3,12 +3,6 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const postgres = require('postgres')
-const { resolveSiteUrl, resolveSchedulerTarget } = require('./runtime-config')
-
-function readPositiveInt(name, fallback) {
-  const value = Number.parseInt(process.env[name] || '', 10)
-  return Number.isInteger(value) && value > 0 ? value : fallback
-}
 
 function escapeSqlLiteral(value) {
   return String(value).replace(/'/g, '\'\'')
@@ -21,14 +15,7 @@ function buildSyncCronSql({
   siteUrl,
   cronSecret,
 }) {
-  const endpointUrl = resolveSchedulerTarget(endpointPath, {
-    SITE_URL: siteUrl,
-  })
-
-  if (!endpointUrl) {
-    throw new Error(`Unable to resolve scheduler target for ${jobName}`)
-  }
-
+  const endpointUrl = `${siteUrl}/${endpointPath}`
   const escapedJobName = escapeSqlLiteral(jobName)
   const escapedSchedule = escapeSqlLiteral(schedule)
   const escapedEndpointUrl = escapeSqlLiteral(endpointUrl)
@@ -252,12 +239,19 @@ function resolveMigrationConnectionString() {
   return migrationUrl.replace('require', 'disable')
 }
 
+function resolveSiteUrl() {
+  return process.env.SITE_URL
+    ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : 'http://localhost:3000')
+}
+
 async function run() {
   if (shouldSkip(['CRON_SECRET'])) {
     return
   }
 
-  const siteUrl = resolveSiteUrl(process.env)
+  const siteUrl = resolveSiteUrl()
   if (!siteUrl) {
     console.log('Skipping db:push because required env vars are missing: SITE_URL, VERCEL_PROJECT_PRODUCTION_URL, or VERCEL_URL')
     return
@@ -270,10 +264,9 @@ async function run() {
   }
 
   const cronSecret = process.env.CRON_SECRET
-  const maxConnections = readPositiveInt('DB_PUSH_MAX_CONNECTIONS', 1)
 
   const sql = postgres(connectionString, {
-    max: maxConnections,
+    max: 1,
     connect_timeout: 30,
     idle_timeout: 5,
   })
@@ -302,6 +295,4 @@ async function run() {
   }
 }
 
-if (require.main === module) {
-  run()
-}
+run()
