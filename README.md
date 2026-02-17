@@ -133,20 +133,21 @@
 - [x] Safe-compatible proxy wallet flows
 - [x] Relayer server
 - [x] Matching engine
-- [x] Split and Merge functions
+- [x] Split and merge functions
 - [x] PnL system
-- [x] Negative Risk Conversion Positions function
+- [x] Negative risk position conversion
 - [x] Public bot SDK (Python/Rust)
 - [x] Activity page
-- [x] Traders Ranking
+- [x] Trader leaderboard
 - [x] Multi-language UI
 - [x] Theme customization
-- [x] Auto-renewed Crypto and Nasdaq markets with live charts
+- [x] Recurring Crypto and Nasdaq markets with live charts
 - [x] Fork-created markets with opt-in cross-fork sharing
 - [x] UMA Oracle implementation
 - [ ] 🏆 MVP Ready (stress tests, security, and financial consistency checks)
 - [ ] Move matching engine to mainnet
-- [ ] Auto‑renew X counter markets (soon)
+- [ ] Recurring X counter markets (soon)
+- [ ] Recurring temperature markets (soon)
 - [ ] Sports markets (soon)
 - [ ] Kalshi arbitrage connector (soon)
 
