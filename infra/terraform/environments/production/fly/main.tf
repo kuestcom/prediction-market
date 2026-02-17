@@ -9,8 +9,8 @@ terraform {
   }
 }
 
-module "runtime_fly" {
-  source = "../../../modules/runtime-fly"
+module "target_fly" {
+  source = "../../../modules/target-fly"
 
   repo_root                            = local.resolved_repo_root
   fly_app                              = var.fly_app
@@ -26,16 +26,16 @@ module "runtime_fly" {
 }
 
 output "deployment_target" {
-  value       = module.runtime_fly.target
+  value       = module.target_fly.target
   description = "Deployment target"
 }
 
 output "fly_app" {
-  value       = module.runtime_fly.fly_app
+  value       = module.target_fly.fly_app
   description = "Fly.io app name"
 }
 
 output "image_ref" {
-  value       = module.runtime_fly.image_ref
+  value       = module.target_fly.image_ref
   description = "Image reference used for deployment"
 }

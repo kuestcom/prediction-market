@@ -14,8 +14,8 @@ provider "google" {
   region  = var.region
 }
 
-module "runtime_cloud_run" {
-  source = "../../../modules/runtime-cloud-run"
+module "target_cloud_run" {
+  source = "../../../modules/target-cloud-run"
 
   project_id                            = var.project_id
   region                                = var.region
@@ -39,26 +39,26 @@ module "runtime_cloud_run" {
 }
 
 output "deployment_target" {
-  value       = module.runtime_cloud_run.target
+  value       = module.target_cloud_run.target
   description = "Deployment target"
 }
 
 output "service_name" {
-  value       = module.runtime_cloud_run.service_name
+  value       = module.target_cloud_run.service_name
   description = "Cloud Run service name"
 }
 
 output "region" {
-  value       = module.runtime_cloud_run.region
+  value       = module.target_cloud_run.region
   description = "Cloud Run region"
 }
 
 output "image_ref" {
-  value       = module.runtime_cloud_run.image_ref
+  value       = module.target_cloud_run.image_ref
   description = "Image reference used for deployment"
 }
 
 output "service_uri" {
-  value       = module.runtime_cloud_run.uri
+  value       = module.target_cloud_run.uri
   description = "Cloud Run public service URL"
 }

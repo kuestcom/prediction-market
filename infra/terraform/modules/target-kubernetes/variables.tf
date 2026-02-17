@@ -1,6 +1,6 @@
 variable "namespace" {
   type        = string
-  description = "Kubernetes namespace for the runtime"
+  description = "Kubernetes namespace for the deployment target"
   default     = "kuest"
 }
 
@@ -12,7 +12,7 @@ variable "app_name" {
 
 variable "app_image" {
   type        = string
-  description = "Container image for the web runtime"
+  description = "Container image for the web application"
 }
 
 variable "site_url" {

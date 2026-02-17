@@ -43,13 +43,13 @@ variable "next_public_fork_owner_guide" {
 
 variable "app_env" {
   type        = map(string)
-  description = "Additional non-sensitive runtime env vars"
+  description = "Additional non-sensitive application environment variables"
   default     = {}
 }
 
 variable "secret_env" {
   type        = map(string)
-  description = "Sensitive runtime env vars"
+  description = "Sensitive application environment variables"
   sensitive   = true
   validation {
     condition = alltrue([

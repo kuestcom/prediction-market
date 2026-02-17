@@ -26,6 +26,6 @@ variable "supabase_url" {
 
 variable "secret_env" {
   type        = map(string)
-  description = "Sensitive runtime env vars"
+  description = "Sensitive application env vars"
   sensitive   = true
 }

@@ -55,13 +55,13 @@ variable "next_public_fork_owner_guide" {
 
 variable "app_env" {
   type        = map(string)
-  description = "Additional non-sensitive runtime env vars"
+  description = "Additional non-sensitive application environment variables"
   default     = {}
 }
 
 variable "secret_env" {
   type        = map(string)
-  description = "Map of runtime env var name to Secret Manager secret name"
+  description = "Map of application environment variable name to Secret Manager secret name"
   validation {
     condition = alltrue([
       contains(keys(var.secret_env), "BETTER_AUTH_SECRET"),

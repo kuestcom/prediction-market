@@ -62,7 +62,7 @@ variable "app_env" {
 
 variable "secret_env" {
   type        = map(string)
-  description = "Map of runtime env var names to Secret Manager secret names"
+  description = "Map of application env var names to Secret Manager secret names"
 }
 
 variable "allow_unauthenticated" {

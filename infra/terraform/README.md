@@ -2,11 +2,32 @@
 
 Terraform environments available:
 
-- `environments/production/kubernetes`: Kubernetes target (`modules/runtime-kubernetes`)
-- `environments/production/cloud-run`: Cloud Run target (`modules/runtime-cloud-run`)
-- `environments/production/fly`: Fly.io target (`modules/runtime-fly`)
+- `environments/production/gke`: GKE Autopilot deployment target (`modules/target-gke-autopilot`)
+- `environments/production/kubernetes`: Kubernetes deployment target (`modules/target-kubernetes`)
+- `environments/production/cloud-run`: Cloud Run deployment target (`modules/target-cloud-run`)
+- `environments/production/fly`: Fly.io deployment target (`modules/target-fly`)
+
+## GKE Autopilot target
+
+This target creates a Kubernetes cluster on Google Kubernetes Engine Autopilot.
+
+```bash
+cd infra/terraform/environments/production/gke
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform plan
+terraform apply
+```
+
+After apply, fetch cluster credentials:
+
+```bash
+gcloud container clusters get-credentials <cluster-name> --region <region> --project <project-id>
+```
 
 ## Kubernetes target
+
+This target deploys application resources into an existing cluster (for example, one created by the GKE Autopilot target).
 
 ```bash
 cd infra/terraform/environments/production/kubernetes

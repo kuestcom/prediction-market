@@ -5,13 +5,13 @@ This folder provides a portable deployment foundation outside Vercel.
 ## Layout
 
 - `docker/`: production image and local compose profile
-- `kubernetes/`: baseline manifests for runtime and ingress
-- `terraform/`: reusable runtime modules and production stacks for Kubernetes, Cloud Run, and Fly.io
+- `kubernetes/`: baseline manifests for app deployment and ingress
+- `terraform/`: reusable deployment target modules and production stacks for Kubernetes, Cloud Run, and Fly.io
 - `cloud-run/`: Google Cloud Run deployment target and runbooks
 - `fly/`: Fly.io deployment target and runbooks
-- `scripts/`: shared runtime env and image validation helpers
+- `scripts/`: shared env and image validation helpers
 
-## Runtime contract
+## Environment contract
 
 Use these environment variables across all deployment targets:
 
@@ -60,10 +60,13 @@ terraform apply
 
 Additional Terraform targets:
 
+- `infra/terraform/environments/production/gke` (creates GKE Autopilot cluster)
 - `infra/terraform/environments/production/cloud-run` (declarative Cloud Run deployment via `hashicorp/google`)
 - `infra/terraform/environments/production/fly` (orchestrates `infra/fly` scripts)
 
 See `infra/terraform/README.md` for full target-specific instructions.
+
+For Kubernetes on GCP, run `production/gke` first to create the cluster, fetch credentials with `gcloud container clusters get-credentials`, then run `production/kubernetes`.
 
 ### Cloud Run
 

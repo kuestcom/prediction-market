@@ -1,4 +1,6 @@
-kube_context = "prod-cluster"
+# Example for GKE credentials loaded by:
+# gcloud container clusters get-credentials kuest-prod-autopilot --region us-central1 --project my-gcp-project
+kube_context = "gke_my-gcp-project_us-central1_kuest-prod-autopilot"
 app_image    = "ghcr.io/kuestcom/prediction-market:v1.0.0"
 site_url     = "https://markets.example.com"
 supabase_url = "https://your-project.supabase.co"

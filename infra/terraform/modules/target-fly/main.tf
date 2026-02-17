@@ -20,7 +20,7 @@ locals {
     SKIP_RUNTIME_ENV_VALIDATION          = "0"
   }
 
-  runtime_env = merge(local.base_env, var.app_env, nonsensitive(var.secret_env))
+  deployment_env = merge(local.base_env, var.app_env, nonsensitive(var.secret_env))
 
   public_env_checksum = sha256(jsonencode({
     fly_app                              = var.fly_app
@@ -52,7 +52,7 @@ resource "null_resource" "sync_secrets" {
     working_dir = var.repo_root
     command     = local.sync_secrets_command
     interpreter = ["/bin/bash", "-lc"]
-    environment = local.runtime_env
+    environment = local.deployment_env
   }
 }
 
@@ -69,6 +69,6 @@ resource "null_resource" "deploy" {
     working_dir = var.repo_root
     command     = local.deploy_command
     interpreter = ["/bin/bash", "-lc"]
-    environment = local.runtime_env
+    environment = local.deployment_env
   }
 }
