@@ -1158,7 +1158,7 @@ export default function AdminCreateEventForm() {
         shortName: option.shortName.trim(),
         outcomeYes: option.outcomeYes.trim() || 'Yes',
         outcomeNo: option.outcomeNo.trim() || 'No',
-        imageUrl: optionImagePreviewUrls[option.id] ?? eventImagePreviewUrl,
+        imageUrl: optionImagePreviewUrls[option.id] ?? null,
       }))
     }
 
@@ -4145,45 +4145,55 @@ export default function AdminCreateEventForm() {
                     <div className="space-y-3">
                       {previewMarkets.map((market, index) => (
                         <div key={market.key} className="rounded-md border bg-muted/20 p-3">
-                          <div className="flex items-start gap-3">
-                            <div className="relative size-12 shrink-0 overflow-hidden rounded-md border bg-muted">
-                              {market.imageUrl
-                                ? (
-                                    <Image
-                                      src={market.imageUrl}
-                                      alt={`Market ${index + 1} preview`}
-                                      fill
-                                      className="object-cover"
-                                    />
-                                  )
-                                : (
-                                    <Skeleton className="size-full rounded-none" />
-                                  )}
-                            </div>
+                          <div className="flex items-center gap-3">
+                            {market.imageUrl && (
+                              <div className="relative size-12 shrink-0 overflow-hidden rounded-md border bg-muted">
+                                <Image
+                                  src={market.imageUrl}
+                                  alt={`Market ${index + 1} preview`}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                            )}
                             <div className="min-w-0 flex-1 space-y-1">
                               <p className="text-sm font-semibold text-foreground">
                                 {market.title || `Market ${index + 1}`}
                               </p>
                               <p className="text-xs text-muted-foreground">{market.question || 'Question pending'}</p>
-                              {market.shortName && (
-                                <p className="text-xs text-muted-foreground">
-                                  Short name:
-                                  {' '}
-                                  {market.shortName}
-                                </p>
-                              )}
-                              <div className="mt-2 grid grid-cols-2 gap-2">
-                                <div className="
-                                  rounded-md bg-emerald-500/15 px-2 py-1 text-xs font-medium text-emerald-600
-                                "
-                                >
-                                  {market.outcomeYes}
-                                </div>
-                                <div className="rounded-md bg-red-500/15 px-2 py-1 text-xs font-medium text-red-500">
-                                  {market.outcomeNo}
-                                </div>
-                              </div>
                             </div>
+                            <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
+                              <span className="
+                                rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1.5 text-sm
+                                font-semibold text-emerald-600
+                              "
+                              >
+                                {market.outcomeYes}
+                              </span>
+                              <span className="
+                                rounded-md border border-red-500/40 bg-red-500/15 px-2.5 py-1.5 text-sm font-semibold
+                                text-red-500
+                              "
+                              >
+                                {market.outcomeNo}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex items-center gap-1.5 sm:hidden">
+                            <span className="
+                              rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1.5 text-sm
+                              font-semibold text-emerald-600
+                            "
+                            >
+                              {market.outcomeYes}
+                            </span>
+                            <span className="
+                              rounded-md border border-red-500/40 bg-red-500/15 px-2.5 py-1.5 text-sm font-semibold
+                              text-red-500
+                            "
+                            >
+                              {market.outcomeNo}
+                            </span>
                           </div>
                         </div>
                       ))}
@@ -4431,6 +4441,25 @@ export default function AdminCreateEventForm() {
                     {' '}
                     POL.
                   </p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-mono text-sm break-all text-muted-foreground">
+                      {eoaAddress ?? 'Wallet not connected'}
+                    </p>
+                    {eoaAddress && (
+                      <button
+                        type="button"
+                        onClick={() => void copyWalletAddress()}
+                        className="text-muted-foreground transition hover:text-foreground"
+                        aria-label="Copy wallet address"
+                      >
+                        {isAddressCopied
+                          ? <CheckIcon className="size-4 text-emerald-500" />
+                          : (
+                              <CopyIcon className="size-4" />
+                            )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
               {nativeGasCheckError && <p className="mt-2 text-sm text-destructive">{nativeGasCheckError}</p>}
