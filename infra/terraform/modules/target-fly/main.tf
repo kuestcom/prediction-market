@@ -20,7 +20,7 @@ locals {
     SKIP_RUNTIME_ENV_VALIDATION          = "0"
   }
 
-  deployment_env = merge(local.base_env, var.app_env, nonsensitive(var.secret_env))
+  deployment_env = merge(local.base_env, var.app_env, var.secret_env)
 
   public_env_checksum = sha256(jsonencode({
     fly_app                              = var.fly_app

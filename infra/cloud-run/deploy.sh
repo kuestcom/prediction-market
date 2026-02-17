@@ -24,13 +24,16 @@ USAGE
   exit 1
 fi
 
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
+
 if [[ "$SKIP_RUNTIME_ENV_VALIDATION" != "1" ]]; then
   if [[ -f "$ENV_FILE" ]]; then
     "${ROOT_DIR}/infra/scripts/validate-runtime-env.sh" --env-file "$ENV_FILE"
-    set -a
-    # shellcheck disable=SC1090
-    source "$ENV_FILE"
-    set +a
   else
     "${ROOT_DIR}/infra/scripts/validate-runtime-env.sh"
   fi
