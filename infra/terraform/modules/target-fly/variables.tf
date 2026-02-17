@@ -62,9 +62,3 @@ variable "sync_secrets" {
   description = "Whether Terraform should run fly/sync-secrets.sh before deploy"
   default     = true
 }
-
-variable "dry_run" {
-  type        = bool
-  description = "If true, run deploy/secrets scripts in dry-run mode"
-  default     = false
-}

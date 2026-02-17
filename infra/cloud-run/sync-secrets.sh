@@ -6,15 +6,18 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env}"
 PROJECT_ID="${PROJECT_ID:-}"
 
-DRY_RUN=0
-if [[ "${1:-}" == "--dry-run" ]]; then
-  DRY_RUN=1
+if [[ $# -gt 0 ]]; then
+  cat <<USAGE >&2
+Usage:
+  PROJECT_ID=<gcp-project> [ENV_FILE=.env] ./infra/cloud-run/sync-secrets.sh
+USAGE
+  exit 1
 fi
 
 if [[ -z "$PROJECT_ID" ]]; then
   cat <<USAGE >&2
 Usage:
-  PROJECT_ID=<gcp-project> [ENV_FILE=.env] ./infra/cloud-run/sync-secrets.sh [--dry-run]
+  PROJECT_ID=<gcp-project> [ENV_FILE=.env] ./infra/cloud-run/sync-secrets.sh
 USAGE
   exit 1
 fi
@@ -41,14 +44,6 @@ secret_names=(
   KUEST_API_SECRET
   KUEST_PASSPHRASE
 )
-
-if [[ "$DRY_RUN" -eq 1 ]]; then
-  echo "Dry-run: would sync these secrets to Google Secret Manager in project ${PROJECT_ID}:"
-  for secret_name in "${secret_names[@]}"; do
-    echo "- ${secret_name}"
-  done
-  exit 0
-fi
 
 if ! command -v gcloud >/dev/null 2>&1; then
   echo "gcloud CLI is required." >&2

@@ -20,7 +20,6 @@ module "target_fly" {
   app_env                              = var.app_env
   secret_env                           = var.secret_env
   sync_secrets                         = var.sync_secrets
-  dry_run                              = var.dry_run
 }
 
 output "deployment_target" {

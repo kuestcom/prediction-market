@@ -11,15 +11,18 @@ IMAGE_REF="${IMAGE_REF:-}"
 CLOUD_RUN_SECRET_VERSION="${CLOUD_RUN_SECRET_VERSION:-latest}"
 SKIP_RUNTIME_ENV_VALIDATION="${SKIP_RUNTIME_ENV_VALIDATION:-0}"
 
-DRY_RUN=0
-if [[ "${1:-}" == "--dry-run" ]]; then
-  DRY_RUN=1
+if [[ $# -gt 0 ]]; then
+  cat <<USAGE >&2
+Usage:
+  PROJECT_ID=<gcp-project> REGION=<gcp-region> IMAGE_REF=<registry/image:tag-or-digest> [CLOUD_RUN_SERVICE=kuest-web] [ENV_FILE=.env] ./infra/cloud-run/deploy.sh
+USAGE
+  exit 1
 fi
 
 if [[ -z "$PROJECT_ID" || -z "$REGION" || -z "$IMAGE_REF" ]]; then
   cat <<USAGE >&2
 Usage:
-  PROJECT_ID=<gcp-project> REGION=<gcp-region> IMAGE_REF=<registry/image:tag-or-digest> [CLOUD_RUN_SERVICE=kuest-web] [ENV_FILE=.env] ./infra/cloud-run/deploy.sh [--dry-run]
+  PROJECT_ID=<gcp-project> REGION=<gcp-region> IMAGE_REF=<registry/image:tag-or-digest> [CLOUD_RUN_SERVICE=kuest-web] [ENV_FILE=.env] ./infra/cloud-run/deploy.sh
 USAGE
   exit 1
 fi
@@ -83,13 +86,6 @@ cmd=(
   --set-env-vars "$public_env_csv"
   --update-secrets "$secret_mapping_csv"
 )
-
-if [[ "$DRY_RUN" -eq 1 ]]; then
-  echo "Dry-run command:"
-  printf '  %q' "${cmd[@]}"
-  printf '\n'
-  exit 0
-fi
 
 if ! command -v gcloud >/dev/null 2>&1; then
   echo "gcloud CLI is required." >&2

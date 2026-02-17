@@ -3,7 +3,6 @@ app_image                            = "ghcr.io/kuestcom/prediction-market@sha25
 site_url                             = "https://markets.example.com"
 next_public_reown_appkit_project_id  = "replace-me"
 sync_secrets                         = true
-dry_run                              = false
 
 secret_env = {
   BETTER_AUTH_SECRET        = "replace-me"

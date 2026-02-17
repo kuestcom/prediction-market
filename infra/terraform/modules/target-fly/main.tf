@@ -30,8 +30,8 @@ locals {
 
   secret_env_checksum = sha256(jsonencode(nonsensitive(var.secret_env)))
 
-  sync_secrets_command = var.dry_run ? "./infra/fly/sync-secrets.sh --dry-run" : "./infra/fly/sync-secrets.sh"
-  deploy_command       = var.dry_run ? "./infra/fly/deploy.sh --dry-run" : "./infra/fly/deploy.sh"
+  sync_secrets_command = "./infra/fly/sync-secrets.sh"
+  deploy_command       = "./infra/fly/deploy.sh"
 }
 
 resource "null_resource" "sync_secrets" {
@@ -41,7 +41,6 @@ resource "null_resource" "sync_secrets" {
     fly_app             = var.fly_app
     public_env_checksum = local.public_env_checksum
     secret_env_checksum = local.secret_env_checksum
-    dry_run             = tostring(var.dry_run)
   }
 
   provisioner "local-exec" {
@@ -56,7 +55,6 @@ resource "null_resource" "deploy" {
   triggers = {
     public_env_checksum = local.public_env_checksum
     secret_env_checksum = local.secret_env_checksum
-    dry_run             = tostring(var.dry_run)
   }
 
   depends_on = var.sync_secrets ? [null_resource.sync_secrets[0]] : []

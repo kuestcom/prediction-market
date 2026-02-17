@@ -95,4 +95,4 @@ terraform apply
 
 - Use immutable image refs (`@sha256:` preferred, explicit non-`latest` tag allowed).
 - `SITE_URL` must point to the canonical public endpoint used by Supabase `pg_cron` callbacks.
-- Fly target supports `sync_secrets` and `dry_run` for script-based deploys.
+- Fly target supports `sync_secrets` for script-based deploys.

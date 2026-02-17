@@ -6,15 +6,18 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env}"
 FLY_APP="${FLY_APP:-}"
 
-DRY_RUN=0
-if [[ "${1:-}" == "--dry-run" ]]; then
-  DRY_RUN=1
+if [[ $# -gt 0 ]]; then
+  cat <<USAGE >&2
+Usage:
+  FLY_APP=<fly-app-name> [ENV_FILE=.env] ./infra/fly/sync-secrets.sh
+USAGE
+  exit 1
 fi
 
 if [[ -z "$FLY_APP" ]]; then
   cat <<USAGE >&2
 Usage:
-  FLY_APP=<fly-app-name> [ENV_FILE=.env] ./infra/fly/sync-secrets.sh [--dry-run]
+  FLY_APP=<fly-app-name> [ENV_FILE=.env] ./infra/fly/sync-secrets.sh
 USAGE
   exit 1
 fi
@@ -48,14 +51,6 @@ secret_pairs=()
 for key in "${required_vars[@]}"; do
   secret_pairs+=("${key}=${!key}")
 done
-
-if [[ "$DRY_RUN" -eq 1 ]]; then
-  echo "Dry-run: would set these Fly secrets on app ${FLY_APP}:"
-  for key in "${required_vars[@]}"; do
-    echo "- ${key}"
-  done
-  exit 0
-fi
 
 if ! command -v flyctl >/dev/null 2>&1; then
   echo "flyctl CLI is required." >&2

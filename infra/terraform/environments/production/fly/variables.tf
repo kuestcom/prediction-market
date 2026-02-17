@@ -42,12 +42,6 @@ variable "sync_secrets" {
   default     = true
 }
 
-variable "dry_run" {
-  type        = bool
-  description = "Whether to execute deploy in dry-run mode"
-  default     = false
-}
-
 locals {
   resolved_repo_root = var.repo_root != "" ? var.repo_root : abspath("${path.root}/../../../../..")
 }

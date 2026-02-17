@@ -9,15 +9,18 @@ FLY_APP="${FLY_APP:-}"
 IMAGE_REF="${IMAGE_REF:-}"
 SKIP_RUNTIME_ENV_VALIDATION="${SKIP_RUNTIME_ENV_VALIDATION:-0}"
 
-DRY_RUN=0
-if [[ "${1:-}" == "--dry-run" ]]; then
-  DRY_RUN=1
+if [[ $# -gt 0 ]]; then
+  cat <<USAGE >&2
+Usage:
+  IMAGE_REF=<registry/image:tag-or-digest> [FLY_APP=kuest-web] [ENV_FILE=.env] ./infra/fly/deploy.sh
+USAGE
+  exit 1
 fi
 
 if [[ -z "$IMAGE_REF" ]]; then
   cat <<USAGE >&2
 Usage:
-  IMAGE_REF=<registry/image:tag-or-digest> [FLY_APP=kuest-web] [ENV_FILE=.env] ./infra/fly/deploy.sh [--dry-run]
+  IMAGE_REF=<registry/image:tag-or-digest> [FLY_APP=kuest-web] [ENV_FILE=.env] ./infra/fly/deploy.sh
 USAGE
   exit 1
 fi
@@ -42,13 +45,6 @@ cmd=(
 
 if [[ -n "$FLY_APP" ]]; then
   cmd+=(--app "$FLY_APP")
-fi
-
-if [[ "$DRY_RUN" -eq 1 ]]; then
-  echo "Dry-run command:"
-  printf '  %q' "${cmd[@]}"
-  printf '\n'
-  exit 0
 fi
 
 if ! command -v flyctl >/dev/null 2>&1; then

@@ -1,4 +1,4 @@
-# DigitalOcean manual deploy (beginner-friendly)
+# DigitalOcean
 
 This guide shows how to deploy the app on DigitalOcean **manually** using the dashboard.
 
@@ -9,11 +9,10 @@ Recommended path for beginners: **DigitalOcean App Platform**.
 1. A DigitalOcean account with billing enabled.
 2. Access to this GitHub repository.
 3. A `.env` file with production values.
-4. Supabase already configured for your project.
+4. Supabase already configured for your project (if not, follow [Supabase setup outside Vercel](../README.md#supabase-setup-outside-vercel)).
 
-Required runtime variables are listed in:
-
-- `infra/scripts/required-runtime-env.txt`
+First, define base env vars from [Configure environment variables](../../README.md#2-configure-environment-variables-before-deploy).
+Then fill `POSTGRES_URL`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` with the values now available in your Supabase project.
 
 You can validate your env locally before deploying:
 
@@ -35,7 +34,7 @@ ENV_FILE=.env ./infra/scripts/validate-runtime-env.sh --env-file "$ENV_FILE"
 2. Click `Create App`.
 3. Choose `GitHub` as source.
 4. Authorize DigitalOcean access to your repo (if first time).
-5. Select repository: `kuestcom/prediction-market` (or your fork).
+5. Select repository: `<your-username>/prediction-market` (your fork).
 6. Select branch `main` for production.
 7. Continue.
 
@@ -110,14 +109,6 @@ Run this whenever migrations/cron definitions change, with production env loaded
 2. Go to `Deployments`.
 3. Choose a previous healthy deployment.
 4. Click `Rollback`.
-
-## 9) Troubleshooting checklist
-
-1. `SITE_URL` must be HTTPS and match your real public domain.
-2. `CRON_SECRET` must match what your `/api/sync/*` routes expect.
-3. If auth fails, check `BETTER_AUTH_SECRET` and callback URL assumptions.
-4. If DB fails, confirm `POSTGRES_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
-5. If Web3 features fail, verify all `KUEST_*` credentials.
 
 ## Optional: Terraform deploy for App Platform
 
