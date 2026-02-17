@@ -144,7 +144,7 @@
 - [x] Auto-renewed Crypto and Nasdaq markets with live charts
 - [x] Fork-created markets with opt-in cross-fork sharing
 - [x] UMA Oracle implementation
-- [ ] 🏆 MVP Ready (stress tests, security and calculation checks)
+- [ ] 🏆 MVP Ready (stress tests, security, and financial consistency checks)
 - [ ] Move matching engine to mainnet
 - [ ] Auto‑renew X counter markets (soon)
 - [ ] Sports markets (soon)
