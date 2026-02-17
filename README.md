@@ -142,7 +142,7 @@
 - [x] Multi-language UI
 - [x] Auto‑renew Crypto and Nasdaq markets
 - [x] Fork-created markets with opt-in cross-fork sharing
-- [x] UMA Oracle implementation
+- [ ] UMA Oracle implementation
 - [ ] 🏆 MVP Ready (stress tests, security and calculation checks)
 - [ ] Move matching engine to mainnet
 - [ ] Auto‑renew X counter markets (soon)
