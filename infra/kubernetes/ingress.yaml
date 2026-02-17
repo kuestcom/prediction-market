@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kuest-web
+  namespace: kuest
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: markets.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kuest-web
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - markets.example.com
+      secretName: kuest-web-tls

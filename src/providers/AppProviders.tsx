@@ -31,7 +31,7 @@ export function AppProviders({ children, disableAppKit }: AppProvidersProps) {
     <div className="min-h-screen bg-background">
       {children}
       <Toaster position="bottom-left" />
-      {process.env.NODE_ENV === 'production' && <SpeedInsights />}
+      {process.env.ENABLE_VERCEL_SPEED_INSIGHTS && <SpeedInsights />}
       {process.env.NODE_ENV === 'production' && gaId && <GoogleAnalytics gaId={gaId} />}
     </div>
   )

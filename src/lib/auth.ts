@@ -26,6 +26,10 @@ const SIWE_TWO_FACTOR_PENDING_COOKIE = 'siwe_2fa_pending'
 const SIWE_TWO_FACTOR_INTENT_COOKIE = 'siwe_2fa_intent'
 const AFFILIATE_COOKIE_NAME = 'platform_affiliate'
 const AFFILIATE_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
+const SITE_URL = process.env.SITE_URL ?? 'http://localhost:3000'
+const siteUrlObject = new URL(SITE_URL)
+const SIWE_DOMAIN = siteUrlObject.host
+const SIWE_EMAIL_DOMAIN = siteUrlObject.hostname || 'kuest.com'
 
 function parseTimestampMs(value: unknown): number | null {
   if (value === null || value === undefined) {
@@ -175,7 +179,7 @@ export const auth = betterAuth({
   }),
   appName: DEFAULT_THEME_SITE_NAME,
   secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.SITE_URL,
+  baseURL: SITE_URL,
   advanced: {
     database: {
       generateId: false,
@@ -260,8 +264,8 @@ export const auth = betterAuth({
           },
         },
       },
-      domain: process.env.VERCEL_PROJECT_PRODUCTION_URL ?? 'localhost:3000',
-      emailDomainName: process.env.VERCEL_PROJECT_PRODUCTION_URL ?? 'kuest.com',
+      domain: SIWE_DOMAIN,
+      emailDomainName: SIWE_EMAIL_DOMAIN,
       anonymous: true,
       getNonce: async () => generateRandomString(32),
       verifyMessage: async ({ message, signature, address }) => {

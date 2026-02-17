@@ -1,0 +1,17 @@
+kube_context = "prod-cluster"
+app_image    = "ghcr.io/kuestcom/prediction-market:latest"
+site_url     = "https://markets.example.com"
+supabase_url = "https://your-project.supabase.co"
+
+secret_env = {
+  BETTER_AUTH_SECRET                  = "replace-me"
+  CRON_SECRET                         = "replace-me"
+  POSTGRES_URL                        = "replace-me"
+  POSTGRES_URL_NON_POOLING            = "replace-me"
+  SUPABASE_SERVICE_ROLE_KEY           = "replace-me"
+  KUEST_ADDRESS                       = "replace-me"
+  KUEST_API_KEY                       = "replace-me"
+  KUEST_API_SECRET                    = "replace-me"
+  KUEST_PASSPHRASE                    = "replace-me"
+  NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID = "replace-me"
+}

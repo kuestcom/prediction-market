@@ -2,10 +2,22 @@ import type { NextConfig } from 'next'
 import { createMDX } from 'fumadocs-mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
 
+const siteUrl = process.env.SITE_URL
+  ?? (process.env.VERCEL_ENV === 'production' && process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000')
+
+const enableVercelSpeedInsights = Boolean(
+  process.env.VERCEL_ENV || process.env.VERCEL_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL,
+)
+
 const config: NextConfig = {
   cacheComponents: true,
   typedRoutes: true,
   reactStrictMode: false,
+  output: 'standalone',
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -53,12 +65,8 @@ const config: NextConfig = {
     ]
   },
   env: {
-    SITE_URL:
-      process.env.VERCEL_ENV === 'production'
-        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-        : process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : 'http://localhost:3000',
+    SITE_URL: siteUrl,
+    ENABLE_VERCEL_SPEED_INSIGHTS: enableVercelSpeedInsights ? 'true' : 'false',
     CLOB_URL: process.env.CLOB_URL ?? 'https://clob.kuest.com',
     RELAYER_URL: process.env.RELAYER_URL ?? 'https://relayer.kuest.com',
     DATA_URL: process.env.DATA_URL ?? 'https://data-api.kuest.com',
