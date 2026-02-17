@@ -24,7 +24,7 @@ import {
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { createPublicClient, formatUnits, getAddress, http, isAddress, parseGwei } from 'viem'
+import { createPublicClient, formatUnits, getAddress, http, isAddress, keccak256, parseGwei, stringToHex } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,9 +38,11 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { defaultNetwork } from '@/lib/appkit'
 import { CREATE_MARKET_API_BASE_URL } from '@/lib/constants'
+import { AMOY_CHAIN_ID, IS_TEST_MODE } from '@/lib/network'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
@@ -50,8 +52,10 @@ const MIN_SUB_CATEGORIES = 4
 const USDC_DECIMALS = 6
 const FALLBACK_REQUIRED_USDC = 5
 const CREATE_EVENT_DRAFT_STORAGE_KEY = 'admin_create_event_draft_v1'
+const CREATE_EVENT_SIGNATURE_STORAGE_KEY = 'admin_create_event_signature_flow_v1'
 const TITLE_CATEGORY_MIN_LENGTH = 4
 const CONTENT_CHECK_PROGRESS_INTERVAL_MS = 1400
+const SIGNATURE_COUNTDOWN_INTERVAL_MS = 1000
 const SLUG_CHECK_TIMEOUT_MS = 12000
 const OPENROUTER_CHECK_TIMEOUT_MS = 12000
 const CONTENT_CHECK_TIMEOUT_MS = 45000
@@ -71,6 +75,8 @@ const APPROVE_GAS_UNITS_ESTIMATE = 70_000n
 const INITIALIZE_GAS_UNITS_ESTIMATE = 700_000n
 const GAS_ESTIMATE_BUFFER_NUMERATOR = 13n
 const GAS_ESTIMATE_BUFFER_DENOMINATOR = 10n
+const POLYGON_MAINNET_CHAIN_ID = 137
+const DEFAULT_CREATE_EVENT_CHAIN_ID = IS_TEST_MODE ? AMOY_CHAIN_ID : POLYGON_MAINNET_CHAIN_ID
 const EOA_BALANCE_ABI = [
   {
     type: 'function',
@@ -216,9 +222,41 @@ interface PrepareTxPlanItem {
 }
 
 interface PrepareResponse {
+  requestId: string
   chainId: number
   creator: string
   txPlan: PrepareTxPlanItem[]
+}
+
+interface PrepareAuthChallengeResponse {
+  requestId: string
+  nonce: string
+  expiresAt: number
+  creator: string
+  chainId: number
+  payloadHash: string
+  domain: {
+    name: string
+    version: string
+    verifyingContract: string
+  }
+  primaryType: 'CreateMarketAuth'
+  types: {
+    CreateMarketAuth: Array<{
+      name: string
+      type: string
+    }>
+  }
+}
+
+interface PrepareFinalizeRequestTx {
+  id: string
+  hash: string
+}
+
+interface FinalizeResponse {
+  requestId: string
+  status: string
 }
 
 interface SignatureExecutionTx extends PrepareTxPlanItem {
@@ -311,10 +349,65 @@ function isPrepareResponse(payload: unknown): payload is PrepareResponse {
   }
 
   const candidate = payload as Partial<PrepareResponse>
-  return typeof candidate.chainId === 'number'
+  return typeof candidate.requestId === 'string'
+    && typeof candidate.chainId === 'number'
     && typeof candidate.creator === 'string'
     && Array.isArray(candidate.txPlan)
     && candidate.txPlan.every(item => isPrepareTxPlanItem(item))
+}
+
+function isSignatureTxStatus(value: unknown): value is SignatureTxStatus {
+  return value === 'idle'
+    || value === 'awaiting_wallet'
+    || value === 'confirming'
+    || value === 'success'
+    || value === 'error'
+}
+
+function isSignatureExecutionTx(payload: unknown): payload is SignatureExecutionTx {
+  if (!isPrepareTxPlanItem(payload)) {
+    return false
+  }
+
+  const candidate = payload as Partial<SignatureExecutionTx>
+  return isSignatureTxStatus(candidate.status)
+    && (candidate.hash === undefined || typeof candidate.hash === 'string')
+    && (candidate.error === undefined || typeof candidate.error === 'string')
+}
+
+function formatSignatureCountdown(totalSeconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds))
+  const minutes = Math.floor(safeSeconds / 60)
+  const seconds = safeSeconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+function isPrepareAuthChallengeResponse(payload: unknown): payload is PrepareAuthChallengeResponse {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  const candidate = payload as Partial<PrepareAuthChallengeResponse>
+  return typeof candidate.requestId === 'string'
+    && typeof candidate.nonce === 'string'
+    && typeof candidate.expiresAt === 'number'
+    && typeof candidate.creator === 'string'
+    && typeof candidate.chainId === 'number'
+    && typeof candidate.payloadHash === 'string'
+    && !!candidate.domain
+    && typeof candidate.domain === 'object'
+    && typeof (candidate.domain as { name?: unknown }).name === 'string'
+    && typeof (candidate.domain as { version?: unknown }).version === 'string'
+    && typeof (candidate.domain as { verifyingContract?: unknown }).verifyingContract === 'string'
+}
+
+function isFinalizeResponse(payload: unknown): payload is FinalizeResponse {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  const candidate = payload as Partial<FinalizeResponse>
+  return typeof candidate.requestId === 'string' && typeof candidate.status === 'string'
 }
 
 function isSlugCheckResponse(payload: unknown): payload is SlugCheckResponse {
@@ -626,20 +719,20 @@ function getAiIssueKey(issue: AiValidationIssue) {
 }
 
 function getExplorerTxBase(chainId: number) {
-  if (chainId === 137) {
+  if (chainId === POLYGON_MAINNET_CHAIN_ID) {
     return 'https://polygonscan.com/tx/'
   }
-  if (chainId === 80002) {
+  if (chainId === AMOY_CHAIN_ID) {
     return 'https://amoy.polygonscan.com/tx/'
   }
   return ''
 }
 
 function getChainLabel(chainId: number) {
-  if (chainId === 137) {
+  if (chainId === POLYGON_MAINNET_CHAIN_ID) {
     return 'Polygon'
   }
-  if (chainId === 80002) {
+  if (chainId === AMOY_CHAIN_ID) {
     return 'Polygon Amoy'
   }
   return `Chain ${chainId}`
@@ -764,7 +857,7 @@ export default function AdminCreateEventForm() {
   const [slugValidationState, setSlugValidationState] = useState<SlugValidationState>('idle')
   const [slugCheckError, setSlugCheckError] = useState('')
   const [requiredRewardUsdc, setRequiredRewardUsdc] = useState(FALLBACK_REQUIRED_USDC)
-  const [targetChainId, setTargetChainId] = useState<number>(defaultNetwork.id)
+  const [targetChainId, setTargetChainId] = useState<number>(DEFAULT_CREATE_EVENT_CHAIN_ID)
   const [eoaUsdcBalance, setEoaUsdcBalance] = useState(0)
   const [fundingCheckState, setFundingCheckState] = useState<FundingCheckState>('idle')
   const [fundingCheckError, setFundingCheckError] = useState('')
@@ -783,8 +876,12 @@ export default function AdminCreateEventForm() {
   const [contentCheckError, setContentCheckError] = useState('')
   const [isAddingCreatorWallet, setIsAddingCreatorWallet] = useState(false)
   const [isGeneratingRules, setIsGeneratingRules] = useState(false)
+  const [isSigningAuth, setIsSigningAuth] = useState(false)
   const [isPreparingSignaturePlan, setIsPreparingSignaturePlan] = useState(false)
   const [isExecutingSignatures, setIsExecutingSignatures] = useState(false)
+  const [isFinalizingSignatureFlow, setIsFinalizingSignatureFlow] = useState(false)
+  const [authChallengeExpiresAtMs, setAuthChallengeExpiresAtMs] = useState<number | null>(null)
+  const [signatureNowMs, setSignatureNowMs] = useState(() => Date.now())
   const [signatureFlowDone, setSignatureFlowDone] = useState(false)
   const [signatureFlowError, setSignatureFlowError] = useState('')
   const [preparedSignaturePlan, setPreparedSignaturePlan] = useState<PrepareResponse | null>(null)
@@ -798,10 +895,12 @@ export default function AdminCreateEventForm() {
     content: true,
   })
   const [rulesGeneratorDialogOpen, setRulesGeneratorDialogOpen] = useState(false)
+  const [finalPreviewDialogOpen, setFinalPreviewDialogOpen] = useState(false)
   const [isAddressCopied, setIsAddressCopied] = useState(false)
   const [isBinaryOutcomesEditable, setIsBinaryOutcomesEditable] = useState(false)
   const [areMultiOutcomesEditable, setAreMultiOutcomesEditable] = useState(false)
   const [slugSeed, setSlugSeed] = useState('0')
+  const [previewSiteOrigin, setPreviewSiteOrigin] = useState('https://your-site.com')
 
   const titleTimeoutRef = useRef<number | null>(null)
   const copyTimeoutRef = useRef<number | null>(null)
@@ -810,6 +909,7 @@ export default function AdminCreateEventForm() {
   const lastPreSignChecksFingerprintRef = useRef<string | null>(null)
   const lastPreSignChecksCompletedRef = useRef(false)
   const lastPreSignChecksResultRef = useRef(false)
+  const skipNextSignatureResetRef = useRef(false)
 
   const eventImagePreviewUrl = useMemo(
     () => (eventImageFile ? URL.createObjectURL(eventImageFile) : null),
@@ -961,6 +1061,63 @@ export default function AdminCreateEventForm() {
     () => ['Event', 'Market Structure', 'Resolution', 'Pre-sign', 'Sign & Create'],
     [],
   )
+  const previewEndDate = useMemo(() => {
+    if (!form.endDateIso) {
+      return 'End date not set'
+    }
+    const parsed = new Date(form.endDateIso)
+    if (Number.isNaN(parsed.getTime())) {
+      return form.endDateIso
+    }
+    return parsed.toLocaleString()
+  }, [form.endDateIso])
+  const previewMarkets = useMemo(() => {
+    if (form.marketMode === 'binary') {
+      return [
+        {
+          key: 'binary',
+          title: form.title.trim(),
+          question: (form.title || form.binaryQuestion).trim(),
+          shortName: '',
+          outcomeYes: form.binaryOutcomeYes.trim() || 'Yes',
+          outcomeNo: form.binaryOutcomeNo.trim() || 'No',
+          imageUrl: eventImagePreviewUrl,
+        },
+      ]
+    }
+
+    if (form.marketMode === 'multi_multiple' || form.marketMode === 'multi_unique') {
+      return form.options.map((option, index) => ({
+        key: option.id || `option-${index + 1}`,
+        title: option.title.trim(),
+        question: option.question.trim(),
+        shortName: option.shortName.trim(),
+        outcomeYes: option.outcomeYes.trim() || 'Yes',
+        outcomeNo: option.outcomeNo.trim() || 'No',
+        imageUrl: optionImagePreviewUrls[option.id] ?? eventImagePreviewUrl,
+      }))
+    }
+
+    return []
+  }, [
+    eventImagePreviewUrl,
+    form.binaryOutcomeNo,
+    form.binaryOutcomeYes,
+    form.binaryQuestion,
+    form.marketMode,
+    form.options,
+    form.title,
+    optionImagePreviewUrls,
+  ])
+  const tradePreviewMarket = useMemo(
+    () => previewMarkets[0] ?? null,
+    [previewMarkets],
+  )
+  const previewEventUrl = useMemo(
+    () => `${previewSiteOrigin}/event/${form.slug || 'event-slug'}`,
+    [form.slug, previewSiteOrigin],
+  )
+  const isMultiMarketPreview = form.marketMode === 'multi_multiple' || form.marketMode === 'multi_unique'
 
   const pendingAiIssues = useMemo(
     () => contentCheckIssues.filter(issue => !bypassedIssueKeys.includes(getAiIssueKey(issue))),
@@ -995,12 +1152,40 @@ export default function AdminCreateEventForm() {
     () => signatureTxs.filter(item => item.status === 'success').length,
     [signatureTxs],
   )
+  const authPhaseCompleted = Boolean(preparedSignaturePlan)
+  const totalSignatureUnits = useMemo(
+    () => (preparedSignaturePlan ? signatureTxs.length + 2 : 2),
+    [preparedSignaturePlan, signatureTxs.length],
+  )
+  const completedSignatureUnits = useMemo(
+    () => {
+      let completed = authPhaseCompleted ? 1 : 0
+      completed += completedSignatureCount
+      if (signatureFlowDone) {
+        completed += 1
+      }
+      return completed
+    },
+    [authPhaseCompleted, completedSignatureCount, signatureFlowDone],
+  )
   const signatureProgressPercent = useMemo(() => {
-    if (signatureTxs.length === 0) {
+    if (totalSignatureUnits <= 0) {
       return 0
     }
-    return Math.round((completedSignatureCount / signatureTxs.length) * 100)
-  }, [completedSignatureCount, signatureTxs.length])
+    return Math.min(100, Math.round((completedSignatureUnits / totalSignatureUnits) * 100))
+  }, [completedSignatureUnits, totalSignatureUnits])
+  const authChallengeRemainingSeconds = useMemo(() => {
+    if (!authChallengeExpiresAtMs || preparedSignaturePlan) {
+      return null
+    }
+    return Math.max(0, Math.floor((authChallengeExpiresAtMs - signatureNowMs) / 1000))
+  }, [authChallengeExpiresAtMs, preparedSignaturePlan, signatureNowMs])
+  const authChallengeCountdownLabel = useMemo(() => {
+    if (authChallengeRemainingSeconds === null) {
+      return ''
+    }
+    return formatSignatureCountdown(authChallengeRemainingSeconds)
+  }, [authChallengeRemainingSeconds])
 
   const isStepValid = useCallback((step: number) => {
     return buildStepErrors(step, {
@@ -1095,6 +1280,34 @@ export default function AdminCreateEventForm() {
   }, [])
 
   useEffect(() => {
+    if (typeof window === 'undefined' || !window.location.origin) {
+      return
+    }
+    setPreviewSiteOrigin(window.location.origin)
+  }, [])
+
+  useEffect(() => {
+    if (!authChallengeExpiresAtMs || preparedSignaturePlan) {
+      return
+    }
+
+    setSignatureNowMs(Date.now())
+    const timer = window.setInterval(() => {
+      setSignatureNowMs(Date.now())
+    }, SIGNATURE_COUNTDOWN_INTERVAL_MS)
+
+    return () => {
+      window.clearInterval(timer)
+    }
+  }, [authChallengeExpiresAtMs, preparedSignaturePlan])
+
+  useEffect(() => {
+    if (currentStep !== 4 && finalPreviewDialogOpen) {
+      setFinalPreviewDialogOpen(false)
+    }
+  }, [currentStep, finalPreviewDialogOpen])
+
+  useEffect(() => {
     setContentCheckState('idle')
     setContentCheckIssues([])
     setBypassedIssueKeys([])
@@ -1114,6 +1327,16 @@ export default function AdminCreateEventForm() {
   ])
 
   useEffect(() => {
+    if (skipNextSignatureResetRef.current) {
+      skipNextSignatureResetRef.current = false
+      return
+    }
+
+    setIsSigningAuth(false)
+    setIsPreparingSignaturePlan(false)
+    setIsExecutingSignatures(false)
+    setIsFinalizingSignatureFlow(false)
+    setAuthChallengeExpiresAtMs(null)
     setPreparedSignaturePlan(null)
     setSignatureTxs([])
     setSignatureFlowDone(false)
@@ -1321,6 +1544,59 @@ export default function AdminCreateEventForm() {
       return
     }
 
+    const raw = window.localStorage.getItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY)
+    if (!raw) {
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        preparedSignaturePlan?: unknown
+        signatureTxs?: unknown
+        signatureFlowDone?: unknown
+        signatureFlowError?: unknown
+        authChallengeExpiresAtMs?: unknown
+      }
+
+      if (!isPrepareResponse(parsed.preparedSignaturePlan) || !Array.isArray(parsed.signatureTxs)) {
+        return
+      }
+
+      const savedSignatureTxs = parsed.signatureTxs.filter(item => isSignatureExecutionTx(item))
+      if (savedSignatureTxs.length !== parsed.preparedSignaturePlan.txPlan.length) {
+        return
+      }
+
+      const normalizedSignatureTxs = parsed.preparedSignaturePlan.txPlan.map((planned, index) => {
+        const saved = savedSignatureTxs[index]
+        if (!saved || saved.id !== planned.id) {
+          return {
+            ...planned,
+            status: 'idle' as const,
+          }
+        }
+        return saved
+      })
+
+      skipNextSignatureResetRef.current = true
+      setPreparedSignaturePlan(parsed.preparedSignaturePlan)
+      setSignatureTxs(normalizedSignatureTxs)
+      setSignatureFlowDone(Boolean(parsed.signatureFlowDone))
+      setSignatureFlowError(typeof parsed.signatureFlowError === 'string' ? parsed.signatureFlowError : '')
+      setAuthChallengeExpiresAtMs(
+        typeof parsed.authChallengeExpiresAtMs === 'number' ? parsed.authChallengeExpiresAtMs : null,
+      )
+    }
+    catch (error) {
+      console.error('Error loading create-event signature flow draft:', error)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
     const payload = {
       form,
       currentStep,
@@ -1332,6 +1608,27 @@ export default function AdminCreateEventForm() {
 
     window.localStorage.setItem(CREATE_EVENT_DRAFT_STORAGE_KEY, JSON.stringify(payload))
   }, [areMultiOutcomesEditable, currentStep, form, isBinaryOutcomesEditable, maxVisitedStep, slugSeed])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    if (!preparedSignaturePlan) {
+      window.localStorage.removeItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY)
+      return
+    }
+
+    const payload = {
+      preparedSignaturePlan,
+      signatureTxs,
+      signatureFlowDone,
+      signatureFlowError,
+      authChallengeExpiresAtMs,
+    }
+
+    window.localStorage.setItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY, JSON.stringify(payload))
+  }, [authChallengeExpiresAtMs, preparedSignaturePlan, signatureFlowDone, signatureFlowError, signatureTxs])
 
   useEffect(() => {
     if (titleTimeoutRef.current !== null) {
@@ -1881,9 +2178,10 @@ export default function AdminCreateEventForm() {
       const required = Number(payload.requiredCreatorFundingUsdc ?? FALLBACK_REQUIRED_USDC)
       const normalizedRequired = Number.isFinite(required) && required > 0 ? required : FALLBACK_REQUIRED_USDC
       setRequiredRewardUsdc(normalizedRequired)
-      if (typeof payload.defaultChainId === 'number' && payload.defaultChainId > 0) {
-        setTargetChainId(payload.defaultChainId)
-      }
+      const configuredChainId = typeof payload.defaultChainId === 'number' && payload.defaultChainId > 0
+        ? payload.defaultChainId
+        : DEFAULT_CREATE_EVENT_CHAIN_ID
+      setTargetChainId(configuredChainId)
 
       const usdcToken = typeof payload.usdcToken === 'string' && isAddress(payload.usdcToken)
         ? getAddress(payload.usdcToken)
@@ -2025,7 +2323,7 @@ export default function AdminCreateEventForm() {
       return {}
     }
 
-    const priorityFloor = chainId === 80002 ? MIN_AMOY_PRIORITY_FEE_WEI : 0n
+    const priorityFloor = chainId === AMOY_CHAIN_ID ? MIN_AMOY_PRIORITY_FEE_WEI : 0n
 
     try {
       const estimated = await publicClient.estimateFeesPerGas()
@@ -2133,15 +2431,97 @@ export default function AdminCreateEventForm() {
     if (!eventImageFile) {
       throw new Error('Event image is required.')
     }
+    if (!eoaAddress) {
+      throw new Error('Connect wallet first.')
+    }
+    if (!walletClient) {
+      throw new Error('Wallet client not available.')
+    }
 
     setIsPreparingSignaturePlan(true)
+    setIsSigningAuth(true)
     setSignatureFlowError('')
     setSignatureFlowDone(false)
+    setAuthChallengeExpiresAtMs(null)
 
     try {
+      const activeWalletClient = walletClient
       const payload = buildPreparePayload()
+      const payloadJson = JSON.stringify(payload)
+      const payloadHash = keccak256(stringToHex(payloadJson))
+
+      const authResponse = await fetch(`${CREATE_MARKET_API_BASE_URL}/prepare-auth`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          creator: eoaAddress,
+          chainId: payload.chainId,
+          payloadHash,
+        }),
+      })
+
+      const authPayload = await authResponse.json().catch(() => null) as unknown
+      const authApiError = readApiError(authPayload)
+      if (!authResponse.ok || authApiError || !isPrepareAuthChallengeResponse(authPayload)) {
+        throw new Error(authApiError || `Auth challenge failed (${authResponse.status})`)
+      }
+
+      if (!isAddress(authPayload.creator) || getAddress(authPayload.creator) !== eoaAddress) {
+        throw new Error('Creator mismatch in auth challenge response.')
+      }
+      if (authPayload.payloadHash.toLowerCase() !== payloadHash.toLowerCase()) {
+        throw new Error('Payload hash mismatch in auth challenge response.')
+      }
+      if (!isAddress(authPayload.domain.verifyingContract)) {
+        throw new Error('Invalid verifying contract in auth challenge response.')
+      }
+      if (activeWalletClient.chain?.id && activeWalletClient.chain.id !== authPayload.chainId) {
+        throw new Error(`Switch wallet to ${getChainLabel(authPayload.chainId)} before signing auth.`)
+      }
+      setAuthChallengeExpiresAtMs(authPayload.expiresAt)
+
+      const authSignature = await activeWalletClient.signTypedData({
+        account: eoaAddress,
+        domain: {
+          name: authPayload.domain.name,
+          version: authPayload.domain.version,
+          chainId: authPayload.chainId,
+          verifyingContract: getAddress(authPayload.domain.verifyingContract),
+        },
+        types: {
+          CreateMarketAuth: [
+            { name: 'requestId', type: 'string' },
+            { name: 'creator', type: 'address' },
+            { name: 'payloadHash', type: 'bytes32' },
+            { name: 'nonce', type: 'bytes32' },
+            { name: 'expiresAt', type: 'uint256' },
+            { name: 'chainId', type: 'uint256' },
+          ],
+        },
+        primaryType: 'CreateMarketAuth',
+        message: {
+          requestId: authPayload.requestId,
+          creator: eoaAddress,
+          payloadHash,
+          nonce: authPayload.nonce as `0x${string}`,
+          expiresAt: BigInt(authPayload.expiresAt),
+          chainId: BigInt(authPayload.chainId),
+        },
+      })
+
+      setIsSigningAuth(false)
+
       const body = new FormData()
-      body.append('payload', JSON.stringify(payload))
+      body.append('payload', payloadJson)
+      body.append('auth', JSON.stringify({
+        requestId: authPayload.requestId,
+        nonce: authPayload.nonce,
+        expiresAt: authPayload.expiresAt,
+        payloadHash,
+        signature: authSignature,
+      }))
       body.append('eventImage', eventImageFile, eventImageFile.name)
 
       form.options.forEach((option) => {
@@ -2174,14 +2554,14 @@ export default function AdminCreateEventForm() {
 
       setPreparedSignaturePlan(responsePayload)
       setSignatureTxs(txs)
-      setSignatureFlowDone(txs.length === 0)
+      setSignatureFlowDone(false)
       setSignatureFlowError('')
 
       if (txs.length === 0) {
-        toast.success('No signatures required for this payload.')
+        toast.success('Auth completed. No creator transactions were returned.')
       }
       else {
-        toast.success(`Prepared ${txs.length} signature request${txs.length > 1 ? 's' : ''}.`)
+        toast.success(`Auth completed. Prepared ${txs.length} signature request${txs.length > 1 ? 's' : ''}.`)
       }
     }
     catch (error) {
@@ -2194,9 +2574,67 @@ export default function AdminCreateEventForm() {
       throw new Error(message)
     }
     finally {
+      setIsSigningAuth(false)
       setIsPreparingSignaturePlan(false)
     }
-  }, [buildPreparePayload, eoaAddress, eventImageFile, form.options, optionImageFiles])
+  }, [buildPreparePayload, eoaAddress, eventImageFile, form.options, optionImageFiles, walletClient])
+
+  const finalizeSignatureFlow = useCallback(async (completedTxsInput?: PrepareFinalizeRequestTx[]) => {
+    if (!preparedSignaturePlan) {
+      throw new Error('Prepare signatures first.')
+    }
+    if (!eoaAddress) {
+      throw new Error('Connect wallet first.')
+    }
+
+    const completedTxs: PrepareFinalizeRequestTx[] = completedTxsInput
+      ?? signatureTxs
+        .filter(item => item.status === 'success' && Boolean(item.hash))
+        .map(item => ({
+          id: item.id,
+          hash: item.hash as string,
+        }))
+
+    if (completedTxs.length !== preparedSignaturePlan.txPlan.length) {
+      throw new Error('All signature transactions must be confirmed before finalization.')
+    }
+
+    setIsFinalizingSignatureFlow(true)
+    setSignatureFlowError('')
+
+    try {
+      const response = await fetch(`${CREATE_MARKET_API_BASE_URL}/finalize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requestId: preparedSignaturePlan.requestId,
+          creator: eoaAddress,
+          txs: completedTxs,
+        }),
+      })
+
+      const responsePayload = await response.json().catch(() => null) as unknown
+      const apiError = readApiError(responsePayload)
+      if (!response.ok || apiError || !isFinalizeResponse(responsePayload)) {
+        throw new Error(apiError || `Finalize failed (${response.status})`)
+      }
+
+      if (responsePayload.requestId !== preparedSignaturePlan.requestId) {
+        throw new Error('Finalize response requestId mismatch.')
+      }
+
+      setSignatureFlowDone(true)
+      setSignatureFlowError('')
+      toast.success('All signatures completed. Your created event will be available on your site shortly.', {
+        duration: 10000,
+      })
+    }
+    finally {
+      setIsFinalizingSignatureFlow(false)
+    }
+  }, [eoaAddress, preparedSignaturePlan, signatureTxs])
 
   const executeSignatureFlow = useCallback(async () => {
     if (!preparedSignaturePlan) {
@@ -2222,8 +2660,18 @@ export default function AdminCreateEventForm() {
     setSignatureFlowDone(false)
 
     try {
+      const completedById = new Map<string, string>()
       for (let index = 0; index < preparedSignaturePlan.txPlan.length; index += 1) {
-        if (signatureTxs[index]?.status === 'success') {
+        const planned = preparedSignaturePlan.txPlan[index]
+        const existing = signatureTxs[index]
+        if (existing?.status === 'success' && existing.hash) {
+          completedById.set(planned.id, existing.hash)
+        }
+      }
+
+      for (let index = 0; index < preparedSignaturePlan.txPlan.length; index += 1) {
+        const existingTx = signatureTxs[index]
+        if (existingTx?.status === 'success' && existingTx.hash) {
           continue
         }
 
@@ -2234,6 +2682,38 @@ export default function AdminCreateEventForm() {
         const toAddress = tx.to as `0x${string}`
         if (!tx.data.startsWith('0x')) {
           throw new Error(`Invalid tx data for ${tx.id}.`)
+        }
+
+        if (existingTx?.hash) {
+          setSignatureTxs(previous => previous.map((item, itemIndex) => {
+            if (itemIndex !== index) {
+              return item
+            }
+            return {
+              ...item,
+              status: 'confirming',
+              error: undefined,
+            }
+          }))
+
+          const existingReceipt = await publicClient.waitForTransactionReceipt({
+            hash: existingTx.hash as `0x${string}`,
+          })
+          if (existingReceipt.status !== 'success') {
+            throw new Error(`Transaction ${tx.id} failed on-chain.`)
+          }
+
+          setSignatureTxs(previous => previous.map((item, itemIndex) => {
+            if (itemIndex !== index) {
+              return item
+            }
+            return {
+              ...item,
+              status: 'success',
+            }
+          }))
+          completedById.set(tx.id, existingTx.hash)
+          continue
         }
 
         setSignatureTxs(previous => previous.map((item, itemIndex) => {
@@ -2305,12 +2785,21 @@ export default function AdminCreateEventForm() {
             status: 'success',
           }
         }))
+        completedById.set(tx.id, hash)
       }
 
-      setSignatureFlowDone(true)
-      toast.success('All signatures completed. Your created event will be available on your site shortly.', {
-        duration: 10000,
+      const completedTxs = preparedSignaturePlan.txPlan.map((tx) => {
+        const hash = completedById.get(tx.id)
+        if (!hash) {
+          throw new Error(`Missing confirmed hash for ${tx.id}.`)
+        }
+        return {
+          id: tx.id,
+          hash,
+        }
       })
+
+      await finalizeSignatureFlow(completedTxs)
     }
     catch (error) {
       console.error('Error executing signature flow:', error)
@@ -2337,7 +2826,7 @@ export default function AdminCreateEventForm() {
     finally {
       setIsExecutingSignatures(false)
     }
-  }, [eoaAddress, getFeeOverridesForTx, preparedSignaturePlan, publicClient, signatureTxs, walletClient])
+  }, [eoaAddress, finalizeSignatureFlow, getFeeOverridesForTx, preparedSignaturePlan, publicClient, signatureTxs, walletClient])
 
   const copyWalletAddress = useCallback(async () => {
     if (!eoaAddress) {
@@ -2425,15 +2914,14 @@ export default function AdminCreateEventForm() {
         return
       }
 
-      setCurrentStep(5)
-      setMaxVisitedStep(prev => Math.max(prev, 5))
+      setFinalPreviewDialogOpen(true)
       return
     }
 
     if (currentStep !== 5) {
       return
     }
-    if (isPreparingSignaturePlan || isExecutingSignatures || signatureFlowDone) {
+    if (isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow || signatureFlowDone) {
       return
     }
 
@@ -2455,15 +2943,24 @@ export default function AdminCreateEventForm() {
   }, [
     currentStep,
     executeSignatureFlow,
+    isFinalizingSignatureFlow,
     isExecutingSignatures,
+    isSigningAuth,
     isPreparingSignaturePlan,
     isStepValid,
     prepareSignaturePlan,
     preparedSignaturePlan,
     runAllPreSignChecks,
+    setFinalPreviewDialogOpen,
     signatureFlowDone,
     validateStep,
   ])
+
+  const continueFromFinalPreview = useCallback(() => {
+    setFinalPreviewDialogOpen(false)
+    setCurrentStep(5)
+    setMaxVisitedStep(prev => Math.max(prev, 5))
+  }, [])
 
   useEffect(() => {
     if (currentStep !== 4) {
@@ -3149,6 +3646,205 @@ export default function AdminCreateEventForm() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={finalPreviewDialogOpen} onOpenChange={setFinalPreviewDialogOpen}>
+        <DialogContent className="max-h-[90vh] overflow-hidden p-0 sm:max-w-6xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Event preview</DialogTitle>
+            <DialogDescription>
+              Review how your event and markets will look before starting signatures.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex max-h-[90vh] flex-col">
+            <div className="border-b px-6 py-3">
+              <div className="
+                mx-auto w-full max-w-2xl rounded-md border bg-muted/20 px-3 py-2 text-center font-mono text-xs
+                text-muted-foreground
+              "
+              >
+                {previewEventUrl}
+              </div>
+            </div>
+
+            <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem]">
+              <div className="min-h-0 space-y-4 overflow-y-auto p-6">
+                <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-4 rounded-md border p-4">
+                  <div className="relative size-22 overflow-hidden rounded-md border bg-muted">
+                    {eventImagePreviewUrl
+                      ? (
+                          <Image
+                            src={eventImagePreviewUrl}
+                            alt="Event preview"
+                            fill
+                            className="object-cover"
+                          />
+                        )
+                      : (
+                          <Skeleton className="size-full rounded-none" />
+                        )}
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-lg font-semibold text-foreground">{form.title || 'Untitled event'}</p>
+                    <p className="text-xs text-muted-foreground">{previewEndDate}</p>
+                  </div>
+                </div>
+
+                {isMultiMarketPreview && previewMarkets.length > 0 && (
+                  <div className="space-y-3 rounded-md border p-4">
+                    <p className="text-sm font-semibold text-foreground">Outcomes</p>
+                    <div className="space-y-3">
+                      {previewMarkets.map((market, index) => (
+                        <div key={market.key} className="rounded-md border bg-muted/20 p-3">
+                          <div className="flex items-start gap-3">
+                            <div className="relative size-12 shrink-0 overflow-hidden rounded-md border bg-muted">
+                              {market.imageUrl
+                                ? (
+                                    <Image
+                                      src={market.imageUrl}
+                                      alt={`Market ${index + 1} preview`}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  )
+                                : (
+                                    <Skeleton className="size-full rounded-none" />
+                                  )}
+                            </div>
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <p className="text-sm font-semibold text-foreground">
+                                {market.title || `Market ${index + 1}`}
+                              </p>
+                              <p className="text-xs text-muted-foreground">{market.question || 'Question pending'}</p>
+                              {market.shortName && (
+                                <p className="text-xs text-muted-foreground">
+                                  Short name:
+                                  {' '}
+                                  {market.shortName}
+                                </p>
+                              )}
+                              <div className="mt-2 grid grid-cols-2 gap-2">
+                                <div className="
+                                  rounded-md bg-emerald-500/15 px-2 py-1 text-xs font-medium text-emerald-600
+                                "
+                                >
+                                  {market.outcomeYes}
+                                </div>
+                                <div className="rounded-md bg-red-500/15 px-2 py-1 text-xs font-medium text-red-500">
+                                  {market.outcomeNo}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-3 rounded-md border p-4">
+                  <p className="text-sm font-semibold text-foreground">Resolution rules</p>
+                  <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+                    {form.resolutionRules || 'Rules not set.'}
+                  </p>
+                  {form.resolutionSource
+                    ? (
+                        <a
+                          href={form.resolutionSource}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          {form.resolutionSource}
+                          <ExternalLinkIcon className="size-3" />
+                        </a>
+                      )
+                    : (
+                        <p className="text-xs text-muted-foreground">No resolution source URL.</p>
+                      )}
+                </div>
+              </div>
+
+              <div className="border-t bg-muted/10 p-6 lg:border-t-0 lg:border-l">
+                <p className="text-sm font-semibold text-foreground">Trade panel preview</p>
+                <div className="mt-3 space-y-3 rounded-md border bg-background p-4">
+                  <div className="flex items-center gap-4 text-sm font-semibold">
+                    <span className="text-muted-foreground">Buy</span>
+                    <span className="text-muted-foreground">Sell</span>
+                  </div>
+                  <div className="h-px w-full bg-border" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled
+                      className="
+                        rounded-md border border-emerald-500/40 bg-emerald-500/15 px-3 py-2 text-sm font-semibold
+                        text-emerald-600
+                      "
+                    >
+                      {tradePreviewMarket?.outcomeYes || 'Yes'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      className="
+                        rounded-md border border-red-500/40 bg-red-500/15 px-3 py-2 text-sm font-semibold text-red-500
+                      "
+                    >
+                      {tradePreviewMarket?.outcomeNo || 'No'}
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-3 w-32" />
+                    <Skeleton className="h-9 w-full" />
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Categories</p>
+                  {selectedCategoryChips.length > 0
+                    ? (
+                        <div className="
+                          flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none]
+                          [&::-webkit-scrollbar]:hidden
+                        "
+                        >
+                          {selectedCategoryChips.map(item => (
+                            <span
+                              key={item.slug}
+                              className="
+                                shrink-0 rounded-full border bg-background px-2.5 py-1 text-xs text-muted-foreground
+                              "
+                            >
+                              {item.label}
+                            </span>
+                          ))}
+                        </div>
+                      )
+                    : (
+                        <p className="text-xs text-muted-foreground">No categories selected.</p>
+                      )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 border-t p-4 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setFinalPreviewDialogOpen(false)}
+              >
+                Back to edit
+              </Button>
+              <Button type="button" onClick={continueFromFinalPreview}>
+                Continue to sign
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {currentStep === 4 && (
         <Card className="bg-background">
           <CardHeader className="pt-8 pb-6">
@@ -3171,7 +3867,7 @@ export default function AdminCreateEventForm() {
                     : (
                         <ChevronRightIcon className="size-5 text-muted-foreground" />
                       )}
-                  <p className="text-2xl font-semibold text-foreground">
+                  <p className="text-xl font-semibold text-foreground">
                     EOA wallet balance (
                     {requiredTotalRewardUsdc.toFixed(2)}
                     {' '}
@@ -3252,7 +3948,7 @@ export default function AdminCreateEventForm() {
                     : (
                         <ChevronRightIcon className="size-5 text-muted-foreground" />
                       )}
-                  <p className="text-2xl font-semibold text-foreground">
+                  <p className="text-xl font-semibold text-foreground">
                     EOA wallet gas (
                     {requiredGasPol.toFixed(4)}
                     {' '}
@@ -3306,7 +4002,7 @@ export default function AdminCreateEventForm() {
                     : (
                         <ChevronRightIcon className="size-5 text-muted-foreground" />
                       )}
-                  <p className="text-2xl font-semibold text-foreground">Wallet on allowed market creator wallets</p>
+                  <p className="text-xl font-semibold text-foreground">Wallet on allowed market creator wallets</p>
                 </button>
                 <CheckIndicator
                   state={
@@ -3377,7 +4073,7 @@ export default function AdminCreateEventForm() {
                     : (
                         <ChevronRightIcon className="size-5 text-muted-foreground" />
                       )}
-                  <p className="text-2xl font-semibold text-foreground">Slug available</p>
+                  <p className="text-xl font-semibold text-foreground">Slug available</p>
                 </button>
                 <CheckIndicator
                   state={
@@ -3419,7 +4115,7 @@ export default function AdminCreateEventForm() {
                     : (
                         <ChevronRightIcon className="size-5 text-muted-foreground" />
                       )}
-                  <p className="text-2xl font-semibold text-foreground">OpenRouter active</p>
+                  <p className="text-xl font-semibold text-foreground">OpenRouter active</p>
                 </button>
                 <CheckIndicator
                   state={
@@ -3469,7 +4165,7 @@ export default function AdminCreateEventForm() {
                     : (
                         <ChevronRightIcon className="size-5 text-muted-foreground" />
                       )}
-                  <p className="text-2xl font-semibold text-foreground">Content AI checker</p>
+                  <p className="text-xl font-semibold text-foreground">Content AI checker</p>
                 </button>
                 <CheckIndicator
                   state={contentIndicatorState}
@@ -3539,13 +4235,13 @@ export default function AdminCreateEventForm() {
                 <div className="space-y-1">
                   <p className="text-base font-semibold text-foreground">Progress</p>
                   <p className="text-sm text-muted-foreground">
-                    {completedSignatureCount}
+                    {completedSignatureUnits}
                     {' '}
                     /
                     {' '}
-                    {signatureTxs.length}
+                    {totalSignatureUnits}
                     {' '}
-                    confirmed
+                    completed
                   </p>
                 </div>
                 <p className="text-sm font-semibold text-foreground">
@@ -3565,22 +4261,29 @@ export default function AdminCreateEventForm() {
               <p className="text-base font-semibold text-foreground">Execution plan</p>
               {preparedSignaturePlan
                 ? (
-                    <p className="text-sm text-muted-foreground">
-                      {getChainLabel(preparedSignaturePlan.chainId)}
-                      {' '}
-                      ·
-                      {' '}
-                      {signatureTxs.length}
-                      {' '}
-                      txs
-                      {' '}
-                      ·
-                      {' '}
-                      {preparedSignaturePlan.creator}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">
+                        {getChainLabel(preparedSignaturePlan.chainId)}
+                        {' '}
+                        ·
+                        {' '}
+                        {signatureTxs.length}
+                        {' '}
+                        txs
+                        {' '}
+                        ·
+                        {' '}
+                        {preparedSignaturePlan.creator}
+                      </p>
+                      <p className="font-mono text-xs text-muted-foreground">
+                        request:
+                        {' '}
+                        {preparedSignaturePlan.requestId}
+                      </p>
+                    </div>
                   )
                 : (
-                    <p className="text-sm text-muted-foreground">Prepare signatures to load tx plan.</p>
+                    <p className="text-sm text-muted-foreground">Sign auth to load tx plan.</p>
                   )}
             </div>
 
@@ -3589,6 +4292,43 @@ export default function AdminCreateEventForm() {
                 <p className="text-sm text-red-500">{signatureFlowError}</p>
               </div>
             )}
+
+            <div className="rounded-md border px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-foreground">Sign EIP-712 auth challenge</p>
+                  <p className="text-xs text-muted-foreground">
+                    {preparedSignaturePlan
+                      ? 'Verified'
+                      : isSigningAuth || isPreparingSignaturePlan
+                        ? 'Awaiting wallet'
+                        : signatureFlowError
+                          ? 'Failed'
+                          : 'Pending'}
+                  </p>
+                  {!preparedSignaturePlan && authChallengeRemainingSeconds !== null && (
+                    <p className={cn(
+                      'text-xs',
+                      authChallengeRemainingSeconds === 0 ? 'text-destructive' : 'text-muted-foreground',
+                    )}
+                    >
+                      {authChallengeRemainingSeconds === 0
+                        ? 'Auth challenge expired. Click "Sign & prepare" to issue a new one.'
+                        : `Auth challenge expires in ${authChallengeCountdownLabel}`}
+                    </p>
+                  )}
+                </div>
+                <SignatureTxIndicator
+                  status={preparedSignaturePlan
+                    ? 'success'
+                    : isSigningAuth || isPreparingSignaturePlan
+                      ? 'awaiting_wallet'
+                      : signatureFlowError
+                        ? 'error'
+                        : 'idle'}
+                />
+              </div>
+            </div>
 
             {signatureTxs.length > 0 && (
               <div className="space-y-2">
@@ -3645,6 +4385,34 @@ export default function AdminCreateEventForm() {
                 })}
               </div>
             )}
+
+            {preparedSignaturePlan && (
+              <div className="rounded-md border px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">Finalize and register markets</p>
+                    <p className="text-xs text-muted-foreground">
+                      {signatureFlowDone
+                        ? 'Completed'
+                        : isFinalizingSignatureFlow
+                          ? 'Validating tx hashes and registering'
+                          : signatureFlowError && completedSignatureCount === signatureTxs.length && signatureTxs.length > 0
+                            ? 'Failed'
+                            : 'Pending'}
+                    </p>
+                  </div>
+                  <SignatureTxIndicator
+                    status={signatureFlowDone
+                      ? 'success'
+                      : isFinalizingSignatureFlow
+                        ? 'confirming'
+                        : signatureFlowError && completedSignatureCount === signatureTxs.length && signatureTxs.length > 0
+                          ? 'error'
+                          : 'idle'}
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -3666,7 +4434,7 @@ export default function AdminCreateEventForm() {
               type="button"
               variant="outline"
               onClick={goBack}
-              disabled={currentStep === 1 || isPreparingSignaturePlan || isExecutingSignatures}
+              disabled={currentStep === 1 || isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow}
             >
               <ArrowLeftIcon className="mr-2 size-4" />
               Back
@@ -3684,26 +4452,32 @@ export default function AdminCreateEventForm() {
                     || openRouterCheckState === 'checking'
                     || contentCheckState === 'checking'
                   ))
+                  || isSigningAuth
                   || isPreparingSignaturePlan
                   || isExecutingSignatures
+                  || isFinalizingSignatureFlow
                   || (currentStep === 5 && signatureFlowDone)
               }
             >
               {currentStep === 5
                 ? (
                     <>
-                      {(isPreparingSignaturePlan || isExecutingSignatures) && (
+                      {(isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow) && (
                         <Loader2Icon className="mr-2 size-4 animate-spin" />
                       )}
-                      {isPreparingSignaturePlan
-                        ? 'Preparing...'
-                        : isExecutingSignatures
-                          ? 'Signing...'
-                          : signatureFlowDone
-                            ? 'Completed'
-                            : preparedSignaturePlan
-                              ? 'Start signatures'
-                              : 'Prepare signatures'}
+                      {isSigningAuth
+                        ? 'Signing auth...'
+                        : isPreparingSignaturePlan
+                          ? 'Preparing...'
+                          : isExecutingSignatures
+                            ? 'Signing...'
+                            : isFinalizingSignatureFlow
+                              ? 'Finalizing...'
+                              : signatureFlowDone
+                                ? 'Completed'
+                                : preparedSignaturePlan
+                                  ? 'Continue signatures'
+                                  : 'Sign & prepare'}
                     </>
                   )
                 : currentStep === 4
@@ -3724,7 +4498,7 @@ export default function AdminCreateEventForm() {
                           )
                         }
 
-                        return 'Continue'
+                        return 'Preview'
                       })()
                     )
                   : (
