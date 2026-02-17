@@ -1,15 +1,11 @@
 import type { NextConfig } from 'next'
 import { createMDX } from 'fumadocs-mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
+import siteUrlUtils from './src/lib/site-url'
 
-const siteUrl = process.env.SITE_URL
-  ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : 'http://localhost:3000')
-
-const isVercel = Boolean(
-  process.env.VERCEL_ENV || process.env.VERCEL_PROJECT_PRODUCTION_URL,
-)
+const { isVercelEnv, resolveSiteUrl } = siteUrlUtils
+const siteUrl = resolveSiteUrl(process.env)
+const isVercel = isVercelEnv(process.env)
 
 const config: NextConfig = {
   ...(isVercel ? {} : { output: 'standalone' }),
@@ -64,7 +60,6 @@ const config: NextConfig = {
   },
   env: {
     SITE_URL: siteUrl,
-    ENABLE_VERCEL_SPEED_INSIGHTS: isVercel ? 'true' : 'false',
     CLOB_URL: process.env.CLOB_URL ?? 'https://clob.kuest.com',
     RELAYER_URL: process.env.RELAYER_URL ?? 'https://relayer.kuest.com',
     DATA_URL: process.env.DATA_URL ?? 'https://data-api.kuest.com',

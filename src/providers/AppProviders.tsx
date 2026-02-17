@@ -7,12 +7,13 @@ import { ThemeProvider } from 'next-themes'
 import dynamic from 'next/dynamic'
 import { Toaster } from '@/components/ui/sonner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import siteUrlUtils from '@/lib/site-url'
 import AppKitProvider from '@/providers/AppKitProvider'
 import ProgressIndicatorProvider from '@/providers/ProgressIndicatorProvider'
 
-const isSpeedInsightsEnabled = process.env.ENABLE_VERCEL_SPEED_INSIGHTS === 'true'
+const { isVercelEnv } = siteUrlUtils
 
-const SpeedInsights = isSpeedInsightsEnabled
+const SpeedInsights = isVercelEnv(process.env)
   ? dynamic(
       () => import('@vercel/speed-insights/next').then(mod => mod.SpeedInsights),
       { ssr: false },

@@ -3,6 +3,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const postgres = require('postgres')
+const { resolveSiteUrl } = require('../src/lib/site-url')
 
 function escapeSqlLiteral(value) {
   return String(value).replace(/'/g, '\'\'')
@@ -239,23 +240,12 @@ function resolveMigrationConnectionString() {
   return migrationUrl.replace('require', 'disable')
 }
 
-function resolveSiteUrl() {
-  return process.env.SITE_URL
-    ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : 'http://localhost:3000')
-}
-
 async function run() {
   if (shouldSkip(['CRON_SECRET'])) {
     return
   }
 
-  const siteUrl = resolveSiteUrl()
-  if (!siteUrl) {
-    console.log('Skipping db:push because required env vars are missing: SITE_URL, VERCEL_PROJECT_PRODUCTION_URL, or VERCEL_URL')
-    return
-  }
+  const siteUrl = resolveSiteUrl(process.env)
 
   const connectionString = resolveMigrationConnectionString()
   if (!connectionString) {
