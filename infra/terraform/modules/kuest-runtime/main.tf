@@ -147,12 +147,11 @@ resource "kubernetes_ingress_v1" "web" {
   metadata {
     name      = var.app_name
     namespace = kubernetes_namespace_v1.this.metadata[0].name
-    annotations = {
-      "kubernetes.io/ingress.class" = var.ingress_class_name
-    }
   }
 
   spec {
+    ingress_class_name = var.ingress_class_name
+
     rule {
       host = var.ingress_host
 

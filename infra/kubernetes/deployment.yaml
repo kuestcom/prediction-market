@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: ghcr.io/kuestcom/prediction-market:latest
+          image: ghcr.io/kuestcom/prediction-market:v1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000

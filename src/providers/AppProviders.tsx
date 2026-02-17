@@ -10,10 +10,14 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import AppKitProvider from '@/providers/AppKitProvider'
 import ProgressIndicatorProvider from '@/providers/ProgressIndicatorProvider'
 
-const SpeedInsights = dynamic(
-  () => import('@vercel/speed-insights/next').then(mod => mod.SpeedInsights),
-  { ssr: false },
-)
+const isSpeedInsightsEnabled = process.env.ENABLE_VERCEL_SPEED_INSIGHTS === 'true'
+
+const SpeedInsights = isSpeedInsightsEnabled
+  ? dynamic(
+      () => import('@vercel/speed-insights/next').then(mod => mod.SpeedInsights),
+      { ssr: false },
+    )
+  : () => null
 
 const queryClient = new QueryClient()
 
@@ -31,7 +35,7 @@ export function AppProviders({ children, disableAppKit }: AppProvidersProps) {
     <div className="min-h-screen bg-background">
       {children}
       <Toaster position="bottom-left" />
-      {process.env.ENABLE_VERCEL_SPEED_INSIGHTS && <SpeedInsights />}
+      {process.env.NODE_ENV === 'production' && <SpeedInsights />}
       {process.env.NODE_ENV === 'production' && gaId && <GoogleAnalytics gaId={gaId} />}
     </div>
   )

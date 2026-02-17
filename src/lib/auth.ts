@@ -26,7 +26,43 @@ const SIWE_TWO_FACTOR_PENDING_COOKIE = 'siwe_2fa_pending'
 const SIWE_TWO_FACTOR_INTENT_COOKIE = 'siwe_2fa_intent'
 const AFFILIATE_COOKIE_NAME = 'platform_affiliate'
 const AFFILIATE_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
-const SITE_URL = process.env.SITE_URL ?? 'http://localhost:3000'
+const PROTOCOL_PATTERN = /^[a-z][a-z\d+.-]*:\/\//i
+
+function hasProtocol(value: string) {
+  return PROTOCOL_PATTERN.test(value)
+}
+
+function shouldUseHttpProtocol(value: string) {
+  const hostname = (value.split('/')[0] || '').split(':')[0].toLowerCase()
+  return hostname === 'localhost'
+    || hostname === '127.0.0.1'
+    || hostname === '0.0.0.0'
+    || hostname.endsWith('.local')
+}
+
+function resolveSiteUrl(value: string | undefined) {
+  const fallback = 'http://localhost:3000'
+  const trimmed = String(value || '').trim()
+
+  if (!trimmed) {
+    return fallback
+  }
+
+  const withProtocol = hasProtocol(trimmed)
+    ? trimmed
+    : `${shouldUseHttpProtocol(trimmed) ? 'http' : 'https'}://${trimmed}`
+
+  try {
+    const url = new URL(withProtocol)
+    const pathname = url.pathname.replace(/\/+$/, '')
+    return `${url.origin}${pathname === '/' ? '' : pathname}`
+  }
+  catch {
+    return fallback
+  }
+}
+
+const SITE_URL = resolveSiteUrl(process.env.SITE_URL)
 const siteUrlObject = new URL(SITE_URL)
 const SIWE_DOMAIN = siteUrlObject.host
 const SIWE_EMAIL_DOMAIN = siteUrlObject.hostname || 'kuest.com'

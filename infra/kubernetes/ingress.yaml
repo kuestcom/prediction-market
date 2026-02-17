@@ -3,9 +3,8 @@ kind: Ingress
 metadata:
   name: kuest-web
   namespace: kuest
-  annotations:
-    kubernetes.io/ingress.class: nginx
 spec:
+  ingressClassName: nginx
   rules:
     - host: markets.example.com
       http:
