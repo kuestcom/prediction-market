@@ -608,7 +608,8 @@ async function processMarketData(
   const marketRules = normalizeStringField(metadata.market_rules)
   const resolutionSource = normalizeStringField(metadata.resolution_source)
   const resolutionSourceUrl = normalizeStringField(metadata.resolution_source_url)
-  const resolverAddress = normalizeAddressField(metadata.resolver)
+  const resolutionAdapterAddress = normalizeAddressField(metadata.resolution_adapter_address)
+  const resolverAddress = normalizeAddressField(metadata.resolver) ?? resolutionAdapterAddress
   const negRiskFlag = normalizeBooleanField(metadata.neg_risk)
   const negRiskOtherFlag = normalizeBooleanField(metadata.neg_risk_other)
   const negRiskMarketId = normalizeHexField(metadata.neg_risk_market_id)
