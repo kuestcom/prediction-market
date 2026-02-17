@@ -14,8 +14,8 @@ provider "kubernetes" {
   config_context = var.kube_context
 }
 
-module "kuest_runtime" {
-  source = "../../modules/kuest-runtime"
+module "runtime_kubernetes" {
+  source = "../../../modules/runtime-kubernetes"
 
   namespace               = "kuest"
   app_name                = "kuest-web"
