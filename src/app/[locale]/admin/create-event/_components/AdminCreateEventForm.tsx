@@ -191,6 +191,7 @@ interface OpenRouterStatusResponse {
 
 interface PreparePayloadOption {
   id: string
+  question: string
   title: string
   shortName: string
   slug: string
@@ -262,6 +263,7 @@ interface FinalizeResponse {
 
 interface PendingRequestItem {
   requestId: string
+  payloadHash: string
   status: string
   creator: string
   chainId: number
@@ -453,6 +455,7 @@ function isPendingRequestResponse(payload: unknown): payload is PendingRequestRe
 
   const request = candidate.request as Partial<PendingRequestItem>
   return typeof request.requestId === 'string'
+    && typeof request.payloadHash === 'string'
     && typeof request.status === 'string'
     && typeof request.creator === 'string'
     && typeof request.chainId === 'number'
@@ -2005,6 +2008,7 @@ export default function AdminCreateEventForm() {
 
     payload.options = form.options.map(option => ({
       id: option.id,
+      question: option.question.trim(),
       title: option.title.trim(),
       shortName: option.shortName.trim(),
       slug: option.slug.trim(),
@@ -2474,7 +2478,11 @@ export default function AdminCreateEventForm() {
     setAuthChallengeExpiresAtMs(null)
   }, [])
 
-  const loadPendingSignaturePlan = useCallback(async (options?: { silent?: boolean }) => {
+  const loadPendingSignaturePlan = useCallback(async (options?: {
+    silent?: boolean
+    chainId?: number
+    expectedPayloadHash?: string
+  }) => {
     if (!eoaAddress) {
       return false
     }
@@ -2486,6 +2494,9 @@ export default function AdminCreateEventForm() {
       const query = new URLSearchParams({
         creator: eoaAddress,
       })
+      if (typeof options?.chainId === 'number' && options.chainId > 0) {
+        query.set('chainId', String(options.chainId))
+      }
 
       const response = await fetch(`${CREATE_MARKET_API_BASE_URL}/pending?${query.toString()}`, {
         method: 'GET',
@@ -2504,6 +2515,9 @@ export default function AdminCreateEventForm() {
 
       const pending = payload.request
       if (!isAddress(pending.prepared.creator) || getAddress(pending.prepared.creator) !== eoaAddress) {
+        return false
+      }
+      if (options?.expectedPayloadHash && pending.payloadHash.toLowerCase() !== options.expectedPayloadHash.toLowerCase()) {
         return false
       }
 
@@ -2554,6 +2568,13 @@ export default function AdminCreateEventForm() {
       throw new Error(apiError || `Could not persist confirmed tx hashes (${response.status})`)
     }
   }, [eoaAddress])
+
+  const resumeAnyPendingSignaturePlan = useCallback(() => {
+    void loadPendingSignaturePlan({
+      silent: false,
+      chainId: targetChainId,
+    })
+  }, [loadPendingSignaturePlan, targetChainId])
 
   const generateRulesWithAi = useCallback(async () => {
     setIsGeneratingRules(true)
@@ -2608,12 +2629,16 @@ export default function AdminCreateEventForm() {
     setSignatureFlowError('')
     setSignatureFlowDone(false)
     setAuthChallengeExpiresAtMs(null)
+    let currentPayloadHash = ''
+    let currentPayloadChainId: number | null = null
 
     try {
       const activeWalletClient = walletClient
       const payload = buildPreparePayload()
       const payloadJson = JSON.stringify(payload)
       const payloadHash = keccak256(stringToHex(payloadJson))
+      currentPayloadHash = payloadHash
+      currentPayloadChainId = payload.chainId
 
       const authResponse = await fetch(`${CREATE_MARKET_API_BASE_URL}/prepare-auth`, {
         method: 'POST',
@@ -2730,7 +2755,11 @@ export default function AdminCreateEventForm() {
       const message = error instanceof Error ? error.message : 'Could not prepare signatures.'
 
       if (isAlreadyInitializedError(message)) {
-        const resumed = await loadPendingSignaturePlan({ silent: false })
+        const resumed = await loadPendingSignaturePlan({
+          silent: false,
+          chainId: currentPayloadChainId ?? undefined,
+          expectedPayloadHash: currentPayloadHash || undefined,
+        })
         if (resumed) {
           return
         }
@@ -3141,7 +3170,13 @@ export default function AdminCreateEventForm() {
     async function run() {
       try {
         if (!preparedSignaturePlan) {
-          const resumed = await loadPendingSignaturePlan({ silent: true })
+          const payload = buildPreparePayload()
+          const payloadHash = keccak256(stringToHex(JSON.stringify(payload)))
+          const resumed = await loadPendingSignaturePlan({
+            silent: true,
+            chainId: payload.chainId,
+            expectedPayloadHash: payloadHash,
+          })
           if (resumed) {
             return
           }
@@ -3158,6 +3193,7 @@ export default function AdminCreateEventForm() {
 
     void run()
   }, [
+    buildPreparePayload,
     currentStep,
     executeSignatureFlow,
     isFinalizingSignatureFlow,
@@ -3200,8 +3236,22 @@ export default function AdminCreateEventForm() {
     }
     pendingResumeKeyRef.current = key
 
-    void loadPendingSignaturePlan({ silent: true })
+    let payload: PreparePayloadBody
+    try {
+      payload = buildPreparePayload()
+    }
+    catch {
+      return
+    }
+
+    const payloadHash = keccak256(stringToHex(JSON.stringify(payload)))
+    void loadPendingSignaturePlan({
+      silent: true,
+      chainId: payload.chainId,
+      expectedPayloadHash: payloadHash,
+    })
   }, [
+    buildPreparePayload,
     currentStep,
     eoaAddress,
     isLoadingPendingRequest,
@@ -4526,7 +4576,28 @@ export default function AdminCreateEventForm() {
                     </div>
                   )
                 : (
-                    <p className="text-sm text-muted-foreground">Sign auth to load tx plan.</p>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Sign auth to load tx plan.</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7"
+                        onClick={resumeAnyPendingSignaturePlan}
+                        disabled={isLoadingPendingRequest || isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow}
+                      >
+                        {isLoadingPendingRequest
+                          ? (
+                              <>
+                                <Loader2Icon className="mr-2 size-3.5 animate-spin" />
+                                Loading pending...
+                              </>
+                            )
+                          : (
+                              'Resume pending plan'
+                            )}
+                      </Button>
+                    </div>
                   )}
             </div>
 
