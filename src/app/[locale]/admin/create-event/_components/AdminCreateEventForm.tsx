@@ -881,7 +881,7 @@ export default function AdminCreateEventForm() {
   const [isExecutingSignatures, setIsExecutingSignatures] = useState(false)
   const [isFinalizingSignatureFlow, setIsFinalizingSignatureFlow] = useState(false)
   const [authChallengeExpiresAtMs, setAuthChallengeExpiresAtMs] = useState<number | null>(null)
-  const [signatureNowMs, setSignatureNowMs] = useState(() => Date.now())
+  const [signatureNowMs, setSignatureNowMs] = useState(0)
   const [signatureFlowDone, setSignatureFlowDone] = useState(false)
   const [signatureFlowError, setSignatureFlowError] = useState('')
   const [preparedSignaturePlan, setPreparedSignaturePlan] = useState<PrepareResponse | null>(null)
@@ -1175,7 +1175,7 @@ export default function AdminCreateEventForm() {
     return Math.min(100, Math.round((completedSignatureUnits / totalSignatureUnits) * 100))
   }, [completedSignatureUnits, totalSignatureUnits])
   const authChallengeRemainingSeconds = useMemo(() => {
-    if (!authChallengeExpiresAtMs || preparedSignaturePlan) {
+    if (!authChallengeExpiresAtMs || preparedSignaturePlan || signatureNowMs <= 0) {
       return null
     }
     return Math.max(0, Math.floor((authChallengeExpiresAtMs - signatureNowMs) / 1000))
