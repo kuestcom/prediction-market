@@ -295,6 +295,18 @@ async function fetchGammaRuleSamples(input: {
   const markets = Array.isArray(payload) ? payload as GammaMarket[] : []
   const mainCategory = input.mainCategorySlug.trim().toLowerCase()
 
+  function isMarketModeCompatible(market: GammaMarket) {
+    if (input.marketMode === 'multi_unique') {
+      return market.negRisk === true
+    }
+
+    if (input.marketMode === 'binary' || input.marketMode === 'multi_multiple') {
+      return market.negRisk !== true
+    }
+
+    return true
+  }
+
   const selected = markets
     .filter((market) => {
       const description = normalizeText(market.description)
@@ -302,11 +314,7 @@ async function fetchGammaRuleSamples(input: {
         return false
       }
 
-      if (input.marketMode === 'multi_unique' && market.negRisk !== true) {
-        return false
-      }
-
-      if ((input.marketMode === 'binary' || input.marketMode === 'multi_multiple') && market.negRisk === true) {
+      if (!isMarketModeCompatible(market)) {
         return false
       }
 
@@ -331,6 +339,7 @@ async function fetchGammaRuleSamples(input: {
     .sort((a, b) => a.marketId.localeCompare(b.marketId))
 
   const fallback = markets
+    .filter(isMarketModeCompatible)
     .map((market) => {
       const id = normalizeText(market.id) || 'unknown'
       const text = normalizeRulesSample(normalizeText(market.description))
