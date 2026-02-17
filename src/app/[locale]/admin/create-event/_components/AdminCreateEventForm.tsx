@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { defaultNetwork } from '@/lib/appkit'
@@ -259,6 +260,22 @@ interface FinalizeResponse {
   status: string
 }
 
+interface PendingRequestItem {
+  requestId: string
+  status: string
+  creator: string
+  chainId: number
+  expiresAt: number
+  updatedAt: number
+  errorMessage: string | null
+  prepared: PrepareResponse
+  txs: PrepareFinalizeRequestTx[]
+}
+
+interface PendingRequestResponse {
+  request: PendingRequestItem | null
+}
+
 interface SignatureExecutionTx extends PrepareTxPlanItem {
   status: SignatureTxStatus
   hash?: string
@@ -408,6 +425,43 @@ function isFinalizeResponse(payload: unknown): payload is FinalizeResponse {
 
   const candidate = payload as Partial<FinalizeResponse>
   return typeof candidate.requestId === 'string' && typeof candidate.status === 'string'
+}
+
+function isPrepareFinalizeRequestTx(payload: unknown): payload is PrepareFinalizeRequestTx {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  const candidate = payload as Partial<PrepareFinalizeRequestTx>
+  return typeof candidate.id === 'string'
+    && typeof candidate.hash === 'string'
+    && /^0x[a-fA-F0-9]{64}$/.test(candidate.hash)
+}
+
+function isPendingRequestResponse(payload: unknown): payload is PendingRequestResponse {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  const candidate = payload as Partial<PendingRequestResponse>
+  if (candidate.request === null) {
+    return true
+  }
+  if (!candidate.request || typeof candidate.request !== 'object') {
+    return false
+  }
+
+  const request = candidate.request as Partial<PendingRequestItem>
+  return typeof request.requestId === 'string'
+    && typeof request.status === 'string'
+    && typeof request.creator === 'string'
+    && typeof request.chainId === 'number'
+    && typeof request.expiresAt === 'number'
+    && typeof request.updatedAt === 'number'
+    && (typeof request.errorMessage === 'string' || request.errorMessage === null)
+    && isPrepareResponse(request.prepared)
+    && Array.isArray(request.txs)
+    && request.txs.every(item => isPrepareFinalizeRequestTx(item))
 }
 
 function isSlugCheckResponse(payload: unknown): payload is SlugCheckResponse {
@@ -752,6 +806,10 @@ function parseMinTipCapFromError(errorMessage: string): bigint | null {
   }
 }
 
+function isAlreadyInitializedError(message: string): boolean {
+  return /already initialized/i.test(message)
+}
+
 function OutcomeStateDot({ value }: { value: boolean }) {
   return (
     <span
@@ -880,6 +938,7 @@ export default function AdminCreateEventForm() {
   const [isPreparingSignaturePlan, setIsPreparingSignaturePlan] = useState(false)
   const [isExecutingSignatures, setIsExecutingSignatures] = useState(false)
   const [isFinalizingSignatureFlow, setIsFinalizingSignatureFlow] = useState(false)
+  const [isLoadingPendingRequest, setIsLoadingPendingRequest] = useState(false)
   const [authChallengeExpiresAtMs, setAuthChallengeExpiresAtMs] = useState<number | null>(null)
   const [signatureNowMs, setSignatureNowMs] = useState(0)
   const [signatureFlowDone, setSignatureFlowDone] = useState(false)
@@ -910,6 +969,7 @@ export default function AdminCreateEventForm() {
   const lastPreSignChecksCompletedRef = useRef(false)
   const lastPreSignChecksResultRef = useRef(false)
   const skipNextSignatureResetRef = useRef(false)
+  const pendingResumeKeyRef = useRef<string | null>(null)
 
   const eventImagePreviewUrl = useMemo(
     () => (eventImageFile ? URL.createObjectURL(eventImageFile) : null),
@@ -2390,6 +2450,111 @@ export default function AdminCreateEventForm() {
     return {}
   }, [publicClient])
 
+  const applyPreparedSignatureState = useCallback((input: {
+    prepared: PrepareResponse
+    confirmedTxs: PrepareFinalizeRequestTx[]
+    errorMessage?: string | null
+  }) => {
+    const confirmedById = new Map(input.confirmedTxs.map(item => [item.id, item.hash]))
+    const txs: SignatureExecutionTx[] = input.prepared.txPlan.map((planned) => {
+      const hash = confirmedById.get(planned.id)
+      return {
+        ...planned,
+        status: hash ? 'success' : 'idle',
+        hash: hash ?? undefined,
+      }
+    })
+
+    skipNextSignatureResetRef.current = true
+    setTargetChainId(input.prepared.chainId)
+    setPreparedSignaturePlan(input.prepared)
+    setSignatureTxs(txs)
+    setSignatureFlowDone(false)
+    setSignatureFlowError(typeof input.errorMessage === 'string' ? input.errorMessage : '')
+    setAuthChallengeExpiresAtMs(null)
+  }, [])
+
+  const loadPendingSignaturePlan = useCallback(async (options?: { silent?: boolean }) => {
+    if (!eoaAddress) {
+      return false
+    }
+
+    const silent = Boolean(options?.silent)
+    setIsLoadingPendingRequest(true)
+
+    try {
+      const query = new URLSearchParams({
+        creator: eoaAddress,
+      })
+
+      const response = await fetch(`${CREATE_MARKET_API_BASE_URL}/pending?${query.toString()}`, {
+        method: 'GET',
+        cache: 'no-store',
+      })
+
+      const payload = await response.json().catch(() => null) as unknown
+      const apiError = readApiError(payload)
+      if (!response.ok || apiError || !isPendingRequestResponse(payload)) {
+        throw new Error(apiError || `Pending request lookup failed (${response.status})`)
+      }
+
+      if (!payload.request) {
+        return false
+      }
+
+      const pending = payload.request
+      if (!isAddress(pending.prepared.creator) || getAddress(pending.prepared.creator) !== eoaAddress) {
+        return false
+      }
+
+      applyPreparedSignatureState({
+        prepared: pending.prepared,
+        confirmedTxs: pending.txs,
+        errorMessage: pending.errorMessage,
+      })
+
+      if (!silent) {
+        toast.success('Recovered pending signature progress from server.')
+      }
+      return true
+    }
+    catch (error) {
+      console.error('Error loading pending signature plan:', error)
+      if (!silent) {
+        const message = error instanceof Error ? error.message : 'Could not recover pending signature progress.'
+        toast.error(message)
+      }
+      return false
+    }
+    finally {
+      setIsLoadingPendingRequest(false)
+    }
+  }, [applyPreparedSignatureState, eoaAddress])
+
+  const persistConfirmedTxs = useCallback(async (requestId: string, txs: PrepareFinalizeRequestTx[]) => {
+    if (!eoaAddress || txs.length === 0) {
+      return
+    }
+
+    const response = await fetch(`${CREATE_MARKET_API_BASE_URL}/tx-confirm`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        requestId,
+        creator: eoaAddress,
+        txs,
+      }),
+    })
+
+    const payload = await response.json().catch(() => null) as unknown
+    const apiError = readApiError(payload)
+    if (!response.ok || apiError) {
+      throw new Error(apiError || `Could not persist confirmed tx hashes (${response.status})`)
+    }
+  }, [eoaAddress])
+
   const generateRulesWithAi = useCallback(async () => {
     setIsGeneratingRules(true)
     try {
@@ -2547,26 +2712,30 @@ export default function AdminCreateEventForm() {
         throw new Error('Creator address mismatch between wallet and prepare response.')
       }
 
-      const txs: SignatureExecutionTx[] = responsePayload.txPlan.map(item => ({
-        ...item,
-        status: 'idle',
-      }))
+      applyPreparedSignatureState({
+        prepared: responsePayload,
+        confirmedTxs: [],
+      })
 
-      setPreparedSignaturePlan(responsePayload)
-      setSignatureTxs(txs)
-      setSignatureFlowDone(false)
-      setSignatureFlowError('')
-
-      if (txs.length === 0) {
+      if (responsePayload.txPlan.length === 0) {
         toast.success('Auth completed. No creator transactions were returned.')
       }
       else {
-        toast.success(`Auth completed. Prepared ${txs.length} signature request${txs.length > 1 ? 's' : ''}.`)
+        const txCount = responsePayload.txPlan.length
+        toast.success(`Auth completed. Prepared ${txCount} signature request${txCount > 1 ? 's' : ''}.`)
       }
     }
     catch (error) {
       console.error('Error preparing signature plan:', error)
       const message = error instanceof Error ? error.message : 'Could not prepare signatures.'
+
+      if (isAlreadyInitializedError(message)) {
+        const resumed = await loadPendingSignaturePlan({ silent: false })
+        if (resumed) {
+          return
+        }
+      }
+
       setPreparedSignaturePlan(null)
       setSignatureTxs([])
       setSignatureFlowDone(false)
@@ -2577,7 +2746,16 @@ export default function AdminCreateEventForm() {
       setIsSigningAuth(false)
       setIsPreparingSignaturePlan(false)
     }
-  }, [buildPreparePayload, eoaAddress, eventImageFile, form.options, optionImageFiles, walletClient])
+  }, [
+    applyPreparedSignatureState,
+    buildPreparePayload,
+    eoaAddress,
+    eventImageFile,
+    form.options,
+    loadPendingSignaturePlan,
+    optionImageFiles,
+    walletClient,
+  ])
 
   const finalizeSignatureFlow = useCallback(async (completedTxsInput?: PrepareFinalizeRequestTx[]) => {
     if (!preparedSignaturePlan) {
@@ -2594,10 +2772,6 @@ export default function AdminCreateEventForm() {
           id: item.id,
           hash: item.hash as string,
         }))
-
-    if (completedTxs.length !== preparedSignaturePlan.txPlan.length) {
-      throw new Error('All signature transactions must be confirmed before finalization.')
-    }
 
     setIsFinalizingSignatureFlow(true)
     setSignatureFlowError('')
@@ -2671,7 +2845,7 @@ export default function AdminCreateEventForm() {
 
       for (let index = 0; index < preparedSignaturePlan.txPlan.length; index += 1) {
         const existingTx = signatureTxs[index]
-        if (existingTx?.status === 'success' && existingTx.hash) {
+        if (existingTx?.status === 'success') {
           continue
         }
 
@@ -2713,6 +2887,13 @@ export default function AdminCreateEventForm() {
             }
           }))
           completedById.set(tx.id, existingTx.hash)
+          const completedTxs = Array.from(completedById.entries()).map(([id, hash]) => ({ id, hash }))
+          try {
+            await persistConfirmedTxs(preparedSignaturePlan.requestId, completedTxs)
+          }
+          catch (persistError) {
+            console.error('Could not persist previously confirmed tx hashes:', persistError)
+          }
           continue
         }
 
@@ -2749,6 +2930,20 @@ export default function AdminCreateEventForm() {
         }
         catch (sendError) {
           const message = sendError instanceof Error ? sendError.message : String(sendError)
+          if (tx.id.startsWith('initialize-market-') && isAlreadyInitializedError(message)) {
+            setSignatureTxs(previous => previous.map((item, itemIndex) => {
+              if (itemIndex !== index) {
+                return item
+              }
+              return {
+                ...item,
+                status: 'success',
+                error: undefined,
+              }
+            }))
+            continue
+          }
+
           const minTip = parseMinTipCapFromError(message)
           if (!minTip) {
             throw sendError
@@ -2786,18 +2981,27 @@ export default function AdminCreateEventForm() {
           }
         }))
         completedById.set(tx.id, hash)
+        const completedTxs = Array.from(completedById.entries()).map(([id, confirmedHash]) => ({
+          id,
+          hash: confirmedHash,
+        }))
+        try {
+          await persistConfirmedTxs(preparedSignaturePlan.requestId, completedTxs)
+        }
+        catch (persistError) {
+          console.error('Could not persist confirmed tx hashes:', persistError)
+        }
       }
 
-      const completedTxs = preparedSignaturePlan.txPlan.map((tx) => {
-        const hash = completedById.get(tx.id)
-        if (!hash) {
-          throw new Error(`Missing confirmed hash for ${tx.id}.`)
+      const completedTxs = Array.from(completedById.entries()).map(([id, hash]) => ({ id, hash }))
+      if (completedTxs.length > 0) {
+        try {
+          await persistConfirmedTxs(preparedSignaturePlan.requestId, completedTxs)
         }
-        return {
-          id: tx.id,
-          hash,
+        catch (persistError) {
+          console.error('Could not persist confirmed tx hashes before finalize:', persistError)
         }
-      })
+      }
 
       await finalizeSignatureFlow(completedTxs)
     }
@@ -2826,7 +3030,16 @@ export default function AdminCreateEventForm() {
     finally {
       setIsExecutingSignatures(false)
     }
-  }, [eoaAddress, finalizeSignatureFlow, getFeeOverridesForTx, preparedSignaturePlan, publicClient, signatureTxs, walletClient])
+  }, [
+    eoaAddress,
+    finalizeSignatureFlow,
+    getFeeOverridesForTx,
+    persistConfirmedTxs,
+    preparedSignaturePlan,
+    publicClient,
+    signatureTxs,
+    walletClient,
+  ])
 
   const copyWalletAddress = useCallback(async () => {
     if (!eoaAddress) {
@@ -2921,13 +3134,17 @@ export default function AdminCreateEventForm() {
     if (currentStep !== 5) {
       return
     }
-    if (isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow || signatureFlowDone) {
+    if (isLoadingPendingRequest || isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow || signatureFlowDone) {
       return
     }
 
     async function run() {
       try {
         if (!preparedSignaturePlan) {
+          const resumed = await loadPendingSignaturePlan({ silent: true })
+          if (resumed) {
+            return
+          }
           await prepareSignaturePlan()
           return
         }
@@ -2945,9 +3162,11 @@ export default function AdminCreateEventForm() {
     executeSignatureFlow,
     isFinalizingSignatureFlow,
     isExecutingSignatures,
+    isLoadingPendingRequest,
     isSigningAuth,
     isPreparingSignaturePlan,
     isStepValid,
+    loadPendingSignaturePlan,
     prepareSignaturePlan,
     preparedSignaturePlan,
     runAllPreSignChecks,
@@ -2969,6 +3188,28 @@ export default function AdminCreateEventForm() {
 
     void runAllPreSignChecks()
   }, [currentStep, runAllPreSignChecks])
+
+  useEffect(() => {
+    if (currentStep !== 5 || !eoaAddress || preparedSignaturePlan || isSigningAuth || isPreparingSignaturePlan || isLoadingPendingRequest) {
+      return
+    }
+
+    const key = eoaAddress.toLowerCase()
+    if (pendingResumeKeyRef.current === key) {
+      return
+    }
+    pendingResumeKeyRef.current = key
+
+    void loadPendingSignaturePlan({ silent: true })
+  }, [
+    currentStep,
+    eoaAddress,
+    isLoadingPendingRequest,
+    isPreparingSignaturePlan,
+    isSigningAuth,
+    loadPendingSignaturePlan,
+    preparedSignaturePlan,
+  ])
 
   const goBack = useCallback(() => {
     setCurrentStep(prev => Math.max(1, prev - 1))
@@ -3155,19 +3396,21 @@ export default function AdminCreateEventForm() {
             <CardContent className="space-y-4 pb-8">
               <div className="space-y-2">
                 <Label htmlFor="main-category">Main category</Label>
-                <select
-                  id="main-category"
-                  value={form.mainCategorySlug}
-                  onChange={event => handleFieldChange('mainCategorySlug', event.target.value)}
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                <Select
+                  value={form.mainCategorySlug || undefined}
+                  onValueChange={value => handleFieldChange('mainCategorySlug', value)}
                 >
-                  <option value="">Select main category</option>
-                  {mainCategories.map(category => (
-                    <option key={category.slug} value={category.slug}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="main-category" className="w-full">
+                    <SelectValue placeholder="Select main category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mainCategories.map(category => (
+                      <SelectItem key={category.slug} value={category.slug}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -4434,7 +4677,14 @@ export default function AdminCreateEventForm() {
               type="button"
               variant="outline"
               onClick={goBack}
-              disabled={currentStep === 1 || isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow}
+              disabled={
+                currentStep === 1
+                || isLoadingPendingRequest
+                || isSigningAuth
+                || isPreparingSignaturePlan
+                || isExecutingSignatures
+                || isFinalizingSignatureFlow
+              }
             >
               <ArrowLeftIcon className="mr-2 size-4" />
               Back
@@ -4453,6 +4703,7 @@ export default function AdminCreateEventForm() {
                     || contentCheckState === 'checking'
                   ))
                   || isSigningAuth
+                  || isLoadingPendingRequest
                   || isPreparingSignaturePlan
                   || isExecutingSignatures
                   || isFinalizingSignatureFlow
@@ -4462,22 +4713,24 @@ export default function AdminCreateEventForm() {
               {currentStep === 5
                 ? (
                     <>
-                      {(isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow) && (
+                      {(isLoadingPendingRequest || isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow) && (
                         <Loader2Icon className="mr-2 size-4 animate-spin" />
                       )}
-                      {isSigningAuth
-                        ? 'Signing auth...'
-                        : isPreparingSignaturePlan
-                          ? 'Preparing...'
-                          : isExecutingSignatures
-                            ? 'Signing...'
-                            : isFinalizingSignatureFlow
-                              ? 'Finalizing...'
-                              : signatureFlowDone
-                                ? 'Completed'
-                                : preparedSignaturePlan
-                                  ? 'Continue signatures'
-                                  : 'Sign & prepare'}
+                      {isLoadingPendingRequest
+                        ? 'Loading...'
+                        : isSigningAuth
+                          ? 'Signing auth...'
+                          : isPreparingSignaturePlan
+                            ? 'Preparing...'
+                            : isExecutingSignatures
+                              ? 'Signing...'
+                              : isFinalizingSignatureFlow
+                                ? 'Finalizing...'
+                                : signatureFlowDone
+                                  ? 'Completed'
+                                  : preparedSignaturePlan
+                                    ? 'Continue signatures'
+                                    : 'Sign & prepare'}
                     </>
                   )
                 : currentStep === 4
