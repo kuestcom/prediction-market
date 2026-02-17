@@ -958,6 +958,7 @@ export default function AdminCreateEventForm() {
   })
   const [rulesGeneratorDialogOpen, setRulesGeneratorDialogOpen] = useState(false)
   const [finalPreviewDialogOpen, setFinalPreviewDialogOpen] = useState(false)
+  const [resetFormDialogOpen, setResetFormDialogOpen] = useState(false)
   const [isAddressCopied, setIsAddressCopied] = useState(false)
   const [isBinaryOutcomesEditable, setIsBinaryOutcomesEditable] = useState(false)
   const [areMultiOutcomesEditable, setAreMultiOutcomesEditable] = useState(false)
@@ -1238,11 +1239,11 @@ export default function AdminCreateEventForm() {
     return Math.min(100, Math.round((completedSignatureUnits / totalSignatureUnits) * 100))
   }, [completedSignatureUnits, totalSignatureUnits])
   const authChallengeRemainingSeconds = useMemo(() => {
-    if (!authChallengeExpiresAtMs || preparedSignaturePlan || signatureNowMs <= 0) {
+    if (!authChallengeExpiresAtMs || signatureNowMs <= 0) {
       return null
     }
     return Math.max(0, Math.floor((authChallengeExpiresAtMs - signatureNowMs) / 1000))
-  }, [authChallengeExpiresAtMs, preparedSignaturePlan, signatureNowMs])
+  }, [authChallengeExpiresAtMs, signatureNowMs])
   const authChallengeCountdownLabel = useMemo(() => {
     if (authChallengeRemainingSeconds === null) {
       return ''
@@ -1350,7 +1351,7 @@ export default function AdminCreateEventForm() {
   }, [])
 
   useEffect(() => {
-    if (!authChallengeExpiresAtMs || preparedSignaturePlan) {
+    if (!authChallengeExpiresAtMs) {
       return
     }
 
@@ -1362,7 +1363,7 @@ export default function AdminCreateEventForm() {
     return () => {
       window.clearInterval(timer)
     }
-  }, [authChallengeExpiresAtMs, preparedSignaturePlan])
+  }, [authChallengeExpiresAtMs])
 
   useEffect(() => {
     if (currentStep !== 4 && finalPreviewDialogOpen) {
@@ -3138,6 +3139,132 @@ export default function AdminCreateEventForm() {
     slugValidationState,
   ])
 
+  const resetCreateEventFlow = useCallback(() => {
+    const nextSlugSeed = Math.floor(Date.now() / 1000).toString()
+
+    skipNextSignatureResetRef.current = true
+    pendingResumeKeyRef.current = null
+    lastPreSignChecksFingerprintRef.current = null
+    lastPreSignChecksCompletedRef.current = false
+    lastPreSignChecksResultRef.current = false
+
+    setCurrentStep(1)
+    setMaxVisitedStep(1)
+    setForm(createInitialForm())
+    setSlugSeed(nextSlugSeed)
+    setCategoryQuery('')
+    setEventImageFile(null)
+    setOptionImageFiles({})
+    setFinalPreviewDialogOpen(false)
+    setRulesGeneratorDialogOpen(false)
+    setIsAddressCopied(false)
+    setIsBinaryOutcomesEditable(false)
+    setAreMultiOutcomesEditable(false)
+
+    setSlugValidationState('idle')
+    setSlugCheckError('')
+    setFundingCheckState('idle')
+    setFundingCheckError('')
+    setNativeGasCheckState('idle')
+    setNativeGasCheckError('')
+    setAllowedCreatorCheckState('idle')
+    setAllowedCreatorCheckError('')
+    setOpenRouterCheckState('idle')
+    setOpenRouterCheckError('')
+    setContentCheckState('idle')
+    setContentCheckIssues([])
+    setBypassedIssueKeys([])
+    setContentCheckProgressLine('')
+    setContentCheckError('')
+
+    setIsSigningAuth(false)
+    setIsPreparingSignaturePlan(false)
+    setIsExecutingSignatures(false)
+    setIsFinalizingSignatureFlow(false)
+    setIsLoadingPendingRequest(false)
+    setAuthChallengeExpiresAtMs(null)
+    setSignatureNowMs(0)
+    setPreparedSignaturePlan(null)
+    setSignatureTxs([])
+    setSignatureFlowDone(false)
+    setSignatureFlowError('')
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(CREATE_EVENT_DRAFT_STORAGE_KEY)
+      window.localStorage.removeItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY)
+    }
+  }, [])
+
+  const resetFormDraft = useCallback(() => {
+    const nextSlugSeed = Math.floor(Date.now() / 1000).toString()
+    const preserveSignatureState = Boolean(preparedSignaturePlan)
+      || signatureTxs.length > 0
+      || signatureFlowDone
+      || Boolean(signatureFlowError)
+      || Boolean(authChallengeExpiresAtMs)
+
+    if (preserveSignatureState) {
+      skipNextSignatureResetRef.current = true
+    }
+
+    pendingResumeKeyRef.current = null
+    lastPreSignChecksFingerprintRef.current = null
+    lastPreSignChecksCompletedRef.current = false
+    lastPreSignChecksResultRef.current = false
+
+    setCurrentStep(1)
+    setMaxVisitedStep(1)
+    setForm(createInitialForm())
+    setSlugSeed(nextSlugSeed)
+    setCategoryQuery('')
+    setEventImageFile(null)
+    setOptionImageFiles({})
+    setFinalPreviewDialogOpen(false)
+    setRulesGeneratorDialogOpen(false)
+    setIsAddressCopied(false)
+    setIsBinaryOutcomesEditable(false)
+    setAreMultiOutcomesEditable(false)
+
+    setSlugValidationState('idle')
+    setSlugCheckError('')
+    setFundingCheckState('idle')
+    setFundingCheckError('')
+    setNativeGasCheckState('idle')
+    setNativeGasCheckError('')
+    setAllowedCreatorCheckState('idle')
+    setAllowedCreatorCheckError('')
+    setOpenRouterCheckState('idle')
+    setOpenRouterCheckError('')
+    setContentCheckState('idle')
+    setContentCheckIssues([])
+    setBypassedIssueKeys([])
+    setContentCheckProgressLine('')
+    setContentCheckError('')
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(CREATE_EVENT_DRAFT_STORAGE_KEY)
+      if (!preserveSignatureState) {
+        window.localStorage.removeItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY)
+      }
+    }
+  }, [
+    authChallengeExpiresAtMs,
+    preparedSignaturePlan,
+    signatureFlowDone,
+    signatureFlowError,
+    signatureTxs.length,
+  ])
+
+  const handleResetFormClick = useCallback(() => {
+    setResetFormDialogOpen(true)
+  }, [])
+
+  const confirmResetForm = useCallback(() => {
+    setResetFormDialogOpen(false)
+    resetFormDraft()
+    toast.success('Form cleared.')
+  }, [resetFormDraft])
+
   const goNext = useCallback(() => {
     if (currentStep <= 3) {
       if (!validateStep(currentStep)) {
@@ -3163,7 +3290,13 @@ export default function AdminCreateEventForm() {
     if (currentStep !== 5) {
       return
     }
-    if (isLoadingPendingRequest || isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow || signatureFlowDone) {
+    if (isLoadingPendingRequest || isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow) {
+      return
+    }
+
+    if (signatureFlowDone) {
+      resetCreateEventFlow()
+      toast.success('Form cleared.')
       return
     }
 
@@ -3206,6 +3339,7 @@ export default function AdminCreateEventForm() {
     prepareSignaturePlan,
     preparedSignaturePlan,
     runAllPreSignChecks,
+    resetCreateEventFlow,
     setFinalPreviewDialogOpen,
     signatureFlowDone,
     validateStep,
@@ -3939,6 +4073,29 @@ export default function AdminCreateEventForm() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={resetFormDialogOpen} onOpenChange={setResetFormDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clear form?</DialogTitle>
+            <DialogDescription>
+              This will remove all filled fields, uploaded images, and pre-sign checks from the wizard.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setResetFormDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={confirmResetForm}>
+              Clear form
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={finalPreviewDialogOpen} onOpenChange={setFinalPreviewDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-hidden p-0 sm:max-w-6xl">
           <DialogHeader className="sr-only">
@@ -4613,22 +4770,26 @@ export default function AdminCreateEventForm() {
                   <p className="text-sm font-semibold text-foreground">Sign EIP-712 auth challenge</p>
                   <p className="text-xs text-muted-foreground">
                     {preparedSignaturePlan
-                      ? 'Verified'
+                      ? authChallengeRemainingSeconds !== null
+                        ? `Verified (auth time remaining: ${authChallengeCountdownLabel})`
+                        : 'Verified'
                       : isSigningAuth || isPreparingSignaturePlan
                         ? 'Awaiting wallet'
                         : signatureFlowError
                           ? 'Failed'
                           : 'Pending'}
                   </p>
-                  {!preparedSignaturePlan && authChallengeRemainingSeconds !== null && (
+                  {authChallengeRemainingSeconds !== null && (
                     <p className={cn(
                       'text-xs',
-                      authChallengeRemainingSeconds === 0 ? 'text-destructive' : 'text-muted-foreground',
+                      authChallengeRemainingSeconds === 0 ? 'text-destructive' : 'text-red-500',
                     )}
                     >
                       {authChallengeRemainingSeconds === 0
                         ? 'Auth challenge expired. Click "Sign & prepare" to issue a new one.'
-                        : `Auth challenge expires in ${authChallengeCountdownLabel}`}
+                        : preparedSignaturePlan
+                          ? `Auth time remaining: ${authChallengeCountdownLabel}`
+                          : `Auth challenge expires in ${authChallengeCountdownLabel}`}
                     </p>
                   )}
                 </div>
@@ -4747,6 +4908,25 @@ export default function AdminCreateEventForm() {
             <Button
               type="button"
               variant="outline"
+              className="
+                border-destructive/30 text-destructive
+                hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive
+              "
+              onClick={handleResetFormClick}
+              disabled={
+                isLoadingPendingRequest
+                || isSigningAuth
+                || isPreparingSignaturePlan
+                || isExecutingSignatures
+                || isFinalizingSignatureFlow
+              }
+            >
+              Reset form
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
               onClick={goBack}
               disabled={
                 currentStep === 1
@@ -4778,7 +4958,6 @@ export default function AdminCreateEventForm() {
                   || isPreparingSignaturePlan
                   || isExecutingSignatures
                   || isFinalizingSignatureFlow
-                  || (currentStep === 5 && signatureFlowDone)
               }
             >
               {currentStep === 5
@@ -4798,7 +4977,7 @@ export default function AdminCreateEventForm() {
                               : isFinalizingSignatureFlow
                                 ? 'Finalizing...'
                                 : signatureFlowDone
-                                  ? 'Completed'
+                                  ? 'Create another event'
                                   : preparedSignaturePlan
                                     ? 'Continue signatures'
                                     : 'Sign & prepare'}

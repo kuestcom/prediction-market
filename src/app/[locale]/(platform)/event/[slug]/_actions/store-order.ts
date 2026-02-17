@@ -45,6 +45,8 @@ const RPC_TRANSPORT = http(defaultNetwork.rpcUrls.default.http[0])
 const CLOB_ERROR_MESSAGES: Record<string, string> = {
   'condition_paused': 'Trading is paused for this market.',
   'system_paused': 'Trading is temporarily paused. Please try again shortly.',
+  'condition is not registered': 'Market is not active yet. Try again shortly.',
+  'token is not registered': 'Market is not active yet. Try again shortly.',
   'owner_address_mismatch': 'Your trading session is out of sync. Reconnect and try again.',
   'invalid_l2': 'Your trading session expired. Please sign in again.',
   'user_banned': 'Your account is not allowed to trade right now.',

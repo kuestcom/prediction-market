@@ -135,6 +135,7 @@ export default function EventShare({ event }: EventShareProps) {
         slug: market.slug,
         condition_id: market.condition_id,
         question_id: market.question_id,
+        metadata_hash: market.condition?.metadata_hash ?? null,
         short_title: market.short_title ?? null,
         title: market.title,
         outcomes: market.outcomes.map(outcome => ({
