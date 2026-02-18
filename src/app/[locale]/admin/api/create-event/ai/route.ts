@@ -726,6 +726,7 @@ export async function POST(request: Request) {
           'Return a date error only when day/month/year clearly conflicts with a reliable public date.',
           'If the public date is unknown or uncertain, do not guess and do not flag date.',
           'Flag only real language errors or deterministic logic issues.',
+          'Reject content that could encourage, normalize, or financially incentivize real-world harm (violence, death, war, terrorism, or self-harm); return a "rules" error with a brief safety reason.',
           'Use user-facing field names in reasons (for example "End date", "Event title", "Resolution source URL"), never backend field keys.',
           'Output format: {"ok":boolean,"errors":[{"code":"english|url|rules|mandatory|date","reason":"...","step":1|2|3}]}',
         ].join(' '),
