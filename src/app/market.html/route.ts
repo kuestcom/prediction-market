@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import type { SupportedLocale } from '@/i18n/locales'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { EventRepository } from '@/lib/db/queries/event'
+import { EMBED_SCRIPT_URL } from '@/lib/embed-widget'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 function escapeAttr(value: string) {
@@ -96,7 +97,7 @@ export async function GET(request: NextRequest) {
   const navArrowColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(17, 24, 39, 0.9)'
 
   const siteUrl = normalizeBaseUrl(requireValue(process.env.SITE_URL, 'SITE_URL'))
-  const scriptUrl = 'https://unpkg.com/@kuestcom/embeds/dist/index.js'
+  const scriptUrl = EMBED_SCRIPT_URL
   const runtimeTheme = await loadRuntimeThemeState()
   const siteName = requireValue(runtimeTheme.site.name, 'theme.site_name')
   const elementName = `${slugifySiteName(siteName)}-market-embed`
@@ -165,7 +166,10 @@ export async function GET(request: NextRequest) {
       window.__KUEST_SITE_NAME = ${JSON.stringify(siteName)};
       window.__KUEST_SITE_LOGO_URL = ${JSON.stringify(siteLogoUrl)};
     </script>
-    <script type="module" src="${scriptUrl}"></script>
+    <script
+      type="module"
+      src="${scriptUrl}"
+    ></script>
   </head>
   <body>
     <div id="widget-shell">
@@ -177,7 +181,7 @@ export async function GET(request: NextRequest) {
       (function setupCategoryRotation() {
         const shouldRotate = ${JSON.stringify(shouldRotateCategory)};
         const category = ${JSON.stringify(categorySlug)};
-        const locale = ${JSON.stringify(embedLocale)};
+        const locale = ${JSON.stringify(resolvedLocale)};
         if (!shouldRotate || !category) {
           return
         }
@@ -271,10 +275,8 @@ export async function GET(request: NextRequest) {
             tag: category,
             status: 'active',
             offset: '0',
+            locale,
           });
-          if (locale) {
-            params.set('locale', locale);
-          }
 
           const response = await fetch('/api/events?' + params.toString(), {
             method: 'GET',

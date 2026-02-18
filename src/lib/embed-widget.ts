@@ -1,6 +1,7 @@
 const EMBED_SCRIPT_URL = 'https://unpkg.com/@kuestcom/embeds/dist/index.js'
 
 type EmbedTheme = 'light' | 'dark'
+const CUSTOM_ELEMENT_NAME_PATTERN = /^[a-z](?:[a-z0-9-]*[a-z0-9])?$/
 
 function appendAffiliateRef(params: URLSearchParams, affiliateCode?: string) {
   const sanitized = affiliateCode?.trim()
@@ -64,10 +65,13 @@ export function buildPreviewSrc(
 }
 
 export function buildIframeCode(src: string, height: number, iframeTitle: string) {
+  const safeTitle = escapeHtmlAttr(iframeTitle)
+  const safeSrc = escapeHtmlAttr(src)
+
   return [
     '<iframe',
-    `\ttitle="${iframeTitle}"`,
-    `\tsrc="${src}"`,
+    `\ttitle="${safeTitle}"`,
+    `\tsrc="${safeSrc}"`,
     '\twidth="400"',
     `\theight="${height}"`,
     '\tframeBorder="0"',
@@ -84,15 +88,20 @@ export function buildWebComponentCode(
   showTimeRange: boolean,
   affiliateCode?: string,
 ) {
+  const safeElementName = sanitizeCustomElementName(elementName)
+  const safeMarketSlug = escapeHtmlAttr(marketSlug)
+  const safeTheme = escapeHtmlAttr(theme)
+  const safeAffiliateCode = affiliateCode?.trim() ? escapeHtmlAttr(affiliateCode.trim()) : ''
+
   const lines = [
-    `<div id="${elementName}">`,
+    `<div id="${safeElementName}">`,
     '\t<script',
     '\t\ttype="module"',
     `\t\tsrc="${EMBED_SCRIPT_URL}"`,
     '\t>',
     '\t</script>',
-    `\t<${elementName}`,
-    `\t\tmarket="${marketSlug}"`,
+    `\t<${safeElementName}`,
+    `\t\tmarket="${safeMarketSlug}"`,
   ]
 
   if (showVolume) {
@@ -104,14 +113,31 @@ export function buildWebComponentCode(
   if (showChart && showTimeRange) {
     lines.push('\t\tfilters="true"')
   }
-  if (affiliateCode?.trim()) {
-    lines.push(`\t\taffiliate="${affiliateCode.trim()}"`)
+  if (safeAffiliateCode) {
+    lines.push(`\t\taffiliate="${safeAffiliateCode}"`)
   }
 
-  lines.push(`\t\ttheme="${theme}"`)
+  lines.push(`\t\ttheme="${safeTheme}"`)
   lines.push('\t/>')
   lines.push('</div>')
   return lines.join('\n')
+}
+
+function escapeHtmlAttr(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/'/g, '&#39;')
+}
+
+function sanitizeCustomElementName(value: string) {
+  const normalized = value.trim().toLowerCase()
+  if (!normalized.includes('-') || !CUSTOM_ELEMENT_NAME_PATTERN.test(normalized)) {
+    return 'market-embed-widget'
+  }
+  return normalized
 }
 
 export { EMBED_SCRIPT_URL }
