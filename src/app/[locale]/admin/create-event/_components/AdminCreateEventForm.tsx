@@ -24,7 +24,7 @@ import {
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { createPublicClient, formatUnits, getAddress, http, isAddress, keccak256, parseGwei, stringToHex } from 'viem'
+import { createPublicClient, formatUnits, getAddress, http, isAddress, keccak256, parseGwei, stringToHex, toHex } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -811,6 +811,20 @@ function parseMinTipCapFromError(errorMessage: string): bigint | null {
 
 function isAlreadyInitializedError(message: string): boolean {
   return /already initialized/i.test(message)
+}
+
+function isBigIntSerializationError(message: string): boolean {
+  return /json\.stringify.*bigint|serialize bigint/i.test(message)
+}
+
+function mapSignatureFlowErrorForUser(message: string): string {
+  if (isBigIntSerializationError(message)) {
+    return 'Could not send transaction with this wallet provider. Please retry or switch wallet.'
+  }
+  if (/request arguments:/i.test(message) || /unknown rpc error/i.test(message)) {
+    return 'Could not send transaction right now. Please try again in a few moments.'
+  }
+  return message
 }
 
 function OutcomeStateDot({ value }: { value: boolean }) {
@@ -2754,6 +2768,7 @@ export default function AdminCreateEventForm() {
     catch (error) {
       console.error('Error preparing signature plan:', error)
       const message = error instanceof Error ? error.message : 'Could not prepare signatures.'
+      const userMessage = mapSignatureFlowErrorForUser(message)
 
       if (isAlreadyInitializedError(message)) {
         const resumed = await loadPendingSignaturePlan({
@@ -2769,8 +2784,8 @@ export default function AdminCreateEventForm() {
       setPreparedSignaturePlan(null)
       setSignatureTxs([])
       setSignatureFlowDone(false)
-      setSignatureFlowError(message)
-      throw new Error(message)
+      setSignatureFlowError(userMessage)
+      throw new Error(userMessage)
     }
     finally {
       setIsSigningAuth(false)
@@ -2853,6 +2868,7 @@ export default function AdminCreateEventForm() {
     if (!publicClient) {
       throw new Error('Public client not available.')
     }
+    const senderAddress = eoaAddress
     const activeWalletClient = walletClient
 
     if (activeWalletClient.chain?.id && activeWalletClient.chain.id !== preparedSignaturePlan.chainId) {
@@ -2938,14 +2954,12 @@ export default function AdminCreateEventForm() {
           }
         }))
 
-        const feeOverrides = await getFeeOverridesForTx(preparedSignaturePlan.chainId)
-
         function send(overrides?: {
           maxFeePerGas?: bigint
           maxPriorityFeePerGas?: bigint
         }) {
           return activeWalletClient.sendTransaction({
-            account: eoaAddress,
+            account: senderAddress,
             chain: activeWalletClient.chain,
             to: toAddress,
             data: tx.data as `0x${string}`,
@@ -2954,9 +2968,39 @@ export default function AdminCreateEventForm() {
           })
         }
 
+        async function sendWithRpcFallback(overrides?: {
+          maxFeePerGas?: bigint
+          maxPriorityFeePerGas?: bigint
+        }) {
+          try {
+            return await send(overrides)
+          }
+          catch (sendError) {
+            const message = sendError instanceof Error ? sendError.message : String(sendError)
+            if (!isBigIntSerializationError(message)) {
+              throw sendError
+            }
+
+            const txRequest = {
+              from: senderAddress,
+              to: toAddress,
+              data: tx.data as `0x${string}`,
+              value: toHex(BigInt(tx.value || '0')),
+            }
+            const rpcHash = await activeWalletClient.request({
+              method: 'eth_sendTransaction',
+              params: [txRequest],
+            }) as unknown
+            if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
+              throw new Error('Wallet provider returned an invalid transaction hash.')
+            }
+            return rpcHash
+          }
+        }
+
         let hash: string
         try {
-          hash = await send(feeOverrides)
+          hash = await sendWithRpcFallback()
         }
         catch (sendError) {
           const message = sendError instanceof Error ? sendError.message : String(sendError)
@@ -2975,14 +3019,23 @@ export default function AdminCreateEventForm() {
           }
 
           const minTip = parseMinTipCapFromError(message)
-          if (!minTip) {
-            throw sendError
+          if (minTip) {
+            hash = await sendWithRpcFallback({
+              maxPriorityFeePerGas: minTip,
+              maxFeePerGas: minTip * 2n,
+            })
           }
-
-          hash = await send({
-            maxPriorityFeePerGas: minTip,
-            maxFeePerGas: minTip * 2n,
-          })
+          else {
+            const feeOverrides = await getFeeOverridesForTx(preparedSignaturePlan.chainId)
+            const retryOverrides: {
+              maxFeePerGas?: bigint
+              maxPriorityFeePerGas?: bigint
+            } = feeOverrides
+            if (!retryOverrides.maxFeePerGas && !retryOverrides.maxPriorityFeePerGas) {
+              throw sendError
+            }
+            hash = await sendWithRpcFallback(retryOverrides)
+          }
         }
 
         setSignatureTxs(previous => previous.map((item, itemIndex) => {
@@ -3038,7 +3091,8 @@ export default function AdminCreateEventForm() {
     catch (error) {
       console.error('Error executing signature flow:', error)
       const message = error instanceof Error ? error.message : 'Could not complete signatures.'
-      setSignatureFlowError(message)
+      const userMessage = mapSignatureFlowErrorForUser(message)
+      setSignatureFlowError(userMessage)
       setSignatureTxs((previous) => {
         const activeIndex = previous.findIndex(item => item.status === 'awaiting_wallet' || item.status === 'confirming')
         if (activeIndex < 0) {
@@ -3051,11 +3105,11 @@ export default function AdminCreateEventForm() {
           return {
             ...item,
             status: 'error',
-            error: message,
+            error: userMessage,
           }
         })
       })
-      throw new Error(message)
+      throw new Error(userMessage)
     }
     finally {
       setIsExecutingSignatures(false)
