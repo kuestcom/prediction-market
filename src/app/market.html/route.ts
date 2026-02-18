@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
   const siteName = requireValue(runtimeTheme.site.name, 'theme.site_name')
   const elementName = `${slugifySiteName(siteName)}-market-embed`
   const siteLogoUrl = runtimeTheme.site.logoUrl
-  const initialCategoryMarketSlug = shouldRotateCategory
+  const initialCategoryMarketSlug = categorySlug
     ? await resolveInitialCategoryMarketSlug(categorySlug, resolvedLocale)
     : ''
   const resolvedMarketSlug = marketSlug || initialCategoryMarketSlug
