@@ -1,6 +1,7 @@
 'use client'
 
 import { Loader2Icon, WalletIcon, XIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import {
   Dialog,
   DialogClose,
@@ -11,10 +12,20 @@ import {
 import { useSignaturePrompt } from '@/stores/useSignaturePrompt'
 
 export function SignaturePrompt() {
+  const t = useExtracted()
   const open = useSignaturePrompt(state => state.open)
   const title = useSignaturePrompt(state => state.title)
   const description = useSignaturePrompt(state => state.description)
   const forceHidePrompt = useSignaturePrompt(state => state.forceHidePrompt)
+  const defaultTitle = t('Requesting Signature')
+  const defaultDescription = t('Open your wallet and approve the signature to continue.')
+
+  const resolvedTitle = title === 'Requesting Signature'
+    ? defaultTitle
+    : title
+  const resolvedDescription = description === 'Open your wallet and approve the signature to continue.'
+    ? defaultDescription
+    : description
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
@@ -40,13 +51,13 @@ export function SignaturePrompt() {
             hover:bg-muted hover:text-foreground
             focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none
           "
-          aria-label="Close"
+          aria-label={t('Close')}
         >
           <XIcon className="size-4" aria-hidden="true" />
         </DialogClose>
 
         <DialogHeader className="items-center text-center">
-          <DialogTitle className="text-center text-xl font-bold">{title}</DialogTitle>
+          <DialogTitle className="text-center text-xl font-bold">{resolvedTitle}</DialogTitle>
         </DialogHeader>
 
         <div className="mt-3 flex flex-col items-center gap-5">
@@ -68,10 +79,10 @@ export function SignaturePrompt() {
           <div className="space-y-2 text-center">
             <div className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
               <Loader2Icon className="size-4 animate-spin text-primary" />
-              <span>Waiting for approval</span>
+              <span>{t('Waiting for approval')}</span>
             </div>
             <p className="max-w-64 text-sm/relaxed text-muted-foreground">
-              {description}
+              {resolvedDescription}
             </p>
           </div>
         </div>
