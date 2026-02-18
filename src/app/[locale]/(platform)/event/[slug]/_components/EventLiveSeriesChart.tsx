@@ -590,9 +590,14 @@ export default function EventLiveSeriesChart({
   event,
   isMobile,
   seriesEvents = [],
-  config,
+  config: inputConfig,
 }: EventLiveSeriesChartProps) {
   const wsUrl = process.env.WS_LIVE_DATA_URL
+  // TEMP: force BTC/USD websocket feed while debugging chart behavior.
+  const config = useMemo(
+    () => ({ ...inputConfig, topic: 'crypto_prices_chainlink', symbol: 'btc/usd' }),
+    [inputConfig],
+  )
   const { width: windowWidth } = useWindowSize()
   const liveColor = config.line_color || '#F59E0B'
   const subscriptionSymbol = useMemo(
