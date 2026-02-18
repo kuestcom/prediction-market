@@ -21,7 +21,7 @@ import EventOrderPanelMobileMarketInfo from '@/app/[locale]/(platform)/event/[sl
 import EventOrderPanelOutcomeButton from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
 import EventOrderPanelSubmitButton from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelSubmitButton'
 import EventOrderPanelUserShares from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelUserShares'
-import { handleOrderCancelledFeedback, handleOrderErrorFeedback, handleOrderSuccessFeedback, handleValidationError, notifyWalletApprovalPrompt } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
+import { handleOrderCancelledFeedback, handleOrderErrorFeedback, handleOrderSuccessFeedback, handleValidationError } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { useEventOrderPanelOpenOrders } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventOrderPanelOpenOrders'
 import { useEventOrderPanelPositions } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventOrderPanelPositions'
 import { buildUserOpenOrdersQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
@@ -35,6 +35,7 @@ import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { SAFE_BALANCE_QUERY_KEY, useBalance } from '@/hooks/useBalance'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { defaultNetwork } from '@/lib/appkit'
 import { CLOB_ORDER_TYPE, DEFAULT_ERROR_MESSAGE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { formatCentsLabel, formatCurrency, formatSharesLabel, toCents } from '@/lib/formatters'
@@ -103,10 +104,11 @@ function resolveIndexSetFromOutcomeIndex(outcomeIndex: number | undefined) {
 }
 
 export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanelFormProps) {
-  const { open, close } = useAppKit()
-  const { isConnected, embeddedWalletInfo } = useAppKitAccount()
+  const { open } = useAppKit()
+  const { isConnected } = useAppKitAccount()
   const { signTypedDataAsync } = useSignTypedData()
   const { signMessageAsync } = useSignMessage()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const t = useExtracted()
   const locale = useLocale()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -821,15 +823,11 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
 
     let signature: string
     try {
-      signature = await signOrderPayload({
+      signature = await runWithSignaturePrompt(() => signOrderPayload({
         payload,
         domain: orderDomain,
         signTypedDataAsync,
-        openAppKit: open,
-        closeAppKit: close,
-        embeddedWalletInfo,
-        onWalletApprovalPrompt: notifyWalletApprovalPrompt,
-      })
+      }))
     }
     catch (error) {
       if (isUserRejectedRequestError(error)) {
@@ -969,9 +967,9 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
         message: safeTypedData.message,
       }) as `0x${string}`
 
-      const signature = await signMessageAsync({
+      const signature = await runWithSignaturePrompt(() => signMessageAsync({
         message: { raw: structHash },
-      })
+      }))
 
       const payload: SafeTransactionRequestPayload = {
         type: 'SAFE',

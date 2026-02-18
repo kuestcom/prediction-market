@@ -107,8 +107,15 @@ export async function GET(request: Request) {
 
     console.log('🚀 Starting incremental market synchronization...')
 
-    const updatedAt = await getLastUpdatedAt()
-    console.log(`📊 Last processed at: ${updatedAt}`)
+    const lastCursor = await getLastPnLCursor()
+    if (lastCursor) {
+      console.log(
+        `📊 Last PnL cursor: ${lastCursor.conditionId} @ ${new Date(lastCursor.updatedAt * 1000).toISOString()}`,
+      )
+    }
+    else {
+      console.log('📊 Last PnL cursor: none (full scan from subgraph start)')
+    }
 
     const allowedCreators = new Set(await getAllowedCreators())
     const syncResult = await syncMarkets(allowedCreators)
@@ -153,24 +160,9 @@ export async function GET(request: Request) {
   }
 }
 
-async function getLastUpdatedAt() {
-  const { data, error } = await supabaseAdmin
-    .from('subgraph_syncs')
-    .select('updated_at')
-    .eq('service_name', 'market_sync')
-    .eq('subgraph_name', 'pnl')
-    .maybeSingle()
-
-  if (error && error.code !== 'PGRST116') {
-    throw new Error(`Failed to get last processed timestamp: ${error.message}`)
-  }
-
-  return data?.updated_at || 0
-}
-
 async function syncMarkets(allowedCreators: Set<string>): Promise<SyncStats> {
   const syncStartedAt = Date.now()
-  let cursor = await getLastProcessedConditionCursor()
+  let cursor = await getLastPnLCursor()
 
   if (cursor) {
     const cursorIso = new Date(cursor.updatedAt * 1000).toISOString()
@@ -198,6 +190,8 @@ async function syncMarkets(allowedCreators: Set<string>): Promise<SyncStats> {
     fetchedCount += page.conditions.length
     console.log(`📑 Processing ${page.conditions.length} conditions (running total fetched: ${fetchedCount})`)
 
+    let lastPersistableCursor: SyncCursor | null = null
+
     for (const condition of page.conditions) {
       const updatedAt = Number(condition.updatedAt)
       if (Number.isNaN(updatedAt)) {
@@ -212,7 +206,7 @@ async function syncMarkets(allowedCreators: Set<string>): Promise<SyncStats> {
 
       if (!condition.creator) {
         console.error(`⚠️ Skipping condition ${condition.id} - missing creator field`)
-        cursor = conditionCursor
+        lastPersistableCursor = conditionCursor
         continue
       }
 
@@ -220,7 +214,7 @@ async function syncMarkets(allowedCreators: Set<string>): Promise<SyncStats> {
       if (!allowedCreators.has(creatorAddress)) {
         skippedCreatorCount++
         console.log(`🚫 Skipping market ${condition.id} - creator ${condition.creator} not in allowed list`)
-        cursor = conditionCursor
+        lastPersistableCursor = conditionCursor
         continue
       }
 
@@ -236,6 +230,7 @@ async function syncMarkets(allowedCreators: Set<string>): Promise<SyncStats> {
           eventIdsNeedingStatusUpdate.add(eventIdForStatusUpdate)
         }
         processedCount++
+        lastPersistableCursor = conditionCursor
         console.log(`✅ Processed market: ${condition.id}`)
       }
       catch (error: any) {
@@ -244,9 +239,28 @@ async function syncMarkets(allowedCreators: Set<string>): Promise<SyncStats> {
           conditionId: condition.id,
           error: error.message ?? String(error),
         })
+        // Prevent a single malformed condition from blocking future pages forever.
+        lastPersistableCursor = conditionCursor
       }
+    }
 
-      cursor = conditionCursor
+    if (lastPersistableCursor) {
+      await updatePnLCursor(lastPersistableCursor)
+      cursor = lastPersistableCursor
+    }
+    else if (!timeLimitReached) {
+      // Avoid stalling forever if an entire page cannot be processed.
+      const lastConditionInPage = page.conditions[page.conditions.length - 1]
+      const pageEndTimestamp = Number(lastConditionInPage?.updatedAt)
+      if (!lastConditionInPage || Number.isNaN(pageEndTimestamp)) {
+        break
+      }
+      const pageEndCursor = {
+        updatedAt: pageEndTimestamp,
+        conditionId: lastConditionInPage.id,
+      }
+      await updatePnLCursor(pageEndCursor)
+      cursor = pageEndCursor
     }
 
     if (eventIdsNeedingStatusUpdate.size > 0) {
@@ -278,28 +292,49 @@ async function syncMarkets(allowedCreators: Set<string>): Promise<SyncStats> {
   }
 }
 
-async function getLastProcessedConditionCursor(): Promise<SyncCursor | null> {
+async function getLastPnLCursor(): Promise<SyncCursor | null> {
   const { data, error } = await supabaseAdmin
-    .from('conditions')
-    .select('id, updated_at')
-    .order('updated_at', { ascending: false })
-    .order('id', { ascending: false })
-    .limit(1)
+    .from('subgraph_syncs')
+    .select('cursor_updated_at,cursor_id')
+    .eq('service_name', 'market_sync')
+    .eq('subgraph_name', 'pnl')
     .maybeSingle()
 
   if (error && error.code !== 'PGRST116') {
-    throw new Error(`Failed to get last processed condition: ${error.message}`)
+    throw new Error(`Failed to load market sync cursor: ${error.message}`)
   }
 
-  if (!data?.id || !data?.updated_at) {
+  if (!data?.cursor_updated_at || !data?.cursor_id) {
     return null
   }
 
-  const updatedAt = Math.floor(new Date(data.updated_at).getTime() / 1000)
+  const updatedAt = typeof data.cursor_updated_at === 'string'
+    ? Number(data.cursor_updated_at)
+    : Number(data.cursor_updated_at)
+  if (Number.isNaN(updatedAt)) {
+    return null
+  }
 
   return {
-    conditionId: data.id,
+    conditionId: data.cursor_id,
     updatedAt,
+  }
+}
+
+async function updatePnLCursor(cursor: SyncCursor) {
+  const { error } = await supabaseAdmin
+    .from('subgraph_syncs')
+    .upsert({
+      service_name: 'market_sync',
+      subgraph_name: 'pnl',
+      cursor_updated_at: cursor.updatedAt,
+      cursor_id: cursor.conditionId,
+    }, {
+      onConflict: 'service_name,subgraph_name',
+    })
+
+  if (error) {
+    console.error('Failed to update market sync cursor:', error)
   }
 }
 

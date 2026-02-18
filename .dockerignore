@@ -1,0 +1,12 @@
+.git
+.github
+.idea
+.next
+node_modules
+coverage
+playwright-report
+test-results
+.env
+.env.*
+!.env.example
+openspec

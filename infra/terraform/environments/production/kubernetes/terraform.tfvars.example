@@ -1,0 +1,19 @@
+# Example for GKE credentials loaded by:
+# gcloud container clusters get-credentials kuest-prod-autopilot --region us-central1 --project my-gcp-project
+kube_context = "gke_my-gcp-project_us-central1_kuest-prod-autopilot"
+app_image    = "ghcr.io/kuestcom/prediction-market:v1.0.0"
+site_url     = "https://markets.example.com"
+
+secret_env = {
+  BETTER_AUTH_SECRET                  = "replace-me"
+  CRON_SECRET                         = "replace-me"
+  POSTGRES_URL                        = "replace-me"
+  SUPABASE_URL                        = "replace-me"
+  SUPABASE_SERVICE_ROLE_KEY           = "replace-me"
+  ADMIN_WALLETS                       = "replace-me"
+  KUEST_ADDRESS                       = "replace-me"
+  KUEST_API_KEY                       = "replace-me"
+  KUEST_API_SECRET                    = "replace-me"
+  KUEST_PASSPHRASE                    = "replace-me"
+  NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID = "replace-me"
+}

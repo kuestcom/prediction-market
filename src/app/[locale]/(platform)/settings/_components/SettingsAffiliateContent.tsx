@@ -1,22 +1,31 @@
 'use client'
 
 import type { AffiliateData } from '@/types'
-import { CheckIcon, CopyIcon, InfoIcon } from 'lucide-react'
+import { BadgePercentIcon, CheckIcon, CopyIcon, InfoIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
+import { useState } from 'react'
+import AffiliateWidgetDialog from '@/app/[locale]/(platform)/settings/_components/AffiliateWidgetDialog'
 import ProfileLink from '@/components/ProfileLink'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useClipboard } from '@/hooks/useClipboard'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
 
-interface SettingsAffiliateContentProps {
-  affiliateData?: AffiliateData
+interface AffiliateMainCategory {
+  slug: string
+  name: string
 }
 
-export default function SettingsAffiliateContent({ affiliateData }: SettingsAffiliateContentProps) {
+interface SettingsAffiliateContentProps {
+  affiliateData?: AffiliateData
+  mainCategories: AffiliateMainCategory[]
+}
+
+export default function SettingsAffiliateContent({ affiliateData, mainCategories }: SettingsAffiliateContentProps) {
   const t = useExtracted()
   const locale = useLocale()
   const { copied, copy } = useClipboard()
+  const [isWidgetDialogOpen, setIsWidgetDialogOpen] = useState(false)
 
   if (!affiliateData) {
     return (
@@ -79,22 +88,49 @@ export default function SettingsAffiliateContent({ affiliateData }: SettingsAffi
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border p-4">
-          <p className="text-xs text-muted-foreground uppercase">{t('Total referrals')}</p>
-          <p className="mt-2 text-2xl font-semibold">{affiliateData.stats.total_referrals}</p>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground uppercase">{t('Total referrals')}</p>
+            <p className="mt-2 text-2xl font-semibold">{affiliateData.stats.total_referrals}</p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground uppercase">{t('Active traders')}</p>
+            <p className="mt-2 text-2xl font-semibold">{affiliateData.stats.active_referrals}</p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground uppercase">{t('Referred volume')}</p>
+            <p className="mt-2 text-2xl font-semibold">{formatCurrency(Number(affiliateData.stats.volume ?? 0))}</p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground uppercase">{t('Earned fees')}</p>
+            <p className="mt-2 text-2xl font-semibold">{formatCurrency(Number(affiliateData.stats.total_affiliate_fees ?? 0))}</p>
+          </div>
         </div>
-        <div className="rounded-lg border p-4">
-          <p className="text-xs text-muted-foreground uppercase">{t('Active traders')}</p>
-          <p className="mt-2 text-2xl font-semibold">{affiliateData.stats.active_referrals}</p>
-        </div>
-        <div className="rounded-lg border p-4">
-          <p className="text-xs text-muted-foreground uppercase">{t('Referred volume')}</p>
-          <p className="mt-2 text-2xl font-semibold">{formatCurrency(Number(affiliateData.stats.volume ?? 0))}</p>
-        </div>
-        <div className="rounded-lg border p-4">
-          <p className="text-xs text-muted-foreground uppercase">{t('Earned fees')}</p>
-          <p className="mt-2 text-2xl font-semibold">{formatCurrency(Number(affiliateData.stats.total_affiliate_fees ?? 0))}</p>
+        <div className="relative h-full overflow-hidden rounded-lg border bg-background p-4 sm:p-6">
+          <BadgePercentIcon
+            className="pointer-events-none absolute -top-10 -right-10 size-48 text-muted-foreground/10"
+            aria-hidden
+          />
+          <div className="relative z-10 flex h-full min-h-44 flex-col justify-between gap-8">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t('Embed')}</p>
+              <h3 className="max-w-64 text-xl font-semibold tracking-tight">
+                {t('Generate widget to promote your referral link')}
+              </h3>
+              <p className="max-w-72 text-sm text-muted-foreground">
+                {t('Build and copy a widget iframe with your affiliate reference tag included.')}
+              </p>
+            </div>
+            <Button
+              type="button"
+              className="w-full sm:w-fit"
+              onClick={() => setIsWidgetDialogOpen(true)}
+              disabled={mainCategories.length === 0}
+            >
+              {t('Generate')}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -138,6 +174,12 @@ export default function SettingsAffiliateContent({ affiliateData }: SettingsAffi
           })}
         </div>
       </div>
+
+      <AffiliateWidgetDialog
+        open={isWidgetDialogOpen}
+        onOpenChange={setIsWidgetDialogOpen}
+        categories={mainCategories}
+      />
     </div>
   )
 }

@@ -13,6 +13,7 @@ import TradingOnboardingDialogs from '@/app/[locale]/(platform)/_components/Trad
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useProxyWalletPolling } from '@/hooks/useProxyWalletPolling'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { defaultNetwork } from '@/lib/appkit'
 import { authClient } from '@/lib/auth-client'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
@@ -61,6 +62,7 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
   const { open } = useAppKit()
   const { signTypedDataAsync } = useSignTypedData()
   const { signMessageAsync } = useSignMessage()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const affiliateMetadata = useAffiliateOrderMetadata()
   const [enableModalOpen, setEnableModalOpen] = useState(false)
   const [fundModalOpen, setFundModalOpen] = useState(false)
@@ -229,12 +231,12 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
       setProxyStep('signing')
       const domain = getSafeProxyDomain()
 
-      const signature = await signTypedDataAsync({
+      const signature = await runWithSignaturePrompt(() => signTypedDataAsync({
         domain,
         types: SAFE_PROXY_TYPES,
         primaryType: SAFE_PROXY_PRIMARY_TYPE,
         message: SAFE_PROXY_CREATE_PROXY_MESSAGE,
-      })
+      }))
 
       const result = await saveProxyWalletSignature({ signature })
 
@@ -299,7 +301,14 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
         setProxyStep('idle')
       }
     }
-  }, [refreshSessionUserState, resetEnableFlowState, resetPendingFundState, shouldShowFundAfterProxy, signTypedDataAsync])
+  }, [
+    refreshSessionUserState,
+    resetEnableFlowState,
+    resetPendingFundState,
+    runWithSignaturePrompt,
+    shouldShowFundAfterProxy,
+    signTypedDataAsync,
+  ])
 
   const handleTradingAuthSignature = useCallback(async () => {
     if (!user?.address) {
@@ -317,12 +326,12 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
         timestamp,
       })
 
-      const signature = await signTypedDataAsync({
+      const signature = await runWithSignaturePrompt(() => signTypedDataAsync({
         domain: getTradingAuthDomain(),
         types: TRADING_AUTH_TYPES,
         primaryType: TRADING_AUTH_PRIMARY_TYPE,
         message,
-      })
+      }))
 
       const result = await generateTradingAuthAction({
         signature,
@@ -372,7 +381,7 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
         setTradingAuthStep('idle')
       }
     }
-  }, [refreshSessionUserState, signTypedDataAsync, user])
+  }, [refreshSessionUserState, runWithSignaturePrompt, signTypedDataAsync, user])
 
   const resolveReferralExchanges = useCallback(async (safeAddress: `0x${string}`) => {
     const exchanges = [
@@ -449,9 +458,9 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
         message: typedData.message,
       }) as `0x${string}`
 
-      const signature = await signMessageAsync({
+      const signature = await runWithSignaturePrompt(() => signMessageAsync({
         message: { raw: structHash },
-      })
+      }))
 
       const requestPayload: SafeTransactionRequestPayload = {
         type: 'SAFE',
@@ -507,6 +516,7 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
     affiliateMetadata,
     refreshSessionUserState,
     resolveReferralExchanges,
+    runWithSignaturePrompt,
     signMessageAsync,
     tradingAuthSatisfied,
     user,

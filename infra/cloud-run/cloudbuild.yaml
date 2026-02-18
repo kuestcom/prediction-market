@@ -1,0 +1,85 @@
+steps:
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        required_substitutions=(
+          "_SITE_URL"
+          "_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID"
+        )
+
+        missing=()
+        for key in "${required_substitutions[@]}"; do
+          value="$(printenv "${key}" || true)"
+          if [[ -z "${value}" ]]; then
+            missing+=("${key}")
+          fi
+        done
+
+        if (( ${#missing[@]} > 0 )); then
+          echo "Missing required Cloud Build substitutions:" >&2
+          for key in "${missing[@]}"; do
+            echo "- ${key}" >&2
+          done
+          exit 1
+        fi
+    env:
+      - _SITE_URL=${_SITE_URL}
+      - _NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=${_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID}
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - infra/docker/Dockerfile
+      - --build-arg
+      - NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=${_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID}
+      - -t
+      - ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --project
+      - $PROJECT_ID
+      - --region
+      - ${_REGION}
+      - --platform
+      - managed
+      - --image
+      - ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}
+      - --allow-unauthenticated
+      - --port
+      - '3000'
+      - --set-env-vars
+      - NODE_ENV=production,SITE_URL=${_SITE_URL},NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=${_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID}
+      - --update-secrets
+      - SUPABASE_URL=SUPABASE_URL:${_SECRET_VERSION},SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:${_SECRET_VERSION},POSTGRES_URL=POSTGRES_URL:${_SECRET_VERSION},CRON_SECRET=CRON_SECRET:${_SECRET_VERSION},BETTER_AUTH_SECRET=BETTER_AUTH_SECRET:${_SECRET_VERSION},ADMIN_WALLETS=ADMIN_WALLETS:${_SECRET_VERSION},KUEST_ADDRESS=KUEST_ADDRESS:${_SECRET_VERSION},KUEST_API_KEY=KUEST_API_KEY:${_SECRET_VERSION},KUEST_API_SECRET=KUEST_API_SECRET:${_SECRET_VERSION},KUEST_PASSPHRASE=KUEST_PASSPHRASE:${_SECRET_VERSION}
+
+images:
+  - ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}
+
+substitutions:
+  _SERVICE: kuest-web
+  _REGION: us-central1
+  _AR_REGION: us-central1
+  _AR_REPOSITORY: kuest
+  _IMAGE_NAME: prediction-market
+  _SECRET_VERSION: latest
+  _SITE_URL: https://markets.example.com
+  _NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID: replace-me
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1800s

@@ -3,10 +3,47 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const postgres = require('postgres')
+const { resolveSiteUrl } = require('../src/lib/site-url')
 
-function readPositiveInt(name, fallback) {
-  const value = Number.parseInt(process.env[name] || '', 10)
-  return Number.isInteger(value) && value > 0 ? value : fallback
+function escapeSqlLiteral(value) {
+  return String(value).replace(/'/g, '\'\'')
+}
+
+function buildSyncCronSql({
+  jobName,
+  schedule,
+  endpointPath,
+  siteUrl,
+  cronSecret,
+}) {
+  const endpointUrl = `${siteUrl}/${endpointPath}`
+  const escapedJobName = escapeSqlLiteral(jobName)
+  const escapedSchedule = escapeSqlLiteral(schedule)
+  const escapedEndpointUrl = escapeSqlLiteral(endpointUrl)
+  const escapedHeaders = escapeSqlLiteral(JSON.stringify({
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${cronSecret}`,
+  }))
+
+  return `
+  DO $$
+  DECLARE
+    job_id int;
+    cmd text := $c$
+      SELECT net.http_get(
+        url := '${escapedEndpointUrl}',
+        headers := '${escapedHeaders}'
+      );
+    $c$;
+  BEGIN
+    SELECT jobid INTO job_id FROM cron.job WHERE jobname = '${escapedJobName}';
+
+    IF job_id IS NOT NULL THEN
+      PERFORM cron.unschedule(job_id);
+    END IF;
+
+    PERFORM cron.schedule('${escapedJobName}', '${escapedSchedule}', cmd);
+  END $$;`
 }
 
 async function applyMigrations(sql) {
@@ -136,124 +173,51 @@ async function createCleanJobsCron(sql) {
   console.log('✅ Cron clean-jobs created successfully')
 }
 
-async function createSyncEventsCron(sql) {
-  console.log('Creating sync-events cron job...')
-  const sqlQuery = `
-  DO $$
-  DECLARE
-    job_id int;
-    cmd text := $c$
-      SELECT net.http_get(
-        url := 'https://<<VERCEL_URL>>/api/sync/events',
-        headers := '{"Content-Type": "application/json", "Authorization": "Bearer <<CRON_SECRET>>"}'
-      );
-    $c$;
-  BEGIN
-    SELECT jobid INTO job_id FROM cron.job WHERE jobname = 'sync-events';
-
-    IF job_id IS NOT NULL THEN
-      PERFORM cron.unschedule(job_id);
-    END IF;
-
-    PERFORM cron.schedule('sync-events', '1-59/5 * * * *', cmd);
-  END $$;`
-
-  const updatedSQL = sqlQuery
-    .replace('<<VERCEL_URL>>', process.env.VERCEL_PROJECT_PRODUCTION_URL)
-    .replace('<<CRON_SECRET>>', process.env.CRON_SECRET)
-
-  await sql.unsafe(updatedSQL, [], { simple: true })
-  console.log('✅ Cron sync-events created successfully')
+async function createSyncCron(sql, options) {
+  const sqlQuery = buildSyncCronSql(options)
+  console.log(`Creating ${options.jobName} cron job...`)
+  await sql.unsafe(sqlQuery, [], { simple: true })
+  console.log(`✅ Cron ${options.jobName} created successfully`)
 }
 
-async function createSyncVolumeCron(sql) {
-  console.log('Creating sync-volume cron job...')
-  const sqlQuery = `
-  DO $$
-  DECLARE
-    job_id int;
-    cmd text := $c$
-      SELECT net.http_get(
-        url := 'https://<<VERCEL_URL>>/api/sync/volume',
-        headers := '{"Content-Type": "application/json", "Authorization": "Bearer <<CRON_SECRET>>"}'
-      );
-    $c$;
-  BEGIN
-    SELECT jobid INTO job_id FROM cron.job WHERE jobname = 'sync-volume';
-
-    IF job_id IS NOT NULL THEN
-      PERFORM cron.unschedule(job_id);
-    END IF;
-
-    PERFORM cron.schedule('sync-volume', '14,44 * * * *', cmd);
-  END $$;`
-
-  const updatedSQL = sqlQuery
-    .replace('<<VERCEL_URL>>', process.env.VERCEL_PROJECT_PRODUCTION_URL)
-    .replace('<<CRON_SECRET>>', process.env.CRON_SECRET)
-
-  await sql.unsafe(updatedSQL, [], { simple: true })
-  console.log('✅ Cron sync-volume created successfully')
+async function createSyncEventsCron(sql, siteUrl, cronSecret) {
+  await createSyncCron(sql, {
+    jobName: 'sync-events',
+    schedule: '1-59/5 * * * *',
+    endpointPath: '/api/sync/events',
+    siteUrl,
+    cronSecret,
+  })
 }
 
-async function createSyncTranslationsCron(sql) {
-  console.log('Creating sync-translations cron job...')
-  const sqlQuery = `
-  DO $$
-  DECLARE
-    job_id int;
-    cmd text := $c$
-      SELECT net.http_get(
-        url := 'https://<<VERCEL_URL>>/api/sync/translations',
-        headers := '{"Content-Type": "application/json", "Authorization": "Bearer <<CRON_SECRET>>"}'
-      );
-    $c$;
-  BEGIN
-    SELECT jobid INTO job_id FROM cron.job WHERE jobname = 'sync-translations';
-
-    IF job_id IS NOT NULL THEN
-      PERFORM cron.unschedule(job_id);
-    END IF;
-
-    PERFORM cron.schedule('sync-translations', '*/10 * * * *', cmd);
-  END $$;`
-
-  const updatedSQL = sqlQuery
-    .replace('<<VERCEL_URL>>', process.env.VERCEL_PROJECT_PRODUCTION_URL)
-    .replace('<<CRON_SECRET>>', process.env.CRON_SECRET)
-
-  await sql.unsafe(updatedSQL, [], { simple: true })
-  console.log('✅ Cron sync-translations created successfully')
+async function createSyncVolumeCron(sql, siteUrl, cronSecret) {
+  await createSyncCron(sql, {
+    jobName: 'sync-volume',
+    schedule: '14,44 * * * *',
+    endpointPath: '/api/sync/volume',
+    siteUrl,
+    cronSecret,
+  })
 }
 
-async function createSyncResolutionCron(sql) {
-  console.log('Creating sync-resolution cron job...')
-  const sqlQuery = `
-  DO $$
-  DECLARE
-    job_id int;
-    cmd text := $c$
-      SELECT net.http_get(
-        url := 'https://<<VERCEL_URL>>/api/sync/resolution',
-        headers := '{"Content-Type": "application/json", "Authorization": "Bearer <<CRON_SECRET>>"}'
-      );
-    $c$;
-  BEGIN
-    SELECT jobid INTO job_id FROM cron.job WHERE jobname = 'sync-resolution';
+async function createSyncTranslationsCron(sql, siteUrl, cronSecret) {
+  await createSyncCron(sql, {
+    jobName: 'sync-translations',
+    schedule: '*/10 * * * *',
+    endpointPath: '/api/sync/translations',
+    siteUrl,
+    cronSecret,
+  })
+}
 
-    IF job_id IS NOT NULL THEN
-      PERFORM cron.unschedule(job_id);
-    END IF;
-
-    PERFORM cron.schedule('sync-resolution', '3-59/5 * * * *', cmd);
-  END $$;`
-
-  const updatedSQL = sqlQuery
-    .replace('<<VERCEL_URL>>', process.env.VERCEL_PROJECT_PRODUCTION_URL)
-    .replace('<<CRON_SECRET>>', process.env.CRON_SECRET)
-
-  await sql.unsafe(updatedSQL, [], { simple: true })
-  console.log('✅ Cron sync-resolution created successfully')
+async function createSyncResolutionCron(sql, siteUrl, cronSecret) {
+  await createSyncCron(sql, {
+    jobName: 'sync-resolution',
+    schedule: '3-59/5 * * * *',
+    endpointPath: '/api/sync/resolution',
+    siteUrl,
+    cronSecret,
+  })
 }
 
 function shouldSkip(requiredEnvVars) {
@@ -277,10 +241,11 @@ function resolveMigrationConnectionString() {
 }
 
 async function run() {
-  const requiredEnvVars = ['VERCEL_PROJECT_PRODUCTION_URL', 'CRON_SECRET']
-  if (shouldSkip(requiredEnvVars)) {
+  if (shouldSkip(['CRON_SECRET'])) {
     return
   }
+
+  const siteUrl = resolveSiteUrl(process.env)
 
   const connectionString = resolveMigrationConnectionString()
   if (!connectionString) {
@@ -288,10 +253,10 @@ async function run() {
     return
   }
 
-  const maxConnections = readPositiveInt('DB_PUSH_MAX_CONNECTIONS', 1)
+  const cronSecret = process.env.CRON_SECRET
 
   const sql = postgres(connectionString, {
-    max: maxConnections,
+    max: 1,
     connect_timeout: 30,
     idle_timeout: 5,
   })
@@ -304,10 +269,10 @@ async function run() {
     await applyMigrations(sql)
     await createCleanCronDetailsCron(sql)
     await createCleanJobsCron(sql)
-    await createSyncEventsCron(sql)
-    await createSyncTranslationsCron(sql)
-    await createSyncResolutionCron(sql)
-    await createSyncVolumeCron(sql)
+    await createSyncEventsCron(sql, siteUrl, cronSecret)
+    await createSyncTranslationsCron(sql, siteUrl, cronSecret)
+    await createSyncResolutionCron(sql, siteUrl, cronSecret)
+    await createSyncVolumeCron(sql, siteUrl, cronSecret)
   }
   catch (error) {
     console.error('An error occurred:', error)

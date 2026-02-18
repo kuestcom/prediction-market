@@ -29,6 +29,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_ERROR_MESSAGE, MICRO_UNIT } from '@/lib/constants'
 import { formatAmountInputValue, formatCurrency, formatSharesLabel } from '@/lib/formatters'
@@ -78,6 +79,7 @@ export default function EventConvertPositionsDialog({
   const user = useUser()
   const isMobile = useIsMobile()
   const { signMessageAsync } = useSignMessage()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const checkboxBaseId = useId()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [amount, setAmount] = useState('0')
@@ -331,9 +333,9 @@ export default function EventConvertPositionsDialog({
         message: safeTypedData.message,
       }) as `0x${string}`
 
-      const signature = await signMessageAsync({
+      const signature = await runWithSignaturePrompt(() => signMessageAsync({
         message: { raw: structHash },
-      })
+      }))
 
       setSubmitState('submitting')
 

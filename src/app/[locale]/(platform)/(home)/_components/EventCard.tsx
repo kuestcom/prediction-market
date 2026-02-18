@@ -13,13 +13,14 @@ import EventCardSingleMarketActions from '@/app/[locale]/(platform)/(home)/_comp
 import EventCardTradePanel from '@/app/[locale]/(platform)/(home)/_components/EventCardTradePanel'
 import { OpenCardContext } from '@/app/[locale]/(platform)/(home)/_components/EventOpenCardProvider'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
-import { handleOrderCancelledFeedback, handleOrderErrorFeedback, handleOrderSuccessFeedback, handleValidationError, notifyWalletApprovalPrompt } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
+import { handleOrderCancelledFeedback, handleOrderErrorFeedback, handleOrderSuccessFeedback, handleValidationError } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { Card, CardContent } from '@/components/ui/card'
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useBalance } from '@/hooks/useBalance'
 import { useEventCardOrderBook } from '@/hooks/useEventCardOrderBook'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { formatDisplayAmount } from '@/lib/amount-input'
 import { getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { calculateMarketFill } from '@/lib/event-card-orderbook'
@@ -41,9 +42,10 @@ export default function EventCard({ event, priceOverridesByMarket = EMPTY_PRICE_
   const [selectedOutcome, setSelectedOutcome] = useState<SelectedOutcome | null>(null)
   const [tradeAmount, setTradeAmount] = useState('1')
   const [lastMouseEvent, setLastMouseEvent] = useState<MouseEvent | null>(null)
-  const { open, close } = useAppKit()
-  const { isConnected, embeddedWalletInfo } = useAppKitAccount()
+  const { open } = useAppKit()
+  const { isConnected } = useAppKitAccount()
   const { signTypedDataAsync } = useSignTypedData()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const user = useUser()
   const affiliateMetadata = useAffiliateOrderMetadata()
   const { balance } = useBalance()
@@ -199,15 +201,11 @@ export default function EventCard({ event, priceOverridesByMarket = EMPTY_PRICE_
 
     let signature: string
     try {
-      signature = await signOrderPayload({
+      signature = await runWithSignaturePrompt(() => signOrderPayload({
         payload,
         domain: orderDomain,
         signTypedDataAsync,
-        openAppKit: open,
-        closeAppKit: close,
-        embeddedWalletInfo,
-        onWalletApprovalPrompt: notifyWalletApprovalPrompt,
-      })
+      }))
     }
     catch (error) {
       if (isUserRejectedRequestError(error)) {

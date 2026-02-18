@@ -1,0 +1,16 @@
+services:
+  web:
+    container_name: kuest-web
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+      args:
+        NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID: ${NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID:?NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID is required}
+    env_file:
+      - ../../.env
+    environment:
+      NODE_ENV: production
+      SITE_URL: ${SITE_URL:?SITE_URL is required}
+    ports:
+      - '3000:3000'
+    restart: unless-stopped

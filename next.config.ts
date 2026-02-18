@@ -1,8 +1,14 @@
 import type { NextConfig } from 'next'
 import { createMDX } from 'fumadocs-mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
+import siteUrlUtils from './src/lib/site-url'
+
+const { isVercelEnv, resolveSiteUrl } = siteUrlUtils
+const siteUrl = resolveSiteUrl(process.env)
+const isVercel = isVercelEnv(process.env)
 
 const config: NextConfig = {
+  ...(isVercel ? {} : { output: 'standalone' }),
   cacheComponents: true,
   typedRoutes: true,
   reactStrictMode: false,
@@ -53,12 +59,8 @@ const config: NextConfig = {
     ]
   },
   env: {
-    SITE_URL:
-      process.env.VERCEL_ENV === 'production'
-        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-        : process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : 'http://localhost:3000',
+    IS_VERCEL: isVercel ? 'true' : 'false',
+    SITE_URL: siteUrl,
     CLOB_URL: process.env.CLOB_URL ?? 'https://clob.kuest.com',
     RELAYER_URL: process.env.RELAYER_URL ?? 'https://relayer.kuest.com',
     DATA_URL: process.env.DATA_URL ?? 'https://data-api.kuest.com',

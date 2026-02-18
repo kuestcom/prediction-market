@@ -1,0 +1,71 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: kuest-web
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '10'
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+        - image: ghcr.io/kuestcom/prediction-market@sha256:REPLACE_WITH_IMAGE_DIGEST
+          ports:
+            - name: http1
+              containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: SITE_URL
+              value: https://markets.example.com
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: SUPABASE_URL
+                  key: latest
+            - name: NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID
+              value: replace-me
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: SUPABASE_SERVICE_ROLE_KEY
+                  key: latest
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: POSTGRES_URL
+                  key: latest
+            - name: CRON_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: CRON_SECRET
+                  key: latest
+            - name: BETTER_AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: BETTER_AUTH_SECRET
+                  key: latest
+            - name: KUEST_ADDRESS
+              valueFrom:
+                secretKeyRef:
+                  name: KUEST_ADDRESS
+                  key: latest
+            - name: KUEST_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: KUEST_API_KEY
+                  key: latest
+            - name: KUEST_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: KUEST_API_SECRET
+                  key: latest
+            - name: KUEST_PASSPHRASE
+              valueFrom:
+                secretKeyRef:
+                  name: KUEST_PASSPHRASE
+                  key: latest

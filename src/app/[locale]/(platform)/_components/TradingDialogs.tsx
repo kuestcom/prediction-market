@@ -11,7 +11,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { Separator } from '@/components/ui/separator'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { cn } from '@/lib/utils'
 
@@ -59,6 +68,29 @@ export function EnableTradingDialog({
   ...stepsProps
 }: EnableTradingDialogProps) {
   const site = useSiteIdentity()
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+          <div className="space-y-6">
+            <DrawerHeader className="space-y-3 text-center">
+              <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <WalletIcon className="size-8" />
+              </div>
+              <DrawerTitle className="text-center text-2xl font-bold">Enable Trading</DrawerTitle>
+              <DrawerDescription className="text-center text-base text-muted-foreground">
+                {`Let's set up your wallet to trade on ${site.name}.`}
+              </DrawerDescription>
+            </DrawerHeader>
+
+            <TradingStepsList siteName={site.name} {...stepsProps} />
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -85,6 +117,42 @@ export function FundAccountDialog({
   onDeposit,
   onSkip,
 }: FundAccountDialogProps) {
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6 text-center">
+          <div className="space-y-6">
+            <DrawerHeader className="space-y-3 text-center">
+              <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <CircleDollarSignIcon className="size-8" />
+              </div>
+              <DrawerTitle className="text-center text-2xl font-bold">Fund Your Account</DrawerTitle>
+            </DrawerHeader>
+
+            <div className="space-y-4">
+              <Button className="h-12 w-full text-base" onClick={onDeposit}>
+                Deposit Funds
+              </Button>
+
+              <button
+                type="button"
+                className="
+                  mx-auto block text-sm font-medium text-muted-foreground transition-colors
+                  hover:text-foreground
+                "
+                onClick={onSkip}
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md border bg-background p-8 text-center">
@@ -119,6 +187,39 @@ export function TradeRequirementsDialog({
   ...stepsProps
 }: TradeRequirementsDialogProps) {
   const site = useSiteIdentity()
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+          <div className="relative space-y-6">
+            <DrawerHeader className="pb-2 text-center">
+              <DrawerTitle className="text-center text-lg font-semibold">
+                Trade on
+                {' '}
+                {site.name}
+              </DrawerTitle>
+            </DrawerHeader>
+            <DrawerClose asChild>
+              <button
+                type="button"
+                className={`
+                  absolute top-0 right-0 rounded-full p-1 text-muted-foreground transition-colors
+                  hover:text-foreground
+                `}
+                aria-label="Close"
+              >
+                <XIcon className="size-4" />
+              </button>
+            </DrawerClose>
+
+            <TradingStepsList siteName={site.name} {...stepsProps} />
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
