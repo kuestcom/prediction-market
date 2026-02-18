@@ -777,7 +777,7 @@ function getExplorerTxBase() {
 }
 
 function getChainLabel() {
-  return IS_TEST_MODE ? 'Polygon' : 'Polygon Amoy'
+  return IS_TEST_MODE ? 'Polygon Amoy' : 'Polygon'
 }
 
 function parseMinTipCapFromError(errorMessage: string): bigint | null {
