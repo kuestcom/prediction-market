@@ -38,7 +38,7 @@ export default function EventHeader({ event }: EventHeaderProps) {
           width={64}
           height={64}
           className={cn(
-            'shrink-0 rounded-sm transition-all ease-in-out',
+            'shrink-0 rounded-sm transition-all ease-in-out dark:bg-foreground',
             scrolled ? 'size-10' : 'size-10 lg:size-16',
           )}
         />

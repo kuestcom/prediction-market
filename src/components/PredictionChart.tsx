@@ -905,10 +905,19 @@ export function PredictionChart({
   const dashedSplitTime = tooltipActive && cursorDate
     ? cursorDate.getTime()
     : revealTime
-  const cursorPoint = shouldSplitByCursor && cursorDate
+  const cursorPoint = tooltipActive && cursorDate
     ? getClampedCursorPoint(cursorDate)
     : null
-  const effectiveTooltipData = tooltipData ?? cursorPoint ?? null
+  const resolvedCursorPoint = tooltipActive && cursorPoint
+    ? resolvePointFromPaths({
+        basePoint: cursorPoint,
+        series,
+        seriesPaths: seriesPathRef.current,
+        targetX: clampedTooltipX,
+        yScale,
+      })
+    : null
+  const effectiveTooltipData = resolvedCursorPoint ?? cursorPoint ?? tooltipData ?? null
 
   let coloredPoints: DataPoint[] = data
   let mutedPoints: DataPoint[] = []
