@@ -9,6 +9,7 @@ import { hashTypedData } from 'viem'
 import { fetchLockedSharesByCondition } from '@/app/[locale]/(platform)/[username]/_utils/PublicPositionsUtils'
 import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_CONDITION_PARTITION, DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { ZERO_COLLECTION_ID } from '@/lib/contracts'
@@ -43,6 +44,7 @@ export function useMergePositionsAction({
   const [isMergeProcessing, setIsMergeProcessing] = useState(false)
   const [mergeBatchCount, setMergeBatchCount] = useState(0)
   const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
 
   const handleMergeAll = useCallback(async () => {
     if (!hasMergeableMarkets) {
@@ -151,9 +153,9 @@ export function useMergePositionsAction({
         message: safeTypedData.message,
       }) as `0x${string}`
 
-      const signature = await signMessageAsync({
+      const signature = await runWithSignaturePrompt(() => signMessageAsync({
         message: { raw: structHash },
-      })
+      }))
 
       const payload: SafeTransactionRequestPayload = {
         type: 'SAFE',
@@ -219,6 +221,7 @@ export function useMergePositionsAction({
     openTradeRequirements,
     positionsByCondition,
     queryClient,
+    runWithSignaturePrompt,
     signMessageAsync,
     addLocalOrderFillNotification,
     user?.address,

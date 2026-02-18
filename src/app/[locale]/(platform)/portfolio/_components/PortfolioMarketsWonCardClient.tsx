@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
 import { defaultNetwork } from '@/lib/appkit'
@@ -77,6 +78,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
   const [hiddenClaimSignature, setHiddenClaimSignature] = useState<string | null>(null)
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
   const { signMessageAsync } = useSignMessage()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const queryClient = useQueryClient()
   const user = useUser()
   const router = useRouter()
@@ -170,9 +172,9 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
         message: safeTypedData.message,
       }) as `0x${string}`
 
-      const signature = await signMessageAsync({
+      const signature = await runWithSignaturePrompt(() => signMessageAsync({
         message: { raw: structHash },
-      })
+      }))
 
       const payload = {
         type: 'SAFE' as const,

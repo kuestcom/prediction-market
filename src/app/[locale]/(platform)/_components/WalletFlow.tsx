@@ -12,6 +12,7 @@ import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/Tradi
 import { useBalance } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useLiFiWalletUsdBalance } from '@/hooks/useLiFiWalletUsdBalance'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { MAX_AMOUNT_INPUT } from '@/lib/amount-input'
 import { defaultNetwork } from '@/lib/appkit'
@@ -45,6 +46,7 @@ export function WalletFlow({
 }: WalletFlowProps) {
   const isMobile = useIsMobile()
   const { signMessageAsync } = useSignMessage()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const [depositView, setDepositView] = useState<'fund' | 'receive' | 'wallets' | 'amount' | 'confirm' | 'success'>('fund')
   const [walletSendTo, setWalletSendTo] = useState('')
   const [walletSendAmount, setWalletSendAmount] = useState('')
@@ -129,7 +131,7 @@ export function WalletFlow({
         message: typedData.message,
       }) as `0x${string}`
 
-      const signature = await signMessageAsync({ message: { raw: structHash } })
+      const signature = await runWithSignaturePrompt(() => signMessageAsync({ message: { raw: structHash } }))
 
       const payload: SafeTransactionRequestPayload = {
         type: 'SAFE',
@@ -169,6 +171,7 @@ export function WalletFlow({
   }, [
     handleWithdrawModalChange,
     openTradeRequirements,
+    runWithSignaturePrompt,
     signMessageAsync,
     user?.address,
     user?.proxy_wallet_address,

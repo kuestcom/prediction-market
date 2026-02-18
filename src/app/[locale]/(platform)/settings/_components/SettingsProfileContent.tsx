@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import {
@@ -25,6 +26,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
   const t = useExtracted()
   const queryClient = useQueryClient()
   const { signMessageAsync } = useSignMessage()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const communityApiUrl = process.env.COMMUNITY_URL!
   const [errors, setErrors] = useState<Record<string, string | undefined>>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -88,7 +90,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
       if (shouldUpdateCommunity) {
         const token = await ensureCommunityToken({
           address: user.address,
-          signMessageAsync,
+          signMessageAsync: args => runWithSignaturePrompt(() => signMessageAsync(args)),
           communityApiUrl,
           proxyWalletAddress: user.proxy_wallet_address ?? null,
         })

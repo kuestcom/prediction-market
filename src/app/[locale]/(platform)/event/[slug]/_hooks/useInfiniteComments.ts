@@ -3,6 +3,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { useCallback, useMemo, useState } from 'react'
 import { useSignMessage } from 'wagmi'
 import { commentMetricsQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import {
   clearCommunityAuth,
   ensureCommunityToken,
@@ -40,6 +41,7 @@ export function useInfiniteComments(
 ) {
   const queryClient = useQueryClient()
   const { signMessageAsync } = useSignMessage()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const [infiniteScrollError, setInfiniteScrollError] = useState<Error | null>(null)
   const [loadingRepliesForComment, setLoadingRepliesForComment] = useState<string | null>(null)
   const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(() => new Set())
@@ -53,11 +55,11 @@ export function useInfiniteComments(
 
     return await ensureCommunityToken({
       address: user.address,
-      signMessageAsync,
+      signMessageAsync: args => runWithSignaturePrompt(() => signMessageAsync(args)),
       communityApiUrl,
       proxyWalletAddress: user.proxy_wallet_address ?? null,
     })
-  }, [communityApiUrl, signMessageAsync, user?.address, user?.proxy_wallet_address])
+  }, [communityApiUrl, runWithSignaturePrompt, signMessageAsync, user?.address, user?.proxy_wallet_address])
 
   const fetchCommentsPage = useCallback(async ({ pageParam = 0 }: { pageParam: number }) => {
     const offset = pageParam * COMMENTS_PAGE_SIZE

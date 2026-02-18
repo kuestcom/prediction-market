@@ -5,6 +5,7 @@ import { GoogleAnalytics } from '@next/third-parties/google'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from 'next-themes'
 import dynamic from 'next/dynamic'
+import { SignaturePrompt } from '@/components/SignaturePrompt'
 import { Toaster } from '@/components/ui/sonner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import AppKitProvider from '@/providers/AppKitProvider'
@@ -30,6 +31,7 @@ export function AppProviders({ children, disableAppKit }: AppProvidersProps) {
   const content = (
     <div className="min-h-screen bg-background">
       {children}
+      <SignaturePrompt />
       <Toaster position="bottom-left" />
       {process.env.NODE_ENV === 'production' && <SpeedInsights />}
       {process.env.NODE_ENV === 'production' && gaId && <GoogleAnalytics gaId={gaId} />}

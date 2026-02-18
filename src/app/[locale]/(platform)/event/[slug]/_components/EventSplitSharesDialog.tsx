@@ -25,6 +25,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_CONDITION_PARTITION, DEFAULT_ERROR_MESSAGE, MICRO_UNIT } from '@/lib/constants'
 import { ZERO_COLLECTION_ID } from '@/lib/contracts'
@@ -68,6 +69,7 @@ export default function EventSplitSharesDialog({
   const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
   const isMobile = useIsMobile()
   const { signMessageAsync } = useSignMessage()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const [amount, setAmount] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -203,9 +205,9 @@ export default function EventSplitSharesDialog({
         message: safeTypedData.message,
       }) as `0x${string}`
 
-      const signature = await signMessageAsync({
+      const signature = await runWithSignaturePrompt(() => signMessageAsync({
         message: { raw: structHash },
-      })
+      }))
 
       const payload: SafeTransactionRequestPayload = {
         type: 'SAFE',

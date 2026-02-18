@@ -22,11 +22,12 @@ import {
 import { PositionShareDialog } from '@/app/[locale]/(platform)/_components/PositionShareDialog'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
-import { handleOrderCancelledFeedback, handleOrderErrorFeedback, handleOrderSuccessFeedback, handleValidationError, notifyWalletApprovalPrompt } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
+import { handleOrderCancelledFeedback, handleOrderErrorFeedback, handleOrderSuccessFeedback, handleValidationError } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { calculateMarketFill, normalizeBookLevels } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchOrderBookSummary } from '@/lib/event-card-orderbook'
 import { formatAmountInputValue, formatCentsLabel } from '@/lib/formatters'
@@ -47,9 +48,10 @@ interface PublicPositionsListProps {
 export default function PublicPositionsList({ userAddress }: PublicPositionsListProps) {
   const queryClient = useQueryClient()
   const router = useRouter()
-  const { open, close } = useAppKit()
-  const { isConnected, embeddedWalletInfo } = useAppKitAccount()
+  const { open } = useAppKit()
+  const { isConnected } = useAppKitAccount()
   const { signTypedDataAsync } = useSignTypedData()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
   const affiliateMetadata = useAffiliateOrderMetadata()
   const user = useUser()
@@ -589,15 +591,11 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
 
     let signature: string
     try {
-      signature = await signOrderPayload({
+      signature = await runWithSignaturePrompt(() => signOrderPayload({
         payload,
         domain: orderDomain,
         signTypedDataAsync,
-        openAppKit: open,
-        closeAppKit: close,
-        embeddedWalletInfo,
-        onWalletApprovalPrompt: notifyWalletApprovalPrompt,
-      })
+      }))
     }
     catch (error) {
       if (isUserRejectedRequestError(error)) {
@@ -658,8 +656,6 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     }
   }, [
     affiliateMetadata.tradeFeeBps,
-    close,
-    embeddedWalletInfo,
     ensureTradingReady,
     handleEditOrder,
     openTradeRequirements,
@@ -669,6 +665,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     open,
     queryClient,
     resolveOutcomeIndex,
+    runWithSignaturePrompt,
     sellModalPayload,
     signatureType,
     signTypedDataAsync,

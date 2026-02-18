@@ -11,6 +11,7 @@ import { buildPendingUsdcSwapAction, submitPendingUsdcSwapAction } from '@/app/[
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { usePendingUsdcDeposit } from '@/hooks/usePendingUsdcDeposit'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useRouter } from '@/i18n/navigation'
 import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
@@ -29,6 +30,7 @@ type PendingDepositStep = 'prompt' | 'signing' | 'success'
 export default function PendingDepositBanner() {
   const { pendingBalance, hasPendingDeposit, refetchPendingDeposit } = usePendingUsdcDeposit()
   const { signMessageAsync } = useSignMessage()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const router = useRouter()
   const user = useUser()
   const { openTradeRequirements } = useTradingOnboarding()
@@ -121,7 +123,7 @@ export default function PendingDepositBanner() {
         message: safeTypedData.message,
       }) as `0x${string}`
 
-      const signature = await signMessageAsync({ message: { raw: structHash } })
+      const signature = await runWithSignaturePrompt(() => signMessageAsync({ message: { raw: structHash } }))
       const submitPayload = {
         type: 'SAFE' as const,
         from: user.address,
@@ -162,6 +164,7 @@ export default function PendingDepositBanner() {
     openTradeRequirements,
     pendingBalance.rawBase,
     refetchPendingDeposit,
+    runWithSignaturePrompt,
     signMessageAsync,
     step,
     user?.address,
