@@ -1,10 +1,13 @@
 import type { Metadata } from 'next'
+import type { SupportedLocale } from '@/i18n/locales'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { connection } from 'next/server'
 import SettingsAffiliateContent from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateContent'
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
+import { TagRepository } from '@/lib/db/queries/tag'
 import { UserRepository } from '@/lib/db/queries/user'
 import { getSupabasePublicAssetUrl } from '@/lib/supabase'
 
@@ -21,6 +24,9 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/settings
 export default async function AffiliateSettingsPage({ params }: PageProps<'/[locale]/settings/affiliate'>) {
   const { locale } = await params
   setRequestLocale(locale)
+  const resolvedLocale = SUPPORTED_LOCALES.includes(locale as SupportedLocale)
+    ? locale as SupportedLocale
+    : DEFAULT_LOCALE
 
   await connection()
 
@@ -44,11 +50,13 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
     { data: allSettings },
     { data: statsData },
     { data: referralsData },
+    { data: mainTags },
     feeTotals,
   ] = await Promise.all([
     SettingsRepository.getSettings(),
     AffiliateRepository.getUserAffiliateStats(user.id),
     AffiliateRepository.listReferralsByAffiliate(user.id),
+    TagRepository.getMainTags(resolvedLocale),
     feeTotalsPromise,
   ])
   const affiliateSettings = allSettings?.affiliate
@@ -110,8 +118,14 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
         </p>
       </div>
 
-      <div className="mx-auto w-full max-w-2xl lg:mx-0">
-        <SettingsAffiliateContent affiliateData={affiliateData} />
+      <div className="mx-auto w-full max-w-5xl lg:mx-0">
+        <SettingsAffiliateContent
+          affiliateData={affiliateData}
+          mainCategories={(mainTags ?? []).map(tag => ({
+            slug: tag.slug,
+            name: tag.name,
+          }))}
+        />
       </div>
     </section>
   )
