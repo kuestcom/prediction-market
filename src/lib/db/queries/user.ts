@@ -171,14 +171,7 @@ export const UserRepository = {
 
       const user: any = session.user
       const rawEmail = typeof user.email === 'string' ? user.email : ''
-      const shouldRedactEmail = Boolean(
-        rawEmail
-        && (
-          rawEmail.includes('http://')
-          || rawEmail.includes('https://')
-          || rawEmail.includes('vercel.app')
-        ),
-      )
+      const shouldRedactEmail = Boolean(rawEmail && rawEmail.startsWith('0x') && rawEmail.split('@')[0].length === 42)
 
       user.email = shouldRedactEmail ? '' : rawEmail
 

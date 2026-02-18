@@ -477,7 +477,7 @@ export default function AdminGeneralSettingsForm({
                   <CircleHelp className="size-3.5" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent className="max-w-xs text-left">
+              <TooltipContent className="max-w-xs text-left text-pretty">
                 {t('OpenRouter powers AI requests used in market context generation and automatic translations (events and tags).')}
               </TooltipContent>
             </Tooltip>
@@ -602,7 +602,7 @@ export default function AdminGeneralSettingsForm({
                   <CircleHelp className="size-3.5" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent className="max-w-xs text-left">
+              <TooltipContent className="max-w-xs text-left text-pretty">
                 {t('LI.FI powers swap routes and token balances used in trading and deposits. It works without an API key (default: 200 requests per 2 hours). With an API key, the default limit is 200 requests per minute (enforced on a 2-hour rolling window).')}
               </TooltipContent>
             </Tooltip>
@@ -698,7 +698,7 @@ export default function AdminGeneralSettingsForm({
                       <CircleHelp className="size-3.5" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent className="max-w-xs text-left">
+                  <TooltipContent className="max-w-xs text-left text-pretty">
                     {t('Markets from these addresses will only appear on this fork\'s site. Leave empty to only show main Kuest markets.')}
                   </TooltipContent>
                 </Tooltip>
@@ -720,10 +720,23 @@ export default function AdminGeneralSettingsForm({
 
       <section className="overflow-hidden rounded-xl border border-border/70">
         <div className="p-4">
-          <h3 className="text-sm font-medium">{t('App install icon (PWA)')}</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t('Used by browser install prompts and home screen shortcuts.')}
-          </p>
+          <div className="flex items-center gap-1">
+            <h3 className="text-sm font-medium">{t('App install icon (PWA)')}</h3>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex size-4 items-center justify-center text-muted-foreground hover:text-foreground"
+                  aria-label={t('App install icon (PWA)')}
+                >
+                  <CircleHelp className="size-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="text-left">
+                {t('Used by browser install prompts and home screen shortcuts.')}
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
         <div className="border-t p-4">
