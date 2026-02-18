@@ -15,9 +15,10 @@ import ProfileLinkSkeleton from '@/components/ProfileLinkSkeleton'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
-import { MICRO_UNIT, POLYGON_SCAN_BASE } from '@/lib/constants'
+import { MICRO_UNIT } from '@/lib/constants'
 import { EVENT_ACTIVITY_PAGE_SIZE, fetchEventTrades } from '@/lib/data-api/trades'
 import { formatCurrency, formatSharePriceLabel, formatTimeAgo, fromMicro } from '@/lib/formatters'
+import { POLYGON_SCAN_BASE } from '@/lib/network'
 import { cn } from '@/lib/utils'
 
 interface EventActivityProps {

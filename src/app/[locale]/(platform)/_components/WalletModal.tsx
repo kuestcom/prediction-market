@@ -36,9 +36,8 @@ import { useLiFiQuote } from '@/hooks/useLiFiQuote'
 import { useLiFiWalletTokens } from '@/hooks/useLiFiWalletTokens'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { formatDisplayAmount, getAmountSizeClass, MAX_AMOUNT_INPUT, sanitizeNumericInput } from '@/lib/amount-input'
-import { POLYGON_SCAN_BASE } from '@/lib/constants'
 import { formatAmountInputValue } from '@/lib/formatters'
-import { IS_TEST_MODE } from '@/lib/network'
+import { IS_TEST_MODE, POLYGON_SCAN_BASE } from '@/lib/network'
 import { cn } from '@/lib/utils'
 
 const MELD_PAYMENT_METHODS = [

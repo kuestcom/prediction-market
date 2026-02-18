@@ -13,9 +13,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { Link, useRouter } from '@/i18n/navigation'
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
-import { MICRO_UNIT, POLYGON_SCAN_BASE } from '@/lib/constants'
+import { MICRO_UNIT } from '@/lib/constants'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 import { formatCurrency, formatSharePriceLabel, formatTimeAgo, toMicro } from '@/lib/formatters'
+import { POLYGON_SCAN_BASE } from '@/lib/network'
 import { cn } from '@/lib/utils'
 
 type LiveActivityPayload = DataApiActivity & {

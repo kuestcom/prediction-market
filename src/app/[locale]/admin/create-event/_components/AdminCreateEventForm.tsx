@@ -42,14 +42,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { defaultNetwork } from '@/lib/appkit'
-import { CREATE_MARKET_API_BASE_URL } from '@/lib/constants'
-import { AMOY_CHAIN_ID, IS_TEST_MODE } from '@/lib/network'
+import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID, POLYGON_SCAN_BASE } from '@/lib/network'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
 const TOTAL_STEPS = 5
 const MIN_SUB_CATEGORIES = 4
-
 const USDC_DECIMALS = 6
 const FALLBACK_REQUIRED_USDC = 5
 const CREATE_EVENT_DRAFT_STORAGE_KEY = 'admin_create_event_draft_v1'
@@ -76,7 +74,6 @@ const APPROVE_GAS_UNITS_ESTIMATE = 70_000n
 const INITIALIZE_GAS_UNITS_ESTIMATE = 700_000n
 const GAS_ESTIMATE_BUFFER_NUMERATOR = 13n
 const GAS_ESTIMATE_BUFFER_DENOMINATOR = 10n
-const POLYGON_MAINNET_CHAIN_ID = 137
 const DEFAULT_CREATE_EVENT_CHAIN_ID = IS_TEST_MODE ? AMOY_CHAIN_ID : POLYGON_MAINNET_CHAIN_ID
 const EOA_BALANCE_ABI = [
   {
@@ -775,24 +772,12 @@ function getAiIssueKey(issue: AiValidationIssue) {
   return `${issue.code}:${issue.step}:${issue.reason}`
 }
 
-function getExplorerTxBase(chainId: number) {
-  if (chainId === POLYGON_MAINNET_CHAIN_ID) {
-    return 'https://polygonscan.com/tx/'
-  }
-  if (chainId === AMOY_CHAIN_ID) {
-    return 'https://amoy.polygonscan.com/tx/'
-  }
-  return ''
+function getExplorerTxBase() {
+  return `${POLYGON_SCAN_BASE}/tx/`
 }
 
-function getChainLabel(chainId: number) {
-  if (chainId === POLYGON_MAINNET_CHAIN_ID) {
-    return 'Polygon'
-  }
-  if (chainId === AMOY_CHAIN_ID) {
-    return 'Polygon Amoy'
-  }
-  return `Chain ${chainId}`
+function getChainLabel() {
+  return IS_TEST_MODE ? 'Polygon' : 'Polygon Amoy'
 }
 
 function parseMinTipCapFromError(errorMessage: string): bigint | null {
@@ -2244,7 +2229,7 @@ export default function AdminCreateEventForm() {
     setFundingCheckError('')
 
     try {
-      const response = await fetch(`${CREATE_MARKET_API_BASE_URL}/market-config`, {
+      const response = await fetch(`${process.env.CREATE_MARKET_URL}/market-config`, {
         method: 'GET',
         cache: 'no-store',
       })
@@ -2513,7 +2498,7 @@ export default function AdminCreateEventForm() {
         query.set('chainId', String(options.chainId))
       }
 
-      const response = await fetch(`${CREATE_MARKET_API_BASE_URL}/pending?${query.toString()}`, {
+      const response = await fetch(`${process.env.CREATE_MARKET_URL}/pending?${query.toString()}`, {
         method: 'GET',
         cache: 'no-store',
       })
@@ -2565,7 +2550,7 @@ export default function AdminCreateEventForm() {
       return
     }
 
-    const response = await fetch(`${CREATE_MARKET_API_BASE_URL}/tx-confirm`, {
+    const response = await fetch(`${process.env.CREATE_MARKET_URL}/tx-confirm`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2655,7 +2640,7 @@ export default function AdminCreateEventForm() {
       currentPayloadHash = payloadHash
       currentPayloadChainId = payload.chainId
 
-      const authResponse = await fetch(`${CREATE_MARKET_API_BASE_URL}/prepare-auth`, {
+      const authResponse = await fetch(`${process.env.CREATE_MARKET_URL}/prepare-auth`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2683,7 +2668,7 @@ export default function AdminCreateEventForm() {
         throw new Error('Invalid verifying contract in auth challenge response.')
       }
       if (activeWalletClient.chain?.id && activeWalletClient.chain.id !== authPayload.chainId) {
-        throw new Error(`Switch wallet to ${getChainLabel(authPayload.chainId)} before signing auth.`)
+        throw new Error(`Switch wallet to ${getChainLabel()} before signing auth.`)
       }
       setAuthChallengeExpiresAtMs(authPayload.expiresAt)
 
@@ -2736,7 +2721,7 @@ export default function AdminCreateEventForm() {
         }
       })
 
-      const response = await fetch(`${CREATE_MARKET_API_BASE_URL}/prepare`, {
+      const response = await fetch(`${process.env.CREATE_MARKET_URL}/prepare`, {
         method: 'POST',
         body,
       })
@@ -2822,7 +2807,7 @@ export default function AdminCreateEventForm() {
     setSignatureFlowError('')
 
     try {
-      const response = await fetch(`${CREATE_MARKET_API_BASE_URL}/finalize`, {
+      const response = await fetch(`${process.env.CREATE_MARKET_URL}/finalize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2872,7 +2857,7 @@ export default function AdminCreateEventForm() {
     const activeWalletClient = walletClient
 
     if (activeWalletClient.chain?.id && activeWalletClient.chain.id !== preparedSignaturePlan.chainId) {
-      throw new Error(`Switch wallet to ${getChainLabel(preparedSignaturePlan.chainId)} before signing.`)
+      throw new Error(`Switch wallet to ${getChainLabel()} before signing.`)
     }
 
     setIsExecutingSignatures(true)
@@ -4796,7 +4781,7 @@ export default function AdminCreateEventForm() {
                 ? (
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">
-                        {getChainLabel(preparedSignaturePlan.chainId)}
+                        {getChainLabel()}
                         {' '}
                         ·
                         {' '}
@@ -4891,7 +4876,7 @@ export default function AdminCreateEventForm() {
             {signatureTxs.length > 0 && (
               <div className="space-y-2">
                 {signatureTxs.map((tx) => {
-                  const explorerBase = preparedSignaturePlan ? getExplorerTxBase(preparedSignaturePlan.chainId) : ''
+                  const explorerBase = preparedSignaturePlan ? getExplorerTxBase() : ''
                   const txHref = explorerBase && tx.hash ? `${explorerBase}${tx.hash}` : ''
                   const statusLabel = tx.status === 'idle'
                     ? 'Pending'

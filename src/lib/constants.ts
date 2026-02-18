@@ -1,6 +1,5 @@
 import { defaultNetwork } from '@/lib/appkit'
 import { CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS } from '@/lib/contracts'
-import { IS_TEST_MODE } from '@/lib/network'
 
 export const DEFAULT_ERROR_MESSAGE = 'Internal server error. Try again in a few moments.'
 export const IS_BROWSER = typeof window !== 'undefined'
@@ -30,8 +29,6 @@ export const OUTCOME_INDEX = {
 } as const
 
 export const MICRO_UNIT = 1_000_000
-export const CAP_MICRO = 990_000n
-export const FLOOR_MICRO = 10_000n
 
 export const EIP712_DOMAIN = {
   name: 'CTF Exchange',
@@ -63,11 +60,6 @@ export const EIP712_TYPES = {
     { name: 'signatureType', type: 'uint8' },
   ],
 }
-
-export const POLYGON_SCAN_BASE = IS_TEST_MODE
-  ? 'https://amoy.polygonscan.com'
-  : 'https://polygonscan.com'
-export const CREATE_MARKET_API_BASE_URL = (process.env.NEXT_PUBLIC_CREATE_MARKET_API_URL || 'https://create-market.kuest.com').replace(/\/+$/, '')
 
 export function getExchangeEip712Domain(isNegRisk?: boolean) {
   return isNegRisk ? NEG_RISK_EIP712_DOMAIN : EIP712_DOMAIN

@@ -1,6 +1,7 @@
 import type { Notification } from '@/types'
 import { create } from 'zustand'
-import { POLYGON_SCAN_BASE } from '@/lib/constants'
+
+import { POLYGON_SCAN_BASE } from '@/lib/network'
 
 const LOCAL_ORDER_FILL_STORAGE_KEY = 'header-local-order-fill-notifications-v1'
 const LOCAL_ORDER_FILL_NOTIFICATION_SOURCE = 'local_order_fill'
