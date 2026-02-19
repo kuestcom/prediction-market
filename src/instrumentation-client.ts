@@ -4,7 +4,6 @@ Sentry.init({
   dsn: process.env.SENTRY_DSN,
   tracesSampleRate: 0.1,
   enableLogs: true,
-  sendDefaultPii: true,
 })
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
