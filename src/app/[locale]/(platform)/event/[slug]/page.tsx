@@ -78,6 +78,21 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
     }
   }
 
+  if (event.series_slug && !seriesEvents.some(seriesEvent => seriesEvent.slug === event.slug)) {
+    seriesEvents = [
+      {
+        id: event.id,
+        slug: event.slug,
+        status: event.status,
+        end_date: event.end_date,
+        resolved_at: event.resolved_at ?? null,
+        created_at: event.created_at,
+        resolved_direction: null,
+      },
+      ...seriesEvents,
+    ]
+  }
+
   return (
     <EventContent
       event={event}

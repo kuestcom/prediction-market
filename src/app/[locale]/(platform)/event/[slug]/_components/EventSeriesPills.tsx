@@ -11,16 +11,21 @@ import { cn } from '@/lib/utils'
 
 const MAX_PAST_RESULT_BADGES = 5
 const LIVE_TRADING_WINDOW_MS = 24 * 60 * 60 * 1000
-const LIVE_ET_TIME_SHORT = '4 PM'
-const LIVE_ET_TIME_LABEL = '4 PM ET'
-const LIVE_UTC_TIME_LABEL = '9 PM'
 
 function parseSeriesEventDate(value: string | null | undefined) {
   if (!value) {
     return null
   }
 
-  const parsed = new Date(value)
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)
+    ? `${trimmed.replace(' ', 'T')}Z`
+    : trimmed
+  const parsed = new Date(normalized)
   if (Number.isNaN(parsed.getTime())) {
     return null
   }
@@ -70,6 +75,18 @@ function getSeriesEventLabelWithYear(event: EventSeriesEntry, timeZone: string) 
     : 'Unknown date'
 }
 
+function getSeriesEventTimeLabel(event: EventSeriesEntry, timeZone: string) {
+  const date = getSeriesEventDate(event)
+  return date
+    ? date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone,
+      })
+    : '--'
+}
+
 function getResolvedDirection(event: EventSeriesEntry) {
   if (event.resolved_direction === 'up' || event.resolved_direction === 'down') {
     return event.resolved_direction
@@ -110,7 +127,9 @@ interface EventSeriesPillsProps {
 
 function ResolutionTimeTooltipRows({ event }: { event: EventSeriesEntry }) {
   const etDateLabel = getSeriesEventLabelWithYear(event, 'America/New_York')
+  const etTimeLabel = getSeriesEventTimeLabel(event, 'America/New_York')
   const utcDateLabel = getSeriesEventLabelWithYear(event, 'UTC')
+  const utcTimeLabel = getSeriesEventTimeLabel(event, 'UTC')
 
   return (
     <div className="grid gap-2 text-sm text-foreground">
@@ -122,7 +141,7 @@ function ResolutionTimeTooltipRows({ event }: { event: EventSeriesEntry }) {
           ET
         </span>
         <span className="tabular-nums">{etDateLabel}</span>
-        <span className="ml-auto tabular-nums">{LIVE_ET_TIME_SHORT}</span>
+        <span className="ml-auto tabular-nums">{etTimeLabel}</span>
       </div>
       <div className="flex items-center gap-2">
         <span className="
@@ -132,7 +151,7 @@ function ResolutionTimeTooltipRows({ event }: { event: EventSeriesEntry }) {
           UTC
         </span>
         <span className="tabular-nums">{utcDateLabel}</span>
-        <span className="ml-auto tabular-nums">{LIVE_UTC_TIME_LABEL}</span>
+        <span className="ml-auto tabular-nums">{utcTimeLabel}</span>
       </div>
     </div>
   )
@@ -183,13 +202,16 @@ export default function EventSeriesPills({
         return Number.isFinite(eventTimestamp) && eventTimestamp > nowTimestamp
       })
       ?? (currentEvent && !isSeriesEventResolved(currentEvent) ? currentEvent : null)
+    const hasUnresolvedCurrentEvent = Boolean(currentEvent && !isSeriesEventResolved(currentEvent))
 
     return {
       pastResolvedEvents: past,
       unresolvedEvents: unresolved,
       currentResolvedEvent: currentEvent && isSeriesEventResolved(currentEvent) ? currentEvent : null,
       currentTradingEventId: currentTradingEvent?.id ?? null,
-      hasSeriesNavigation: hasComparableSeriesEvents && (past.length > 0 || unresolved.length > 0),
+      hasSeriesNavigation:
+        (hasComparableSeriesEvents && (past.length > 0 || unresolved.length > 0))
+        || hasUnresolvedCurrentEvent,
     }
   }, [currentEventSlug, nowTimestamp, seriesEvents])
 
@@ -285,12 +307,11 @@ export default function EventSeriesPills({
               <DropdownMenuContent
                 side="top"
                 align="start"
-                className="
-                  z-20 max-h-80 min-w-44 overflow-y-auto rounded-lg p-0.5
-                "
+                className="z-20 max-h-80 min-w-44 overflow-y-auto rounded-lg p-0.5"
               >
                 {pastResolvedEvents.map((event) => {
                   const isCurrentEvent = event.slug === currentEventSlug
+                  const etTimeLabel = `${getSeriesEventTimeLabel(event, 'America/New_York')} ET`
 
                   if (isCurrentEvent) {
                     return (
@@ -304,7 +325,7 @@ export default function EventSeriesPills({
                       >
                         <span className="flex w-full items-center gap-2">
                           <GavelIcon className="size-3.5 shrink-0 text-foreground" />
-                          <span className="text-xs font-semibold text-foreground">{LIVE_ET_TIME_LABEL}</span>
+                          <span className="text-xs font-semibold text-foreground">{etTimeLabel}</span>
                           <span className="size-1 rounded-full bg-foreground/70" />
                           <span className="text-xs text-muted-foreground">{getSeriesEventLabel(event)}</span>
                         </span>
@@ -316,7 +337,7 @@ export default function EventSeriesPills({
                     <DropdownMenuItem key={event.id} asChild className="cursor-pointer rounded-md py-1.5 text-xs">
                       <Link href={`/event/${event.slug}`} className="flex w-full items-center gap-2">
                         <GavelIcon className="size-3.5 shrink-0 text-foreground" />
-                        <span className="text-xs font-semibold text-foreground">{LIVE_ET_TIME_LABEL}</span>
+                        <span className="text-xs font-semibold text-foreground">{etTimeLabel}</span>
                         <span className="size-1 rounded-full bg-foreground/70" />
                         <span className="text-xs text-muted-foreground">{getSeriesEventLabel(event)}</span>
                       </Link>
@@ -346,9 +367,10 @@ export default function EventSeriesPills({
             const isEndedUnresolved = Number.isFinite(eventTimestamp) && nowTimestamp >= eventTimestamp
             const isTradingNow = event.id === currentTradingEventId
             const isTodayInEt = Number.isFinite(eventTimestamp) && isSameEtDay(eventTimestamp, nowTimestamp)
+            const etTimeLabel = getSeriesEventTimeLabel(event, 'America/New_York')
             const pillLabel = isTodayInEt
-              ? LIVE_ET_TIME_SHORT
-              : `${LIVE_ET_TIME_SHORT} ${getSeriesEventLabel(event)}`
+              ? etTimeLabel
+              : `${etTimeLabel} ${getSeriesEventLabel(event)}`
 
             return (
               <Tooltip key={event.id}>
