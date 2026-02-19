@@ -1373,13 +1373,13 @@ export default function EventLiveSeriesChart({
                     <span
                       className={`
                         absolute top-1/2 right-0 inline-flex -translate-y-1/2 items-center gap-1 rounded-r-sm bg-muted
-                        px-1.5 py-0.5 pl-2 text-2xs font-semibold tracking-[0.08em] text-muted-foreground uppercase
+                        px-1.5 py-0.5 pl-2 text-2xs font-semibold tracking-[0.08em] text-white uppercase
                         [clip-path:polygon(8px_0,100%_0,100%_100%,8px_100%,0_50%)]
                       `}
                     >
                       <span>Target</span>
-                      {targetLine.isAbove && <ChevronsUpIcon className="size-2.5 animate-pulse" />}
-                      {targetLine.isBelow && <ChevronsDownIcon className="size-2.5 animate-pulse" />}
+                      {targetLine.isAbove && <ChevronsUpIcon className="size-4 animate-pulse" />}
+                      {targetLine.isBelow && <ChevronsDownIcon className="size-4 animate-pulse" />}
                     </span>
                   </div>
                 )}
