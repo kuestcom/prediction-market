@@ -18,7 +18,6 @@
   • <a href="#roadmap">Roadmap</a> ]
 </p>
 
-
 ## Why Kuest
 
 - Launch your own on-chain prediction market in minutes.
@@ -144,12 +143,12 @@
 - [x] Multi-language UI
 - [x] Theme customization
 - [x] Recurring Crypto and Nasdaq markets with live charts
+- [x] Recurring temperature markets
 - [x] Fork-created markets with opt-in cross-fork sharing
 - [x] UMA Oracle implementation
 - [ ] 🏆 MVP Ready (stress tests, security, and financial consistency checks)
 - [ ] Move matching engine to mainnet
 - [ ] Recurring X counter markets (soon)
-- [ ] Recurring temperature markets (soon)
 - [ ] Sports markets (soon)
 - [ ] Kalshi arbitrage connector (soon)
 
