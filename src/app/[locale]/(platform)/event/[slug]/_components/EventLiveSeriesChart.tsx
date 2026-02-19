@@ -19,9 +19,10 @@ const PredictionChart = dynamic<PredictionChartProps>(
 
 const SERIES_KEY = 'live_price'
 const LIVE_WINDOW_MS = 40 * 1000
-const LIVE_CLOCK_TICK_MS = 120
+const LIVE_CLOCK_FRAME_MS = 1000 / 30
 const LIVE_X_AXIS_STEP_MS = 10 * 1000
 const MAX_POINTS = 4000
+const LIVE_WS_TEST_ONLY_LAST_UPDATE_PER_MESSAGE = true
 const LIVE_CHART_HEIGHT = 332
 const LIVE_CHART_MARGIN_TOP = 12
 const LIVE_CHART_MARGIN_BOTTOM = 52
@@ -593,11 +594,7 @@ export default function EventLiveSeriesChart({
   config: inputConfig,
 }: EventLiveSeriesChartProps) {
   const wsUrl = process.env.WS_LIVE_DATA_URL
-  // TEMP: force BTC/USD websocket feed while debugging chart behavior.
-  const config = useMemo(
-    () => ({ ...inputConfig, topic: 'crypto_prices_chainlink', symbol: 'btc/usd' }),
-    [inputConfig],
-  )
+  const config = inputConfig
   const { width: windowWidth } = useWindowSize()
   const liveColor = config.line_color || '#F59E0B'
   const subscriptionSymbol = useMemo(
@@ -642,9 +639,18 @@ export default function EventLiveSeriesChart({
       return
     }
 
-    const timer = window.setInterval(() => {
-      setNowMs(Date.now())
-    }, LIVE_CLOCK_TICK_MS)
+    let frameId: number | null = null
+    let lastFrameTimestamp = 0
+
+    function animate(frameTimestamp: number) {
+      if (!document.hidden && frameTimestamp - lastFrameTimestamp >= LIVE_CLOCK_FRAME_MS) {
+        lastFrameTimestamp = frameTimestamp
+        setNowMs(Date.now())
+      }
+      frameId = window.requestAnimationFrame(animate)
+    }
+
+    frameId = window.requestAnimationFrame(animate)
 
     function handleVisibilityChange() {
       if (!document.hidden) {
@@ -655,7 +661,9 @@ export default function EventLiveSeriesChart({
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
-      window.clearInterval(timer)
+      if (frameId != null) {
+        window.cancelAnimationFrame(frameId)
+      }
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [isLiveView])
@@ -823,12 +831,16 @@ export default function EventLiveSeriesChart({
         })
         .filter((update): update is { price: number, timestamp: number, symbol: string | null } => update !== null)
 
-      if (!normalizedUpdates.length) {
+      const wsUpdatesForRender = LIVE_WS_TEST_ONLY_LAST_UPDATE_PER_MESSAGE
+        ? normalizedUpdates.slice(-1)
+        : normalizedUpdates
+
+      if (!wsUpdatesForRender.length) {
         return
       }
 
       setStatus('live')
-      const latest = normalizedUpdates[normalizedUpdates.length - 1]
+      const latest = wsUpdatesForRender[wsUpdatesForRender.length - 1]
       if (latest) {
         writePersistedLivePrice(config.topic, subscriptionSymbol, latest.price, latest.timestamp)
       }
@@ -839,7 +851,7 @@ export default function EventLiveSeriesChart({
         let next = keepWithinLiveWindow(prev, cutoff)
         let lastTimestamp = next.length ? next[next.length - 1].date.getTime() : null
 
-        for (const update of normalizedUpdates) {
+        for (const update of wsUpdatesForRender) {
           // Anchor incoming points to arrival time to avoid delayed-source timestamp jumps.
           let pointTimestamp = Math.max(update.timestamp, arrivalTimestamp)
 
@@ -858,7 +870,7 @@ export default function EventLiveSeriesChart({
         return next
       })
 
-      setBaselinePrice(current => current ?? normalizedUpdates[0]?.price ?? null)
+      setBaselinePrice(current => current ?? wsUpdatesForRender[0]?.price ?? null)
     }
 
     function handleError() {
@@ -1149,10 +1161,10 @@ export default function EventLiveSeriesChart({
       }
 
   const viewSwitch = (
-    <div className="relative flex items-center rounded-xl border border-border bg-background/70 p-1">
+    <div className="relative z-0 flex items-center rounded-xl border border-border bg-background/70 p-1">
       <span
         className={cn(
-          'pointer-events-none absolute top-1 left-1 size-9 rounded-lg transition-all duration-300 ease-out',
+          'pointer-events-none absolute top-1 left-1 z-0 size-9 rounded-lg transition-all duration-300 ease-out',
           !isLiveChartView && 'bg-primary/30',
         )}
         style={switchThumbStyle}
@@ -1161,7 +1173,7 @@ export default function EventLiveSeriesChart({
         type="button"
         onClick={() => setActiveView('market')}
         className={cn(
-          'relative z-10 flex size-9 items-center justify-center rounded-lg transition-colors',
+          'relative z-1 flex size-9 items-center justify-center rounded-lg transition-colors',
           isMarketView
             ? 'text-primary'
             : 'bg-transparent text-muted-foreground hover:bg-muted',
@@ -1174,7 +1186,7 @@ export default function EventLiveSeriesChart({
         type="button"
         onClick={() => setActiveView('live')}
         className={cn(
-          'relative z-10 flex size-9 items-center justify-center rounded-lg transition-colors',
+          'relative z-1 flex size-9 items-center justify-center rounded-lg transition-colors',
           !isLiveChartView && 'bg-transparent text-muted-foreground hover:bg-muted',
         )}
         style={liveSwitchIconStyle}
@@ -1255,7 +1267,7 @@ export default function EventLiveSeriesChart({
                       >
                         <div className="flex items-end gap-3">
                           {visibleCountdownUnits.map(({ unit, value }) => (
-                            <div key={unit} className="min-w-11 text-center">
+                            <div key={unit} className="min-w-11 text-right">
                               <div
                                 className={cn(
                                   'text-2xl leading-none font-semibold tabular-nums',
@@ -1342,7 +1354,13 @@ export default function EventLiveSeriesChart({
                     <div
                       className="h-px w-full"
                       style={{
-                        backgroundColor: '#94a3b8',
+                        backgroundImage: `repeating-linear-gradient(
+                          to right,
+                          ${hexToRgba('#94a3b8', 0.9)} 0px,
+                          ${hexToRgba('#94a3b8', 0.9)} 12px,
+                          transparent 12px,
+                          transparent 22px
+                        )`,
                       }}
                     />
                     <span
@@ -1405,6 +1423,9 @@ export default function EventLiveSeriesChart({
                   markerOuterRadius={10}
                   markerInnerRadius={4.2}
                   lineStrokeWidth={2.15}
+                  showAreaFill
+                  areaFillTopOpacity={0.12}
+                  areaFillBottomOpacity={0}
                   yAxis={{
                     min: axisValues.min,
                     max: axisValues.max,
@@ -1425,7 +1446,7 @@ export default function EventLiveSeriesChart({
                     iconPath: config.icon_path,
                     color: liveColor,
                   }}
-                  lineCurve="monotoneX"
+                  lineCurve="basis"
                 />
               </div>
             </div>

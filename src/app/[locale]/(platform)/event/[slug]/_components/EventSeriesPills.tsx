@@ -9,8 +9,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
-const PAST_EVENTS_WINDOW_DAYS = 7
-const PAST_EVENTS_WINDOW_MS = PAST_EVENTS_WINDOW_DAYS * 24 * 60 * 60 * 1000
 const MAX_PAST_RESULT_BADGES = 5
 const LIVE_TRADING_WINDOW_MS = 24 * 60 * 60 * 1000
 const LIVE_ET_TIME_SHORT = '4 PM'
@@ -39,16 +37,6 @@ function getSeriesEventDate(event: EventSeriesEntry) {
 function getSeriesEventTimestamp(event: EventSeriesEntry) {
   const date = getSeriesEventDate(event)
   return date ? date.getTime() : Number.NEGATIVE_INFINITY
-}
-
-function isSeriesEventWithinPastWindow(event: EventSeriesEntry, nowTimestamp: number) {
-  const eventTimestamp = getSeriesEventTimestamp(event)
-
-  if (!Number.isFinite(eventTimestamp)) {
-    return false
-  }
-
-  return eventTimestamp <= nowTimestamp && eventTimestamp >= nowTimestamp - PAST_EVENTS_WINDOW_MS
 }
 
 function isSeriesEventResolved(event: EventSeriesEntry) {
@@ -182,7 +170,7 @@ export default function EventSeriesPills({
     const currentEvent = filteredSeriesEvents.find(event => event.slug === currentEventSlug) ?? null
 
     const past = filteredSeriesEvents
-      .filter(event => isSeriesEventResolved(event) && isSeriesEventWithinPastWindow(event, nowTimestamp))
+      .filter(event => isSeriesEventResolved(event))
       .sort((a, b) => getSeriesEventTimestamp(b) - getSeriesEventTimestamp(a))
 
     const unresolved = filteredSeriesEvents
@@ -226,7 +214,7 @@ export default function EventSeriesPills({
     return (
       <div
         className={cn(
-          'flex flex-wrap items-center gap-2 px-4 sm:px-6',
+          'flex flex-wrap items-center gap-2 pr-4 pl-0 sm:pr-6 sm:pl-0',
           hasRightSlot && 'justify-between gap-3',
         )}
       >
@@ -297,7 +285,11 @@ export default function EventSeriesPills({
               <DropdownMenuContent
                 side="top"
                 align="start"
-                className="max-h-64 min-w-44 overflow-y-auto rounded-lg p-0.5"
+                className="
+                  z-20 max-h-80 min-w-44 overflow-y-auto rounded-lg p-0.5 [-ms-overflow-style:none]
+                  [scrollbar-width:none]
+                  [&::-webkit-scrollbar]:hidden
+                "
               >
                 {pastResolvedEvents.map((event) => {
                   const isCurrentEvent = event.slug === currentEventSlug
@@ -435,7 +427,13 @@ export default function EventSeriesPills({
                 <ChevronDownIcon className={cn('size-4 transition-transform', isPastMenuOpen && 'rotate-180')} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="max-h-72 min-w-44 overflow-y-auto p-1">
+            <DropdownMenuContent
+              align="start"
+              className="
+                z-20 max-h-80 min-w-44 overflow-y-auto p-1 [-ms-overflow-style:none] [scrollbar-width:none]
+                [&::-webkit-scrollbar]:hidden
+              "
+            >
               {pastResolvedEvents.map((event) => {
                 const isCurrentEvent = event.slug === currentEventSlug
 
