@@ -29,7 +29,7 @@ import { usePathname } from '@/i18n/navigation'
 import { cn, triggerConfetti } from '@/lib/utils'
 import { useIsSingleMarket } from '@/stores/useOrder'
 
-export default function HeaderHowItWorks() {
+export default function HowItWorks() {
   const isMounted = useClientMounted()
   const t = useExtracted()
   const pathname = usePathname()
@@ -126,15 +126,12 @@ export default function HeaderHowItWorks() {
             )}
             data-testid="how-it-works-mobile-banner"
           >
-            <div className="container flex items-center justify-between gap-2 py-2">
+            <div className="container flex items-center justify-between gap-2 py-3">
               <Button
                 type="button"
                 variant="link"
                 size="sm"
-                className={`
-                  flex-1 justify-center gap-2 text-primary/80 no-underline
-                  hover:text-primary hover:no-underline
-                `}
+                className="flex-1 justify-center gap-2 text-primary hover:no-underline"
                 onClick={() => setIsOpen(true)}
                 data-testid="how-it-works-trigger-mobile"
               >
@@ -206,12 +203,7 @@ export default function HeaderHowItWorks() {
           type="button"
           variant="link"
           size="sm"
-          className={`
-            hidden items-center gap-1.5 text-primary/80 no-underline
-            hover:text-primary hover:no-underline
-            lg:inline-flex
-            [&>svg]:text-primary
-          `}
+          className="hidden items-center gap-1.5 text-primary hover:no-underline lg:inline-flex"
           data-testid="how-it-works-trigger-desktop"
         >
           <InfoIcon className="size-4" />

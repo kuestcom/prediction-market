@@ -1,6 +1,6 @@
-import HeaderHowItWorks from '@/app/[locale]/(platform)/_components/HeaderHowItWorks'
 import HeaderMenu from '@/app/[locale]/(platform)/_components/HeaderMenu'
 import HeaderSearch from '@/app/[locale]/(platform)/_components/HeaderSearch'
+import HowItWorks from '@/app/[locale]/(platform)/_components/HowItWorks'
 import HeaderLogo from '@/components/HeaderLogo'
 
 export default async function Header() {
@@ -15,7 +15,7 @@ export default async function Header() {
         <HeaderLogo />
         <div className="hidden w-full items-center gap-2 lg:flex">
           <HeaderSearch />
-          <HeaderHowItWorks />
+          <HowItWorks />
         </div>
         <div className="min-w-0 shrink md:min-w-fit md:shrink-0">
           <div className="flex min-w-0 items-center gap-2">
