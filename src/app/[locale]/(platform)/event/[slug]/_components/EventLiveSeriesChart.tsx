@@ -599,6 +599,7 @@ export default function EventLiveSeriesChart({
   const liveColor = config.line_color || '#F59E0B'
   const priceDisplayDigits = config.show_price_decimals ? 2 : 0
   const headerPriceDisplayDigits = Math.max(2, priceDisplayDigits)
+  const deltaDisplayDigits = 0
   const subscriptionSymbol = useMemo(
     () => normalizeSubscriptionSymbol(config.topic, config.symbol),
     [config.symbol, config.topic],
@@ -1247,16 +1248,16 @@ export default function EventLiveSeriesChart({
                     >
                       <span>Current Price</span>
                       {delta != null && (
-                        <span className={`inline-flex items-center gap-1 text-xs font-semibold ${delta >= 0
+                        <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold ${delta >= 0
                           ? 'text-yes'
                           : 'text-no'}`}
                         >
                           <TriangleIcon
-                            className={`size-3 ${delta >= 0 ? '' : 'rotate-180'}`}
+                            className={`size-2.5 ${delta >= 0 ? '' : 'rotate-180'}`}
                             fill="currentColor"
                             stroke="none"
                           />
-                          {formatUsd(Math.abs(delta), headerPriceDisplayDigits)}
+                          {formatUsd(Math.abs(delta), deltaDisplayDigits)}
                         </span>
                       )}
                     </div>
@@ -1367,9 +1368,9 @@ export default function EventLiveSeriesChart({
                         backgroundImage: `repeating-linear-gradient(
                           to right,
                           ${targetGuideColor} 0px,
-                          ${targetGuideColor} 12px,
-                          transparent 12px,
-                          transparent 22px
+                          ${targetGuideColor} 8px,
+                          transparent 8px,
+                          transparent 14px
                         )`,
                       }}
                     />
@@ -1395,9 +1396,9 @@ export default function EventLiveSeriesChart({
                       backgroundImage: `repeating-linear-gradient(
                         to right,
                         ${hexToRgba(liveColor, 0.88)} 0px,
-                        ${hexToRgba(liveColor, 0.88)} 12px,
-                        transparent 12px,
-                        transparent 22px
+                        ${hexToRgba(liveColor, 0.88)} 8px,
+                        transparent 8px,
+                        transparent 14px
                       )`,
                     }}
                   />
