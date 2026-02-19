@@ -4,6 +4,13 @@
   Have your own on-chain Web3 prediction market stack inspired by Polymarket.
   Transparent, open source, and early-stage.
 </p>
+
+<p align="center">
+  <a href="https://kuest.com">
+    <img src="https://github.com/user-attachments/assets/49e860b0-8b12-460a-aa1d-e76c9c08be9b" alt="Kuest Prediction Market Open Source" />
+  </a>
+</p>
+
 <p align="center"> [
   <a href="https://kuest.com">Demo</a>
   • <a href="#why-kuest">About</a>
@@ -11,11 +18,6 @@
   • <a href="#roadmap">Roadmap</a> ]
 </p>
 
-<p align="center">
-  <a href="https://kuest.com">
-    <img src="https://github.com/user-attachments/assets/7f7ab1dc-2571-4f71-a184-1cef722ea24d" alt="Kuest Prediction Market Open Source" />
-  </a>
-</p>
 
 ## Why Kuest
 
@@ -33,7 +35,7 @@
 
 > [!TIP]
 > <img src="https://github.com/user-attachments/assets/295d3cbe-d361-4205-991e-a9f855fa8c0e" height="52" alt="Polymarket" />
-> <img src="https://github.com/user-attachments/assets/49e860b0-8b12-460a-aa1d-e76c9c08be9b" height="52" alt="Polymarket" />
+> <img src="https://github.com/user-attachments/assets/49e860b0-8b12-460a-aa1d-e76c9c08be9b" height="52" alt="Kuest" />
 > <img src="https://github.com/user-attachments/assets/ec0dbc79-33aa-4367-b292-aae7fbfc4490" height="52" alt="Kalshi (soon)" />
 >
 > ### Want your own Polymarket-style prediction market?
