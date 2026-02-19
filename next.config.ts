@@ -62,6 +62,7 @@ const config: NextConfig = {
   env: {
     IS_VERCEL: isVercel ? 'true' : 'false',
     SITE_URL: siteUrl,
+    SENTRY_DSN: process.env.SENTRY_DSN,
     CREATE_MARKET_URL: process.env.CREATE_MARKET_URL ?? 'https://create-market.kuest.com',
     CLOB_URL: process.env.CLOB_URL ?? 'https://clob.kuest.com',
     RELAYER_URL: process.env.RELAYER_URL ?? 'https://relayer.kuest.com',
@@ -92,8 +93,5 @@ const withNextIntl = createNextIntlPlugin({
 })
 
 export default withSentryConfig(withNextIntl(withMDX(config)), {
-  org: 'kuest',
-  project: 'prediction-market',
-  silent: !process.env.CI,
-  widenClientFileUpload: true,
+  telemetry: false,
 })
