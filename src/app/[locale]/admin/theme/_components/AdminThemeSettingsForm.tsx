@@ -755,6 +755,7 @@ export default function AdminThemeSettingsForm({
 
   const [state, formAction, isPending] = useActionState(updateThemeSettingsAction, initialState)
   const wasPendingRef = useRef(isPending)
+  const persistedThemeRef = useRef<{ preset: string | null, cssText: string | null } | null>(null)
 
   const [preset, setPreset] = useState<string>(initialPreset)
   const [radius, setRadius] = useState(initialRadius)
@@ -804,31 +805,93 @@ export default function AdminThemeSettingsForm({
     () => formatThemeOverridesJson(darkOverrides),
     [darkOverrides],
   )
+  const draftCssText = useMemo(
+    () => buildThemeCssText(lightOverrides, darkOverrides, radiusValidation.value),
+    [darkOverrides, lightOverrides, radiusValidation.value],
+  )
+
+  function handlePresetChange(nextPreset: string) {
+    setPreset(nextPreset)
+    setLightOverrides({})
+    setDarkOverrides({})
+  }
+
+  function applyThemeToDocument(nextPreset: string, cssText: string) {
+    const rootElement = document.documentElement
+    rootElement.setAttribute('data-theme-preset', nextPreset)
+
+    const currentThemeStyle = document.getElementById('theme-vars')
+    if (cssText) {
+      const styleElement = currentThemeStyle instanceof HTMLStyleElement
+        ? currentThemeStyle
+        : document.createElement('style')
+
+      styleElement.id = 'theme-vars'
+      styleElement.textContent = cssText
+
+      if (!currentThemeStyle) {
+        document.body.prepend(styleElement)
+      }
+      return
+    }
+
+    if (currentThemeStyle) {
+      currentThemeStyle.remove()
+    }
+  }
+
+  useEffect(() => {
+    const rootElement = document.documentElement
+    const currentThemeStyle = document.getElementById('theme-vars')
+
+    persistedThemeRef.current = {
+      preset: rootElement.getAttribute('data-theme-preset'),
+      cssText: currentThemeStyle instanceof HTMLStyleElement ? currentThemeStyle.textContent ?? '' : null,
+    }
+
+    return () => {
+      const persistedTheme = persistedThemeRef.current
+      if (!persistedTheme) {
+        return
+      }
+
+      if (persistedTheme.preset) {
+        rootElement.setAttribute('data-theme-preset', persistedTheme.preset)
+      }
+      else {
+        rootElement.removeAttribute('data-theme-preset')
+      }
+
+      const latestThemeStyle = document.getElementById('theme-vars')
+      if (persistedTheme.cssText !== null) {
+        const styleElement = latestThemeStyle instanceof HTMLStyleElement
+          ? latestThemeStyle
+          : document.createElement('style')
+
+        styleElement.id = 'theme-vars'
+        styleElement.textContent = persistedTheme.cssText
+
+        if (!latestThemeStyle) {
+          document.body.prepend(styleElement)
+        }
+      }
+      else if (latestThemeStyle) {
+        latestThemeStyle.remove()
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    applyThemeToDocument(parsedPreset, draftCssText)
+  }, [draftCssText, parsedPreset])
 
   useEffect(() => {
     const transitionedToIdle = wasPendingRef.current && !isPending
 
     if (transitionedToIdle && state.error === null) {
-      const rootElement = document.documentElement
-      rootElement.setAttribute('data-theme-preset', parsedPreset)
-
-      const cssText = buildThemeCssText(lightOverrides, darkOverrides, radiusValidation.value)
-      const currentThemeStyle = document.getElementById('theme-vars')
-
-      if (cssText) {
-        const styleElement = currentThemeStyle instanceof HTMLStyleElement
-          ? currentThemeStyle
-          : document.createElement('style')
-
-        styleElement.id = 'theme-vars'
-        styleElement.textContent = cssText
-
-        if (!currentThemeStyle) {
-          document.body.prepend(styleElement)
-        }
-      }
-      else if (currentThemeStyle) {
-        currentThemeStyle.remove()
+      persistedThemeRef.current = {
+        preset: parsedPreset,
+        cssText: draftCssText || null,
       }
 
       toast.success(t('Theme settings updated successfully!'))
@@ -838,7 +901,7 @@ export default function AdminThemeSettingsForm({
     }
 
     wasPendingRef.current = isPending
-  }, [darkOverrides, isPending, lightOverrides, parsedPreset, radiusValidation.value, state.error, t])
+  }, [draftCssText, isPending, parsedPreset, state.error, t])
 
   return (
     <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
@@ -851,7 +914,7 @@ export default function AdminThemeSettingsForm({
         <div className="grid items-start gap-6 self-start">
           <div className="grid gap-2">
             <Label htmlFor="theme-preset">{t('Preset')}</Label>
-            <Select value={preset} onValueChange={setPreset} disabled={isPending}>
+            <Select value={preset} onValueChange={handlePresetChange} disabled={isPending}>
               <SelectTrigger id="theme-preset" className="h-12! w-full">
                 <SelectValue placeholder={t('Select preset')} />
               </SelectTrigger>
