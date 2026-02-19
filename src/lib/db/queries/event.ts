@@ -1218,6 +1218,7 @@ export const EventRepository = {
           markets: {
             columns: {
               icon_url: true,
+              is_resolved: true,
             },
             with: {
               condition: {
@@ -1239,6 +1240,15 @@ export const EventRepository = {
       const results = relatedEvents
         .filter((event) => {
           if (event.markets.length !== 1) {
+            return false
+          }
+
+          if (event.status === 'resolved' || event.status === 'archived') {
+            return false
+          }
+
+          const market = event.markets[0]
+          if (market?.is_resolved) {
             return false
           }
 
