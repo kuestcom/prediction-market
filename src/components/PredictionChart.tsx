@@ -1587,7 +1587,9 @@ export function PredictionChart({
                       textAnchor,
                       dy: showXAxisTopRule ? '1.05em' : '0.6em',
                       opacity: hideFirstMonthLabel ? 0 : axisLabelOpacity,
-                      fontVariantNumeric: 'tabular-nums',
+                      style: {
+                        fontVariantNumeric: 'tabular-nums',
+                      },
                     }
                   }}
                   numTicks={xAxisTickCount}
