@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import { withSentryConfig } from '@sentry/nextjs'
 import { createMDX } from 'fumadocs-mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
 import siteUrlUtils from './src/lib/site-url'
@@ -90,4 +91,9 @@ const withNextIntl = createNextIntlPlugin({
   },
 })
 
-export default withNextIntl(withMDX(config))
+export default withSentryConfig(withNextIntl(withMDX(config)), {
+  org: 'kuest',
+  project: 'prediction-market',
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+})

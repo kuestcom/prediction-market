@@ -285,9 +285,7 @@ export default function EventSeriesPills({
               <DropdownMenuContent
                 side="top"
                 align="start"
-                className="
-                  z-20 max-h-80 min-w-44 overflow-y-auto rounded-lg p-0.5
-                "
+                className="z-20 max-h-80 min-w-44 overflow-y-auto rounded-lg p-0.5"
               >
                 {pastResolvedEvents.map((event) => {
                   const isCurrentEvent = event.slug === currentEventSlug
