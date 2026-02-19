@@ -597,6 +597,7 @@ export default function EventLiveSeriesChart({
   const config = inputConfig
   const { width: windowWidth } = useWindowSize()
   const liveColor = config.line_color || '#F59E0B'
+  const priceDisplayDigits = config.show_price_decimals ? 2 : 0
   const subscriptionSymbol = useMemo(
     () => normalizeSubscriptionSymbol(config.topic, config.symbol),
     [config.symbol, config.topic],
@@ -980,13 +981,18 @@ export default function EventLiveSeriesChart({
   }, [data.length, fallbackCurrentPrice, nowMs, referenceSnapshot?.latest_source_timestamp_ms])
 
   const tradingWindowMs = useMemo(() => {
+    const configuredWindowMinutes = Number(config.active_window_minutes)
+    if (Number.isFinite(configuredWindowMinutes) && configuredWindowMinutes > 0) {
+      return configuredWindowMinutes * 60 * 1000
+    }
+
     const fromSnapshot = Number(referenceSnapshot?.interval_ms)
     if (Number.isFinite(fromSnapshot) && fromSnapshot > 0) {
       return fromSnapshot
     }
 
     return inferIntervalMsFromSeriesSlug(config.series_slug)
-  }, [config.series_slug, referenceSnapshot?.interval_ms])
+  }, [config.active_window_minutes, config.series_slug, referenceSnapshot?.interval_ms])
   const tradingWindowStartMs = endTimestamp - tradingWindowMs
   const isTradingWindowActive = !isEventClosed && nowMs >= tradingWindowStartMs
 
@@ -1226,7 +1232,7 @@ export default function EventLiveSeriesChart({
                       Price To Beat
                     </div>
                     <div className="mt-1 text-2xl leading-none font-semibold text-muted-foreground tabular-nums">
-                      {resolvedBaselinePrice != null ? formatUsd(resolvedBaselinePrice, 2) : '--'}
+                      {resolvedBaselinePrice != null ? formatUsd(resolvedBaselinePrice, priceDisplayDigits) : '--'}
                     </div>
                   </div>
                   <div className="hidden h-10 w-px bg-border sm:block" />
@@ -1246,7 +1252,7 @@ export default function EventLiveSeriesChart({
                             fill="currentColor"
                             stroke="none"
                           />
-                          {formatUsd(Math.abs(delta), 2)}
+                          {formatUsd(Math.abs(delta), priceDisplayDigits)}
                         </span>
                       )}
                     </div>
@@ -1254,7 +1260,7 @@ export default function EventLiveSeriesChart({
                       className="mt-1 text-2xl leading-none font-semibold tabular-nums"
                       style={{ color: liveColor }}
                     >
-                      {currentPrice != null ? formatUsd(currentPrice, 2) : '--'}
+                      {currentPrice != null ? formatUsd(currentPrice, priceDisplayDigits) : '--'}
                     </div>
                   </div>
                 </div>
@@ -1413,6 +1419,7 @@ export default function EventLiveSeriesChart({
                   })}
                   showVerticalGrid={false}
                   showHorizontalGrid
+                  gridLineStyle="solid"
                   showLegend={false}
                   xAxisTickFontSize={13}
                   yAxisTickFontSize={13}
@@ -1430,9 +1437,9 @@ export default function EventLiveSeriesChart({
                     min: axisValues.min,
                     max: axisValues.max,
                     ticks: axisValues.ticks,
-                    tickFormat: value => formatUsd(value, 2),
+                    tickFormat: value => formatUsd(value, priceDisplayDigits),
                   }}
-                  tooltipValueFormatter={value => formatUsd(value, 2)}
+                  tooltipValueFormatter={value => formatUsd(value, priceDisplayDigits)}
                   tooltipDateFormatter={date => date.toLocaleString('en-US', {
                     month: 'short',
                     day: 'numeric',

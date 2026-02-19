@@ -114,6 +114,8 @@ export const event_live_chart_configs = pgTable(
     line_color: text().notNull().default('#F59E0B'),
     icon_path: text(),
     enabled: boolean().notNull().default(true),
+    show_price_decimals: boolean().notNull().default(true),
+    active_window_minutes: integer().notNull().default(1440),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },

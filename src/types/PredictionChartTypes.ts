@@ -37,6 +37,7 @@ export interface PredictionChartProps {
   showYAxis?: boolean
   showHorizontalGrid?: boolean
   showVerticalGrid?: boolean
+  gridLineStyle?: 'dashed' | 'solid'
   showAnnotations?: boolean
   leadingGapStart?: Date | null
   legendContent?: ReactNode

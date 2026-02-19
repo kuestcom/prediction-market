@@ -53,6 +53,8 @@ export interface EventLiveChartConfig {
   line_color: string
   icon_path: string | null
   enabled: boolean
+  show_price_decimals: boolean
+  active_window_minutes: number
 }
 
 export interface ConditionChangeLogEntry {

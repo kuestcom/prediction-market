@@ -1164,6 +1164,8 @@ export const EventRepository = {
           line_color: event_live_chart_configs.line_color,
           icon_path: event_live_chart_configs.icon_path,
           enabled: event_live_chart_configs.enabled,
+          show_price_decimals: event_live_chart_configs.show_price_decimals,
+          active_window_minutes: event_live_chart_configs.active_window_minutes,
         })
         .from(event_live_chart_configs)
         .where(eq(event_live_chart_configs.series_slug, normalizedSeriesSlug))

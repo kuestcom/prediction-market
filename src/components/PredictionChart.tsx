@@ -149,6 +149,7 @@ export function PredictionChart({
   showYAxis = true,
   showHorizontalGrid = true,
   showVerticalGrid = false,
+  gridLineStyle = 'dashed',
   showAnnotations: _showAnnotations = true,
   leadingGapStart = null,
   legendContent,
@@ -1108,6 +1109,7 @@ export function PredictionChart({
     : GRID_LINE_OPACITY_LIGHT
   const axisLabelColor = gridLineColor
   const axisLabelOpacity = Math.min(1, gridLineOpacity + 0.25)
+  const gridLineDasharray = gridLineStyle === 'dashed' ? '1,3' : undefined
   const leadingGapStartMs = leadingGapStart instanceof Date ? leadingGapStart.getTime() : Number.NaN
   const clipPadding = 2
   const resolvedCursorGuideTop = typeof cursorGuideTop === 'number'
@@ -1186,7 +1188,7 @@ export function PredictionChart({
                   y2={innerHeight}
                   stroke={gridLineColor}
                   strokeWidth={1}
-                  strokeDasharray="1,3"
+                  strokeDasharray={gridLineDasharray}
                   opacity={gridLineOpacity}
                 />
               )
@@ -1201,7 +1203,7 @@ export function PredictionChart({
                 y2={yScale(value)}
                 stroke={gridLineColor}
                 strokeWidth={1}
-                strokeDasharray="1,3"
+                strokeDasharray={gridLineDasharray}
                 opacity={gridLineOpacity}
               />
             ))}
