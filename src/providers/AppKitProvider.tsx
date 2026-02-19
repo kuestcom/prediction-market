@@ -15,6 +15,7 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { defaultNetwork, networks, projectId, wagmiAdapter, wagmiConfig } from '@/lib/appkit'
 import { authClient } from '@/lib/auth-client'
 import { IS_BROWSER } from '@/lib/constants'
+import { buildTwoFactorRedirectPath, localizePathname, stripLocalePrefix } from '@/lib/locale-path'
 import { clearBrowserStorage, clearNonHttpOnlyCookies } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
@@ -131,9 +132,9 @@ function initializeAppKitSingleton(
             })
             // @ts-expect-error does not recognize twoFactorRedirect
             if (data?.twoFactorRedirect && typeof window !== 'undefined') {
-              if (window.location.pathname !== '/2fa' && hasSiweTwoFactorIntentCookie()) {
+              if (stripLocalePrefix(window.location.pathname) !== '/2fa' && hasSiweTwoFactorIntentCookie()) {
                 clearSiweTwoFactorIntentCookie()
-                window.location.href = '/2fa'
+                window.location.href = buildTwoFactorRedirectPath(window.location.pathname, window.location.search)
               }
               return false
             }
@@ -179,7 +180,7 @@ function initializeAppKitSingleton(
         onSignOut: () => {
           clearAppKitLocalStorage()
           if (IS_BROWSER) {
-            window.location.href = '/auth/reset'
+            window.location.href = localizePathname('/auth/reset', window.location.pathname)
           }
         },
       }),

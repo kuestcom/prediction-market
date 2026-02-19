@@ -8,10 +8,6 @@ const intlMiddleware = createMiddleware(routing)
 const protectedPrefixes = ['/settings', '/portfolio', '/admin']
 type Locale = (typeof routing.locales)[number]
 
-function isLocale(value: string): value is Locale {
-  return routing.locales.includes(value as Locale)
-}
-
 function getLocaleFromPathname(pathname: string): Locale | null {
   for (const locale of routing.locales) {
     if (pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)) {
@@ -21,51 +17,8 @@ function getLocaleFromPathname(pathname: string): Locale | null {
   return null
 }
 
-function getLocaleFromCookie(request: NextRequest): Locale | null {
-  const locale = request.cookies.get('NEXT_LOCALE')?.value
-  if (locale && isLocale(locale)) {
-    return locale
-  }
-  return null
-}
-
-function getLocaleFromAcceptLanguage(headerValue: string | null): Locale | null {
-  if (!headerValue) {
-    return null
-  }
-  const candidates = headerValue
-    .split(',')
-    .map((value) => {
-      const [tag, qValue] = value.trim().toLowerCase().split(';q=')
-      if (!tag) {
-        return null
-      }
-      const q = qValue ? Number(qValue) : 1
-      return { tag, q: Number.isNaN(q) ? 0 : q }
-    })
-    .filter((candidate): candidate is { tag: string, q: number } => Boolean(candidate))
-    .sort((a, b) => b.q - a.q)
-
-  for (const candidate of candidates) {
-    if (isLocale(candidate.tag)) {
-      return candidate.tag
-    }
-    const base = candidate.tag.split('-')[0]
-    if (isLocale(base)) {
-      return base
-    }
-  }
-
-  return null
-}
-
 function resolveRequestLocale(request: NextRequest, pathnameLocale: Locale | null): Locale {
-  return (
-    pathnameLocale
-    ?? getLocaleFromCookie(request)
-    ?? getLocaleFromAcceptLanguage(request.headers.get('accept-language'))
-    ?? routing.defaultLocale
-  )
+  return pathnameLocale ?? routing.defaultLocale
 }
 
 function stripLocale(pathname: string, locale: Locale | null) {
@@ -106,7 +59,10 @@ export default async function proxy(request: NextRequest) {
 
   if (!session) {
     if (hasTwoFactorCookie) {
-      return NextResponse.redirect(new URL(withLocale('/2fa', locale), request.url))
+      const twoFactorUrl = new URL(withLocale('/2fa', locale), request.url)
+      const localizedPathname = withLocale(pathname, locale)
+      twoFactorUrl.searchParams.set('next', `${localizedPathname}${url.search}`)
+      return NextResponse.redirect(twoFactorUrl)
     }
     return NextResponse.redirect(new URL(withLocale('/', locale), request.url))
   }

@@ -1,11 +1,11 @@
 import { ArrowDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
 import { usePendingUsdcDeposit } from '@/hooks/usePendingUsdcDeposit'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
+import { Link } from '@/i18n/navigation'
 import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 
 export default function HeaderPortfolio() {

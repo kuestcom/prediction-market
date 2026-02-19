@@ -19,7 +19,7 @@ describe('authClient', () => {
   it('wires the 2FA redirect callback', async () => {
     const originalLocation = window.location
     Object.defineProperty(window, 'location', {
-      value: { href: '' },
+      value: { href: '', pathname: '/pt/portfolio', search: '?tab=open' },
       writable: true,
     })
 
@@ -34,7 +34,12 @@ describe('authClient', () => {
       expect(twoFactorPlugin.name).toBe('2fa')
 
       twoFactorPlugin.options.onTwoFactorRedirect()
-      expect(window.location.href).toBe('/2fa')
+      expect(window.location.href).toBe('/pt/2fa?next=%2Fpt%2Fportfolio%3Ftab%3Dopen')
+
+      window.location.pathname = '/portfolio'
+      window.location.search = ''
+      twoFactorPlugin.options.onTwoFactorRedirect()
+      expect(window.location.href).toBe('/2fa?next=%2Fportfolio')
     }
     finally {
       Object.defineProperty(window, 'location', { value: originalLocation })
