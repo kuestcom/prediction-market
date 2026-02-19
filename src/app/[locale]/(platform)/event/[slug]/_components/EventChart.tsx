@@ -566,6 +566,7 @@ function EventChartComponent({
   const normalizedHistory = showBothOutcomes
     ? bothOutcomeHistory.points
     : chartHistory.normalizedHistory
+  const leadingGapStart = normalizedHistory[0]?.date ?? null
   const latestSnapshot = showBothOutcomes
     ? bothOutcomeHistory.latestSnapshot
     : chartHistory.latestSnapshot
@@ -824,9 +825,11 @@ function EventChartComponent({
               showHorizontalGrid={chartSettings.horizontalGrid}
               showVerticalGrid={chartSettings.verticalGrid}
               showAnnotations={chartSettings.annotations}
+              leadingGapStart={leadingGapStart}
               legendContent={legendContent}
               showLegend={!isSingleMarket}
               watermark={isSingleMarket ? undefined : watermark}
+              lineCurve="monotoneX"
             />
             {hasTradeFlowLabels
               ? (
