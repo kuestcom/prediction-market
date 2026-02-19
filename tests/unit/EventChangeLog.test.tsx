@@ -1,6 +1,5 @@
 import type { ConditionChangeLogEntry, Market } from '@/types'
 import { render, screen } from '@testing-library/react'
-import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('next-intl', () => ({

@@ -117,7 +117,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
     deleteReply(commentId, replyId)
   }, [deleteReply])
 
-  const handleUpdateReply = useCallback((commentId: string, replyId: string) => {
+  const handleUpdateReply = useCallback((_: string, replyId: string) => {
     toggleReplyLike(replyId)
   }, [toggleReplyLike])
 

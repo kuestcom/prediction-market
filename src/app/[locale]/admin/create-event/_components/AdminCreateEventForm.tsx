@@ -1,7 +1,6 @@
 'use client'
 
 import type { ChangeEvent } from 'react'
-import type { MarketMode } from '@/app/[locale]/admin/create-event/_data/marketExamples'
 import { useAppKitAccount } from '@reown/appkit/react'
 import {
   ArrowLeftIcon,
@@ -45,6 +44,8 @@ import { defaultNetwork } from '@/lib/appkit'
 import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID, POLYGON_SCAN_BASE } from '@/lib/network'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
+
+type MarketMode = 'binary' | 'multi_multiple' | 'multi_unique'
 
 const TOTAL_STEPS = 5
 const MIN_SUB_CATEGORIES = 4

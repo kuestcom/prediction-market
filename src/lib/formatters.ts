@@ -326,20 +326,6 @@ export function formatSharePriceLabel(
   })
 }
 
-export function formatPosition(amountMicro: string): string {
-  const amount = Number.parseFloat(fromMicro(amountMicro))
-  if (amount < 1_000) {
-    return amount.toString()
-  }
-
-  if (amount < MICRO_UNIT) {
-    return Math.floor(amount).toLocaleString(DEFAULT_LOCALE)
-  }
-
-  const millions = amount / MICRO_UNIT
-  return `${millions.toFixed(1)}M`
-}
-
 export function toCents(value?: string | number | null) {
   if (value === null || value === undefined) {
     return null

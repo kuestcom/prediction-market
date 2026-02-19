@@ -1,4 +1,4 @@
-import type { ActivityOrder, PublicActivity, UserPosition } from '@/types'
+import type { ActivityOrder, UserPosition } from '@/types'
 import { MICRO_UNIT } from '@/lib/constants'
 
 interface DataApiRequestParams {
@@ -174,36 +174,6 @@ function buildActivityId(activity: DataApiActivity, slugFallback: string): strin
   append(activity.timestamp)
 
   return parts.join(':')
-}
-
-export function mapDataApiActivityToPublicActivity(activity: DataApiActivity): PublicActivity {
-  const slug = activity.slug || activity.conditionId || 'unknown-market'
-  const eventSlug = activity.eventSlug || slug
-  const timestampMs = typeof activity.timestamp === 'number'
-    ? activity.timestamp * 1000
-    : Date.now()
-  const usdcValue = normalizeUsd(activity.usdcSize)
-  const baseShares = Number.isFinite(activity.size) ? Number(activity.size) : undefined
-  const shares = baseShares != null && activity.type?.toLowerCase() === 'split'
-    ? baseShares * 2
-    : baseShares
-
-  return {
-    id: buildActivityId(activity, slug),
-    title: activity.title || 'Untitled market',
-    slug,
-    eventSlug,
-    icon: activity.icon,
-    type: activity.type?.toLowerCase() || 'trade',
-    outcomeText: activity.outcomeIndex != null
-      ? (activity.outcomeIndex === 0 ? 'Yes' : 'No')
-      : activity.outcome,
-    price: Number.isFinite(activity.price) ? Number(activity.price) : undefined,
-    shares,
-    usdcValue,
-    timestamp: timestampMs,
-    txHash: activity.transactionHash,
-  }
 }
 
 export function mapDataApiActivityToActivityOrder(activity: DataApiActivity): ActivityOrder {

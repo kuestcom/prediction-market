@@ -1,9 +1,9 @@
 import type { MergeableMarket } from '@/app/[locale]/(platform)/[username]/_components/MergePositionsDialog'
 import type { PublicPosition } from '@/app/[locale]/(platform)/[username]/_components/PublicPositionItem'
-import type { ConditionShares, PositionsTotals, ShareCardPayload, ShareCardVariant, SortDirection, SortOption } from '@/app/[locale]/(platform)/[username]/_types/PublicPositionsTypes'
+import type { ConditionShares, PositionsTotals, SortDirection, SortOption } from '@/app/[locale]/(platform)/[username]/_types/PublicPositionsTypes'
 import { fetchUserOpenOrders } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
-import { formatCentsLabel, formatCurrency, formatPercent } from '@/lib/formatters'
+import { formatCurrency } from '@/lib/formatters'
 
 export interface DataApiPosition {
   proxyWallet?: string
@@ -42,58 +42,6 @@ export function getOutcomeLabel(position: PublicPosition) {
     return position.outcome
   }
   return position.outcomeIndex === OUTCOME_INDEX.NO ? 'No' : 'Yes'
-}
-
-export function getOutcomeVariant(position: PublicPosition): ShareCardVariant {
-  if (position.outcomeIndex === OUTCOME_INDEX.NO) {
-    return 'no'
-  }
-  const label = getOutcomeLabel(position).toLowerCase()
-  return label.includes('no') ? 'no' : 'yes'
-}
-
-export function buildShareCardPayload(position: PublicPosition): ShareCardPayload {
-  const avgPrice = position.avgPrice ?? 0
-  const shares = position.size ?? 0
-  const tradeValue = shares * avgPrice
-  const toWinValue = shares
-  const nowPrice = Number.isFinite(position.curPrice) && position.curPrice !== undefined
-    ? position.curPrice!
-    : avgPrice
-  const outcome = getOutcomeLabel(position)
-  const imageUrl = position.icon ? `https://gateway.irys.xyz/${position.icon}` : undefined
-
-  return {
-    title: position.title || 'Untitled market',
-    outcome,
-    avgPrice: formatCentsLabel(avgPrice, { fallback: '—' }),
-    odds: formatPercent(nowPrice * 100, { digits: 0 }),
-    cost: formatCurrencyValue(tradeValue),
-    invested: formatCurrencyValue(tradeValue),
-    toWin: formatCurrencyValue(toWinValue),
-    imageUrl,
-    variant: getOutcomeVariant(position),
-    eventSlug: position.eventSlug || position.slug,
-  }
-}
-
-export function buildShareCardUrl(payload: ShareCardPayload) {
-  const encodedPayload = encodeSharePayload(payload)
-  const params = new URLSearchParams({
-    position: encodedPayload,
-  })
-  return `/api/og?${params.toString()}`
-}
-
-function encodeSharePayload(payload: ShareCardPayload) {
-  const json = JSON.stringify(payload)
-  const bytes = new TextEncoder().encode(json)
-  let binary = ''
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte)
-  })
-  const base64 = btoa(binary)
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 
 export function getTradeValue(position: PublicPosition) {

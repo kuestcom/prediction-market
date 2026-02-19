@@ -17,7 +17,7 @@ function getLocaleFromPathname(pathname: string): Locale | null {
   return null
 }
 
-function resolveRequestLocale(request: NextRequest, pathnameLocale: Locale | null): Locale {
+function resolveRequestLocale(pathnameLocale: Locale | null): Locale {
   return pathnameLocale ?? routing.defaultLocale
 }
 
@@ -40,7 +40,7 @@ export default async function proxy(request: NextRequest) {
   const url = new URL(request.url)
   const pathnameLocale = getLocaleFromPathname(url.pathname)
   const pathname = stripLocale(url.pathname, pathnameLocale)
-  const locale = resolveRequestLocale(request, pathnameLocale)
+  const locale = resolveRequestLocale(pathnameLocale)
   const isProtected = protectedPrefixes.some(
     prefix => pathname === prefix || pathname.startsWith(`${prefix}/`),
   )

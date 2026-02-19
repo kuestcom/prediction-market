@@ -119,59 +119,6 @@ export function runRevealAnimation({
   frameRef.current = requestAnimationFrame(step)
 }
 
-export function interpolateSeriesPoint(
-  targetDate: Date,
-  previousPoint: DataPoint | null,
-  nextPoint: DataPoint | null,
-  series: SeriesConfig[],
-): DataPoint | null {
-  if (!previousPoint && !nextPoint) {
-    return null
-  }
-
-  const targetTime = targetDate.getTime()
-
-  if (nextPoint && targetTime === nextPoint.date.getTime()) {
-    return nextPoint
-  }
-
-  if (previousPoint && targetTime === previousPoint.date.getTime()) {
-    return previousPoint
-  }
-
-  if (!previousPoint || !nextPoint) {
-    return previousPoint ?? nextPoint ?? null
-  }
-
-  const prevTime = previousPoint.date.getTime()
-  const nextTime = nextPoint.date.getTime()
-  const denominator = nextTime - prevTime
-
-  if (denominator === 0) {
-    return previousPoint
-  }
-
-  const ratio = (targetTime - prevTime) / denominator
-  const interpolated: DataPoint = { date: targetDate }
-
-  series.forEach((seriesItem) => {
-    const prevValue = previousPoint[seriesItem.key]
-    const nextValue = nextPoint[seriesItem.key]
-
-    if (typeof prevValue === 'number' && typeof nextValue === 'number') {
-      interpolated[seriesItem.key] = prevValue + (nextValue - prevValue) * ratio
-    }
-    else if (typeof prevValue === 'number') {
-      interpolated[seriesItem.key] = prevValue
-    }
-    else if (typeof nextValue === 'number') {
-      interpolated[seriesItem.key] = nextValue
-    }
-  })
-
-  return interpolated
-}
-
 function collectSeriesValues(data: DataPoint[], series: SeriesConfig[]) {
   const values: number[] = []
   data.forEach((point) => {

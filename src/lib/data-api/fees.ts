@@ -64,20 +64,6 @@ export async function fetchFeeReceiverTotals({
   return response.json() as Promise<FeeReceiverTotal[]>
 }
 
-export function sumFeeTotalsByToken(totals: FeeReceiverTotal[], tokenId: string): bigint {
-  return totals.reduce((acc, total) => {
-    if (total.tokenId === tokenId) {
-      try {
-        return acc + BigInt(total.totalAmount)
-      }
-      catch {
-        return acc
-      }
-    }
-    return acc
-  }, 0n)
-}
-
 export function sumFeeTotals(totals: FeeReceiverTotal[]): bigint {
   return totals.reduce((acc, total) => {
     try {

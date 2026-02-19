@@ -206,7 +206,7 @@ export function DataTable<TData, TValue>({
               ? (
                   Array.from({ length: 10 }).map((_, index) => (
                     <TableRow key={`skeleton-${index}`}>
-                      {columns.map((column, colIndex) => (
+                      {columns.map((_, colIndex) => (
                         <TableCell key={`skeleton-${index}-${colIndex}`} className="px-1 sm:px-2">
                           <Skeleton className="h-4 w-full" />
                         </TableCell>
