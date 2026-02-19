@@ -38,6 +38,7 @@ export interface PredictionChartProps {
   showHorizontalGrid?: boolean
   showVerticalGrid?: boolean
   gridLineStyle?: 'dashed' | 'solid'
+  gridLineOpacity?: number
   showAnnotations?: boolean
   leadingGapStart?: Date | null
   legendContent?: ReactNode
@@ -52,6 +53,8 @@ export interface PredictionChartProps {
   disableResetAnimation?: boolean
   markerOuterRadius?: number
   markerInnerRadius?: number
+  markerOffsetX?: number
+  lineEndOffsetX?: number
   lineStrokeWidth?: number
   lineCurve?: 'catmullRom' | 'monotoneX' | 'basis'
   showAreaFill?: boolean

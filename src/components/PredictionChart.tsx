@@ -150,6 +150,7 @@ export function PredictionChart({
   showHorizontalGrid = true,
   showVerticalGrid = false,
   gridLineStyle = 'dashed',
+  gridLineOpacity: gridLineOpacityOverride,
   showAnnotations: _showAnnotations = true,
   leadingGapStart = null,
   legendContent,
@@ -159,6 +160,8 @@ export function PredictionChart({
   disableResetAnimation = false,
   markerOuterRadius = 6,
   markerInnerRadius = 2.8,
+  markerOffsetX = 0,
+  lineEndOffsetX = 0,
   lineStrokeWidth = 1.6,
   lineCurve = 'catmullRom',
   showAreaFill = false,
@@ -1101,7 +1104,19 @@ export function PredictionChart({
   }
 
   function getX(d: DataPoint) {
-    return xScale(getDate(d))
+    const baseX = xScale(getDate(d))
+    const resolvedLineEndOffsetX = Number.isFinite(lineEndOffsetX) ? lineEndOffsetX : 0
+
+    if (resolvedLineEndOffsetX === 0 || data.length === 0) {
+      return baseX
+    }
+
+    const lastTimestamp = data[data.length - 1]?.date.getTime()
+    if (!Number.isFinite(lastTimestamp) || d.date.getTime() !== lastTimestamp) {
+      return baseX
+    }
+
+    return baseX + resolvedLineEndOffsetX
   }
 
   function getSeriesValue(point: DataPoint, seriesKey: string) {
@@ -1127,11 +1142,14 @@ export function PredictionChart({
   const gridLineColor = isDarkMode
     ? GRID_LINE_COLOR_DARK
     : GRID_LINE_COLOR_LIGHT
-  const gridLineOpacity = isDarkMode
+  const defaultGridLineOpacity = isDarkMode
     ? GRID_LINE_OPACITY_DARK
     : GRID_LINE_OPACITY_LIGHT
+  const resolvedGridLineOpacity = typeof gridLineOpacityOverride === 'number' && Number.isFinite(gridLineOpacityOverride)
+    ? clamp01(gridLineOpacityOverride)
+    : defaultGridLineOpacity
   const axisLabelColor = gridLineColor
-  const axisLabelOpacity = Math.min(1, gridLineOpacity + 0.25)
+  const axisLabelOpacity = Math.min(1, defaultGridLineOpacity + 0.25)
   const gridLineDasharray = gridLineStyle === 'dashed' ? '1,3' : undefined
   const leadingGapStartMs = leadingGapStart instanceof Date ? leadingGapStart.getTime() : Number.NaN
   const clipPadding = 2
@@ -1212,7 +1230,7 @@ export function PredictionChart({
                   stroke={gridLineColor}
                   strokeWidth={1}
                   strokeDasharray={gridLineDasharray}
-                  opacity={gridLineOpacity}
+                  opacity={resolvedGridLineOpacity}
                 />
               )
             })}
@@ -1227,7 +1245,7 @@ export function PredictionChart({
                 stroke={gridLineColor}
                 strokeWidth={1}
                 strokeDasharray={gridLineDasharray}
-                opacity={gridLineOpacity}
+                opacity={resolvedGridLineOpacity}
               />
             ))}
 
@@ -1286,7 +1304,7 @@ export function PredictionChart({
                   {crossFadeActive && crossFadeData && crossFadeData.length > 1 && (
                     <LinePath<DataPoint>
                       data={crossFadeData}
-                      x={d => xScale(getDate(d))}
+                      x={d => getX(d)}
                       y={d => getSeriesY(d, seriesItem.key)}
                       defined={d => hasSeriesValue(d, seriesItem.key)}
                       stroke={seriesColor}
@@ -1302,7 +1320,7 @@ export function PredictionChart({
                   {dashedMutedPoints && (
                     <LinePath<DataPoint>
                       data={dashedMutedPoints}
-                      x={d => xScale(getDate(d))}
+                      x={d => getX(d)}
                       y={d => getSeriesY(d, seriesItem.key)}
                       defined={d => hasSeriesValue(d, seriesItem.key)}
                       stroke={futureLineColor}
@@ -1319,7 +1337,7 @@ export function PredictionChart({
                   {dashedColoredPoints && (
                     <LinePath<DataPoint>
                       data={dashedColoredPoints}
-                      x={d => xScale(getDate(d))}
+                      x={d => getX(d)}
                       y={d => getSeriesY(d, seriesItem.key)}
                       defined={d => hasSeriesValue(d, seriesItem.key)}
                       stroke={seriesColor}
@@ -1338,7 +1356,7 @@ export function PredictionChart({
                         <>
                           <LinePath<DataPoint>
                             data={data}
-                            x={d => xScale(getDate(d))}
+                            x={d => getX(d)}
                             y={d => getSeriesY(d, seriesItem.key)}
                             defined={d => hasSeriesValue(d, seriesItem.key)}
                             stroke={futureLineColor}
@@ -1352,7 +1370,7 @@ export function PredictionChart({
                           />
                           <LinePath<DataPoint>
                             data={data}
-                            x={d => xScale(getDate(d))}
+                            x={d => getX(d)}
                             y={d => getSeriesY(d, seriesItem.key)}
                             defined={d => hasSeriesValue(d, seriesItem.key)}
                             stroke={seriesColor}
@@ -1372,7 +1390,7 @@ export function PredictionChart({
                           {seriesMutedPoints.length > 1 && (
                             <LinePath<DataPoint>
                               data={seriesMutedPoints}
-                              x={d => xScale(getDate(d))}
+                              x={d => getX(d)}
                               y={d => getSeriesY(d, seriesItem.key)}
                               defined={d => hasSeriesValue(d, seriesItem.key)}
                               stroke={futureLineColor}
@@ -1391,7 +1409,7 @@ export function PredictionChart({
                   {!shouldSplitByCursor && seriesColoredPoints.length > 1 && (
                     <LinePath<DataPoint>
                       data={seriesColoredPoints}
-                      x={d => xScale(getDate(d))}
+                      x={d => getX(d)}
                       y={d => getSeriesY(d, seriesItem.key)}
                       defined={d => hasSeriesValue(d, seriesItem.key)}
                       curve={resolvedLineCurve}
@@ -1409,7 +1427,7 @@ export function PredictionChart({
                           && finiteColoredPoints.length > 1
                           && finiteColoredPoints.length === seriesColoredPoints.length
                         const areaPathDefinition = canRenderAreaFill && firstColoredPoint && lastColoredPoint
-                          ? `${pathDefinition} L ${xScale(getDate(lastColoredPoint))} ${innerHeight} L ${xScale(getDate(firstColoredPoint))} ${innerHeight} Z`
+                          ? `${pathDefinition} L ${getX(lastColoredPoint)} ${innerHeight} L ${getX(firstColoredPoint)} ${innerHeight} Z`
                           : null
 
                         return (
@@ -1477,7 +1495,8 @@ export function PredictionChart({
                 if (typeof value !== 'number' || !Number.isFinite(value)) {
                   return null
                 }
-                const cx = getX(lastDataPoint)
+                const resolvedMarkerOffsetX = Number.isFinite(markerOffsetX) ? markerOffsetX : 0
+                const cx = xScale(getDate(lastDataPoint)) + resolvedMarkerOffsetX
                 const cy = yScale(value)
 
                 return (
@@ -1539,7 +1558,7 @@ export function PredictionChart({
                     y2={innerHeight}
                     stroke={gridLineColor}
                     strokeWidth={1}
-                    opacity={Math.min(1, gridLineOpacity + 0.2)}
+                    opacity={Math.min(1, resolvedGridLineOpacity + 0.2)}
                   />
                 )}
                 <AxisBottom

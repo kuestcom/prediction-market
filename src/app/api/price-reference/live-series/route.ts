@@ -92,6 +92,34 @@ function toFiniteNumber(value: unknown) {
   return Number.isFinite(numeric) ? numeric : null
 }
 
+function toPositiveInteger(value: string) {
+  const numeric = Number.parseInt(value, 10)
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return null
+  }
+  return numeric
+}
+
+function selectMostRecentRowAtOrBefore(rows: PriceReferenceHistoryRow[], targetMs: number) {
+  return rows.find(row => row.window_end_ms <= targetMs) ?? null
+}
+
+function sortAndFilterHistoryRows(
+  rows: PriceReferenceHistoryRow[] | undefined,
+  instrument: string,
+  interval: Interval,
+  source: Source,
+) {
+  return (rows ?? [])
+    .filter(row =>
+      row.instrument === instrument
+      && row.interval === interval
+      && row.source === source,
+    )
+    .slice()
+    .sort((a, b) => b.window_end_ms - a.window_end_ms)
+}
+
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url, {
     cache: 'no-store',
@@ -134,6 +162,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const seriesSlugParam = searchParams.get('seriesSlug')?.trim() ?? ''
   const eventEndMsParam = searchParams.get('eventEndMs')?.trim() ?? ''
+  const activeWindowMinutesParam = searchParams.get('activeWindowMinutes')?.trim() ?? ''
 
   if (!seriesSlugParam) {
     return NextResponse.json({ error: 'seriesSlug is required' }, { status: 400 })
@@ -154,20 +183,54 @@ export async function GET(request: Request) {
     }
 
     const intervalMs = intervalToMs(seriesEntry.interval)
-    const eventWindowEndMs = alignWindowEnd(eventEndMs, intervalMs)
-    const eventWindowStartMs = eventWindowEndMs - intervalMs
+    const defaultActiveWindowMinutes = Math.round(intervalMs / (60 * 1000))
+    const activeWindowMinutes = toPositiveInteger(activeWindowMinutesParam) ?? defaultActiveWindowMinutes
+    const activeWindowMs = activeWindowMinutes * 60 * 1000
 
-    const historyParams = new URLSearchParams({
+    // Price-to-beat baseline follows countdown logic: end timestamp minus configured active window.
+    const eventWindowStartMs = Math.max(0, eventEndMs - activeWindowMs)
+    const eventWindowEndMs = eventEndMs
+    // Daily markets should use a finer candle for "start of window" so baseline matches real market time.
+    const openingPreferredInterval: Interval = seriesEntry.interval === '1d' ? '5m' : seriesEntry.interval
+    const openingPreferredIntervalMs = intervalToMs(openingPreferredInterval)
+    const openingHistoryTargetMs = alignWindowEnd(eventWindowStartMs, openingPreferredIntervalMs)
+    const closingHistoryTargetMs = alignWindowEnd(eventWindowEndMs, intervalMs)
+    const shouldFetchOpeningFallback = openingPreferredInterval !== seriesEntry.interval
+    const openingFallbackTargetMs = shouldFetchOpeningFallback
+      ? alignWindowEnd(eventWindowStartMs, intervalMs)
+      : openingHistoryTargetMs
+
+    const openingHistoryParams = new URLSearchParams({
       instrument: seriesEntry.instrument,
-      interval: seriesEntry.interval,
-      from: String(Math.max(0, eventWindowEndMs - intervalMs * 3)),
-      to: String(eventWindowEndMs),
-      limit: '8',
+      interval: openingPreferredInterval,
+      from: String(Math.max(0, openingHistoryTargetMs - openingPreferredIntervalMs * 24)),
+      to: String(openingHistoryTargetMs),
+      limit: '96',
     })
 
-    const [latestPayload, historyPayload] = await Promise.all([
+    const openingFallbackParams = new URLSearchParams({
+      instrument: seriesEntry.instrument,
+      interval: seriesEntry.interval,
+      from: String(Math.max(0, openingFallbackTargetMs - intervalMs * 6)),
+      to: String(openingFallbackTargetMs),
+      limit: '24',
+    })
+
+    const closingHistoryParams = new URLSearchParams({
+      instrument: seriesEntry.instrument,
+      interval: seriesEntry.interval,
+      from: String(Math.max(0, closingHistoryTargetMs - intervalMs * 4)),
+      to: String(closingHistoryTargetMs),
+      limit: '16',
+    })
+
+    const [latestPayload, openingHistoryPayload, closingHistoryPayload, openingFallbackPayload] = await Promise.all([
       fetchJson<PriceReferenceLatestResponse>(`${PRICE_REFERENCE_BASE_URL}/marks/latest`),
-      fetchJson<PriceReferenceHistoryResponse>(`${PRICE_REFERENCE_BASE_URL}/marks/history?${historyParams.toString()}`),
+      fetchJson<PriceReferenceHistoryResponse>(`${PRICE_REFERENCE_BASE_URL}/marks/history?${openingHistoryParams.toString()}`),
+      fetchJson<PriceReferenceHistoryResponse>(`${PRICE_REFERENCE_BASE_URL}/marks/history?${closingHistoryParams.toString()}`),
+      shouldFetchOpeningFallback
+        ? fetchJson<PriceReferenceHistoryResponse>(`${PRICE_REFERENCE_BASE_URL}/marks/history?${openingFallbackParams.toString()}`)
+        : Promise.resolve<PriceReferenceHistoryResponse>({ rows: [] }),
     ])
 
     const latestMarket = (latestPayload.markets ?? []).find(market =>
@@ -175,27 +238,62 @@ export async function GET(request: Request) {
       && market.interval === seriesEntry.interval
       && market.source === seriesEntry.source,
     )
+    const latestOpeningMarket = (latestPayload.markets ?? []).find(market =>
+      market.instrument === seriesEntry.instrument
+      && market.interval === openingPreferredInterval
+      && market.source === seriesEntry.source,
+    )
 
-    const historyRows = (historyPayload.rows ?? [])
-      .filter(row =>
-        row.instrument === seriesEntry.instrument
-        && row.interval === seriesEntry.interval
-        && row.source === seriesEntry.source,
-      )
-      .slice()
-      .sort((a, b) => b.window_end_ms - a.window_end_ms)
+    const openingHistoryRows = sortAndFilterHistoryRows(
+      openingHistoryPayload.rows,
+      seriesEntry.instrument,
+      openingPreferredInterval,
+      seriesEntry.source,
+    )
+    const openingFallbackRows = sortAndFilterHistoryRows(
+      openingFallbackPayload.rows,
+      seriesEntry.instrument,
+      seriesEntry.interval,
+      seriesEntry.source,
+    )
+    const closingHistoryRows = sortAndFilterHistoryRows(
+      closingHistoryPayload.rows,
+      seriesEntry.instrument,
+      seriesEntry.interval,
+      seriesEntry.source,
+    )
 
-    const windowRow = historyRows.find(row => row.window_end_ms === eventWindowEndMs)
-    const openingWindowEndMs = eventWindowStartMs
-    const openingRow = historyRows.find(row => row.window_end_ms === openingWindowEndMs)
-      ?? historyRows.find(row => row.window_end_ms < eventWindowEndMs)
+    const openingRow = selectMostRecentRowAtOrBefore(openingHistoryRows, eventWindowStartMs)
+      ?? selectMostRecentRowAtOrBefore(openingFallbackRows, eventWindowStartMs)
+    const windowRow = selectMostRecentRowAtOrBefore(closingHistoryRows, eventWindowEndMs)
 
     const openingFromHistory = toFiniteNumber(openingRow?.settlement_price)
-    const openingFromLatest = latestMarket?.next_window?.window_end_ms === eventWindowEndMs
-      ? toFiniteNumber(latestMarket.next_window.opening_reference_price)
-      : null
+    const openingFromLatestPreferred = (() => {
+      if (!latestOpeningMarket?.next_window) {
+        return null
+      }
+      if (
+        eventWindowStartMs >= latestOpeningMarket.next_window.window_start_ms
+        && eventWindowStartMs < latestOpeningMarket.next_window.window_end_ms
+      ) {
+        return toFiniteNumber(latestOpeningMarket.next_window.opening_reference_price)
+      }
+      return null
+    })()
+    const openingFromLatestFallback = (() => {
+      if (!latestMarket?.next_window) {
+        return null
+      }
+      if (
+        eventWindowStartMs >= latestMarket.next_window.window_start_ms
+        && eventWindowStartMs < latestMarket.next_window.window_end_ms
+      ) {
+        return toFiniteNumber(latestMarket.next_window.opening_reference_price)
+      }
+      return null
+    })()
 
-    const openingPrice = openingFromHistory ?? openingFromLatest
+    const openingPrice = openingFromHistory ?? openingFromLatestPreferred ?? openingFromLatestFallback
     const closingPrice = toFiniteNumber(windowRow?.settlement_price)
     const latestPrice = toFiniteNumber(latestMarket?.last_final?.price)
     const latestWindowEndMs = toFiniteNumber(latestMarket?.last_final?.window_end_ms)
@@ -207,6 +305,7 @@ export async function GET(request: Request) {
       interval: seriesEntry.interval,
       source: seriesEntry.source,
       interval_ms: intervalMs,
+      active_window_minutes: activeWindowMinutes,
       event_window_start_ms: eventWindowStartMs,
       event_window_end_ms: eventWindowEndMs,
       opening_price: openingPrice,
@@ -214,7 +313,7 @@ export async function GET(request: Request) {
       latest_price: latestPrice,
       latest_window_end_ms: latestWindowEndMs,
       latest_source_timestamp_ms: latestSourceTimestampMs,
-      is_event_closed: Date.now() >= eventWindowEndMs,
+      is_event_closed: Date.now() >= eventEndMs,
     })
   }
   catch (error) {

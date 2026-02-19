@@ -598,6 +598,7 @@ export default function EventLiveSeriesChart({
   const { width: windowWidth } = useWindowSize()
   const liveColor = config.line_color || '#F59E0B'
   const priceDisplayDigits = config.show_price_decimals ? 2 : 0
+  const headerPriceDisplayDigits = Math.max(2, priceDisplayDigits)
   const subscriptionSymbol = useMemo(
     () => normalizeSubscriptionSymbol(config.topic, config.symbol),
     [config.symbol, config.topic],
@@ -683,6 +684,7 @@ export default function EventLiveSeriesChart({
         const query = new URLSearchParams({
           seriesSlug,
           eventEndMs: String(endTimestamp),
+          activeWindowMinutes: String(config.active_window_minutes),
         })
 
         const response = await fetch(`/api/price-reference/live-series?${query.toString()}`, {
@@ -742,7 +744,7 @@ export default function EventLiveSeriesChart({
       isCancelled = true
       controller.abort()
     }
-  }, [config.series_slug, config.topic, endTimestamp, subscriptionSymbol])
+  }, [config.active_window_minutes, config.series_slug, config.topic, endTimestamp, subscriptionSymbol])
 
   useEffect(() => {
     if (!isLiveView) {
@@ -1077,6 +1079,7 @@ export default function EventLiveSeriesChart({
       isBelow: ratio < 0,
     }
   }, [axisValues.max, axisValues.min, isTradingWindowActive, resolvedBaselinePrice])
+  const targetGuideColor = hexToRgba('#94a3b8', 0.9)
   const countdown = useMemo(() => {
     const totalSeconds = Math.max(0, Math.floor((endTimestamp - nowMs) / 1000))
     const showDays = totalSeconds > 24 * 60 * 60
@@ -1233,7 +1236,7 @@ export default function EventLiveSeriesChart({
                       Price To Beat
                     </div>
                     <div className="mt-1 text-2xl leading-none font-semibold text-muted-foreground tabular-nums">
-                      {resolvedBaselinePrice != null ? formatUsd(resolvedBaselinePrice, priceDisplayDigits) : '--'}
+                      {resolvedBaselinePrice != null ? formatUsd(resolvedBaselinePrice, headerPriceDisplayDigits) : '--'}
                     </div>
                   </div>
                   <div className="hidden h-10 w-px bg-border sm:block" />
@@ -1253,7 +1256,7 @@ export default function EventLiveSeriesChart({
                             fill="currentColor"
                             stroke="none"
                           />
-                          {formatUsd(Math.abs(delta), priceDisplayDigits)}
+                          {formatUsd(Math.abs(delta), headerPriceDisplayDigits)}
                         </span>
                       )}
                     </div>
@@ -1261,7 +1264,7 @@ export default function EventLiveSeriesChart({
                       className="mt-1 text-2xl leading-none font-semibold tabular-nums"
                       style={{ color: liveColor }}
                     >
-                      {currentPrice != null ? formatUsd(currentPrice, priceDisplayDigits) : '--'}
+                      {currentPrice != null ? formatUsd(currentPrice, headerPriceDisplayDigits) : '--'}
                     </div>
                   </div>
                 </div>
@@ -1363,8 +1366,8 @@ export default function EventLiveSeriesChart({
                       style={{
                         backgroundImage: `repeating-linear-gradient(
                           to right,
-                          ${hexToRgba('#94a3b8', 0.9)} 0px,
-                          ${hexToRgba('#94a3b8', 0.9)} 12px,
+                          ${targetGuideColor} 0px,
+                          ${targetGuideColor} 12px,
                           transparent 12px,
                           transparent 22px
                         )`,
@@ -1372,10 +1375,11 @@ export default function EventLiveSeriesChart({
                     />
                     <span
                       className={`
-                        absolute top-1/2 right-0 inline-flex -translate-y-1/2 items-center gap-1 rounded-r-sm bg-muted
-                        px-1.5 py-0.5 pl-2 text-2xs font-semibold tracking-[0.08em] text-white uppercase
+                        absolute top-1/2 right-0 inline-flex -translate-y-1/2 items-center gap-1 rounded-r-[1px] px-1.5
+                        py-0.5 pl-2 text-2xs font-semibold tracking-[0.08em] text-white uppercase
                         [clip-path:polygon(8px_0,100%_0,100%_100%,8px_100%,0_50%)]
                       `}
+                      style={{ backgroundColor: targetGuideColor }}
                     >
                       <span>Target</span>
                       {targetLine.isAbove && <ChevronsUpIcon className="size-4 animate-pulse" />}
@@ -1421,6 +1425,7 @@ export default function EventLiveSeriesChart({
                   showVerticalGrid={false}
                   showHorizontalGrid
                   gridLineStyle="solid"
+                  gridLineOpacity={0.42}
                   showLegend={false}
                   xAxisTickFontSize={13}
                   yAxisTickFontSize={13}
@@ -1430,6 +1435,8 @@ export default function EventLiveSeriesChart({
                   disableResetAnimation
                   markerOuterRadius={10}
                   markerInnerRadius={4.2}
+                  markerOffsetX={-8}
+                  lineEndOffsetX={-8}
                   lineStrokeWidth={2.15}
                   showAreaFill
                   areaFillTopOpacity={0.12}
