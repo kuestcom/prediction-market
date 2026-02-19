@@ -98,7 +98,7 @@ const THEME_PRESETS: Record<ThemePresetId, ThemePreset> = {
   midnight: {
     id: 'midnight',
     label: 'Midnight',
-    description: 'Cool blue-purple tones with deeper dark surfaces.',
+    description: 'Cool blue-purple tones inspired by Discord.',
   },
   lime: {
     id: 'lime',

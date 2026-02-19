@@ -73,12 +73,13 @@
 }
 
 [data-theme-preset='midnight'] {
-  --primary: oklch(0.52 0.18 262);
-  --chart-1: oklch(0.7 0.19 300);
-  --chart-2: oklch(0.66 0.17 255);
-  --chart-3: oklch(0.64 0.17 225);
-  --chart-4: oklch(0.72 0.16 330);
-  --chart-5: oklch(0.76 0.14 200);
+  --primary: oklch(0.577 0.209 273.85);
+  --primary-foreground: oklch(1 0 89.876);
+  --chart-1: oklch(0.577 0.209 273.85);
+  --chart-2: oklch(0.552 0.102 270.25);
+  --chart-3: oklch(0.603 0.027 267.764);
+  --chart-4: oklch(0.529 0.126 291.013);
+  --chart-5: oklch(0.615 0.076 226.851);
 }
 
 .dark[data-theme-preset='midnight'],
@@ -87,8 +88,7 @@
   --card: oklch(0.26 0.03 262);
   --card-hover: oklch(0.3 0.04 262);
   --popover: oklch(0.22 0.03 266);
-  --primary: oklch(0.577 0.209 273.85);
-  --ring: oklch(0.62 0.08 285);
+  --ring: oklch(0.654 0.173 276.478);
 }
 
 [data-theme-preset='lime'] {
