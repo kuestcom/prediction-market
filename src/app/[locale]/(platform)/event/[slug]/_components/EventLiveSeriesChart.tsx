@@ -22,7 +22,7 @@ const LIVE_WINDOW_MS = 40 * 1000
 const LIVE_CLOCK_FRAME_MS = 1000 / 30
 const LIVE_X_AXIS_STEP_MS = 10 * 1000
 const MAX_POINTS = 4000
-const LIVE_WS_TEST_ONLY_LAST_UPDATE_PER_MESSAGE = true
+const LIVE_WS_USE_ONLY_LAST_UPDATE_PER_MESSAGE = true
 const LIVE_CHART_HEIGHT = 332
 const LIVE_CHART_MARGIN_TOP = 12
 const LIVE_CHART_MARGIN_BOTTOM = 52
@@ -753,6 +753,7 @@ export default function EventLiveSeriesChart({
       setStatus('offline')
       return
     }
+    // Intentionally keep WS active regardless of event close to preserve always-live behavior.
     const resolvedWsUrl = wsUrl
 
     let isActive = true
@@ -832,7 +833,7 @@ export default function EventLiveSeriesChart({
         })
         .filter((update): update is { price: number, timestamp: number, symbol: string | null } => update !== null)
 
-      const wsUpdatesForRender = LIVE_WS_TEST_ONLY_LAST_UPDATE_PER_MESSAGE
+      const wsUpdatesForRender = LIVE_WS_USE_ONLY_LAST_UPDATE_PER_MESSAGE
         ? normalizedUpdates.slice(-1)
         : normalizedUpdates
 
