@@ -2,7 +2,7 @@ import type { PublicProfile, User } from '@/types'
 import { NextResponse } from 'next/server'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
-import { getSupabaseImageUrl } from '@/lib/supabase'
+import { getPublicAssetUrl } from '@/lib/storage'
 import { getUserPublicAddress } from '@/lib/user-address'
 
 export async function GET(request: Request) {
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
         address: getUserPublicAddress(user as unknown as User) || '',
         proxy_wallet_address: user.proxy_wallet_address ?? null,
         username: user.username!,
-        image: user.image ? getSupabaseImageUrl(user.image) : '',
+        image: user.image ? getPublicAssetUrl(user.image) : '',
         created_at: new Date(user.created_at),
       }
     })

@@ -7,7 +7,7 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { encryptSecret } from '@/lib/encryption'
-import { uploadPublicAsset } from '@/lib/supabase'
+import { uploadPublicAsset } from '@/lib/storage'
 import { validateThemeSiteSettingsInput } from '@/lib/theme-settings'
 
 const MAX_LOGO_FILE_SIZE = 2 * 1024 * 1024

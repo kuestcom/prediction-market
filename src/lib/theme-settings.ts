@@ -2,7 +2,7 @@ import type { ResolvedThemeConfig, ThemeOverrides, ThemePresetId, ThemeRadius } 
 import type { ThemeSiteIdentity, ThemeSiteLogoMode } from '@/lib/theme-site-identity'
 import { ZERO_ADDRESS } from '@/lib/contracts'
 import { SettingsRepository } from '@/lib/db/queries/settings'
-import { getSupabasePublicAssetUrl } from '@/lib/supabase'
+import { getPublicAssetUrl } from '@/lib/storage'
 import {
   buildResolvedThemeConfig,
   DEFAULT_THEME_PRESET_ID,
@@ -439,10 +439,10 @@ function normalizeThemeSiteConfig(params: {
 function buildThemeSiteIdentity(config: NormalizedThemeSiteConfig): ThemeSiteIdentity {
   const defaultSite = createDefaultThemeSiteIdentity()
   const logoImageUrl = config.logoMode === 'image'
-    ? getSupabasePublicAssetUrl(config.logoImagePath)
+    ? getPublicAssetUrl(config.logoImagePath)
     : null
-  const pwaIcon192Url = getSupabasePublicAssetUrl(config.pwaIcon192Path) ?? defaultSite.pwaIcon192Url
-  const pwaIcon512Url = getSupabasePublicAssetUrl(config.pwaIcon512Path) ?? defaultSite.pwaIcon512Url
+  const pwaIcon192Url = getPublicAssetUrl(config.pwaIcon192Path) ?? defaultSite.pwaIcon192Url
+  const pwaIcon512Url = getPublicAssetUrl(config.pwaIcon512Path) ?? defaultSite.pwaIcon512Url
 
   const useImageLogo = config.logoMode === 'image' && Boolean(logoImageUrl)
 

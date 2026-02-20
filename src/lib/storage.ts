@@ -232,10 +232,6 @@ function buildS3PublicAssetBaseUrl(config: S3StorageConfig) {
   }
 }
 
-export function getStorageProvider(): StorageProvider {
-  return resolveStorageRuntimeConfig().provider
-}
-
 export async function uploadPublicAsset(
   assetPath: string,
   body: UploadBody,
@@ -277,9 +273,9 @@ export async function uploadPublicAsset(
   }
 }
 
-export function getPublicAssetUrl(assetPath: string | null): string | null {
+export function getPublicAssetUrl(assetPath: string | null): string {
   if (!assetPath) {
-    return null
+    return ''
   }
 
   if (assetPath.startsWith('http://') || assetPath.startsWith('https://')) {
@@ -298,29 +294,5 @@ export function getPublicAssetUrl(assetPath: string | null): string | null {
     return `${baseUrl}/${normalizedPath}`
   }
 
-  return null
-}
-
-export const supabaseAdmin = new Proxy({} as SupabaseClient, {
-  get(_target, prop) {
-    if (prop === 'then') {
-      return undefined
-    }
-    const client = getSupabaseAdmin()
-    const value = (client as any)[prop]
-    return typeof value === 'function' ? value.bind(client) : value
-  },
-}) as SupabaseClient
-
-export function getSupabasePublicAssetUrl(assetPath: string | null): string | null {
-  return getPublicAssetUrl(assetPath)
-}
-
-export function getSupabaseImageUrl(iconPath: string | null): string {
-  const publicUrl = getSupabasePublicAssetUrl(iconPath)
-  if (!publicUrl) {
-    return ''
-  }
-
-  return publicUrl
+  return ''
 }

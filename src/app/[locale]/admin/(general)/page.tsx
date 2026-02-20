@@ -6,7 +6,7 @@ import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
 import { SettingsRepository } from '@/lib/db/queries/settings'
-import { getSupabasePublicAssetUrl } from '@/lib/supabase'
+import { getPublicAssetUrl } from '@/lib/storage'
 import { getThemeSiteSettingsFormState } from '@/lib/theme-settings'
 import { DEFAULT_THEME_SITE_PWA_ICON_192_URL, DEFAULT_THEME_SITE_PWA_ICON_512_URL } from '@/lib/theme-site-identity'
 
@@ -51,11 +51,11 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
 
   const initialThemeSiteSettings = getThemeSiteSettingsFormState(allSettings ?? undefined)
   const initialThemeSiteImageUrl = initialThemeSiteSettings.logoMode === 'image'
-    ? getSupabasePublicAssetUrl(initialThemeSiteSettings.logoImagePath || null)
+    ? getPublicAssetUrl(initialThemeSiteSettings.logoImagePath || null)
     : null
-  const initialPwaIcon192Url = getSupabasePublicAssetUrl(initialThemeSiteSettings.pwaIcon192Path || null)
+  const initialPwaIcon192Url = getPublicAssetUrl(initialThemeSiteSettings.pwaIcon192Path || null)
     ?? DEFAULT_THEME_SITE_PWA_ICON_192_URL
-  const initialPwaIcon512Url = getSupabasePublicAssetUrl(initialThemeSiteSettings.pwaIcon512Path || null)
+  const initialPwaIcon512Url = getPublicAssetUrl(initialThemeSiteSettings.pwaIcon512Path || null)
     ?? DEFAULT_THEME_SITE_PWA_ICON_512_URL
   const initialThemeSiteSettingsWithImage: AdminThemeSiteSettingsInitialState = {
     ...initialThemeSiteSettings,

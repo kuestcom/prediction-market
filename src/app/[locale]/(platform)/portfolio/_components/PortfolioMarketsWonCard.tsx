@@ -4,7 +4,7 @@ import { inArray } from 'drizzle-orm'
 import { MICRO_UNIT } from '@/lib/constants'
 import { markets } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
-import { getSupabaseImageUrl } from '@/lib/supabase'
+import { getPublicAssetUrl } from '@/lib/storage'
 import { normalizeAddress } from '@/lib/wallet'
 import PortfolioMarketsWonCardClient from './PortfolioMarketsWonCardClient'
 
@@ -184,9 +184,9 @@ async function fetchMarketMetadata(conditionIds: string[]): Promise<Map<string, 
 
   for (const row of rows) {
     const iconUrl = row.icon_url
-      ? getSupabaseImageUrl(row.icon_url)
+      ? getPublicAssetUrl(row.icon_url)
       : row.event?.icon_url
-        ? getSupabaseImageUrl(row.event.icon_url)
+        ? getPublicAssetUrl(row.event.icon_url)
         : undefined
 
     metadata.set(row.condition_id, {

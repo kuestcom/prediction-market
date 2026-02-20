@@ -12,7 +12,7 @@ import {
   tags as tagsTable,
 } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
-import { uploadPublicAsset } from '@/lib/supabase'
+import { uploadPublicAsset } from '@/lib/storage'
 
 export const maxDuration = 300
 

@@ -26,12 +26,12 @@ function clearStorageEnv() {
   })
 }
 
-async function loadSupabaseModule() {
+async function loadStorageModule() {
   vi.resetModules()
-  return await import('@/lib/supabase')
+  return await import('@/lib/storage')
 }
 
-describe('supabase storage compatibility', () => {
+describe('storage compatibility', () => {
   beforeEach(() => {
     clearStorageEnv()
     vi.resetModules()
@@ -54,12 +54,11 @@ describe('supabase storage compatibility', () => {
     process.env.SUPABASE_URL = 'https://demo.supabase.co'
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key'
 
-    const { getStorageProvider, getSupabasePublicAssetUrl } = await loadSupabaseModule()
-    expect(getStorageProvider()).toBe('supabase')
-    expect(getSupabasePublicAssetUrl('theme/logo.png')).toBe(
+    const { getPublicAssetUrl } = await loadStorageModule()
+    expect(getPublicAssetUrl('theme/logo.png')).toBe(
       'https://demo.supabase.co/storage/v1/object/public/kuest-assets/theme/logo.png',
     )
-    expect(getSupabasePublicAssetUrl('https://cdn.example.com/direct.png')).toBe('https://cdn.example.com/direct.png')
+    expect(getPublicAssetUrl('https://cdn.example.com/direct.png')).toBe('https://cdn.example.com/direct.png')
   })
 
   it('uses S3 public URL when Supabase is not configured', async () => {
@@ -68,9 +67,8 @@ describe('supabase storage compatibility', () => {
     process.env.S3_ACCESS_KEY_ID = 's3-key'
     process.env.S3_SECRET_ACCESS_KEY = 's3-secret'
 
-    const { getStorageProvider, getSupabasePublicAssetUrl } = await loadSupabaseModule()
-    expect(getStorageProvider()).toBe('s3')
-    expect(getSupabasePublicAssetUrl('users/avatar.jpg')).toBe('https://s3.example.com/kuest-assets/users/avatar.jpg')
+    const { getPublicAssetUrl } = await loadStorageModule()
+    expect(getPublicAssetUrl('users/avatar.jpg')).toBe('https://s3.example.com/kuest-assets/users/avatar.jpg')
   })
 
   it('prefers S3_PUBLIC_URL as public base when provided', async () => {
@@ -80,22 +78,22 @@ describe('supabase storage compatibility', () => {
     process.env.S3_SECRET_ACCESS_KEY = 's3-secret'
     process.env.S3_PUBLIC_URL = 'https://cdn.example.com/assets/'
 
-    const { getSupabasePublicAssetUrl } = await loadSupabaseModule()
-    expect(getSupabasePublicAssetUrl('users/avatar.jpg')).toBe('https://cdn.example.com/assets/users/avatar.jpg')
+    const { getPublicAssetUrl } = await loadStorageModule()
+    expect(getPublicAssetUrl('users/avatar.jpg')).toBe('https://cdn.example.com/assets/users/avatar.jpg')
   })
 
   it('throws on partial Supabase configuration', async () => {
     process.env.SUPABASE_URL = 'https://demo.supabase.co'
 
-    const { getSupabasePublicAssetUrl } = await loadSupabaseModule()
-    expect(() => getSupabasePublicAssetUrl('users/avatar.jpg')).toThrow(
+    const { getPublicAssetUrl } = await loadStorageModule()
+    expect(() => getPublicAssetUrl('users/avatar.jpg')).toThrow(
       'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set together.',
     )
   })
 
-  it('returns null for relative assets when no provider is configured', async () => {
-    const { getStorageProvider, getSupabasePublicAssetUrl } = await loadSupabaseModule()
-    expect(getStorageProvider()).toBe('none')
-    expect(getSupabasePublicAssetUrl('users/avatar.jpg')).toBeNull()
+  it('returns empty string for relative assets when no provider is configured', async () => {
+    const { getPublicAssetUrl } = await loadStorageModule()
+    expect(getPublicAssetUrl('users/avatar.jpg')).toBe('')
+    expect(getPublicAssetUrl(null)).toBe('')
   })
 })

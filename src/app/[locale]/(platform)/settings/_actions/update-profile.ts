@@ -6,7 +6,7 @@ import sharp from 'sharp'
 import { z } from 'zod'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
-import { uploadPublicAsset } from '@/lib/supabase'
+import { uploadPublicAsset } from '@/lib/storage'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
