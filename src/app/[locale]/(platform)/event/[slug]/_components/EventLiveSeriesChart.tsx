@@ -23,6 +23,7 @@ const LIVE_HISTORY_BUFFER_MS = 8 * 1000
 const LIVE_DATA_RETENTION_MS = LIVE_WINDOW_MS + LIVE_HISTORY_BUFFER_MS
 const LIVE_CLOCK_FRAME_MS = 1000 / 30
 const LIVE_X_AXIS_STEP_MS = 10 * 1000
+const LIVE_X_AXIS_LEFT_LABEL_GUARD_MS = 3600
 const LIVE_MAX_Y_AXIS_TICKS = 6
 const MAX_POINTS = 4000
 const LIVE_WS_USE_ONLY_LAST_UPDATE_PER_MESSAGE = true
@@ -33,6 +34,8 @@ const LIVE_CHART_MARGIN_RIGHT = 40
 const LIVE_CHART_MARGIN_LEFT = 0
 const LIVE_CURSOR_GUIDE_TOP = 10
 const LIVE_TARGET_MAX_BOTTOM_OFFSET = 10
+const LIVE_CURRENT_MARKER_OFFSET_X = 0
+const LIVE_PLOT_CLIP_RIGHT_PADDING = 22
 const LIVE_PRICE_STORAGE_PREFIX = 'kuest-live-last-price'
 
 interface PersistedLivePrice {
@@ -243,7 +246,32 @@ function extractLivePriceUpdates(payload: any, topic: string, symbol: string) {
     return []
   }
 
-  return filtered.sort((a, b) => a.timestamp - b.timestamp)
+  const sorted = filtered.sort((a, b) => a.timestamp - b.timestamp)
+  const deduped: Array<{ price: number, timestamp: number, symbol: string | null }> = []
+
+  for (const update of sorted) {
+    const last = deduped[deduped.length - 1]
+    if (last && last.timestamp === update.timestamp) {
+      deduped[deduped.length - 1] = update
+      continue
+    }
+    deduped.push(update)
+  }
+
+  return deduped
+}
+
+function isSnapshotMessage(payload: any) {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  const messageType = String(payload?.type ?? '').trim().toLowerCase()
+  if (messageType !== 'subscribe') {
+    return false
+  }
+
+  return Array.isArray(payload?.payload?.data) || Array.isArray(payload?.data)
 }
 
 function buildAxis(values: number[]) {
@@ -273,37 +301,50 @@ function buildAxis(values: number[]) {
   const magnitude = 10 ** Math.floor(Math.log10(rawStep))
   const stepRatio = rawStep / magnitude
   const stepMultiplier = stepRatio >= 5 ? 5 : stepRatio >= 2 ? 2 : 1
-  const step = stepMultiplier * magnitude
-  const axisMin = Math.floor(rawMin / step) * step
-  const axisMax = Math.ceil(rawMax / step) * step
+  const initialStep = stepMultiplier * magnitude
 
-  const ticks: number[] = []
-  for (let value = axisMin; value <= axisMax + 1e-6; value += step) {
-    ticks.push(Number(value.toFixed(2)))
+  function nextNiceStep(currentStep: number) {
+    const currentMagnitude = 10 ** Math.floor(Math.log10(currentStep))
+    const normalized = currentStep / currentMagnitude
+
+    if (normalized < 2) {
+      return 2 * currentMagnitude
+    }
+
+    if (normalized < 5) {
+      return 5 * currentMagnitude
+    }
+
+    return 10 * currentMagnitude
   }
 
-  let limitedTicks = ticks
-  if (ticks.length > LIVE_MAX_Y_AXIS_TICKS) {
-    const lastIndex = ticks.length - 1
-    const sampled: number[] = []
+  function buildTicksForStep(step: number) {
+    const axisMin = Math.floor(rawMin / step) * step
+    const axisMax = Math.ceil(rawMax / step) * step
+    const ticks: number[] = []
 
-    for (let index = 0; index < LIVE_MAX_Y_AXIS_TICKS; index += 1) {
-      const sourceIndex = Math.round((index * lastIndex) / (LIVE_MAX_Y_AXIS_TICKS - 1))
-      const tickValue = ticks[sourceIndex]
-      if (sampled[sampled.length - 1] !== tickValue) {
-        sampled.push(tickValue)
-      }
+    for (let value = axisMin; value <= axisMax + step * 1e-6; value += step) {
+      ticks.push(value)
     }
 
-    if (sampled.length >= 2) {
-      limitedTicks = sampled
-    }
-    else {
-      limitedTicks = [ticks[0], ticks[lastIndex]]
-    }
+    return { axisMin, axisMax, ticks }
   }
 
-  return { min: axisMin, max: axisMax, ticks: limitedTicks }
+  let step = initialStep
+  let axis = buildTicksForStep(step)
+  let attempts = 0
+
+  while (axis.ticks.length > LIVE_MAX_Y_AXIS_TICKS && attempts < 8) {
+    step = nextNiceStep(step)
+    axis = buildTicksForStep(step)
+    attempts += 1
+  }
+
+  return {
+    min: Number(axis.axisMin.toFixed(2)),
+    max: Number(axis.axisMax.toFixed(2)),
+    ticks: axis.ticks.map(value => Number(value.toFixed(2))),
+  }
 }
 
 function keepWithinLiveWindow(points: DataPoint[], cutoffMs: number) {
@@ -631,6 +672,7 @@ export default function EventLiveSeriesChart({
   )
   const [nowMs, setNowMs] = useState(() => Date.now())
   const [data, setData] = useState<DataPoint[]>([])
+  const [persistedFallbackPrice, setPersistedFallbackPrice] = useState<PersistedLivePrice | null>(null)
   const [baselinePrice, setBaselinePrice] = useState<number | null>(null)
   const [referenceSnapshot, setReferenceSnapshot] = useState<LiveSeriesPriceSnapshot | null>(null)
   const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>('connecting')
@@ -647,15 +689,8 @@ export default function EventLiveSeriesChart({
 
   useEffect(() => {
     const persistedPrice = readPersistedLivePrice(config.topic, subscriptionSymbol)
-    if (persistedPrice) {
-      setData([{
-        date: new Date(persistedPrice.timestamp),
-        [SERIES_KEY]: persistedPrice.price,
-      }])
-    }
-    else {
-      setData([])
-    }
+    setPersistedFallbackPrice(persistedPrice)
+    setData([])
     setBaselinePrice(null)
     setReferenceSnapshot(null)
     setStatus('connecting')
@@ -743,20 +778,9 @@ export default function EventLiveSeriesChart({
           const minTimestamp = Date.now() - LIVE_DATA_RETENTION_MS + 1000
           const fallbackTimestamp = Math.max(rawFallbackTimestamp, minTimestamp)
           writePersistedLivePrice(config.topic, subscriptionSymbol, fallbackPrice, fallbackTimestamp)
-          setData((previous) => {
-            const lastTimestamp = previous[previous.length - 1]?.date?.getTime?.() ?? Number.NaN
-            if (
-              previous.length > 0
-              && Number.isFinite(lastTimestamp)
-              && lastTimestamp >= fallbackTimestamp
-            ) {
-              return previous
-            }
-
-            return [{
-              date: new Date(fallbackTimestamp),
-              [SERIES_KEY]: fallbackPrice,
-            }]
+          setPersistedFallbackPrice({
+            price: fallbackPrice,
+            timestamp: fallbackTimestamp,
           })
         }
       }
@@ -861,8 +885,10 @@ export default function EventLiveSeriesChart({
         })
         .filter((update): update is { price: number, timestamp: number, symbol: string | null } => update !== null)
 
+      const messageIsSnapshot = isSnapshotMessage(payload)
+      const messageHasBatchUpdates = normalizedUpdates.length > 1
       const wsUpdatesForRender = LIVE_WS_USE_ONLY_LAST_UPDATE_PER_MESSAGE
-        ? normalizedUpdates.slice(-1)
+        ? (messageIsSnapshot || messageHasBatchUpdates ? normalizedUpdates : normalizedUpdates.slice(-1))
         : normalizedUpdates
 
       if (!wsUpdatesForRender.length) {
@@ -878,6 +904,34 @@ export default function EventLiveSeriesChart({
       setData((prev) => {
         const arrivalTimestamp = Date.now()
         const cutoff = arrivalTimestamp - LIVE_DATA_RETENTION_MS
+
+        if (messageIsSnapshot && wsUpdatesForRender.length > 1) {
+          let lastSnapshotTimestamp: number | null = null
+          const snapshotPoints: DataPoint[] = []
+
+          for (const update of wsUpdatesForRender) {
+            let pointTimestamp = update.timestamp
+            if (!Number.isFinite(pointTimestamp)) {
+              continue
+            }
+
+            pointTimestamp = Math.max(cutoff + 1, Math.min(pointTimestamp, arrivalTimestamp))
+            if (lastSnapshotTimestamp !== null && pointTimestamp <= lastSnapshotTimestamp) {
+              pointTimestamp = lastSnapshotTimestamp + 1
+            }
+
+            snapshotPoints.push({
+              date: new Date(pointTimestamp),
+              [SERIES_KEY]: update.price,
+            })
+            lastSnapshotTimestamp = pointTimestamp
+          }
+
+          if (snapshotPoints.length > 0) {
+            return snapshotPoints.slice(-MAX_POINTS)
+          }
+        }
+
         let next = keepWithinLiveWindow(prev, cutoff)
         let lastTimestamp = next.length ? next[next.length - 1].date.getTime() : null
 
@@ -888,6 +942,7 @@ export default function EventLiveSeriesChart({
           if (lastTimestamp !== null && pointTimestamp <= lastTimestamp) {
             pointTimestamp = lastTimestamp + 1
           }
+
           const nextPoint: DataPoint = {
             date: new Date(pointTimestamp),
             [SERIES_KEY]: update.price,
@@ -979,35 +1034,23 @@ export default function EventLiveSeriesChart({
   }, [isMobile, windowWidth])
 
   const fallbackCurrentPrice = useMemo(() => {
-    if (!referenceSnapshot) {
-      return null
+    if (referenceSnapshot) {
+      const snapshotPrice = normalizeLiveChartPrice(
+        referenceSnapshot.latest_price ?? referenceSnapshot.closing_price ?? Number.NaN,
+        config.topic,
+      )
+
+      if (typeof snapshotPrice === 'number' && Number.isFinite(snapshotPrice) && snapshotPrice > 0) {
+        return snapshotPrice
+      }
     }
 
-    return normalizeLiveChartPrice(
-      referenceSnapshot.latest_price ?? referenceSnapshot.closing_price ?? Number.NaN,
-      config.topic,
-    )
-  }, [referenceSnapshot, config.topic])
-
-  useEffect(() => {
-    if (data.length > 0) {
-      return
+    if (persistedFallbackPrice && Number.isFinite(persistedFallbackPrice.price) && persistedFallbackPrice.price > 0) {
+      return persistedFallbackPrice.price
     }
 
-    if (typeof fallbackCurrentPrice !== 'number' || !Number.isFinite(fallbackCurrentPrice) || fallbackCurrentPrice <= 0) {
-      return
-    }
-
-    const fallbackTimestamp = Math.max(
-      referenceSnapshot?.latest_source_timestamp_ms ?? nowMs,
-      nowMs - LIVE_DATA_RETENTION_MS + 1000,
-    )
-
-    setData([{
-      date: new Date(fallbackTimestamp),
-      [SERIES_KEY]: fallbackCurrentPrice,
-    }])
-  }, [data.length, fallbackCurrentPrice, nowMs, referenceSnapshot?.latest_source_timestamp_ms])
+    return null
+  }, [config.topic, persistedFallbackPrice, referenceSnapshot])
 
   const tradingWindowMs = useMemo(() => {
     const configuredWindowMinutes = Number(config.active_window_minutes)
@@ -1032,36 +1075,28 @@ export default function EventLiveSeriesChart({
 
     const domainStart = nowMs - LIVE_WINDOW_MS
     const domainEnd = nowMs
-    const filtered = data.filter((point) => {
+    let lastPointBeforeDomainStart: DataPoint | null = null
+    const pointsWithinDomain: DataPoint[] = []
+
+    for (const point of data) {
       const timestamp = point.date.getTime()
-      return Number.isFinite(timestamp) && timestamp >= domainStart && timestamp <= domainEnd
-    })
-    let historicalPoint: DataPoint | null = null
-    for (let index = data.length - 1; index >= 0; index -= 1) {
-      const point = data[index]
-      const timestamp = point.date.getTime()
-      if (Number.isFinite(timestamp) && timestamp <= domainStart) {
-        historicalPoint = point
-        break
+      if (!Number.isFinite(timestamp)) {
+        continue
+      }
+
+      if (timestamp < domainStart) {
+        lastPointBeforeDomainStart = point
+        continue
+      }
+
+      if (timestamp <= domainEnd) {
+        pointsWithinDomain.push(point)
       }
     }
 
-    const historicalPrice = historicalPoint?.[SERIES_KEY]
-    const firstVisiblePrice = filtered[0]?.[SERIES_KEY]
-    const anchorPrice = typeof historicalPrice === 'number' && Number.isFinite(historicalPrice)
-      ? historicalPrice
-      : (typeof firstVisiblePrice === 'number' && Number.isFinite(firstVisiblePrice) ? firstVisiblePrice : null)
-
-    let next = filtered
-    const firstVisibleTimestamp = next[0]?.date?.getTime?.() ?? Number.NaN
-    if (
-      anchorPrice != null
-      && (!Number.isFinite(firstVisibleTimestamp) || firstVisibleTimestamp > domainStart)
-    ) {
-      next = [{
-        date: new Date(domainStart),
-        [SERIES_KEY]: anchorPrice,
-      }, ...next]
+    let next = pointsWithinDomain
+    if (lastPointBeforeDomainStart && pointsWithinDomain.length > 0) {
+      next = [lastPointBeforeDomainStart, ...pointsWithinDomain]
     }
 
     const lastPoint = next[next.length - 1]
@@ -1130,17 +1165,17 @@ export default function EventLiveSeriesChart({
     const innerHeight = chartHeight - marginTop - marginBottom
     const ratio = (resolvedBaselinePrice - axisValues.min) / Math.max(1e-6, axisValues.max - axisValues.min)
     const clamped = Math.max(0, Math.min(1, ratio))
-    const rawTop = marginTop + innerHeight - innerHeight * clamped
+    const lineTop = marginTop + innerHeight - innerHeight * clamped
     const maxTop = marginTop + innerHeight - LIVE_TARGET_MAX_BOTTOM_OFFSET
 
     return {
-      top: Math.min(rawTop, maxTop),
+      badgeTop: Math.min(lineTop, maxTop),
       isAbove: ratio > 1,
       isBelow: ratio < 0,
     }
   }, [axisValues.max, axisValues.min, isTradingWindowActive, resolvedBaselinePrice])
   const targetLineGuideColor = hexToRgba('#94a3b8', 0.62)
-  const targetBadgeColor = hexToRgba('#94a3b8', 0.9)
+  const targetBadgeColor = '#94a3b8'
   const currentPriceGuideColor = hexToRgba(liveColor, 0.62)
   const countdown = useMemo(() => {
     const totalSeconds = Math.max(0, Math.floor((endTimestamp - nowMs) / 1000))
@@ -1164,11 +1199,14 @@ export default function EventLiveSeriesChart({
   const shouldShowCountdown = !isEventClosed && countdown.totalSeconds > 0
   const xAxisTickValues = useMemo(() => {
     const startMs = nowMs - LIVE_WINDOW_MS
+    const visibleStartMs = startMs + LIVE_X_AXIS_LEFT_LABEL_GUARD_MS
     const firstTickMs = Math.ceil(startMs / LIVE_X_AXIS_STEP_MS) * LIVE_X_AXIS_STEP_MS
     const ticks: Date[] = []
 
     for (let tickMs = firstTickMs; tickMs <= nowMs; tickMs += LIVE_X_AXIS_STEP_MS) {
-      ticks.push(new Date(tickMs))
+      if (tickMs >= visibleStartMs) {
+        ticks.push(new Date(tickMs))
+      }
     }
 
     if (ticks.length >= 2) {
@@ -1176,7 +1214,7 @@ export default function EventLiveSeriesChart({
     }
 
     return [
-      new Date(startMs),
+      new Date(visibleStartMs),
       new Date(nowMs),
     ]
   }, [nowMs])
@@ -1426,13 +1464,11 @@ export default function EventLiveSeriesChart({
 
               <div className="relative z-0 pr-4 pl-0 sm:pr-6 sm:pl-0">
                 {targetLine && (
-                  <div
-                    className="pointer-events-none absolute right-4 left-0 z-1 sm:right-6"
-                    style={{ top: `${targetLine.top}px` }}
-                  >
+                  <>
                     <div
-                      className="h-px w-full"
+                      className="pointer-events-none absolute right-4 left-0 z-1 h-px sm:right-6"
                       style={{
+                        top: `${targetLine.badgeTop}px`,
                         backgroundImage: `repeating-linear-gradient(
                           to right,
                           ${targetLineGuideColor} 0px,
@@ -1443,22 +1479,36 @@ export default function EventLiveSeriesChart({
                       }}
                     />
                     <span
-                      className={`
-                        absolute top-1/2 right-0 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-r-[1px] px-1
-                        py-px pl-1.5 text-2xs font-semibold tracking-[0.07em] text-white uppercase
-                        [clip-path:polygon(8px_0,100%_0,100%_100%,8px_100%,0_50%)]
-                      `}
-                      style={{ backgroundColor: targetBadgeColor }}
+                      className="
+                        pointer-events-none absolute right-4 z-1 inline-flex -translate-y-1/2 items-center
+                        sm:right-6
+                      "
+                      style={{ top: `${targetLine.badgeTop}px` }}
                     >
-                      <span>Target</span>
-                      {targetLine.isAbove && <ChevronsUpIcon className="size-3.5 animate-pulse" />}
-                      {targetLine.isBelow && <ChevronsDownIcon className="size-3.5 animate-pulse" />}
+                      <span
+                        aria-hidden
+                        className="
+                          relative z-0 -mr-px inline-block h-3.5 w-2 [clip-path:polygon(0_50%,100%_0,100%_100%)]
+                        "
+                        style={{ backgroundColor: targetBadgeColor }}
+                      />
+                      <span
+                        className="
+                          relative z-1 inline-flex items-center gap-0.5 rounded-[4px] px-2 py-1 pl-2 text-xs
+                          font-semibold text-white
+                        "
+                        style={{ backgroundColor: targetBadgeColor }}
+                      >
+                        <span>Target</span>
+                        {targetLine.isAbove && <ChevronsUpIcon className="size-3.5 animate-pulse" />}
+                        {targetLine.isBelow && <ChevronsDownIcon className="size-3.5 animate-pulse" />}
+                      </span>
                     </span>
-                  </div>
+                  </>
                 )}
                 {currentLineTop != null && (
                   <div
-                    className="pointer-events-none absolute right-4 left-0 z-2 h-px sm:right-6"
+                    className="pointer-events-none absolute right-4 left-0 z-2 mr-2 h-px sm:right-6"
                     style={{
                       top: `${currentLineTop}px`,
                       backgroundImage: `repeating-linear-gradient(
@@ -1505,11 +1555,15 @@ export default function EventLiveSeriesChart({
                   disableResetAnimation
                   markerOuterRadius={10}
                   markerInnerRadius={4.2}
-                  markerOffsetX={-8}
-                  lineEndOffsetX={-8}
+                  markerPulseStyle="ring"
+                  markerOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
+                  lineEndOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
                   lineStrokeWidth={2.15}
+                  plotClipPadding={{
+                    right: LIVE_PLOT_CLIP_RIGHT_PADDING,
+                  }}
                   showAreaFill
-                  areaFillTopOpacity={0.12}
+                  areaFillTopOpacity={0.08}
                   areaFillBottomOpacity={0}
                   yAxis={{
                     min: axisValues.min,
@@ -1531,7 +1585,7 @@ export default function EventLiveSeriesChart({
                     iconPath: config.icon_path,
                     color: liveColor,
                   }}
-                  lineCurve="basis"
+                  lineCurve="catmullRom"
                 />
               </div>
             </div>

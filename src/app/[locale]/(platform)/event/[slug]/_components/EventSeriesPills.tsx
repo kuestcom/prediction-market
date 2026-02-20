@@ -98,6 +98,33 @@ function getSeriesEventPillTimeLabel(event: EventSeriesEntry, timeZone: string) 
     : '--'
 }
 
+function toCountdownLeftLabel(showDays: boolean, days: number, hours: number, minutes: number, seconds: number) {
+  if (showDays) {
+    return `${days} ${days === 1 ? 'Day' : 'Days'} ${hours} ${hours === 1 ? 'Hr' : 'Hrs'} ${minutes} ${minutes === 1 ? 'Min' : 'Mins'}`
+  }
+
+  return `${hours} ${hours === 1 ? 'Hr' : 'Hrs'} ${minutes} ${minutes === 1 ? 'Min' : 'Mins'} ${seconds} ${seconds === 1 ? 'Sec' : 'Secs'}`
+}
+
+function getSeriesEventCountdown(endTimestamp: number, nowTimestamp: number) {
+  const totalSeconds = Math.max(0, Math.floor((endTimestamp - nowTimestamp) / 1000))
+  const showDays = totalSeconds > 24 * 60 * 60
+  const days = showDays ? Math.floor(totalSeconds / (24 * 60 * 60)) : 0
+  const hours = showDays
+    ? Math.floor((totalSeconds % (24 * 60 * 60)) / 3600)
+    : Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+
+  return {
+    showDays,
+    days,
+    hours,
+    minutes,
+    seconds,
+  }
+}
+
 function getResolvedDirection(event: EventSeriesEntry) {
   if (event.resolved_direction === 'up' || event.resolved_direction === 'down') {
     return event.resolved_direction
@@ -165,6 +192,56 @@ function ResolutionTimeTooltipRows({ event }: { event: EventSeriesEntry }) {
         <span className="ml-auto tabular-nums">{utcTimeLabel}</span>
       </div>
     </div>
+  )
+}
+
+function SeriesEventCountdownTooltipContent({
+  event,
+  nowTimestamp,
+  showLiveBadge,
+}: {
+  event: EventSeriesEntry
+  nowTimestamp: number
+  showLiveBadge: boolean
+}) {
+  const endTimestamp = getSeriesEventTimestamp(event)
+  const hasEndTimestamp = Number.isFinite(endTimestamp)
+  const countdown = hasEndTimestamp ? getSeriesEventCountdown(endTimestamp, nowTimestamp) : null
+  const countdownLeftLabel = countdown
+    ? toCountdownLeftLabel(
+        countdown.showDays,
+        countdown.days,
+        countdown.hours,
+        countdown.minutes,
+        countdown.seconds,
+      )
+    : '--'
+
+  return (
+    <TooltipContent align="center" className="w-72 rounded-xl p-3 text-left">
+      <div className="grid gap-2.5">
+        <div className={cn('flex items-center gap-3', showLiveBadge ? 'justify-between' : 'justify-end')}>
+          {showLiveBadge && (
+            <div className="inline-flex items-center gap-2 text-red-500">
+              <span className="relative inline-flex size-2.5 items-center justify-center">
+                <span
+                  className="absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45"
+                />
+                <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+              </span>
+              <span className="text-xs font-semibold tracking-[0.08em] uppercase">Live</span>
+            </div>
+          )}
+          <div className="text-sm">
+            <span className="font-semibold text-foreground">{countdownLeftLabel}</span>
+            <span className="ml-1 text-muted-foreground">left</span>
+          </div>
+        </div>
+
+        <div className="text-xs text-muted-foreground">Resolution time</div>
+        <ResolutionTimeTooltipRows event={event} />
+      </div>
+    </TooltipContent>
   )
 }
 
@@ -375,7 +452,6 @@ export default function EventSeriesPills({
           {hasSeriesNavigation && unresolvedEvents.map((event) => {
             const isCurrentEvent = event.slug === currentEventSlug
             const eventTimestamp = getSeriesEventTimestamp(event)
-            const isEndedUnresolved = Number.isFinite(eventTimestamp) && nowTimestamp >= eventTimestamp
             const isTradingNow = event.id === currentTradingEventId
             const isTodayInEt = Number.isFinite(eventTimestamp) && isSameEtDay(eventTimestamp, nowTimestamp)
             const etTimeLabel = getSeriesEventPillTimeLabel(event, 'America/New_York')
@@ -413,18 +489,11 @@ export default function EventSeriesPills({
                     <span>{pillLabel}</span>
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent align="center" className="w-72 rounded-lg p-2.5 text-left">
-                  <div className="grid gap-1.5">
-                    {isEndedUnresolved && (
-                      <div className="inline-flex items-center gap-1.5 text-foreground">
-                        <GavelIcon className="size-3.5 shrink-0" />
-                        <span className="text-sm font-semibold">Event was ended</span>
-                      </div>
-                    )}
-                    <div className="text-xs text-muted-foreground">Resolution time</div>
-                    <ResolutionTimeTooltipRows event={event} />
-                  </div>
-                </TooltipContent>
+                <SeriesEventCountdownTooltipContent
+                  event={event}
+                  nowTimestamp={nowTimestamp}
+                  showLiveBadge={isTradingNow}
+                />
               </Tooltip>
             )
           })}
