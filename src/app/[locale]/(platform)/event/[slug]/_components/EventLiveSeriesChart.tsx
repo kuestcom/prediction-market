@@ -19,16 +19,20 @@ const PredictionChart = dynamic<PredictionChartProps>(
 
 const SERIES_KEY = 'live_price'
 const LIVE_WINDOW_MS = 40 * 1000
+const LIVE_HISTORY_BUFFER_MS = 8 * 1000
+const LIVE_DATA_RETENTION_MS = LIVE_WINDOW_MS + LIVE_HISTORY_BUFFER_MS
 const LIVE_CLOCK_FRAME_MS = 1000 / 30
 const LIVE_X_AXIS_STEP_MS = 10 * 1000
+const LIVE_MAX_Y_AXIS_TICKS = 6
 const MAX_POINTS = 4000
 const LIVE_WS_USE_ONLY_LAST_UPDATE_PER_MESSAGE = true
 const LIVE_CHART_HEIGHT = 332
-const LIVE_CHART_MARGIN_TOP = 12
+const LIVE_CHART_MARGIN_TOP = 22
 const LIVE_CHART_MARGIN_BOTTOM = 52
 const LIVE_CHART_MARGIN_RIGHT = 40
 const LIVE_CHART_MARGIN_LEFT = 0
 const LIVE_CURSOR_GUIDE_TOP = 10
+const LIVE_TARGET_MAX_BOTTOM_OFFSET = 10
 const LIVE_PRICE_STORAGE_PREFIX = 'kuest-live-last-price'
 
 interface PersistedLivePrice {
@@ -278,7 +282,28 @@ function buildAxis(values: number[]) {
     ticks.push(Number(value.toFixed(2)))
   }
 
-  return { min: axisMin, max: axisMax, ticks }
+  let limitedTicks = ticks
+  if (ticks.length > LIVE_MAX_Y_AXIS_TICKS) {
+    const lastIndex = ticks.length - 1
+    const sampled: number[] = []
+
+    for (let index = 0; index < LIVE_MAX_Y_AXIS_TICKS; index += 1) {
+      const sourceIndex = Math.round((index * lastIndex) / (LIVE_MAX_Y_AXIS_TICKS - 1))
+      const tickValue = ticks[sourceIndex]
+      if (sampled[sampled.length - 1] !== tickValue) {
+        sampled.push(tickValue)
+      }
+    }
+
+    if (sampled.length >= 2) {
+      limitedTicks = sampled
+    }
+    else {
+      limitedTicks = [ticks[0], ticks[lastIndex]]
+    }
+  }
+
+  return { min: axisMin, max: axisMax, ticks: limitedTicks }
 }
 
 function keepWithinLiveWindow(points: DataPoint[], cutoffMs: number) {
@@ -715,7 +740,7 @@ export default function EventLiveSeriesChart({
 
         if (typeof fallbackPrice === 'number') {
           const rawFallbackTimestamp = payload.latest_source_timestamp_ms ?? payload.event_window_end_ms ?? Date.now()
-          const minTimestamp = Date.now() - LIVE_WINDOW_MS + 1000
+          const minTimestamp = Date.now() - LIVE_DATA_RETENTION_MS + 1000
           const fallbackTimestamp = Math.max(rawFallbackTimestamp, minTimestamp)
           writePersistedLivePrice(config.topic, subscriptionSymbol, fallbackPrice, fallbackTimestamp)
           setData((previous) => {
@@ -852,7 +877,7 @@ export default function EventLiveSeriesChart({
 
       setData((prev) => {
         const arrivalTimestamp = Date.now()
-        const cutoff = arrivalTimestamp - LIVE_WINDOW_MS
+        const cutoff = arrivalTimestamp - LIVE_DATA_RETENTION_MS
         let next = keepWithinLiveWindow(prev, cutoff)
         let lastTimestamp = next.length ? next[next.length - 1].date.getTime() : null
 
@@ -975,7 +1000,7 @@ export default function EventLiveSeriesChart({
 
     const fallbackTimestamp = Math.max(
       referenceSnapshot?.latest_source_timestamp_ms ?? nowMs,
-      nowMs - LIVE_WINDOW_MS + 1000,
+      nowMs - LIVE_DATA_RETENTION_MS + 1000,
     )
 
     setData([{
@@ -1005,8 +1030,40 @@ export default function EventLiveSeriesChart({
       return data
     }
 
-    const cutoff = nowMs - LIVE_WINDOW_MS
-    let next = keepWithinLiveWindow(data, cutoff)
+    const domainStart = nowMs - LIVE_WINDOW_MS
+    const domainEnd = nowMs
+    const filtered = data.filter((point) => {
+      const timestamp = point.date.getTime()
+      return Number.isFinite(timestamp) && timestamp >= domainStart && timestamp <= domainEnd
+    })
+    let historicalPoint: DataPoint | null = null
+    for (let index = data.length - 1; index >= 0; index -= 1) {
+      const point = data[index]
+      const timestamp = point.date.getTime()
+      if (Number.isFinite(timestamp) && timestamp <= domainStart) {
+        historicalPoint = point
+        break
+      }
+    }
+
+    const historicalPrice = historicalPoint?.[SERIES_KEY]
+    const firstVisiblePrice = filtered[0]?.[SERIES_KEY]
+    const anchorPrice = typeof historicalPrice === 'number' && Number.isFinite(historicalPrice)
+      ? historicalPrice
+      : (typeof firstVisiblePrice === 'number' && Number.isFinite(firstVisiblePrice) ? firstVisiblePrice : null)
+
+    let next = filtered
+    const firstVisibleTimestamp = next[0]?.date?.getTime?.() ?? Number.NaN
+    if (
+      anchorPrice != null
+      && (!Number.isFinite(firstVisibleTimestamp) || firstVisibleTimestamp > domainStart)
+    ) {
+      next = [{
+        date: new Date(domainStart),
+        [SERIES_KEY]: anchorPrice,
+      }, ...next]
+    }
+
     const lastPoint = next[next.length - 1]
     const lastPrice = lastPoint?.[SERIES_KEY]
     const lastTimestamp = lastPoint?.date?.getTime?.() ?? Number.NaN
@@ -1073,14 +1130,18 @@ export default function EventLiveSeriesChart({
     const innerHeight = chartHeight - marginTop - marginBottom
     const ratio = (resolvedBaselinePrice - axisValues.min) / Math.max(1e-6, axisValues.max - axisValues.min)
     const clamped = Math.max(0, Math.min(1, ratio))
+    const rawTop = marginTop + innerHeight - innerHeight * clamped
+    const maxTop = marginTop + innerHeight - LIVE_TARGET_MAX_BOTTOM_OFFSET
 
     return {
-      top: marginTop + innerHeight - innerHeight * clamped,
+      top: Math.min(rawTop, maxTop),
       isAbove: ratio > 1,
       isBelow: ratio < 0,
     }
   }, [axisValues.max, axisValues.min, isTradingWindowActive, resolvedBaselinePrice])
-  const targetGuideColor = hexToRgba('#94a3b8', 0.9)
+  const targetLineGuideColor = hexToRgba('#94a3b8', 0.62)
+  const targetBadgeColor = hexToRgba('#94a3b8', 0.9)
+  const currentPriceGuideColor = hexToRgba(liveColor, 0.62)
   const countdown = useMemo(() => {
     const totalSeconds = Math.max(0, Math.floor((endTimestamp - nowMs) / 1000))
     const showDays = totalSeconds > 24 * 60 * 60
@@ -1119,6 +1180,13 @@ export default function EventLiveSeriesChart({
       new Date(nowMs),
     ]
   }, [nowMs])
+  const liveXAxisDomain = useMemo(
+    () => ({
+      start: new Date(nowMs - LIVE_WINDOW_MS),
+      end: new Date(nowMs),
+    }),
+    [nowMs],
+  )
   const visibleCountdownUnits = useMemo(
     () => getVisibleCountdownUnits(
       countdown.showDays,
@@ -1164,7 +1232,7 @@ export default function EventLiveSeriesChart({
     : undefined
   const switchThumbStyle = isLiveChartView
     ? {
-        transform: 'translateX(2.25rem)',
+        transform: 'translateX(2rem)',
         backgroundColor: hexToRgba(liveColor, 0.2),
       }
     : {
@@ -1172,10 +1240,10 @@ export default function EventLiveSeriesChart({
       }
 
   const viewSwitch = (
-    <div className="relative z-0 flex items-center rounded-xl border border-border bg-background/70 p-1">
+    <div className="relative z-0 flex items-center rounded-lg border border-border bg-background/70 p-0.5">
       <span
         className={cn(
-          'pointer-events-none absolute top-1 left-1 z-0 size-9 rounded-lg transition-all duration-300 ease-out',
+          'pointer-events-none absolute top-0.5 left-0.5 z-0 size-8 rounded-md transition-all duration-300 ease-out',
           !isLiveChartView && 'bg-primary/30',
         )}
         style={switchThumbStyle}
@@ -1184,20 +1252,20 @@ export default function EventLiveSeriesChart({
         type="button"
         onClick={() => setActiveView('market')}
         className={cn(
-          'relative z-1 flex size-9 items-center justify-center rounded-lg transition-colors',
+          'relative z-1 flex size-8 items-center justify-center rounded-md transition-colors',
           isMarketView
             ? 'text-primary'
             : 'bg-transparent text-muted-foreground hover:bg-muted',
         )}
         aria-label="Show market chart"
       >
-        <ChartLineIcon className="size-5" />
+        <ChartLineIcon className="size-[18px]" />
       </button>
       <button
         type="button"
         onClick={() => setActiveView('live')}
         className={cn(
-          'relative z-1 flex size-9 items-center justify-center rounded-lg transition-colors',
+          'relative z-1 flex size-8 items-center justify-center rounded-md transition-colors',
           !isLiveChartView && 'bg-transparent text-muted-foreground hover:bg-muted',
         )}
         style={liveSwitchIconStyle}
@@ -1206,7 +1274,7 @@ export default function EventLiveSeriesChart({
         {config.icon_path
           ? (
               <span
-                className="block size-5 bg-current"
+                className="block size-4 bg-current"
                 aria-hidden
                 style={{
                   WebkitMaskImage: `url(${config.icon_path})`,
@@ -1220,7 +1288,7 @@ export default function EventLiveSeriesChart({
                 }}
               />
             )
-          : <span className="size-2.5 rounded-full bg-current" />}
+          : <span className="size-2 rounded-full bg-current" />}
       </button>
     </div>
   )
@@ -1236,7 +1304,7 @@ export default function EventLiveSeriesChart({
                     <div className="text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
                       Price To Beat
                     </div>
-                    <div className="mt-1 text-2xl leading-none font-semibold text-muted-foreground tabular-nums">
+                    <div className="mt-1 text-[22px] leading-none font-semibold text-muted-foreground tabular-nums">
                       {resolvedBaselinePrice != null ? formatUsd(resolvedBaselinePrice, headerPriceDisplayDigits) : '--'}
                     </div>
                   </div>
@@ -1262,7 +1330,7 @@ export default function EventLiveSeriesChart({
                       )}
                     </div>
                     <div
-                      className="mt-1 text-2xl leading-none font-semibold tabular-nums"
+                      className="mt-1 text-[22px] leading-none font-semibold tabular-nums"
                       style={{ color: liveColor }}
                     >
                       {currentPrice != null ? formatUsd(currentPrice, headerPriceDisplayDigits) : '--'}
@@ -1281,7 +1349,7 @@ export default function EventLiveSeriesChart({
                             <div key={unit} className="min-w-11 text-right">
                               <div
                                 className={cn(
-                                  'text-2xl leading-none font-semibold tabular-nums',
+                                  'text-[22px] leading-none font-semibold tabular-nums',
                                   isTradingWindowActive ? 'text-red-500' : 'text-muted-foreground',
                                 )}
                               >
@@ -1367,8 +1435,8 @@ export default function EventLiveSeriesChart({
                       style={{
                         backgroundImage: `repeating-linear-gradient(
                           to right,
-                          ${targetGuideColor} 0px,
-                          ${targetGuideColor} 8px,
+                          ${targetLineGuideColor} 0px,
+                          ${targetLineGuideColor} 8px,
                           transparent 8px,
                           transparent 14px
                         )`,
@@ -1376,15 +1444,15 @@ export default function EventLiveSeriesChart({
                     />
                     <span
                       className={`
-                        absolute top-1/2 right-0 inline-flex -translate-y-1/2 items-center gap-1 rounded-r-[1px] px-1.5
-                        py-0.5 pl-2 text-2xs font-semibold tracking-[0.08em] text-white uppercase
+                        absolute top-1/2 right-0 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-r-[1px] px-1
+                        py-px pl-1.5 text-2xs font-semibold tracking-[0.07em] text-white uppercase
                         [clip-path:polygon(8px_0,100%_0,100%_100%,8px_100%,0_50%)]
                       `}
-                      style={{ backgroundColor: targetGuideColor }}
+                      style={{ backgroundColor: targetBadgeColor }}
                     >
                       <span>Target</span>
-                      {targetLine.isAbove && <ChevronsUpIcon className="size-4 animate-pulse" />}
-                      {targetLine.isBelow && <ChevronsDownIcon className="size-4 animate-pulse" />}
+                      {targetLine.isAbove && <ChevronsUpIcon className="size-3.5 animate-pulse" />}
+                      {targetLine.isBelow && <ChevronsDownIcon className="size-3.5 animate-pulse" />}
                     </span>
                   </div>
                 )}
@@ -1395,8 +1463,8 @@ export default function EventLiveSeriesChart({
                       top: `${currentLineTop}px`,
                       backgroundImage: `repeating-linear-gradient(
                         to right,
-                        ${hexToRgba(liveColor, 0.88)} 0px,
-                        ${hexToRgba(liveColor, 0.88)} 8px,
+                        ${currentPriceGuideColor} 0px,
+                        ${currentPriceGuideColor} 8px,
                         transparent 8px,
                         transparent 14px
                       )`,
@@ -1416,6 +1484,7 @@ export default function EventLiveSeriesChart({
                   }}
                   dataSignature={`${event.id}:${config.topic}:${subscriptionSymbol}`}
                   xAxisTickCount={isMobile ? 2 : 4}
+                  xDomain={liveXAxisDomain}
                   xAxisTickValues={xAxisTickValues}
                   xAxisTickFormatter={date => date.toLocaleTimeString('en-US', {
                     hour: '2-digit',
@@ -1429,7 +1498,7 @@ export default function EventLiveSeriesChart({
                   gridLineOpacity={0.42}
                   showLegend={false}
                   xAxisTickFontSize={13}
-                  yAxisTickFontSize={13}
+                  yAxisTickFontSize={12}
                   showXAxisTopRule
                   cursorGuideTop={LIVE_CURSOR_GUIDE_TOP}
                   disableCursorSplit

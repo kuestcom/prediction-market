@@ -128,6 +128,19 @@ function sanitizeSvgId(value: string) {
   return value.replace(/[^\w-]/g, '-')
 }
 
+function toDomainTimestamp(value: Date | number | undefined) {
+  if (value instanceof Date) {
+    const timestamp = value.getTime()
+    return Number.isFinite(timestamp) ? timestamp : Number.NaN
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : Number.NaN
+  }
+
+  return Number.NaN
+}
+
 export function PredictionChart({
   data: providedData,
   series: providedSeries,
@@ -140,6 +153,7 @@ export function PredictionChart({
   xAxisTickCount = DEFAULT_X_AXIS_TICKS,
   xAxisTickValues,
   xAxisTickFormatter,
+  xDomain,
   xAxisTickFontSize = 11,
   yAxisTickFontSize = 11,
   showXAxisTopRule = false,
@@ -293,8 +307,13 @@ export function PredictionChart({
     return defaultYAxisTicks
   }, [defaultYAxisTicks, yAxis?.ticks])
   const domainBounds = useMemo(() => {
+    const explicitStart = toDomainTimestamp(xDomain?.start)
+    const explicitEnd = toDomainTimestamp(xDomain?.end)
+
     if (!data.length) {
-      return { start: 0, end: 0 }
+      const start = Number.isFinite(explicitStart) ? explicitStart : 0
+      const endCandidate = Number.isFinite(explicitEnd) ? explicitEnd : start + 1
+      return { start, end: Math.max(start + 1, endCandidate) }
     }
 
     let dataStart = data[0].date.getTime()
@@ -310,10 +329,22 @@ export function PredictionChart({
       }
     }
     const leadingStart = leadingGapStart instanceof Date ? leadingGapStart.getTime() : Number.NaN
-    const start = Number.isFinite(leadingStart) ? Math.min(dataStart, leadingStart) : dataStart
+    const defaultStart = Number.isFinite(leadingStart) ? Math.min(dataStart, leadingStart) : dataStart
+    let start = Number.isFinite(explicitStart) ? explicitStart : defaultStart
+    let end = Number.isFinite(explicitEnd) ? explicitEnd : dataEnd
 
-    return { start, end: dataEnd }
-  }, [data, leadingGapStart])
+    if (!Number.isFinite(start)) {
+      start = defaultStart
+    }
+    if (!Number.isFinite(end)) {
+      end = dataEnd
+    }
+    if (end <= start) {
+      end = start + 1
+    }
+
+    return { start, end }
+  }, [data, leadingGapStart, xDomain?.end, xDomain?.start])
 
   const getClampedCursorPoint = useCallback(
     (targetDate: Date) => {

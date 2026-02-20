@@ -28,6 +28,10 @@ export interface PredictionChartProps {
   xAxisTickCount?: number
   xAxisTickValues?: Date[]
   xAxisTickFormatter?: (value: Date) => string
+  xDomain?: {
+    start?: Date | number
+    end?: Date | number
+  }
   xAxisTickFontSize?: number
   yAxisTickFontSize?: number
   showXAxisTopRule?: boolean
