@@ -206,6 +206,7 @@ function SeriesEventCountdownTooltipContent({
 }) {
   const endTimestamp = getSeriesEventTimestamp(event)
   const hasEndTimestamp = Number.isFinite(endTimestamp)
+  const isEnded = hasEndTimestamp && nowTimestamp >= endTimestamp
   const countdown = hasEndTimestamp ? getSeriesEventCountdown(endTimestamp, nowTimestamp) : null
   const countdownLeftLabel = countdown
     ? toCountdownLeftLabel(
@@ -233,8 +234,12 @@ function SeriesEventCountdownTooltipContent({
             </div>
           )}
           <div className="text-sm">
-            <span className="font-semibold text-foreground">{countdownLeftLabel}</span>
-            <span className="ml-1 text-muted-foreground">left</span>
+            <span className="font-semibold text-foreground">
+              {isEnded ? 'Event ended' : countdownLeftLabel}
+            </span>
+            {!isEnded && (
+              <span className="ml-1 text-muted-foreground">left</span>
+            )}
           </div>
         </div>
 
