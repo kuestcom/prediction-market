@@ -87,6 +87,17 @@ function getSeriesEventTimeLabel(event: EventSeriesEntry, timeZone: string) {
     : '--'
 }
 
+function getSeriesEventPillTimeLabel(event: EventSeriesEntry, timeZone: string) {
+  const date = getSeriesEventDate(event)
+  return date
+    ? date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        hour12: true,
+        timeZone,
+      })
+    : '--'
+}
+
 function getResolvedDirection(event: EventSeriesEntry) {
   if (event.resolved_direction === 'up' || event.resolved_direction === 'down') {
     return event.resolved_direction
@@ -245,7 +256,7 @@ export default function EventSeriesPills({
             <DropdownMenu open={isPastMenuOpen} onOpenChange={setIsPastMenuOpen} modal={false}>
               <div
                 className={cn(
-                  'inline-flex h-8 items-center rounded-full bg-muted px-1 text-sm font-semibold',
+                  'inline-flex h-8 items-center rounded-full bg-muted px-1 text-xs font-semibold',
                   'text-foreground',
                 )}
               >
@@ -253,7 +264,7 @@ export default function EventSeriesPills({
                   <button
                     type="button"
                     className={cn(
-                      'inline-flex h-7 items-center gap-1.5 rounded-full pr-1 pl-2.5 transition-colors',
+                      'inline-flex h-8 items-center gap-1.5 rounded-full pr-1 pl-2.5 transition-colors',
                       'hover:bg-muted/85',
                     )}
                   >
@@ -311,7 +322,7 @@ export default function EventSeriesPills({
               >
                 {pastResolvedEvents.map((event) => {
                   const isCurrentEvent = event.slug === currentEventSlug
-                  const etTimeLabel = `${getSeriesEventTimeLabel(event, 'America/New_York')} ET`
+                  const etTimeLabel = `${getSeriesEventPillTimeLabel(event, 'America/New_York')} ET`
 
                   if (isCurrentEvent) {
                     return (
@@ -351,7 +362,7 @@ export default function EventSeriesPills({
           {hasSeriesNavigation && currentResolvedEvent && (
             <span
               className={cn(
-                'inline-flex h-8 items-center rounded-full bg-foreground px-3.5 text-sm leading-none font-semibold',
+                'inline-flex h-8 items-center rounded-full bg-foreground px-3 text-xs leading-none font-semibold',
                 'text-background',
               )}
             >
@@ -367,7 +378,7 @@ export default function EventSeriesPills({
             const isEndedUnresolved = Number.isFinite(eventTimestamp) && nowTimestamp >= eventTimestamp
             const isTradingNow = event.id === currentTradingEventId
             const isTodayInEt = Number.isFinite(eventTimestamp) && isSameEtDay(eventTimestamp, nowTimestamp)
-            const etTimeLabel = getSeriesEventTimeLabel(event, 'America/New_York')
+            const etTimeLabel = getSeriesEventPillTimeLabel(event, 'America/New_York')
             const pillLabel = isTodayInEt
               ? etTimeLabel
               : `${etTimeLabel} ${getSeriesEventLabel(event)}`
@@ -379,8 +390,8 @@ export default function EventSeriesPills({
                     href={`/event/${event.slug}`}
                     className={cn(
                       `
-                        inline-flex h-8 cursor-pointer items-center rounded-full px-3.5 text-sm leading-none
-                        font-semibold transition-colors
+                        inline-flex h-8 cursor-pointer items-center rounded-full px-3 text-xs leading-none font-semibold
+                        transition-colors
                       `,
                       isCurrentEvent
                         ? 'bg-foreground text-background hover:bg-foreground/90'
