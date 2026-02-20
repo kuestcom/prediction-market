@@ -12,7 +12,7 @@ import {
   tags as tagsTable,
 } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
-import { supabaseAdmin } from '@/lib/supabase'
+import { uploadPublicAsset } from '@/lib/supabase'
 
 export const maxDuration = 300
 
@@ -94,10 +94,10 @@ async function getAllowedCreators(): Promise<string[]> {
 /**
  * 🔄 Market Synchronization Script for Vercel Functions
  *
- * This function syncs prediction markets from the Goldsky PnL subgraph to Supabase:
+ * This function syncs prediction markets from the Goldsky PnL subgraph:
  * - Fetches new markets from blockchain via subgraph (INCREMENTAL)
  * - Downloads metadata and images from Irys
- * - Stores everything in Supabase database and storage
+ * - Stores everything in database and configured object storage
  */
 export async function GET(request: Request) {
   const auth = request.headers.get('authorization')
@@ -1092,16 +1092,14 @@ async function downloadAndSaveImage(metadataHash: string, storagePath: string) {
     const resolvedMeta = resolveImageMeta(response.headers.get('content-type'), imageBytes)
     const resolvedPath = resolveImageStoragePath(storagePath, resolvedMeta.extension)
 
-    const { error } = await supabaseAdmin.storage
-      .from('kuest-assets')
-      .upload(resolvedPath, imageBuffer, {
-        contentType: resolvedMeta.contentType,
-        cacheControl: '31536000',
-        upsert: true,
-      })
+    const { error } = await uploadPublicAsset(resolvedPath, imageBuffer, {
+      contentType: resolvedMeta.contentType,
+      cacheControl: '31536000',
+      upsert: true,
+    })
 
     if (error) {
-      console.error(`Failed to upload image: ${error.message}`)
+      console.error(`Failed to upload image: ${error}`)
       return null
     }
 
