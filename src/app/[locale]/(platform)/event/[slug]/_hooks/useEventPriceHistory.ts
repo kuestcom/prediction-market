@@ -106,6 +106,8 @@ function resolveFidelityForSpan(spanSeconds: number) {
 }
 
 function buildTimeRangeFilters(range: TimeRange, createdAt: string, resolvedAt?: string | null): RangeFilters {
+  const resolvedSeconds = parseResolvedAtSeconds(resolvedAt)
+  const hasResolvedAnchor = Number.isFinite(resolvedSeconds)
   const { createdSeconds, nowSeconds, ageSeconds } = resolveCreatedRange(createdAt, resolvedAt)
 
   if (range === 'ALL') {
@@ -118,24 +120,34 @@ function buildTimeRangeFilters(range: TimeRange, createdAt: string, resolvedAt?:
 
   const config = RANGE_CONFIG[range]
   const windowSeconds = RANGE_WINDOW_SECONDS[range]
-  const startSeconds = Math.max(createdSeconds, nowSeconds - windowSeconds)
-  const useDynamicFidelity = range === '1D' || range === '1W' || range === '1M'
-  const fidelity = useDynamicFidelity && ageSeconds < windowSeconds
-    ? resolveFidelityForSpan(ageSeconds)
-    : config.fidelity
+  const isLongRange = range === '1D' || range === '1W' || range === '1M'
 
-  if (ageSeconds < windowSeconds) {
+  // Preserve the previous query shape for active markets because CLOB expects
+  // interval-only filters for short ranges.
+  if (!hasResolvedAnchor) {
+    if (isLongRange && ageSeconds < windowSeconds) {
+      return {
+        fidelity: resolveFidelityForSpan(ageSeconds).toString(),
+        startTs: createdSeconds.toString(),
+        endTs: nowSeconds.toString(),
+      }
+    }
+
     return {
-      fidelity: fidelity.toString(),
+      fidelity: config.fidelity.toString(),
       interval: config.interval,
-      startTs: createdSeconds.toString(),
-      endTs: nowSeconds.toString(),
     }
   }
 
+  // For resolved markets, anchor non-ALL ranges to the resolution timestamp
+  // and avoid mixing interval with explicit time bounds.
+  const startSeconds = Math.max(createdSeconds, nowSeconds - windowSeconds)
+  const fidelity = isLongRange && ageSeconds < windowSeconds
+    ? resolveFidelityForSpan(ageSeconds)
+    : config.fidelity
+
   return {
     fidelity: fidelity.toString(),
-    interval: config.interval,
     startTs: startSeconds.toString(),
     endTs: nowSeconds.toString(),
   }
