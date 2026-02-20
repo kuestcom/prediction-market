@@ -16,6 +16,15 @@ export interface PredictionChartCursorSnapshot {
   values: Record<string, number>
 }
 
+export interface PredictionChartAnnotationMarker {
+  id: string
+  date: Date
+  value: number
+  color?: string
+  radius?: number
+  tooltipContent?: ReactNode
+}
+
 export interface PredictionChartProps {
   data?: DataPoint[]
   series?: SeriesConfig[]
@@ -44,6 +53,7 @@ export interface PredictionChartProps {
   gridLineStyle?: 'dashed' | 'solid'
   gridLineOpacity?: number
   showAnnotations?: boolean
+  annotationMarkers?: PredictionChartAnnotationMarker[]
   leadingGapStart?: Date | null
   legendContent?: ReactNode
   showLegend?: boolean
@@ -57,10 +67,17 @@ export interface PredictionChartProps {
   disableResetAnimation?: boolean
   markerOuterRadius?: number
   markerInnerRadius?: number
+  markerPulseStyle?: 'filled' | 'ring'
   markerOffsetX?: number
   lineEndOffsetX?: number
   lineStrokeWidth?: number
   lineCurve?: 'catmullRom' | 'monotoneX' | 'basis'
+  plotClipPadding?: {
+    top?: number
+    right?: number
+    bottom?: number
+    left?: number
+  }
   showAreaFill?: boolean
   areaFillTopOpacity?: number
   areaFillBottomOpacity?: number

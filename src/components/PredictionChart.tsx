@@ -1,7 +1,13 @@
 'use client'
 
 import type { CSSProperties, ReactElement } from 'react'
-import type { DataPoint, PredictionChartCursorSnapshot, PredictionChartProps, SeriesConfig } from '@/types/PredictionChartTypes'
+import type {
+  DataPoint,
+  PredictionChartAnnotationMarker,
+  PredictionChartCursorSnapshot,
+  PredictionChartProps,
+  SeriesConfig,
+} from '@/types/PredictionChartTypes'
 import { AxisBottom, AxisRight } from '@visx/axis'
 import { curveBasis, curveCatmullRom, curveMonotoneX } from '@visx/curve'
 import { localPoint } from '@visx/event'
@@ -49,6 +55,7 @@ const PATH_X_EPSILON = 0.35
 const MIN_Y_AXIS_TICKS = 3
 const PREFERRED_MAX_Y_AXIS_TICKS = 5
 const MAX_Y_AXIS_TICKS = 6
+const ANNOTATION_CLUSTER_DISTANCE_PX = 10
 
 function resolvePathPointAtX(path: SVGPathElement, targetX: number) {
   const totalLength = path.getTotalLength()
@@ -165,7 +172,8 @@ export function PredictionChart({
   showVerticalGrid = false,
   gridLineStyle = 'dashed',
   gridLineOpacity: gridLineOpacityOverride,
-  showAnnotations: _showAnnotations = true,
+  showAnnotations = true,
+  annotationMarkers = [],
   leadingGapStart = null,
   legendContent,
   showLegend = true,
@@ -174,10 +182,12 @@ export function PredictionChart({
   disableResetAnimation = false,
   markerOuterRadius = 6,
   markerInnerRadius = 2.8,
+  markerPulseStyle = 'filled',
   markerOffsetX = 0,
   lineEndOffsetX = 0,
   lineStrokeWidth = 1.6,
   lineCurve = 'catmullRom',
+  plotClipPadding,
   showAreaFill = false,
   areaFillTopOpacity = 0.16,
   areaFillBottomOpacity = 0,
@@ -194,6 +204,7 @@ export function PredictionChart({
     () => typeof document !== 'undefined'
       && document.documentElement.classList.contains('dark'),
   )
+  const [hoveredAnnotationClusterId, setHoveredAnnotationClusterId] = useState<string | null>(null)
   const [revealProgress, setRevealProgress] = useState(0)
   const [crossFadeProgress, setCrossFadeProgress] = useState(1)
   const [crossFadeData, setCrossFadeData] = useState<DataPoint[] | null>(null)
@@ -213,6 +224,7 @@ export function PredictionChart({
   const previousDataRef = useRef<DataPoint[] | null>(null)
   const normalizedSignature = dataSignature ?? '__default__'
   const clipId = useId().replace(/:/g, '')
+  const plotAreaClipId = `${clipId}-plot`
   const leftClipId = `${clipId}-left`
   const rightClipId = `${clipId}-right`
   const shouldRenderLegend = showLegend && Boolean(legendContent)
@@ -300,6 +312,10 @@ export function PredictionChart({
   const yAxisMax = typeof yAxis?.max === 'number' && Number.isFinite(yAxis.max)
     ? yAxis.max
     : defaultYAxisMax
+  const hasExplicitYMin = typeof yAxis?.min === 'number' && Number.isFinite(yAxis.min)
+  const hasExplicitYMax = typeof yAxis?.max === 'number' && Number.isFinite(yAxis.max)
+  const hasExplicitYTicks = Array.isArray(yAxis?.ticks) && yAxis.ticks.length > 0
+  const shouldUseNiceYScale = autoscale && !(hasExplicitYMin || hasExplicitYMax || hasExplicitYTicks)
   const resolvedYAxisTicks = useMemo(() => {
     if (Array.isArray(yAxis?.ticks)) {
       return yAxis.ticks
@@ -435,7 +451,7 @@ export function PredictionChart({
       const yScale = scaleLinear<number>({
         range: [innerHeight, 0],
         domain: [yAxisMin, yAxisMax],
-        nice: true,
+        nice: shouldUseNiceYScale,
       })
 
       const rawDate = xScale.invert(x - resolvedMargin.left)
@@ -516,6 +532,7 @@ export function PredictionChart({
       series,
       yAxisMin,
       yAxisMax,
+      shouldUseNiceYScale,
       disableCursorSplit,
     ],
   )
@@ -699,6 +716,10 @@ export function PredictionChart({
       return previousData
     })
   }, [providedData, normalizedSignature, isClient])
+
+  useEffect(() => {
+    setHoveredAnnotationClusterId(null)
+  }, [normalizedSignature, showAnnotations])
 
   useEffect(
     () => () => stopRevealAnimation(revealAnimationFrameRef),
@@ -949,7 +970,7 @@ export function PredictionChart({
   const yScale = scaleLinear<number>({
     range: [innerHeight, 0],
     domain: [yAxisMin, yAxisMax],
-    nice: true,
+    nice: shouldUseNiceYScale,
   })
 
   const clampedTooltipX = tooltipActive
@@ -1051,6 +1072,115 @@ export function PredictionChart({
       month: 'short',
     })
   }
+
+  interface ResolvedAnnotationMarker extends PredictionChartAnnotationMarker {
+    x: number
+    y: number
+  }
+
+  const resolvedAnnotationMarkers: ResolvedAnnotationMarker[] = !showAnnotations || !annotationMarkers.length
+    ? []
+    : annotationMarkers.reduce<ResolvedAnnotationMarker[]>((markers, marker) => {
+        const timestamp = marker.date?.getTime?.()
+        if (!Number.isFinite(timestamp)) {
+          return markers
+        }
+        if (!Number.isFinite(marker.value)) {
+          return markers
+        }
+
+        const x = xScale(marker.date)
+        const y = yScale(marker.value)
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+          return markers
+        }
+        if (x < 0 || x > innerWidth || y < 0 || y > innerHeight) {
+          return markers
+        }
+
+        markers.push({
+          ...marker,
+          x,
+          y,
+        })
+        return markers
+      }, [])
+
+  interface ResolvedAnnotationCluster {
+    id: string
+    x: number
+    y: number
+    color: string
+    radius: number
+    markers: ResolvedAnnotationMarker[]
+  }
+
+  const resolvedAnnotationClusters: ResolvedAnnotationCluster[] = !resolvedAnnotationMarkers.length
+    ? []
+    : resolvedAnnotationMarkers
+        .slice()
+        .sort((a, b) => a.x - b.x)
+        .reduce<ResolvedAnnotationCluster[]>((clusters, marker) => {
+          let closestCluster: ResolvedAnnotationCluster | undefined
+          let closestDistance = Number.POSITIVE_INFINITY
+
+          for (const cluster of clusters) {
+            const distance = Math.hypot(marker.x - cluster.x, marker.y - cluster.y)
+            if (distance <= ANNOTATION_CLUSTER_DISTANCE_PX && distance < closestDistance) {
+              closestDistance = distance
+              closestCluster = cluster
+            }
+          }
+
+          if (!closestCluster) {
+            clusters.push({
+              id: `annotation-cluster-${marker.id}`,
+              x: marker.x,
+              y: marker.y,
+              color: marker.color || '#94A3B8',
+              radius: Number.isFinite(marker.radius) && (marker.radius as number) > 0
+                ? marker.radius as number
+                : 3.4,
+              markers: [marker],
+            })
+            return clusters
+          }
+
+          closestCluster.markers.push(marker)
+
+          const clusterSize = closestCluster.markers.length
+          closestCluster.x = closestCluster.markers.reduce((sum, item) => sum + item.x, 0) / clusterSize
+          closestCluster.y = closestCluster.markers.reduce((sum, item) => sum + item.y, 0) / clusterSize
+
+          const hasDifferentColor = closestCluster.markers.some(item => (item.color || '#94A3B8') !== closestCluster.color)
+          if (hasDifferentColor) {
+            closestCluster.color = 'var(--muted-foreground)'
+          }
+
+          const maxMarkerRadius = closestCluster.markers.reduce((maxRadius, item) => {
+            const resolvedRadius = Number.isFinite(item.radius) && (item.radius as number) > 0
+              ? item.radius as number
+              : 3.4
+            return Math.max(maxRadius, resolvedRadius)
+          }, 3.4)
+
+          closestCluster.radius = clusterSize > 1
+            ? Math.min(6, maxMarkerRadius + 1.1)
+            : maxMarkerRadius
+
+          return clusters
+        }, [])
+
+  const hoveredAnnotationCluster = hoveredAnnotationClusterId
+    ? resolvedAnnotationClusters.find(cluster => cluster.id === hoveredAnnotationClusterId) ?? null
+    : null
+
+  const hoveredAnnotationTooltipPosition = hoveredAnnotationCluster
+    ? {
+        left: Math.max(16, Math.min(width - 16, resolvedMargin.left + hoveredAnnotationCluster.x)),
+        top: Math.max(16, resolvedMargin.top + hoveredAnnotationCluster.y - 12),
+      }
+    : null
 
   interface TooltipEntry {
     key: string
@@ -1184,6 +1314,12 @@ export function PredictionChart({
   const gridLineDasharray = gridLineStyle === 'dashed' ? '1,3' : undefined
   const leadingGapStartMs = leadingGapStart instanceof Date ? leadingGapStart.getTime() : Number.NaN
   const clipPadding = 2
+  const resolvedPlotClipPadding = {
+    top: Math.max(0, Number(plotClipPadding?.top ?? 0)),
+    right: Math.max(0, Number(plotClipPadding?.right ?? 0)),
+    bottom: Math.max(0, Number(plotClipPadding?.bottom ?? 0)),
+    left: Math.max(0, Number(plotClipPadding?.left ?? 0)),
+  }
   const resolvedCursorGuideTop = typeof cursorGuideTop === 'number'
     ? cursorGuideTop
     : -resolvedMargin.top
@@ -1206,6 +1342,14 @@ export function PredictionChart({
           style={{ overflow: 'visible' }}
         >
           <defs>
+            <clipPath id={plotAreaClipId} clipPathUnits="userSpaceOnUse">
+              <rect
+                x={-resolvedPlotClipPadding.left}
+                y={-resolvedPlotClipPadding.top}
+                width={innerWidth + resolvedPlotClipPadding.left + resolvedPlotClipPadding.right}
+                height={innerHeight + resolvedPlotClipPadding.top + resolvedPlotClipPadding.bottom}
+              />
+            </clipPath>
             <clipPath id={leftClipId} clipPathUnits="userSpaceOnUse">
               <rect
                 x={0}
@@ -1280,279 +1424,300 @@ export function PredictionChart({
               />
             ))}
 
-            {series.map((seriesItem) => {
-              const seriesColor = seriesItem.color
-              const isSeriesRevealing = revealProgress < 0.999 || revealSeriesSet.has(seriesItem.key)
-              const seriesColoredPoints = isSeriesRevealing ? coloredPoints : data
-              const seriesMutedPoints = isSeriesRevealing ? mutedPoints : []
-              const surgeLength = surgeLengthsRef.current[seriesItem.key]
-              const surgeDashLength = typeof surgeLength === 'number' && Number.isFinite(surgeLength)
-                ? Math.max(18, surgeLength * SURGE_DASH_RATIO)
-                : 0
-              const surgeDashGap = surgeLength ?? 0
-              const shouldRenderSurge = Boolean(
-                surgeActive
-                && isSeriesRevealing
-                && !crossFadeActive
-                && !shouldSplitByCursor
-                && seriesMutedPoints.length === 0
-                && seriesColoredPoints.length > 1
-                && surgeLength
-                && surgeDashLength > 0,
-              )
-              const firstPoint = firstFinitePointBySeries[seriesItem.key] ?? null
-              const firstPointTime = firstPoint?.date.getTime()
-              const hasLeadingGap = Number.isFinite(leadingGapStartMs)
-                && typeof firstPointTime === 'number'
-                && Number.isFinite(firstPointTime)
-                && leadingGapStartMs < firstPointTime
-              const ghostOpacity = crossFadeOut
-              const seriesSplitTime = isSeriesRevealing ? dashedSplitTime : Number.POSITIVE_INFINITY
-              const areaGradientId = `${clipId}-area-${sanitizeSvgId(seriesItem.key)}`
-              let dashedColoredPoints: DataPoint[] | null = null
-              let dashedMutedPoints: DataPoint[] | null = null
+            <g clipPath={`url(#${plotAreaClipId})`}>
+              {series.map((seriesItem) => {
+                const seriesColor = seriesItem.color
+                const isSeriesRevealing = revealProgress < 0.999 || revealSeriesSet.has(seriesItem.key)
+                const seriesColoredPoints = isSeriesRevealing ? coloredPoints : data
+                const seriesMutedPoints = isSeriesRevealing ? mutedPoints : []
+                const surgeLength = surgeLengthsRef.current[seriesItem.key]
+                const surgeDashLength = typeof surgeLength === 'number' && Number.isFinite(surgeLength)
+                  ? Math.max(18, surgeLength * SURGE_DASH_RATIO)
+                  : 0
+                const surgeDashGap = surgeLength ?? 0
+                const shouldRenderSurge = Boolean(
+                  surgeActive
+                  && isSeriesRevealing
+                  && !crossFadeActive
+                  && !shouldSplitByCursor
+                  && seriesMutedPoints.length === 0
+                  && seriesColoredPoints.length > 1
+                  && surgeLength
+                  && surgeDashLength > 0,
+                )
+                const firstPoint = firstFinitePointBySeries[seriesItem.key] ?? null
+                const firstPointTime = firstPoint?.date.getTime()
+                const hasLeadingGap = Number.isFinite(leadingGapStartMs)
+                  && typeof firstPointTime === 'number'
+                  && Number.isFinite(firstPointTime)
+                  && leadingGapStartMs < firstPointTime
+                const ghostOpacity = crossFadeOut
+                const seriesSplitTime = isSeriesRevealing ? dashedSplitTime : Number.POSITIVE_INFINITY
+                const areaGradientId = `${clipId}-area-${sanitizeSvgId(seriesItem.key)}`
+                let dashedColoredPoints: DataPoint[] | null = null
+                let dashedMutedPoints: DataPoint[] | null = null
 
-              if (hasLeadingGap && firstPoint) {
-                const firstValue = firstPoint[seriesItem.key] as number
-                const startPoint: DataPoint = { date: new Date(leadingGapStartMs), [seriesItem.key]: firstValue }
-                const endPoint: DataPoint = { date: firstPoint.date, [seriesItem.key]: firstValue }
+                if (hasLeadingGap && firstPoint) {
+                  const firstValue = firstPoint[seriesItem.key] as number
+                  const startPoint: DataPoint = { date: new Date(leadingGapStartMs), [seriesItem.key]: firstValue }
+                  const endPoint: DataPoint = { date: firstPoint.date, [seriesItem.key]: firstValue }
 
-                if (seriesSplitTime <= leadingGapStartMs) {
-                  dashedMutedPoints = [startPoint, endPoint]
+                  if (seriesSplitTime <= leadingGapStartMs) {
+                    dashedMutedPoints = [startPoint, endPoint]
+                  }
+                  else if (seriesSplitTime >= firstPointTime) {
+                    dashedColoredPoints = [startPoint, endPoint]
+                  }
+                  else {
+                    const splitPoint: DataPoint = { date: new Date(seriesSplitTime), [seriesItem.key]: firstValue }
+                    dashedColoredPoints = [startPoint, splitPoint]
+                    dashedMutedPoints = [splitPoint, endPoint]
+                  }
                 }
-                else if (seriesSplitTime >= firstPointTime) {
-                  dashedColoredPoints = [startPoint, endPoint]
-                }
-                else {
-                  const splitPoint: DataPoint = { date: new Date(seriesSplitTime), [seriesItem.key]: firstValue }
-                  dashedColoredPoints = [startPoint, splitPoint]
-                  dashedMutedPoints = [splitPoint, endPoint]
-                }
-              }
 
-              return (
-                <g key={seriesItem.key}>
-                  {crossFadeActive && crossFadeData && crossFadeData.length > 1 && (
-                    <LinePath<DataPoint>
-                      data={crossFadeData}
-                      x={d => getX(d)}
-                      y={d => getSeriesY(d, seriesItem.key)}
-                      defined={d => hasSeriesValue(d, seriesItem.key)}
-                      stroke={seriesColor}
-                      strokeWidth={resolvedLineStrokeWidth}
-                      strokeOpacity={ghostOpacity}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      curve={resolvedLineCurve}
-                      fill="transparent"
-                    />
-                  )}
+                return (
+                  <g key={seriesItem.key}>
+                    {crossFadeActive && crossFadeData && crossFadeData.length > 1 && (
+                      <LinePath<DataPoint>
+                        data={crossFadeData}
+                        x={d => getX(d)}
+                        y={d => getSeriesY(d, seriesItem.key)}
+                        defined={d => hasSeriesValue(d, seriesItem.key)}
+                        stroke={seriesColor}
+                        strokeWidth={resolvedLineStrokeWidth}
+                        strokeOpacity={ghostOpacity}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        curve={resolvedLineCurve}
+                        fill="transparent"
+                      />
+                    )}
 
-                  {dashedMutedPoints && (
-                    <LinePath<DataPoint>
-                      data={dashedMutedPoints}
-                      x={d => getX(d)}
-                      y={d => getSeriesY(d, seriesItem.key)}
-                      defined={d => hasSeriesValue(d, seriesItem.key)}
-                      stroke={futureLineColor}
-                      strokeWidth={1.3}
-                      strokeDasharray="2 4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeOpacity={futureLineOpacity}
-                      curve={resolvedLineCurve}
-                      fill="transparent"
-                    />
-                  )}
+                    {dashedMutedPoints && (
+                      <LinePath<DataPoint>
+                        data={dashedMutedPoints}
+                        x={d => getX(d)}
+                        y={d => getSeriesY(d, seriesItem.key)}
+                        defined={d => hasSeriesValue(d, seriesItem.key)}
+                        stroke={futureLineColor}
+                        strokeWidth={1.3}
+                        strokeDasharray="2 4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeOpacity={futureLineOpacity}
+                        curve={resolvedLineCurve}
+                        fill="transparent"
+                      />
+                    )}
 
-                  {dashedColoredPoints && (
-                    <LinePath<DataPoint>
-                      data={dashedColoredPoints}
-                      x={d => getX(d)}
-                      y={d => getSeriesY(d, seriesItem.key)}
-                      defined={d => hasSeriesValue(d, seriesItem.key)}
-                      stroke={seriesColor}
-                      strokeWidth={1.4}
-                      strokeDasharray="2 4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeOpacity={0.9}
-                      curve={resolvedLineCurve}
-                      fill="transparent"
-                    />
-                  )}
+                    {dashedColoredPoints && (
+                      <LinePath<DataPoint>
+                        data={dashedColoredPoints}
+                        x={d => getX(d)}
+                        y={d => getSeriesY(d, seriesItem.key)}
+                        defined={d => hasSeriesValue(d, seriesItem.key)}
+                        stroke={seriesColor}
+                        strokeWidth={1.4}
+                        strokeDasharray="2 4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeOpacity={0.9}
+                        curve={resolvedLineCurve}
+                        fill="transparent"
+                      />
+                    )}
 
-                  {shouldSplitByCursor
-                    ? (
-                        <>
-                          <LinePath<DataPoint>
-                            data={data}
-                            x={d => getX(d)}
-                            y={d => getSeriesY(d, seriesItem.key)}
-                            defined={d => hasSeriesValue(d, seriesItem.key)}
-                            stroke={futureLineColor}
-                            strokeWidth={1.4}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeOpacity={futureLineOpacity * crossFadeIn}
-                            curve={resolvedLineCurve}
-                            fill="transparent"
-                            clipPath={`url(#${rightClipId})`}
-                          />
-                          <LinePath<DataPoint>
-                            data={data}
-                            x={d => getX(d)}
-                            y={d => getSeriesY(d, seriesItem.key)}
-                            defined={d => hasSeriesValue(d, seriesItem.key)}
-                            stroke={seriesColor}
-                            strokeWidth={resolvedLineStrokeWidth}
-                            strokeOpacity={crossFadeIn}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            curve={resolvedLineCurve}
-                            fill="transparent"
-                            clipPath={`url(#${leftClipId})`}
-                            innerRef={registerSeriesPath(seriesItem.key)}
-                          />
-                        </>
-                      )
-                    : (
-                        <>
-                          {seriesMutedPoints.length > 1 && (
+                    {shouldSplitByCursor
+                      ? (
+                          <>
                             <LinePath<DataPoint>
-                              data={seriesMutedPoints}
+                              data={data}
                               x={d => getX(d)}
                               y={d => getSeriesY(d, seriesItem.key)}
                               defined={d => hasSeriesValue(d, seriesItem.key)}
                               stroke={futureLineColor}
-                              strokeWidth={1.6}
+                              strokeWidth={1.4}
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeOpacity={futureLineOpacity * crossFadeIn}
                               curve={resolvedLineCurve}
                               fill="transparent"
+                              clipPath={`url(#${rightClipId})`}
                             />
-                          )}
-
-                        </>
-                      )}
-
-                  {!shouldSplitByCursor && seriesColoredPoints.length > 1 && (
-                    <LinePath<DataPoint>
-                      data={seriesColoredPoints}
-                      x={d => getX(d)}
-                      y={d => getSeriesY(d, seriesItem.key)}
-                      defined={d => hasSeriesValue(d, seriesItem.key)}
-                      curve={resolvedLineCurve}
-                    >
-                      {({ path }) => {
-                        const pathDefinition = path(seriesColoredPoints)
-                        if (!pathDefinition) {
-                          return null
-                        }
-
-                        const finiteColoredPoints = seriesColoredPoints.filter(point => hasSeriesValue(point, seriesItem.key))
-                        const firstColoredPoint = finiteColoredPoints[0]
-                        const lastColoredPoint = finiteColoredPoints[finiteColoredPoints.length - 1]
-                        const canRenderAreaFill = showAreaFill
-                          && finiteColoredPoints.length > 1
-                          && finiteColoredPoints.length === seriesColoredPoints.length
-                        const areaPathDefinition = canRenderAreaFill && firstColoredPoint && lastColoredPoint
-                          ? `${pathDefinition} L ${getX(lastColoredPoint)} ${innerHeight} L ${getX(firstColoredPoint)} ${innerHeight} Z`
-                          : null
-
-                        return (
-                          <>
-                            {areaPathDefinition && (
-                              <path
-                                d={areaPathDefinition}
-                                fill={`url(#${areaGradientId})`}
-                                fillOpacity={crossFadeIn}
-                                stroke="none"
-                                pointerEvents="none"
-                              />
-                            )}
-                            <path
-                              d={pathDefinition}
+                            <LinePath<DataPoint>
+                              data={data}
+                              x={d => getX(d)}
+                              y={d => getSeriesY(d, seriesItem.key)}
+                              defined={d => hasSeriesValue(d, seriesItem.key)}
                               stroke={seriesColor}
                               strokeWidth={resolvedLineStrokeWidth}
                               strokeOpacity={crossFadeIn}
                               strokeLinecap="round"
                               strokeLinejoin="round"
+                              curve={resolvedLineCurve}
                               fill="transparent"
-                              ref={registerSeriesPath(seriesItem.key)}
+                              clipPath={`url(#${leftClipId})`}
+                              innerRef={registerSeriesPath(seriesItem.key)}
                             />
-                            {shouldRenderSurge && (
+                          </>
+                        )
+                      : (
+                          <>
+                            {seriesMutedPoints.length > 1 && (
+                              <LinePath<DataPoint>
+                                data={seriesMutedPoints}
+                                x={d => getX(d)}
+                                y={d => getSeriesY(d, seriesItem.key)}
+                                defined={d => hasSeriesValue(d, seriesItem.key)}
+                                stroke={futureLineColor}
+                                strokeWidth={1.6}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeOpacity={futureLineOpacity * crossFadeIn}
+                                curve={resolvedLineCurve}
+                                fill="transparent"
+                              />
+                            )}
+
+                          </>
+                        )}
+
+                    {!shouldSplitByCursor && seriesColoredPoints.length > 1 && (
+                      <LinePath<DataPoint>
+                        data={seriesColoredPoints}
+                        x={d => getX(d)}
+                        y={d => getSeriesY(d, seriesItem.key)}
+                        defined={d => hasSeriesValue(d, seriesItem.key)}
+                        curve={resolvedLineCurve}
+                      >
+                        {({ path }) => {
+                          const pathDefinition = path(seriesColoredPoints)
+                          if (!pathDefinition) {
+                            return null
+                          }
+
+                          const finiteColoredPoints = seriesColoredPoints.filter(point => hasSeriesValue(point, seriesItem.key))
+                          const firstColoredPoint = finiteColoredPoints[0]
+                          const lastColoredPoint = finiteColoredPoints[finiteColoredPoints.length - 1]
+                          const canRenderAreaFill = showAreaFill
+                            && finiteColoredPoints.length > 1
+                            && finiteColoredPoints.length === seriesColoredPoints.length
+                          const areaPathDefinition = canRenderAreaFill && firstColoredPoint && lastColoredPoint
+                            ? `${pathDefinition} L ${getX(lastColoredPoint)} ${innerHeight} L ${getX(firstColoredPoint)} ${innerHeight} Z`
+                            : null
+
+                          return (
+                            <>
+                              {areaPathDefinition && (
+                                <path
+                                  d={areaPathDefinition}
+                                  fill={`url(#${areaGradientId})`}
+                                  fillOpacity={crossFadeIn}
+                                  stroke="none"
+                                  pointerEvents="none"
+                                />
+                              )}
                               <path
                                 d={pathDefinition}
-                                stroke={resolveSurgeColor(seriesColor)}
-                                strokeWidth={resolvedSurgeStrokeWidth}
+                                stroke={seriesColor}
+                                strokeWidth={resolvedLineStrokeWidth}
+                                strokeOpacity={crossFadeIn}
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 fill="transparent"
-                                strokeDasharray={`${surgeDashLength} ${surgeDashGap}`}
-                                strokeDashoffset={0}
-                                opacity={1}
-                                style={{
-                                  'animation': `prediction-chart-surge ${SURGE_DURATION}ms ease-out`,
-                                  '--surge-offset-start': '0',
-                                  '--surge-offset-end': `${-(surgeLength + surgeDashLength)}`,
-                                  'filter': surgeFilter,
-                                } as CSSProperties}
+                                ref={registerSeriesPath(seriesItem.key)}
                               />
-                            )}
-                          </>
-                        )
-                      }}
-                    </LinePath>
-                  )}
-                </g>
-              )
-            })}
-
-            {canShowMarkers
-              && lastDataPoint
-              && series.map((seriesItem) => {
-                const isSeriesRevealing = revealSeriesSet.has(seriesItem.key)
-                const seriesMutedPoints = isSeriesRevealing ? mutedPoints : []
-                const shouldShowMarker = (seriesMutedPoints.length === 0 || shouldSplitByCursor)
-                  && !(surgeActive && isSeriesRevealing)
-
-                if (!shouldShowMarker) {
-                  return null
-                }
-
-                const value = lastDataPoint[seriesItem.key]
-                if (typeof value !== 'number' || !Number.isFinite(value)) {
-                  return null
-                }
-                const resolvedMarkerOffsetX = Number.isFinite(markerOffsetX) ? markerOffsetX : 0
-                const cx = xScale(getDate(lastDataPoint)) + resolvedMarkerOffsetX
-                const cy = yScale(value)
-
-                return (
-                  <g key={`${seriesItem.key}-marker`} transform={`translate(${cx}, ${cy})`}>
-                    <circle
-                      r={markerOuterRadius}
-                      fill={seriesItem.color}
-                      fillOpacity={0.4}
-                      pointerEvents="none"
-                      style={{
-                        transformOrigin: 'center',
-                        transformBox: 'fill-box',
-                        animation: 'prediction-chart-radar 2.6s ease-out infinite',
-                      }}
-                    />
-                    <circle
-                      r={markerInnerRadius}
-                      fill={seriesItem.color}
-                      stroke={seriesItem.color}
-                      strokeWidth={1.5}
-                      pointerEvents="none"
-                    />
+                              {shouldRenderSurge && (
+                                <path
+                                  d={pathDefinition}
+                                  stroke={resolveSurgeColor(seriesColor)}
+                                  strokeWidth={resolvedSurgeStrokeWidth}
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  fill="transparent"
+                                  strokeDasharray={`${surgeDashLength} ${surgeDashGap}`}
+                                  strokeDashoffset={0}
+                                  opacity={1}
+                                  style={{
+                                    'animation': `prediction-chart-surge ${SURGE_DURATION}ms ease-out`,
+                                    '--surge-offset-start': '0',
+                                    '--surge-offset-end': `${-(surgeLength + surgeDashLength)}`,
+                                    'filter': surgeFilter,
+                                  } as CSSProperties}
+                                />
+                              )}
+                            </>
+                          )
+                        }}
+                      </LinePath>
+                    )}
                   </g>
                 )
               })}
+
+              {canShowMarkers
+                && lastDataPoint
+                && series.map((seriesItem) => {
+                  const isSeriesRevealing = revealSeriesSet.has(seriesItem.key)
+                  const seriesMutedPoints = isSeriesRevealing ? mutedPoints : []
+                  const shouldShowMarker = (seriesMutedPoints.length === 0 || shouldSplitByCursor)
+                    && !(surgeActive && isSeriesRevealing)
+
+                  if (!shouldShowMarker) {
+                    return null
+                  }
+
+                  const value = lastDataPoint[seriesItem.key]
+                  if (typeof value !== 'number' || !Number.isFinite(value)) {
+                    return null
+                  }
+                  const resolvedMarkerOffsetX = Number.isFinite(markerOffsetX) ? markerOffsetX : 0
+                  const cx = xScale(getDate(lastDataPoint)) + resolvedMarkerOffsetX
+                  const cy = yScale(value)
+
+                  return (
+                    <g key={`${seriesItem.key}-marker`} transform={`translate(${cx}, ${cy})`}>
+                      {markerPulseStyle === 'ring'
+                        ? (
+                            <circle
+                              r={markerOuterRadius}
+                              fill="none"
+                              stroke={seriesItem.color}
+                              strokeWidth={1.6}
+                              strokeOpacity={0.85}
+                              vectorEffect="non-scaling-stroke"
+                              pointerEvents="none"
+                              style={{
+                                transformOrigin: 'center',
+                                transformBox: 'fill-box',
+                                animation: 'prediction-chart-radar 2.6s ease-out infinite',
+                              }}
+                            />
+                          )
+                        : (
+                            <circle
+                              r={markerOuterRadius}
+                              fill={seriesItem.color}
+                              fillOpacity={0.4}
+                              pointerEvents="none"
+                              style={{
+                                transformOrigin: 'center',
+                                transformBox: 'fill-box',
+                                animation: 'prediction-chart-radar 2.6s ease-out infinite',
+                              }}
+                            />
+                          )}
+                      <circle
+                        r={markerInnerRadius}
+                        fill={seriesItem.color}
+                        stroke={seriesItem.color}
+                        strokeWidth={1.5}
+                        pointerEvents="none"
+                      />
+                    </g>
+                  )
+                })}
+            </g>
 
             {showYAxis && (
               <AxisRight
@@ -1643,6 +1808,48 @@ export function PredictionChart({
               onTouchCancel={handleInteractionEnd}
             />
 
+            {resolvedAnnotationClusters.map((cluster) => {
+              return (
+                <circle
+                  key={cluster.id}
+                  cx={cluster.x}
+                  cy={cluster.y}
+                  r={cluster.radius}
+                  fill={cluster.color}
+                  stroke="var(--background)"
+                  strokeWidth={1.2}
+                  className="cursor-pointer"
+                  onMouseEnter={(event) => {
+                    setHoveredAnnotationClusterId(cluster.id)
+                    handleTooltip(event as any)
+                  }}
+                  onMouseMove={(event) => {
+                    setHoveredAnnotationClusterId(cluster.id)
+                    handleTooltip(event as any)
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredAnnotationClusterId((current) => {
+                      if (current !== cluster.id) {
+                        return current
+                      }
+                      return null
+                    })
+                  }}
+                  onFocus={() => {
+                    setHoveredAnnotationClusterId(cluster.id)
+                  }}
+                  onBlur={() => {
+                    setHoveredAnnotationClusterId((current) => {
+                      if (current !== cluster.id) {
+                        return current
+                      }
+                      return null
+                    })
+                  }}
+                />
+              )
+            })}
+
             {tooltipActive && (
               <line
                 x1={clampedTooltipX}
@@ -1686,6 +1893,35 @@ export function PredictionChart({
           showSeriesLabels={showTooltipSeriesLabels}
           header={tooltipHeader}
         />
+
+        {hoveredAnnotationCluster
+          && hoveredAnnotationTooltipPosition && (
+          <div
+            className="
+              pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-lg border border-border
+              bg-popover px-2.5 py-1.5 shadow-md
+            "
+            style={{
+              left: hoveredAnnotationTooltipPosition.left,
+              top: hoveredAnnotationTooltipPosition.top,
+            }}
+          >
+            {hoveredAnnotationCluster.markers.length > 1
+              ? (
+                  <div className="flex flex-col gap-1.5">
+                    {hoveredAnnotationCluster.markers
+                      .slice()
+                      .sort((a, b) => b.date.getTime() - a.date.getTime())
+                      .map(marker => (
+                        <div key={`${hoveredAnnotationCluster.id}-${marker.id}`}>
+                          {marker.tooltipContent}
+                        </div>
+                      ))}
+                  </div>
+                )
+              : hoveredAnnotationCluster.markers[0]?.tooltipContent}
+          </div>
+        )}
       </div>
     </div>
   )
