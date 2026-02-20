@@ -5,7 +5,9 @@ import type { DataPoint, PredictionChartProps, SeriesConfig } from '@/types/Pred
 import { ChartLineIcon, ChevronsDownIcon, ChevronsUpIcon, TriangleIcon } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useState } from 'react'
+import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -661,6 +663,7 @@ export default function EventLiveSeriesChart({
 }: EventLiveSeriesChartProps) {
   const wsUrl = process.env.WS_LIVE_DATA_URL
   const config = inputConfig
+  const site = useSiteIdentity()
   const { width: windowWidth } = useWindowSize()
   const liveColor = config.line_color || '#F59E0B'
   const priceDisplayDigits = config.show_price_decimals ? 2 : 0
@@ -1095,8 +1098,10 @@ export default function EventLiveSeriesChart({
     }
 
     let next = pointsWithinDomain
-    if (lastPointBeforeDomainStart && pointsWithinDomain.length > 0) {
-      next = [lastPointBeforeDomainStart, ...pointsWithinDomain]
+    if (lastPointBeforeDomainStart) {
+      next = pointsWithinDomain.length > 0
+        ? [lastPointBeforeDomainStart, ...pointsWithinDomain]
+        : [lastPointBeforeDomainStart]
     }
 
     const lastPoint = next[next.length - 1]
@@ -1277,6 +1282,43 @@ export default function EventLiveSeriesChart({
         transform: 'translateX(0)',
       }
 
+  const watermark = useMemo(
+    () => ({
+      iconSvg: site.logoSvg,
+      iconImageUrl: site.logoImageUrl,
+      label: site.name,
+    }),
+    [site.logoImageUrl, site.logoSvg, site.name],
+  )
+  const countdownEndedLogo = (watermark.iconSvg || watermark.label)
+    ? (
+        <div
+          className="pointer-events-none flex items-center gap-1 text-xl text-muted-foreground opacity-50 select-none"
+          aria-hidden
+        >
+          {watermark.iconSvg
+            ? (
+                <SiteLogoIcon
+                  logoSvg={watermark.iconSvg}
+                  logoImageUrl={watermark.iconImageUrl}
+                  alt={`${watermark.label} logo`}
+                  className="size-[1em] **:fill-current **:stroke-current"
+                  imageClassName="size-[1em] object-contain"
+                  size={20}
+                />
+              )
+            : null}
+          {watermark.label
+            ? (
+                <span className="font-semibold">
+                  {watermark.label}
+                </span>
+              )
+            : null}
+        </div>
+      )
+    : null
+
   const viewSwitch = (
     <div className="relative z-0 flex items-center rounded-lg border border-border bg-background/70 p-0.5">
       <span
@@ -1375,91 +1417,98 @@ export default function EventLiveSeriesChart({
                     </div>
                   </div>
                 </div>
-                {shouldShowCountdown && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="mr-[-4px] ml-auto grid justify-items-end gap-1 text-left sm:mr-[-6px]"
-                      >
-                        <div className="flex items-end gap-3">
-                          {visibleCountdownUnits.map(({ unit, value }) => (
-                            <div key={unit} className="min-w-11 text-right">
-                              <div
-                                className={cn(
-                                  'text-[22px] leading-none font-semibold tabular-nums',
-                                  isTradingWindowActive ? 'text-red-500' : 'text-muted-foreground',
-                                )}
-                              >
-                                <AnimatedCountdownValue value={value} />
+                {shouldShowCountdown
+                  ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="mr-[-4px] ml-auto grid justify-items-end gap-1 text-left sm:mr-[-6px]"
+                          >
+                            <div className="flex items-end gap-3">
+                              {visibleCountdownUnits.map(({ unit, value }) => (
+                                <div key={unit} className="min-w-11 text-right">
+                                  <div
+                                    className={cn(
+                                      'text-[22px] leading-none font-semibold tabular-nums',
+                                      isTradingWindowActive ? 'text-red-500' : 'text-muted-foreground',
+                                    )}
+                                  >
+                                    <AnimatedCountdownValue value={value} />
+                                  </div>
+                                  <div
+                                    className="
+                                      mt-1 text-2xs font-semibold tracking-[0.08em] text-muted-foreground uppercase
+                                    "
+                                  >
+                                    {countdownLabel(unit, value)}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <span className="sr-only">{status}</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent align="end" className="w-72 rounded-xl p-3 text-left">
+                          <div className="grid gap-2.5">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="inline-flex items-center gap-2 text-red-500">
+                                <span className="relative inline-flex size-2.5 items-center justify-center">
+                                  <span
+                                    className="
+                                      absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full
+                                      bg-red-500/45
+                                    "
+                                  />
+                                  <span
+                                    className="relative inline-flex size-2 rounded-full bg-red-500"
+                                  />
+                                </span>
+                                <span className="text-xs font-semibold tracking-[0.08em] uppercase">Live</span>
                               </div>
-                              <div
-                                className="
-                                  mt-1 text-2xs font-semibold tracking-[0.08em] text-muted-foreground uppercase
-                                "
-                              >
-                                {countdownLabel(unit, value)}
+                              <div className="text-sm">
+                                <span className="font-semibold text-foreground">{countdownLeftLabel}</span>
+                                <span className="ml-1 text-muted-foreground">left</span>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                        <span className="sr-only">{status}</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent align="end" className="w-72 rounded-xl p-3 text-left">
-                      <div className="grid gap-2.5">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="inline-flex items-center gap-2 text-red-500">
-                            <span className="relative inline-flex size-2.5 items-center justify-center">
-                              <span
-                                className="
-                                  absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45
-                                "
-                              />
-                              <span
-                                className="relative inline-flex size-2 rounded-full bg-red-500"
-                              />
-                            </span>
-                            <span className="text-xs font-semibold tracking-[0.08em] uppercase">Live</span>
-                          </div>
-                          <div className="text-sm">
-                            <span className="font-semibold text-foreground">{countdownLeftLabel}</span>
-                            <span className="ml-1 text-muted-foreground">left</span>
-                          </div>
-                        </div>
 
-                        <div className="text-xs text-muted-foreground">Resolution time</div>
+                            <div className="text-xs text-muted-foreground">Resolution time</div>
 
-                        <div className="grid gap-2 text-sm text-foreground">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="
-                                inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs
-                                font-semibold
-                              "
-                            >
-                              ET
-                            </span>
-                            <span className="tabular-nums">{etDateLabel}</span>
-                            <span className="ml-auto tabular-nums">{etTimeLabel}</span>
+                            <div className="grid gap-2 text-sm text-foreground">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="
+                                    inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs
+                                    font-semibold
+                                  "
+                                >
+                                  ET
+                                </span>
+                                <span className="tabular-nums">{etDateLabel}</span>
+                                <span className="ml-auto tabular-nums">{etTimeLabel}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="
+                                    inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs
+                                    font-semibold
+                                  "
+                                >
+                                  UTC
+                                </span>
+                                <span className="tabular-nums">{utcDateLabel}</span>
+                                <span className="ml-auto tabular-nums">{utcTimeLabel}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="
-                                inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs
-                                font-semibold
-                              "
-                            >
-                              UTC
-                            </span>
-                            <span className="tabular-nums">{utcDateLabel}</span>
-                            <span className="ml-auto tabular-nums">{utcTimeLabel}</span>
-                          </div>
-                        </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )
+                  : (
+                      <div className="mr-[-4px] ml-auto sm:mr-[-6px]">
+                        {countdownEndedLogo}
                       </div>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
+                    )}
               </div>
 
               <div className="relative z-0 pr-4 pl-0 sm:pr-6 sm:pl-0">
