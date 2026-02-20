@@ -12,6 +12,7 @@ import type {
 } from '@/types/PredictionChartTypes'
 import { useQuery } from '@tanstack/react-query'
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMarketChannelSubscription } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import {
@@ -740,10 +741,11 @@ function EventChartComponent({
           <div className="flex items-center gap-2 text-xs whitespace-nowrap">
             {outcomeIconUrl
               ? (
-                  // eslint-disable-next-line next/no-img-element
-                  <img
+                  <Image
                     src={outcomeIconUrl}
                     alt={outcomeLabel}
+                    height={20}
+                    width={20}
                     className="size-5 rounded-full object-cover"
                   />
                 )
