@@ -115,8 +115,7 @@ PROJECT_ID=<gcp-project> REGION=us-central1 IMAGE_REF=ghcr.io/kuestcom/predictio
 ### Fly.io
 
 ```bash
-FLY_APP=<fly-app-name> ENV_FILE=.env ./infra/fly/sync-secrets.sh
-FLY_APP=<fly-app-name> IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<digest> ENV_FILE=.env ./infra/fly/deploy.sh
+cat infra/fly/README.md
 ```
 
 ### DigitalOcean (manual)

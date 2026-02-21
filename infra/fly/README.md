@@ -1,72 +1,61 @@
-# Fly.io target
+# Fly.io
 
-Deploy target for Fly.io using the same runtime contract as other non-Vercel targets.
-
-See shared docs first:
-
-- `infra/README.md`
-- `infra/scheduler-contract.md`
+Deploy target for Fly.io.
 
 ## Prerequisites
 
 1. Fly.io account and organization.
 2. Existing Fly app (`fly apps create <app-name>`).
 3. Access to this repository.
-4. Production `.env` values.
-5. `flyctl` installed and authenticated.
+4. [Configure Environment Variables](../../README.md#quick-start-15-minutes).
+5. Choose between Supabase vs Postgres+S3 and [set the required env variables](../README.md#storage-options)
+6. `flyctl` installed and authenticated.
 
-## Storage option notes
+## Manual deploy on Fly.io
 
-Fly helper scripts are still Supabase-first:
+### 1) Configure runtime variables
 
-- `infra/fly/sync-secrets.sh` currently expects `SUPABASE_*`.
+Configure app variables/secrets directly in Fly.io (dashboard or `flyctl secrets set`) using:
 
-If using Postgres+S3 mode, adapt secret sync/wiring manually.
+- [Configure Environment Variables](../../README.md#quick-start-15-minutes)
+- [Storage options](../README.md#storage-options)
 
-## Deploy
-
-Sync runtime variables/secrets:
+### 2) Deploy immutable image
 
 ```bash
-FLY_APP=<fly-app-name> ENV_FILE=.env ./infra/fly/sync-secrets.sh
+flyctl deploy \
+  --app <fly-app-name> \
+  --config infra/fly/fly.toml \
+  --image ghcr.io/kuestcom/prediction-market@sha256:<digest>
 ```
 
-Deploy immutable image:
+### 3) Rollback
+
+Redeploy the previous healthy image digest:
 
 ```bash
-FLY_APP=<fly-app-name> \
-IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<digest> \
-ENV_FILE=.env \
-./infra/fly/deploy.sh
-```
-
-Rollback:
-
-```bash
-FLY_APP=<fly-app-name> \
-IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<previous-digest> \
-ENV_FILE=.env \
-./infra/fly/deploy.sh
+flyctl deploy \
+  --app <fly-app-name> \
+  --config infra/fly/fly.toml \
+  --image ghcr.io/kuestcom/prediction-market@sha256:<previous-digest>
 ```
 
 ## Scheduler implementation on Fly.io
 
-Fly Machines do not provide the scheduler behavior you need for this app out of the box.
+> [!CAUTION]
+> If you choose [Supabase mode](../README.md#option-a-supabase-mode-recommended), there is no need to create external scheduler jobs since you will be duplicating requests to your sync endpoints.
 
-Use one of:
+Fly deployment does not replace the sync scheduler requirement.
 
-1. Supabase `pg_cron` (Supabase mode only), or
-2. External scheduler hitting `SITE_URL/api/sync/*` using `infra/scheduler-contract.md`
+Use an external scheduler implementing `infra/scheduler-contract.md` when needed.
 
-Recommended external options:
+Common options:
 
-- GitHub Actions scheduled workflow
-- Cloud Scheduler
-- Any cron service that supports custom HTTP headers
+- GitHub Actions schedule
+- Google Cloud Scheduler
+- Any managed cron service with custom headers
 
-Do not run both Supabase `pg_cron` and external scheduler for the same endpoints unless intentional.
-
-## Optional: Terraform deploy for Fly.io
+## Optional: Terraform for Fly.io
 
 ```bash
 cd infra/terraform/environments/production/fly
@@ -78,5 +67,4 @@ terraform apply
 
 ## Notes
 
-- Base app settings live in `infra/fly/fly.toml`.
-- Keep `SITE_URL` set to your canonical public URL.
+- `SITE_URL` must be your canonical public URL.
