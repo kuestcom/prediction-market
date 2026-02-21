@@ -33,7 +33,9 @@ export default function EventChartHeader({
   showSeriesNavigation = true,
 }: EventChartHeaderProps) {
   if (!isSingleMarket) {
-    return null
+    return showSeriesNavigation
+      ? <EventSeriesPills currentEventSlug={currentEventSlug} seriesEvents={seriesEvents} />
+      : null
   }
 
   const changeIndicator = (() => {

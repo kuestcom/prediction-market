@@ -157,7 +157,7 @@ export function handleOrderErrorFeedback(message: string, description?: string) 
 }
 
 export function handleOrderCancelledFeedback() {
-  toast.info('Trade cancelled', {
+  toast.error('Trade cancelled', {
     description: 'You rejected the request in your wallet.',
   })
 }
