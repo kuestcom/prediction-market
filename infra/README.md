@@ -11,7 +11,6 @@ This folder provides a portable deployment foundation outside Vercel.
 - `fly/`: Fly.io deployment runbook
 - `digital-ocean/`: DigitalOcean App Platform runbook
 - `scheduler-contract.md`: single scheduler contract for `/api/sync/*`
-- `scripts/`: shared env and image validation helpers
 
 ## Deployment decision tree
 
@@ -69,19 +68,6 @@ All non-Vercel targets should implement the same HTTP scheduler contract:
 - Security: always send `Authorization: Bearer $CRON_SECRET`
 - Do not run multiple scheduler backends for the same endpoints unless intentional
 
-## Current infra template status
-
-Some helper scripts/templates are still Supabase-first.
-
-- `infra/scripts/validate-runtime-env.sh` currently validates the Supabase option from `infra/scripts/required-runtime-env.txt`.
-- Some target helpers (`sync-secrets.sh`, Terraform `secret_env` validations) still require `SUPABASE_*`.
-
-For Postgres+S3 mode today:
-
-- Treat current target templates as a starting point.
-- Add `S3_*` envs manually in your platform secrets manager.
-- Skip `SUPABASE_*` only when the chosen target tooling no longer enforces those variables.
-
 ## Quick start
 
 Always start from base variables in [Configure environment variables](../README.md#2-configure-environment-variables-before-deploy).
@@ -108,8 +94,7 @@ Scheduler implementation details: `infra/kubernetes/README.md`
 ### Cloud Run
 
 ```bash
-PROJECT_ID=<gcp-project> ENV_FILE=.env ./infra/cloud-run/sync-secrets.sh
-PROJECT_ID=<gcp-project> REGION=us-central1 IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<digest> ENV_FILE=.env ./infra/cloud-run/deploy.sh
+cat infra/cloud-run/README.md
 ```
 
 ### Fly.io

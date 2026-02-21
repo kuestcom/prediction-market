@@ -63,7 +63,11 @@ terraform apply
 
 ## Fly.io target
 
-This target orchestrates `infra/fly/sync-secrets.sh` and `infra/fly/deploy.sh` through Terraform local-exec.
+This target runs `flyctl deploy` through Terraform `local-exec`.
+Environment variables and secrets are managed manually in Fly.io (dashboard or `flyctl secrets set`), following:
+
+- [Configure Environment Variables](../../README.md#quick-start-15-minutes)
+- [Storage options](../README.md#storage-options)
 
 Prerequisites:
 
@@ -101,4 +105,3 @@ terraform apply
 - Use immutable image refs (`@sha256:` preferred, explicit non-`latest` tag allowed).
 - `SITE_URL` must point to the canonical public endpoint.
 - Current Terraform module validations are still Supabase-first and may require `SUPABASE_*` in `secret_env`.
-- Fly target supports `sync_secrets` for script-based deploys.
