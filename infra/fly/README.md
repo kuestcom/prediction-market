@@ -1,34 +1,37 @@
 # Fly.io target
 
-This target deploys the existing production image to Fly.io with the same runtime env contract used by other non-Vercel targets.
+Deploy target for Fly.io using the same runtime contract as other non-Vercel targets.
 
-## What you need first
+See shared docs first:
 
-1. A Fly.io account and organization.
-2. An existing Fly app (`fly apps create <app-name>`).
-3. Access to this GitHub repository.
-4. A `.env` file with production values.
-5. Supabase already configured for your project (if not, follow [Supabase setup outside Vercel](../README.md#supabase-setup-outside-vercel)).
-6. If you plan to use terminal commands directly, `flyctl` installed and authenticated.
+- `infra/README.md`
+- `infra/scheduler-contract.md`
 
-First, define base env vars from [Configure environment variables](../../README.md#2-configure-environment-variables-before-deploy).
-Then fill `POSTGRES_URL`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` with the values now available in your Supabase project.
+## Prerequisites
 
-You can validate your env locally before deploying:
+1. Fly.io account and organization.
+2. Existing Fly app (`fly apps create <app-name>`).
+3. Access to this repository.
+4. Production `.env` values.
+5. `flyctl` installed and authenticated.
 
-```bash
-ENV_FILE=.env ./infra/scripts/validate-runtime-env.sh --env-file "$ENV_FILE"
-```
+## Storage option notes
 
-## 1) Sync runtime variables/secrets
+Fly helper scripts are still Supabase-first:
+
+- `infra/fly/sync-secrets.sh` currently expects `SUPABASE_*`.
+
+If using Postgres+S3 mode, adapt secret sync/wiring manually.
+
+## Deploy
+
+Sync runtime variables/secrets:
 
 ```bash
 FLY_APP=<fly-app-name> ENV_FILE=.env ./infra/fly/sync-secrets.sh
 ```
 
-## 2) Deploy image
-
-Use an immutable image reference (digest preferred):
+Deploy immutable image:
 
 ```bash
 FLY_APP=<fly-app-name> \
@@ -37,9 +40,7 @@ ENV_FILE=.env \
 ./infra/fly/deploy.sh
 ```
 
-## Rollback
-
-Redeploy the previous image digest:
+Rollback:
 
 ```bash
 FLY_APP=<fly-app-name> \
@@ -48,9 +49,24 @@ ENV_FILE=.env \
 ./infra/fly/deploy.sh
 ```
 
-## Optional: Terraform deploy for Fly.io
+## Scheduler implementation on Fly.io
 
-If you prefer managing Fly.io deploys with Terraform:
+Fly Machines do not provide the scheduler behavior you need for this app out of the box.
+
+Use one of:
+
+1. Supabase `pg_cron` (Supabase mode only), or
+2. External scheduler hitting `SITE_URL/api/sync/*` using `infra/scheduler-contract.md`
+
+Recommended external options:
+
+- GitHub Actions scheduled workflow
+- Cloud Scheduler
+- Any cron service that supports custom HTTP headers
+
+Do not run both Supabase `pg_cron` and external scheduler for the same endpoints unless intentional.
+
+## Optional: Terraform deploy for Fly.io
 
 ```bash
 cd infra/terraform/environments/production/fly
@@ -63,5 +79,4 @@ terraform apply
 ## Notes
 
 - Base app settings live in `infra/fly/fly.toml`.
-- Keep `SITE_URL` set to the canonical public URL used by Supabase `pg_cron` callbacks (`/api/sync/*`).
-- Terraform workflow is available at `infra/terraform/environments/production/fly`.
+- Keep `SITE_URL` set to your canonical public URL.

@@ -6,50 +6,87 @@ This folder provides a portable deployment foundation outside Vercel.
 
 - `docker/`: production image and local compose profile
 - `kubernetes/`: baseline manifests for app deployment and ingress
-- `terraform/`: reusable deployment target modules and production stacks for Kubernetes, Cloud Run, Fly.io, and DigitalOcean
-- `cloud-run/`: Google Cloud Run deployment target and runbooks
-- `fly/`: Fly.io deployment target and runbooks
-- `digital-ocean/`: beginner-friendly manual deploy guide for DigitalOcean
+- `terraform/`: reusable deployment target modules and production stacks
+- `cloud-run/`: Google Cloud Run deployment runbook
+- `fly/`: Fly.io deployment runbook
+- `digital-ocean/`: DigitalOcean App Platform runbook
+- `scheduler-contract.md`: single scheduler contract for `/api/sync/*`
 - `scripts/`: shared env and image validation helpers
 
-## Environment contract
+## Deployment decision tree
 
-First, define the base environment variables from [Configure environment variables](../README.md#2-configure-environment-variables-before-deploy).
-Then fill `POSTGRES_URL`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` with the values now available in your Supabase project.
+1. Deploying on Vercel with one-click Supabase.
+   - Keep existing Vercel flow from [README Quick Start](../README.md#quick-start-15-minutes).
+2. Deploying outside Vercel with Supabase.
+   - Configure a Supabase project and follow [Supabase mode](#option-a-supabase-mode-recommended).
+3. Deploying outside Vercel without Supabase.
+   - Use Postgres+S3 mode.
+   - You must schedule `/api/sync/*` via platform/external scheduler.
 
-Then add these for infra targets:
+## Storage options
 
-- `SITE_URL` (required): canonical public app URL
-- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `POSTGRES_URL` (all treated as secrets in infra targets)
+### Option A: Supabase mode (recommended)
 
-On Vercel, some Supabase/DB variables may be auto-injected by integrations. On Kubernetes/Terraform/self-hosted, you must define them explicitly.
+Required secrets:
 
-## Supabase setup outside Vercel
+- `POSTGRES_URL`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
-If you are deploying outside Vercel, create and configure Supabase manually:
+Storage:
 
-1. Create a Supabase project in the [Supabase Dashboard](https://supabase.com/dashboard/projects).
-2. Open your project and copy `SUPABASE_URL` from `Project Settings` > `API` (`Project URL`).
-3. In the same `API` page, copy `SUPABASE_SERVICE_ROLE_KEY` (`service_role` key).
-4. Copy `POSTGRES_URL` from `Project Settings` > `Database` > connection string (URI format).
-5. Add `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `POSTGRES_URL` as secrets in your target platform.
-6. With production env loaded, run:
+- Supabase Storage bucket `kuest-assets`
 
-```bash
-npm run db:push
-```
+### Option B: Postgres + S3 mode
 
-7. Confirm migrations and cron jobs were applied in Supabase.
+Required secrets:
 
-Validate required variables:
+- `POSTGRES_URL`
+- `S3_BUCKET`
+- `S3_ACCESS_KEY_ID`
+- `S3_SECRET_ACCESS_KEY`
 
-```bash
-ENV_FILE=.env ./infra/scripts/validate-runtime-env.sh --env-file "$ENV_FILE"
-```
+Optional S3 settings:
 
-Use immutable image references in production examples (`@sha256:digest` preferred, explicit version tag acceptable, `:latest` forbidden).
+- `S3_ENDPOINT`
+- `S3_REGION`
+- `S3_PUBLIC_URL`
+- `S3_FORCE_PATH_STYLE`
+
+Storage:
+
+- S3-compatible object storage
+
+Scheduler:
+
+- External/platform scheduler implementing `infra/scheduler-contract.md`
+
+## Scheduler contract
+
+All non-Vercel targets should implement the same HTTP scheduler contract:
+
+- Contract and canonical schedules: `infra/scheduler-contract.md`
+- Security: always send `Authorization: Bearer $CRON_SECRET`
+- Do not run multiple scheduler backends for the same endpoints unless intentional
+
+## Current infra template status
+
+Some helper scripts/templates are still Supabase-first.
+
+- `infra/scripts/validate-runtime-env.sh` currently validates the Supabase option from `infra/scripts/required-runtime-env.txt`.
+- Some target helpers (`sync-secrets.sh`, Terraform `secret_env` validations) still require `SUPABASE_*`.
+
+For Postgres+S3 mode today:
+
+- Treat current target templates as a starting point.
+- Add `S3_*` envs manually in your platform secrets manager.
+- Skip `SUPABASE_*` only when the chosen target tooling no longer enforces those variables.
 
 ## Quick start
+
+Always start from base variables in [Configure environment variables](../README.md#2-configure-environment-variables-before-deploy).
+
+Use immutable image references in production (`@sha256:digest` preferred, `:latest` forbidden).
 
 ### Docker
 
@@ -58,13 +95,34 @@ docker compose --env-file .env -f infra/docker/docker-compose.yml up --build
 ```
 
 `NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID` is required at build time and is passed as a Docker build argument.
-When using `docker compose` directly with `-f infra/docker/docker-compose.yml`, also pass `--env-file .env`.
 
 ### Kubernetes (manifests)
 
 ```bash
 cp infra/kubernetes/secret.example.yaml infra/kubernetes/secret.yaml
 kubectl apply -k infra/kubernetes
+```
+
+Scheduler implementation details: `infra/kubernetes/README.md`
+
+### Cloud Run
+
+```bash
+PROJECT_ID=<gcp-project> ENV_FILE=.env ./infra/cloud-run/sync-secrets.sh
+PROJECT_ID=<gcp-project> REGION=us-central1 IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<digest> ENV_FILE=.env ./infra/cloud-run/deploy.sh
+```
+
+### Fly.io
+
+```bash
+FLY_APP=<fly-app-name> ENV_FILE=.env ./infra/fly/sync-secrets.sh
+FLY_APP=<fly-app-name> IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<digest> ENV_FILE=.env ./infra/fly/deploy.sh
+```
+
+### DigitalOcean (manual)
+
+```bash
+cat infra/digital-ocean/README.md
 ```
 
 ### Terraform
@@ -79,45 +137,9 @@ terraform apply
 
 Additional Terraform targets:
 
-- `infra/terraform/environments/production/gke` (creates GKE Autopilot cluster)
-- `infra/terraform/environments/production/cloud-run` (declarative Cloud Run deployment via `hashicorp/google`)
-- `infra/terraform/environments/production/fly` (orchestrates `infra/fly` scripts)
-- `infra/terraform/environments/production/digital-ocean` (DigitalOcean App Platform deploy)
+- `infra/terraform/environments/production/gke`
+- `infra/terraform/environments/production/cloud-run`
+- `infra/terraform/environments/production/fly`
+- `infra/terraform/environments/production/digital-ocean`
 
-See `infra/terraform/README.md` for full target-specific instructions.
-
-For Kubernetes on GCP, run `production/gke` first to create the cluster, fetch credentials with `gcloud container clusters get-credentials`, then run `production/kubernetes`.
-
-### Cloud Run
-
-```bash
-PROJECT_ID=<gcp-project> ENV_FILE=.env ./infra/cloud-run/sync-secrets.sh
-PROJECT_ID=<gcp-project> REGION=us-central1 IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<digest> ENV_FILE=.env ./infra/cloud-run/deploy.sh
-```
-
-Rollback (redeploy previous digest):
-
-```bash
-PROJECT_ID=<gcp-project> REGION=us-central1 IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<previous-digest> ENV_FILE=.env ./infra/cloud-run/deploy.sh
-```
-
-### Fly.io
-
-```bash
-FLY_APP=<fly-app-name> ENV_FILE=.env ./infra/fly/sync-secrets.sh
-FLY_APP=<fly-app-name> IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<digest> ENV_FILE=.env ./infra/fly/deploy.sh
-```
-
-Rollback (redeploy previous digest):
-
-```bash
-FLY_APP=<fly-app-name> IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<previous-digest> ENV_FILE=.env ./infra/fly/deploy.sh
-```
-
-### DigitalOcean (manual)
-
-See step-by-step guide for beginners:
-
-```bash
-cat infra/digital-ocean/README.md
-```
+See `infra/terraform/README.md` for target-specific details.

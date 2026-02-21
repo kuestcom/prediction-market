@@ -1,5 +1,10 @@
 # Terraform targets
 
+Read first:
+
+- `infra/README.md` (storage options)
+- `infra/scheduler-contract.md` (HTTP scheduler contract)
+
 Terraform environments available:
 
 - `environments/production/gke`: GKE Autopilot deployment target (`modules/target-gke-autopilot`)
@@ -94,5 +99,6 @@ terraform apply
 ## Notes
 
 - Use immutable image refs (`@sha256:` preferred, explicit non-`latest` tag allowed).
-- `SITE_URL` must point to the canonical public endpoint used by Supabase `pg_cron` callbacks.
+- `SITE_URL` must point to the canonical public endpoint.
+- Current Terraform module validations are still Supabase-first and may require `SUPABASE_*` in `secret_env`.
 - Fly target supports `sync_secrets` for script-based deploys.
