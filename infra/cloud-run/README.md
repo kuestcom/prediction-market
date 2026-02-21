@@ -13,7 +13,7 @@ Deploy target for Google Cloud Run.
    - Artifact Registry API
    - Cloud Run Admin API
    - Secret Manager API
-6. Choose between Supabase vs Postgres+S3 and [set the required env variables](../../infra/README.md)
+6. Choose between Supabase vs Postgres+S3 and [set the required env variables](../README.md#storage-options)
 
 ## Build and deploy with Cloud Build
 

@@ -8,7 +8,7 @@ Deploy target for Kubernetes.
 2. Ingress controller available in the cluster.
 3. Access to this repository.
 4. [Configure Environment Variables](../../README.md#quick-start-15-minutes).
-5. Choose between Supabase vs Postgres+S3 and [set the required env variables](../../infra/README.md)
+5. Choose between Supabase vs Postgres+S3 and [set the required env variables](../README.md#storage-options)
 
 ## Deploy with Kustomize
 

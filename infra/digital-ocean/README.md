@@ -1,31 +1,23 @@
 # DigitalOcean
 
-Manual deployment guide for DigitalOcean App Platform.
-
-See shared docs first:
-
-- `infra/README.md`
-- `infra/scheduler-contract.md`
+Deploy target for DigitalOcean App Platform.
 
 ## Prerequisites
 
 1. DigitalOcean account with billing enabled.
 2. Access to this repository.
-3. Production `.env` values.
+3. [Configure Environment Variables](../../README.md#quick-start-15-minutes).
+4. Choose between Supabase vs Postgres+S3 and [set the required env variables](../README.md#storage-options)
 
-## Storage option notes
+## Manual deploy on App Platform
 
-Current examples in this folder are Supabase-first.
-
-If running Postgres+S3 mode, adjust environment variable sets manually in App Platform.
-
-## 1) Create a DigitalOcean project
+### 1) Create project
 
 1. Open DigitalOcean dashboard.
 2. Go to `Projects`.
 3. Click `Create Project`.
 
-## 2) Create an App Platform app from GitHub
+### 2) Create app from GitHub
 
 1. Open `Apps`.
 2. Click `Create App`.
@@ -33,7 +25,7 @@ If running Postgres+S3 mode, adjust environment variable sets manually in App Pl
 4. Select repository `<your-username>/prediction-market`.
 5. Select production branch (`main`).
 
-## 3) Configure build settings
+### 3) Configure service build
 
 Set component as:
 
@@ -43,62 +35,44 @@ Set component as:
 - Build context: `.`
 - HTTP port: `3000`
 
-## 4) Configure environment variables
+### 4) Configure environment variables
 
-At minimum:
+Set environment variables in App Platform from:
 
-- `SITE_URL`
-- `NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID`
-- `CRON_SECRET`
-- `BETTER_AUTH_SECRET`
-- `POSTGRES_URL`
-- `ADMIN_WALLETS`
-- `KUEST_ADDRESS`
-- `KUEST_API_KEY`
-- `KUEST_API_SECRET`
-- `KUEST_PASSPHRASE`
+- [Configure Environment Variables](../../README.md#quick-start-15-minutes)
+- [Storage options](../README.md#storage-options)
 
-If Supabase mode:
+In DigitalOcean App Platform, mark secrets as encrypted.
 
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-
-If Postgres+S3 mode:
-
-- `S3_BUCKET`
-- `S3_ACCESS_KEY_ID`
-- `S3_SECRET_ACCESS_KEY`
-- Optional: `S3_ENDPOINT`, `S3_REGION`, `S3_PUBLIC_URL`, `S3_FORCE_PATH_STYLE`
-
-## 5) Deploy
+### 5) Create resources and validate
 
 1. Click `Create Resources`.
 2. Wait for build/deploy.
-3. Validate app home route.
+3. Validate the main route.
 
-## 6) Configure custom domain
+### 6) Configure custom domain
 
 1. Open app `Settings` > `Domains`.
 2. Add your domain.
 3. Follow DNS instructions.
 4. Set `SITE_URL` to the final HTTPS domain.
 
-## 7) Scheduler implementation on DigitalOcean
+## Scheduler implementation on DigitalOcean
 
-App Platform web service deploy does not replace the sync scheduler requirement.
+> [!CAUTION]
+> If you choose [Supabase mode](../README.md#option-a-supabase-mode-recommended), there is no need to create external scheduler jobs since you will be duplicating requests to your sync endpoints.
 
-Use one of:
+App Platform web deploy does not replace the sync scheduler requirement.
 
-1. Supabase `pg_cron` (Supabase mode only), or
-2. External scheduler implementing `infra/scheduler-contract.md`
+Use an external scheduler implementing `infra/scheduler-contract.md` when needed.
 
-Recommended external options:
+Common options:
 
 - GitHub Actions schedule
-- Cloud Scheduler
-- Any cron service with custom HTTP headers
+- Google Cloud Scheduler
+- Any managed cron service that supports custom headers
 
-## 8) Migration operations
+## Migration operations
 
 Run with production env loaded:
 
@@ -106,13 +80,13 @@ Run with production env loaded:
 npm run db:push
 ```
 
-## 9) Rollback
+## Rollback
 
 1. Open app `Deployments`.
 2. Select previous healthy deployment.
 3. Click `Rollback`.
 
-## Optional: Terraform deploy for App Platform
+## Optional: Terraform for DigitalOcean
 
 ```bash
 export DIGITALOCEAN_TOKEN=<your-token>
@@ -122,3 +96,7 @@ terraform init
 terraform plan
 terraform apply
 ```
+
+## Notes
+
+- `SITE_URL` must be your canonical public URL.
