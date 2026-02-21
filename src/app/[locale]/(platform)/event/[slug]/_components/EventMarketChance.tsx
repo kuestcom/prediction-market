@@ -47,7 +47,7 @@ export default function EventMarketChance({
         { 'flex-row items-center gap-2': layout === 'desktop' },
       )}
     >
-      <div className="flex items-center justify-end gap-1.5">
+      <div className="flex items-center justify-end">
         <span
           key={`${layout}-chance-${highlightKey}`}
           className={cn(
@@ -59,39 +59,49 @@ export default function EventMarketChance({
         >
           {chanceMeta.chanceDisplay}
         </span>
-        {showInReviewTag && (
-          <button
-            type="button"
-            className={`
-              inline-flex items-center rounded-sm px-1.5 py-0.5 text-xs/tight font-semibold text-primary
-              transition-colors
-              hover:bg-primary/15
-            `}
-            onClick={(event) => {
-              event.stopPropagation()
-              setIsResolutionDialogOpen(true)
-            }}
-          >
-            {t('In Review')}
-          </button>
-        )}
       </div>
-      {shouldRenderDelta && (
+      {(shouldRenderDelta || showInReviewTag) && (
         <div
           className={cn(
-            'flex items-center justify-end gap-0.5 text-xs font-semibold',
-            chanceChangeColorClass,
-            { invisible: !chanceMeta.shouldShowChanceChange },
-            { 'w-[5.5ch]': layout === 'desktop' },
+            'flex items-center justify-end gap-1.5',
+            { 'min-h-4': layout === 'desktop' },
           )}
         >
-          <TriangleIcon
-            className={cn('size-3 fill-current', { 'rotate-180': !chanceMeta.isChanceChangePositive })}
-            fill="currentColor"
-          />
-          <span className="inline-block tabular-nums">
-            {chanceMeta.chanceChangeLabel}
-          </span>
+          {shouldRenderDelta && (
+            <div
+              className={cn(
+                'flex items-center justify-end gap-0.5 text-xs font-semibold',
+                chanceChangeColorClass,
+                { invisible: !chanceMeta.shouldShowChanceChange },
+                { 'w-[5.5ch]': layout === 'desktop' },
+              )}
+            >
+              <TriangleIcon
+                className={cn('size-3 fill-current', { 'rotate-180': !chanceMeta.isChanceChangePositive })}
+                fill="currentColor"
+              />
+              <span className="inline-block tabular-nums">
+                {chanceMeta.chanceChangeLabel}
+              </span>
+            </div>
+          )}
+
+          {showInReviewTag && (
+            <button
+              type="button"
+              className={`
+                inline-flex shrink-0 items-center rounded-sm px-1.5 py-0.5 text-xs/tight font-semibold whitespace-nowrap
+                text-primary transition-colors
+                hover:bg-primary/15
+              `}
+              onClick={(event) => {
+                event.stopPropagation()
+                setIsResolutionDialogOpen(true)
+              }}
+            >
+              {t('In Review')}
+            </button>
+          )}
         </div>
       )}
 
