@@ -39,8 +39,9 @@ export default function EventCardSingleMarketActions({
         {resolvedOutcome
           ? (
               <div className={`
-                flex h-12 w-full cursor-default items-center justify-center gap-2 rounded-md bg-muted/60 px-3 text-sm
-                font-semibold text-foreground
+                flex h-12 w-full cursor-default items-center justify-center gap-2 rounded-md bg-(--card-hover) px-3
+                text-sm font-semibold text-foreground transition-colors
+                group-hover:bg-card
               `}
               >
                 <span className="min-w-8 text-right">{resolvedLabel}</span>
@@ -56,8 +57,9 @@ export default function EventCardSingleMarketActions({
             )
           : (
               <div className={`
-                flex h-10 w-full cursor-default items-center justify-center rounded-md bg-muted/60 px-3 text-sm
-                font-semibold text-muted-foreground
+                flex h-10 w-full cursor-default items-center justify-center rounded-md bg-(--card-hover) px-3 text-sm
+                font-semibold text-muted-foreground transition-colors
+                group-hover:bg-card
               `}
               >
                 Resolved
