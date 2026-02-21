@@ -1,51 +1,48 @@
-# Kubernetes target
+# Kubernetes
 
-Baseline Kubernetes deployment using the manifests in this folder.
-
-See shared docs first:
-
-- `infra/README.md`
-- `infra/scheduler-contract.md`
+Deploy target for Kubernetes.
 
 ## Prerequisites
 
-1. Working Kubernetes context.
+1. Working Kubernetes context and cluster.
 2. Ingress controller available in the cluster.
-3. Production image reference and runtime secrets.
+3. Access to this repository.
+4. [Configure Environment Variables](../../README.md#quick-start-15-minutes).
+5. Choose between Supabase vs Postgres+S3 and [set the required env variables](../../infra/README.md)
 
-## Apply baseline manifests
+## Deploy with Kustomize
+
+Create runtime secret from the template and apply baseline manifests:
 
 ```bash
 cp infra/kubernetes/secret.example.yaml infra/kubernetes/secret.yaml
 kubectl apply -k infra/kubernetes
 ```
 
-## Storage option notes
-
-`infra/kubernetes/secret.example.yaml` is currently Supabase-first.
-
-If using Postgres+S3 mode:
-
-1. Add required `S3_*` variables to your generated `secret.yaml`.
-2. Keep `POSTGRES_URL`.
-3. Omit `SUPABASE_*` only when your operational profile does not require them.
-
 ## Scheduler implementation on Kubernetes
 
-Implement `infra/scheduler-contract.md` with CronJobs.
+> [!CAUTION]
+> If you choose [Supabase mode](../README.md#option-a-supabase-mode-recommended), there is no need to apply Kubernetes CronJobs since you will be duplicating requests to your sync endpoints.
 
-Recommended:
+Use Kubernetes CronJobs implementing `infra/scheduler-contract.md`.
 
-- One CronJob per sync endpoint
-- `concurrencyPolicy: Forbid`
-- `restartPolicy: Never`
-
-Use and edit the provided template:
-
-- `infra/kubernetes/sync-cronjobs.example.yaml`
-
-Apply:
+Edit `infra/kubernetes/cronjobs.yaml` for your environment (`SITE_URL`, namespace, secret name), then apply:
 
 ```bash
-kubectl apply -f infra/kubernetes/sync-cronjobs.example.yaml
+kubectl apply -f infra/kubernetes/cronjobs.yaml
 ```
+
+## Optional: Terraform for Kubernetes
+
+```bash
+cd infra/terraform/environments/production/kubernetes
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform plan
+terraform apply
+```
+
+## Notes
+
+- `SITE_URL` must be your canonical public URL.
+- `infra/kubernetes/secret.example.yaml` is Supabase-first by default and may require adaptation for Postgres+S3 mode.
