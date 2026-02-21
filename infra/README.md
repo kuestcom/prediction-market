@@ -10,6 +10,7 @@ This folder provides a portable deployment foundation outside Vercel.
 - `cloud-run/`: Google Cloud Run deployment runbook
 - `fly/`: Fly.io deployment runbook
 - `digital-ocean/`: DigitalOcean App Platform runbook
+- `vps/`: generic VPS manual deployment runbook
 - `scheduler-contract.md`: single scheduler contract for `/api/sync/*`
 
 ## Deployment decision tree
@@ -93,21 +94,19 @@ Scheduler implementation details: `infra/kubernetes/README.md`
 
 ### Cloud Run
 
-```bash
-cat infra/cloud-run/README.md
-```
+[Cloud Run runbook](./cloud-run/README.md)
 
 ### Fly.io
 
-```bash
-cat infra/fly/README.md
-```
+[Fly.io runbook](./fly/README.md)
 
 ### DigitalOcean (manual)
 
-```bash
-cat infra/digital-ocean/README.md
-```
+[DigitalOcean runbook](./digital-ocean/README.md)
+
+### VPS (manual)
+
+[VPS runbook](./vps/README.md)
 
 ### Terraform
 
