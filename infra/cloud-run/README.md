@@ -19,10 +19,52 @@ Deploy target for Google Cloud Run.
 
 [`infra/cloud-run/cloudbuild.yaml`](./cloudbuild.yaml) builds from `infra/docker/Dockerfile`, pushes to Artifact Registry, and deploys to Cloud Run.
 
+### Storage mode and required secrets
+
+Always create these secrets in Secret Manager:
+
+- `POSTGRES_URL`
+- `CRON_SECRET`
+- `BETTER_AUTH_SECRET`
+- `ADMIN_WALLETS`
+- `KUEST_ADDRESS`
+- `KUEST_API_KEY`
+- `KUEST_API_SECRET`
+- `KUEST_PASSPHRASE`
+
+Choose one storage profile:
+
+- Supabase mode (`_STORAGE_MODE=supabase`, default):
+  - `SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+- S3 mode (`_STORAGE_MODE=s3`):
+  - `S3_BUCKET`
+  - `S3_ACCESS_KEY_ID`
+  - `S3_SECRET_ACCESS_KEY`
+  - Optional Cloud Build substitutions for S3 settings:
+    - `_S3_ENDPOINT`
+    - `_S3_REGION`
+    - `_S3_PUBLIC_URL`
+    - `_S3_FORCE_PATH_STYLE`
+
+Example (Supabase mode):
+
+```bash
+gcloud builds submit --config infra/cloud-run/cloudbuild.yaml \
+  --substitutions=_SERVICE=kuest-web,_REGION=us-central1,_SITE_URL=https://markets.example.com,_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=replace-me,_STORAGE_MODE=supabase
+```
+
+Example (S3 mode):
+
+```bash
+gcloud builds submit --config infra/cloud-run/cloudbuild.yaml \
+  --substitutions=_SERVICE=kuest-web,_REGION=us-central1,_SITE_URL=https://markets.example.com,_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=replace-me,_STORAGE_MODE=s3,_S3_ENDPOINT=https://s3.example.com,_S3_REGION=us-east-1,_S3_FORCE_PATH_STYLE=true
+```
+
 ## Scheduler implementation on Cloud Run
 
 > [!CAUTION]
-> If you choose [Supabase mode](../README.md#option-a-supabase-mode-recommended), there is no need to create cloud scheduler since you will being duplicating requests to your sync endpoints.
+> If you choose [Supabase mode](../README.md#option-a-supabase-mode-recommended), there is no need to create Cloud Scheduler jobs since you will be duplicating requests to your sync endpoints.
 
 Use Cloud Scheduler HTTP jobs implementing `infra/scheduler-contract.md`.
 

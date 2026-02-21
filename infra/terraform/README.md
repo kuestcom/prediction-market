@@ -104,4 +104,4 @@ terraform apply
 
 - Use immutable image refs (`@sha256:` preferred, explicit non-`latest` tag allowed).
 - `SITE_URL` must point to the canonical public endpoint.
-- Current Terraform module validations are still Supabase-first and may require `SUPABASE_*` in `secret_env`.
+- Cloud Run/Kubernetes/DigitalOcean targets require core secrets plus one storage profile: Supabase (`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`) or S3 (`S3_BUCKET` + `S3_ACCESS_KEY_ID` + `S3_SECRET_ACCESS_KEY`).

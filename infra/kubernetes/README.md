@@ -45,4 +45,4 @@ terraform apply
 ## Notes
 
 - `SITE_URL` must be your canonical public URL.
-- `infra/kubernetes/secret.example.yaml` is Supabase-first by default and may require adaptation for Postgres+S3 mode.
+- In `infra/kubernetes/secret.example.yaml`, configure exactly one storage profile: Supabase (`SUPABASE_*`) or S3 (`S3_BUCKET` + `S3_ACCESS_KEY_ID` + `S3_SECRET_ACCESS_KEY`).

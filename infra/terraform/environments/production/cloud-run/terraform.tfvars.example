@@ -18,11 +18,27 @@ secret_env = {
   BETTER_AUTH_SECRET        = "BETTER_AUTH_SECRET"
   CRON_SECRET               = "CRON_SECRET"
   POSTGRES_URL              = "POSTGRES_URL"
-  SUPABASE_URL              = "SUPABASE_URL"
-  SUPABASE_SERVICE_ROLE_KEY = "SUPABASE_SERVICE_ROLE_KEY"
   ADMIN_WALLETS             = "ADMIN_WALLETS"
   KUEST_ADDRESS             = "KUEST_ADDRESS"
   KUEST_API_KEY             = "KUEST_API_KEY"
   KUEST_API_SECRET          = "KUEST_API_SECRET"
   KUEST_PASSPHRASE          = "KUEST_PASSPHRASE"
+
+  # Choose one storage profile:
+  # Supabase mode (recommended)
+  SUPABASE_URL              = "SUPABASE_URL"
+  SUPABASE_SERVICE_ROLE_KEY = "SUPABASE_SERVICE_ROLE_KEY"
+
+  # S3 mode (use this trio when SUPABASE_* is not set)
+  # S3_BUCKET               = "S3_BUCKET"
+  # S3_ACCESS_KEY_ID        = "S3_ACCESS_KEY_ID"
+  # S3_SECRET_ACCESS_KEY    = "S3_SECRET_ACCESS_KEY"
 }
+
+# Optional S3 settings:
+# app_env = {
+#   S3_ENDPOINT         = "https://s3.example.com"
+#   S3_REGION           = "us-east-1"
+#   S3_PUBLIC_URL       = "https://cdn.example.com/assets"
+#   S3_FORCE_PATH_STYLE = "true"
+# }
