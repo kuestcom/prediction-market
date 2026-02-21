@@ -34,7 +34,7 @@ function TimelineIcon({ item }: { item: ResolutionTimelineItem }) {
     return (
       <span
         className={`
-          relative flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-transparent
+          relative flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-background
         `}
       />
     )

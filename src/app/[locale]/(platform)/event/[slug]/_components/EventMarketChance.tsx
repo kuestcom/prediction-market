@@ -29,8 +29,8 @@ export default function EventMarketChance({
   const siteIdentity = useSiteIdentity()
   const [isResolutionDialogOpen, setIsResolutionDialogOpen] = useState(false)
   const chanceChangeColorClass = chanceMeta.isChanceChangePositive ? 'text-yes' : 'text-no'
-  const shouldReserveDelta = layout === 'desktop'
-  const shouldRenderDelta = chanceMeta.shouldShowChanceChange || shouldReserveDelta
+  const shouldReserveDelta = layout === 'desktop' && !showInReviewTag
+  const shouldRenderDelta = !showInReviewTag && (chanceMeta.shouldShowChanceChange || shouldReserveDelta)
   const umaDetailsUrl = useMemo(
     () => buildUmaSettledUrl(market.condition, siteIdentity.name) ?? buildUmaProposeUrl(market.condition, siteIdentity.name),
     [market.condition, siteIdentity.name],
@@ -63,8 +63,8 @@ export default function EventMarketChance({
           <button
             type="button"
             className={`
-              inline-flex items-center rounded-sm px-1.5 py-0.5 text-xs/tight font-semibold text-primary
-              transition-colors
+              inline-flex shrink-0 items-center rounded-sm px-1.5 py-0.5 text-xs/tight font-semibold whitespace-nowrap
+              text-primary transition-colors
               hover:bg-primary/15
             `}
             onClick={(event) => {
