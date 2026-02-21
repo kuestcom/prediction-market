@@ -1115,15 +1115,15 @@ function MarketDetailTabs({
         {selectedTab === 'history' && <EventMarketHistory market={market} />}
 
         {selectedTab === 'resolution' && (
-          <div className="flex flex-col gap-3">
-            <ResolutionTimelinePanel market={market} settledUrl={settledUrl} />
+          <div className="flex items-center justify-between gap-3">
+            <ResolutionTimelinePanel market={market} settledUrl={settledUrl} className="min-w-0 flex-1" />
             {!isMarketResolved(market) && (
               proposeUrl
                 ? (
                     <Button
                       variant="outline"
                       size="sm"
-                      className="mb-3"
+                      className="shrink-0"
                       asChild
                       onClick={event => event.stopPropagation()}
                     >
@@ -1136,7 +1136,7 @@ function MarketDetailTabs({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="mb-3"
+                      className="shrink-0"
                       disabled
                       onClick={event => event.stopPropagation()}
                     >
