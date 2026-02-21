@@ -176,7 +176,6 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     })
     return ids
   }, [event.markets])
-  const hasAnyMarketInReview = reviewConditionIds.size > 0
   const chanceRefreshQueryKeys = useMemo(
     () => [
       ['event-price-history', event.id] as const,
@@ -543,8 +542,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
             const positionTags = positionTagsByCondition[market.condition_id] ?? []
             const shouldShowSeparator = index !== orderedMarkets.length - 1 || shouldShowOtherRow
             const isResolvedInlineRow = showResolvedInline
-            const showInReviewTag = hasAnyMarketInReview
-              && (isNegRiskEnabled || reviewConditionIds.has(market.condition_id))
+            const showInReviewTag = reviewConditionIds.has(market.condition_id)
 
             return (
               <div key={market.condition_id} className="transition-colors">
