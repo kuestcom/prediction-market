@@ -65,6 +65,9 @@ variable "secret_env" {
       (
         contains(keys(var.secret_env), "SUPABASE_URL")
         && contains(keys(var.secret_env), "SUPABASE_SERVICE_ROLE_KEY")
+        && !contains(keys(var.secret_env), "S3_BUCKET")
+        && !contains(keys(var.secret_env), "S3_ACCESS_KEY_ID")
+        && !contains(keys(var.secret_env), "S3_SECRET_ACCESS_KEY")
       ) || (
         !contains(keys(var.secret_env), "SUPABASE_URL")
         && !contains(keys(var.secret_env), "SUPABASE_SERVICE_ROLE_KEY")

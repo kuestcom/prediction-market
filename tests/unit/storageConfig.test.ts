@@ -1,3 +1,4 @@
+import { S3Client } from '@aws-sdk/client-s3'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const STORAGE_ENV_KEYS = [
@@ -34,6 +35,7 @@ async function loadStorageModule() {
 describe('storage compatibility', () => {
   beforeEach(() => {
     clearStorageEnv()
+    vi.restoreAllMocks()
     vi.resetModules()
   })
 
@@ -47,6 +49,7 @@ describe('storage compatibility', () => {
         process.env[key] = snapshotValue
       }
     })
+    vi.restoreAllMocks()
     vi.resetModules()
   })
 
@@ -95,5 +98,24 @@ describe('storage compatibility', () => {
     const { getPublicAssetUrl } = await loadStorageModule()
     expect(getPublicAssetUrl('users/avatar.jpg')).toBe('')
     expect(getPublicAssetUrl(null)).toBe('')
+  })
+
+  it('uses conditional write when S3 upload is called with upsert=false', async () => {
+    process.env.S3_BUCKET = 'kuest-assets'
+    process.env.S3_ENDPOINT = 'https://s3.example.com/'
+    process.env.S3_ACCESS_KEY_ID = 's3-key'
+    process.env.S3_SECRET_ACCESS_KEY = 's3-secret'
+
+    const sendMock = vi.spyOn(S3Client.prototype, 'send').mockResolvedValue({} as never)
+    const { uploadPublicAsset } = await loadStorageModule()
+    const { error } = await uploadPublicAsset('users/avatar.jpg', 'binary-body', {
+      contentType: 'image/jpeg',
+      upsert: false,
+    })
+
+    expect(error).toBeNull()
+    expect(sendMock).toHaveBeenCalledTimes(1)
+    const command = sendMock.mock.calls[0]?.[0] as { input?: { IfNoneMatch?: string } }
+    expect(command.input?.IfNoneMatch).toBe('*')
   })
 })

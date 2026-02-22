@@ -441,8 +441,8 @@ function buildThemeSiteIdentity(config: NormalizedThemeSiteConfig): ThemeSiteIde
   const logoImageUrl = config.logoMode === 'image'
     ? getPublicAssetUrl(config.logoImagePath)
     : null
-  const pwaIcon192Url = getPublicAssetUrl(config.pwaIcon192Path) ?? defaultSite.pwaIcon192Url
-  const pwaIcon512Url = getPublicAssetUrl(config.pwaIcon512Path) ?? defaultSite.pwaIcon512Url
+  const pwaIcon192Url = getPublicAssetUrl(config.pwaIcon192Path) || defaultSite.pwaIcon192Url
+  const pwaIcon512Url = getPublicAssetUrl(config.pwaIcon512Path) || defaultSite.pwaIcon512Url
 
   const useImageLogo = config.logoMode === 'image' && Boolean(logoImageUrl)
 

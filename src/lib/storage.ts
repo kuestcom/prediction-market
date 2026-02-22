@@ -253,12 +253,14 @@ export async function uploadPublicAsset(
   if (config.provider === 's3' && config.s3) {
     try {
       const client = getS3Client(config.s3)
+      const shouldUpsert = options.upsert === true
       await client.send(new PutObjectCommand({
         Bucket: config.s3.bucket,
         Key: normalizedPath,
         Body: normalizeS3Body(body),
         ContentType: options.contentType,
         CacheControl: options.cacheControl,
+        IfNoneMatch: shouldUpsert ? undefined : '*',
       }))
       return { error: null }
     }

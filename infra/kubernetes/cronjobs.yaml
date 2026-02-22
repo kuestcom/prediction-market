@@ -13,7 +13,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: trigger
-              image: curlimages/curl:8.12.1
+              image: curlimages/curl:8.12.1@sha256:94e9e444bcba979c2ea12e27ae39bee4cd10bc7041a472c4727a558e213744e6
               command:
                 - sh
                 - -c
@@ -45,7 +45,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: trigger
-              image: curlimages/curl:8.12.1
+              image: curlimages/curl:8.12.1@sha256:94e9e444bcba979c2ea12e27ae39bee4cd10bc7041a472c4727a558e213744e6
               command:
                 - sh
                 - -c
@@ -77,7 +77,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: trigger
-              image: curlimages/curl:8.12.1
+              image: curlimages/curl:8.12.1@sha256:94e9e444bcba979c2ea12e27ae39bee4cd10bc7041a472c4727a558e213744e6
               command:
                 - sh
                 - -c
@@ -109,7 +109,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: trigger
-              image: curlimages/curl:8.12.1
+              image: curlimages/curl:8.12.1@sha256:94e9e444bcba979c2ea12e27ae39bee4cd10bc7041a472c4727a558e213744e6
               command:
                 - sh
                 - -c

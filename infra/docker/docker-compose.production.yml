@@ -65,7 +65,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-kuest}
       POSTGRES_USER: ${POSTGRES_USER:-kuest}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-replace-me}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-}
     volumes:
       - kuest-postgres-data:/var/lib/postgresql/data
     restart: unless-stopped

@@ -818,9 +818,14 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
       continue
     }
 
-    await db
-      .update(eventsTable)
-      .set({ status: nextStatus, resolved_at: resolvedAtUpdate })
-      .where(eq(eventsTable.id, eventId))
+    try {
+      await db
+        .update(eventsTable)
+        .set({ status: nextStatus, resolved_at: resolvedAtUpdate })
+        .where(eq(eventsTable.id, eventId))
+    }
+    catch (error) {
+      console.error(`Failed to update event status for ${eventId}:`, error)
+    }
   }
 }
