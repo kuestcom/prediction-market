@@ -8,7 +8,7 @@ import { users } from '@/lib/db/schema/auth/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { getSafeProxyWalletAddress, isProxyWalletDeployed } from '@/lib/safe-proxy'
-import { getSupabaseImageUrl } from '@/lib/supabase'
+import { getPublicAssetUrl } from '@/lib/storage'
 import { sanitizeTradingAuthSettings } from '@/lib/trading-auth/utils'
 import { normalizeAddress } from '@/lib/wallet'
 
@@ -41,7 +41,7 @@ export const UserRepository = {
         id: rawData.id,
         proxy_wallet_address: rawData.proxy_wallet_address,
         username: rawData.username!,
-        image: rawData.image ? getSupabaseImageUrl(rawData.image) : '',
+        image: rawData.image ? getPublicAssetUrl(rawData.image) : '',
         created_at: rawData.created_at,
       }
 

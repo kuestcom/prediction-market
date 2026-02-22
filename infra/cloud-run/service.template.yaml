@@ -22,18 +22,8 @@ spec:
               value: production
             - name: SITE_URL
               value: https://markets.example.com
-            - name: SUPABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: SUPABASE_URL
-                  key: latest
             - name: NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID
               value: replace-me
-            - name: SUPABASE_SERVICE_ROLE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: SUPABASE_SERVICE_ROLE_KEY
-                  key: latest
             - name: POSTGRES_URL
               valueFrom:
                 secretKeyRef:
@@ -48,6 +38,11 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: BETTER_AUTH_SECRET
+                  key: latest
+            - name: ADMIN_WALLETS
+              valueFrom:
+                secretKeyRef:
+                  name: ADMIN_WALLETS
                   key: latest
             - name: KUEST_ADDRESS
               valueFrom:
@@ -69,3 +64,42 @@ spec:
                 secretKeyRef:
                   name: KUEST_PASSPHRASE
                   key: latest
+
+            # Choose one storage option:
+            # 1) Supabase mode (set both):
+            # - name: SUPABASE_URL
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: SUPABASE_URL
+            #       key: latest
+            # - name: SUPABASE_SERVICE_ROLE_KEY
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: SUPABASE_SERVICE_ROLE_KEY
+            #       key: latest
+
+            # 2) S3 mode (set required trio):
+            # - name: S3_BUCKET
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: S3_BUCKET
+            #       key: latest
+            # - name: S3_ACCESS_KEY_ID
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: S3_ACCESS_KEY_ID
+            #       key: latest
+            # - name: S3_SECRET_ACCESS_KEY
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: S3_SECRET_ACCESS_KEY
+            #       key: latest
+            # Optional S3 settings:
+            # - name: S3_ENDPOINT
+            #   value: https://s3.example.com
+            # - name: S3_REGION
+            #   value: us-east-1
+            # - name: S3_PUBLIC_URL
+            #   value: https://cdn.example.com/assets
+            # - name: S3_FORCE_PATH_STYLE
+            #   value: "true"

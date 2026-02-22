@@ -14,32 +14,10 @@ variable "app_image" {
   description = "Container image reference (digest preferred)"
 }
 
-variable "site_url" {
+variable "fly_config_path" {
   type        = string
-  description = "Canonical public app URL"
-}
-
-variable "next_public_reown_appkit_project_id" {
-  type        = string
-  description = "Reown AppKit project id"
-}
-
-variable "app_env" {
-  type        = map(string)
-  description = "Additional non-sensitive env vars"
-  default     = {}
-}
-
-variable "secret_env" {
-  type        = map(string)
-  description = "Sensitive application env vars"
-  sensitive   = true
-}
-
-variable "sync_secrets" {
-  type        = bool
-  description = "Whether Terraform should sync Fly secrets before deploy"
-  default     = true
+  description = "Path to fly.toml relative to repo root"
+  default     = "infra/fly/fly.toml"
 }
 
 locals {

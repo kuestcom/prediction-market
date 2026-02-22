@@ -12,14 +12,10 @@ terraform {
 module "target_fly" {
   source = "../../../modules/target-fly"
 
-  repo_root                            = local.resolved_repo_root
-  fly_app                              = var.fly_app
-  app_image                            = var.app_image
-  site_url                             = var.site_url
-  next_public_reown_appkit_project_id  = var.next_public_reown_appkit_project_id
-  app_env                              = var.app_env
-  secret_env                           = var.secret_env
-  sync_secrets                         = var.sync_secrets
+  repo_root       = local.resolved_repo_root
+  fly_app         = var.fly_app
+  app_image       = var.app_image
+  fly_config_path = var.fly_config_path
 }
 
 output "deployment_target" {

@@ -7,6 +7,7 @@ steps:
         required_substitutions=(
           "_SITE_URL"
           "_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID"
+          "_STORAGE_MODE"
         )
 
         missing=()
@@ -24,9 +25,24 @@ steps:
           done
           exit 1
         fi
+
+        if [[ "${_STORAGE_MODE}" != "supabase" && "${_STORAGE_MODE}" != "s3" ]]; then
+          echo "Invalid _STORAGE_MODE='${_STORAGE_MODE}'. Use 'supabase' or 's3'." >&2
+          exit 1
+        fi
+
+        if [[ -n "${_S3_FORCE_PATH_STYLE}" ]]; then
+          normalized="$(echo "${_S3_FORCE_PATH_STYLE}" | tr '[:upper:]' '[:lower:]')"
+          if [[ "${normalized}" != "1" && "${normalized}" != "0" && "${normalized}" != "true" && "${normalized}" != "false" && "${normalized}" != "yes" && "${normalized}" != "no" && "${normalized}" != "on" && "${normalized}" != "off" ]]; then
+            echo "_S3_FORCE_PATH_STYLE must be a boolean-like value (1/0/true/false/yes/no/on/off)." >&2
+            exit 1
+          fi
+        fi
     env:
       - _SITE_URL=${_SITE_URL}
       - _NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=${_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID}
+      - _STORAGE_MODE=${_STORAGE_MODE}
+      - _S3_FORCE_PATH_STYLE=${_S3_FORCE_PATH_STYLE}
 
   - name: gcr.io/cloud-builders/docker
     args:
@@ -45,26 +61,72 @@ steps:
       - ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - ${_SERVICE}
-      - --project
-      - $PROJECT_ID
-      - --region
-      - ${_REGION}
-      - --platform
-      - managed
-      - --image
-      - ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}
-      - --allow-unauthenticated
-      - --port
-      - '3000'
-      - --set-env-vars
-      - NODE_ENV=production,SITE_URL=${_SITE_URL},NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=${_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID}
-      - --update-secrets
-      - SUPABASE_URL=SUPABASE_URL:${_SECRET_VERSION},SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:${_SECRET_VERSION},POSTGRES_URL=POSTGRES_URL:${_SECRET_VERSION},CRON_SECRET=CRON_SECRET:${_SECRET_VERSION},BETTER_AUTH_SECRET=BETTER_AUTH_SECRET:${_SECRET_VERSION},ADMIN_WALLETS=ADMIN_WALLETS:${_SECRET_VERSION},KUEST_ADDRESS=KUEST_ADDRESS:${_SECRET_VERSION},KUEST_API_KEY=KUEST_API_KEY:${_SECRET_VERSION},KUEST_API_SECRET=KUEST_API_SECRET:${_SECRET_VERSION},KUEST_PASSPHRASE=KUEST_PASSPHRASE:${_SECRET_VERSION}
+      - -ceu
+      - |
+        secret_bindings=(
+          "POSTGRES_URL=POSTGRES_URL:${_SECRET_VERSION}"
+          "CRON_SECRET=CRON_SECRET:${_SECRET_VERSION}"
+          "BETTER_AUTH_SECRET=BETTER_AUTH_SECRET:${_SECRET_VERSION}"
+          "ADMIN_WALLETS=ADMIN_WALLETS:${_SECRET_VERSION}"
+          "KUEST_ADDRESS=KUEST_ADDRESS:${_SECRET_VERSION}"
+          "KUEST_API_KEY=KUEST_API_KEY:${_SECRET_VERSION}"
+          "KUEST_API_SECRET=KUEST_API_SECRET:${_SECRET_VERSION}"
+          "KUEST_PASSPHRASE=KUEST_PASSPHRASE:${_SECRET_VERSION}"
+        )
+
+        runtime_env=(
+          "NODE_ENV=production"
+          "SITE_URL=${_SITE_URL}"
+          "NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=${_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID}"
+        )
+
+        case "${_STORAGE_MODE}" in
+          supabase)
+            secret_bindings+=(
+              "SUPABASE_URL=SUPABASE_URL:${_SECRET_VERSION}"
+              "SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:${_SECRET_VERSION}"
+            )
+            ;;
+          s3)
+            secret_bindings+=(
+              "S3_BUCKET=S3_BUCKET:${_SECRET_VERSION}"
+              "S3_ACCESS_KEY_ID=S3_ACCESS_KEY_ID:${_SECRET_VERSION}"
+              "S3_SECRET_ACCESS_KEY=S3_SECRET_ACCESS_KEY:${_SECRET_VERSION}"
+            )
+
+            if [[ -n "${_S3_ENDPOINT}" ]]; then
+              runtime_env+=("S3_ENDPOINT=${_S3_ENDPOINT}")
+            fi
+            if [[ -n "${_S3_REGION}" ]]; then
+              runtime_env+=("S3_REGION=${_S3_REGION}")
+            fi
+            if [[ -n "${_S3_PUBLIC_URL}" ]]; then
+              runtime_env+=("S3_PUBLIC_URL=${_S3_PUBLIC_URL}")
+            fi
+            if [[ -n "${_S3_FORCE_PATH_STYLE}" ]]; then
+              runtime_env+=("S3_FORCE_PATH_STYLE=${_S3_FORCE_PATH_STYLE}")
+            fi
+            ;;
+          *)
+            echo "Invalid _STORAGE_MODE='${_STORAGE_MODE}'. Use 'supabase' or 's3'." >&2
+            exit 1
+            ;;
+        esac
+
+        secret_env_csv="$(IFS=,; echo "${secret_bindings[*]}")"
+        runtime_env_csv="$(IFS=,; echo "${runtime_env[*]}")"
+
+        gcloud run deploy "${_SERVICE}" \
+          --project "$PROJECT_ID" \
+          --region "${_REGION}" \
+          --platform managed \
+          --image "${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}" \
+          --allow-unauthenticated \
+          --port 3000 \
+          --set-env-vars "${runtime_env_csv}" \
+          --update-secrets "${secret_env_csv}"
 
 images:
   - ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}
@@ -78,6 +140,11 @@ substitutions:
   _SECRET_VERSION: latest
   _SITE_URL: https://markets.example.com
   _NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID: replace-me
+  _STORAGE_MODE: supabase
+  _S3_ENDPOINT: ''
+  _S3_REGION: ''
+  _S3_PUBLIC_URL: ''
+  _S3_FORCE_PATH_STYLE: ''
 
 options:
   logging: CLOUD_LOGGING_ONLY

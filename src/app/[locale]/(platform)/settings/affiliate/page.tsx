@@ -9,7 +9,7 @@ import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { UserRepository } from '@/lib/db/queries/user'
-import { getSupabasePublicAssetUrl } from '@/lib/supabase'
+import { getPublicAssetUrl } from '@/lib/storage'
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/settings/affiliate'>): Promise<Metadata> {
   const { locale } = await params
@@ -102,7 +102,7 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
             username: userInfo.username,
             address: (userInfo?.address as string | undefined) ?? referral.user_id as string,
             proxy_wallet_address: userInfo?.proxy_wallet_address as string | undefined,
-            image: getSupabasePublicAssetUrl(userInfo?.image ?? null) ?? '',
+            image: getPublicAssetUrl(userInfo?.image ?? null) ?? '',
             created_at: referral.created_at as string,
           }
         }),

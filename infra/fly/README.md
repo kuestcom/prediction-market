@@ -1,56 +1,61 @@
-# Fly.io target
+# Fly.io
 
-This target deploys the existing production image to Fly.io with the same runtime env contract used by other non-Vercel targets.
+Deploy target for Fly.io.
 
-## What you need first
+## Prerequisites
 
-1. A Fly.io account and organization.
-2. An existing Fly app (`fly apps create <app-name>`).
-3. Access to this GitHub repository.
-4. A `.env` file with production values.
-5. Supabase already configured for your project (if not, follow [Supabase setup outside Vercel](../README.md#supabase-setup-outside-vercel)).
-6. If you plan to use terminal commands directly, `flyctl` installed and authenticated.
+1. Fly.io account and organization.
+2. Existing Fly app (`fly apps create <app-name>`).
+3. Access to this repository.
+4. [Configure Environment Variables](../../README.md#quick-start-15-minutes).
+5. Choose between Supabase vs Postgres+S3 and [set the required env variables](../README.md#storage-options)
+6. `flyctl` installed and authenticated.
 
-First, define base env vars from [Configure environment variables](../../README.md#2-configure-environment-variables-before-deploy).
-Then fill `POSTGRES_URL`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` with the values now available in your Supabase project.
+## Manual deploy on Fly.io
 
-You can validate your env locally before deploying:
+### 1) Configure runtime variables
 
-```bash
-ENV_FILE=.env ./infra/scripts/validate-runtime-env.sh --env-file "$ENV_FILE"
-```
+Configure app variables/secrets directly in Fly.io (dashboard or `flyctl secrets set`) using:
 
-## 1) Sync runtime variables/secrets
+- [Configure Environment Variables](../../README.md#quick-start-15-minutes)
+- [Storage options](../README.md#storage-options)
 
-```bash
-FLY_APP=<fly-app-name> ENV_FILE=.env ./infra/fly/sync-secrets.sh
-```
-
-## 2) Deploy image
-
-Use an immutable image reference (digest preferred):
+### 2) Deploy immutable image
 
 ```bash
-FLY_APP=<fly-app-name> \
-IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<digest> \
-ENV_FILE=.env \
-./infra/fly/deploy.sh
+flyctl deploy \
+  --app <fly-app-name> \
+  --config infra/fly/fly.toml \
+  --image ghcr.io/kuestcom/prediction-market@sha256:<digest>
 ```
 
-## Rollback
+### 3) Rollback
 
-Redeploy the previous image digest:
+Redeploy the previous healthy image digest:
 
 ```bash
-FLY_APP=<fly-app-name> \
-IMAGE_REF=ghcr.io/kuestcom/prediction-market@sha256:<previous-digest> \
-ENV_FILE=.env \
-./infra/fly/deploy.sh
+flyctl deploy \
+  --app <fly-app-name> \
+  --config infra/fly/fly.toml \
+  --image ghcr.io/kuestcom/prediction-market@sha256:<previous-digest>
 ```
 
-## Optional: Terraform deploy for Fly.io
+## Scheduler implementation on Fly.io
 
-If you prefer managing Fly.io deploys with Terraform:
+> [!CAUTION]
+> If you choose [Supabase mode](../README.md#option-a-supabase-mode-recommended), there is no need to create external scheduler jobs since you will be duplicating requests to your sync endpoints.
+
+Fly deployment does not replace the sync scheduler requirement.
+
+Use an external scheduler implementing `infra/scheduler-contract.md` when needed.
+
+Common options:
+
+- GitHub Actions schedule
+- Google Cloud Scheduler
+- Any managed cron service with custom headers
+
+## Optional: Terraform for Fly.io
 
 ```bash
 cd infra/terraform/environments/production/fly
@@ -62,6 +67,4 @@ terraform apply
 
 ## Notes
 
-- Base app settings live in `infra/fly/fly.toml`.
-- Keep `SITE_URL` set to the canonical public URL used by Supabase `pg_cron` callbacks (`/api/sync/*`).
-- Terraform workflow is available at `infra/terraform/environments/production/fly`.
+- `SITE_URL` must be your canonical public URL.

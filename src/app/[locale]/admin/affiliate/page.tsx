@@ -10,7 +10,7 @@ import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { fetchMaxExchangeBaseFeeRate } from '@/lib/exchange'
 import { usdFormatter } from '@/lib/formatters'
-import { getSupabaseImageUrl } from '@/lib/supabase'
+import { getPublicAssetUrl } from '@/lib/storage'
 
 interface AffiliateOverviewRow {
   affiliate_user_id: string
@@ -123,7 +123,7 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
       username: profile?.username as string,
       address: profile?.address ?? '',
       proxy_wallet_address: profile?.proxy_wallet_address ?? null,
-      image: profile?.image ? getSupabaseImageUrl(profile.image) : '',
+      image: profile?.image ? getPublicAssetUrl(profile.image) : '',
       affiliate_code: profile?.affiliate_code ?? null,
       total_referrals: Number(item.total_referrals ?? 0),
       volume: onchainData?.volume ?? 0,

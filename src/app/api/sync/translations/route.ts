@@ -1,12 +1,20 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { createHash } from 'node:crypto'
+import { and, asc, eq, inArray, like, lte, or, sql } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { loadAutomaticTranslationsEnabled, loadEnabledLocales } from '@/i18n/locale-settings'
 import { LOCALE_LABELS, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
 import { isCronAuthorized } from '@/lib/auth-cron'
-import { supabaseAdmin } from '@/lib/supabase'
+import {
+  events as eventsTable,
+  event_translations as eventTranslationsTable,
+  jobs as jobsTable,
+  tags as tagsTable,
+  tag_translations as tagTranslationsTable,
+} from '@/lib/db/schema'
+import { db } from '@/lib/drizzle'
 
 export const maxDuration = 300
 
@@ -44,7 +52,7 @@ interface TranslationJobRow {
   status: 'pending' | 'processing' | 'completed' | 'failed'
   attempts: number
   max_attempts: number
-  available_at: string
+  available_at: string | Date
 }
 
 interface JobIdentity {
@@ -340,18 +348,21 @@ async function upsertJobs(rows: JobUpsertRow[]) {
     const chunk = rows.slice(index, index + JOB_UPSERT_BATCH_SIZE)
     const dedupeKeys = [...new Set(chunk.map(row => row.dedupe_key))]
 
-    const { data: existingRows, error: existingRowsError } = await supabaseAdmin
-      .from('jobs')
-      .select('job_type,dedupe_key,status,payload')
-      .in('job_type', [...TRANSLATION_JOB_TYPES])
-      .in('dedupe_key', dedupeKeys)
-
-    if (existingRowsError) {
-      throw new Error(`Failed to inspect existing translation jobs: ${existingRowsError.message}`)
-    }
+    const existingRows = await db
+      .select({
+        job_type: jobsTable.job_type,
+        dedupe_key: jobsTable.dedupe_key,
+        status: jobsTable.status,
+        payload: jobsTable.payload,
+      })
+      .from(jobsTable)
+      .where(and(
+        inArray(jobsTable.job_type, [...TRANSLATION_JOB_TYPES]),
+        inArray(jobsTable.dedupe_key, dedupeKeys),
+      ))
 
     const existingMap = new Map<string, ExistingDiscoveryJobRow>()
-    for (const existing of (existingRows ?? []) as ExistingDiscoveryJobRow[]) {
+    for (const existing of existingRows as ExistingDiscoveryJobRow[]) {
       existingMap.set(buildJobConflictKey(existing.job_type, existing.dedupe_key), existing)
     }
 
@@ -364,15 +375,24 @@ async function upsertJobs(rows: JobUpsertRow[]) {
       continue
     }
 
-    const { error } = await supabaseAdmin
-      .from('jobs')
-      .upsert(rowsToUpsert, {
-        onConflict: 'job_type,dedupe_key',
+    await db
+      .insert(jobsTable)
+      .values(rowsToUpsert.map(row => ({
+        ...row,
+        available_at: new Date(row.available_at),
+      })))
+      .onConflictDoUpdate({
+        target: [jobsTable.job_type, jobsTable.dedupe_key],
+        set: {
+          payload: sql`excluded.payload`,
+          status: sql`excluded.status`,
+          attempts: sql`excluded.attempts`,
+          max_attempts: sql`excluded.max_attempts`,
+          available_at: sql`excluded.available_at`,
+          reserved_at: sql`excluded.reserved_at`,
+          last_error: sql`excluded.last_error`,
+        },
       })
-
-    if (error) {
-      throw new Error(`Failed to upsert translation discovery jobs: ${error.message}`)
-    }
 
     persistedRows += rowsToUpsert.length
   }
@@ -430,40 +450,43 @@ async function enqueueEventDiscoveryJobs(
   let enqueued = 0
 
   while (enqueued < maxJobs && !isTimeLimitReached(startedAtMs)) {
-    const { data: events, error: eventsError } = await supabaseAdmin
-      .from('events')
-      .select('id,title')
-      .order('id', { ascending: true })
-      .range(offset, offset + DISCOVERY_SCAN_PAGE_SIZE - 1)
+    const events = await db
+      .select({
+        id: eventsTable.id,
+        title: eventsTable.title,
+      })
+      .from(eventsTable)
+      .orderBy(asc(eventsTable.id))
+      .offset(offset)
+      .limit(DISCOVERY_SCAN_PAGE_SIZE)
 
-    if (eventsError) {
-      throw new Error(`Failed to load events for translation discovery: ${eventsError.message}`)
-    }
-
-    const sourceRows = ((events ?? []) as EventSourceRow[])
+    const sourceRows = (events as EventSourceRow[])
       .map(row => ({
         id: row.id,
         title: typeof row.title === 'string' ? row.title.trim() : '',
       }))
       .filter(row => row.title.length > 0)
 
-    if (!events?.length) {
+    if (!events.length) {
       break
     }
 
     if (sourceRows.length > 0) {
       const eventIds = sourceRows.map(row => row.id)
-      const { data: translationRows, error: translationRowsError } = await supabaseAdmin
-        .from('event_translations')
-        .select('event_id,locale,source_hash,is_manual')
-        .in('event_id', eventIds)
-        .in('locale', locales)
+      const translationRows = await db
+        .select({
+          event_id: eventTranslationsTable.event_id,
+          locale: eventTranslationsTable.locale,
+          source_hash: eventTranslationsTable.source_hash,
+          is_manual: eventTranslationsTable.is_manual,
+        })
+        .from(eventTranslationsTable)
+        .where(and(
+          inArray(eventTranslationsTable.event_id, eventIds),
+          inArray(eventTranslationsTable.locale, locales),
+        ))
 
-      if (translationRowsError) {
-        throw new Error(`Failed to load event translation metadata: ${translationRowsError.message}`)
-      }
-
-      const metaMap = buildEventTranslationMetaMap((translationRows ?? []) as EventTranslationMetaRow[])
+      const metaMap = buildEventTranslationMetaMap(translationRows as EventTranslationMetaRow[])
       const availableAt = new Date().toISOString()
       const rowsToUpsert: JobUpsertRow[] = []
       let reachedJobLimit = false
@@ -540,40 +563,43 @@ async function enqueueTagDiscoveryJobs(
   let enqueued = 0
 
   while (enqueued < maxJobs && !isTimeLimitReached(startedAtMs)) {
-    const { data: tags, error: tagsError } = await supabaseAdmin
-      .from('tags')
-      .select('id,name')
-      .order('id', { ascending: true })
-      .range(offset, offset + DISCOVERY_SCAN_PAGE_SIZE - 1)
+    const tags = await db
+      .select({
+        id: tagsTable.id,
+        name: tagsTable.name,
+      })
+      .from(tagsTable)
+      .orderBy(asc(tagsTable.id))
+      .offset(offset)
+      .limit(DISCOVERY_SCAN_PAGE_SIZE)
 
-    if (tagsError) {
-      throw new Error(`Failed to load tags for translation discovery: ${tagsError.message}`)
-    }
-
-    const sourceRows = ((tags ?? []) as TagSourceRow[])
+    const sourceRows = (tags as TagSourceRow[])
       .map(row => ({
         id: row.id,
         name: typeof row.name === 'string' ? row.name.trim() : '',
       }))
       .filter(row => row.name.length > 0)
 
-    if (!tags?.length) {
+    if (!tags.length) {
       break
     }
 
     if (sourceRows.length > 0) {
       const tagIds = sourceRows.map(row => row.id)
-      const { data: translationRows, error: translationRowsError } = await supabaseAdmin
-        .from('tag_translations')
-        .select('tag_id,locale,source_hash,is_manual')
-        .in('tag_id', tagIds)
-        .in('locale', locales)
+      const translationRows = await db
+        .select({
+          tag_id: tagTranslationsTable.tag_id,
+          locale: tagTranslationsTable.locale,
+          source_hash: tagTranslationsTable.source_hash,
+          is_manual: tagTranslationsTable.is_manual,
+        })
+        .from(tagTranslationsTable)
+        .where(and(
+          inArray(tagTranslationsTable.tag_id, tagIds),
+          inArray(tagTranslationsTable.locale, locales),
+        ))
 
-      if (translationRowsError) {
-        throw new Error(`Failed to load tag translation metadata: ${translationRowsError.message}`)
-      }
-
-      const metaMap = buildTagTranslationMetaMap((translationRows ?? []) as TagTranslationMetaRow[])
+      const metaMap = buildTagTranslationMetaMap(translationRows as TagTranslationMetaRow[])
       const availableAt = new Date().toISOString()
       const rowsToUpsert: JobUpsertRow[] = []
       let reachedJobLimit = false
@@ -645,32 +671,38 @@ async function enqueueMissingOrOutdatedTranslationJobs(startedAtMs: number, loca
   }
 }
 
-function buildEnabledLocalesCandidateFilter(locales: NonDefaultLocale[]) {
-  return locales.map(locale => `dedupe_key.like.%:${locale}`).join(',')
-}
-
 async function fetchCandidateJobs(nowIso: string, locales: NonDefaultLocale[]): Promise<TranslationJobRow[]> {
   if (locales.length === 0) {
     return []
   }
 
-  const localesFilter = buildEnabledLocalesCandidateFilter(locales)
-  const { data, error } = await supabaseAdmin
-    .from('jobs')
-    .select('id,job_type,dedupe_key,payload,status,attempts,max_attempts,available_at')
-    .in('job_type', [...TRANSLATION_JOB_TYPES])
-    .eq('status', 'pending')
-    .lte('available_at', nowIso)
-    .or(localesFilter)
-    .order('available_at', { ascending: true })
-    .order('updated_at', { ascending: true })
+  const localePredicates = locales.map(locale => like(jobsTable.dedupe_key, `%:${locale}`))
+  const localePredicate = localePredicates.length === 1
+    ? localePredicates[0]
+    : or(...localePredicates)
+
+  const rows = await db
+    .select({
+      id: jobsTable.id,
+      job_type: jobsTable.job_type,
+      dedupe_key: jobsTable.dedupe_key,
+      payload: jobsTable.payload,
+      status: jobsTable.status,
+      attempts: jobsTable.attempts,
+      max_attempts: jobsTable.max_attempts,
+      available_at: jobsTable.available_at,
+    })
+    .from(jobsTable)
+    .where(and(
+      inArray(jobsTable.job_type, [...TRANSLATION_JOB_TYPES]),
+      eq(jobsTable.status, 'pending'),
+      lte(jobsTable.available_at, new Date(nowIso)),
+      localePredicate,
+    ))
+    .orderBy(asc(jobsTable.available_at), asc(jobsTable.updated_at))
     .limit(JOB_BATCH_SIZE)
 
-  if (error) {
-    throw new Error(`Failed to load translation jobs: ${error.message}`)
-  }
-
-  return (data ?? []) as TranslationJobRow[]
+  return rows as TranslationJobRow[]
 }
 
 async function claimJob(job: TranslationJobRow, nowIso: string): Promise<TranslationJobRow | null> {
@@ -678,44 +710,48 @@ async function claimJob(job: TranslationJobRow, nowIso: string): Promise<Transla
     return null
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('jobs')
-    .update({
+  const claimedRows = await db
+    .update(jobsTable)
+    .set({
       status: 'processing',
-      reserved_at: nowIso,
+      reserved_at: new Date(nowIso),
       last_error: null,
     })
-    .eq('id', job.id)
-    .eq('job_type', job.job_type)
-    .eq('status', 'pending')
-    .lte('available_at', nowIso)
-    .select('id,job_type,dedupe_key,payload,status,attempts,max_attempts,available_at')
-    .maybeSingle()
+    .where(and(
+      eq(jobsTable.id, job.id),
+      eq(jobsTable.job_type, job.job_type),
+      eq(jobsTable.status, 'pending'),
+      lte(jobsTable.available_at, new Date(nowIso)),
+    ))
+    .returning({
+      id: jobsTable.id,
+      job_type: jobsTable.job_type,
+      dedupe_key: jobsTable.dedupe_key,
+      payload: jobsTable.payload,
+      status: jobsTable.status,
+      attempts: jobsTable.attempts,
+      max_attempts: jobsTable.max_attempts,
+      available_at: jobsTable.available_at,
+    })
 
-  if (error) {
-    throw new Error(`Failed to claim translation job #${job.id}: ${error.message}`)
-  }
-
-  return (data ?? null) as TranslationJobRow | null
+  return (claimedRows[0] as TranslationJobRow | undefined) ?? null
 }
 
 async function completeJob(job: TranslationJobRow, payload: EventTranslationJobPayload | TagTranslationJobPayload) {
-  const { error } = await supabaseAdmin
-    .from('jobs')
-    .update({
+  await db
+    .update(jobsTable)
+    .set({
       status: 'completed',
       attempts: (job.attempts ?? 0) + 1,
-      available_at: new Date().toISOString(),
+      available_at: new Date(),
       reserved_at: null,
       last_error: null,
       payload,
     })
-    .eq('id', job.id)
-    .eq('job_type', job.job_type)
-
-  if (error) {
-    throw new Error(`Failed to complete translation job #${job.id}: ${error.message}`)
-  }
+    .where(and(
+      eq(jobsTable.id, job.id),
+      eq(jobsTable.job_type, job.job_type),
+    ))
 }
 
 async function scheduleRetry(job: TranslationJobRow, rawError: unknown): Promise<{ retryScheduled: boolean }> {
@@ -723,26 +759,24 @@ async function scheduleRetry(job: TranslationJobRow, rawError: unknown): Promise
   const maxAttempts = normalizeMaxAttempts(job.max_attempts)
   const exhausted = attempts >= maxAttempts
   const retryAt = exhausted
-    ? new Date().toISOString()
-    : new Date(Date.now() + buildBackoffMs(attempts)).toISOString()
+    ? new Date()
+    : new Date(Date.now() + buildBackoffMs(attempts))
   const message = rawError instanceof Error ? rawError.message : String(rawError)
   const truncatedMessage = message.slice(0, 1000)
 
-  const { error } = await supabaseAdmin
-    .from('jobs')
-    .update({
+  await db
+    .update(jobsTable)
+    .set({
       status: exhausted ? 'failed' : 'pending',
       attempts,
       available_at: retryAt,
       reserved_at: null,
       last_error: truncatedMessage,
     })
-    .eq('id', job.id)
-    .eq('job_type', job.job_type)
-
-  if (error) {
-    throw new Error(`Failed to reschedule translation job #${job.id}: ${error.message}`)
-  }
+    .where(and(
+      eq(jobsTable.id, job.id),
+      eq(jobsTable.job_type, job.job_type),
+    ))
 
   return { retryScheduled: !exhausted }
 }
@@ -754,16 +788,15 @@ async function loadEventSourcesMap(eventIds: string[]) {
     return map
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('events')
-    .select('id,title')
-    .in('id', uniqueIds)
+  const rows = await db
+    .select({
+      id: eventsTable.id,
+      title: eventsTable.title,
+    })
+    .from(eventsTable)
+    .where(inArray(eventsTable.id, uniqueIds))
 
-  if (error) {
-    throw new Error(`Failed to load event sources for translation sync: ${error.message}`)
-  }
-
-  for (const row of (data ?? []) as EventSourceRow[]) {
+  for (const row of rows as EventSourceRow[]) {
     const title = typeof row.title === 'string' ? row.title.trim() : ''
     if (!title) {
       continue
@@ -781,16 +814,15 @@ async function loadTagSourcesMap(tagIds: number[]) {
     return map
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('tags')
-    .select('id,name')
-    .in('id', uniqueIds)
+  const rows = await db
+    .select({
+      id: tagsTable.id,
+      name: tagsTable.name,
+    })
+    .from(tagsTable)
+    .where(inArray(tagsTable.id, uniqueIds))
 
-  if (error) {
-    throw new Error(`Failed to load tag sources for translation sync: ${error.message}`)
-  }
-
-  for (const row of (data ?? []) as TagSourceRow[]) {
+  for (const row of rows as TagSourceRow[]) {
     const name = typeof row.name === 'string' ? row.name.trim() : ''
     if (!name) {
       continue
@@ -808,17 +840,20 @@ async function loadEventTranslationMetaMapForJobs(eventIds: string[], locales: N
     return new Map<string, { source_hash: string | null, is_manual: boolean }>()
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('event_translations')
-    .select('event_id,locale,is_manual,source_hash')
-    .in('event_id', uniqueEventIds)
-    .in('locale', uniqueLocales)
+  const rows = await db
+    .select({
+      event_id: eventTranslationsTable.event_id,
+      locale: eventTranslationsTable.locale,
+      is_manual: eventTranslationsTable.is_manual,
+      source_hash: eventTranslationsTable.source_hash,
+    })
+    .from(eventTranslationsTable)
+    .where(and(
+      inArray(eventTranslationsTable.event_id, uniqueEventIds),
+      inArray(eventTranslationsTable.locale, uniqueLocales),
+    ))
 
-  if (error) {
-    throw new Error(`Failed to load event translation metadata for sync jobs: ${error.message}`)
-  }
-
-  return buildEventTranslationMetaMap((data ?? []) as EventTranslationMetaRow[])
+  return buildEventTranslationMetaMap(rows as EventTranslationMetaRow[])
 }
 
 async function loadTagTranslationMetaMapForJobs(tagIds: number[], locales: NonDefaultLocale[]) {
@@ -828,55 +863,57 @@ async function loadTagTranslationMetaMapForJobs(tagIds: number[], locales: NonDe
     return new Map<string, { source_hash: string | null, is_manual: boolean }>()
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('tag_translations')
-    .select('tag_id,locale,is_manual,source_hash')
-    .in('tag_id', uniqueTagIds)
-    .in('locale', uniqueLocales)
+  const rows = await db
+    .select({
+      tag_id: tagTranslationsTable.tag_id,
+      locale: tagTranslationsTable.locale,
+      is_manual: tagTranslationsTable.is_manual,
+      source_hash: tagTranslationsTable.source_hash,
+    })
+    .from(tagTranslationsTable)
+    .where(and(
+      inArray(tagTranslationsTable.tag_id, uniqueTagIds),
+      inArray(tagTranslationsTable.locale, uniqueLocales),
+    ))
 
-  if (error) {
-    throw new Error(`Failed to load tag translation metadata for sync jobs: ${error.message}`)
-  }
-
-  return buildTagTranslationMetaMap((data ?? []) as TagTranslationMetaRow[])
+  return buildTagTranslationMetaMap(rows as TagTranslationMetaRow[])
 }
 
 async function upsertAutoEventTranslation(eventId: string, locale: NonDefaultLocale, title: string, sourceHash: string) {
-  const { error } = await supabaseAdmin
-    .from('event_translations')
-    .upsert({
-      event_id: eventId,
-      locale,
-      title,
-      source_hash: sourceHash,
-      is_manual: false,
-    }, {
-      onConflict: 'event_id,locale',
-    })
-
-  if (error) {
-    throw new Error(`Failed to upsert event translation for ${eventId}/${locale}: ${error.message}`)
+  const payload = {
+    event_id: eventId,
+    locale,
+    title,
+    source_hash: sourceHash,
+    is_manual: false,
   }
+
+  await db
+    .insert(eventTranslationsTable)
+    .values(payload)
+    .onConflictDoUpdate({
+      target: [eventTranslationsTable.event_id, eventTranslationsTable.locale],
+      set: payload,
+    })
 }
 
 async function upsertAutoTagTranslation(tagId: number, locale: NonDefaultLocale, name: string, sourceHash: string) {
-  const { error } = await supabaseAdmin
-    .from('tag_translations')
-    .upsert({
-      tag_id: tagId,
-      locale,
-      name,
-      source_hash: sourceHash,
-      is_manual: false,
-    }, {
-      onConflict: 'tag_id,locale',
-    })
-
-  if (error) {
-    throw new Error(`Failed to upsert tag translation for ${tagId}/${locale}: ${error.message}`)
+  const payload = {
+    tag_id: tagId,
+    locale,
+    name,
+    source_hash: sourceHash,
+    is_manual: false,
   }
-}
 
+  await db
+    .insert(tagTranslationsTable)
+    .values(payload)
+    .onConflictDoUpdate({
+      target: [tagTranslationsTable.tag_id, tagTranslationsTable.locale],
+      set: payload,
+    })
+}
 function extractJsonObject(raw: string) {
   const trimmed = raw.trim()
   if (!trimmed) {

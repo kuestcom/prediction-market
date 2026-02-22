@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { isAdminWallet } from '@/lib/admin'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
-import { getSupabaseImageUrl } from '@/lib/supabase'
+import { getPublicAssetUrl } from '@/lib/storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
       return {
         ...user,
         is_admin: isAdminWallet(user.address),
-        avatarUrl: user.image ? getSupabaseImageUrl(user.image) : '',
+        avatarUrl: user.image ? getPublicAssetUrl(user.image) : '',
         referred_by_display: referredDisplay,
         referred_by_profile_url: referredProfile,
         created_label: createdLabel,

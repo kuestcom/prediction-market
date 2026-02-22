@@ -5,7 +5,7 @@ import { DEFAULT_ERROR_MESSAGE, MICRO_UNIT } from '@/lib/constants'
 import { EVENT_ACTIVITY_PAGE_SIZE } from '@/lib/data-api/trades'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 import { UserRepository } from '@/lib/db/queries/user'
-import { getSupabaseImageUrl } from '@/lib/supabase'
+import { getPublicAssetUrl } from '@/lib/storage'
 import { normalizeAddress } from '@/lib/wallet'
 
 const DATA_API_URL = process.env.DATA_URL!
@@ -42,7 +42,7 @@ function normalizeAvatarUrl(image: string | null | undefined) {
     return image
   }
 
-  return getSupabaseImageUrl(image)
+  return getPublicAssetUrl(image)
 }
 
 export async function GET(request: Request) {

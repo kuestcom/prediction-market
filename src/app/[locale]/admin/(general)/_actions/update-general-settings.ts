@@ -7,7 +7,7 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { encryptSecret } from '@/lib/encryption'
-import { supabaseAdmin } from '@/lib/supabase'
+import { uploadPublicAsset } from '@/lib/storage'
 import { validateThemeSiteSettingsInput } from '@/lib/theme-settings'
 
 const MAX_LOGO_FILE_SIZE = 2 * 1024 * 1024
@@ -46,12 +46,10 @@ async function processThemeLogoFile(file: File) {
 
   const filePath = buildThemeAssetPath('site-logo')
 
-  const { error } = await supabaseAdmin.storage
-    .from('kuest-assets')
-    .upload(filePath, output, {
-      contentType: 'image/png',
-      cacheControl: '31536000',
-    })
+  const { error } = await uploadPublicAsset(filePath, output, {
+    contentType: 'image/png',
+    cacheControl: '31536000',
+  })
 
   if (error) {
     return { mode: null, path: null, svg: null, error: DEFAULT_ERROR_MESSAGE }
@@ -79,12 +77,10 @@ async function processPwaIconFile(file: File, size: number, label: string) {
     .toBuffer()
 
   const filePath = buildThemeAssetPath(`pwa-icon-${size}`)
-  const { error } = await supabaseAdmin.storage
-    .from('kuest-assets')
-    .upload(filePath, output, {
-      contentType: 'image/png',
-      cacheControl: '31536000',
-    })
+  const { error } = await uploadPublicAsset(filePath, output, {
+    contentType: 'image/png',
+    cacheControl: '31536000',
+  })
 
   if (error) {
     return { path: null as string | null, error: DEFAULT_ERROR_MESSAGE }
