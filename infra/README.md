@@ -9,7 +9,7 @@ This folder provides a portable deployment foundation outside Vercel.
 - `terraform/`: reusable deployment target modules and production stacks
 - `cloud-run/`: Google Cloud Run deployment runbook
 - `fly/`: Fly.io deployment runbook
-- `digital-ocean/`: DigitalOcean deployment runbook (VPS or App Platform)
+- `digital-ocean/`: DigitalOcean deployment runbook (Droplet or App Platform)
 - `vps/`: generic VPS (DigitalOcean Droplets, Vultr, Hetzner, EC2, etc.) deployment runbook
 - `scheduler-contract.md`: single scheduler contract for `/api/sync/*`
 

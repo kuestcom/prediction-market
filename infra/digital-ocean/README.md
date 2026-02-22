@@ -1,6 +1,6 @@
 # DigitalOcean
 
-Deploy target for DigitalOcean (VPS or App Platform).
+Deploy target for DigitalOcean (Droplet or App Platform).
 
 ## Prerequisites
 
