@@ -122,12 +122,12 @@ export default function EventCardMarketsList({
                                 onToggle()
                               }}
                               variant="yes"
-                              className="group h-7 w-10 px-2 py-1 text-xs"
+                              className="group/yes h-7 w-10 px-2 py-1 text-xs"
                             >
-                              <span className="truncate group-hover:hidden">
+                              <span className="truncate group-hover/yes:hidden">
                                 {normalizeOutcomeLabel(market.outcomes[0].outcome_text) ?? market.outcomes[0].outcome_text}
                               </span>
-                              <span className="hidden group-hover:inline">
+                              <span className="hidden group-hover/yes:inline">
                                 {displayChance}
                                 %
                               </span>
@@ -141,12 +141,12 @@ export default function EventCardMarketsList({
                               }}
                               variant="no"
                               size="sm"
-                              className="group h-auto w-11 px-2 py-1 text-xs"
+                              className="group/no h-auto w-11 px-2 py-1 text-xs"
                             >
-                              <span className="truncate group-hover:hidden">
+                              <span className="truncate group-hover/no:hidden">
                                 {normalizeOutcomeLabel(market.outcomes[1].outcome_text) ?? market.outcomes[1].outcome_text}
                               </span>
-                              <span className="hidden group-hover:inline">
+                              <span className="hidden group-hover/no:inline">
                                 {oppositeChance}
                                 %
                               </span>
