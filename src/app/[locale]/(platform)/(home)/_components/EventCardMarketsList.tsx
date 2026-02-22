@@ -76,8 +76,8 @@ export default function EventCardMarketsList({
                     resolvedOutcome
                       ? (
                           <span className={`
-                            inline-flex items-center gap-2 rounded-md bg-(--card-hover) px-2.5 py-1 text-sm
-                            font-semibold text-foreground transition-colors
+                            inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-sm font-semibold text-foreground
+                            transition-colors
                             group-hover:bg-card
                           `}
                           >
@@ -94,8 +94,8 @@ export default function EventCardMarketsList({
                         )
                       : (
                           <span className={`
-                            inline-flex items-center rounded-md bg-(--card-hover) px-2.5 py-1 text-sm font-semibold
-                            text-muted-foreground transition-colors
+                            inline-flex items-center rounded-md px-2.5 py-1 text-sm font-semibold text-muted-foreground
+                            transition-colors
                             group-hover:bg-card
                           `}
                           >
