@@ -40,6 +40,8 @@ const PredictionChart = dynamic<PredictionChartProps>(
   () => import('@/components/PredictionChart'),
   { ssr: false, loading: () => <Skeleton className="h-79.5 w-full" /> },
 )
+const YES_SERIES_COLOR = 'var(--primary)'
+const NO_SERIES_COLOR = 'var(--no)'
 
 export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventCreatedAt, isMobile }: MarketOutcomeGraphProps) {
   const t = useExtracted()
@@ -118,13 +120,13 @@ export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventC
   const series = useMemo(
     () => (showBothOutcomes
       ? [
-          { key: 'yes', name: yesOutcomeLabel, color: '#2D9CDB' },
-          { key: 'no', name: noOutcomeLabel, color: '#FF6600' },
+          { key: 'yes', name: yesOutcomeLabel, color: YES_SERIES_COLOR },
+          { key: 'no', name: noOutcomeLabel, color: NO_SERIES_COLOR },
         ]
       : [{
           key: 'value',
           name: normalizeOutcomeLabel(activeOutcome.outcome_text) ?? activeOutcome.outcome_text,
-          color: activeOutcome.outcome_index === OUTCOME_INDEX.NO ? '#FF6600' : '#2D9CDB',
+          color: activeOutcome.outcome_index === OUTCOME_INDEX.NO ? NO_SERIES_COLOR : YES_SERIES_COLOR,
         }]),
     [activeOutcome.outcome_index, activeOutcome.outcome_text, showBothOutcomes, yesOutcomeLabel, noOutcomeLabel, normalizeOutcomeLabel],
   )
@@ -145,8 +147,8 @@ export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventC
     ? (activeOutcomeIndex === OUTCOME_INDEX.NO ? 'no' : 'yes')
     : 'value'
   const primarySeriesColor = showBothOutcomes
-    ? (activeOutcomeIndex === OUTCOME_INDEX.NO ? '#FF6600' : '#2D9CDB')
-    : (series[0]?.color ?? '#2D9CDB')
+    ? (activeOutcomeIndex === OUTCOME_INDEX.NO ? NO_SERIES_COLOR : YES_SERIES_COLOR)
+    : (series[0]?.color ?? YES_SERIES_COLOR)
   const hoveredValue = cursorSnapshot?.values?.[activeSeriesKey]
   const latestValue = useMemo(() => {
     for (let index = chartData.length - 1; index >= 0; index -= 1) {
