@@ -523,7 +523,7 @@ export default function EventSeriesPills({
               <button
                 type="button"
                 className={`
-                  inline-flex h-8 items-center gap-1.5 rounded-full bg-muted px-4 text-sm leading-none font-semibold
+                  inline-flex h-8 items-center gap-1.5 rounded-full bg-muted px-3 text-xs leading-none font-semibold
                   text-foreground transition-colors
                   hover:bg-muted/80
                 `}
@@ -548,12 +548,12 @@ export default function EventSeriesPills({
                       key={event.id}
                       disabled
                       className={`
-                        cursor-default bg-muted/70 py-2 text-sm font-medium text-muted-foreground
+                        cursor-default bg-muted/70 py-1.5 text-xs font-medium text-muted-foreground
                         data-disabled:opacity-100
                       `}
                     >
                       <span className="flex w-full items-center gap-2">
-                        <GavelIcon className="size-4 shrink-0 text-muted-foreground" />
+                        <GavelIcon className="size-3.5 shrink-0 text-muted-foreground" />
                         <span>{getSeriesEventLabel(event)}</span>
                       </span>
                     </DropdownMenuItem>
@@ -561,9 +561,9 @@ export default function EventSeriesPills({
                 }
 
                 return (
-                  <DropdownMenuItem key={event.id} asChild className="cursor-pointer py-2 text-sm font-medium">
+                  <DropdownMenuItem key={event.id} asChild className="cursor-pointer py-1.5 text-xs font-medium">
                     <Link href={`/event/${event.slug}`} className="flex w-full items-center gap-2">
-                      <GavelIcon className="size-4 shrink-0 text-muted-foreground" />
+                      <GavelIcon className="size-3.5 shrink-0 text-muted-foreground" />
                       <span>{getSeriesEventLabel(event)}</span>
                     </Link>
                   </DropdownMenuItem>
@@ -576,7 +576,7 @@ export default function EventSeriesPills({
         {hasSeriesNavigation && currentResolvedEvent && (
           <span
             className={`
-              inline-flex h-8 items-center rounded-full bg-foreground px-4 text-sm leading-none font-semibold
+              inline-flex h-8 items-center rounded-full bg-foreground px-3 text-xs leading-none font-semibold
               text-background
             `}
           >
@@ -593,7 +593,7 @@ export default function EventSeriesPills({
               key={event.id}
               href={`/event/${event.slug}`}
               className={cn(
-                `inline-flex h-8 items-center rounded-full px-4 text-sm leading-none font-semibold transition-colors`,
+                `inline-flex h-8 items-center rounded-full px-3 text-xs leading-none font-semibold transition-colors`,
                 isCurrent
                   ? 'bg-foreground text-background hover:bg-foreground/90'
                   : 'bg-muted text-foreground hover:bg-muted/80',

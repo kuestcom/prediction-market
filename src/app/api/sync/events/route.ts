@@ -469,7 +469,10 @@ function normalizeTimestamp(rawValue: unknown): string | null {
   if (typeof rawValue === 'string') {
     const trimmed = rawValue.trim()
     if (trimmed) {
-      const parsed = new Date(trimmed)
+      const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)
+        ? `${trimmed.replace(' ', 'T')}Z`
+        : trimmed
+      const parsed = new Date(normalized)
       if (!Number.isNaN(parsed.getTime())) {
         return parsed.toISOString()
       }
@@ -498,6 +501,12 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
     throw new Error(`Invalid event title for slug ${eventData.slug}`)
   }
 
+  const normalizedStartDate = normalizeTimestamp(
+    eventData.start_time
+    ?? eventData.start_date
+    ?? eventData.startTime
+    ?? eventData.startDate,
+  )
   const normalizedEndDate = normalizeTimestamp(eventData.end_time)
   const enableNegRiskFlag = normalizeBooleanField(eventData.enable_neg_risk)
   const negRiskAugmentedFlag = normalizeBooleanField(eventData.neg_risk_augmented)
@@ -510,7 +519,7 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
 
   const { data: existingEvent } = await supabaseAdmin
     .from('events')
-    .select('id, title, end_date, created_at')
+    .select('id, title, start_date, end_date, created_at')
     .eq('slug', eventData.slug)
     .maybeSingle()
 
@@ -533,6 +542,10 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
     const incomingCreatedAtMs = Date.parse(createdAtIso)
     if (!Number.isNaN(incomingCreatedAtMs)
       && (Number.isNaN(existingCreatedAtMs) || incomingCreatedAtMs < existingCreatedAtMs)) { updatePayload.created_at = createdAtIso }
+
+    if (normalizedStartDate && normalizedStartDate !== existingEvent.start_date) {
+      updatePayload.start_date = normalizedStartDate
+    }
 
     if (normalizedEndDate && normalizedEndDate !== existingEvent.end_date) {
       updatePayload.end_date = normalizedEndDate
@@ -578,6 +591,7 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
       series_id: eventSeriesId ?? null,
       series_recurrence: eventSeriesRecurrence ?? null,
       rules: eventData.rules || null,
+      start_date: normalizedStartDate,
       end_date: normalizedEndDate,
       created_at: createdAtIso,
     })

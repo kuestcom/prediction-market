@@ -681,6 +681,7 @@ export default function EventLiveSeriesChart({
   const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>('connecting')
   const [activeView, setActiveView] = useState<'live' | 'market'>('live')
   const isLiveView = activeView === 'live'
+  const startTimestamp = useMemo(() => parseUtcDate(event.start_date ?? null), [event.start_date])
   const endTimestamp = useMemo(() => resolveEventEndTimestamp(event), [event])
   const isEventClosed = nowMs >= endTimestamp
   const isMarketClosed = useMemo(() => {
@@ -750,6 +751,9 @@ export default function EventLiveSeriesChart({
           eventEndMs: String(endTimestamp),
           activeWindowMinutes: String(config.active_window_minutes),
         })
+        if (startTimestamp != null && startTimestamp > 0 && startTimestamp < endTimestamp) {
+          query.set('eventStartMs', String(startTimestamp))
+        }
 
         const response = await fetch(`/api/price-reference/live-series?${query.toString()}`, {
           cache: 'no-store',
@@ -797,7 +801,7 @@ export default function EventLiveSeriesChart({
       isCancelled = true
       controller.abort()
     }
-  }, [config.active_window_minutes, config.series_slug, config.topic, endTimestamp, subscriptionSymbol])
+  }, [config.active_window_minutes, config.series_slug, config.topic, endTimestamp, startTimestamp, subscriptionSymbol])
 
   useEffect(() => {
     if (!isLiveView) {
@@ -1068,7 +1072,18 @@ export default function EventLiveSeriesChart({
 
     return inferIntervalMsFromSeriesSlug(config.series_slug)
   }, [config.active_window_minutes, config.series_slug, referenceSnapshot?.interval_ms])
-  const tradingWindowStartMs = endTimestamp - tradingWindowMs
+  const tradingWindowStartMs = useMemo(() => {
+    if (startTimestamp != null && startTimestamp > 0 && startTimestamp < endTimestamp) {
+      return startTimestamp
+    }
+
+    const snapshotStart = Number(referenceSnapshot?.event_window_start_ms)
+    if (Number.isFinite(snapshotStart) && snapshotStart > 0 && snapshotStart < endTimestamp) {
+      return snapshotStart
+    }
+
+    return endTimestamp - tradingWindowMs
+  }, [endTimestamp, referenceSnapshot?.event_window_start_ms, startTimestamp, tradingWindowMs])
   const isTradingWindowActive = !isEventClosed && nowMs >= tradingWindowStartMs
 
   const renderData = useMemo(() => {

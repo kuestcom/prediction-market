@@ -75,8 +75,8 @@ export default function EventCardHeader({
         <h3
           className={
             `
-              line-clamp-2 w-full text-sm/5 font-semibold underline-offset-2 transition-colors duration-200
-              hover:line-clamp-none hover:text-foreground hover:underline
+              line-clamp-3 w-full text-sm/5 font-semibold underline-offset-2 transition-colors duration-200
+              hover:text-foreground hover:underline
             `
           }
         >

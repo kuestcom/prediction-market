@@ -494,6 +494,7 @@ function eventResource(
     total_markets_count: Number(event.total_markets_count || 0),
     created_at: event.created_at?.toISOString() || new Date().toISOString(),
     updated_at: event.updated_at?.toISOString() || new Date().toISOString(),
+    start_date: event.start_date?.toISOString() ?? null,
     end_date: event.end_date?.toISOString() ?? null,
     resolved_at: event.resolved_at?.toISOString() ?? null,
     volume: marketsWithDerivedValues.reduce(

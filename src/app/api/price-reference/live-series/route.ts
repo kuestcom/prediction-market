@@ -161,6 +161,7 @@ async function getSeriesMapBySlug() {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const seriesSlugParam = searchParams.get('seriesSlug')?.trim() ?? ''
+  const eventStartMsParam = searchParams.get('eventStartMs')?.trim() ?? ''
   const eventEndMsParam = searchParams.get('eventEndMs')?.trim() ?? ''
   const activeWindowMinutesParam = searchParams.get('activeWindowMinutes')?.trim() ?? ''
 
@@ -187,8 +188,14 @@ export async function GET(request: Request) {
     const activeWindowMinutes = toPositiveInteger(activeWindowMinutesParam) ?? defaultActiveWindowMinutes
     const activeWindowMs = activeWindowMinutes * 60 * 1000
 
-    // Price-to-beat baseline follows countdown logic: end timestamp minus configured active window.
-    const eventWindowStartMs = Math.max(0, eventEndMs - activeWindowMs)
+    const explicitEventStartMs = Number.parseInt(eventStartMsParam, 10)
+    const hasValidExplicitStart = Number.isFinite(explicitEventStartMs)
+      && explicitEventStartMs > 0
+      && explicitEventStartMs < eventEndMs
+    // Prefer explicit event start when provided, fallback to countdown-derived window.
+    const eventWindowStartMs = hasValidExplicitStart
+      ? explicitEventStartMs
+      : Math.max(0, eventEndMs - activeWindowMs)
     const eventWindowEndMs = eventEndMs
     // Daily markets should use a finer candle for "start of window" so baseline matches real market time.
     const openingPreferredInterval: Interval = seriesEntry.interval === '1d' ? '5m' : seriesEntry.interval
