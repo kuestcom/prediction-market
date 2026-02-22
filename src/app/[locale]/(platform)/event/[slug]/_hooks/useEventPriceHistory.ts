@@ -63,12 +63,31 @@ export const CURSOR_STEP_MS: Record<TimeRange, number> = {
 }
 const PRICE_REFRESH_INTERVAL_MS = 60_000
 
-function resolveCreatedRange(createdAt: string) {
+function parseResolvedAtSeconds(resolvedAt?: string | null) {
+  if (!resolvedAt) {
+    return Number.NaN
+  }
+
+  const resolved = new Date(resolvedAt)
+  const resolvedMs = resolved.getTime()
+  if (!Number.isFinite(resolvedMs)) {
+    return Number.NaN
+  }
+
+  return Math.floor(resolvedMs / 1000)
+}
+
+function resolveCreatedRange(createdAt: string, resolvedAt?: string | null) {
   const created = new Date(createdAt)
   const createdSeconds = Number.isFinite(created.getTime())
     ? Math.floor(created.getTime() / 1000)
     : Math.floor(Date.now() / 1000) - (60 * 60 * 24 * 30)
-  const nowSeconds = Math.max(createdSeconds + 60, Math.floor(Date.now() / 1000))
+  const realNowSeconds = Math.floor(Date.now() / 1000)
+  const resolvedSeconds = parseResolvedAtSeconds(resolvedAt)
+  const baseEndSeconds = Number.isFinite(resolvedSeconds)
+    ? Math.min(realNowSeconds, resolvedSeconds)
+    : realNowSeconds
+  const nowSeconds = Math.max(createdSeconds + 60, baseEndSeconds)
   const ageSeconds = Math.max(0, nowSeconds - createdSeconds)
   return { createdSeconds, nowSeconds, ageSeconds }
 }
@@ -86,10 +105,12 @@ function resolveFidelityForSpan(spanSeconds: number) {
   return ALL_FIDELITY
 }
 
-function buildTimeRangeFilters(range: TimeRange, createdAt: string): RangeFilters {
-  if (range === 'ALL') {
-    const { createdSeconds, nowSeconds, ageSeconds } = resolveCreatedRange(createdAt)
+function buildTimeRangeFilters(range: TimeRange, createdAt: string, resolvedAt?: string | null): RangeFilters {
+  const resolvedSeconds = parseResolvedAtSeconds(resolvedAt)
+  const hasResolvedAnchor = Number.isFinite(resolvedSeconds)
+  const { createdSeconds, nowSeconds, ageSeconds } = resolveCreatedRange(createdAt, resolvedAt)
 
+  if (range === 'ALL') {
     return {
       fidelity: resolveFidelityForSpan(ageSeconds).toString(),
       startTs: createdSeconds.toString(),
@@ -98,22 +119,37 @@ function buildTimeRangeFilters(range: TimeRange, createdAt: string): RangeFilter
   }
 
   const config = RANGE_CONFIG[range]
-  if (range === '1D' || range === '1W' || range === '1M') {
-    const { createdSeconds, nowSeconds, ageSeconds } = resolveCreatedRange(createdAt)
-    const windowSeconds = RANGE_WINDOW_SECONDS[range]
+  const windowSeconds = RANGE_WINDOW_SECONDS[range]
+  const isLongRange = range === '1D' || range === '1W' || range === '1M'
 
-    if (ageSeconds < windowSeconds) {
+  // Preserve the previous query shape for active markets because CLOB expects
+  // interval-only filters for short ranges.
+  if (!hasResolvedAnchor) {
+    if (isLongRange && ageSeconds < windowSeconds) {
       return {
         fidelity: resolveFidelityForSpan(ageSeconds).toString(),
         startTs: createdSeconds.toString(),
         endTs: nowSeconds.toString(),
       }
     }
+
+    return {
+      fidelity: config.fidelity.toString(),
+      interval: config.interval,
+    }
   }
 
+  // For resolved markets, anchor non-ALL ranges to the resolution timestamp
+  // and avoid mixing interval with explicit time bounds.
+  const startSeconds = Math.max(createdSeconds, nowSeconds - windowSeconds)
+  const fidelity = isLongRange && ageSeconds < windowSeconds
+    ? resolveFidelityForSpan(ageSeconds)
+    : config.fidelity
+
   return {
-    fidelity: config.fidelity.toString(),
-    interval: config.interval,
+    fidelity: fidelity.toString(),
+    startTs: startSeconds.toString(),
+    endTs: nowSeconds.toString(),
   }
 }
 
@@ -145,12 +181,13 @@ async function fetchEventPriceHistory(
   targets: MarketTokenTarget[],
   range: TimeRange,
   eventCreatedAt: string,
+  eventResolvedAt?: string | null,
 ): Promise<PriceHistoryByMarket> {
   if (!targets.length) {
     return {}
   }
 
-  const filters = buildTimeRangeFilters(range, eventCreatedAt)
+  const filters = buildTimeRangeFilters(range, eventCreatedAt, eventResolvedAt)
   const entries = await Promise.all(
     targets.map(async (target) => {
       try {
@@ -228,11 +265,51 @@ export function buildNormalizedHistory(historyByMarket: PriceHistoryByMarket): N
   return { points, latestSnapshot, latestRawPrices }
 }
 
+function clipNormalizedHistoryToResolvedAt(
+  normalized: NormalizedHistoryResult,
+  resolvedAt?: string | null,
+): NormalizedHistoryResult {
+  if (!resolvedAt) {
+    return normalized
+  }
+
+  const resolvedMs = new Date(resolvedAt).getTime()
+  if (!Number.isFinite(resolvedMs)) {
+    return normalized
+  }
+
+  const clippedPoints = normalized.points.filter(point => point.date.getTime() <= resolvedMs)
+  if (clippedPoints.length === normalized.points.length) {
+    return normalized
+  }
+
+  const clippedLatestSnapshot: Record<string, number> = {}
+  const clippedLatestRawPrices: Record<string, number> = {}
+  const lastPoint = clippedPoints[clippedPoints.length - 1]
+
+  if (lastPoint) {
+    Object.entries(lastPoint).forEach(([key, value]) => {
+      if (key === 'date' || typeof value !== 'number' || !Number.isFinite(value)) {
+        return
+      }
+      clippedLatestSnapshot[key] = value
+      clippedLatestRawPrices[key] = value / 100
+    })
+  }
+
+  return {
+    points: clippedPoints,
+    latestSnapshot: clippedLatestSnapshot,
+    latestRawPrices: clippedLatestRawPrices,
+  }
+}
+
 interface UseEventPriceHistoryParams {
   eventId: string
   range: TimeRange
   targets: MarketTokenTarget[]
   eventCreatedAt: string
+  eventResolvedAt?: string | null
 }
 
 export function useEventPriceHistory({
@@ -240,6 +317,7 @@ export function useEventPriceHistory({
   range,
   targets,
   eventCreatedAt,
+  eventResolvedAt,
 }: UseEventPriceHistoryParams) {
   const tokenSignature = useMemo(
     () => targets.map(target => `${target.conditionId}:${target.tokenId}`).sort().join(','),
@@ -247,8 +325,8 @@ export function useEventPriceHistory({
   )
 
   const { data: priceHistoryByMarket } = useQuery({
-    queryKey: ['event-price-history', eventId, range, tokenSignature],
-    queryFn: () => fetchEventPriceHistory(targets, range, eventCreatedAt),
+    queryKey: ['event-price-history', eventId, range, tokenSignature, eventResolvedAt ?? ''],
+    queryFn: () => fetchEventPriceHistory(targets, range, eventCreatedAt, eventResolvedAt),
     enabled: targets.length > 0,
     staleTime: PRICE_REFRESH_INTERVAL_MS,
     gcTime: PRICE_REFRESH_INTERVAL_MS,
@@ -257,10 +335,10 @@ export function useEventPriceHistory({
     placeholderData: keepPreviousData,
   })
 
-  const normalizedHistory = useMemo(
-    () => buildNormalizedHistory(priceHistoryByMarket ?? {}),
-    [priceHistoryByMarket],
-  )
+  const normalizedHistory = useMemo(() => {
+    const normalized = buildNormalizedHistory(priceHistoryByMarket ?? {})
+    return clipNormalizedHistoryToResolvedAt(normalized, eventResolvedAt)
+  }, [priceHistoryByMarket, eventResolvedAt])
 
   return {
     normalizedHistory: normalizedHistory.points,

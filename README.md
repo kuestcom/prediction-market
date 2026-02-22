@@ -18,7 +18,6 @@
   • <a href="#roadmap">Roadmap</a> ]
 </p>
 
-
 ## Why Kuest
 
 - Launch your own on-chain prediction market in minutes.
@@ -43,8 +42,12 @@
 >
 > Automated test trading is already available on Polygon Amoy via our [bot SDKs](https://github.com/kuestcom), and the Kalshi arbitrage connector is coming soon.
 
-## Core Web3 Stack
+## Core Stack
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/364a3525-7102-4a20-b096-12eb5337a62b" height="38" alt="Next.js" />
+  <img src="https://github.com/user-attachments/assets/88cc61ff-e068-46a4-b197-0c7b7d421bb3" height="38" alt="TypeScript" />
+</p>
 <p align="center">
   <img src="https://github.com/user-attachments/assets/dd1c533d-001f-4732-87d9-2b76f4280b58" height="42" alt="Polygon" />
   <img src="https://github.com/user-attachments/assets/a403c566-08cc-4bfc-82f2-d1e2e77d1809" height="42" alt="USDC" />
@@ -64,10 +67,6 @@
 > [!NOTE]
 > **Get Started Now!**
 > Follow these simple steps to launch your own prediction market:
-> <p>
->   <img src="https://github.com/user-attachments/assets/364a3525-7102-4a20-b096-12eb5337a62b" height="38" alt="Next.js" />
->   <img src="https://github.com/user-attachments/assets/88cc61ff-e068-46a4-b197-0c7b7d421bb3" height="38" alt="TypeScript" />
-> </p>
 >
 > ### 1. Fork the Repository
 > 1. In the top right corner, click the **[⭐ Star]** button
@@ -122,6 +121,9 @@
 
 **Ready! 🎉** Your prediction market is live.
 
+> [!TIP]
+> If you want to self-host outside Vercel, [see here](infra/README.md).
+
 ---
 
 ## Roadmap
@@ -144,11 +146,11 @@
 - [x] Multi-language UI
 - [x] Theme customization
 - [x] Recurring Crypto and Nasdaq markets with live charts
+- [x] Recurring X counter markets
 - [x] Fork-created markets with opt-in cross-fork sharing
 - [x] UMA Oracle implementation
 - [ ] 🏆 MVP Ready (stress tests, security, and financial consistency checks)
 - [ ] Move matching engine to mainnet
-- [ ] Recurring X counter markets (soon)
 - [ ] Recurring temperature markets (soon)
 - [ ] Sports markets (soon)
 - [ ] Kalshi arbitrage connector (soon)

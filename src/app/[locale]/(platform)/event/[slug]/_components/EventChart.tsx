@@ -2,14 +2,17 @@
 
 import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { EventChartProps } from '@/app/[locale]/(platform)/event/[slug]/_types/EventChartTypes'
-import type { Market } from '@/types'
+import type { ActivityOrder, Event, Market } from '@/types'
 import type {
   DataPoint,
+  PredictionChartAnnotationMarker,
   PredictionChartCursorSnapshot,
   PredictionChartProps,
   SeriesConfig,
 } from '@/types/PredictionChartTypes'
+import { useQuery } from '@tanstack/react-query'
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMarketChannelSubscription } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import {
@@ -40,13 +43,17 @@ import {
   getTopMarketIds,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
+import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { OUTCOME_INDEX } from '@/lib/constants'
-import { formatSharePriceLabel } from '@/lib/formatters'
+import { fetchUserActivityData, mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
+import { formatCurrency, formatSharePriceLabel, formatSharesLabel, fromMicro } from '@/lib/formatters'
 import { resolveDisplayPrice } from '@/lib/market-chance'
+import { getUserPublicAddress } from '@/lib/user-address'
 import { cn } from '@/lib/utils'
 import { useIsSingleMarket } from '@/stores/useOrder'
+import { useUser } from '@/stores/useUser'
 import { loadStoredChartSettings, storeChartSettings } from '../_utils/chartSettingsStorage'
 import EventChartControls, { defaultChartSettings } from './EventChartControls'
 import EventChartEmbedDialog from './EventChartEmbedDialog'
@@ -62,9 +69,32 @@ interface TradeFlowLabelItem {
   createdAt: number
 }
 
+interface TweetCountResponsePayload {
+  data?: {
+    totalCount?: number | null
+    handles?: string[]
+    trackingEndMs?: number | null
+    trackingStartMs?: number | null
+  } | null
+  error?: string
+}
+
 const tradeFlowMaxItems = 6
 const tradeFlowTtlMs = 8000
 const tradeFlowCleanupIntervalMs = 500
+const CHART_MARKER_ACTIVITY_PAGE_SIZE = 50
+const CHART_MARKER_MAX_PAGES_PER_MARKET = 10
+const TWEET_MARKETS_TAG_SLUGS = new Set(['tweet-markets', 'tweet-market'])
+const TWEET_COUNT_METADATA_KEYS = [
+  'tweet_count',
+  'tweetCount',
+  'tweets_count',
+  'tweetsCount',
+  'mention_count',
+  'mentionCount',
+  'mentions_count',
+  'mentionsCount',
+] as const
 const tradeFlowTextStrokeStyle = {
   textShadow: `
     1px 0 0 var(--background),
@@ -77,6 +107,64 @@ const tradeFlowTextStrokeStyle = {
     -1px 1px 0 var(--background)
   `,
 } as const
+
+async function fetchUserTradeActivityForConditionIds(params: {
+  userAddress: string
+  conditionIds: string[]
+  signal?: AbortSignal
+}) {
+  const { userAddress, conditionIds, signal } = params
+  if (!userAddress || conditionIds.length === 0) {
+    return [] as ActivityOrder[]
+  }
+
+  const collected: ActivityOrder[] = []
+
+  for (const conditionId of conditionIds) {
+    let offset = 0
+
+    for (let page = 0; page < CHART_MARKER_MAX_PAGES_PER_MARKET; page += 1) {
+      if (signal?.aborted) {
+        throw new DOMException('Aborted', 'AbortError')
+      }
+
+      const response = await fetchUserActivityData({
+        pageParam: offset,
+        userAddress,
+        conditionId,
+        signal,
+      })
+      const mapped = response.map(mapDataApiActivityToActivityOrder)
+      const trades = mapped.filter(activity =>
+        activity.type === 'trade' && activity.market.condition_id === conditionId)
+
+      collected.push(...trades)
+
+      if (response.length < CHART_MARKER_ACTIVITY_PAGE_SIZE) {
+        break
+      }
+
+      offset += response.length
+    }
+  }
+
+  const deduped = new Map<string, ActivityOrder>()
+  collected.forEach((activity) => {
+    const existing = deduped.get(activity.id)
+    if (!existing) {
+      deduped.set(activity.id, activity)
+      return
+    }
+
+    if (new Date(activity.created_at).getTime() > new Date(existing.created_at).getTime()) {
+      deduped.set(activity.id, activity)
+    }
+  })
+
+  return Array.from(deduped.values()).sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+  )
+}
 
 const PredictionChart = dynamic<PredictionChartProps>(
   () => import('@/components/PredictionChart'),
@@ -108,12 +196,138 @@ function buildTradeFlowLabel(price: number, size: number) {
   return formatSharePriceLabel(notional / 100, { fallback: '0¢', currencyDigits: 0 })
 }
 
+function resolveOutcomeIconUrl(iconUrl?: string | null) {
+  if (!iconUrl) {
+    return ''
+  }
+
+  const trimmed = iconUrl.trim()
+  if (!trimmed) {
+    return ''
+  }
+
+  return trimmed.startsWith('http') ? trimmed : `https://gateway.irys.xyz/${trimmed}`
+}
+
 function pruneTradeFlowItems(items: TradeFlowLabelItem[], now: number) {
   return items.filter(item => now - item.createdAt <= tradeFlowTtlMs)
 }
 
 function trimTradeFlowItems(items: TradeFlowLabelItem[]) {
   return items.slice(-tradeFlowMaxItems)
+}
+
+function resolveEventHistoryEndAt(event: Event) {
+  const resolvedAt = event.resolved_at ?? null
+  if (resolvedAt) {
+    const resolvedMs = new Date(resolvedAt).getTime()
+    if (Number.isFinite(resolvedMs)) {
+      return resolvedAt
+    }
+  }
+
+  if (event.status === 'resolved' || event.status === 'archived') {
+    const endDate = event.end_date ?? null
+    if (!endDate) {
+      return null
+    }
+
+    const endDateMs = new Date(endDate).getTime()
+    return Number.isFinite(endDateMs) ? endDate : null
+  }
+
+  return null
+}
+
+function parseTimestampToMs(value: string | null | undefined): number | null {
+  if (!value) {
+    return null
+  }
+
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function parseCountValue(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value >= 0 ? value : null
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.replaceAll(',', '').trim()
+    if (!normalized) {
+      return null
+    }
+
+    const parsed = Number(normalized)
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed
+    }
+  }
+
+  return null
+}
+
+function resolveTweetCountFromRecord(record: Record<string, unknown> | null | undefined): number | null {
+  if (!record) {
+    return null
+  }
+
+  for (const key of TWEET_COUNT_METADATA_KEYS) {
+    const parsed = parseCountValue(record[key])
+    if (parsed != null) {
+      return parsed
+    }
+  }
+
+  return null
+}
+
+function resolveTweetCount(event: Event): number | null {
+  const fromEvent = resolveTweetCountFromRecord(event as unknown as Record<string, unknown>)
+  if (fromEvent != null) {
+    return fromEvent
+  }
+
+  for (const market of event.markets) {
+    if (!market.metadata || typeof market.metadata !== 'object') {
+      continue
+    }
+
+    const fromMarket = resolveTweetCountFromRecord(market.metadata as Record<string, unknown>)
+    if (fromMarket != null) {
+      return fromMarket
+    }
+  }
+
+  return null
+}
+
+function resolveTweetCountdownTargetMs(event: Event): number | null {
+  const eventEndMs = parseTimestampToMs(event.end_date)
+  if (eventEndMs != null) {
+    return eventEndMs
+  }
+
+  const marketEndTimes = event.markets
+    .map(market => parseTimestampToMs(market.end_time ?? null))
+    .filter((timestamp): timestamp is number => timestamp != null)
+
+  if (marketEndTimes.length === 0) {
+    return null
+  }
+
+  return Math.min(...marketEndTimes)
+}
+
+function isTweetMarketsEvent(event: Event) {
+  return event.tags.some((tag) => {
+    const normalizedName = tag.name?.trim().toLowerCase()
+    const normalizedSlug = tag.slug?.trim().toLowerCase()
+
+    return normalizedName === 'tweet markets'
+      || (normalizedSlug ? TWEET_MARKETS_TAG_SLUGS.has(normalizedSlug) : false)
+  })
 }
 
 function buildCombinedOutcomeHistory(
@@ -199,6 +413,9 @@ function EventChartComponent({
   showSeriesNavigation = true,
 }: EventChartProps) {
   const site = useSiteIdentity()
+  const user = useUser()
+  const userAddress = getUserPublicAddress(user)
+  const normalizeOutcomeLabel = useOutcomeLabel()
   const isSingleMarket = useIsSingleMarket()
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const shouldHideChart = !isSingleMarket && !isNegRiskEnabled
@@ -221,6 +438,7 @@ function EventChartComponent({
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
+  const [nowMs, setNowMs] = useState(() => Date.now())
   const tradeFlowIdRef = useRef(0)
   const lastEventIdRef = useRef(event.id)
 
@@ -240,7 +458,90 @@ function EventChartComponent({
     storeChartSettings(chartSettings)
   }, [chartSettings, hasLoadedSettings])
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNowMs(Date.now())
+    }, 30_000)
+
+    return () => {
+      window.clearInterval(interval)
+    }
+  }, [])
+
   const showBothOutcomes = isSingleMarket && chartSettings.bothOutcomes
+  const eventHistoryEndAt = useMemo(
+    () => resolveEventHistoryEndAt(event),
+    [event],
+  )
+  const shouldShowTweetMarketsPanel = useMemo(
+    () => isTweetMarketsEvent(event),
+    [event],
+  )
+  const tweetCount = useMemo(
+    () => resolveTweetCount(event),
+    [event],
+  )
+  const tweetCountdownTargetMs = useMemo(
+    () => resolveTweetCountdownTargetMs(event),
+    [event],
+  )
+  const xtrackerTweetCountQuery = useQuery({
+    queryKey: ['xtracker-tweet-count', event.slug, event.series_slug, event.end_date, event.title],
+    enabled: shouldShowTweetMarketsPanel,
+    staleTime: 120_000,
+    refetchInterval: 120_000,
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (event.slug) {
+        params.set('eventSlug', event.slug)
+      }
+      if (event.series_slug) {
+        params.set('seriesSlug', event.series_slug)
+      }
+      if (event.title) {
+        params.set('eventTitle', event.title)
+      }
+      if (event.end_date) {
+        const parsedEndMs = Date.parse(event.end_date)
+        if (Number.isFinite(parsedEndMs)) {
+          params.set('eventEndMs', String(parsedEndMs))
+        }
+      }
+
+      const response = await fetch(`/api/xtracker/tweet-count?${params.toString()}`, {
+        cache: 'no-store',
+      })
+      const payload = await response.json() as TweetCountResponsePayload
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null
+        }
+        throw new Error(payload.error || 'Failed to fetch XTracker tweet count.')
+      }
+
+      return payload.data ?? null
+    },
+  })
+  const resolvedTweetCount = xtrackerTweetCountQuery.data?.totalCount ?? tweetCount
+  const resolvedTweetCountdownTargetMs = useMemo(() => {
+    const trackingEndMs = xtrackerTweetCountQuery.data?.trackingEndMs
+    if (typeof trackingEndMs === 'number' && Number.isFinite(trackingEndMs) && trackingEndMs > 0) {
+      return trackingEndMs
+    }
+
+    return tweetCountdownTargetMs
+  }, [tweetCountdownTargetMs, xtrackerTweetCountQuery.data?.trackingEndMs])
+  const resolvedTweetStartTargetMs = useMemo(() => {
+    const trackingStartMs = xtrackerTweetCountQuery.data?.trackingStartMs
+    if (typeof trackingStartMs === 'number' && Number.isFinite(trackingStartMs) && trackingStartMs > 0) {
+      return trackingStartMs
+    }
+
+    return parseTimestampToMs(event.start_date ?? null)
+  }, [event.start_date, xtrackerTweetCountQuery.data?.trackingStartMs])
+  const shouldRenderTweetMarketsPanel = shouldShowTweetMarketsPanel
+    && resolvedTweetStartTargetMs != null
+    && nowMs >= resolvedTweetStartTargetMs
 
   const yesMarketTargets = useMemo(
     () => buildMarketTargets(event.markets, OUTCOME_INDEX.YES),
@@ -256,12 +557,14 @@ function EventChartComponent({
     range: activeTimeRange,
     targets: yesMarketTargets,
     eventCreatedAt: event.created_at,
+    eventResolvedAt: eventHistoryEndAt,
   })
   const noPriceHistory = useEventPriceHistory({
     eventId: event.id,
     range: activeTimeRange,
     targets: noMarketTargets,
     eventCreatedAt: event.created_at,
+    eventResolvedAt: eventHistoryEndAt,
   })
   const marketQuotesByMarket = useEventMarketQuotes(yesMarketTargets)
   const chanceChangeByMarket = useMemo(
@@ -536,6 +839,130 @@ function EventChartComponent({
     : OUTCOME_INDEX.YES
   const oppositeOutcomeLabel = getOutcomeLabelForMarket(primaryMarket, oppositeOutcomeIndex)
   const activeOutcomeLabel = getOutcomeLabelForMarket(primaryMarket, activeOutcomeIndex)
+  const markerConditionIds = useMemo(() => {
+    if (!userAddress) {
+      return []
+    }
+
+    if (showBothOutcomes || isSingleMarket) {
+      return primaryConditionId ? [primaryConditionId] : []
+    }
+
+    const unique = new Set<string>()
+    effectiveSeries.forEach((seriesItem) => {
+      if (seriesItem.key) {
+        unique.add(seriesItem.key)
+      }
+    })
+    return Array.from(unique)
+  }, [effectiveSeries, isSingleMarket, primaryConditionId, showBothOutcomes, userAddress])
+  const markerConditionSignature = useMemo(
+    () => markerConditionIds.slice().sort().join(','),
+    [markerConditionIds],
+  )
+  const { data: userTradeActivities = [] } = useQuery({
+    queryKey: ['event-chart-user-trade-markers', event.id, userAddress, markerConditionSignature],
+    queryFn: ({ signal }) => fetchUserTradeActivityForConditionIds({
+      userAddress: userAddress!,
+      conditionIds: markerConditionIds,
+      signal,
+    }),
+    enabled: Boolean(chartSettings.annotations && userAddress && markerConditionIds.length > 0),
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  })
+  const chartAnnotationMarkers = useMemo<PredictionChartAnnotationMarker[]>(() => {
+    if (!userTradeActivities.length) {
+      return []
+    }
+
+    return userTradeActivities.flatMap((activity, index) => {
+      const conditionId = activity.market.condition_id
+      if (!conditionId || !markerConditionIds.includes(conditionId)) {
+        return []
+      }
+
+      const createdAtTimestamp = new Date(activity.created_at).getTime()
+      if (!Number.isFinite(createdAtTimestamp)) {
+        return []
+      }
+
+      const rawPrice = Number(activity.price)
+      if (!Number.isFinite(rawPrice)) {
+        return []
+      }
+
+      const outcomeIndex = Number(activity.outcome.index)
+      const isYesOutcome = outcomeIndex === OUTCOME_INDEX.YES
+      const isNoOutcome = outcomeIndex === OUTCOME_INDEX.NO
+      if (!isYesOutcome && !isNoOutcome) {
+        return []
+      }
+
+      const normalizedLineValue = showBothOutcomes
+        ? rawPrice * 100
+        : (isNoOutcome ? (1 - rawPrice) * 100 : rawPrice * 100)
+
+      if (!Number.isFinite(normalizedLineValue)) {
+        return []
+      }
+
+      const sharesValue = Number.parseFloat(fromMicro(activity.amount, 4))
+      const sharesLabel = Number.isFinite(sharesValue)
+        ? formatSharesLabel(sharesValue)
+        : '—'
+      const outcomeLabel = normalizeOutcomeLabel(activity.outcome.text)
+      const actionLabel = activity.side === 'sell' ? 'Sold' : 'Bought'
+      const priceLabel = formatSharePriceLabel(rawPrice, { fallback: '—' })
+      const totalValue = Number.parseFloat(fromMicro(activity.total_value, 2))
+      const totalValueLabel = formatCurrency(Number.isFinite(totalValue) ? totalValue : 0, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+      const outcomeIconUrl = resolveOutcomeIconUrl(activity.market.icon_url)
+      const outcomeColorClass = isYesOutcome ? 'text-yes' : 'text-no'
+      const markerColor = isYesOutcome ? 'var(--color-yes)' : 'var(--color-no)'
+
+      return [{
+        id: `trade-${activity.id}-${createdAtTimestamp}-${index}`,
+        date: new Date(createdAtTimestamp),
+        value: normalizedLineValue,
+        color: markerColor,
+        radius: 3.6,
+        tooltipContent: (
+          <div className="flex items-center gap-2 text-xs whitespace-nowrap">
+            {outcomeIconUrl
+              ? (
+                  <Image
+                    src={outcomeIconUrl}
+                    alt={outcomeLabel}
+                    height={20}
+                    width={20}
+                    className="size-5 rounded-full object-cover"
+                  />
+                )
+              : null}
+            <span className="font-semibold text-foreground">{actionLabel}</span>
+            <span className={cn('font-semibold', outcomeColorClass)}>
+              {sharesLabel}
+              {' '}
+              {outcomeLabel}
+            </span>
+            <span className="text-foreground">
+              at
+              {' '}
+              {priceLabel}
+            </span>
+            <span className="text-muted-foreground">
+              (
+              {totalValueLabel}
+              )
+            </span>
+          </div>
+        ),
+      }]
+    })
+  }, [markerConditionIds, normalizeOutcomeLabel, showBothOutcomes, userTradeActivities])
   const outcomeTokenIds = useMemo(
     () => {
       return getOutcomeTokenIds(primaryMarket)
@@ -566,6 +993,7 @@ function EventChartComponent({
   const normalizedHistory = showBothOutcomes
     ? bothOutcomeHistory.points
     : chartHistory.normalizedHistory
+  const leadingGapStart = normalizedHistory[0]?.date ?? null
   const latestSnapshot = showBothOutcomes
     ? bothOutcomeHistory.latestSnapshot
     : chartHistory.latestSnapshot
@@ -805,6 +1233,9 @@ function EventChartComponent({
             currentEventSlug={event.slug}
             seriesEvents={seriesEvents}
             showSeriesNavigation={showSeriesNavigation}
+            showTweetMarketsPanel={shouldRenderTweetMarketsPanel}
+            tweetCount={resolvedTweetCount}
+            tweetCountdownTargetMs={resolvedTweetCountdownTargetMs}
           />
         )}
         chart={(
@@ -823,10 +1254,13 @@ function EventChartComponent({
               showYAxis={chartSettings.yAxis}
               showHorizontalGrid={chartSettings.horizontalGrid}
               showVerticalGrid={chartSettings.verticalGrid}
-              showAnnotations={chartSettings.annotations}
+              showAnnotations={chartSettings.annotations && chartAnnotationMarkers.length > 0}
+              annotationMarkers={chartAnnotationMarkers}
+              leadingGapStart={leadingGapStart}
               legendContent={legendContent}
               showLegend={!isSingleMarket}
               watermark={isSingleMarket ? undefined : watermark}
+              lineCurve="monotoneX"
             />
             {hasTradeFlowLabels
               ? (

@@ -61,10 +61,11 @@ describe('validateOrder', () => {
     expect(validateOrder(baseArgs({ isLimitOrder: true, limitPrice: '0', limitShares: '10' }))).toEqual({ ok: false, reason: 'INVALID_LIMIT_PRICE' })
     expect(validateOrder(baseArgs({ isLimitOrder: true, limitPrice: '50', limitShares: '0' }))).toEqual({ ok: false, reason: 'INVALID_LIMIT_SHARES' })
 
+    const sharesBelowMinimum = MIN_LIMIT_ORDER_SHARES / 2
     expect(validateOrder(baseArgs({
       isLimitOrder: true,
       limitPrice: '50',
-      limitShares: String(MIN_LIMIT_ORDER_SHARES - 0.01),
+      limitShares: String(sharesBelowMinimum),
     }))).toEqual({ ok: false, reason: 'LIMIT_SHARES_TOO_LOW' })
   })
 

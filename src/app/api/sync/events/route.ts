@@ -489,7 +489,10 @@ function normalizeTimestamp(rawValue: unknown): string | null {
   if (typeof rawValue === 'string') {
     const trimmed = rawValue.trim()
     if (trimmed) {
-      const parsed = new Date(trimmed)
+      const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)
+        ? `${trimmed.replace(' ', 'T')}Z`
+        : trimmed
+      const parsed = new Date(normalized)
       if (!Number.isNaN(parsed.getTime())) {
         return parsed.toISOString()
       }
@@ -532,7 +535,6 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
   const eventSeriesId = normalizeStringField(eventData.series_id)
   const eventSeriesRecurrence = normalizeStringField(eventData.series_recurrence)
     ?? normalizeStringField(eventData.recurrence)
-
   const existingEventRows = await db
     .select({
       id: eventsTable.id,
@@ -564,8 +566,12 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
       ? new Date(existingEvent.created_at).getTime()
       : Number.NaN
     const incomingCreatedAtMs = Date.parse(createdAtIso)
-    if (!Number.isNaN(incomingCreatedAtMs)
-      && (Number.isNaN(existingCreatedAtMs) || incomingCreatedAtMs < existingCreatedAtMs)) { updatePayload.created_at = new Date(createdAtIso) }
+    if (
+      !Number.isNaN(incomingCreatedAtMs)
+      && (Number.isNaN(existingCreatedAtMs) || incomingCreatedAtMs < existingCreatedAtMs)
+    ) {
+      updatePayload.created_at = new Date(createdAtIso)
+    }
 
     const existingEndDateIso = existingEvent.end_date?.toISOString() ?? null
     if (normalizedEndDate && normalizedEndDate !== existingEndDateIso) {

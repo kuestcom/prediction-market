@@ -1,5 +1,5 @@
 import type { User } from '@/types'
-import { EnableTradingDialog, FundAccountDialog, TradeRequirementsDialog } from '@/app/[locale]/(platform)/_components/TradingDialogs'
+import { EnableTradingDialog, FundAccountDialog } from '@/app/[locale]/(platform)/_components/TradingDialogs'
 import { WalletFlow } from '@/app/[locale]/(platform)/_components/WalletFlow'
 
 interface TradingOnboardingDialogsProps {
@@ -82,7 +82,7 @@ export default function TradingOnboardingDialogs({
         onSkip={onFundSkip}
       />
 
-      <TradeRequirementsDialog
+      <EnableTradingDialog
         open={tradeModalOpen}
         onOpenChange={onTradeOpenChange}
         proxyStep={proxyStep}

@@ -17,6 +17,7 @@ export interface Event {
   active_markets_count: number
   total_markets_count: number
   volume: number
+  start_date?: string | null
   end_date: string | null
   resolved_at?: string | null
   created_at: string

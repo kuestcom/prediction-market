@@ -75,7 +75,12 @@ export default function EventCardMarketsList({
                 ? (
                     resolvedOutcome
                       ? (
-                          <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+                          <span className={`
+                            inline-flex items-center gap-2 rounded-md bg-(--card-hover) px-2.5 py-1 text-sm
+                            font-semibold text-foreground transition-colors
+                            group-hover:bg-card
+                          `}
+                          >
                             <span className={cn(`flex size-4 items-center justify-center rounded-full ${isYesOutcome
                               ? `bg-yes`
                               : `bg-no`}`)}
@@ -88,7 +93,14 @@ export default function EventCardMarketsList({
                           </span>
                         )
                       : (
-                          <span className="text-sm font-semibold text-muted-foreground">Resolved</span>
+                          <span className={`
+                            inline-flex items-center rounded-md bg-(--card-hover) px-2.5 py-1 text-sm font-semibold
+                            text-muted-foreground transition-colors
+                            group-hover:bg-card
+                          `}
+                          >
+                            Resolved
+                          </span>
                         )
                   )
                 : (
@@ -110,12 +122,12 @@ export default function EventCardMarketsList({
                                 onToggle()
                               }}
                               variant="yes"
-                              className="group h-7 w-10 px-2 py-1 text-xs"
+                              className="group/yes h-7 w-10 px-2 py-1 text-xs"
                             >
-                              <span className="truncate group-hover:hidden">
+                              <span className="truncate group-hover/yes:hidden">
                                 {normalizeOutcomeLabel(market.outcomes[0].outcome_text) ?? market.outcomes[0].outcome_text}
                               </span>
-                              <span className="hidden group-hover:inline">
+                              <span className="hidden group-hover/yes:inline">
                                 {displayChance}
                                 %
                               </span>
@@ -129,12 +141,12 @@ export default function EventCardMarketsList({
                               }}
                               variant="no"
                               size="sm"
-                              className="group h-auto w-11 px-2 py-1 text-xs"
+                              className="group/no h-auto w-11 px-2 py-1 text-xs"
                             >
-                              <span className="truncate group-hover:hidden">
+                              <span className="truncate group-hover/no:hidden">
                                 {normalizeOutcomeLabel(market.outcomes[1].outcome_text) ?? market.outcomes[1].outcome_text}
                               </span>
-                              <span className="hidden group-hover:inline">
+                              <span className="hidden group-hover/no:inline">
                                 {oppositeChance}
                                 %
                               </span>

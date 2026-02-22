@@ -1,11 +1,10 @@
 'use client'
 
 import type { ComponentProps } from 'react'
-import { CheckIcon, CircleDollarSignIcon, Loader2Icon, WalletIcon, XIcon } from 'lucide-react'
+import { CheckIcon, CircleDollarSignIcon, Loader2Icon, WalletIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -13,7 +12,6 @@ import {
 } from '@/components/ui/dialog'
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerHeader,
@@ -55,11 +53,6 @@ interface FundAccountDialogProps {
   onOpenChange: ComponentProps<typeof Dialog>['onOpenChange']
   onDeposit: () => void
   onSkip: () => void
-}
-
-interface TradeRequirementsDialogProps extends TradingStepsProps {
-  open: boolean
-  onOpenChange: ComponentProps<typeof Dialog>['onOpenChange']
 }
 
 export function EnableTradingDialog({
@@ -176,75 +169,6 @@ export function FundAccountDialog({
             Skip for now
           </button>
         </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-export function TradeRequirementsDialog({
-  open,
-  onOpenChange,
-  ...stepsProps
-}: TradeRequirementsDialogProps) {
-  const site = useSiteIdentity()
-  const isMobile = useIsMobile()
-
-  if (isMobile) {
-    return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-          <div className="relative space-y-6">
-            <DrawerHeader className="pb-2 text-center">
-              <DrawerTitle className="text-center text-lg font-semibold">
-                Trade on
-                {' '}
-                {site.name}
-              </DrawerTitle>
-            </DrawerHeader>
-            <DrawerClose asChild>
-              <button
-                type="button"
-                className={`
-                  absolute top-0 right-0 rounded-full p-1 text-muted-foreground transition-colors
-                  hover:text-foreground
-                `}
-                aria-label="Close"
-              >
-                <XIcon className="size-4" />
-              </button>
-            </DrawerClose>
-
-            <TradingStepsList siteName={site.name} {...stepsProps} />
-          </div>
-        </DrawerContent>
-      </Drawer>
-    )
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-xl border bg-background p-6">
-        <DialogHeader className="pb-2 text-center">
-          <DialogTitle className="text-center text-lg font-semibold">
-            Trade on
-            {' '}
-            {site.name}
-          </DialogTitle>
-        </DialogHeader>
-        <DialogClose asChild>
-          <button
-            type="button"
-            className={`
-              absolute top-4 right-4 rounded-full p-1 text-muted-foreground transition-colors
-              hover:text-foreground
-            `}
-            aria-label="Close"
-          >
-            <XIcon className="size-4" />
-          </button>
-        </DialogClose>
-
-        <TradingStepsList siteName={site.name} {...stepsProps} />
       </DialogContent>
     </Dialog>
   )

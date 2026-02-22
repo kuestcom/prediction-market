@@ -5,7 +5,9 @@ import type { DataPoint, PredictionChartProps, SeriesConfig } from '@/types/Pred
 import { ChartLineIcon, ChevronsDownIcon, ChevronsUpIcon, TriangleIcon } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useState } from 'react'
+import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -19,16 +21,23 @@ const PredictionChart = dynamic<PredictionChartProps>(
 
 const SERIES_KEY = 'live_price'
 const LIVE_WINDOW_MS = 40 * 1000
+const LIVE_HISTORY_BUFFER_MS = 8 * 1000
+const LIVE_DATA_RETENTION_MS = LIVE_WINDOW_MS + LIVE_HISTORY_BUFFER_MS
 const LIVE_CLOCK_FRAME_MS = 1000 / 30
 const LIVE_X_AXIS_STEP_MS = 10 * 1000
+const LIVE_X_AXIS_LEFT_LABEL_GUARD_MS = 3600
+const LIVE_MAX_Y_AXIS_TICKS = 6
 const MAX_POINTS = 4000
 const LIVE_WS_USE_ONLY_LAST_UPDATE_PER_MESSAGE = true
 const LIVE_CHART_HEIGHT = 332
-const LIVE_CHART_MARGIN_TOP = 12
+const LIVE_CHART_MARGIN_TOP = 22
 const LIVE_CHART_MARGIN_BOTTOM = 52
 const LIVE_CHART_MARGIN_RIGHT = 40
 const LIVE_CHART_MARGIN_LEFT = 0
 const LIVE_CURSOR_GUIDE_TOP = 10
+const LIVE_TARGET_MAX_BOTTOM_OFFSET = 10
+const LIVE_CURRENT_MARKER_OFFSET_X = 0
+const LIVE_PLOT_CLIP_RIGHT_PADDING = 22
 const LIVE_PRICE_STORAGE_PREFIX = 'kuest-live-last-price'
 
 interface PersistedLivePrice {
@@ -239,7 +248,32 @@ function extractLivePriceUpdates(payload: any, topic: string, symbol: string) {
     return []
   }
 
-  return filtered.sort((a, b) => a.timestamp - b.timestamp)
+  const sorted = filtered.sort((a, b) => a.timestamp - b.timestamp)
+  const deduped: Array<{ price: number, timestamp: number, symbol: string | null }> = []
+
+  for (const update of sorted) {
+    const last = deduped[deduped.length - 1]
+    if (last && last.timestamp === update.timestamp) {
+      deduped[deduped.length - 1] = update
+      continue
+    }
+    deduped.push(update)
+  }
+
+  return deduped
+}
+
+function isSnapshotMessage(payload: any) {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  const messageType = String(payload?.type ?? '').trim().toLowerCase()
+  if (messageType !== 'subscribe') {
+    return false
+  }
+
+  return Array.isArray(payload?.payload?.data) || Array.isArray(payload?.data)
 }
 
 function buildAxis(values: number[]) {
@@ -269,16 +303,50 @@ function buildAxis(values: number[]) {
   const magnitude = 10 ** Math.floor(Math.log10(rawStep))
   const stepRatio = rawStep / magnitude
   const stepMultiplier = stepRatio >= 5 ? 5 : stepRatio >= 2 ? 2 : 1
-  const step = stepMultiplier * magnitude
-  const axisMin = Math.floor(rawMin / step) * step
-  const axisMax = Math.ceil(rawMax / step) * step
+  const initialStep = stepMultiplier * magnitude
 
-  const ticks: number[] = []
-  for (let value = axisMin; value <= axisMax + 1e-6; value += step) {
-    ticks.push(Number(value.toFixed(2)))
+  function nextNiceStep(currentStep: number) {
+    const currentMagnitude = 10 ** Math.floor(Math.log10(currentStep))
+    const normalized = currentStep / currentMagnitude
+
+    if (normalized < 2) {
+      return 2 * currentMagnitude
+    }
+
+    if (normalized < 5) {
+      return 5 * currentMagnitude
+    }
+
+    return 10 * currentMagnitude
   }
 
-  return { min: axisMin, max: axisMax, ticks }
+  function buildTicksForStep(step: number) {
+    const axisMin = Math.floor(rawMin / step) * step
+    const axisMax = Math.ceil(rawMax / step) * step
+    const ticks: number[] = []
+
+    for (let value = axisMin; value <= axisMax + step * 1e-6; value += step) {
+      ticks.push(value)
+    }
+
+    return { axisMin, axisMax, ticks }
+  }
+
+  let step = initialStep
+  let axis = buildTicksForStep(step)
+  let attempts = 0
+
+  while (axis.ticks.length > LIVE_MAX_Y_AXIS_TICKS && attempts < 8) {
+    step = nextNiceStep(step)
+    axis = buildTicksForStep(step)
+    attempts += 1
+  }
+
+  return {
+    min: Number(axis.axisMin.toFixed(2)),
+    max: Number(axis.axisMax.toFixed(2)),
+    ticks: axis.ticks.map(value => Number(value.toFixed(2))),
+  }
 }
 
 function keepWithinLiveWindow(points: DataPoint[], cutoffMs: number) {
@@ -595,20 +663,25 @@ export default function EventLiveSeriesChart({
 }: EventLiveSeriesChartProps) {
   const wsUrl = process.env.WS_LIVE_DATA_URL
   const config = inputConfig
+  const site = useSiteIdentity()
   const { width: windowWidth } = useWindowSize()
   const liveColor = config.line_color || '#F59E0B'
   const priceDisplayDigits = config.show_price_decimals ? 2 : 0
+  const headerPriceDisplayDigits = Math.max(2, priceDisplayDigits)
+  const deltaDisplayDigits = 0
   const subscriptionSymbol = useMemo(
     () => normalizeSubscriptionSymbol(config.topic, config.symbol),
     [config.symbol, config.topic],
   )
   const [nowMs, setNowMs] = useState(() => Date.now())
   const [data, setData] = useState<DataPoint[]>([])
+  const [persistedFallbackPrice, setPersistedFallbackPrice] = useState<PersistedLivePrice | null>(null)
   const [baselinePrice, setBaselinePrice] = useState<number | null>(null)
   const [referenceSnapshot, setReferenceSnapshot] = useState<LiveSeriesPriceSnapshot | null>(null)
   const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>('connecting')
   const [activeView, setActiveView] = useState<'live' | 'market'>('live')
   const isLiveView = activeView === 'live'
+  const startTimestamp = useMemo(() => parseUtcDate(event.start_date ?? null), [event.start_date])
   const endTimestamp = useMemo(() => resolveEventEndTimestamp(event), [event])
   const isEventClosed = nowMs >= endTimestamp
   const isMarketClosed = useMemo(() => {
@@ -620,15 +693,8 @@ export default function EventLiveSeriesChart({
 
   useEffect(() => {
     const persistedPrice = readPersistedLivePrice(config.topic, subscriptionSymbol)
-    if (persistedPrice) {
-      setData([{
-        date: new Date(persistedPrice.timestamp),
-        [SERIES_KEY]: persistedPrice.price,
-      }])
-    }
-    else {
-      setData([])
-    }
+    setPersistedFallbackPrice(persistedPrice)
+    setData([])
     setBaselinePrice(null)
     setReferenceSnapshot(null)
     setStatus('connecting')
@@ -683,7 +749,11 @@ export default function EventLiveSeriesChart({
         const query = new URLSearchParams({
           seriesSlug,
           eventEndMs: String(endTimestamp),
+          activeWindowMinutes: String(config.active_window_minutes),
         })
+        if (startTimestamp != null && startTimestamp > 0 && startTimestamp < endTimestamp) {
+          query.set('eventStartMs', String(startTimestamp))
+        }
 
         const response = await fetch(`/api/price-reference/live-series?${query.toString()}`, {
           cache: 'no-store',
@@ -712,23 +782,12 @@ export default function EventLiveSeriesChart({
 
         if (typeof fallbackPrice === 'number') {
           const rawFallbackTimestamp = payload.latest_source_timestamp_ms ?? payload.event_window_end_ms ?? Date.now()
-          const minTimestamp = Date.now() - LIVE_WINDOW_MS + 1000
+          const minTimestamp = Date.now() - LIVE_DATA_RETENTION_MS + 1000
           const fallbackTimestamp = Math.max(rawFallbackTimestamp, minTimestamp)
           writePersistedLivePrice(config.topic, subscriptionSymbol, fallbackPrice, fallbackTimestamp)
-          setData((previous) => {
-            const lastTimestamp = previous[previous.length - 1]?.date?.getTime?.() ?? Number.NaN
-            if (
-              previous.length > 0
-              && Number.isFinite(lastTimestamp)
-              && lastTimestamp >= fallbackTimestamp
-            ) {
-              return previous
-            }
-
-            return [{
-              date: new Date(fallbackTimestamp),
-              [SERIES_KEY]: fallbackPrice,
-            }]
+          setPersistedFallbackPrice({
+            price: fallbackPrice,
+            timestamp: fallbackTimestamp,
           })
         }
       }
@@ -742,7 +801,7 @@ export default function EventLiveSeriesChart({
       isCancelled = true
       controller.abort()
     }
-  }, [config.series_slug, config.topic, endTimestamp, subscriptionSymbol])
+  }, [config.active_window_minutes, config.series_slug, config.topic, endTimestamp, startTimestamp, subscriptionSymbol])
 
   useEffect(() => {
     if (!isLiveView) {
@@ -833,8 +892,10 @@ export default function EventLiveSeriesChart({
         })
         .filter((update): update is { price: number, timestamp: number, symbol: string | null } => update !== null)
 
+      const messageIsSnapshot = isSnapshotMessage(payload)
+      const messageHasBatchUpdates = normalizedUpdates.length > 1
       const wsUpdatesForRender = LIVE_WS_USE_ONLY_LAST_UPDATE_PER_MESSAGE
-        ? normalizedUpdates.slice(-1)
+        ? (messageIsSnapshot || messageHasBatchUpdates ? normalizedUpdates : normalizedUpdates.slice(-1))
         : normalizedUpdates
 
       if (!wsUpdatesForRender.length) {
@@ -849,7 +910,35 @@ export default function EventLiveSeriesChart({
 
       setData((prev) => {
         const arrivalTimestamp = Date.now()
-        const cutoff = arrivalTimestamp - LIVE_WINDOW_MS
+        const cutoff = arrivalTimestamp - LIVE_DATA_RETENTION_MS
+
+        if (messageIsSnapshot && wsUpdatesForRender.length > 1) {
+          let lastSnapshotTimestamp: number | null = null
+          const snapshotPoints: DataPoint[] = []
+
+          for (const update of wsUpdatesForRender) {
+            let pointTimestamp = update.timestamp
+            if (!Number.isFinite(pointTimestamp)) {
+              continue
+            }
+
+            pointTimestamp = Math.max(cutoff + 1, Math.min(pointTimestamp, arrivalTimestamp))
+            if (lastSnapshotTimestamp !== null && pointTimestamp <= lastSnapshotTimestamp) {
+              pointTimestamp = lastSnapshotTimestamp + 1
+            }
+
+            snapshotPoints.push({
+              date: new Date(pointTimestamp),
+              [SERIES_KEY]: update.price,
+            })
+            lastSnapshotTimestamp = pointTimestamp
+          }
+
+          if (snapshotPoints.length > 0) {
+            return snapshotPoints.slice(-MAX_POINTS)
+          }
+        }
+
         let next = keepWithinLiveWindow(prev, cutoff)
         let lastTimestamp = next.length ? next[next.length - 1].date.getTime() : null
 
@@ -860,6 +949,7 @@ export default function EventLiveSeriesChart({
           if (lastTimestamp !== null && pointTimestamp <= lastTimestamp) {
             pointTimestamp = lastTimestamp + 1
           }
+
           const nextPoint: DataPoint = {
             date: new Date(pointTimestamp),
             [SERIES_KEY]: update.price,
@@ -951,35 +1041,23 @@ export default function EventLiveSeriesChart({
   }, [isMobile, windowWidth])
 
   const fallbackCurrentPrice = useMemo(() => {
-    if (!referenceSnapshot) {
-      return null
+    if (referenceSnapshot) {
+      const snapshotPrice = normalizeLiveChartPrice(
+        referenceSnapshot.latest_price ?? referenceSnapshot.closing_price ?? Number.NaN,
+        config.topic,
+      )
+
+      if (typeof snapshotPrice === 'number' && Number.isFinite(snapshotPrice) && snapshotPrice > 0) {
+        return snapshotPrice
+      }
     }
 
-    return normalizeLiveChartPrice(
-      referenceSnapshot.latest_price ?? referenceSnapshot.closing_price ?? Number.NaN,
-      config.topic,
-    )
-  }, [referenceSnapshot, config.topic])
-
-  useEffect(() => {
-    if (data.length > 0) {
-      return
+    if (persistedFallbackPrice && Number.isFinite(persistedFallbackPrice.price) && persistedFallbackPrice.price > 0) {
+      return persistedFallbackPrice.price
     }
 
-    if (typeof fallbackCurrentPrice !== 'number' || !Number.isFinite(fallbackCurrentPrice) || fallbackCurrentPrice <= 0) {
-      return
-    }
-
-    const fallbackTimestamp = Math.max(
-      referenceSnapshot?.latest_source_timestamp_ms ?? nowMs,
-      nowMs - LIVE_WINDOW_MS + 1000,
-    )
-
-    setData([{
-      date: new Date(fallbackTimestamp),
-      [SERIES_KEY]: fallbackCurrentPrice,
-    }])
-  }, [data.length, fallbackCurrentPrice, nowMs, referenceSnapshot?.latest_source_timestamp_ms])
+    return null
+  }, [config.topic, persistedFallbackPrice, referenceSnapshot])
 
   const tradingWindowMs = useMemo(() => {
     const configuredWindowMinutes = Number(config.active_window_minutes)
@@ -994,7 +1072,18 @@ export default function EventLiveSeriesChart({
 
     return inferIntervalMsFromSeriesSlug(config.series_slug)
   }, [config.active_window_minutes, config.series_slug, referenceSnapshot?.interval_ms])
-  const tradingWindowStartMs = endTimestamp - tradingWindowMs
+  const tradingWindowStartMs = useMemo(() => {
+    if (startTimestamp != null && startTimestamp > 0 && startTimestamp < endTimestamp) {
+      return startTimestamp
+    }
+
+    const snapshotStart = Number(referenceSnapshot?.event_window_start_ms)
+    if (Number.isFinite(snapshotStart) && snapshotStart > 0 && snapshotStart < endTimestamp) {
+      return snapshotStart
+    }
+
+    return endTimestamp - tradingWindowMs
+  }, [endTimestamp, referenceSnapshot?.event_window_start_ms, startTimestamp, tradingWindowMs])
   const isTradingWindowActive = !isEventClosed && nowMs >= tradingWindowStartMs
 
   const renderData = useMemo(() => {
@@ -1002,8 +1091,34 @@ export default function EventLiveSeriesChart({
       return data
     }
 
-    const cutoff = nowMs - LIVE_WINDOW_MS
-    let next = keepWithinLiveWindow(data, cutoff)
+    const domainStart = nowMs - LIVE_WINDOW_MS
+    const domainEnd = nowMs
+    let lastPointBeforeDomainStart: DataPoint | null = null
+    const pointsWithinDomain: DataPoint[] = []
+
+    for (const point of data) {
+      const timestamp = point.date.getTime()
+      if (!Number.isFinite(timestamp)) {
+        continue
+      }
+
+      if (timestamp < domainStart) {
+        lastPointBeforeDomainStart = point
+        continue
+      }
+
+      if (timestamp <= domainEnd) {
+        pointsWithinDomain.push(point)
+      }
+    }
+
+    let next = pointsWithinDomain
+    if (lastPointBeforeDomainStart) {
+      next = pointsWithinDomain.length > 0
+        ? [lastPointBeforeDomainStart, ...pointsWithinDomain]
+        : [lastPointBeforeDomainStart]
+    }
+
     const lastPoint = next[next.length - 1]
     const lastPrice = lastPoint?.[SERIES_KEY]
     const lastTimestamp = lastPoint?.date?.getTime?.() ?? Number.NaN
@@ -1070,13 +1185,18 @@ export default function EventLiveSeriesChart({
     const innerHeight = chartHeight - marginTop - marginBottom
     const ratio = (resolvedBaselinePrice - axisValues.min) / Math.max(1e-6, axisValues.max - axisValues.min)
     const clamped = Math.max(0, Math.min(1, ratio))
+    const lineTop = marginTop + innerHeight - innerHeight * clamped
+    const maxTop = marginTop + innerHeight - LIVE_TARGET_MAX_BOTTOM_OFFSET
 
     return {
-      top: marginTop + innerHeight - innerHeight * clamped,
+      badgeTop: Math.min(lineTop, maxTop),
       isAbove: ratio > 1,
       isBelow: ratio < 0,
     }
   }, [axisValues.max, axisValues.min, isTradingWindowActive, resolvedBaselinePrice])
+  const targetLineGuideColor = hexToRgba('#94a3b8', 0.62)
+  const targetBadgeColor = '#94a3b8'
+  const currentPriceGuideColor = hexToRgba(liveColor, 0.62)
   const countdown = useMemo(() => {
     const totalSeconds = Math.max(0, Math.floor((endTimestamp - nowMs) / 1000))
     const showDays = totalSeconds > 24 * 60 * 60
@@ -1099,11 +1219,14 @@ export default function EventLiveSeriesChart({
   const shouldShowCountdown = !isEventClosed && countdown.totalSeconds > 0
   const xAxisTickValues = useMemo(() => {
     const startMs = nowMs - LIVE_WINDOW_MS
+    const visibleStartMs = startMs + LIVE_X_AXIS_LEFT_LABEL_GUARD_MS
     const firstTickMs = Math.ceil(startMs / LIVE_X_AXIS_STEP_MS) * LIVE_X_AXIS_STEP_MS
     const ticks: Date[] = []
 
     for (let tickMs = firstTickMs; tickMs <= nowMs; tickMs += LIVE_X_AXIS_STEP_MS) {
-      ticks.push(new Date(tickMs))
+      if (tickMs >= visibleStartMs) {
+        ticks.push(new Date(tickMs))
+      }
     }
 
     if (ticks.length >= 2) {
@@ -1111,10 +1234,17 @@ export default function EventLiveSeriesChart({
     }
 
     return [
-      new Date(startMs),
+      new Date(visibleStartMs),
       new Date(nowMs),
     ]
   }, [nowMs])
+  const liveXAxisDomain = useMemo(
+    () => ({
+      start: new Date(nowMs - LIVE_WINDOW_MS),
+      end: new Date(nowMs),
+    }),
+    [nowMs],
+  )
   const visibleCountdownUnits = useMemo(
     () => getVisibleCountdownUnits(
       countdown.showDays,
@@ -1160,18 +1290,55 @@ export default function EventLiveSeriesChart({
     : undefined
   const switchThumbStyle = isLiveChartView
     ? {
-        transform: 'translateX(2.25rem)',
+        transform: 'translateX(2rem)',
         backgroundColor: hexToRgba(liveColor, 0.2),
       }
     : {
         transform: 'translateX(0)',
       }
 
+  const watermark = useMemo(
+    () => ({
+      iconSvg: site.logoSvg,
+      iconImageUrl: site.logoImageUrl,
+      label: site.name,
+    }),
+    [site.logoImageUrl, site.logoSvg, site.name],
+  )
+  const countdownEndedLogo = (watermark.iconSvg || watermark.label)
+    ? (
+        <div
+          className="pointer-events-none flex items-center gap-1 text-xl text-muted-foreground opacity-50 select-none"
+          aria-hidden
+        >
+          {watermark.iconSvg
+            ? (
+                <SiteLogoIcon
+                  logoSvg={watermark.iconSvg}
+                  logoImageUrl={watermark.iconImageUrl}
+                  alt={`${watermark.label} logo`}
+                  className="size-[1em] **:fill-current **:stroke-current"
+                  imageClassName="size-[1em] object-contain"
+                  size={20}
+                />
+              )
+            : null}
+          {watermark.label
+            ? (
+                <span className="font-semibold">
+                  {watermark.label}
+                </span>
+              )
+            : null}
+        </div>
+      )
+    : null
+
   const viewSwitch = (
-    <div className="relative z-0 flex items-center rounded-xl border border-border bg-background/70 p-1">
+    <div className="relative z-0 flex items-center rounded-lg border border-border bg-background/70 p-0.5">
       <span
         className={cn(
-          'pointer-events-none absolute top-1 left-1 z-0 size-9 rounded-lg transition-all duration-300 ease-out',
+          'pointer-events-none absolute top-0.5 left-0.5 z-0 size-8 rounded-md transition-all duration-300 ease-out',
           !isLiveChartView && 'bg-primary/30',
         )}
         style={switchThumbStyle}
@@ -1180,20 +1347,20 @@ export default function EventLiveSeriesChart({
         type="button"
         onClick={() => setActiveView('market')}
         className={cn(
-          'relative z-1 flex size-9 items-center justify-center rounded-lg transition-colors',
+          'relative z-1 flex size-8 items-center justify-center rounded-md transition-colors',
           isMarketView
             ? 'text-primary'
             : 'bg-transparent text-muted-foreground hover:bg-muted',
         )}
         aria-label="Show market chart"
       >
-        <ChartLineIcon className="size-5" />
+        <ChartLineIcon className="size-[18px]" />
       </button>
       <button
         type="button"
         onClick={() => setActiveView('live')}
         className={cn(
-          'relative z-1 flex size-9 items-center justify-center rounded-lg transition-colors',
+          'relative z-1 flex size-8 items-center justify-center rounded-md transition-colors',
           !isLiveChartView && 'bg-transparent text-muted-foreground hover:bg-muted',
         )}
         style={liveSwitchIconStyle}
@@ -1202,7 +1369,7 @@ export default function EventLiveSeriesChart({
         {config.icon_path
           ? (
               <span
-                className="block size-5 bg-current"
+                className="block size-4 bg-current"
                 aria-hidden
                 style={{
                   WebkitMaskImage: `url(${config.icon_path})`,
@@ -1216,7 +1383,7 @@ export default function EventLiveSeriesChart({
                 }}
               />
             )
-          : <span className="size-2.5 rounded-full bg-current" />}
+          : <span className="size-2 rounded-full bg-current" />}
       </button>
     </div>
   )
@@ -1232,8 +1399,8 @@ export default function EventLiveSeriesChart({
                     <div className="text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
                       Price To Beat
                     </div>
-                    <div className="mt-1 text-2xl leading-none font-semibold text-muted-foreground tabular-nums">
-                      {resolvedBaselinePrice != null ? formatUsd(resolvedBaselinePrice, priceDisplayDigits) : '--'}
+                    <div className="mt-1 text-[22px] leading-none font-semibold text-muted-foreground tabular-nums">
+                      {resolvedBaselinePrice != null ? formatUsd(resolvedBaselinePrice, headerPriceDisplayDigits) : '--'}
                     </div>
                   </div>
                   <div className="hidden h-10 w-px bg-border sm:block" />
@@ -1244,156 +1411,176 @@ export default function EventLiveSeriesChart({
                     >
                       <span>Current Price</span>
                       {delta != null && (
-                        <span className={`inline-flex items-center gap-1 text-xs font-semibold ${delta >= 0
+                        <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold ${delta >= 0
                           ? 'text-yes'
                           : 'text-no'}`}
                         >
                           <TriangleIcon
-                            className={`size-3 ${delta >= 0 ? '' : 'rotate-180'}`}
+                            className={`size-2.5 ${delta >= 0 ? '' : 'rotate-180'}`}
                             fill="currentColor"
                             stroke="none"
                           />
-                          {formatUsd(Math.abs(delta), priceDisplayDigits)}
+                          {formatUsd(Math.abs(delta), deltaDisplayDigits)}
                         </span>
                       )}
                     </div>
                     <div
-                      className="mt-1 text-2xl leading-none font-semibold tabular-nums"
+                      className="mt-1 text-[22px] leading-none font-semibold tabular-nums"
                       style={{ color: liveColor }}
                     >
-                      {currentPrice != null ? formatUsd(currentPrice, priceDisplayDigits) : '--'}
+                      {currentPrice != null ? formatUsd(currentPrice, headerPriceDisplayDigits) : '--'}
                     </div>
                   </div>
                 </div>
-                {shouldShowCountdown && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="mr-[-4px] ml-auto grid justify-items-end gap-1 text-left sm:mr-[-6px]"
-                      >
-                        <div className="flex items-end gap-3">
-                          {visibleCountdownUnits.map(({ unit, value }) => (
-                            <div key={unit} className="min-w-11 text-right">
-                              <div
-                                className={cn(
-                                  'text-2xl leading-none font-semibold tabular-nums',
-                                  isTradingWindowActive ? 'text-red-500' : 'text-muted-foreground',
-                                )}
-                              >
-                                <AnimatedCountdownValue value={value} />
+                {shouldShowCountdown
+                  ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="mr-[-4px] ml-auto grid justify-items-end gap-1 text-left sm:mr-[-6px]"
+                          >
+                            <div className="flex items-end gap-3">
+                              {visibleCountdownUnits.map(({ unit, value }) => (
+                                <div key={unit} className="min-w-11 text-right">
+                                  <div
+                                    className={cn(
+                                      'text-[22px] leading-none font-semibold tabular-nums',
+                                      isTradingWindowActive ? 'text-red-500' : 'text-muted-foreground',
+                                    )}
+                                  >
+                                    <AnimatedCountdownValue value={value} />
+                                  </div>
+                                  <div
+                                    className="
+                                      mt-1 text-2xs font-semibold tracking-[0.08em] text-muted-foreground uppercase
+                                    "
+                                  >
+                                    {countdownLabel(unit, value)}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <span className="sr-only">{status}</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent align="end" className="w-72 rounded-xl p-3 text-left">
+                          <div className="grid gap-2.5">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="inline-flex items-center gap-2 text-red-500">
+                                <span className="relative inline-flex size-2.5 items-center justify-center">
+                                  <span
+                                    className="
+                                      absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full
+                                      bg-red-500/45
+                                    "
+                                  />
+                                  <span
+                                    className="relative inline-flex size-2 rounded-full bg-red-500"
+                                  />
+                                </span>
+                                <span className="text-xs font-semibold tracking-[0.08em] uppercase">Live</span>
                               </div>
-                              <div
-                                className="
-                                  mt-1 text-2xs font-semibold tracking-[0.08em] text-muted-foreground uppercase
-                                "
-                              >
-                                {countdownLabel(unit, value)}
+                              <div className="text-sm">
+                                <span className="font-semibold text-foreground">{countdownLeftLabel}</span>
+                                <span className="ml-1 text-muted-foreground">left</span>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                        <span className="sr-only">{status}</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent align="end" className="w-72 rounded-xl p-3 text-left">
-                      <div className="grid gap-2.5">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="inline-flex items-center gap-2 text-red-500">
-                            <span className="relative inline-flex size-2.5 items-center justify-center">
-                              <span
-                                className="
-                                  absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45
-                                "
-                              />
-                              <span
-                                className="relative inline-flex size-2 rounded-full bg-red-500"
-                              />
-                            </span>
-                            <span className="text-xs font-semibold tracking-[0.08em] uppercase">Live</span>
-                          </div>
-                          <div className="text-sm">
-                            <span className="font-semibold text-foreground">{countdownLeftLabel}</span>
-                            <span className="ml-1 text-muted-foreground">left</span>
-                          </div>
-                        </div>
 
-                        <div className="text-xs text-muted-foreground">Resolution time</div>
+                            <div className="text-xs text-muted-foreground">Resolution time</div>
 
-                        <div className="grid gap-2 text-sm text-foreground">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="
-                                inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs
-                                font-semibold
-                              "
-                            >
-                              ET
-                            </span>
-                            <span className="tabular-nums">{etDateLabel}</span>
-                            <span className="ml-auto tabular-nums">{etTimeLabel}</span>
+                            <div className="grid gap-2 text-sm text-foreground">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="
+                                    inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs
+                                    font-semibold
+                                  "
+                                >
+                                  ET
+                                </span>
+                                <span className="tabular-nums">{etDateLabel}</span>
+                                <span className="ml-auto tabular-nums">{etTimeLabel}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="
+                                    inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs
+                                    font-semibold
+                                  "
+                                >
+                                  UTC
+                                </span>
+                                <span className="tabular-nums">{utcDateLabel}</span>
+                                <span className="ml-auto tabular-nums">{utcTimeLabel}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="
-                                inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs
-                                font-semibold
-                              "
-                            >
-                              UTC
-                            </span>
-                            <span className="tabular-nums">{utcDateLabel}</span>
-                            <span className="ml-auto tabular-nums">{utcTimeLabel}</span>
-                          </div>
-                        </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )
+                  : (
+                      <div className="mr-[-4px] ml-auto sm:mr-[-6px]">
+                        {countdownEndedLogo}
                       </div>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
+                    )}
               </div>
 
               <div className="relative z-0 pr-4 pl-0 sm:pr-6 sm:pl-0">
                 {targetLine && (
-                  <div
-                    className="pointer-events-none absolute right-4 left-0 z-1 sm:right-6"
-                    style={{ top: `${targetLine.top}px` }}
-                  >
+                  <>
                     <div
-                      className="h-px w-full"
+                      className="pointer-events-none absolute right-4 left-0 z-1 h-px sm:right-6"
                       style={{
+                        top: `${targetLine.badgeTop}px`,
                         backgroundImage: `repeating-linear-gradient(
                           to right,
-                          ${hexToRgba('#94a3b8', 0.9)} 0px,
-                          ${hexToRgba('#94a3b8', 0.9)} 12px,
-                          transparent 12px,
-                          transparent 22px
+                          ${targetLineGuideColor} 0px,
+                          ${targetLineGuideColor} 8px,
+                          transparent 8px,
+                          transparent 14px
                         )`,
                       }}
                     />
                     <span
-                      className={`
-                        absolute top-1/2 right-0 inline-flex -translate-y-1/2 items-center gap-1 rounded-r-sm bg-muted
-                        px-1.5 py-0.5 pl-2 text-2xs font-semibold tracking-[0.08em] text-muted-foreground uppercase
-                        [clip-path:polygon(8px_0,100%_0,100%_100%,8px_100%,0_50%)]
-                      `}
+                      className="
+                        pointer-events-none absolute right-4 z-1 inline-flex -translate-y-1/2 items-center
+                        sm:right-6
+                      "
+                      style={{ top: `${targetLine.badgeTop}px` }}
                     >
-                      <span>Target</span>
-                      {targetLine.isAbove && <ChevronsUpIcon className="size-2.5 animate-pulse" />}
-                      {targetLine.isBelow && <ChevronsDownIcon className="size-2.5 animate-pulse" />}
+                      <span
+                        aria-hidden
+                        className="
+                          relative z-0 -mr-px inline-block h-3.5 w-2 [clip-path:polygon(0_50%,100%_0,100%_100%)]
+                        "
+                        style={{ backgroundColor: targetBadgeColor }}
+                      />
+                      <span
+                        className="
+                          relative z-1 inline-flex items-center gap-0.5 rounded-[4px] px-2 py-1 pl-2 text-xs
+                          font-semibold text-white
+                        "
+                        style={{ backgroundColor: targetBadgeColor }}
+                      >
+                        <span>Target</span>
+                        {targetLine.isAbove && <ChevronsUpIcon className="size-3.5 animate-pulse" />}
+                        {targetLine.isBelow && <ChevronsDownIcon className="size-3.5 animate-pulse" />}
+                      </span>
                     </span>
-                  </div>
+                  </>
                 )}
                 {currentLineTop != null && (
                   <div
-                    className="pointer-events-none absolute right-4 left-0 z-2 h-px sm:right-6"
+                    className="pointer-events-none absolute right-4 left-0 z-2 mr-2 h-px sm:right-6"
                     style={{
                       top: `${currentLineTop}px`,
                       backgroundImage: `repeating-linear-gradient(
                         to right,
-                        ${hexToRgba(liveColor, 0.88)} 0px,
-                        ${hexToRgba(liveColor, 0.88)} 12px,
-                        transparent 12px,
-                        transparent 22px
+                        ${currentPriceGuideColor} 0px,
+                        ${currentPriceGuideColor} 8px,
+                        transparent 8px,
+                        transparent 14px
                       )`,
                     }}
                   />
@@ -1411,6 +1598,7 @@ export default function EventLiveSeriesChart({
                   }}
                   dataSignature={`${event.id}:${config.topic}:${subscriptionSymbol}`}
                   xAxisTickCount={isMobile ? 2 : 4}
+                  xDomain={liveXAxisDomain}
                   xAxisTickValues={xAxisTickValues}
                   xAxisTickFormatter={date => date.toLocaleTimeString('en-US', {
                     hour: '2-digit',
@@ -1421,18 +1609,25 @@ export default function EventLiveSeriesChart({
                   showVerticalGrid={false}
                   showHorizontalGrid
                   gridLineStyle="solid"
+                  gridLineOpacity={0.42}
                   showLegend={false}
                   xAxisTickFontSize={13}
-                  yAxisTickFontSize={13}
+                  yAxisTickFontSize={12}
                   showXAxisTopRule
                   cursorGuideTop={LIVE_CURSOR_GUIDE_TOP}
                   disableCursorSplit
                   disableResetAnimation
                   markerOuterRadius={10}
                   markerInnerRadius={4.2}
+                  markerPulseStyle="ring"
+                  markerOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
+                  lineEndOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
                   lineStrokeWidth={2.15}
+                  plotClipPadding={{
+                    right: LIVE_PLOT_CLIP_RIGHT_PADDING,
+                  }}
                   showAreaFill
-                  areaFillTopOpacity={0.12}
+                  areaFillTopOpacity={0.08}
                   areaFillBottomOpacity={0}
                   yAxis={{
                     min: axisValues.min,
@@ -1454,7 +1649,7 @@ export default function EventLiveSeriesChart({
                     iconPath: config.icon_path,
                     color: liveColor,
                   }}
-                  lineCurve="basis"
+                  lineCurve="catmullRom"
                 />
               </div>
             </div>

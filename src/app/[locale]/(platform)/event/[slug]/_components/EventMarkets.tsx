@@ -176,7 +176,6 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     })
     return ids
   }, [event.markets])
-  const hasAnyMarketInReview = reviewConditionIds.size > 0
   const chanceRefreshQueryKeys = useMemo(
     () => [
       ['event-price-history', event.id] as const,
@@ -543,8 +542,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
             const positionTags = positionTagsByCondition[market.condition_id] ?? []
             const shouldShowSeparator = index !== orderedMarkets.length - 1 || shouldShowOtherRow
             const isResolvedInlineRow = showResolvedInline
-            const showInReviewTag = hasAnyMarketInReview
-              && (isNegRiskEnabled || reviewConditionIds.has(market.condition_id))
+            const showInReviewTag = reviewConditionIds.has(market.condition_id)
 
             return (
               <div key={market.condition_id} className="transition-colors">
@@ -1115,15 +1113,15 @@ function MarketDetailTabs({
         {selectedTab === 'history' && <EventMarketHistory market={market} />}
 
         {selectedTab === 'resolution' && (
-          <div className="flex flex-col gap-3">
-            <ResolutionTimelinePanel market={market} settledUrl={settledUrl} />
+          <div className="flex items-center justify-between gap-3">
+            <ResolutionTimelinePanel market={market} settledUrl={settledUrl} className="min-w-0 flex-1" />
             {!isMarketResolved(market) && (
               proposeUrl
                 ? (
                     <Button
                       variant="outline"
                       size="sm"
-                      className="mb-3"
+                      className="shrink-0"
                       asChild
                       onClick={event => event.stopPropagation()}
                     >
@@ -1136,7 +1134,7 @@ function MarketDetailTabs({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="mb-3"
+                      className="shrink-0"
                       disabled
                       onClick={event => event.stopPropagation()}
                     >

@@ -16,7 +16,7 @@ export type OrderValidationError
     | 'INSUFFICIENT_BALANCE'
     | 'INSUFFICIENT_SHARES'
 
-export const MIN_LIMIT_ORDER_SHARES = 5
+export const MIN_LIMIT_ORDER_SHARES = 0.01
 
 type LimitExpirationOption = 'end-of-day' | 'custom'
 

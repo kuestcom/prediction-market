@@ -84,7 +84,7 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
   const shouldShowNew = event.markets.some(
     market => isMarketNew(market.created_at),
   )
-  const shouldShowVolume = !shouldShowNew
+  const shouldShowVolume = isNegRiskEnabled || !shouldShowNew
   const shouldShowMetaBlock = isNegRiskEnabled || shouldShowVolume
   const expiryTooltip = t.rich(
     'This is estimated end date.<br></br>See rules below for specific resolution details.',

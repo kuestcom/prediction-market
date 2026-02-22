@@ -228,6 +228,7 @@ export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventC
                 legendContent={null}
                 showLegend={false}
                 watermark={undefined}
+                lineCurve="monotoneX"
               />
             )
           : (

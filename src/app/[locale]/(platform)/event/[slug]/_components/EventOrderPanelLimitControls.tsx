@@ -193,6 +193,28 @@ export default function EventOrderPanelLimitControls({
       return
     }
 
+    if (numericValue > maxSharesForSide) {
+      const clamped = Math.min(numericValue, maxSharesForSide)
+      onLimitSharesChange(formatAmountInputValue(clamped))
+      syncAmount(limitPriceNumber, clamped)
+      return
+    }
+
+    // Preserve the raw decimal typing state (e.g. `1.`) and normalize on blur.
+    onLimitSharesChange(cleaned)
+    syncAmount(limitPriceNumber, numericValue)
+  }
+
+  function handleLimitSharesBlur(rawValue: string) {
+    const cleaned = sanitizeNumericInput(rawValue)
+    const numericValue = Number.parseFloat(cleaned)
+
+    if (!cleaned || Number.isNaN(numericValue)) {
+      onLimitSharesChange('')
+      syncAmount(limitPriceNumber, 0)
+      return
+    }
+
     const clamped = Math.min(numericValue, maxSharesForSide)
     onLimitSharesChange(formatAmountInputValue(clamped))
     syncAmount(limitPriceNumber, clamped)
@@ -293,6 +315,7 @@ export default function EventOrderPanelLimitControls({
               inputMode="decimal"
               value={formattedLimitShares}
               onChange={event => handleLimitSharesInputChange(event.target.value)}
+              onBlur={event => handleLimitSharesBlur(event.target.value)}
               className={cn(
                 'h-10 bg-transparent! text-right font-bold',
                 limitSharesSizeClass,
