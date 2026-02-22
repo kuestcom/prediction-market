@@ -69,11 +69,32 @@ interface TradeFlowLabelItem {
   createdAt: number
 }
 
+interface TweetCountResponsePayload {
+  data?: {
+    totalCount?: number | null
+    handles?: string[]
+    trackingEndMs?: number | null
+    trackingStartMs?: number | null
+  } | null
+  error?: string
+}
+
 const tradeFlowMaxItems = 6
 const tradeFlowTtlMs = 8000
 const tradeFlowCleanupIntervalMs = 500
 const CHART_MARKER_ACTIVITY_PAGE_SIZE = 50
 const CHART_MARKER_MAX_PAGES_PER_MARKET = 10
+const TWEET_MARKETS_TAG_SLUGS = new Set(['tweet-markets', 'tweet-market'])
+const TWEET_COUNT_METADATA_KEYS = [
+  'tweet_count',
+  'tweetCount',
+  'tweets_count',
+  'tweetsCount',
+  'mention_count',
+  'mentionCount',
+  'mentions_count',
+  'mentionsCount',
+] as const
 const tradeFlowTextStrokeStyle = {
   textShadow: `
     1px 0 0 var(--background),
@@ -218,6 +239,97 @@ function resolveEventHistoryEndAt(event: Event) {
   return null
 }
 
+function parseTimestampToMs(value: string | null | undefined): number | null {
+  if (!value) {
+    return null
+  }
+
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function parseCountValue(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value >= 0 ? value : null
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.replaceAll(',', '').trim()
+    if (!normalized) {
+      return null
+    }
+
+    const parsed = Number(normalized)
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed
+    }
+  }
+
+  return null
+}
+
+function resolveTweetCountFromRecord(record: Record<string, unknown> | null | undefined): number | null {
+  if (!record) {
+    return null
+  }
+
+  for (const key of TWEET_COUNT_METADATA_KEYS) {
+    const parsed = parseCountValue(record[key])
+    if (parsed != null) {
+      return parsed
+    }
+  }
+
+  return null
+}
+
+function resolveTweetCount(event: Event): number | null {
+  const fromEvent = resolveTweetCountFromRecord(event as unknown as Record<string, unknown>)
+  if (fromEvent != null) {
+    return fromEvent
+  }
+
+  for (const market of event.markets) {
+    if (!market.metadata || typeof market.metadata !== 'object') {
+      continue
+    }
+
+    const fromMarket = resolveTweetCountFromRecord(market.metadata as Record<string, unknown>)
+    if (fromMarket != null) {
+      return fromMarket
+    }
+  }
+
+  return null
+}
+
+function resolveTweetCountdownTargetMs(event: Event): number | null {
+  const eventEndMs = parseTimestampToMs(event.end_date)
+  if (eventEndMs != null) {
+    return eventEndMs
+  }
+
+  const marketEndTimes = event.markets
+    .map(market => parseTimestampToMs(market.end_time ?? null))
+    .filter((timestamp): timestamp is number => timestamp != null)
+
+  if (marketEndTimes.length === 0) {
+    return null
+  }
+
+  return Math.min(...marketEndTimes)
+}
+
+function isTweetMarketsEvent(event: Event) {
+  return event.tags.some((tag) => {
+    const normalizedName = tag.name?.trim().toLowerCase()
+    const normalizedSlug = tag.slug?.trim().toLowerCase()
+
+    return normalizedName === 'tweet markets'
+      || (normalizedSlug ? TWEET_MARKETS_TAG_SLUGS.has(normalizedSlug) : false)
+  })
+}
+
 function buildCombinedOutcomeHistory(
   yesHistory: DataPoint[],
   noHistory: DataPoint[],
@@ -326,6 +438,7 @@ function EventChartComponent({
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
+  const [nowMs, setNowMs] = useState(() => Date.now())
   const tradeFlowIdRef = useRef(0)
   const lastEventIdRef = useRef(event.id)
 
@@ -345,11 +458,79 @@ function EventChartComponent({
     storeChartSettings(chartSettings)
   }, [chartSettings, hasLoadedSettings])
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNowMs(Date.now())
+    }, 30_000)
+
+    return () => {
+      window.clearInterval(interval)
+    }
+  }, [])
+
   const showBothOutcomes = isSingleMarket && chartSettings.bothOutcomes
   const eventHistoryEndAt = useMemo(
     () => resolveEventHistoryEndAt(event),
     [event],
   )
+  const shouldShowTweetMarketsPanel = useMemo(
+    () => isTweetMarketsEvent(event),
+    [event],
+  )
+  const tweetCount = useMemo(
+    () => resolveTweetCount(event),
+    [event],
+  )
+  const tweetCountdownTargetMs = useMemo(
+    () => resolveTweetCountdownTargetMs(event),
+    [event],
+  )
+  const xtrackerTweetCountQuery = useQuery({
+    queryKey: ['xtracker-tweet-count', event.slug, event.series_slug, event.end_date, event.title],
+    enabled: shouldShowTweetMarketsPanel,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (event.slug) {
+        params.set('eventSlug', event.slug)
+      }
+      if (event.series_slug) {
+        params.set('seriesSlug', event.series_slug)
+      }
+      if (event.title) {
+        params.set('eventTitle', event.title)
+      }
+      if (event.end_date) {
+        const parsedEndMs = Date.parse(event.end_date)
+        if (Number.isFinite(parsedEndMs)) {
+          params.set('eventEndMs', String(parsedEndMs))
+        }
+      }
+
+      const response = await fetch(`/api/xtracker/tweet-count?${params.toString()}`, {
+        cache: 'no-store',
+      })
+      const payload = await response.json() as TweetCountResponsePayload
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null
+        }
+        throw new Error(payload.error || 'Failed to fetch XTracker tweet count.')
+      }
+
+      return payload.data ?? null
+    },
+  })
+  const resolvedTweetCount = xtrackerTweetCountQuery.data?.totalCount ?? tweetCount
+  const resolvedTweetCountdownTargetMs = tweetCountdownTargetMs
+  const resolvedTweetStartTargetMs = useMemo(
+    () => parseTimestampToMs(event.start_date ?? null),
+    [event.start_date],
+  )
+  const shouldRenderTweetMarketsPanel = shouldShowTweetMarketsPanel
+    && resolvedTweetStartTargetMs != null
+    && nowMs >= resolvedTweetStartTargetMs
 
   const yesMarketTargets = useMemo(
     () => buildMarketTargets(event.markets, OUTCOME_INDEX.YES),
@@ -1041,6 +1222,9 @@ function EventChartComponent({
             currentEventSlug={event.slug}
             seriesEvents={seriesEvents}
             showSeriesNavigation={showSeriesNavigation}
+            showTweetMarketsPanel={shouldRenderTweetMarketsPanel}
+            tweetCount={resolvedTweetCount}
+            tweetCountdownTargetMs={resolvedTweetCountdownTargetMs}
           />
         )}
         chart={(
