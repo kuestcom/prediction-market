@@ -1,5 +1,10 @@
 # Terraform targets
 
+Read first:
+
+- `infra/README.md` (storage options)
+- `infra/scheduler-contract.md` (HTTP scheduler contract)
+
 Terraform environments available:
 
 - `environments/production/gke`: GKE Autopilot deployment target (`modules/target-gke-autopilot`)
@@ -58,7 +63,11 @@ terraform apply
 
 ## Fly.io target
 
-This target orchestrates `infra/fly/sync-secrets.sh` and `infra/fly/deploy.sh` through Terraform local-exec.
+This target runs `flyctl deploy` through Terraform `local-exec`.
+Environment variables and secrets are managed manually in Fly.io (dashboard or `flyctl secrets set`), following:
+
+- [Configure Environment Variables](../../README.md#quick-start-15-minutes)
+- [Storage options](../README.md#storage-options)
 
 Prerequisites:
 
@@ -94,5 +103,5 @@ terraform apply
 ## Notes
 
 - Use immutable image refs (`@sha256:` preferred, explicit non-`latest` tag allowed).
-- `SITE_URL` must point to the canonical public endpoint used by Supabase `pg_cron` callbacks.
-- Fly target supports `sync_secrets` for script-based deploys.
+- `SITE_URL` must point to the canonical public endpoint.
+- Cloud Run/Kubernetes/DigitalOcean targets require core secrets plus one storage profile: Supabase (`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`) or S3 (`S3_BUCKET` + `S3_ACCESS_KEY_ID` + `S3_SECRET_ACCESS_KEY`).

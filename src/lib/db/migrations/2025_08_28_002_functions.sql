@@ -71,7 +71,7 @@ BEGIN
   RETURN output;
 END
 $$ LANGUAGE plpgsql VOLATILE
-                    SET search_path = 'extensions';
+                    SET search_path = 'public,extensions';
 
 CREATE OR REPLACE FUNCTION public.set_updated_at()
   RETURNS TRIGGER

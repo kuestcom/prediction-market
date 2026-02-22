@@ -21,7 +21,7 @@ import {
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { resolveDisplayPrice } from '@/lib/market-chance'
-import { getSupabaseImageUrl } from '@/lib/supabase'
+import { getPublicAssetUrl } from '@/lib/storage'
 
 const HIDE_FROM_NEW_TAG_SLUG = 'hide-from-new'
 
@@ -434,7 +434,7 @@ function eventResource(
       volume: normalizedTotalVolume,
       volume_24h: normalizedCurrentVolume24h,
       outcomes: normalizedOutcomes,
-      icon_url: getSupabaseImageUrl(market.icon_url),
+      icon_url: getPublicAssetUrl(market.icon_url),
       condition: market.condition
         ? {
             ...market.condition,
@@ -479,7 +479,7 @@ function eventResource(
     slug: event.slug || '',
     title: (localizedEventTitlesById.get(event.id) ?? event.title) || '',
     creator: event.creator || '',
-    icon_url: getSupabaseImageUrl(event.icon_url),
+    icon_url: getPublicAssetUrl(event.icon_url),
     show_market_icons: event.show_market_icons ?? true,
     enable_neg_risk: Boolean(event.enable_neg_risk),
     neg_risk_augmented: Boolean(event.neg_risk_augmented),
@@ -1318,7 +1318,7 @@ export const EventRepository = {
           id: String(row.id),
           slug: String(row.slug),
           title: localizedEventTitlesById.get(row.id) ?? String(row.title),
-          icon_url: getSupabaseImageUrl(String(row.icon_url || '')),
+          icon_url: getPublicAssetUrl(String(row.icon_url || '')),
           common_tags_count: Number(row.common_tags_count),
           chance,
         }

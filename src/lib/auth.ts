@@ -13,7 +13,7 @@ import { projectId } from '@/lib/appkit'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { db } from '@/lib/drizzle'
 import siteUrlUtils from '@/lib/site-url'
-import { getSupabaseImageUrl } from '@/lib/supabase'
+import { getPublicAssetUrl } from '@/lib/storage'
 import { DEFAULT_THEME_SITE_NAME } from '@/lib/theme-site-identity'
 import { ensureUserTradingAuthSecretFingerprint } from '@/lib/trading-auth/server'
 import { sanitizeTradingAuthSettings } from '@/lib/trading-auth/utils'
@@ -246,7 +246,7 @@ export const auth = betterAuth({
         user: {
           ...user,
           settings,
-          image: user.image ? getSupabaseImageUrl(user.image) : '',
+          image: user.image ? getPublicAssetUrl(user.image) : '',
           is_admin: isAdminWallet(user.name),
         },
         session,

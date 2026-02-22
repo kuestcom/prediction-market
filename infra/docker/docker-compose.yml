@@ -14,3 +14,25 @@ services:
     ports:
       - '3000:3000'
     restart: unless-stopped
+
+  postgres:
+    profiles: [local-postgres]
+    container_name: kuest-postgres
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kuest}
+      POSTGRES_USER: ${POSTGRES_USER:-kuest}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-replace-me}
+    volumes:
+      - kuest-postgres-data:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:5432:5432'
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U ${POSTGRES_USER:-kuest} -d ${POSTGRES_DB:-kuest}']
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+volumes:
+  kuest-postgres-data:

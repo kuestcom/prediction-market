@@ -1,6 +1,14 @@
+import { and, eq, inArray, isNull, lt, ne, or } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { isCronAuthorized } from '@/lib/auth-cron'
-import { supabaseAdmin } from '@/lib/supabase'
+import {
+  conditions as conditionsTable,
+  events as eventsTable,
+  markets as marketsTable,
+  outcomes as outcomesTable,
+  subgraph_syncs,
+} from '@/lib/db/schema'
+import { db } from '@/lib/drizzle'
 
 export const maxDuration = 300
 
@@ -93,7 +101,7 @@ function parseOptionalInt(rawValue?: string): number | null {
 }
 
 async function tryAcquireSyncLock(): Promise<boolean> {
-  const staleThreshold = new Date(Date.now() - SYNC_RUNNING_STALE_MS).toISOString()
+  const staleThreshold = new Date(Date.now() - SYNC_RUNNING_STALE_MS)
   const runningPayload = {
     service_name: 'resolution_sync',
     subgraph_name: 'resolution',
@@ -101,42 +109,50 @@ async function tryAcquireSyncLock(): Promise<boolean> {
     error_message: null,
   }
 
-  // Atomic claim for existing row: only transitions to running when unlocked or stale.
-  const { data: claimedRows, error: claimError } = await supabaseAdmin
-    .from('subgraph_syncs')
-    .update(runningPayload)
-    .eq('service_name', 'resolution_sync')
-    .eq('subgraph_name', 'resolution')
-    .or(`status.neq."running",updated_at.lt."${staleThreshold}"`)
-    .select('id')
-    .limit(1)
+  try {
+    const claimedRows = await db
+      .update(subgraph_syncs)
+      .set(runningPayload)
+      .where(and(
+        eq(subgraph_syncs.service_name, 'resolution_sync'),
+        eq(subgraph_syncs.subgraph_name, 'resolution'),
+        or(
+          ne(subgraph_syncs.status, 'running'),
+          lt(subgraph_syncs.updated_at, staleThreshold),
+        ),
+      ))
+      .returning({ id: subgraph_syncs.id })
 
-  if (claimError) {
-    if (isMissingColumnError(claimError, 'status')) {
+    if (claimedRows.length > 0) {
+      return true
+    }
+  }
+  catch (error: any) {
+    if (isMissingColumnError(error, 'status')) {
       return tryAcquireLegacySyncLock()
     }
-    throw new Error(`Failed to claim sync lock: ${claimError.message}`)
+    throw new Error(`Failed to claim sync lock: ${error?.message ?? String(error)}`)
   }
 
-  if ((claimedRows?.length ?? 0) > 0) {
-    return true
-  }
+  try {
+    const insertedRows = await db
+      .insert(subgraph_syncs)
+      .values(runningPayload)
+      .onConflictDoNothing()
+      .returning({ id: subgraph_syncs.id })
 
-  // First run bootstrap path: create lock row as running.
-  const { error: insertError } = await supabaseAdmin
-    .from('subgraph_syncs')
-    .insert(runningPayload)
+    if (insertedRows.length > 0) {
+      return true
+    }
 
-  if (!insertError) {
-    return true
-  }
-
-  // Unique key conflict means another worker claimed/created the lock first.
-  if (insertError.code === '23505') {
     return false
   }
-
-  throw new Error(`Failed to initialize sync lock: ${insertError.message}`)
+  catch (error: any) {
+    if (isMissingColumnError(error, 'status')) {
+      return tryAcquireLegacySyncLock()
+    }
+    throw new Error(`Failed to initialize sync lock: ${error?.message ?? String(error)}`)
+  }
 }
 
 function isMissingColumnError(error: { message?: string } | null | undefined, column: string): boolean {
@@ -151,36 +167,36 @@ async function tryAcquireLegacySyncLock(): Promise<boolean> {
     error_message: null,
   }
 
-  // Legacy fallback: keep the sync progressing even when status-based lock columns are not visible.
-  const { data: updatedRows, error: updateError } = await supabaseAdmin
-    .from('subgraph_syncs')
-    .update(legacyPayload)
-    .eq('service_name', 'resolution_sync')
-    .eq('subgraph_name', 'resolution')
-    .select('id')
-    .limit(1)
+  try {
+    const updatedRows = await db
+      .update(subgraph_syncs)
+      .set(legacyPayload)
+      .where(and(
+        eq(subgraph_syncs.service_name, 'resolution_sync'),
+        eq(subgraph_syncs.subgraph_name, 'resolution'),
+      ))
+      .returning({ id: subgraph_syncs.id })
 
-  if (updateError) {
-    throw new Error(`Failed to claim legacy sync lock: ${updateError.message}`)
+    if (updatedRows.length > 0) {
+      return true
+    }
+  }
+  catch (error: any) {
+    throw new Error(`Failed to claim legacy sync lock: ${error?.message ?? String(error)}`)
   }
 
-  if ((updatedRows?.length ?? 0) > 0) {
-    return true
+  try {
+    const insertedRows = await db
+      .insert(subgraph_syncs)
+      .values(legacyPayload)
+      .onConflictDoNothing()
+      .returning({ id: subgraph_syncs.id })
+
+    return insertedRows.length > 0
   }
-
-  const { error: insertError } = await supabaseAdmin
-    .from('subgraph_syncs')
-    .insert(legacyPayload)
-
-  if (!insertError) {
-    return true
+  catch (error: any) {
+    throw new Error(`Failed to initialize legacy sync lock: ${error?.message ?? String(error)}`)
   }
-
-  if (insertError.code === '23505') {
-    return false
-  }
-
-  throw new Error(`Failed to initialize legacy sync lock: ${insertError.message}`)
 }
 
 async function updateSyncStatus(
@@ -202,13 +218,16 @@ async function updateSyncStatus(
     updateData.total_processed = totalProcessed
   }
 
-  const { error } = await supabaseAdmin
-    .from('subgraph_syncs')
-    .upsert(updateData, {
-      onConflict: 'service_name,subgraph_name',
-    })
-
-  if (error) {
+  try {
+    await db
+      .insert(subgraph_syncs)
+      .values(updateData)
+      .onConflictDoUpdate({
+        target: [subgraph_syncs.service_name, subgraph_syncs.subgraph_name],
+        set: updateData,
+      })
+  }
+  catch (error: any) {
     if (isMissingColumnError(error, 'status')) {
       return
     }
@@ -241,15 +260,13 @@ async function syncResolutions(): Promise<SyncStats> {
 
     let conditions: { id: string, question_id: string }[] = []
     if (resolutionIds.length > 0) {
-      const { data, error: conditionsError } = await supabaseAdmin
-        .from('conditions')
-        .select('id,question_id')
-        .in('question_id', resolutionIds)
-
-      if (conditionsError) {
-        throw new Error(`Failed to load conditions: ${conditionsError.message}`)
-      }
-      conditions = data ?? []
+      conditions = await db
+        .select({
+          id: conditionsTable.id,
+          question_id: conditionsTable.question_id,
+        })
+        .from(conditionsTable)
+        .where(inArray(conditionsTable.question_id, resolutionIds))
     }
 
     for (const condition of conditions) {
@@ -265,15 +282,15 @@ async function syncResolutions(): Promise<SyncStats> {
       neg_risk_request_id: string | null
     }[] = []
     if (resolutionIds.length > 0) {
-      const { data, error: negRiskLookupError } = await supabaseAdmin
-        .from('markets')
-        .select('condition_id,event_id,neg_risk,neg_risk_request_id')
-        .in('neg_risk_request_id', resolutionIds)
-
-      if (negRiskLookupError) {
-        throw new Error(`Failed to load neg-risk request mappings: ${negRiskLookupError.message}`)
-      }
-      negRiskRequestMatches = data ?? []
+      negRiskRequestMatches = await db
+        .select({
+          condition_id: marketsTable.condition_id,
+          event_id: marketsTable.event_id,
+          neg_risk: marketsTable.neg_risk,
+          neg_risk_request_id: marketsTable.neg_risk_request_id,
+        })
+        .from(marketsTable)
+        .where(inArray(marketsTable.neg_risk_request_id, resolutionIds))
     }
 
     for (const market of negRiskRequestMatches) {
@@ -287,21 +304,20 @@ async function syncResolutions(): Promise<SyncStats> {
       ...negRiskRequestMatches.map(market => market.condition_id),
     ]))
 
-    let markets: { condition_id: string, event_id: string | null, neg_risk: boolean | null }[] = []
+    let marketRows: { condition_id: string, event_id: string | null, neg_risk: boolean | null }[] = []
     if (conditionIds.length > 0) {
-      const { data, error: marketsError } = await supabaseAdmin
-        .from('markets')
-        .select('condition_id,event_id,neg_risk')
-        .in('condition_id', conditionIds)
-
-      if (marketsError) {
-        throw new Error(`Failed to load markets: ${marketsError.message}`)
-      }
-      markets = data ?? []
+      marketRows = await db
+        .select({
+          condition_id: marketsTable.condition_id,
+          event_id: marketsTable.event_id,
+          neg_risk: marketsTable.neg_risk,
+        })
+        .from(marketsTable)
+        .where(inArray(marketsTable.condition_id, conditionIds))
     }
 
     const marketContextMap = new Map<string, MarketContext>()
-    for (const market of markets) {
+    for (const market of marketRows) {
       marketContextMap.set(market.condition_id, {
         eventId: market.event_id ?? null,
         negRisk: Boolean(market.neg_risk),
@@ -409,24 +425,25 @@ async function syncResolutions(): Promise<SyncStats> {
 }
 
 async function getLastResolutionCursor(): Promise<ResolutionCursor | null> {
-  const { data, error } = await supabaseAdmin
-    .from('subgraph_syncs')
-    .select('cursor_updated_at,cursor_id')
-    .eq('service_name', 'resolution_sync')
-    .eq('subgraph_name', 'resolution')
-    .maybeSingle()
+  const rows = await db
+    .select({
+      cursor_updated_at: subgraph_syncs.cursor_updated_at,
+      cursor_id: subgraph_syncs.cursor_id,
+    })
+    .from(subgraph_syncs)
+    .where(and(
+      eq(subgraph_syncs.service_name, 'resolution_sync'),
+      eq(subgraph_syncs.subgraph_name, 'resolution'),
+    ))
+    .limit(1)
 
-  if (error && error.code !== 'PGRST116') {
-    throw new Error(`Failed to load resolution cursor: ${error.message}`)
-  }
+  const data = rows[0]
 
   if (!data?.cursor_updated_at || !data?.cursor_id) {
     return null
   }
 
-  const updatedAt = typeof data.cursor_updated_at === 'string'
-    ? Number(data.cursor_updated_at)
-    : Number(data.cursor_updated_at)
+  const updatedAt = Number(data.cursor_updated_at)
 
   if (Number.isNaN(updatedAt)) {
     return null
@@ -439,18 +456,23 @@ async function getLastResolutionCursor(): Promise<ResolutionCursor | null> {
 }
 
 async function updateResolutionCursor(cursor: ResolutionCursor) {
-  const { error } = await supabaseAdmin
-    .from('subgraph_syncs')
-    .upsert({
+  try {
+    const payload = {
       service_name: 'resolution_sync',
       subgraph_name: 'resolution',
-      cursor_updated_at: cursor.lastUpdateTimestamp,
+      cursor_updated_at: BigInt(cursor.lastUpdateTimestamp),
       cursor_id: cursor.id,
-    }, {
-      onConflict: 'service_name,subgraph_name',
-    })
+    }
 
-  if (error) {
+    await db
+      .insert(subgraph_syncs)
+      .values(payload)
+      .onConflictDoUpdate({
+        target: [subgraph_syncs.service_name, subgraph_syncs.subgraph_name],
+        set: payload,
+      })
+  }
+  catch (error) {
     console.error('Failed to update resolution cursor:', error)
   }
 }
@@ -553,26 +575,24 @@ async function processResolution(
     resolutionLivenessSeconds,
     marketContext.negRisk,
   )
+  const lastUpdateAt = new Date(lastUpdateIso)
+  const deadlineAtDate = deadlineAt ? new Date(deadlineAt) : null
 
-  const { error: conditionError } = await supabaseAdmin
-    .from('conditions')
-    .update({
+  await db
+    .update(conditionsTable)
+    .set({
       resolved: isResolved,
       resolution_status: status,
       resolution_flagged: resolution.flagged,
       resolution_paused: resolution.paused,
-      resolution_last_update: lastUpdateIso,
-      resolution_price: resolutionPrice,
+      resolution_last_update: lastUpdateAt,
+      resolution_price: resolutionPrice == null ? null : String(resolutionPrice),
       resolution_was_disputed: resolution.wasDisputed,
-      resolution_approved: resolution.approved,
-      resolution_deadline_at: deadlineAt,
+      resolution_approved: resolution.approved ?? null,
+      resolution_deadline_at: deadlineAtDate,
       resolution_liveness_seconds: resolutionLivenessSeconds,
     })
-    .eq('id', conditionId)
-
-  if (conditionError) {
-    throw new Error(`Failed to update condition ${conditionId}: ${conditionError.message}`)
-  }
+    .where(eq(conditionsTable.id, conditionId))
 
   const marketUpdate: Record<string, any> = isResolved
     ? {
@@ -583,20 +603,28 @@ async function processResolution(
         is_resolved: false,
       }
 
-  let marketUpdateQuery = supabaseAdmin
-    .from('markets')
-    .update(marketUpdate)
-    .eq('condition_id', conditionId)
+  const marketWhere = isResolved
+    ? and(
+        eq(marketsTable.condition_id, conditionId),
+        or(
+          ne(marketsTable.is_resolved, true),
+          isNull(marketsTable.is_resolved),
+          ne(marketsTable.is_active, false),
+          isNull(marketsTable.is_active),
+        ),
+      )
+    : and(
+        eq(marketsTable.condition_id, conditionId),
+        or(
+          ne(marketsTable.is_resolved, false),
+          isNull(marketsTable.is_resolved),
+        ),
+      )
 
-  marketUpdateQuery = isResolved
-    ? marketUpdateQuery.or('is_resolved.neq.true,is_resolved.is.null,is_active.neq.false,is_active.is.null')
-    : marketUpdateQuery.or('is_resolved.neq.false,is_resolved.is.null')
-
-  const { error: marketError } = await marketUpdateQuery
-
-  if (marketError) {
-    throw new Error(`Failed to update market ${conditionId}: ${marketError.message}`)
-  }
+  await db
+    .update(marketsTable)
+    .set(marketUpdate)
+    .where(marketWhere)
 
   if (isResolved && resolutionPrice != null) {
     await updateOutcomePayouts(conditionId, resolutionPrice)
@@ -682,19 +710,22 @@ async function updateOutcomePayouts(conditionId: string, price: number) {
 
   for (const update of updates) {
     const isWinningOutcome = update.payout > 0
-    const { error } = await supabaseAdmin
-      .from('outcomes')
-      .update({
+    await db
+      .update(outcomesTable)
+      .set({
         is_winning_outcome: isWinningOutcome,
-        payout_value: update.payout,
+        payout_value: String(update.payout),
       })
-      .eq('condition_id', conditionId)
-      .eq('outcome_index', update.index)
-      .or(`is_winning_outcome.neq.${isWinningOutcome ? 'true' : 'false'},is_winning_outcome.is.null,payout_value.is.null,payout_value.neq.${update.payout}`)
-
-    if (error) {
-      throw new Error(`Failed to update outcomes for ${conditionId}: ${error.message}`)
-    }
+      .where(and(
+        eq(outcomesTable.condition_id, conditionId),
+        eq(outcomesTable.outcome_index, update.index),
+        or(
+          ne(outcomesTable.is_winning_outcome, isWinningOutcome),
+          isNull(outcomesTable.is_winning_outcome),
+          isNull(outcomesTable.payout_value),
+          ne(outcomesTable.payout_value, String(update.payout)),
+        ),
+      ))
   }
 }
 
@@ -703,50 +734,26 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
   if (uniqueEventIds.length === 0) {
     return
   }
+  const failedUpdates: string[] = []
 
-  const { data: currentEvents, error: currentEventsError } = await supabaseAdmin
-    .from('events')
-    .select('id,status,resolved_at')
-    .in('id', uniqueEventIds)
-
-  if (currentEventsError) {
-    console.error('Failed to load current statuses for events:', currentEventsError)
-    return
-  }
-
-  const marketRows: Array<{
-    event_id: string | null
-    is_active: boolean | null
-    is_resolved: boolean | null
-  }> = []
-  let marketRowsOffset = 0
-  const marketRowsPageSize = 1000
-
-  while (true) {
-    const { data: marketRowsPage, error: marketRowsError } = await supabaseAdmin
-      .from('markets')
-      .select('event_id,is_active,is_resolved')
-      .in('event_id', uniqueEventIds)
-      .order('condition_id', { ascending: true })
-      .range(marketRowsOffset, marketRowsOffset + marketRowsPageSize - 1)
-
-    if (marketRowsError) {
-      console.error('Failed to load market statuses for events:', marketRowsError)
-      return
-    }
-
-    if (!marketRowsPage || marketRowsPage.length === 0) {
-      break
-    }
-
-    marketRows.push(...marketRowsPage)
-
-    if (marketRowsPage.length < marketRowsPageSize) {
-      break
-    }
-
-    marketRowsOffset += marketRowsPageSize
-  }
+  const [currentEvents, marketRows] = await Promise.all([
+    db
+      .select({
+        id: eventsTable.id,
+        status: eventsTable.status,
+        resolved_at: eventsTable.resolved_at,
+      })
+      .from(eventsTable)
+      .where(inArray(eventsTable.id, uniqueEventIds)),
+    db
+      .select({
+        event_id: marketsTable.event_id,
+        is_active: marketsTable.is_active,
+        is_resolved: marketsTable.is_resolved,
+      })
+      .from(marketsTable)
+      .where(inArray(marketsTable.event_id, uniqueEventIds)),
+  ])
 
   const currentEventById = new Map(
     (currentEvents ?? []).map(event => [event.id, event]),
@@ -801,23 +808,34 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
     const shouldSetResolvedAt = nextStatus === 'resolved'
       && (currentEvent.resolved_at == null)
     const resolvedAtUpdate = shouldSetResolvedAt
-      ? new Date().toISOString()
+      ? new Date()
       : nextStatus === 'resolved'
         ? currentEvent.resolved_at ?? null
         : null
 
-    const currentResolvedAt = currentEvent.resolved_at ?? null
-    if (currentEvent.status === nextStatus && currentResolvedAt === resolvedAtUpdate) {
+    const currentResolvedAtIso = currentEvent.resolved_at?.toISOString() ?? null
+    const nextResolvedAtIso = resolvedAtUpdate?.toISOString() ?? null
+    if (currentEvent.status === nextStatus && currentResolvedAtIso === nextResolvedAtIso) {
       continue
     }
 
-    const { error: updateError } = await supabaseAdmin
-      .from('events')
-      .update({ status: nextStatus, resolved_at: resolvedAtUpdate })
-      .eq('id', eventId)
-
-    if (updateError) {
-      console.error(`Failed to update status for event ${eventId}:`, updateError)
+    try {
+      await db
+        .update(eventsTable)
+        .set({ status: nextStatus, resolved_at: resolvedAtUpdate })
+        .where(eq(eventsTable.id, eventId))
     }
+    catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.error(`Failed to update event status for ${eventId}:`, error)
+      failedUpdates.push(`${eventId}: ${message}`)
+    }
+  }
+
+  if (failedUpdates.length > 0) {
+    const sample = failedUpdates.slice(0, 3).join('; ')
+    throw new Error(
+      `Failed to update ${failedUpdates.length} event status record(s). Example failures: ${sample}`,
+    )
   }
 }

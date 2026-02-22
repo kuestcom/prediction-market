@@ -29,13 +29,7 @@ vi.mock('@/lib/encryption', () => ({
 }))
 
 vi.mock('@/lib/supabase', () => ({
-  supabaseAdmin: {
-    storage: {
-      from: () => ({
-        upload: (...args: any[]) => mocks.upload(...args),
-      }),
-    },
-  },
+  uploadPublicAsset: (...args: any[]) => mocks.upload(...args),
 }))
 
 describe('updateGeneralSettingsAction', () => {
@@ -47,6 +41,7 @@ describe('updateGeneralSettingsAction', () => {
     mocks.updateSettings.mockReset()
     mocks.encryptSecret.mockReset()
     mocks.upload.mockReset()
+    mocks.upload.mockResolvedValue({ error: null })
     mocks.getSettings.mockResolvedValue({ data: {}, error: null })
     mocks.encryptSecret.mockImplementation((value: string) => `enc.v1.${value}`)
   })

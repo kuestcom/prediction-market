@@ -6,7 +6,7 @@ import sharp from 'sharp'
 import { z } from 'zod'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
-import { supabaseAdmin } from '@/lib/supabase'
+import { uploadPublicAsset } from '@/lib/storage'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
@@ -134,12 +134,10 @@ async function uploadImage(user: any, image: File) {
     .jpeg({ quality: 90 })
     .toBuffer()
 
-  const { error } = await supabaseAdmin.storage
-    .from('kuest-assets')
-    .upload(fileName, resizedBuffer, {
-      contentType: 'image/jpeg',
-      cacheControl: '31536000',
-    })
+  const { error } = await uploadPublicAsset(fileName, resizedBuffer, {
+    contentType: 'image/jpeg',
+    cacheControl: '31536000',
+  })
 
   if (error) {
     return user.image?.startsWith('http') ? null : user.image

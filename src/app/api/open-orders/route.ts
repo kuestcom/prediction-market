@@ -7,7 +7,7 @@ import { markets } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { buildClobHmacSignature } from '@/lib/hmac'
-import { getSupabaseImageUrl } from '@/lib/supabase'
+import { getPublicAssetUrl } from '@/lib/storage'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 
 const CLOB_URL = process.env.CLOB_URL
@@ -192,7 +192,7 @@ async function fetchMarketMetadata(conditionIds: string[]) {
       condition_id: row.condition_id,
       title: row.title,
       slug: row.slug,
-      icon_url: getSupabaseImageUrl(row.icon_url || row.event?.icon_url || ''),
+      icon_url: getPublicAssetUrl(row.icon_url || row.event?.icon_url || ''),
       event_slug: row.event?.slug || '',
       event_title: row.event?.title || '',
       is_active: Boolean(row.is_active),
