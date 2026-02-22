@@ -523,11 +523,22 @@ function EventChartComponent({
     },
   })
   const resolvedTweetCount = xtrackerTweetCountQuery.data?.totalCount ?? tweetCount
-  const resolvedTweetCountdownTargetMs = tweetCountdownTargetMs
-  const resolvedTweetStartTargetMs = useMemo(
-    () => parseTimestampToMs(event.start_date ?? null),
-    [event.start_date],
-  )
+  const resolvedTweetCountdownTargetMs = useMemo(() => {
+    const trackingEndMs = xtrackerTweetCountQuery.data?.trackingEndMs
+    if (typeof trackingEndMs === 'number' && Number.isFinite(trackingEndMs) && trackingEndMs > 0) {
+      return trackingEndMs
+    }
+
+    return tweetCountdownTargetMs
+  }, [tweetCountdownTargetMs, xtrackerTweetCountQuery.data?.trackingEndMs])
+  const resolvedTweetStartTargetMs = useMemo(() => {
+    const trackingStartMs = xtrackerTweetCountQuery.data?.trackingStartMs
+    if (typeof trackingStartMs === 'number' && Number.isFinite(trackingStartMs) && trackingStartMs > 0) {
+      return trackingStartMs
+    }
+
+    return parseTimestampToMs(event.start_date ?? null)
+  }, [event.start_date, xtrackerTweetCountQuery.data?.trackingStartMs])
   const shouldRenderTweetMarketsPanel = shouldShowTweetMarketsPanel
     && resolvedTweetStartTargetMs != null
     && nowMs >= resolvedTweetStartTargetMs
