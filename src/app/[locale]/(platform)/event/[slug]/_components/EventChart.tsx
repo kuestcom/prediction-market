@@ -488,8 +488,8 @@ function EventChartComponent({
   const xtrackerTweetCountQuery = useQuery({
     queryKey: ['xtracker-tweet-count', event.slug, event.series_slug, event.end_date, event.title],
     enabled: shouldShowTweetMarketsPanel,
-    staleTime: 30_000,
-    refetchInterval: 30_000,
+    staleTime: 120_000,
+    refetchInterval: 120_000,
     queryFn: async () => {
       const params = new URLSearchParams()
       if (event.slug) {
