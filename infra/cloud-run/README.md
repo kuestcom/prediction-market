@@ -64,7 +64,7 @@ gcloud builds submit --config infra/cloud-run/cloudbuild.yaml \
 ## Scheduler implementation on Cloud Run
 
 > [!CAUTION]
-> If you choose [Supabase mode](../README.md#option-a-supabase-mode-recommended), there is no need to create Cloud Scheduler jobs since you will be duplicating requests to your sync endpoints.
+> If you choose [Supabase mode](../README.md#option-a-supabase-mode), there is no need to create Cloud Scheduler jobs since you will be duplicating requests to your sync endpoints.
 
 Use Cloud Scheduler HTTP jobs implementing `infra/scheduler-contract.md`.
 

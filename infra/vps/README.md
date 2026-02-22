@@ -260,7 +260,7 @@ docker compose -f infra/docker/docker-compose.production.yml logs -f caddy
 ## Scheduler implementation on VPS
 
 > [!CAUTION]
-> If you choose [Supabase mode](../README.md#option-a-supabase-mode-recommended), do not create VPS cron jobs for sync endpoints, or you will duplicate requests.
+> If you choose [Supabase mode](../README.md#option-a-supabase-mode), do not create VPS cron jobs for sync endpoints, or you will duplicate requests.
 
 If you are not using Supabase scheduler, configure Linux cron with `infra/scheduler-contract.md`.
 

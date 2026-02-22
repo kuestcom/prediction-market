@@ -1,6 +1,6 @@
 # DigitalOcean
 
-Deploy target for DigitalOcean App Platform.
+Deploy target for DigitalOcean (Droplet or App Platform).
 
 ## Prerequisites
 
@@ -9,7 +9,19 @@ Deploy target for DigitalOcean App Platform.
 3. [Configure Environment Variables](../../README.md#quick-start-15-minutes).
 4. Choose between Supabase vs Postgres+S3 and [set the required env variables](../README.md#storage-options)
 
-## Manual deploy on App Platform
+## Deployment options
+
+<details>
+<summary><strong>Option A (click to expand): VPS (Droplets)</strong></summary>
+
+Use the VPS manual installation guide:
+
+- [VPS deployment guide](../vps/README.md)
+
+</details>
+
+<details>
+<summary><strong>Option B (click to expand): App Platform</strong></summary>
 
 ### 1) Create project
 
@@ -57,10 +69,10 @@ In DigitalOcean App Platform, mark secrets as encrypted.
 3. Follow DNS instructions.
 4. Set `SITE_URL` to the final HTTPS domain.
 
-## Scheduler implementation on DigitalOcean
+### 7) Scheduler implementation
 
 > [!CAUTION]
-> If you choose [Supabase mode](../README.md#option-a-supabase-mode-recommended), there is no need to create external scheduler jobs since you will be duplicating requests to your sync endpoints.
+> If you choose [Supabase mode](../README.md#option-a-supabase-mode), there is no need to create external scheduler jobs since you will be duplicating requests to your sync endpoints.
 
 App Platform web deploy does not replace the sync scheduler requirement.
 
@@ -72,21 +84,7 @@ Common options:
 - Google Cloud Scheduler
 - Any managed cron service that supports custom headers
 
-## Migration operations
-
-Run with production env loaded:
-
-```bash
-npm run db:push
-```
-
-## Rollback
-
-1. Open app `Deployments`.
-2. Select previous healthy deployment.
-3. Click `Rollback`.
-
-## Optional: Terraform for DigitalOcean
+### 8) Optional: Terraform for App Platform
 
 ```bash
 export DIGITALOCEAN_TOKEN=<your-token>
@@ -95,6 +93,22 @@ cp terraform.tfvars.example terraform.tfvars
 terraform init
 terraform plan
 terraform apply
+```
+
+### 9) Rollback
+
+1. Open app `Deployments`.
+2. Select previous healthy deployment.
+3. Click `Rollback`.
+
+</details>
+
+## Migration operations
+
+Run with production env loaded:
+
+```bash
+npm run db:push
 ```
 
 ## Notes

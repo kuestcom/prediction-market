@@ -23,7 +23,7 @@ secret_env = {
   KUEST_PASSPHRASE                    = "replace-me"
 
   # Choose one storage profile:
-  # Supabase mode (recommended)
+  # Supabase mode
   SUPABASE_URL                        = "replace-me"
   SUPABASE_SERVICE_ROLE_KEY           = "replace-me"
 

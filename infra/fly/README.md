@@ -43,7 +43,7 @@ flyctl deploy \
 ## Scheduler implementation on Fly.io
 
 > [!CAUTION]
-> If you choose [Supabase mode](../README.md#option-a-supabase-mode-recommended), there is no need to create external scheduler jobs since you will be duplicating requests to your sync endpoints.
+> If you choose [Supabase mode](../README.md#option-a-supabase-mode), there is no need to create external scheduler jobs since you will be duplicating requests to your sync endpoints.
 
 Fly deployment does not replace the sync scheduler requirement.
 

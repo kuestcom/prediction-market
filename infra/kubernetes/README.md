@@ -22,7 +22,7 @@ kubectl apply -k infra/kubernetes
 ## Scheduler implementation on Kubernetes
 
 > [!CAUTION]
-> If you choose [Supabase mode](../README.md#option-a-supabase-mode-recommended), there is no need to apply Kubernetes CronJobs since you will be duplicating requests to your sync endpoints.
+> If you choose [Supabase mode](../README.md#option-a-supabase-mode), there is no need to apply Kubernetes CronJobs since you will be duplicating requests to your sync endpoints.
 
 Use Kubernetes CronJobs implementing `infra/scheduler-contract.md`.
 

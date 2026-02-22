@@ -4,13 +4,13 @@ This folder provides a portable deployment foundation outside Vercel.
 
 ## Layout
 
-- `docker/`: production image and local compose profile
+- `docker/`: Docker image plus local/production Compose runbook
 - `kubernetes/`: baseline manifests for app deployment and ingress
 - `terraform/`: reusable deployment target modules and production stacks
 - `cloud-run/`: Google Cloud Run deployment runbook
 - `fly/`: Fly.io deployment runbook
-- `digital-ocean/`: DigitalOcean App Platform runbook
-- `vps/`: generic VPS manual deployment runbook
+- `digital-ocean/`: DigitalOcean deployment runbook (Droplet or App Platform)
+- `vps/`: generic VPS (DigitalOcean Droplets, Vultr, Hetzner, EC2, etc.) deployment runbook
 - `scheduler-contract.md`: single scheduler contract for `/api/sync/*`
 
 ## Deployment decision tree
@@ -18,14 +18,14 @@ This folder provides a portable deployment foundation outside Vercel.
 1. Deploying on Vercel with one-click Supabase.
    - Keep existing Vercel flow from [README Quick Start](../README.md#quick-start-15-minutes).
 2. Deploying outside Vercel with Supabase.
-   - Configure a Supabase project and follow [Supabase mode](#option-a-supabase-mode-recommended).
+   - Configure a Supabase project and follow [Supabase mode](#option-a-supabase-mode).
 3. Deploying outside Vercel without Supabase.
    - Use Postgres+S3 mode.
    - You must schedule `/api/sync/*` via platform/external scheduler.
 
 ## Storage options
 
-### Option A: Supabase mode (recommended)
+### Option A: Supabase mode
 
 Required secrets:
 
@@ -77,20 +77,7 @@ Use immutable image references in production (`@sha256:digest` preferred, `:late
 
 ### Docker
 
-```bash
-docker compose --env-file .env -f infra/docker/docker-compose.yml up --build
-```
-
-`NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID` is required at build time and is passed as a Docker build argument.
-
-### Kubernetes (manifests)
-
-```bash
-cp infra/kubernetes/secret.example.yaml infra/kubernetes/secret.yaml
-kubectl apply -k infra/kubernetes
-```
-
-Scheduler implementation details: `infra/kubernetes/README.md`
+[Docker runbook](./docker/README.md)
 
 ### Cloud Run
 
@@ -100,29 +87,18 @@ Scheduler implementation details: `infra/kubernetes/README.md`
 
 [Fly.io runbook](./fly/README.md)
 
-### DigitalOcean (manual)
+### DigitalOcean App Platform
 
 [DigitalOcean runbook](./digital-ocean/README.md)
 
-### VPS (manual)
+### VPS (DigitalOcean Droplets, Vultr, Hetzner, EC2, etc.)
 
 [VPS runbook](./vps/README.md)
 
+### Kubernetes
+
+[Kubernetes runbook](./kubernetes/README.md)
+
 ### Terraform
 
-```bash
-cd infra/terraform/environments/production/kubernetes
-cp terraform.tfvars.example terraform.tfvars
-terraform init
-terraform plan
-terraform apply
-```
-
-Additional Terraform targets:
-
-- `infra/terraform/environments/production/gke`
-- `infra/terraform/environments/production/cloud-run`
-- `infra/terraform/environments/production/fly`
-- `infra/terraform/environments/production/digital-ocean`
-
-See `infra/terraform/README.md` for target-specific details.
+[Terraform runbook](./terraform/README.md)
