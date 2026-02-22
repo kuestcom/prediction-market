@@ -62,6 +62,15 @@ services:
     profiles: [local-postgres]
     container_name: kuest-postgres
     image: postgres:17-alpine
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        if [ -z "$$POSTGRES_PASSWORD" ]; then
+          echo "POSTGRES_PASSWORD is required when using local-postgres profile." >&2
+          exit 1
+        fi
+        exec docker-entrypoint.sh postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-kuest}
       POSTGRES_USER: ${POSTGRES_USER:-kuest}

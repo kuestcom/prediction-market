@@ -734,6 +734,7 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
   if (uniqueEventIds.length === 0) {
     return
   }
+  const failedUpdates: string[] = []
 
   const [currentEvents, marketRows] = await Promise.all([
     db
@@ -825,7 +826,16 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
         .where(eq(eventsTable.id, eventId))
     }
     catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
       console.error(`Failed to update event status for ${eventId}:`, error)
+      failedUpdates.push(`${eventId}: ${message}`)
     }
+  }
+
+  if (failedUpdates.length > 0) {
+    const sample = failedUpdates.slice(0, 3).join('; ')
+    throw new Error(
+      `Failed to update ${failedUpdates.length} event status record(s). Example failures: ${sample}`,
+    )
   }
 }
