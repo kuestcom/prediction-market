@@ -1,3 +1,5 @@
+name: kuest-production
+
 services:
   web:
     container_name: kuest-web
@@ -6,14 +8,34 @@ services:
       dockerfile: infra/docker/Dockerfile
       args:
         NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID: ${NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID:?NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID is required}
+    image: kuest-web:production-local
     env_file:
       - ../../.env
     environment:
       NODE_ENV: production
       SITE_URL: ${SITE_URL:?SITE_URL is required}
     ports:
-      - '3000:3000'
+      - '127.0.0.1:3000:3000'
     restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+      interval: 30s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+      - no-new-privileges:true
 
   postgres:
     profiles: [local-postgres]
@@ -22,11 +44,9 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-kuest}
       POSTGRES_USER: ${POSTGRES_USER:-kuest}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-replace-me}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required when using local-postgres profile}
     volumes:
       - kuest-postgres-data:/var/lib/postgresql/data
-    ports:
-      - '127.0.0.1:5432:5432'
     restart: unless-stopped
     healthcheck:
       test: [CMD-SHELL, 'pg_isready -U ${POSTGRES_USER:-kuest} -d ${POSTGRES_DB:-kuest}']
