@@ -46,10 +46,37 @@ function buildSyncCronSql({
   END $$;`
 }
 
-async function applyMigrations(sql) {
+function resolveSupabaseMode(env = process.env) {
+  const supabaseUrl = env.SUPABASE_URL?.trim()
+  const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+
+  const hasAnySupabaseConfig = Boolean(supabaseUrl || supabaseServiceRoleKey)
+  if (!hasAnySupabaseConfig) {
+    return false
+  }
+
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set together when configuring Supabase mode.')
+  }
+
+  return true
+}
+
+function rewriteMigrationSqlForMode(migrationSql, isSupabase) {
+  if (isSupabase) {
+    return migrationSql
+  }
+
+  return migrationSql
+    .replace(/\bTO\s+"service_role"\b/gi, 'TO CURRENT_USER')
+    .replace(/\bTO\s+service_role\b/gi, 'TO CURRENT_USER')
+}
+
+async function applyMigrations(sql, isSupabase) {
   console.log('Applying migrations...')
 
   console.log('Creating migrations tracking table...')
+  const migrationsPolicyRole = isSupabase ? 'service_role' : 'CURRENT_USER'
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS migrations (
       version TEXT PRIMARY KEY,
@@ -62,7 +89,7 @@ async function applyMigrations(sql) {
     $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'service_role_all_migrations' AND tablename = 'migrations') THEN
-          CREATE POLICY "service_role_all_migrations" ON migrations FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+          CREATE POLICY "service_role_all_migrations" ON migrations FOR ALL TO ${migrationsPolicyRole} USING (TRUE) WITH CHECK (TRUE);
         END IF;
       END
     $$;
@@ -89,10 +116,15 @@ async function applyMigrations(sql) {
     }
 
     console.log(`🔄 Applying ${file}`)
-    const migrationSql = fs.readFileSync(
+    const rawMigrationSql = fs.readFileSync(
       path.join(migrationsDir, file),
       'utf8',
     )
+    const migrationSql = rewriteMigrationSqlForMode(rawMigrationSql, isSupabase)
+
+    if (!isSupabase && rawMigrationSql !== migrationSql) {
+      console.log(`ℹ️ Applied compatibility rewrite for ${file} (service_role -> CURRENT_USER)`)
+    }
 
     await sql.begin(async (tx) => {
       await tx.unsafe(migrationSql, [], { simple: true })
@@ -220,14 +252,44 @@ async function createSyncResolutionCron(sql, siteUrl, cronSecret) {
   })
 }
 
-function shouldSkip(requiredEnvVars) {
-  const missing = requiredEnvVars.filter(envVar => !process.env[envVar])
-  if (missing.length === 0) {
-    return false
+async function resolveCronExtensionCapabilities(sql) {
+  const result = await sql`
+    SELECT
+      EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') AS has_pg_cron,
+      EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_net') AS has_pg_net
+  `
+
+  return {
+    hasPgCron: Boolean(result[0]?.has_pg_cron),
+    hasPgNet: Boolean(result[0]?.has_pg_net),
+  }
+}
+
+async function configureSupabaseScheduler(sql, siteUrl, cronSecret) {
+  const { hasPgCron, hasPgNet } = await resolveCronExtensionCapabilities(sql)
+
+  if (!hasPgCron) {
+    console.log('Skipping scheduler setup because pg_cron is not installed in this database.')
+    return
   }
 
-  console.log(`Skipping db:push because required env vars are missing: ${missing.join(', ')}`)
-  return true
+  await createCleanCronDetailsCron(sql)
+  await createCleanJobsCron(sql)
+
+  if (!hasPgNet) {
+    console.log('Skipping sync endpoint cron setup because pg_net is not installed. Configure scheduler externally.')
+    return
+  }
+
+  if (!cronSecret) {
+    console.log('Skipping sync endpoint cron setup because CRON_SECRET is missing. Configure scheduler externally or rerun db:push with CRON_SECRET.')
+    return
+  }
+
+  await createSyncEventsCron(sql, siteUrl, cronSecret)
+  await createSyncTranslationsCron(sql, siteUrl, cronSecret)
+  await createSyncResolutionCron(sql, siteUrl, cronSecret)
+  await createSyncVolumeCron(sql, siteUrl, cronSecret)
 }
 
 function resolveMigrationConnectionString() {
@@ -241,19 +303,11 @@ function resolveMigrationConnectionString() {
 }
 
 async function run() {
-  if (shouldSkip(['CRON_SECRET'])) {
-    return
-  }
-
-  const siteUrl = resolveSiteUrl(process.env)
-
   const connectionString = resolveMigrationConnectionString()
   if (!connectionString) {
     console.log('Skipping db:push because required env vars are missing: POSTGRES_URL_NON_POOLING or POSTGRES_URL')
     return
   }
-
-  const cronSecret = process.env.CRON_SECRET
 
   const sql = postgres(connectionString, {
     max: 1,
@@ -262,17 +316,23 @@ async function run() {
   })
 
   try {
+    const isSupabaseMode = resolveSupabaseMode(process.env)
+    const siteUrl = resolveSiteUrl(process.env)
+    const cronSecret = process.env.CRON_SECRET?.trim() || ''
+
     console.log('Connecting to database...')
     await sql`SELECT 1`
     console.log('Connected to database successfully')
 
-    await applyMigrations(sql)
-    await createCleanCronDetailsCron(sql)
-    await createCleanJobsCron(sql)
-    await createSyncEventsCron(sql, siteUrl, cronSecret)
-    await createSyncTranslationsCron(sql, siteUrl, cronSecret)
-    await createSyncResolutionCron(sql, siteUrl, cronSecret)
-    await createSyncVolumeCron(sql, siteUrl, cronSecret)
+    console.log(`Migration mode: ${isSupabaseMode ? 'supabase' : 'postgres+s3 (no Supabase cron/storage dependencies)'}`)
+    await applyMigrations(sql, isSupabaseMode)
+
+    if (isSupabaseMode) {
+      await configureSupabaseScheduler(sql, siteUrl, cronSecret)
+    }
+    else {
+      console.log('Skipping database scheduler setup because Supabase mode is not configured. Use external scheduler contract from infra/scheduler-contract.md.')
+    }
   }
   catch (error) {
     console.error('An error occurred:', error)
