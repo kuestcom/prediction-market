@@ -16,7 +16,7 @@ export default function HeaderSearch() {
   const showDropdown = showResults || isLoading.events || isLoading.profiles
   const inputBaseClass = showDropdown ? 'bg-background' : 'bg-input'
   const inputBorderClass = showDropdown ? 'border-border' : 'border-transparent'
-  const inputHoverClass = showDropdown ? 'hover:bg-background' : 'hover:bg-[color:var(--input-hover)]'
+  const inputHoverClass = showDropdown ? 'hover:bg-background' : 'hover:bg-secondary'
   const inputFocusClass = 'focus:bg-background focus-visible:bg-background'
   const site = useSiteIdentity()
   const sitename = `${site.name || 'events and profiles'}`.toLowerCase()
