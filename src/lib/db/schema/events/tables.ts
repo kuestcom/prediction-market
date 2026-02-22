@@ -97,6 +97,7 @@ export const events = pgTable(
     updated_at: timestamp({ withTimezone: true })
       .notNull()
       .defaultNow(),
+    start_date: timestamp({ withTimezone: true }),
     end_date: timestamp({ withTimezone: true }),
     resolved_at: timestamp({ withTimezone: true }),
   },
@@ -119,6 +120,30 @@ export const event_live_chart_configs = pgTable(
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
+)
+
+export const series_social_trackers = pgTable(
+  'series_social_trackers',
+  {
+    id: smallint().primaryKey().generatedAlwaysAsIdentity(),
+    series_slug: text().notNull(),
+    platform: text().notNull().default('X'),
+    handle: text().notNull(),
+    display_name: text().notNull(),
+    is_verified: boolean().notNull().default(false),
+    bio: text(),
+    is_active: boolean().notNull().default(true),
+    priority: smallint().notNull().default(0),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  table => ({
+    series_slug_platform_handle_unique: unique('series_social_trackers_series_slug_platform_handle_key').on(
+      table.series_slug,
+      table.platform,
+      table.handle,
+    ),
+  }),
 )
 
 export const event_translations = pgTable(

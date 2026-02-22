@@ -4,6 +4,7 @@ import { AnimatedCounter } from 'react-animated-counter'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { cn, sanitizeSvg } from '@/lib/utils'
 import EventSeriesPills from './EventSeriesPills'
+import EventTweetMarketsPanel from './EventTweetMarketsPanel'
 
 interface EventChartHeaderProps {
   isSingleMarket: boolean
@@ -17,6 +18,9 @@ interface EventChartHeaderProps {
   currentEventSlug?: string
   seriesEvents?: EventSeriesEntry[]
   showSeriesNavigation?: boolean
+  showTweetMarketsPanel?: boolean
+  tweetCount?: number | null
+  tweetCountdownTargetMs?: number | null
 }
 
 export default function EventChartHeader({
@@ -31,11 +35,33 @@ export default function EventChartHeader({
   currentEventSlug,
   seriesEvents = [],
   showSeriesNavigation = true,
+  showTweetMarketsPanel = false,
+  tweetCount = null,
+  tweetCountdownTargetMs = null,
 }: EventChartHeaderProps) {
+  const seriesNavigation = showSeriesNavigation
+    ? <EventSeriesPills currentEventSlug={currentEventSlug} seriesEvents={seriesEvents} />
+    : null
+  const tweetMarketsPanel = showTweetMarketsPanel
+    ? (
+        <EventTweetMarketsPanel
+          tweetCount={tweetCount}
+          countdownTargetMs={tweetCountdownTargetMs}
+        />
+      )
+    : null
+
   if (!isSingleMarket) {
-    return showSeriesNavigation
-      ? <EventSeriesPills currentEventSlug={currentEventSlug} seriesEvents={seriesEvents} />
-      : null
+    if (!seriesNavigation && !tweetMarketsPanel) {
+      return null
+    }
+
+    return (
+      <div className="flex flex-col gap-2">
+        {seriesNavigation}
+        {tweetMarketsPanel}
+      </div>
+    )
   }
 
   const changeIndicator = (() => {
@@ -77,9 +103,8 @@ export default function EventChartHeader({
 
   return (
     <div className="flex flex-col gap-2">
-      {showSeriesNavigation
-        ? <EventSeriesPills currentEventSlug={currentEventSlug} seriesEvents={seriesEvents} />
-        : null}
+      {seriesNavigation}
+      {tweetMarketsPanel}
 
       <div className="flex flex-row items-end justify-between gap-3">
         <div className="flex flex-row items-end gap-3">
