@@ -14,21 +14,42 @@ services:
     environment:
       NODE_ENV: production
       SITE_URL: ${SITE_URL:?SITE_URL is required}
-    ports:
-      - '127.0.0.1:3000:3000'
     restart: unless-stopped
     healthcheck:
-      test:
-        - CMD
-        - node
-        - -e
-        - "fetch('http://127.0.0.1:3000').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 6
       start_period: 40s
     stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+      - no-new-privileges:true
+
+  caddy:
+    container_name: kuest-caddy
+    image: caddy:2.10-alpine
+    depends_on:
+      web:
+        condition: service_healthy
+    command:
+      - caddy
+      - reverse-proxy
+      - --from
+      - ${CADDY_DOMAIN:-markets.example.com}
+      - --to
+      - web:3000
+    ports:
+      - '80:80'
+      - '443:443'
+    restart: unless-stopped
+    volumes:
+      - kuest-caddy-data:/data
+      - kuest-caddy-config:/config
     logging:
       driver: json-file
       options:
@@ -44,7 +65,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-kuest}
       POSTGRES_USER: ${POSTGRES_USER:-kuest}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required when using local-postgres profile}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-replace-me}
     volumes:
       - kuest-postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -56,3 +77,5 @@ services:
 
 volumes:
   kuest-postgres-data:
+  kuest-caddy-data:
+  kuest-caddy-config:

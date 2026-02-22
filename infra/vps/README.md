@@ -2,11 +2,6 @@
 
 Deploy target for generic Linux VPS hosts (DigitalOcean Droplets, Vultr, Hetzner, EC2, etc.).
 
-This runbook has two options:
-
-1. Native Node first (`Node + systemd + Nginx`)
-2. Docker second (`Docker Compose + Nginx`)
-
 ## Prerequisites
 
 1. Ubuntu 22.04+ VPS with public IPv4.
@@ -27,7 +22,10 @@ sudo ufw allow 443/tcp
 sudo ufw --force enable
 ```
 
-## Option A: Native Node (`Node + systemd + Nginx`)
+## Choose your tutorial
+
+<details>
+<summary><strong>Option A (click to expand): Node + systemd + Nginx</strong></summary>
 
 ### 1) Install runtime packages
 
@@ -127,78 +125,7 @@ sudo systemctl enable --now kuest
 sudo systemctl status kuest
 ```
 
-## Option B: Docker (`Docker Compose + Nginx`)
-
-### 1) Install Docker Engine + Compose plugin
-
-```bash
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-sudo usermod -aG docker "$USER"
-newgrp docker
-
-docker --version
-docker compose version
-```
-
-### 2) Clone repository and configure `.env`
-
-If already cloned in Option A, reuse the same directory.
-
-```bash
-cd /opt/kuest
-git clone https://github.com/<your-org>/prediction-market.git || true
-cd prediction-market
-cp .env.example .env
-```
-
-Edit `.env` with:
-
-- [Configure Environment Variables](../../README.md#quick-start-15-minutes)
-- [Storage options](../README.md#storage-options)
-
-### 3) Optional: local Postgres in Docker Compose (when not using Supabase)
-
-The production compose file is `infra/docker/docker-compose.production.yml`.
-
-If you are not using Supabase, you can run Postgres in Compose using profile `local-postgres`.
-
-Add to `.env`:
-
-```env
-POSTGRES_DB=kuest
-POSTGRES_USER=kuest
-POSTGRES_PASSWORD=replace-with-strong-password
-POSTGRES_URL=postgresql://kuest:replace-with-strong-password@postgres:5432/kuest?sslmode=disable
-```
-
-### 4) Start production compose
-
-Supabase mode:
-
-```bash
-cd /opt/kuest/prediction-market
-docker compose --env-file .env -f infra/docker/docker-compose.production.yml up -d --build
-```
-
-Postgres+S3 mode with local Postgres container:
-
-```bash
-cd /opt/kuest/prediction-market
-docker compose --env-file .env -f infra/docker/docker-compose.production.yml --profile local-postgres up -d --build
-```
-
-## Reverse proxy and TLS (both options)
+### 6) Configure Nginx + TLS
 
 Create `/etc/nginx/sites-available/kuest`:
 
@@ -226,16 +153,109 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Issue TLS certificate:
+Issue certificate:
 
 ```bash
 sudo certbot --nginx -d markets.example.com
 ```
 
-Set `SITE_URL=https://markets.example.com` in `.env` and restart your chosen path:
+Set `SITE_URL=https://markets.example.com` in `.env` and restart:
 
-- Native Node: `sudo systemctl restart kuest`
-- Docker: `docker compose --env-file .env -f infra/docker/docker-compose.production.yml up -d --build`
+```bash
+sudo systemctl restart kuest
+```
+
+</details>
+
+<details>
+<summary><strong>Option B (click to expand): Docker Compose + Caddy</strong></summary>
+
+### 1) Install Docker Engine + Compose plugin
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin git
+
+sudo usermod -aG docker "$USER"
+newgrp docker
+
+docker --version
+docker compose version
+```
+
+### 2) Clone repository and configure `.env`
+
+```bash
+sudo mkdir -p /opt/kuest
+sudo chown "$USER":"$USER" /opt/kuest
+cd /opt/kuest
+git clone https://github.com/<your-org>/prediction-market.git
+cd prediction-market
+cp .env.example .env
+```
+
+Edit `.env` with:
+
+- [Configure Environment Variables](../../README.md#quick-start-15-minutes)
+- [Storage options](../README.md#storage-options)
+
+### 3) Optional: local Postgres in Docker Compose (only if not using Supabase)
+
+The production compose file is `infra/docker/docker-compose.production.yml`.
+
+If you are not using Supabase, set:
+
+```env
+POSTGRES_DB=kuest
+POSTGRES_USER=kuest
+POSTGRES_PASSWORD=replace-with-strong-password
+POSTGRES_URL=postgresql://kuest:replace-with-strong-password@postgres:5432/kuest?sslmode=disable
+```
+
+### 4) Configure Caddy domain
+
+Set these values in `.env`:
+
+```env
+CADDY_DOMAIN=markets.example.com
+SITE_URL=https://markets.example.com
+```
+
+`Caddy` handles reverse proxy and TLS automatically when DNS is already pointing to the VPS.
+
+### 5) Start production compose
+
+Supabase mode:
+
+```bash
+cd /opt/kuest/prediction-market
+docker compose --env-file .env -f infra/docker/docker-compose.production.yml up -d --build
+```
+
+Postgres+S3 mode with local Postgres container:
+
+```bash
+cd /opt/kuest/prediction-market
+docker compose --env-file .env -f infra/docker/docker-compose.production.yml --profile local-postgres up -d --build
+```
+
+### 6) Validate
+
+```bash
+docker compose -f infra/docker/docker-compose.production.yml ps
+docker compose -f infra/docker/docker-compose.production.yml logs -f caddy
+```
+
+</details>
 
 ## Scheduler implementation on VPS
 
@@ -268,6 +288,7 @@ cd /opt/kuest/prediction-market
 git pull
 npm ci
 npm run build
+npm run db:push
 sudo systemctl restart kuest
 ```
 
