@@ -9,8 +9,8 @@ This folder provides a portable deployment foundation outside Vercel.
 - `terraform/`: reusable deployment target modules and production stacks
 - `cloud-run/`: Google Cloud Run deployment runbook
 - `fly/`: Fly.io deployment runbook
-- `digital-ocean/`: DigitalOcean App Platform runbook
-- `vps/`: generic VPS manual deployment runbook
+- `digital-ocean/`: DigitalOcean deployment runbook (VPS or App Platform)
+- `vps/`: generic VPS (DigitalOcean Droplets, Vultr, Hetzner, EC2, etc.) deployment runbook
 - `scheduler-contract.md`: single scheduler contract for `/api/sync/*`
 
 ## Deployment decision tree
@@ -18,14 +18,14 @@ This folder provides a portable deployment foundation outside Vercel.
 1. Deploying on Vercel with one-click Supabase.
    - Keep existing Vercel flow from [README Quick Start](../README.md#quick-start-15-minutes).
 2. Deploying outside Vercel with Supabase.
-   - Configure a Supabase project and follow [Supabase mode](#option-a-supabase-mode-recommended).
+   - Configure a Supabase project and follow [Supabase mode](#option-a-supabase-mode).
 3. Deploying outside Vercel without Supabase.
    - Use Postgres+S3 mode.
    - You must schedule `/api/sync/*` via platform/external scheduler.
 
 ## Storage options
 
-### Option A: Supabase mode (recommended)
+### Option A: Supabase mode
 
 Required secrets:
 
@@ -100,29 +100,20 @@ Scheduler implementation details: `infra/kubernetes/README.md`
 
 [Fly.io runbook](./fly/README.md)
 
-### DigitalOcean (manual)
+### DigitalOcean App Platform
 
 [DigitalOcean runbook](./digital-ocean/README.md)
 
-### VPS (manual)
+### VPS (DigitalOcean Droplets, Vultr, Hetzner, EC2, etc.)
 
 [VPS runbook](./vps/README.md)
 
 ### Terraform
 
-```bash
-cd infra/terraform/environments/production/kubernetes
-cp terraform.tfvars.example terraform.tfvars
-terraform init
-terraform plan
-terraform apply
-```
-
-Additional Terraform targets:
-
 - `infra/terraform/environments/production/gke`
+- `infra/terraform/environments/production/kubernetes`
 - `infra/terraform/environments/production/cloud-run`
 - `infra/terraform/environments/production/fly`
 - `infra/terraform/environments/production/digital-ocean`
 
-See `infra/terraform/README.md` for target-specific details.
+[See target-specific details](infra/terraform/README.md)
