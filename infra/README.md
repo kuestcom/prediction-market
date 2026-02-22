@@ -4,7 +4,7 @@ This folder provides a portable deployment foundation outside Vercel.
 
 ## Layout
 
-- `docker/`: production image and local compose profile
+- `docker/`: Docker image plus local/production Compose runbook
 - `kubernetes/`: baseline manifests for app deployment and ingress
 - `terraform/`: reusable deployment target modules and production stacks
 - `cloud-run/`: Google Cloud Run deployment runbook
@@ -77,20 +77,7 @@ Use immutable image references in production (`@sha256:digest` preferred, `:late
 
 ### Docker
 
-```bash
-docker compose --env-file .env -f infra/docker/docker-compose.yml up --build
-```
-
-`NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID` is required at build time and is passed as a Docker build argument.
-
-### Kubernetes (manifests)
-
-```bash
-cp infra/kubernetes/secret.example.yaml infra/kubernetes/secret.yaml
-kubectl apply -k infra/kubernetes
-```
-
-Scheduler implementation details: `infra/kubernetes/README.md`
+[Docker runbook](./docker/README.md)
 
 ### Cloud Run
 
@@ -108,12 +95,10 @@ Scheduler implementation details: `infra/kubernetes/README.md`
 
 [VPS runbook](./vps/README.md)
 
+### Kubernetes
+
+[Kubernetes runbook](./kubernetes/README.md)
+
 ### Terraform
 
-- `infra/terraform/environments/production/gke`
-- `infra/terraform/environments/production/kubernetes`
-- `infra/terraform/environments/production/cloud-run`
-- `infra/terraform/environments/production/fly`
-- `infra/terraform/environments/production/digital-ocean`
-
-[See target-specific details](infra/terraform/README.md)
+[Terraform runbook](./terraform/README.md)
