@@ -83,7 +83,7 @@
     "@testing-library/user-event": "^14.6.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/mdx": "^2.0.13",
-    "@types/node": "^24.10.12",
+    "@types/node": "^24.10.13",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.0.18",
