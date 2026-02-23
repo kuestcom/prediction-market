@@ -269,6 +269,7 @@ export default function SportsEventsGrid({
   const [hasInitialized, setHasInitialized] = useState(false)
   const [scrollMargin, setScrollMargin] = useState(0)
   const [sportsMode, setSportsMode] = useState<SportsSidebarMode>(initialMode)
+  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null)
   const PAGE_SIZE = 40
   const normalizedSportsSportSlug = sportsSportSlug?.trim().toLowerCase() || null
   const isDefaultState = filters.search === ''
@@ -337,6 +338,10 @@ export default function SportsEventsGrid({
     setSportsMode(initialMode)
   }, [initialMode])
 
+  useEffect(() => {
+    setCurrentTimestamp(Date.now())
+  }, [])
+
   const allEvents = useMemo(() => (data ? data.pages.flat() : []), [data])
 
   const filteredEvents = useMemo(() => {
@@ -377,8 +382,11 @@ export default function SportsEventsGrid({
       return eventsMatchingTagFilters
     }
 
+    if (currentTimestamp == null) {
+      return eventsMatchingTagFilters
+    }
+
     const newestBySeriesSlug = new Map<string, Event>()
-    const nowMs = Date.now()
 
     for (const event of eventsMatchingTagFilters) {
       const seriesSlug = normalizeSeriesSlug(event.series_slug)
@@ -387,7 +395,7 @@ export default function SportsEventsGrid({
       }
 
       const currentNewest = newestBySeriesSlug.get(seriesSlug)
-      if (!currentNewest || isPreferredSeriesEvent(event, currentNewest, nowMs)) {
+      if (!currentNewest || isPreferredSeriesEvent(event, currentNewest, currentTimestamp)) {
         newestBySeriesSlug.set(seriesSlug, event)
       }
     }
@@ -404,7 +412,7 @@ export default function SportsEventsGrid({
 
       return newestBySeriesSlug.get(seriesSlug)?.id === event.id
     })
-  }, [allEvents, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status])
+  }, [allEvents, currentTimestamp, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status])
 
   const sportsBaseEvents = useMemo(() => {
     if (!isSportsContext) {
@@ -417,13 +425,16 @@ export default function SportsEventsGrid({
       return sportsBaseEvents
     }
 
-    const nowMs = Date.now()
-    if (sportsMode === 'live') {
-      return sportsBaseEvents.filter(event => isEventLiveNow(event, nowMs))
+    if (currentTimestamp == null) {
+      return sportsBaseEvents
     }
 
-    return sportsBaseEvents.filter(event => isEventFuture(event, nowMs))
-  }, [isSportsContext, sportsBaseEvents, sportsMode])
+    if (sportsMode === 'live') {
+      return sportsBaseEvents.filter(event => isEventLiveNow(event, currentTimestamp))
+    }
+
+    return sportsBaseEvents.filter(event => isEventFuture(event, currentTimestamp))
+  }, [currentTimestamp, isSportsContext, sportsBaseEvents, sportsMode])
   const visibleEvents = isSportsContext ? sportsModeEvents : filteredEvents
 
   const marketTargets = useMemo(
