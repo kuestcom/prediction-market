@@ -575,10 +575,22 @@ export default function EventsGrid({
   }
 
   if (!allEvents || allEvents.length === 0) {
-    if (isSportsContext && sportsSelectedTitle) {
+    if (isSportsContext) {
       return (
-        <div ref={parentRef} className="w-full">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">{sportsSelectedTitle}</h1>
+        <div className="w-full">
+          <div className="relative w-full lg:flex lg:items-start lg:gap-4">
+            <SportsSidebarMenu
+              mode={sportsMode}
+              activeTagSlug={activeSportsTagSlug}
+              onSelectMode={setSportsMode}
+              onSelectTagSlug={handleSelectSportsTag}
+            />
+            <div ref={parentRef} className="relative min-w-0 flex-1">
+              {sportsSelectedTitle && (
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground lg:mt-2 lg:ml-4">{sportsSelectedTitle}</h1>
+              )}
+            </div>
+          </div>
         </div>
       )
     }
@@ -586,10 +598,25 @@ export default function EventsGrid({
   }
 
   if (!visibleEvents || visibleEvents.length === 0) {
-    if (isSportsContext && sportsSelectedTitle) {
+    if (isSportsContext) {
       return (
-        <div ref={parentRef} className="w-full">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">{sportsSelectedTitle}</h1>
+        <div className="w-full">
+          <div className="relative w-full lg:flex lg:items-start lg:gap-4">
+            <SportsSidebarMenu
+              mode={sportsMode}
+              activeTagSlug={activeSportsTagSlug}
+              onSelectMode={setSportsMode}
+              onSelectTagSlug={handleSelectSportsTag}
+            />
+            <div ref={parentRef} className="min-w-0 flex-1">
+              {sportsSelectedTitle && (
+                <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-12 lg:ml-4">{sportsSelectedTitle}</h1>
+              )}
+              <div className="flex min-h-50 min-w-0 items-center justify-center text-sm text-muted-foreground">
+                No events match your filters.
+              </div>
+            </div>
+          </div>
         </div>
       )
     }
@@ -605,10 +632,6 @@ export default function EventsGrid({
 
   return (
     <div className="w-full">
-      {isSportsContext && sportsSelectedTitle && (
-        <h1 className="mb-3 text-xl font-semibold tracking-tight text-foreground">{sportsSelectedTitle}</h1>
-      )}
-
       <div className={cn('relative w-full', { 'lg:flex lg:items-start lg:gap-4': isSportsContext })}>
         {isSportsContext && (
           <SportsSidebarMenu
@@ -620,6 +643,10 @@ export default function EventsGrid({
         )}
 
         <div ref={parentRef} className="relative min-w-0 flex-1">
+          {isSportsContext && sportsSelectedTitle && (
+            <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-12 lg:ml-4">{sportsSelectedTitle}</h1>
+          )}
+
           <div
             style={{
               height: `${virtualizer.getTotalSize()}px`,
