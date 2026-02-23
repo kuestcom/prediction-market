@@ -26,7 +26,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
   const t = useExtracted()
   const pathname = usePathname()
   const isHomePage = pathname === '/'
-  const selectedCategoryPathSlug = useMemo(() => {
+  const selectedMainTagPathSlug = useMemo(() => {
     const pathSegments = pathname.split('/').filter(Boolean)
     if (pathSegments.length !== 1) {
       return null
@@ -35,34 +35,33 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
     const [candidate] = pathSegments
     return CATEGORY_PATH_SLUG_SET.has(candidate) ? candidate : null
   }, [pathname])
-  const isCategoryPathPage = selectedCategoryPathSlug !== null
-  const isHomeLikePage = isHomePage || isCategoryPathPage
+  const isMainTagPathPage = selectedMainTagPathSlug !== null
+  const isHomeLikePage = isHomePage || isMainTagPathPage
   const { filters, updateFilters } = useFilters()
 
   const showBookmarkedOnly = isHomeLikePage ? filters.bookmarked : false
   const rawTagFromFilters = isHomeLikePage
     ? (showBookmarkedOnly && filters.tag === 'trending' ? '' : filters.tag)
     : pathname === '/mentions' ? 'mentions' : 'trending'
-  const categoryPathTagFromFilters = useMemo(() => {
-    if (!isCategoryPathPage || !selectedCategoryPathSlug) {
+  const pathPageTagFromFilters = useMemo(() => {
+    if (!isMainTagPathPage || !selectedMainTagPathSlug) {
       return rawTagFromFilters
     }
 
-    const belongsToSelectedMainTag = (
-      rawTagFromFilters === selectedCategoryPathSlug
-      || childParentMap[rawTagFromFilters] === selectedCategoryPathSlug
-    )
+    const belongsToSelectedMainTag = rawTagFromFilters === selectedMainTagPathSlug || filters.mainTag === selectedMainTagPathSlug
 
-    return belongsToSelectedMainTag ? rawTagFromFilters : selectedCategoryPathSlug
-  }, [childParentMap, isCategoryPathPage, rawTagFromFilters, selectedCategoryPathSlug])
-  const tagFromFilters = isCategoryPathPage ? categoryPathTagFromFilters : rawTagFromFilters
+    return belongsToSelectedMainTag ? rawTagFromFilters : selectedMainTagPathSlug
+  }, [filters.mainTag, isMainTagPathPage, rawTagFromFilters, selectedMainTagPathSlug])
+  const tagFromFilters = isMainTagPathPage ? pathPageTagFromFilters : rawTagFromFilters
   const fallbackMainTag = filters.mainTag || childParentMap[tagFromFilters] || tagFromFilters || 'trending'
-  const mainTagFromFilters = isCategoryPathPage
-    ? selectedCategoryPathSlug || 'trending'
+  const mainTagFromFilters = isMainTagPathPage
+    ? selectedMainTagPathSlug || 'trending'
     : isHomePage
       ? fallbackMainTag
       : pathname === '/mentions' ? 'mentions' : 'trending'
-  const shouldShowCategoryPathTitle = isCategoryPathPage && selectedCategoryPathSlug === tag.slug
+  const shouldShowCategoryPathTitle = isMainTagPathPage
+    && selectedMainTagPathSlug === tag.slug
+    && CATEGORY_PATH_SLUG_SET.has(tag.slug)
 
   const isActive = mainTagFromFilters === tag.slug
 

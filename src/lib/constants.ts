@@ -68,6 +68,7 @@ export function getExchangeEip712Domain(isNegRisk?: boolean) {
 export const tableHeaderClass = 'px-2 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase sm:px-3'
 
 export const CATEGORY_PATH_SLUGS = [
+  'new',
   'politics',
   'geopolitics',
   'tech',
@@ -80,6 +81,7 @@ export const CATEGORY_PATH_SLUG_SET = new Set<string>(CATEGORY_PATH_SLUGS)
 export type CategoryPathSlug = (typeof CATEGORY_PATH_SLUGS)[number]
 
 const CATEGORY_PATH_LABEL_BY_SLUG: Record<CategoryPathSlug, string> = {
+  'new': 'New Events',
   'politics': 'Politics',
   'geopolitics': 'Geopolitics',
   'tech': 'Technology',
