@@ -9,6 +9,8 @@ import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
 
+export const dynamic = 'force-dynamic'
+
 async function resolveCanonicalEventSlug(sportSlug: string, eventSlug: string) {
   const { data, error } = await EventRepository.getCanonicalEventSlugBySportsPath(sportSlug, eventSlug)
   if (error || !data?.slug) {
