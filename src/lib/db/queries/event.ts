@@ -10,6 +10,7 @@ import { bookmarks } from '@/lib/db/schema/bookmarks/tables'
 import {
   conditions_audit,
   event_live_chart_configs,
+  event_sports,
   event_tags,
   event_translations,
   events,
@@ -261,6 +262,7 @@ interface ListEventsProps {
   status?: Event['status']
   offset?: number
   locale?: SupportedLocale
+  sportsSportSlug?: string
 }
 
 interface RelatedEventOptions {
@@ -288,6 +290,7 @@ type DrizzleEventResult = typeof events.$inferSelect & {
       outcomes: typeof outcomes.$inferSelect[]
     }
   })[]
+  sports?: typeof event_sports.$inferSelect | null
   eventTags: (typeof event_tags.$inferSelect & {
     tag: typeof tags.$inferSelect
   })[]
@@ -489,6 +492,8 @@ function eventResource(
     rules: event.rules || undefined,
     series_slug: event.series_slug ?? null,
     series_recurrence: event.series_recurrence ?? null,
+    sports_event_slug: event.sports?.sports_event_slug ?? null,
+    sports_sport_slug: event.sports?.sports_sport_slug ?? null,
     has_live_chart: hasLiveChart,
     active_markets_count: Number(event.active_markets_count || 0),
     total_markets_count: Number(event.total_markets_count || 0),
@@ -563,6 +568,7 @@ export const EventRepository = {
     status = 'active',
     offset = 0,
     locale = DEFAULT_LOCALE,
+    sportsSportSlug = '',
   }: ListEventsProps): Promise<QueryResult<Event[]>> {
     'use cache'
     cacheTag(cacheTags.events(userId || 'guest'))
@@ -614,6 +620,23 @@ export const EventRepository = {
       if (frequency !== 'all') {
         const normalizedSeriesRecurrence = sql<string>`LOWER(TRIM(COALESCE(${events.series_recurrence}, '')))`
         whereConditions.push(eq(normalizedSeriesRecurrence, frequency))
+      }
+
+      const normalizedSportsSportSlug = sportsSportSlug.trim().toLowerCase()
+      if (normalizedSportsSportSlug) {
+        const normalizedSportsSportSlugColumn = sql<string>`
+          LOWER(TRIM(COALESCE(${event_sports.sports_sport_slug}, '')))
+        `
+        whereConditions.push(
+          exists(
+            db.select({ event_id: event_sports.event_id })
+              .from(event_sports)
+              .where(and(
+                eq(event_sports.event_id, events.id),
+                eq(normalizedSportsSportSlugColumn, normalizedSportsSportSlug),
+              )),
+          ),
+        )
       }
 
       if (tag && tag !== 'trending' && tag !== 'new') {
@@ -718,6 +741,7 @@ export const EventRepository = {
             eventTags: {
               with: { tag: true },
             },
+            sports: true,
 
             ...(userId && {
               bookmarks: {
@@ -752,6 +776,7 @@ export const EventRepository = {
             eventTags: {
               with: { tag: true },
             },
+            sports: true,
 
             ...(userId && {
               bookmarks: {
@@ -816,6 +841,58 @@ export const EventRepository = {
       }
 
       return { data: result[0], error: null }
+    })
+  },
+
+  async getCanonicalEventSlugBySportsPath(
+    sportsSportSlug: string,
+    sportsEventSlug: string,
+  ): Promise<QueryResult<{ slug: string }>> {
+    return runQuery(async () => {
+      const normalizedSportsSportSlug = sportsSportSlug.trim().toLowerCase()
+      const normalizedSportsEventSlug = sportsEventSlug.trim().toLowerCase()
+
+      if (!normalizedSportsSportSlug || !normalizedSportsEventSlug) {
+        throw new Error('Event not found')
+      }
+
+      const normalizedSportsSportSlugColumn = sql<string>`
+        LOWER(TRIM(COALESCE(${event_sports.sports_sport_slug}, '')))
+      `
+      const normalizedSportsEventSlugColumn = sql<string>`
+        LOWER(TRIM(COALESCE(${event_sports.sports_event_slug}, '')))
+      `
+
+      const result = await db
+        .select({ slug: events.slug })
+        .from(event_sports)
+        .innerJoin(events, eq(event_sports.event_id, events.id))
+        .where(and(
+          eq(normalizedSportsSportSlugColumn, normalizedSportsSportSlug),
+          eq(normalizedSportsEventSlugColumn, normalizedSportsEventSlug),
+        ))
+        .orderBy(desc(events.created_at))
+        .limit(1)
+
+      if (result.length > 0) {
+        return { data: result[0]!, error: null }
+      }
+
+      const fallbackResult = await db
+        .select({ slug: events.slug })
+        .from(event_sports)
+        .innerJoin(events, eq(event_sports.event_id, events.id))
+        .where(and(
+          eq(normalizedSportsSportSlugColumn, normalizedSportsSportSlug),
+          eq(events.slug, normalizedSportsEventSlug),
+        ))
+        .limit(1)
+
+      if (fallbackResult.length === 0) {
+        throw new Error('Event not found')
+      }
+
+      return { data: fallbackResult[0]!, error: null }
     })
   },
 
@@ -1021,6 +1098,7 @@ export const EventRepository = {
           eventTags: {
             with: { tag: true },
           },
+          sports: true,
           ...(userId && {
             bookmarks: {
               where: eq(bookmarks.user_id, userId),

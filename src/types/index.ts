@@ -13,6 +13,8 @@ export interface Event {
   rules?: string
   series_slug?: string | null
   series_recurrence?: string | null
+  sports_event_slug?: string | null
+  sports_sport_slug?: string | null
   has_live_chart?: boolean
   active_markets_count: number
   total_markets_count: number

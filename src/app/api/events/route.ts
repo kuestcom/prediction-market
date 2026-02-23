@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   const bookmarked = searchParams.get('bookmarked') === 'true'
   const frequency = searchParams.get('frequency') || 'all'
   const status = searchParams.get('status') || 'active'
+  const sportsSportSlug = searchParams.get('sportsSportSlug') || ''
   const localeParam = searchParams.get('locale') ?? DEFAULT_LOCALE
   const locale = SUPPORTED_LOCALES.includes(localeParam as typeof SUPPORTED_LOCALES[number])
     ? localeParam as typeof SUPPORTED_LOCALES[number]
@@ -39,6 +40,7 @@ export async function GET(request: Request) {
       status,
       offset: clampedOffset,
       locale,
+      sportsSportSlug,
     })
 
     if (error) {
