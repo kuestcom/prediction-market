@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { Link } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
-import { resolveEventMarketPath } from '@/lib/sports-routing'
+import { resolveEventMarketPath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
 
 interface EventCardMarketsListProps {

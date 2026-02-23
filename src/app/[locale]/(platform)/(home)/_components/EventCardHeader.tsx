@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { Link } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
-import { resolveEventPagePath } from '@/lib/sports-routing'
+import { resolveEventPagePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
 
 function normalizeOutcomeText(value: string | null | undefined) {

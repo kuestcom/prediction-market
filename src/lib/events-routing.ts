@@ -9,7 +9,7 @@ function normalizePathSegment(value: string | null | undefined) {
   return normalized || null
 }
 
-export function resolveSportsEventBasePath(event: EventRouteInput) {
+export function resolveEventBasePath(event: EventRouteInput) {
   const sportsSportSlug = normalizePathSegment(event.sports_sport_slug)
   const sportsEventSlug = normalizePathSegment(event.sports_event_slug)
 
@@ -21,11 +21,11 @@ export function resolveSportsEventBasePath(event: EventRouteInput) {
 }
 
 export function resolveEventPagePath(event: EventRouteInput) {
-  return resolveSportsEventBasePath(event) ?? `/event/${event.slug}`
+  return resolveEventBasePath(event) ?? `/event/${event.slug}`
 }
 
 export function resolveEventMarketPath(event: EventRouteInput, marketSlug: string) {
-  const sportsBasePath = resolveSportsEventBasePath(event)
+  const sportsBasePath = resolveEventBasePath(event)
   if (sportsBasePath) {
     return `${sportsBasePath}/${marketSlug}`
   }
