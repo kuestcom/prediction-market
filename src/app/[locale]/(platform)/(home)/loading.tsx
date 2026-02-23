@@ -7,6 +7,10 @@ export default function Loading() {
     'w-16',
     'w-12',
     'w-20',
+    'w-12',
+    'w-16',
+    'w-20',
+    'w-14',
     'w-[72px]',
     'w-[60px]',
   ] as const
@@ -16,7 +20,7 @@ export default function Loading() {
       <div className="container py-4">
         <div className="flex w-full min-w-0 flex-col gap-3 md:flex-row md:items-center md:gap-4">
           <div className="order-3 max-w-full min-w-0 flex-1 overflow-hidden md:order-1 md:flex md:items-center">
-            <div className="flex w-full max-w-full min-w-0 items-center gap-2 overflow-x-hidden">
+            <div className="flex w-full max-w-full min-w-0 items-center gap-4 overflow-x-hidden">
               <Skeleton className="hidden h-8 w-28 shrink-0 rounded-sm md:block" />
               <Skeleton className="h-8 w-10 shrink-0 rounded-sm" />
               {subtagWidths.map((width, index) => (
