@@ -1,7 +1,9 @@
 import { sql } from 'drizzle-orm'
 import {
+  bigint,
   boolean,
   char,
+  date,
   integer,
   jsonb,
   numeric,
@@ -217,6 +219,63 @@ export const markets = pgTable(
     volume_24h: numeric({ precision: 20, scale: 6 }).default('0').notNull(),
     volume: numeric({ precision: 20, scale: 6 }).default('0').notNull(),
     end_time: timestamp({ withTimezone: true }),
+    created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+)
+
+export const event_sports = pgTable(
+  'event_sports',
+  {
+    event_id: char({ length: 26 })
+      .primaryKey()
+      .references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    sports_event_id: text(),
+    sports_event_slug: text(),
+    sports_parent_event_id: bigint({ mode: 'number' }),
+    sports_game_id: bigint({ mode: 'number' }),
+    sports_event_date: date(),
+    sports_start_time: timestamp({ withTimezone: true }),
+    sports_series_slug: text(),
+    sports_series_id: text(),
+    sports_series_recurrence: text(),
+    sports_series_color: text(),
+    sports_sport_slug: text(),
+    sports_event_week: integer(),
+    sports_score: text(),
+    sports_period: text(),
+    sports_elapsed: text(),
+    sports_live: boolean(),
+    sports_ended: boolean(),
+    sports_tags: jsonb(),
+    sports_teams: jsonb(),
+    sports_team_logo_urls: jsonb(),
+    created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+)
+
+export const market_sports = pgTable(
+  'market_sports',
+  {
+    condition_id: text()
+      .primaryKey()
+      .references(() => markets.condition_id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    event_id: char({ length: 26 }).references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    sports_market_type: text(),
+    sports_line: numeric({ precision: 20, scale: 8 }),
+    sports_group_item_title: text(),
+    sports_group_item_threshold: text(),
+    sports_game_start_time: timestamp({ withTimezone: true }),
+    sports_event_id: bigint({ mode: 'number' }),
+    sports_parent_event_id: bigint({ mode: 'number' }),
+    sports_game_id: bigint({ mode: 'number' }),
+    sports_event_date: date(),
+    sports_start_time: timestamp({ withTimezone: true }),
+    sports_series_color: text(),
+    sports_event_slug: text(),
+    sports_teams: jsonb(),
+    sports_team_logo_urls: jsonb(),
     created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },

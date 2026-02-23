@@ -4,8 +4,10 @@ import { isCronAuthorized } from '@/lib/auth-cron'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import {
   conditions as conditionsTable,
+  event_sports as eventSportsTable,
   events as eventsTable,
   event_tags as eventTagsTable,
+  market_sports as marketSportsTable,
   markets as marketsTable,
   outcomes as outcomesTable,
   subgraph_syncs,
@@ -24,6 +26,8 @@ const PNL_PAGE_SIZE = 200
 const GENERAL_SETTINGS_GROUP = 'general'
 const GENERAL_MARKET_CREATORS_KEY = 'market_creators'
 const WALLET_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/
+const SPORTS_LOGO_STORAGE_PREFIX = 'sports/team-logos'
+const sportsLogoStorageCache = new Map<string, string | null>()
 
 interface SyncCursor {
   conditionId: string
@@ -44,6 +48,47 @@ interface SubgraphCondition {
 interface MarketTimestamps {
   createdAtIso: string
   updatedAtIso: string
+}
+
+interface EventSportsMetadataInput {
+  sports_event_id: string | null
+  sports_event_slug: string | null
+  sports_parent_event_id: number | null
+  sports_game_id: number | null
+  sports_event_date: string | null
+  sports_start_time: Date | null
+  sports_series_slug: string | null
+  sports_series_id: string | null
+  sports_series_recurrence: string | null
+  sports_series_color: string | null
+  sports_sport_slug: string | null
+  sports_event_week: number | null
+  sports_score: string | null
+  sports_period: string | null
+  sports_elapsed: string | null
+  sports_live: boolean | null
+  sports_ended: boolean | null
+  sports_tags: string[] | null
+  sports_teams: Record<string, unknown>[] | null
+  sports_team_logo_urls: string[] | null
+}
+
+interface MarketSportsMetadataInput {
+  event_id: string | null
+  sports_market_type: string | null
+  sports_line: string | null
+  sports_group_item_title: string | null
+  sports_group_item_threshold: string | null
+  sports_game_start_time: Date | null
+  sports_event_id: number | null
+  sports_parent_event_id: number | null
+  sports_game_id: number | null
+  sports_event_date: string | null
+  sports_start_time: Date | null
+  sports_series_color: string | null
+  sports_event_slug: string | null
+  sports_teams: Record<string, unknown>[] | null
+  sports_team_logo_urls: string[] | null
 }
 
 interface SyncStats {
@@ -420,6 +465,7 @@ async function processMarket(market: SubgraphCondition) {
   const metadata = await fetchMetadata(market.metadataHash)
   const eventId = await processEvent(
     metadata.event,
+    metadata.sports?.event,
     market.creator!,
     timestamps.createdAtIso,
   )
@@ -511,7 +557,12 @@ function normalizeTimestamp(rawValue: unknown): string | null {
   return null
 }
 
-async function processEvent(eventData: any, creatorAddress: string, createdAtIso: string) {
+async function processEvent(
+  eventData: any,
+  sportsEventData: any,
+  creatorAddress: string,
+  createdAtIso: string,
+) {
   if (!eventData || !eventData.slug || !eventData.title) {
     throw new Error(`Invalid event data: ${JSON.stringify(eventData)}`)
   }
@@ -535,6 +586,28 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
   const eventSeriesId = normalizeStringField(eventData.series_id)
   const eventSeriesRecurrence = normalizeStringField(eventData.series_recurrence)
     ?? normalizeStringField(eventData.recurrence)
+  const sportsEventId = normalizeStringField(sportsEventData?.event_id)
+  const sportsEventSlug = normalizeStringField(sportsEventData?.slug)
+  const sportsParentEventId = normalizeIntegerField(sportsEventData?.parent_event_id)
+  const sportsGameId = normalizeIntegerField(sportsEventData?.game_id)
+  const sportsEventDate = normalizeDateField(sportsEventData?.event_date)
+  const sportsStartTime = normalizeTimestamp(sportsEventData?.start_time)
+  const sportsSeriesSlug = normalizeStringField(sportsEventData?.series_slug)
+  const sportsSeriesId = normalizeStringField(sportsEventData?.series_id)
+  const sportsSeriesRecurrence = normalizeStringField(sportsEventData?.series_recurrence)
+  const sportsSeriesColor = normalizeStringField(sportsEventData?.series_color)
+  const sportsSportSlug = normalizeStringField(sportsEventData?.sport_slug)
+  const sportsEventWeek = normalizeIntegerField(sportsEventData?.event_week)
+  const sportsScore = normalizeStringField(sportsEventData?.score)
+  const sportsPeriod = normalizeStringField(sportsEventData?.period)
+  const sportsElapsed = normalizeStringField(sportsEventData?.elapsed)
+  const sportsLive = normalizeOptionalBooleanField(sportsEventData?.live)
+  const sportsEnded = normalizeOptionalBooleanField(sportsEventData?.ended)
+  const sportsTags = normalizeStringArrayField(sportsEventData?.tags)
+  const normalizedSportsTeams = normalizeSportsTeamsField(sportsEventData?.teams)
+  const sportsAssets = await normalizeSportsTeamAssets(normalizedSportsTeams)
+  const sportsTeams = sportsAssets.teams
+  const sportsTeamLogoUrls = sportsAssets.logo_urls
   const existingEventRows = await db
     .select({
       id: eventsTable.id,
@@ -588,6 +661,29 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
       console.error(`Failed to update event ${existingEvent.id}:`, updateError)
     }
 
+    await upsertEventSportsMetadata(existingEvent.id, {
+      sports_event_id: sportsEventId,
+      sports_event_slug: sportsEventSlug,
+      sports_parent_event_id: sportsParentEventId,
+      sports_game_id: sportsGameId,
+      sports_event_date: sportsEventDate,
+      sports_start_time: sportsStartTime ? new Date(sportsStartTime) : null,
+      sports_series_slug: sportsSeriesSlug,
+      sports_series_id: sportsSeriesId,
+      sports_series_recurrence: sportsSeriesRecurrence,
+      sports_series_color: sportsSeriesColor,
+      sports_sport_slug: sportsSportSlug,
+      sports_event_week: sportsEventWeek,
+      sports_score: sportsScore,
+      sports_period: sportsPeriod,
+      sports_elapsed: sportsElapsed,
+      sports_live: sportsLive,
+      sports_ended: sportsEnded,
+      sports_tags: sportsTags,
+      sports_teams: sportsTeams,
+      sports_team_logo_urls: sportsTeamLogoUrls,
+    })
+
     console.log(`Event ${eventSlug} already exists, using existing ID: ${existingEvent.id}`)
     return existingEvent.id
   }
@@ -603,25 +699,27 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
 
   console.log(`Creating new event: ${eventSlug} by creator: ${creatorAddress}`)
 
+  const newEventPayload: typeof eventsTable.$inferInsert = {
+    slug: eventSlug,
+    title: normalizedEventTitle,
+    creator: creatorAddress,
+    icon_url: iconUrl,
+    show_market_icons: eventData.show_market_icons !== false,
+    enable_neg_risk: enableNegRiskFlag,
+    neg_risk_augmented: negRiskAugmentedFlag,
+    neg_risk: eventNegRiskFlag,
+    neg_risk_market_id: eventNegRiskMarketId ?? null,
+    series_slug: eventSeriesSlug ?? null,
+    series_id: eventSeriesId ?? null,
+    series_recurrence: eventSeriesRecurrence ?? null,
+    rules: eventData.rules || null,
+    end_date: normalizedEndDate ? new Date(normalizedEndDate) : null,
+    created_at: new Date(createdAtIso),
+  }
+
   const newEventRows = await db
     .insert(eventsTable)
-    .values({
-      slug: eventSlug,
-      title: normalizedEventTitle,
-      creator: creatorAddress,
-      icon_url: iconUrl,
-      show_market_icons: eventData.show_market_icons !== false,
-      enable_neg_risk: enableNegRiskFlag,
-      neg_risk_augmented: negRiskAugmentedFlag,
-      neg_risk: eventNegRiskFlag,
-      neg_risk_market_id: eventNegRiskMarketId ?? null,
-      series_slug: eventSeriesSlug ?? null,
-      series_id: eventSeriesId ?? null,
-      series_recurrence: eventSeriesRecurrence ?? null,
-      rules: eventData.rules || null,
-      end_date: normalizedEndDate ? new Date(normalizedEndDate) : null,
-      created_at: new Date(createdAtIso),
-    })
+    .values(newEventPayload)
     .returning({ id: eventsTable.id })
   const newEvent = newEventRows[0]
 
@@ -634,6 +732,29 @@ async function processEvent(eventData: any, creatorAddress: string, createdAtIso
   if (eventData.tags?.length > 0) {
     await processTags(newEvent.id, eventData.tags)
   }
+
+  await upsertEventSportsMetadata(newEvent.id, {
+    sports_event_id: sportsEventId,
+    sports_event_slug: sportsEventSlug,
+    sports_parent_event_id: sportsParentEventId,
+    sports_game_id: sportsGameId,
+    sports_event_date: sportsEventDate,
+    sports_start_time: sportsStartTime ? new Date(sportsStartTime) : null,
+    sports_series_slug: sportsSeriesSlug,
+    sports_series_id: sportsSeriesId,
+    sports_series_recurrence: sportsSeriesRecurrence,
+    sports_series_color: sportsSeriesColor,
+    sports_sport_slug: sportsSportSlug,
+    sports_event_week: sportsEventWeek,
+    sports_score: sportsScore,
+    sports_period: sportsPeriod,
+    sports_elapsed: sportsElapsed,
+    sports_live: sportsLive,
+    sports_ended: sportsEnded,
+    sports_tags: sportsTags,
+    sports_teams: sportsTeams,
+    sports_team_logo_urls: sportsTeamLogoUrls,
+  })
 
   return newEvent.id
 }
@@ -698,6 +819,23 @@ async function processMarketData(
   const mirrorUmaOracleAddress = normalizeAddressField(metadata.mirror_uma_oracle_address)
   const metadataVersion = normalizeStringField(metadata.version)
   const metadataSchema = normalizeStringField(metadata.schema)
+  const sportsMarketData = metadata?.sports?.market
+  const sportsMarketType = normalizeStringField(sportsMarketData?.sports_market_type)
+  const sportsLine = normalizeDecimalField(sportsMarketData?.line)
+  const sportsGroupItemTitle = normalizeStringField(sportsMarketData?.group_item_title)
+  const sportsGroupItemThreshold = normalizeStringField(sportsMarketData?.group_item_threshold)
+  const sportsGameStartTime = normalizeTimestamp(sportsMarketData?.game_start_time)
+  const sportsEventId = normalizeIntegerField(sportsMarketData?.event_id)
+  const sportsParentEventId = normalizeIntegerField(sportsMarketData?.parent_event_id)
+  const sportsGameId = normalizeIntegerField(sportsMarketData?.game_id)
+  const sportsEventDate = normalizeDateField(sportsMarketData?.event_date)
+  const sportsStartTime = normalizeTimestamp(sportsMarketData?.start_time)
+  const sportsSeriesColor = normalizeStringField(sportsMarketData?.series_color)
+  const sportsEventSlug = normalizeStringField(sportsMarketData?.event_slug)
+  const normalizedSportsTeams = normalizeSportsTeamsField(sportsMarketData?.teams)
+  const sportsAssets = await normalizeSportsTeamAssets(normalizedSportsTeams)
+  const sportsTeams = sportsAssets.teams
+  const sportsTeamLogoUrls = sportsAssets.logo_urls
 
   const normalizedMarketEndTime = normalizeTimestamp(metadata.end_time)
 
@@ -763,6 +901,24 @@ async function processMarketData(
       target: [marketsTable.condition_id],
       set: marketData,
     })
+
+  await upsertMarketSportsMetadata(market.id, {
+    event_id: eventId,
+    sports_market_type: sportsMarketType,
+    sports_line: sportsLine,
+    sports_group_item_title: sportsGroupItemTitle,
+    sports_group_item_threshold: sportsGroupItemThreshold,
+    sports_game_start_time: sportsGameStartTime ? new Date(sportsGameStartTime) : null,
+    sports_event_id: sportsEventId,
+    sports_parent_event_id: sportsParentEventId,
+    sports_game_id: sportsGameId,
+    sports_event_date: sportsEventDate,
+    sports_start_time: sportsStartTime ? new Date(sportsStartTime) : null,
+    sports_series_color: sportsSeriesColor,
+    sports_event_slug: sportsEventSlug,
+    sports_teams: sportsTeams,
+    sports_team_logo_urls: sportsTeamLogoUrls,
+  })
 
   if (!marketAlreadyExists && metadata.outcomes?.length > 0) {
     await processOutcomes(market.id, metadata.outcomes)
@@ -1081,9 +1237,16 @@ function resolveImageStoragePath(storagePath: string, extension: string) {
   return `${storagePath}.${extension}`
 }
 
-async function downloadAndSaveImage(metadataHash: string, storagePath: string) {
+async function downloadAndSaveImage(assetReference: string, storagePath: string) {
   try {
-    const imageUrl = `${IRYS_GATEWAY}/${metadataHash}`
+    const normalizedReference = normalizeAssetReference(assetReference)
+    if (!normalizedReference) {
+      return null
+    }
+
+    const imageUrl = /^https?:\/\//i.test(normalizedReference)
+      ? normalizedReference
+      : `${IRYS_GATEWAY}/${normalizedReference}`
     const response = await fetch(imageUrl, {
       keepalive: true,
     })
@@ -1112,9 +1275,192 @@ async function downloadAndSaveImage(metadataHash: string, storagePath: string) {
     return resolvedPath
   }
   catch (error) {
-    console.error(`Failed to process image ${metadataHash}:`, error)
+    console.error(`Failed to process image ${assetReference}:`, error)
     return null
   }
+}
+
+async function upsertEventSportsMetadata(eventId: string, input: EventSportsMetadataInput) {
+  const payload: typeof eventSportsTable.$inferInsert = {
+    event_id: eventId,
+  }
+  let hasSportsData = false
+
+  if (input.sports_event_id !== null) {
+    payload.sports_event_id = input.sports_event_id
+    hasSportsData = true
+  }
+  if (input.sports_event_slug !== null) {
+    payload.sports_event_slug = input.sports_event_slug
+    hasSportsData = true
+  }
+  if (input.sports_parent_event_id !== null) {
+    payload.sports_parent_event_id = input.sports_parent_event_id
+    hasSportsData = true
+  }
+  if (input.sports_game_id !== null) {
+    payload.sports_game_id = input.sports_game_id
+    hasSportsData = true
+  }
+  if (input.sports_event_date !== null) {
+    payload.sports_event_date = input.sports_event_date
+    hasSportsData = true
+  }
+  if (input.sports_start_time !== null) {
+    payload.sports_start_time = input.sports_start_time
+    hasSportsData = true
+  }
+  if (input.sports_series_slug !== null) {
+    payload.sports_series_slug = input.sports_series_slug
+    hasSportsData = true
+  }
+  if (input.sports_series_id !== null) {
+    payload.sports_series_id = input.sports_series_id
+    hasSportsData = true
+  }
+  if (input.sports_series_recurrence !== null) {
+    payload.sports_series_recurrence = input.sports_series_recurrence
+    hasSportsData = true
+  }
+  if (input.sports_series_color !== null) {
+    payload.sports_series_color = input.sports_series_color
+    hasSportsData = true
+  }
+  if (input.sports_sport_slug !== null) {
+    payload.sports_sport_slug = input.sports_sport_slug
+    hasSportsData = true
+  }
+  if (input.sports_event_week !== null) {
+    payload.sports_event_week = input.sports_event_week
+    hasSportsData = true
+  }
+  if (input.sports_score !== null) {
+    payload.sports_score = input.sports_score
+    hasSportsData = true
+  }
+  if (input.sports_period !== null) {
+    payload.sports_period = input.sports_period
+    hasSportsData = true
+  }
+  if (input.sports_elapsed !== null) {
+    payload.sports_elapsed = input.sports_elapsed
+    hasSportsData = true
+  }
+  if (input.sports_live !== null) {
+    payload.sports_live = input.sports_live
+    hasSportsData = true
+  }
+  if (input.sports_ended !== null) {
+    payload.sports_ended = input.sports_ended
+    hasSportsData = true
+  }
+  if (input.sports_tags !== null) {
+    payload.sports_tags = input.sports_tags
+    hasSportsData = true
+  }
+  if (input.sports_teams !== null) {
+    payload.sports_teams = input.sports_teams
+    hasSportsData = true
+  }
+  if (input.sports_team_logo_urls !== null) {
+    payload.sports_team_logo_urls = input.sports_team_logo_urls
+    hasSportsData = true
+  }
+
+  if (!hasSportsData) {
+    return
+  }
+
+  payload.updated_at = new Date()
+
+  await db
+    .insert(eventSportsTable)
+    .values(payload)
+    .onConflictDoUpdate({
+      target: [eventSportsTable.event_id],
+      set: payload,
+    })
+}
+
+async function upsertMarketSportsMetadata(conditionId: string, input: MarketSportsMetadataInput) {
+  const payload: typeof marketSportsTable.$inferInsert = {
+    condition_id: conditionId,
+  }
+  let hasSportsData = false
+
+  if (input.event_id !== null) {
+    payload.event_id = input.event_id
+  }
+  if (input.sports_market_type !== null) {
+    payload.sports_market_type = input.sports_market_type
+    hasSportsData = true
+  }
+  if (input.sports_line !== null) {
+    payload.sports_line = input.sports_line
+    hasSportsData = true
+  }
+  if (input.sports_group_item_title !== null) {
+    payload.sports_group_item_title = input.sports_group_item_title
+    hasSportsData = true
+  }
+  if (input.sports_group_item_threshold !== null) {
+    payload.sports_group_item_threshold = input.sports_group_item_threshold
+    hasSportsData = true
+  }
+  if (input.sports_game_start_time !== null) {
+    payload.sports_game_start_time = input.sports_game_start_time
+    hasSportsData = true
+  }
+  if (input.sports_event_id !== null) {
+    payload.sports_event_id = input.sports_event_id
+    hasSportsData = true
+  }
+  if (input.sports_parent_event_id !== null) {
+    payload.sports_parent_event_id = input.sports_parent_event_id
+    hasSportsData = true
+  }
+  if (input.sports_game_id !== null) {
+    payload.sports_game_id = input.sports_game_id
+    hasSportsData = true
+  }
+  if (input.sports_event_date !== null) {
+    payload.sports_event_date = input.sports_event_date
+    hasSportsData = true
+  }
+  if (input.sports_start_time !== null) {
+    payload.sports_start_time = input.sports_start_time
+    hasSportsData = true
+  }
+  if (input.sports_series_color !== null) {
+    payload.sports_series_color = input.sports_series_color
+    hasSportsData = true
+  }
+  if (input.sports_event_slug !== null) {
+    payload.sports_event_slug = input.sports_event_slug
+    hasSportsData = true
+  }
+  if (input.sports_teams !== null) {
+    payload.sports_teams = input.sports_teams
+    hasSportsData = true
+  }
+  if (input.sports_team_logo_urls !== null) {
+    payload.sports_team_logo_urls = input.sports_team_logo_urls
+    hasSportsData = true
+  }
+
+  if (!hasSportsData) {
+    return
+  }
+
+  payload.updated_at = new Date()
+
+  await db
+    .insert(marketSportsTable)
+    .values(payload)
+    .onConflictDoUpdate({
+      target: [marketSportsTable.condition_id],
+      set: payload,
+    })
 }
 
 function normalizeStringField(value: unknown): string | null {
@@ -1123,6 +1469,215 @@ function normalizeStringField(value: unknown): string | null {
   }
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+function normalizeSportsTeamsField(value: unknown): Record<string, unknown>[] | null {
+  if (!Array.isArray(value)) {
+    return null
+  }
+
+  const teams: Record<string, unknown>[] = []
+  for (const item of value) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      continue
+    }
+
+    const normalized: Record<string, unknown> = {}
+    for (const [key, raw] of Object.entries(item as Record<string, unknown>)) {
+      if (key === 'logo_url') {
+        continue
+      }
+      if (raw === null || raw === undefined) {
+        continue
+      }
+      if (typeof raw === 'string') {
+        const trimmed = raw.trim()
+        if (!trimmed) {
+          continue
+        }
+        normalized[key] = trimmed
+        continue
+      }
+      if (typeof raw === 'number' || typeof raw === 'boolean') {
+        normalized[key] = raw
+      }
+    }
+
+    if (Object.keys(normalized).length > 0) {
+      teams.push(normalized)
+    }
+  }
+
+  return teams.length > 0 ? teams : null
+}
+
+function normalizeStringArrayField(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null
+  }
+
+  const out: string[] = []
+  for (const item of value) {
+    const normalized = normalizeStringField(item)
+    if (!normalized) {
+      continue
+    }
+    if (!out.includes(normalized)) {
+      out.push(normalized)
+    }
+  }
+
+  return out.length > 0 ? out : null
+}
+
+async function normalizeSportsTeamAssets(
+  teams: Record<string, unknown>[] | null,
+): Promise<{ teams: Record<string, unknown>[] | null, logo_urls: string[] | null }> {
+  const normalizedTeams = teams
+    ? teams.map(team => ({ ...team }))
+    : null
+  const logoUrls: string[] = []
+
+  async function resolveAndPushLogo(reference: unknown): Promise<string | null> {
+    const normalized = normalizeAssetReference(reference)
+    if (!normalized) {
+      return null
+    }
+    const stored = await persistSportsLogo(normalized)
+    if (stored && !logoUrls.includes(stored)) {
+      logoUrls.push(stored)
+    }
+    return stored
+  }
+
+  if (normalizedTeams && normalizedTeams.length > 0) {
+    for (const team of normalizedTeams) {
+      const logoRef = team.logo
+      const resolved = await resolveAndPushLogo(logoRef)
+      if (resolved) {
+        team.logo_url = resolved
+      }
+    }
+  }
+
+  return {
+    teams: normalizedTeams && normalizedTeams.length > 0 ? normalizedTeams : null,
+    logo_urls: logoUrls.length > 0 ? logoUrls : null,
+  }
+}
+
+function normalizeAssetReference(value: unknown): string | null {
+  const normalized = normalizeStringField(value)
+  if (!normalized) {
+    return null
+  }
+
+  if (/^https?:\/\//i.test(normalized)) {
+    return normalized
+  }
+
+  const withoutScheme = normalized.replace(/^irys:\/\//i, '').trim()
+  if (!withoutScheme) {
+    return null
+  }
+
+  const withoutQuery = withoutScheme.split('?')[0]?.trim()
+  if (!withoutQuery) {
+    return null
+  }
+
+  const parts = withoutQuery.split('/').filter(Boolean)
+  return parts.length > 0 ? parts[parts.length - 1] : withoutQuery
+}
+
+function buildSportsLogoStoragePath(reference: string): string {
+  if (/^https?:\/\//i.test(reference)) {
+    return `${SPORTS_LOGO_STORAGE_PREFIX}/logo-${hashStringToHex(reference)}`
+  }
+  return `${SPORTS_LOGO_STORAGE_PREFIX}/${normalizeStorageSlug(reference, reference)}`
+}
+
+async function persistSportsLogo(reference: string): Promise<string | null> {
+  if (sportsLogoStorageCache.has(reference)) {
+    return sportsLogoStorageCache.get(reference) ?? null
+  }
+
+  const storagePath = buildSportsLogoStoragePath(reference)
+  const stored = await downloadAndSaveImage(reference, storagePath)
+  sportsLogoStorageCache.set(reference, stored)
+  return stored
+}
+
+function normalizeDateField(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) {
+      return null
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed
+    }
+    const parsed = new Date(trimmed)
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10)
+    }
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const timestamp = value > 10_000_000_000 ? value : value * 1000
+    const parsed = new Date(timestamp)
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10)
+    }
+  }
+
+  return null
+}
+
+function normalizeDecimalField(value: unknown): string | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value.toString()
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) {
+      return null
+    }
+    const parsed = Number(trimmed)
+    if (Number.isFinite(parsed)) {
+      return trimmed
+    }
+  }
+  return null
+}
+
+function normalizeOptionalBooleanField(value: unknown): boolean | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+  if (typeof value === 'boolean') {
+    return value
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === 'true' || normalized === '1') {
+      return true
+    }
+    if (normalized === 'false' || normalized === '0') {
+      return false
+    }
+    return null
+  }
+  if (typeof value === 'number') {
+    if (value === 1) {
+      return true
+    }
+    if (value === 0) {
+      return false
+    }
+    return null
+  }
+  return null
 }
 
 function hashStringToHex(value: string) {
