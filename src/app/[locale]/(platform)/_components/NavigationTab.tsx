@@ -1,6 +1,7 @@
 'use client'
 
 import type { Route } from 'next'
+import type { CategoryPathSlug } from '@/lib/constants'
 import { TrendingUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -8,7 +9,7 @@ import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { Teleport } from '@/components/Teleport'
 import { Button } from '@/components/ui/button'
 import { Link, redirect, usePathname } from '@/i18n/navigation'
-import { CATEGORY_PATH_SLUG_SET } from '@/lib/constants'
+import { CATEGORY_PATH_SLUG_SET, getCategoryTitle } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
 interface NavigationTabProps {
@@ -409,7 +410,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
           <div className="flex w-full max-w-full min-w-0 items-center gap-2">
             {shouldShowCategoryPathTitle && (
               <h1 className="pr-6 text-xl font-medium">
-                {tag.name}
+                {getCategoryTitle(tag.slug as CategoryPathSlug)}
               </h1>
             )}
             <div className="relative min-w-0 flex-1">

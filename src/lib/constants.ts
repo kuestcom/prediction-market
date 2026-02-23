@@ -77,3 +77,22 @@ export const CATEGORY_PATH_SLUGS = [
   'climate-science',
 ] as const
 export const CATEGORY_PATH_SLUG_SET = new Set<string>(CATEGORY_PATH_SLUGS)
+export type CategoryPathSlug = (typeof CATEGORY_PATH_SLUGS)[number]
+
+const CATEGORY_PATH_LABEL_BY_SLUG: Record<CategoryPathSlug, string> = {
+  'politics': 'Politics',
+  'geopolitics': 'Geopolitics',
+  'tech': 'Technology',
+  'culture': 'Pop Culture',
+  'world': 'World Events',
+  'economy': 'Economy',
+  'climate-science': 'Climate & Science',
+}
+
+export function getCategorySeoTitle(slug: CategoryPathSlug) {
+  return `${CATEGORY_PATH_LABEL_BY_SLUG[slug]} Odds & Predictions`
+}
+
+export function getCategoryTitle(slug: CategoryPathSlug) {
+  return CATEGORY_PATH_LABEL_BY_SLUG[slug]
+}
