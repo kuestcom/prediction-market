@@ -18,19 +18,17 @@ function isSportsTag(value: string | null | undefined) {
 
 export default function HomeClient({ initialEvents, initialTag }: HomeClientProps) {
   const { filters, updateFilters } = useFilters()
-  const hasInitializedRef = useRef(false)
+  const lastAppliedInitialTagRef = useRef<string | null>(null)
   const isSportsContext = isSportsTag(filters.mainTag) || isSportsTag(filters.tag) || isSportsTag(initialTag)
 
   useEffect(() => {
-    if (hasInitializedRef.current) {
+    const targetTag = initialTag ?? 'trending'
+    if (lastAppliedInitialTagRef.current === targetTag) {
       return
     }
 
-    hasInitializedRef.current = true
-
-    if (initialTag) {
-      updateFilters({ tag: initialTag, mainTag: initialTag })
-    }
+    lastAppliedInitialTagRef.current = targetTag
+    updateFilters({ tag: targetTag, mainTag: targetTag })
   }, [initialTag, updateFilters])
 
   return (
