@@ -94,23 +94,17 @@ export default function PredictionChartTooltipOverlay({
   })()
 
   const tooltipLabelPosition = (() => {
+    // Keep series labels away from the cursor marker by default.
+    // They should only flip to the left side near the right edge.
     if (anchorPlacement === 'left') {
       return {
         left: anchorLeft,
         transform: 'translateX(-100%)',
       }
     }
-
-    if (anchorPlacement === 'right') {
-      return {
-        left: anchorRight,
-        transform: 'translateX(0)',
-      }
-    }
-
     return {
-      left: anchorCenter,
-      transform: 'translateX(-50%)',
+      left: anchorRight,
+      transform: 'translateX(0)',
     }
   })()
 
