@@ -27,7 +27,7 @@ const GENERAL_SETTINGS_GROUP = 'general'
 const GENERAL_MARKET_CREATORS_KEY = 'market_creators'
 const WALLET_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/
 const SPORTS_LOGO_STORAGE_PREFIX = 'sports/team-logos'
-const sportsLogoStorageCache = new Map<string, string | null>()
+const sportsLogoStorageCache = new Map<string, string>()
 
 interface SyncCursor {
   conditionId: string
@@ -1598,13 +1598,16 @@ function buildSportsLogoStoragePath(reference: string): string {
 }
 
 async function persistSportsLogo(reference: string): Promise<string | null> {
-  if (sportsLogoStorageCache.has(reference)) {
-    return sportsLogoStorageCache.get(reference) ?? null
+  const cached = sportsLogoStorageCache.get(reference)
+  if (cached) {
+    return cached
   }
 
   const storagePath = buildSportsLogoStoragePath(reference)
   const stored = await downloadAndSaveImage(reference, storagePath)
-  sportsLogoStorageCache.set(reference, stored)
+  if (stored) {
+    sportsLogoStorageCache.set(reference, stored)
+  }
   return stored
 }
 

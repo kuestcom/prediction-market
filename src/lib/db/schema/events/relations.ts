@@ -17,11 +17,14 @@ export const conditionsRelations = relations(conditions, ({ many }) => ({
   outcomes: many(outcomes),
 }))
 
-export const eventsRelations = relations(events, ({ many }) => ({
+export const eventsRelations = relations(events, ({ many, one }) => ({
   markets: many(markets),
   eventTags: many(event_tags),
   translations: many(event_translations),
-  sports: many(event_sports),
+  sports: one(event_sports, {
+    fields: [events.id],
+    references: [event_sports.event_id],
+  }),
 }))
 
 export const marketsRelations = relations(markets, ({ one, many }) => ({
