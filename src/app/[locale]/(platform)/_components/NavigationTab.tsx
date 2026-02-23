@@ -28,14 +28,23 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
   const isHomePage = pathname === '/'
   const selectedMainTagPathSlug = useMemo(() => {
     const pathSegments = pathname.split('/').filter(Boolean)
-    if (pathSegments.length !== 1) {
+    if (pathSegments.length === 0) {
       return null
     }
 
     const [candidate] = pathSegments
+    if (candidate === 'sports') {
+      return candidate
+    }
+
+    if (pathSegments.length !== 1) {
+      return null
+    }
+
     return CATEGORY_PATH_SLUG_SET.has(candidate) ? candidate : null
   }, [pathname])
   const isMainTagPathPage = selectedMainTagPathSlug !== null
+  const isSportsPathPage = isMainTagPathPage && selectedMainTagPathSlug === 'sports'
   const isHomeLikePage = isHomePage || isMainTagPathPage
   const { filters, updateFilters } = useFilters()
 
@@ -89,7 +98,11 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
   )
   const mainTabPadding = tabIndex === 0 ? 'px-2.5 pl-0' : 'px-3'
   const mainTagHref = useMemo<Route>(
-    () => (CATEGORY_PATH_SLUG_SET.has(tag.slug) ? `/${tag.slug}` as Route : '/' as Route),
+    () => (tag.slug === 'sports'
+      ? '/sports' as Route
+      : CATEGORY_PATH_SLUG_SET.has(tag.slug)
+        ? `/${tag.slug}` as Route
+        : '/' as Route),
     [tag.slug],
   )
 
@@ -404,7 +417,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
         </span>
       )}
 
-      {isActive && (
+      {isActive && !isSportsPathPage && (
         <Teleport to="#navigation-tags" requireReadyAttribute="data-teleport-ready">
           <div className="flex w-full max-w-full min-w-0 items-center gap-2">
             {shouldShowCategoryPathTitle && (

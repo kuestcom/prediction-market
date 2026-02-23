@@ -1,10 +1,10 @@
 'use client'
 
-import type { SportsMenuEntry, SportsMenuGroupEntry, SportsMenuLinkEntry } from '@/app/[locale]/(platform)/(home)/_components/sportsMenuData'
+import type { SportsMenuEntry, SportsMenuGroupEntry, SportsMenuLinkEntry } from '@/app/[locale]/(platform)/sports/_components/sportsMenuData'
 import { ChevronDownIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
-import { SPORTS_MENU_ENTRIES } from '@/app/[locale]/(platform)/(home)/_components/sportsMenuData'
+import { SPORTS_MENU_ENTRIES } from '@/app/[locale]/(platform)/sports/_components/sportsMenuData'
 import { cn } from '@/lib/utils'
 
 export type SportsSidebarMode = 'all' | 'live' | 'futures'
@@ -13,7 +13,8 @@ interface SportsSidebarMenuProps {
   mode: SportsSidebarMode
   activeTagSlug: string | null
   onSelectMode: (mode: SportsSidebarMode) => void
-  onSelectTagSlug: (tagSlug: string) => void
+  onSelectTagSlug: (tagSlug: string, href: string) => void
+  onNavigateHref: (href: string) => void
 }
 
 type SportsMenuChildLinkEntry = SportsMenuGroupEntry['links'][number]
@@ -283,13 +284,15 @@ function SportsMenuLink({
   activeTagSlug,
   onSelectMode,
   onSelectTagSlug,
+  onNavigateHref,
 }: {
   entry: SportsMenuRenderableLinkEntry
   nested?: boolean
   mode: SportsSidebarMode
   activeTagSlug: string | null
   onSelectMode: (mode: SportsSidebarMode) => void
-  onSelectTagSlug: (tagSlug: string) => void
+  onSelectTagSlug: (tagSlug: string, href: string) => void
+  onNavigateHref: (href: string) => void
 }) {
   const href = normalizeTagSlug(entry.href)
   const isLiveLink = href === '/sports/live'
@@ -304,17 +307,22 @@ function SportsMenuLink({
   function handleClick() {
     if (isLiveLink) {
       onSelectMode('live')
+      onNavigateHref(entry.href)
       return
     }
 
     if (isFuturesLink) {
       onSelectMode('futures')
+      onNavigateHref(entry.href)
       return
     }
 
     if (entryTagSlug) {
-      onSelectTagSlug(entryTagSlug)
+      onSelectTagSlug(entryTagSlug, entry.href)
+      return
     }
+
+    onNavigateHref(entry.href)
   }
 
   return (
@@ -361,6 +369,7 @@ export default function SportsSidebarMenu({
   activeTagSlug,
   onSelectMode,
   onSelectTagSlug,
+  onNavigateHref,
 }: SportsSidebarMenuProps) {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const groups = SPORTS_MENU_ENTRIES.filter(isGroupEntry)
@@ -402,6 +411,7 @@ export default function SportsSidebarMenu({
               activeTagSlug={activeTagSlug}
               onSelectMode={onSelectMode}
               onSelectTagSlug={onSelectTagSlug}
+              onNavigateHref={onNavigateHref}
             />
           )
         }
@@ -460,6 +470,7 @@ export default function SportsSidebarMenu({
                       activeTagSlug={activeTagSlug}
                       onSelectMode={onSelectMode}
                       onSelectTagSlug={onSelectTagSlug}
+                      onNavigateHref={onNavigateHref}
                     />
                   ))}
                 </div>
