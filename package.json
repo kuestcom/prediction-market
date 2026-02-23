@@ -84,7 +84,7 @@
     "@types/canvas-confetti": "^1.9.0",
     "@types/mdx": "^2.0.13",
     "@types/node": "^24.10.12",
-    "@types/react": "^19.2.10",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.39.2",
