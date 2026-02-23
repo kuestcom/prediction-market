@@ -185,7 +185,7 @@ export default function EventsGrid({
       filters,
       locale,
     }),
-    getNextPageParam: (lastPage, allPages) => lastPage.length > 0 ? allPages.length * PAGE_SIZE : undefined,
+    getNextPageParam: (lastPage, allPages) => lastPage.length === PAGE_SIZE ? allPages.length * PAGE_SIZE : undefined,
     initialPageParam: 0,
     initialData: shouldUseInitialData ? { pages: [initialEvents], pageParams: [0] } : undefined,
     refetchOnMount: false,
@@ -385,6 +385,7 @@ export default function EventsGrid({
           const start = virtualRow.index * columns
           const end = Math.min(start + columns, visibleEvents.length)
           const rowEvents = visibleEvents.slice(start, end)
+          const isLastVirtualRow = virtualRow.index === rowsCount - 1
 
           return (
             <div
@@ -401,7 +402,12 @@ export default function EventsGrid({
                 }px)`,
               }}
             >
-              <div className={cn('grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', { 'opacity-80': isFetching })}>
+              <div
+                className={cn('grid gap-3', { 'opacity-80': isFetching })}
+                style={{
+                  gridTemplateColumns: `repeat(${Math.max(1, columns)}, minmax(0, 1fr))`,
+                }}
+              >
                 {rowEvents.map(event => (
                   <EventCard
                     key={event.id}
@@ -409,7 +415,7 @@ export default function EventsGrid({
                     priceOverridesByMarket={priceOverridesByMarket}
                   />
                 ))}
-                {isFetchingNextPage && <EventCardSkeleton />}
+                {isFetchingNextPage && isLastVirtualRow && <EventCardSkeleton />}
               </div>
             </div>
           )

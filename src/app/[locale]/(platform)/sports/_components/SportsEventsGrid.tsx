@@ -244,7 +244,7 @@ export default function SportsEventsGrid({
       sportsSportSlug: normalizedSportsSportSlug,
       sportsSection,
     }),
-    getNextPageParam: (lastPage, allPages) => lastPage.length > 0 ? allPages.length * PAGE_SIZE : undefined,
+    getNextPageParam: (lastPage, allPages) => lastPage.length === PAGE_SIZE ? allPages.length * PAGE_SIZE : undefined,
     initialPageParam: 0,
     initialData: shouldUseInitialData ? { pages: [initialEvents], pageParams: [0] } : undefined,
     refetchOnMount: false,
@@ -471,6 +471,7 @@ export default function SportsEventsGrid({
           const start = virtualRow.index * activeColumns
           const end = Math.min(start + activeColumns, visibleEvents.length)
           const rowEvents = visibleEvents.slice(start, end)
+          const isLastVirtualRow = virtualRow.index === rowsCount - 1
 
           return (
             <div
@@ -500,7 +501,7 @@ export default function SportsEventsGrid({
                     priceOverridesByMarket={priceOverridesByMarket}
                   />
                 ))}
-                {isFetchingNextPage && <EventCardSkeleton />}
+                {isFetchingNextPage && isLastVirtualRow && <EventCardSkeleton />}
               </div>
             </div>
           )

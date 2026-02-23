@@ -1,6 +1,8 @@
+import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { normalizeSportsSlug } from '@/app/[locale]/(platform)/sports/_components/sportsRouteUtils'
+import { redirect } from '@/i18n/navigation'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
@@ -19,5 +21,8 @@ export default async function SportsBySportRedirectPage({
   }
 
   const normalizedSportSlug = normalizeSportsSlug(sportSlug) || 'sports'
-  redirect(`/sports/${normalizedSportSlug}/games` as never)
+  redirect({
+    href: `/sports/${normalizedSportSlug}/games`,
+    locale: locale as SupportedLocale,
+  })
 }
