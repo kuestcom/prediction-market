@@ -8,8 +8,7 @@ import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/Eve
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
-
-export const dynamic = 'force-dynamic'
+import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 async function resolveCanonicalEventSlug(sportSlug: string, eventSlug: string) {
   const { data, error } = await EventRepository.getCanonicalEventSlugBySportsPath(sportSlug, eventSlug)
@@ -28,6 +27,9 @@ export async function generateMetadata({
   const { locale, sportSlug, eventSlug } = await params
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale
+  if (sportSlug === STATIC_PARAMS_PLACEHOLDER || eventSlug === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
   const canonicalEventSlug = await resolveCanonicalEventSlug(sportSlug, eventSlug)
   if (!canonicalEventSlug) {
     notFound()
@@ -48,6 +50,9 @@ export default async function SportsEventPage({
   const { locale, sportSlug, eventSlug } = await params
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale
+  if (sportSlug === STATIC_PARAMS_PLACEHOLDER || eventSlug === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
   const canonicalEventSlug = await resolveCanonicalEventSlug(sportSlug, eventSlug)
   if (!canonicalEventSlug) {
     notFound()
