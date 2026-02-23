@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { Link } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import { resolveEventPagePath } from '@/lib/sports-routing'
 import { cn } from '@/lib/utils'
 
 function normalizeOutcomeText(value: string | null | undefined) {
@@ -53,10 +54,11 @@ export default function EventCardHeader({
   const chanceFooterLabel = !hasStandardYesNoOutcomes && !isTiedChance
     ? (normalizeOutcomeLabel(leadingOutcomeLabel) || t('chance'))
     : t('chance')
+  const eventHref = resolveEventPagePath(event)
 
   return (
     <div className="mb-3 flex items-start justify-between">
-      <Link href={`/event/${event.slug}`} className="flex flex-1 items-center gap-2 pr-2">
+      <Link href={eventHref} className="flex flex-1 items-center gap-2 pr-2">
         <div
           className={`
             flex ${iconSizeClass}

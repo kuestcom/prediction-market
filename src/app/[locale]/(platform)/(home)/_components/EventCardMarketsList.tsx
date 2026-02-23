@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { Link } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import { resolveEventMarketPath } from '@/lib/sports-routing'
 import { cn } from '@/lib/utils'
 
 interface EventCardMarketsListProps {
@@ -64,7 +65,7 @@ export default function EventCardMarketsList({
             className="flex items-center justify-between"
           >
             <Link
-              href={`/event/${event.slug}/${market.slug}`}
+              href={resolveEventMarketPath(event, market.slug)}
               className="block min-w-0 flex-1 truncate text-[13px] underline-offset-2 hover:underline dark:text-white"
               title={market.short_title || market.title}
             >
