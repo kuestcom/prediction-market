@@ -8,6 +8,7 @@ import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { Teleport } from '@/components/Teleport'
 import { Button } from '@/components/ui/button'
 import { Link, redirect, usePathname } from '@/i18n/navigation'
+import { CATEGORY_PATH_SLUG_SET } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
 interface NavigationTabProps {
@@ -24,15 +25,43 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
   const t = useExtracted()
   const pathname = usePathname()
   const isHomePage = pathname === '/'
+  const selectedCategoryPathSlug = useMemo(() => {
+    const pathSegments = pathname.split('/').filter(Boolean)
+    if (pathSegments.length !== 1) {
+      return null
+    }
+
+    const [candidate] = pathSegments
+    return CATEGORY_PATH_SLUG_SET.has(candidate) ? candidate : null
+  }, [pathname])
+  const isCategoryPathPage = selectedCategoryPathSlug !== null
+  const isHomeLikePage = isHomePage || isCategoryPathPage
   const { filters, updateFilters } = useFilters()
 
-  const showBookmarkedOnly = isHomePage ? filters.bookmarked : false
-  const tagFromFilters = isHomePage
+  const showBookmarkedOnly = isHomeLikePage ? filters.bookmarked : false
+  const rawTagFromFilters = isHomeLikePage
     ? (showBookmarkedOnly && filters.tag === 'trending' ? '' : filters.tag)
     : pathname === '/mentions' ? 'mentions' : 'trending'
-  const mainTagFromFilters = isHomePage
-    ? (filters.mainTag || childParentMap[tagFromFilters] || tagFromFilters || 'trending')
-    : pathname === '/mentions' ? 'mentions' : 'trending'
+  const categoryPathTagFromFilters = useMemo(() => {
+    if (!isCategoryPathPage || !selectedCategoryPathSlug) {
+      return rawTagFromFilters
+    }
+
+    const belongsToSelectedMainTag = (
+      rawTagFromFilters === selectedCategoryPathSlug
+      || childParentMap[rawTagFromFilters] === selectedCategoryPathSlug
+    )
+
+    return belongsToSelectedMainTag ? rawTagFromFilters : selectedCategoryPathSlug
+  }, [childParentMap, isCategoryPathPage, rawTagFromFilters, selectedCategoryPathSlug])
+  const tagFromFilters = isCategoryPathPage ? categoryPathTagFromFilters : rawTagFromFilters
+  const fallbackMainTag = filters.mainTag || childParentMap[tagFromFilters] || tagFromFilters || 'trending'
+  const mainTagFromFilters = isCategoryPathPage
+    ? selectedCategoryPathSlug || 'trending'
+    : isHomePage
+      ? fallbackMainTag
+      : pathname === '/mentions' ? 'mentions' : 'trending'
+  const shouldShowCategoryPathTitle = isCategoryPathPage && selectedCategoryPathSlug === tag.slug
 
   const isActive = mainTagFromFilters === tag.slug
 
@@ -59,6 +88,10 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
     [tag.slug, tagFromFilters, tagItems],
   )
   const mainTabPadding = tabIndex === 0 ? 'px-2.5 pl-0' : 'px-3'
+  const mainTagHref = useMemo<Route>(
+    () => (CATEGORY_PATH_SLUG_SET.has(tag.slug) ? `/${tag.slug}` as Route : '/' as Route),
+    [tag.slug],
+  )
 
   const updateScrollShadows = useCallback(() => {
     const container = scrollContainerRef.current
@@ -354,7 +387,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
       {tag.slug !== 'mentions' && (
         <span ref={mainTabRef}>
           <Link
-            href={'/' as Route}
+            href={mainTagHref}
             onClick={() => handleTagClick(tag.slug)}
             className={cn(
               'inline-flex h-full items-center justify-center rounded-md py-1 whitespace-nowrap',
@@ -373,77 +406,84 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
 
       {isActive && (
         <Teleport to="#navigation-tags" requireReadyAttribute="data-teleport-ready">
-          <div className="relative w-full max-w-full">
-            <div
-              ref={scrollContainerRef}
-              className={cn(
-                'relative flex w-full max-w-full min-w-0 items-center gap-2 overflow-x-auto',
-                (showLeftShadow || showRightShadow)
-                && `
-                  mask-[linear-gradient(to_right,transparent,black_32px,black_calc(100%-32px),transparent)]
-                  [-webkit-mask-image:linear-gradient(to_right,transparent,black_32px,black_calc(100%-32px),transparent)]
-                `,
-                showLeftShadow && !showRightShadow
-                && `
-                  mask-[linear-gradient(to_right,transparent,black_32px,black)]
-                  [-webkit-mask-image:linear-gradient(to_right,transparent,black_32px,black)]
-                `,
-                showRightShadow && !showLeftShadow
-                && `
-                  mask-[linear-gradient(to_right,black,black_calc(100%-32px),transparent)]
-                  [-webkit-mask-image:linear-gradient(to_right,black,black_calc(100%-32px),transparent)]
-                `,
-              )}
-            >
+          <div className="flex w-full max-w-full min-w-0 items-center gap-2">
+            {shouldShowCategoryPathTitle && (
+              <h1 className="pr-6 text-xl font-medium">
+                {tag.name}
+              </h1>
+            )}
+            <div className="relative min-w-0 flex-1">
               <div
+                ref={scrollContainerRef}
                 className={cn(
-                  'pointer-events-none absolute inset-y-0 rounded-sm bg-primary/30',
-                  { 'transition-all duration-300 ease-out': indicatorReady },
-                )}
-                style={{
-                  left: `${indicatorStyle.left}px`,
-                  width: `${indicatorStyle.width}px`,
-                  opacity: indicatorReady ? 1 : 0,
-                }}
-              />
-              <Button
-                ref={(el: HTMLButtonElement | null) => {
-                  buttonRef.current[0] = el
-                }}
-                onClick={() => handleTagClick(tag.slug, tag.slug)}
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  'relative h-8 shrink-0 bg-transparent text-sm whitespace-nowrap',
-                  'hover:bg-transparent dark:hover:bg-transparent',
-                  activeSubtagSlug === tag.slug
-                    ? 'text-primary hover:text-primary'
-                    : 'text-muted-foreground hover:text-foreground',
+                  'relative flex w-full max-w-full min-w-0 items-center gap-2 overflow-x-auto',
+                  (showLeftShadow || showRightShadow)
+                  && `
+                    mask-[linear-gradient(to_right,transparent,black_32px,black_calc(100%-32px),transparent)]
+                    [-webkit-mask-image:linear-gradient(to_right,transparent,black_32px,black_calc(100%-32px),transparent)]
+                  `,
+                  showLeftShadow && !showRightShadow
+                  && `
+                    mask-[linear-gradient(to_right,transparent,black_32px,black)]
+                    [-webkit-mask-image:linear-gradient(to_right,transparent,black_32px,black)]
+                  `,
+                  showRightShadow && !showLeftShadow
+                  && `
+                    mask-[linear-gradient(to_right,black,black_calc(100%-32px),transparent)]
+                    [-webkit-mask-image:linear-gradient(to_right,black,black_calc(100%-32px),transparent)]
+                  `,
                 )}
               >
-                {t('All')}
-              </Button>
-
-              {tag.childs.map((subtag, index) => (
-                <Button
-                  key={subtag.slug}
-                  ref={(el: HTMLButtonElement | null) => {
-                    buttonRef.current[index + 1] = el
+                <div
+                  className={cn(
+                    'pointer-events-none absolute inset-y-0 rounded-sm bg-primary/30',
+                    { 'transition-all duration-300 ease-out': indicatorReady },
+                  )}
+                  style={{
+                    left: `${indicatorStyle.left}px`,
+                    width: `${indicatorStyle.width}px`,
+                    opacity: indicatorReady ? 1 : 0,
                   }}
-                  onClick={() => handleTagClick(subtag.slug, tag.slug)}
+                />
+                <Button
+                  ref={(el: HTMLButtonElement | null) => {
+                    buttonRef.current[0] = el
+                  }}
+                  onClick={() => handleTagClick(tag.slug, tag.slug)}
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    'relative z-10 h-8 shrink-0 bg-transparent text-sm whitespace-nowrap',
+                    'relative h-8 shrink-0 bg-transparent text-sm whitespace-nowrap',
                     'hover:bg-transparent dark:hover:bg-transparent',
-                    activeSubtagSlug === subtag.slug
+                    activeSubtagSlug === tag.slug
                       ? 'text-primary hover:text-primary'
                       : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
-                  {subtag.name}
+                  {t('All')}
                 </Button>
-              ))}
+
+                {tag.childs.map((subtag, index) => (
+                  <Button
+                    key={subtag.slug}
+                    ref={(el: HTMLButtonElement | null) => {
+                      buttonRef.current[index + 1] = el
+                    }}
+                    onClick={() => handleTagClick(subtag.slug, tag.slug)}
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      'relative z-10 h-8 shrink-0 bg-transparent text-sm whitespace-nowrap',
+                      'hover:bg-transparent dark:hover:bg-transparent',
+                      activeSubtagSlug === subtag.slug
+                        ? 'text-primary hover:text-primary'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {subtag.name}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         </Teleport>

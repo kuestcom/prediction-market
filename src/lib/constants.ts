@@ -66,3 +66,14 @@ export function getExchangeEip712Domain(isNegRisk?: boolean) {
 }
 
 export const tableHeaderClass = 'px-2 py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase sm:px-3'
+
+export const CATEGORY_PATH_SLUGS = [
+  'politics',
+  'geopolitics',
+  'tech',
+  'culture',
+  'world',
+  'economy',
+  'climate-science',
+] as const
+export const CATEGORY_PATH_SLUG_SET = new Set<string>(CATEGORY_PATH_SLUGS)

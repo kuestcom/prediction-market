@@ -14,18 +14,16 @@ interface HomeClientProps {
 
 export default function HomeClient({ initialEvents, initialTag }: HomeClientProps) {
   const { filters, updateFilters } = useFilters()
-  const hasInitializedRef = useRef(false)
+  const lastAppliedInitialTagRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (hasInitializedRef.current) {
+    const targetTag = initialTag ?? 'trending'
+    if (lastAppliedInitialTagRef.current === targetTag) {
       return
     }
 
-    hasInitializedRef.current = true
-
-    if (initialTag) {
-      updateFilters({ tag: initialTag, mainTag: initialTag })
-    }
+    lastAppliedInitialTagRef.current = targetTag
+    updateFilters({ tag: targetTag, mainTag: targetTag })
   }, [initialTag, updateFilters])
 
   return (
