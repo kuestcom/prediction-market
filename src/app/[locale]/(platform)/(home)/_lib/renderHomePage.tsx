@@ -41,7 +41,7 @@ export async function renderHomePage({ locale, initialTag }: RenderHomePageOptio
 
   return (
     <main className="container grid gap-4 py-4">
-      <HomeClient initialEvents={initialEvents} initialTag={initialTag} />
+      <HomeClient initialEvents={initialEvents} initialTag={initialTagSlug} />
     </main>
   )
 }
