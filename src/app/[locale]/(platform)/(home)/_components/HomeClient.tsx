@@ -12,9 +12,14 @@ interface HomeClientProps {
   initialTag?: string
 }
 
+function isSportsTag(value: string | null | undefined) {
+  return value?.trim().toLowerCase().includes('sport') ?? false
+}
+
 export default function HomeClient({ initialEvents, initialTag }: HomeClientProps) {
   const { filters, updateFilters } = useFilters()
   const hasInitializedRef = useRef(false)
+  const isSportsContext = isSportsTag(filters.mainTag) || isSportsTag(filters.tag) || isSportsTag(initialTag)
 
   useEffect(() => {
     if (hasInitializedRef.current) {
@@ -30,14 +35,17 @@ export default function HomeClient({ initialEvents, initialTag }: HomeClientProp
 
   return (
     <>
-      <FilterToolbar
-        filters={filters}
-        onFiltersChange={updateFilters}
-      />
+      {!isSportsContext && (
+        <FilterToolbar
+          filters={filters}
+          onFiltersChange={updateFilters}
+        />
+      )}
 
       <OpenCardProvider>
         <EventsGrid
           filters={filters}
+          onFiltersChange={updateFilters}
           initialEvents={initialEvents}
         />
       </OpenCardProvider>

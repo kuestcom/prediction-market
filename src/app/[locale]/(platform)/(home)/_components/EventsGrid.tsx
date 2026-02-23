@@ -5,10 +5,14 @@ import type { Event } from '@/types'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { useLocale } from 'next-intl'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import EventCard from '@/app/[locale]/(platform)/(home)/_components/EventCard'
 import EventCardSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventCardSkeleton'
 import EventsGridSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventsGridSkeleton'
+import { SPORTS_MENU_ENTRIES } from '@/app/[locale]/(platform)/(home)/_components/sportsMenuData'
+import SportsSidebarMenu, {
+  resolveSportsMenuTargetTagSlug,
+} from '@/app/[locale]/(platform)/(home)/_components/SportsSidebarMenu'
 import EventsEmptyState from '@/app/[locale]/(platform)/event/[slug]/_components/EventsEmptyState'
 import { useEventLastTrades } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventLastTrades'
 import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
@@ -20,10 +24,74 @@ import { useUser } from '@/stores/useUser'
 
 interface EventsGridProps {
   filters: FilterState
+  onFiltersChange: (filters: Partial<FilterState>) => void
   initialEvents: Event[]
 }
 
 const EMPTY_EVENTS: Event[] = []
+const SPORTS_TITLE_ALIASES: Record<string, string[]> = {
+  'cbb': ['ncaab'],
+  'ncaab': ['cbb'],
+  'counter-strike': ['cs2'],
+  'cs2': ['counter-strike'],
+  'league-of-legends': ['lol'],
+  'lol': ['league-of-legends'],
+}
+
+function resolveSportsTagSlugFromHref(href: string) {
+  const segments = href
+    .split('/')
+    .map(segment => segment.trim().toLowerCase())
+    .filter(Boolean)
+  const sportsIndex = segments.indexOf('sports')
+  if (sportsIndex === -1) {
+    return null
+  }
+
+  const nextSegment = segments[sportsIndex + 1]
+  if (!nextSegment || nextSegment === 'live' || nextSegment === 'futures') {
+    return null
+  }
+
+  return nextSegment
+}
+
+const SPORTS_TITLE_BY_TAG_SLUG = (() => {
+  const titleByTag = new Map<string, string>()
+
+  for (const entry of SPORTS_MENU_ENTRIES) {
+    if (entry.type === 'link') {
+      const tagSlug = resolveSportsTagSlugFromHref(entry.href)
+      if (tagSlug && !titleByTag.has(tagSlug)) {
+        titleByTag.set(tagSlug, entry.label)
+      }
+      continue
+    }
+
+    if (entry.type !== 'group') {
+      continue
+    }
+
+    for (const child of entry.links) {
+      const tagSlug = resolveSportsTagSlugFromHref(child.href)
+      if (tagSlug && !titleByTag.has(tagSlug)) {
+        titleByTag.set(tagSlug, child.label)
+      }
+    }
+  }
+
+  return titleByTag
+})()
+
+function formatTagSlugAsTitle(tagSlug: string) {
+  return tagSlug
+    .split('-')
+    .filter(Boolean)
+    .map((segment) => {
+      return segment.charAt(0).toUpperCase() + segment.slice(1)
+    })
+    .join(' ')
+}
 
 function normalizeSeriesSlug(value: string | null | undefined) {
   const normalized = value?.trim().toLowerCase()
@@ -67,6 +135,48 @@ function isResolvedLike(event: Event) {
   }
 
   return event.markets.every(market => market.is_resolved)
+}
+
+function isSportsTag(value: string | null | undefined) {
+  const normalized = value?.trim().toLowerCase() || ''
+  return normalized.includes('sport')
+}
+
+function resolveEventStartTimestamp(event: Event) {
+  const fromStartDate = toTimestamp(event.start_date ?? null)
+  if (Number.isFinite(fromStartDate)) {
+    return fromStartDate
+  }
+
+  return toTimestamp(event.created_at)
+}
+
+function resolveEventEndTimestamp(event: Event) {
+  const fromEndDate = toTimestamp(event.end_date ?? null)
+  if (Number.isFinite(fromEndDate)) {
+    return fromEndDate
+  }
+
+  const marketEndTimestamps = event.markets
+    .map(market => toTimestamp(market.end_time ?? null))
+    .filter(timestamp => Number.isFinite(timestamp))
+
+  if (marketEndTimestamps.length === 0) {
+    return Number.NEGATIVE_INFINITY
+  }
+
+  return Math.max(...marketEndTimestamps)
+}
+
+function isEventLiveNow(event: Event, nowMs: number) {
+  const start = resolveEventStartTimestamp(event)
+  const end = resolveEventEndTimestamp(event)
+  return start <= nowMs && nowMs <= end && event.status === 'active'
+}
+
+function isEventFuture(event: Event, nowMs: number) {
+  const start = resolveEventStartTimestamp(event)
+  return start > nowMs && event.status === 'active'
 }
 
 function isPreferredSeriesEvent(candidate: Event, current: Event, nowMs: number) {
@@ -141,6 +251,7 @@ async function fetchEvents({
 
 export default function EventsGrid({
   filters,
+  onFiltersChange,
   initialEvents = EMPTY_EVENTS,
 }: EventsGridProps) {
   const locale = useLocale()
@@ -149,6 +260,7 @@ export default function EventsGrid({
   const userCacheKey = user?.id ?? 'guest'
   const [hasInitialized, setHasInitialized] = useState(false)
   const [scrollMargin, setScrollMargin] = useState(0)
+  const [sportsMode, setSportsMode] = useState<'all' | 'live' | 'futures'>('all')
   const PAGE_SIZE = 40
   const isDefaultState = filters.tag === 'trending'
     && filters.search === ''
@@ -156,6 +268,9 @@ export default function EventsGrid({
     && filters.frequency === 'all'
     && filters.status === 'active'
   const shouldUseInitialData = isDefaultState && initialEvents.length > 0
+  const isSportsContext = useMemo(() => {
+    return isSportsTag(filters.mainTag) || isSportsTag(filters.tag)
+  }, [filters.mainTag, filters.tag])
 
   const {
     status,
@@ -205,9 +320,15 @@ export default function EventsGrid({
     void refetch()
   }, [refetch, userCacheKey])
 
+  useEffect(() => {
+    if (!isSportsContext) {
+      setSportsMode('all')
+    }
+  }, [isSportsContext])
+
   const allEvents = useMemo(() => (data ? data.pages.flat() : []), [data])
 
-  const visibleEvents = useMemo(() => {
+  const filteredEvents = useMemo(() => {
     if (!allEvents || allEvents.length === 0) {
       return EMPTY_EVENTS
     }
@@ -274,6 +395,26 @@ export default function EventsGrid({
     })
   }, [allEvents, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status])
 
+  const sportsBaseEvents = useMemo(() => {
+    if (!isSportsContext) {
+      return EMPTY_EVENTS
+    }
+    return filteredEvents
+  }, [filteredEvents, isSportsContext])
+  const sportsModeEvents = useMemo(() => {
+    if (!isSportsContext || sportsMode === 'all') {
+      return sportsBaseEvents
+    }
+
+    const nowMs = Date.now()
+    if (sportsMode === 'live') {
+      return sportsBaseEvents.filter(event => isEventLiveNow(event, nowMs))
+    }
+
+    return sportsBaseEvents.filter(event => isEventFuture(event, nowMs))
+  }, [isSportsContext, sportsBaseEvents, sportsMode])
+  const visibleEvents = isSportsContext ? sportsModeEvents : filteredEvents
+
   const marketTargets = useMemo(
     () => visibleEvents.flatMap(event => buildMarketTargets(event.markets)),
     [visibleEvents],
@@ -303,8 +444,84 @@ export default function EventsGrid({
 
     return Object.fromEntries(entries)
   }, [lastTradesByMarket, marketQuotesByMarket])
+  const sportsAvailableTagSlugs = useMemo(() => {
+    const slugs = new Set<string>()
+
+    for (const event of sportsBaseEvents) {
+      const mainTag = event.main_tag?.trim().toLowerCase()
+      if (mainTag) {
+        slugs.add(mainTag)
+      }
+
+      for (const tag of event.tags ?? []) {
+        const slug = tag?.slug?.trim().toLowerCase()
+        if (slug) {
+          slugs.add(slug)
+        }
+      }
+    }
+
+    return slugs
+  }, [sportsBaseEvents])
+  const activeSportsTagSlug = useMemo(() => {
+    const normalized = filters.tag?.trim().toLowerCase() || ''
+    if (!normalized || normalized === 'sports') {
+      return null
+    }
+
+    return normalized
+  }, [filters.tag])
+  const sportsSelectedTitle = useMemo(() => {
+    if (!isSportsContext) {
+      return ''
+    }
+
+    if (sportsMode === 'live') {
+      return 'Live'
+    }
+
+    if (sportsMode === 'futures') {
+      return 'Futures'
+    }
+
+    if (!activeSportsTagSlug) {
+      return 'All Sports'
+    }
+
+    const directTitle = SPORTS_TITLE_BY_TAG_SLUG.get(activeSportsTagSlug)
+    if (directTitle) {
+      return directTitle
+    }
+
+    for (const alias of SPORTS_TITLE_ALIASES[activeSportsTagSlug] ?? []) {
+      const aliasedTitle = SPORTS_TITLE_BY_TAG_SLUG.get(alias)
+      if (aliasedTitle) {
+        return aliasedTitle
+      }
+    }
+
+    return formatTagSlugAsTitle(activeSportsTagSlug)
+  }, [activeSportsTagSlug, isSportsContext, sportsMode])
+  const handleSelectSportsTag = useCallback((requestedTagSlug: string) => {
+    const targetTag = resolveSportsMenuTargetTagSlug({
+      requestedTagSlug,
+      availableTagSlugs: sportsAvailableTagSlugs,
+    })
+    const mainTag = isSportsTag(filters.mainTag) ? (filters.mainTag?.trim() || 'sports') : 'sports'
+    onFiltersChange({
+      tag: targetTag ?? mainTag,
+      mainTag,
+    })
+    setSportsMode('all')
+  }, [filters.mainTag, onFiltersChange, sportsAvailableTagSlugs])
 
   const columns = useColumns()
+  const activeColumns = useMemo(() => {
+    if (isSportsContext && columns >= 3) {
+      return columns - 1
+    }
+    return columns
+  }, [columns, isSportsContext])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -314,7 +531,7 @@ export default function EventsGrid({
     })
   }, [])
 
-  const rowsCount = Math.ceil(visibleEvents.length / columns)
+  const rowsCount = Math.ceil(visibleEvents.length / Math.max(1, activeColumns))
 
   const virtualizer = useWindowVirtualizer({
     count: rowsCount,
@@ -358,10 +575,24 @@ export default function EventsGrid({
   }
 
   if (!allEvents || allEvents.length === 0) {
+    if (isSportsContext && sportsSelectedTitle) {
+      return (
+        <div ref={parentRef} className="w-full">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">{sportsSelectedTitle}</h1>
+        </div>
+      )
+    }
     return <EventsEmptyState tag={filters.tag} searchQuery={filters.search} />
   }
 
   if (!visibleEvents || visibleEvents.length === 0) {
+    if (isSportsContext && sportsSelectedTitle) {
+      return (
+        <div ref={parentRef} className="w-full">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">{sportsSelectedTitle}</h1>
+        </div>
+      )
+    }
     return (
       <div
         ref={parentRef}
@@ -373,47 +604,69 @@ export default function EventsGrid({
   }
 
   return (
-    <div ref={parentRef} className="relative w-full">
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          position: 'relative',
-          width: '100%',
-        }}
-      >
-        {virtualizer.getVirtualItems().map((virtualRow) => {
-          const start = virtualRow.index * columns
-          const end = Math.min(start + columns, visibleEvents.length)
-          const rowEvents = visibleEvents.slice(start, end)
+    <div className="w-full">
+      {isSportsContext && sportsSelectedTitle && (
+        <h1 className="mb-3 text-xl font-semibold tracking-tight text-foreground">{sportsSelectedTitle}</h1>
+      )}
 
-          return (
-            <div
-              key={virtualRow.key}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: `${virtualRow.size}px`,
-                transform: `translateY(${
-                  virtualRow.start
-                  - (virtualizer.options.scrollMargin ?? 0)
-                }px)`,
-              }}
-            >
-              <div className={cn('grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', { 'opacity-80': isFetching })}>
-                {rowEvents.map(event => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    priceOverridesByMarket={priceOverridesByMarket}
-                  />
-                ))}
-                {isFetchingNextPage && <EventCardSkeleton />}
-              </div>
-            </div>
-          )
-        })}
+      <div className={cn('relative w-full', { 'lg:flex lg:items-start lg:gap-4': isSportsContext })}>
+        {isSportsContext && (
+          <SportsSidebarMenu
+            mode={sportsMode}
+            activeTagSlug={activeSportsTagSlug}
+            onSelectMode={setSportsMode}
+            onSelectTagSlug={handleSelectSportsTag}
+          />
+        )}
+
+        <div ref={parentRef} className="relative min-w-0 flex-1">
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              position: 'relative',
+              width: '100%',
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const start = virtualRow.index * activeColumns
+              const end = Math.min(start + activeColumns, visibleEvents.length)
+              const rowEvents = visibleEvents.slice(start, end)
+
+              return (
+                <div
+                  key={virtualRow.key}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: `${virtualRow.size}px`,
+                    transform: `translateY(${
+                      virtualRow.start
+                      - (virtualizer.options.scrollMargin ?? 0)
+                    }px)`,
+                  }}
+                >
+                  <div
+                    className={cn('grid gap-3', { 'opacity-80': isFetching })}
+                    style={{
+                      gridTemplateColumns: `repeat(${Math.max(1, activeColumns)}, minmax(0, 1fr))`,
+                    }}
+                  >
+                    {rowEvents.map(event => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        priceOverridesByMarket={priceOverridesByMarket}
+                      />
+                    ))}
+                    {isFetchingNextPage && <EventCardSkeleton />}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
     </div>
   )
