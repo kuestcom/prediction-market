@@ -193,7 +193,7 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
   return (
     <div className="flex w-full min-w-0 flex-col gap-3">
       <div className="flex w-full min-w-0 flex-col gap-3 md:flex-row md:items-center md:gap-4">
-        <div className="order-1 flex w-full min-w-0 items-center gap-3 md:order-1 md:w-auto md:min-w-0">
+        <div className="order-1 flex w-full min-w-0 items-center gap-3 md:order-3 md:ml-auto md:w-auto md:min-w-0">
           <div className="min-w-0 flex-1">
             <FilterToolbarSearchInput
               search={filters.search}
@@ -232,7 +232,7 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
         <div
           id="navigation-tags"
           data-teleport-ready={isNavigationTagsReady ? 'true' : 'false'}
-          className="order-3 max-w-full min-w-0 flex-1 overflow-hidden md:order-3"
+          className="order-3 max-w-full min-w-0 flex-1 overflow-hidden md:order-1 md:flex md:items-center"
         />
       </div>
 
