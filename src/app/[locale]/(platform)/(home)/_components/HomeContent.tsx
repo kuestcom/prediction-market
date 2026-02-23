@@ -7,12 +7,12 @@ import HomeClient from '@/app/[locale]/(platform)/(home)/_components/HomeClient'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 
-interface RenderHomePageOptions {
+interface HomeContentProps {
   locale: string
   initialTag?: string
 }
 
-export async function renderHomePage({ locale, initialTag }: RenderHomePageOptions) {
+export default async function HomeContent({ locale, initialTag }: HomeContentProps) {
   cacheTag(cacheTags.eventsGlobal)
   const resolvedLocale = locale as SupportedLocale
   const initialTagSlug = initialTag ?? 'trending'

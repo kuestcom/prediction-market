@@ -2,7 +2,7 @@
 
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
-import { renderHomePage } from '@/app/[locale]/(platform)/(home)/_lib/renderHomePage'
+import HomeContent from '@/app/[locale]/(platform)/(home)/_components/HomeContent'
 import { getCategorySeoTitle } from '@/lib/constants'
 
 const CATEGORY_SLUG = 'culture' as const
@@ -15,5 +15,5 @@ export default async function CategoryPage({ params }: PageProps<'/[locale]/cult
   const { locale } = await params
   setRequestLocale(locale)
 
-  return renderHomePage({ locale, initialTag: CATEGORY_SLUG })
+  return <HomeContent locale={locale} initialTag={CATEGORY_SLUG} />
 }
