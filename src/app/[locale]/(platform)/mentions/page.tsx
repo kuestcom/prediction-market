@@ -24,7 +24,7 @@ export default async function MentionsPage({ params }: PageProps<'/[locale]/ment
   })
 
   const content = (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 md:gap-8">
+    <div className="flex flex-col gap-6 md:gap-8">
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
           Mention Events
@@ -39,7 +39,7 @@ export default async function MentionsPage({ params }: PageProps<'/[locale]/ment
 
   if (error) {
     return (
-      <main className="container py-6 md:py-8">
+      <main className="container-sm py-6 md:py-8">
         {content}
         <p className="text-sm text-muted-foreground">
           Could not load Mentions events. Please try again in a moment.
@@ -50,7 +50,7 @@ export default async function MentionsPage({ params }: PageProps<'/[locale]/ment
 
   if (!data || data.length === 0) {
     return (
-      <main className="container py-6 md:py-8">
+      <main className="container-sm py-6 md:py-8">
         {content}
         <p className="text-sm text-muted-foreground">
           No Mentions events available right now. Check back soon.
@@ -60,7 +60,7 @@ export default async function MentionsPage({ params }: PageProps<'/[locale]/ment
   }
 
   return (
-    <main className="container py-6 md:py-8">
+    <main className="container-sm py-6 md:py-8">
       {content}
     </main>
   )
