@@ -31,14 +31,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
     }
 
-    const transformed = data.map(({ parent, ...tag }) => ({
-      ...tag,
-      parent_name: parent?.name ?? null,
-      parent_slug: parent?.slug ?? null,
-    }))
-
     return NextResponse.json({
-      data: transformed,
+      data,
       totalCount,
     })
   }

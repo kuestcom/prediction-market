@@ -69,15 +69,6 @@ export function useAdminCategoryColumns({
             <p className="text-xs text-muted-foreground">
               {`slug: ${category.slug}`}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {category.parent_name
-                ? (
-                    `Parent: ${category.parent_name}`
-                  )
-                : (
-                    t('No parent')
-                  )}
-            </p>
           </div>
         )
       },

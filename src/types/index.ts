@@ -212,7 +212,6 @@ export interface Tag {
   is_main_category: boolean
   is_hidden: boolean
   display_order: number
-  parent_tag_id: number | null
   active_markets_count: number
   created_at: string
   updated_at: string

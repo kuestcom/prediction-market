@@ -40,17 +40,9 @@ export const outcomesRelations = relations(outcomes, ({ one }) => ({
   }),
 }))
 
-export const tagsRelations = relations(tags, ({ many, one }) => ({
+export const tagsRelations = relations(tags, ({ many }) => ({
   eventTags: many(event_tags),
   translations: many(tag_translations),
-  parentTag: one(tags, {
-    fields: [tags.parent_tag_id],
-    references: [tags.id],
-    relationName: 'parent_child',
-  }),
-  childTags: many(tags, {
-    relationName: 'parent_child',
-  }),
 }))
 
 export const eventTagsRelations = relations(event_tags, ({ one }) => ({

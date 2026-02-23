@@ -1,7 +1,6 @@
 import type { NonDefaultLocale, SupportedLocale } from '@/i18n/locales'
 import { createHash } from 'node:crypto'
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
-import { alias } from 'drizzle-orm/pg-core'
 import { cacheTag, revalidatePath } from 'next/cache'
 import { DEFAULT_LOCALE, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
@@ -19,12 +18,6 @@ interface ListTagsParams {
   sortOrder?: 'asc' | 'desc'
 }
 
-interface ParentTagPreview {
-  id: number
-  name: string
-  slug: string
-}
-
 export type TagTranslationsMap = Partial<Record<NonDefaultLocale, string>>
 
 interface AdminTagRow {
@@ -35,11 +28,9 @@ interface AdminTagRow {
   is_hidden: boolean
   hide_events: boolean
   display_order: number
-  parent_tag_id: number | null
   active_markets_count: number
   created_at: string
   updated_at: string
-  parent?: ParentTagPreview | null
   translations: TagTranslationsMap
 }
 
@@ -50,7 +41,6 @@ interface TagWithChilds {
   is_main_category: boolean | null
   is_hidden: boolean
   display_order: number | null
-  parent_tag_id: number | null
   active_markets_count: number | null
   created_at: Date
   updated_at: Date
@@ -178,7 +168,6 @@ export const TagRepository = {
           is_main_category: tags.is_main_category,
           is_hidden: tags.is_hidden,
           display_order: tags.display_order,
-          parent_tag_id: tags.parent_tag_id,
           active_markets_count: tags.active_markets_count,
           created_at: tags.created_at,
           updated_at: tags.updated_at,
@@ -363,7 +352,6 @@ export const TagRepository = {
     ]
     const orderField = validSortFields.includes(sortBy) ? sortBy : 'display_order'
     const ascending = (sortOrder ?? 'asc') === 'asc'
-    const parentTags = alias(tags, 'parent_tags')
 
     const whereCondition = search && search.trim()
       ? or(
@@ -404,18 +392,11 @@ export const TagRepository = {
         is_hidden: tags.is_hidden,
         hide_events: tags.hide_events,
         display_order: tags.display_order,
-        parent_tag_id: tags.parent_tag_id,
         active_markets_count: tags.active_markets_count,
         created_at: tags.created_at,
         updated_at: tags.updated_at,
-        parent: {
-          id: parentTags.id,
-          name: parentTags.name,
-          slug: parentTags.slug,
-        },
       })
       .from(tags)
-      .leftJoin(parentTags, eq(tags.parent_tag_id, parentTags.id))
 
     const finalQuery = whereCondition
       ? baseQuery.where(whereCondition).orderBy(orderByClause).limit(cappedLimit).offset(safeOffset)
@@ -468,17 +449,9 @@ export const TagRepository = {
       is_hidden: row.is_hidden,
       hide_events: row.hide_events,
       display_order: row.display_order,
-      parent_tag_id: row.parent_tag_id,
       active_markets_count: row.active_markets_count,
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
-      parent: row.parent?.id
-        ? {
-            id: row.parent.id,
-            name: row.parent.name,
-            slug: row.parent.slug,
-          }
-        : null,
       translations: translationsByTagId.get(row.id) ?? {},
     }))
 
@@ -508,8 +481,6 @@ export const TagRepository = {
       return { data: null, error: error ?? 'Unknown error' }
     }
 
-    const parentTags = alias(tags, 'parent_tags')
-
     const selectQuery = db
       .select({
         id: tags.id,
@@ -519,18 +490,11 @@ export const TagRepository = {
         is_hidden: tags.is_hidden,
         hide_events: tags.hide_events,
         display_order: tags.display_order,
-        parent_tag_id: tags.parent_tag_id,
         active_markets_count: tags.active_markets_count,
         created_at: tags.created_at,
         updated_at: tags.updated_at,
-        parent: {
-          id: parentTags.id,
-          name: parentTags.name,
-          slug: parentTags.slug,
-        },
       })
       .from(tags)
-      .leftJoin(parentTags, eq(tags.parent_tag_id, parentTags.id))
       .where(eq(tags.id, id))
 
     const { data: selectResult, error: selectError } = await runQuery(async () => {
@@ -559,17 +523,9 @@ export const TagRepository = {
       is_hidden: row.is_hidden,
       hide_events: row.hide_events,
       display_order: row.display_order ?? 0,
-      parent_tag_id: row.parent_tag_id,
       active_markets_count: row.active_markets_count ?? 0,
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
-      parent: row.parent?.id
-        ? {
-            id: row.parent.id,
-            name: row.parent.name,
-            slug: row.parent.slug,
-          }
-        : null,
       translations: translationsByTagId.get(row.id) ?? {},
     }
 

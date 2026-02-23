@@ -248,7 +248,6 @@ export const tags = pgTable(
     is_hidden: boolean().notNull().default(false),
     hide_events: boolean().notNull().default(false),
     display_order: smallint().default(0),
-    parent_tag_id: smallint().references((): any => tags.id),
     active_markets_count: integer().default(0),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),

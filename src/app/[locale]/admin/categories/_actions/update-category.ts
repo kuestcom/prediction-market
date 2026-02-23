@@ -29,9 +29,6 @@ export interface UpdateCategoryResult {
     is_main_category: boolean
     is_hidden: boolean
     display_order: number
-    parent_tag_id: number | null
-    parent_name: string | null
-    parent_slug: string | null
     active_markets_count: number
     created_at: string
     updated_at: string
@@ -71,13 +68,6 @@ export async function updateCategoryAction(
       }
     }
 
-    const { parent, ...rest } = data
-    const transformedData = {
-      ...rest,
-      parent_name: parent?.name ?? null,
-      parent_slug: parent?.slug ?? null,
-    }
-
     revalidatePath('/[locale]/admin/categories', 'page')
     revalidatePath('/[locale]', 'layout')
     updateTag(cacheTags.adminCategories)
@@ -90,7 +80,7 @@ export async function updateCategoryAction(
 
     return {
       success: true,
-      data: transformedData,
+      data,
     }
   }
   catch (error) {

@@ -11,9 +11,6 @@ export interface AdminCategoryRow {
   is_hidden: boolean
   hide_events: boolean
   display_order: number
-  parent_tag_id: number | null
-  parent_name: string | null
-  parent_slug: string | null
   active_markets_count: number
   created_at: string
   updated_at: string

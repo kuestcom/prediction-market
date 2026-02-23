@@ -29,7 +29,6 @@ CREATE TABLE tags
   is_hidden            BOOLEAN     NOT NULL DEFAULT FALSE,
   hide_events          BOOLEAN     NOT NULL DEFAULT FALSE,
   display_order        SMALLINT             DEFAULT 0,
-  parent_tag_id        SMALLINT REFERENCES tags (id),
   active_markets_count INTEGER              DEFAULT 0,
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
