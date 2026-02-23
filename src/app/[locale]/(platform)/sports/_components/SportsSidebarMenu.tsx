@@ -12,6 +12,7 @@ export type SportsSidebarMode = 'all' | 'live' | 'futures'
 interface SportsSidebarMenuProps {
   mode: SportsSidebarMode
   activeTagSlug: string | null
+  countByTagSlug?: Record<string, number>
   onSelectMode: (mode: SportsSidebarMode) => void
   onSelectTagSlug: (tagSlug: string, href: string) => void
   onNavigateHref: (href: string) => void
@@ -282,6 +283,7 @@ function SportsMenuLink({
   nested = false,
   mode,
   activeTagSlug,
+  countByTagSlug,
   onSelectMode,
   onSelectTagSlug,
   onNavigateHref,
@@ -290,6 +292,7 @@ function SportsMenuLink({
   nested?: boolean
   mode: SportsSidebarMode
   activeTagSlug: string | null
+  countByTagSlug?: Record<string, number>
   onSelectMode: (mode: SportsSidebarMode) => void
   onSelectTagSlug: (tagSlug: string, href: string) => void
   onNavigateHref: (href: string) => void
@@ -303,6 +306,10 @@ function SportsMenuLink({
     : isFuturesLink
       ? mode === 'futures'
       : mode === 'all' && areTagSlugsEquivalent(entryTagSlug, activeTagSlug)
+  const dynamicCount = entryTagSlug ? countByTagSlug?.[entryTagSlug] : null
+  const displayCount = typeof dynamicCount === 'number' && dynamicCount > 0
+    ? dynamicCount
+    : null
 
   function handleClick() {
     if (isLiveLink) {
@@ -355,9 +362,9 @@ function SportsMenuLink({
         </span>
       </span>
 
-      {typeof entry.count === 'number' && (
+      {displayCount !== null && (
         <span className="shrink-0 pl-2 text-xs font-semibold text-muted-foreground tabular-nums">
-          {entry.count}
+          {displayCount}
         </span>
       )}
     </button>
@@ -367,6 +374,7 @@ function SportsMenuLink({
 export default function SportsSidebarMenu({
   mode,
   activeTagSlug,
+  countByTagSlug,
   onSelectMode,
   onSelectTagSlug,
   onNavigateHref,
@@ -409,6 +417,7 @@ export default function SportsSidebarMenu({
               entry={entry}
               mode={mode}
               activeTagSlug={activeTagSlug}
+              countByTagSlug={countByTagSlug}
               onSelectMode={onSelectMode}
               onSelectTagSlug={onSelectTagSlug}
               onNavigateHref={onNavigateHref}
@@ -468,6 +477,7 @@ export default function SportsSidebarMenu({
                       nested
                       mode={mode}
                       activeTagSlug={activeTagSlug}
+                      countByTagSlug={countByTagSlug}
                       onSelectMode={onSelectMode}
                       onSelectTagSlug={onSelectTagSlug}
                       onNavigateHref={onNavigateHref}

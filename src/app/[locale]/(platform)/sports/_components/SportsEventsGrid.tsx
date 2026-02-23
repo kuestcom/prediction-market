@@ -1,13 +1,12 @@
 'use client'
 
-import type { Route } from 'next'
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import type { SportsSidebarMode } from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 import type { Event } from '@/types'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { useLocale } from 'next-intl'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import EventCard from '@/app/[locale]/(platform)/(home)/_components/EventCard'
 import EventCardSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventCardSkeleton'
 import EventsGridSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventsGridSkeleton'
@@ -15,10 +14,7 @@ import EventsEmptyState from '@/app/[locale]/(platform)/event/[slug]/_components
 import { useEventLastTrades } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventLastTrades'
 import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
 import { buildMarketTargets } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
-import { SPORTS_MENU_ENTRIES } from '@/app/[locale]/(platform)/sports/_components/sportsMenuData'
-import SportsSidebarMenu from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 import { useColumns } from '@/hooks/useColumns'
-import { useRouter } from '@/i18n/navigation'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
@@ -28,74 +24,10 @@ interface SportsEventsGridProps {
   initialEvents: Event[]
   initialMode?: SportsSidebarMode
   sportsSportSlug?: string | null
-  activeSportSlug?: string | null
-  selectedTitle?: string
+  sportsSection?: 'games' | 'props' | null
 }
 
 const EMPTY_EVENTS: Event[] = []
-const SPORTS_TITLE_ALIASES: Record<string, string[]> = {
-  'cbb': ['ncaab'],
-  'ncaab': ['cbb'],
-  'counter-strike': ['cs2'],
-  'cs2': ['counter-strike'],
-  'league-of-legends': ['lol'],
-  'lol': ['league-of-legends'],
-}
-
-function resolveSportsTagSlugFromHref(href: string) {
-  const segments = href
-    .split('/')
-    .map(segment => segment.trim().toLowerCase())
-    .filter(Boolean)
-  const sportsIndex = segments.indexOf('sports')
-  if (sportsIndex === -1) {
-    return null
-  }
-
-  const nextSegment = segments[sportsIndex + 1]
-  if (!nextSegment || nextSegment === 'live' || nextSegment === 'futures') {
-    return null
-  }
-
-  return nextSegment
-}
-
-const SPORTS_TITLE_BY_TAG_SLUG = (() => {
-  const titleByTag = new Map<string, string>()
-
-  for (const entry of SPORTS_MENU_ENTRIES) {
-    if (entry.type === 'link') {
-      const tagSlug = resolveSportsTagSlugFromHref(entry.href)
-      if (tagSlug && !titleByTag.has(tagSlug)) {
-        titleByTag.set(tagSlug, entry.label)
-      }
-      continue
-    }
-
-    if (entry.type !== 'group') {
-      continue
-    }
-
-    for (const child of entry.links) {
-      const tagSlug = resolveSportsTagSlugFromHref(child.href)
-      if (tagSlug && !titleByTag.has(tagSlug)) {
-        titleByTag.set(tagSlug, child.label)
-      }
-    }
-  }
-
-  return titleByTag
-})()
-
-function formatTagSlugAsTitle(tagSlug: string) {
-  return tagSlug
-    .split('-')
-    .filter(Boolean)
-    .map((segment) => {
-      return segment.charAt(0).toUpperCase() + segment.slice(1)
-    })
-    .join(' ')
-}
 
 function normalizeSeriesSlug(value: string | null | undefined) {
   const normalized = value?.trim().toLowerCase()
@@ -219,11 +151,13 @@ async function fetchEvents({
   filters,
   locale,
   sportsSportSlug,
+  sportsSection,
 }: {
   pageParam: number
   filters: FilterState
   locale: string
   sportsSportSlug: string | null
+  sportsSection: 'games' | 'props' | null
 }): Promise<Event[]> {
   const params = new URLSearchParams({
     tag: 'sports',
@@ -246,6 +180,9 @@ async function fetchEvents({
   if (sportsSportSlug) {
     params.set('sportsSportSlug', sportsSportSlug)
   }
+  if (sportsSection) {
+    params.set('sportsSection', sportsSection)
+  }
   const response = await fetch(`/api/events?${params}`)
   if (!response.ok) {
     throw new Error('Failed to fetch events')
@@ -258,11 +195,9 @@ export default function SportsEventsGrid({
   initialEvents = EMPTY_EVENTS,
   initialMode = 'all',
   sportsSportSlug = null,
-  activeSportSlug = null,
-  selectedTitle,
+  sportsSection = null,
 }: SportsEventsGridProps) {
   const locale = useLocale()
-  const router = useRouter()
   const parentRef = useRef<HTMLDivElement | null>(null)
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
@@ -277,7 +212,6 @@ export default function SportsEventsGrid({
     && filters.frequency === 'all'
     && filters.status === 'active'
   const shouldUseInitialData = isDefaultState && initialEvents.length > 0
-  const isSportsContext = true
 
   const {
     status,
@@ -301,12 +235,14 @@ export default function SportsEventsGrid({
       locale,
       userCacheKey,
       normalizedSportsSportSlug,
+      sportsSection,
     ],
     queryFn: ({ pageParam }) => fetchEvents({
       pageParam,
       filters,
       locale,
       sportsSportSlug: normalizedSportsSportSlug,
+      sportsSection,
     }),
     getNextPageParam: (lastPage, allPages) => lastPage.length > 0 ? allPages.length * PAGE_SIZE : undefined,
     initialPageParam: 0,
@@ -327,12 +263,6 @@ export default function SportsEventsGrid({
     previousUserKeyRef.current = userCacheKey
     void refetch()
   }, [refetch, userCacheKey])
-
-  useEffect(() => {
-    if (!isSportsContext) {
-      setSportsMode('all')
-    }
-  }, [isSportsContext])
 
   useEffect(() => {
     setSportsMode(initialMode)
@@ -415,13 +345,10 @@ export default function SportsEventsGrid({
   }, [allEvents, currentTimestamp, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status])
 
   const sportsBaseEvents = useMemo(() => {
-    if (!isSportsContext) {
-      return EMPTY_EVENTS
-    }
     return filteredEvents
-  }, [filteredEvents, isSportsContext])
+  }, [filteredEvents])
   const sportsModeEvents = useMemo(() => {
-    if (!isSportsContext || sportsMode === 'all') {
+    if (sportsMode === 'all') {
       return sportsBaseEvents
     }
 
@@ -434,8 +361,8 @@ export default function SportsEventsGrid({
     }
 
     return sportsBaseEvents.filter(event => isEventFuture(event, currentTimestamp))
-  }, [currentTimestamp, isSportsContext, sportsBaseEvents, sportsMode])
-  const visibleEvents = isSportsContext ? sportsModeEvents : filteredEvents
+  }, [currentTimestamp, sportsBaseEvents, sportsMode])
+  const visibleEvents = sportsModeEvents
 
   const marketTargets = useMemo(
     () => visibleEvents.flatMap(event => buildMarketTargets(event.markets)),
@@ -466,64 +393,8 @@ export default function SportsEventsGrid({
 
     return Object.fromEntries(entries)
   }, [lastTradesByMarket, marketQuotesByMarket])
-  const normalizedActiveSportSlug = activeSportSlug?.trim().toLowerCase() || normalizedSportsSportSlug
-  const activeSportsTagSlug = useMemo(() => {
-    if (normalizedActiveSportSlug) {
-      return normalizedActiveSportSlug
-    }
-
-    return null
-  }, [normalizedActiveSportSlug])
-  const sportsSelectedTitle = useMemo(() => {
-    if (!isSportsContext) {
-      return ''
-    }
-
-    if (selectedTitle?.trim()) {
-      return selectedTitle
-    }
-
-    if (sportsMode === 'live') {
-      return 'Live'
-    }
-
-    if (sportsMode === 'futures') {
-      return 'Futures'
-    }
-
-    if (!activeSportsTagSlug) {
-      return 'All Sports'
-    }
-
-    const directTitle = SPORTS_TITLE_BY_TAG_SLUG.get(activeSportsTagSlug)
-    if (directTitle) {
-      return directTitle
-    }
-
-    for (const alias of SPORTS_TITLE_ALIASES[activeSportsTagSlug] ?? []) {
-      const aliasedTitle = SPORTS_TITLE_BY_TAG_SLUG.get(alias)
-      if (aliasedTitle) {
-        return aliasedTitle
-      }
-    }
-
-    return formatTagSlugAsTitle(activeSportsTagSlug)
-  }, [activeSportsTagSlug, isSportsContext, selectedTitle, sportsMode])
-  const handleNavigateHref = useCallback((href: string) => {
-    router.push(href as Route)
-  }, [router])
-  const handleSelectSportsTag = useCallback((_requestedTagSlug: string, href: string) => {
-    setSportsMode('all')
-    router.push(href as Route)
-  }, [router])
-
   const columns = useColumns()
-  const activeColumns = useMemo(() => {
-    if (isSportsContext && columns >= 3) {
-      return columns - 1
-    }
-    return columns
-  }, [columns, isSportsContext])
+  const activeColumns = columns >= 3 ? columns - 1 : columns
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -569,61 +440,14 @@ export default function SportsEventsGrid({
   }
 
   if (status === 'error') {
-    return (
-      <p className="text-center text-sm text-muted-foreground">
-        Could not load more events.
-      </p>
-    )
+    return <div className="flex min-h-50 min-w-0 items-center justify-center text-sm text-muted-foreground">Could not load events.</div>
   }
 
   if (!allEvents || allEvents.length === 0) {
-    if (isSportsContext) {
-      return (
-        <div className="w-full">
-          <div className="relative w-full lg:flex lg:items-start lg:gap-4">
-            <SportsSidebarMenu
-              mode={sportsMode}
-              activeTagSlug={activeSportsTagSlug}
-              onSelectMode={setSportsMode}
-              onSelectTagSlug={handleSelectSportsTag}
-              onNavigateHref={handleNavigateHref}
-            />
-            <div ref={parentRef} className="relative min-w-0 flex-1">
-              {sportsSelectedTitle && (
-                <h1 className="text-3xl font-semibold tracking-tight text-foreground lg:mt-2 lg:ml-4">{sportsSelectedTitle}</h1>
-              )}
-            </div>
-          </div>
-        </div>
-      )
-    }
     return <EventsEmptyState tag={filters.tag} searchQuery={filters.search} />
   }
 
   if (!visibleEvents || visibleEvents.length === 0) {
-    if (isSportsContext) {
-      return (
-        <div className="w-full">
-          <div className="relative w-full lg:flex lg:items-start lg:gap-4">
-            <SportsSidebarMenu
-              mode={sportsMode}
-              activeTagSlug={activeSportsTagSlug}
-              onSelectMode={setSportsMode}
-              onSelectTagSlug={handleSelectSportsTag}
-              onNavigateHref={handleNavigateHref}
-            />
-            <div ref={parentRef} className="min-w-0 flex-1">
-              {sportsSelectedTitle && (
-                <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-12 lg:ml-4">{sportsSelectedTitle}</h1>
-              )}
-              <div className="flex min-h-50 min-w-0 items-center justify-center text-sm text-muted-foreground">
-                No events match your filters.
-              </div>
-            </div>
-          </div>
-        </div>
-      )
-    }
     return (
       <div
         ref={parentRef}
@@ -635,70 +459,52 @@ export default function SportsEventsGrid({
   }
 
   return (
-    <div className="w-full">
-      <div className={cn('relative w-full', { 'lg:flex lg:items-start lg:gap-4': isSportsContext })}>
-        {isSportsContext && (
-          <SportsSidebarMenu
-            mode={sportsMode}
-            activeTagSlug={activeSportsTagSlug}
-            onSelectMode={setSportsMode}
-            onSelectTagSlug={handleSelectSportsTag}
-            onNavigateHref={handleNavigateHref}
-          />
-        )}
+    <div ref={parentRef} className="relative min-w-0 flex-1">
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          position: 'relative',
+          width: '100%',
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const start = virtualRow.index * activeColumns
+          const end = Math.min(start + activeColumns, visibleEvents.length)
+          const rowEvents = visibleEvents.slice(start, end)
 
-        <div ref={parentRef} className="relative min-w-0 flex-1">
-          {isSportsContext && sportsSelectedTitle && (
-            <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-12 lg:ml-4">{sportsSelectedTitle}</h1>
-          )}
-
-          <div
-            style={{
-              height: `${virtualizer.getTotalSize()}px`,
-              position: 'relative',
-              width: '100%',
-            }}
-          >
-            {virtualizer.getVirtualItems().map((virtualRow) => {
-              const start = virtualRow.index * activeColumns
-              const end = Math.min(start + activeColumns, visibleEvents.length)
-              const rowEvents = visibleEvents.slice(start, end)
-
-              return (
-                <div
-                  key={virtualRow.key}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: `${virtualRow.size}px`,
-                    transform: `translateY(${
-                      virtualRow.start
-                      - (virtualizer.options.scrollMargin ?? 0)
-                    }px)`,
-                  }}
-                >
-                  <div
-                    className={cn('grid gap-3', { 'opacity-80': isFetching })}
-                    style={{
-                      gridTemplateColumns: `repeat(${Math.max(1, activeColumns)}, minmax(0, 1fr))`,
-                    }}
-                  >
-                    {rowEvents.map(event => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        priceOverridesByMarket={priceOverridesByMarket}
-                      />
-                    ))}
-                    {isFetchingNextPage && <EventCardSkeleton />}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+          return (
+            <div
+              key={virtualRow.key}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${
+                  virtualRow.start
+                  - (virtualizer.options.scrollMargin ?? 0)
+                }px)`,
+              }}
+            >
+              <div
+                className={cn('grid gap-3', { 'opacity-80': isFetching })}
+                style={{
+                  gridTemplateColumns: `repeat(${Math.max(1, activeColumns)}, minmax(0, 1fr))`,
+                }}
+              >
+                {rowEvents.map(event => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    priceOverridesByMarket={priceOverridesByMarket}
+                  />
+                ))}
+                {isFetchingNextPage && <EventCardSkeleton />}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

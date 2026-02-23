@@ -29,13 +29,13 @@ export default async function SportsFuturesBySportPage({
   const normalizedSportSlug = normalizeSportsSlug(sportSlug)
 
   return (
-    <SportsContent
-      locale={locale}
-      initialTag="sports"
-      initialMode="futures"
-      sportsSportSlug={normalizedSportSlug}
-      activeSportSlug={normalizedSportSlug}
-      selectedTitle="Futures"
-    />
+    <div className="grid gap-4">
+      <SportsContent
+        locale={locale}
+        initialTag="sports"
+        initialMode="futures"
+        sportsSportSlug={normalizedSportSlug}
+      />
+    </div>
   )
 }

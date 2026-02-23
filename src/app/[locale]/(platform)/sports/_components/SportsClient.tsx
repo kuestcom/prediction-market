@@ -7,14 +7,14 @@ import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import SportsEventsGrid from '@/app/[locale]/(platform)/sports/_components/SportsEventsGrid'
 
 type SportsPageMode = 'all' | 'live' | 'futures'
+type SportsSection = 'games' | 'props'
 
 interface SportsClientProps {
   initialEvents: Event[]
   initialTag?: string
   initialMode?: SportsPageMode
   sportsSportSlug?: string | null
-  activeSportSlug?: string | null
-  selectedTitle?: string
+  sportsSection?: SportsSection | null
 }
 
 export default function SportsClient({
@@ -22,8 +22,7 @@ export default function SportsClient({
   initialTag,
   initialMode = 'all',
   sportsSportSlug = null,
-  activeSportSlug = null,
-  selectedTitle,
+  sportsSection = null,
 }: SportsClientProps) {
   const { filters, updateFilters } = useFilters()
   const lastAppliedInitialTagRef = useRef<string | null>(null)
@@ -45,8 +44,7 @@ export default function SportsClient({
         initialEvents={initialEvents}
         initialMode={initialMode}
         sportsSportSlug={sportsSportSlug}
-        activeSportSlug={activeSportSlug}
-        selectedTitle={selectedTitle}
+        sportsSection={sportsSection}
       />
     </OpenCardProvider>
   )

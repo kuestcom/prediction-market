@@ -8,14 +8,14 @@ import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 
 type SportsPageMode = 'all' | 'live' | 'futures'
+type SportsSection = 'games' | 'props'
 
 interface SportsContentProps {
   locale: string
   initialTag?: string
   initialMode?: SportsPageMode
   sportsSportSlug?: string | null
-  activeSportSlug?: string | null
-  selectedTitle?: string
+  sportsSection?: SportsSection | null
 }
 
 export default async function SportsContent({
@@ -23,14 +23,17 @@ export default async function SportsContent({
   initialTag = 'sports',
   initialMode = 'all',
   sportsSportSlug = null,
-  activeSportSlug = null,
-  selectedTitle,
+  sportsSection = null,
 }: SportsContentProps) {
   cacheTag(cacheTags.eventsGlobal)
   const resolvedLocale = locale as SupportedLocale
 
   let initialEvents: Event[] = []
   const normalizedSportsSportSlug = sportsSportSlug?.trim().toLowerCase() || ''
+  const normalizedSportsSection = sportsSection?.trim().toLowerCase() || ''
+  const resolvedSportsSection: SportsSection | '' = normalizedSportsSection === 'games' || normalizedSportsSection === 'props'
+    ? normalizedSportsSection
+    : ''
 
   try {
     const { data: events, error } = await EventRepository.listEvents({
@@ -40,6 +43,7 @@ export default async function SportsContent({
       bookmarked: false,
       locale: resolvedLocale,
       sportsSportSlug: normalizedSportsSportSlug,
+      sportsSection: resolvedSportsSection,
     })
 
     if (error) {
@@ -54,15 +58,12 @@ export default async function SportsContent({
   }
 
   return (
-    <main className="container grid gap-4 py-4">
-      <SportsClient
-        initialEvents={initialEvents}
-        initialTag={initialTag}
-        initialMode={initialMode}
-        sportsSportSlug={normalizedSportsSportSlug || null}
-        activeSportSlug={activeSportSlug}
-        selectedTitle={selectedTitle}
-      />
-    </main>
+    <SportsClient
+      initialEvents={initialEvents}
+      initialTag={initialTag}
+      initialMode={initialMode}
+      sportsSportSlug={normalizedSportsSportSlug || null}
+      sportsSection={resolvedSportsSection || null}
+    />
   )
 }

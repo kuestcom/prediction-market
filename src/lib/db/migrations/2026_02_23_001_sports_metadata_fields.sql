@@ -56,6 +56,9 @@ CREATE INDEX IF NOT EXISTS idx_event_sports_teams_gin
   ON event_sports
   USING GIN (sports_teams);
 
+CREATE INDEX IF NOT EXISTS idx_events_status_active_markets_count
+  ON events (status, active_markets_count);
+
 CREATE TABLE IF NOT EXISTS market_sports (
   condition_id TEXT PRIMARY KEY
     REFERENCES markets (condition_id)

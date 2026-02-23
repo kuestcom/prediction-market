@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
-import { normalizeSportsSlug, resolveSportsTitleBySlug } from '@/app/[locale]/(platform)/sports/_components/sportsRouteUtils'
+import { normalizeSportsSlug } from '@/app/[locale]/(platform)/sports/_components/sportsRouteUtils'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export const metadata: Metadata = {
@@ -27,16 +27,19 @@ export default async function SportsGamesBySportPage({
   }
 
   const normalizedSportSlug = normalizeSportsSlug(sportSlug)
-  const selectedTitle = resolveSportsTitleBySlug(normalizedSportSlug)
+  if (!normalizedSportSlug) {
+    notFound()
+  }
 
   return (
-    <SportsContent
-      locale={locale}
-      initialTag="sports"
-      initialMode="all"
-      sportsSportSlug={normalizedSportSlug}
-      activeSportSlug={normalizedSportSlug}
-      selectedTitle={selectedTitle ?? undefined}
-    />
+    <div className="grid gap-4">
+      <SportsContent
+        locale={locale}
+        initialTag="sports"
+        initialMode="all"
+        sportsSportSlug={normalizedSportSlug}
+        sportsSection="games"
+      />
+    </div>
   )
 }

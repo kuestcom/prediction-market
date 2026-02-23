@@ -1,8 +1,8 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { conditions } from '@/lib/db/schema/events/tables'
 import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, QueryResult } from '@/types'
-import { and, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
-import { cacheTag } from 'next/cache'
+import { and, desc, eq, exists, gt, ilike, inArray, or, sql } from 'drizzle-orm'
+import { cacheTag, unstable_cache } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { OUTCOME_INDEX } from '@/lib/constants'
@@ -263,6 +263,7 @@ interface ListEventsProps {
   offset?: number
   locale?: SupportedLocale
   sportsSportSlug?: string
+  sportsSection?: 'games' | 'props' | ''
 }
 
 interface RelatedEventOptions {
@@ -305,6 +306,31 @@ interface RelatedEvent {
   common_tags_count: number
   chance: number | null
 }
+
+const getCachedActiveSportsCountsBySlug = unstable_cache(
+  async () => {
+    const rows = await db
+      .select({
+        slug: event_sports.sports_sport_slug,
+        count: sql<number>`COUNT(*)::int`,
+      })
+      .from(event_sports)
+      .innerJoin(events, eq(event_sports.event_id, events.id))
+      .where(and(
+        eq(events.status, 'active'),
+        gt(events.active_markets_count, 0),
+        sql`TRIM(COALESCE(${event_sports.sports_sport_slug}, '')) <> ''`,
+      ))
+      .groupBy(event_sports.sports_sport_slug)
+
+    return rows
+  },
+  ['events-active-sports-counts-by-slug-v1'],
+  {
+    revalidate: 1800,
+    tags: [cacheTags.eventsGlobal],
+  },
+)
 
 async function getLocalizedTagNamesById(tagIds: number[], locale: SupportedLocale): Promise<Map<number, string>> {
   if (!tagIds.length || locale === DEFAULT_LOCALE) {
@@ -559,6 +585,32 @@ function getEventMainTag(tags: any[] | undefined): string {
 }
 
 export const EventRepository = {
+  async getActiveSportsCountsBySlug(): Promise<QueryResult<Record<string, number>>> {
+    'use cache'
+    cacheTag(cacheTags.eventsGlobal)
+
+    return runQuery(async () => {
+      const rows = await getCachedActiveSportsCountsBySlug()
+      const countsBySlug: Record<string, number> = {}
+
+      for (const row of rows) {
+        const normalizedSlug = row.slug?.trim().toLowerCase()
+        if (!normalizedSlug) {
+          continue
+        }
+
+        const countValue = Number(row.count ?? 0)
+        if (!Number.isFinite(countValue) || countValue <= 0) {
+          continue
+        }
+
+        countsBySlug[normalizedSlug] = countValue
+      }
+
+      return { data: countsBySlug, error: null }
+    })
+  },
+
   async listEvents({
     tag = 'trending',
     search = '',
@@ -569,6 +621,7 @@ export const EventRepository = {
     offset = 0,
     locale = DEFAULT_LOCALE,
     sportsSportSlug = '',
+    sportsSection = '',
   }: ListEventsProps): Promise<QueryResult<Event[]>> {
     'use cache'
     cacheTag(cacheTags.events(userId || 'guest'))
@@ -634,6 +687,24 @@ export const EventRepository = {
               .where(and(
                 eq(event_sports.event_id, events.id),
                 eq(normalizedSportsSportSlugColumn, normalizedSportsSportSlug),
+              )),
+          ),
+        )
+      }
+
+      const normalizedSportsSection = sportsSection.trim().toLowerCase()
+      if (normalizedSportsSection === 'games' || normalizedSportsSection === 'props') {
+        const sectionTagSlugs = normalizedSportsSection === 'games'
+          ? ['games', 'game']
+          : ['props', 'prop']
+        whereConditions.push(
+          exists(
+            db.select()
+              .from(event_tags)
+              .innerJoin(tags, eq(event_tags.tag_id, tags.id))
+              .where(and(
+                eq(event_tags.event_id, events.id),
+                inArray(tags.slug, sectionTagSlugs),
               )),
           ),
         )

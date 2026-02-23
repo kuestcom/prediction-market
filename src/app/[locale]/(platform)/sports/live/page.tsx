@@ -13,11 +13,12 @@ export default async function SportsLivePage({ params }: { params: Promise<{ loc
   setRequestLocale(locale)
 
   return (
-    <SportsContent
-      locale={locale}
-      initialTag="sports"
-      initialMode="live"
-      selectedTitle="Live"
-    />
+    <div className="grid gap-4">
+      <SportsContent
+        locale={locale}
+        initialTag="sports"
+        initialMode="live"
+      />
+    </div>
   )
 }
