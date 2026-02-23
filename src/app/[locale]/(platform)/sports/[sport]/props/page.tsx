@@ -8,28 +8,25 @@ import { normalizeSportsSlug } from '@/app/[locale]/(platform)/sports/_component
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export const metadata: Metadata = {
-  title: 'Sports Games',
+  title: 'Sports Props',
 }
 
 export async function generateStaticParams() {
-  return [{ sportSlug: STATIC_PARAMS_PLACEHOLDER }]
+  return [{ sport: STATIC_PARAMS_PLACEHOLDER }]
 }
 
-export default async function SportsGamesBySportPage({
+export default async function SportsPropsBySportPage({
   params,
 }: {
-  params: Promise<{ locale: string, sportSlug: string }>
+  params: Promise<{ locale: string, sport: string }>
 }) {
-  const { locale, sportSlug } = await params
+  const { locale, sport } = await params
   setRequestLocale(locale)
-  if (sportSlug === STATIC_PARAMS_PLACEHOLDER) {
+  if (sport === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
 
-  const normalizedSportSlug = normalizeSportsSlug(sportSlug)
-  if (!normalizedSportSlug) {
-    notFound()
-  }
+  const normalizedSportSlug = normalizeSportsSlug(sport)
 
   return (
     <div className="grid gap-4">
@@ -38,7 +35,7 @@ export default async function SportsGamesBySportPage({
         initialTag="sports"
         initialMode="all"
         sportsSportSlug={normalizedSportSlug}
-        sportsSection="games"
+        sportsSection="props"
       />
     </div>
   )

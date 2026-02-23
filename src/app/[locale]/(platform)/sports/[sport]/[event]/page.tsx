@@ -13,15 +13,15 @@ import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ locale: string, sportSlug: string, eventSlug: string }>
+  params: Promise<{ locale: string, sport: string, event: string }>
 }): Promise<Metadata> {
-  const { locale, sportSlug, eventSlug } = await params
+  const { locale, sport, event } = await params
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale
-  if (sportSlug === STATIC_PARAMS_PLACEHOLDER || eventSlug === STATIC_PARAMS_PLACEHOLDER) {
+  if (sport === STATIC_PARAMS_PLACEHOLDER || event === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
-  const canonicalEventSlug = await resolveCanonicalEventSlugFromSportsPath(sportSlug, eventSlug)
+  const canonicalEventSlug = await resolveCanonicalEventSlugFromSportsPath(sport, event)
   if (!canonicalEventSlug) {
     notFound()
   }
@@ -36,15 +36,15 @@ export async function generateMetadata({
 export default async function SportsEventPage({
   params,
 }: {
-  params: Promise<{ locale: string, sportSlug: string, eventSlug: string }>
+  params: Promise<{ locale: string, sport: string, event: string }>
 }) {
-  const { locale, sportSlug, eventSlug } = await params
+  const { locale, sport, event } = await params
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale
-  if (sportSlug === STATIC_PARAMS_PLACEHOLDER || eventSlug === STATIC_PARAMS_PLACEHOLDER) {
+  if (sport === STATIC_PARAMS_PLACEHOLDER || event === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
-  const canonicalEventSlug = await resolveCanonicalEventSlugFromSportsPath(sportSlug, eventSlug)
+  const canonicalEventSlug = await resolveCanonicalEventSlugFromSportsPath(sport, event)
   if (!canonicalEventSlug) {
     notFound()
   }
