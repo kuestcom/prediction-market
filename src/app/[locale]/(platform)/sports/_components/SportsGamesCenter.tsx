@@ -48,7 +48,7 @@ interface SportsLinePickerOption {
 
 interface SportsGraphSeriesTarget {
   key: string
-  tokenId: string
+  tokenId: string | null
   market: Market
   outcomeIndex: number
   name: string
@@ -419,12 +419,13 @@ function SportsGameGraph({
 }) {
   const { width: windowWidth } = useWindowSize()
   const [cursorSnapshot, setCursorSnapshot] = useState<PredictionChartCursorSnapshot | null>(null)
+  const isSecondaryMarketGraph = selectedMarketType === 'spread' || selectedMarketType === 'total'
 
   const graphSeriesTargets = useMemo<SportsGraphSeriesTarget[]>(
     () => {
       if (
         selectedConditionId
-        && (selectedMarketType === 'spread' || selectedMarketType === 'total')
+        && isSecondaryMarketGraph
       ) {
         const selectedMarket = card.detailMarkets.find(
           market => market.condition_id === selectedConditionId,
@@ -436,10 +437,6 @@ function SportsGameGraph({
 
           const outcomeTargets = orderedOutcomes
             .map((outcome, index) => {
-              if (!outcome.token_id) {
-                return null
-              }
-
               const relatedButton = card.buttons.find(
                 button => button.conditionId === selectedMarket.condition_id
                   && button.outcomeIndex === outcome.outcome_index,
@@ -448,14 +445,13 @@ function SportsGameGraph({
 
               return {
                 key: `${selectedMarket.condition_id}:${outcome.outcome_index}`,
-                tokenId: outcome.token_id,
+                tokenId: outcome.token_id ?? null,
                 market: selectedMarket,
                 outcomeIndex: outcome.outcome_index,
                 name: relatedButton?.label ?? fallbackLabel,
                 color: resolveGraphSeriesColor(relatedButton, fallbackColors[index % fallbackColors.length]!),
               }
             })
-            .filter((target): target is SportsGraphSeriesTarget => target !== null)
 
           if (outcomeTargets.length > 0) {
             return outcomeTargets
@@ -478,7 +474,7 @@ function SportsGameGraph({
       if (moneylineMarkets.length > 0) {
         return moneylineMarkets
           .slice(0, 3)
-          .map((market, index) => {
+          .map<SportsGraphSeriesTarget | null>((market, index) => {
             const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
               ?? market.outcomes[0]
               ?? null
@@ -534,14 +530,16 @@ function SportsGameGraph({
 
       return fallbackTargets.slice(0, 3)
     },
-    [card.buttons, card.detailMarkets, selectedConditionId, selectedMarketType],
+    [card.buttons, card.detailMarkets, isSecondaryMarketGraph, selectedConditionId],
   )
 
   const marketTargets = useMemo(
-    () => graphSeriesTargets.map(target => ({
-      conditionId: target.key,
-      tokenId: target.tokenId,
-    })),
+    () => graphSeriesTargets
+      .filter((target): target is SportsGraphSeriesTarget & { tokenId: string } => Boolean(target.tokenId))
+      .map(target => ({
+        conditionId: target.key,
+        tokenId: target.tokenId,
+      })),
     [graphSeriesTargets],
   )
 
@@ -582,6 +580,36 @@ function SportsGameGraph({
       .filter((point): point is DataPoint => point !== null)
   }, [chartSeries, normalizedHistory])
 
+  const pairedHistoryChartData = useMemo<DataPoint[]>(() => {
+    if (!isSecondaryMarketGraph || chartSeries.length !== 2) {
+      return historyChartData
+    }
+
+    const [firstSeries, secondSeries] = chartSeries
+    return historyChartData
+      .map((point) => {
+        const firstRaw = point[firstSeries.key]
+        const secondRaw = point[secondSeries.key]
+        const firstValue = typeof firstRaw === 'number' && Number.isFinite(firstRaw) ? firstRaw : null
+        const secondValue = typeof secondRaw === 'number' && Number.isFinite(secondRaw) ? secondRaw : null
+
+        if (firstValue === null && secondValue === null) {
+          return null
+        }
+
+        const nextPoint: DataPoint = { ...point }
+        if (firstValue !== null && secondValue === null) {
+          nextPoint[secondSeries.key] = Math.max(0, Math.min(100, 100 - firstValue))
+        }
+        else if (firstValue === null && secondValue !== null) {
+          nextPoint[firstSeries.key] = Math.max(0, Math.min(100, 100 - secondValue))
+        }
+
+        return nextPoint
+      })
+      .filter((point): point is DataPoint => point !== null)
+  }, [chartSeries, historyChartData, isSecondaryMarketGraph])
+
   const fallbackChartData = useMemo<DataPoint[]>(() => {
     if (graphSeriesTargets.length === 0) {
       return []
@@ -611,7 +639,7 @@ function SportsGameGraph({
     return [startPoint, endPoint]
   }, [card.eventCreatedAt, graphSeriesTargets])
 
-  const chartData = historyChartData.length > 0 ? historyChartData : fallbackChartData
+  const chartData = pairedHistoryChartData.length > 0 ? pairedHistoryChartData : fallbackChartData
 
   const latestSnapshot = useMemo(() => {
     const nextValues: Record<string, number> = {}
@@ -652,7 +680,7 @@ function SportsGameGraph({
     [chartSeries, cursorSnapshot, latestSnapshot],
   )
 
-  const legendContent = legendSeriesWithValues.length > 0
+  const legendContent = !isSecondaryMarketGraph && legendSeriesWithValues.length > 0
     ? (
         <div className="flex min-h-5 flex-wrap items-center gap-4">
           {legendSeriesWithValues.map(entry => (
@@ -698,14 +726,14 @@ function SportsGameGraph({
       data={chartData}
       series={chartSeries}
       width={chartWidth}
-      height={280}
-      margin={{ top: 16, right: 30, bottom: 44, left: 0 }}
+      height={300}
+      margin={{ top: 12, right: 30, bottom: 40, left: 0 }}
       dataSignature={`${card.id}:${chartSeries.map(series => series.key).join(',')}:1w`}
       onCursorDataChange={setCursorSnapshot}
       xAxisTickCount={3}
-      yAxis={{ min: 0, max: 100 }}
+      yAxis={undefined}
       legendContent={legendContent}
-      showLegend
+      showLegend={!isSecondaryMarketGraph}
       showTooltipSeriesLabels
       lineCurve="monotoneX"
       tooltipValueFormatter={value => `${Math.round(value)}%`}
@@ -966,7 +994,7 @@ function SportsGameDetailsPanel({
         )}
       >
         {hasLinePicker && (
-          <div className={cn('-mx-3 px-3', showBottomContent ? 'pb-3' : 'pb-2')}>
+          <div className={cn('-mx-2.5 px-2.5', showBottomContent ? 'pb-3' : 'pb-2')}>
             <div className="relative pt-2">
               <span
                 aria-hidden
@@ -1048,8 +1076,8 @@ function SportsGameDetailsPanel({
 
       {showBottomContent && (
         <>
-          <div className="-mx-3 mb-3 border-b">
-            <div className="flex w-full items-center gap-2 px-3">
+          <div className="-mx-2.5 mb-3 border-b">
+            <div className="flex w-full items-center gap-2 px-2.5">
               <div className="flex w-0 flex-1 items-center gap-4 overflow-x-auto">
                 {([
                   { id: 'orderBook', label: 'Order Book' },
@@ -1105,7 +1133,7 @@ function SportsGameDetailsPanel({
             ? (
                 (selectedMarket && selectedOutcome)
                   ? (
-                      <div className="-mx-3 -mb-3">
+                      <div className="-mx-2.5 -mb-2.5">
                         <EventOrderBook
                           market={selectedMarket}
                           outcome={selectedOutcome}
@@ -1406,7 +1434,7 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                       }}
                       className={cn(
                         `
-                          group cursor-pointer overflow-hidden rounded-xl border bg-secondary/40 p-3 shadow-md
+                          group cursor-pointer overflow-hidden rounded-xl border bg-secondary/40 p-2.5 shadow-md
                           shadow-black/4 transition-all
                           hover:shadow-black/8
                         `,
@@ -1414,11 +1442,11 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                     >
                       <div
                         className={cn(
-                          `-mx-3 -mt-3 px-3 pt-3 pb-3 transition-colors group-hover:bg-card`,
-                          shouldRenderDetailsPanel ? 'rounded-t-xl' : '-mb-3 rounded-xl',
+                          `-mx-2.5 -mt-2.5 px-2.5 pt-2.5 pb-2 transition-colors group-hover:bg-card`,
+                          shouldRenderDetailsPanel ? 'rounded-t-xl' : '-mb-2.5 rounded-xl',
                         )}
                       >
-                        <div className="mb-3 flex items-center justify-between gap-3">
+                        <div className="mb-2 flex items-center justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-2">
                             <span className="rounded-sm bg-secondary px-2 py-1 text-xs font-medium text-foreground">
                               {timeLabel}
@@ -1460,11 +1488,11 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                         </div>
 
                         <div className="
-                          flex flex-col gap-3
+                          flex flex-col gap-2.5
                           min-[1200px]:flex-row min-[1200px]:items-center min-[1200px]:justify-between
                         "
                         >
-                          <div className="min-w-0 flex-1 space-y-3">
+                          <div className="min-w-0 flex-1 space-y-2">
                             {card.teams.map(team => (
                               <div
                                 key={`${card.id}-${team.abbreviation}-${team.name}`}
@@ -1605,7 +1633,7 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                                               hover:translate-y-px
                                               active:translate-y-0.5
                                             `,
-                                            isMoneylineColumn ? 'h-9 text-sm' : 'h-[58px] text-xs',
+                                            isMoneylineColumn ? 'h-9 text-xs' : 'h-[58px] text-xs',
                                             !hasTeamColor && !isOverButton && !isUnderButton
                                             && 'bg-secondary text-secondary-foreground hover:bg-accent',
                                             isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
@@ -1615,7 +1643,7 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                                           <span className={cn('opacity-80', isMoneylineColumn ? 'mr-1' : 'mr-2')}>
                                             {button.label}
                                           </span>
-                                          <span className={cn('tabular-nums', isMoneylineColumn ? '' : 'text-[11px]')}>
+                                          <span className="text-[11px] tabular-nums">
                                             {`${button.cents}¢`}
                                           </span>
                                         </button>
@@ -1632,7 +1660,7 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                       {shouldRenderDetailsPanel && (
                         <div
                           className={cn(
-                            '-mx-3 border-t px-3',
+                            '-mx-2.5 border-t px-2.5',
                             'pt-3',
                           )}
                           onClick={event => event.stopPropagation()}
