@@ -1097,9 +1097,11 @@ function SportsGameDetailsPanel({
 }: SportsGameDetailsPanelProps) {
   const linePickerScrollerRef = useRef<HTMLDivElement | null>(null)
   const linePickerButtonsRef = useRef<Record<string, HTMLButtonElement | null>>({})
-  const [selectedOutcomeIndexOverride, setSelectedOutcomeIndexOverride] = useState<number | null>(null)
   const [linePickerStartSpacer, setLinePickerStartSpacer] = useState(0)
   const [linePickerEndSpacer, setLinePickerEndSpacer] = useState(0)
+  const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
+  const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
+  const setOrderOutcome = useOrder(state => state.setOutcome)
 
   const selectedButton = useMemo(
     () => resolveSelectedButton(card, selectedButtonKey),
@@ -1116,17 +1118,20 @@ function SportsGameDetailsPanel({
       return null
     }
 
-    if (selectedOutcomeIndexOverride !== null) {
-      const overrideOutcome = selectedMarket.outcomes.find(
-        outcome => outcome.outcome_index === selectedOutcomeIndexOverride,
+    if (
+      orderMarketConditionId === selectedMarket.condition_id
+      && (orderOutcomeIndex === OUTCOME_INDEX.YES || orderOutcomeIndex === OUTCOME_INDEX.NO)
+    ) {
+      const syncedOutcome = selectedMarket.outcomes.find(
+        outcome => outcome.outcome_index === orderOutcomeIndex,
       )
-      if (overrideOutcome) {
-        return overrideOutcome
+      if (syncedOutcome) {
+        return syncedOutcome
       }
     }
 
     return resolveSelectedOutcome(selectedMarket, selectedButton)
-  }, [selectedButton, selectedMarket, selectedOutcomeIndexOverride])
+  }, [orderMarketConditionId, orderOutcomeIndex, selectedButton, selectedMarket])
 
   const selectedLinePickerMarketType = useMemo<LinePickerMarketType | null>(() => {
     if (!selectedButton) {
@@ -1176,8 +1181,8 @@ function SportsGameDetailsPanel({
       return
     }
 
-    setSelectedOutcomeIndexOverride(nextOutcome.outcome_index)
-  }, [nextOutcome])
+    setOrderOutcome(nextOutcome)
+  }, [nextOutcome, setOrderOutcome])
 
   const pickLineOption = useCallback((optionIndex: number) => {
     if (!selectedButton) {
@@ -1255,10 +1260,6 @@ function SportsGameDetailsPanel({
     setLinePickerStartSpacer(startSpacerWidth)
     setLinePickerEndSpacer(endSpacerWidth)
   }, [linePickerOptions])
-
-  useEffect(() => {
-    setSelectedOutcomeIndexOverride(null)
-  }, [card.id, selectedButton?.conditionId, selectedButtonKey])
 
   useEffect(() => {
     if (activeLineOptionIndex < 0) {
