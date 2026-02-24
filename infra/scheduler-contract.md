@@ -1,8 +1,8 @@
 # Scheduler Contract
 
-This document defines the single scheduler contract used by all non-Vercel targets.
+This document defines the single scheduler contract used by all non-Supabase targets.
 
-Use this contract whether you run Supabase or Postgres+S3.
+If you run Supabase mode, `npm run db:push` configures `pg_cron` with the same schedules from this document.
 
 ## Why this exists
 

@@ -63,11 +63,7 @@ Scheduler:
 
 ## Scheduler contract
 
-All non-Vercel targets should implement the same HTTP scheduler contract:
-
-- Contract and canonical schedules: `infra/scheduler-contract.md`
-- Security: always send `Authorization: Bearer $CRON_SECRET`
-- Do not run multiple scheduler backends for the same endpoints unless intentional
+All non-Supabase targets should implement the same [HTTP scheduler contract](./scheduler-contract.md).
 
 ## Quick start
 
