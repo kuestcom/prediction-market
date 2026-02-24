@@ -27,16 +27,16 @@ export default function EventOrderPanelMobileMarketInfo({
   }
 
   return (
-    <div className="mb-4 flex items-center gap-3">
+    <div className="mb-4 flex items-center gap-3.5">
       <Image
         src={market.icon_url}
         alt={market.title}
-        width={32}
-        height={32}
-        className="shrink-0 rounded-sm"
+        width={36}
+        height={36}
+        className="shrink-0 rounded-md"
       />
       <div className="flex-1">
-        <div className="line-clamp-2 text-sm font-medium">
+        <div className="line-clamp-2 text-base/tight font-semibold">
           {event.title}
         </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">

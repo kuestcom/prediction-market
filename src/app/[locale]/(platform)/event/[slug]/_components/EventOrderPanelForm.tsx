@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { Event } from '@/types'
 import { useAppKitAccount } from '@reown/appkit/react'
@@ -57,6 +58,9 @@ import { useUser } from '@/stores/useUser'
 interface EventOrderPanelFormProps {
   isMobile: boolean
   event: Event
+  desktopMarketInfo?: ReactNode
+  mobileMarketInfo?: ReactNode
+  primaryOutcomeIndex?: number | null
 }
 
 function resolveWinningOutcomeIndex(market: Event['markets'][number] | null | undefined) {
@@ -103,7 +107,13 @@ function resolveIndexSetFromOutcomeIndex(outcomeIndex: number | undefined) {
   return null
 }
 
-export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanelFormProps) {
+export default function EventOrderPanelForm({
+  event,
+  isMobile,
+  desktopMarketInfo,
+  mobileMarketInfo,
+  primaryOutcomeIndex = null,
+}: EventOrderPanelFormProps) {
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const { signTypedDataAsync } = useSignTypedData()
@@ -1017,8 +1027,22 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
     }
   }
 
-  const yesOutcome = state.market?.outcomes[OUTCOME_INDEX.YES]
-  const noOutcome = state.market?.outcomes[OUTCOME_INDEX.NO]
+  const normalizedPrimaryOutcomeIndex
+    = primaryOutcomeIndex === OUTCOME_INDEX.NO || primaryOutcomeIndex === OUTCOME_INDEX.YES
+      ? primaryOutcomeIndex
+      : OUTCOME_INDEX.YES
+  const normalizedSecondaryOutcomeIndex
+    = normalizedPrimaryOutcomeIndex === OUTCOME_INDEX.YES
+      ? OUTCOME_INDEX.NO
+      : OUTCOME_INDEX.YES
+  const primaryOutcome = state.market?.outcomes.find(
+    outcome => outcome.outcome_index === normalizedPrimaryOutcomeIndex,
+  ) ?? state.market?.outcomes[normalizedPrimaryOutcomeIndex]
+  const secondaryOutcome = state.market?.outcomes.find(
+    outcome => outcome.outcome_index === normalizedSecondaryOutcomeIndex,
+  ) ?? state.market?.outcomes[normalizedSecondaryOutcomeIndex]
+  const primaryPrice = normalizedPrimaryOutcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
+  const secondaryPrice = normalizedSecondaryOutcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
   function handleTypeChange(nextType: typeof state.type) {
     state.setType(nextType)
     if (nextType !== ORDER_TYPE.LIMIT) {
@@ -1044,15 +1068,20 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
         'rounded-xl border lg:w-85': !isMobile,
       }, 'w-full p-4 lg:shadow-xl/5')}
     >
-      {!isResolvedMarket && !isMobile && !isSingleMarket && <EventOrderPanelMarketInfo market={state.market} />}
+      {!isResolvedMarket && !isMobile && (
+        desktopMarketInfo ?? (!isSingleMarket ? <EventOrderPanelMarketInfo market={state.market} /> : null)
+      )}
       {!isResolvedMarket && isMobile && (
-        <EventOrderPanelMobileMarketInfo
-          event={event}
-          market={state.market}
-          isSingleMarket={isSingleMarket}
-          balanceText={formattedBalanceText}
-          isBalanceLoading={isLoadingBalance}
-        />
+        mobileMarketInfo
+        ?? (
+          <EventOrderPanelMobileMarketInfo
+            event={event}
+            market={state.market}
+            isSingleMarket={isSingleMarket}
+            balanceText={formattedBalanceText}
+            isBalanceLoading={isLoadingBalance}
+          />
+        )
       )}
       {isResolvedMarket
         ? (
@@ -1118,27 +1147,27 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
               <div className="mb-2 flex gap-2">
                 <EventOrderPanelOutcomeButton
                   variant="yes"
-                  price={yesPrice}
-                  label={normalizeOutcomeLabel(yesOutcome?.outcome_text) ?? t('Yes')}
-                  isSelected={state.outcome?.outcome_index === OUTCOME_INDEX.YES}
+                  price={primaryPrice}
+                  label={normalizeOutcomeLabel(primaryOutcome?.outcome_text) ?? t('Yes')}
+                  isSelected={state.outcome?.outcome_index === normalizedPrimaryOutcomeIndex}
                   onSelect={() => {
-                    if (!state.market || !yesOutcome) {
+                    if (!state.market || !primaryOutcome) {
                       return
                     }
-                    state.setOutcome(yesOutcome)
+                    state.setOutcome(primaryOutcome)
                     focusInput()
                   }}
                 />
                 <EventOrderPanelOutcomeButton
                   variant="no"
-                  price={noPrice}
-                  label={normalizeOutcomeLabel(noOutcome?.outcome_text) ?? t('No')}
-                  isSelected={state.outcome?.outcome_index === OUTCOME_INDEX.NO}
+                  price={secondaryPrice}
+                  label={normalizeOutcomeLabel(secondaryOutcome?.outcome_text) ?? t('No')}
+                  isSelected={state.outcome?.outcome_index === normalizedSecondaryOutcomeIndex}
                   onSelect={() => {
-                    if (!state.market || !noOutcome) {
+                    if (!state.market || !secondaryOutcome) {
                       return
                     }
-                    state.setOutcome(noOutcome)
+                    state.setOutcome(secondaryOutcome)
                     focusInput()
                   }}
                 />

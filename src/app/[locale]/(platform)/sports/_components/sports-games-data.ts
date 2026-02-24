@@ -23,6 +23,7 @@ export interface SportsGamesButton {
 
 export interface SportsGamesCard {
   id: string
+  event: Event
   slug: string
   eventHref: string
   title: string
@@ -782,6 +783,11 @@ export function buildSportsGamesCards(events: Event[]) {
 
       return {
         id: primaryEvent.id,
+        event: {
+          ...eventForDisplay,
+          volume,
+          total_markets_count: marketsCount,
+        },
         slug: primaryEvent.slug,
         eventHref: resolveEventPagePath(primaryEvent),
         title: primaryEvent.title,

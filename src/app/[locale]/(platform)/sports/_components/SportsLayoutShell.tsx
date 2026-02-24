@@ -199,6 +199,10 @@ export default function SportsLayoutShell({
     && !context.isEventRoute
     && Boolean(sectionConfig?.gamesEnabled && sectionConfig?.propsEnabled)
   const activeSection = context.section ?? 'games'
+  const shouldConstrainHeaderToCenterColumn = activeSection === 'games'
+  const centerColumnHeaderClass = shouldConstrainHeaderToCenterColumn
+    ? 'min-[1200px]:max-w-[calc(100%-22.75rem)]'
+    : ''
 
   if (context.isEventRoute) {
     return <>{children}</>
@@ -218,12 +222,20 @@ export default function SportsLayoutShell({
         />
         <div className="min-w-0 flex-1">
           {context.title && (
-            <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-2 lg:ml-4">
+            <h1 className={cn(
+              'mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-2 lg:ml-4',
+              centerColumnHeaderClass,
+            )}
+            >
               {context.title}
             </h1>
           )}
           {showSportSectionPills && context.sportSlug && (
-            <div className="mb-4 flex items-center justify-between gap-3 lg:ml-4">
+            <div className={cn(
+              'mb-4 flex items-center gap-3 lg:ml-4',
+              centerColumnHeaderClass,
+            )}
+            >
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -246,8 +258,10 @@ export default function SportsLayoutShell({
                   Props
                 </button>
               </div>
-
-              <div id="sports-section-row-actions" className="flex items-center" />
+              <div
+                id="sports-section-row-actions"
+                className="ml-auto flex min-w-0 items-center justify-end min-[1200px]:mr-2 min-[1200px]:w-[372px]"
+              />
             </div>
           )}
           {children}

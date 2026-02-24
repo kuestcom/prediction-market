@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Event } from '@/types'
 import { DialogTitle } from '@radix-ui/react-dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
@@ -14,15 +15,24 @@ import { useIsSingleMarket, useOrder, useOutcomeTopOfBookPrice } from '@/stores/
 
 interface EventMobileOrderPanelProps {
   event: Event
+  showDefaultTrigger?: boolean
+  mobileMarketInfo?: ReactNode
+  primaryOutcomeIndex?: number | null
 }
 
-export default function EventOrderPanelMobile({ event }: EventMobileOrderPanelProps) {
+export default function EventOrderPanelMobile({
+  event,
+  showDefaultTrigger = true,
+  mobileMarketInfo,
+  primaryOutcomeIndex = null,
+}: EventMobileOrderPanelProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const state = useOrder()
   const isSingleMarket = useIsSingleMarket()
   const yesPrice = useOutcomeTopOfBookPrice(OUTCOME_INDEX.YES, ORDER_SIDE.BUY)
   const noPrice = useOutcomeTopOfBookPrice(OUTCOME_INDEX.NO, ORDER_SIDE.BUY)
+  const shouldShowDefaultTrigger = showDefaultTrigger && isSingleMarket
 
   return (
     <Drawer
@@ -30,8 +40,8 @@ export default function EventOrderPanelMobile({ event }: EventMobileOrderPanelPr
       onClose={() => state.setIsMobileOrderPanelOpen(false)}
       repositionInputs={false}
     >
-      <DrawerTrigger asChild>
-        {isSingleMarket && (
+      {shouldShowDefaultTrigger && (
+        <DrawerTrigger asChild>
           <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background p-4 lg:hidden">
             <div className="flex gap-2">
               <Button
@@ -78,15 +88,20 @@ export default function EventOrderPanelMobile({ event }: EventMobileOrderPanelPr
               </Button>
             </div>
           </div>
-        )}
-      </DrawerTrigger>
+        </DrawerTrigger>
+      )}
 
       <DrawerContent className="max-h-[95vh] w-full">
         <VisuallyHidden>
           <DialogTitle>{event.title}</DialogTitle>
         </VisuallyHidden>
 
-        <EventOrderPanelForm event={event} isMobile={true} />
+        <EventOrderPanelForm
+          event={event}
+          isMobile={true}
+          mobileMarketInfo={mobileMarketInfo}
+          primaryOutcomeIndex={primaryOutcomeIndex}
+        />
         <EventOrderPanelTermsDisclaimer />
       </DrawerContent>
     </Drawer>

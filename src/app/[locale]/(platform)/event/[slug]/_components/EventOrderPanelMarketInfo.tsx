@@ -12,15 +12,15 @@ export default function EventOrderPanelMarketInfo({ market }: EventOrderPanelMar
 
   return (
     <div className="mb-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3.5">
         <Image
           src={market.icon_url}
           alt={market.title}
-          width={42}
-          height={42}
-          className="shrink-0 rounded-sm"
+          width={48}
+          height={48}
+          className="shrink-0 rounded-md"
         />
-        <span className="text-sm font-bold">
+        <span className="line-clamp-2 text-base/tight font-bold">
           {market.short_title || market.title}
         </span>
       </div>

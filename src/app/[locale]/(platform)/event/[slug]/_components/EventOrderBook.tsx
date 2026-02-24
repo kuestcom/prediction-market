@@ -317,15 +317,19 @@ export default function EventOrderBook({
   }
 
   return (
-    <div ref={orderBookScrollRef} className="relative max-h-90 overflow-y-auto">
-      <div>
+    <div
+      ref={orderBookScrollRef}
+      className={cn(
+        'relative max-h-90 overflow-y-auto',
+        isEmbeddedSurface ? 'bg-inherit' : 'bg-background',
+      )}
+    >
+      <div className={cn(isEmbeddedSurface ? 'bg-inherit' : 'bg-background')}>
         <div
           className={cn(
             tableHeaderClass,
-            `
-              sticky top-0 z-1 grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b
-              ${isEmbeddedSurface ? 'bg-transparent' : 'bg-background'}
-            `,
+            'sticky top-0 z-1 grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b',
+            isEmbeddedSurface ? 'bg-inherit' : 'bg-background',
           )}
         >
           <div className="flex h-full items-center gap-2">
