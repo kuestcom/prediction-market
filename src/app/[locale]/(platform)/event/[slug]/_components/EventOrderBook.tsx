@@ -4,7 +4,7 @@ import type { InfiniteData } from '@tanstack/react-query'
 import type { EventOrderBookProps, OrderBookLevel, OrderBookUserOrder } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { UserOpenOrder } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
-import { AlignVerticalSpaceAroundIcon, Loader2Icon } from 'lucide-react'
+import { AlignVerticalSpaceAroundIcon, ArrowLeftRightIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -41,6 +41,10 @@ export default function EventOrderBook({
   summaries,
   isLoadingSummaries,
   eventSlug,
+  surfaceVariant = 'default',
+  tradeLabel,
+  onToggleOutcome,
+  toggleOutcomeTooltip,
 }: EventOrderBookProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -53,6 +57,7 @@ export default function EventOrderBook({
   const hasCenteredRef = useRef(false)
   const [pendingCancelIds, setPendingCancelIds] = useState<Set<string>>(() => new Set())
   const tokenId = outcome?.token_id || market.outcomes[0]?.token_id
+  const isEmbeddedSurface = surfaceVariant === 'embedded'
 
   const summary = tokenId ? summaries?.[tokenId] ?? null : null
   const setType = useOrder(state => state.setType)
@@ -264,6 +269,7 @@ export default function EventOrderBook({
     [summary, market, outcome],
   )
   const displayOutcomeLabel = normalizeOutcomeLabel(outcomeLabel) ?? outcomeLabel
+  const displayTradeLabel = tradeLabel ?? `${t('Trade')} ${displayOutcomeLabel}`
 
   const renderedAsks = useMemo(
     () => [...asks].sort((a, b) => b.priceCents - a.priceCents),
@@ -316,11 +322,35 @@ export default function EventOrderBook({
         <div
           className={cn(
             tableHeaderClass,
-            'sticky top-0 z-1 grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b bg-background',
+            `
+              sticky top-0 z-1 grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b
+              ${isEmbeddedSurface ? 'bg-transparent' : 'bg-background'}
+            `,
           )}
         >
           <div className="flex h-full items-center gap-2">
-            <span className="inline-flex -translate-y-px">{`${t('Trade')} ${displayOutcomeLabel}`}</span>
+            <span className="inline-flex -translate-y-px">{displayTradeLabel}</span>
+            {onToggleOutcome && toggleOutcomeTooltip && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className={`
+                      inline-flex size-6 -translate-y-[1.5px] items-center justify-center rounded-sm
+                      text-muted-foreground transition-colors
+                      hover:bg-muted/70 hover:text-foreground
+                    `}
+                    onClick={onToggleOutcome}
+                    aria-label={toggleOutcomeTooltip}
+                  >
+                    <ArrowLeftRightIcon className="size-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  {toggleOutcomeTooltip}
+                </TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -374,14 +404,14 @@ export default function EventOrderBook({
 
         <div
           ref={centerRowRef}
-          className={
+          className={cn(
             `
-              sticky top-9 bottom-0 z-1 grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y
-              bg-background px-2 text-xs font-medium text-muted-foreground transition-colors
-              hover:bg-muted
+              sticky top-9 bottom-0 z-1 grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y px-2
+              text-xs font-medium text-muted-foreground transition-colors
               sm:px-3
-            `
-          }
+            `,
+            isEmbeddedSurface ? 'bg-transparent hover:bg-secondary/40' : 'bg-background hover:bg-muted',
+          )}
           role="presentation"
         >
           <div className="flex h-full cursor-pointer items-center">

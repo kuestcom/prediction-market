@@ -223,27 +223,31 @@ export default function SportsLayoutShell({
             </h1>
           )}
           {showSportSectionPills && context.sportSlug && (
-            <div className="mb-4 flex items-center gap-3 lg:ml-4">
-              <button
-                type="button"
-                onClick={() => router.push(`/sports/${context.sportSlug}/games` as Route)}
-                className={cn(
-                  'rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors',
-                  activeSection === 'games' && 'bg-primary text-primary-foreground',
-                )}
-              >
-                Games
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push(`/sports/${context.sportSlug}/props` as Route)}
-                className={cn(
-                  'rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors',
-                  activeSection === 'props' && 'bg-primary text-primary-foreground',
-                )}
-              >
-                Props
-              </button>
+            <div className="mb-4 flex items-center justify-between gap-3 lg:ml-4">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push(`/sports/${context.sportSlug}/games` as Route)}
+                  className={cn(
+                    'rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors',
+                    activeSection === 'games' && 'bg-primary text-primary-foreground',
+                  )}
+                >
+                  Games
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/sports/${context.sportSlug}/props` as Route)}
+                  className={cn(
+                    'rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors',
+                    activeSection === 'props' && 'bg-primary text-primary-foreground',
+                  )}
+                >
+                  Props
+                </button>
+              </div>
+
+              <div id="sports-section-row-actions" className="flex items-center" />
             </div>
           )}
           {children}

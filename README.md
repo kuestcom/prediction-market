@@ -147,12 +147,12 @@
 - [x] Theme customization
 - [x] Recurring Crypto and Nasdaq markets with live charts
 - [x] Recurring X counter markets
+- [x] Recurring temperature markets (soon)
+- [x] Sports markets
 - [x] Fork-created markets with opt-in cross-fork sharing
 - [x] UMA Oracle implementation
 - [ ] 🏆 MVP Ready (stress tests, security, and financial consistency checks)
 - [ ] Move matching engine to mainnet
-- [ ] Recurring temperature markets (soon)
-- [ ] Sports markets (soon)
 - [ ] Kalshi arbitrage connector (soon)
 
 ---

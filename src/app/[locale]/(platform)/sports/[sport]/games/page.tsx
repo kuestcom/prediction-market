@@ -1,9 +1,12 @@
 'use cache'
 
 import type { Metadata } from 'next'
+import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
+import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
+import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
+import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
@@ -31,15 +34,20 @@ export default async function SportsGamesBySportPage({
     notFound()
   }
 
+  const { data: events } = await EventRepository.listEvents({
+    tag: 'sports',
+    search: '',
+    userId: '',
+    bookmarked: false,
+    status: 'active',
+    locale: locale as SupportedLocale,
+    sportsSportSlug: canonicalSportSlug,
+    sportsSection: 'games',
+  })
+
+  const cards = buildSportsGamesCards(events ?? [])
+
   return (
-    <div className="grid gap-4">
-      <SportsContent
-        locale={locale}
-        initialTag="sports"
-        initialMode="all"
-        sportsSportSlug={canonicalSportSlug}
-        sportsSection="games"
-      />
-    </div>
+    <SportsGamesCenter cards={cards} />
   )
 }

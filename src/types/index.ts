@@ -15,6 +15,10 @@ export interface Event {
   series_recurrence?: string | null
   sports_event_slug?: string | null
   sports_sport_slug?: string | null
+  sports_start_time?: string | null
+  sports_event_week?: number | null
+  sports_teams?: SportsTeam[] | null
+  sports_team_logo_urls?: string[] | null
   has_live_chart?: boolean
   active_markets_count: number
   total_markets_count: number
@@ -91,6 +95,8 @@ export interface Market {
   block_number: number
   block_timestamp: string
   metadata?: any
+  sports_market_type?: string | null
+  sports_group_item_title?: string | null
   volume_24h: number
   volume: number
   end_time?: string | null
@@ -100,6 +106,15 @@ export interface Market {
   probability: number
   outcomes: Outcome[]
   condition: Condition
+}
+
+export interface SportsTeam {
+  name?: string | null
+  abbreviation?: string | null
+  record?: string | null
+  color?: string | null
+  host_status?: string | null
+  logo_url?: string | null
 }
 
 export interface Outcome {

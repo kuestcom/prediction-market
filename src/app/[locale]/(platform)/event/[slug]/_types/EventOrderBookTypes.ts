@@ -15,6 +15,10 @@ export interface EventOrderBookProps {
   summaries?: OrderBookSummariesResponse
   isLoadingSummaries: boolean
   eventSlug: string
+  surfaceVariant?: 'default' | 'embedded'
+  tradeLabel?: string
+  onToggleOutcome?: () => void
+  toggleOutcomeTooltip?: string
 }
 
 export interface OrderbookLevelSummary {

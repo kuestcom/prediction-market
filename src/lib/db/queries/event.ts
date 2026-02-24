@@ -1,5 +1,5 @@
 import type { SupportedLocale } from '@/i18n/locales'
-import type { conditions } from '@/lib/db/schema/events/tables'
+import type { conditions, market_sports } from '@/lib/db/schema/events/tables'
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, QueryResult } from '@/types'
 import { and, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
@@ -293,6 +293,7 @@ type EventWithTagsAndMarkets = EventWithTags & {
 
 type DrizzleEventResult = typeof events.$inferSelect & {
   markets: (typeof markets.$inferSelect & {
+    sports?: typeof market_sports.$inferSelect | null
     condition: typeof conditions.$inferSelect & {
       outcomes: typeof outcomes.$inferSelect[]
     }
@@ -371,6 +372,37 @@ function toOptionalStringArray(value: unknown): string[] | null {
     .filter(Boolean)
 
   return strings.length > 0 ? strings : null
+}
+
+function toOptionalSportsTeams(value: unknown) {
+  if (!Array.isArray(value)) {
+    return null
+  }
+
+  const teams = value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return []
+    }
+
+    const record = entry as Record<string, unknown>
+    const name = typeof record.name === 'string' ? record.name.trim() : ''
+    const abbreviation = typeof record.abbreviation === 'string' ? record.abbreviation.trim() : ''
+    const recordLabel = typeof record.record === 'string' ? record.record.trim() : ''
+    const color = typeof record.color === 'string' ? record.color.trim() : ''
+    const hostStatus = typeof record.host_status === 'string' ? record.host_status.trim() : ''
+    const logoPath = typeof record.logo_url === 'string' ? record.logo_url.trim() : ''
+
+    return [{
+      name: name || null,
+      abbreviation: abbreviation || null,
+      record: recordLabel || null,
+      color: color || null,
+      host_status: hostStatus || null,
+      logo_url: getPublicAssetUrl(logoPath || null) || null,
+    }]
+  })
+
+  return teams.length > 0 ? teams : null
 }
 
 function buildSportsTagsMatchCondition(sportsSportSlugCandidates: string[]) {
@@ -477,6 +509,8 @@ function eventResource(
       ...market,
       neg_risk: Boolean(market.neg_risk),
       neg_risk_other: Boolean(market.neg_risk_other),
+      sports_market_type: market.sports?.sports_market_type ?? null,
+      sports_group_item_title: market.sports?.sports_group_item_title ?? null,
       end_time: market.end_time?.toISOString?.() ?? null,
       question_id: market.condition?.question_id || '',
       title: market.short_title || market.title,
@@ -525,6 +559,10 @@ function eventResource(
     : false
   const isTrending = totalRecentVolume > 0 || isRecentlyUpdated
   const normalizedSportsTags = toOptionalStringArray(event.sports?.sports_tags)
+  const normalizedSportsTeams = toOptionalSportsTeams(event.sports?.sports_teams)
+  const normalizedSportsTeamLogoUrls = toOptionalStringArray(event.sports?.sports_team_logo_urls)
+    ?.map(logoPath => getPublicAssetUrl(logoPath) || logoPath)
+    ?? null
 
   return {
     id: event.id || '',
@@ -546,6 +584,10 @@ function eventResource(
       sportsSportSlug: event.sports?.sports_sport_slug ?? null,
       sportsTags: normalizedSportsTags,
     }),
+    sports_start_time: event.sports?.sports_start_time?.toISOString() ?? null,
+    sports_event_week: toOptionalNumber(event.sports?.sports_event_week),
+    sports_teams: normalizedSportsTeams,
+    sports_team_logo_urls: normalizedSportsTeamLogoUrls,
     has_live_chart: hasLiveChart,
     active_markets_count: Number(event.active_markets_count || 0),
     total_markets_count: Number(event.total_markets_count || 0),
@@ -830,6 +872,7 @@ export const EventRepository = {
           with: {
             markets: {
               with: {
+                sports: true,
                 condition: {
                   with: { outcomes: true },
                 },
@@ -865,6 +908,7 @@ export const EventRepository = {
           with: {
             markets: {
               with: {
+                sports: true,
                 condition: {
                   with: { outcomes: true },
                 },

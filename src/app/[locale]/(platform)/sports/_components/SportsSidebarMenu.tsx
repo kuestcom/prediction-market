@@ -7,7 +7,7 @@ import type {
 } from '@/lib/sports-menu-types'
 import { ChevronDownIcon } from 'lucide-react'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 export type SportsSidebarMode = 'all' | 'live' | 'futures'
@@ -295,6 +295,35 @@ export default function SportsSidebarMenu({
     const groups = entries.filter(isGroupEntry)
     return Object.fromEntries(groups.map(group => [group.id, false]))
   })
+
+  useEffect(() => {
+    const groupIds = entries
+      .filter(isGroupEntry)
+      .map(group => group.id)
+
+    setExpandedGroups((current) => {
+      const next: Record<string, boolean> = {}
+      let changed = false
+
+      for (const groupId of groupIds) {
+        next[groupId] = current[groupId] ?? false
+      }
+
+      if (Object.keys(current).length !== Object.keys(next).length) {
+        changed = true
+      }
+      else {
+        for (const groupId of groupIds) {
+          if ((current[groupId] ?? false) !== next[groupId]) {
+            changed = true
+            break
+          }
+        }
+      }
+
+      return changed ? next : current
+    })
+  }, [entries])
 
   return (
     <aside
