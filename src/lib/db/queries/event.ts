@@ -1,11 +1,13 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { conditions } from '@/lib/db/schema/events/tables'
+import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, QueryResult } from '@/types'
-import { and, desc, eq, exists, gt, ilike, inArray, or, sql } from 'drizzle-orm'
-import { cacheTag, unstable_cache } from 'next/cache'
+import { and, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
+import { cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import { getSportsCountsBySlugFromDb, getSportsSlugResolverFromDb } from '@/lib/db/queries/sports-menu'
 import { bookmarks } from '@/lib/db/schema/bookmarks/tables'
 import {
   conditions_audit,
@@ -22,6 +24,10 @@ import {
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { resolveDisplayPrice } from '@/lib/market-chance'
+import {
+  resolveCanonicalSportsSportSlug,
+  resolveSportsSportSlugQueryCandidates,
+} from '@/lib/sports-slug-mapping'
 import { getPublicAssetUrl } from '@/lib/storage'
 
 const HIDE_FROM_NEW_TAG_SLUG = 'hide-from-new'
@@ -307,31 +313,6 @@ interface RelatedEvent {
   chance: number | null
 }
 
-const getCachedActiveSportsCountsBySlug = unstable_cache(
-  async () => {
-    const rows = await db
-      .select({
-        slug: event_sports.sports_sport_slug,
-        count: sql<number>`COUNT(*)::int`,
-      })
-      .from(event_sports)
-      .innerJoin(events, eq(event_sports.event_id, events.id))
-      .where(and(
-        eq(events.status, 'active'),
-        gt(events.active_markets_count, 0),
-        sql`TRIM(COALESCE(${event_sports.sports_sport_slug}, '')) <> ''`,
-      ))
-      .groupBy(event_sports.sports_sport_slug)
-
-    return rows
-  },
-  ['events-active-sports-counts-by-slug-v1'],
-  {
-    revalidate: 1800,
-    tags: [cacheTags.eventsGlobal],
-  },
-)
-
 async function getLocalizedTagNamesById(tagIds: number[], locale: SupportedLocale): Promise<Map<number, string>> {
   if (!tagIds.length || locale === DEFAULT_LOCALE) {
     return new Map()
@@ -379,6 +360,46 @@ function toOptionalNumber(value: unknown): number | null {
   return Number.isFinite(numericValue) ? numericValue : null
 }
 
+function toOptionalStringArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null
+  }
+
+  const strings = value
+    .filter((item): item is string => typeof item === 'string')
+    .map(item => item.trim())
+    .filter(Boolean)
+
+  return strings.length > 0 ? strings : null
+}
+
+function buildSportsTagsMatchCondition(sportsSportSlugCandidates: string[]) {
+  if (sportsSportSlugCandidates.length === 0) {
+    return null
+  }
+
+  const normalizedCandidates = sportsSportSlugCandidates
+    .map(candidate => candidate.trim().toLowerCase())
+    .filter(Boolean)
+
+  if (normalizedCandidates.length === 0) {
+    return null
+  }
+
+  const candidatesSql = sql.join(
+    normalizedCandidates.map(candidate => sql`${candidate}`),
+    sql`, `,
+  )
+
+  return sql<boolean>`
+    EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements_text(COALESCE(${event_sports.sports_tags}, '[]'::jsonb)) AS sports_tag(value)
+      WHERE LOWER(TRIM(sports_tag.value)) IN (${candidatesSql})
+    )
+  `
+}
+
 function toOptionalIsoString(value: unknown): string | null {
   if (!value) {
     return null
@@ -414,6 +435,7 @@ async function getEnabledLiveChartSeriesSlugs() {
 function eventResource(
   event: DrizzleEventResult,
   userId: string,
+  sportsSlugResolver: SportsSlugResolver,
   priceMap: Map<string, OutcomePrices>,
   localizedTagNamesById: Map<number, string> = new Map(),
   localizedEventTitlesById: Map<string, string> = new Map(),
@@ -502,6 +524,7 @@ function eventResource(
     ? (Date.now() - event.updated_at.getTime()) < 1000 * 60 * 60 * 24 * 3
     : false
   const isTrending = totalRecentVolume > 0 || isRecentlyUpdated
+  const normalizedSportsTags = toOptionalStringArray(event.sports?.sports_tags)
 
   return {
     id: event.id || '',
@@ -519,7 +542,10 @@ function eventResource(
     series_slug: event.series_slug ?? null,
     series_recurrence: event.series_recurrence ?? null,
     sports_event_slug: event.sports?.sports_event_slug ?? null,
-    sports_sport_slug: event.sports?.sports_sport_slug ?? null,
+    sports_sport_slug: resolveCanonicalSportsSportSlug(sportsSlugResolver, {
+      sportsSportSlug: event.sports?.sports_sport_slug ?? null,
+      sportsTags: normalizedSportsTags,
+    }),
     has_live_chart: hasLiveChart,
     active_markets_count: Number(event.active_markets_count || 0),
     total_markets_count: Number(event.total_markets_count || 0),
@@ -548,6 +574,7 @@ function eventResource(
 async function buildEventResource(
   eventResult: DrizzleEventResult,
   userId: string,
+  sportsSlugResolver: SportsSlugResolver,
   locale: SupportedLocale = DEFAULT_LOCALE,
 ): Promise<Event> {
   const outcomeTokenIds = (eventResult.markets ?? []).flatMap((market: any) =>
@@ -568,6 +595,7 @@ async function buildEventResource(
   return eventResource(
     eventResult,
     userId,
+    sportsSlugResolver,
     priceMap,
     localizedTagNamesById,
     localizedEventTitlesById,
@@ -590,23 +618,7 @@ export const EventRepository = {
     cacheTag(cacheTags.eventsGlobal)
 
     return runQuery(async () => {
-      const rows = await getCachedActiveSportsCountsBySlug()
-      const countsBySlug: Record<string, number> = {}
-
-      for (const row of rows) {
-        const normalizedSlug = row.slug?.trim().toLowerCase()
-        if (!normalizedSlug) {
-          continue
-        }
-
-        const countValue = Number(row.count ?? 0)
-        if (!Number.isFinite(countValue) || countValue <= 0) {
-          continue
-        }
-
-        countsBySlug[normalizedSlug] = countValue
-      }
-
+      const countsBySlug = await getSportsCountsBySlugFromDb()
       return { data: countsBySlug, error: null }
     })
   },
@@ -630,6 +642,8 @@ export const EventRepository = {
     return await runQuery(async () => {
       const limit = 40
       const validOffset = Number.isNaN(offset) || offset < 0 ? 0 : offset
+      const sportsSlugResolver = await getSportsSlugResolverFromDb()
+      const normalizedRequestedSportsSportSlug = sportsSportSlug.trim().toLowerCase()
 
       const whereConditions = []
       const hasAnyMarkets = exists(
@@ -675,18 +689,31 @@ export const EventRepository = {
         whereConditions.push(eq(normalizedSeriesRecurrence, frequency))
       }
 
-      const normalizedSportsSportSlug = sportsSportSlug.trim().toLowerCase()
-      if (normalizedSportsSportSlug) {
+      const sportsSportSlugCandidates = resolveSportsSportSlugQueryCandidates(
+        sportsSlugResolver,
+        sportsSportSlug,
+      )
+      if (normalizedRequestedSportsSportSlug && sportsSportSlugCandidates.length === 0) {
+        return { data: [], error: null }
+      }
+      if (sportsSportSlugCandidates.length > 0) {
         const normalizedSportsSportSlugColumn = sql<string>`
           LOWER(TRIM(COALESCE(${event_sports.sports_sport_slug}, '')))
         `
+        const sportsSportSlugCondition = sportsSportSlugCandidates.length === 1
+          ? eq(normalizedSportsSportSlugColumn, sportsSportSlugCandidates[0]!)
+          : inArray(normalizedSportsSportSlugColumn, sportsSportSlugCandidates)
+        const sportsTagsMatchCondition = buildSportsTagsMatchCondition(sportsSportSlugCandidates)
+        const sportsSlugOrTagCondition = sportsTagsMatchCondition
+          ? or(sportsSportSlugCondition, sportsTagsMatchCondition)
+          : sportsSportSlugCondition
         whereConditions.push(
           exists(
             db.select({ event_id: event_sports.event_id })
               .from(event_sports)
               .where(and(
                 eq(event_sports.event_id, events.id),
-                eq(normalizedSportsSportSlugColumn, normalizedSportsSportSlug),
+                sportsSlugOrTagCondition,
               )),
           ),
         )
@@ -887,6 +914,7 @@ export const EventRepository = {
         .map(event => eventResource(
           event as DrizzleEventResult,
           userId,
+          sportsSlugResolver,
           priceMap,
           localizedTagNamesById,
           localizedEventTitlesById,
@@ -920,10 +948,14 @@ export const EventRepository = {
     sportsEventSlug: string,
   ): Promise<QueryResult<{ slug: string }>> {
     return runQuery(async () => {
-      const normalizedSportsSportSlug = sportsSportSlug.trim().toLowerCase()
+      const sportsSlugResolver = await getSportsSlugResolverFromDb()
+      const sportsSportSlugCandidates = resolveSportsSportSlugQueryCandidates(
+        sportsSlugResolver,
+        sportsSportSlug,
+      )
       const normalizedSportsEventSlug = sportsEventSlug.trim().toLowerCase()
 
-      if (!normalizedSportsSportSlug || !normalizedSportsEventSlug) {
+      if (sportsSportSlugCandidates.length === 0 || !normalizedSportsEventSlug) {
         throw new Error('Event not found')
       }
 
@@ -933,13 +965,20 @@ export const EventRepository = {
       const normalizedSportsEventSlugColumn = sql<string>`
         LOWER(TRIM(COALESCE(${event_sports.sports_event_slug}, '')))
       `
+      const sportsSportSlugCondition = sportsSportSlugCandidates.length === 1
+        ? eq(normalizedSportsSportSlugColumn, sportsSportSlugCandidates[0]!)
+        : inArray(normalizedSportsSportSlugColumn, sportsSportSlugCandidates)
+      const sportsTagsMatchCondition = buildSportsTagsMatchCondition(sportsSportSlugCandidates)
+      const sportsSlugOrTagCondition = sportsTagsMatchCondition
+        ? or(sportsSportSlugCondition, sportsTagsMatchCondition)
+        : sportsSportSlugCondition
 
       const result = await db
         .select({ slug: events.slug })
         .from(event_sports)
         .innerJoin(events, eq(event_sports.event_id, events.id))
         .where(and(
-          eq(normalizedSportsSportSlugColumn, normalizedSportsSportSlug),
+          sportsSlugOrTagCondition,
           eq(normalizedSportsEventSlugColumn, normalizedSportsEventSlug),
         ))
         .orderBy(desc(events.created_at))
@@ -949,21 +988,7 @@ export const EventRepository = {
         return { data: result[0]!, error: null }
       }
 
-      const fallbackResult = await db
-        .select({ slug: events.slug })
-        .from(event_sports)
-        .innerJoin(events, eq(event_sports.event_id, events.id))
-        .where(and(
-          eq(normalizedSportsSportSlugColumn, normalizedSportsSportSlug),
-          eq(events.slug, normalizedSportsEventSlug),
-        ))
-        .limit(1)
-
-      if (fallbackResult.length === 0) {
-        throw new Error('Event not found')
-      }
-
-      return { data: fallbackResult[0]!, error: null }
+      throw new Error('Event not found')
     })
   },
 
@@ -1182,7 +1207,13 @@ export const EventRepository = {
         throw new Error('Event not found')
       }
 
-      const transformedEvent = await buildEventResource(eventResult as DrizzleEventResult, userId, locale)
+      const sportsSlugResolver = await getSportsSlugResolverFromDb()
+      const transformedEvent = await buildEventResource(
+        eventResult as DrizzleEventResult,
+        userId,
+        sportsSlugResolver,
+        locale,
+      )
 
       return { data: transformedEvent, error: null }
     })

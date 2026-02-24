@@ -281,6 +281,28 @@ export const market_sports = pgTable(
   },
 )
 
+export const sports_menu_items = pgTable(
+  'sports_menu_items',
+  {
+    id: text().primaryKey(),
+    item_type: text().notNull(),
+    label: text(),
+    href: text(),
+    icon_url: text(),
+    parent_id: text(),
+    menu_slug: text(),
+    h1_title: text(),
+    mapped_tags: jsonb().notNull().default(sql`'[]'::jsonb`),
+    url_aliases: jsonb().notNull().default(sql`'[]'::jsonb`),
+    games_enabled: boolean().notNull().default(true),
+    props_enabled: boolean().notNull().default(true),
+    sort_order: integer().notNull().default(0),
+    enabled: boolean().notNull().default(true),
+    created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+)
+
 export const outcomes = pgTable(
   'outcomes',
   {

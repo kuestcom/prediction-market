@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
-import { normalizeSportsSlug } from '@/app/[locale]/(platform)/sports/_components/sportsRouteUtils'
+import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export const metadata: Metadata = {
@@ -26,8 +26,8 @@ export default async function SportsGamesBySportPage({
     notFound()
   }
 
-  const normalizedSportSlug = normalizeSportsSlug(sport)
-  if (!normalizedSportSlug) {
+  const { data: canonicalSportSlug } = await SportsMenuRepository.resolveCanonicalSlugByAlias(sport)
+  if (!canonicalSportSlug) {
     notFound()
   }
 
@@ -37,7 +37,7 @@ export default async function SportsGamesBySportPage({
         locale={locale}
         initialTag="sports"
         initialMode="all"
-        sportsSportSlug={normalizedSportSlug}
+        sportsSportSlug={canonicalSportSlug}
         sportsSection="games"
       />
     </div>

@@ -249,7 +249,8 @@ export default function SportsEventsGrid({
     initialData: shouldUseInitialData ? { pages: [initialEvents], pageParams: [0] } : undefined,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-    staleTime: 0,
+    staleTime: 'static',
+    initialDataUpdatedAt: 0,
     placeholderData: previousData => previousData,
   })
 

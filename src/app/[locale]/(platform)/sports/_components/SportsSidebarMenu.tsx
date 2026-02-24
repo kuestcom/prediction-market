@@ -1,15 +1,19 @@
 'use client'
 
-import type { SportsMenuEntry, SportsMenuGroupEntry, SportsMenuLinkEntry } from '@/app/[locale]/(platform)/sports/_components/sportsMenuData'
+import type {
+  SportsMenuEntry,
+  SportsMenuGroupEntry,
+  SportsMenuLinkEntry,
+} from '@/lib/sports-menu-types'
 import { ChevronDownIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
-import { SPORTS_MENU_ENTRIES } from '@/app/[locale]/(platform)/sports/_components/sportsMenuData'
 import { cn } from '@/lib/utils'
 
 export type SportsSidebarMode = 'all' | 'live' | 'futures'
 
 interface SportsSidebarMenuProps {
+  entries: SportsMenuEntry[]
   mode: SportsSidebarMode
   activeTagSlug: string | null
   countByTagSlug?: Record<string, number>
@@ -21,55 +25,8 @@ interface SportsSidebarMenuProps {
 type SportsMenuChildLinkEntry = SportsMenuGroupEntry['links'][number]
 type SportsMenuRenderableLinkEntry = SportsMenuLinkEntry | SportsMenuChildLinkEntry
 
-const TAG_ALIAS_CANDIDATES: Record<string, string[]> = {
-  'cbb': ['ncaab'],
-  'ncaab': ['cbb'],
-  'league-of-legends': ['lol'],
-  'lol': ['league-of-legends'],
-  'counter-strike': ['cs2'],
-  'cs2': ['counter-strike'],
-}
-
 function normalizeTagSlug(value: string | null | undefined) {
   return value?.trim().toLowerCase() || ''
-}
-
-function normalizeForMatch(value: string | null | undefined) {
-  return normalizeTagSlug(value).replace(/[^a-z0-9]/g, '')
-}
-
-function getTagAliases(tagSlug: string) {
-  const normalized = normalizeTagSlug(tagSlug)
-  if (!normalized) {
-    return []
-  }
-  return TAG_ALIAS_CANDIDATES[normalized] ?? []
-}
-
-function isLinkEntry(entry: SportsMenuEntry): entry is SportsMenuLinkEntry {
-  return entry.type === 'link'
-}
-
-function isGroupEntry(entry: SportsMenuEntry): entry is SportsMenuGroupEntry {
-  return entry.type === 'group'
-}
-
-function resolveTagSlugFromHref(href: string) {
-  const segments = href
-    .split('/')
-    .map(segment => segment.trim().toLowerCase())
-    .filter(Boolean)
-  const sportsIndex = segments.indexOf('sports')
-  if (sportsIndex === -1) {
-    return null
-  }
-
-  const nextSegment = segments[sportsIndex + 1]
-  if (!nextSegment || nextSegment === 'live' || nextSegment === 'futures') {
-    return null
-  }
-
-  return nextSegment
 }
 
 function areTagSlugsEquivalent(input: string | null | undefined, current: string | null | undefined) {
@@ -80,61 +37,15 @@ function areTagSlugsEquivalent(input: string | null | undefined, current: string
     return false
   }
 
-  if (left === right) {
-    return true
-  }
-
-  if (left.includes(right) || right.includes(left)) {
-    return true
-  }
-
-  const leftNormalized = normalizeForMatch(left)
-  const rightNormalized = normalizeForMatch(right)
-  if (leftNormalized && leftNormalized === rightNormalized) {
-    return true
-  }
-
-  const leftAliases = new Set(getTagAliases(left))
-  const rightAliases = new Set(getTagAliases(right))
-  if (leftAliases.has(right) || rightAliases.has(left)) {
-    return true
-  }
-
-  return false
+  return left === right
 }
 
-export function resolveSportsMenuTargetTagSlug(params: {
-  requestedTagSlug: string
-  availableTagSlugs: Set<string>
-}) {
-  const { requestedTagSlug, availableTagSlugs } = params
-  const requested = normalizeTagSlug(requestedTagSlug)
-  if (!requested) {
-    return null
-  }
+function isLinkEntry(entry: SportsMenuEntry): entry is SportsMenuLinkEntry {
+  return entry.type === 'link'
+}
 
-  if (availableTagSlugs.has(requested)) {
-    return requested
-  }
-
-  for (const alias of getTagAliases(requested)) {
-    if (availableTagSlugs.has(alias)) {
-      return alias
-    }
-  }
-
-  const requestedNormalized = normalizeForMatch(requested)
-  for (const candidate of availableTagSlugs) {
-    if (
-      candidate.includes(requested)
-      || requested.includes(candidate)
-      || normalizeForMatch(candidate) === requestedNormalized
-    ) {
-      return candidate
-    }
-  }
-
-  return requested
+function isGroupEntry(entry: SportsMenuEntry): entry is SportsMenuGroupEntry {
+  return entry.type === 'group'
 }
 
 function LiveStatusIcon({ className }: { className?: string }) {
@@ -300,7 +211,7 @@ function SportsMenuLink({
   const href = normalizeTagSlug(entry.href)
   const isLiveLink = href === '/sports/live'
   const isFuturesLink = href.startsWith('/sports/futures')
-  const entryTagSlug = resolveTagSlugFromHref(entry.href)
+  const entryTagSlug = entry.menuSlug
   const isActive = isLiveLink
     ? mode === 'live'
     : isFuturesLink
@@ -372,6 +283,7 @@ function SportsMenuLink({
 }
 
 export default function SportsSidebarMenu({
+  entries,
   mode,
   activeTagSlug,
   countByTagSlug,
@@ -380,7 +292,7 @@ export default function SportsSidebarMenu({
   onNavigateHref,
 }: SportsSidebarMenuProps) {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
-    const groups = SPORTS_MENU_ENTRIES.filter(isGroupEntry)
+    const groups = entries.filter(isGroupEntry)
     return Object.fromEntries(groups.map(group => [group.id, false]))
   })
 
@@ -391,7 +303,7 @@ export default function SportsSidebarMenu({
         lg:sticky lg:top-22 lg:flex lg:max-h-[calc(100vh-5.5rem)] lg:flex-col lg:overflow-y-auto lg:py-2 lg:pr-1
       `}
     >
-      {SPORTS_MENU_ENTRIES.map((entry) => {
+      {entries.map((entry) => {
         if (entry.type === 'divider') {
           return <div key={entry.id} className="mb-2 w-full border-b border-border pb-2" />
         }

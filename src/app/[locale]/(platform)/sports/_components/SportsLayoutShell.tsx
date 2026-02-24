@@ -2,8 +2,8 @@
 
 import type { Route } from 'next'
 import type { ReactNode } from 'react'
+import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import { useCallback, useMemo } from 'react'
-import { resolveSportsTitleBySlug } from '@/app/[locale]/(platform)/sports/_components/sportsRouteUtils'
 import SportsSidebarMenu from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
@@ -11,6 +11,10 @@ import { cn } from '@/lib/utils'
 interface SportsLayoutShellProps {
   children: ReactNode
   sportsCountsBySlug?: Record<string, number>
+  sportsMenuEntries: SportsMenuEntry[]
+  canonicalSlugByAliasKey: Record<string, string>
+  h1TitleBySlug: Record<string, string>
+  sectionsBySlug: Record<string, { gamesEnabled: boolean, propsEnabled: boolean }>
 }
 
 interface SportsPathContext {
@@ -22,7 +26,67 @@ interface SportsPathContext {
   title: string
 }
 
-function getSportsPathContext(pathname: string): SportsPathContext {
+function stripDiacritics(value: string) {
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036F]/g, '')
+}
+
+function normalizeAliasKey(value: string | null | undefined) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const normalized = stripDiacritics(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+
+  return normalized || null
+}
+
+function resolveCanonicalSlugFromAlias(
+  canonicalSlugByAliasKey: Record<string, string>,
+  alias: string | null | undefined,
+) {
+  const aliasKey = normalizeAliasKey(alias)
+  if (!aliasKey) {
+    return null
+  }
+
+  return canonicalSlugByAliasKey[aliasKey] ?? null
+}
+
+function resolveMenuLabelByHref(menuEntries: SportsMenuEntry[], href: string) {
+  for (const entry of menuEntries) {
+    if (entry.type === 'link' && entry.href === href) {
+      return entry.label
+    }
+
+    if (entry.type === 'group') {
+      const link = entry.links.find(linkEntry => linkEntry.href === href)
+      if (link) {
+        return link.label
+      }
+    }
+  }
+
+  return ''
+}
+
+function getSportsPathContext(params: {
+  pathname: string
+  menuEntries: SportsMenuEntry[]
+  canonicalSlugByAliasKey: Record<string, string>
+  h1TitleBySlug: Record<string, string>
+}): SportsPathContext {
+  const {
+    pathname,
+    menuEntries,
+    canonicalSlugByAliasKey,
+    h1TitleBySlug,
+  } = params
   const segments = pathname
     .split('/')
     .map(segment => segment.trim().toLowerCase())
@@ -35,7 +99,7 @@ function getSportsPathContext(pathname: string): SportsPathContext {
       activeTagSlug: null,
       sportSlug: null,
       section: null,
-      title: 'All Sports',
+      title: '',
     }
   }
 
@@ -48,7 +112,7 @@ function getSportsPathContext(pathname: string): SportsPathContext {
       activeTagSlug: null,
       sportSlug: null,
       section: null,
-      title: 'All Sports',
+      title: '',
     }
   }
 
@@ -59,51 +123,67 @@ function getSportsPathContext(pathname: string): SportsPathContext {
       activeTagSlug: null,
       sportSlug: null,
       section: null,
-      title: 'Live',
+      title: resolveMenuLabelByHref(menuEntries, '/sports/live'),
     }
   }
 
   if (second === 'futures') {
+    const canonicalSportSlug = resolveCanonicalSlugFromAlias(canonicalSlugByAliasKey, third)
+
     return {
       isEventRoute: false,
       mode: 'futures',
-      activeTagSlug: third ?? null,
-      sportSlug: third ?? null,
+      activeTagSlug: canonicalSportSlug,
+      sportSlug: canonicalSportSlug,
       section: null,
-      title: 'Futures',
+      title: h1TitleBySlug[canonicalSportSlug ?? ''] ?? '',
     }
   }
 
+  const canonicalSportSlug = resolveCanonicalSlugFromAlias(canonicalSlugByAliasKey, second)
   const section = third === 'props' ? 'props' : 'games'
   const isListRoute = third === 'games' || third === 'props' || third === undefined
+
   if (isListRoute) {
     return {
       isEventRoute: false,
       mode: 'all',
-      activeTagSlug: second,
-      sportSlug: second,
+      activeTagSlug: canonicalSportSlug,
+      sportSlug: canonicalSportSlug,
       section,
-      title: resolveSportsTitleBySlug(second) ?? 'All Sports',
+      title: h1TitleBySlug[canonicalSportSlug ?? ''] ?? '',
     }
   }
 
   return {
     isEventRoute: true,
     mode: 'all',
-    activeTagSlug: second,
-    sportSlug: second,
+    activeTagSlug: canonicalSportSlug,
+    sportSlug: canonicalSportSlug,
     section: null,
-    title: resolveSportsTitleBySlug(second) ?? 'All Sports',
+    title: h1TitleBySlug[canonicalSportSlug ?? ''] ?? '',
   }
 }
 
 export default function SportsLayoutShell({
   children,
   sportsCountsBySlug = {},
+  sportsMenuEntries,
+  canonicalSlugByAliasKey,
+  h1TitleBySlug,
+  sectionsBySlug,
 }: SportsLayoutShellProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const context = useMemo(() => getSportsPathContext(pathname), [pathname])
+  const context = useMemo(
+    () => getSportsPathContext({
+      pathname,
+      menuEntries: sportsMenuEntries,
+      canonicalSlugByAliasKey,
+      h1TitleBySlug,
+    }),
+    [pathname, sportsMenuEntries, canonicalSlugByAliasKey, h1TitleBySlug],
+  )
 
   const handleNavigateHref = useCallback((href: string) => {
     router.push(href as Route)
@@ -112,7 +192,12 @@ export default function SportsLayoutShell({
   const handleSelectSportsTag = useCallback((_requestedTagSlug: string, href: string) => {
     router.push(href as Route)
   }, [router])
-  const showSportSectionPills = context.mode === 'all' && Boolean(context.sportSlug) && !context.isEventRoute
+
+  const sectionConfig = context.sportSlug ? sectionsBySlug[context.sportSlug] : null
+  const showSportSectionPills = context.mode === 'all'
+    && Boolean(context.sportSlug)
+    && !context.isEventRoute
+    && Boolean(sectionConfig?.gamesEnabled && sectionConfig?.propsEnabled)
   const activeSection = context.section ?? 'games'
 
   if (context.isEventRoute) {
@@ -123,6 +208,7 @@ export default function SportsLayoutShell({
     <main className="container py-4">
       <div className="relative w-full lg:flex lg:items-start lg:gap-4">
         <SportsSidebarMenu
+          entries={sportsMenuEntries}
           mode={context.mode}
           activeTagSlug={context.activeTagSlug}
           onSelectMode={() => {}}
@@ -131,9 +217,11 @@ export default function SportsLayoutShell({
           countByTagSlug={sportsCountsBySlug}
         />
         <div className="min-w-0 flex-1">
-          <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-2 lg:ml-4">
-            {context.title}
-          </h1>
+          {context.title && (
+            <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-2 lg:ml-4">
+              {context.title}
+            </h1>
+          )}
           {showSportSectionPills && context.sportSlug && (
             <div className="mb-4 flex items-center gap-3 lg:ml-4">
               <button
