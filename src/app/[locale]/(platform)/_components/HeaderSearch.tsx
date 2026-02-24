@@ -14,7 +14,7 @@ export default function HeaderSearch() {
   const inputRef = useRef<HTMLInputElement>(null)
   const { query, handleQueryChange, results, isLoading, showResults, clearSearch, hideResults, activeTab, setActiveTab } = useSearch()
   const showDropdown = showResults || isLoading.events || isLoading.profiles
-  const inputBaseClass = showDropdown ? 'bg-background' : 'bg-input'
+  const inputBaseClass = showDropdown ? 'bg-background' : 'bg-accent'
   const inputBorderClass = showDropdown ? 'border-border' : 'border-transparent'
   const inputHoverClass = showDropdown ? 'hover:bg-background' : 'hover:bg-secondary'
   const inputFocusClass = 'focus:bg-background focus-visible:bg-background'

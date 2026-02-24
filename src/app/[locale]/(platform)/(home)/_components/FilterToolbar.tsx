@@ -261,7 +261,6 @@ function BookmarkToggle({ isBookmarked, isConnected, onToggle, onConnect }: Book
       aria-label={isBookmarked ? t('Remove bookmark filter') : t('Filter by bookmarks')}
       aria-pressed={isBookmarked}
       onClick={isConnected ? onToggle : onConnect}
-      className="text-muted-foreground"
     >
       <BookmarkIcon className={cn(`size-6 md:size-5`, { 'fill-primary text-primary': isBookmarked })} />
     </Button>
@@ -277,12 +276,7 @@ function SettingsToggle({ isActive, isOpen, onToggle }: SettingsToggleProps) {
       variant="ghost"
       size="icon"
       className={cn(
-        `
-          size-10 rounded-sm border border-transparent bg-transparent p-0 text-muted-foreground transition-none
-          hover:bg-transparent hover:text-muted-foreground
-          md:size-9
-        `,
-        { 'bg-muted/70 text-foreground hover:bg-muted/70 hover:text-foreground': isOpen || isActive },
+        { 'bg-accent': isOpen || isActive },
       )}
       title={t('Open filters')}
       aria-label={t('Open filters')}
@@ -337,8 +331,8 @@ function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, class
     <div
       className={cn(
         `
-          flex w-full max-w-full flex-nowrap items-center gap-3 overflow-x-auto
-          md:flex-wrap md:gap-4 md:overflow-visible
+          flex w-full max-w-full min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]
+          [&::-webkit-scrollbar]:hidden
         `,
         className,
       )}
@@ -347,6 +341,8 @@ function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, class
         label={t('Sort by:')}
         value={filters.sortBy}
         options={SORT_OPTIONS}
+        showActiveIcon
+        triggerClassName="min-w-[9.5rem]"
         onChange={value => onChange({ sortBy: value as SortOption })}
       />
 
@@ -354,6 +350,7 @@ function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, class
         label={t('Frequency:')}
         value={filters.frequency}
         options={FREQUENCY_OPTIONS}
+        triggerClassName="min-w-[7rem]"
         onChange={value => onChange({ frequency: value as FrequencyOption })}
       />
 
@@ -361,6 +358,7 @@ function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, class
         label={t('Status:')}
         value={filters.status}
         options={STATUS_OPTIONS}
+        triggerClassName="min-w-[8rem]"
         onChange={value => onChange({ status: value as StatusOption })}
       />
 
@@ -368,26 +366,16 @@ function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, class
         <Label
           key={key}
           htmlFor={`filter-${key}`}
-          className={cn(
-            `
-              flex shrink-0 items-center gap-2 rounded-full bg-muted/60 px-3 py-2 text-xs font-medium
-              text-muted-foreground
-            `,
-            'transition-colors hover:bg-muted',
-          )}
+          className={cn('flex shrink-0 items-center gap-2 text-xs font-medium text-foreground')}
         >
-          <span className="whitespace-nowrap">{label}</span>
           <Checkbox
             id={`filter-${key}`}
             checked={filters[key]}
             onCheckedChange={checked => onChange({
               [key]: Boolean(checked),
             } as Partial<FilterSettings>)}
-            className={cn(
-              'border-border/80 bg-background/75',
-              'data-[state=checked]:border-primary data-[state=checked]:bg-primary',
-            )}
           />
+          <span className="whitespace-nowrap">{label}</span>
         </Label>
       ))}
 
@@ -395,10 +383,7 @@ function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, class
         <Button
           type="button"
           variant="ghost"
-          className={cn(
-            'h-8 shrink-0 rounded-full px-3 text-xs font-medium text-muted-foreground',
-            'hover:text-foreground hover:underline',
-          )}
+          size="sm"
           onClick={onClear}
         >
           {t('Clear filters')}
@@ -418,29 +403,51 @@ interface FilterSettingsSelectProps {
   label: string
   value: string
   options: ReadonlyArray<FilterSettingsSelectOption>
+  showActiveIcon?: boolean
+  triggerClassName?: string
   onChange: (value: string) => void
 }
 
-function FilterSettingsSelect({ label, value, options, onChange }: FilterSettingsSelectProps) {
+function FilterSettingsSelect({
+  label,
+  value,
+  options,
+  showActiveIcon = false,
+  triggerClassName,
+  onChange,
+}: FilterSettingsSelectProps) {
   const activeOption = options.find(option => option.value === value)
+  const ActiveIcon = showActiveIcon ? activeOption?.icon : undefined
 
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger
+        aria-label={label}
         size="sm"
         className={cn(
           `
-            h-9 min-w-40 shrink-0 cursor-pointer gap-2 rounded-md border-none bg-muted/60 px-3 text-xs font-medium
-            text-foreground
+            h-12 shrink-0 cursor-pointer gap-3 rounded-full border border-border/80 bg-background px-4 text-sm
+            font-semibold text-foreground shadow-none transition-colors
+            hover:bg-muted/25
+            focus-visible:ring-0 focus-visible:ring-offset-0
+            data-[state=open]:bg-muted/25
+            [&>svg]:size-4 [&>svg]:text-foreground/80
           `,
-          'shadow-none',
-          'hover:bg-muted/85',
+          triggerClassName,
         )}
       >
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
-        <span className="text-xs font-semibold text-foreground">{activeOption?.label ?? ''}</span>
+        <span className="flex min-w-0 items-center gap-2.5 truncate">
+          {ActiveIcon && <ActiveIcon className="size-4 shrink-0 text-foreground" />}
+          <span className="truncate">{activeOption?.label ?? ''}</span>
+        </span>
       </SelectTrigger>
-      <SelectContent align="start" position="popper" side="bottom" sideOffset={8} className="p-1">
+      <SelectContent
+        align="start"
+        position="popper"
+        side="bottom"
+        sideOffset={8}
+        className="p-1"
+      >
         {options.map((option) => {
           const OptionIcon = option.icon
 
@@ -448,7 +455,7 @@ function FilterSettingsSelect({ label, value, options, onChange }: FilterSetting
             <SelectItem
               key={option.value}
               value={option.value}
-              className="my-0.5 cursor-pointer rounded-sm py-2 pl-2.5 text-sm"
+              className="my-0.5 cursor-pointer rounded-lg py-2 pl-2.5 text-sm font-medium"
             >
               <span className="flex items-center gap-2">
                 {OptionIcon && <OptionIcon className="size-4 text-muted-foreground" />}
