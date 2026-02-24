@@ -38,11 +38,17 @@ export default function EventShare({ event }: EventShareProps) {
   const isMultiMarket = event.total_markets_count > 1
 
   function relatedTargetIsWithin(ref: RefObject<HTMLElement | null>, relatedTarget: EventTarget | null) {
-    if (!relatedTarget) {
+    const current = ref.current
+    if (!current) {
       return false
     }
 
-    return Boolean(ref.current?.contains(relatedTarget as Node))
+    const nodeConstructor = current.ownerDocument?.defaultView?.Node ?? Node
+    if (!(relatedTarget instanceof nodeConstructor)) {
+      return false
+    }
+
+    return current.contains(relatedTarget)
   }
 
   function clearCloseTimeout() {
