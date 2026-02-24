@@ -148,7 +148,7 @@ export default function AdminMarketContextSettingsForm({
   }
 
   return (
-    <Form action={formAction} className="grid gap-4">
+    <Form action={formAction} className="grid min-w-0 gap-4">
       <input type="hidden" name="market_context_enabled" value={enabled ? 'true' : 'false'} />
 
       <section className="flex items-center justify-between gap-3 rounded-lg border p-6">
@@ -189,60 +189,68 @@ export default function AdminMarketContextSettingsForm({
           </p>
         </div>
 
-        <div className="grid gap-3">
+        <div className="grid min-w-0 gap-3">
           <span className="text-base font-semibold">{t('Available variables')}</span>
           <div className="-mx-6 -mb-6 border-t">
-            <table className="w-full table-fixed border-collapse text-sm">
-              <thead>
-                <tr className="border-b bg-muted/20 text-foreground">
-                  <th className="w-80 px-4 py-2 text-left font-semibold">
-                    Variables
-                  </th>
-                  <th className="px-6 py-2 text-left font-semibold">
-                    Description
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {variables.map(variable => (
-                  <tr key={variable.key} className="group border-b transition-colors last:border-b-0 hover:bg-muted/50">
-                    <td className="px-4 py-2 font-mono text-sm">
-                      <span
-                        className={cn('inline-flex items-center gap-2 text-nowrap transition-transform duration-200', { '-translate-y-0.5': liftedVariableKey === variable.key })}
-                      >
-                        <span>
-                          [
-                          {variable.key}
-                          ]
-                        </span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              type="button"
-                              size="icon"
-                              disabled={isPending}
-                              onClick={() => handleInsertVariable(variable.key)}
-                              aria-label={`Add [${variable.key}] variable`}
-                              className={cn(`
-                                size-5 rounded-full bg-primary p-0 text-background shadow-none transition-transform
-                                duration-200
-                                hover:bg-primary/90
-                              `, { '-translate-y-0.5': liftedVariableKey === variable.key })}
-                            >
-                              <PlusIcon className="size-2.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top">Insert into prompt</TooltipContent>
-                        </Tooltip>
-                      </span>
-                    </td>
-                    <td className="p-2 text-sm/5 text-muted-foreground">
-                      {getVariableDescription(variable)}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full table-fixed border-collapse text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/20 text-foreground">
+                    <th className="w-80 px-4 py-2 text-left font-semibold">
+                      Variables
+                    </th>
+                    <th className="px-6 py-2 text-left font-semibold">
+                      Description
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {variables.map(variable => (
+                    <tr
+                      key={variable.key}
+                      className={cn(
+                        'group border-b transition-colors',
+                        'last:border-b-0 hover:bg-muted/50',
+                      )}
+                    >
+                      <td className="px-4 py-2 font-mono text-sm">
+                        <span
+                          className={cn('inline-flex items-center gap-2 text-nowrap transition-transform duration-200', { '-translate-y-0.5': liftedVariableKey === variable.key })}
+                        >
+                          <span>
+                            [
+                            {variable.key}
+                            ]
+                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                size="icon"
+                                disabled={isPending}
+                                onClick={() => handleInsertVariable(variable.key)}
+                                aria-label={`Add [${variable.key}] variable`}
+                                className={cn(`
+                                  size-5 rounded-full bg-primary p-0 text-background shadow-none transition-transform
+                                  duration-200
+                                  hover:bg-primary/90
+                                `, { '-translate-y-0.5': liftedVariableKey === variable.key })}
+                              >
+                                <PlusIcon className="size-2.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Insert into prompt</TooltipContent>
+                          </Tooltip>
+                        </span>
+                      </td>
+                      <td className="p-2 text-sm/5 text-muted-foreground">
+                        {getVariableDescription(variable)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
