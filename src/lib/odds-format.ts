@@ -76,7 +76,14 @@ function toFractionString(value: number) {
   }
 
   const divisor = greatestCommonDivisor(bestNumerator, bestDenominator)
-  return `${Math.max(1, Math.round(bestNumerator / divisor))}/${Math.max(1, Math.round(bestDenominator / divisor))}`
+  const reducedNumerator = Math.round(bestNumerator / divisor)
+  const reducedDenominator = Math.max(1, Math.round(bestDenominator / divisor))
+
+  if (reducedNumerator <= 0) {
+    return '0/1'
+  }
+
+  return `${reducedNumerator}/${reducedDenominator}`
 }
 
 export function normalizeProbabilityFromPrice(value: number | null | undefined) {

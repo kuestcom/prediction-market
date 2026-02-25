@@ -355,6 +355,15 @@ export default function SportsEventCenter({
     return volumes
   }, [card.detailMarkets, groupedButtons])
 
+  const sectionConditionIdsByKey = useMemo<Record<EventSectionKey, Set<string>>>(() => {
+    return {
+      moneyline: new Set(groupedButtons.moneyline.map(button => button.conditionId)),
+      spread: new Set(groupedButtons.spread.map(button => button.conditionId)),
+      total: new Set(groupedButtons.total.map(button => button.conditionId)),
+      btts: new Set(groupedButtons.btts.map(button => button.conditionId)),
+    }
+  }, [groupedButtons])
+
   function resolveSectionButtons(sectionKey: EventSectionKey) {
     const sectionButtons = groupedButtons[sectionKey]
     if (sectionButtons.length === 0) {
@@ -640,7 +649,7 @@ export default function SportsEventCenter({
 
               const selectedButtonKey = selectedButtonBySection[section.key] ?? sectionButtons[0]?.key ?? null
               const isSectionOpen = openSectionKey === section.key
-              const sectionConditionIds = new Set(groupedButtons[section.key].map(button => button.conditionId))
+              const sectionConditionIds = sectionConditionIdsByKey[section.key]
               const activeTab = tabBySection[section.key] ?? 'orderBook'
               const firstSectionButtonKey = sectionButtons[0]?.key ?? null
               function toggleSection() {
