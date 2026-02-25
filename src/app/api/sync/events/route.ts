@@ -14,6 +14,8 @@ import {
   tags as tagsTable,
 } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
+import { loadAutoDeployNewEventsEnabled } from '@/lib/event-sync-settings'
+import { setEventHiddenFromNew } from '@/lib/event-visibility'
 import { uploadPublicAsset } from '@/lib/storage'
 
 export const maxDuration = 300
@@ -99,6 +101,10 @@ interface SyncStats {
   timeLimitReached: boolean
 }
 
+interface SyncOptions {
+  autoDeployNewEvents: boolean
+}
+
 async function getAllowedCreators(): Promise<string[]> {
   const fixedCreators = [
     '0x1FD81E09dA67D84f02DB0c0eBabd5a217D1B928d', // Polymarket cloned markets on Amoy
@@ -173,8 +179,11 @@ export async function GET(request: Request) {
       console.log('📊 Last PnL cursor: none (full scan from subgraph start)')
     }
 
-    const allowedCreators = new Set(await getAllowedCreators())
-    const syncResult = await syncMarkets(allowedCreators)
+    const [allowedCreators, autoDeployNewEvents] = await Promise.all([
+      getAllowedCreators(),
+      loadAutoDeployNewEventsEnabled(),
+    ])
+    const syncResult = await syncMarkets(new Set(allowedCreators), { autoDeployNewEvents })
 
     await updateSyncStatus('completed', null, syncResult.processedCount)
 
@@ -216,7 +225,7 @@ export async function GET(request: Request) {
   }
 }
 
-async function syncMarkets(allowedCreators: Set<string>): Promise<SyncStats> {
+async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): Promise<SyncStats> {
   const syncStartedAt = Date.now()
   let cursor = await getLastPnLCursor()
 
@@ -281,7 +290,7 @@ async function syncMarkets(allowedCreators: Set<string>): Promise<SyncStats> {
       }
 
       try {
-        const eventIdForStatusUpdate = await processMarket(condition)
+        const eventIdForStatusUpdate = await processMarket(condition, options)
         if (eventIdForStatusUpdate) {
           eventIdsNeedingStatusUpdate.add(eventIdForStatusUpdate)
         }
@@ -456,7 +465,7 @@ async function fetchPnLConditionsPage(afterCursor: SyncCursor | null): Promise<{
   return { conditions: normalizedConditions }
 }
 
-async function processMarket(market: SubgraphCondition) {
+async function processMarket(market: SubgraphCondition, options: SyncOptions) {
   const timestamps = getMarketTimestamps(market)
   await processCondition(market, timestamps)
   if (!market.metadataHash) {
@@ -468,6 +477,7 @@ async function processMarket(market: SubgraphCondition) {
     metadata.sports?.event,
     market.creator!,
     timestamps.createdAtIso,
+    options.autoDeployNewEvents,
   )
   return await processMarketData(market, metadata, eventId, timestamps)
 }
@@ -562,6 +572,7 @@ async function processEvent(
   sportsEventData: any,
   creatorAddress: string,
   createdAtIso: string,
+  autoDeployNewEvents: boolean,
 ) {
   if (!eventData || !eventData.slug || !eventData.title) {
     throw new Error(`Invalid event data: ${JSON.stringify(eventData)}`)
@@ -731,6 +742,10 @@ async function processEvent(
 
   if (eventData.tags?.length > 0) {
     await processTags(newEvent.id, eventData.tags)
+  }
+
+  if (!autoDeployNewEvents) {
+    await setEventHiddenFromNew(newEvent.id, true)
   }
 
   await upsertEventSportsMetadata(newEvent.id, {
