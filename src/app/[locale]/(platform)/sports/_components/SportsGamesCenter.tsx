@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { Link } from '@/i18n/navigation'
+import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatAmountInputValue, formatCentsLabel, formatCurrency, formatSharesLabel, formatVolume, fromMicro } from '@/lib/formatters'
@@ -1081,10 +1082,11 @@ function resolveTradeHeaderBadgeAccent(button: SportsGamesButton) {
     && normalizedTeamColor
   ) {
     const rgbComponents = resolveHexToRgbComponents(normalizedTeamColor)
+    const readableTeamColor = ensureReadableTextColorOnDark(normalizedTeamColor)
     return {
       className: '',
       style: {
-        color: normalizedTeamColor,
+        color: readableTeamColor ?? normalizedTeamColor,
         backgroundColor: rgbComponents ? `rgb(${rgbComponents} / 0.10)` : undefined,
       } as CSSProperties,
     }

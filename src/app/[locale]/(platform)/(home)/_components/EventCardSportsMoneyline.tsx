@@ -5,6 +5,7 @@ import type { Event } from '@/types'
 import Image from 'next/image'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import { Link } from '@/i18n/navigation'
+import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { formatVolume } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -71,9 +72,11 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
     }
   }
 
+  const textColor = ensureReadableTextColorOnDark(button.color)
+
   return {
     className: 'h-10 flex-1 rounded-sm px-2 text-sm font-semibold',
-    style: button.color ? { color: button.color } : undefined,
+    style: textColor ? { color: textColor } : undefined,
     backgroundStyle: button.color ? { backgroundColor: button.color } : undefined,
   }
 }
