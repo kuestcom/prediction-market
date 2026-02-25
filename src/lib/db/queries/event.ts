@@ -1092,6 +1092,15 @@ export const EventRepository = {
     sports_event_slug: string | null
   }>> {
     return runQuery(async () => {
+      interface EventRouteRow {
+        slug: string
+        sports: {
+          sports_sport_slug: string | null
+          sports_event_slug: string | null
+          sports_tags: unknown
+        } | null
+      }
+
       const result = await db.query.events.findFirst({
         where: eq(events.slug, slug),
         columns: { slug: true },
@@ -1104,7 +1113,7 @@ export const EventRepository = {
             },
           },
         },
-      })
+      }) as EventRouteRow | undefined
 
       if (!result) {
         throw new Error('Event not found')
