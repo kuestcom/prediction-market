@@ -1,5 +1,6 @@
 'use client'
 
+import type { Route } from 'next'
 import type {
   CSSProperties,
   KeyboardEvent as ReactKeyboardEvent,
@@ -7,15 +8,15 @@ import type {
   MouseEvent as ReactMouseEventType,
 } from 'react'
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
+import type { OddsFormat } from '@/lib/odds-format'
 import type { Market, Outcome, UserPosition } from '@/types'
 import type { DataPoint, PredictionChartCursorSnapshot, PredictionChartProps } from '@/types/PredictionChartTypes'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EqualIcon, RefreshCwIcon, XIcon } from 'lucide-react'
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EqualIcon, RefreshCwIcon, SearchIcon, XIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
 import EventChartControls, { defaultChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
@@ -33,21 +34,25 @@ import { calculateMarketFill, normalizeBookLevels } from '@/app/[locale]/(platfo
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useWindowSize } from '@/hooks/useWindowSize'
-import { Link } from '@/i18n/navigation'
+import { Link, useRouter } from '@/i18n/navigation'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatAmountInputValue, formatCentsLabel, formatCurrency, formatSharesLabel, formatVolume, fromMicro } from '@/lib/formatters'
+import { calculateYAxisBounds } from '@/lib/prediction-chart'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
 
 interface SportsGamesCenterProps {
   cards: SportsGamesCard[]
+  sportSlug: string
+  sportTitle: string
 }
 
 type DetailsTab = 'orderBook' | 'graph'
-type SportsGamesMarketType = SportsGamesButton['marketType']
+export type SportsGamesMarketType = SportsGamesButton['marketType']
+export type SportsGameGraphVariant = 'default' | 'sportsEventHero'
 type LinePickerMarketType = Extract<SportsGamesMarketType, 'spread' | 'total'>
 
 const MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: string }> = [
@@ -94,7 +99,7 @@ interface SportsPositionTag {
   key: string
   conditionId: string
   outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
-  marketTypeLabel: 'Moneyline' | 'Spread' | 'Total'
+  marketTypeLabel: 'Moneyline' | 'Spread' | 'Total' | 'Both Teams to Score'
   marketLabel: string
   outcomeLabel: string
   summaryLabel: string
@@ -168,7 +173,10 @@ function resolvePositionCurrentValue(position: UserPosition, shares: number, avg
   return Number.isFinite(value) ? value : 0
 }
 
-function resolveMarketTypeLabel(button: SportsGamesButton | null, market: Market): 'Moneyline' | 'Spread' | 'Total' {
+function resolveMarketTypeLabel(
+  button: SportsGamesButton | null,
+  market: Market,
+): 'Moneyline' | 'Spread' | 'Total' | 'Both Teams to Score' {
   if (button?.marketType === 'moneyline') {
     return 'Moneyline'
   }
@@ -178,8 +186,14 @@ function resolveMarketTypeLabel(button: SportsGamesButton | null, market: Market
   if (button?.marketType === 'total') {
     return 'Total'
   }
+  if (button?.marketType === 'btts') {
+    return 'Both Teams to Score'
+  }
 
   const normalizedType = normalizeComparableText(market.sports_market_type)
+  if (normalizedType.includes('both teams to score') || normalizedType.includes('btts')) {
+    return 'Both Teams to Score'
+  }
   if (normalizedType.includes('spread') || normalizedType.includes('handicap')) {
     return 'Spread'
   }
@@ -221,7 +235,7 @@ function normalizeMarketPriceCents(market: Market) {
   return Math.max(0, Math.min(100, Math.round(value)))
 }
 
-function resolveButtonStyle(color: string | null): CSSProperties | undefined {
+export function resolveButtonStyle(color: string | null): CSSProperties | undefined {
   const normalized = normalizeHexColor(color)
   if (!normalized) {
     return undefined
@@ -233,7 +247,7 @@ function resolveButtonStyle(color: string | null): CSSProperties | undefined {
   }
 }
 
-function resolveButtonDepthStyle(color: string | null): CSSProperties | undefined {
+export function resolveButtonDepthStyle(color: string | null): CSSProperties | undefined {
   const normalized = normalizeHexColor(color)
   if (!normalized) {
     return undefined
@@ -267,11 +281,12 @@ function normalizeOutcomePriceCents(outcome: Outcome | null | undefined, market:
   return outcome?.outcome_index === OUTCOME_INDEX.NO ? Math.max(0, 100 - yesPrice) : yesPrice
 }
 
-function groupButtonsByMarketType(buttons: SportsGamesButton[]) {
+export function groupButtonsByMarketType(buttons: SportsGamesButton[]) {
   const grouped: Record<SportsGamesMarketType, SportsGamesButton[]> = {
     moneyline: [],
     spread: [],
     total: [],
+    btts: [],
   }
 
   for (const button of buttons) {
@@ -288,14 +303,14 @@ function toDateGroupKey(date: Date) {
   return `${year}-${month}-${day}`
 }
 
-function resolveDefaultConditionId(card: SportsGamesCard) {
+export function resolveDefaultConditionId(card: SportsGamesCard) {
   return card.defaultConditionId
     ?? card.buttons[0]?.key
     ?? card.detailMarkets[0]?.condition_id
     ?? null
 }
 
-function resolveSelectedButton(card: SportsGamesCard, selectedButtonKey: string | null) {
+export function resolveSelectedButton(card: SportsGamesCard, selectedButtonKey: string | null) {
   if (selectedButtonKey) {
     const selected = card.buttons.find(button => button.key === selectedButtonKey)
     if (selected) {
@@ -306,7 +321,7 @@ function resolveSelectedButton(card: SportsGamesCard, selectedButtonKey: string 
   return card.buttons[0] ?? null
 }
 
-function resolveSelectedMarket(card: SportsGamesCard, selectedButtonKey: string | null) {
+export function resolveSelectedMarket(card: SportsGamesCard, selectedButtonKey: string | null) {
   const selectedButton = resolveSelectedButton(card, selectedButtonKey)
   if (selectedButton) {
     const selectedMarket = card.detailMarkets.find(market => market.condition_id === selectedButton.conditionId)
@@ -329,7 +344,7 @@ function resolveActiveMarketType(card: SportsGamesCard, selectedButtonKey: strin
   return card.buttons[0]?.marketType ?? 'moneyline'
 }
 
-function resolveSelectedOutcome(market: Market | null, selectedButton: SportsGamesButton | null): Outcome | null {
+export function resolveSelectedOutcome(market: Market | null, selectedButton: SportsGamesButton | null): Outcome | null {
   if (!market) {
     return null
   }
@@ -346,7 +361,7 @@ function resolveSelectedOutcome(market: Market | null, selectedButton: SportsGam
     ?? null
 }
 
-function resolveStableSpreadPrimaryOutcomeIndex(card: SportsGamesCard, conditionId: string) {
+export function resolveStableSpreadPrimaryOutcomeIndex(card: SportsGamesCard, conditionId: string) {
   const spreadButtonsForCondition = card.buttons
     .filter(button => button.marketType === 'spread' && button.conditionId === conditionId)
     .map(button => button.outcomeIndex)
@@ -508,7 +523,7 @@ function resolveGraphSeriesColor(
     return 'var(--no)'
   }
   if (button?.tone === 'draw') {
-    return 'var(--primary)'
+    return 'var(--secondary-foreground)'
   }
 
   return fallbackColor
@@ -590,14 +605,16 @@ function resolveSwitchTooltip(market: Market | null, nextOutcome: Outcome | null
   return `Switch to ${nextOutcomeLabel} - ${marketDescriptor}`
 }
 
-function SportsGameGraph({
+export function SportsGameGraph({
   card,
   selectedMarketType,
   selectedConditionId,
+  variant = 'default',
 }: {
   card: SportsGamesCard
   selectedMarketType: SportsGamesMarketType
   selectedConditionId: string | null
+  variant?: SportsGameGraphVariant
 }) {
   const { width: windowWidth } = useWindowSize()
   const [cursorSnapshot, setCursorSnapshot] = useState<PredictionChartCursorSnapshot | null>(null)
@@ -607,6 +624,49 @@ function SportsGameGraph({
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
   const isSecondaryMarketGraph = selectedMarketType === 'spread' || selectedMarketType === 'total'
+  const isSportsEventHeroVariant = variant === 'sportsEventHero'
+  const chartHeight = isSportsEventHeroVariant ? 332 : 300
+  const chartMargin = isSportsEventHeroVariant
+    ? { top: 12, right: 46, bottom: 40, left: 0 }
+    : { top: 12, right: 30, bottom: 40, left: 0 }
+  const heroLegendLabelWidth = 176
+  const heroLegendLabelGap = 8
+  const heroLegendRightInset = 4
+  const heroLegendDomainRightTrim = 20
+  const heroLegendRenderedWidth = Math.max(72, heroLegendLabelWidth - heroLegendDomainRightTrim)
+  const chartContainerRef = useRef<HTMLDivElement | null>(null)
+  const [measuredChartWidth, setMeasuredChartWidth] = useState<number | null>(null)
+
+  const fallbackChartWidth = useMemo(() => {
+    const viewportWidth = windowWidth ?? 1200
+
+    if (viewportWidth < 768) {
+      return Math.max(260, viewportWidth - 112)
+    }
+
+    return Math.min(860, viewportWidth - 520)
+  }, [windowWidth])
+  const chartWidth = measuredChartWidth ?? fallbackChartWidth
+
+  useEffect(() => {
+    const element = chartContainerRef.current
+    if (!element || typeof ResizeObserver === 'undefined') {
+      return
+    }
+    const chartElement = element
+
+    function updateWidth() {
+      const nextWidth = Math.floor(chartElement.clientWidth)
+      if (nextWidth > 0) {
+        setMeasuredChartWidth(nextWidth)
+      }
+    }
+
+    updateWidth()
+    const observer = new ResizeObserver(() => updateWidth())
+    observer.observe(chartElement)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     const stored = loadStoredChartSettings()
@@ -866,6 +926,182 @@ function SportsGameGraph({
     return nextValues
   }, [chartData, chartSeries])
 
+  const chartXDomain = useMemo(() => {
+    if (!isSportsEventHeroVariant || chartData.length < 2) {
+      return undefined
+    }
+
+    const firstTimestamp = chartData[0]?.date.getTime()
+    const lastTimestamp = chartData[chartData.length - 1]?.date.getTime()
+    if (!Number.isFinite(firstTimestamp) || !Number.isFinite(lastTimestamp) || lastTimestamp <= firstTimestamp) {
+      return undefined
+    }
+
+    const dataSpanMs = Math.max(1, lastTimestamp - firstTimestamp)
+    const plotWidthPx = Math.max(1, chartWidth - chartMargin.left - chartMargin.right)
+    const reservedRightPx = Math.max(0, heroLegendRenderedWidth + heroLegendLabelGap + heroLegendRightInset)
+
+    // Keep enough fixed room on the right for legend so the plotted line ends before chart edge.
+    if (reservedRightPx >= plotWidthPx - 1) {
+      return {
+        start: firstTimestamp,
+        end: lastTimestamp,
+      }
+    }
+
+    const domainSpanMs = Math.round((dataSpanMs * plotWidthPx) / (plotWidthPx - reservedRightPx))
+    return {
+      start: firstTimestamp,
+      end: firstTimestamp + domainSpanMs,
+    }
+  }, [
+    chartData,
+    chartMargin.left,
+    chartMargin.right,
+    chartWidth,
+    heroLegendLabelGap,
+    heroLegendRenderedWidth,
+    heroLegendRightInset,
+    isSportsEventHeroVariant,
+  ])
+
+  const heroLegendSeriesWithValues = useMemo(
+    () => {
+      if (!isSportsEventHeroVariant) {
+        return []
+      }
+
+      return chartSeries
+        .map((seriesItem) => {
+          const hoveredValue = cursorSnapshot?.values?.[seriesItem.key]
+          const value = typeof hoveredValue === 'number' && Number.isFinite(hoveredValue)
+            ? hoveredValue
+            : latestSnapshot[seriesItem.key]
+          if (typeof value !== 'number' || !Number.isFinite(value)) {
+            return null
+          }
+
+          return { ...seriesItem, value }
+        })
+        .filter((entry): entry is { key: string, name: string, color: string, value: number } => entry !== null)
+    },
+    [chartSeries, cursorSnapshot, isSportsEventHeroVariant, latestSnapshot],
+  )
+
+  const heroLegendPositionedEntries = useMemo(
+    () => {
+      if (!isSportsEventHeroVariant || heroLegendSeriesWithValues.length === 0 || chartData.length === 0) {
+        return [] as Array<{
+          key: string
+          name: string
+          color: string
+          value: number
+          left: number
+          top: number
+          maxWidth: number
+        }>
+      }
+
+      const firstTimestamp = chartData[0]?.date.getTime()
+      const lastTimestamp = chartData[chartData.length - 1]?.date.getTime()
+      if (!Number.isFinite(firstTimestamp) || !Number.isFinite(lastTimestamp)) {
+        return []
+      }
+
+      const explicitStart = typeof chartXDomain?.start === 'number'
+        ? chartXDomain.start
+        : Number.NaN
+      const explicitEnd = typeof chartXDomain?.end === 'number'
+        ? chartXDomain.end
+        : Number.NaN
+      const domainStart = Number.isFinite(explicitStart) ? explicitStart : firstTimestamp
+      const domainEndCandidate = Number.isFinite(explicitEnd) ? explicitEnd : lastTimestamp
+      const domainEnd = Math.max(domainStart + 1, domainEndCandidate)
+      const hoveredTimestampRaw = cursorSnapshot?.date.getTime() ?? lastTimestamp
+      const hoveredTimestamp = Math.max(firstTimestamp, Math.min(lastTimestamp, hoveredTimestampRaw))
+
+      const yBounds = calculateYAxisBounds(chartData, chartSeries)
+      const ySpan = Math.max(1, yBounds.max - yBounds.min)
+      const xSpan = Math.max(1, domainEnd - domainStart)
+      const plotWidth = Math.max(1, chartWidth - chartMargin.left - chartMargin.right)
+      const plotHeight = Math.max(1, chartHeight - chartMargin.top - chartMargin.bottom)
+      const dotX = chartMargin.left + ((hoveredTimestamp - domainStart) / xSpan) * plotWidth
+      const plotLeft = chartMargin.left
+      const plotRight = chartWidth - chartMargin.right
+      const availableFullWidth = plotRight - plotLeft - heroLegendRightInset
+      const effectiveLabelWidth = Math.max(0, Math.min(heroLegendRenderedWidth, availableFullWidth))
+      const maxLeft = plotRight - effectiveLabelWidth - heroLegendRightInset
+      const labelLeft = Math.max(plotLeft, Math.min(maxLeft, dotX + heroLegendLabelGap))
+      const labelHeight = 54
+      const labelGap = 6
+      const anchorOffset = labelHeight / 2
+      const minTop = chartMargin.top
+      const maxTop = chartMargin.top + plotHeight - labelHeight
+
+      const preferredEntries = heroLegendSeriesWithValues.map((entry) => {
+        const clampedValue = Math.max(yBounds.min, Math.min(yBounds.max, entry.value))
+        const dotY = chartMargin.top + ((yBounds.max - clampedValue) / ySpan) * plotHeight
+        const preferredTop = dotY - anchorOffset
+
+        return {
+          ...entry,
+          dotY,
+          left: labelLeft,
+          maxWidth: effectiveLabelWidth,
+          preferredTop: Math.max(minTop, Math.min(maxTop, preferredTop)),
+        }
+      })
+
+      const sortedByPreferredTop = [...preferredEntries]
+        .sort((left, right) => left.preferredTop - right.preferredTop)
+
+      const stacked: Array<(typeof sortedByPreferredTop)[number] & { top: number }> = []
+      sortedByPreferredTop.forEach((entry, index) => {
+        const previousTop = index > 0 ? stacked[index - 1]!.top : null
+        const top = previousTop == null
+          ? entry.preferredTop
+          : Math.max(entry.preferredTop, previousTop + labelHeight + labelGap)
+        stacked.push({ ...entry, top: Math.max(minTop, Math.min(maxTop, top)) })
+      })
+
+      const last = stacked[stacked.length - 1]
+      if (last && last.top > maxTop) {
+        last.top = maxTop
+        for (let index = stacked.length - 2; index >= 0; index -= 1) {
+          const nextTop = stacked[index + 1]!.top
+          stacked[index]!.top = Math.max(
+            minTop,
+            Math.min(stacked[index]!.preferredTop, nextTop - labelHeight - labelGap),
+          )
+        }
+      }
+
+      const topByKey = new Map(stacked.map(entry => [entry.key, entry.top] as const))
+      return preferredEntries.map(entry => ({
+        ...entry,
+        top: topByKey.get(entry.key) ?? entry.preferredTop,
+      }))
+    },
+    [
+      chartData,
+      chartHeight,
+      heroLegendLabelGap,
+      heroLegendRightInset,
+      heroLegendRenderedWidth,
+      chartMargin.bottom,
+      chartMargin.left,
+      chartMargin.right,
+      chartMargin.top,
+      chartSeries,
+      chartWidth,
+      chartXDomain?.end,
+      chartXDomain?.start,
+      cursorSnapshot?.date,
+      heroLegendSeriesWithValues,
+      isSportsEventHeroVariant,
+    ],
+  )
+
   const legendSeriesWithValues = useMemo(
     () => chartSeries
       .map((seriesItem) => {
@@ -884,7 +1120,7 @@ function SportsGameGraph({
     [chartSeries, cursorSnapshot, latestSnapshot],
   )
 
-  const legendContent = !isSecondaryMarketGraph && legendSeriesWithValues.length > 0
+  const legendContent = !isSecondaryMarketGraph && !isSportsEventHeroVariant && legendSeriesWithValues.length > 0
     ? (
         <div className="flex min-h-5 flex-wrap items-center gap-4">
           {legendSeriesWithValues.map(entry => (
@@ -907,16 +1143,6 @@ function SportsGameGraph({
       )
     : null
 
-  const chartWidth = useMemo(() => {
-    const viewportWidth = windowWidth ?? 1200
-
-    if (viewportWidth < 768) {
-      return Math.max(260, viewportWidth - 112)
-    }
-
-    return Math.min(860, viewportWidth - 520)
-  }, [windowWidth])
-
   if (graphSeriesTargets.length === 0) {
     return (
       <div className="rounded-lg border bg-secondary/30 px-3 py-6 text-sm text-muted-foreground">
@@ -927,29 +1153,65 @@ function SportsGameGraph({
 
   return (
     <>
-      <div>
-        <PredictionChart
-          data={chartData}
-          series={chartSeries}
-          width={chartWidth}
-          height={300}
-          margin={{ top: 12, right: 30, bottom: 40, left: 0 }}
-          dataSignature={`${card.id}:${chartSeries.map(series => series.key).join(',')}:${activeTimeRange}`}
-          onCursorDataChange={setCursorSnapshot}
-          xAxisTickCount={3}
-          yAxis={undefined}
-          legendContent={legendContent}
-          showLegend={!isSecondaryMarketGraph}
-          showTooltipSeriesLabels
-          lineCurve="monotoneX"
-          tooltipValueFormatter={value => `${Math.round(value)}%`}
-          autoscale={chartSettings.autoscale}
-          showXAxis={chartSettings.xAxis}
-          showYAxis={chartSettings.yAxis}
-          showHorizontalGrid={chartSettings.horizontalGrid}
-          showVerticalGrid={chartSettings.verticalGrid}
-          showAnnotations={chartSettings.annotations}
-        />
+      <div style={isSportsEventHeroVariant ? { minHeight: `${chartHeight + 56}px` } : undefined}>
+        <div ref={chartContainerRef} className="relative">
+          <PredictionChart
+            data={chartData}
+            series={chartSeries}
+            width={chartWidth}
+            height={chartHeight}
+            margin={chartMargin}
+            xDomain={chartXDomain}
+            dataSignature={`${card.id}:${chartSeries.map(series => series.key).join(',')}:${activeTimeRange}`}
+            onCursorDataChange={setCursorSnapshot}
+            xAxisTickCount={3}
+            yAxis={undefined}
+            legendContent={legendContent}
+            showLegend={!isSecondaryMarketGraph && !isSportsEventHeroVariant}
+            showTooltipSeriesLabels={!isSportsEventHeroVariant}
+            disableCursorSplit={false}
+            clampCursorToDataExtent={isSportsEventHeroVariant}
+            markerOuterRadius={isSportsEventHeroVariant ? 0 : undefined}
+            markerInnerRadius={isSportsEventHeroVariant ? 4 : undefined}
+            lineCurve="monotoneX"
+            tooltipValueFormatter={value => `${Math.round(value)}%`}
+            autoscale={chartSettings.autoscale}
+            showXAxis={chartSettings.xAxis}
+            showYAxis={chartSettings.yAxis}
+            showHorizontalGrid={chartSettings.horizontalGrid}
+            showVerticalGrid={chartSettings.verticalGrid}
+            showAnnotations={chartSettings.annotations}
+          />
+
+          {isSportsEventHeroVariant && heroLegendPositionedEntries.length > 0 && (
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              {heroLegendPositionedEntries.map(entry => (
+                <div
+                  key={entry.key}
+                  className="absolute"
+                  style={{
+                    top: `${entry.top}px`,
+                    left: `${entry.left}px`,
+                    width: `${entry.maxWidth}px`,
+                  }}
+                >
+                  <p
+                    className="truncate text-[13px] leading-snug font-medium tracking-tight"
+                    style={{ color: entry.color }}
+                  >
+                    {entry.name}
+                  </p>
+                  <p
+                    className="text-2xl/tight font-semibold tabular-nums"
+                    style={{ color: entry.color }}
+                  >
+                    {`${Math.round(entry.value)}%`}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="mt-2 flex items-center justify-end pb-2">
           <EventChartControls
@@ -1039,6 +1301,10 @@ function resolveTradeHeaderTitle({
   selectedButton: SportsGamesButton
   marketType: SportsGamesMarketType
 }) {
+  if (marketType === 'btts') {
+    return 'Both Teams to Score?'
+  }
+
   if (marketType === 'total') {
     return 'Over vs Under'
   }
@@ -1238,7 +1504,47 @@ function TotalBadge({ button }: { button: SportsGamesButton }) {
   )
 }
 
-function SportsOrderPanelMarketInfo({
+function BttsBadge({ button }: { button: SportsGamesButton }) {
+  const isYesActive = button.tone !== 'under'
+  const isNoActive = button.tone === 'under'
+
+  return (
+    <div
+      className={`
+        relative inline-flex size-11 items-center justify-center overflow-hidden rounded-lg text-white shadow-sm
+      `}
+    >
+      <span
+        className={cn(
+          'absolute inset-0 bg-yes transition-opacity [clip-path:polygon(0_0,100%_0,0_100%)]',
+          !isYesActive && 'opacity-25',
+        )}
+      />
+      <span
+        className={cn(
+          'absolute inset-0 bg-no transition-opacity [clip-path:polygon(100%_0,100%_100%,0_100%)]',
+          !isNoActive && 'opacity-25',
+        )}
+      />
+      <span className={cn(
+        'absolute top-2 left-2 z-10 text-[11px] leading-none font-bold tracking-wide',
+        !isYesActive && 'opacity-35',
+      )}
+      >
+        Y
+      </span>
+      <span className={cn(
+        'absolute right-2 bottom-2 z-10 text-[11px] leading-none font-bold tracking-wide',
+        !isNoActive && 'opacity-35',
+      )}
+      >
+        N
+      </span>
+    </div>
+  )
+}
+
+export function SportsOrderPanelMarketInfo({
   card,
   selectedButton,
   selectedOutcome,
@@ -1256,16 +1562,19 @@ function SportsOrderPanelMarketInfo({
     marketType,
   })
   const badgeAccent = resolveTradeHeaderBadgeAccent(selectedButton)
+  const marketIcon = marketType === 'total'
+    ? <TotalBadge button={selectedButton} />
+    : marketType === 'btts'
+      ? <BttsBadge button={selectedButton} />
+      : selectedButton.tone === 'draw'
+        ? <DrawBadge />
+        : <TeamLogoBadge card={card} button={selectedButton} />
 
   return (
     <div className="mb-4">
       <div className="flex items-start gap-3">
         <div className="shrink-0">
-          {marketType === 'total'
-            ? <TotalBadge button={selectedButton} />
-            : selectedButton.tone === 'draw'
-              ? <DrawBadge />
-              : <TeamLogoBadge card={card} button={selectedButton} />}
+          {marketIcon}
         </div>
 
         <div className="min-w-0">
@@ -1292,6 +1601,9 @@ interface SportsGameDetailsPanelProps {
   activeDetailsTab: DetailsTab
   selectedButtonKey: string | null
   showBottomContent: boolean
+  allowedConditionIds?: Set<string> | null
+  positionsTitle?: string
+  oddsFormat?: OddsFormat
   onChangeTab: (tab: DetailsTab) => void
   onSelectButton: (
     buttonKey: string,
@@ -1299,11 +1611,14 @@ interface SportsGameDetailsPanelProps {
   ) => void
 }
 
-function SportsGameDetailsPanel({
+export function SportsGameDetailsPanel({
   card,
   activeDetailsTab,
   selectedButtonKey,
   showBottomContent,
+  allowedConditionIds = null,
+  positionsTitle,
+  oddsFormat = 'price',
   onChangeTab,
   onSelectButton,
 }: SportsGameDetailsPanelProps) {
@@ -1391,7 +1706,7 @@ function SportsGameDetailsPanel({
       market: Market
       outcome: Outcome
       button: SportsGamesButton | null
-      marketTypeLabel: 'Moneyline' | 'Spread' | 'Total'
+      marketTypeLabel: 'Moneyline' | 'Spread' | 'Total' | 'Both Teams to Score'
       marketLabel: string
       outcomeLabel: string
       shares: number
@@ -1403,6 +1718,10 @@ function SportsGameDetailsPanel({
     userPositions.forEach((position) => {
       const conditionId = position.market?.condition_id
       if (!conditionId) {
+        return
+      }
+
+      if (allowedConditionIds && !allowedConditionIds.has(conditionId)) {
         return
       }
 
@@ -1512,6 +1831,7 @@ function SportsGameDetailsPanel({
       })
       .sort((a, b) => b.latestActivityAtMs - a.latestActivityAtMs)
   }, [
+    allowedConditionIds,
     card.teams,
     cardButtonsByConditionAndOutcome,
     cardFirstButtonByCondition,
@@ -1564,6 +1884,9 @@ function SportsGameDetailsPanel({
         if (!market.condition_id || seenConditionIds.has(market.condition_id)) {
           return false
         }
+        if (allowedConditionIds && !allowedConditionIds.has(market.condition_id)) {
+          return false
+        }
         seenConditionIds.add(market.condition_id)
         return true
       })
@@ -1573,7 +1896,7 @@ function SportsGameDetailsPanel({
         label: market.short_title || market.title,
         iconUrl: market.icon_url,
       }))
-  }, [card.detailMarkets])
+  }, [allowedConditionIds, card.detailMarkets])
 
   useEffect(() => {
     if (convertTagKey && !positionTags.some(tag => tag.key === convertTagKey)) {
@@ -1792,10 +2115,14 @@ function SportsGameDetailsPanel({
       return
     }
 
-    activeButton.scrollIntoView({
+    const targetLeft = activeButton.offsetLeft - (scroller.clientWidth - activeButton.offsetWidth) / 2
+    const maxLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth)
+    const clampedLeft = Math.max(0, Math.min(targetLeft, maxLeft))
+
+    scroller.scrollTo({
+      left: clampedLeft,
+      top: scroller.scrollTop,
       behavior,
-      inline: 'center',
-      block: 'nearest',
     })
   }, [activeLineOptionIndex, linePickerOptions])
 
@@ -1877,7 +2204,9 @@ function SportsGameDetailsPanel({
     enabled: showBottomContent && activeDetailsTab === 'orderBook' && selectedMarketTokenIds.length > 0,
   })
 
+  const isStandalonePositionsCard = Boolean(positionsTitle)
   const shouldShowPortfolio = visiblePositionTags.length > 0
+  const showPositionTagSummary = !isStandalonePositionsCard
 
   if (!showBottomContent && !hasLinePicker && !shouldShowPortfolio) {
     return null
@@ -1894,7 +2223,12 @@ function SportsGameDetailsPanel({
         )}
       >
         {hasLinePicker && (
-          <div className={cn('-mx-2.5 bg-card px-2.5', showBottomContent ? 'pb-3' : 'pb-2')}>
+          <div className={cn(
+            '-mx-2.5 bg-card px-2.5',
+            !showBottomContent && 'border-t',
+            showBottomContent ? 'pb-0' : 'pb-2',
+          )}
+          >
             <div className="relative pt-2">
               <span
                 aria-hidden
@@ -1970,6 +2304,10 @@ function SportsGameDetailsPanel({
                 </button>
               </div>
             </div>
+
+            {showBottomContent && (
+              <div className="-mx-2.5 mt-2 border-t" />
+            )}
           </div>
         )}
       </div>
@@ -2041,6 +2379,7 @@ function SportsGameDetailsPanel({
                           isLoadingSummaries={isOrderBookLoading && !orderBookSummaries}
                           eventSlug={card.slug}
                           surfaceVariant="sportsCard"
+                          oddsFormat={oddsFormat}
                           tradeLabel={`TRADE ${tradeSelectionLabel}`}
                           onToggleOutcome={nextOutcome ? handleToggleOutcome : undefined}
                           toggleOutcomeTooltip={switchTooltip ?? undefined}
@@ -2066,9 +2405,10 @@ function SportsGameDetailsPanel({
       {shouldShowPortfolio && (
         <div className={cn(
           '-mx-2.5 bg-card',
+          isStandalonePositionsCard && 'overflow-hidden rounded-[inherit]',
         )}
         >
-          <div className="border-t">
+          <div className={cn(!isStandalonePositionsCard && 'border-t')}>
             <div
               role="button"
               tabIndex={0}
@@ -2085,70 +2425,83 @@ function SportsGameDetailsPanel({
                 event.stopPropagation()
                 setIsPositionsExpanded(current => !current)
               }}
-              className={`
-                flex min-h-11 w-full items-center gap-2 bg-card px-2 py-2 text-xs text-muted-foreground
-                transition-colors
-                hover:bg-secondary
-                sm:px-3
-              `}
+              className={cn(
+                'flex w-full items-center bg-card text-muted-foreground transition-colors hover:bg-secondary',
+                isStandalonePositionsCard
+                  ? 'min-h-16 gap-3 px-4 py-3 text-sm'
+                  : 'min-h-11 gap-2 px-2.5 py-2 text-xs sm:px-2.5',
+              )}
             >
-              <div className="flex shrink-0 items-center gap-1 text-sm font-semibold text-foreground">
-                <span>{t('Positions')}</span>
+              <div
+                className={cn(
+                  'flex shrink-0 items-center text-foreground',
+                  isStandalonePositionsCard ? 'gap-2 text-sm font-semibold' : 'gap-1 text-sm font-semibold',
+                )}
+              >
+                <span>{positionsTitle ?? t('Positions')}</span>
                 <ChevronDownIcon
                   className={cn(
-                    'size-3.5 transition-transform',
+                    'transition-transform',
+                    isStandalonePositionsCard ? 'size-4' : 'size-3.5',
                     isPositionsExpanded ? 'rotate-180' : 'rotate-0',
                   )}
                 />
               </div>
 
-              <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-1 overflow-hidden">
-                {visiblePositionTags.map((tag) => {
-                  const tagAccent = tag.button
-                    ? resolveTradeHeaderBadgeAccent(tag.button)
-                    : (tag.outcomeIndex === OUTCOME_INDEX.NO
-                        ? { className: 'bg-no/10 text-no', style: undefined }
-                        : { className: 'bg-yes/10 text-yes', style: undefined })
+              {showPositionTagSummary && (
+                <>
+                  <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-1 overflow-hidden">
+                    {visiblePositionTags.map((tag) => {
+                      const tagAccent = tag.button
+                        ? resolveTradeHeaderBadgeAccent(tag.button)
+                        : (tag.outcomeIndex === OUTCOME_INDEX.NO
+                            ? { className: 'bg-no/10 text-no', style: undefined }
+                            : { className: 'bg-yes/10 text-yes', style: undefined })
 
-                  return (
-                    <span
-                      key={tag.key}
-                      className={cn(
-                        `group/position inline-flex min-w-0 items-center rounded-sm px-2.5 py-1 text-xs font-semibold`,
-                        tagAccent.className,
-                      )}
-                      style={tagAccent.style}
-                    >
-                      <span className="truncate whitespace-nowrap">
-                        {`${tag.summaryLabel} | ${formatSharesLabel(tag.shares)} @ ${formatCompactCentsLabel(tag.avgPriceCents)}`}
-                      </span>
-                      <button
-                        type="button"
-                        data-sports-card-control="true"
-                        className={cn(
-                          'ml-1 inline-flex w-0 items-center justify-center overflow-hidden opacity-0',
-                          'transition-all duration-150 group-hover/position:w-3 group-hover/position:opacity-100',
-                          'pointer-events-none group-hover/position:pointer-events-auto',
-                        )}
-                        aria-label={`Cash out ${tag.summaryLabel}`}
-                        onClick={event => void handleCashOutTag(tag, event)}
-                      >
-                        <XIcon className="size-3" />
-                      </button>
+                      return (
+                        <span
+                          key={tag.key}
+                          className={cn(
+                            `
+                              group/position inline-flex max-w-44 min-w-0 items-center rounded-sm px-2.5 py-1 text-xs
+                              font-semibold
+                            `,
+                            tagAccent.className,
+                          )}
+                          style={tagAccent.style}
+                        >
+                          <span className="truncate whitespace-nowrap">
+                            {`${tag.summaryLabel} | ${formatSharesLabel(tag.shares)} @ ${formatCompactCentsLabel(tag.avgPriceCents)}`}
+                          </span>
+                          <button
+                            type="button"
+                            data-sports-card-control="true"
+                            className={cn(
+                              'ml-1 inline-flex w-0 items-center justify-center overflow-hidden opacity-0',
+                              'transition-all duration-150 group-hover/position:w-3 group-hover/position:opacity-100',
+                              'pointer-events-none group-hover/position:pointer-events-auto',
+                            )}
+                            aria-label={`Cash out ${tag.summaryLabel}`}
+                            onClick={event => void handleCashOutTag(tag, event)}
+                          >
+                            <XIcon className="size-3" />
+                          </button>
+                        </span>
+                      )
+                    })}
+                  </div>
+
+                  {hiddenPositionTagsCount > 0 && (
+                    <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                      {`+${hiddenPositionTagsCount} more`}
                     </span>
-                  )
-                })}
-              </div>
-
-              {hiddenPositionTagsCount > 0 && (
-                <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-                  {`+${hiddenPositionTagsCount} more`}
-                </span>
+                  )}
+                </>
               )}
             </div>
 
             {isPositionsExpanded && (
-              <div className="border-t bg-card px-2 py-2 sm:px-3" data-sports-card-control="true">
+              <div className="border-t bg-card px-2.5 py-2 sm:px-2.5" data-sports-card-control="true">
                 <div className="w-full overflow-x-auto" onClick={event => event.stopPropagation()}>
                   <table className="w-full border-collapse text-xs">
                     <thead>
@@ -2299,15 +2652,19 @@ function SportsGameDetailsPanel({
   )
 }
 
-export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
+export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: SportsGamesCenterProps) {
+  const router = useRouter()
   const locale = useLocale()
   const isMobile = useIsMobile()
-  const [sectionActionsHost, setSectionActionsHost] = useState<HTMLElement | null>(null)
   const [openCardId, setOpenCardId] = useState<string | null>(null)
   const [isDetailsContentVisible, setIsDetailsContentVisible] = useState(true)
   const [activeDetailsTab, setActiveDetailsTab] = useState<DetailsTab>('orderBook')
   const [selectedConditionByCardId, setSelectedConditionByCardId] = useState<Record<string, string>>({})
   const [tradeSelection, setTradeSelection] = useState<SportsTradeSelection>({ cardId: null, buttonKey: null })
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchShellRef = useRef<HTMLDivElement | null>(null)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
   const setOrderEvent = useOrder(state => state.setEvent)
   const setOrderMarket = useOrder(state => state.setMarket)
   const setOrderOutcome = useOrder(state => state.setOutcome)
@@ -2330,10 +2687,6 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
   )
 
   useEffect(() => {
-    setSectionActionsHost(document.getElementById('sports-section-row-actions'))
-  }, [])
-
-  useEffect(() => {
     if (weekOptions.length === 0) {
       setSelectedWeek('all')
       return
@@ -2346,7 +2699,7 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
     }
   }, [selectedWeek, weekOptions])
 
-  const filteredCards = useMemo(() => {
+  const weekFilteredCards = useMemo(() => {
     if (selectedWeek === 'all') {
       return cards
     }
@@ -2354,6 +2707,66 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
     const week = Number(selectedWeek)
     return cards.filter(card => card.week === week)
   }, [cards, selectedWeek])
+
+  useEffect(() => {
+    if (!isSearchOpen) {
+      return
+    }
+    searchInputRef.current?.focus()
+  }, [isSearchOpen])
+
+  useEffect(() => {
+    if (!isSearchOpen) {
+      return
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target
+      if (!(target instanceof Node)) {
+        return
+      }
+      if (searchShellRef.current?.contains(target)) {
+        return
+      }
+      if (searchQuery.trim()) {
+        return
+      }
+      setIsSearchOpen(false)
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+    }
+  }, [isSearchOpen, searchQuery])
+
+  const normalizedSearchQuery = useMemo(
+    () => normalizeComparableText(searchQuery),
+    [searchQuery],
+  )
+
+  const filteredCards = useMemo(() => {
+    if (!normalizedSearchQuery) {
+      return weekFilteredCards
+    }
+
+    return weekFilteredCards.filter((card) => {
+      const searchableText = [
+        card.title,
+        card.event.title,
+        card.event.slug,
+        ...card.teams.flatMap(team => [team.name, team.abbreviation]),
+      ]
+        .map(value => normalizeComparableText(value))
+        .join(' ')
+
+      return searchableText.includes(normalizedSearchQuery)
+    })
+  }, [normalizedSearchQuery, weekFilteredCards])
+
+  const emptyStateLabel = normalizedSearchQuery
+    ? 'No games found for this search.'
+    : 'No games available for this week.'
 
   useEffect(() => {
     if (openCardId && !filteredCards.some(card => card.id === openCardId)) {
@@ -2635,8 +3048,8 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
     >
       <SelectTrigger
         className={`
-          h-11 w-auto min-w-0 cursor-pointer rounded-full border-0 bg-card px-6 text-sm font-semibold text-foreground
-          shadow-none
+          h-12 w-fit min-w-0 cursor-pointer rounded-full border-0 bg-card px-3.5 pr-2 text-sm font-semibold
+          text-foreground shadow-none
           hover:bg-card
           dark:bg-card
           dark:hover:bg-card
@@ -2661,19 +3074,123 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
 
   return (
     <>
-      {sectionActionsHost
-        ? createPortal(weekSelect, sectionActionsHost)
-        : (
-            <div className="mb-4 flex items-center justify-end">
-              {weekSelect}
-            </div>
-          )}
+      <div className="
+        min-[1200px]:grid min-[1200px]:h-full min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem] min-[1200px]:gap-6
+      "
+      >
+        <section
+          data-sports-scroll-pane="center"
+          className="min-w-0 min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:pr-1 lg:ml-4"
+        >
+          <div className="mb-4">
+            <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-2">
+              {sportTitle}
+            </h1>
 
-      <div className="min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem] min-[1200px]:gap-6">
-        <section className="min-w-0 lg:ml-4">
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push(`/sports/${sportSlug}/games` as Route)}
+                  className={`
+                    rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors
+                  `}
+                >
+                  Games
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/sports/${sportSlug}/props` as Route)}
+                  className="rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors"
+                >
+                  Props
+                </button>
+              </div>
+
+              <div className="ml-auto flex min-w-0 items-center justify-end">
+                <div ref={searchShellRef} className="relative mr-2 flex h-11 items-center">
+                  <div
+                    className={cn(
+                      `
+                        absolute top-0 right-0 z-10 flex h-11 origin-right items-center overflow-hidden rounded-sm
+                        bg-card transition-[width,opacity,transform,padding] duration-300 ease-out
+                      `,
+                      isSearchOpen
+                        ? 'w-56 translate-x-0 scale-x-100 px-3 opacity-100'
+                        : 'pointer-events-none w-0 translate-x-1.5 scale-x-95 px-0 opacity-0',
+                    )}
+                  >
+                    <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <input
+                      ref={searchInputRef}
+                      value={searchQuery}
+                      onChange={event => setSearchQuery(event.target.value)}
+                      placeholder="Search"
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                          if (searchQuery.trim()) {
+                            setSearchQuery('')
+                          }
+                          else {
+                            setIsSearchOpen(false)
+                          }
+                        }
+                      }}
+                      className={`
+                        ml-2 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none
+                        placeholder:text-muted-foreground
+                      `}
+                    />
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      onClick={() => {
+                        setSearchQuery('')
+                        setIsSearchOpen(false)
+                      }}
+                      className={`
+                        ml-2 flex size-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground
+                        transition-colors
+                        hover:bg-muted/80 hover:text-foreground
+                      `}
+                    >
+                      <XIcon className="size-3.5" />
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-label="Open search"
+                    data-sports-card-control="true"
+                    onClick={() => {
+                      if (!isSearchOpen) {
+                        setIsSearchOpen(true)
+                        return
+                      }
+                      searchInputRef.current?.focus()
+                    }}
+                    className={cn(
+                      `
+                        relative z-20 flex h-11 w-11 items-center justify-center rounded-sm border border-transparent
+                        bg-transparent text-foreground transition-colors
+                        hover:bg-muted/80
+                        focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
+                      `,
+                      isSearchOpen && 'pointer-events-none opacity-0',
+                    )}
+                  >
+                    <SearchIcon className="size-4" />
+                  </button>
+                </div>
+
+                {weekSelect}
+              </div>
+            </div>
+          </div>
+
           {groupedCards.length === 0 && (
             <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
-              No games available for this week.
+              {emptyStateLabel}
             </div>
           )}
 
@@ -2716,15 +3233,6 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                     return (
                       <article
                         key={card.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={event => toggleCard(card, event)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault()
-                            toggleCard(card, event)
-                          }
-                        }}
                         className={cn(
                           `
                             cursor-pointer overflow-hidden rounded-xl border bg-card px-2.5 pt-2.5 shadow-md
@@ -2737,6 +3245,15 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                             `-mx-2.5 -mt-2.5 bg-card px-2.5 pt-2.5 pb-2 transition-colors hover:bg-secondary/30`,
                             shouldRenderDetailsPanel ? 'rounded-t-xl' : 'rounded-xl',
                           )}
+                          role="button"
+                          tabIndex={0}
+                          onClick={event => toggleCard(card, event)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              toggleCard(card, event)
+                            }
+                          }}
                         >
                           <div className="mb-2 flex items-center justify-between gap-3">
                             <div className="flex min-w-0 items-center gap-2">
@@ -2766,8 +3283,8 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                                 {card.marketsCount > 0 && (
                                   <span
                                     className={`
-                                      inline-flex size-5 items-center justify-center rounded-sm bg-background text-2xs
-                                      font-semibold text-muted-foreground
+                                      inline-flex size-5 items-center justify-center rounded-sm bg-muted text-2xs
+                                      font-semibold text-foreground/80
                                     `}
                                   >
                                     {card.marketsCount}
@@ -2979,10 +3496,11 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
         </section>
 
         <aside
+          data-sports-scroll-pane="aside"
           className={`
             hidden gap-4
-            min-[1200px]:sticky min-[1200px]:top-38 min-[1200px]:-mt-26 min-[1200px]:grid
-            min-[1200px]:max-h-[calc(100vh-7rem)] min-[1200px]:self-start min-[1200px]:overflow-y-auto
+            min-[1200px]:sticky min-[1200px]:top-0 min-[1200px]:grid min-[1200px]:max-h-full min-[1200px]:self-start
+            min-[1200px]:overflow-y-auto
           `}
         >
           {activeTradeContext
@@ -2991,6 +3509,7 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                   <EventOrderPanelForm
                     isMobile={false}
                     event={activeTradeContext.card.event}
+                    outcomeButtonStyleVariant="sports3d"
                     desktopMarketInfo={(
                       <SportsOrderPanelMarketInfo
                         card={activeTradeHeaderContext?.card ?? activeTradeContext.card}
@@ -3015,6 +3534,7 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
       {isMobile && activeTradeContext && (
         <EventOrderPanelMobile
           event={activeTradeContext.card.event}
+          outcomeButtonStyleVariant="sports3d"
           mobileMarketInfo={(
             <SportsOrderPanelMarketInfo
               card={activeTradeHeaderContext?.card ?? activeTradeContext.card}

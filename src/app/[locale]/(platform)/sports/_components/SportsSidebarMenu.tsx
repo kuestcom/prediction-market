@@ -29,6 +29,10 @@ function normalizeTagSlug(value: string | null | undefined) {
   return value?.trim().toLowerCase() || ''
 }
 
+function isFuturesMenuHref(value: string | null | undefined) {
+  return normalizeTagSlug(value).startsWith('/sports/futures')
+}
+
 function areTagSlugsEquivalent(input: string | null | undefined, current: string | null | undefined) {
   const left = normalizeTagSlug(input)
   const right = normalizeTagSlug(current)
@@ -327,6 +331,7 @@ export default function SportsSidebarMenu({
 
   return (
     <aside
+      data-sports-scroll-pane="sidebar"
       className={`
         hidden w-[180px] shrink-0 self-start
         lg:sticky lg:top-22 lg:flex lg:max-h-[calc(100vh-5.5rem)] lg:flex-col lg:overflow-y-auto lg:py-2 lg:pr-1
@@ -352,6 +357,10 @@ export default function SportsSidebarMenu({
         }
 
         if (isLinkEntry(entry)) {
+          if (isFuturesMenuHref(entry.href)) {
+            return null
+          }
+
           return (
             <SportsMenuLink
               key={entry.id}
@@ -364,6 +373,11 @@ export default function SportsSidebarMenu({
               onNavigateHref={onNavigateHref}
             />
           )
+        }
+
+        const visibleLinks = entry.links.filter(link => !isFuturesMenuHref(link.href))
+        if (visibleLinks.length === 0) {
+          return null
         }
 
         const isExpanded = expandedGroups[entry.id] ?? true
@@ -411,7 +425,7 @@ export default function SportsSidebarMenu({
             >
               <div className="min-h-0 overflow-hidden">
                 <div className="flex flex-col pt-0.5 pl-5">
-                  {entry.links.map(link => (
+                  {visibleLinks.map(link => (
                     <SportsMenuLink
                       key={link.id}
                       entry={link}

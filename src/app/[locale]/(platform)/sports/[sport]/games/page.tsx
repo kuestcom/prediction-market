@@ -29,7 +29,10 @@ export default async function SportsGamesBySportPage({
     notFound()
   }
 
-  const { data: canonicalSportSlug } = await SportsMenuRepository.resolveCanonicalSlugByAlias(sport)
+  const [{ data: canonicalSportSlug }, { data: layoutData }] = await Promise.all([
+    SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
+    SportsMenuRepository.getLayoutData(),
+  ])
   if (!canonicalSportSlug) {
     notFound()
   }
@@ -46,8 +49,13 @@ export default async function SportsGamesBySportPage({
   })
 
   const cards = buildSportsGamesCards(events ?? [])
+  const sportTitle = layoutData?.h1TitleBySlug[canonicalSportSlug] ?? canonicalSportSlug.toUpperCase()
 
   return (
-    <SportsGamesCenter cards={cards} />
+    <SportsGamesCenter
+      cards={cards}
+      sportSlug={canonicalSportSlug}
+      sportTitle={sportTitle}
+    />
   )
 }

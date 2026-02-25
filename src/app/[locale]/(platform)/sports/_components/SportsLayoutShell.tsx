@@ -3,7 +3,7 @@
 import type { Route } from 'next'
 import type { ReactNode } from 'react'
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import SportsSidebarMenu from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
@@ -198,19 +198,79 @@ export default function SportsLayoutShell({
     && Boolean(context.sportSlug)
     && !context.isEventRoute
     && Boolean(sectionConfig?.gamesEnabled && sectionConfig?.propsEnabled)
+  const useIndependentColumns = context.mode === 'all'
+    && (context.section === 'games' || context.isEventRoute)
+  const headerInsideGamesCenter = context.mode === 'all'
+    && context.section === 'games'
+    && !context.isEventRoute
+  const showShellHeader = !headerInsideGamesCenter
+  const showTitle = Boolean(context.title) && !context.isEventRoute
   const activeSection = context.section ?? 'games'
   const shouldConstrainHeaderToCenterColumn = activeSection === 'games'
   const centerColumnHeaderClass = shouldConstrainHeaderToCenterColumn
     ? 'min-[1200px]:max-w-[calc(100%-22.75rem)]'
     : ''
 
-  if (context.isEventRoute) {
-    return <>{children}</>
-  }
+  useEffect(() => {
+    if (typeof window === 'undefined' || !useIndependentColumns) {
+      return
+    }
+
+    function handleWindowWheel(event: WheelEvent) {
+      if (window.innerWidth < 1200 || event.defaultPrevented || event.ctrlKey || event.metaKey) {
+        return
+      }
+
+      const target = event.target
+      if (!(target instanceof Element)) {
+        return
+      }
+
+      if (target.closest('[data-sports-scroll-pane="sidebar"]')) {
+        return
+      }
+
+      if (target.closest('[data-sports-scroll-pane="aside"]')) {
+        return
+      }
+
+      if (target.closest('[data-sports-scroll-pane="center"]')) {
+        return
+      }
+
+      const centerPane = document.querySelector<HTMLElement>('[data-sports-scroll-pane="center"]')
+      if (!centerPane || centerPane.scrollHeight <= centerPane.clientHeight + 1) {
+        return
+      }
+
+      event.preventDefault()
+      centerPane.scrollBy({
+        top: event.deltaY,
+        left: 0,
+        behavior: 'auto',
+      })
+    }
+
+    window.addEventListener('wheel', handleWindowWheel, { passive: false })
+
+    return () => {
+      window.removeEventListener('wheel', handleWindowWheel)
+    }
+  }, [useIndependentColumns])
 
   return (
-    <main className="container py-4">
-      <div className="relative w-full lg:flex lg:items-start lg:gap-4">
+    <main
+      className={cn(
+        'container py-4',
+        useIndependentColumns && 'min-[1200px]:h-[calc(100dvh-5.5rem)] min-[1200px]:overflow-hidden',
+      )}
+    >
+      <div
+        className={cn(
+          'relative w-full lg:flex lg:items-start lg:gap-4',
+          useIndependentColumns && 'min-[1200px]:h-full',
+        )}
+      >
         <SportsSidebarMenu
           entries={sportsMenuEntries}
           mode={context.mode}
@@ -220,51 +280,68 @@ export default function SportsLayoutShell({
           onNavigateHref={handleNavigateHref}
           countByTagSlug={sportsCountsBySlug}
         />
-        <div className="min-w-0 flex-1">
-          {context.title && (
-            <h1 className={cn(
-              'mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-2 lg:ml-4',
-              centerColumnHeaderClass,
-            )}
-            >
-              {context.title}
-            </h1>
+        <div
+          id="sports-layout-center-column"
+          className={cn(
+            'min-w-0 flex-1',
+            useIndependentColumns && 'min-[1200px]:flex min-[1200px]:h-full min-[1200px]:min-h-0 min-[1200px]:flex-col',
           )}
-          {showSportSectionPills && context.sportSlug && (
-            <div className={cn(
-              'mb-4 flex items-center gap-3 lg:ml-4',
-              centerColumnHeaderClass,
-            )}
-            >
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => router.push(`/sports/${context.sportSlug}/games` as Route)}
-                  className={cn(
-                    'rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors',
-                    activeSection === 'games' && 'bg-primary text-primary-foreground',
-                  )}
+        >
+          {showShellHeader && (
+            <div id="sports-layout-center-header" className="flow-root">
+              {showTitle && (
+                <h1 className={cn(
+                  'mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-2 lg:ml-4',
+                  centerColumnHeaderClass,
+                )}
                 >
-                  Games
-                </button>
-                <button
-                  type="button"
-                  onClick={() => router.push(`/sports/${context.sportSlug}/props` as Route)}
-                  className={cn(
-                    'rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors',
-                    activeSection === 'props' && 'bg-primary text-primary-foreground',
-                  )}
+                  {context.title}
+                </h1>
+              )}
+              {showSportSectionPills && context.sportSlug && (
+                <div className={cn(
+                  'mb-4 flex items-center gap-3 lg:ml-4',
+                  centerColumnHeaderClass,
+                )}
                 >
-                  Props
-                </button>
-              </div>
-              <div
-                id="sports-section-row-actions"
-                className="ml-auto flex min-w-0 items-center justify-end min-[1200px]:mr-2 min-[1200px]:w-[372px]"
-              />
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/sports/${context.sportSlug}/games` as Route)}
+                      className={cn(
+                        'rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors',
+                        activeSection === 'games' && 'bg-primary text-primary-foreground',
+                      )}
+                    >
+                      Games
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/sports/${context.sportSlug}/props` as Route)}
+                      className={cn(
+                        'rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors',
+                        activeSection === 'props' && 'bg-primary text-primary-foreground',
+                      )}
+                    >
+                      Props
+                    </button>
+                  </div>
+                  <div
+                    id="sports-section-row-actions"
+                    className="ml-auto flex min-w-0 items-center justify-end min-[1200px]:mr-2 min-[1200px]:w-[372px]"
+                  />
+                </div>
+              )}
             </div>
           )}
-          {children}
+          <div
+            id="sports-layout-center-body"
+            className={cn(
+              useIndependentColumns && 'min-[1200px]:min-h-0 min-[1200px]:flex-1 min-[1200px]:overflow-hidden',
+            )}
+          >
+            {children}
+          </div>
         </div>
       </div>
     </main>
