@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { OddsFormat } from '@/lib/odds-format'
 import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { Event } from '@/types'
 import { useAppKitAccount } from '@reown/appkit/react'
@@ -61,6 +62,8 @@ interface EventOrderPanelFormProps {
   desktopMarketInfo?: ReactNode
   mobileMarketInfo?: ReactNode
   primaryOutcomeIndex?: number | null
+  oddsFormat?: OddsFormat
+  outcomeButtonStyleVariant?: 'default' | 'sports3d'
 }
 
 function resolveWinningOutcomeIndex(market: Event['markets'][number] | null | undefined) {
@@ -113,6 +116,8 @@ export default function EventOrderPanelForm({
   desktopMarketInfo,
   mobileMarketInfo,
   primaryOutcomeIndex = null,
+  oddsFormat = 'price',
+  outcomeButtonStyleVariant = 'default',
 }: EventOrderPanelFormProps) {
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
@@ -1150,6 +1155,8 @@ export default function EventOrderPanelForm({
                   price={primaryPrice}
                   label={normalizeOutcomeLabel(primaryOutcome?.outcome_text) ?? t('Yes')}
                   isSelected={state.outcome?.outcome_index === normalizedPrimaryOutcomeIndex}
+                  oddsFormat={oddsFormat}
+                  styleVariant={outcomeButtonStyleVariant}
                   onSelect={() => {
                     if (!state.market || !primaryOutcome) {
                       return
@@ -1163,6 +1170,8 @@ export default function EventOrderPanelForm({
                   price={secondaryPrice}
                   label={normalizeOutcomeLabel(secondaryOutcome?.outcome_text) ?? t('No')}
                   isSelected={state.outcome?.outcome_index === normalizedSecondaryOutcomeIndex}
+                  oddsFormat={oddsFormat}
+                  styleVariant={outcomeButtonStyleVariant}
                   onSelect={() => {
                     if (!state.market || !secondaryOutcome) {
                       return

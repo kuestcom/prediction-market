@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { OddsFormat } from '@/lib/odds-format'
 import type { Event } from '@/types'
 import { DialogTitle } from '@radix-ui/react-dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
@@ -11,6 +12,7 @@ import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { formatCentsLabel } from '@/lib/formatters'
+import { formatOddsFromPrice } from '@/lib/odds-format'
 import { useIsSingleMarket, useOrder, useOutcomeTopOfBookPrice } from '@/stores/useOrder'
 
 interface EventMobileOrderPanelProps {
@@ -18,6 +20,8 @@ interface EventMobileOrderPanelProps {
   showDefaultTrigger?: boolean
   mobileMarketInfo?: ReactNode
   primaryOutcomeIndex?: number | null
+  oddsFormat?: OddsFormat
+  outcomeButtonStyleVariant?: 'default' | 'sports3d'
 }
 
 export default function EventOrderPanelMobile({
@@ -25,6 +29,8 @@ export default function EventOrderPanelMobile({
   showDefaultTrigger = true,
   mobileMarketInfo,
   primaryOutcomeIndex = null,
+  oddsFormat = 'price',
+  outcomeButtonStyleVariant = 'default',
 }: EventMobileOrderPanelProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -33,6 +39,12 @@ export default function EventOrderPanelMobile({
   const yesPrice = useOutcomeTopOfBookPrice(OUTCOME_INDEX.YES, ORDER_SIDE.BUY)
   const noPrice = useOutcomeTopOfBookPrice(OUTCOME_INDEX.NO, ORDER_SIDE.BUY)
   const shouldShowDefaultTrigger = showDefaultTrigger && isSingleMarket
+  const yesPriceLabel = oddsFormat === 'price'
+    ? formatCentsLabel(yesPrice)
+    : formatOddsFromPrice(yesPrice, oddsFormat)
+  const noPriceLabel = oddsFormat === 'price'
+    ? formatCentsLabel(noPrice)
+    : formatOddsFromPrice(noPrice, oddsFormat)
 
   return (
     <Drawer
@@ -62,7 +74,7 @@ export default function EventOrderPanelMobile({
                   {normalizeOutcomeLabel(state.market!.outcomes[0].outcome_text) ?? state.market!.outcomes[0].outcome_text}
                 </span>
                 <span className="shrink-0 font-bold">
-                  {formatCentsLabel(yesPrice)}
+                  {yesPriceLabel}
                 </span>
               </Button>
               <Button
@@ -83,7 +95,7 @@ export default function EventOrderPanelMobile({
                   {normalizeOutcomeLabel(state.market!.outcomes[1].outcome_text) ?? state.market!.outcomes[1].outcome_text}
                 </span>
                 <span className="shrink-0 font-bold">
-                  {formatCentsLabel(noPrice)}
+                  {noPriceLabel}
                 </span>
               </Button>
             </div>
@@ -101,6 +113,8 @@ export default function EventOrderPanelMobile({
           isMobile={true}
           mobileMarketInfo={mobileMarketInfo}
           primaryOutcomeIndex={primaryOutcomeIndex}
+          oddsFormat={oddsFormat}
+          outcomeButtonStyleVariant={outcomeButtonStyleVariant}
         />
         <EventOrderPanelTermsDisclaimer />
       </DrawerContent>

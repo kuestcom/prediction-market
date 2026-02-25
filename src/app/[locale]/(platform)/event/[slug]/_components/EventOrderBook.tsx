@@ -26,6 +26,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { ORDER_SIDE, ORDER_TYPE, tableHeaderClass } from '@/lib/constants'
+import { formatOddsFromCents } from '@/lib/odds-format'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
@@ -42,6 +43,7 @@ export default function EventOrderBook({
   isLoadingSummaries,
   eventSlug,
   surfaceVariant = 'default',
+  oddsFormat = 'price',
   tradeLabel,
   onToggleOutcome,
   toggleOutcomeTooltip,
@@ -271,6 +273,12 @@ export default function EventOrderBook({
   )
   const displayOutcomeLabel = normalizeOutcomeLabel(outcomeLabel) ?? outcomeLabel
   const displayTradeLabel = tradeLabel ?? `${t('Trade')} ${displayOutcomeLabel}`
+  const formatDisplayedPrice = useCallback((priceCents: number | null | undefined) => {
+    if (oddsFormat === 'price') {
+      return formatOrderBookPrice(priceCents ?? null)
+    }
+    return formatOddsFromCents(priceCents ?? null, oddsFormat)
+  }, [oddsFormat])
 
   const renderedAsks = useMemo(
     () => [...asks].sort((a, b) => b.priceCents - a.priceCents),
@@ -329,7 +337,8 @@ export default function EventOrderBook({
         <div
           className={cn(
             tableHeaderClass,
-            'sticky top-0 z-30 grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b',
+            'grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b',
+            isSportsCardSurface && 'sticky top-0 z-10',
             surfaceClass,
           )}
         >
@@ -397,6 +406,7 @@ export default function EventOrderBook({
                     level={level}
                     maxTotal={maxTotal}
                     showBadge={index === renderedAsks.length - 1 ? 'ask' : undefined}
+                    priceFormatter={formatDisplayedPrice}
                     onSelect={handleLevelSelect}
                     userOrder={userOrder}
                     isCancelling={userOrder ? pendingCancelIds.has(userOrder.id) : false}
@@ -411,10 +421,11 @@ export default function EventOrderBook({
           ref={centerRowRef}
           className={cn(
             `
-              sticky top-9 bottom-0 z-30 grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y px-2
-              text-xs font-medium text-muted-foreground transition-colors
+              grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y px-2 text-xs font-medium
+              text-muted-foreground transition-colors
               sm:px-3
             `,
+            isSportsCardSurface && 'sticky top-9 bottom-0 z-10',
             isSportsCardSurface ? 'bg-card hover:bg-secondary' : 'bg-background hover:bg-muted',
           )}
           role="presentation"
@@ -422,7 +433,7 @@ export default function EventOrderBook({
           <div className="flex h-full cursor-pointer items-center">
             {t('Last')}
             :&nbsp;
-            {lastPrice == null ? '--' : formatOrderBookPrice(lastPrice)}
+            {lastPrice == null ? '--' : formatDisplayedPrice(lastPrice)}
           </div>
           <div className="flex h-full cursor-pointer items-center justify-center">
             {t('Spread')}
@@ -443,6 +454,7 @@ export default function EventOrderBook({
                     level={level}
                     maxTotal={maxTotal}
                     showBadge={index === 0 ? 'bid' : undefined}
+                    priceFormatter={formatDisplayedPrice}
                     onSelect={handleLevelSelect}
                     userOrder={userOrder}
                     isCancelling={userOrder ? pendingCancelIds.has(userOrder.id) : false}

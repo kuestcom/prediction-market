@@ -1,3 +1,4 @@
+import type { OddsFormat } from '@/lib/odds-format'
 import type { Market, Outcome } from '@/types'
 
 export interface OrderBookLevel {
@@ -16,6 +17,7 @@ export interface EventOrderBookProps {
   isLoadingSummaries: boolean
   eventSlug: string
   surfaceVariant?: 'default' | 'sportsCard'
+  oddsFormat?: OddsFormat
   tradeLabel?: string
   onToggleOutcome?: () => void
   toggleOutcomeTooltip?: string

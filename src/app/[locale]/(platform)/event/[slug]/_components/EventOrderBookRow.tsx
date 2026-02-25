@@ -10,6 +10,7 @@ interface EventOrderBookRowProps {
   level: OrderBookLevel
   maxTotal: number
   showBadge?: 'ask' | 'bid'
+  priceFormatter?: (priceCents: number) => string
   onSelect?: (level: OrderBookLevel) => void
   userOrder?: OrderBookUserOrder | null
   isCancelling?: boolean
@@ -20,6 +21,7 @@ export default function EventOrderBookRow({
   level,
   maxTotal,
   showBadge,
+  priceFormatter,
   onSelect,
   userOrder,
   isCancelling,
@@ -120,7 +122,7 @@ export default function EventOrderBookRow({
             )}
           </div>
           <span className={`text-sm font-medium ${priceClass}`}>
-            {formatOrderBookPrice(level.priceCents)}
+            {priceFormatter?.(level.priceCents) ?? formatOrderBookPrice(level.priceCents)}
           </span>
         </div>
       </div>
