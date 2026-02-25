@@ -1,0 +1,864 @@
+'use client'
+
+import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
+import type { SportsGamesMarketType } from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
+import type { OddsFormat } from '@/lib/odds-format'
+import { CheckIcon, Code2Icon, SettingsIcon, ShareIcon } from 'lucide-react'
+import { useLocale } from 'next-intl'
+import Image from 'next/image'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
+import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
+import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
+import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
+import EventOrderPanelTermsDisclaimer
+  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
+import {
+  groupButtonsByMarketType,
+  resolveButtonDepthStyle,
+  resolveButtonStyle,
+  resolveDefaultConditionId,
+  resolveSelectedButton,
+  resolveSelectedMarket,
+  resolveSelectedOutcome,
+  resolveStableSpreadPrimaryOutcomeIndex,
+  SportsGameDetailsPanel,
+  SportsGameGraph,
+
+  SportsOrderPanelMarketInfo,
+} from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
+import SiteLogoIcon from '@/components/SiteLogoIcon'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useIsMobile } from '@/hooks/useIsMobile'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { Link } from '@/i18n/navigation'
+import { ORDER_SIDE } from '@/lib/constants'
+import { formatVolume } from '@/lib/formatters'
+import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
+import { cn } from '@/lib/utils'
+import { useOrder } from '@/stores/useOrder'
+import { useUser } from '@/stores/useUser'
+
+type DetailsTab = 'orderBook' | 'graph'
+type EventSectionKey = Extract<SportsGamesMarketType, 'moneyline' | 'spread' | 'total' | 'btts'>
+
+interface SportsEventCenterProps {
+  card: SportsGamesCard
+  sportSlug: string
+  sportLabel: string
+  initialMarketSlug?: string | null
+}
+
+const SECTION_ORDER: Array<{ key: EventSectionKey, label: string }> = [
+  { key: 'moneyline', label: 'Moneyline' },
+  { key: 'spread', label: 'Spread' },
+  { key: 'total', label: 'Total' },
+  { key: 'btts', label: 'Both Teams to Score?' },
+]
+
+const headerIconButtonClass = `
+  size-10 rounded-sm border border-transparent bg-transparent text-foreground transition-colors
+  hover:bg-muted/80 focus-visible:ring-1 focus-visible:ring-ring md:h-9 md:w-9
+`
+const SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY = 'sports:event:odds-format'
+
+function SportsEventShareButton() {
+  const user = useUser()
+  const affiliateCode = user?.affiliate_code?.trim() ?? ''
+  const [shareSuccess, setShareSuccess] = useState(false)
+
+  async function handleShare() {
+    try {
+      const url = new URL(window.location.href)
+      if (affiliateCode) {
+        url.searchParams.set('r', affiliateCode)
+      }
+      await navigator.clipboard.writeText(url.toString())
+      setShareSuccess(true)
+      window.setTimeout(() => setShareSuccess(false), 2000)
+    }
+    catch {
+      // noop
+    }
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className={cn(headerIconButtonClass, 'size-auto p-0')}
+      aria-label="Copy event link"
+      onClick={() => { void handleShare() }}
+    >
+      {shareSuccess
+        ? <CheckIcon className="size-4 text-primary" />
+        : <ShareIcon className="size-4" />}
+    </Button>
+  )
+}
+
+function sortSectionButtons(sectionKey: EventSectionKey, buttons: SportsGamesButton[]) {
+  if (sectionKey === 'spread') {
+    const order: Record<SportsGamesButton['tone'], number> = {
+      team1: 0,
+      team2: 1,
+      draw: 2,
+      over: 3,
+      under: 4,
+      neutral: 5,
+    }
+
+    return [...buttons].sort((a, b) => (order[a.tone] ?? 99) - (order[b.tone] ?? 99))
+  }
+
+  if (sectionKey === 'total' || sectionKey === 'btts') {
+    const order: Record<SportsGamesButton['tone'], number> = {
+      over: 0,
+      under: 1,
+      team1: 2,
+      team2: 3,
+      draw: 4,
+      neutral: 5,
+    }
+
+    return [...buttons].sort((a, b) => (order[a.tone] ?? 99) - (order[b.tone] ?? 99))
+  }
+
+  return buttons
+}
+
+export default function SportsEventCenter({
+  card,
+  sportSlug,
+  sportLabel,
+  initialMarketSlug = null,
+}: SportsEventCenterProps) {
+  const locale = useLocale()
+  const site = useSiteIdentity()
+  const isMobile = useIsMobile()
+  const setOrderEvent = useOrder(state => state.setEvent)
+  const setOrderMarket = useOrder(state => state.setMarket)
+  const setOrderOutcome = useOrder(state => state.setOutcome)
+  const setOrderSide = useOrder(state => state.setSide)
+  const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
+  const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
+  const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
+  const [oddsFormat, setOddsFormat] = useState<OddsFormat>('price')
+  const [hasLoadedOddsFormat, setHasLoadedOddsFormat] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const storedOddsFormat = window.localStorage.getItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY)
+    const matchedOption = ODDS_FORMAT_OPTIONS.find(option => option.value === storedOddsFormat)
+    if (matchedOption) {
+      setOddsFormat(matchedOption.value)
+    }
+    setHasLoadedOddsFormat(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hasLoadedOddsFormat || typeof window === 'undefined') {
+      return
+    }
+    window.localStorage.setItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY, oddsFormat)
+  }, [hasLoadedOddsFormat, oddsFormat])
+
+  const formatButtonOdds = useCallback((cents: number) => {
+    if (oddsFormat === 'price') {
+      return `${cents}¢`
+    }
+    return formatOddsFromCents(cents, oddsFormat)
+  }, [oddsFormat])
+
+  const groupedButtons = useMemo(() => groupButtonsByMarketType(card.buttons), [card.buttons])
+  const availableSections = useMemo(
+    () => SECTION_ORDER.filter(section => groupedButtons[section.key].length > 0),
+    [groupedButtons],
+  )
+
+  const marketSlugToButtonKey = useMemo(() => {
+    if (!initialMarketSlug) {
+      return null
+    }
+
+    const matchedMarket = card.detailMarkets.find(market => market.slug === initialMarketSlug)
+    if (!matchedMarket) {
+      return null
+    }
+
+    const matchedButton = card.buttons.find(button => button.conditionId === matchedMarket.condition_id)
+    return matchedButton?.key ?? null
+  }, [card.buttons, card.detailMarkets, initialMarketSlug])
+
+  const [selectedButtonBySection, setSelectedButtonBySection] = useState<Record<EventSectionKey, string | null>>({
+    moneyline: null,
+    spread: null,
+    total: null,
+    btts: null,
+  })
+  const [activeTradeButtonKey, setActiveTradeButtonKey] = useState<string | null>(null)
+  const [openSectionKey, setOpenSectionKey] = useState<EventSectionKey | null>(null)
+  const [tabBySection, setTabBySection] = useState<Record<EventSectionKey, DetailsTab>>({
+    moneyline: 'orderBook',
+    spread: 'orderBook',
+    total: 'orderBook',
+    btts: 'orderBook',
+  })
+
+  useEffect(() => {
+    const nextSelectedBySection: Record<EventSectionKey, string | null> = {
+      moneyline: null,
+      spread: null,
+      total: null,
+      btts: null,
+    }
+
+    for (const section of SECTION_ORDER) {
+      const firstButton = groupedButtons[section.key][0] ?? null
+      nextSelectedBySection[section.key] = firstButton?.key ?? null
+    }
+
+    if (marketSlugToButtonKey) {
+      const marketButton = card.buttons.find(button => button.key === marketSlugToButtonKey)
+      if (marketButton) {
+        nextSelectedBySection[marketButton.marketType as EventSectionKey] = marketButton.key
+      }
+    }
+
+    setSelectedButtonBySection(nextSelectedBySection)
+
+    const defaultTradeButton = marketSlugToButtonKey
+      ?? nextSelectedBySection.moneyline
+      ?? nextSelectedBySection.spread
+      ?? nextSelectedBySection.total
+      ?? nextSelectedBySection.btts
+      ?? resolveDefaultConditionId(card)
+
+    setActiveTradeButtonKey(defaultTradeButton)
+    setOpenSectionKey(null)
+  }, [card, card.buttons, groupedButtons, marketSlugToButtonKey])
+
+  const moneylineButtonKey = selectedButtonBySection.moneyline ?? groupedButtons.moneyline[0]?.key ?? null
+
+  const activeTradeContext = useMemo(() => {
+    const fallbackButtonKey = moneylineButtonKey
+      ?? selectedButtonBySection.spread
+      ?? selectedButtonBySection.total
+      ?? selectedButtonBySection.btts
+      ?? resolveDefaultConditionId(card)
+
+    const effectiveButtonKey = activeTradeButtonKey ?? fallbackButtonKey
+    const button = resolveSelectedButton(card, effectiveButtonKey)
+    if (!button) {
+      return null
+    }
+
+    const market = resolveSelectedMarket(card, button.key)
+    if (!market) {
+      return null
+    }
+
+    const outcome = resolveSelectedOutcome(market, button)
+    if (!outcome) {
+      return null
+    }
+
+    return { button, market, outcome }
+  }, [
+    activeTradeButtonKey,
+    card,
+    moneylineButtonKey,
+    selectedButtonBySection.btts,
+    selectedButtonBySection.spread,
+    selectedButtonBySection.total,
+  ])
+
+  const activeTradeHeaderContext = useMemo(() => {
+    if (!activeTradeContext) {
+      return null
+    }
+
+    if (!orderMarketConditionId || orderMarketConditionId !== activeTradeContext.market.condition_id) {
+      return activeTradeContext
+    }
+
+    if (orderOutcomeIndex == null) {
+      return activeTradeContext
+    }
+
+    const matchedOutcome = activeTradeContext.market.outcomes.find(
+      outcome => outcome.outcome_index === orderOutcomeIndex,
+    ) ?? activeTradeContext.outcome
+
+    const matchedButton = card.buttons.find(
+      button => (
+        button.conditionId === activeTradeContext.market.condition_id
+        && button.outcomeIndex === orderOutcomeIndex
+      ),
+    ) ?? activeTradeContext.button
+
+    return {
+      ...activeTradeContext,
+      button: matchedButton,
+      outcome: matchedOutcome,
+    }
+  }, [activeTradeContext, card.buttons, orderMarketConditionId, orderOutcomeIndex])
+
+  const activeTradePrimaryOutcomeIndex = useMemo(() => {
+    if (!activeTradeContext || activeTradeContext.button.marketType !== 'spread') {
+      return null
+    }
+
+    return resolveStableSpreadPrimaryOutcomeIndex(card, activeTradeContext.button.conditionId)
+  }, [activeTradeContext, card])
+
+  useEffect(() => {
+    if (!activeTradeContext) {
+      return
+    }
+
+    setOrderEvent(card.event)
+    setOrderMarket(activeTradeContext.market)
+    setOrderOutcome(activeTradeContext.outcome)
+    setOrderSide(ORDER_SIDE.BUY)
+  }, [activeTradeContext, card.event, setOrderEvent, setOrderMarket, setOrderOutcome, setOrderSide])
+
+  const sectionVolumes = useMemo(() => {
+    const byConditionId = new Map(card.detailMarkets.map(market => [market.condition_id, market] as const))
+    const volumes: Record<EventSectionKey, number> = {
+      moneyline: 0,
+      spread: 0,
+      total: 0,
+      btts: 0,
+    }
+
+    for (const section of SECTION_ORDER) {
+      const conditionIds = Array.from(new Set(groupedButtons[section.key].map(button => button.conditionId)))
+      volumes[section.key] = conditionIds.reduce((sum, conditionId) => {
+        const market = byConditionId.get(conditionId)
+        return sum + (Number(market?.volume ?? 0) || 0)
+      }, 0)
+    }
+
+    return volumes
+  }, [card.detailMarkets, groupedButtons])
+
+  function resolveSectionButtons(sectionKey: EventSectionKey) {
+    const sectionButtons = groupedButtons[sectionKey]
+    if (sectionButtons.length === 0) {
+      return [] as SportsGamesButton[]
+    }
+
+    if (sectionKey === 'moneyline') {
+      return sortSectionButtons(sectionKey, sectionButtons)
+    }
+
+    const byConditionId = new Map<string, SportsGamesButton[]>()
+    sectionButtons.forEach((button) => {
+      const existing = byConditionId.get(button.conditionId)
+      if (existing) {
+        existing.push(button)
+      }
+      else {
+        byConditionId.set(button.conditionId, [button])
+      }
+    })
+
+    const selectedButtonKey = selectedButtonBySection[sectionKey]
+    const selectedButton = selectedButtonKey
+      ? sectionButtons.find(button => button.key === selectedButtonKey) ?? null
+      : null
+    const activeConditionId = selectedButton?.conditionId ?? sectionButtons[0]?.conditionId
+    const activeConditionButtons = activeConditionId ? (byConditionId.get(activeConditionId) ?? []) : []
+
+    return sortSectionButtons(sectionKey, activeConditionButtons)
+  }
+
+  function updateSectionSelection(
+    sectionKey: EventSectionKey,
+    buttonKey: string,
+    options?: { panelMode?: 'full' | 'partial' | 'preserve' },
+  ) {
+    setSelectedButtonBySection((current) => {
+      if (current[sectionKey] === buttonKey) {
+        return current
+      }
+      return {
+        ...current,
+        [sectionKey]: buttonKey,
+      }
+    })
+
+    setActiveTradeButtonKey(buttonKey)
+
+    const panelMode = options?.panelMode ?? 'full'
+    if (panelMode === 'full') {
+      setOpenSectionKey(sectionKey)
+    }
+  }
+
+  const startDate = card.startTime ? new Date(card.startTime) : null
+  const hasValidStartDate = Boolean(startDate && !Number.isNaN(startDate.getTime()))
+  const timeLabel = hasValidStartDate
+    ? new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(startDate as Date)
+    : 'TBD'
+  const dayLabel = hasValidStartDate
+    ? new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric' }).format(startDate as Date)
+    : 'Date TBD'
+
+  const team1 = card.teams[0] ?? null
+  const team2 = card.teams[1] ?? null
+  const eventTitle = team1 && team2
+    ? `${team1.name} vs ${team2.name}`
+    : card.title
+
+  const moneylineSelectedButton = resolveSelectedButton(card, moneylineButtonKey)
+  const graphConditionId = moneylineSelectedButton?.conditionId ?? null
+  const allCardConditionIds = useMemo(
+    () => new Set(card.detailMarkets.map(market => market.condition_id)),
+    [card.detailMarkets],
+  )
+
+  return (
+    <>
+      <div className="
+        min-[1200px]:grid min-[1200px]:h-full min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem] min-[1200px]:gap-6
+      "
+      >
+        <section
+          data-sports-scroll-pane="center"
+          className="min-w-0 min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:pr-1 lg:ml-4"
+        >
+          <div className="mb-4">
+            <div className="mb-1 flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+                <Link href="/sports/live" className="hover:text-foreground">
+                  Sports
+                </Link>
+                <span className="opacity-60">·</span>
+                <Link href={`/sports/${sportSlug}/games`} className="truncate hover:text-foreground">
+                  {sportLabel}
+                </Link>
+              </div>
+
+              <div className="flex items-center gap-1 text-foreground">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Odds format settings"
+                      className={cn(headerIconButtonClass, 'size-auto p-0')}
+                    >
+                      <SettingsIcon className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    side="bottom"
+                    align="end"
+                    sideOffset={8}
+                    className="w-44 border border-border bg-background p-1 text-foreground shadow-xl"
+                  >
+                    <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
+                      Odds Format
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {ODDS_FORMAT_OPTIONS.map(option => (
+                      <DropdownMenuItem
+                        key={option.value}
+                        className="cursor-pointer rounded-sm px-2 py-1.5 text-sm text-foreground"
+                        onSelect={(event) => {
+                          event.preventDefault()
+                          setOddsFormat(option.value)
+                        }}
+                      >
+                        <span>{option.label}</span>
+                        {oddsFormat === option.value && <CheckIcon className="ml-auto size-3.5 text-primary" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Embed"
+                  className={cn(headerIconButtonClass, 'size-auto p-0')}
+                  onClick={() => setEmbedDialogOpen(true)}
+                >
+                  <Code2Icon className="size-4" />
+                </Button>
+                <EventBookmark event={card.event} />
+                <SportsEventShareButton />
+              </div>
+            </div>
+
+            <h1 className="text-2xl font-semibold text-foreground">
+              {eventTitle}
+            </h1>
+          </div>
+
+          <div className="mb-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border/70" />
+            <div className="pointer-events-none flex items-center gap-2 text-sm text-muted-foreground select-none">
+              <SiteLogoIcon
+                logoSvg={site.logoSvg}
+                logoImageUrl={site.logoImageUrl}
+                alt={`${site.name} logo`}
+                className="
+                  pointer-events-none size-4 text-current select-none
+                  [&_svg]:size-4
+                  [&_svg_*]:fill-current [&_svg_*]:stroke-current
+                "
+                imageClassName="pointer-events-none size-4 object-contain select-none"
+                size={16}
+              />
+              <span className="font-medium select-none">{site.name}</span>
+            </div>
+            <div className="h-px flex-1 bg-border/70" />
+          </div>
+
+          <div className="mb-4 flex items-center justify-center gap-12 md:gap-14">
+            <div className="flex w-20 flex-col items-center gap-2">
+              <div className="pointer-events-none flex size-12 items-center justify-center select-none">
+                {team1?.logoUrl
+                  ? (
+                      <Image
+                        src={team1.logoUrl}
+                        alt={`${team1.name} logo`}
+                        width={48}
+                        height={48}
+                        sizes="48px"
+                        draggable={false}
+                        className="size-full object-contain object-center select-none"
+                      />
+                    )
+                  : (
+                      <div className="text-sm font-semibold text-muted-foreground">
+                        {team1?.abbreviation ?? '—'}
+                      </div>
+                    )}
+              </div>
+              <span className="text-base font-semibold text-foreground uppercase">{team1?.abbreviation ?? '—'}</span>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <span className="text-sm font-medium text-foreground">{timeLabel}</span>
+              <span className="text-sm font-medium text-muted-foreground">{dayLabel}</span>
+            </div>
+
+            <div className="flex w-20 flex-col items-center gap-2">
+              <div className="pointer-events-none flex size-12 items-center justify-center select-none">
+                {team2?.logoUrl
+                  ? (
+                      <Image
+                        src={team2.logoUrl}
+                        alt={`${team2.name} logo`}
+                        width={48}
+                        height={48}
+                        sizes="48px"
+                        draggable={false}
+                        className="size-full object-contain object-center select-none"
+                      />
+                    )
+                  : (
+                      <div className="text-sm font-semibold text-muted-foreground">
+                        {team2?.abbreviation ?? '—'}
+                      </div>
+                    )}
+              </div>
+              <span className="text-base font-semibold text-foreground uppercase">{team2?.abbreviation ?? '—'}</span>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <div className="mb-2 flex items-center justify-between px-1">
+              <span className="text-sm font-semibold text-muted-foreground">
+                {formatVolume(card.volume)}
+                {' '}
+                Vol.
+              </span>
+              <div className="pointer-events-none flex items-center gap-2 text-muted-foreground select-none">
+                <SiteLogoIcon
+                  logoSvg={site.logoSvg}
+                  logoImageUrl={site.logoImageUrl}
+                  alt={`${site.name} logo`}
+                  className="
+                    pointer-events-none size-4 text-current select-none
+                    [&_svg]:size-4
+                    [&_svg_*]:fill-current [&_svg_*]:stroke-current
+                  "
+                  imageClassName="pointer-events-none size-4 object-contain select-none"
+                  size={16}
+                />
+                <span className="text-base font-semibold select-none">{site.name}</span>
+              </div>
+            </div>
+            <SportsGameGraph
+              card={card}
+              selectedMarketType="moneyline"
+              selectedConditionId={graphConditionId}
+              variant="sportsEventHero"
+            />
+          </div>
+
+          <div className="mb-4 overflow-hidden rounded-xl border bg-card px-2.5">
+            <SportsGameDetailsPanel
+              card={card}
+              activeDetailsTab="orderBook"
+              selectedButtonKey={moneylineButtonKey}
+              showBottomContent={false}
+              allowedConditionIds={allCardConditionIds}
+              positionsTitle="All Positions"
+              oddsFormat={oddsFormat}
+              onChangeTab={() => {}}
+              onSelectButton={(buttonKey) => {
+                setActiveTradeButtonKey(buttonKey)
+              }}
+            />
+          </div>
+
+          <div className="space-y-4">
+            {availableSections.map((section) => {
+              const sectionButtons = resolveSectionButtons(section.key)
+              if (sectionButtons.length === 0) {
+                return null
+              }
+
+              const selectedButtonKey = selectedButtonBySection[section.key] ?? sectionButtons[0]?.key ?? null
+              const isSectionOpen = openSectionKey === section.key
+              const sectionConditionIds = new Set(groupedButtons[section.key].map(button => button.conditionId))
+              const activeTab = tabBySection[section.key] ?? 'orderBook'
+              const firstSectionButtonKey = sectionButtons[0]?.key ?? null
+              function toggleSection() {
+                setOpenSectionKey(current => current === section.key ? null : section.key)
+              }
+
+              function handleCardClick(event: React.MouseEvent<HTMLElement>) {
+                const target = event.target as HTMLElement
+                if (target.closest('[data-sports-card-control="true"]')) {
+                  return
+                }
+                if (firstSectionButtonKey) {
+                  updateSectionSelection(section.key, firstSectionButtonKey, { panelMode: 'preserve' })
+                }
+                toggleSection()
+              }
+
+              function handleCardKeyDown(event: React.KeyboardEvent<HTMLElement>) {
+                if (event.key !== 'Enter' && event.key !== ' ') {
+                  return
+                }
+                const target = event.target as HTMLElement
+                if (target.closest('[data-sports-card-control="true"]')) {
+                  return
+                }
+                event.preventDefault()
+                if (firstSectionButtonKey) {
+                  updateSectionSelection(section.key, firstSectionButtonKey, { panelMode: 'preserve' })
+                }
+                toggleSection()
+              }
+
+              return (
+                <article
+                  key={`${card.id}-${section.key}`}
+                  className="overflow-hidden rounded-xl border bg-card"
+                >
+                  <div
+                    className={cn(
+                      'flex w-full cursor-pointer items-center gap-3 px-4 py-[18px] transition-colors',
+                      'hover:bg-secondary/30',
+                    )}
+                    role="button"
+                    tabIndex={0}
+                    onClick={handleCardClick}
+                    onKeyDown={handleCardKeyDown}
+                  >
+                    <div
+                      className={cn(
+                        'min-w-0 text-left transition-colors hover:text-foreground/90',
+                      )}
+                    >
+                      <h3 className="text-sm font-semibold text-foreground">{section.label}</h3>
+                      <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+                        {formatVolume(sectionVolumes[section.key])}
+                        {' '}
+                        Vol.
+                      </p>
+                    </div>
+
+                    <div className={cn('flex min-w-0 flex-1 items-stretch justify-end gap-2')}>
+                      {sectionButtons.map((button) => {
+                        const isActive = activeTradeButtonKey === button.key
+                        const hasTeamColor = isActive
+                          && (button.tone === 'team1' || button.tone === 'team2')
+                          && Boolean(button.color)
+                        const isOverButton = isActive && button.tone === 'over'
+                        const isUnderButton = isActive && button.tone === 'under'
+
+                        return (
+                          <div
+                            key={`${section.key}-${button.key}`}
+                            className={cn(
+                              'relative min-w-0 shrink-0 overflow-hidden rounded-lg pb-1.25',
+                              section.key === 'moneyline'
+                                ? 'w-28.5 max-[490px]:w-full'
+                                : 'w-31.25 max-[490px]:w-full',
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
+                                !hasTeamColor && !isOverButton && !isUnderButton && 'bg-border/70',
+                                isOverButton && 'bg-yes/70',
+                                isUnderButton && 'bg-no/70',
+                              )}
+                              style={hasTeamColor ? resolveButtonDepthStyle(button.color) : undefined}
+                            />
+                            <button
+                              type="button"
+                              data-sports-card-control="true"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                updateSectionSelection(section.key, button.key, { panelMode: 'full' })
+                              }}
+                              style={hasTeamColor ? resolveButtonStyle(button.color) : undefined}
+                              className={cn(
+                                `
+                                  relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg px-2
+                                  text-xs font-semibold shadow-sm transition-transform duration-150 ease-out
+                                  hover:translate-y-px
+                                  active:translate-y-0.5
+                                `,
+                                !hasTeamColor && !isOverButton && !isUnderButton
+                                && 'bg-secondary text-secondary-foreground hover:bg-accent',
+                                isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
+                                isUnderButton && 'bg-no text-white hover:bg-no-foreground',
+                              )}
+                            >
+                              {section.key === 'moneyline'
+                                ? (
+                                    <>
+                                      <span className="mr-1 uppercase opacity-80">{button.label}</span>
+                                      <span className="text-sm leading-none tabular-nums">{formatButtonOdds(button.cents)}</span>
+                                    </>
+                                  )
+                                : (
+                                    <span className="flex w-full items-center justify-between gap-1 px-1">
+                                      <span className="min-w-0 truncate text-left uppercase opacity-80">
+                                        {button.label}
+                                      </span>
+                                      <span className="shrink-0 text-sm leading-none tabular-nums">
+                                        {formatButtonOdds(button.cents)}
+                                      </span>
+                                    </span>
+                                  )}
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <div
+                    className={cn(
+                      'bg-card px-2.5',
+                      isSectionOpen ? 'border-t pt-3' : 'pt-0',
+                    )}
+                  >
+                    <SportsGameDetailsPanel
+                      card={card}
+                      activeDetailsTab={activeTab}
+                      selectedButtonKey={selectedButtonKey}
+                      showBottomContent={isSectionOpen}
+                      allowedConditionIds={sectionConditionIds}
+                      oddsFormat={oddsFormat}
+                      onChangeTab={tab => setTabBySection(current => ({ ...current, [section.key]: tab }))}
+                      onSelectButton={(buttonKey, options) => {
+                        updateSectionSelection(section.key, buttonKey, options)
+                      }}
+                    />
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </section>
+
+        <aside
+          data-sports-scroll-pane="aside"
+          className={`
+            hidden gap-4
+            min-[1200px]:sticky min-[1200px]:top-0 min-[1200px]:grid min-[1200px]:max-h-full min-[1200px]:self-start
+            min-[1200px]:overflow-y-auto
+          `}
+        >
+          {activeTradeContext
+            ? (
+                <div className="grid gap-6">
+                  <EventOrderPanelForm
+                    isMobile={false}
+                    event={card.event}
+                    oddsFormat={oddsFormat}
+                    outcomeButtonStyleVariant="sports3d"
+                    desktopMarketInfo={(
+                      <SportsOrderPanelMarketInfo
+                        card={card}
+                        selectedButton={activeTradeHeaderContext?.button ?? activeTradeContext.button}
+                        selectedOutcome={activeTradeHeaderContext?.outcome ?? activeTradeContext.outcome}
+                        marketType={activeTradeHeaderContext?.button.marketType ?? activeTradeContext.button.marketType}
+                      />
+                    )}
+                    primaryOutcomeIndex={activeTradePrimaryOutcomeIndex}
+                  />
+                  <EventOrderPanelTermsDisclaimer />
+                </div>
+              )
+            : (
+                <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+                  Select a market to trade.
+                </div>
+              )}
+        </aside>
+      </div>
+
+      {isMobile && activeTradeContext && (
+        <EventOrderPanelMobile
+          event={card.event}
+          oddsFormat={oddsFormat}
+          outcomeButtonStyleVariant="sports3d"
+          mobileMarketInfo={(
+            <SportsOrderPanelMarketInfo
+              card={card}
+              selectedButton={activeTradeHeaderContext?.button ?? activeTradeContext.button}
+              selectedOutcome={activeTradeHeaderContext?.outcome ?? activeTradeContext.outcome}
+              marketType={activeTradeHeaderContext?.button.marketType ?? activeTradeContext.button.marketType}
+            />
+          )}
+          primaryOutcomeIndex={activeTradePrimaryOutcomeIndex}
+        />
+      )}
+
+      <EventChartEmbedDialog
+        open={embedDialogOpen}
+        onOpenChange={setEmbedDialogOpen}
+        markets={card.detailMarkets}
+        initialMarketId={activeTradeContext?.market.condition_id ?? graphConditionId}
+      />
+    </>
+  )
+}
