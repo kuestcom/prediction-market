@@ -80,7 +80,9 @@ function toFractionString(value: number) {
   const reducedDenominator = Math.max(1, Math.round(bestDenominator / divisor))
 
   if (reducedNumerator <= 0) {
-    return '0/1'
+    // Keep strictly positive odds positive even when rounding cannot represent
+    // them with the current denominator limit.
+    return `1/${maxDenominator}`
   }
 
   return `${reducedNumerator}/${reducedDenominator}`
