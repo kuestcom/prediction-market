@@ -57,7 +57,8 @@ export default function EventOrderBook({
   const hasCenteredRef = useRef(false)
   const [pendingCancelIds, setPendingCancelIds] = useState<Set<string>>(() => new Set())
   const tokenId = outcome?.token_id || market.outcomes[0]?.token_id
-  const isEmbeddedSurface = surfaceVariant === 'embedded'
+  const isSportsCardSurface = surfaceVariant === 'sportsCard'
+  const surfaceClass = isSportsCardSurface ? 'bg-card' : 'bg-background'
 
   const summary = tokenId ? summaries?.[tokenId] ?? null : null
   const setType = useOrder(state => state.setType)
@@ -321,15 +322,15 @@ export default function EventOrderBook({
       ref={orderBookScrollRef}
       className={cn(
         'relative max-h-90 overflow-y-auto',
-        isEmbeddedSurface ? 'bg-inherit' : 'bg-background',
+        surfaceClass,
       )}
     >
-      <div className={cn(isEmbeddedSurface ? 'bg-inherit' : 'bg-background')}>
+      <div className={cn(surfaceClass)}>
         <div
           className={cn(
             tableHeaderClass,
-            'sticky top-0 z-1 grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b',
-            isEmbeddedSurface ? 'bg-inherit' : 'bg-background',
+            'sticky top-0 z-30 grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b',
+            surfaceClass,
           )}
         >
           <div className="flex h-full items-center gap-2">
@@ -410,11 +411,11 @@ export default function EventOrderBook({
           ref={centerRowRef}
           className={cn(
             `
-              sticky top-9 bottom-0 z-1 grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y px-2
+              sticky top-9 bottom-0 z-30 grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y px-2
               text-xs font-medium text-muted-foreground transition-colors
               sm:px-3
             `,
-            isEmbeddedSurface ? 'bg-transparent hover:bg-secondary/40' : 'bg-background hover:bg-muted',
+            isSportsCardSurface ? 'bg-card hover:bg-secondary' : 'bg-background hover:bg-muted',
           )}
           role="presentation"
         >

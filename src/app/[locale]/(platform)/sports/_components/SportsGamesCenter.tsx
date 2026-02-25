@@ -4,30 +4,42 @@ import type {
   CSSProperties,
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
+  MouseEvent as ReactMouseEventType,
 } from 'react'
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
-import type { Market, Outcome } from '@/types'
+import type { Market, Outcome, UserPosition } from '@/types'
 import type { DataPoint, PredictionChartCursorSnapshot, PredictionChartProps } from '@/types/PredictionChartTypes'
-import { ChevronLeftIcon, ChevronRightIcon, EqualIcon, RefreshCwIcon } from 'lucide-react'
-import { useLocale } from 'next-intl'
+import { useQuery } from '@tanstack/react-query'
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EqualIcon, RefreshCwIcon, XIcon } from 'lucide-react'
+import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
+import EventChartControls, { defaultChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
+import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
+import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'
+import EventConvertPositionsDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventConvertPositionsDialog'
 import EventOrderBook, { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
 import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
 import EventOrderPanelTermsDisclaimer
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
-import { useEventPriceHistory } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+import { TIME_RANGES, useEventPriceHistory } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+import { loadStoredChartSettings, storeChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
+import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
+import { calculateMarketFill, normalizeBookLevels } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { Link } from '@/i18n/navigation'
-import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
-import { formatVolume } from '@/lib/formatters'
+import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
+import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
+import { formatAmountInputValue, formatCentsLabel, formatCurrency, formatSharesLabel, formatVolume, fromMicro } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
+import { useUser } from '@/stores/useUser'
 
 interface SportsGamesCenterProps {
   cards: SportsGamesCard[]
@@ -75,6 +87,117 @@ interface SportsActiveTradeContext {
   button: SportsGamesButton
   market: Market
   outcome: Outcome
+}
+
+interface SportsPositionTag {
+  key: string
+  conditionId: string
+  outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
+  marketTypeLabel: 'Moneyline' | 'Spread' | 'Total'
+  marketLabel: string
+  outcomeLabel: string
+  summaryLabel: string
+  shares: number
+  avgPriceCents: number | null
+  totalCost: number | null
+  currentValue: number
+  market: Market
+  outcome: Outcome
+  button: SportsGamesButton | null
+  latestActivityAtMs: number
+}
+
+interface SportsCashOutModalPayload {
+  outcomeLabel: string
+  outcomeShortLabel: string
+  outcomeIconUrl: string | null | undefined
+  shares: number
+  filledShares: number | null
+  avgPriceCents: number | null
+  receiveAmount: number | null
+}
+
+function toFiniteNumber(value: unknown) {
+  if (value == null) {
+    return null
+  }
+
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+function resolvePositionShares(position: UserPosition) {
+  const quantity = toFiniteNumber(position.size)
+    ?? (typeof position.total_shares === 'number' ? position.total_shares : 0)
+  return Number.isFinite(quantity) ? quantity : 0
+}
+
+function resolvePositionCostValue(position: UserPosition, shares: number, avgPrice: number | null) {
+  const baseCostValue = toFiniteNumber(position.totalBought)
+    ?? toFiniteNumber(position.initialValue)
+    ?? (typeof position.total_position_cost === 'number'
+      ? Number(fromMicro(String(position.total_position_cost), 2))
+      : null)
+  const derivedCost = shares > 0 && typeof avgPrice === 'number' ? avgPrice * shares : null
+  if (derivedCost != null) {
+    if (!baseCostValue || baseCostValue <= 0) {
+      return derivedCost
+    }
+    if (derivedCost > 0 && baseCostValue > derivedCost * 10) {
+      return derivedCost
+    }
+  }
+  return baseCostValue
+}
+
+function resolvePositionCurrentValue(position: UserPosition, shares: number, avgPrice: number | null) {
+  let value = toFiniteNumber(position.currentValue)
+    ?? Number(fromMicro(String(position.total_position_value ?? 0), 2))
+
+  if (!(value > 0) && shares > 0) {
+    const currentPrice = toFiniteNumber(position.curPrice)
+    if (currentPrice && currentPrice > 0) {
+      value = currentPrice * shares
+    }
+    else if (typeof avgPrice === 'number' && avgPrice > 0) {
+      value = avgPrice * shares
+    }
+  }
+
+  return Number.isFinite(value) ? value : 0
+}
+
+function resolveMarketTypeLabel(button: SportsGamesButton | null, market: Market): 'Moneyline' | 'Spread' | 'Total' {
+  if (button?.marketType === 'moneyline') {
+    return 'Moneyline'
+  }
+  if (button?.marketType === 'spread') {
+    return 'Spread'
+  }
+  if (button?.marketType === 'total') {
+    return 'Total'
+  }
+
+  const normalizedType = normalizeComparableText(market.sports_market_type)
+  if (normalizedType.includes('spread') || normalizedType.includes('handicap')) {
+    return 'Spread'
+  }
+  if (normalizedType.includes('total') || normalizedType.includes('over under')) {
+    return 'Total'
+  }
+
+  return 'Moneyline'
+}
+
+function formatCompactCentsLabel(cents: number | null) {
+  if (cents == null || !Number.isFinite(cents)) {
+    return '—'
+  }
+
+  const rounded = Math.round(cents * 10) / 10
+  return Number.isInteger(rounded)
+    ? `${rounded}c`
+    : `${rounded.toFixed(1)}c`
 }
 
 function normalizeHexColor(value: string | null | undefined) {
@@ -477,7 +600,29 @@ function SportsGameGraph({
 }) {
   const { width: windowWidth } = useWindowSize()
   const [cursorSnapshot, setCursorSnapshot] = useState<PredictionChartCursorSnapshot | null>(null)
+  const [activeTimeRange, setActiveTimeRange] = useState<(typeof TIME_RANGES)[number]>('1W')
+  const [chartSettings, setChartSettings] = useState(() => ({ ...defaultChartSettings, bothOutcomes: false }))
+  const [hasLoadedChartSettings, setHasLoadedChartSettings] = useState(false)
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
   const isSecondaryMarketGraph = selectedMarketType === 'spread' || selectedMarketType === 'total'
+
+  useEffect(() => {
+    const stored = loadStoredChartSettings()
+    setChartSettings({ ...stored, bothOutcomes: false })
+    setHasLoadedChartSettings(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hasLoadedChartSettings) {
+      return
+    }
+    storeChartSettings({ ...chartSettings, bothOutcomes: false })
+  }, [chartSettings, hasLoadedChartSettings])
+
+  useEffect(() => {
+    setCursorSnapshot(null)
+  }, [activeTimeRange, selectedConditionId, selectedMarketType])
 
   const graphSeriesTargets = useMemo<SportsGraphSeriesTarget[]>(
     () => {
@@ -603,7 +748,7 @@ function SportsGameGraph({
 
   const { normalizedHistory } = useEventPriceHistory({
     eventId: card.id,
-    range: '1W',
+    range: activeTimeRange,
     targets: marketTargets,
     eventCreatedAt: card.eventCreatedAt,
     eventResolvedAt: card.eventResolvedAt,
@@ -780,22 +925,61 @@ function SportsGameGraph({
   }
 
   return (
-    <PredictionChart
-      data={chartData}
-      series={chartSeries}
-      width={chartWidth}
-      height={300}
-      margin={{ top: 12, right: 30, bottom: 40, left: 0 }}
-      dataSignature={`${card.id}:${chartSeries.map(series => series.key).join(',')}:1w`}
-      onCursorDataChange={setCursorSnapshot}
-      xAxisTickCount={3}
-      yAxis={undefined}
-      legendContent={legendContent}
-      showLegend={!isSecondaryMarketGraph}
-      showTooltipSeriesLabels
-      lineCurve="monotoneX"
-      tooltipValueFormatter={value => `${Math.round(value)}%`}
-    />
+    <>
+      <div>
+        <PredictionChart
+          data={chartData}
+          series={chartSeries}
+          width={chartWidth}
+          height={300}
+          margin={{ top: 12, right: 30, bottom: 40, left: 0 }}
+          dataSignature={`${card.id}:${chartSeries.map(series => series.key).join(',')}:${activeTimeRange}`}
+          onCursorDataChange={setCursorSnapshot}
+          xAxisTickCount={3}
+          yAxis={undefined}
+          legendContent={legendContent}
+          showLegend={!isSecondaryMarketGraph}
+          showTooltipSeriesLabels
+          lineCurve="monotoneX"
+          tooltipValueFormatter={value => `${Math.round(value)}%`}
+          autoscale={chartSettings.autoscale}
+          showXAxis={chartSettings.xAxis}
+          showYAxis={chartSettings.yAxis}
+          showHorizontalGrid={chartSettings.horizontalGrid}
+          showVerticalGrid={chartSettings.verticalGrid}
+          showAnnotations={chartSettings.annotations}
+        />
+
+        <div className="mt-2 flex items-center justify-end pb-2">
+          <EventChartControls
+            timeRanges={TIME_RANGES}
+            activeTimeRange={activeTimeRange}
+            onTimeRangeChange={setActiveTimeRange}
+            showOutcomeSwitch={false}
+            oppositeOutcomeLabel=""
+            onShuffle={() => {}}
+            settings={chartSettings}
+            onSettingsChange={setChartSettings}
+            onExportData={() => setExportDialogOpen(true)}
+            onEmbed={() => setEmbedDialogOpen(true)}
+          />
+        </div>
+      </div>
+
+      <EventChartExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        eventCreatedAt={card.eventCreatedAt}
+        markets={card.detailMarkets}
+        isMultiMarket={card.detailMarkets.length > 1}
+      />
+      <EventChartEmbedDialog
+        open={embedDialogOpen}
+        onOpenChange={setEmbedDialogOpen}
+        markets={card.detailMarkets}
+        initialMarketId={selectedConditionId}
+      />
+    </>
   )
 }
 
@@ -817,6 +1001,32 @@ function resolveTeamShortLabel(name: string | null | undefined, abbreviation: st
   }
 
   return compactName.slice(0, 3)
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function abbreviatePositionMarketLabel(label: string, teams: SportsGamesCard['teams']) {
+  const trimmedLabel = label.trim()
+  if (!trimmedLabel) {
+    return ''
+  }
+
+  let nextLabel = trimmedLabel
+  const replacements = teams
+    .map(team => ({
+      teamName: team.name.trim(),
+      shortLabel: resolveTeamShortLabel(team.name, team.abbreviation),
+    }))
+    .filter(({ teamName, shortLabel }) => teamName.length > 0 && Boolean(shortLabel))
+    .sort((a, b) => b.teamName.length - a.teamName.length)
+
+  for (const { teamName, shortLabel } of replacements) {
+    nextLabel = nextLabel.replace(new RegExp(escapeRegExp(teamName), 'gi'), shortLabel!)
+  }
+
+  return nextLabel.replace(/\s+/g, ' ').trim().toUpperCase()
 }
 
 function resolveTradeHeaderTitle({
@@ -1095,13 +1305,279 @@ function SportsGameDetailsPanel({
   onChangeTab,
   onSelectButton,
 }: SportsGameDetailsPanelProps) {
+  const t = useExtracted()
+  const isMobile = useIsMobile()
+  const user = useUser()
   const linePickerScrollerRef = useRef<HTMLDivElement | null>(null)
   const linePickerButtonsRef = useRef<Record<string, HTMLButtonElement | null>>({})
   const [linePickerStartSpacer, setLinePickerStartSpacer] = useState(0)
   const [linePickerEndSpacer, setLinePickerEndSpacer] = useState(0)
+  const [cashOutPayload, setCashOutPayload] = useState<SportsCashOutModalPayload | null>(null)
+  const [isPositionsExpanded, setIsPositionsExpanded] = useState(false)
+  const [convertTagKey, setConvertTagKey] = useState<string | null>(null)
   const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
   const setOrderOutcome = useOrder(state => state.setOutcome)
+  const setOrderMarket = useOrder(state => state.setMarket)
+  const setOrderType = useOrder(state => state.setType)
+  const setOrderSide = useOrder(state => state.setSide)
+  const setOrderAmount = useOrder(state => state.setAmount)
+  const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
+
+  const ownerAddress = useMemo(() => {
+    if (user?.proxy_wallet_address && user.proxy_wallet_status === 'deployed') {
+      return user.proxy_wallet_address
+    }
+    return null
+  }, [user?.proxy_wallet_address, user?.proxy_wallet_status])
+
+  const cardMarketByConditionId = useMemo(
+    () => new Map(card.detailMarkets.map(market => [market.condition_id, market] as const)),
+    [card.detailMarkets],
+  )
+
+  const cardButtonsByConditionAndOutcome = useMemo(() => {
+    const map = new Map<string, SportsGamesButton>()
+    card.buttons.forEach((button) => {
+      map.set(`${button.conditionId}:${button.outcomeIndex}`, button)
+    })
+    return map
+  }, [card.buttons])
+
+  const cardFirstButtonByCondition = useMemo(() => {
+    const map = new Map<string, SportsGamesButton>()
+    card.buttons.forEach((button) => {
+      if (!map.has(button.conditionId)) {
+        map.set(button.conditionId, button)
+      }
+    })
+    return map
+  }, [card.buttons])
+
+  const moneylineConditionIds = useMemo(
+    () => new Set(
+      card.buttons
+        .filter(button => button.marketType === 'moneyline')
+        .map(button => button.conditionId),
+    ),
+    [card.buttons],
+  )
+
+  const { data: userPositions } = useQuery<UserPosition[]>({
+    queryKey: ['sports-card-user-positions', ownerAddress, card.id],
+    enabled: Boolean(ownerAddress),
+    staleTime: 1000 * 30,
+    gcTime: 1000 * 60 * 10,
+    refetchInterval: ownerAddress ? (showBottomContent ? 15_000 : false) : false,
+    refetchIntervalInBackground: showBottomContent,
+    queryFn: ({ signal }) => fetchUserPositionsForMarket({
+      pageParam: 0,
+      userAddress: ownerAddress!,
+      status: 'active',
+      signal,
+    }),
+  })
+
+  const positionTags = useMemo<SportsPositionTag[]>(() => {
+    if (!ownerAddress || !userPositions?.length) {
+      return []
+    }
+
+    const aggregated = new Map<string, {
+      conditionId: string
+      outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
+      market: Market
+      outcome: Outcome
+      button: SportsGamesButton | null
+      marketTypeLabel: 'Moneyline' | 'Spread' | 'Total'
+      marketLabel: string
+      outcomeLabel: string
+      shares: number
+      totalCost: number | null
+      currentValue: number
+      latestActivityAtMs: number
+    }>()
+
+    userPositions.forEach((position) => {
+      const conditionId = position.market?.condition_id
+      if (!conditionId) {
+        return
+      }
+
+      const market = cardMarketByConditionId.get(conditionId)
+      if (!market) {
+        return
+      }
+
+      const shares = resolvePositionShares(position)
+      if (!(shares > 0)) {
+        return
+      }
+
+      const explicitOutcomeIndex = typeof position.outcome_index === 'number'
+        ? position.outcome_index
+        : undefined
+      const normalizedOutcomeText = position.outcome_text?.trim().toLowerCase()
+      const resolvedOutcomeIndex = explicitOutcomeIndex != null
+        ? explicitOutcomeIndex
+        : normalizedOutcomeText === 'no'
+          ? OUTCOME_INDEX.NO
+          : OUTCOME_INDEX.YES
+
+      if (resolvedOutcomeIndex !== OUTCOME_INDEX.YES && resolvedOutcomeIndex !== OUTCOME_INDEX.NO) {
+        return
+      }
+
+      const outcome = market.outcomes.find(item => item.outcome_index === resolvedOutcomeIndex)
+      if (!outcome) {
+        return
+      }
+
+      const button = cardButtonsByConditionAndOutcome.get(`${conditionId}:${resolvedOutcomeIndex}`)
+        ?? cardFirstButtonByCondition.get(conditionId)
+        ?? null
+      const fallbackMarketLabel = market.sports_group_item_title?.trim()
+        || market.short_title?.trim()
+        || market.title
+      const rawMarketLabel = button?.label?.trim()
+        || outcome.outcome_text?.trim()
+        || fallbackMarketLabel
+      const marketLabel = abbreviatePositionMarketLabel(rawMarketLabel, card.teams)
+        || abbreviatePositionMarketLabel(fallbackMarketLabel, card.teams)
+      const outcomeLabel = resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'NO' : 'YES'
+      const avgPrice = toFiniteNumber(position.avgPrice)
+        ?? Number(fromMicro(String(position.average_position ?? 0), 6))
+      const normalizedAvgPrice = Number.isFinite(avgPrice) ? avgPrice : null
+      const costValue = resolvePositionCostValue(position, shares, normalizedAvgPrice)
+      const currentValue = resolvePositionCurrentValue(position, shares, normalizedAvgPrice)
+      const activityMs = Date.parse(position.last_activity_at)
+      const normalizedActivityMs = Number.isFinite(activityMs) ? activityMs : 0
+      const key = `${conditionId}:${resolvedOutcomeIndex}`
+      const existing = aggregated.get(key)
+
+      if (!existing) {
+        aggregated.set(key, {
+          conditionId,
+          outcomeIndex: resolvedOutcomeIndex,
+          market,
+          outcome,
+          button,
+          marketTypeLabel: resolveMarketTypeLabel(button, market),
+          marketLabel,
+          outcomeLabel,
+          shares,
+          totalCost: typeof costValue === 'number' ? costValue : null,
+          currentValue,
+          latestActivityAtMs: normalizedActivityMs,
+        })
+        return
+      }
+
+      existing.shares += shares
+      existing.currentValue += currentValue
+      existing.latestActivityAtMs = Math.max(existing.latestActivityAtMs, normalizedActivityMs)
+      if (typeof costValue === 'number') {
+        existing.totalCost = (existing.totalCost ?? 0) + costValue
+      }
+    })
+
+    return Array.from(aggregated.values())
+      .map((item) => {
+        const avgPriceCents = item.shares > 0 && typeof item.totalCost === 'number'
+          ? (item.totalCost / item.shares) * 100
+          : null
+        const summaryLabel = item.marketTypeLabel === 'Moneyline'
+          ? `${item.marketLabel} ${item.outcomeLabel}`.trim()
+          : item.marketLabel.trim()
+
+        return {
+          key: `${item.conditionId}:${item.outcomeIndex}`,
+          conditionId: item.conditionId,
+          outcomeIndex: item.outcomeIndex,
+          marketTypeLabel: item.marketTypeLabel,
+          marketLabel: item.marketLabel,
+          outcomeLabel: item.outcomeLabel,
+          summaryLabel,
+          shares: item.shares,
+          avgPriceCents,
+          totalCost: item.totalCost,
+          currentValue: item.currentValue,
+          market: item.market,
+          outcome: item.outcome,
+          button: item.button,
+          latestActivityAtMs: item.latestActivityAtMs,
+        }
+      })
+      .sort((a, b) => b.latestActivityAtMs - a.latestActivityAtMs)
+  }, [
+    card.teams,
+    cardButtonsByConditionAndOutcome,
+    cardFirstButtonByCondition,
+    cardMarketByConditionId,
+    ownerAddress,
+    userPositions,
+  ])
+
+  const visiblePositionTags = useMemo(
+    () => positionTags.slice(0, 3),
+    [positionTags],
+  )
+
+  const hiddenPositionTagsCount = useMemo(
+    () => Math.max(0, positionTags.length - visiblePositionTags.length),
+    [positionTags.length, visiblePositionTags.length],
+  )
+
+  const isNegRiskEnabled = useMemo(() => {
+    return Boolean(
+      card.event.neg_risk
+      || card.event.neg_risk_augmented
+      || card.event.neg_risk_market_id
+      || card.detailMarkets.some(market => market.neg_risk || market.neg_risk_market_id),
+    )
+  }, [card.detailMarkets, card.event.neg_risk, card.event.neg_risk_augmented, card.event.neg_risk_market_id])
+
+  const convertDialogTag = useMemo(
+    () => (convertTagKey ? positionTags.find(tag => tag.key === convertTagKey) ?? null : null),
+    [convertTagKey, positionTags],
+  )
+
+  const convertDialogOptions = useMemo(() => {
+    if (!convertDialogTag) {
+      return []
+    }
+
+    return [{
+      id: convertDialogTag.key,
+      conditionId: convertDialogTag.conditionId,
+      label: convertDialogTag.market.short_title || convertDialogTag.market.title,
+      shares: convertDialogTag.shares,
+    }]
+  }, [convertDialogTag])
+
+  const convertDialogOutcomes = useMemo(() => {
+    const seenConditionIds = new Set<string>()
+    return card.detailMarkets
+      .filter((market) => {
+        if (!market.condition_id || seenConditionIds.has(market.condition_id)) {
+          return false
+        }
+        seenConditionIds.add(market.condition_id)
+        return true
+      })
+      .map(market => ({
+        conditionId: market.condition_id,
+        questionId: market.question_id,
+        label: market.short_title || market.title,
+        iconUrl: market.icon_url,
+      }))
+  }, [card.detailMarkets])
+
+  useEffect(() => {
+    if (convertTagKey && !positionTags.some(tag => tag.key === convertTagKey)) {
+      setConvertTagKey(null)
+    }
+  }, [convertTagKey, positionTags])
 
   const selectedButton = useMemo(
     () => resolveSelectedButton(card, selectedButtonKey),
@@ -1183,6 +1659,87 @@ function SportsGameDetailsPanel({
 
     setOrderOutcome(nextOutcome)
   }, [nextOutcome, setOrderOutcome])
+
+  const handleCashOutTag = useCallback(async (
+    tag: SportsPositionTag,
+    event?: ReactMouseEventType<HTMLElement>,
+  ) => {
+    event?.stopPropagation()
+
+    const tokenId = tag.outcome.token_id ? String(tag.outcome.token_id) : null
+    if (!tokenId) {
+      return
+    }
+
+    let summary = await fetchOrderBookSummaries([tokenId])
+      .then(result => result[tokenId])
+      .catch(() => null)
+
+    if (!summary) {
+      summary = null
+    }
+
+    const bids = normalizeBookLevels(summary?.bids, 'bid')
+    const asks = normalizeBookLevels(summary?.asks, 'ask')
+    const fill = calculateMarketFill(ORDER_SIDE.SELL, tag.shares, bids, asks)
+
+    setOrderType(ORDER_TYPE.MARKET)
+    setOrderSide(ORDER_SIDE.SELL)
+    setOrderMarket(tag.market)
+    setOrderOutcome(tag.outcome)
+    setOrderAmount(formatAmountInputValue(tag.shares, { roundingMode: 'floor' }))
+
+    if (isMobile) {
+      setIsMobileOrderPanelOpen(true)
+    }
+
+    setCashOutPayload({
+      outcomeLabel: tag.summaryLabel,
+      outcomeShortLabel: tag.market.short_title || tag.market.title,
+      outcomeIconUrl: tag.market.icon_url,
+      shares: tag.shares,
+      filledShares: fill.filledShares,
+      avgPriceCents: fill.avgPriceCents,
+      receiveAmount: fill.totalCost > 0 ? fill.totalCost : null,
+    })
+  }, [
+    isMobile,
+    setIsMobileOrderPanelOpen,
+    setOrderAmount,
+    setOrderMarket,
+    setOrderOutcome,
+    setOrderSide,
+    setOrderType,
+  ])
+
+  const handleOpenConvert = useCallback((
+    tag: SportsPositionTag,
+    event?: ReactMouseEventType<HTMLElement>,
+  ) => {
+    event?.stopPropagation()
+    if (
+      !isNegRiskEnabled
+      || !moneylineConditionIds.has(tag.conditionId)
+      || tag.outcomeIndex !== OUTCOME_INDEX.NO
+      || tag.outcome.outcome_index !== OUTCOME_INDEX.NO
+      || tag.shares <= 0
+    ) {
+      return
+    }
+    setConvertTagKey(tag.key)
+  }, [isNegRiskEnabled, moneylineConditionIds])
+
+  const handleCashOutModalChange = useCallback((open: boolean) => {
+    if (!open) {
+      setCashOutPayload(null)
+    }
+  }, [])
+
+  const handleCashOutSubmit = useCallback(() => {
+    setCashOutPayload(null)
+    const form = document.getElementById('event-order-form') as HTMLFormElement | null
+    form?.requestSubmit()
+  }, [])
 
   const pickLineOption = useCallback((optionIndex: number) => {
     if (!selectedButton) {
@@ -1315,8 +1872,14 @@ function SportsGameDetailsPanel({
     isRefetching: isOrderBookRefetching,
     refetch: refetchOrderBook,
   } = useOrderBookSummaries(selectedMarketTokenIds, {
-    enabled: activeDetailsTab === 'orderBook' && selectedMarketTokenIds.length > 0,
+    enabled: showBottomContent && activeDetailsTab === 'orderBook' && selectedMarketTokenIds.length > 0,
   })
+
+  const shouldShowPortfolio = visiblePositionTags.length > 0
+
+  if (!showBottomContent && !hasLinePicker && !shouldShowPortfolio) {
+    return null
+  }
 
   return (
     <>
@@ -1329,7 +1892,7 @@ function SportsGameDetailsPanel({
         )}
       >
         {hasLinePicker && (
-          <div className={cn('-mx-2.5 px-2.5', showBottomContent ? 'pb-3' : 'pb-2')}>
+          <div className={cn('-mx-2.5 bg-card px-2.5', showBottomContent ? 'pb-3' : 'pb-2')}>
             <div className="relative pt-2">
               <span
                 aria-hidden
@@ -1411,7 +1974,7 @@ function SportsGameDetailsPanel({
 
       {showBottomContent && (
         <>
-          <div className="-mx-2.5 mb-3 border-b">
+          <div className="-mx-2.5 mb-3 border-b bg-card">
             <div className="flex w-full items-center gap-2 px-2.5">
               <div className="flex w-0 flex-1 items-center gap-4 overflow-x-auto">
                 {([
@@ -1468,14 +2031,14 @@ function SportsGameDetailsPanel({
             ? (
                 (selectedMarket && selectedOutcome)
                   ? (
-                      <div className="-mx-2.5 -mb-2.5">
+                      <div className={cn('-mx-2.5', visiblePositionTags.length === 0 && '-mb-2.5')}>
                         <EventOrderBook
                           market={selectedMarket}
                           outcome={selectedOutcome}
                           summaries={orderBookSummaries}
                           isLoadingSummaries={isOrderBookLoading && !orderBookSummaries}
                           eventSlug={card.slug}
-                          surfaceVariant="embedded"
+                          surfaceVariant="sportsCard"
                           tradeLabel={`TRADE ${tradeSelectionLabel}`}
                           onToggleOutcome={nextOutcome ? handleToggleOutcome : undefined}
                           toggleOutcomeTooltip={switchTooltip ?? undefined}
@@ -1483,7 +2046,7 @@ function SportsGameDetailsPanel({
                       </div>
                     )
                   : (
-                      <div className="rounded-lg border bg-secondary/30 px-3 py-6 text-sm text-muted-foreground">
+                      <div className="rounded-lg border bg-card px-3 py-6 text-sm text-muted-foreground">
                         Order book is unavailable for this game.
                       </div>
                     )
@@ -1496,6 +2059,239 @@ function SportsGameDetailsPanel({
                 />
               )}
         </>
+      )}
+
+      {shouldShowPortfolio && (
+        <div className={cn(
+          '-mx-2.5 bg-card',
+        )}
+        >
+          <div className="border-t">
+            <div
+              role="button"
+              tabIndex={0}
+              data-sports-card-control="true"
+              onClick={(event) => {
+                event.stopPropagation()
+                setIsPositionsExpanded(current => !current)
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') {
+                  return
+                }
+                event.preventDefault()
+                event.stopPropagation()
+                setIsPositionsExpanded(current => !current)
+              }}
+              className={`
+                flex min-h-11 w-full items-center gap-2 bg-card px-2 py-2 text-xs text-muted-foreground
+                transition-colors
+                hover:bg-secondary
+                sm:px-3
+              `}
+            >
+              <div className="flex shrink-0 items-center gap-1 text-sm font-semibold text-foreground">
+                <span>{t('Positions')}</span>
+                <ChevronDownIcon
+                  className={cn(
+                    'size-3.5 transition-transform',
+                    isPositionsExpanded ? 'rotate-180' : 'rotate-0',
+                  )}
+                />
+              </div>
+
+              <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-1 overflow-hidden">
+                {visiblePositionTags.map((tag) => {
+                  const tagAccent = tag.button
+                    ? resolveTradeHeaderBadgeAccent(tag.button)
+                    : (tag.outcomeIndex === OUTCOME_INDEX.NO
+                        ? { className: 'bg-no/10 text-no', style: undefined }
+                        : { className: 'bg-yes/10 text-yes', style: undefined })
+
+                  return (
+                    <span
+                      key={tag.key}
+                      className={cn(
+                        `group/position inline-flex min-w-0 items-center rounded-sm px-2.5 py-1 text-xs font-semibold`,
+                        tagAccent.className,
+                      )}
+                      style={tagAccent.style}
+                    >
+                      <span className="truncate whitespace-nowrap">
+                        {`${tag.summaryLabel} | ${formatSharesLabel(tag.shares)} @ ${formatCompactCentsLabel(tag.avgPriceCents)}`}
+                      </span>
+                      <button
+                        type="button"
+                        data-sports-card-control="true"
+                        className={cn(
+                          'ml-1 inline-flex w-0 items-center justify-center overflow-hidden opacity-0',
+                          'transition-all duration-150 group-hover/position:w-3 group-hover/position:opacity-100',
+                          'pointer-events-none group-hover/position:pointer-events-auto',
+                        )}
+                        aria-label={`Cash out ${tag.summaryLabel}`}
+                        onClick={event => void handleCashOutTag(tag, event)}
+                      >
+                        <XIcon className="size-3" />
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+
+              {hiddenPositionTagsCount > 0 && (
+                <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                  {`+${hiddenPositionTagsCount} more`}
+                </span>
+              )}
+            </div>
+
+            {isPositionsExpanded && (
+              <div className="border-t bg-card px-2 py-2 sm:px-3" data-sports-card-control="true">
+                <div className="w-full overflow-x-auto" onClick={event => event.stopPropagation()}>
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
+                        <th className="py-2 text-left">Type</th>
+                        <th className="px-2 py-2 text-left">Outcome</th>
+                        <th className="px-2 py-2 text-right">Avg</th>
+                        <th className="px-2 py-2 text-right">Cost</th>
+                        <th className="px-2 py-2 text-right">To Win</th>
+                        <th className="px-2 py-2 text-right">Current</th>
+                        <th className="py-2 text-right" />
+                      </tr>
+                      <tr>
+                        <th colSpan={7} className="p-0">
+                          <div className="border-t" />
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {positionTags.map((tag) => {
+                        const tagAccent = tag.button
+                          ? resolveTradeHeaderBadgeAccent(tag.button)
+                          : (tag.outcomeIndex === OUTCOME_INDEX.NO
+                              ? { className: 'bg-no/10 text-no', style: undefined }
+                              : { className: 'bg-yes/10 text-yes', style: undefined })
+                        const costLabel = typeof tag.totalCost === 'number'
+                          ? formatCurrency(tag.totalCost, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                          : '—'
+                        const toWinLabel = formatCurrency(tag.shares, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        const currentLabel = formatCurrency(tag.currentValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        const pnlValue = typeof tag.totalCost === 'number'
+                          ? tag.currentValue - tag.totalCost
+                          : null
+                        const pnlLabel = pnlValue == null
+                          ? '—'
+                          : `${pnlValue >= 0 ? '+' : '-'}${formatCurrency(Math.abs(pnlValue), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        const pnlClass = pnlValue == null
+                          ? (tag.currentValue >= 0 ? 'text-yes' : 'text-no')
+                          : pnlValue >= 0
+                            ? 'text-yes'
+                            : 'text-no'
+                        const canConvert = isNegRiskEnabled
+                          && moneylineConditionIds.has(tag.conditionId)
+                          && tag.outcomeIndex === OUTCOME_INDEX.NO
+                          && tag.outcome.outcome_index === OUTCOME_INDEX.NO
+                          && tag.shares > 0
+
+                        return (
+                          <tr key={tag.key} className="text-xs text-foreground">
+                            <td className="py-2 font-medium">{tag.marketTypeLabel}</td>
+                            <td className="px-2 py-2">
+                              <span
+                                className={cn(
+                                  'inline-flex min-w-0 items-center rounded-sm px-2.5 py-1 text-xs font-semibold',
+                                  tagAccent.className,
+                                )}
+                                style={tagAccent.style}
+                              >
+                                {`${tag.summaryLabel} | ${formatSharesLabel(tag.shares)}`}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 text-right font-medium">
+                              {formatCentsLabel(tag.avgPriceCents, { fallback: '—' })}
+                            </td>
+                            <td className="px-2 py-2 text-right font-medium">{costLabel}</td>
+                            <td className="px-2 py-2 text-right font-medium">{toWinLabel}</td>
+                            <td className={cn('px-2 py-2 text-right font-medium', pnlClass)}>
+                              {currentLabel}
+                              {' '}
+                              (
+                              {pnlLabel}
+                              )
+                            </td>
+                            <td className="py-2 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {canConvert && (
+                                  <button
+                                    type="button"
+                                    data-sports-card-control="true"
+                                    className={`
+                                      inline-flex h-7 items-center justify-center rounded-sm bg-secondary/70 px-2
+                                      text-xs font-semibold text-foreground transition-colors
+                                      hover:bg-secondary
+                                    `}
+                                    onClick={event => handleOpenConvert(tag, event)}
+                                  >
+                                    Convert
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  data-sports-card-control="true"
+                                  className={`
+                                    inline-flex h-7 items-center justify-center rounded-sm border border-border/70
+                                    bg-background/40 px-2 text-xs font-semibold text-foreground transition-colors
+                                    hover:bg-secondary/40
+                                  `}
+                                  onClick={event => void handleCashOutTag(tag, event)}
+                                >
+                                  Sell
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {convertDialogTag && (
+        <EventConvertPositionsDialog
+          open={Boolean(convertDialogTag)}
+          options={convertDialogOptions}
+          outcomes={convertDialogOutcomes}
+          negRiskMarketId={card.event.neg_risk_market_id ?? undefined}
+          isNegRiskAugmented={Boolean(card.event.neg_risk_augmented)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setConvertTagKey(null)
+            }
+          }}
+        />
+      )}
+
+      {cashOutPayload && (
+        <SellPositionModal
+          open={Boolean(cashOutPayload)}
+          onOpenChange={handleCashOutModalChange}
+          outcomeLabel={cashOutPayload.outcomeLabel}
+          outcomeShortLabel={cashOutPayload.outcomeShortLabel}
+          outcomeIconUrl={cashOutPayload.outcomeIconUrl}
+          fallbackIconUrl={card.event.icon_url}
+          shares={cashOutPayload.shares}
+          filledShares={cashOutPayload.filledShares}
+          avgPriceCents={cashOutPayload.avgPriceCents}
+          receiveAmount={cashOutPayload.receiveAmount}
+          onCashOut={handleCashOutSubmit}
+          onEditOrder={() => setCashOutPayload(null)}
+        />
       )}
     </>
   )
@@ -1514,6 +2310,8 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
   const setOrderMarket = useOrder(state => state.setMarket)
   const setOrderOutcome = useOrder(state => state.setOutcome)
   const setOrderSide = useOrder(state => state.setSide)
+  const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
+  const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
 
   const weekOptions = useMemo(() => {
     const weeks = Array.from(new Set(
@@ -1698,6 +2496,37 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
       activeTradeContext.button.conditionId,
     )
   }, [activeTradeContext])
+
+  const activeTradeHeaderContext = useMemo<SportsActiveTradeContext | null>(() => {
+    if (!activeTradeContext) {
+      return null
+    }
+
+    if (!orderMarketConditionId || orderMarketConditionId !== activeTradeContext.market.condition_id) {
+      return activeTradeContext
+    }
+
+    if (orderOutcomeIndex == null) {
+      return activeTradeContext
+    }
+
+    const matchedOutcome = activeTradeContext.market.outcomes.find(
+      outcome => outcome.outcome_index === orderOutcomeIndex,
+    ) ?? activeTradeContext.outcome
+
+    const matchedButton = activeTradeContext.card.buttons.find(
+      button => (
+        button.conditionId === activeTradeContext.market.condition_id
+        && button.outcomeIndex === orderOutcomeIndex
+      ),
+    ) ?? activeTradeContext.button
+
+    return {
+      ...activeTradeContext,
+      button: matchedButton,
+      outcome: matchedOutcome,
+    }
+  }, [activeTradeContext, orderMarketConditionId, orderOutcomeIndex])
 
   useEffect(() => {
     if (!activeTradeContext) {
@@ -1896,16 +2725,15 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                         }}
                         className={cn(
                           `
-                            group cursor-pointer overflow-hidden rounded-xl border bg-secondary/40 p-2.5 shadow-md
+                            cursor-pointer overflow-hidden rounded-xl border bg-card px-2.5 pt-2.5 shadow-md
                             shadow-black/4 transition-all
-                            hover:shadow-black/8
                           `,
                         )}
                       >
                         <div
                           className={cn(
-                            `-mx-2.5 -mt-2.5 px-2.5 pt-2.5 pb-2 transition-colors group-hover:bg-card`,
-                            shouldRenderDetailsPanel ? 'rounded-t-xl' : '-mb-2.5 rounded-xl',
+                            `-mx-2.5 -mt-2.5 bg-card px-2.5 pt-2.5 pb-2 transition-colors hover:bg-secondary/30`,
+                            shouldRenderDetailsPanel ? 'rounded-t-xl' : 'rounded-xl',
                           )}
                         >
                           <div className="mb-2 flex items-center justify-between gap-3">
@@ -2107,7 +2935,7 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                                             <span className={cn('opacity-80', isMoneylineColumn ? 'mr-1' : 'mr-2')}>
                                               {button.label}
                                             </span>
-                                            <span className="text-[11px] tabular-nums">
+                                            <span className="text-sm leading-none tabular-nums">
                                               {`${button.cents}¢`}
                                             </span>
                                           </button>
@@ -2121,24 +2949,24 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                           </div>
                         </div>
 
-                        {shouldRenderDetailsPanel && (
-                          <div
-                            className={cn(
-                              '-mx-2.5 border-t px-2.5',
-                              'pt-3',
-                            )}
-                            onClick={event => event.stopPropagation()}
-                          >
-                            <SportsGameDetailsPanel
-                              card={card}
-                              activeDetailsTab={activeDetailsTab}
-                              selectedButtonKey={selectedButtonKey}
-                              showBottomContent={isDetailsContentVisible}
-                              onChangeTab={setActiveDetailsTab}
-                              onSelectButton={(buttonKey, options) => selectCardButton(card, buttonKey, options)}
-                            />
-                          </div>
-                        )}
+                        <div
+                          className={cn(
+                            '-mx-2.5 bg-card px-2.5 empty:hidden',
+                            shouldRenderDetailsPanel
+                              ? 'border-t pt-3'
+                              : (isSpreadOrTotalSelected ? 'pt-3' : 'pt-0'),
+                          )}
+                          onClick={event => event.stopPropagation()}
+                        >
+                          <SportsGameDetailsPanel
+                            card={card}
+                            activeDetailsTab={activeDetailsTab}
+                            selectedButtonKey={selectedButtonKey}
+                            showBottomContent={shouldRenderDetailsPanel ? isDetailsContentVisible : false}
+                            onChangeTab={setActiveDetailsTab}
+                            onSelectButton={(buttonKey, options) => selectCardButton(card, buttonKey, options)}
+                          />
+                        </div>
                       </article>
                     )
                   })}
@@ -2163,10 +2991,10 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
                     event={activeTradeContext.card.event}
                     desktopMarketInfo={(
                       <SportsOrderPanelMarketInfo
-                        card={activeTradeContext.card}
-                        selectedButton={activeTradeContext.button}
-                        selectedOutcome={activeTradeContext.outcome}
-                        marketType={activeTradeContext.button.marketType}
+                        card={activeTradeHeaderContext?.card ?? activeTradeContext.card}
+                        selectedButton={activeTradeHeaderContext?.button ?? activeTradeContext.button}
+                        selectedOutcome={activeTradeHeaderContext?.outcome ?? activeTradeContext.outcome}
+                        marketType={activeTradeHeaderContext?.button.marketType ?? activeTradeContext.button.marketType}
                       />
                     )}
                     primaryOutcomeIndex={activeTradePrimaryOutcomeIndex}
@@ -2187,10 +3015,10 @@ export default function SportsGamesCenter({ cards }: SportsGamesCenterProps) {
           event={activeTradeContext.card.event}
           mobileMarketInfo={(
             <SportsOrderPanelMarketInfo
-              card={activeTradeContext.card}
-              selectedButton={activeTradeContext.button}
-              selectedOutcome={activeTradeContext.outcome}
-              marketType={activeTradeContext.button.marketType}
+              card={activeTradeHeaderContext?.card ?? activeTradeContext.card}
+              selectedButton={activeTradeHeaderContext?.button ?? activeTradeContext.button}
+              selectedOutcome={activeTradeHeaderContext?.outcome ?? activeTradeContext.outcome}
+              marketType={activeTradeHeaderContext?.button.marketType ?? activeTradeContext.button.marketType}
             />
           )}
           primaryOutcomeIndex={activeTradePrimaryOutcomeIndex}

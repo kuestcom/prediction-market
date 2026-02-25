@@ -15,7 +15,7 @@ export interface EventOrderBookProps {
   summaries?: OrderBookSummariesResponse
   isLoadingSummaries: boolean
   eventSlug: string
-  surfaceVariant?: 'default' | 'embedded'
+  surfaceVariant?: 'default' | 'sportsCard'
   tradeLabel?: string
   onToggleOutcome?: () => void
   toggleOutcomeTooltip?: string
