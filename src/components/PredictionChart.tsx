@@ -194,6 +194,7 @@ export function PredictionChart({
   tooltipValueFormatter,
   tooltipDateFormatter,
   showTooltipSeriesLabels = true,
+  clampCursorToDataExtent = false,
   tooltipHeader,
   watermark,
 }: PredictionChartProps): ReactElement {
@@ -361,6 +362,30 @@ export function PredictionChart({
 
     return { start, end }
   }, [data, leadingGapStart, xDomain?.end, xDomain?.start])
+  const dataBounds = useMemo(() => {
+    if (!data.length) {
+      return null
+    }
+
+    let start = data[0].date.getTime()
+    let end = start
+
+    for (let index = 1; index < data.length; index += 1) {
+      const timestamp = data[index]?.date.getTime()
+      if (!Number.isFinite(timestamp)) {
+        continue
+      }
+
+      if (timestamp < start) {
+        start = timestamp
+      }
+      if (timestamp > end) {
+        end = timestamp
+      }
+    }
+
+    return { start, end }
+  }, [data])
 
   const getClampedCursorPoint = useCallback(
     (targetDate: Date) => {
@@ -478,6 +503,9 @@ export function PredictionChart({
           targetTime = snappedTime
         }
       }
+      if (clampCursorToDataExtent && dataBounds) {
+        targetTime = Math.max(dataBounds.start, Math.min(dataBounds.end, targetTime))
+      }
       const targetDate = new Date(targetTime)
       if (!disableCursorSplit) {
         const domainSpan = Math.max(1, domainEnd - domainStart)
@@ -525,6 +553,8 @@ export function PredictionChart({
       resolvedMargin.top,
       resolvedMargin.bottom,
       cursorStepMs,
+      clampCursorToDataExtent,
+      dataBounds,
       domainBounds,
       revealAnimationFrameRef,
       getClampedCursorPoint,

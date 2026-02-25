@@ -17,7 +17,7 @@ export interface SportsGamesButton {
   label: string
   cents: number
   color: string | null
-  marketType: 'moneyline' | 'spread' | 'total'
+  marketType: 'moneyline' | 'spread' | 'total' | 'btts'
   tone: 'team1' | 'team2' | 'draw' | 'over' | 'under' | 'neutral'
 }
 
@@ -199,6 +199,13 @@ function toSportsTeams(event: Event) {
 function toSportsMarketType(market: Market) {
   const normalizedType = normalizeText(market.sports_market_type)
   if (
+    normalizedType.includes('both teams to score')
+    || normalizedType.includes('btts')
+  ) {
+    return 'btts' as const
+  }
+
+  if (
     normalizedType.includes('moneyline')
     || normalizedType.includes('match winner')
     || normalizedType === '1x2'
@@ -221,6 +228,9 @@ function toSportsMarketType(market: Market) {
   }
 
   const marketText = ` ${normalizeText(marketDisplayText(market))} `
+  if (marketText.includes(' both teams to score ') || marketText.includes(' btts ')) {
+    return 'btts' as const
+  }
   if (isDrawMarket(market)) {
     return 'moneyline' as const
   }
@@ -239,6 +249,7 @@ function groupMarketsByType(markets: Market[]) {
     moneyline: [] as Market[],
     spread: [] as Market[],
     total: [] as Market[],
+    btts: [] as Market[],
     untyped: [] as Market[],
   }
 
@@ -254,6 +265,10 @@ function groupMarketsByType(markets: Market[]) {
     }
     if (marketType === 'total') {
       grouped.total.push(market)
+      continue
+    }
+    if (marketType === 'btts') {
+      grouped.btts.push(market)
       continue
     }
 
@@ -579,6 +594,40 @@ function buildTotalButtons(
   return buttons
 }
 
+function buildBttsButtons(
+  marketsByType: ReturnType<typeof groupMarketsByType>,
+  usedButtonKeys: Set<string>,
+) {
+  if (marketsByType.btts.length === 0) {
+    return []
+  }
+
+  const buttons: SportsGamesButton[] = []
+  for (const bttsMarket of marketsByType.btts) {
+    const yesOutcome = bttsMarket.outcomes.find(outcome => outcome.outcome_index === 0)
+      ?? bttsMarket.outcomes[0]
+      ?? null
+    const noOutcome = bttsMarket.outcomes.find(outcome => outcome.outcome_index === 1)
+      ?? bttsMarket.outcomes.find(outcome => outcome.outcome_index !== yesOutcome?.outcome_index)
+      ?? null
+
+    appendButton(buttons, usedButtonKeys, bttsMarket, yesOutcome?.outcome_index ?? 0, {
+      label: 'YES',
+      color: null,
+      marketType: 'btts',
+      tone: 'over',
+    })
+    appendButton(buttons, usedButtonKeys, bttsMarket, noOutcome?.outcome_index ?? 1, {
+      label: 'NO',
+      color: null,
+      marketType: 'btts',
+      tone: 'under',
+    })
+  }
+
+  return buttons
+}
+
 function buildButtons(markets: Market[], teams: SportsGamesTeam[]) {
   if (markets.length === 0) {
     return []
@@ -602,8 +651,9 @@ function buildButtons(markets: Market[], teams: SportsGamesTeam[]) {
     usedButtonKeys,
   )
   const totalButtons = buildTotalButtons(marketsByType, usedButtonKeys)
+  const bttsButtons = buildBttsButtons(marketsByType, usedButtonKeys)
 
-  return [...moneylineButtons, ...spreadButtons, ...totalButtons]
+  return [...moneylineButtons, ...spreadButtons, ...totalButtons, ...bttsButtons]
 }
 
 function toDetailMarkets(markets: Market[], buttons: SportsGamesButton[]) {

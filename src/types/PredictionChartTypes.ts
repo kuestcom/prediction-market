@@ -84,6 +84,7 @@ export interface PredictionChartProps {
   tooltipValueFormatter?: (value: number) => string
   tooltipDateFormatter?: (value: Date) => string
   showTooltipSeriesLabels?: boolean
+  clampCursorToDataExtent?: boolean
   tooltipHeader?: {
     iconPath?: string | null
     color?: string

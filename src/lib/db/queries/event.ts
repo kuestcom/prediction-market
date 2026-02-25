@@ -2,7 +2,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import type { conditions, market_sports } from '@/lib/db/schema/events/tables'
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, QueryResult } from '@/types'
-import { and, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
 import { cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
@@ -1393,6 +1393,115 @@ export const EventRepository = {
       )
 
       return { data: transformedEvent, error: null }
+    })
+  },
+
+  async getSportsEventGroupBySlug(
+    slug: string,
+    userId: string = '',
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<QueryResult<Event[]>> {
+    return runQuery(async () => {
+      const sportsSlugResolver = await getSportsSlugResolverFromDb()
+      const sportsVolumeGroupKeySql = buildSportsVolumeGroupKeySql()
+
+      const baseGroupRows = await db
+        .select({
+          group_key: sportsVolumeGroupKeySql,
+        })
+        .from(events)
+        .innerJoin(event_sports, eq(event_sports.event_id, events.id))
+        .where(and(
+          eq(events.slug, slug),
+          sql`${sportsVolumeGroupKeySql} IS NOT NULL`,
+        ))
+        .limit(1)
+
+      const baseGroupKey = baseGroupRows[0]?.group_key?.trim()
+      if (!baseGroupKey) {
+        return { data: [], error: null }
+      }
+
+      const groupedEventsData = await db.query.events.findMany({
+        where: exists(
+          db.select({ event_id: event_sports.event_id })
+            .from(event_sports)
+            .where(and(
+              eq(event_sports.event_id, events.id),
+              sql`${sportsVolumeGroupKeySql} = ${baseGroupKey}`,
+            )),
+        ),
+        with: {
+          markets: {
+            with: {
+              sports: true,
+              condition: {
+                with: { outcomes: true },
+              },
+            },
+          },
+          eventTags: {
+            with: { tag: true },
+          },
+          sports: true,
+          ...(userId && {
+            bookmarks: {
+              where: eq(bookmarks.user_id, userId),
+            },
+          }),
+        },
+        orderBy: [asc(events.created_at)],
+      }) as DrizzleEventResult[]
+
+      if (groupedEventsData.length === 0) {
+        return { data: [], error: null }
+      }
+
+      const tokensForPricing = groupedEventsData.flatMap(event =>
+        (event.markets ?? []).flatMap(market =>
+          (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
+        ),
+      )
+      const tagIds = Array.from(new Set(
+        groupedEventsData.flatMap(event =>
+          (event.eventTags ?? [])
+            .map(eventTag => eventTag.tag?.id)
+            .filter((tagId): tagId is number => typeof tagId === 'number'),
+        ),
+      ))
+      const eventIds = groupedEventsData.map(event => event.id)
+      const [priceMap, localizedTagNamesById, localizedEventTitlesById, groupedVolumesByGroupKey] = await Promise.all([
+        fetchOutcomePrices(tokensForPricing),
+        getLocalizedTagNamesById(tagIds, locale),
+        getLocalizedEventTitlesById(eventIds, locale),
+        getSportsAggregatedVolumesByGroupKey([baseGroupKey]),
+      ])
+      const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
+
+      const groupedVolume = groupedVolumesByGroupKey.get(baseGroupKey)
+      const eventsWithMarkets = groupedEventsData
+        .filter(event => event.markets?.length > 0)
+        .map(event => eventResource(
+          event as DrizzleEventResult,
+          userId,
+          sportsSlugResolver,
+          priceMap,
+          localizedTagNamesById,
+          localizedEventTitlesById,
+          liveChartSeriesSlugs,
+        ))
+        .map((event) => {
+          if (groupedVolume == null) {
+            return event
+          }
+
+          return {
+            ...event,
+            volume: groupedVolume,
+          }
+        })
+
+      return { data: eventsWithMarkets, error: null }
     })
   },
 
