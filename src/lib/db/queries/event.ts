@@ -361,6 +361,90 @@ function toOptionalNumber(value: unknown): number | null {
   return Number.isFinite(numericValue) ? numericValue : null
 }
 
+function normalizeSportsEventSlug(value: string | null | undefined) {
+  const normalized = value?.trim().toLowerCase()
+  return normalized || null
+}
+
+function toOptionalIdentifierString(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  if (typeof value === 'bigint') {
+    return value.toString()
+  }
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      return null
+    }
+    return Math.trunc(value).toString()
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim()
+    return normalized || null
+  }
+
+  return null
+}
+
+function resolveSportsVolumeGroupKey(
+  sports: Pick<
+    typeof event_sports.$inferSelect,
+    'sports_parent_event_id' | 'sports_event_id' | 'sports_event_slug'
+  > | null | undefined,
+) {
+  const parentEventId = toOptionalIdentifierString(sports?.sports_parent_event_id)
+  if (parentEventId) {
+    return parentEventId
+  }
+
+  const sportsEventId = toOptionalIdentifierString(sports?.sports_event_id)
+  if (sportsEventId) {
+    return sportsEventId
+  }
+
+  return normalizeSportsEventSlug(sports?.sports_event_slug)
+}
+
+async function getSportsAggregatedVolumesByGroupKey(
+  groupKeys: string[],
+): Promise<Map<string, number>> {
+  if (groupKeys.length === 0) {
+    return new Map()
+  }
+
+  const sportsVolumeGroupKeySql = sql<string>`
+    COALESCE(
+      NULLIF(TRIM(COALESCE(${event_sports.sports_parent_event_id}::text, '')), ''),
+      NULLIF(TRIM(COALESCE(${event_sports.sports_event_id}, '')), ''),
+      NULLIF(LOWER(TRIM(COALESCE(${event_sports.sports_event_slug}, ''))), '')
+    )
+  `
+
+  const rows = await db
+    .select({
+      group_key: sportsVolumeGroupKeySql,
+      total_volume: sql<string>`COALESCE(SUM(${markets.volume}), 0)`,
+    })
+    .from(event_sports)
+    .innerJoin(markets, eq(markets.event_id, event_sports.event_id))
+    .where(and(
+      sql`${sportsVolumeGroupKeySql} IS NOT NULL`,
+      inArray(sportsVolumeGroupKeySql, groupKeys),
+    ))
+    .groupBy(sportsVolumeGroupKeySql)
+
+  return new Map(
+    rows.map(row => [
+      row.group_key,
+      toOptionalNumber(row.total_volume) ?? 0,
+    ]),
+  )
+}
+
 function toOptionalStringArray(value: unknown): string[] | null {
   if (!Array.isArray(value)) {
     return null
@@ -937,6 +1021,15 @@ export const EventRepository = {
           (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
         ),
       )
+      const sportsVolumeGroupKeyByEventId = new Map<string, string>(
+        eventsData.flatMap((event) => {
+          const groupKey = resolveSportsVolumeGroupKey(event.sports)
+          return groupKey ? [[event.id, groupKey] as const] : []
+        }),
+      )
+      const sportsVolumeGroupKeysForAggregation = Array.from(new Set(
+        sportsVolumeGroupKeyByEventId.values(),
+      ))
 
       const tagIds = Array.from(new Set(
         eventsData.flatMap(event =>
@@ -946,10 +1039,11 @@ export const EventRepository = {
         ),
       ))
       const eventIds = eventsData.map(event => event.id)
-      const [priceMap, localizedTagNamesById, localizedEventTitlesById] = await Promise.all([
+      const [priceMap, localizedTagNamesById, localizedEventTitlesById, groupedSportsVolumesByGroupKey] = await Promise.all([
         fetchOutcomePrices(tokensForPricing),
         getLocalizedTagNamesById(tagIds, locale),
         getLocalizedEventTitlesById(eventIds, locale),
+        getSportsAggregatedVolumesByGroupKey(sportsVolumeGroupKeysForAggregation),
       ])
       const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
 
@@ -964,6 +1058,22 @@ export const EventRepository = {
           localizedEventTitlesById,
           liveChartSeriesSlugs,
         ))
+        .map((event) => {
+          const groupKey = sportsVolumeGroupKeyByEventId.get(event.id)
+          if (!groupKey) {
+            return event
+          }
+
+          const groupedVolume = groupedSportsVolumesByGroupKey.get(groupKey)
+          if (groupedVolume == null) {
+            return event
+          }
+
+          return {
+            ...event,
+            volume: groupedVolume,
+          }
+        })
 
       return { data: eventsWithMarkets, error: null }
     })
