@@ -361,52 +361,37 @@ function toOptionalNumber(value: unknown): number | null {
   return Number.isFinite(numericValue) ? numericValue : null
 }
 
-function normalizeSportsEventSlug(value: string | null | undefined) {
-  const normalized = value?.trim().toLowerCase()
-  return normalized || null
+function buildSportsVolumeGroupKeySql() {
+  return sql<string>`
+    COALESCE(
+      NULLIF(TRIM(COALESCE(${event_sports.sports_parent_event_id}::text, '')), ''),
+      NULLIF(TRIM(COALESCE(${event_sports.sports_event_id}, '')), ''),
+      NULLIF(LOWER(TRIM(COALESCE(${event_sports.sports_event_slug}, ''))), '')
+    )
+  `
 }
 
-function toOptionalIdentifierString(value: unknown): string | null {
-  if (value === null || value === undefined) {
-    return null
+async function getSportsVolumeGroupKeysByEventId(eventIds: string[]) {
+  if (eventIds.length === 0) {
+    return new Map<string, string>()
   }
 
-  if (typeof value === 'bigint') {
-    return value.toString()
-  }
+  const sportsVolumeGroupKeySql = buildSportsVolumeGroupKeySql()
 
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) {
-      return null
-    }
-    return Math.trunc(value).toString()
-  }
+  const rows = await db
+    .select({
+      event_id: event_sports.event_id,
+      group_key: sportsVolumeGroupKeySql,
+    })
+    .from(event_sports)
+    .where(and(
+      inArray(event_sports.event_id, eventIds),
+      sql`${sportsVolumeGroupKeySql} IS NOT NULL`,
+    ))
 
-  if (typeof value === 'string') {
-    const normalized = value.trim()
-    return normalized || null
-  }
-
-  return null
-}
-
-function resolveSportsVolumeGroupKey(
-  sports: Pick<
-    typeof event_sports.$inferSelect,
-    'sports_parent_event_id' | 'sports_event_id' | 'sports_event_slug'
-  > | null | undefined,
-) {
-  const parentEventId = toOptionalIdentifierString(sports?.sports_parent_event_id)
-  if (parentEventId) {
-    return parentEventId
-  }
-
-  const sportsEventId = toOptionalIdentifierString(sports?.sports_event_id)
-  if (sportsEventId) {
-    return sportsEventId
-  }
-
-  return normalizeSportsEventSlug(sports?.sports_event_slug)
+  return new Map(
+    rows.map(row => [row.event_id, row.group_key]),
+  )
 }
 
 async function getSportsAggregatedVolumesByGroupKey(
@@ -416,13 +401,7 @@ async function getSportsAggregatedVolumesByGroupKey(
     return new Map()
   }
 
-  const sportsVolumeGroupKeySql = sql<string>`
-    COALESCE(
-      NULLIF(TRIM(COALESCE(${event_sports.sports_parent_event_id}::text, '')), ''),
-      NULLIF(TRIM(COALESCE(${event_sports.sports_event_id}, '')), ''),
-      NULLIF(LOWER(TRIM(COALESCE(${event_sports.sports_event_slug}, ''))), '')
-    )
-  `
+  const sportsVolumeGroupKeySql = buildSportsVolumeGroupKeySql()
 
   const rows = await db
     .select({
@@ -1021,16 +1000,6 @@ export const EventRepository = {
           (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
         ),
       )
-      const sportsVolumeGroupKeyByEventId = new Map<string, string>(
-        eventsData.flatMap((event) => {
-          const groupKey = resolveSportsVolumeGroupKey(event.sports)
-          return groupKey ? [[event.id, groupKey] as const] : []
-        }),
-      )
-      const sportsVolumeGroupKeysForAggregation = Array.from(new Set(
-        sportsVolumeGroupKeyByEventId.values(),
-      ))
-
       const tagIds = Array.from(new Set(
         eventsData.flatMap(event =>
           (event.eventTags ?? [])
@@ -1039,6 +1008,10 @@ export const EventRepository = {
         ),
       ))
       const eventIds = eventsData.map(event => event.id)
+      const sportsVolumeGroupKeyByEventId = await getSportsVolumeGroupKeysByEventId(eventIds)
+      const sportsVolumeGroupKeysForAggregation = Array.from(new Set(
+        sportsVolumeGroupKeyByEventId.values(),
+      ))
       const [priceMap, localizedTagNamesById, localizedEventTitlesById, groupedSportsVolumesByGroupKey] = await Promise.all([
         fetchOutcomePrices(tokensForPricing),
         getLocalizedTagNamesById(tagIds, locale),
