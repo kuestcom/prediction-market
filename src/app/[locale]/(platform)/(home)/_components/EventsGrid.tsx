@@ -24,6 +24,7 @@ interface EventsGridProps {
 }
 
 const EMPTY_EVENTS: Event[] = []
+const MORE_MARKETS_SUFFIX_REGEX = /-more-markets(?:-\d+)?$/i
 
 function normalizeSeriesSlug(value: string | null | undefined) {
   const normalized = value?.trim().toLowerCase()
@@ -67,6 +68,10 @@ function isResolvedLike(event: Event) {
   }
 
   return event.markets.every(market => market.is_resolved)
+}
+
+function isMoreMarketsEvent(event: Event) {
+  return MORE_MARKETS_SUFFIX_REGEX.test(event.slug)
 }
 
 function isPreferredSeriesEvent(candidate: Event, current: Event, nowMs: number) {
@@ -213,6 +218,10 @@ export default function EventsGrid({
     }
 
     const eventsMatchingTagFilters = allEvents.filter((event) => {
+      if (isMoreMarketsEvent(event)) {
+        return false
+      }
+
       const tagSlugs = new Set<string>()
 
       if (event.main_tag) {
@@ -413,6 +422,7 @@ export default function EventsGrid({
                     key={event.id}
                     event={event}
                     priceOverridesByMarket={priceOverridesByMarket}
+                    enableHomeSportsMoneylineLayout
                   />
                 ))}
                 {isFetchingNextPage && isLastVirtualRow && <EventCardSkeleton />}

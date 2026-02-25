@@ -509,6 +509,7 @@ export default function SportsEventsGrid({
                     key={event.id}
                     event={event}
                     priceOverridesByMarket={priceOverridesByMarket}
+                    enableHomeSportsMoneylineLayout={false}
                   />
                 ))}
                 {isFetchingNextPage && isLastVirtualRow && <EventCardSkeleton />}

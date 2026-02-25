@@ -3,6 +3,7 @@ import type { Event, Market, Outcome } from '@/types'
 export interface EventCardProps {
   event: Event
   priceOverridesByMarket?: Record<string, number>
+  enableHomeSportsMoneylineLayout?: boolean
 }
 
 export interface SelectedOutcome {
