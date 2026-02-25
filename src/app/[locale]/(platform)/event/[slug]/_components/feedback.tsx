@@ -15,6 +15,8 @@ interface HandleValidationErrorArgs {
 interface OrderSuccessFeedbackArgs {
   side: OrderSide
   amountInput: string
+  buyAmountValue?: number
+  buySharesLabel?: string
   sellSharesLabel?: string
   isLimitOrder?: boolean
   outcomeText: string
@@ -91,6 +93,8 @@ export function handleValidationError(reason: OrderValidationError, { openWallet
 export function handleOrderSuccessFeedback({
   side,
   amountInput,
+  buyAmountValue,
+  buySharesLabel,
   sellSharesLabel,
   isLimitOrder,
   outcomeText,
@@ -127,16 +131,25 @@ export function handleOrderSuccessFeedback({
     )
   }
   else {
-    const amountValue = Number.parseFloat(amountInput || '0') || 0
+    const amountValue = typeof buyAmountValue === 'number'
+      ? buyAmountValue
+      : (Number.parseFloat(amountInput || '0') || 0)
+    const normalizedBuySharesLabel = buySharesLabel?.trim()
     const buyAmountLabel = formatCurrency(amountValue)
     const priceLabel = formatCentsLabel(buyPrice, { fallback: '—' })
 
     toast.success(
-      `Buy ${buyAmountLabel} on ${outcomeText}`,
+      normalizedBuySharesLabel
+        ? `Buy ${normalizedBuySharesLabel} shares on ${outcomeText}`
+        : `Buy ${buyAmountLabel} on ${outcomeText}`,
       {
         description: (
           <EventTradeToast title={eventTitle} marketImage={marketImage} marketTitle={marketTitle}>
-            at
+            Total
+            {' '}
+            {buyAmountLabel}
+            {' '}
+            @
             {' '}
             {priceLabel}
           </EventTradeToast>

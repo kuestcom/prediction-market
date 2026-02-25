@@ -51,6 +51,7 @@ import {
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
+import { useNotifications } from '@/stores/useNotifications'
 import { useAmountAsNumber, useIsLimitOrder, useIsSingleMarket, useNoPrice, useOrder, useYesPrice } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
 
@@ -113,6 +114,7 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
   const locale = useLocale()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const user = useUser()
+  const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
   const state = useOrder()
   const setUserShares = useOrder(store => store.setUserShares)
   const queryClient = useQueryClient()
@@ -820,6 +822,45 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
         : undefined,
       feeRateBps: affiliateMetadata.tradeFeeBps,
     })
+    const submittedSide = state.side
+    const submittedIsLimitOrder = state.type === ORDER_TYPE.LIMIT
+    const submittedAmountInput = state.amount
+    const submittedSellSharesLabel = submittedSide === ORDER_SIDE.SELL
+      ? (submittedIsLimitOrder ? state.limitShares : state.amount)
+      : undefined
+    const submittedBuyPriceCents = submittedSide === ORDER_SIDE.BUY
+      ? (submittedIsLimitOrder
+          ? (Number.parseFloat(state.limitPrice || '0') || 0)
+          : (marketBuyFill?.avgPriceCents ?? currentBuyPriceCents ?? marketLimitPriceCents))
+      : undefined
+    const submittedBuySharesValue = submittedSide === ORDER_SIDE.BUY
+      ? (submittedIsLimitOrder
+          ? (Number.parseFloat(state.limitShares || '0') || 0)
+          : (marketBuyFill?.filledShares ?? (
+              submittedBuyPriceCents && submittedBuyPriceCents > 0
+                ? amountNumber / (submittedBuyPriceCents / 100)
+                : 0
+            )))
+      : 0
+    const submittedBuySharesLabel = submittedSide === ORDER_SIDE.BUY && submittedBuySharesValue > 0
+      ? formatSharesLabel(submittedBuySharesValue, {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2,
+        })
+      : undefined
+    const submittedBuyAmountValue = submittedSide === ORDER_SIDE.BUY
+      ? (submittedIsLimitOrder
+          ? ((Number.parseFloat(state.limitPrice || '0') || 0) * (Number.parseFloat(state.limitShares || '0') || 0)) / 100
+          : (marketBuyFill?.totalCost ?? amountNumber))
+      : 0
+    const submittedSellAmountValue = submittedSide === ORDER_SIDE.SELL ? sellAmountValue : 0
+    const submittedAvgSellPriceLabel = avgSellPriceLabel
+    const submittedOutcomeText = normalizeOutcomeLabel(state.outcome.outcome_text) ?? state.outcome.outcome_text
+    const submittedEventTitle = event.title
+    const submittedMarketImage = state.market?.icon_url
+    const submittedMarketTitle = state.market?.short_title || state.market?.title
+    const submittedOutcomeIndex = state.outcome.outcome_index
+    const submittedLastMouseEvent = state.lastMouseEvent
 
     let signature: string
     try {
@@ -861,28 +902,50 @@ export default function EventOrderPanelForm({ event, isMobile }: EventOrderPanel
         return
       }
 
-      const sellSharesLabel = state.side === ORDER_SIDE.SELL
-        ? (state.type === ORDER_TYPE.LIMIT ? state.limitShares : state.amount)
-        : undefined
-      const displayBuyPriceCents = state.side === ORDER_SIDE.BUY
-        ? (marketBuyFill?.avgPriceCents ?? currentBuyPriceCents ?? marketLimitPriceCents)
-        : undefined
+      if (user?.settings?.notifications?.inapp_order_fills) {
+        const isSell = submittedSide === ORDER_SIDE.SELL
+        const buyAmountLabel = formatCurrency(submittedBuyAmountValue)
+        const priceLabel = formatCentsLabel(submittedBuyPriceCents, { fallback: '—' })
+        const displayShares = submittedSellSharesLabel && submittedSellSharesLabel.trim().length > 0
+          ? submittedSellSharesLabel.trim()
+          : submittedAmountInput
+        const displayBuyShares = submittedBuySharesLabel?.trim()
+        const amountPrefix = submittedIsLimitOrder ? 'Total' : 'Received'
+        const eventContextLabel = submittedMarketTitle
+          ? `${submittedEventTitle} • ${submittedMarketTitle}`
+          : submittedEventTitle
+
+        addLocalOrderFillNotification({
+          action: isSell ? 'sell' : 'buy',
+          title: isSell
+            ? `Sell ${displayShares} shares on ${submittedOutcomeText}`
+            : displayBuyShares
+              ? `Buy ${displayBuyShares} shares on ${submittedOutcomeText}`
+              : `Buy ${buyAmountLabel} on ${submittedOutcomeText}`,
+          description: isSell
+            ? `${eventContextLabel} • ${amountPrefix} ${formatCurrency(submittedSellAmountValue)} @ ${submittedAvgSellPriceLabel}`
+            : `${eventContextLabel} • Total ${buyAmountLabel} @ ${priceLabel}`,
+          marketIconUrl: submittedMarketImage,
+        })
+      }
 
       handleOrderSuccessFeedback({
-        side: state.side,
-        amountInput: state.amount,
-        sellSharesLabel,
-        isLimitOrder: state.type === ORDER_TYPE.LIMIT,
-        outcomeText: normalizeOutcomeLabel(state.outcome.outcome_text) ?? state.outcome.outcome_text,
-        eventTitle: event.title,
-        marketImage: state.market?.icon_url,
-        marketTitle: state.market?.short_title || state.market?.title,
-        sellAmountValue,
-        avgSellPrice: avgSellPriceLabel,
-        buyPrice: displayBuyPriceCents,
+        side: submittedSide,
+        amountInput: submittedAmountInput,
+        buyAmountValue: submittedBuyAmountValue,
+        buySharesLabel: submittedBuySharesLabel,
+        sellSharesLabel: submittedSellSharesLabel,
+        isLimitOrder: submittedIsLimitOrder,
+        outcomeText: submittedOutcomeText,
+        eventTitle: submittedEventTitle,
+        marketImage: submittedMarketImage,
+        marketTitle: submittedMarketTitle,
+        sellAmountValue: submittedSellAmountValue,
+        avgSellPrice: submittedAvgSellPriceLabel,
+        buyPrice: submittedBuyPriceCents,
         queryClient,
-        outcomeIndex: state.outcome.outcome_index,
-        lastMouseEvent: state.lastMouseEvent,
+        outcomeIndex: submittedOutcomeIndex,
+        lastMouseEvent: submittedLastMouseEvent,
       })
 
       if (state.market?.condition_id && user?.id) {

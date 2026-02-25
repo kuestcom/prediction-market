@@ -7,16 +7,17 @@ const LOCAL_ORDER_FILL_STORAGE_KEY = 'header-local-order-fill-notifications-v1'
 const LOCAL_ORDER_FILL_NOTIFICATION_SOURCE = 'local_order_fill'
 const LOCAL_ORDER_FILL_NOTIFICATION_PREFIX = 'local-order-fill-'
 const LOCAL_ORDER_FILL_AVATAR = '/images/withdraw/chain/polygon.svg'
+type LocalOrderFillAction = 'split' | 'merge' | 'buy' | 'sell'
 
 interface LocalOrderFillMetadata {
   source: typeof LOCAL_ORDER_FILL_NOTIFICATION_SOURCE
-  txHash: string
-  action: 'split' | 'merge'
+  txHash?: string
+  action: LocalOrderFillAction
 }
 
 interface LocalOrderFillNotificationInput {
-  action: 'split' | 'merge'
-  txHash: string
+  action: LocalOrderFillAction
+  txHash?: string
   title: string
   description: string
   marketIconUrl?: string | null
@@ -154,6 +155,7 @@ function buildLocalOrderFillNotification({
   marketIconUrl,
 }: LocalOrderFillNotificationInput): Notification {
   const createdAt = new Date().toISOString()
+  const normalizedTxHash = isLikelyTxHash(txHash) ? txHash : null
   const normalizedMarketIcon = typeof marketIconUrl === 'string' ? marketIconUrl.trim() : ''
   const avatarUrl = normalizedMarketIcon && isAllowedAvatarUrl(normalizedMarketIcon)
     ? normalizedMarketIcon
@@ -166,13 +168,13 @@ function buildLocalOrderFillNotification({
     description,
     created_at: createdAt,
     user_avatar: avatarUrl,
-    link_type: 'external',
-    link_label: 'View on Polygonscan',
-    link_url: `${POLYGON_SCAN_BASE}/tx/${txHash}`,
-    extra_info: txHash.slice(0, 10),
+    link_type: normalizedTxHash ? 'external' : 'none',
+    link_label: normalizedTxHash ? 'View on Polygonscan' : undefined,
+    link_url: normalizedTxHash ? `${POLYGON_SCAN_BASE}/tx/${normalizedTxHash}` : null,
+    extra_info: normalizedTxHash ? normalizedTxHash.slice(0, 10) : undefined,
     metadata: {
       source: LOCAL_ORDER_FILL_NOTIFICATION_SOURCE,
-      txHash,
+      txHash: normalizedTxHash ?? undefined,
       action,
     },
   }
@@ -212,7 +214,7 @@ export const useNotifications = create<NotificationsState>()((set, get) => ({
     })
   },
   addLocalOrderFillNotification: (payload) => {
-    if (!isLikelyTxHash(payload.txHash)) {
+    if (payload.txHash && !isLikelyTxHash(payload.txHash)) {
       return
     }
 
