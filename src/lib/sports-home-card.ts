@@ -1,7 +1,5 @@
 import type { Event, Market, Outcome, SportsTeam } from '@/types'
 
-const MORE_MARKETS_SUFFIX_REGEX = /-more-markets(?:-\d+)?$/i
-
 function normalizeText(value: string | null | undefined) {
   return value
     ?.normalize('NFKD')
@@ -26,8 +24,36 @@ function hasSportsContext(event: Event) {
   return Boolean(event.sports_sport_slug?.trim())
 }
 
-function isMoreMarketsEvent(event: Event) {
-  return MORE_MARKETS_SUFFIX_REGEX.test(event.slug)
+function getNormalizedEventTagTokens(event: Event) {
+  const tagTokens = new Set<string>()
+
+  for (const tag of event.tags ?? []) {
+    const normalizedSlug = normalizeText(tag.slug)
+    const normalizedName = normalizeText(tag.name)
+    if (normalizedSlug) {
+      tagTokens.add(normalizedSlug)
+    }
+    if (normalizedName) {
+      tagTokens.add(normalizedName)
+    }
+  }
+
+  const normalizedMainTag = normalizeText(event.main_tag)
+  if (normalizedMainTag) {
+    tagTokens.add(normalizedMainTag)
+  }
+
+  return tagTokens
+}
+
+function hasPropsTag(event: Event) {
+  const tagTokens = getNormalizedEventTagTokens(event)
+  return Array.from(tagTokens).some(token => token === 'props' || token === 'prop')
+}
+
+function hasGamesTag(event: Event) {
+  const tagTokens = getNormalizedEventTagTokens(event)
+  return Array.from(tagTokens).some(token => token === 'games' || token === 'game')
 }
 
 function isNegRiskEvent(event: Event) {
@@ -213,7 +239,12 @@ export interface HomeSportsMoneylineModel {
 }
 
 export function buildHomeSportsMoneylineModel(event: Event): HomeSportsMoneylineModel | null {
-  if (!hasSportsContext(event) || isMoreMarketsEvent(event) || !isNegRiskEvent(event)) {
+  if (
+    !hasSportsContext(event)
+    || hasPropsTag(event)
+    || !hasGamesTag(event)
+    || !isNegRiskEvent(event)
+  ) {
     return null
   }
 

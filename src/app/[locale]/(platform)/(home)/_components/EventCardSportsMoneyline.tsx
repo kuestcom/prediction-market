@@ -16,6 +16,8 @@ interface EventCardSportsMoneylineProps {
   getDisplayChance: (marketId: string) => number
 }
 
+const HOME_OUTCOME_BUTTON_HEIGHT_CLASS = 'h-[40px]'
+
 function formatSportsStartTime(value: string | null | undefined) {
   if (!value) {
     return null
@@ -64,7 +66,7 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
   if (button.tone === 'draw') {
     return {
       className: `
-        h-10 w-18 shrink-0 rounded-sm border border-button-outline-border px-4
+        ${HOME_OUTCOME_BUTTON_HEIGHT_CLASS} w-18 shrink-0 rounded-sm border border-button-outline-border px-4
         text-sm font-semibold text-muted-foreground
       `,
       style: undefined,
@@ -75,7 +77,7 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
   const textColor = ensureReadableTextColorOnDark(button.color)
 
   return {
-    className: 'h-10 flex-1 rounded-sm px-2 text-sm font-semibold',
+    className: `${HOME_OUTCOME_BUTTON_HEIGHT_CLASS} flex-1 rounded-sm px-2 text-sm font-semibold`,
     style: textColor ? { color: textColor } : undefined,
     backgroundStyle: button.color ? { backgroundColor: button.color } : undefined,
   }
@@ -96,8 +98,8 @@ export default function EventCardSportsMoneyline({
   return (
     <div
       className={`
-        group/card relative flex h-full min-h-[180px] flex-col justify-between overflow-hidden rounded-xl border bg-card
-        px-3 pt-3 shadow-md shadow-black/4 transition
+        group/card relative flex h-45 flex-col justify-between overflow-hidden rounded-xl border bg-card px-3 pt-3
+        shadow-md shadow-black/4 transition
         hover:-translate-y-px hover:shadow-md hover:shadow-black/8
       `}
     >
