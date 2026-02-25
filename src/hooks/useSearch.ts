@@ -1,6 +1,12 @@
 import type { SearchLoadingStates, SearchResultItems } from '@/types'
 import { useCallback, useEffect, useState } from 'react'
 
+const MORE_MARKETS_SUFFIX_REGEX = /-more-markets(?:-\d+)?$/i
+
+function isMoreMarketsEventSlug(slug: string | null | undefined) {
+  return MORE_MARKETS_SUFFIX_REGEX.test(slug?.trim() ?? '')
+}
+
 interface UseSearch {
   query: string
   results: SearchResultItems
@@ -37,7 +43,10 @@ export function useSearch(): UseSearch {
       const response = await fetch(`/api/events?search=${encodeURIComponent(searchQuery)}`)
       if (response.ok) {
         const data = await response.json()
-        setResults(prev => ({ ...prev, events: data }))
+        const filteredEvents = Array.isArray(data)
+          ? data.filter(event => !isMoreMarketsEventSlug(event?.slug))
+          : []
+        setResults(prev => ({ ...prev, events: filteredEvents }))
       }
       else {
         setResults(prev => ({ ...prev, events: [] }))
