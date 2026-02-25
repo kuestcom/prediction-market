@@ -35,6 +35,15 @@ export async function getEventTitleBySlug(eventSlug: string, locale: SupportedLo
   return data?.title
 }
 
+export async function getEventRouteBySlug(eventSlug: string) {
+  const { data, error } = await EventRepository.getEventRouteBySlug(eventSlug)
+  if (error || !data) {
+    return null
+  }
+
+  return data
+}
+
 export async function loadEventPageContentData(
   eventSlug: string,
   locale: SupportedLocale,

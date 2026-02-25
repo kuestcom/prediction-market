@@ -1086,6 +1086,47 @@ export const EventRepository = {
     })
   },
 
+  async getEventRouteBySlug(slug: string): Promise<QueryResult<{
+    slug: string
+    sports_sport_slug: string | null
+    sports_event_slug: string | null
+  }>> {
+    return runQuery(async () => {
+      const result = await db.query.events.findFirst({
+        where: eq(events.slug, slug),
+        columns: { slug: true },
+        with: {
+          sports: {
+            columns: {
+              sports_sport_slug: true,
+              sports_event_slug: true,
+              sports_tags: true,
+            },
+          },
+        },
+      })
+
+      if (!result) {
+        throw new Error('Event not found')
+      }
+
+      const sportsSlugResolver = await getSportsSlugResolverFromDb()
+      const normalizedSportsTags = toOptionalStringArray(result.sports?.sports_tags)
+
+      return {
+        data: {
+          slug: result.slug,
+          sports_sport_slug: resolveCanonicalSportsSportSlug(sportsSlugResolver, {
+            sportsSportSlug: result.sports?.sports_sport_slug ?? null,
+            sportsTags: normalizedSportsTags,
+          }),
+          sports_event_slug: result.sports?.sports_event_slug ?? null,
+        },
+        error: null,
+      }
+    })
+  },
+
   async getEventConditionChangeLogBySlug(slug: string): Promise<QueryResult<ConditionChangeLogEntry[]>> {
     return runQuery(async () => {
       const eventResult = await db
