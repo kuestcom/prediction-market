@@ -1,13 +1,13 @@
+'use cache'
+
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import { connection } from 'next/server'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
-import { UserRepository } from '@/lib/db/queries/user'
 import {
   getEventTitleBySlug,
   resolveCanonicalEventSlugFromSportsPath,
@@ -15,7 +15,11 @@ import {
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
-  return [{ market: STATIC_PARAMS_PLACEHOLDER }]
+  return [{
+    sport: STATIC_PARAMS_PLACEHOLDER,
+    event: STATIC_PARAMS_PLACEHOLDER,
+    market: STATIC_PARAMS_PLACEHOLDER,
+  }]
 }
 
 export async function generateMetadata({
@@ -61,11 +65,8 @@ export default async function SportsEventMarketPage({
     notFound()
   }
 
-  await connection()
-  const user = await UserRepository.getCurrentUser()
-
   const [{ data: groupedEvents }, { data: canonicalSportSlug }] = await Promise.all([
-    EventRepository.getSportsEventGroupBySlug(canonicalEventSlug, user?.id ?? '', resolvedLocale),
+    EventRepository.getSportsEventGroupBySlug(canonicalEventSlug, '', resolvedLocale),
     SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
   ])
   const cards = buildSportsGamesCards(groupedEvents ?? [])

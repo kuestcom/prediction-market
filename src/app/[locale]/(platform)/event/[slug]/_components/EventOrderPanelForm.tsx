@@ -111,6 +111,36 @@ function resolveIndexSetFromOutcomeIndex(outcomeIndex: number | undefined) {
   return null
 }
 
+function resolveValidCustomExpirationTimestamp(params: {
+  limitExpirationOption: string
+  limitExpirationTimestamp: number | null | undefined
+  nowSeconds: number
+}) {
+  const { limitExpirationOption, limitExpirationTimestamp, nowSeconds } = params
+
+  if (limitExpirationOption !== 'custom') {
+    return null
+  }
+
+  if (
+    !limitExpirationTimestamp
+    || !Number.isFinite(limitExpirationTimestamp)
+    || limitExpirationTimestamp <= 0
+  ) {
+    return null
+  }
+
+  return limitExpirationTimestamp > nowSeconds
+    ? limitExpirationTimestamp
+    : null
+}
+
+function resolveEndOfDayTimestamp() {
+  const now = new Date(Date.now())
+  now.setHours(23, 59, 59, 0)
+  return Math.floor(now.getTime() / 1000)
+}
+
 export default function EventOrderPanelForm({
   event,
   isMobile,
@@ -161,25 +191,6 @@ export default function EventOrderPanelForm({
     outcomeTokenId ? [outcomeTokenId] : [],
     { enabled: shouldLoadOrderBookSummary },
   )
-  const validCustomExpirationTimestamp = useMemo(() => {
-    const nowSeconds = Math.floor(Date.now() / 1000)
-
-    if (state.limitExpirationOption !== 'custom') {
-      return null
-    }
-
-    if (
-      !state.limitExpirationTimestamp
-      || !Number.isFinite(state.limitExpirationTimestamp)
-      || state.limitExpirationTimestamp <= 0
-    ) {
-      return null
-    }
-
-    return state.limitExpirationTimestamp > nowSeconds
-      ? state.limitExpirationTimestamp
-      : null
-  }, [state.limitExpirationOption, state.limitExpirationTimestamp])
   const affiliateMetadata = useAffiliateOrderMetadata()
   const { ensureTradingReady, openTradeRequirements, startDepositFlow } = useTradingOnboarding()
   const hasDeployedProxyWallet = Boolean(user?.proxy_wallet_address && user?.proxy_wallet_status === 'deployed')
@@ -231,11 +242,6 @@ export default function EventOrderPanelForm({
       : t('Resolved')
   const resolvedMarketTitle = state.market?.short_title || state.market?.title
   const orderDomain = useMemo(() => getExchangeEip712Domain(isNegRiskEnabled), [isNegRiskEnabled])
-  const endOfDayTimestamp = useMemo(() => {
-    const now = new Date()
-    now.setHours(23, 59, 59, 0)
-    return Math.floor(now.getTime() / 1000)
-  }, [])
   const [showLimitMinimumWarning, setShowLimitMinimumWarning] = useState(false)
   const { positionsQuery, aggregatedPositionShares } = useEventOrderPanelPositions({
     makerAddress,
@@ -678,6 +684,14 @@ export default function EventOrderPanelForm({
   }
 
   async function onSubmit() {
+    const nowSeconds = Math.floor(Date.now() / 1000)
+    const validCustomExpirationTimestamp = resolveValidCustomExpirationTimestamp({
+      limitExpirationOption: state.limitExpirationOption,
+      limitExpirationTimestamp: state.limitExpirationTimestamp,
+      nowSeconds,
+    })
+    const endOfDayTimestamp = resolveEndOfDayTimestamp()
+
     if (!ensureTradingReady()) {
       return
     }

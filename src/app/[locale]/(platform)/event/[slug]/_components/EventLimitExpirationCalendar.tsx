@@ -47,8 +47,9 @@ export default function EventLimitExpirationCalendar({
   applyLabel,
 }: EventLimitExpirationCalendarProps) {
   const t = useExtracted()
-  const initialDate = useMemo(() => value ?? new Date(), [value])
-  const minDate = useMemo(() => new Date(), [])
+  const [minTimestampMs, setMinTimestampMs] = useState(0)
+  const initialDate = useMemo(() => value ?? new Date(0), [value])
+  const minDate = useMemo(() => new Date(minTimestampMs), [minTimestampMs])
   const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate)
   const [timeValue, setTimeValue] = useState<string>(() => formatTimeInput(initialDate))
   const showActions = Boolean(onCancel || onApply)
@@ -56,10 +57,14 @@ export default function EventLimitExpirationCalendar({
   const resolvedApplyLabel = applyLabel ?? t('Apply')
 
   useEffect(() => {
-    const nextDate = value ?? new Date()
+    setMinTimestampMs(Date.now())
+  }, [])
+
+  useEffect(() => {
+    const nextDate = value ?? new Date(minTimestampMs)
     setSelectedDate(nextDate)
     setTimeValue(formatTimeInput(nextDate))
-  }, [value])
+  }, [value, minTimestampMs])
 
   function handleChange(nextDate: Date, nextTime = timeValue) {
     const mergedDate = mergeDateAndTime(nextDate, nextTime)

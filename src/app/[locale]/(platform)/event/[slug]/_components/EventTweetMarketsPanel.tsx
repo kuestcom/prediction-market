@@ -45,7 +45,7 @@ export default function EventTweetMarketsPanel({
   tweetCount,
   countdownTargetMs,
 }: EventTweetMarketsPanelProps) {
-  const [nowMs, setNowMs] = useState(() => Date.now())
+  const [nowMs, setNowMs] = useState(0)
 
   useEffect(() => {
     if (countdownTargetMs == null || !Number.isFinite(countdownTargetMs)) {

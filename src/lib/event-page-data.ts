@@ -6,8 +6,10 @@ import type {
   EventSeriesEntry,
   User,
 } from '@/types'
+import { cacheTag } from 'next/cache'
 import { connection } from 'next/server'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
+import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
 import 'server-only'
@@ -22,6 +24,9 @@ export interface EventPageContentData {
 }
 
 export async function resolveCanonicalEventSlugFromSportsPath(sportSlug: string, eventSlug: string) {
+  'use cache'
+  cacheTag(cacheTags.eventsGlobal)
+
   const { data, error } = await EventRepository.getCanonicalEventSlugBySportsPath(sportSlug, eventSlug)
   if (error || !data?.slug) {
     return null
@@ -31,11 +36,19 @@ export async function resolveCanonicalEventSlugFromSportsPath(sportSlug: string,
 }
 
 export async function getEventTitleBySlug(eventSlug: string, locale: SupportedLocale) {
+  'use cache'
+  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.event(eventSlug))
+
   const { data } = await EventRepository.getEventTitleBySlug(eventSlug, locale)
   return data?.title
 }
 
 export async function getEventRouteBySlug(eventSlug: string) {
+  'use cache'
+  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.event(eventSlug))
+
   const { data, error } = await EventRepository.getEventRouteBySlug(eventSlug)
   if (error || !data) {
     return null

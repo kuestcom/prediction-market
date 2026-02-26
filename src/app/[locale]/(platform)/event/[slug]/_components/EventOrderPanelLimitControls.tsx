@@ -40,6 +40,12 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
+function resolveDraftExpirationFromNow() {
+  const nextDate = new Date(Date.now())
+  nextDate.setMinutes(nextDate.getMinutes() + 30, 0, 0)
+  return nextDate
+}
+
 interface EventOrderPanelLimitControlsProps {
   side: OrderSide
   limitPrice: string
@@ -150,11 +156,9 @@ export default function EventOrderPanelLimitControls({
     ? formatSharesLabel(matchingShares)
     : null
   const [isExpirationModalOpen, setIsExpirationModalOpen] = useState(false)
-  const [draftExpiration, setDraftExpiration] = useState<Date>(() => {
-    const now = new Date()
-    now.setMinutes(now.getMinutes() + 30, 0, 0)
-    return now
-  })
+  const [draftExpiration, setDraftExpiration] = useState<Date | null>(
+    () => limitExpirationTimestamp ? new Date(limitExpirationTimestamp * 1000) : null,
+  )
   const customExpirationLabel = useMemo(() => {
     if (!limitExpirationTimestamp) {
       return null
@@ -246,12 +250,13 @@ export default function EventOrderPanelLimitControls({
       return
     }
 
-    const now = new Date()
-    now.setMinutes(now.getMinutes() + 30, 0, 0)
-    setDraftExpiration(now)
+    setDraftExpiration(resolveDraftExpirationFromNow())
   }, [limitExpirationTimestamp])
 
   function openExpirationModal() {
+    if (!draftExpiration) {
+      setDraftExpiration(resolveDraftExpirationFromNow())
+    }
     setIsExpirationModalOpen(true)
   }
 
@@ -550,17 +555,19 @@ export default function EventOrderPanelLimitControls({
 
       <Dialog open={isExpirationModalOpen} onOpenChange={handleExpirationModalChange}>
         <DialogContent className="w-fit border-0 bg-transparent p-0 shadow-none">
-          <EventLimitExpirationCalendar
-            title={t('Select expiration')}
-            value={draftExpiration}
-            onChange={(nextDate) => {
-              if (nextDate) {
-                setDraftExpiration(nextDate)
-              }
-            }}
-            onCancel={() => setIsExpirationModalOpen(false)}
-            onApply={handleApplyExpiration}
-          />
+          {isExpirationModalOpen && (
+            <EventLimitExpirationCalendar
+              title={t('Select expiration')}
+              value={draftExpiration ?? undefined}
+              onChange={(nextDate) => {
+                if (nextDate) {
+                  setDraftExpiration(nextDate)
+                }
+              }}
+              onCancel={() => setIsExpirationModalOpen(false)}
+              onApply={handleApplyExpiration}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -438,7 +438,7 @@ function EventChartComponent({
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
-  const [nowMs, setNowMs] = useState(() => Date.now())
+  const [nowMs, setNowMs] = useState(0)
   const tradeFlowIdRef = useRef(0)
   const lastEventIdRef = useRef(event.id)
 

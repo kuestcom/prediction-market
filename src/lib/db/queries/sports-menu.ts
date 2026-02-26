@@ -352,6 +352,9 @@ export const SportsMenuRepository = {
   },
 
   async resolveCanonicalSlugByAlias(alias: string): Promise<QueryResult<string | null>> {
+    'use cache'
+    cacheTag(cacheTags.eventsGlobal)
+
     return runQuery(async () => {
       const resolver = await getSportsSlugResolverFromDb()
 

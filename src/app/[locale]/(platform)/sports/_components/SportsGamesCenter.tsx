@@ -3001,7 +3001,7 @@ export default function SportsGamesCenter({
   const [oddsFormat, setOddsFormat] = useState<OddsFormat>('price')
   const [showSpreadsAndTotals, setShowSpreadsAndTotals] = useState(true)
   const [hasLoadedOddsFormat, setHasLoadedOddsFormat] = useState(false)
-  const [currentTimestampMs, setCurrentTimestampMs] = useState(() => Date.now())
+  const [currentTimestampMs, setCurrentTimestampMs] = useState(0)
   const [titleRowActionsTarget, setTitleRowActionsTarget] = useState<HTMLElement | null>(null)
   const searchShellRef = useRef<HTMLDivElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)

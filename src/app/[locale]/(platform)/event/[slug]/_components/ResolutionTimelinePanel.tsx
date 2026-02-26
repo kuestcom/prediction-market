@@ -157,7 +157,7 @@ export default function ResolutionTimelinePanel({
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const siteIdentity = useSiteIdentity()
-  const [nowMs, setNowMs] = useState(() => Date.now())
+  const [nowMs, setNowMs] = useState(0)
   const yesOutcomeText = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_text
   const noOutcomeText = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)?.outcome_text
   const yesOutcomeLabel = (yesOutcomeText ? normalizeOutcomeLabel(yesOutcomeText) : '') || yesOutcomeText || t('Yes')

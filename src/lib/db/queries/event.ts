@@ -1081,6 +1081,9 @@ export const EventRepository = {
     sportsSportSlug: string,
     sportsEventSlug: string,
   ): Promise<QueryResult<{ slug: string }>> {
+    'use cache'
+    cacheTag(cacheTags.eventsGlobal)
+
     return runQuery(async () => {
       const sportsSlugResolver = await getSportsSlugResolverFromDb()
       const sportsSportSlugCandidates = resolveSportsSportSlugQueryCandidates(
@@ -1145,6 +1148,10 @@ export const EventRepository = {
     slug: string,
     locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<QueryResult<{ title: string }>> {
+    'use cache'
+    cacheTag(cacheTags.eventsGlobal)
+    cacheTag(cacheTags.event(slug))
+
     return runQuery(async () => {
       const result = await db
         .select({ id: events.id, title: events.title })
@@ -1181,6 +1188,10 @@ export const EventRepository = {
     sports_sport_slug: string | null
     sports_event_slug: string | null
   }>> {
+    'use cache'
+    cacheTag(cacheTags.eventsGlobal)
+    cacheTag(cacheTags.event(slug))
+
     return runQuery(async () => {
       interface EventRouteRow {
         slug: string

@@ -258,7 +258,7 @@ export default function EventSeriesPills({
 }: EventSeriesPillsProps) {
   const [isPastMenuOpen, setIsPastMenuOpen] = useState(false)
   const [hoveredPastBadgeId, setHoveredPastBadgeId] = useState<string | null>(null)
-  const [nowTimestamp, setNowTimestamp] = useState(() => Date.now())
+  const [nowTimestamp, setNowTimestamp] = useState(0)
 
   useEffect(() => {
     const interval = window.setInterval(() => {

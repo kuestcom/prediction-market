@@ -64,7 +64,7 @@ interface LiveSeriesPriceSnapshot {
 function normalizeTimestamp(value: unknown) {
   const numeric = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(numeric)) {
-    return Date.now()
+    return 0
   }
   return numeric < 1e12 ? numeric * 1000 : numeric
 }
@@ -463,7 +463,7 @@ function resolveEventEndTimestamp(event: Event) {
     return Math.max(eventEnd, marketEnd)
   }
 
-  return eventEnd ?? marketEnd ?? Date.now()
+  return eventEnd ?? marketEnd ?? Number.POSITIVE_INFINITY
 }
 
 function inferIntervalMsFromSeriesSlug(seriesSlug: string | null | undefined) {
@@ -673,7 +673,7 @@ export default function EventLiveSeriesChart({
     () => normalizeSubscriptionSymbol(config.topic, config.symbol),
     [config.symbol, config.topic],
   )
-  const [nowMs, setNowMs] = useState(() => Date.now())
+  const [nowMs, setNowMs] = useState(0)
   const [data, setData] = useState<DataPoint[]>([])
   const [persistedFallbackPrice, setPersistedFallbackPrice] = useState<PersistedLivePrice | null>(null)
   const [baselinePrice, setBaselinePrice] = useState<number | null>(null)

@@ -222,9 +222,9 @@ export default function EventChartExportDialog({
   const [fromDate, setFromDate] = useState<Date>(() => getDefaultFromDate(
     defaultFrequency,
     eventStartDate,
-    new Date(),
+    new Date(0),
   ))
-  const [toDate, setToDate] = useState<Date>(() => new Date())
+  const [toDate, setToDate] = useState<Date>(() => new Date(0))
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
   const [isDownloading, setIsDownloading] = useState(false)
@@ -234,7 +234,7 @@ export default function EventChartExportDialog({
     if (!open) {
       return
     }
-    const today = new Date()
+    const today = new Date(Date.now())
     setToDate(today)
     setFrequency(defaultFrequency)
     setFromDate(getDefaultFromDate(defaultFrequency, eventStartDate, today))
