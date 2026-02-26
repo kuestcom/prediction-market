@@ -6,7 +6,7 @@ import Image from 'next/image'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import { Link } from '@/i18n/navigation'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
-import { resolveEventPagePath } from '@/lib/events-routing'
+import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
 import { formatVolume } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
@@ -89,6 +89,15 @@ export default function EventCardSportsMoneyline({
   getDisplayChance,
 }: EventCardSportsMoneylineProps) {
   const eventHref = resolveEventPagePath(event)
+  const marketSlugByConditionId = new Map(
+    (event.markets ?? [])
+      .filter(market => Boolean(market.condition_id && market.slug))
+      .map(market => [market.condition_id, market.slug as string] as const),
+  )
+  function resolveButtonHref(button: HomeSportsMoneylineButton) {
+    const marketSlug = marketSlugByConditionId.get(button.conditionId)
+    return marketSlug ? resolveEventMarketPath(event, marketSlug) : eventHref
+  }
   const isResolvedEvent = event.status === 'resolved'
   const sportsTagLabel = event.sports_sport_slug?.trim()?.toUpperCase() || null
   const startTimeLabel = formatSportsStartTime(event.sports_start_time ?? event.start_date)
@@ -104,8 +113,11 @@ export default function EventCardSportsMoneyline({
         dark:hover:bg-secondary
       `}
     >
-      <Link href={eventHref} className="flex w-full flex-col gap-1">
-        <div className="group/team-row-1 flex h-9 items-center justify-between gap-2">
+      <div className="flex w-full flex-col gap-1">
+        <Link
+          href={resolveButtonHref(model.team1Button)}
+          className="group/team-row-1 flex h-9 items-center justify-between gap-2"
+        >
           <div className="flex min-w-0 items-center gap-2">
             <div className="relative size-7 overflow-hidden rounded-sm">
               {model.team1.logoUrl
@@ -128,8 +140,11 @@ export default function EventCardSportsMoneyline({
             {team1Chance}
             %
           </p>
-        </div>
-        <div className="group/team-row-2 flex h-9 items-center justify-between gap-2">
+        </Link>
+        <Link
+          href={resolveButtonHref(model.team2Button)}
+          className="group/team-row-2 flex h-9 items-center justify-between gap-2"
+        >
           <div className="flex min-w-0 items-center gap-2">
             <div className="relative size-7 overflow-hidden rounded-sm">
               {model.team2.logoUrl
@@ -152,8 +167,8 @@ export default function EventCardSportsMoneyline({
             {team2Chance}
             %
           </p>
-        </div>
-      </Link>
+        </Link>
+      </div>
 
       <div className="mt-2 flex flex-col justify-end gap-1.5 pb-2">
         <div className="flex h-fit items-center justify-center gap-2">
@@ -165,7 +180,7 @@ export default function EventCardSportsMoneyline({
               return (
                 <Link
                   key={`${button.conditionId}:${button.outcomeIndex}`}
-                  href={eventHref}
+                  href={resolveButtonHref(button)}
                   className={cn(
                     `
                       relative inline-flex items-center justify-center overflow-hidden transition duration-150
