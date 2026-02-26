@@ -1,15 +1,15 @@
 'use client'
 
-import type { NormalizedBookLevel } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
+import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
-import { calculateMarketFill } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Drawer, DrawerContent } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { ORDER_SIDE } from '@/lib/constants'
 import { formatCentsLabel, formatCurrency, formatSharesLabel } from '@/lib/formatters'
+import { calculateMarketFill } from '@/lib/order-panel-utils'
 import { cn } from '@/lib/utils'
 
 interface SellPositionModalProps {
