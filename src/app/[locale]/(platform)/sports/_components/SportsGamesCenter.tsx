@@ -890,6 +890,10 @@ export function SportsGameGraph({
   }, [])
 
   useEffect(() => {
+    setActiveTimeRange(defaultTimeRange)
+  }, [defaultTimeRange])
+
+  useEffect(() => {
     if (!hasLoadedChartSettings) {
       return
     }
