@@ -7,6 +7,7 @@ import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { DataTable } from '@/app/[locale]/admin/_components/DataTable'
+import { updateEventLivestreamUrlAction } from '@/app/[locale]/admin/events/_actions/update-event-livestream-url'
 import { updateEventSyncSettingsAction } from '@/app/[locale]/admin/events/_actions/update-event-sync-settings'
 import { updateEventVisibilityAction } from '@/app/[locale]/admin/events/_actions/update-event-visibility'
 import { useAdminEventsColumns } from '@/app/[locale]/admin/events/_components/columns'
@@ -20,6 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 
@@ -53,6 +56,10 @@ export default function AdminEventsTable({ initialAutoDeployNewEventsEnabled }: 
   const [savedAutoDeployEnabled, setSavedAutoDeployEnabled] = useState(initialAutoDeployNewEventsEnabled)
   const [draftAutoDeployEnabled, setDraftAutoDeployEnabled] = useState(initialAutoDeployNewEventsEnabled)
   const [isSavingSettings, setIsSavingSettings] = useState(false)
+  const [livestreamEvent, setLivestreamEvent] = useState<AdminEventRow | null>(null)
+  const [livestreamUrlValue, setLivestreamUrlValue] = useState('')
+  const [livestreamError, setLivestreamError] = useState<string | null>(null)
+  const [isSavingLivestream, setIsSavingLivestream] = useState(false)
 
   const handleToggleHidden = useCallback(async (event: AdminEventRow, checked: boolean) => {
     setPendingHiddenId(event.id)
@@ -101,8 +108,50 @@ export default function AdminEventsTable({ initialAutoDeployNewEventsEnabled }: 
     setIsSavingSettings(false)
   }, [draftAutoDeployEnabled, t])
 
+  const handleOpenLivestreamModal = useCallback((event: AdminEventRow) => {
+    setLivestreamEvent(event)
+    setLivestreamUrlValue(event.livestream_url ?? '')
+    setLivestreamError(null)
+  }, [])
+
+  const handleCloseLivestreamModal = useCallback(() => {
+    if (isSavingLivestream) {
+      return
+    }
+
+    setLivestreamEvent(null)
+    setLivestreamUrlValue('')
+    setLivestreamError(null)
+  }, [isSavingLivestream])
+
+  const handleSaveLivestreamUrl = useCallback(async () => {
+    if (!livestreamEvent) {
+      return
+    }
+
+    setIsSavingLivestream(true)
+    setLivestreamError(null)
+
+    const result = await updateEventLivestreamUrlAction(livestreamEvent.id, livestreamUrlValue)
+    if (result.success) {
+      toast.success(livestreamUrlValue.trim()
+        ? t('Livestream URL updated for {name}.', { name: livestreamEvent.title })
+        : t('Livestream URL removed for {name}.', { name: livestreamEvent.title }))
+      void queryClient.invalidateQueries({ queryKey: ['admin-events'] })
+      setLivestreamEvent(null)
+      setLivestreamUrlValue('')
+      setLivestreamError(null)
+      setIsSavingLivestream(false)
+      return
+    }
+
+    setLivestreamError(result.error ?? t('Failed to update livestream URL'))
+    setIsSavingLivestream(false)
+  }, [livestreamEvent, livestreamUrlValue, queryClient, t])
+
   const columns = useAdminEventsColumns({
     onToggleHidden: handleToggleHidden,
+    onOpenLivestreamModal: handleOpenLivestreamModal,
     isUpdatingHidden: eventId => pendingHiddenId === eventId,
   })
 
@@ -193,6 +242,69 @@ export default function AdminEventsTable({ initialAutoDeployNewEventsEnabled }: 
               disabled={isSavingSettings}
             >
               {isSavingSettings ? t('Saving...') : t('Save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(livestreamEvent)}
+        onOpenChange={(open) => {
+          if (open) {
+            return
+          }
+          handleCloseLivestreamModal()
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {livestreamEvent?.livestream_url ? t('Edit livestream URL') : t('Add livestream URL')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('Configure the livestream URL for this event. Leave empty to remove it.')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="event-livestream-url">
+                {t('Livestream URL')}
+              </Label>
+              <Input
+                id="event-livestream-url"
+                type="url"
+                placeholder="https://example.com/live"
+                value={livestreamUrlValue}
+                onChange={event => setLivestreamUrlValue(event.target.value)}
+                disabled={isSavingLivestream}
+              />
+              {livestreamEvent && (
+                <p className="text-xs text-muted-foreground">
+                  {livestreamEvent.title}
+                </p>
+              )}
+            </div>
+            {livestreamError && <InputError message={livestreamError} />}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCloseLivestreamModal}
+              disabled={isSavingLivestream}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                void handleSaveLivestreamUrl()
+              }}
+              disabled={isSavingLivestream}
+            >
+              {isSavingLivestream ? t('Saving...') : t('Save')}
             </Button>
           </DialogFooter>
         </DialogContent>

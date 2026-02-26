@@ -90,6 +90,7 @@ export const events = pgTable(
       .notNull()
       .default('active'),
     rules: text(),
+    livestream_url: text(),
     active_markets_count: integer()
       .default(0),
     total_markets_count: integer()

@@ -289,6 +289,7 @@ interface AdminEventRow {
   slug: string
   title: string
   status: Event['status']
+  livestream_url: string | null
   volume: number
   volume_24h: number
   is_hidden: boolean
@@ -1133,6 +1134,7 @@ export const EventRepository = {
         slug: events.slug,
         title: events.title,
         status: events.status,
+        livestream_url: events.livestream_url,
         created_at: events.created_at,
         updated_at: events.updated_at,
       })
@@ -1216,6 +1218,7 @@ export const EventRepository = {
         slug: row.slug,
         title: row.title,
         status: (row.status ?? 'draft') as Event['status'],
+        livestream_url: row.livestream_url ?? null,
         volume: volumeData?.volume ?? 0,
         volume_24h: volumeData?.volume_24h ?? 0,
         is_hidden: hiddenEventIds.has(row.id),
@@ -1258,6 +1261,41 @@ export const EventRepository = {
           id: eventRow.id,
           slug: eventRow.slug,
           is_hidden: isHidden,
+        },
+        error: null,
+      }
+    })
+  },
+
+  async setEventLivestreamUrl(eventId: string, livestreamUrl: string | null): Promise<QueryResult<{
+    id: string
+    slug: string
+    livestream_url: string | null
+  }>> {
+    return runQuery(async () => {
+      const updatedRows = await db
+        .update(events)
+        .set({
+          livestream_url: livestreamUrl,
+          updated_at: new Date(),
+        })
+        .where(eq(events.id, eventId))
+        .returning({
+          id: events.id,
+          slug: events.slug,
+          livestream_url: events.livestream_url,
+        })
+
+      const updatedRow = updatedRows[0]
+      if (!updatedRow) {
+        return { data: null, error: 'Event not found.' }
+      }
+
+      return {
+        data: {
+          id: updatedRow.id,
+          slug: updatedRow.slug,
+          livestream_url: updatedRow.livestream_url ?? null,
         },
         error: null,
       }

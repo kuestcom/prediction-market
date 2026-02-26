@@ -8,6 +8,7 @@ export interface AdminEventRow {
   slug: string
   title: string
   status: Event['status']
+  livestream_url: string | null
   volume: number
   volume_24h: number
   is_hidden: boolean

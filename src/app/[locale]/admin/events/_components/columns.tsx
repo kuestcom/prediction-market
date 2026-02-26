@@ -12,6 +12,7 @@ import { formatCompactCurrency, formatDate } from '@/lib/formatters'
 
 interface EventColumnOptions {
   onToggleHidden: (event: AdminEventRow, nextValue: boolean) => void
+  onOpenLivestreamModal: (event: AdminEventRow) => void
   isUpdatingHidden: (eventId: string) => boolean
 }
 
@@ -30,6 +31,7 @@ function resolveStatusVariant(status: AdminEventRow['status']): 'default' | 'sec
 
 export function useAdminEventsColumns({
   onToggleHidden,
+  onOpenLivestreamModal,
   isUpdatingHidden,
 }: EventColumnOptions): ColumnDef<AdminEventRow>[] {
   const t = useExtracted()
@@ -149,6 +151,31 @@ export function useAdminEventsColumns({
           </span>
         )
       },
+    },
+    {
+      id: 'livestream',
+      header: () => (
+        <div className="text-center text-xs font-medium text-muted-foreground uppercase">
+          {t('Livestream')}
+        </div>
+      ),
+      cell: ({ row }) => {
+        const event = row.original
+        return (
+          <div className="text-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenLivestreamModal(event)}
+            >
+              {event.livestream_url ? t('Edit') : t('Add')}
+            </Button>
+          </div>
+        )
+      },
+      enableSorting: false,
+      enableHiding: false,
     },
     {
       accessorKey: 'is_hidden',
