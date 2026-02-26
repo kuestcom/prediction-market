@@ -61,10 +61,10 @@ interface LiveSeriesPriceSnapshot {
   is_event_closed: boolean
 }
 
-function normalizeTimestamp(value: unknown) {
+function normalizeTimestamp(value: unknown, fallbackTimestamp = 0) {
   const numeric = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(numeric)) {
-    return 0
+    return fallbackTimestamp
   }
   return numeric < 1e12 ? numeric * 1000 : numeric
 }
@@ -130,7 +130,11 @@ function matchesSymbol(symbol: string | null, targetSymbol: string) {
   return symbolsAreEquivalent(symbol, targetSymbol)
 }
 
-function extractPointsFromArray(entries: any[], fallbackSymbol: string | null = null) {
+function extractPointsFromArray(
+  entries: any[],
+  fallbackSymbol: string | null = null,
+  fallbackTimestamp = 0,
+) {
   if (!Array.isArray(entries) || entries.length === 0) {
     return []
   }
@@ -149,7 +153,7 @@ function extractPointsFromArray(entries: any[], fallbackSymbol: string | null = 
 
     const rawSymbol = point.symbol ?? point.pair ?? point.asset ?? point.base ?? fallbackSymbol
     const symbol = typeof rawSymbol === 'string' ? rawSymbol : null
-    const timestamp = normalizeTimestamp(point.timestamp ?? point.ts ?? point.t)
+    const timestamp = normalizeTimestamp(point.timestamp ?? point.ts ?? point.t, fallbackTimestamp)
 
     points.push({ price, timestamp, symbol })
   }
@@ -157,7 +161,7 @@ function extractPointsFromArray(entries: any[], fallbackSymbol: string | null = 
   return points
 }
 
-function extractLivePriceUpdates(payload: any, topic: string, symbol: string) {
+function extractLivePriceUpdates(payload: any, topic: string, symbol: string, fallbackTimestamp = 0) {
   if (!payload || typeof payload !== 'object') {
     return []
   }
@@ -205,11 +209,11 @@ function extractLivePriceUpdates(payload: any, topic: string, symbol: string) {
     const candidateSymbol = typeof rawSymbol === 'string' ? rawSymbol : null
 
     if (Array.isArray(candidate?.data)) {
-      updates.push(...extractPointsFromArray(candidate.data, candidateSymbol))
+      updates.push(...extractPointsFromArray(candidate.data, candidateSymbol, fallbackTimestamp))
     }
 
     if (Array.isArray(candidate?.payload?.data)) {
-      updates.push(...extractPointsFromArray(candidate.payload.data, candidateSymbol))
+      updates.push(...extractPointsFromArray(candidate.payload.data, candidateSymbol, fallbackTimestamp))
     }
 
     const rawPrice = candidate?.data?.price
@@ -234,6 +238,7 @@ function extractLivePriceUpdates(payload: any, topic: string, symbol: string) {
       ?? candidate?.data?.t
       ?? candidate?.t
       ?? candidate?.payload?.timestamp,
+      fallbackTimestamp,
     )
 
     updates.push({
@@ -463,7 +468,12 @@ function resolveEventEndTimestamp(event: Event) {
     return Math.max(eventEnd, marketEnd)
   }
 
-  return eventEnd ?? marketEnd ?? Number.POSITIVE_INFINITY
+  const fallbackStart = parseUtcDate(event.start_date ?? null) ?? parseUtcDate(event.created_at)
+  if (fallbackStart != null) {
+    return fallbackStart + LIVE_WINDOW_MS
+  }
+
+  return LIVE_WINDOW_MS
 }
 
 function inferIntervalMsFromSeriesSlug(seriesSlug: string | null | undefined) {
@@ -877,7 +887,7 @@ export default function EventLiveSeriesChart({
         return
       }
 
-      const updates = extractLivePriceUpdates(payload, config.topic, subscriptionSymbol)
+      const updates = extractLivePriceUpdates(payload, config.topic, subscriptionSymbol, Date.now())
       const normalizedUpdates = updates
         .map((update) => {
           const normalizedPrice = normalizeLiveChartPrice(update.price, config.topic)

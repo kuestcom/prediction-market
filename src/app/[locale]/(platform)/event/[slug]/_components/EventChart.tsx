@@ -459,6 +459,8 @@ function EventChartComponent({
   }, [chartSettings, hasLoadedSettings])
 
   useEffect(() => {
+    setNowMs(Date.now())
+
     const interval = window.setInterval(() => {
       setNowMs(Date.now())
     }, 30_000)

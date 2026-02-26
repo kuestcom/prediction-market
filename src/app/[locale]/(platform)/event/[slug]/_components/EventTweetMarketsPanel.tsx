@@ -52,6 +52,8 @@ export default function EventTweetMarketsPanel({
       return
     }
 
+    setNowMs(Date.now())
+
     const interval = window.setInterval(() => {
       setNowMs(Date.now())
     }, 1000)

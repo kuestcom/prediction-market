@@ -261,6 +261,8 @@ export default function EventSeriesPills({
   const [nowTimestamp, setNowTimestamp] = useState(0)
 
   useEffect(() => {
+    setNowTimestamp(Date.now())
+
     const interval = window.setInterval(() => {
       setNowTimestamp(Date.now())
     }, 1000)
