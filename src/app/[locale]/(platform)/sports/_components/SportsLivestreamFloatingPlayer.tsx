@@ -1,13 +1,12 @@
 'use client'
 
-import { ExternalLinkIcon, Maximize2Icon, Minimize2Icon, RadioIcon, XIcon } from 'lucide-react'
+import { ExternalLinkIcon, GripVerticalIcon, RadioIcon, XIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { resolveLivestreamEmbedTarget } from '@/lib/livestream-embed'
-import { cn } from '@/lib/utils'
 import { useSportsLivestream } from '@/stores/useSportsLivestream'
 
 const MIN_PLAYER_WIDTH = 280
-const DEFAULT_PLAYER_WIDTH = 360
+const DEFAULT_PLAYER_WIDTH = 420
 
 function clamp(value: number, min: number, max: number) {
   if (value < min) {
@@ -24,9 +23,8 @@ export default function SportsLivestreamFloatingPlayer() {
   const streamTitle = useSportsLivestream(state => state.streamTitle)
   const closeStream = useSportsLivestream(state => state.closeStream)
   const [viewportWidth, setViewportWidth] = useState<number>(0)
-  const [isExpanded, setIsExpanded] = useState(false)
   const [playerWidth, setPlayerWidth] = useState(DEFAULT_PLAYER_WIDTH)
-  const [resizeSession, setResizeSession] = useState<{ startX: number, startWidth: number } | null>(null)
+  const [resizeSession, setResizeSession] = useState<{ startX: number, startY: number, startWidth: number } | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -45,14 +43,15 @@ export default function SportsLivestreamFloatingPlayer() {
 
   const maxWidth = useMemo(() => {
     if (viewportWidth <= 0) {
-      return 420
+      return 688
     }
 
     if (viewportWidth < 768) {
-      return Math.max(300, viewportWidth - 20)
+      return Math.max(300, viewportWidth - 24)
     }
 
-    return Math.max(340, Math.floor(viewportWidth * 0.25))
+    const viewportCap = Math.max(448, viewportWidth - 24)
+    return Math.max(448, Math.min(viewportCap, Math.floor(viewportWidth * 0.56)))
   }, [viewportWidth])
 
   const minWidth = useMemo(() => {
@@ -62,15 +61,11 @@ export default function SportsLivestreamFloatingPlayer() {
     return viewportWidth < 768 ? Math.min(300, Math.max(240, viewportWidth - 24)) : MIN_PLAYER_WIDTH
   }, [viewportWidth])
 
-  const effectiveWidth = useMemo(
-    () => clamp(isExpanded ? maxWidth : playerWidth, minWidth, maxWidth),
-    [isExpanded, maxWidth, minWidth, playerWidth],
-  )
+  const effectiveWidth = useMemo(() => clamp(playerWidth, minWidth, maxWidth), [maxWidth, minWidth, playerWidth])
 
   useEffect(() => {
     if (!streamUrl) {
       setResizeSession(null)
-      setIsExpanded(false)
       return
     }
 
@@ -84,9 +79,10 @@ export default function SportsLivestreamFloatingPlayer() {
     const session = resizeSession
 
     function handlePointerMove(event: PointerEvent) {
-      const nextWidth = session.startWidth + (event.clientX - session.startX)
+      const deltaX = session.startX - event.clientX
+      const deltaY = (session.startY - event.clientY) * (16 / 9)
+      const nextWidth = session.startWidth + Math.max(deltaX, deltaY)
       setPlayerWidth(clamp(nextWidth, minWidth, maxWidth))
-      setIsExpanded(false)
     }
 
     function handlePointerUp() {
@@ -121,39 +117,33 @@ export default function SportsLivestreamFloatingPlayer() {
       `}
       style={{ width: `${effectiveWidth}px` }}
     >
-      <div className="flex items-center gap-2 border-b bg-secondary/40 px-2.5 py-2">
+      <div className="group/stream-header relative flex items-center gap-2 border-b bg-secondary/40 px-2.5 py-2">
+        <button
+          type="button"
+          aria-label="Resize stream player"
+          onPointerDown={(event) => {
+            event.preventDefault()
+            setResizeSession({ startX: event.clientX, startY: event.clientY, startWidth: effectiveWidth })
+          }}
+          className={`
+            absolute top-0 left-0 z-10 size-6 cursor-nwse-resize bg-linear-to-br from-border/90 via-border/35
+            to-transparent
+          `}
+        >
+          <GripVerticalIcon
+            className={`
+              pointer-events-none absolute top-0.5 left-0.5 size-3 rotate-45 text-muted-foreground/70 opacity-0
+              transition-all
+              group-hover/stream-header:text-foreground/80 group-hover/stream-header:opacity-100
+            `}
+          />
+        </button>
+
         <RadioIcon className="size-3.5 shrink-0 text-red-500" />
         <p className="min-w-0 truncate text-xs font-semibold text-foreground">
           {streamTitle || 'Livestream'}
         </p>
         <div className="ml-auto flex items-center gap-1">
-          <a
-            href={embedTarget.externalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              `
-                inline-flex size-6 items-center justify-center rounded-sm text-muted-foreground transition-colors
-                hover:bg-muted/80 hover:text-foreground
-              `,
-            )}
-            aria-label="Open stream in new tab"
-            title="Open stream in new tab"
-          >
-            <ExternalLinkIcon className="size-3.5" />
-          </a>
-          <button
-            type="button"
-            onClick={() => setIsExpanded(current => !current)}
-            className={`
-              inline-flex size-6 items-center justify-center rounded-sm text-muted-foreground transition-colors
-              hover:bg-muted/80 hover:text-foreground
-            `}
-            aria-label={isExpanded ? 'Minimize player' : 'Expand player'}
-            title={isExpanded ? 'Minimize player' : 'Expand player'}
-          >
-            {isExpanded ? <Minimize2Icon className="size-3.5" /> : <Maximize2Icon className="size-3.5" />}
-          </button>
           <button
             type="button"
             onClick={closeStream}
@@ -202,17 +192,6 @@ export default function SportsLivestreamFloatingPlayer() {
             </div>
           )}
 
-      <button
-        type="button"
-        aria-label="Resize stream player"
-        onPointerDown={(event) => {
-          event.preventDefault()
-          setResizeSession({ startX: event.clientX, startWidth: effectiveWidth })
-        }}
-        className={`
-          absolute right-0 bottom-0 size-4 cursor-se-resize bg-linear-to-br from-transparent via-border/35 to-border/90
-        `}
-      />
     </div>
   )
 }
