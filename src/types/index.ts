@@ -4,6 +4,7 @@ export interface Event {
   title: string
   creator: string
   icon_url: string
+  livestream_url?: string | null
   show_market_icons: boolean
   enable_neg_risk?: boolean
   neg_risk_augmented?: boolean
@@ -17,6 +18,12 @@ export interface Event {
   sports_sport_slug?: string | null
   sports_start_time?: string | null
   sports_event_week?: number | null
+  sports_score?: string | null
+  sports_period?: string | null
+  sports_elapsed?: string | null
+  sports_live?: boolean | null
+  sports_ended?: boolean | null
+  sports_tags?: string[] | null
   sports_teams?: SportsTeam[] | null
   sports_team_logo_urls?: string[] | null
   has_live_chart?: boolean

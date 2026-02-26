@@ -256,3 +256,10 @@ CREATE POLICY "service_role_all_market_sports"
   TO "service_role"
   USING (TRUE)
   WITH CHECK (TRUE);
+
+-- ===========================================
+-- Event livestream URL
+-- ===========================================
+
+ALTER TABLE events
+  ADD COLUMN IF NOT EXISTS livestream_url TEXT;

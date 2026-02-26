@@ -73,6 +73,7 @@ export const events = pgTable(
       .notNull(),
     creator: char({ length: 42 }),
     icon_url: text(),
+    livestream_url: text(),
     show_market_icons: boolean()
       .default(true),
     enable_neg_risk: boolean()
