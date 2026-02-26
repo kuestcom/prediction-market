@@ -3191,6 +3191,7 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
           h-12 w-fit min-w-0 cursor-pointer rounded-full border-0 bg-card px-3.5 pr-2 text-sm font-semibold
           text-foreground shadow-none
           hover:bg-card
+          data-[size=default]:h-12!
           dark:bg-card
           dark:hover:bg-card
         `}
