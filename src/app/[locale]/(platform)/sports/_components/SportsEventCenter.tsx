@@ -252,6 +252,7 @@ export default function SportsEventCenter({
   const setOrderMarket = useOrder(state => state.setMarket)
   const setOrderOutcome = useOrder(state => state.setOutcome)
   const setOrderSide = useOrder(state => state.setSide)
+  const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
   const openLivestream = useSportsLivestream(state => state.openStream)
   const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
@@ -517,7 +518,13 @@ export default function SportsEventCenter({
     setActiveTradeButtonKey(buttonKey)
 
     const panelMode = options?.panelMode ?? 'full'
-    if (panelMode === 'full') {
+    const shouldOpenMobileSheetOnly = isMobile && panelMode === 'full'
+
+    if (shouldOpenMobileSheetOnly) {
+      setIsMobileOrderPanelOpen(true)
+    }
+
+    if (panelMode === 'full' && !shouldOpenMobileSheetOnly) {
       setOpenSectionKey(sectionKey)
     }
   }
@@ -816,7 +823,10 @@ export default function SportsEventCenter({
                 >
                   <div
                     className={cn(
-                      'flex w-full cursor-pointer items-center gap-3 px-4 py-[18px] transition-colors',
+                      `
+                        flex w-full cursor-pointer flex-col items-stretch gap-3 px-4 py-[18px] transition-colors
+                        sm:flex-row sm:items-center
+                      `,
                       'hover:bg-secondary/30',
                     )}
                     role="button"
@@ -837,7 +847,13 @@ export default function SportsEventCenter({
                       </p>
                     </div>
 
-                    <div className={cn('flex min-w-0 flex-1 items-stretch justify-end gap-2')}>
+                    <div
+                      className={cn(
+                        'grid min-w-0 flex-1 items-stretch gap-2',
+                        'min-[1200px]:ml-auto min-[1200px]:w-[372px] min-[1200px]:flex-none',
+                        sectionButtons.length >= 3 ? 'grid-cols-3' : 'grid-cols-2',
+                      )}
+                    >
                       {sectionButtons.map((button) => {
                         const isActive = activeTradeButtonKey === button.key
                         const hasTeamColor = isActive
@@ -850,10 +866,7 @@ export default function SportsEventCenter({
                           <div
                             key={`${section.key}-${button.key}`}
                             className={cn(
-                              'relative min-w-0 shrink-0 overflow-hidden rounded-lg pb-1.25',
-                              section.key === 'moneyline'
-                                ? 'w-28.5 max-[490px]:w-full'
-                                : 'w-31.25 max-[490px]:w-full',
+                              'relative min-w-0 overflow-hidden rounded-lg pb-1.25',
                             )}
                           >
                             <div

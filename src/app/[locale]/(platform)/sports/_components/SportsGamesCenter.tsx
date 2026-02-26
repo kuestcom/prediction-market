@@ -2705,6 +2705,7 @@ export function SportsGameDetailsPanel({
                           tradeLabel={`TRADE ${tradeSelectionLabel}`}
                           onToggleOutcome={nextOutcome ? handleToggleOutcome : undefined}
                           toggleOutcomeTooltip={switchTooltip ?? undefined}
+                          openMobileOrderPanelOnLevelSelect={isMobile}
                         />
                       </div>
                     )
@@ -3004,7 +3005,7 @@ export default function SportsGamesCenter({
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [oddsFormat, setOddsFormat] = useState<OddsFormat>('price')
-  const [showSpreadsAndTotals, setShowSpreadsAndTotals] = useState(true)
+  const [showSpreadsAndTotals, setShowSpreadsAndTotals] = useState(false)
   const [hasLoadedOddsFormat, setHasLoadedOddsFormat] = useState(false)
   const [currentTimestampMs, setCurrentTimestampMs] = useState(0)
   const [titleRowActionsTarget, setTitleRowActionsTarget] = useState<HTMLElement | null>(null)
@@ -3015,6 +3016,7 @@ export default function SportsGamesCenter({
   const setOrderMarket = useOrder(state => state.setMarket)
   const setOrderOutcome = useOrder(state => state.setOutcome)
   const setOrderSide = useOrder(state => state.setSide)
+  const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
   const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
   const isLivePage = pageMode === 'live'
@@ -3050,9 +3052,7 @@ export default function SportsGamesCenter({
       setOddsFormat(matchedOption.value)
     }
     const storedShowSpreadsAndTotals = window.localStorage.getItem(SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY)
-    if (storedShowSpreadsAndTotals === '0') {
-      setShowSpreadsAndTotals(false)
-    }
+    setShowSpreadsAndTotals(storedShowSpreadsAndTotals === '1')
     setHasLoadedOddsFormat(true)
   }, [])
 
@@ -3075,6 +3075,15 @@ export default function SportsGamesCenter({
 
     setTitleRowActionsTarget(document.getElementById('sports-title-row-actions'))
   }, [isLivePage])
+
+  useEffect(() => {
+    if (!isMobile) {
+      return
+    }
+
+    // Avoid carrying over an open trade drawer while browsing cards on mobile.
+    setIsMobileOrderPanelOpen(false)
+  }, [isMobile, setIsMobileOrderPanelOpen])
 
   const formatButtonOdds = useCallback((cents: number) => {
     if (oddsFormat === 'price') {
@@ -3565,55 +3574,13 @@ export default function SportsGamesCenter({
       }
     }
 
-    const defaultConditionId = resolveDefaultConditionId(card)
-    const selectedButtonKey = resolveDisplayButtonKey(
-      card,
-      selectedConditionByCardId[card.id] ?? defaultConditionId,
-    )
-    const selectedButton = resolveSelectedButton(card, selectedButtonKey)
-    const isSpreadOrTotalSelected = selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
-
-    setTradeSelection({
-      cardId: card.id,
-      buttonKey: selectedButton?.key ?? defaultConditionId,
-    })
-
-    setSelectedConditionByCardId((current) => {
-      if (!defaultConditionId || current[card.id]) {
-        return current
-      }
-
-      return {
-        ...current,
-        [card.id]: defaultConditionId,
-      }
-    })
-
-    if (openCardId !== card.id) {
-      setOpenCardId(card.id)
-      setIsDetailsContentVisible(true)
-      setActiveDetailsTab('orderBook')
-      return
-    }
-
-    if (isDetailsContentVisible) {
-      if (isSpreadOrTotalSelected) {
-        setIsDetailsContentVisible(false)
-        return
-      }
-
-      setOpenCardId(null)
-      setIsDetailsContentVisible(true)
-      return
-    }
-
-    setIsDetailsContentVisible(true)
+    router.push(card.eventHref as Route)
   }
 
   function selectCardButton(
     card: SportsGamesCard,
     buttonKey: string,
-    options?: { panelMode?: 'full' | 'partial' | 'preserve' },
+    _options?: { panelMode?: 'full' | 'partial' | 'preserve' },
   ) {
     const normalizedButtonKey = resolveDisplayButtonKey(card, buttonKey)
     if (!normalizedButtonKey) {
@@ -3636,16 +3603,13 @@ export default function SportsGamesCenter({
       buttonKey: normalizedButtonKey,
     })
 
-    const panelMode = options?.panelMode ?? 'full'
-    if (panelMode === 'partial') {
-      setIsDetailsContentVisible(false)
-    }
-    else if (panelMode === 'full') {
-      setActiveDetailsTab('orderBook')
-      setIsDetailsContentVisible(true)
+    if (isMobile) {
+      setIsMobileOrderPanelOpen(true)
+      return
     }
 
-    setOpenCardId(card.id)
+    setOpenCardId(null)
+    setIsDetailsContentVisible(false)
   }
 
   function renderMarketColumnsHeader(headerKeyPrefix: string) {
@@ -3722,7 +3686,7 @@ export default function SportsGamesCenter({
             }
           }}
         >
-          <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="mb-2 flex flex-col items-stretch justify-between gap-2.5 sm:flex-row sm:items-center">
             <div className="flex min-w-0 items-center gap-2">
               {options.topBadgeMode === 'live'
                 ? (
@@ -3754,7 +3718,7 @@ export default function SportsGamesCenter({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               {canWatchLivestream && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -3792,8 +3756,9 @@ export default function SportsGamesCenter({
                 onClick={event => event.stopPropagation()}
                 className={cn(
                   `
-                    inline-flex items-center gap-1 rounded-lg bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold
+                    hidden items-center gap-1 rounded-lg bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold
                     text-foreground transition-colors
+                    min-[1024px]:inline-flex
                   `,
                   'hover:bg-secondary hover:ring-1 hover:ring-border',
                 )}
