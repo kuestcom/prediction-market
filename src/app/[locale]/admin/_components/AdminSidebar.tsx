@@ -29,7 +29,7 @@ export default function AdminSidebar() {
   ]
   const pathname = usePathname()
   const activeItem = adminMenuItems.find((item) => {
-    if (item.href === '/admin') {
+    if (item.id === 'general') {
       return pathname === item.href
     }
     return pathname === item.href || pathname.startsWith(`${item.href}/`)
