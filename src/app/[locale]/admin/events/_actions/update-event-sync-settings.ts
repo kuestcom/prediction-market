@@ -1,7 +1,6 @@
 'use server'
 
-import { revalidatePath, updateTag } from 'next/cache'
-import { cacheTags } from '@/lib/cache-tags'
+import { revalidatePath } from 'next/cache'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { AUTO_DEPLOY_NEW_EVENTS_KEY, EVENTS_SETTINGS_GROUP } from '@/lib/event-sync-settings'
@@ -39,8 +38,6 @@ export async function updateEventSyncSettingsAction(
     }
 
     revalidatePath('/[locale]/admin/events', 'page')
-    updateTag(cacheTags.settings)
-
     return { success: true }
   }
   catch (error) {

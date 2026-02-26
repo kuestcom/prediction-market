@@ -64,18 +64,25 @@ export default function AdminEventsTable({ initialAutoDeployNewEventsEnabled }: 
   const handleToggleHidden = useCallback(async (event: AdminEventRow, checked: boolean) => {
     setPendingHiddenId(event.id)
 
-    const result = await updateEventVisibilityAction(event.id, checked)
-    if (result.success) {
-      toast.success(checked
-        ? t('{name} is now hidden from public event lists.', { name: event.title })
-        : t('{name} is now visible in public event lists.', { name: event.title }))
-      void queryClient.invalidateQueries({ queryKey: ['admin-events'] })
+    try {
+      const result = await updateEventVisibilityAction(event.id, checked)
+      if (result.success) {
+        toast.success(checked
+          ? t('{name} is now hidden from public event lists.', { name: event.title })
+          : t('{name} is now visible in public event lists.', { name: event.title }))
+        void queryClient.invalidateQueries({ queryKey: ['admin-events'] })
+      }
+      else {
+        toast.error(result.error || t('Failed to update event visibility'))
+      }
     }
-    else {
-      toast.error(result.error || t('Failed to update event visibility'))
+    catch (error) {
+      console.error('Failed to update event visibility', error)
+      toast.error(t('Failed to update event visibility'))
     }
-
-    setPendingHiddenId(null)
+    finally {
+      setPendingHiddenId(null)
+    }
   }, [queryClient, t])
 
   const handleOpenSettings = useCallback(() => {
@@ -93,19 +100,26 @@ export default function AdminEventsTable({ initialAutoDeployNewEventsEnabled }: 
 
   const handleSaveSettings = useCallback(async () => {
     setIsSavingSettings(true)
-    const result = await updateEventSyncSettingsAction(draftAutoDeployEnabled)
-    if (result.success) {
-      setSavedAutoDeployEnabled(draftAutoDeployEnabled)
-      toast.success(draftAutoDeployEnabled
-        ? t('New events will be auto-deployed.')
-        : t('New events now require manual activation.'))
-      setSettingsOpen(false)
+    try {
+      const result = await updateEventSyncSettingsAction(draftAutoDeployEnabled)
+      if (result.success) {
+        setSavedAutoDeployEnabled(draftAutoDeployEnabled)
+        toast.success(draftAutoDeployEnabled
+          ? t('New events will be auto-deployed.')
+          : t('New events now require manual activation.'))
+        setSettingsOpen(false)
+      }
+      else {
+        toast.error(result.error || t('Failed to update event sync settings'))
+      }
     }
-    else {
-      toast.error(result.error || t('Failed to update event sync settings'))
+    catch (error) {
+      console.error('Failed to update event sync settings', error)
+      toast.error(t('Failed to update event sync settings'))
     }
-
-    setIsSavingSettings(false)
+    finally {
+      setIsSavingSettings(false)
+    }
   }, [draftAutoDeployEnabled, t])
 
   const handleOpenLivestreamModal = useCallback((event: AdminEventRow) => {

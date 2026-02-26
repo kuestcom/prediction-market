@@ -1100,16 +1100,28 @@ export const EventRepository = {
         )
       : undefined
 
-    const validSortFields: Array<'title' | 'status' | 'created_at' | 'updated_at'> = [
+    const validSortFields: Array<'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at'> = [
       'title',
       'status',
+      'volume',
+      'volume_24h',
       'created_at',
       'updated_at',
     ]
-    const resolvedSortBy = validSortFields.includes(sortBy as 'title' | 'status' | 'created_at' | 'updated_at')
-      ? sortBy as 'title' | 'status' | 'created_at' | 'updated_at'
+    const resolvedSortBy = validSortFields.includes(sortBy as 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at')
+      ? sortBy as 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at'
       : 'updated_at'
     const ascending = (sortOrder ?? 'desc') === 'asc'
+    const totalVolumeOrder = sql<number>`COALESCE((
+      SELECT SUM(${markets.volume})
+      FROM ${markets}
+      WHERE ${markets.event_id} = ${events.id}
+    ), 0)::double precision`
+    const volume24hOrder = sql<number>`COALESCE((
+      SELECT SUM(${markets.volume_24h})
+      FROM ${markets}
+      WHERE ${markets.event_id} = ${events.id}
+    ), 0)::double precision`
 
     let orderByClause
     switch (resolvedSortBy) {
@@ -1118,6 +1130,12 @@ export const EventRepository = {
         break
       case 'status':
         orderByClause = ascending ? asc(events.status) : desc(events.status)
+        break
+      case 'volume':
+        orderByClause = ascending ? asc(totalVolumeOrder) : desc(totalVolumeOrder)
+        break
+      case 'volume_24h':
+        orderByClause = ascending ? asc(volume24hOrder) : desc(volume24hOrder)
         break
       case 'updated_at':
         orderByClause = ascending ? asc(events.updated_at) : desc(events.updated_at)
