@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { getLocale } from 'next-intl/server'
 import { openSauceOne } from '@/lib/fonts'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 import './globals.css'
@@ -9,12 +8,11 @@ interface Props {
 }
 
 export default async function RootLayout({ children }: Props) {
-  const locale = await getLocale()
   const runtimeTheme = await loadRuntimeThemeState()
 
   return (
     <html
-      lang={locale}
+      lang="en"
       className={openSauceOne.variable}
       data-theme-preset={runtimeTheme.theme.presetId}
       suppressHydrationWarning

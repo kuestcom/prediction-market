@@ -80,6 +80,11 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
 
   return (
     <>
+      <meta httpEquiv="content-language" content={locale} />
+      <script
+        id="locale-html-lang"
+        dangerouslySetInnerHTML={{ __html: `document.documentElement.lang=${JSON.stringify(locale)};` }}
+      />
       <PwaServiceWorker />
       {runtimeTheme.theme.cssText && <style id="theme-vars" dangerouslySetInnerHTML={{ __html: runtimeTheme.theme.cssText }} />}
       <SiteIdentityProvider site={runtimeTheme.site}>
