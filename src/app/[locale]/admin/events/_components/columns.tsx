@@ -2,11 +2,12 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
-import { ArrowUpDownIcon } from 'lucide-react'
+import { ArrowUpDownIcon, EyeIcon, EyeOffIcon, RadioIcon, RepeatIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Link } from '@/i18n/navigation'
 import { formatCompactCurrency, formatDate } from '@/lib/formatters'
 
@@ -29,6 +30,19 @@ function resolveStatusVariant(status: AdminEventRow['status']): 'default' | 'sec
   return 'destructive'
 }
 
+function formatSeriesRecurrenceLabel(value: string | null | undefined) {
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  if (/^\d+[a-z]+$/i.test(trimmed)) {
+    return trimmed.toUpperCase()
+  }
+
+  return `${trimmed.slice(0, 1).toUpperCase()}${trimmed.slice(1)}`
+}
+
 export function useAdminEventsColumns({
   onToggleHidden,
   onOpenLivestreamModal,
@@ -45,32 +59,68 @@ export function useAdminEventsColumns({
           type="button"
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
+          className="h-auto gap-0 p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
         >
           {t('Event')}
-          <ArrowUpDownIcon className="ml-2 size-4" />
+          <ArrowUpDownIcon className="size-4" />
         </Button>
       ),
       cell: ({ row }) => {
         const event = row.original
         return (
-          <div className="min-w-0 space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href={`/event/${event.slug}`}
-                className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
-              >
-                {event.title}
-              </Link>
-              {event.is_hidden && (
-                <Badge variant="outline" className="text-xs">
-                  {t('Hidden')}
-                </Badge>
-              )}
+          <div className="min-w-[18rem]">
+            <div className="flex items-start gap-3">
+              <div className="relative size-10 shrink-0 overflow-hidden rounded-md border bg-muted/40">
+                {event.icon_url
+                  ? (
+                      <Image
+                        src={event.icon_url}
+                        alt={event.title}
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                      />
+                    )
+                  : (
+                      <div className="
+                        flex size-full items-center justify-center text-xs font-semibold text-muted-foreground
+                      "
+                      >
+                        {event.title.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+              </div>
+
+              <div className="min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/event/${event.slug}`}
+                    className={`
+                      truncate text-sm font-medium underline-offset-4 hover:underline
+                      ${event.is_hidden ? 'text-muted-foreground' : 'text-foreground'}
+                    `}
+                  >
+                    {event.title}
+                  </Link>
+                </div>
+
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className="min-w-0 truncate">{event.slug}</span>
+                  {event.series_slug && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center text-muted-foreground">
+                          <RepeatIcon className="size-3.5" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {formatSeriesRecurrenceLabel(event.series_recurrence ?? event.series_slug) ?? t('Series')}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {`slug: ${event.slug}`}
-            </p>
           </div>
         )
       },
@@ -84,10 +134,10 @@ export function useAdminEventsColumns({
           type="button"
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
+          className="h-auto gap-0 p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
         >
           {t('Status')}
-          <ArrowUpDownIcon className="ml-2 size-4" />
+          <ArrowUpDownIcon className="size-4" />
         </Button>
       ),
       cell: ({ row }) => {
@@ -100,109 +150,123 @@ export function useAdminEventsColumns({
       },
     },
     {
-      accessorKey: 'volume_24h',
-      id: 'volume_24h',
-      header: () => (
-        <div className="text-xs font-medium text-muted-foreground uppercase">
-          {t('Volume (24h)')}
-        </div>
-      ),
-      cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground">
-          {formatCompactCurrency(row.original.volume_24h)}
-        </span>
-      ),
-      enableSorting: false,
-    },
-    {
       accessorKey: 'volume',
       id: 'volume',
       header: () => (
         <div className="text-xs font-medium text-muted-foreground uppercase">
-          {t('Volume (Total)')}
+          {t('Volume (24h/Total)')}
         </div>
-      ),
-      cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground">
-          {formatCompactCurrency(row.original.volume)}
-        </span>
-      ),
-      enableSorting: false,
-    },
-    {
-      accessorKey: 'updated_at',
-      id: 'updated_at',
-      header: ({ column }) => (
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
-        >
-          {t('Updated')}
-          <ArrowUpDownIcon className="ml-2 size-4" />
-        </Button>
       ),
       cell: ({ row }) => {
         const event = row.original
         return (
           <span className="text-xs whitespace-nowrap text-muted-foreground">
-            {formatDate(new Date(event.updated_at))}
+            {formatCompactCurrency(event.volume_24h)}
+            {' / '}
+            {formatCompactCurrency(event.volume)}
+          </span>
+        )
+      },
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'created_at',
+      id: 'created_at',
+      header: ({ column }) => (
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          className="h-auto gap-0 p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
+        >
+          {t('Created')}
+          <ArrowUpDownIcon className="size-4" />
+        </Button>
+      ),
+      cell: ({ row }) => (
+        <span className="text-xs whitespace-nowrap text-muted-foreground">
+          {formatDate(new Date(row.original.created_at))}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'end_date',
+      id: 'end_date',
+      header: ({ column }) => (
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          className="h-auto gap-0 p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
+        >
+          {t('End')}
+          <ArrowUpDownIcon className="size-4" />
+        </Button>
+      ),
+      cell: ({ row }) => {
+        const endDate = row.original.end_date ? new Date(row.original.end_date) : null
+        return (
+          <span className="text-xs whitespace-nowrap text-muted-foreground">
+            {endDate ? formatDate(endDate) : t('Not set')}
           </span>
         )
       },
     },
     {
-      id: 'livestream',
+      id: 'actions',
       header: () => (
         <div className="text-center text-xs font-medium text-muted-foreground uppercase">
-          {t('Livestream')}
+          {t('Actions')}
         </div>
       ),
       cell: ({ row }) => {
         const event = row.original
+        const hiddenUpdatePending = isUpdatingHidden(event.id)
+        const nextHiddenState = !event.is_hidden
+
         return (
-          <div className="text-center">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onOpenLivestreamModal(event)}
-            >
-              {event.livestream_url ? t('Edit') : t('Add')}
-            </Button>
+          <div className="flex items-center justify-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  onClick={() => onOpenLivestreamModal(event)}
+                  aria-label={event.livestream_url ? t('Edit livestream URL') : t('Add livestream URL')}
+                >
+                  <RadioIcon className={`size-4 ${event.livestream_url ? 'text-red-500' : 'text-muted-foreground'}`} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {event.livestream_url ? t('Edit livestream URL') : t('Add livestream URL')}
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={`size-8 ${event.is_hidden ? 'text-red-500 hover:text-red-500' : 'text-muted-foreground'}`}
+                  onClick={() => onToggleHidden(event, nextHiddenState)}
+                  disabled={hiddenUpdatePending}
+                  aria-label={event.is_hidden ? t('Show event') : t('Hide event')}
+                >
+                  {event.is_hidden ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {event.is_hidden ? t('Show event') : t('Hide event')}
+              </TooltipContent>
+            </Tooltip>
           </div>
         )
       },
       enableSorting: false,
       enableHiding: false,
-    },
-    {
-      accessorKey: 'is_hidden',
-      id: 'is_hidden',
-      header: () => (
-        <div className="text-center text-xs font-medium text-muted-foreground uppercase">
-          {t('Hide Event')}
-        </div>
-      ),
-      cell: ({ row }) => {
-        const event = row.original
-        const disabled = isUpdatingHidden(event.id)
-        return (
-          <div className="text-center">
-            <Switch
-              id={`hide-event-${event.id}`}
-              checked={event.is_hidden}
-              disabled={disabled}
-              onCheckedChange={checked => onToggleHidden(event, checked)}
-            />
-            <span className="sr-only">
-              {t('Toggle hide for {name}', { name: event.title })}
-            </span>
-          </div>
-        )
-      },
-      enableSorting: false,
     },
   ]
 }

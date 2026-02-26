@@ -4,7 +4,7 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
 
-type AdminEventsSortBy = 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at'
+type AdminEventsSortBy = 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date'
 
 const VALID_SORT_FIELDS: AdminEventsSortBy[] = [
   'title',
@@ -13,6 +13,7 @@ const VALID_SORT_FIELDS: AdminEventsSortBy[] = [
   'volume_24h',
   'created_at',
   'updated_at',
+  'end_date',
 ]
 
 export async function GET(request: NextRequest) {
@@ -33,20 +34,28 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || undefined
     const sortByParam = searchParams.get('sortBy')
     const sortOrderParam = searchParams.get('sortOrder')
+    const mainCategorySlug = searchParams.get('mainCategorySlug')?.trim() || undefined
+    const creator = searchParams.get('creator')?.trim() || undefined
+    const seriesSlug = searchParams.get('seriesSlug')?.trim() || undefined
+    const activeOnly = searchParams.get('activeOnly') === '1'
 
     const sortBy = VALID_SORT_FIELDS.includes(sortByParam as AdminEventsSortBy)
       ? sortByParam as AdminEventsSortBy
-      : 'updated_at'
+      : 'created_at'
     const sortOrder = sortOrderParam === 'asc' || sortOrderParam === 'desc'
       ? sortOrderParam
       : 'desc'
 
-    const { data, error, totalCount } = await EventRepository.listAdminEvents({
+    const { data, error, totalCount, creatorOptions, seriesOptions } = await EventRepository.listAdminEvents({
       limit,
       offset,
       search,
       sortBy,
       sortOrder,
+      mainCategorySlug,
+      creator,
+      seriesSlug,
+      activeOnly,
     })
 
     if (error) {
@@ -63,6 +72,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       data,
       totalCount,
+      creatorOptions,
+      seriesOptions,
     })
   }
   catch (error) {

@@ -5,9 +5,14 @@ import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
 
-export default function HeaderLogo() {
+interface HeaderLogoProps {
+  labelSuffix?: string
+}
+
+export default function HeaderLogo({ labelSuffix }: HeaderLogoProps) {
   const site = useSiteIdentity()
   const { updateFilters } = useFilters()
+  const label = labelSuffix ? `${site.name} ${labelSuffix}` : site.name
 
   return (
     <Link
@@ -28,7 +33,7 @@ export default function HeaderLogo() {
         imageClassName="size-[1em] object-contain"
         size={32}
       />
-      <span>{site.name}</span>
+      <span>{label}</span>
     </Link>
   )
 }

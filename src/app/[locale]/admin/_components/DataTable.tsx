@@ -1,6 +1,7 @@
 'use client'
 
 import type { ColumnDef, SortingState, VisibilityState } from '@tanstack/react-table'
+import type { ReactNode } from 'react'
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
@@ -41,6 +42,10 @@ interface DataTableProps<TData, TValue> {
   pageSize: number
   onPageChange: (pageIndex: number) => void
   onPageSizeChange: (pageSize: number) => void
+  toolbarLeftContent?: ReactNode
+  toolbarRightContent?: ReactNode
+  searchInputClassName?: string
+  searchLeadingIcon?: ReactNode
 }
 
 export function DataTable<TData, TValue>({
@@ -65,6 +70,10 @@ export function DataTable<TData, TValue>({
   pageSize,
   onPageChange,
   onPageSizeChange,
+  toolbarLeftContent,
+  toolbarRightContent,
+  searchInputClassName,
+  searchLeadingIcon,
 }: DataTableProps<TData, TValue>) {
   const t = useExtracted()
   const resolvedSearchPlaceholder = searchPlaceholder ?? t('Search...')
@@ -81,9 +90,20 @@ export function DataTable<TData, TValue>({
       created_at: 'created',
     }
 
-    const columnId = sortBy ? (dbToColumnMapping[sortBy] || sortBy) : null
-    return columnId ? [{ id: columnId, desc: sortOrder === 'desc' }] : []
-  }, [sortBy, sortOrder])
+    const mappedColumnId = sortBy ? (dbToColumnMapping[sortBy] || sortBy) : null
+    if (!mappedColumnId) {
+      return []
+    }
+
+    const hasMappedColumn = columns.some((column) => {
+      const columnId = typeof column.id === 'string' ? column.id : null
+      const accessorKey = typeof column.accessorKey === 'string' ? column.accessorKey : null
+      return columnId === mappedColumnId || accessorKey === mappedColumnId
+    })
+
+    const resolvedColumnId = hasMappedColumn ? mappedColumnId : sortBy
+    return resolvedColumnId ? [{ id: resolvedColumnId, desc: sortOrder === 'desc' }] : []
+  }, [columns, sortBy, sortOrder])
 
   const handleSortingChange = useCallback((updaterOrValue: any) => {
     const newSorting = typeof updaterOrValue === 'function' ? updaterOrValue(sorting) : updaterOrValue
@@ -129,6 +149,10 @@ export function DataTable<TData, TValue>({
           enableColumnVisibility={enableColumnVisibility}
           enableSelection={enableSelection}
           isLoading={isLoading}
+          leftContent={toolbarLeftContent}
+          rightContent={toolbarRightContent}
+          searchInputClassName={searchInputClassName}
+          searchLeadingIcon={searchLeadingIcon}
         />
         <div className="rounded-md border">
           <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
@@ -180,6 +204,10 @@ export function DataTable<TData, TValue>({
         enableColumnVisibility={enableColumnVisibility}
         enableSelection={enableSelection}
         isLoading={isLoading}
+        leftContent={toolbarLeftContent}
+        rightContent={toolbarRightContent}
+        searchInputClassName={searchInputClassName}
+        searchLeadingIcon={searchLeadingIcon}
       />
       <div className="overflow-x-auto rounded-md border">
         <Table className="w-full">

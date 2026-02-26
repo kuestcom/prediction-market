@@ -20,6 +20,7 @@ import {
   outcomes,
   tag_translations,
   tags,
+  v_main_tag_subcategories,
 } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
@@ -280,8 +281,12 @@ interface ListAdminEventsParams {
   limit?: number
   offset?: number
   search?: string
-  sortBy?: 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at'
+  sortBy?: 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date'
   sortOrder?: 'asc' | 'desc'
+  mainCategorySlug?: string
+  creator?: string
+  seriesSlug?: string
+  activeOnly?: boolean
 }
 
 interface AdminEventRow {
@@ -289,10 +294,14 @@ interface AdminEventRow {
   slug: string
   title: string
   status: Event['status']
+  icon_url: string
   livestream_url: string | null
+  series_slug: string | null
+  series_recurrence: string | null
   volume: number
   volume_24h: number
   is_hidden: boolean
+  end_date: string | null
   created_at: string
   updated_at: string
 }
@@ -1083,34 +1092,87 @@ export const EventRepository = {
     limit = 50,
     offset = 0,
     search,
-    sortBy = 'updated_at',
+    sortBy = 'created_at',
     sortOrder = 'desc',
+    mainCategorySlug,
+    creator,
+    seriesSlug,
+    activeOnly = false,
   }: ListAdminEventsParams = {}): Promise<{
     data: AdminEventRow[]
     error: string | null
     totalCount: number
+    creatorOptions: string[]
+    seriesOptions: string[]
   }> {
     const cappedLimit = Math.min(Math.max(limit, 1), 100)
     const safeOffset = Math.max(offset, 0)
     const trimmedSearch = search?.trim()
-    const whereCondition = trimmedSearch
+    const trimmedMainCategorySlug = mainCategorySlug?.trim()
+    const trimmedCreator = creator?.trim()
+    const trimmedSeriesSlug = seriesSlug?.trim()
+
+    const searchCondition = trimmedSearch
       ? or(
           ilike(events.title, `%${trimmedSearch}%`),
           ilike(events.slug, `%${trimmedSearch}%`),
         )
       : undefined
+    const activeStatusCondition = activeOnly ? eq(events.status, 'active') : undefined
 
-    const validSortFields: Array<'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at'> = [
+    let categorySlugs: string[] | null = null
+    if (trimmedMainCategorySlug) {
+      const subTagRows = await db
+        .select({
+          slug: v_main_tag_subcategories.sub_tag_slug,
+        })
+        .from(v_main_tag_subcategories)
+        .where(and(
+          eq(v_main_tag_subcategories.main_tag_slug, trimmedMainCategorySlug),
+          sql`TRIM(COALESCE(${v_main_tag_subcategories.sub_tag_slug}, '')) <> ''`,
+        ))
+
+      const slugs = new Set<string>([trimmedMainCategorySlug])
+      for (const row of subTagRows) {
+        const slug = row.slug?.trim()
+        if (slug) {
+          slugs.add(slug)
+        }
+      }
+
+      categorySlugs = Array.from(slugs)
+    }
+
+    const mainCategoryCondition = categorySlugs && categorySlugs.length > 0
+      ? exists(
+          db
+            .select({ event_id: event_tags.event_id })
+            .from(event_tags)
+            .innerJoin(tags, eq(event_tags.tag_id, tags.id))
+            .where(and(
+              eq(event_tags.event_id, events.id),
+              inArray(tags.slug, categorySlugs),
+            )),
+        )
+      : undefined
+
+    const baseWhereCondition = and(searchCondition, mainCategoryCondition, activeStatusCondition)
+    const creatorCondition = trimmedCreator ? eq(events.creator, trimmedCreator) : undefined
+    const seriesCondition = trimmedSeriesSlug ? eq(events.series_slug, trimmedSeriesSlug) : undefined
+    const whereCondition = and(baseWhereCondition, creatorCondition, seriesCondition)
+
+    const validSortFields: Array<'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date'> = [
       'title',
       'status',
       'volume',
       'volume_24h',
       'created_at',
       'updated_at',
+      'end_date',
     ]
-    const resolvedSortBy = validSortFields.includes(sortBy as 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at')
-      ? sortBy as 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at'
-      : 'updated_at'
+    const resolvedSortBy = validSortFields.includes(sortBy as 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date')
+      ? sortBy as 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date'
+      : 'created_at'
     const ascending = (sortOrder ?? 'desc') === 'asc'
     const totalVolumeOrder = sql<number>`COALESCE((
       SELECT SUM(${markets.volume})
@@ -1140,6 +1202,9 @@ export const EventRepository = {
       case 'updated_at':
         orderByClause = ascending ? asc(events.updated_at) : desc(events.updated_at)
         break
+      case 'end_date':
+        orderByClause = ascending ? asc(events.end_date) : desc(events.end_date)
+        break
       case 'created_at':
       default:
         orderByClause = ascending ? asc(events.created_at) : desc(events.created_at)
@@ -1152,7 +1217,11 @@ export const EventRepository = {
         slug: events.slug,
         title: events.title,
         status: events.status,
+        icon_url: events.icon_url,
         livestream_url: events.livestream_url,
+        series_slug: events.series_slug,
+        series_recurrence: events.series_recurrence,
+        end_date: events.end_date,
         created_at: events.created_at,
         updated_at: events.updated_at,
       })
@@ -1184,6 +1253,84 @@ export const EventRepository = {
         data: [],
         error: error ?? countError,
         totalCount: 0,
+        creatorOptions: [],
+        seriesOptions: [],
+      }
+    }
+
+    const { data: creatorRows, error: creatorError } = await runQuery(async () => {
+      const creatorFilterCondition = and(
+        baseWhereCondition,
+        seriesCondition,
+        sql`TRIM(COALESCE(${events.creator}, '')) <> ''`,
+      )
+
+      const result = creatorFilterCondition
+        ? await db
+            .select({
+              creator: events.creator,
+            })
+            .from(events)
+            .where(creatorFilterCondition)
+            .groupBy(events.creator)
+            .orderBy(asc(events.creator))
+        : await db
+            .select({
+              creator: events.creator,
+            })
+            .from(events)
+            .where(sql`TRIM(COALESCE(${events.creator}, '')) <> ''`)
+            .groupBy(events.creator)
+            .orderBy(asc(events.creator))
+
+      return { data: result, error: null }
+    })
+
+    if (creatorError) {
+      return {
+        data: [],
+        error: creatorError,
+        totalCount: 0,
+        creatorOptions: [],
+        seriesOptions: [],
+      }
+    }
+
+    const { data: seriesRows, error: seriesError } = await runQuery(async () => {
+      const seriesFilterCondition = and(
+        baseWhereCondition,
+        creatorCondition,
+        sql`TRIM(COALESCE(${events.series_slug}, '')) <> ''`,
+      )
+
+      const result = seriesFilterCondition
+        ? await db
+            .select({
+              series_slug: events.series_slug,
+            })
+            .from(events)
+            .where(seriesFilterCondition)
+            .groupBy(events.series_slug)
+            .orderBy(asc(events.series_slug))
+        : await db
+            .select({
+              series_slug: events.series_slug,
+            })
+            .from(events)
+            .where(sql`TRIM(COALESCE(${events.series_slug}, '')) <> ''`)
+            .groupBy(events.series_slug)
+            .orderBy(asc(events.series_slug))
+
+      return { data: result, error: null }
+    })
+
+    if (seriesError) {
+      return {
+        data: [],
+        error: seriesError,
+        totalCount: 0,
+        creatorOptions: [],
+        seriesOptions: [],
       }
     }
 
@@ -1229,6 +1376,9 @@ export const EventRepository = {
     const formattedRows: AdminEventRow[] = rows.map((row) => {
       const createdAt = row.created_at instanceof Date ? row.created_at : new Date(row.created_at)
       const updatedAt = row.updated_at instanceof Date ? row.updated_at : new Date(row.updated_at)
+      const endDate = row.end_date
+        ? (row.end_date instanceof Date ? row.end_date : new Date(row.end_date))
+        : null
       const volumeData = volumeByEventId.get(row.id)
 
       return {
@@ -1236,10 +1386,14 @@ export const EventRepository = {
         slug: row.slug,
         title: row.title,
         status: (row.status ?? 'draft') as Event['status'],
+        icon_url: getPublicAssetUrl(row.icon_url ?? null),
         livestream_url: row.livestream_url ?? null,
+        series_slug: row.series_slug ?? null,
+        series_recurrence: row.series_recurrence ?? null,
         volume: volumeData?.volume ?? 0,
         volume_24h: volumeData?.volume_24h ?? 0,
         is_hidden: hiddenEventIds.has(row.id),
+        end_date: endDate && !Number.isNaN(endDate.getTime()) ? endDate.toISOString() : null,
         created_at: Number.isNaN(createdAt.getTime()) ? new Date().toISOString() : createdAt.toISOString(),
         updated_at: Number.isNaN(updatedAt.getTime()) ? new Date().toISOString() : updatedAt.toISOString(),
       }
@@ -1249,6 +1403,12 @@ export const EventRepository = {
       data: formattedRows,
       error: null,
       totalCount: countResult?.[0]?.count ?? 0,
+      creatorOptions: (creatorRows ?? [])
+        .map(row => row.creator?.trim() ?? '')
+        .filter(value => value.length > 0),
+      seriesOptions: (seriesRows ?? [])
+        .map(row => row.series_slug?.trim() ?? '')
+        .filter(value => value.length > 0),
     }
   },
 

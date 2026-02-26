@@ -10,8 +10,7 @@ export default async function AdminHeader() {
           md:min-h-17 md:pb-2
         `}
       >
-        <HeaderLogo />
-        <span>Admin</span>
+        <HeaderLogo labelSuffix="Admin" />
         <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:gap-4">
           <HeaderDropdownUserMenuAuth />
         </div>

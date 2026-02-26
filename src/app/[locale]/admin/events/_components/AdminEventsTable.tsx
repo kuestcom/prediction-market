@@ -2,7 +2,7 @@
 
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
 import { useQueryClient } from '@tanstack/react-query'
-import { SettingsIcon } from 'lucide-react'
+import { FilterIcon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
@@ -24,13 +24,20 @@ import {
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Link } from '@/i18n/navigation'
 
 interface AdminEventsTableProps {
   initialAutoDeployNewEventsEnabled: boolean
+  mainCategoryOptions: { slug: string, name: string }[]
 }
 
-export default function AdminEventsTable({ initialAutoDeployNewEventsEnabled }: AdminEventsTableProps) {
+export default function AdminEventsTable({
+  initialAutoDeployNewEventsEnabled,
+  mainCategoryOptions,
+}: AdminEventsTableProps) {
   const t = useExtracted()
   const queryClient = useQueryClient()
 
@@ -45,8 +52,18 @@ export default function AdminEventsTable({ initialAutoDeployNewEventsEnabled }: 
     search,
     sortBy,
     sortOrder,
+    mainCategorySlug,
+    creator,
+    creatorOptions,
+    seriesSlug,
+    seriesOptions,
+    activeOnly,
     handleSearchChange,
     handleSortChange,
+    handleMainCategoryChange,
+    handleCreatorChange,
+    handleSeriesSlugChange,
+    handleActiveOnlyChange,
     handlePageChange,
     handlePageSizeChange,
   } = useAdminEventsTable()
@@ -60,6 +77,10 @@ export default function AdminEventsTable({ initialAutoDeployNewEventsEnabled }: 
   const [livestreamUrlValue, setLivestreamUrlValue] = useState('')
   const [livestreamError, setLivestreamError] = useState<string | null>(null)
   const [isSavingLivestream, setIsSavingLivestream] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [draftMainCategorySlug, setDraftMainCategorySlug] = useState(mainCategorySlug)
+  const [draftCreator, setDraftCreator] = useState(creator)
+  const [draftSeriesSlug, setDraftSeriesSlug] = useState(seriesSlug)
 
   const handleToggleHidden = useCallback(async (event: AdminEventRow, checked: boolean) => {
     setPendingHiddenId(event.id)
@@ -122,6 +143,34 @@ export default function AdminEventsTable({ initialAutoDeployNewEventsEnabled }: 
     }
   }, [draftAutoDeployEnabled, t])
 
+  const handleOpenFilters = useCallback(() => {
+    setDraftMainCategorySlug(mainCategorySlug)
+    setDraftCreator(creator)
+    setDraftSeriesSlug(seriesSlug)
+    setFiltersOpen(true)
+  }, [mainCategorySlug, creator, seriesSlug])
+
+  const handleApplyFilters = useCallback(() => {
+    handleMainCategoryChange(draftMainCategorySlug)
+    handleCreatorChange(draftCreator)
+    handleSeriesSlugChange(draftSeriesSlug)
+    setFiltersOpen(false)
+  }, [
+    draftMainCategorySlug,
+    draftCreator,
+    draftSeriesSlug,
+    handleMainCategoryChange,
+    handleCreatorChange,
+    handleSeriesSlugChange,
+  ])
+
+  const handleClearFilters = useCallback(() => {
+    handleMainCategoryChange('all')
+    handleCreatorChange('all')
+    handleSeriesSlugChange('all')
+    handleActiveOnlyChange(false)
+  }, [handleMainCategoryChange, handleCreatorChange, handleSeriesSlugChange, handleActiveOnlyChange])
+
   const handleOpenLivestreamModal = useCallback((event: AdminEventRow) => {
     setLivestreamEvent(event)
     setLivestreamUrlValue(event.livestream_url ?? '')
@@ -169,20 +218,76 @@ export default function AdminEventsTable({ initialAutoDeployNewEventsEnabled }: 
     isUpdatingHidden: eventId => pendingHiddenId === eventId,
   })
 
+  const settingsButton = (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button type="button" variant="outline" size="icon" onClick={handleOpenSettings} aria-label={t('Settings')}>
+          <SettingsIcon className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{t('Settings')}</TooltipContent>
+    </Tooltip>
+  )
+
+  const createEventButton = (
+    <Button asChild type="button" className="h-9">
+      <Link href="/admin/create-event">{t('Create Event')}</Link>
+    </Button>
+  )
+
+  const hasAppliedFilters = mainCategorySlug !== 'all'
+    || creator !== 'all'
+    || seriesSlug !== 'all'
+
+  const filtersButton = (
+    <div className="relative">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button type="button" variant="outline" size="icon" onClick={handleOpenFilters} aria-label={t('Filters')}>
+            <FilterIcon className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t('Filters')}</TooltipContent>
+      </Tooltip>
+      {hasAppliedFilters && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            handleClearFilters()
+          }}
+          className={`
+            absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full border border-background
+            bg-foreground text-background
+          `}
+          aria-label={t('Clear filters')}
+        >
+          <XIcon className="size-2.5" />
+        </button>
+      )}
+    </div>
+  )
+
+  const onlyActiveControl = (
+    <div className="flex items-center gap-2">
+      <Switch
+        id="admin-events-active-only"
+        checked={activeOnly}
+        onCheckedChange={handleActiveOnlyChange}
+      />
+      <Label htmlFor="admin-events-active-only" className="text-sm font-normal text-muted-foreground">
+        {t('Only active')}
+      </Label>
+    </div>
+  )
+
   return (
     <>
-      <div className="mb-3 flex items-center justify-end">
-        <Button type="button" variant="outline" onClick={handleOpenSettings}>
-          <SettingsIcon className="mr-2 size-4" />
-          {t('Settings')}
-        </Button>
-      </div>
-
       <DataTable
         columns={columns}
         data={events}
         totalCount={totalCount}
-        searchPlaceholder={t('Search events...')}
+        searchPlaceholder={t('Search')}
         enableSelection={false}
         enablePagination
         enableColumnVisibility={false}
@@ -200,7 +305,117 @@ export default function AdminEventsTable({ initialAutoDeployNewEventsEnabled }: 
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        toolbarLeftContent={(
+          <div className="flex items-center gap-3">
+            {filtersButton}
+            {onlyActiveControl}
+          </div>
+        )}
+        toolbarRightContent={(
+          <div className="flex items-center gap-2">
+            {createEventButton}
+            {settingsButton}
+          </div>
+        )}
+        searchInputClassName="h-9 w-37.5 lg:w-62.5"
+        searchLeadingIcon={<SearchIcon className="size-4" />}
       />
+
+      <Dialog
+        open={filtersOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            setFiltersOpen(true)
+            return
+          }
+          setFiltersOpen(false)
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t('Filters')}</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label>{t('Main category')}</Label>
+              <Select value={draftMainCategorySlug} onValueChange={setDraftMainCategorySlug}>
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue placeholder={t('Main category')} />
+                </SelectTrigger>
+                <SelectContent align="start" className="py-1">
+                  <SelectItem value="all" className="mx-1 my-0.5 cursor-pointer rounded-md">{t('All categories')}</SelectItem>
+                  {mainCategoryOptions.map(category => (
+                    <SelectItem
+                      key={category.slug}
+                      value={category.slug}
+                      className="mx-1 my-0.5 cursor-pointer rounded-md"
+                    >
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {creatorOptions.length > 1 && (
+              <div className="grid gap-2">
+                <Label>{t('Creator')}</Label>
+                <Select value={draftCreator} onValueChange={setDraftCreator}>
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder={t('Creator')} />
+                  </SelectTrigger>
+                  <SelectContent align="start" className="py-1">
+                    <SelectItem value="all" className="mx-1 my-0.5 cursor-pointer rounded-md">{t('All creators')}</SelectItem>
+                    {creatorOptions.map(creatorWallet => (
+                      <SelectItem
+                        key={creatorWallet}
+                        value={creatorWallet}
+                        className="mx-1 my-0.5 cursor-pointer rounded-md font-mono text-xs"
+                      >
+                        {creatorWallet}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {seriesOptions.length > 0 && (
+              <div className="grid gap-2">
+                <Label>{t('Series')}</Label>
+                <Select value={draftSeriesSlug} onValueChange={setDraftSeriesSlug}>
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder={t('Series')} />
+                  </SelectTrigger>
+                  <SelectContent align="start" className="py-1">
+                    <SelectItem value="all" className="mx-1 my-0.5 cursor-pointer rounded-md">{t('All series')}</SelectItem>
+                    {seriesOptions.map(seriesOption => (
+                      <SelectItem
+                        key={seriesOption}
+                        value={seriesOption}
+                        className="mx-1 my-0.5 cursor-pointer rounded-md"
+                      >
+                        {seriesOption}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setFiltersOpen(false)}>
+              {t('Cancel')}
+            </Button>
+            <Button type="button" onClick={handleApplyFilters}>
+              {t('Apply')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={settingsOpen}
@@ -215,39 +430,30 @@ export default function AdminEventsTable({ initialAutoDeployNewEventsEnabled }: 
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{t('Events settings')}</DialogTitle>
-            <DialogDescription>
-              {t('Control how newly synced events are published to the platform.')}
-            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-2">
-            <div className="flex items-center justify-between gap-4">
-              <div className="grid gap-1">
+            <div className="grid gap-1">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="auto-deploy-events"
+                  checked={draftAutoDeployEnabled}
+                  onCheckedChange={setDraftAutoDeployEnabled}
+                  disabled={isSavingSettings}
+                />
                 <Label htmlFor="auto-deploy-events" className="text-sm font-medium">
                   {t('Auto-deploy new events')}
                 </Label>
+              </div>
+              <div className="grid gap-1">
                 <p className="text-xs text-muted-foreground">
                   {t('When disabled, new synced events stay hidden until manually enabled in this list.')}
                 </p>
               </div>
-              <Switch
-                id="auto-deploy-events"
-                checked={draftAutoDeployEnabled}
-                onCheckedChange={setDraftAutoDeployEnabled}
-                disabled={isSavingSettings}
-              />
             </div>
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCloseSettings}
-              disabled={isSavingSettings}
-            >
-              {t('Cancel')}
-            </Button>
             <Button
               type="button"
               onClick={() => {
