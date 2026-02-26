@@ -212,6 +212,7 @@ export default function SportsEventsGrid({
     && filters.frequency === 'all'
     && filters.status === 'active'
   const shouldUseInitialData = isDefaultState && initialEvents.length > 0
+  const shouldAutoRefreshEvents = filters.status === 'active'
 
   const {
     status,
@@ -249,7 +250,10 @@ export default function SportsEventsGrid({
     initialData: shouldUseInitialData ? { pages: [initialEvents], pageParams: [0] } : undefined,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-    staleTime: 0,
+    staleTime: 'static',
+    refetchInterval: shouldAutoRefreshEvents ? 60_000 : false,
+    refetchIntervalInBackground: true,
+    initialDataUpdatedAt: 0,
     placeholderData: previousData => previousData,
   })
 
@@ -270,6 +274,12 @@ export default function SportsEventsGrid({
 
   useEffect(() => {
     setCurrentTimestamp(Date.now())
+
+    const interval = window.setInterval(() => {
+      setCurrentTimestamp(Date.now())
+    }, 60_000)
+
+    return () => window.clearInterval(interval)
   }, [])
 
   const allEvents = useMemo(() => (data ? data.pages.flat() : []), [data])
@@ -499,6 +509,7 @@ export default function SportsEventsGrid({
                     key={event.id}
                     event={event}
                     priceOverridesByMarket={priceOverridesByMarket}
+                    enableHomeSportsMoneylineLayout={false}
                   />
                 ))}
                 {isFetchingNextPage && isLastVirtualRow && <EventCardSkeleton />}

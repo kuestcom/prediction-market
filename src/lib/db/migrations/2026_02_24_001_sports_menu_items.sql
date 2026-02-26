@@ -1,0 +1,265 @@
+-- ===========================================
+-- Sports menu configuration
+-- ===========================================
+
+CREATE TABLE IF NOT EXISTS sports_menu_items (
+  id TEXT PRIMARY KEY,
+  item_type TEXT NOT NULL,
+  label TEXT,
+  href TEXT,
+  icon_url TEXT,
+  parent_id TEXT,
+  menu_slug TEXT,
+  h1_title TEXT,
+  mapped_tags JSONB NOT NULL DEFAULT '[]'::jsonb,
+  url_aliases JSONB NOT NULL DEFAULT '[]'::jsonb,
+  games_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  props_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT sports_menu_items_item_type_check CHECK (item_type IN ('link', 'group', 'header', 'divider')),
+  CONSTRAINT sports_menu_items_mapped_tags_is_array CHECK (jsonb_typeof(mapped_tags) = 'array'),
+  CONSTRAINT sports_menu_items_url_aliases_is_array CHECK (jsonb_typeof(url_aliases) = 'array')
+);
+
+CREATE INDEX IF NOT EXISTS idx_sports_menu_items_parent_id
+  ON sports_menu_items (parent_id);
+
+CREATE INDEX IF NOT EXISTS idx_sports_menu_items_sort_order
+  ON sports_menu_items (sort_order);
+
+CREATE INDEX IF NOT EXISTS idx_sports_menu_items_enabled
+  ON sports_menu_items (enabled);
+
+CREATE INDEX IF NOT EXISTS idx_sports_menu_items_menu_slug
+  ON sports_menu_items (menu_slug);
+
+INSERT INTO sports_menu_items (
+  id,
+  item_type,
+  label,
+  href,
+  icon_url,
+  parent_id,
+  menu_slug,
+  h1_title,
+  mapped_tags,
+  url_aliases,
+  games_enabled,
+  props_enabled,
+  sort_order,
+  enabled
+)
+VALUES
+  ('top-link-live-sports-live-0', 'link', 'Live', '/sports/live', '/images/sports/menu/full/top-live-live.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 0, TRUE),
+  ('top-link-futures-sports-futures-nba-1', 'link', 'Futures', '/sports/futures/nba', '/images/sports/menu/full/top-futures-futures-nba.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 1, TRUE),
+  ('divider-2', 'divider', NULL, NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 2, TRUE),
+  ('header-3', 'header', 'All Sports', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 3, TRUE),
+  ('top-link-nba-sports-nba-games-4', 'link', 'NBA', '/sports/nba/games', '/images/sports/menu/full/top-nba-nba-games.svg', NULL, 'nba', 'NBA', '["NBA"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 4, TRUE),
+  ('top-link-ncaab-sports-cbb-games-5', 'link', 'NCAAB', '/sports/cbb/games', '/images/sports/menu/full/top-ncaab-cbb-games.svg', NULL, 'cbb', 'NCAAB', '["ncaab","NCAAB"]'::jsonb, '["ncaab"]'::jsonb, TRUE, TRUE, 5, TRUE),
+  ('top-link-nhl-sports-nhl-games-6', 'link', 'NHL', '/sports/nhl/games', '/images/sports/menu/full/top-nhl-nhl-games.svg', NULL, 'nhl', 'NHL', '["NHL"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 6, TRUE),
+  ('group-ufc-7', 'group', 'UFC', NULL, '/images/sports/menu/full/group-ufc.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 7, TRUE),
+  ('group-ufc-7-link-ufc-sports-ufc-games-0', 'link', 'UFC', '/sports/ufc/games', '/images/sports/menu/full/sub-ufc-ufc-ufc-games.svg', 'group-ufc-7', 'ufc', 'UFC', '[]'::jsonb, '[]'::jsonb, TRUE, TRUE, 0, TRUE),
+  ('group-ufc-7-link-zuffa-sports-zuffa-games-1', 'link', 'Zuffa', '/sports/zuffa/games', '/images/sports/menu/full/sub-ufc-zuffa-zuffa-games.svg', 'group-ufc-7', 'zuffa', 'Zuffa', '["Zuffa"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 1, TRUE),
+  ('group-winter-games-8', 'group', 'Winter Games', NULL, '/images/sports/menu/full/group-winter-games.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 8, TRUE),
+  ('group-winter-games-8-link-mens-hockey-sports-mwoh-games-0', 'link', 'Men''s Hockey', '/sports/mwoh/games', '/images/sports/menu/full/sub-winter-games-mens-hockey-mwoh-games.svg', 'group-winter-games-8', 'mwoh', 'Men''s Hockey', '[]'::jsonb, '[]'::jsonb, TRUE, TRUE, 0, TRUE),
+  ('group-winter-games-8-link-womens-hockey-sports-wwoh-games-1', 'link', 'Women''s Hockey', '/sports/wwoh/games', '/images/sports/menu/full/sub-winter-games-womens-hockey-wwoh-games.svg', 'group-winter-games-8', 'wwoh', 'Women''s Hockey', '[]'::jsonb, '[]'::jsonb, TRUE, TRUE, 1, TRUE),
+  ('group-winter-games-8-link-all-winter-games-sports-winter-olympics-all-props-2', 'link', 'All Winter Games', '/sports/winter-olympics-all/props', '/images/sports/menu/full/sub-winter-games-all-winter-games-winter-olympics-all-props.svg', 'group-winter-games-8', 'winter-olympics-all', 'All Winter Games', '[]'::jsonb, '[]'::jsonb, TRUE, TRUE, 2, TRUE),
+  ('group-football-9', 'group', 'Football', NULL, '/images/sports/menu/full/group-football.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 9, TRUE),
+  ('group-football-9-link-nfl-sports-nfl-props-0', 'link', 'NFL', '/sports/nfl/props', '/images/sports/menu/full/sub-football-nfl-nfl-props.svg', 'group-football-9', 'nfl', 'NFL', '["NFL"]'::jsonb, '[]'::jsonb, FALSE, TRUE, 0, TRUE),
+  ('group-football-9-link-cfb-sports-cfb-props-1', 'link', 'CFB', '/sports/cfb/props', '/images/sports/menu/full/sub-football-cfb-cfb-props.svg', 'group-football-9', 'cfb', 'CFB', '["CFB"]'::jsonb, '[]'::jsonb, FALSE, TRUE, 1, TRUE),
+  ('group-basketball-10', 'group', 'Basketball', NULL, '/images/sports/menu/full/group-basketball.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 10, TRUE),
+  ('group-basketball-10-link-nba-sports-nba-games-0', 'link', 'NBA', '/sports/nba/games', '/images/sports/menu/full/sub-basketball-nba-nba-games.svg', 'group-basketball-10', 'nba', 'NBA', '["NBA"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 0, TRUE),
+  ('group-basketball-10-link-ncaab-sports-cbb-games-1', 'link', 'NCAAB', '/sports/cbb/games', '/images/sports/menu/full/sub-basketball-ncaab-cbb-games.svg', 'group-basketball-10', 'cbb', 'NCAAB', '["ncaab","NCAAB"]'::jsonb, '["ncaab"]'::jsonb, TRUE, TRUE, 1, TRUE),
+  ('group-basketball-10-link-lnb-sports-bkarg-games-2', 'link', 'LNB', '/sports/bkarg/games', '/images/sports/menu/full/sub-basketball-lnb-bkarg-games.png', 'group-basketball-10', 'bkarg', 'LNB', '["LNB"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 2, TRUE),
+  ('group-basketball-10-link-pro-a-sports-bkfr1-games-3', 'link', 'Pro A', '/sports/bkfr1/games', '/images/sports/menu/full/sub-basketball-pro-a-bkfr1-games.png', 'group-basketball-10', 'bkfr1', 'Pro A', '["Pro A"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 3, TRUE),
+  ('group-basketball-10-link-euroleague-basketball-sports-euroleague-games-4', 'link', 'Euroleague Basketball', '/sports/euroleague/games', '/images/sports/menu/full/sub-basketball-euroleague-basketball-euroleague-games.svg', 'group-basketball-10', 'euroleague', 'Euroleague Basketball', '["Euroleague Basketball"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 4, TRUE),
+  ('group-basketball-10-link-champions-league-sports-bkcl-games-5', 'link', 'Champions League', '/sports/bkcl/games', '/images/sports/menu/full/sub-basketball-champions-league-bkcl-games.svg', 'group-basketball-10', 'bkcl', 'Champions League', '["Champions League"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 5, TRUE),
+  ('group-basketball-10-link-liga-endesa-sports-bkligend-games-6', 'link', 'Liga Endesa', '/sports/bkligend/games', '/images/sports/menu/full/sub-basketball-liga-endesa-bkligend-games.png', 'group-basketball-10', 'bkligend', 'Liga Endesa', '["Liga Endesa"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 6, TRUE),
+  ('group-basketball-10-link-serie-a-sports-bkseriea-games-7', 'link', 'Serie A', '/sports/bkseriea/games', '/images/sports/menu/full/sub-basketball-serie-a-bkseriea-games.png', 'group-basketball-10', 'bkseriea', 'Serie A', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 7, TRUE),
+  ('group-basketball-10-link-nbl-sports-bknbl-games-8', 'link', 'NBL', '/sports/bknbl/games', '/images/sports/menu/full/sub-basketball-nbl-bknbl-games.png', 'group-basketball-10', 'bknbl', 'NBL', '["NBL"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 8, TRUE),
+  ('group-basketball-10-link-cba-sports-bkcba-games-9', 'link', 'CBA', '/sports/bkcba/games', '/images/sports/menu/full/sub-basketball-cba-bkcba-games.png', 'group-basketball-10', 'bkcba', 'CBA', '["CBA"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 9, TRUE),
+  ('group-basketball-10-link-kbl-sports-bkkbl-games-10', 'link', 'KBL', '/sports/bkkbl/games', '/images/sports/menu/full/sub-basketball-kbl-bkkbl-games.png', 'group-basketball-10', 'bkkbl', 'KBL', '["KBL"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 10, TRUE),
+  ('group-soccer-11', 'group', 'Soccer', NULL, '/images/sports/menu/full/group-soccer.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 11, TRUE),
+  ('group-soccer-11-link-epl-sports-epl-games-0', 'link', 'EPL', '/sports/epl/games', '/images/sports/menu/full/sub-soccer-epl-epl-games.png', 'group-soccer-11', 'epl', 'EPL', '["EPL"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 0, TRUE),
+  ('group-soccer-11-link-ligue-1-sports-ligue-1-games-1', 'link', 'Ligue 1', '/sports/ligue-1/games', '/images/sports/menu/full/sub-soccer-ligue-1-ligue-1-games.png', 'group-soccer-11', 'ligue-1', 'Ligue 1', '["Ligue 1"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 1, TRUE),
+  ('group-soccer-11-link-la-liga-sports-laliga-games-2', 'link', 'La Liga', '/sports/laliga/games', '/images/sports/menu/full/sub-soccer-la-liga-laliga-games.png', 'group-soccer-11', 'laliga', 'La Liga', '["La Liga"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 2, TRUE),
+  ('group-soccer-11-link-bundesliga-sports-bundesliga-games-3', 'link', 'Bundesliga', '/sports/bundesliga/games', '/images/sports/menu/full/sub-soccer-bundesliga-bundesliga-games.png', 'group-soccer-11', 'bundesliga', 'Bundesliga', '["bundesliga","Bundesliga"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 3, TRUE),
+  ('group-soccer-11-link-serie-a-sports-sea-games-4', 'link', 'Serie A', '/sports/sea/games', '/images/sports/menu/full/sub-soccer-serie-a-sea-games.png', 'group-soccer-11', 'sea', 'Serie A', '["Serie A"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 4, TRUE),
+  ('group-soccer-11-link-eredivisie-sports-ere-games-5', 'link', 'Eredivisie', '/sports/ere/games', '/images/sports/menu/full/sub-soccer-eredivisie-ere-games.png', 'group-soccer-11', 'ere', 'Eredivisie', '["Eredivisie"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 5, TRUE),
+  ('group-soccer-11-link-ucl-sports-ucl-games-6', 'link', 'UCL', '/sports/ucl/games', '/images/sports/menu/full/sub-soccer-ucl-ucl-games.svg', 'group-soccer-11', 'ucl', 'UCL', '["UCL"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 6, TRUE),
+  ('group-soccer-11-link-s-per-lig-sports-tur-games-7', 'link', 'Süper Lig', '/sports/tur/games', '/images/sports/menu/full/sub-soccer-super-lig-tur-games.png', 'group-soccer-11', 'tur', 'Süper Lig', '["Süper Lig"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 7, TRUE),
+  ('group-soccer-11-link-saudi-professional-league-sports-spl-games-8', 'link', 'Saudi Professional League', '/sports/spl/games', '/images/sports/menu/full/sub-soccer-saudi-professional-league-spl-games.png', 'group-soccer-11', 'spl', 'Saudi Professional League', '["Saudi Professional League"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 8, TRUE),
+  ('group-soccer-11-link-czechia-fortuna-liga-sports-cze1-games-9', 'link', 'Czechia Fortuna Liga', '/sports/cze1/games', '/images/sports/menu/full/sub-soccer-czechia-fortuna-liga-cze1-games.png', 'group-soccer-11', 'cze1', 'Czechia Fortuna Liga', '["Czechia","Czechia Fortuna Liga"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 9, TRUE),
+  ('group-soccer-11-link-liga-mx-sports-mex-games-10', 'link', 'Liga MX', '/sports/mex/games', '/images/sports/menu/full/sub-soccer-liga-mx-mex-games.png', 'group-soccer-11', 'mex', 'Liga MX', '["Liga MX"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 10, TRUE),
+  ('group-soccer-11-link-primeira-liga-sports-por-games-11', 'link', 'Primeira Liga', '/sports/por/games', '/images/sports/menu/full/sub-soccer-primeira-liga-por-games.png', 'group-soccer-11', 'por', 'Primeira Liga', '["Primeira Liga"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 11, TRUE),
+  ('group-soccer-11-link-denmark-superliga-sports-den-games-12', 'link', 'Denmark Superliga', '/sports/den/games', '/images/sports/menu/full/sub-soccer-denmark-superliga-den-games.png', 'group-soccer-11', 'den', 'Denmark Superliga', '["Denmark Superliga"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 12, TRUE),
+  ('group-soccer-11-link-mls-sports-mls-games-13', 'link', 'MLS', '/sports/mls/games', '/images/sports/menu/full/sub-soccer-mls-mls-games.png', 'group-soccer-11', 'mls', 'MLS', '["MLS"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 13, TRUE),
+  ('group-soccer-11-link-uel-sports-uel-games-14', 'link', 'UEL', '/sports/uel/games', '/images/sports/menu/full/sub-soccer-uel-uel-games.svg', 'group-soccer-11', 'uel', 'UEL', '["UEL"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 14, TRUE),
+  ('group-soccer-11-link-colombia-primera-a-sports-col1-games-15', 'link', 'Colombia Primera A', '/sports/col1/games', '/images/sports/menu/full/sub-soccer-colombia-primera-a-col1-games.png', 'group-soccer-11', 'col1', 'Colombia Primera A', '["Colombia","Colombia Primera A"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 15, TRUE),
+  ('group-soccer-11-link-brazil-s-rie-a-sports-bra-games-16', 'link', 'Brazil Série A', '/sports/bra/games', '/images/sports/menu/full/sub-soccer-brazil-serie-a-bra-games.png', 'group-soccer-11', 'bra', 'Brazil Série A', '["Brazil Serie A","Brazil Série A"]'::jsonb, '["brazil"]'::jsonb, TRUE, TRUE, 16, TRUE),
+  ('group-soccer-11-link-copa-libertadores-sports-lib-games-17', 'link', 'Copa Libertadores', '/sports/lib/games', '/images/sports/menu/full/sub-soccer-copa-libertadores-lib-games.svg', 'group-soccer-11', 'lib', 'Copa Libertadores', '["Copa Libertadores"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 17, TRUE),
+  ('group-soccer-11-link-a-league-soccer-sports-aus-games-18', 'link', 'A League Soccer', '/sports/aus/games', '/images/sports/menu/full/sub-soccer-a-league-soccer-aus-games.png', 'group-soccer-11', 'aus', 'A League Soccer', '["A League Soccer","Australian A-League"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 18, TRUE),
+  ('group-soccer-11-link-uefa-europa-conference-league-sports-ucol-games-19', 'link', 'UEFA Europa Conference League', '/sports/ucol/games', '/images/sports/menu/full/sub-soccer-uefa-europa-conference-league-ucol-games.svg', 'group-soccer-11', 'ucol', 'UEFA Europa Conference League', '["UEFA Europa Conference League"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 19, TRUE),
+  ('group-soccer-11-link-chile-primera-sports-chi1-games-20', 'link', 'Chile Primera', '/sports/chi1/games', '/images/sports/menu/full/sub-soccer-chile-primera-chi1-games.png', 'group-soccer-11', 'chi1', 'Chile Primera', '["Chile Election","Chile Primera"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 20, TRUE),
+  ('group-soccer-11-link-copa-del-rey-sports-cdr-games-21', 'link', 'Copa del Rey', '/sports/cdr/games', '/images/sports/menu/full/sub-soccer-copa-del-rey-cdr-games.png', 'group-soccer-11', 'cdr', 'Copa del Rey', '["Copa del Rey","Copa Del Rey"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 21, TRUE),
+  ('group-soccer-11-link-egypt-premier-league-sports-egy1-games-22', 'link', 'Egypt Premier League', '/sports/egy1/games', '/images/sports/menu/full/sub-soccer-egypt-premier-league-egy1-games.png', 'group-soccer-11', 'egy1', 'Egypt Premier League', '["egypt","Egypt Premier League"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 22, TRUE),
+  ('group-soccer-11-link-copa-sudamericana-sports-sud-games-23', 'link', 'Copa Sudamericana', '/sports/sud/games', '/images/sports/menu/full/sub-soccer-copa-sudamericana-sud-games.svg', 'group-soccer-11', 'sud', 'Copa Sudamericana', '["Copa Sudamericana"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 23, TRUE),
+  ('group-soccer-11-link-coppa-italia-sports-itc-games-24', 'link', 'Coppa Italia', '/sports/itc/games', '/images/sports/menu/full/sub-soccer-coppa-italia-itc-games.png', 'group-soccer-11', 'itc', 'Coppa Italia', '["Coppa Italia"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 24, TRUE),
+  ('group-soccer-11-link-morocco-botola-pro-sports-mar1-games-25', 'link', 'Morocco Botola Pro', '/sports/mar1/games', '/images/sports/menu/full/sub-soccer-morocco-botola-pro-mar1-games.png', 'group-soccer-11', 'mar1', 'Morocco Botola Pro', '["Morocco Botola Pro"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 25, TRUE),
+  ('group-soccer-11-link-k-league-sports-kor-games-26', 'link', 'K-League', '/sports/kor/games', '/images/sports/menu/full/sub-soccer-k-league-kor-games.png', 'group-soccer-11', 'kor', 'K-League', '["K-league","K-League"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 26, TRUE),
+  ('group-soccer-11-link-norway-eliteserien-sports-nor-games-27', 'link', 'Norway Eliteserien', '/sports/nor/games', '/images/sports/menu/full/sub-soccer-norway-eliteserien-nor-games.png', 'group-soccer-11', 'nor', 'Norway Eliteserien', '["Norway Eliteserien"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 27, TRUE),
+  ('group-soccer-11-link-chinese-super-league-sports-csl-games-28', 'link', 'Chinese Super League', '/sports/csl/games', '/images/sports/menu/full/sub-soccer-chinese-super-league-csl-games.png', 'group-soccer-11', 'csl', 'Chinese Super League', '["Chinese Super League"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 28, TRUE),
+  ('group-soccer-11-link-j2-league-sports-ja2-games-29', 'link', 'J2 League', '/sports/ja2/games', '/images/sports/menu/full/sub-soccer-j2-league-ja2-games.png', 'group-soccer-11', 'ja2', 'J2 League', '["J2 League","Japan J2 League"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 29, TRUE),
+  ('group-soccer-11-link-primera-divisi-n-argentina-sports-arg-games-30', 'link', 'Primera División Argentina', '/sports/arg/games', '/images/sports/menu/full/sub-soccer-primera-division-argentina-arg-games.png', 'group-soccer-11', 'arg', 'Primera División Argentina', '["Argentina Primera División","Primera División Argentina"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 30, TRUE),
+  ('group-soccer-11-link-russian-premier-league-sports-rus-games-31', 'link', 'Russian Premier League', '/sports/rus/games', '/images/sports/menu/full/sub-soccer-russian-premier-league-rus-games.png', 'group-soccer-11', 'rus', 'Russian Premier League', '["Russian Premier League"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 31, TRUE),
+  ('group-soccer-11-link-fa-cup-sports-fa-cup-games-32', 'link', 'FA Cup', '/sports/fa-cup/games', '/images/sports/menu/full/sub-soccer-fa-cup-fa-cup-games.png', 'group-soccer-11', 'fa-cup', 'FA Cup', '["FA Cup"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 32, TRUE),
+  ('group-soccer-11-link-efl-cup-sports-efl-cup-props-33', 'link', 'EFL CUP', '/sports/efl-cup/props', '/images/sports/menu/full/sub-soccer-efl-cup-efl-cup-props.png', 'group-soccer-11', 'efl-cup', 'EFL CUP', '["EFL Cup","EFL CUP"]'::jsonb, '[]'::jsonb, FALSE, TRUE, 33, TRUE),
+  ('group-soccer-11-link-efl-championship-sports-elc-games-34', 'link', 'EFL Championship', '/sports/elc/games', '/images/sports/menu/full/sub-soccer-efl-championship-elc-games.png', 'group-soccer-11', 'elc', 'EFL Championship', '["EFL Championship"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 34, TRUE),
+  ('group-soccer-11-link-fifa-friendlies-sports-fifa-friendlies-games-35', 'link', 'FIFA Friendlies', '/sports/fifa-friendlies/games', '/images/sports/menu/full/sub-soccer-fifa-friendlies-fifa-friendlies-games.svg', 'group-soccer-11', 'fifa-friendlies', 'FIFA Friendlies', '["FIFA Friendlies","Fifa Friendly"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 35, TRUE),
+  ('group-soccer-11-link-spanish-super-cup-sports-ssc-games-36', 'link', 'Spanish Super Cup', '/sports/ssc/games', '/images/sports/menu/full/sub-soccer-spanish-super-cup-ssc-games.png', 'group-soccer-11', 'ssc', 'Spanish Super Cup', '["Spanish Super Cup"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 36, TRUE),
+  ('group-soccer-11-link-africa-wc-qualifiers-sports-caf-games-37', 'link', 'Africa WC Qualifiers', '/sports/caf/games', '/images/sports/menu/full/sub-soccer-africa-wc-qualifiers-caf-games.svg', 'group-soccer-11', 'caf', 'Africa WC Qualifiers', '["africa","Africa WC Qualifiers"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 37, TRUE),
+  ('group-soccer-11-link-europe-wc-qualifiers-sports-uef-qualifiers-games-38', 'link', 'Europe WC Qualifiers', '/sports/uef-qualifiers/games', '/images/sports/menu/full/sub-soccer-europe-wc-qualifiers-uef-qualifiers-games.svg', 'group-soccer-11', 'uef-qualifiers', 'Europe WC Qualifiers', '["Europe","Europe WC Qualifiers"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 38, TRUE),
+  ('group-soccer-11-link-north-america-wc-qualifiers-sports-concacaf-games-39', 'link', 'North America WC Qualifiers', '/sports/concacaf/games', '/images/sports/menu/full/sub-soccer-north-america-wc-qualifiers-concacaf-games.svg', 'group-soccer-11', 'concacaf', 'North America WC Qualifiers', '["north america","North America WC Qualifiers"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 39, TRUE),
+  ('group-soccer-11-link-south-america-wc-qualifiers-sports-conmebol-games-40', 'link', 'South America WC Qualifiers', '/sports/conmebol/games', '/images/sports/menu/full/sub-soccer-south-america-wc-qualifiers-conmebol-games.svg', 'group-soccer-11', 'conmebol', 'South America WC Qualifiers', '["South America","South America WC Qualifiers"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 40, TRUE),
+  ('group-soccer-11-link-oceania-wc-qualifiers-sports-oceania-wc-qualifiers-games-41', 'link', 'Oceania WC Qualifiers', '/sports/oceania-wc-qualifiers/games', '/images/sports/menu/full/sub-soccer-oceania-wc-qualifiers-oceania-wc-qualifiers-games.svg', 'group-soccer-11', 'oceania-wc-qualifiers', 'Oceania WC Qualifiers', '["Oceania WC Qualifiers"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 41, TRUE),
+  ('group-soccer-11-link-asia-wc-qualifiers-sports-afc-wc-games-42', 'link', 'Asia WC Qualifiers', '/sports/afc-wc/games', '/images/sports/menu/full/sub-soccer-asia-wc-qualifiers-afc-wc-games.svg', 'group-soccer-11', 'afc-wc', 'Asia WC Qualifiers', '["Asia","Asia WC Qualifiers"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 42, TRUE),
+  ('group-soccer-11-link-fifa-world-cup-sports-fifa-world-cup-props-43', 'link', 'FIFA World Cup', '/sports/fifa-world-cup/props', '/images/sports/menu/full/sub-soccer-fifa-world-cup-fifa-world-cup-props.svg', 'group-soccer-11', 'fifa-world-cup', 'FIFA World Cup', '["FIFA World Cup"]'::jsonb, '[]'::jsonb, FALSE, TRUE, 43, TRUE),
+  ('group-soccer-11-link-dfb-pokal-sports-dfb-games-44', 'link', 'DFB-Pokal', '/sports/dfb/games', '/images/sports/menu/full/sub-soccer-dfb-pokal-dfb-games.png', 'group-soccer-11', 'dfb', 'DFB-Pokal', '["DFB-Pokal"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 44, TRUE),
+  ('group-soccer-11-link-coupe-de-france-sports-cde-games-45', 'link', 'Coupe de France', '/sports/cde/games', '/images/sports/menu/full/sub-soccer-coupe-de-france-cde-games.png', 'group-soccer-11', 'cde', 'Coupe de France', '["Coupe de France"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 45, TRUE),
+  ('group-soccer-11-link-indian-super-league-sports-isp-games-46', 'link', 'Indian Super League', '/sports/isp/games', '/images/sports/menu/full/sub-soccer-indian-super-league-isp-games.png', 'group-soccer-11', 'isp', 'Indian Super League', '["Indian Super League"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 46, TRUE),
+  ('group-soccer-11-link-japan-j-league-sports-jap-games-47', 'link', 'Japan J. League', '/sports/jap/games', '/images/sports/menu/full/sub-soccer-japan-j-league-jap-games.png', 'group-soccer-11', 'jap', 'Japan J. League', '["Japan J League","Japan J. League"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 47, TRUE),
+  ('group-soccer-11-link-2-bundesliga-sports-bl2-games-48', 'link', '2. Bundesliga', '/sports/bl2/games', '/images/sports/menu/full/sub-soccer-2-bundesliga-bl2-games.png', 'group-soccer-11', 'bl2', '2. Bundesliga', '["2. Bundesliga","Bundesliga 2"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 48, TRUE),
+  ('group-soccer-11-link-concacaf-nations-league-sports-conl-games-49', 'link', 'Concacaf Nations League', '/sports/conl/games', '/images/sports/menu/full/sub-soccer-concacaf-nations-league-conl-games.svg', 'group-soccer-11', 'conl', 'Concacaf Nations League', '["Concacaf Nations League"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 49, TRUE),
+  ('group-soccer-11-link-la-liga-2-sports-es2-games-50', 'link', 'La Liga 2', '/sports/es2/games', '/images/sports/menu/full/sub-soccer-la-liga-2-es2-games.png', 'group-soccer-11', 'es2', 'La Liga 2', '["La Liga 2"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 50, TRUE),
+  ('group-soccer-11-link-scottish-premiership-sports-scop-games-51', 'link', 'Scottish Premiership', '/sports/scop/games', '/images/sports/menu/full/sub-soccer-scottish-premiership-scop-games.png', 'group-soccer-11', 'scop', 'Scottish Premiership', '["Scottish Premiership"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 51, TRUE),
+  ('group-soccer-11-link-ligue-2-sports-fr2-games-52', 'link', 'Ligue 2', '/sports/fr2/games', '/images/sports/menu/full/sub-soccer-ligue-2-fr2-games.png', 'group-soccer-11', 'fr2', 'Ligue 2', '["Ligue 2"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 52, TRUE),
+  ('group-soccer-11-link-serie-b-sports-itsb-games-53', 'link', 'Serie B', '/sports/itsb/games', '/images/sports/menu/full/sub-soccer-serie-b-itsb-games.png', 'group-soccer-11', 'itsb', 'Serie B', '["Serie B"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 53, TRUE),
+  ('group-soccer-11-link-bolivia-lfpb-sports-bol1-games-54', 'link', 'Bolivia LFPB', '/sports/bol1/games', '/images/sports/menu/full/sub-soccer-bolivia-lfpb-bol1-games.png', 'group-soccer-11', 'bol1', 'Bolivia LFPB', '["Bolivia","Bolivia LFPB"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 54, TRUE),
+  ('group-soccer-11-link-peru-liga-1-sports-per1-games-55', 'link', 'Peru Liga 1', '/sports/per1/games', '/images/sports/menu/full/sub-soccer-peru-liga-1-per1-games.png', 'group-soccer-11', 'per1', 'Peru Liga 1', '["Peru","Peru Liga 1"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 55, TRUE),
+  ('group-soccer-11-link-romania-superliga-sports-rou1-games-56', 'link', 'Romania SuperLiga', '/sports/rou1/games', '/images/sports/menu/full/sub-soccer-romania-superliga-rou1-games.png', 'group-soccer-11', 'rou1', 'Romania SuperLiga', '["Romania","Romania SuperLiga"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 56, TRUE),
+  ('group-soccer-11-link-brazil-s-rie-b-sports-bra2-games-57', 'link', 'Brazil Série B', '/sports/bra2/games', '/images/sports/menu/full/sub-soccer-brazil-serie-b-bra2-games.png', 'group-soccer-11', 'bra2', 'Brazil Série B', '["Brazil Serie B","Brazil Série B"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 57, TRUE),
+  ('group-soccer-11-link-africa-cup-of-nations-sports-acn-games-58', 'link', 'Africa Cup of Nations', '/sports/acn/games', '/images/sports/menu/full/sub-soccer-africa-cup-of-nations-acn-games.svg', 'group-soccer-11', 'acn', 'Africa Cup of Nations', '["Africa Cup of Nations"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 58, TRUE),
+  ('group-tennis-12', 'group', 'Tennis', NULL, '/images/sports/menu/full/group-tennis.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 12, TRUE),
+  ('group-tennis-12-link-atp-sports-atp-games-0', 'link', 'ATP', '/sports/atp/games', '/images/sports/menu/full/sub-tennis-atp-atp-games.svg', 'group-tennis-12', 'atp', 'ATP', '["ATP"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 0, TRUE),
+  ('group-tennis-12-link-wta-sports-wta-games-1', 'link', 'WTA', '/sports/wta/games', '/images/sports/menu/full/sub-tennis-wta-wta-games.svg', 'group-tennis-12', 'wta', 'WTA', '["WTA"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 1, TRUE),
+  ('group-esports-13', 'group', 'Esports', NULL, '/images/sports/menu/full/group-esports.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 13, TRUE),
+  ('group-esports-13-link-lol-sports-league-of-legends-games-0', 'link', 'LoL', '/sports/league-of-legends/games', '/images/sports/menu/full/sub-esports-lol-league-of-legends-games.svg', 'group-esports-13', 'league-of-legends', 'LoL', '["lol","LoL"]'::jsonb, '["lol"]'::jsonb, TRUE, TRUE, 0, TRUE),
+  ('group-esports-13-link-cs2-sports-counter-strike-games-1', 'link', 'CS2', '/sports/counter-strike/games', '/images/sports/menu/full/sub-esports-cs2-counter-strike-games.svg', 'group-esports-13', 'counter-strike', 'CS2', '["cs2","CS2"]'::jsonb, '["cs2"]'::jsonb, TRUE, TRUE, 1, TRUE),
+  ('group-esports-13-link-dota-2-sports-dota-2-games-2', 'link', 'Dota 2', '/sports/dota-2/games', '/images/sports/menu/full/sub-esports-dota-2-dota-2-games.svg', 'group-esports-13', 'dota-2', 'Dota 2', '["Dota 2"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 2, TRUE),
+  ('group-esports-13-link-valorant-sports-valorant-games-3', 'link', 'Valorant', '/sports/valorant/games', '/images/sports/menu/full/sub-esports-valorant-valorant-games.svg', 'group-esports-13', 'valorant', 'Valorant', '["Valorant"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 3, TRUE),
+  ('group-esports-13-link-call-of-duty-sports-call-of-duty-games-4', 'link', 'Call of Duty', '/sports/call-of-duty/games', '/images/sports/menu/full/sub-esports-call-of-duty-call-of-duty-games.svg', 'group-esports-13', 'call-of-duty', 'Call of Duty', '["Call of Duty"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 4, TRUE),
+  ('group-esports-13-link-rocket-league-sports-rocket-league-games-5', 'link', 'Rocket League', '/sports/rocket-league/games', '/images/sports/menu/full/sub-esports-rocket-league-rocket-league-games.svg', 'group-esports-13', 'rocket-league', 'Rocket League', '["Rocket League"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 5, TRUE),
+  ('group-esports-13-link-mobile-legends-bang-bang-sports-mobile-legends-bang-bang-games-6', 'link', 'Mobile Legends: Bang Bang', '/sports/mobile-legends-bang-bang/games', '/images/sports/menu/full/sub-esports-mobile-legends-bang-bang-mobile-legends-bang-bang-games.svg', 'group-esports-13', 'mobile-legends-bang-bang', 'Mobile Legends: Bang Bang', '["Mobile Legends: Bang Bang"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 6, TRUE),
+  ('group-esports-13-link-overwatch-sports-overwatch-games-7', 'link', 'Overwatch', '/sports/overwatch/games', '/images/sports/menu/full/sub-esports-overwatch-overwatch-games.svg', 'group-esports-13', 'overwatch', 'Overwatch', '["Overwatch"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 7, TRUE),
+  ('group-esports-13-link-rainbow-six-siege-sports-rainbow-six-siege-games-8', 'link', 'Rainbow Six Siege', '/sports/rainbow-six-siege/games', '/images/sports/menu/full/sub-esports-rainbow-six-siege-rainbow-six-siege-games.svg', 'group-esports-13', 'rainbow-six-siege', 'Rainbow Six Siege', '["Rainbow Six Siege"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 8, TRUE),
+  ('group-esports-13-link-honor-of-kings-sports-honor-of-kings-games-9', 'link', 'Honor of Kings', '/sports/honor-of-kings/games', '/images/sports/menu/full/sub-esports-honor-of-kings-honor-of-kings-games.svg', 'group-esports-13', 'honor-of-kings', 'Honor of Kings', '["Honor of Kings"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 9, TRUE),
+  ('group-esports-13-link-starcraft-ii-sports-starcraft-2-games-10', 'link', 'StarCraft II', '/sports/starcraft-2/games', '/images/sports/menu/full/sub-esports-starcraft-ii-starcraft-2-games.svg', 'group-esports-13', 'starcraft-2', 'StarCraft II', '["Starcraft 2","StarCraft II"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 10, TRUE),
+  ('group-esports-13-link-starcraft-brood-war-sports-starcraft-brood-war-props-11', 'link', 'StarCraft: Brood War', '/sports/starcraft-brood-war/props', '/images/sports/menu/full/sub-esports-starcraft-brood-war-starcraft-brood-war-props.svg', 'group-esports-13', 'starcraft-brood-war', 'StarCraft: Brood War', '["starcraft 1","StarCraft: Brood War"]'::jsonb, '[]'::jsonb, FALSE, TRUE, 11, TRUE),
+  ('group-baseball-14', 'group', 'Baseball', NULL, '/images/sports/menu/full/group-baseball.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 14, TRUE),
+  ('group-baseball-14-link-mlb-sports-mlb-games-0', 'link', 'MLB', '/sports/mlb/games', '/images/sports/menu/full/sub-baseball-mlb-mlb-games.svg', 'group-baseball-14', 'mlb', 'MLB', '["MLB"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 0, TRUE),
+  ('group-baseball-14-link-kbo-sports-kbo-props-1', 'link', 'KBO', '/sports/kbo/games', '/images/sports/menu/full/sub-baseball-kbo-kbo-props.svg', 'group-baseball-14', 'kbo', 'KBO', '["KBO"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 1, TRUE),
+  ('group-hockey-15', 'group', 'Hockey', NULL, '/images/sports/menu/full/group-hockey.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 15, TRUE),
+  ('group-hockey-15-link-nhl-sports-nhl-games-0', 'link', 'NHL', '/sports/nhl/games', '/images/sports/menu/full/sub-hockey-nhl-nhl-games.svg', 'group-hockey-15', 'nhl', 'NHL', '["NHL"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 0, TRUE),
+  ('group-hockey-15-link-american-hockey-league-sports-ahl-games-1', 'link', 'American Hockey League', '/sports/ahl/games', '/images/sports/menu/full/sub-hockey-american-hockey-league-ahl-games.png', 'group-hockey-15', 'ahl', 'American Hockey League', '["AHL","American Hockey League"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 1, TRUE),
+  ('group-hockey-15-link-kontinental-hockey-league-sports-khl-games-2', 'link', 'Kontinental Hockey League', '/sports/khl/games', '/images/sports/menu/full/sub-hockey-kontinental-hockey-league-khl-games.png', 'group-hockey-15', 'khl', 'Kontinental Hockey League', '["KHL","Kontinental Hockey League"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 2, TRUE),
+  ('group-hockey-15-link-deutsche-eishockey-liga-sports-dehl-games-3', 'link', 'Deutsche Eishockey Liga', '/sports/dehl/games', '/images/sports/menu/full/sub-hockey-deutsche-eishockey-liga-dehl-games.png', 'group-hockey-15', 'dehl', 'Deutsche Eishockey Liga', '["DEHL","Deutsche Eishockey Liga"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 3, TRUE),
+  ('group-hockey-15-link-czech-extraliga-sports-cehl-games-4', 'link', 'Czech Extraliga', '/sports/cehl/games', '/images/sports/menu/full/sub-hockey-czech-extraliga-cehl-games.png', 'group-hockey-15', 'cehl', 'Czech Extraliga', '["CEHL","Czech Extraliga"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 4, TRUE),
+  ('group-hockey-15-link-swedish-hockey-league-sports-shl-games-5', 'link', 'Swedish Hockey League', '/sports/shl/games', '/images/sports/menu/full/sub-hockey-swedish-hockey-league-shl-games.png', 'group-hockey-15', 'shl', 'Swedish Hockey League', '["SHL","Swedish Hockey League"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 5, TRUE),
+  ('group-hockey-15-link-swiss-national-league-sports-snhl-games-6', 'link', 'Swiss National League', '/sports/snhl/games', '/images/sports/menu/full/sub-hockey-swiss-national-league-snhl-games.png', 'group-hockey-15', 'snhl', 'Swiss National League', '["National League","Swiss National League"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 6, TRUE),
+  ('top-link-cricket-sports-crint-games-16', 'group', 'Cricket', NULL, '/images/sports/menu/full/top-cricket-crint-games.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 16, TRUE),
+  ('group-rugby-17', 'group', 'Rugby', NULL, '/images/sports/menu/full/group-rugby.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 17, TRUE),
+  ('group-rugby-17-link-six-nations-sports-rusixnat-games-0', 'link', 'Six Nations', '/sports/rusixnat/games', '/images/sports/menu/full/sub-rugby-six-nations-rusixnat-games.svg', 'group-rugby-17', 'rusixnat', 'Six Nations', '["Six Nations"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 0, TRUE),
+  ('group-rugby-17-link-super-rugby-pacific-sports-rusrp-games-1', 'link', 'Super Rugby Pacific', '/sports/rusrp/games', '/images/sports/menu/full/sub-rugby-super-rugby-pacific-rusrp-games.svg', 'group-rugby-17', 'rusrp', 'Super Rugby Pacific', '["Super Rugby Pacific"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 1, TRUE),
+  ('group-rugby-17-link-premiership-rugby-sports-ruprem-games-2', 'link', 'Premiership Rugby', '/sports/ruprem/games', '/images/sports/menu/full/sub-rugby-premiership-rugby-ruprem-games.png', 'group-rugby-17', 'ruprem', 'Premiership Rugby', '["Premiership Rugby","Rugby Premiership"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 2, TRUE),
+  ('group-rugby-17-link-top-14-sports-rutopft-games-3', 'link', 'Top 14', '/sports/rutopft/games', '/images/sports/menu/full/sub-rugby-top-14-rutopft-games.png', 'group-rugby-17', 'rutopft', 'Top 14', '["Rugby Top 14","Top 14"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 3, TRUE),
+  ('group-rugby-17-link-united-rugby-championship-sports-ruurc-games-4', 'link', 'United Rugby Championship', '/sports/ruurc/games', '/images/sports/menu/full/sub-rugby-united-rugby-championship-ruurc-games.svg', 'group-rugby-17', 'ruurc', 'United Rugby Championship', '["United Rugby Championship"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 4, TRUE),
+  ('group-rugby-17-link-european-rugby-champions-cup-sports-rueuchamp-games-5', 'link', 'European Rugby Champions Cup', '/sports/rueuchamp/games', '/images/sports/menu/full/sub-rugby-european-rugby-champions-cup-rueuchamp-games.svg', 'group-rugby-17', 'rueuchamp', 'European Rugby Champions Cup', '["European Rugby Champions Cup","Rugby Champions Cup"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 5, TRUE),
+  ('group-rugby-17-link-the-rugby-championship-sports-ruchamp-games-6', 'link', 'The Rugby Championship', '/sports/ruchamp/games', '/images/sports/menu/full/sub-rugby-the-rugby-championship-ruchamp-games.svg', 'group-rugby-17', 'ruchamp', 'The Rugby Championship', '["Rugby Championship","The Rugby Championship"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 6, TRUE),
+  ('group-table-tennis-18', 'group', 'Table Tennis', NULL, '/images/sports/menu/full/group-table-tennis.svg', NULL, NULL, NULL, '[]'::jsonb, '[]'::jsonb, FALSE, FALSE, 18, TRUE),
+  ('group-table-tennis-18-link-wtt-men-sports-wtt-mens-singles-games-0', 'link', 'WTT Men', '/sports/wtt-mens-singles/games', '/images/sports/menu/full/sub-table-tennis-wtt-men-wtt-mens-singles-games.svg', 'group-table-tennis-18', 'wtt-mens-singles', 'WTT Men', '["WTT Men","WTT Men''s Singles"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 0, TRUE),
+  ('group-table-tennis-18-link-wtt-women-sports-wtt-womens-singles-games-1', 'link', 'WTT Women', '/sports/wtt-womens-singles/games', '/images/sports/menu/full/sub-table-tennis-wtt-women-wtt-womens-singles-games.svg', 'group-table-tennis-18', 'wtt-womens-singles', 'WTT Women', '["WTT Women","WTT Women''s Singles"]'::jsonb, '[]'::jsonb, TRUE, FALSE, 1, TRUE),
+  ('top-link-golf-sports-golf-props-19', 'link', 'Golf', '/sports/golf/props', '/images/sports/menu/full/top-golf-golf-props.svg', NULL, 'golf', 'Golf', '["Golf"]'::jsonb, '[]'::jsonb, FALSE, TRUE, 19, TRUE),
+  ('top-link-formula-1-sports-f1-props-20', 'link', 'Formula 1', '/sports/f1/props', '/images/sports/menu/full/top-formula-1-f1-props.svg', NULL, 'f1', 'Formula 1', '["Formula 1"]'::jsonb, '[]'::jsonb, FALSE, TRUE, 20, TRUE),
+  ('top-link-chess-sports-chess-props-21', 'link', 'Chess', '/sports/chess/props', '/images/sports/menu/full/top-chess-chess-props.svg', NULL, 'chess', 'Chess', '["Chess"]'::jsonb, '[]'::jsonb, FALSE, TRUE, 21, TRUE),
+  ('top-link-boxing-sports-boxing-props-22', 'link', 'Boxing', '/sports/boxing/props', '/images/sports/menu/full/top-boxing-boxing-props.svg', NULL, 'boxing', 'Boxing', '["Boxing"]'::jsonb, '[]'::jsonb, FALSE, TRUE, 22, TRUE),
+  ('top-link-pickleball-sports-pickleball-props-23', 'link', 'Pickleball', '/sports/pickleball/props', '/images/sports/menu/full/top-pickleball-pickleball-props.svg', NULL, 'pickleball', 'Pickleball', '["Pickleball"]'::jsonb, '[]'::jsonb, FALSE, TRUE, 23, TRUE),
+  ('group-soccer-11-link-womens-champions-league-sports-uwcl-games-59', 'link', 'Women''s Champions League', '/sports/uwcl/games', '/images/sports/menu/full/sub-soccer-ucl-ucl-games.svg', 'group-soccer-11', 'uwcl', 'Women''s Champions League', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 59, TRUE),
+  ('group-soccer-11-link-ukraine-premier-liha-sports-ukr1-games-60', 'link', 'Ukraine Premier Liha', '/sports/ukr1/games', '/images/sports/menu/full/sub-soccer-ucl-ucl-games.svg', 'group-soccer-11', 'ukr1', 'Ukraine Premier Liha', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 60, TRUE),
+  ('group-cricket-16-link-international-sports-crint-games-0', 'link', 'International', '/sports/crint/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'crint', 'International', '["International"]'::jsonb, '[]'::jsonb, TRUE, TRUE, 0, TRUE),
+  ('group-cricket-16-link-ipl-sports-cricipl-games-1', 'link', 'IPL', '/sports/cricipl/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'cricipl', 'IPL', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 1, TRUE),
+  ('group-cricket-16-link-big-bash-league-sports-cricbbl-games-2', 'link', 'Big Bash League', '/sports/cricbbl/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'cricbbl', 'Big Bash League', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 2, TRUE),
+  ('group-cricket-16-link-psl-sports-cricpsl-games-3', 'link', 'PSL', '/sports/cricpsl/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'cricpsl', 'PSL', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 3, TRUE),
+  ('group-cricket-16-link-t20-blast-sports-crict20blast-games-4', 'link', 'T20 Blast', '/sports/crict20blast/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'crict20blast', 'T20 Blast', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 4, TRUE),
+  ('group-cricket-16-link-cpl-sports-criccpl-games-5', 'link', 'CPL', '/sports/criccpl/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'criccpl', 'CPL', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 5, TRUE),
+  ('group-cricket-16-link-bpl-sports-cricbpl-games-6', 'link', 'BPL', '/sports/cricbpl/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'cricbpl', 'BPL', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 6, TRUE),
+  ('group-cricket-16-link-super-smash-sports-cricsm-games-7', 'link', 'Super Smash', '/sports/cricsm/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'cricsm', 'Super Smash', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 7, TRUE),
+  ('group-cricket-16-link-lpl-sports-crict20lpl-games-8', 'link', 'LPL', '/sports/crict20lpl/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'crict20lpl', 'LPL', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 8, TRUE),
+  ('group-cricket-16-link-sa20-sports-cricsa20-games-9', 'link', 'SA20', '/sports/cricsa20/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'cricsa20', 'SA20', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 9, TRUE),
+  ('group-cricket-16-link-ilt20-sports-cricilt20-games-10', 'link', 'ILT20', '/sports/cricilt20/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'cricilt20', 'ILT20', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 10, TRUE),
+  ('group-cricket-16-link-wpl-sports-crict20plw-games-11', 'link', 'WPL', '/sports/crict20plw/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'crict20plw', 'WPL', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 11, TRUE),
+  ('group-cricket-16-link-mlc-sports-cricmlc-games-12', 'link', 'MLC', '/sports/cricmlc/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'cricmlc', 'MLC', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 12, TRUE),
+  ('group-cricket-16-link-csa-t20-women-sports-criccsat20w-games-13', 'link', 'CSA T20 Women', '/sports/criccsat20w/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'criccsat20w', 'CSA T20 Women', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 13, TRUE),
+  ('group-cricket-16-link-wncl-sports-cricwncl-games-14', 'link', 'WNCL', '/sports/cricwncl/games', '/images/sports/menu/full/top-cricket-crint-games.svg', 'top-link-cricket-sports-crint-games-16', 'cricwncl', 'WNCL', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 14, TRUE),
+  ('group-baseball-14-link-wbc-sports-wbc-games-2', 'link', 'WBC', '/sports/wbc/games', '/images/sports/menu/full/sub-baseball-mlb-mlb-games.svg', 'group-baseball-14', 'wbc', 'WBC', '[]'::jsonb, '[]'::jsonb, TRUE, FALSE, 2, TRUE)
+
+ON CONFLICT (id) DO UPDATE SET
+  item_type = EXCLUDED.item_type,
+  label = EXCLUDED.label,
+  href = EXCLUDED.href,
+  icon_url = EXCLUDED.icon_url,
+  parent_id = EXCLUDED.parent_id,
+  menu_slug = EXCLUDED.menu_slug,
+  h1_title = EXCLUDED.h1_title,
+  mapped_tags = EXCLUDED.mapped_tags,
+  url_aliases = EXCLUDED.url_aliases,
+  games_enabled = EXCLUDED.games_enabled,
+  props_enabled = EXCLUDED.props_enabled,
+  sort_order = EXCLUDED.sort_order,
+  enabled = EXCLUDED.enabled,
+  updated_at = NOW();
+
+ALTER TABLE sports_menu_items
+  ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE event_sports
+  ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE market_sports
+  ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "service_role_all_sports_menu_items" ON "sports_menu_items";
+CREATE POLICY "service_role_all_sports_menu_items"
+  ON "sports_menu_items"
+  AS PERMISSIVE
+  FOR ALL
+  TO "service_role"
+  USING (TRUE)
+  WITH CHECK (TRUE);
+
+DROP POLICY IF EXISTS "service_role_all_event_sports" ON "event_sports";
+CREATE POLICY "service_role_all_event_sports"
+  ON "event_sports"
+  AS PERMISSIVE
+  FOR ALL
+  TO "service_role"
+  USING (TRUE)
+  WITH CHECK (TRUE);
+
+DROP POLICY IF EXISTS "service_role_all_market_sports" ON "market_sports";
+CREATE POLICY "service_role_all_market_sports"
+  ON "market_sports"
+  AS PERMISSIVE
+  FOR ALL
+  TO "service_role"
+  USING (TRUE)
+  WITH CHECK (TRUE);
+
+-- ===========================================
+-- Event livestream URL
+-- ===========================================
+
+ALTER TABLE events
+  ADD COLUMN IF NOT EXISTS livestream_url TEXT;

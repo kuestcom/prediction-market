@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
-import { normalizeSportsSlug } from '@/app/[locale]/(platform)/sports/_components/sportsRouteUtils'
+import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export const metadata: Metadata = {
@@ -26,7 +26,10 @@ export default async function SportsPropsBySportPage({
     notFound()
   }
 
-  const normalizedSportSlug = normalizeSportsSlug(sport)
+  const { data: canonicalSportSlug } = await SportsMenuRepository.resolveCanonicalSlugByAlias(sport)
+  if (!canonicalSportSlug) {
+    notFound()
+  }
 
   return (
     <div className="grid gap-4">
@@ -34,7 +37,7 @@ export default async function SportsPropsBySportPage({
         locale={locale}
         initialTag="sports"
         initialMode="all"
-        sportsSportSlug={normalizedSportSlug}
+        sportsSportSlug={canonicalSportSlug}
         sportsSection="props"
       />
     </div>

@@ -3,7 +3,7 @@
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { BookmarkIcon } from 'lucide-react'
-import { useCallback, useEffect, useState, useTransition } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toggleBookmarkAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/toggle-bookmark'
 import { Button } from '@/components/ui/button'
 import { useAppKit } from '@/hooks/useAppKit'
@@ -23,13 +23,18 @@ export default function EventBookmark({ event }: EventBookmarkProps) {
   const { isConnected } = useAppKitAccount()
   const queryClient = useQueryClient()
   const [isBookmarked, setIsBookmarked] = useState(event.is_bookmarked)
-  const [isPending, startTransition] = useTransition()
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleBookmark = useCallback(() => {
+    if (isSubmitting) {
+      return
+    }
+
     const previousState = isBookmarked
     setIsBookmarked(!isBookmarked)
+    setIsSubmitting(true)
 
-    startTransition(async () => {
+    void (async () => {
       try {
         const response = await toggleBookmarkAction(event.id)
         if (response.error) {
@@ -37,13 +42,17 @@ export default function EventBookmark({ event }: EventBookmarkProps) {
           return
         }
 
-        await queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'all' })
+        // Keep global event lists stale without forcing immediate refetch in-page.
+        void queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' })
       }
       catch {
         setIsBookmarked(previousState)
       }
+      finally {
+        setIsSubmitting(false)
+      }
     })
-  }, [event.id, isBookmarked, queryClient])
+  }, [event.id, isBookmarked, isSubmitting, queryClient])
 
   useEffect(() => {
     setIsBookmarked(event.is_bookmarked)
@@ -62,13 +71,13 @@ export default function EventBookmark({ event }: EventBookmarkProps) {
           queueMicrotask(() => open())
         }
       }}
-      disabled={isPending}
+      disabled={isSubmitting}
       aria-pressed={isBookmarked}
       title={isBookmarked ? 'Remove Bookmark' : 'Bookmark'}
       className={cn(
         headerIconButtonClass,
         'size-auto p-0',
-        { 'opacity-50': isPending },
+        { 'opacity-50': isSubmitting },
       )}
     >
       <BookmarkIcon className={cn({ 'fill-current text-primary': isBookmarked })} />

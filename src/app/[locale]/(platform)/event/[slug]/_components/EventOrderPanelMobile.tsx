@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+import type { OddsFormat } from '@/lib/odds-format'
 import type { Event } from '@/types'
 import { DialogTitle } from '@radix-ui/react-dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
@@ -10,19 +12,39 @@ import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { formatCentsLabel } from '@/lib/formatters'
+import { formatOddsFromPrice } from '@/lib/odds-format'
 import { useIsSingleMarket, useOrder, useOutcomeTopOfBookPrice } from '@/stores/useOrder'
 
 interface EventMobileOrderPanelProps {
   event: Event
+  showDefaultTrigger?: boolean
+  mobileMarketInfo?: ReactNode
+  primaryOutcomeIndex?: number | null
+  oddsFormat?: OddsFormat
+  outcomeButtonStyleVariant?: 'default' | 'sports3d'
 }
 
-export default function EventOrderPanelMobile({ event }: EventMobileOrderPanelProps) {
+export default function EventOrderPanelMobile({
+  event,
+  showDefaultTrigger = true,
+  mobileMarketInfo,
+  primaryOutcomeIndex = null,
+  oddsFormat = 'price',
+  outcomeButtonStyleVariant = 'default',
+}: EventMobileOrderPanelProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const state = useOrder()
   const isSingleMarket = useIsSingleMarket()
   const yesPrice = useOutcomeTopOfBookPrice(OUTCOME_INDEX.YES, ORDER_SIDE.BUY)
   const noPrice = useOutcomeTopOfBookPrice(OUTCOME_INDEX.NO, ORDER_SIDE.BUY)
+  const shouldShowDefaultTrigger = showDefaultTrigger && isSingleMarket
+  const yesPriceLabel = oddsFormat === 'price'
+    ? formatCentsLabel(yesPrice)
+    : formatOddsFromPrice(yesPrice, oddsFormat)
+  const noPriceLabel = oddsFormat === 'price'
+    ? formatCentsLabel(noPrice)
+    : formatOddsFromPrice(noPrice, oddsFormat)
 
   return (
     <Drawer
@@ -30,8 +52,8 @@ export default function EventOrderPanelMobile({ event }: EventMobileOrderPanelPr
       onClose={() => state.setIsMobileOrderPanelOpen(false)}
       repositionInputs={false}
     >
-      <DrawerTrigger asChild>
-        {isSingleMarket && (
+      {shouldShowDefaultTrigger && (
+        <DrawerTrigger asChild>
           <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background p-4 lg:hidden">
             <div className="flex gap-2">
               <Button
@@ -52,7 +74,7 @@ export default function EventOrderPanelMobile({ event }: EventMobileOrderPanelPr
                   {normalizeOutcomeLabel(state.market!.outcomes[0].outcome_text) ?? state.market!.outcomes[0].outcome_text}
                 </span>
                 <span className="shrink-0 font-bold">
-                  {formatCentsLabel(yesPrice)}
+                  {yesPriceLabel}
                 </span>
               </Button>
               <Button
@@ -73,20 +95,27 @@ export default function EventOrderPanelMobile({ event }: EventMobileOrderPanelPr
                   {normalizeOutcomeLabel(state.market!.outcomes[1].outcome_text) ?? state.market!.outcomes[1].outcome_text}
                 </span>
                 <span className="shrink-0 font-bold">
-                  {formatCentsLabel(noPrice)}
+                  {noPriceLabel}
                 </span>
               </Button>
             </div>
           </div>
-        )}
-      </DrawerTrigger>
+        </DrawerTrigger>
+      )}
 
       <DrawerContent className="max-h-[95vh] w-full">
         <VisuallyHidden>
           <DialogTitle>{event.title}</DialogTitle>
         </VisuallyHidden>
 
-        <EventOrderPanelForm event={event} isMobile={true} />
+        <EventOrderPanelForm
+          event={event}
+          isMobile={true}
+          mobileMarketInfo={mobileMarketInfo}
+          primaryOutcomeIndex={primaryOutcomeIndex}
+          oddsFormat={oddsFormat}
+          outcomeButtonStyleVariant={outcomeButtonStyleVariant}
+        />
         <EventOrderPanelTermsDisclaimer />
       </DrawerContent>
     </Drawer>

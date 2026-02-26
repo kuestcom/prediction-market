@@ -2,10 +2,14 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
+import { connection } from 'next/server'
+import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
+import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
+import { EventRepository } from '@/lib/db/queries/event'
+import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
+import { UserRepository } from '@/lib/db/queries/user'
 import {
   getEventTitleBySlug,
-  loadEventPageContentData,
   resolveCanonicalEventSlugFromSportsPath,
 } from '@/lib/event-page-data'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
@@ -56,21 +60,33 @@ export default async function SportsEventMarketPage({
   if (!canonicalEventSlug) {
     notFound()
   }
-  const eventPageData = await loadEventPageContentData(canonicalEventSlug, resolvedLocale)
-  if (!eventPageData) {
+
+  await connection()
+  const user = await UserRepository.getCurrentUser()
+
+  const [{ data: groupedEvents }, { data: canonicalSportSlug }] = await Promise.all([
+    EventRepository.getSportsEventGroupBySlug(canonicalEventSlug, user?.id ?? '', resolvedLocale),
+    SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
+  ])
+  const cards = buildSportsGamesCards(groupedEvents ?? [])
+  const targetCard = cards[0] ?? null
+  if (!targetCard) {
     notFound()
   }
 
+  const resolvedSportSlug = canonicalSportSlug
+    || targetCard.event.sports_sport_slug
+    || sport
+  const { data: layoutData } = await SportsMenuRepository.getLayoutData()
+  const sportLabel = layoutData?.h1TitleBySlug[resolvedSportSlug] ?? resolvedSportSlug.toUpperCase()
+
   return (
-    <EventContent
-      event={eventPageData.event}
-      changeLogEntries={eventPageData.changeLogEntries}
-      user={eventPageData.user}
-      marketContextEnabled={eventPageData.marketContextEnabled}
-      marketSlug={market}
-      seriesEvents={eventPageData.seriesEvents}
-      liveChartConfig={eventPageData.liveChartConfig}
-      key={`is-bookmarked-${eventPageData.event.is_bookmarked}`}
+    <SportsEventCenter
+      card={targetCard}
+      sportSlug={resolvedSportSlug}
+      sportLabel={sportLabel}
+      initialMarketSlug={market}
+      key={`is-bookmarked-${targetCard.event.is_bookmarked}`}
     />
   )
 }

@@ -10,6 +10,7 @@ import EventCardFooter from '@/app/[locale]/(platform)/(home)/_components/EventC
 import EventCardHeader from '@/app/[locale]/(platform)/(home)/_components/EventCardHeader'
 import EventCardMarketsList from '@/app/[locale]/(platform)/(home)/_components/EventCardMarketsList'
 import EventCardSingleMarketActions from '@/app/[locale]/(platform)/(home)/_components/EventCardSingleMarketActions'
+import EventCardSportsMoneyline from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
 import EventCardTradePanel from '@/app/[locale]/(platform)/(home)/_components/EventCardTradePanel'
 import { OpenCardContext } from '@/app/[locale]/(platform)/(home)/_components/EventOpenCardProvider'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
@@ -30,13 +31,18 @@ import { buildChanceByMarket } from '@/lib/market-chance'
 import { buildOrderPayload, submitOrder } from '@/lib/orders'
 import { signOrderPayload } from '@/lib/orders/signing'
 import { validateOrder } from '@/lib/orders/validation'
+import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
 
 const EMPTY_PRICE_OVERRIDES: Record<string, number> = {}
 
-export default function EventCard({ event, priceOverridesByMarket = EMPTY_PRICE_OVERRIDES }: EventCardProps) {
+export default function EventCard({
+  event,
+  priceOverridesByMarket = EMPTY_PRICE_OVERRIDES,
+  enableHomeSportsMoneylineLayout = false,
+}: EventCardProps) {
   const { openCardId, setOpenCardId } = use(OpenCardContext)
   const [isLoading, setIsLoading] = useState(false)
   const [selectedOutcome, setSelectedOutcome] = useState<SelectedOutcome | null>(null)
@@ -81,6 +87,12 @@ export default function EventCard({ event, priceOverridesByMarket = EMPTY_PRICE_
   const chanceByMarket = useMemo(
     () => buildChanceByMarket(event.markets, priceOverridesByMarket),
     [event.markets, priceOverridesByMarket],
+  )
+  const homeSportsMoneylineModel = useMemo(
+    () => enableHomeSportsMoneylineLayout
+      ? buildHomeSportsMoneylineModel(event)
+      : null,
+    [enableHomeSportsMoneylineLayout, event],
   )
 
   function getDisplayChance(marketId: string) {
@@ -272,6 +284,16 @@ export default function EventCard({ event, priceOverridesByMarket = EMPTY_PRICE_
   }
 
   const formattedTradeAmount = formatDisplayAmount(tradeAmount)
+
+  if (homeSportsMoneylineModel) {
+    return (
+      <EventCardSportsMoneyline
+        event={event}
+        model={homeSportsMoneylineModel}
+        getDisplayChance={getDisplayChance}
+      />
+    )
+  }
 
   return (
     <Card

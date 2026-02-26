@@ -1,11 +1,13 @@
 import type { SupportedLocale } from '@/i18n/locales'
-import type { conditions } from '@/lib/db/schema/events/tables'
+import type { conditions, market_sports } from '@/lib/db/schema/events/tables'
+import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, QueryResult } from '@/types'
-import { and, desc, eq, exists, gt, ilike, inArray, or, sql } from 'drizzle-orm'
-import { cacheTag, unstable_cache } from 'next/cache'
+import { and, asc, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
+import { cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import { getSportsCountsBySlugFromDb, getSportsSlugResolverFromDb } from '@/lib/db/queries/sports-menu'
 import { bookmarks } from '@/lib/db/schema/bookmarks/tables'
 import {
   conditions_audit,
@@ -22,6 +24,10 @@ import {
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { resolveDisplayPrice } from '@/lib/market-chance'
+import {
+  resolveCanonicalSportsSportSlug,
+  resolveSportsSportSlugQueryCandidates,
+} from '@/lib/sports-slug-mapping'
 import { getPublicAssetUrl } from '@/lib/storage'
 
 const HIDE_FROM_NEW_TAG_SLUG = 'hide-from-new'
@@ -287,6 +293,7 @@ type EventWithTagsAndMarkets = EventWithTags & {
 
 type DrizzleEventResult = typeof events.$inferSelect & {
   markets: (typeof markets.$inferSelect & {
+    sports?: typeof market_sports.$inferSelect | null
     condition: typeof conditions.$inferSelect & {
       outcomes: typeof outcomes.$inferSelect[]
     }
@@ -306,31 +313,6 @@ interface RelatedEvent {
   common_tags_count: number
   chance: number | null
 }
-
-const getCachedActiveSportsCountsBySlug = unstable_cache(
-  async () => {
-    const rows = await db
-      .select({
-        slug: event_sports.sports_sport_slug,
-        count: sql<number>`COUNT(*)::int`,
-      })
-      .from(event_sports)
-      .innerJoin(events, eq(event_sports.event_id, events.id))
-      .where(and(
-        eq(events.status, 'active'),
-        gt(events.active_markets_count, 0),
-        sql`TRIM(COALESCE(${event_sports.sports_sport_slug}, '')) <> ''`,
-      ))
-      .groupBy(event_sports.sports_sport_slug)
-
-    return rows
-  },
-  ['events-active-sports-counts-by-slug-v1'],
-  {
-    revalidate: 1800,
-    tags: [cacheTags.eventsGlobal],
-  },
-)
 
 async function getLocalizedTagNamesById(tagIds: number[], locale: SupportedLocale): Promise<Map<number, string>> {
   if (!tagIds.length || locale === DEFAULT_LOCALE) {
@@ -379,6 +361,140 @@ function toOptionalNumber(value: unknown): number | null {
   return Number.isFinite(numericValue) ? numericValue : null
 }
 
+function buildSportsVolumeGroupKeySql() {
+  return sql<string>`
+    COALESCE(
+      NULLIF(TRIM(COALESCE(${event_sports.sports_parent_event_id}::text, '')), ''),
+      NULLIF(TRIM(COALESCE(${event_sports.sports_event_id}, '')), ''),
+      NULLIF(LOWER(TRIM(COALESCE(${event_sports.sports_event_slug}, ''))), '')
+    )
+  `
+}
+
+async function getSportsVolumeGroupKeysByEventId(eventIds: string[]) {
+  if (eventIds.length === 0) {
+    return new Map<string, string>()
+  }
+
+  const sportsVolumeGroupKeySql = buildSportsVolumeGroupKeySql()
+
+  const rows = await db
+    .select({
+      event_id: event_sports.event_id,
+      group_key: sportsVolumeGroupKeySql,
+    })
+    .from(event_sports)
+    .where(and(
+      inArray(event_sports.event_id, eventIds),
+      sql`${sportsVolumeGroupKeySql} IS NOT NULL`,
+    ))
+
+  return new Map(
+    rows.map(row => [row.event_id, row.group_key]),
+  )
+}
+
+async function getSportsAggregatedVolumesByGroupKey(
+  groupKeys: string[],
+): Promise<Map<string, number>> {
+  if (groupKeys.length === 0) {
+    return new Map()
+  }
+
+  const sportsVolumeGroupKeySql = buildSportsVolumeGroupKeySql()
+
+  const rows = await db
+    .select({
+      group_key: sportsVolumeGroupKeySql,
+      total_volume: sql<string>`COALESCE(SUM(${markets.volume}), 0)`,
+    })
+    .from(event_sports)
+    .innerJoin(markets, eq(markets.event_id, event_sports.event_id))
+    .where(and(
+      sql`${sportsVolumeGroupKeySql} IS NOT NULL`,
+      inArray(sportsVolumeGroupKeySql, groupKeys),
+    ))
+    .groupBy(sportsVolumeGroupKeySql)
+
+  return new Map(
+    rows.map(row => [
+      row.group_key,
+      toOptionalNumber(row.total_volume) ?? 0,
+    ]),
+  )
+}
+
+function toOptionalStringArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null
+  }
+
+  const strings = value
+    .filter((item): item is string => typeof item === 'string')
+    .map(item => item.trim())
+    .filter(Boolean)
+
+  return strings.length > 0 ? strings : null
+}
+
+function toOptionalSportsTeams(value: unknown) {
+  if (!Array.isArray(value)) {
+    return null
+  }
+
+  const teams = value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return []
+    }
+
+    const record = entry as Record<string, unknown>
+    const name = typeof record.name === 'string' ? record.name.trim() : ''
+    const abbreviation = typeof record.abbreviation === 'string' ? record.abbreviation.trim() : ''
+    const recordLabel = typeof record.record === 'string' ? record.record.trim() : ''
+    const color = typeof record.color === 'string' ? record.color.trim() : ''
+    const hostStatus = typeof record.host_status === 'string' ? record.host_status.trim() : ''
+    const logoPath = typeof record.logo_url === 'string' ? record.logo_url.trim() : ''
+
+    return [{
+      name: name || null,
+      abbreviation: abbreviation || null,
+      record: recordLabel || null,
+      color: color || null,
+      host_status: hostStatus || null,
+      logo_url: getPublicAssetUrl(logoPath || null) || null,
+    }]
+  })
+
+  return teams.length > 0 ? teams : null
+}
+
+function buildSportsTagsMatchCondition(sportsSportSlugCandidates: string[]) {
+  if (sportsSportSlugCandidates.length === 0) {
+    return null
+  }
+
+  const normalizedCandidates = sportsSportSlugCandidates
+    .map(candidate => candidate.trim().toLowerCase())
+    .filter(Boolean)
+
+  if (normalizedCandidates.length === 0) {
+    return null
+  }
+
+  const candidatesSql = sql.join(
+    normalizedCandidates.map(candidate => sql`${candidate}`),
+    sql`, `,
+  )
+
+  return sql<boolean>`
+    EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements_text(COALESCE(${event_sports.sports_tags}, '[]'::jsonb)) AS sports_tag(value)
+      WHERE LOWER(TRIM(sports_tag.value)) IN (${candidatesSql})
+    )
+  `
+}
+
 function toOptionalIsoString(value: unknown): string | null {
   if (!value) {
     return null
@@ -414,6 +530,7 @@ async function getEnabledLiveChartSeriesSlugs() {
 function eventResource(
   event: DrizzleEventResult,
   userId: string,
+  sportsSlugResolver: SportsSlugResolver,
   priceMap: Map<string, OutcomePrices>,
   localizedTagNamesById: Map<number, string> = new Map(),
   localizedEventTitlesById: Map<string, string> = new Map(),
@@ -455,6 +572,8 @@ function eventResource(
       ...market,
       neg_risk: Boolean(market.neg_risk),
       neg_risk_other: Boolean(market.neg_risk_other),
+      sports_market_type: market.sports?.sports_market_type ?? null,
+      sports_group_item_title: market.sports?.sports_group_item_title ?? null,
       end_time: market.end_time?.toISOString?.() ?? null,
       question_id: market.condition?.question_id || '',
       title: market.short_title || market.title,
@@ -502,6 +621,11 @@ function eventResource(
     ? (Date.now() - event.updated_at.getTime()) < 1000 * 60 * 60 * 24 * 3
     : false
   const isTrending = totalRecentVolume > 0 || isRecentlyUpdated
+  const normalizedSportsTags = toOptionalStringArray(event.sports?.sports_tags)
+  const normalizedSportsTeams = toOptionalSportsTeams(event.sports?.sports_teams)
+  const normalizedSportsTeamLogoUrls = toOptionalStringArray(event.sports?.sports_team_logo_urls)
+    ?.map(logoPath => getPublicAssetUrl(logoPath) || logoPath)
+    ?? null
 
   return {
     id: event.id || '',
@@ -509,6 +633,7 @@ function eventResource(
     title: (localizedEventTitlesById.get(event.id) ?? event.title) || '',
     creator: event.creator || '',
     icon_url: getPublicAssetUrl(event.icon_url),
+    livestream_url: event.livestream_url ?? null,
     show_market_icons: event.show_market_icons ?? true,
     enable_neg_risk: Boolean(event.enable_neg_risk),
     neg_risk_augmented: Boolean(event.neg_risk_augmented),
@@ -519,7 +644,20 @@ function eventResource(
     series_slug: event.series_slug ?? null,
     series_recurrence: event.series_recurrence ?? null,
     sports_event_slug: event.sports?.sports_event_slug ?? null,
-    sports_sport_slug: event.sports?.sports_sport_slug ?? null,
+    sports_sport_slug: resolveCanonicalSportsSportSlug(sportsSlugResolver, {
+      sportsSportSlug: event.sports?.sports_sport_slug ?? null,
+      sportsTags: normalizedSportsTags,
+    }),
+    sports_start_time: event.sports?.sports_start_time?.toISOString() ?? null,
+    sports_event_week: toOptionalNumber(event.sports?.sports_event_week),
+    sports_score: event.sports?.sports_score ?? null,
+    sports_period: event.sports?.sports_period ?? null,
+    sports_elapsed: event.sports?.sports_elapsed ?? null,
+    sports_live: event.sports?.sports_live ?? null,
+    sports_ended: event.sports?.sports_ended ?? null,
+    sports_tags: normalizedSportsTags,
+    sports_teams: normalizedSportsTeams,
+    sports_team_logo_urls: normalizedSportsTeamLogoUrls,
     has_live_chart: hasLiveChart,
     active_markets_count: Number(event.active_markets_count || 0),
     total_markets_count: Number(event.total_markets_count || 0),
@@ -548,6 +686,7 @@ function eventResource(
 async function buildEventResource(
   eventResult: DrizzleEventResult,
   userId: string,
+  sportsSlugResolver: SportsSlugResolver,
   locale: SupportedLocale = DEFAULT_LOCALE,
 ): Promise<Event> {
   const outcomeTokenIds = (eventResult.markets ?? []).flatMap((market: any) =>
@@ -568,6 +707,7 @@ async function buildEventResource(
   return eventResource(
     eventResult,
     userId,
+    sportsSlugResolver,
     priceMap,
     localizedTagNamesById,
     localizedEventTitlesById,
@@ -590,23 +730,7 @@ export const EventRepository = {
     cacheTag(cacheTags.eventsGlobal)
 
     return runQuery(async () => {
-      const rows = await getCachedActiveSportsCountsBySlug()
-      const countsBySlug: Record<string, number> = {}
-
-      for (const row of rows) {
-        const normalizedSlug = row.slug?.trim().toLowerCase()
-        if (!normalizedSlug) {
-          continue
-        }
-
-        const countValue = Number(row.count ?? 0)
-        if (!Number.isFinite(countValue) || countValue <= 0) {
-          continue
-        }
-
-        countsBySlug[normalizedSlug] = countValue
-      }
-
+      const countsBySlug = await getSportsCountsBySlugFromDb()
       return { data: countsBySlug, error: null }
     })
   },
@@ -630,6 +754,8 @@ export const EventRepository = {
     return await runQuery(async () => {
       const limit = 40
       const validOffset = Number.isNaN(offset) || offset < 0 ? 0 : offset
+      const sportsSlugResolver = await getSportsSlugResolverFromDb()
+      const normalizedRequestedSportsSportSlug = sportsSportSlug.trim().toLowerCase()
 
       const whereConditions = []
       const hasAnyMarkets = exists(
@@ -675,18 +801,31 @@ export const EventRepository = {
         whereConditions.push(eq(normalizedSeriesRecurrence, frequency))
       }
 
-      const normalizedSportsSportSlug = sportsSportSlug.trim().toLowerCase()
-      if (normalizedSportsSportSlug) {
+      const sportsSportSlugCandidates = resolveSportsSportSlugQueryCandidates(
+        sportsSlugResolver,
+        sportsSportSlug,
+      )
+      if (normalizedRequestedSportsSportSlug && sportsSportSlugCandidates.length === 0) {
+        return { data: [], error: null }
+      }
+      if (sportsSportSlugCandidates.length > 0) {
         const normalizedSportsSportSlugColumn = sql<string>`
           LOWER(TRIM(COALESCE(${event_sports.sports_sport_slug}, '')))
         `
+        const sportsSportSlugCondition = sportsSportSlugCandidates.length === 1
+          ? eq(normalizedSportsSportSlugColumn, sportsSportSlugCandidates[0]!)
+          : inArray(normalizedSportsSportSlugColumn, sportsSportSlugCandidates)
+        const sportsTagsMatchCondition = buildSportsTagsMatchCondition(sportsSportSlugCandidates)
+        const sportsSlugOrTagCondition = sportsTagsMatchCondition
+          ? or(sportsSportSlugCondition, sportsTagsMatchCondition)
+          : sportsSportSlugCondition
         whereConditions.push(
           exists(
             db.select({ event_id: event_sports.event_id })
               .from(event_sports)
               .where(and(
                 eq(event_sports.event_id, events.id),
-                eq(normalizedSportsSportSlugColumn, normalizedSportsSportSlug),
+                sportsSlugOrTagCondition,
               )),
           ),
         )
@@ -803,6 +942,7 @@ export const EventRepository = {
           with: {
             markets: {
               with: {
+                sports: true,
                 condition: {
                   with: { outcomes: true },
                 },
@@ -838,6 +978,7 @@ export const EventRepository = {
           with: {
             markets: {
               with: {
+                sports: true,
                 condition: {
                   with: { outcomes: true },
                 },
@@ -866,7 +1007,6 @@ export const EventRepository = {
           (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
         ),
       )
-
       const tagIds = Array.from(new Set(
         eventsData.flatMap(event =>
           (event.eventTags ?? [])
@@ -875,10 +1015,15 @@ export const EventRepository = {
         ),
       ))
       const eventIds = eventsData.map(event => event.id)
-      const [priceMap, localizedTagNamesById, localizedEventTitlesById] = await Promise.all([
+      const sportsVolumeGroupKeyByEventId = await getSportsVolumeGroupKeysByEventId(eventIds)
+      const sportsVolumeGroupKeysForAggregation = Array.from(new Set(
+        sportsVolumeGroupKeyByEventId.values(),
+      ))
+      const [priceMap, localizedTagNamesById, localizedEventTitlesById, groupedSportsVolumesByGroupKey] = await Promise.all([
         fetchOutcomePrices(tokensForPricing),
         getLocalizedTagNamesById(tagIds, locale),
         getLocalizedEventTitlesById(eventIds, locale),
+        getSportsAggregatedVolumesByGroupKey(sportsVolumeGroupKeysForAggregation),
       ])
       const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
 
@@ -887,11 +1032,28 @@ export const EventRepository = {
         .map(event => eventResource(
           event as DrizzleEventResult,
           userId,
+          sportsSlugResolver,
           priceMap,
           localizedTagNamesById,
           localizedEventTitlesById,
           liveChartSeriesSlugs,
         ))
+        .map((event) => {
+          const groupKey = sportsVolumeGroupKeyByEventId.get(event.id)
+          if (!groupKey) {
+            return event
+          }
+
+          const groupedVolume = groupedSportsVolumesByGroupKey.get(groupKey)
+          if (groupedVolume == null) {
+            return event
+          }
+
+          return {
+            ...event,
+            volume: groupedVolume,
+          }
+        })
 
       return { data: eventsWithMarkets, error: null }
     })
@@ -920,10 +1082,14 @@ export const EventRepository = {
     sportsEventSlug: string,
   ): Promise<QueryResult<{ slug: string }>> {
     return runQuery(async () => {
-      const normalizedSportsSportSlug = sportsSportSlug.trim().toLowerCase()
+      const sportsSlugResolver = await getSportsSlugResolverFromDb()
+      const sportsSportSlugCandidates = resolveSportsSportSlugQueryCandidates(
+        sportsSlugResolver,
+        sportsSportSlug,
+      )
       const normalizedSportsEventSlug = sportsEventSlug.trim().toLowerCase()
 
-      if (!normalizedSportsSportSlug || !normalizedSportsEventSlug) {
+      if (sportsSportSlugCandidates.length === 0 || !normalizedSportsEventSlug) {
         throw new Error('Event not found')
       }
 
@@ -933,13 +1099,20 @@ export const EventRepository = {
       const normalizedSportsEventSlugColumn = sql<string>`
         LOWER(TRIM(COALESCE(${event_sports.sports_event_slug}, '')))
       `
+      const sportsSportSlugCondition = sportsSportSlugCandidates.length === 1
+        ? eq(normalizedSportsSportSlugColumn, sportsSportSlugCandidates[0]!)
+        : inArray(normalizedSportsSportSlugColumn, sportsSportSlugCandidates)
+      const sportsTagsMatchCondition = buildSportsTagsMatchCondition(sportsSportSlugCandidates)
+      const sportsSlugOrTagCondition = sportsTagsMatchCondition
+        ? or(sportsSportSlugCondition, sportsTagsMatchCondition)
+        : sportsSportSlugCondition
 
       const result = await db
         .select({ slug: events.slug })
         .from(event_sports)
         .innerJoin(events, eq(event_sports.event_id, events.id))
         .where(and(
-          eq(normalizedSportsSportSlugColumn, normalizedSportsSportSlug),
+          sportsSlugOrTagCondition,
           eq(normalizedSportsEventSlugColumn, normalizedSportsEventSlug),
         ))
         .orderBy(desc(events.created_at))
@@ -949,21 +1122,7 @@ export const EventRepository = {
         return { data: result[0]!, error: null }
       }
 
-      const fallbackResult = await db
-        .select({ slug: events.slug })
-        .from(event_sports)
-        .innerJoin(events, eq(event_sports.event_id, events.id))
-        .where(and(
-          eq(normalizedSportsSportSlugColumn, normalizedSportsSportSlug),
-          eq(events.slug, normalizedSportsEventSlug),
-        ))
-        .limit(1)
-
-      if (fallbackResult.length === 0) {
-        throw new Error('Event not found')
-      }
-
-      return { data: fallbackResult[0]!, error: null }
+      throw new Error('Event not found')
     })
   },
 
@@ -1011,6 +1170,56 @@ export const EventRepository = {
       return {
         data: {
           title: localizedTitles.get(eventRow.id) ?? eventRow.title,
+        },
+        error: null,
+      }
+    })
+  },
+
+  async getEventRouteBySlug(slug: string): Promise<QueryResult<{
+    slug: string
+    sports_sport_slug: string | null
+    sports_event_slug: string | null
+  }>> {
+    return runQuery(async () => {
+      interface EventRouteRow {
+        slug: string
+        sports: {
+          sports_sport_slug: string | null
+          sports_event_slug: string | null
+          sports_tags: unknown
+        } | null
+      }
+
+      const result = await db.query.events.findFirst({
+        where: eq(events.slug, slug),
+        columns: { slug: true },
+        with: {
+          sports: {
+            columns: {
+              sports_sport_slug: true,
+              sports_event_slug: true,
+              sports_tags: true,
+            },
+          },
+        },
+      }) as EventRouteRow | undefined
+
+      if (!result) {
+        throw new Error('Event not found')
+      }
+
+      const sportsSlugResolver = await getSportsSlugResolverFromDb()
+      const normalizedSportsTags = toOptionalStringArray(result.sports?.sports_tags)
+
+      return {
+        data: {
+          slug: result.slug,
+          sports_sport_slug: resolveCanonicalSportsSportSlug(sportsSlugResolver, {
+            sportsSportSlug: result.sports?.sports_sport_slug ?? null,
+            sportsTags: normalizedSportsTags,
+          }),
+          sports_event_slug: result.sports?.sports_event_slug ?? null,
         },
         error: null,
       }
@@ -1182,9 +1391,124 @@ export const EventRepository = {
         throw new Error('Event not found')
       }
 
-      const transformedEvent = await buildEventResource(eventResult as DrizzleEventResult, userId, locale)
+      const sportsSlugResolver = await getSportsSlugResolverFromDb()
+      const transformedEvent = await buildEventResource(
+        eventResult as DrizzleEventResult,
+        userId,
+        sportsSlugResolver,
+        locale,
+      )
 
       return { data: transformedEvent, error: null }
+    })
+  },
+
+  async getSportsEventGroupBySlug(
+    slug: string,
+    userId: string = '',
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<QueryResult<Event[]>> {
+    return runQuery(async () => {
+      const sportsSlugResolver = await getSportsSlugResolverFromDb()
+      const sportsVolumeGroupKeySql = buildSportsVolumeGroupKeySql()
+
+      const baseGroupRows = await db
+        .select({
+          group_key: sportsVolumeGroupKeySql,
+        })
+        .from(events)
+        .innerJoin(event_sports, eq(event_sports.event_id, events.id))
+        .where(and(
+          eq(events.slug, slug),
+          sql`${sportsVolumeGroupKeySql} IS NOT NULL`,
+        ))
+        .limit(1)
+
+      const baseGroupKey = baseGroupRows[0]?.group_key?.trim()
+      if (!baseGroupKey) {
+        return { data: [], error: null }
+      }
+
+      const groupedEventsData = await db.query.events.findMany({
+        where: exists(
+          db.select({ event_id: event_sports.event_id })
+            .from(event_sports)
+            .where(and(
+              eq(event_sports.event_id, events.id),
+              sql`${sportsVolumeGroupKeySql} = ${baseGroupKey}`,
+            )),
+        ),
+        with: {
+          markets: {
+            with: {
+              sports: true,
+              condition: {
+                with: { outcomes: true },
+              },
+            },
+          },
+          eventTags: {
+            with: { tag: true },
+          },
+          sports: true,
+          ...(userId && {
+            bookmarks: {
+              where: eq(bookmarks.user_id, userId),
+            },
+          }),
+        },
+        orderBy: [asc(events.created_at)],
+      }) as DrizzleEventResult[]
+
+      if (groupedEventsData.length === 0) {
+        return { data: [], error: null }
+      }
+
+      const tokensForPricing = groupedEventsData.flatMap(event =>
+        (event.markets ?? []).flatMap(market =>
+          (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
+        ),
+      )
+      const tagIds = Array.from(new Set(
+        groupedEventsData.flatMap(event =>
+          (event.eventTags ?? [])
+            .map(eventTag => eventTag.tag?.id)
+            .filter((tagId): tagId is number => typeof tagId === 'number'),
+        ),
+      ))
+      const eventIds = groupedEventsData.map(event => event.id)
+      const [priceMap, localizedTagNamesById, localizedEventTitlesById, groupedVolumesByGroupKey] = await Promise.all([
+        fetchOutcomePrices(tokensForPricing),
+        getLocalizedTagNamesById(tagIds, locale),
+        getLocalizedEventTitlesById(eventIds, locale),
+        getSportsAggregatedVolumesByGroupKey([baseGroupKey]),
+      ])
+      const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
+
+      const groupedVolume = groupedVolumesByGroupKey.get(baseGroupKey)
+      const eventsWithMarkets = groupedEventsData
+        .filter(event => event.markets?.length > 0)
+        .map(event => eventResource(
+          event as DrizzleEventResult,
+          userId,
+          sportsSlugResolver,
+          priceMap,
+          localizedTagNamesById,
+          localizedEventTitlesById,
+          liveChartSeriesSlugs,
+        ))
+        .map((event) => {
+          if (groupedVolume == null) {
+            return event
+          }
+
+          return {
+            ...event,
+            volume: groupedVolume,
+          }
+        })
+
+      return { data: eventsWithMarkets, error: null }
     })
   },
 

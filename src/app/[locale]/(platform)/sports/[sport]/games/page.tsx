@@ -1,10 +1,13 @@
 'use cache'
 
 import type { Metadata } from 'next'
+import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
-import { normalizeSportsSlug } from '@/app/[locale]/(platform)/sports/_components/sportsRouteUtils'
+import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
+import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
+import { EventRepository } from '@/lib/db/queries/event'
+import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export const metadata: Metadata = {
@@ -26,20 +29,33 @@ export default async function SportsGamesBySportPage({
     notFound()
   }
 
-  const normalizedSportSlug = normalizeSportsSlug(sport)
-  if (!normalizedSportSlug) {
+  const [{ data: canonicalSportSlug }, { data: layoutData }] = await Promise.all([
+    SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
+    SportsMenuRepository.getLayoutData(),
+  ])
+  if (!canonicalSportSlug) {
     notFound()
   }
 
+  const { data: events } = await EventRepository.listEvents({
+    tag: 'sports',
+    search: '',
+    userId: '',
+    bookmarked: false,
+    status: 'active',
+    locale: locale as SupportedLocale,
+    sportsSportSlug: canonicalSportSlug,
+    sportsSection: 'games',
+  })
+
+  const cards = buildSportsGamesCards(events ?? [])
+  const sportTitle = layoutData?.h1TitleBySlug[canonicalSportSlug] ?? canonicalSportSlug.toUpperCase()
+
   return (
-    <div className="grid gap-4">
-      <SportsContent
-        locale={locale}
-        initialTag="sports"
-        initialMode="all"
-        sportsSportSlug={normalizedSportSlug}
-        sportsSection="games"
-      />
-    </div>
+    <SportsGamesCenter
+      cards={cards}
+      sportSlug={canonicalSportSlug}
+      sportTitle={sportTitle}
+    />
   )
 }

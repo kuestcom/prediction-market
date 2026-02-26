@@ -4,6 +4,7 @@ import type { MarketDetailTab } from '@/app/[locale]/(platform)/event/[slug]/_ho
 import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import type { OrderBookSummariesResponse } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { DataApiActivity } from '@/lib/data-api/user'
+import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 import type { Event, UserPosition } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, ChevronDownIcon, LockKeyholeIcon, RefreshCwIcon, XIcon } from 'lucide-react'
@@ -25,7 +26,6 @@ import { useEventMarketRows } from '@/app/[locale]/(platform)/event/[slug]/_hook
 import { useMarketDetailController } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useMarketDetailController'
 import { useUserOpenOrdersQuery } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
-import { calculateMarketFill, normalizeBookLevels } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
 import { isResolutionReviewActive } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
@@ -33,6 +33,7 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData, fetchUserOtherBalance, fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatAmountInputValue, formatSharesLabel, fromMicro } from '@/lib/formatters'
+import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { buildUmaProposeUrl, buildUmaSettledUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 import { useIsSingleMarket, useOrder } from '@/stores/useOrder'
@@ -101,6 +102,7 @@ interface CashOutModalPayload {
   filledShares: number
   avgPriceCents: number | null
   receiveAmount: number | null
+  sellBids: NormalizedBookLevel[]
 }
 
 export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
@@ -447,6 +449,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
       filledShares: fill.filledShares,
       avgPriceCents: fill.avgPriceCents,
       receiveAmount: fill.totalCost > 0 ? fill.totalCost : null,
+      sellBids: bids,
     })
   }, [isMobile, orderBookQuery, orderBookSummaries, setAmount, setIsMobileOrderPanelOpen, setMarket, setOutcome, setSide, setType])
 
@@ -456,11 +459,15 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     }
   }, [])
 
-  const handleCashOutSubmit = useCallback(() => {
+  const handleCashOutSubmit = useCallback((sharesToSell: number) => {
+    if (!(sharesToSell > 0)) {
+      return
+    }
+    setAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))
     setCashOutPayload(null)
     const form = document.getElementById('event-order-form') as HTMLFormElement | null
     form?.requestSubmit()
-  }, [])
+  }, [setAmount])
 
   useEffect(() => {
     if (ownerAddress && Object.keys(sharesByCondition).length > 0) {
@@ -705,15 +712,21 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
           open={Boolean(cashOutPayload)}
           onOpenChange={handleCashOutModalChange}
           outcomeLabel={cashOutPayload.outcomeLabel}
-          outcomeShortLabel={cashOutPayload.market.short_title || cashOutPayload.market.title}
+          outcomeShortLabel={event.title}
           outcomeIconUrl={cashOutPayload.market.icon_url}
           fallbackIconUrl={event.icon_url}
           shares={cashOutPayload.shares}
           filledShares={cashOutPayload.filledShares}
           avgPriceCents={cashOutPayload.avgPriceCents}
           receiveAmount={cashOutPayload.receiveAmount}
+          sellBids={cashOutPayload.sellBids}
+          onSharesChange={sharesToSell =>
+            setAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))}
           onCashOut={handleCashOutSubmit}
-          onEditOrder={() => setCashOutPayload(null)}
+          onEditOrder={(sharesToSell) => {
+            setAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))
+            setCashOutPayload(null)
+          }}
         />
       )}
     </>

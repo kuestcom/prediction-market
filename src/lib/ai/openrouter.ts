@@ -29,6 +29,8 @@ interface OpenRouterModelsResponse {
 }
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const OPENROUTER_MODELS_API_URL = 'https://openrouter.ai/api/v1/models'
+const OPENROUTER_RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504])
 
 interface RequestCompletionOptions {
   temperature?: number
@@ -101,25 +103,74 @@ export interface OpenRouterModelSummary {
   contextLength?: number
 }
 
+function isTransientOpenRouterFetchError(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false
+  }
+
+  const err = error as { name?: string, message?: string }
+  if (err.name === 'AbortError' || err.name === 'TimeoutError') {
+    return true
+  }
+
+  const message = err.message?.toLowerCase() ?? ''
+  return message.includes('timed out') || message.includes('timeout')
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 export async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterModelSummary[]> {
   if (!apiKey) {
     return []
   }
 
   const headers = await buildOpenRouterHeaders(apiKey)
+  let payload: OpenRouterModelsResponse | null = null
+  let lastError: Error | null = null
 
-  const response = await fetch('https://openrouter.ai/api/v1/models', {
-    method: 'GET',
-    headers,
-    signal: AbortSignal.timeout(15_000),
-  })
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const response = await fetch(OPENROUTER_MODELS_API_URL, {
+        method: 'GET',
+        headers,
+        signal: AbortSignal.timeout(15_000),
+      })
 
-  if (!response.ok) {
-    const errorBody = await response.text()
-    throw new Error(`OpenRouter models request failed: ${response.status} ${errorBody}`)
+      if (!response.ok) {
+        const errorBody = await response.text()
+        const isRetryableStatus = OPENROUTER_RETRYABLE_STATUS.has(response.status)
+
+        if (isRetryableStatus && attempt < 2) {
+          await sleep(350)
+          continue
+        }
+
+        throw new Error(`OpenRouter models request failed: ${response.status} ${errorBody}`)
+      }
+
+      payload = (await response.json()) as OpenRouterModelsResponse
+      break
+    }
+    catch (error) {
+      if (isTransientOpenRouterFetchError(error) && attempt < 2) {
+        await sleep(350)
+        continue
+      }
+
+      lastError = error instanceof Error ? error : new Error(String(error))
+      break
+    }
   }
 
-  const payload = (await response.json()) as OpenRouterModelsResponse
+  if (!payload) {
+    if (lastError) {
+      throw lastError
+    }
+    throw new Error('OpenRouter models request failed: empty response')
+  }
+
   const models = Array.isArray(payload.data) ? payload.data : []
 
   return models

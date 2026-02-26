@@ -40,7 +40,8 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
       }))
     }
     catch (error) {
-      console.error('Failed to load OpenRouter models', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.warn(`Failed to load OpenRouter models: ${errorMessage}`)
       openRouterModelsError = t('Unable to load models from OpenRouter. Please try again later.')
     }
   }

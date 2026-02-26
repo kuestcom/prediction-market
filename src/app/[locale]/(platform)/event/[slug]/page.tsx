@@ -3,7 +3,9 @@ import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
-import { getEventTitleBySlug, loadEventPageContentData } from '@/lib/event-page-data'
+import { redirect } from '@/i18n/navigation'
+import { getEventRouteBySlug, getEventTitleBySlug, loadEventPageContentData } from '@/lib/event-page-data'
+import { resolveEventBasePath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/event/[slug]'>): Promise<Metadata> {
@@ -27,6 +29,20 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
+
+  const eventRoute = await getEventRouteBySlug(slug)
+  if (!eventRoute) {
+    notFound()
+  }
+
+  const sportsPath = resolveEventBasePath(eventRoute)
+  if (sportsPath) {
+    redirect({
+      href: sportsPath,
+      locale: resolvedLocale,
+    })
+  }
+
   const eventPageData = await loadEventPageContentData(slug, resolvedLocale)
   if (!eventPageData) {
     notFound()

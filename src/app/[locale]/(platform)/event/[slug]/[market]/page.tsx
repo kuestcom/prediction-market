@@ -3,7 +3,9 @@ import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
-import { getEventTitleBySlug, loadEventPageContentData } from '@/lib/event-page-data'
+import { redirect } from '@/i18n/navigation'
+import { getEventRouteBySlug, getEventTitleBySlug, loadEventPageContentData } from '@/lib/event-page-data'
+import { resolveEventMarketPath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
@@ -31,6 +33,21 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
   if (slug === STATIC_PARAMS_PLACEHOLDER || market === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
+
+  const eventRoute = await getEventRouteBySlug(slug)
+  if (!eventRoute) {
+    notFound()
+  }
+
+  const canonicalPath = resolveEventMarketPath(eventRoute, market)
+  const legacyPath = `/event/${eventRoute.slug}/${market}`
+  if (canonicalPath !== legacyPath) {
+    redirect({
+      href: canonicalPath,
+      locale: resolvedLocale,
+    })
+  }
+
   const eventPageData = await loadEventPageContentData(slug, resolvedLocale)
   if (!eventPageData) {
     notFound()

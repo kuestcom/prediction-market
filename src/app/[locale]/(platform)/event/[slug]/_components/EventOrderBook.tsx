@@ -4,7 +4,7 @@ import type { InfiniteData } from '@tanstack/react-query'
 import type { EventOrderBookProps, OrderBookLevel, OrderBookUserOrder } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { UserOpenOrder } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
-import { AlignVerticalSpaceAroundIcon, Loader2Icon } from 'lucide-react'
+import { AlignVerticalSpaceAroundIcon, ArrowLeftRightIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -26,6 +26,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { ORDER_SIDE, ORDER_TYPE, tableHeaderClass } from '@/lib/constants'
+import { formatOddsFromCents } from '@/lib/odds-format'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
@@ -41,6 +42,11 @@ export default function EventOrderBook({
   summaries,
   isLoadingSummaries,
   eventSlug,
+  surfaceVariant = 'default',
+  oddsFormat = 'price',
+  tradeLabel,
+  onToggleOutcome,
+  toggleOutcomeTooltip,
 }: EventOrderBookProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -53,6 +59,8 @@ export default function EventOrderBook({
   const hasCenteredRef = useRef(false)
   const [pendingCancelIds, setPendingCancelIds] = useState<Set<string>>(() => new Set())
   const tokenId = outcome?.token_id || market.outcomes[0]?.token_id
+  const isSportsCardSurface = surfaceVariant === 'sportsCard'
+  const surfaceClass = isSportsCardSurface ? 'bg-card' : 'bg-background'
 
   const summary = tokenId ? summaries?.[tokenId] ?? null : null
   const setType = useOrder(state => state.setType)
@@ -264,6 +272,13 @@ export default function EventOrderBook({
     [summary, market, outcome],
   )
   const displayOutcomeLabel = normalizeOutcomeLabel(outcomeLabel) ?? outcomeLabel
+  const displayTradeLabel = tradeLabel ?? `${t('Trade')} ${displayOutcomeLabel}`
+  const formatDisplayedPrice = useCallback((priceCents: number | null | undefined) => {
+    if (oddsFormat === 'price') {
+      return formatOrderBookPrice(priceCents ?? null)
+    }
+    return formatOddsFromCents(priceCents ?? null, oddsFormat)
+  }, [oddsFormat])
 
   const renderedAsks = useMemo(
     () => [...asks].sort((a, b) => b.priceCents - a.priceCents),
@@ -311,16 +326,45 @@ export default function EventOrderBook({
   }
 
   return (
-    <div ref={orderBookScrollRef} className="relative max-h-90 overflow-y-auto">
-      <div>
+    <div
+      ref={orderBookScrollRef}
+      className={cn(
+        'relative max-h-90 overflow-y-auto',
+        surfaceClass,
+      )}
+    >
+      <div className={cn(surfaceClass)}>
         <div
           className={cn(
             tableHeaderClass,
-            'sticky top-0 z-1 grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b bg-background',
+            'grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b',
+            isSportsCardSurface && 'sticky top-0 z-10',
+            surfaceClass,
           )}
         >
           <div className="flex h-full items-center gap-2">
-            <span className="inline-flex -translate-y-px">{`${t('Trade')} ${displayOutcomeLabel}`}</span>
+            <span className="inline-flex -translate-y-px">{displayTradeLabel}</span>
+            {onToggleOutcome && toggleOutcomeTooltip && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className={`
+                      inline-flex size-6 -translate-y-[1.5px] items-center justify-center rounded-sm
+                      text-muted-foreground transition-colors
+                      hover:bg-muted/70 hover:text-foreground
+                    `}
+                    onClick={onToggleOutcome}
+                    aria-label={toggleOutcomeTooltip}
+                  >
+                    <ArrowLeftRightIcon className="size-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  {toggleOutcomeTooltip}
+                </TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -362,6 +406,7 @@ export default function EventOrderBook({
                     level={level}
                     maxTotal={maxTotal}
                     showBadge={index === renderedAsks.length - 1 ? 'ask' : undefined}
+                    priceFormatter={formatDisplayedPrice}
                     onSelect={handleLevelSelect}
                     userOrder={userOrder}
                     isCancelling={userOrder ? pendingCancelIds.has(userOrder.id) : false}
@@ -374,20 +419,21 @@ export default function EventOrderBook({
 
         <div
           ref={centerRowRef}
-          className={
+          className={cn(
             `
-              sticky top-9 bottom-0 z-1 grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y
-              bg-background px-2 text-xs font-medium text-muted-foreground transition-colors
-              hover:bg-muted
+              grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y px-2 text-xs font-medium
+              text-muted-foreground transition-colors
               sm:px-3
-            `
-          }
+            `,
+            isSportsCardSurface && 'sticky top-9 bottom-0 z-10',
+            isSportsCardSurface ? 'bg-card hover:bg-secondary' : 'bg-background hover:bg-muted',
+          )}
           role="presentation"
         >
           <div className="flex h-full cursor-pointer items-center">
             {t('Last')}
             :&nbsp;
-            {lastPrice == null ? '--' : formatOrderBookPrice(lastPrice)}
+            {lastPrice == null ? '--' : formatDisplayedPrice(lastPrice)}
           </div>
           <div className="flex h-full cursor-pointer items-center justify-center">
             {t('Spread')}
@@ -408,6 +454,7 @@ export default function EventOrderBook({
                     level={level}
                     maxTotal={maxTotal}
                     showBadge={index === 0 ? 'bid' : undefined}
+                    priceFormatter={formatDisplayedPrice}
                     onSelect={handleLevelSelect}
                     userOrder={userOrder}
                     isCancelling={userOrder ? pendingCancelIds.has(userOrder.id) : false}
