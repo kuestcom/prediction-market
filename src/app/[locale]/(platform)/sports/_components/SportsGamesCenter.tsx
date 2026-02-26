@@ -19,6 +19,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   EqualIcon,
+  RadioIcon,
   RefreshCwIcon,
   SearchIcon,
   SettingsIcon,
@@ -28,6 +29,7 @@ import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
 import EventChartControls, { defaultChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
@@ -41,6 +43,8 @@ import EventOrderPanelTermsDisclaimer
 import { TIME_RANGES, useEventPriceHistory } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { loadStoredChartSettings, storeChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
 import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
+import SportsLivestreamFloatingPlayer
+  from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -51,6 +55,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { Link, useRouter } from '@/i18n/navigation'
@@ -63,12 +68,15 @@ import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-util
 import { calculateYAxisBounds } from '@/lib/prediction-chart'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
+import { useSportsLivestream } from '@/stores/useSportsLivestream'
 import { useUser } from '@/stores/useUser'
 
 interface SportsGamesCenterProps {
   cards: SportsGamesCard[]
   sportSlug: string
   sportTitle: string
+  pageMode?: 'games' | 'live'
+  categoryTitleBySlug?: Record<string, string>
 }
 
 type DetailsTab = 'orderBook' | 'graph'
@@ -87,6 +95,17 @@ const headerIconButtonClass = `
 `
 const SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY = 'sports:event:odds-format'
 const SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY = 'sports:games:show-spreads-totals'
+const LIVE_SOON_WINDOW_MS = 24 * 60 * 60 * 1000
+const LIVE_FALLBACK_LIMIT = 10
+const GENERIC_SPORTS_CATEGORY_LABELS = new Set([
+  'sports',
+  'games',
+  'live',
+  'in play',
+  'inplay',
+  'today',
+  'tomorrow',
+])
 
 const PredictionChart = dynamic<PredictionChartProps>(
   () => import('@/components/PredictionChart'),
@@ -607,6 +626,172 @@ function normalizeComparableText(value: string | null | undefined) {
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
     ?? ''
+}
+
+function toFiniteTimestamp(value: string | null | undefined) {
+  if (!value) {
+    return Number.NaN
+  }
+
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp) ? timestamp : Number.NaN
+}
+
+function resolveCardStartTimestamp(card: SportsGamesCard) {
+  return toFiniteTimestamp(
+    card.startTime
+    ?? card.event.sports_start_time
+    ?? card.event.start_date
+    ?? card.event.created_at,
+  )
+}
+
+function resolveCardEndTimestamp(card: SportsGamesCard) {
+  const explicitEnd = toFiniteTimestamp(card.event.end_date)
+  if (Number.isFinite(explicitEnd)) {
+    return explicitEnd
+  }
+
+  const marketEndTimes = card.detailMarkets
+    .map(market => toFiniteTimestamp(market.end_time ?? null))
+    .filter(timestamp => Number.isFinite(timestamp))
+
+  if (marketEndTimes.length > 0) {
+    return Math.max(...marketEndTimes)
+  }
+
+  return Number.NaN
+}
+
+function isCardLiveNow(card: SportsGamesCard, nowMs: number) {
+  if (card.event.status !== 'active' || card.event.sports_ended === true) {
+    return false
+  }
+
+  const startMs = resolveCardStartTimestamp(card)
+  const endMs = resolveCardEndTimestamp(card)
+  const isInTimeWindow = Number.isFinite(startMs) && Number.isFinite(endMs)
+    ? startMs <= nowMs && nowMs <= endMs
+    : false
+
+  if (card.event.sports_live === true) {
+    return true
+  }
+
+  return isInTimeWindow
+}
+
+function isCardFuture(card: SportsGamesCard, nowMs: number) {
+  if (card.event.status !== 'active') {
+    return false
+  }
+
+  const startMs = resolveCardStartTimestamp(card)
+  return Number.isFinite(startMs) && startMs > nowMs
+}
+
+function formatCategoryFromSlug(value: string) {
+  return value
+    .split('-')
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function resolveCategoryFromEventSlug(card: SportsGamesCard) {
+  const eventSlug = card.event.sports_event_slug?.trim() || card.event.series_slug?.trim()
+  if (!eventSlug) {
+    return null
+  }
+
+  const cleaned = eventSlug
+    .replace(/-games?$/i, '')
+    .replace(/-live$/i, '')
+    .replace(/-props$/i, '')
+  if (!cleaned) {
+    return null
+  }
+
+  const sportSlug = card.event.sports_sport_slug?.trim().toLowerCase()
+  const tokens = cleaned.split('-').filter(Boolean)
+  const normalizedTokens = sportSlug
+    ? tokens.filter(token => token.toLowerCase() !== sportSlug)
+    : tokens
+  const candidate = normalizedTokens.join('-')
+
+  return candidate ? formatCategoryFromSlug(candidate) : null
+}
+
+function isGenericSportsCategoryLabel(label: string, sportSlug: string | null | undefined) {
+  const normalized = normalizeComparableText(label)
+  if (!normalized) {
+    return true
+  }
+
+  if (GENERIC_SPORTS_CATEGORY_LABELS.has(normalized)) {
+    return true
+  }
+
+  if (!sportSlug) {
+    return false
+  }
+
+  const normalizedSportSlug = normalizeComparableText(sportSlug.replace(/-/g, ' '))
+  return normalized === normalizedSportSlug
+}
+
+function resolveCardCategoryLabel(
+  card: SportsGamesCard,
+  categoryTitleBySlug: Record<string, string> = {},
+) {
+  const normalizedSportSlug = card.event.sports_sport_slug?.trim().toLowerCase()
+  const mappedCategoryTitle = normalizedSportSlug
+    ? categoryTitleBySlug[normalizedSportSlug]
+    : null
+  if (
+    mappedCategoryTitle
+    && !isGenericSportsCategoryLabel(mappedCategoryTitle, normalizedSportSlug)
+  ) {
+    return mappedCategoryTitle
+  }
+
+  const sportSlug = card.event.sports_sport_slug
+  const candidateTags = card.event.sports_tags
+    ?.map(tag => tag?.trim() ?? '')
+    .filter(Boolean)
+    .filter(tag => !isGenericSportsCategoryLabel(tag, sportSlug))
+    ?? []
+
+  if (candidateTags.length > 0) {
+    return [...candidateTags].sort((a, b) => b.length - a.length)[0]!
+  }
+
+  return resolveCategoryFromEventSlug(card) ?? 'Other'
+}
+
+function resolveCardCompetitionLabel(card: SportsGamesCard, categoryLabel: string) {
+  const sportSlug = card.event.sports_sport_slug ?? null
+  const normalizedCategory = normalizeComparableText(categoryLabel)
+
+  const tags = card.event.sports_tags
+    ?.map(tag => tag?.trim() ?? '')
+    .filter(Boolean)
+    ?? []
+
+  for (const tag of tags) {
+    if (isGenericSportsCategoryLabel(tag, sportSlug)) {
+      continue
+    }
+
+    const normalizedTag = normalizeComparableText(tag)
+    if (!normalizedTag || normalizedTag === normalizedCategory) {
+      continue
+    }
+
+    return tag
+  }
+
+  return null
 }
 
 function resolveSwitchTooltip(market: Market | null, nextOutcome: Outcome | null) {
@@ -1654,6 +1839,7 @@ export function SportsGameDetailsPanel({
   const user = useUser()
   const linePickerScrollerRef = useRef<HTMLDivElement | null>(null)
   const linePickerButtonsRef = useRef<Record<string, HTMLButtonElement | null>>({})
+  const linePickerScrollSettleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [linePickerStartSpacer, setLinePickerStartSpacer] = useState(0)
   const [linePickerEndSpacer, setLinePickerEndSpacer] = useState(0)
   const [cashOutPayload, setCashOutPayload] = useState<SportsCashOutModalPayload | null>(null)
@@ -2132,6 +2318,33 @@ export function SportsGameDetailsPanel({
     pickLineOption(activeLineOptionIndex + 1)
   }, [activeLineOptionIndex, linePickerOptions.length, pickLineOption])
 
+  const resolveCenteredLineOptionIndex = useCallback(() => {
+    const scroller = linePickerScrollerRef.current
+    if (!scroller || linePickerOptions.length === 0) {
+      return -1
+    }
+
+    const scrollerCenter = scroller.scrollLeft + scroller.clientWidth / 2
+    let closestIndex = -1
+    let smallestDistance = Number.POSITIVE_INFINITY
+
+    linePickerOptions.forEach((option, index) => {
+      const button = linePickerButtonsRef.current[option.conditionId]
+      if (!button) {
+        return
+      }
+
+      const buttonCenter = button.offsetLeft + button.offsetWidth / 2
+      const distance = Math.abs(buttonCenter - scrollerCenter)
+      if (distance < smallestDistance) {
+        smallestDistance = distance
+        closestIndex = index
+      }
+    })
+
+    return closestIndex
+  }, [linePickerOptions])
+
   const alignActiveLineOption = useCallback((behavior: ScrollBehavior = 'smooth') => {
     if (activeLineOptionIndex < 0) {
       return
@@ -2142,19 +2355,14 @@ export function SportsGameDetailsPanel({
       return
     }
 
-    const scroller = linePickerScrollerRef.current
     const activeButton = linePickerButtonsRef.current[activeOption.conditionId]
-    if (!scroller || !activeButton) {
+    if (!activeButton) {
       return
     }
 
-    const targetLeft = activeButton.offsetLeft - (scroller.clientWidth - activeButton.offsetWidth) / 2
-    const maxLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth)
-    const clampedLeft = Math.max(0, Math.min(targetLeft, maxLeft))
-
-    scroller.scrollTo({
-      left: clampedLeft,
-      top: scroller.scrollTop,
+    activeButton.scrollIntoView({
+      inline: 'center',
+      block: 'nearest',
       behavior,
     })
   }, [activeLineOptionIndex, linePickerOptions])
@@ -2171,10 +2379,18 @@ export function SportsGameDetailsPanel({
     const lastOptionId = linePickerOptions[linePickerOptions.length - 1]?.conditionId
     const firstButton = firstOptionId ? linePickerButtonsRef.current[firstOptionId] : null
     const lastButton = lastOptionId ? linePickerButtonsRef.current[lastOptionId] : null
+    const fallbackButtonWidth = 40
+    const inferredButtonWidth = firstButton?.offsetWidth
+      ?? lastButton?.offsetWidth
+      ?? fallbackButtonWidth
+    const firstButtonWidth = firstButton?.offsetWidth ?? inferredButtonWidth
+    const lastButtonWidth = lastButton?.offsetWidth ?? inferredButtonWidth
 
     const viewportWidth = scroller.clientWidth
-    const startSpacerWidth = Math.max(0, viewportWidth / 2 - (firstButton?.offsetWidth ?? 0) / 2)
-    const endSpacerWidth = Math.max(0, viewportWidth / 2 - (lastButton?.offsetWidth ?? 0) / 2)
+    const scrollerStyles = window.getComputedStyle(scroller)
+    const gapWidth = Number.parseFloat(scrollerStyles.columnGap || scrollerStyles.gap || '0') || 0
+    const startSpacerWidth = Math.max(0, viewportWidth / 2 - firstButtonWidth / 2 - gapWidth)
+    const endSpacerWidth = Math.max(0, viewportWidth / 2 - lastButtonWidth / 2 - gapWidth)
 
     setLinePickerStartSpacer(startSpacerWidth)
     setLinePickerEndSpacer(endSpacerWidth)
@@ -2217,6 +2433,43 @@ export function SportsGameDetailsPanel({
       observer.disconnect()
     }
   }, [hasLinePicker, updateLinePickerSpacers])
+
+  useEffect(() => {
+    const scrollerElement = linePickerScrollerRef.current
+    if (!hasLinePicker || !scrollerElement) {
+      return
+    }
+
+    function syncCenteredLineOption() {
+      const centeredIndex = resolveCenteredLineOptionIndex()
+      if (centeredIndex < 0 || centeredIndex === activeLineOptionIndex) {
+        return
+      }
+
+      pickLineOption(centeredIndex)
+    }
+
+    function handleScroll() {
+      if (linePickerScrollSettleTimeoutRef.current) {
+        clearTimeout(linePickerScrollSettleTimeoutRef.current)
+      }
+
+      linePickerScrollSettleTimeoutRef.current = setTimeout(() => {
+        linePickerScrollSettleTimeoutRef.current = null
+        syncCenteredLineOption()
+      }, 90)
+    }
+
+    scrollerElement.addEventListener('scroll', handleScroll, { passive: true })
+
+    return () => {
+      scrollerElement.removeEventListener('scroll', handleScroll)
+      if (linePickerScrollSettleTimeoutRef.current) {
+        clearTimeout(linePickerScrollSettleTimeoutRef.current)
+        linePickerScrollSettleTimeoutRef.current = null
+      }
+    }
+  }, [activeLineOptionIndex, hasLinePicker, pickLineOption, resolveCenteredLineOptionIndex])
 
   const selectedMarketTokenIds = useMemo(() => {
     if (!selectedMarket) {
@@ -2274,14 +2527,7 @@ export function SportsGameDetailsPanel({
             showBottomContent ? 'pb-0' : 'pb-2',
           )}
           >
-            <div className="relative pt-2">
-              <span
-                aria-hidden
-                className="
-                  absolute top-0 left-1/2 h-2 w-3 -translate-x-1/2 bg-primary [clip-path:polygon(50%_100%,0_0,100%_0)]
-                "
-              />
-
+            <div className="pt-2">
               <div className="mt-0.5 flex items-center gap-2">
                 <button
                   type="button"
@@ -2302,32 +2548,48 @@ export function SportsGameDetailsPanel({
                 </button>
 
                 <div
-                  ref={linePickerScrollerRef}
-                  className={`
-                    flex min-w-0 flex-1 items-center gap-2 overflow-x-auto scroll-smooth [scrollbar-width:none]
-                    [&::-webkit-scrollbar]:hidden
-                  `}
+                  className="relative min-w-0 flex-1"
                 >
-                  <span aria-hidden className="shrink-0" style={{ width: linePickerStartSpacer }} />
-                  {linePickerOptions.map((option, index) => (
-                    <button
-                      key={`${card.id}-${option.conditionId}`}
-                      type="button"
-                      onClick={() => pickLineOption(index)}
-                      ref={(node) => {
-                        linePickerButtonsRef.current[option.conditionId] = node
-                      }}
-                      className={cn(
-                        'w-10 shrink-0 text-center text-sm font-medium text-muted-foreground transition-colors',
-                        index === activeLineOptionIndex
-                          ? 'text-base font-semibold text-foreground'
-                          : 'hover:text-foreground/80',
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                  <span aria-hidden className="shrink-0" style={{ width: linePickerEndSpacer }} />
+                  <span
+                    aria-hidden
+                    className="
+                      pointer-events-none absolute -top-2 left-1/2 h-2 w-3 -translate-x-1/2 bg-primary
+                      [clip-path:polygon(50%_100%,0_0,100%_0)]
+                    "
+                  />
+
+                  <div
+                    ref={linePickerScrollerRef}
+                    className={`
+                      flex min-w-0 snap-x snap-mandatory items-center gap-2 overflow-x-auto scroll-smooth
+                      [scrollbar-width:none]
+                      [&::-webkit-scrollbar]:hidden
+                    `}
+                  >
+                    <span aria-hidden className="shrink-0" style={{ width: linePickerStartSpacer }} />
+                    {linePickerOptions.map((option, index) => (
+                      <button
+                        key={`${card.id}-${option.conditionId}`}
+                        type="button"
+                        onClick={() => pickLineOption(index)}
+                        ref={(node) => {
+                          linePickerButtonsRef.current[option.conditionId] = node
+                        }}
+                        className={cn(
+                          `
+                            w-10 shrink-0 snap-center text-center text-sm font-medium text-muted-foreground
+                            transition-colors
+                          `,
+                          index === activeLineOptionIndex
+                            ? 'text-base font-semibold text-foreground'
+                            : 'hover:text-foreground/80',
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                    <span aria-hidden className="shrink-0" style={{ width: linePickerEndSpacer }} />
+                  </div>
                 </div>
 
                 <button
@@ -2708,7 +2970,13 @@ export function SportsGameDetailsPanel({
   )
 }
 
-export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: SportsGamesCenterProps) {
+export default function SportsGamesCenter({
+  cards,
+  sportSlug,
+  sportTitle,
+  pageMode = 'games',
+  categoryTitleBySlug = {},
+}: SportsGamesCenterProps) {
   const router = useRouter()
   const locale = useLocale()
   const isMobile = useIsMobile()
@@ -2722,14 +2990,38 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
   const [oddsFormat, setOddsFormat] = useState<OddsFormat>('price')
   const [showSpreadsAndTotals, setShowSpreadsAndTotals] = useState(true)
   const [hasLoadedOddsFormat, setHasLoadedOddsFormat] = useState(false)
+  const [currentTimestampMs, setCurrentTimestampMs] = useState(() => Date.now())
+  const [titleRowActionsTarget, setTitleRowActionsTarget] = useState<HTMLElement | null>(null)
   const searchShellRef = useRef<HTMLDivElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const openLivestream = useSportsLivestream(state => state.openStream)
   const setOrderEvent = useOrder(state => state.setEvent)
   const setOrderMarket = useOrder(state => state.setMarket)
   const setOrderOutcome = useOrder(state => state.setOutcome)
   const setOrderSide = useOrder(state => state.setSide)
   const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
+  const isLivePage = pageMode === 'live'
+  const normalizedCategoryTitleBySlug = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(categoryTitleBySlug).map(([slug, title]) => [slug.trim().toLowerCase(), title]),
+    )
+  }, [categoryTitleBySlug])
+  const resolveCardCategory = useCallback(
+    (card: SportsGamesCard) => resolveCardCategoryLabel(card, normalizedCategoryTitleBySlug),
+    [normalizedCategoryTitleBySlug],
+  )
+
+  useEffect(() => {
+    setCurrentTimestampMs(Date.now())
+    const intervalId = window.setInterval(() => {
+      setCurrentTimestampMs(Date.now())
+    }, 60_000)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -2758,6 +3050,15 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
       showSpreadsAndTotals ? '1' : '0',
     )
   }, [hasLoadedOddsFormat, oddsFormat, showSpreadsAndTotals])
+
+  useEffect(() => {
+    if (!isLivePage || typeof document === 'undefined') {
+      setTitleRowActionsTarget(null)
+      return
+    }
+
+    setTitleRowActionsTarget(document.getElementById('sports-title-row-actions'))
+  }, [isLivePage])
 
   const formatButtonOdds = useCallback((cents: number) => {
     if (oddsFormat === 'price') {
@@ -2795,6 +3096,10 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
   )
 
   const weekOptions = useMemo(() => {
+    if (isLivePage) {
+      return []
+    }
+
     const weeks = Array.from(new Set(
       cards
         .map(card => card.week)
@@ -2802,13 +3107,18 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
     ))
 
     return weeks.sort((a, b) => a - b)
-  }, [cards])
+  }, [cards, isLivePage])
 
   const [selectedWeek, setSelectedWeek] = useState<string>(
     weekOptions[0] != null ? String(weekOptions[0]) : 'all',
   )
 
   useEffect(() => {
+    if (isLivePage) {
+      setSelectedWeek('all')
+      return
+    }
+
     if (weekOptions.length === 0) {
       setSelectedWeek('all')
       return
@@ -2819,16 +3129,20 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
     if (!currentIsValid) {
       setSelectedWeek(String(weekOptions[0]))
     }
-  }, [selectedWeek, weekOptions])
+  }, [isLivePage, selectedWeek, weekOptions])
 
   const weekFilteredCards = useMemo(() => {
+    if (isLivePage) {
+      return cards
+    }
+
     if (selectedWeek === 'all') {
       return cards
     }
 
     const week = Number(selectedWeek)
     return cards.filter(card => card.week === week)
-  }, [cards, selectedWeek])
+  }, [cards, isLivePage, selectedWeek])
 
   useEffect(() => {
     if (!isSearchOpen) {
@@ -2877,6 +3191,8 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
         card.title,
         card.event.title,
         card.event.slug,
+        resolveCardCategory(card),
+        ...(card.event.sports_tags ?? []),
         ...card.teams.flatMap(team => [team.name, team.abbreviation]),
       ]
         .map(value => normalizeComparableText(value))
@@ -2884,11 +3200,13 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
 
       return searchableText.includes(normalizedSearchQuery)
     })
-  }, [normalizedSearchQuery, weekFilteredCards])
+  }, [normalizedSearchQuery, resolveCardCategory, weekFilteredCards])
 
   const emptyStateLabel = normalizedSearchQuery
     ? 'No games found for this search.'
-    : 'No games available for this week.'
+    : isLivePage
+      ? 'No live or upcoming games available.'
+      : 'No games available for this week.'
 
   useEffect(() => {
     if (openCardId && !filteredCards.some(card => card.id === openCardId)) {
@@ -2987,6 +3305,140 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
 
     return Array.from(grouped.values()).sort((a, b) => a.sortValue - b.sortValue)
   }, [dateLabelFormatter, filteredCards])
+
+  const liveCards = useMemo(
+    () => filteredCards.filter(card => isCardLiveNow(card, currentTimestampMs)),
+    [currentTimestampMs, filteredCards],
+  )
+
+  const liveCardsByCategory = useMemo(() => {
+    const grouped = new Map<string, { key: string, label: string, cards: SportsGamesCard[] }>()
+
+    for (const card of liveCards) {
+      const label = resolveCardCategory(card)
+      const key = normalizeComparableText(label) || card.id
+      const existing = grouped.get(key)
+      if (existing) {
+        existing.cards.push(card)
+        continue
+      }
+      grouped.set(key, {
+        key,
+        label,
+        cards: [card],
+      })
+    }
+
+    return Array.from(grouped.values())
+      .sort((left, right) => left.label.localeCompare(right.label))
+  }, [liveCards, resolveCardCategory])
+
+  const sortedFutureCards = useMemo(() => {
+    const future = filteredCards.filter(card => isCardFuture(card, currentTimestampMs))
+
+    return [...future].sort((left, right) => {
+      const leftStart = resolveCardStartTimestamp(left)
+      const rightStart = resolveCardStartTimestamp(right)
+      const leftHasStart = Number.isFinite(leftStart)
+      const rightHasStart = Number.isFinite(rightStart)
+
+      if (leftHasStart && rightHasStart) {
+        return leftStart - rightStart
+      }
+      if (leftHasStart) {
+        return -1
+      }
+      if (rightHasStart) {
+        return 1
+      }
+
+      return left.id.localeCompare(right.id)
+    })
+  }, [currentTimestampMs, filteredCards])
+
+  const hasCardsStartingWithinSoonWindow = useMemo(
+    () => sortedFutureCards.some((card) => {
+      const startMs = resolveCardStartTimestamp(card)
+      return Number.isFinite(startMs) && startMs - currentTimestampMs <= LIVE_SOON_WINDOW_MS
+    }),
+    [currentTimestampMs, sortedFutureCards],
+  )
+
+  const startingSoonCards = useMemo(() => {
+    const cardsWithinWindow = sortedFutureCards.filter((card) => {
+      const startMs = resolveCardStartTimestamp(card)
+      return Number.isFinite(startMs) && startMs - currentTimestampMs <= LIVE_SOON_WINDOW_MS
+    })
+
+    if (cardsWithinWindow.length > 0) {
+      return cardsWithinWindow
+    }
+
+    return sortedFutureCards.slice(0, LIVE_FALLBACK_LIMIT)
+  }, [currentTimestampMs, sortedFutureCards])
+
+  const startingSoonGroupsByDate = useMemo(() => {
+    const groupedByDate = new Map<
+      string,
+      {
+        key: string
+        label: string
+        sortValue: number
+        categories: Map<string, { key: string, label: string, cards: SportsGamesCard[] }>
+      }
+    >()
+
+    for (const card of startingSoonCards) {
+      const startMs = resolveCardStartTimestamp(card)
+      const date = Number.isFinite(startMs) ? new Date(startMs) : null
+      const isValidDate = Boolean(date && !Number.isNaN(date.getTime()))
+      const dateKey = isValidDate ? toDateGroupKey(date as Date) : 'tbd'
+      const dateLabel = isValidDate ? dateLabelFormatter.format(date as Date) : 'Date TBD'
+      const sortValue = isValidDate ? (date as Date).getTime() : Number.POSITIVE_INFINITY
+
+      const categoryLabel = resolveCardCategory(card)
+      const categoryKey = normalizeComparableText(categoryLabel) || card.id
+
+      const existingDateGroup = groupedByDate.get(dateKey)
+      if (existingDateGroup) {
+        const existingCategory = existingDateGroup.categories.get(categoryKey)
+        if (existingCategory) {
+          existingCategory.cards.push(card)
+        }
+        else {
+          existingDateGroup.categories.set(categoryKey, {
+            key: categoryKey,
+            label: categoryLabel,
+            cards: [card],
+          })
+        }
+        continue
+      }
+
+      groupedByDate.set(dateKey, {
+        key: dateKey,
+        label: dateLabel,
+        sortValue,
+        categories: new Map([
+          [categoryKey, {
+            key: categoryKey,
+            label: categoryLabel,
+            cards: [card],
+          }],
+        ]),
+      })
+    }
+
+    return Array.from(groupedByDate.values())
+      .sort((left, right) => left.sortValue - right.sortValue)
+      .map(group => ({
+        key: group.key,
+        label: group.label,
+        sortValue: group.sortValue,
+        categories: Array.from(group.categories.values())
+          .sort((left, right) => left.label.localeCompare(right.label)),
+      }))
+  }, [dateLabelFormatter, resolveCardCategory, startingSoonCards])
 
   const activeTradeContext = useMemo<SportsActiveTradeContext | null>(() => {
     if (filteredCards.length === 0) {
@@ -3180,6 +3632,381 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
     setOpenCardId(card.id)
   }
 
+  function renderMarketColumnsHeader(headerKeyPrefix: string) {
+    if (!showSpreadsAndTotals) {
+      return null
+    }
+
+    return (
+      <div
+        className={cn(
+          'hidden gap-2 min-[1200px]:mr-2 min-[1200px]:ml-auto min-[1200px]:grid',
+          'w-[372px] grid-cols-3',
+        )}
+      >
+        {visibleMarketColumns.map(column => (
+          <div
+            key={`${headerKeyPrefix}-${column.key}-header`}
+            className="flex w-full items-center justify-center"
+          >
+            <p className="text-center text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
+              {column.label}
+            </p>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  function renderCard(
+    card: SportsGamesCard,
+    options: {
+      topBadgeMode: 'time' | 'live'
+      categoryLabel: string
+    },
+  ) {
+    const parsedStartTime = card.startTime ? new Date(card.startTime) : null
+    const isValidTime = Boolean(parsedStartTime && !Number.isNaN(parsedStartTime.getTime()))
+    const timeLabel = isValidTime ? timeLabelFormatter.format(parsedStartTime as Date) : 'TBD'
+    const isExpanded = openCardId === card.id
+    const selectedButtonKey = resolveDisplayButtonKey(
+      card,
+      selectedConditionByCardId[card.id] ?? resolveDefaultConditionId(card),
+    )
+    const selectedButton = resolveSelectedButton(card, selectedButtonKey)
+    const isSpreadOrTotalSelected = selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
+    const shouldRenderDetailsPanel = isExpanded && (isDetailsContentVisible || isSpreadOrTotalSelected)
+    const activeMarketType = resolveActiveMarketType(card, selectedButtonKey)
+    const buttonGroups = groupButtonsByMarketType(card.buttons)
+    const competitionLabel = resolveCardCompetitionLabel(card, options.categoryLabel)
+    const hasLivestreamUrl = Boolean(card.event.livestream_url?.trim())
+    const canWatchLivestream = options.topBadgeMode === 'live' && hasLivestreamUrl
+
+    return (
+      <article
+        className={cn(
+          `
+            cursor-pointer overflow-hidden rounded-xl border bg-card px-2.5 pt-2.5 shadow-md shadow-black/4
+            transition-all
+          `,
+        )}
+      >
+        <div
+          className={cn(
+            `-mx-2.5 -mt-2.5 bg-card px-2.5 pt-2.5 pb-2 transition-colors hover:bg-secondary/30`,
+            shouldRenderDetailsPanel ? 'rounded-t-xl' : 'rounded-xl',
+          )}
+          role="button"
+          tabIndex={0}
+          onClick={event => toggleCard(card, event)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              toggleCard(card, event)
+            }
+          }}
+        >
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              {options.topBadgeMode === 'live'
+                ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="relative flex size-2">
+                        <span className="absolute inline-flex size-2 animate-ping rounded-full bg-red-500 opacity-75" />
+                        <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+                      </span>
+                      <span className="text-xs leading-none font-medium text-red-500 uppercase">LIVE</span>
+                    </span>
+                  )
+                : (
+                    <span className="rounded-sm bg-secondary px-2 py-1 text-xs font-medium text-foreground">
+                      {timeLabel}
+                    </span>
+                  )}
+              <div className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                <span className="shrink-0">
+                  {formatVolume(card.volume)}
+                  {' '}
+                  Vol.
+                </span>
+                {competitionLabel && (
+                  <>
+                    <span className="shrink-0 opacity-50">•</span>
+                    <span className="truncate">{competitionLabel}</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {canWatchLivestream && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      data-sports-card-control="true"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        openLivestream({
+                          url: card.event.livestream_url!,
+                          title: card.event.title || card.title,
+                        })
+                      }}
+                      className={cn(
+                        `
+                          inline-flex size-8 items-center justify-center rounded-lg bg-secondary/80 text-foreground
+                          transition-colors
+                        `,
+                        'hover:bg-secondary hover:ring-1 hover:ring-border',
+                      )}
+                      aria-label="Watch Livestream"
+                    >
+                      <RadioIcon className="size-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    Watch Livestream
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              <Link
+                href={card.eventHref}
+                data-sports-card-control="true"
+                onClick={event => event.stopPropagation()}
+                className={cn(
+                  `
+                    inline-flex items-center gap-1 rounded-lg bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold
+                    text-foreground transition-colors
+                  `,
+                  'hover:bg-secondary hover:ring-1 hover:ring-border',
+                )}
+              >
+                {card.marketsCount > 0 && (
+                  <span
+                    className={`
+                      inline-flex size-5 items-center justify-center rounded-sm bg-muted text-2xs font-semibold
+                      text-foreground/80
+                    `}
+                  >
+                    {card.marketsCount}
+                  </span>
+                )}
+                <span>Game View</span>
+                <ChevronRightIcon className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="
+            flex flex-col gap-2.5
+            min-[1200px]:flex-row min-[1200px]:items-center min-[1200px]:justify-between
+          "
+          >
+            <div className="min-w-0 flex-1 space-y-2">
+              {card.teams.map(team => (
+                <div
+                  key={`${card.id}-${team.abbreviation}-${team.name}`}
+                  className="flex items-center gap-2"
+                >
+                  <div className="flex size-6 shrink-0 items-center justify-center">
+                    {team.logoUrl
+                      ? (
+                          <Image
+                            src={team.logoUrl}
+                            alt={`${team.name} logo`}
+                            width={24}
+                            height={24}
+                            sizes="20px"
+                            className="h-[92%] w-[92%] object-contain object-center"
+                          />
+                        )
+                      : (
+                          <div
+                            className={`
+                              flex size-full items-center justify-center rounded-sm border border-border/40 text-2xs
+                              font-semibold text-muted-foreground
+                            `}
+                          >
+                            {team.abbreviation.slice(0, 1).toUpperCase()}
+                          </div>
+                        )}
+                  </div>
+
+                  <span className="truncate text-sm font-semibold text-foreground">
+                    {team.name}
+                  </span>
+
+                  {team.record && (
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {team.record}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div
+              data-sports-card-control="true"
+              className={cn(
+                'grid w-full grid-cols-1 gap-2',
+                showSpreadsAndTotals
+                  ? 'min-[1200px]:w-[372px] sm:grid-cols-3'
+                  : 'min-[1200px]:w-[372px] sm:grid-cols-1',
+              )}
+            >
+              {visibleMarketColumns.map((column) => {
+                const columnButtons = buttonGroups[column.key]
+                if (columnButtons.length === 0) {
+                  return null
+                }
+
+                const isMoneylineOnlyLayout = !showSpreadsAndTotals && column.key === 'moneyline'
+
+                const renderedButtons = (() => {
+                  if (column.key === 'moneyline') {
+                    return columnButtons
+                  }
+
+                  const buttonsByConditionId = new Map<string, SportsGamesButton[]>()
+                  for (const button of columnButtons) {
+                    const existing = buttonsByConditionId.get(button.conditionId)
+                    if (existing) {
+                      existing.push(button)
+                      continue
+                    }
+                    buttonsByConditionId.set(button.conditionId, [button])
+                  }
+
+                  const orderedConditionIds = Array.from(buttonsByConditionId.keys())
+                  const activeConditionId = selectedButton?.marketType === column.key
+                    ? selectedButton.conditionId
+                    : orderedConditionIds[0]
+
+                  const selectedButtons = buttonsByConditionId.get(activeConditionId ?? '')
+                    ?? (orderedConditionIds[0] ? buttonsByConditionId.get(orderedConditionIds[0]) : [])
+                    ?? []
+
+                  if (column.key === 'spread') {
+                    const spreadOrder: Record<SportsGamesButton['tone'], number> = {
+                      team1: 0,
+                      team2: 1,
+                      draw: 2,
+                      over: 3,
+                      under: 4,
+                      neutral: 5,
+                    }
+
+                    return [...selectedButtons].sort((a, b) => (
+                      (spreadOrder[a.tone] ?? 99) - (spreadOrder[b.tone] ?? 99)
+                    ))
+                  }
+
+                  return selectedButtons
+                })()
+
+                if (renderedButtons.length === 0) {
+                  return null
+                }
+
+                return (
+                  <div
+                    key={`${card.id}-${column.key}`}
+                    className={cn(
+                      'w-full gap-2',
+                      isMoneylineOnlyLayout ? 'grid grid-cols-3' : 'flex flex-col',
+                    )}
+                  >
+                    {renderedButtons.map((button) => {
+                      const isActiveColumn = activeMarketType === button.marketType
+                      const isMoneylineColumn = button.marketType === 'moneyline'
+                      const hasTeamColor = isActiveColumn
+                        && (button.tone === 'team1' || button.tone === 'team2')
+                        && Boolean(button.color)
+                      const isOverButton = isActiveColumn && button.tone === 'over'
+                      const isUnderButton = isActiveColumn && button.tone === 'under'
+
+                      return (
+                        <div key={button.key} className="relative overflow-hidden rounded-lg pb-1.25">
+                          <div
+                            className={cn(
+                              'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
+                              !hasTeamColor && !isOverButton && !isUnderButton && 'bg-border/70',
+                              isOverButton && 'bg-yes/70',
+                              isUnderButton && 'bg-no/70',
+                            )}
+                            style={hasTeamColor ? resolveButtonDepthStyle(button.color) : undefined}
+                          />
+                          <button
+                            type="button"
+                            data-sports-card-control="true"
+                            onClick={(event) => {
+                              event.preventDefault()
+                              event.stopPropagation()
+                              const panelMode = column.key === 'moneyline'
+                                ? 'full'
+                                : (isExpanded ? 'preserve' : 'partial')
+                              selectCardButton(card, button.key, {
+                                panelMode,
+                              })
+                            }}
+                            style={hasTeamColor ? resolveButtonStyle(button.color) : undefined}
+                            className={cn(
+                              `
+                                relative flex w-full translate-y-0 items-center justify-center rounded-lg px-2
+                                font-semibold shadow-sm transition-transform duration-150 ease-out
+                                hover:translate-y-px
+                                active:translate-y-0.5
+                              `,
+                              isMoneylineOnlyLayout
+                                ? 'h-11 text-xs'
+                                : (isMoneylineColumn ? 'h-9 text-xs' : 'h-[58px] text-xs'),
+                              !hasTeamColor && !isOverButton && !isUnderButton
+                              && 'bg-secondary text-secondary-foreground hover:bg-accent',
+                              isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
+                              isUnderButton && 'bg-no text-white hover:bg-no-foreground',
+                            )}
+                          >
+                            <span className={cn('opacity-80', isMoneylineColumn ? 'mr-1' : 'mr-2')}>
+                              {button.label}
+                            </span>
+                            <span className="text-sm leading-none tabular-nums">
+                              {formatButtonOdds(button.cents)}
+                            </span>
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            '-mx-2.5 bg-card px-2.5 empty:hidden',
+            shouldRenderDetailsPanel
+              ? 'border-t pt-3'
+              : (isSpreadOrTotalSelected ? 'pt-3' : 'pt-0'),
+          )}
+          onClick={event => event.stopPropagation()}
+        >
+          <SportsGameDetailsPanel
+            card={card}
+            activeDetailsTab={activeDetailsTab}
+            selectedButtonKey={selectedButtonKey}
+            showBottomContent={shouldRenderDetailsPanel ? isDetailsContentVisible : false}
+            oddsFormat={oddsFormat}
+            onChangeTab={setActiveDetailsTab}
+            onSelectButton={(buttonKey, renderOptions) => selectCardButton(card, buttonKey, renderOptions)}
+          />
+        </div>
+      </article>
+    )
+  }
+
   const weekSelect = (
     <Select
       value={selectedWeek}
@@ -3213,8 +4040,146 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
     </Select>
   )
 
+  function renderSearchControl(className?: string) {
+    return (
+      <div ref={searchShellRef} className={cn('relative flex h-11 items-center', className)}>
+        <div
+          className={cn(
+            `
+              absolute top-0 right-0 z-10 flex h-11 origin-right items-center overflow-hidden rounded-sm bg-card
+              transition-[width,opacity,transform,padding] duration-300 ease-out
+            `,
+            isSearchOpen
+              ? 'w-56 translate-x-0 scale-x-100 px-3 opacity-100'
+              : 'pointer-events-none w-0 translate-x-1.5 scale-x-95 px-0 opacity-0',
+          )}
+        >
+          <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
+          <input
+            ref={searchInputRef}
+            value={searchQuery}
+            onChange={event => setSearchQuery(event.target.value)}
+            placeholder="Search"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                if (searchQuery.trim()) {
+                  setSearchQuery('')
+                }
+                else {
+                  setIsSearchOpen(false)
+                }
+              }
+            }}
+            className={`
+              ml-2 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none
+              placeholder:text-muted-foreground
+            `}
+          />
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={() => {
+              setSearchQuery('')
+              setIsSearchOpen(false)
+            }}
+            className={`
+              ml-2 flex size-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors
+              hover:bg-muted/80 hover:text-foreground
+            `}
+          >
+            <XIcon className="size-3.5" />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          aria-label="Open search"
+          data-sports-card-control="true"
+          onClick={() => {
+            if (!isSearchOpen) {
+              setIsSearchOpen(true)
+              return
+            }
+            searchInputRef.current?.focus()
+          }}
+          className={cn(
+            headerIconButtonClass,
+            'relative z-20',
+            isSearchOpen && 'pointer-events-none opacity-0',
+          )}
+        >
+          <SearchIcon className="size-4" />
+        </button>
+      </div>
+    )
+  }
+
+  function renderSettingsMenu() {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Odds format settings"
+            className={headerIconButtonClass}
+          >
+            <SettingsIcon className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          side="bottom"
+          align="end"
+          sideOffset={8}
+          className="w-64 border border-border bg-background p-1 text-foreground shadow-xl"
+        >
+          <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
+            Odds Format
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {ODDS_FORMAT_OPTIONS.map(option => (
+            <DropdownMenuItem
+              key={option.value}
+              className="cursor-pointer rounded-sm px-2 py-1.5 text-sm text-foreground"
+              onSelect={(event) => {
+                event.preventDefault()
+                setOddsFormat(option.value)
+              }}
+            >
+              <span>{option.label}</span>
+              {oddsFormat === option.value && <CheckIcon className="ml-auto size-3.5 text-primary" />}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="cursor-pointer rounded-sm px-2 py-1.5 text-sm whitespace-nowrap text-foreground"
+            onSelect={(event) => {
+              event.preventDefault()
+              setShowSpreadsAndTotals(current => !current)
+            }}
+          >
+            <span>Show Spreads + Totals</span>
+            {showSpreadsAndTotals && <CheckIcon className="ml-auto size-3.5 text-primary" />}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  }
+
+  const liveTitleRowActions = isLivePage && titleRowActionsTarget
+    ? createPortal(
+        <div className="flex items-center gap-2">
+          {renderSearchControl()}
+          {renderSettingsMenu()}
+        </div>,
+        titleRowActionsTarget,
+      )
+    : null
+
   return (
     <>
+      {liveTitleRowActions}
       <div className="
         min-[1200px]:grid min-[1200px]:h-full min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem] min-[1200px]:gap-6
       "
@@ -3224,495 +4189,167 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
           className="min-w-0 min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:pr-1 lg:ml-4"
         >
           <div className="mb-4">
-            <div className="mb-3 flex items-start justify-between gap-3 lg:mt-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                {sportTitle}
-              </h1>
+            {!isLivePage && (
+              <div className="mb-3 flex items-start justify-between gap-3 lg:mt-2">
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+                  {sportTitle}
+                </h1>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Odds format settings"
-                    className={cn(headerIconButtonClass, 'size-auto p-0')}
-                  >
-                    <SettingsIcon className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  side="bottom"
-                  align="end"
-                  sideOffset={8}
-                  className="w-56 border border-border bg-background p-1 text-foreground shadow-xl"
-                >
-                  <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
-                    Odds Format
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {ODDS_FORMAT_OPTIONS.map(option => (
-                    <DropdownMenuItem
-                      key={option.value}
-                      className="cursor-pointer rounded-sm px-2 py-1.5 text-sm text-foreground"
-                      onSelect={(event) => {
-                        event.preventDefault()
-                        setOddsFormat(option.value)
-                      }}
-                    >
-                      <span>{option.label}</span>
-                      {oddsFormat === option.value && <CheckIcon className="ml-auto size-3.5 text-primary" />}
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="cursor-pointer rounded-sm px-2 py-1.5 text-sm whitespace-nowrap text-foreground"
-                    onSelect={(event) => {
-                      event.preventDefault()
-                      setShowSpreadsAndTotals(current => !current)
-                    }}
-                  >
-                    <span>Show Spreads + Totals</span>
-                    {showSpreadsAndTotals && <CheckIcon className="ml-auto size-3.5 text-primary" />}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => router.push(`/sports/${sportSlug}/games` as Route)}
-                  className={`
-                    rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors
-                  `}
-                >
-                  Games
-                </button>
-                <button
-                  type="button"
-                  onClick={() => router.push(`/sports/${sportSlug}/props` as Route)}
-                  className="rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors"
-                >
-                  Props
-                </button>
+                <div className="flex items-center gap-2">
+                  {renderSettingsMenu()}
+                </div>
               </div>
+            )}
 
-              <div className="ml-auto flex min-w-0 items-center justify-end">
-                <div ref={searchShellRef} className="relative mr-2 flex h-11 items-center">
-                  <div
-                    className={cn(
-                      `
-                        absolute top-0 right-0 z-10 flex h-11 origin-right items-center overflow-hidden rounded-sm
-                        bg-card transition-[width,opacity,transform,padding] duration-300 ease-out
-                      `,
-                      isSearchOpen
-                        ? 'w-56 translate-x-0 scale-x-100 px-3 opacity-100'
-                        : 'pointer-events-none w-0 translate-x-1.5 scale-x-95 px-0 opacity-0',
-                    )}
-                  >
-                    <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
-                    <input
-                      ref={searchInputRef}
-                      value={searchQuery}
-                      onChange={event => setSearchQuery(event.target.value)}
-                      placeholder="Search"
-                      onKeyDown={(event) => {
-                        if (event.key === 'Escape') {
-                          if (searchQuery.trim()) {
-                            setSearchQuery('')
-                          }
-                          else {
-                            setIsSearchOpen(false)
-                          }
-                        }
-                      }}
-                      className={`
-                        ml-2 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none
-                        placeholder:text-muted-foreground
-                      `}
-                    />
-                    <button
-                      type="button"
-                      aria-label="Clear search"
-                      onClick={() => {
-                        setSearchQuery('')
-                        setIsSearchOpen(false)
-                      }}
-                      className={`
-                        ml-2 flex size-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground
-                        transition-colors
-                        hover:bg-muted/80 hover:text-foreground
-                      `}
-                    >
-                      <XIcon className="size-3.5" />
-                    </button>
-                  </div>
-
+            {!isLivePage && (
+              <div className="mb-4 flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    aria-label="Open search"
-                    data-sports-card-control="true"
-                    onClick={() => {
-                      if (!isSearchOpen) {
-                        setIsSearchOpen(true)
-                        return
-                      }
-                      searchInputRef.current?.focus()
-                    }}
-                    className={cn(
-                      `
-                        relative z-20 flex h-11 w-11 items-center justify-center rounded-sm border border-transparent
-                        bg-transparent text-foreground transition-colors
-                        hover:bg-muted/80
-                        focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
-                      `,
-                      isSearchOpen && 'pointer-events-none opacity-0',
-                    )}
+                    onClick={() => router.push(`/sports/${sportSlug}/games` as Route)}
+                    className={`
+                      rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground
+                      transition-colors
+                    `}
                   >
-                    <SearchIcon className="size-4" />
+                    Games
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/sports/${sportSlug}/props` as Route)}
+                    className="rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors"
+                  >
+                    Props
                   </button>
                 </div>
 
-                {weekSelect}
+                <div className="ml-auto flex min-w-0 items-center justify-end">
+                  {renderSearchControl('mr-2')}
+
+                  {weekSelect}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {groupedCards.length === 0 && (
+          {!isLivePage && groupedCards.length === 0 && (
             <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
               {emptyStateLabel}
             </div>
           )}
 
-          <div className="space-y-5">
-            {groupedCards.map(group => (
-              <div key={group.key}>
-                <div className="mb-2 flex items-end justify-between gap-3">
-                  <p className="text-lg font-semibold text-foreground">
-                    {group.label}
-                  </p>
+          {isLivePage && liveCardsByCategory.length === 0 && startingSoonGroupsByDate.length === 0 && (
+            <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
+              {emptyStateLabel}
+            </div>
+          )}
 
-                  {showSpreadsAndTotals && (
-                    <div
-                      className={cn(
-                        'hidden gap-2 min-[1200px]:mr-2 min-[1200px]:ml-auto min-[1200px]:grid',
-                        'w-[372px] grid-cols-3',
+          {!isLivePage
+            ? (
+                <div className="space-y-5">
+                  {groupedCards.map(group => (
+                    <div key={group.key}>
+                      <div className="mb-2 flex items-end justify-between gap-3">
+                        <p className="text-lg font-semibold text-foreground">
+                          {group.label}
+                        </p>
+                        {renderMarketColumnsHeader(group.key)}
+                      </div>
+
+                      <div className="space-y-2">
+                        {group.cards.map(card => (
+                          <div key={card.id}>
+                            {renderCard(card, {
+                              topBadgeMode: isCardLiveNow(card, currentTimestampMs) ? 'live' : 'time',
+                              categoryLabel: resolveCardCategory(card),
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            : (
+                <div className="space-y-6">
+                  {liveCardsByCategory.length > 0
+                    ? (
+                        <div className="space-y-5">
+                          {liveCardsByCategory.map(categoryGroup => (
+                            <div key={`live-${categoryGroup.key}`}>
+                              <div className="mb-2 flex items-end justify-between gap-3">
+                                <p className="text-base font-semibold text-foreground">
+                                  {categoryGroup.label}
+                                </p>
+                                {renderMarketColumnsHeader(`live-${categoryGroup.key}`)}
+                              </div>
+
+                              <div className="space-y-2">
+                                {categoryGroup.cards.map(card => (
+                                  <div key={card.id}>
+                                    {renderCard(card, {
+                                      topBadgeMode: 'live',
+                                      categoryLabel: categoryGroup.label,
+                                    })}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    : null}
+
+                  {startingSoonGroupsByDate.length > 0 && (
+                    <div className="space-y-3">
+                      <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                        Starting Soon
+                      </h2>
+                      {!hasCardsStartingWithinSoonWindow && (
+                        <p className="text-sm text-muted-foreground">
+                          No games within 24 hours. Showing the next
+                          {' '}
+                          {LIVE_FALLBACK_LIMIT}
+                          {' '}
+                          upcoming games.
+                        </p>
                       )}
-                    >
-                      {visibleMarketColumns.map(column => (
-                        <div
-                          key={`${group.key}-${column.key}-header`}
-                          className="flex w-full items-center justify-center"
-                        >
-                          <p className="
-                            text-center text-2xs font-semibold tracking-wide text-muted-foreground uppercase
-                          "
-                          >
-                            {column.label}
+
+                      {startingSoonGroupsByDate.map(dateGroup => (
+                        <div key={`soon-${dateGroup.key}`} className="space-y-2.5">
+                          <p className="text-lg font-semibold text-foreground">
+                            {dateGroup.label}
                           </p>
+
+                          <div className="space-y-3">
+                            {dateGroup.categories.map(categoryGroup => (
+                              <div key={`soon-${dateGroup.key}-${categoryGroup.key}`}>
+                                <div className="mb-1.5 flex items-end justify-between gap-3">
+                                  <p className="text-base font-semibold text-foreground">
+                                    {categoryGroup.label}
+                                  </p>
+                                  {renderMarketColumnsHeader(`soon-${dateGroup.key}-${categoryGroup.key}`)}
+                                </div>
+
+                                <div className="space-y-2">
+                                  {categoryGroup.cards.map(card => (
+                                    <div key={card.id}>
+                                      {renderCard(card, {
+                                        topBadgeMode: 'time',
+                                        categoryLabel: categoryGroup.label,
+                                      })}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-
-                <div className="space-y-2">
-                  {group.cards.map((card) => {
-                    const parsedStartTime = card.startTime ? new Date(card.startTime) : null
-                    const isValidTime = Boolean(parsedStartTime && !Number.isNaN(parsedStartTime.getTime()))
-                    const timeLabel = isValidTime ? timeLabelFormatter.format(parsedStartTime as Date) : 'TBD'
-                    const isExpanded = openCardId === card.id
-                    const selectedButtonKey = resolveDisplayButtonKey(
-                      card,
-                      selectedConditionByCardId[card.id] ?? resolveDefaultConditionId(card),
-                    )
-                    const selectedButton = resolveSelectedButton(card, selectedButtonKey)
-                    const isSpreadOrTotalSelected = selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
-                    const shouldRenderDetailsPanel = isExpanded && (isDetailsContentVisible || isSpreadOrTotalSelected)
-                    const activeMarketType = resolveActiveMarketType(card, selectedButtonKey)
-                    const buttonGroups = groupButtonsByMarketType(card.buttons)
-
-                    return (
-                      <article
-                        key={card.id}
-                        className={cn(
-                          `
-                            cursor-pointer overflow-hidden rounded-xl border bg-card px-2.5 pt-2.5 shadow-md
-                            shadow-black/4 transition-all
-                          `,
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            `-mx-2.5 -mt-2.5 bg-card px-2.5 pt-2.5 pb-2 transition-colors hover:bg-secondary/30`,
-                            shouldRenderDetailsPanel ? 'rounded-t-xl' : 'rounded-xl',
-                          )}
-                          role="button"
-                          tabIndex={0}
-                          onClick={event => toggleCard(card, event)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault()
-                              toggleCard(card, event)
-                            }
-                          }}
-                        >
-                          <div className="mb-2 flex items-center justify-between gap-3">
-                            <div className="flex min-w-0 items-center gap-2">
-                              <span className="rounded-sm bg-secondary px-2 py-1 text-xs font-medium text-foreground">
-                                {timeLabel}
-                              </span>
-                              <span className="truncate text-sm font-semibold text-muted-foreground">
-                                {formatVolume(card.volume)}
-                                {' '}
-                                Vol.
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <Link
-                                href={card.eventHref}
-                                data-sports-card-control="true"
-                                onClick={event => event.stopPropagation()}
-                                className={cn(
-                                  `
-                                    inline-flex items-center gap-1 rounded-lg bg-secondary/80 px-2.5 py-1.5 text-xs
-                                    font-semibold text-foreground transition-colors
-                                  `,
-                                  'hover:bg-secondary hover:ring-1 hover:ring-border',
-                                )}
-                              >
-                                {card.marketsCount > 0 && (
-                                  <span
-                                    className={`
-                                      inline-flex size-5 items-center justify-center rounded-sm bg-muted text-2xs
-                                      font-semibold text-foreground/80
-                                    `}
-                                  >
-                                    {card.marketsCount}
-                                  </span>
-                                )}
-                                <span>Game View</span>
-                                <ChevronRightIcon className="size-3.5" />
-                              </Link>
-                            </div>
-                          </div>
-
-                          <div className="
-                            flex flex-col gap-2.5
-                            min-[1200px]:flex-row min-[1200px]:items-center min-[1200px]:justify-between
-                          "
-                          >
-                            <div className="min-w-0 flex-1 space-y-2">
-                              {card.teams.map(team => (
-                                <div
-                                  key={`${card.id}-${team.abbreviation}-${team.name}`}
-                                  className="flex items-center gap-2"
-                                >
-                                  <div className="flex size-6 shrink-0 items-center justify-center">
-                                    {team.logoUrl
-                                      ? (
-                                          <Image
-                                            src={team.logoUrl}
-                                            alt={`${team.name} logo`}
-                                            width={24}
-                                            height={24}
-                                            sizes="20px"
-                                            className="h-[92%] w-[92%] object-contain object-center"
-                                          />
-                                        )
-                                      : (
-                                          <div
-                                            className={`
-                                              flex size-full items-center justify-center rounded-sm border
-                                              border-border/40 text-2xs font-semibold text-muted-foreground
-                                            `}
-                                          >
-                                            {team.abbreviation.slice(0, 1).toUpperCase()}
-                                          </div>
-                                        )}
-                                  </div>
-
-                                  <span className="truncate text-sm font-semibold text-foreground">
-                                    {team.name}
-                                  </span>
-
-                                  {team.record && (
-                                    <span className="shrink-0 text-xs text-muted-foreground">
-                                      {team.record}
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-
-                            <div
-                              data-sports-card-control="true"
-                              className={cn(
-                                'grid w-full grid-cols-1 gap-2',
-                                showSpreadsAndTotals
-                                  ? 'min-[1200px]:w-[372px] sm:grid-cols-3'
-                                  : 'min-[1200px]:w-[372px] sm:grid-cols-1',
-                              )}
-                            >
-                              {visibleMarketColumns.map((column) => {
-                                const columnButtons = buttonGroups[column.key]
-                                if (columnButtons.length === 0) {
-                                  return null
-                                }
-
-                                const isMoneylineOnlyLayout = !showSpreadsAndTotals && column.key === 'moneyline'
-
-                                const renderedButtons = (() => {
-                                  if (column.key === 'moneyline') {
-                                    return columnButtons
-                                  }
-
-                                  const buttonsByConditionId = new Map<string, SportsGamesButton[]>()
-                                  for (const button of columnButtons) {
-                                    const existing = buttonsByConditionId.get(button.conditionId)
-                                    if (existing) {
-                                      existing.push(button)
-                                      continue
-                                    }
-                                    buttonsByConditionId.set(button.conditionId, [button])
-                                  }
-
-                                  const orderedConditionIds = Array.from(buttonsByConditionId.keys())
-                                  const activeConditionId = selectedButton?.marketType === column.key
-                                    ? selectedButton.conditionId
-                                    : orderedConditionIds[0]
-
-                                  const selectedButtons = buttonsByConditionId.get(activeConditionId ?? '')
-                                    ?? (orderedConditionIds[0] ? buttonsByConditionId.get(orderedConditionIds[0]) : [])
-                                    ?? []
-
-                                  if (column.key === 'spread') {
-                                    const spreadOrder: Record<SportsGamesButton['tone'], number> = {
-                                      team1: 0,
-                                      team2: 1,
-                                      draw: 2,
-                                      over: 3,
-                                      under: 4,
-                                      neutral: 5,
-                                    }
-
-                                    return [...selectedButtons].sort((a, b) => (
-                                      (spreadOrder[a.tone] ?? 99) - (spreadOrder[b.tone] ?? 99)
-                                    ))
-                                  }
-
-                                  return selectedButtons
-                                })()
-
-                                if (renderedButtons.length === 0) {
-                                  return null
-                                }
-
-                                return (
-                                  <div
-                                    key={`${card.id}-${column.key}`}
-                                    className={cn(
-                                      'w-full gap-2',
-                                      isMoneylineOnlyLayout ? 'grid grid-cols-3' : 'flex flex-col',
-                                    )}
-                                  >
-                                    {renderedButtons.map((button) => {
-                                      const isActiveColumn = activeMarketType === button.marketType
-                                      const isMoneylineColumn = button.marketType === 'moneyline'
-                                      const hasTeamColor = isActiveColumn
-                                        && (button.tone === 'team1' || button.tone === 'team2')
-                                        && Boolean(button.color)
-                                      const isOverButton = isActiveColumn && button.tone === 'over'
-                                      const isUnderButton = isActiveColumn && button.tone === 'under'
-
-                                      return (
-                                        <div key={button.key} className="relative overflow-hidden rounded-lg pb-1.25">
-                                          <div
-                                            className={cn(
-                                              'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
-                                              !hasTeamColor && !isOverButton && !isUnderButton && 'bg-border/70',
-                                              isOverButton && 'bg-yes/70',
-                                              isUnderButton && 'bg-no/70',
-                                            )}
-                                            style={hasTeamColor ? resolveButtonDepthStyle(button.color) : undefined}
-                                          />
-                                          <button
-                                            type="button"
-                                            data-sports-card-control="true"
-                                            onClick={(event) => {
-                                              event.preventDefault()
-                                              event.stopPropagation()
-                                              const panelMode = column.key === 'moneyline'
-                                                ? 'full'
-                                                : (isExpanded ? 'preserve' : 'partial')
-                                              selectCardButton(card, button.key, {
-                                                panelMode,
-                                              })
-                                            }}
-                                            style={hasTeamColor ? resolveButtonStyle(button.color) : undefined}
-                                            className={cn(
-                                              `
-                                                relative flex w-full translate-y-0 items-center justify-center
-                                                rounded-lg px-2 font-semibold shadow-sm transition-transform
-                                                duration-150 ease-out
-                                                hover:translate-y-px
-                                                active:translate-y-0.5
-                                              `,
-                                              isMoneylineOnlyLayout
-                                                ? 'h-11 text-xs'
-                                                : (isMoneylineColumn ? 'h-9 text-xs' : 'h-[58px] text-xs'),
-                                              !hasTeamColor && !isOverButton && !isUnderButton
-                                              && 'bg-secondary text-secondary-foreground hover:bg-accent',
-                                              isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
-                                              isUnderButton && 'bg-no text-white hover:bg-no-foreground',
-                                            )}
-                                          >
-                                            <span className={cn('opacity-80', isMoneylineColumn ? 'mr-1' : 'mr-2')}>
-                                              {button.label}
-                                            </span>
-                                            <span className="text-sm leading-none tabular-nums">
-                                              {formatButtonOdds(button.cents)}
-                                            </span>
-                                          </button>
-                                        </div>
-                                      )
-                                    })}
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div
-                          className={cn(
-                            '-mx-2.5 bg-card px-2.5 empty:hidden',
-                            shouldRenderDetailsPanel
-                              ? 'border-t pt-3'
-                              : (isSpreadOrTotalSelected ? 'pt-3' : 'pt-0'),
-                          )}
-                          onClick={event => event.stopPropagation()}
-                        >
-                          <SportsGameDetailsPanel
-                            card={card}
-                            activeDetailsTab={activeDetailsTab}
-                            selectedButtonKey={selectedButtonKey}
-                            showBottomContent={shouldRenderDetailsPanel ? isDetailsContentVisible : false}
-                            oddsFormat={oddsFormat}
-                            onChangeTab={setActiveDetailsTab}
-                            onSelectButton={(buttonKey, options) => selectCardButton(card, buttonKey, options)}
-                          />
-                        </div>
-                      </article>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
+              )}
         </section>
 
         <aside
@@ -3768,6 +4405,8 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
           primaryOutcomeIndex={activeTradePrimaryOutcomeIndex}
         />
       )}
+
+      <SportsLivestreamFloatingPlayer />
     </>
   )
 }

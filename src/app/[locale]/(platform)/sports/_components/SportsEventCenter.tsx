@@ -27,6 +27,8 @@ import {
 
   SportsOrderPanelMarketInfo,
 } from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
+import SportsLivestreamFloatingPlayer
+  from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import {
@@ -45,6 +47,7 @@ import { formatVolume } from '@/lib/formatters'
 import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
+import { useSportsLivestream } from '@/stores/useSportsLivestream'
 import { useUser } from '@/stores/useUser'
 
 type DetailsTab = 'orderBook' | 'graph'
@@ -70,10 +73,52 @@ const headerIconButtonClass = `
 `
 const SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY = 'sports:event:odds-format'
 
-function SportsEventShareButton() {
+function SportsEventShareButton({ event }: { event: SportsGamesCard['event'] }) {
   const user = useUser()
   const affiliateCode = user?.affiliate_code?.trim() ?? ''
   const [shareSuccess, setShareSuccess] = useState(false)
+  const debugPayload = useMemo(() => {
+    return {
+      event: {
+        id: event.id,
+        slug: event.slug,
+        title: event.title,
+      },
+      markets: (event.markets ?? []).map(market => ({
+        slug: market.slug,
+        condition_id: market.condition_id,
+        question_id: market.question_id,
+        metadata_hash: market.condition?.metadata_hash ?? null,
+        short_title: market.short_title ?? null,
+        title: market.title,
+        outcomes: market.outcomes.map(outcome => ({
+          outcome_index: outcome.outcome_index,
+          outcome_text: outcome.outcome_text,
+          token_id: outcome.token_id,
+        })),
+      })),
+    }
+  }, [event.id, event.markets, event.slug, event.title])
+
+  const handleDebugCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(debugPayload, null, 2))
+    }
+    catch {
+      // noop
+    }
+  }, [debugPayload])
+
+  const maybeHandleDebugCopy = useCallback((event: React.MouseEvent) => {
+    if (!event.altKey) {
+      return false
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    void handleDebugCopy()
+    return true
+  }, [handleDebugCopy])
 
   async function handleShare() {
     try {
@@ -97,12 +142,70 @@ function SportsEventShareButton() {
       size="icon"
       className={cn(headerIconButtonClass, 'size-auto p-0')}
       aria-label="Copy event link"
-      onClick={() => { void handleShare() }}
+      onClick={(event) => {
+        if (maybeHandleDebugCopy(event)) {
+          return
+        }
+        void handleShare()
+      }}
     >
       {shareSuccess
         ? <CheckIcon className="size-4 text-primary" />
         : <ShareIcon className="size-4" />}
     </Button>
+  )
+}
+
+function SportsEventLiveStatusIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      className={cn(className, 'text-red-500')}
+      fill="none"
+    >
+      <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5">
+        <path d="M5.641,12.359c-1.855-1.855-1.855-4.863,0-6.718" opacity="0.24">
+          <animate
+            attributeName="opacity"
+            values="0.24;1;1;0.24;0.24"
+            keyTimes="0;0.28;0.56;0.84;1"
+            dur="1.8s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <path d="M3.52,14.48C.493,11.454,.493,6.546,3.52,3.52" opacity="0.14">
+          <animate
+            attributeName="opacity"
+            values="0.14;0.14;0.92;0.92;0.14;0.14"
+            keyTimes="0;0.4;0.58;0.78;0.92;1"
+            dur="1.8s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <circle cx="9" cy="9" r="1.75" fill="none" stroke="currentColor" />
+        <path d="M12.359,12.359c1.855-1.855,1.855-4.863,0-6.718" opacity="0.24">
+          <animate
+            attributeName="opacity"
+            values="0.24;1;1;0.24;0.24"
+            keyTimes="0;0.28;0.56;0.84;1"
+            dur="1.8s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <path d="M14.48,14.48c3.027-3.027,3.027-7.934,0-10.96" opacity="0.14">
+          <animate
+            attributeName="opacity"
+            values="0.14;0.14;0.92;0.92;0.14;0.14"
+            keyTimes="0;0.4;0.58;0.78;0.92;1"
+            dur="1.8s"
+            repeatCount="indefinite"
+          />
+        </path>
+      </g>
+    </svg>
   )
 }
 
@@ -149,6 +252,7 @@ export default function SportsEventCenter({
   const setOrderMarket = useOrder(state => state.setMarket)
   const setOrderOutcome = useOrder(state => state.setOutcome)
   const setOrderSide = useOrder(state => state.setSide)
+  const openLivestream = useSportsLivestream(state => state.openStream)
   const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
@@ -432,6 +536,7 @@ export default function SportsEventCenter({
   const eventTitle = team1 && team2
     ? `${team1.name} vs ${team2.name}`
     : card.title
+  const hasLivestreamUrl = Boolean(card.event.livestream_url?.trim())
 
   const moneylineSelectedButton = resolveSelectedButton(card, moneylineButtonKey)
   const graphConditionId = moneylineSelectedButton?.conditionId ?? null
@@ -511,7 +616,7 @@ export default function SportsEventCenter({
                   <Code2Icon className="size-4" />
                 </Button>
                 <EventBookmark event={card.event} />
-                <SportsEventShareButton />
+                <SportsEventShareButton event={card.event} />
               </div>
             </div>
 
@@ -539,6 +644,26 @@ export default function SportsEventCenter({
             </div>
             <div className="h-px flex-1 bg-border/70" />
           </div>
+
+          {hasLivestreamUrl && (
+            <div className="mb-4 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => openLivestream({
+                  url: card.event.livestream_url!,
+                  title: card.event.title || card.title,
+                })}
+                className={`
+                  inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-4
+                  py-2 text-sm font-medium text-muted-foreground transition-colors
+                  hover:bg-secondary/50 hover:text-foreground
+                `}
+              >
+                <SportsEventLiveStatusIcon className="size-4" />
+                <span>Watch Stream</span>
+              </button>
+            </div>
+          )}
 
           <div className="mb-4 flex items-center justify-center gap-12 md:gap-14">
             <div className="flex w-20 flex-col items-center gap-2">
@@ -763,7 +888,13 @@ export default function SportsEventCenter({
                                 ? (
                                     <>
                                       <span className="mr-1 uppercase opacity-80">{button.label}</span>
-                                      <span className="text-sm leading-none tabular-nums">{formatButtonOdds(button.cents)}</span>
+                                      <span className={cn(
+                                        'text-sm leading-none tabular-nums transition-opacity',
+                                        isActive ? 'text-foreground opacity-100' : 'opacity-45',
+                                      )}
+                                      >
+                                        {formatButtonOdds(button.cents)}
+                                      </span>
                                     </>
                                   )
                                 : (
@@ -868,6 +999,8 @@ export default function SportsEventCenter({
         markets={card.detailMarkets}
         initialMarketId={activeTradeContext?.market.condition_id ?? graphConditionId}
       />
+
+      <SportsLivestreamFloatingPlayer />
     </>
   )
 }

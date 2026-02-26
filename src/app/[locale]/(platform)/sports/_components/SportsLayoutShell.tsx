@@ -290,13 +290,19 @@ export default function SportsLayoutShell({
           {showShellHeader && (
             <div id="sports-layout-center-header" className="flow-root">
               {showTitle && (
-                <h1 className={cn(
-                  'mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-2 lg:ml-4',
+                <div className={cn(
+                  'mb-3 flex items-center justify-between gap-3 lg:mt-2 lg:ml-4',
                   centerColumnHeaderClass,
                 )}
                 >
-                  {context.title}
-                </h1>
+                  <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+                    {context.title}
+                  </h1>
+                  <div
+                    id="sports-title-row-actions"
+                    className="ml-auto flex min-h-9 min-w-0 items-center justify-end gap-2 lg:mr-2"
+                  />
+                </div>
               )}
               {showSportSectionPills && context.sportSlug && (
                 <div className={cn(
