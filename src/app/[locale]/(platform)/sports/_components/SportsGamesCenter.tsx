@@ -822,16 +822,18 @@ export function SportsGameGraph({
   card,
   selectedMarketType,
   selectedConditionId,
+  defaultTimeRange = '1W',
   variant = 'default',
 }: {
   card: SportsGamesCard
   selectedMarketType: SportsGamesMarketType
   selectedConditionId: string | null
+  defaultTimeRange?: (typeof TIME_RANGES)[number]
   variant?: SportsGameGraphVariant
 }) {
   const { width: windowWidth } = useWindowSize()
   const [cursorSnapshot, setCursorSnapshot] = useState<PredictionChartCursorSnapshot | null>(null)
-  const [activeTimeRange, setActiveTimeRange] = useState<(typeof TIME_RANGES)[number]>('1W')
+  const [activeTimeRange, setActiveTimeRange] = useState<(typeof TIME_RANGES)[number]>(defaultTimeRange)
   const [chartSettings, setChartSettings] = useState(() => ({ ...defaultChartSettings, bothOutcomes: false }))
   const [hasLoadedChartSettings, setHasLoadedChartSettings] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
@@ -1027,6 +1029,7 @@ export function SportsGameGraph({
     eventCreatedAt: card.eventCreatedAt,
     eventResolvedAt: card.eventResolvedAt,
   })
+  const leadingGapStart = normalizedHistory[0]?.date ?? null
 
   const chartSeries = useMemo(() => {
     return graphSeriesTargets.map(target => ({
@@ -1393,6 +1396,7 @@ export function SportsGameGraph({
             showHorizontalGrid={chartSettings.horizontalGrid}
             showVerticalGrid={chartSettings.verticalGrid}
             showAnnotations={chartSettings.annotations}
+            leadingGapStart={leadingGapStart}
           />
 
           {isSportsEventHeroVariant && heroLegendPositionedEntries.length > 0 && (
@@ -1813,6 +1817,7 @@ interface SportsGameDetailsPanelProps {
   activeDetailsTab: DetailsTab
   selectedButtonKey: string | null
   showBottomContent: boolean
+  defaultGraphTimeRange?: (typeof TIME_RANGES)[number]
   allowedConditionIds?: Set<string> | null
   positionsTitle?: string
   oddsFormat?: OddsFormat
@@ -1828,6 +1833,7 @@ export function SportsGameDetailsPanel({
   activeDetailsTab,
   selectedButtonKey,
   showBottomContent,
+  defaultGraphTimeRange = '1W',
   allowedConditionIds = null,
   positionsTitle,
   oddsFormat = 'price',
@@ -2704,6 +2710,7 @@ export function SportsGameDetailsPanel({
                   card={card}
                   selectedMarketType={selectedButton?.marketType ?? 'moneyline'}
                   selectedConditionId={selectedButton?.conditionId ?? null}
+                  defaultTimeRange={defaultGraphTimeRange}
                   variant={
                     selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
                       ? 'sportsEventHero'
@@ -3998,6 +4005,7 @@ export default function SportsGamesCenter({
             activeDetailsTab={activeDetailsTab}
             selectedButtonKey={selectedButtonKey}
             showBottomContent={shouldRenderDetailsPanel ? isDetailsContentVisible : false}
+            defaultGraphTimeRange={pageMode === 'games' ? '1H' : '1W'}
             oddsFormat={oddsFormat}
             onChangeTab={setActiveDetailsTab}
             onSelectButton={(buttonKey, renderOptions) => selectCardButton(card, buttonKey, renderOptions)}

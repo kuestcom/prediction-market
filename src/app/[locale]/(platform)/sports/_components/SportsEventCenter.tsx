@@ -745,6 +745,7 @@ export default function SportsEventCenter({
               card={card}
               selectedMarketType="moneyline"
               selectedConditionId={graphConditionId}
+              defaultTimeRange="ALL"
               variant="sportsEventHero"
             />
           </div>
@@ -755,6 +756,7 @@ export default function SportsEventCenter({
               activeDetailsTab="orderBook"
               selectedButtonKey={moneylineButtonKey}
               showBottomContent={false}
+              defaultGraphTimeRange="ALL"
               allowedConditionIds={allCardConditionIds}
               positionsTitle="All Positions"
               oddsFormat={oddsFormat}
@@ -925,6 +927,7 @@ export default function SportsEventCenter({
                       activeDetailsTab={activeTab}
                       selectedButtonKey={selectedButtonKey}
                       showBottomContent={isSectionOpen}
+                      defaultGraphTimeRange="ALL"
                       allowedConditionIds={sectionConditionIds}
                       oddsFormat={oddsFormat}
                       onChangeTab={tab => setTabBySection(current => ({ ...current, [section.key]: tab }))}
