@@ -6,6 +6,10 @@ export interface LivestreamEmbedTarget {
   embedUrl: string | null
 }
 
+function isExactDomainOrSubdomain(host: string, rootDomain: string) {
+  return host === rootDomain || host.endsWith(`.${rootDomain}`)
+}
+
 function sanitizeUrl(rawUrl: string) {
   const trimmed = rawUrl.trim()
   if (!trimmed) {
@@ -28,12 +32,12 @@ function resolveYoutubeVideoId(url: URL) {
   const host = url.hostname.toLowerCase()
   const pathname = url.pathname
 
-  if (host === 'youtu.be') {
+  if (isExactDomainOrSubdomain(host, 'youtu.be')) {
     const videoId = pathname.split('/').filter(Boolean)[0]
     return videoId?.trim() || null
   }
 
-  if (!host.endsWith('youtube.com')) {
+  if (!isExactDomainOrSubdomain(host, 'youtube.com')) {
     return null
   }
 
@@ -56,7 +60,7 @@ function resolveYoutubeVideoId(url: URL) {
 
 function resolveTwitchTarget(url: URL) {
   const host = url.hostname.toLowerCase()
-  if (!host.endsWith('twitch.tv')) {
+  if (!isExactDomainOrSubdomain(host, 'twitch.tv')) {
     return null
   }
 
