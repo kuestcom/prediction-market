@@ -463,17 +463,19 @@ function resolveEventEndTimestamp(event: Event) {
   const eventEnd = parseUtcDate(event.end_date)
   const marketEnd = parseUtcDate(event.markets[0]?.end_time)
 
-  if (eventEnd && marketEnd) {
-    // Prefer the latest known event cutoff when both are present.
+  if (eventEnd != null && marketEnd != null) {
     return Math.max(eventEnd, marketEnd)
   }
 
-  const fallbackStart = parseUtcDate(event.start_date ?? null) ?? parseUtcDate(event.created_at)
-  if (fallbackStart != null) {
-    return fallbackStart + LIVE_WINDOW_MS
+  if (eventEnd != null) {
+    return eventEnd
   }
 
-  return LIVE_WINDOW_MS
+  if (marketEnd != null) {
+    return marketEnd
+  }
+
+  return null
 }
 
 function inferIntervalMsFromSeriesSlug(seriesSlug: string | null | undefined) {
@@ -692,8 +694,10 @@ export default function EventLiveSeriesChart({
   const [activeView, setActiveView] = useState<'live' | 'market'>('live')
   const isLiveView = activeView === 'live'
   const startTimestamp = useMemo(() => parseUtcDate(event.start_date ?? null), [event.start_date])
-  const endTimestamp = useMemo(() => resolveEventEndTimestamp(event), [event])
-  const isEventClosed = nowMs >= endTimestamp
+  const explicitEndTimestamp = useMemo(() => resolveEventEndTimestamp(event), [event])
+  const hasExplicitEndTimestamp = explicitEndTimestamp != null
+  const endTimestamp = explicitEndTimestamp ?? nowMs
+  const isEventClosed = hasExplicitEndTimestamp && nowMs >= endTimestamp
   const isMarketClosed = useMemo(() => {
     if (config.topic.trim().toLowerCase() !== 'equity_prices') {
       return false
@@ -747,7 +751,12 @@ export default function EventLiveSeriesChart({
 
   useEffect(() => {
     const seriesSlug = config.series_slug?.trim()
-    if (!seriesSlug || !Number.isFinite(endTimestamp)) {
+    if (!seriesSlug) {
+      return
+    }
+
+    const snapshotEventEndMs = explicitEndTimestamp ?? Date.now()
+    if (!Number.isFinite(snapshotEventEndMs) || snapshotEventEndMs <= 0) {
       return
     }
 
@@ -758,10 +767,10 @@ export default function EventLiveSeriesChart({
       try {
         const query = new URLSearchParams({
           seriesSlug,
-          eventEndMs: String(endTimestamp),
+          eventEndMs: String(snapshotEventEndMs),
           activeWindowMinutes: String(config.active_window_minutes),
         })
-        if (startTimestamp != null && startTimestamp > 0 && startTimestamp < endTimestamp) {
+        if (startTimestamp != null && startTimestamp > 0 && startTimestamp < snapshotEventEndMs) {
           query.set('eventStartMs', String(startTimestamp))
         }
 
@@ -811,7 +820,7 @@ export default function EventLiveSeriesChart({
       isCancelled = true
       controller.abort()
     }
-  }, [config.active_window_minutes, config.series_slug, config.topic, endTimestamp, startTimestamp, subscriptionSymbol])
+  }, [config.active_window_minutes, config.series_slug, config.topic, explicitEndTimestamp, startTimestamp, subscriptionSymbol])
 
   useEffect(() => {
     if (!isLiveView) {
@@ -1226,7 +1235,7 @@ export default function EventLiveSeriesChart({
       seconds,
     }
   }, [endTimestamp, nowMs])
-  const shouldShowCountdown = !isEventClosed && countdown.totalSeconds > 0
+  const shouldShowCountdown = hasExplicitEndTimestamp && !isEventClosed && countdown.totalSeconds > 0
   const xAxisTickValues = useMemo(() => {
     const startMs = nowMs - LIVE_WINDOW_MS
     const visibleStartMs = startMs + LIVE_X_AXIS_LEFT_LABEL_GUARD_MS
@@ -1529,11 +1538,13 @@ export default function EventLiveSeriesChart({
                         </TooltipContent>
                       </Tooltip>
                     )
-                  : (
-                      <div className="mr-[-4px] ml-auto sm:mr-[-6px]">
-                        {countdownEndedLogo}
-                      </div>
-                    )}
+                  : isEventClosed
+                    ? (
+                        <div className="mr-[-4px] ml-auto sm:mr-[-6px]">
+                          {countdownEndedLogo}
+                        </div>
+                      )
+                    : null}
               </div>
 
               <div className="relative z-0 pr-4 pl-0 sm:pr-6 sm:pl-0">
