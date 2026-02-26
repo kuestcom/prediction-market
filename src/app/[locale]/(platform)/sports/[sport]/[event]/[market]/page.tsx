@@ -2,10 +2,12 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
+import { UserRepository } from '@/lib/db/queries/user'
 import {
   getEventTitleBySlug,
   resolveCanonicalEventSlugFromSportsPath,
@@ -59,8 +61,11 @@ export default async function SportsEventMarketPage({
     notFound()
   }
 
+  await connection()
+  const user = await UserRepository.getCurrentUser()
+
   const [{ data: groupedEvents }, { data: canonicalSportSlug }] = await Promise.all([
-    EventRepository.getSportsEventGroupBySlug(canonicalEventSlug, '', resolvedLocale),
+    EventRepository.getSportsEventGroupBySlug(canonicalEventSlug, user?.id ?? '', resolvedLocale),
     SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
   ])
   const cards = buildSportsGamesCards(groupedEvents ?? [])
@@ -81,6 +86,7 @@ export default async function SportsEventMarketPage({
       sportSlug={resolvedSportSlug}
       sportLabel={sportLabel}
       initialMarketSlug={market}
+      key={`is-bookmarked-${targetCard.event.is_bookmarked}`}
     />
   )
 }
