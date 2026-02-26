@@ -2360,6 +2360,11 @@ export function SportsGameDetailsPanel({
       return
     }
 
+    const scroller = linePickerScrollerRef.current
+    if (!scroller) {
+      return
+    }
+
     const activeOption = linePickerOptions[activeLineOptionIndex]
     if (!activeOption) {
       return
@@ -2370,9 +2375,9 @@ export function SportsGameDetailsPanel({
       return
     }
 
-    activeButton.scrollIntoView({
-      inline: 'center',
-      block: 'nearest',
+    const targetLeft = activeButton.offsetLeft - ((scroller.clientWidth - activeButton.offsetWidth) / 2)
+    scroller.scrollTo({
+      left: Math.max(0, targetLeft),
       behavior,
     })
   }, [activeLineOptionIndex, linePickerOptions])
