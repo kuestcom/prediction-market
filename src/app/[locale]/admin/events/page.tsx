@@ -1,3 +1,4 @@
+import type { SupportedLocale } from '@/i18n/locales'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { Suspense } from 'react'
 import AdminEventsTable from '@/app/[locale]/admin/events/_components/AdminEventsTable'
@@ -7,10 +8,11 @@ import { loadAutoDeployNewEventsEnabled } from '@/lib/event-sync-settings'
 export default async function AdminEventsPage({ params }: PageProps<'/[locale]/admin/events'>) {
   const { locale } = await params
   setRequestLocale(locale)
+  const resolvedLocale = locale as SupportedLocale
   const t = await getExtracted()
   const [autoDeployNewEventsEnabled, mainTagsResult] = await Promise.all([
     loadAutoDeployNewEventsEnabled(),
-    TagRepository.getMainTags(locale),
+    TagRepository.getMainTags(resolvedLocale),
   ])
   const mainCategoryOptions = (mainTagsResult.data ?? []).map(tag => ({
     slug: tag.slug,

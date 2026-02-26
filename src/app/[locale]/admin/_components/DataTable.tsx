@@ -97,7 +97,9 @@ export function DataTable<TData, TValue>({
 
     const hasMappedColumn = columns.some((column) => {
       const columnId = typeof column.id === 'string' ? column.id : null
-      const accessorKey = typeof column.accessorKey === 'string' ? column.accessorKey : null
+      const accessorKey = 'accessorKey' in column && column.accessorKey != null
+        ? String(column.accessorKey)
+        : null
       return columnId === mappedColumnId || accessorKey === mappedColumnId
     })
 
