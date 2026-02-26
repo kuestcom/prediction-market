@@ -98,9 +98,10 @@ export default function EventCardSportsMoneyline({
   return (
     <div
       className={`
-        group/card relative flex h-45 flex-col justify-between overflow-hidden rounded-xl border bg-card px-3 pt-3
-        shadow-md shadow-black/4 transition
-        hover:-translate-y-px hover:shadow-md hover:shadow-black/8
+        group relative flex h-45 cursor-pointer flex-col justify-between overflow-hidden rounded-xl border bg-card px-3
+        pt-3 shadow-md shadow-black/4 transition-all
+        hover:-translate-y-0.5 hover:shadow-black/8
+        dark:hover:bg-secondary
       `}
     >
       <Link href={eventHref} className="flex w-full flex-col gap-1">
