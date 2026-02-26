@@ -7,6 +7,7 @@ import type {
   MouseEvent as ReactMouseEvent,
   MouseEvent as ReactMouseEventType,
 } from 'react'
+import type { NormalizedBookLevel } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { Market, Outcome, UserPosition } from '@/types'
@@ -121,6 +122,7 @@ interface SportsCashOutModalPayload {
   filledShares: number | null
   avgPriceCents: number | null
   receiveAmount: number | null
+  sellBids: NormalizedBookLevel[]
 }
 
 function toFiniteNumber(value: unknown) {
@@ -879,14 +881,13 @@ export function SportsGameGraph({
       return []
     }
 
-    const nowMs = Date.now()
     const createdMs = Date.parse(card.eventCreatedAt)
-    const endMs = Number.isFinite(createdMs)
-      ? Math.max(createdMs + 60_000, nowMs)
-      : nowMs
-    const startMs = Number.isFinite(createdMs)
-      ? Math.min(createdMs, endMs - (30 * 60_000))
-      : endMs - (30 * 60_000)
+    const resolvedMs = card.eventResolvedAt ? Date.parse(card.eventResolvedAt) : Number.NaN
+    const anchorMs = Number.isFinite(resolvedMs)
+      ? resolvedMs
+      : (Number.isFinite(createdMs) ? createdMs : Date.parse('2020-01-01T00:00:00.000Z'))
+    const endMs = anchorMs + 60_000
+    const startMs = anchorMs - (30 * 60_000)
 
     const startPoint: DataPoint = { date: new Date(startMs) }
     const endPoint: DataPoint = { date: new Date(endMs) }
@@ -901,7 +902,7 @@ export function SportsGameGraph({
     }
 
     return [startPoint, endPoint]
-  }, [card.eventCreatedAt, graphSeriesTargets])
+  }, [card.eventCreatedAt, card.eventResolvedAt, graphSeriesTargets])
 
   const chartData = pairedHistoryChartData.length > 0 ? pairedHistoryChartData : fallbackChartData
 
@@ -2020,14 +2021,16 @@ export function SportsGameDetailsPanel({
 
     setCashOutPayload({
       outcomeLabel: tag.summaryLabel,
-      outcomeShortLabel: tag.market.short_title || tag.market.title,
+      outcomeShortLabel: card.event.title || tag.market.short_title || tag.market.title,
       outcomeIconUrl: tag.market.icon_url,
       shares: tag.shares,
       filledShares: fill.filledShares,
       avgPriceCents: fill.avgPriceCents,
       receiveAmount: fill.totalCost > 0 ? fill.totalCost : null,
+      sellBids: bids,
     })
   }, [
+    card.event.title,
     isMobile,
     setIsMobileOrderPanelOpen,
     setOrderAmount,
@@ -2060,11 +2063,15 @@ export function SportsGameDetailsPanel({
     }
   }, [])
 
-  const handleCashOutSubmit = useCallback(() => {
+  const handleCashOutSubmit = useCallback((sharesToSell: number) => {
+    if (!(sharesToSell > 0)) {
+      return
+    }
+    setOrderAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))
     setCashOutPayload(null)
     const form = document.getElementById('event-order-form') as HTMLFormElement | null
     form?.requestSubmit()
-  }, [])
+  }, [setOrderAmount])
 
   const pickLineOption = useCallback((optionIndex: number) => {
     if (!selectedButton) {
@@ -2397,6 +2404,11 @@ export function SportsGameDetailsPanel({
                   card={card}
                   selectedMarketType={selectedButton?.marketType ?? 'moneyline'}
                   selectedConditionId={selectedButton?.conditionId ?? null}
+                  variant={
+                    selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
+                      ? 'sportsEventHero'
+                      : 'default'
+                  }
                 />
               )}
         </>
@@ -2644,8 +2656,14 @@ export function SportsGameDetailsPanel({
           filledShares={cashOutPayload.filledShares}
           avgPriceCents={cashOutPayload.avgPriceCents}
           receiveAmount={cashOutPayload.receiveAmount}
+          sellBids={cashOutPayload.sellBids}
+          onSharesChange={sharesToSell =>
+            setOrderAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))}
           onCashOut={handleCashOutSubmit}
-          onEditOrder={() => setCashOutPayload(null)}
+          onEditOrder={(sharesToSell) => {
+            setOrderAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))
+            setCashOutPayload(null)
+          }}
         />
       )}
     </>
