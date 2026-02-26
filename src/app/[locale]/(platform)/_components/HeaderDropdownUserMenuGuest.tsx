@@ -13,10 +13,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { Link } from '@/i18n/navigation'
 
 export default function HeaderDropdownUserMenuGuest() {
   const t = useExtracted()
+  const isMobile = useIsMobile()
+  const enableHoverOpen = !isMobile
   const [menuOpen, setMenuOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -45,11 +48,19 @@ export default function HeaderDropdownUserMenuGuest() {
   }
 
   function handleWrapperPointerEnter() {
+    if (!enableHoverOpen) {
+      return
+    }
+
     clearCloseTimeout()
     setMenuOpen(true)
   }
 
   function handleWrapperPointerLeave(event: React.PointerEvent) {
+    if (!enableHoverOpen) {
+      return
+    }
+
     if (relatedTargetIsWithin(wrapperRef, event.relatedTarget)) {
       return
     }
@@ -63,8 +74,8 @@ export default function HeaderDropdownUserMenuGuest() {
   return (
     <div
       ref={wrapperRef}
-      onPointerEnter={handleWrapperPointerEnter}
-      onPointerLeave={handleWrapperPointerLeave}
+      onPointerEnter={enableHoverOpen ? handleWrapperPointerEnter : undefined}
+      onPointerLeave={enableHoverOpen ? handleWrapperPointerLeave : undefined}
       className="font-medium"
     >
       <DropdownMenu

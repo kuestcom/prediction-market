@@ -29,6 +29,7 @@ export default function HeaderDropdownUserMenuAuth() {
   const pathname = usePathname()
   const isAdmin = pathname.startsWith('/admin')
   const isMobile = useIsMobile()
+  const enableHoverOpen = !isMobile
   const [menuOpen, setMenuOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -63,11 +64,19 @@ export default function HeaderDropdownUserMenuAuth() {
   }
 
   function handleWrapperPointerEnter() {
+    if (!enableHoverOpen) {
+      return
+    }
+
     clearCloseTimeout()
     setMenuOpen(true)
   }
 
   function handleWrapperPointerLeave(event: React.PointerEvent) {
+    if (!enableHoverOpen) {
+      return
+    }
+
     if (relatedTargetIsWithin(wrapperRef, event.relatedTarget)) {
       return
     }
@@ -89,8 +98,8 @@ export default function HeaderDropdownUserMenuAuth() {
   return (
     <div
       ref={wrapperRef}
-      onPointerEnter={handleWrapperPointerEnter}
-      onPointerLeave={handleWrapperPointerLeave}
+      onPointerEnter={enableHoverOpen ? handleWrapperPointerEnter : undefined}
+      onPointerLeave={enableHoverOpen ? handleWrapperPointerLeave : undefined}
       className="font-medium"
     >
       <DropdownMenu
