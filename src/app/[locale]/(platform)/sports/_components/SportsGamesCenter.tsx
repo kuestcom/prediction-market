@@ -7,13 +7,23 @@ import type {
   MouseEvent as ReactMouseEvent,
   MouseEvent as ReactMouseEventType,
 } from 'react'
-import type { NormalizedBookLevel } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import type { OddsFormat } from '@/lib/odds-format'
+import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 import type { Market, Outcome, UserPosition } from '@/types'
 import type { DataPoint, PredictionChartCursorSnapshot, PredictionChartProps } from '@/types/PredictionChartTypes'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EqualIcon, RefreshCwIcon, SearchIcon, XIcon } from 'lucide-react'
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  EqualIcon,
+  RefreshCwIcon,
+  SearchIcon,
+  SettingsIcon,
+  XIcon,
+} from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
@@ -31,7 +41,15 @@ import EventOrderPanelTermsDisclaimer
 import { TIME_RANGES, useEventPriceHistory } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { loadStoredChartSettings, storeChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
 import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
-import { calculateMarketFill, normalizeBookLevels } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useWindowSize } from '@/hooks/useWindowSize'
@@ -40,6 +58,8 @@ import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatAmountInputValue, formatCentsLabel, formatCurrency, formatSharesLabel, formatVolume, fromMicro } from '@/lib/formatters'
+import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
+import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { calculateYAxisBounds } from '@/lib/prediction-chart'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
@@ -61,6 +81,12 @@ const MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: string }> = [
   { key: 'spread', label: 'Spread' },
   { key: 'total', label: 'Total' },
 ]
+const headerIconButtonClass = `
+  size-10 rounded-sm border border-transparent bg-transparent text-foreground transition-colors
+  hover:bg-muted/80 focus-visible:ring-1 focus-visible:ring-ring md:h-9 md:w-9
+`
+const SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY = 'sports:event:odds-format'
+const SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY = 'sports:games:show-spreads-totals'
 
 const PredictionChart = dynamic<PredictionChartProps>(
   () => import('@/components/PredictionChart'),
@@ -2214,6 +2240,18 @@ export function SportsGameDetailsPanel({
   const isStandalonePositionsCard = Boolean(positionsTitle)
   const shouldShowPortfolio = visiblePositionTags.length > 0
   const showPositionTagSummary = !isStandalonePositionsCard
+  const formatPositionOddsLabel = useCallback((cents: number | null) => {
+    if (oddsFormat === 'price') {
+      return formatCompactCentsLabel(cents)
+    }
+    return formatOddsFromCents(cents, oddsFormat)
+  }, [oddsFormat])
+  const formatAverageCellLabel = useCallback((cents: number | null) => {
+    if (oddsFormat === 'price') {
+      return formatCentsLabel(cents, { fallback: '—' })
+    }
+    return formatOddsFromCents(cents, oddsFormat)
+  }, [oddsFormat])
 
   if (!showBottomContent && !hasLinePicker && !shouldShowPortfolio) {
     return null
@@ -2483,7 +2521,7 @@ export function SportsGameDetailsPanel({
                           style={tagAccent.style}
                         >
                           <span className="truncate whitespace-nowrap">
-                            {`${tag.summaryLabel} | ${formatSharesLabel(tag.shares)} @ ${formatCompactCentsLabel(tag.avgPriceCents)}`}
+                            {`${tag.summaryLabel} | ${formatSharesLabel(tag.shares)} @ ${formatPositionOddsLabel(tag.avgPriceCents)}`}
                           </span>
                           <button
                             type="button"
@@ -2576,7 +2614,7 @@ export function SportsGameDetailsPanel({
                               </span>
                             </td>
                             <td className="px-2 py-2 text-right font-medium">
-                              {formatCentsLabel(tag.avgPriceCents, { fallback: '—' })}
+                              {formatAverageCellLabel(tag.avgPriceCents)}
                             </td>
                             <td className="px-2 py-2 text-right font-medium">{costLabel}</td>
                             <td className="px-2 py-2 text-right font-medium">{toWinLabel}</td>
@@ -2681,6 +2719,9 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
   const [tradeSelection, setTradeSelection] = useState<SportsTradeSelection>({ cardId: null, buttonKey: null })
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [oddsFormat, setOddsFormat] = useState<OddsFormat>('price')
+  const [showSpreadsAndTotals, setShowSpreadsAndTotals] = useState(true)
+  const [hasLoadedOddsFormat, setHasLoadedOddsFormat] = useState(false)
   const searchShellRef = useRef<HTMLDivElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const setOrderEvent = useOrder(state => state.setEvent)
@@ -2689,6 +2730,69 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
   const setOrderSide = useOrder(state => state.setSide)
   const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const storedOddsFormat = window.localStorage.getItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY)
+    const matchedOption = ODDS_FORMAT_OPTIONS.find(option => option.value === storedOddsFormat)
+    if (matchedOption) {
+      setOddsFormat(matchedOption.value)
+    }
+    const storedShowSpreadsAndTotals = window.localStorage.getItem(SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY)
+    if (storedShowSpreadsAndTotals === '0') {
+      setShowSpreadsAndTotals(false)
+    }
+    setHasLoadedOddsFormat(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hasLoadedOddsFormat || typeof window === 'undefined') {
+      return
+    }
+    window.localStorage.setItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY, oddsFormat)
+    window.localStorage.setItem(
+      SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY,
+      showSpreadsAndTotals ? '1' : '0',
+    )
+  }, [hasLoadedOddsFormat, oddsFormat, showSpreadsAndTotals])
+
+  const formatButtonOdds = useCallback((cents: number) => {
+    if (oddsFormat === 'price') {
+      return `${cents}¢`
+    }
+    return formatOddsFromCents(cents, oddsFormat)
+  }, [oddsFormat])
+
+  const resolveDisplayButtonKey = useCallback((
+    card: SportsGamesCard,
+    preferredKey: string | null | undefined,
+  ) => {
+    const preferredButton = preferredKey
+      ? card.buttons.find(button => button.key === preferredKey) ?? null
+      : null
+
+    if (showSpreadsAndTotals) {
+      return preferredButton?.key ?? resolveDefaultConditionId(card)
+    }
+
+    if (preferredButton?.marketType === 'moneyline') {
+      return preferredButton.key
+    }
+
+    return card.buttons.find(button => button.marketType === 'moneyline')?.key
+      ?? preferredButton?.key
+      ?? resolveDefaultConditionId(card)
+  }, [showSpreadsAndTotals])
+
+  const visibleMarketColumns = useMemo(
+    () => showSpreadsAndTotals
+      ? MARKET_COLUMNS
+      : MARKET_COLUMNS.filter(column => column.key === 'moneyline'),
+    [showSpreadsAndTotals],
+  )
 
   const weekOptions = useMemo(() => {
     const weeks = Array.from(new Set(
@@ -2805,14 +2909,21 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
         : null
 
       if (currentCard) {
+        const currentButton = current.buttonKey
+          ? currentCard.buttons.find(button => button.key === current.buttonKey) ?? null
+          : null
         const currentButtonExists = Boolean(
-          current.buttonKey && currentCard.buttons.some(button => button.key === current.buttonKey),
+          currentButton
+          && (showSpreadsAndTotals || currentButton.marketType === 'moneyline'),
         )
         if (currentButtonExists) {
           return current
         }
 
-        const preferredButtonKey = selectedConditionByCardId[currentCard.id] ?? resolveDefaultConditionId(currentCard)
+        const preferredButtonKey = resolveDisplayButtonKey(
+          currentCard,
+          selectedConditionByCardId[currentCard.id] ?? resolveDefaultConditionId(currentCard),
+        )
         const fallbackButtonKey = resolveSelectedButton(currentCard, preferredButtonKey)?.key ?? null
         return {
           cardId: currentCard.id,
@@ -2821,14 +2932,17 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
       }
 
       const firstCard = filteredCards[0]
-      const preferredButtonKey = selectedConditionByCardId[firstCard.id] ?? resolveDefaultConditionId(firstCard)
+      const preferredButtonKey = resolveDisplayButtonKey(
+        firstCard,
+        selectedConditionByCardId[firstCard.id] ?? resolveDefaultConditionId(firstCard),
+      )
       const firstButtonKey = resolveSelectedButton(firstCard, preferredButtonKey)?.key ?? null
       return {
         cardId: firstCard.id,
         buttonKey: firstButtonKey,
       }
     })
-  }, [filteredCards, selectedConditionByCardId])
+  }, [filteredCards, resolveDisplayButtonKey, selectedConditionByCardId, showSpreadsAndTotals])
 
   const dateLabelFormatter = useMemo(
     () => new Intl.DateTimeFormat(locale, {
@@ -2890,11 +3004,11 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
       return null
     }
 
-    const selectedButtonKey = (
+    const selectedButtonKey = resolveDisplayButtonKey(card, (
       tradeSelection.cardId === card.id
         ? tradeSelection.buttonKey
         : null
-    ) ?? selectedConditionByCardId[card.id] ?? resolveDefaultConditionId(card)
+    ) ?? selectedConditionByCardId[card.id] ?? resolveDefaultConditionId(card))
 
     const button = resolveSelectedButton(card, selectedButtonKey)
     if (!button) {
@@ -2917,7 +3031,7 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
       market,
       outcome,
     }
-  }, [filteredCards, openCardId, selectedConditionByCardId, tradeSelection.buttonKey, tradeSelection.cardId])
+  }, [filteredCards, openCardId, resolveDisplayButtonKey, selectedConditionByCardId, tradeSelection.buttonKey, tradeSelection.cardId])
 
   const activeTradePrimaryOutcomeIndex = useMemo(() => {
     if (!activeTradeContext || activeTradeContext.button.marketType !== 'spread') {
@@ -2984,7 +3098,10 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
     }
 
     const defaultConditionId = resolveDefaultConditionId(card)
-    const selectedButtonKey = selectedConditionByCardId[card.id] ?? defaultConditionId
+    const selectedButtonKey = resolveDisplayButtonKey(
+      card,
+      selectedConditionByCardId[card.id] ?? defaultConditionId,
+    )
     const selectedButton = resolveSelectedButton(card, selectedButtonKey)
     const isSpreadOrTotalSelected = selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
 
@@ -3030,20 +3147,25 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
     buttonKey: string,
     options?: { panelMode?: 'full' | 'partial' | 'preserve' },
   ) {
+    const normalizedButtonKey = resolveDisplayButtonKey(card, buttonKey)
+    if (!normalizedButtonKey) {
+      return
+    }
+
     setSelectedConditionByCardId((current) => {
-      if (current[card.id] === buttonKey) {
+      if (current[card.id] === normalizedButtonKey) {
         return current
       }
 
       return {
         ...current,
-        [card.id]: buttonKey,
+        [card.id]: normalizedButtonKey,
       }
     })
 
     setTradeSelection({
       cardId: card.id,
-      buttonKey,
+      buttonKey: normalizedButtonKey,
     })
 
     const panelMode = options?.panelMode ?? 'full'
@@ -3101,9 +3223,60 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
           className="min-w-0 min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:pr-1 lg:ml-4"
         >
           <div className="mb-4">
-            <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground lg:mt-2">
-              {sportTitle}
-            </h1>
+            <div className="mb-3 flex items-start justify-between gap-3 lg:mt-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+                {sportTitle}
+              </h1>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Odds format settings"
+                    className={cn(headerIconButtonClass, 'size-auto p-0')}
+                  >
+                    <SettingsIcon className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="bottom"
+                  align="end"
+                  sideOffset={8}
+                  className="w-56 border border-border bg-background p-1 text-foreground shadow-xl"
+                >
+                  <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
+                    Odds Format
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {ODDS_FORMAT_OPTIONS.map(option => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      className="cursor-pointer rounded-sm px-2 py-1.5 text-sm text-foreground"
+                      onSelect={(event) => {
+                        event.preventDefault()
+                        setOddsFormat(option.value)
+                      }}
+                    >
+                      <span>{option.label}</span>
+                      {oddsFormat === option.value && <CheckIcon className="ml-auto size-3.5 text-primary" />}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-sm px-2 py-1.5 text-sm whitespace-nowrap text-foreground"
+                    onSelect={(event) => {
+                      event.preventDefault()
+                      setShowSpreadsAndTotals(current => !current)
+                    }}
+                  >
+                    <span>Show Spreads + Totals</span>
+                    {showSpreadsAndTotals && <CheckIcon className="ml-auto size-3.5 text-primary" />}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
             <div className="mb-4 flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-3">
@@ -3220,19 +3393,28 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
                     {group.label}
                   </p>
 
-                  <div className="
-                    hidden w-[372px] grid-cols-3 gap-2
-                    min-[1200px]:mr-2 min-[1200px]:ml-auto min-[1200px]:grid
-                  "
-                  >
-                    {MARKET_COLUMNS.map(column => (
-                      <div key={`${group.key}-${column.key}-header`} className="flex w-full items-center justify-center">
-                        <p className="text-center text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
-                          {column.label}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                  {showSpreadsAndTotals && (
+                    <div
+                      className={cn(
+                        'hidden gap-2 min-[1200px]:mr-2 min-[1200px]:ml-auto min-[1200px]:grid',
+                        'w-[372px] grid-cols-3',
+                      )}
+                    >
+                      {visibleMarketColumns.map(column => (
+                        <div
+                          key={`${group.key}-${column.key}-header`}
+                          className="flex w-full items-center justify-center"
+                        >
+                          <p className="
+                            text-center text-2xs font-semibold tracking-wide text-muted-foreground uppercase
+                          "
+                          >
+                            {column.label}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -3241,7 +3423,10 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
                     const isValidTime = Boolean(parsedStartTime && !Number.isNaN(parsedStartTime.getTime()))
                     const timeLabel = isValidTime ? timeLabelFormatter.format(parsedStartTime as Date) : 'TBD'
                     const isExpanded = openCardId === card.id
-                    const selectedButtonKey = selectedConditionByCardId[card.id] ?? resolveDefaultConditionId(card)
+                    const selectedButtonKey = resolveDisplayButtonKey(
+                      card,
+                      selectedConditionByCardId[card.id] ?? resolveDefaultConditionId(card),
+                    )
                     const selectedButton = resolveSelectedButton(card, selectedButtonKey)
                     const isSpreadOrTotalSelected = selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
                     const shouldRenderDetailsPanel = isExpanded && (isDetailsContentVisible || isSpreadOrTotalSelected)
@@ -3364,13 +3549,20 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
 
                             <div
                               data-sports-card-control="true"
-                              className="grid w-full grid-cols-1 gap-2 min-[1200px]:w-[372px] sm:grid-cols-3"
+                              className={cn(
+                                'grid w-full grid-cols-1 gap-2',
+                                showSpreadsAndTotals
+                                  ? 'min-[1200px]:w-[372px] sm:grid-cols-3'
+                                  : 'min-[1200px]:w-[372px] sm:grid-cols-1',
+                              )}
                             >
-                              {MARKET_COLUMNS.map((column) => {
+                              {visibleMarketColumns.map((column) => {
                                 const columnButtons = buttonGroups[column.key]
                                 if (columnButtons.length === 0) {
                                   return null
                                 }
+
+                                const isMoneylineOnlyLayout = !showSpreadsAndTotals && column.key === 'moneyline'
 
                                 const renderedButtons = (() => {
                                   if (column.key === 'moneyline') {
@@ -3419,7 +3611,13 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
                                 }
 
                                 return (
-                                  <div key={`${card.id}-${column.key}`} className="flex w-full flex-col gap-2">
+                                  <div
+                                    key={`${card.id}-${column.key}`}
+                                    className={cn(
+                                      'w-full gap-2',
+                                      isMoneylineOnlyLayout ? 'grid grid-cols-3' : 'flex flex-col',
+                                    )}
+                                  >
                                     {renderedButtons.map((button) => {
                                       const isActiveColumn = activeMarketType === button.marketType
                                       const isMoneylineColumn = button.marketType === 'moneyline'
@@ -3462,7 +3660,9 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
                                                 hover:translate-y-px
                                                 active:translate-y-0.5
                                               `,
-                                              isMoneylineColumn ? 'h-9 text-xs' : 'h-[58px] text-xs',
+                                              isMoneylineOnlyLayout
+                                                ? 'h-11 text-xs'
+                                                : (isMoneylineColumn ? 'h-9 text-xs' : 'h-[58px] text-xs'),
                                               !hasTeamColor && !isOverButton && !isUnderButton
                                               && 'bg-secondary text-secondary-foreground hover:bg-accent',
                                               isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
@@ -3473,7 +3673,7 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
                                               {button.label}
                                             </span>
                                             <span className="text-sm leading-none tabular-nums">
-                                              {`${button.cents}¢`}
+                                              {formatButtonOdds(button.cents)}
                                             </span>
                                           </button>
                                         </div>
@@ -3500,6 +3700,7 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
                             activeDetailsTab={activeDetailsTab}
                             selectedButtonKey={selectedButtonKey}
                             showBottomContent={shouldRenderDetailsPanel ? isDetailsContentVisible : false}
+                            oddsFormat={oddsFormat}
                             onChangeTab={setActiveDetailsTab}
                             onSelectButton={(buttonKey, options) => selectCardButton(card, buttonKey, options)}
                           />
@@ -3527,6 +3728,7 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
                   <EventOrderPanelForm
                     isMobile={false}
                     event={activeTradeContext.card.event}
+                    oddsFormat={oddsFormat}
                     outcomeButtonStyleVariant="sports3d"
                     desktopMarketInfo={(
                       <SportsOrderPanelMarketInfo
@@ -3552,6 +3754,7 @@ export default function SportsGamesCenter({ cards, sportSlug, sportTitle }: Spor
       {isMobile && activeTradeContext && (
         <EventOrderPanelMobile
           event={activeTradeContext.card.event}
+          oddsFormat={oddsFormat}
           outcomeButtonStyleVariant="sports3d"
           mobileMarketInfo={(
             <SportsOrderPanelMarketInfo
