@@ -654,12 +654,12 @@ export default function SportsEventCenter({
                   title: card.event.title || card.title,
                 })}
                 className={`
-                  inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-4
-                  py-2 text-sm font-medium text-muted-foreground transition-colors
+                  inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border/80 bg-background px-3
+                  py-1.5 text-xs font-medium text-muted-foreground transition-colors
                   hover:bg-secondary/50 hover:text-foreground
                 `}
               >
-                <SportsEventLiveStatusIcon className="size-4" />
+                <SportsEventLiveStatusIcon className="size-3.5" />
                 <span>Watch Stream</span>
               </button>
             </div>
