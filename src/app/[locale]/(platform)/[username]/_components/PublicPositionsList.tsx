@@ -3,6 +3,7 @@
 import type { MergeableMarket } from './MergePositionsDialog'
 import type { PublicPosition } from './PublicPositionItem'
 import type { SortDirection, SortOption } from '@/app/[locale]/(platform)/[username]/_types/PublicPositionsTypes'
+import type { NormalizedBookLevel } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -88,8 +89,8 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     shares: number
     filledShares: number | null
     avgPriceCents: number | null
-    limitPriceCents: number | null
     receiveAmount: number | null
+    sellBids: NormalizedBookLevel[]
     tokenId: string | null
     isNegRisk: boolean
   } | null>(null)
@@ -387,8 +388,8 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
       shares,
       filledShares: null,
       avgPriceCents: null,
-      limitPriceCents: null,
       receiveAmount: null,
+      sellBids: [],
       tokenId: position.asset ?? null,
       isNegRisk: false,
     })
@@ -453,8 +454,8 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
           ...current,
           filledShares: fill.filledShares,
           avgPriceCents: fill.avgPriceCents,
-          limitPriceCents: fill.limitPriceCents ?? null,
           receiveAmount: fill.totalCost > 0 ? fill.totalCost : null,
+          sellBids: bids,
         }
       })
     }
@@ -472,7 +473,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     }
   }, [])
 
-  const handleEditOrder = useCallback(() => {
+  const handleEditOrder = useCallback((sharesOverride?: number) => {
     if (!sellModalPayload) {
       return
     }
@@ -485,12 +486,15 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     }
 
     const resolvedOutcomeIndex = resolveOutcomeIndex(position)
+    const targetShares = typeof sharesOverride === 'number' && Number.isFinite(sharesOverride)
+      ? sharesOverride
+      : shares
 
     const params = new URLSearchParams()
     params.set('side', 'SELL')
     params.set('orderType', 'Market')
     params.set('outcomeIndex', resolvedOutcomeIndex.toString())
-    params.set('shares', formatAmountInputValue(shares, { roundingMode: 'floor' }))
+    params.set('shares', formatAmountInputValue(targetShares, { roundingMode: 'floor' }))
     if (position.conditionId) {
       params.set('conditionId', position.conditionId)
     }
@@ -499,29 +503,27 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     router.push(`/event/${eventSlug}?${params.toString()}`)
   }, [resolveOutcomeIndex, router, sellModalPayload])
 
-  const handleCashOut = useCallback(async () => {
+  const handleCashOut = useCallback(async (sharesToSell: number) => {
     if (!sellModalPayload || isCashOutSubmitting) {
       return
     }
 
     const {
       position,
-      shares,
       tokenId,
       isNegRisk,
-      limitPriceCents,
-      avgPriceCents,
-      receiveAmount,
-      filledShares,
+      sellBids,
     } = sellModalPayload
     const eventSlug = position.eventSlug || position.slug
-    const marketPriceCents = typeof limitPriceCents === 'number' && Number.isFinite(limitPriceCents)
-      ? limitPriceCents
-      : (typeof avgPriceCents === 'number' && Number.isFinite(avgPriceCents) ? avgPriceCents : null)
+    const normalizedSharesToSell = Number.isFinite(sharesToSell)
+      ? Number(sharesToSell.toFixed(4))
+      : 0
+    const fill = calculateMarketFill(ORDER_SIDE.SELL, normalizedSharesToSell, sellBids, [])
+    const marketPriceCents = fill.limitPriceCents ?? fill.avgPriceCents ?? null
 
-    if (!marketPriceCents || (filledShares ?? 0) <= 0) {
+    if (!marketPriceCents || fill.filledShares <= 0) {
       if (eventSlug) {
-        handleEditOrder()
+        handleEditOrder(normalizedSharesToSell)
         return
       }
       handleOrderErrorFeedback('Trade failed', 'No liquidity for this market order.')
@@ -553,7 +555,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
       return
     }
 
-    const effectiveShares = formatAmountInputValue(shares, { roundingMode: 'floor' })
+    const effectiveShares = formatAmountInputValue(normalizedSharesToSell, { roundingMode: 'floor' })
     if (!effectiveShares) {
       handleOrderErrorFeedback('Trade failed', 'Invalid share amount.')
       return
@@ -637,7 +639,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
         eventTitle: position.title,
         marketImage: position.icon ? `https://gateway.irys.xyz/${position.icon}` : undefined,
         marketTitle: position.title,
-        sellAmountValue: receiveAmount ?? 0,
+        sellAmountValue: fill.totalCost > 0 ? fill.totalCost : 0,
         avgSellPrice: avgSellPriceLabel,
         queryClient,
         outcomeIndex,
@@ -804,6 +806,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
           filledShares={sellModalPayload.filledShares}
           avgPriceCents={sellModalPayload.avgPriceCents}
           receiveAmount={sellModalPayload.receiveAmount}
+          sellBids={sellModalPayload.sellBids}
           onCashOut={handleCashOut}
           onEditOrder={handleEditOrder}
         />
