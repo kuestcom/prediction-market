@@ -81,9 +81,10 @@ export default function SportsLivestreamFloatingPlayer() {
     if (!resizeSession) {
       return
     }
+    const session = resizeSession
 
     function handlePointerMove(event: PointerEvent) {
-      const nextWidth = resizeSession.startWidth + (event.clientX - resizeSession.startX)
+      const nextWidth = session.startWidth + (event.clientX - session.startX)
       setPlayerWidth(clamp(nextWidth, minWidth, maxWidth))
       setIsExpanded(false)
     }
