@@ -166,20 +166,29 @@ export function CommentPositionBadge({
   position,
   label,
   className,
+  usePrimaryTone = false,
 }: {
   position: CommentPositionEntry
   label?: string
   className?: string
+  usePrimaryTone?: boolean
 }) {
   const normalizeOutcomeLabel = useOutcomeLabel()
   const rawLabel = label ?? position.inlineLabel
   const displayLabel = normalizeOutcomeLabel(rawLabel) ?? rawLabel
+  let badgeToneClass = 'bg-no/15 text-no-foreground'
+  if (usePrimaryTone) {
+    badgeToneClass = 'bg-primary/15 text-primary'
+  }
+  else if (position.isYes) {
+    badgeToneClass = 'bg-yes/15 text-yes-foreground'
+  }
 
   return (
     <span
       className={cn(
         badgeBaseClassName,
-        position.isYes ? 'bg-yes/15 text-yes-foreground' : 'bg-no/15 text-no-foreground',
+        badgeToneClass,
         className,
       )}
       title={`${position.amountLabel} ${displayLabel}`}
@@ -193,10 +202,12 @@ export function CommentPositionsIndicator({
   positions,
   isSingleMarket = false,
   marketsByConditionId,
+  usePrimaryTone = false,
 }: {
   positions?: Comment['positions']
   isSingleMarket?: boolean
   marketsByConditionId?: Map<string, Market>
+  usePrimaryTone?: boolean
 }) {
   const normalizeOutcomeLabel = useOutcomeLabel()
   const entries = getCommentPositionEntries(positions, marketsByConditionId, isSingleMarket)
@@ -206,13 +217,20 @@ export function CommentPositionsIndicator({
   const primaryInlineLabel = primaryPosition
     ? (normalizeOutcomeLabel(primaryPosition.inlineLabel) ?? primaryPosition.inlineLabel)
     : ''
+  let primaryBadgeToneClass = 'bg-no/15 text-no-foreground'
+  if (usePrimaryTone) {
+    primaryBadgeToneClass = 'bg-primary/15 text-primary'
+  }
+  else if (primaryPosition?.isYes) {
+    primaryBadgeToneClass = 'bg-yes/15 text-yes-foreground'
+  }
 
   if (!primaryPosition) {
     return null
   }
 
   if (isSingleMarket || entries.length <= 1) {
-    return <CommentPositionBadge position={primaryPosition} />
+    return <CommentPositionBadge position={primaryPosition} usePrimaryTone={usePrimaryTone} />
   }
 
   return (
@@ -223,7 +241,7 @@ export function CommentPositionsIndicator({
           className={cn(
             badgeBaseClassName,
             'gap-1 pr-1.5 transition-colors',
-            primaryPosition.isYes ? 'bg-yes/15 text-yes-foreground' : 'bg-no/15 text-no-foreground',
+            primaryBadgeToneClass,
           )}
           aria-label={open ? 'Hide positions' : 'Show positions'}
           aria-expanded={open}
@@ -258,6 +276,7 @@ export function CommentPositionsIndicator({
                 position={position}
                 label={position.outcomeLabel}
                 className="ml-2 shrink-0"
+                usePrimaryTone={usePrimaryTone}
               />
             </div>
           ))}

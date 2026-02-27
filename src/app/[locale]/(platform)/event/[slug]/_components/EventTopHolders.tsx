@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { fetchTopHolders } from '@/lib/data-api/holders'
 import { formatSharesLabel } from '@/lib/formatters'
+import { cn } from '@/lib/utils'
 import { useIsSingleMarket, useOrder } from '@/stores/useOrder'
 
 interface EventTopHoldersProps {
@@ -47,6 +48,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
   const normalizeOutcomeLabel = useOutcomeLabel()
   const isSingleMarket = useIsSingleMarket()
   const orderState = useOrder()
+  const isSportsEvent = Boolean(event.sports_sport_slug?.trim())
   const [selectedMarket, setSelectedMarket] = useState<string>('')
   const fallbackConditionId = event.markets[0]?.condition_id
 
@@ -202,7 +204,11 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
                       usernameClassName="font-semibold text-foreground hover:underline underline-offset-2"
                       usernameMaxWidthClassName="max-w-35"
                       trailing={(
-                        <span className="text-sm font-semibold text-yes tabular-nums">
+                        <span className={cn(
+                          'text-sm font-semibold tabular-nums',
+                          isSportsEvent ? 'text-primary' : 'text-yes',
+                        )}
+                        >
                           {formatHolderShares(holder.net_position)}
                         </span>
                       )}
@@ -233,7 +239,11 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
                       usernameClassName="font-semibold text-foreground hover:underline underline-offset-2"
                       usernameMaxWidthClassName="max-w-35"
                       trailing={(
-                        <span className="text-sm font-semibold text-no tabular-nums">
+                        <span className={cn(
+                          'text-sm font-semibold tabular-nums',
+                          isSportsEvent ? 'text-primary' : 'text-no',
+                        )}
+                        >
                           {formatHolderShares(holder.net_position)}
                         </span>
                       )}

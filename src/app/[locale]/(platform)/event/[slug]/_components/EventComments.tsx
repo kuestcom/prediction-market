@@ -34,6 +34,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
   const [sortBy, setSortBy] = useState<'newest' | 'most_liked'>('newest')
   const [holdersOnly, setHoldersOnly] = useState(false)
   const holdersCheckboxId = useId()
+  const isSportsEvent = Boolean(event.sports_sport_slug?.trim())
   const marketsByConditionId = useMemo(() => {
     const map = new Map<string, Event['markets'][number]>()
     event.markets.forEach((market) => {
@@ -217,6 +218,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
                   key={comment.id}
                   comment={comment}
                   user={user}
+                  usePrimaryPositionTone={isSportsEvent}
                   isSingleMarket={(event.total_markets_count ?? event.markets.length) <= 1}
                   marketsByConditionId={marketsByConditionId}
                   onLikeToggle={handleLikeToggled}
