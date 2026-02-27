@@ -14,7 +14,7 @@ const config: NextConfig = {
   typedRoutes: true,
   reactStrictMode: false,
   images: {
-    unoptimized: !JSON.parse(process.env.OPTIMIZE_IMAGES || 'false'),
+    unoptimized: !(process.env.IMAGE_OPTIMIZATION === 'true'),
     remotePatterns: [
       {
         protocol: 'https',
