@@ -8,13 +8,13 @@ export function useColumns() {
       const width = window.innerWidth
 
       queueMicrotask(() => {
-        if (width >= 1024) {
+        if (width >= 1280) {
           setColumns(4)
         }
-        else if (width >= 768) {
+        else if (width >= 1024) {
           setColumns(3)
         }
-        else if (width >= 640) {
+        else if (width >= 768) {
           setColumns(2)
         }
         else {
@@ -26,9 +26,9 @@ export function useColumns() {
     updateColumns()
 
     const mediaQueries = [
+      window.matchMedia('(min-width: 1280px)'),
       window.matchMedia('(min-width: 1024px)'),
       window.matchMedia('(min-width: 768px)'),
-      window.matchMedia('(min-width: 640px)'),
     ]
 
     mediaQueries.forEach(mq => mq.addEventListener('change', updateColumns))
