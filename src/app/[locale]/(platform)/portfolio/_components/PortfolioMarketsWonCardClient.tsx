@@ -4,7 +4,7 @@ import type { Route } from 'next'
 import { DialogTitle } from '@radix-ui/react-dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useQueryClient } from '@tanstack/react-query'
-import { BanknoteArrowDownIcon, TrophyIcon } from 'lucide-react'
+import { BanknoteArrowDownIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -348,19 +348,6 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
         <VisuallyHidden>
           <DialogTitle>You Won</DialogTitle>
         </VisuallyHidden>
-
-        <div className="flex justify-center">
-          <div className="
-            flex size-14 items-center justify-center rounded-xl bg-yes/15
-            motion-safe:animate-pulse
-            motion-reduce:animate-none
-          "
-          >
-            <div className="flex size-9 items-center justify-center rounded-lg bg-yes/20 ring-1 ring-yes/30">
-              <TrophyIcon className="size-4 text-yes" strokeWidth={2.75} />
-            </div>
-          </div>
-        </div>
 
         <div className="flex justify-center">
           <div className="
