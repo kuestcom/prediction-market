@@ -45,41 +45,46 @@ export function getOutcomeLabel(position: PublicPosition) {
 }
 
 export function getTradeValue(position: PublicPosition) {
-  return (position.size ?? 0) * (position.avgPrice ?? 0)
+  const avgPrice = normalizePositionPrice(position.avgPrice)
+  return (position.size ?? 0) * (avgPrice ?? 0)
 }
 
 export function getValue(position: PublicPosition) {
+  const size = Number(position.size)
+  if (!Number.isFinite(size) || size <= 0) {
+    const currentValue = Number(position.currentValue)
+    if (Number.isFinite(currentValue)) {
+      return currentValue
+    }
+    return 0
+  }
+
+  const curPrice = normalizePositionPrice(position.curPrice)
+  if (typeof curPrice === 'number' && curPrice > 0) {
+    return size * curPrice
+  }
+
   const currentValue = Number(position.currentValue)
   if (Number.isFinite(currentValue)) {
     return currentValue
   }
 
-  const size = Number(position.size)
-  if (!Number.isFinite(size) || size <= 0) {
-    return 0
-  }
-
-  const avgPrice = Number(position.avgPrice)
-  if (Number.isFinite(avgPrice)) {
+  const avgPrice = normalizePositionPrice(position.avgPrice)
+  if (typeof avgPrice === 'number') {
     return size * avgPrice
-  }
-
-  const curPrice = Number(position.curPrice)
-  if (Number.isFinite(curPrice)) {
-    return size * curPrice
   }
 
   return 0
 }
 
 export function getLatestPrice(position: PublicPosition) {
-  const curPrice = Number(position.curPrice)
-  if (Number.isFinite(curPrice)) {
+  const curPrice = normalizePositionPrice(position.curPrice)
+  if (typeof curPrice === 'number') {
     return curPrice
   }
 
-  const avgPrice = Number(position.avgPrice)
-  if (Number.isFinite(avgPrice)) {
+  const avgPrice = normalizePositionPrice(position.avgPrice)
+  if (typeof avgPrice === 'number') {
     return avgPrice
   }
 
@@ -110,6 +115,23 @@ export function parseNumber(value?: number | string | null) {
     return Number.isFinite(parsed) ? parsed : Number.NaN
   }
   return Number.NaN
+}
+
+function normalizePositionPrice(value?: number | null) {
+  if (!Number.isFinite(value)) {
+    return null
+  }
+
+  let normalized = Number(value)
+  if (normalized <= 0) {
+    return normalized
+  }
+
+  while (normalized > 1) {
+    normalized /= 100
+  }
+
+  return normalized
 }
 
 export const DEFAULT_SORT_DIRECTION: Record<SortOption, SortDirection> = {
@@ -205,33 +227,37 @@ export function mapDataApiPosition(position: DataApiPosition, status: 'active' |
     ? position.timestamp * 1000
     : Date.now()
   const sizeValue = parseNumber(position.size)
-  const avgPriceValue = parseNumber(position.avgPrice)
+  const avgPriceValue = normalizePositionPrice(parseNumber(position.avgPrice))
   const currentValueRaw = parseNumber(position.currentValue)
   const realizedValueRaw = parseNumber(position.realizedPnl)
-  const curPriceRaw = parseNumber(position.curPrice)
+  const curPriceRaw = normalizePositionPrice(parseNumber(position.curPrice))
   const outcomeIndexValue = parseNumber(position.outcomeIndex ?? position.outcome_index)
   const outcomeIndex = Number.isFinite(outcomeIndexValue) ? outcomeIndexValue : undefined
 
-  let derivedCurrentValue = Number.isFinite(currentValueRaw) ? currentValueRaw : Number.NaN
-  if (!Number.isFinite(derivedCurrentValue)) {
-    if (Number.isFinite(sizeValue) && sizeValue > 0) {
-      if (Number.isFinite(curPriceRaw)) {
-        derivedCurrentValue = sizeValue * curPriceRaw
-      }
-      else if (Number.isFinite(avgPriceValue)) {
-        derivedCurrentValue = sizeValue * avgPriceValue
-      }
+  let derivedCurrentValue = Number.NaN
+  if (Number.isFinite(sizeValue) && sizeValue > 0) {
+    if (typeof curPriceRaw === 'number' && curPriceRaw > 0) {
+      derivedCurrentValue = sizeValue * curPriceRaw
     }
+    else if (Number.isFinite(currentValueRaw)) {
+      derivedCurrentValue = currentValueRaw
+    }
+    else if (typeof avgPriceValue === 'number') {
+      derivedCurrentValue = sizeValue * avgPriceValue
+    }
+  }
+  else if (Number.isFinite(currentValueRaw)) {
+    derivedCurrentValue = currentValueRaw
   }
 
   const currentValue = Number.isFinite(derivedCurrentValue) ? derivedCurrentValue : 0
   const realizedValue = Number.isFinite(realizedValueRaw) ? realizedValueRaw : currentValue
   const normalizedValue = status === 'closed' ? realizedValue : currentValue
-  const derivedCurPrice = Number.isFinite(curPriceRaw)
+  const derivedCurPrice = typeof curPriceRaw === 'number'
     ? curPriceRaw
     : (Number.isFinite(sizeValue) && sizeValue > 0 && Number.isFinite(currentValue))
         ? currentValue / sizeValue
-        : (Number.isFinite(avgPriceValue) ? avgPriceValue : Number.NaN)
+        : (typeof avgPriceValue === 'number' ? avgPriceValue : Number.NaN)
 
   return {
     id: `${position.conditionId || slug}-${outcomeIndex ?? 0}-${status}`,
@@ -242,7 +268,7 @@ export function mapDataApiPosition(position: DataApiPosition, status: 'active' |
     conditionId: position.conditionId,
     asset: position.asset,
     oppositeAsset: position.oppositeAsset,
-    avgPrice: Number.isFinite(avgPriceValue) ? avgPriceValue : 0,
+    avgPrice: typeof avgPriceValue === 'number' ? avgPriceValue : 0,
     currentValue: normalizedValue,
     curPrice: Number.isFinite(derivedCurPrice) ? derivedCurPrice : undefined,
     timestamp: timestampMs,
@@ -511,10 +537,10 @@ export function sortPositions(
 
 export function calculatePositionsTotals(positions: PublicPosition[]): PositionsTotals {
   const trade = positions.reduce((sum, position) => {
-    const tradeValue = (position.size ?? 0) * (position.avgPrice ?? 0)
+    const tradeValue = getTradeValue(position)
     return sum + tradeValue
   }, 0)
-  const value = positions.reduce((sum, position) => sum + (position.currentValue ?? 0), 0)
+  const value = positions.reduce((sum, position) => sum + getValue(position), 0)
   const toWin = positions.reduce((sum, position) => sum + (position.size ?? 0), 0)
   const diff = value - trade
   const pct = trade > 0 ? (diff / trade) * 100 : 0
