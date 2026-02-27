@@ -13,7 +13,8 @@ const STATIC_SITEMAP_IDS = [
 ] as const
 
 const CATEGORIES_SITEMAP_ID = 'categories'
-const PREDICTIONS_SITEMAP_ID = 'predictions'
+const PREDICTIONS_SITEMAP_PREFIX = 'predictions-'
+const PREDICTIONS_SITEMAP_PATTERN = /^predictions-(\d{3})$/
 const ACTIVE_EVENTS_SITEMAP_PREFIX = 'events-active-'
 const ACTIVE_EVENTS_SITEMAP_PATTERN = /^events-active-(\d{3})$/
 const CLOSED_EVENTS_SITEMAP_PREFIX = 'events-closed-'
@@ -74,11 +75,16 @@ export async function getSitemapIndexEntries(): Promise<SitemapIndexEntry[]> {
       id: CATEGORIES_SITEMAP_ID,
       lastmod: getLatestLastModified(categoryEntries, fallbackDate),
     },
-    {
-      id: PREDICTIONS_SITEMAP_ID,
-      lastmod: getLatestLastModified(predictionEntries, fallbackDate),
-    },
   ]
+
+  const predictionChunks = chunkSitemapEntries(predictionEntries, SITEMAP_URL_LIMIT)
+  for (let index = 0; index < predictionChunks.length; index += 1) {
+    const chunkEntries = predictionChunks[index] ?? []
+    entries.push({
+      id: formatPredictionSitemapId(index + 1),
+      lastmod: getLatestLastModified(chunkEntries, fallbackDate),
+    })
+  }
 
   const activeChunks = chunkSitemapEntries(dynamicSitemaps.active, SITEMAP_URL_LIMIT)
   for (let index = 0; index < activeChunks.length; index += 1) {
@@ -115,8 +121,11 @@ export async function getDynamicSitemapEntriesById(id: string): Promise<SitemapR
     return getCategorySitemapEntries()
   }
 
-  if (id === PREDICTIONS_SITEMAP_ID) {
-    return getPredictionSitemapEntries()
+  const predictionChunkIndex = extractPredictionChunkIndex(id)
+  if (predictionChunkIndex !== null) {
+    const predictionEntries = await getPredictionSitemapEntries()
+    const predictionChunks = chunkSitemapEntries(predictionEntries, SITEMAP_URL_LIMIT)
+    return predictionChunks[predictionChunkIndex - 1] ?? []
   }
 
   const dynamicSitemaps = await getDynamicEventSitemaps()
@@ -336,6 +345,25 @@ function resolveCategoryPath(slug: string): string | null {
 function formatActiveSitemapId(index: number): string {
   const suffix = String(index).padStart(3, '0')
   return `${ACTIVE_EVENTS_SITEMAP_PREFIX}${suffix}`
+}
+
+function formatPredictionSitemapId(index: number): string {
+  const suffix = String(index).padStart(3, '0')
+  return `${PREDICTIONS_SITEMAP_PREFIX}${suffix}`
+}
+
+function extractPredictionChunkIndex(id: string): number | null {
+  const match = id.match(PREDICTIONS_SITEMAP_PATTERN)
+  if (!match) {
+    return null
+  }
+
+  const parsed = Number(match[1])
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return null
+  }
+
+  return parsed
 }
 
 function extractActiveChunkIndex(id: string): number | null {

@@ -40,7 +40,7 @@ async function buildSitemapEntries(sitemapId: string, siteUrl: string, lastModif
     return buildDynamicEntries(dynamicEntries, siteUrl)
   }
 
-  if (sitemapId === 'predictions') {
+  if (sitemapId.startsWith('predictions-')) {
     const dynamicEntries = await getDynamicSitemapEntriesById(sitemapId)
     return buildDynamicEntries(dynamicEntries, siteUrl)
   }
