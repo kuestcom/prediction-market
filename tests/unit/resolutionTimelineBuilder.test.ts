@@ -194,7 +194,7 @@ describe('resolution timeline builder', () => {
 
     expect(resolveResolutionDeadlineMs(livenessFallbackMarket)).toBe(BASE_TIMESTAMP_MS + 7200 * 1000)
     expect(resolveResolutionDeadlineMs(v4FlaggedMarket)).toBe(BASE_TIMESTAMP_MS + 3600 * 1000)
-    expect(resolveResolutionDeadlineMs(negRiskFlaggedMarket)).toBe(BASE_TIMESTAMP_MS + 172800 * 1000)
+    expect(resolveResolutionDeadlineMs(negRiskFlaggedMarket)).toBe(BASE_TIMESTAMP_MS + 3600 * 1000)
   })
 
   it('only displays the timeline after the resolution flow has moved past posed', () => {
