@@ -154,6 +154,7 @@
 - [ ] 🏆 MVP Ready (stress tests, security, and financial consistency checks)
 - [ ] Move matching engine to mainnet
 - [ ] Kalshi arbitrage connector (soon)
+- [ ] Layout redesign (soon)
 
 ---
 
