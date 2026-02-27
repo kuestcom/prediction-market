@@ -25,7 +25,7 @@ export default async function Page(props: PageProps<'/[locale]/docs/[[...slug]]'
   const params = await props.params
   setRequestLocale(params.locale)
 
-  const isOwnerGuideEnabled = JSON.parse(process.env.NEXT_PUBLIC_FORK_OWNER_GUIDE || 'false')
+  const isOwnerGuideEnabled = JSON.parse(process.env.FORK_OWNER_GUIDE || 'false')
   if (params.slug?.[0] === 'owners' && !isOwnerGuideEnabled) {
     redirect('/docs/users')
   }
@@ -62,7 +62,7 @@ export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slu
   const params = await props.params
   setRequestLocale(params.locale)
 
-  const isOwnerGuideEnabled = JSON.parse(process.env.NEXT_PUBLIC_FORK_OWNER_GUIDE || 'false')
+  const isOwnerGuideEnabled = JSON.parse(process.env.FORK_OWNER_GUIDE || 'false')
   if (params.slug?.[0] === 'owners' && !isOwnerGuideEnabled) {
     notFound()
   }

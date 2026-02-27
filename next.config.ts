@@ -14,11 +14,11 @@ const config: NextConfig = {
   typedRoutes: true,
   reactStrictMode: false,
   images: {
-    unoptimized: true,
+    unoptimized: !JSON.parse(process.env.OPTIMIZE_IMAGES || 'false'),
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'avatar.vercel.sh',
+        hostname: 'gateway.irys.xyz',
         port: '',
         pathname: '/**',
       },

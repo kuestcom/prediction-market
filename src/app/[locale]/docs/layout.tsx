@@ -53,7 +53,7 @@ export default async function Layout({ params, children }: LayoutProps<'/[locale
               url: '/docs/developers',
               icon: <CodeIcon className="size-4" />,
             },
-            ...(JSON.parse(process.env.NEXT_PUBLIC_FORK_OWNER_GUIDE || 'false')
+            ...(JSON.parse(process.env.FORK_OWNER_GUIDE || 'false')
               ? [
                   {
                     title: 'Fork Owner Guide',

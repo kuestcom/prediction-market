@@ -1,7 +1,7 @@
 import { createSearchAPI } from 'fumadocs-core/search/server'
 import { source } from '@/lib/source'
 
-const pages = JSON.parse(process.env.NEXT_PUBLIC_FORK_OWNER_GUIDE || 'false')
+const pages = JSON.parse(process.env.FORK_OWNER_GUIDE || 'false')
   ? source.getPages()
   : source.getPages().filter(page => !page.url.includes('/owners'))
 
