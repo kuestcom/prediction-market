@@ -22,7 +22,7 @@ spec:
               value: production
             - name: SITE_URL
               value: https://markets.example.com
-            - name: NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID
+            - name: REOWN_APPKIT_PROJECT_ID
               value: replace-me
             - name: POSTGRES_URL
               valueFrom:

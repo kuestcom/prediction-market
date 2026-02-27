@@ -63,6 +63,7 @@ const config: NextConfig = {
     IS_VERCEL: isVercel ? 'true' : 'false',
     SITE_URL: siteUrl,
     SENTRY_DSN: process.env.SENTRY_DSN,
+    REOWN_APPKIT_PROJECT_ID: process.env.REOWN_APPKIT_PROJECT_ID ?? process.env.NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID,
     CREATE_MARKET_URL: process.env.CREATE_MARKET_URL ?? 'https://create-market.kuest.com',
     CLOB_URL: process.env.CLOB_URL ?? 'https://clob.kuest.com',
     RELAYER_URL: process.env.RELAYER_URL ?? 'https://relayer.kuest.com',

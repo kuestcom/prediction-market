@@ -13,7 +13,7 @@ secret_env = {
   KUEST_API_KEY                       = "replace-me"
   KUEST_API_SECRET                    = "replace-me"
   KUEST_PASSPHRASE                    = "replace-me"
-  NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID = "replace-me"
+  REOWN_APPKIT_PROJECT_ID             = "replace-me"
 
   # Choose one storage profile:
   # Supabase mode

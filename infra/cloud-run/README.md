@@ -51,14 +51,14 @@ Example (Supabase mode):
 
 ```bash
 gcloud builds submit --config infra/cloud-run/cloudbuild.yaml \
-  --substitutions=_SERVICE=kuest-web,_REGION=us-central1,_SITE_URL=https://markets.example.com,_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=replace-me,_STORAGE_MODE=supabase
+  --substitutions=_SERVICE=kuest-web,_REGION=us-central1,_SITE_URL=https://markets.example.com,_REOWN_APPKIT_PROJECT_ID=replace-me,_STORAGE_MODE=supabase
 ```
 
 Example (S3 mode):
 
 ```bash
 gcloud builds submit --config infra/cloud-run/cloudbuild.yaml \
-  --substitutions=_SERVICE=kuest-web,_REGION=us-central1,_SITE_URL=https://markets.example.com,_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=replace-me,_STORAGE_MODE=s3,_S3_ENDPOINT=https://s3.example.com,_S3_REGION=us-east-1,_S3_FORCE_PATH_STYLE=true
+  --substitutions=_SERVICE=kuest-web,_REGION=us-central1,_SITE_URL=https://markets.example.com,_REOWN_APPKIT_PROJECT_ID=replace-me,_STORAGE_MODE=s3,_S3_ENDPOINT=https://s3.example.com,_S3_REGION=us-east-1,_S3_FORCE_PATH_STYLE=true
 ```
 
 ## Scheduler implementation on Cloud Run
