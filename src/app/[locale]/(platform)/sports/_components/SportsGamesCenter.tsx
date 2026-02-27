@@ -60,7 +60,7 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { Link, useRouter } from '@/i18n/navigation'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
-import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
+import { MICRO_UNIT, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatAmountInputValue, formatCentsLabel, formatCurrency, formatSharesLabel, formatVolume, fromMicro } from '@/lib/formatters'
 import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
@@ -97,6 +97,14 @@ const SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY = 'sports:event:odds-format'
 const SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY = 'sports:games:show-spreads-totals'
 const LIVE_SOON_WINDOW_MS = 24 * 60 * 60 * 1000
 const LIVE_FALLBACK_LIMIT = 10
+const HERO_LEGEND_LABEL_GAP_PX = 8
+const HERO_LEGEND_RIGHT_INSET_PX = 4
+const HERO_LEGEND_MIN_WIDTH_PX = 72
+const HERO_LEGEND_NAME_PADDING_PX = 10
+const HERO_LEGEND_NAME_LINE_HEIGHT_PX = 18
+const HERO_LEGEND_VALUE_LINE_HEIGHT_PX = 32
+const HERO_LEGEND_MIN_HEIGHT_PX = 56
+const HERO_LEGEND_VERTICAL_GAP_PX = 10
 const GENERIC_SPORTS_CATEGORY_LABELS = new Set([
   'sports',
   'games',
@@ -153,6 +161,7 @@ interface SportsPositionTag {
   avgPriceCents: number | null
   totalCost: number | null
   currentValue: number
+  realizedPnl: number
   market: Market
   outcome: Outcome
   button: SportsGamesButton | null
@@ -185,39 +194,75 @@ function resolvePositionShares(position: UserPosition) {
   return Number.isFinite(quantity) ? quantity : 0
 }
 
+function normalizePositionPrice(value: unknown) {
+  const numeric = toFiniteNumber(value)
+  if (numeric == null || numeric <= 0) {
+    return numeric
+  }
+
+  let normalized = numeric
+  while (normalized > 1) {
+    normalized /= 100
+  }
+
+  return normalized
+}
+
 function resolvePositionCostValue(position: UserPosition, shares: number, avgPrice: number | null) {
+  const derivedCost = shares > 0 && typeof avgPrice === 'number' && avgPrice > 0 ? avgPrice * shares : null
+  if (derivedCost != null) {
+    return derivedCost
+  }
+
   const baseCostValue = toFiniteNumber(position.totalBought)
     ?? toFiniteNumber(position.initialValue)
     ?? (typeof position.total_position_cost === 'number'
       ? Number(fromMicro(String(position.total_position_cost), 2))
       : null)
-  const derivedCost = shares > 0 && typeof avgPrice === 'number' ? avgPrice * shares : null
-  if (derivedCost != null) {
-    if (!baseCostValue || baseCostValue <= 0) {
-      return derivedCost
-    }
-    if (derivedCost > 0 && baseCostValue > derivedCost * 10) {
-      return derivedCost
-    }
-  }
+
   return baseCostValue
 }
 
-function resolvePositionCurrentValue(position: UserPosition, shares: number, avgPrice: number | null) {
+function resolvePositionCurrentValue(
+  position: UserPosition,
+  shares: number,
+  avgPrice: number | null,
+  marketPrice: number | null,
+) {
+  if (shares > 0) {
+    const livePrice = marketPrice ?? normalizePositionPrice(position.curPrice)
+    if (livePrice && livePrice > 0) {
+      return livePrice * shares
+    }
+  }
+
   let value = toFiniteNumber(position.currentValue)
     ?? Number(fromMicro(String(position.total_position_value ?? 0), 2))
 
   if (!(value > 0) && shares > 0) {
-    const currentPrice = toFiniteNumber(position.curPrice)
-    if (currentPrice && currentPrice > 0) {
-      value = currentPrice * shares
-    }
-    else if (typeof avgPrice === 'number' && avgPrice > 0) {
+    if (typeof avgPrice === 'number' && avgPrice > 0) {
       value = avgPrice * shares
     }
   }
 
   return Number.isFinite(value) ? value : 0
+}
+
+function normalizePositionPnlValue(value: number | null, baseCostValue: number | null) {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+  if (!baseCostValue || baseCostValue <= 0) {
+    return value ?? 0
+  }
+  if (Math.abs(value ?? 0) <= baseCostValue * 10) {
+    return value ?? 0
+  }
+  const scaled = (value ?? 0) / MICRO_UNIT
+  if (Math.abs(scaled) <= baseCostValue * 10) {
+    return scaled
+  }
+  return 0
 }
 
 function resolveMarketTypeLabel(
@@ -844,12 +889,8 @@ export function SportsGameGraph({
   const chartMargin = isSportsEventHeroVariant
     ? { top: 12, right: 46, bottom: 40, left: 0 }
     : { top: 12, right: 30, bottom: 40, left: 0 }
-  const heroLegendLabelWidth = 176
-  const heroLegendLabelGap = 8
-  const heroLegendRightInset = 4
-  const heroLegendDomainRightTrim = 20
-  const heroLegendRenderedWidth = Math.max(72, heroLegendLabelWidth - heroLegendDomainRightTrim)
   const chartContainerRef = useRef<HTMLDivElement | null>(null)
+  const heroLegendTextMeasureCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [measuredChartWidth, setMeasuredChartWidth] = useState<number | null>(null)
 
   const fallbackChartWidth = useMemo(() => {
@@ -1043,6 +1084,39 @@ export function SportsGameGraph({
     }))
   }, [graphSeriesTargets])
 
+  const heroLegendRenderedWidth = useMemo(() => {
+    if (!isSportsEventHeroVariant || chartSeries.length === 0) {
+      return HERO_LEGEND_MIN_WIDTH_PX
+    }
+
+    if (typeof document === 'undefined') {
+      return HERO_LEGEND_MIN_WIDTH_PX
+    }
+
+    if (!heroLegendTextMeasureCanvasRef.current) {
+      heroLegendTextMeasureCanvasRef.current = document.createElement('canvas')
+    }
+
+    const context = heroLegendTextMeasureCanvasRef.current.getContext('2d')
+    if (!context) {
+      return HERO_LEGEND_MIN_WIDTH_PX
+    }
+
+    context.font = '500 13px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif'
+
+    const longestLabelWidth = chartSeries.reduce((maxWidth, seriesItem) => {
+      const label = seriesItem.name.trim()
+      if (!label) {
+        return maxWidth
+      }
+
+      return Math.max(maxWidth, context.measureText(label).width)
+    }, 0)
+
+    const targetWidth = Math.ceil(longestLabelWidth + HERO_LEGEND_NAME_PADDING_PX)
+    return Math.max(HERO_LEGEND_MIN_WIDTH_PX, targetWidth)
+  }, [chartSeries, isSportsEventHeroVariant])
+
   const historyChartData = useMemo<DataPoint[]>(() => {
     return normalizedHistory
       .map((point) => {
@@ -1158,7 +1232,7 @@ export function SportsGameGraph({
 
     const dataSpanMs = Math.max(1, lastTimestamp - firstTimestamp)
     const plotWidthPx = Math.max(1, chartWidth - chartMargin.left - chartMargin.right)
-    const reservedRightPx = Math.max(0, heroLegendRenderedWidth + heroLegendLabelGap + heroLegendRightInset)
+    const reservedRightPx = Math.max(0, heroLegendRenderedWidth + HERO_LEGEND_LABEL_GAP_PX + HERO_LEGEND_RIGHT_INSET_PX)
 
     // Keep enough fixed room on the right for legend so the plotted line ends before chart edge.
     if (reservedRightPx >= plotWidthPx - 1) {
@@ -1178,9 +1252,7 @@ export function SportsGameGraph({
     chartMargin.left,
     chartMargin.right,
     chartWidth,
-    heroLegendLabelGap,
     heroLegendRenderedWidth,
-    heroLegendRightInset,
     isSportsEventHeroVariant,
   ])
 
@@ -1217,7 +1289,6 @@ export function SportsGameGraph({
           value: number
           left: number
           top: number
-          maxWidth: number
         }>
       }
 
@@ -1244,30 +1315,47 @@ export function SportsGameGraph({
       const xSpan = Math.max(1, domainEnd - domainStart)
       const plotWidth = Math.max(1, chartWidth - chartMargin.left - chartMargin.right)
       const plotHeight = Math.max(1, chartHeight - chartMargin.top - chartMargin.bottom)
+      const chartTop = chartMargin.top
+      const chartBottom = chartMargin.top + plotHeight
       const dotX = chartMargin.left + ((hoveredTimestamp - domainStart) / xSpan) * plotWidth
       const plotLeft = chartMargin.left
       const plotRight = chartWidth - chartMargin.right
-      const availableFullWidth = plotRight - plotLeft - heroLegendRightInset
+      const availableFullWidth = plotRight - plotLeft - HERO_LEGEND_RIGHT_INSET_PX
       const effectiveLabelWidth = Math.max(0, Math.min(heroLegendRenderedWidth, availableFullWidth))
-      const maxLeft = plotRight - effectiveLabelWidth - heroLegendRightInset
-      const labelLeft = Math.max(plotLeft, Math.min(maxLeft, dotX + heroLegendLabelGap))
-      const labelHeight = 54
-      const labelGap = 6
-      const anchorOffset = labelHeight / 2
-      const minTop = chartMargin.top
-      const maxTop = chartMargin.top + plotHeight - labelHeight
+      const maxLeft = plotRight - effectiveLabelWidth - HERO_LEGEND_RIGHT_INSET_PX
+      const labelLeft = Math.max(plotLeft, Math.min(maxLeft, dotX + HERO_LEGEND_LABEL_GAP_PX))
+      const availableLabelWidth = Math.max(1, chartWidth - labelLeft - HERO_LEGEND_RIGHT_INSET_PX)
+
+      if (!heroLegendTextMeasureCanvasRef.current && typeof document !== 'undefined') {
+        heroLegendTextMeasureCanvasRef.current = document.createElement('canvas')
+      }
+      const labelMeasureContext = heroLegendTextMeasureCanvasRef.current?.getContext('2d') ?? null
+      if (labelMeasureContext) {
+        labelMeasureContext.font = '500 13px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif'
+      }
 
       const preferredEntries = heroLegendSeriesWithValues.map((entry) => {
         const clampedValue = Math.max(yBounds.min, Math.min(yBounds.max, entry.value))
         const dotY = chartMargin.top + ((yBounds.max - clampedValue) / ySpan) * plotHeight
+        const normalizedName = entry.name.trim()
+        const measuredNameWidth = normalizedName
+          ? (labelMeasureContext?.measureText(normalizedName).width ?? normalizedName.length * 7)
+          : 0
+        const wrappedNameLineCount = Math.max(1, Math.ceil(measuredNameWidth / availableLabelWidth))
+        const labelHeight = Math.max(
+          HERO_LEGEND_MIN_HEIGHT_PX,
+          (wrappedNameLineCount * HERO_LEGEND_NAME_LINE_HEIGHT_PX) + HERO_LEGEND_VALUE_LINE_HEIGHT_PX,
+        )
+        const anchorOffset = labelHeight / 2
         const preferredTop = dotY - anchorOffset
+        const maxTopForEntry = chartBottom - labelHeight
 
         return {
           ...entry,
           dotY,
           left: labelLeft,
-          maxWidth: effectiveLabelWidth,
-          preferredTop: Math.max(minTop, Math.min(maxTop, preferredTop)),
+          labelHeight,
+          preferredTop: Math.max(chartTop, Math.min(maxTopForEntry, preferredTop)),
         }
       })
 
@@ -1276,23 +1364,25 @@ export function SportsGameGraph({
 
       const stacked: Array<(typeof sortedByPreferredTop)[number] & { top: number }> = []
       sortedByPreferredTop.forEach((entry, index) => {
-        const previousTop = index > 0 ? stacked[index - 1]!.top : null
-        const top = previousTop == null
+        const previousBottom = index > 0
+          ? (stacked[index - 1]!.top + stacked[index - 1]!.labelHeight)
+          : null
+        const top = previousBottom == null
           ? entry.preferredTop
-          : Math.max(entry.preferredTop, previousTop + labelHeight + labelGap)
-        stacked.push({ ...entry, top: Math.max(minTop, Math.min(maxTop, top)) })
+          : Math.max(entry.preferredTop, previousBottom + HERO_LEGEND_VERTICAL_GAP_PX)
+        const maxTopForEntry = chartBottom - entry.labelHeight
+        stacked.push({ ...entry, top: Math.max(chartTop, Math.min(maxTopForEntry, top)) })
       })
 
-      const last = stacked[stacked.length - 1]
-      if (last && last.top > maxTop) {
-        last.top = maxTop
-        for (let index = stacked.length - 2; index >= 0; index -= 1) {
-          const nextTop = stacked[index + 1]!.top
-          stacked[index]!.top = Math.max(
-            minTop,
-            Math.min(stacked[index]!.preferredTop, nextTop - labelHeight - labelGap),
-          )
-        }
+      for (let index = stacked.length - 2; index >= 0; index -= 1) {
+        const entry = stacked[index]!
+        const next = stacked[index + 1]!
+        const maxTopForEntry = chartBottom - entry.labelHeight
+        const highestTopAllowedByNext = next.top - HERO_LEGEND_VERTICAL_GAP_PX - entry.labelHeight
+        entry.top = Math.max(
+          chartTop,
+          Math.min(maxTopForEntry, Math.min(entry.top, highestTopAllowedByNext)),
+        )
       }
 
       const topByKey = new Map(stacked.map(entry => [entry.key, entry.top] as const))
@@ -1304,8 +1394,6 @@ export function SportsGameGraph({
     [
       chartData,
       chartHeight,
-      heroLegendLabelGap,
-      heroLegendRightInset,
       heroLegendRenderedWidth,
       chartMargin.bottom,
       chartMargin.left,
@@ -1412,11 +1500,13 @@ export function SportsGameGraph({
                   style={{
                     top: `${entry.top}px`,
                     left: `${entry.left}px`,
-                    width: `${entry.maxWidth}px`,
                   }}
                 >
                   <p
-                    className="truncate text-[13px] leading-snug font-medium tracking-tight"
+                    className={cn(
+                      'text-[13px] leading-snug font-medium tracking-tight',
+                      (windowWidth ?? 1024) >= 768 && 'truncate',
+                    )}
                     style={{ color: entry.color }}
                   >
                     {entry.name}
@@ -1935,6 +2025,7 @@ export function SportsGameDetailsPanel({
       shares: number
       totalCost: number | null
       currentValue: number
+      realizedPnl: number
       latestActivityAtMs: number
     }>()
 
@@ -1989,11 +2080,16 @@ export function SportsGameDetailsPanel({
       const marketLabel = abbreviatePositionMarketLabel(rawMarketLabel, card.teams)
         || abbreviatePositionMarketLabel(fallbackMarketLabel, card.teams)
       const outcomeLabel = resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'NO' : 'YES'
-      const avgPrice = toFiniteNumber(position.avgPrice)
-        ?? Number(fromMicro(String(position.average_position ?? 0), 6))
+      const avgPrice = normalizePositionPrice(position.avgPrice)
+        ?? normalizePositionPrice(Number(fromMicro(String(position.average_position ?? 0), 6)))
       const normalizedAvgPrice = Number.isFinite(avgPrice) ? avgPrice : null
       const costValue = resolvePositionCostValue(position, shares, normalizedAvgPrice)
-      const currentValue = resolvePositionCurrentValue(position, shares, normalizedAvgPrice)
+      const normalizedMarketPrice = normalizePositionPrice(outcome.buy_price)
+      const currentValue = resolvePositionCurrentValue(position, shares, normalizedAvgPrice, normalizedMarketPrice)
+      const rawRealizedPnl = toFiniteNumber(position.realizedPnl)
+        ?? toFiniteNumber(position.cashPnl)
+        ?? 0
+      const realizedPnl = normalizePositionPnlValue(rawRealizedPnl, costValue)
       const activityMs = Date.parse(position.last_activity_at)
       const normalizedActivityMs = Number.isFinite(activityMs) ? activityMs : 0
       const key = `${conditionId}:${resolvedOutcomeIndex}`
@@ -2012,6 +2108,7 @@ export function SportsGameDetailsPanel({
           shares,
           totalCost: typeof costValue === 'number' ? costValue : null,
           currentValue,
+          realizedPnl,
           latestActivityAtMs: normalizedActivityMs,
         })
         return
@@ -2019,6 +2116,7 @@ export function SportsGameDetailsPanel({
 
       existing.shares += shares
       existing.currentValue += currentValue
+      existing.realizedPnl += realizedPnl
       existing.latestActivityAtMs = Math.max(existing.latestActivityAtMs, normalizedActivityMs)
       if (typeof costValue === 'number') {
         existing.totalCost = (existing.totalCost ?? 0) + costValue
@@ -2046,6 +2144,7 @@ export function SportsGameDetailsPanel({
           avgPriceCents,
           totalCost: item.totalCost,
           currentValue: item.currentValue,
+          realizedPnl: item.realizedPnl,
           market: item.market,
           outcome: item.outcome,
           button: item.button,
@@ -2862,7 +2961,7 @@ export function SportsGameDetailsPanel({
                         const toWinLabel = formatCurrency(tag.shares, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         const currentLabel = formatCurrency(tag.currentValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         const pnlValue = typeof tag.totalCost === 'number'
-                          ? tag.currentValue - tag.totalCost
+                          ? tag.currentValue - tag.totalCost + tag.realizedPnl
                           : null
                         const pnlLabel = pnlValue == null
                           ? '—'
