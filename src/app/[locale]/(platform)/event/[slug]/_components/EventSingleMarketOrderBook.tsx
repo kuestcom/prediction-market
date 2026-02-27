@@ -10,6 +10,7 @@ import EventOrderBook, {
   useOrderBookSummaries,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -30,6 +31,7 @@ export default function EventSingleMarketOrderBook({
 }: EventSingleMarketOrderBookProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
+  const isMobile = useIsMobile()
   const marketChannelStatus = useMarketChannelStatus()
   const [isExpanded, setIsExpanded] = useState(true)
   const orderMarket = useOrder(state => state.market)
@@ -226,6 +228,7 @@ export default function EventSingleMarketOrderBook({
             summaries={orderBookSummaries}
             isLoadingSummaries={isLoadingSummaries}
             eventSlug={eventSlug}
+            openMobileOrderPanelOnLevelSelect={isMobile}
           />
         </div>
       </div>

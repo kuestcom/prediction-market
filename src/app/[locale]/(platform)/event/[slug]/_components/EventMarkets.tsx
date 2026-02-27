@@ -1097,6 +1097,7 @@ function MarketDetailTabs({
             summaries={orderBookData.summaries}
             isLoadingSummaries={orderBookData.isLoading}
             eventSlug={event.slug}
+            openMobileOrderPanelOnLevelSelect={isMobile}
           />
         )}
 
