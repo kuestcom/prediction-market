@@ -170,9 +170,13 @@ export default function EventComments({ event, user }: EventCommentsProps) {
           <SelectTrigger size="default" className="h-9 px-3 text-sm dark:bg-transparent">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">{t('Newest')}</SelectItem>
-            <SelectItem value="most_liked">{t('Most liked')}</SelectItem>
+          <SelectContent className="p-1">
+            <SelectItem value="newest" className="my-0.5 cursor-pointer rounded-sm py-1.5 pl-2">
+              {t('Newest')}
+            </SelectItem>
+            <SelectItem value="most_liked" className="my-0.5 cursor-pointer rounded-sm py-1.5 pl-2">
+              {t('Most liked')}
+            </SelectItem>
           </SelectContent>
         </Select>
         <label
