@@ -53,7 +53,9 @@ async function populateConditionResolutionCache(conditionIds: string[], signal?:
   }
 
   const payload = await response.json().catch(() => null)
-  const rows = Array.isArray(payload?.data) ? payload.data : []
+  const rows = Array.isArray(payload?.data)
+    ? payload.data as Array<{ condition_id?: string, is_resolved?: boolean }>
+    : []
   rows.forEach((item) => {
     const conditionId = normalizeConditionId(item?.condition_id)
     if (!conditionId) {
