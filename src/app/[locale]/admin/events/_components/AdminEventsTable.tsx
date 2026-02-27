@@ -325,13 +325,13 @@ export default function AdminEventsTable({
     const hasAwayScore = normalizedAwayScore.length > 0
 
     if (hasHomeScore !== hasAwayScore) {
-      setSportsFinalError('Fill both team scores or leave both empty.')
+      setSportsFinalError(t('Fill both team scores or leave both empty.'))
       setIsSavingSportsFinal(false)
       return
     }
 
     if ((hasHomeScore && !/^\d+$/.test(normalizedHomeScore)) || (hasAwayScore && !/^\d+$/.test(normalizedAwayScore))) {
-      setSportsFinalError('Scores must contain numbers only.')
+      setSportsFinalError(t('Scores must contain numbers only.'))
       setIsSavingSportsFinal(false)
       return
     }
@@ -346,8 +346,8 @@ export default function AdminEventsTable({
     })
     if (result.success) {
       toast.success(sportsEndedValue
-        ? `${sportsFinalEvent.title} marked as final.`
-        : `${sportsFinalEvent.title} updated.`)
+        ? t('{name} marked as final.', { name: sportsFinalEvent.title })
+        : t('{name} updated.', { name: sportsFinalEvent.title }))
       void queryClient.invalidateQueries({ queryKey: ['admin-events'] })
       setSportsFinalEvent(null)
       setSportsEndedValue(false)
@@ -358,9 +358,9 @@ export default function AdminEventsTable({
       return
     }
 
-    setSportsFinalError(result.error ?? 'Failed to update sports final state')
+    setSportsFinalError(result.error ?? t('Failed to update sports final state'))
     setIsSavingSportsFinal(false)
-  }, [sportsFinalEvent, sportsEndedValue, sportsScoreHomeValue, sportsScoreAwayValue, queryClient])
+  }, [sportsFinalEvent, sportsEndedValue, sportsScoreHomeValue, sportsScoreAwayValue, queryClient, t])
 
   const columns = useAdminEventsColumns({
     onToggleHidden: handleToggleHidden,
@@ -694,7 +694,7 @@ export default function AdminEventsTable({
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Sports final status</DialogTitle>
+            <DialogTitle>{t('Sports final status')}</DialogTitle>
             {sportsFinalEvent && (
               <p className="text-sm text-muted-foreground">
                 {sportsFinalEvent.title}
@@ -705,7 +705,7 @@ export default function AdminEventsTable({
 
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
-              <Label>Score</Label>
+              <Label>{t('Score')}</Label>
               <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
                 <Input
                   id="event-sports-score-home"
@@ -746,7 +746,7 @@ export default function AdminEventsTable({
                 onCheckedChange={setSportsEndedValue}
                 disabled={isSavingSportsFinal}
               />
-              <Label htmlFor="event-sports-ended">Ended</Label>
+              <Label htmlFor="event-sports-ended">{t('Ended')}</Label>
             </div>
 
             {sportsFinalError && <InputError message={sportsFinalError} />}

@@ -238,12 +238,12 @@ export function useAdminEventsColumns({
                       ? 'text-primary hover:text-primary'
                       : 'text-muted-foreground'}`}
                     onClick={() => onOpenSportsFinalModal(event)}
-                    aria-label="Set sports final status"
+                    aria-label={t('Set sports final status')}
                   >
                     <TrophyIcon className="size-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Set sports final status</TooltipContent>
+                <TooltipContent>{t('Set sports final status')}</TooltipContent>
               </Tooltip>
             )}
 
