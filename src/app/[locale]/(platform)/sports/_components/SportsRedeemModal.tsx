@@ -128,7 +128,7 @@ export default function SportsRedeemModal({
     return sections
       .map(section => ({
         ...section,
-        groups: section.groups.filter(group => group.indexSets.length > 0 && group.amount > 0),
+        groups: section.groups.filter(group => group.indexSets.length > 0 && resolveGroupAmount(group) > 0),
       }))
       .filter(section => section.groups.length > 0)
   }, [sections])
