@@ -73,7 +73,7 @@ function resolvePositionCost(position: UserPosition) {
   const avgPrice = normalizePositionPrice(position.avgPrice)
     ?? normalizePositionPrice(Number(fromMicro(String(position.average_position ?? 0), 6)))
   const derivedCost = quantity > 0 && typeof avgPrice === 'number' ? quantity * avgPrice : null
-  if (derivedCost != null) {
+  if (derivedCost != null && derivedCost > 0) {
     return derivedCost
   }
 
