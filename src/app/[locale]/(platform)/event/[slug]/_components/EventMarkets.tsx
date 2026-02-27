@@ -548,7 +548,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
               : null
             const positionTags = positionTagsByCondition[market.condition_id] ?? []
             const shouldShowSeparator = index !== orderedMarkets.length - 1 || shouldShowOtherRow
-            const isResolvedInlineRow = showResolvedInline
+            const isResolvedInlineRow = showResolvedInline || isMarketResolved(market)
             const showInReviewTag = reviewConditionIds.has(market.condition_id)
 
             return (
