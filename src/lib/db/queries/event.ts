@@ -1,5 +1,5 @@
 import type { SupportedLocale } from '@/i18n/locales'
-import type { conditions, market_sports } from '@/lib/db/schema/events/tables'
+import type { conditions } from '@/lib/db/schema/events/tables'
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, QueryResult } from '@/types'
 import { and, asc, count, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
@@ -16,6 +16,7 @@ import {
   event_tags,
   event_translations,
   events,
+  market_sports,
   markets,
   outcomes,
   tag_translations,
@@ -66,6 +67,45 @@ function resolveSeriesEventDirection(outcomeText: string | null | undefined): 'u
   }
 
   return null
+}
+
+function normalizeSportsMetadataText(value: string | null | undefined) {
+  return value
+    ?.normalize('NFKD')
+    .replace(/[\u0300-\u036F]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    ?? ''
+}
+
+function isMoneylineMarketForAdminList(input: {
+  sports_market_type: string | null
+  short_title: string | null
+  title: string | null
+}) {
+  const normalizedType = normalizeSportsMetadataText(input.sports_market_type)
+  if (
+    normalizedType.includes('moneyline')
+    || normalizedType.includes('match winner')
+    || normalizedType === '1x2'
+  ) {
+    return true
+  }
+
+  if (
+    normalizedType.includes('spread')
+    || normalizedType.includes('handicap')
+    || normalizedType.includes('total')
+    || normalizedType.includes('over under')
+    || normalizedType.includes('both teams to score')
+    || normalizedType.includes('btts')
+  ) {
+    return false
+  }
+
+  const marketText = ` ${normalizeSportsMetadataText(`${input.short_title ?? ''} ${input.title ?? ''}`)} `
+  return marketText.includes(' draw ') || marketText.includes(' moneyline ') || marketText.includes(' match winner ')
 }
 
 function isPrerenderAbortError(error: unknown) {
@@ -301,6 +341,10 @@ interface AdminEventRow {
   volume: number
   volume_24h: number
   is_hidden: boolean
+  sports_score: string | null
+  sports_live: boolean | null
+  sports_ended: boolean | null
+  is_sports_games_moneyline: boolean
   end_date: string | null
   created_at: string
   updated_at: string
@@ -1338,6 +1382,13 @@ export const EventRepository = {
     const eventIds = rows.map(row => row.id)
     const volumeByEventId = new Map<string, { volume: number, volume_24h: number }>()
     const hiddenEventIds = new Set<string>()
+    const sportsByEventId = new Map<string, {
+      sports_score: string | null
+      sports_live: boolean | null
+      sports_ended: boolean | null
+    }>()
+    const sportsTagStateByEventId = new Map<string, { hasSportsTag: boolean, hasGamesTag: boolean }>()
+    const moneylineEventIds = new Set<string>()
 
     if (eventIds.length > 0) {
       const volumeRows = await db
@@ -1371,6 +1422,69 @@ export const EventRepository = {
       for (const row of hiddenRows) {
         hiddenEventIds.add(row.event_id)
       }
+
+      const sportsRows = await db
+        .select({
+          event_id: event_sports.event_id,
+          sports_score: event_sports.sports_score,
+          sports_live: event_sports.sports_live,
+          sports_ended: event_sports.sports_ended,
+        })
+        .from(event_sports)
+        .where(inArray(event_sports.event_id, eventIds))
+
+      for (const row of sportsRows) {
+        sportsByEventId.set(row.event_id, {
+          sports_score: row.sports_score ?? null,
+          sports_live: row.sports_live ?? null,
+          sports_ended: row.sports_ended ?? null,
+        })
+      }
+
+      const sportsTagRows = await db
+        .select({
+          event_id: event_tags.event_id,
+          slug: tags.slug,
+        })
+        .from(event_tags)
+        .innerJoin(tags, eq(event_tags.tag_id, tags.id))
+        .where(and(
+          inArray(event_tags.event_id, eventIds),
+          inArray(tags.slug, ['sports', 'games', 'game']),
+        ))
+
+      for (const row of sportsTagRows) {
+        const currentState = sportsTagStateByEventId.get(row.event_id) ?? {
+          hasSportsTag: false,
+          hasGamesTag: false,
+        }
+
+        if (row.slug === 'sports') {
+          currentState.hasSportsTag = true
+        }
+        if (row.slug === 'games' || row.slug === 'game') {
+          currentState.hasGamesTag = true
+        }
+
+        sportsTagStateByEventId.set(row.event_id, currentState)
+      }
+
+      const sportsMarketRows = await db
+        .select({
+          event_id: markets.event_id,
+          sports_market_type: market_sports.sports_market_type,
+          short_title: markets.short_title,
+          title: markets.title,
+        })
+        .from(markets)
+        .leftJoin(market_sports, eq(market_sports.condition_id, markets.condition_id))
+        .where(inArray(markets.event_id, eventIds))
+
+      for (const row of sportsMarketRows) {
+        if (isMoneylineMarketForAdminList(row)) {
+          moneylineEventIds.add(row.event_id)
+        }
+      }
     }
 
     const formattedRows: AdminEventRow[] = rows.map((row) => {
@@ -1380,6 +1494,8 @@ export const EventRepository = {
         ? (row.end_date instanceof Date ? row.end_date : new Date(row.end_date))
         : null
       const volumeData = volumeByEventId.get(row.id)
+      const sportsData = sportsByEventId.get(row.id)
+      const sportsTagState = sportsTagStateByEventId.get(row.id)
 
       return {
         id: row.id,
@@ -1393,6 +1509,14 @@ export const EventRepository = {
         volume: volumeData?.volume ?? 0,
         volume_24h: volumeData?.volume_24h ?? 0,
         is_hidden: hiddenEventIds.has(row.id),
+        sports_score: sportsData?.sports_score ?? null,
+        sports_live: sportsData?.sports_live ?? null,
+        sports_ended: sportsData?.sports_ended ?? null,
+        is_sports_games_moneyline: Boolean(
+          sportsTagState?.hasSportsTag
+          && sportsTagState?.hasGamesTag
+          && moneylineEventIds.has(row.id),
+        ),
         end_date: endDate && !Number.isNaN(endDate.getTime()) ? endDate.toISOString() : null,
         created_at: Number.isNaN(createdAt.getTime()) ? new Date().toISOString() : createdAt.toISOString(),
         updated_at: Number.isNaN(updatedAt.getTime()) ? new Date().toISOString() : updatedAt.toISOString(),
@@ -1474,6 +1598,89 @@ export const EventRepository = {
           id: updatedRow.id,
           slug: updatedRow.slug,
           livestream_url: updatedRow.livestream_url ?? null,
+        },
+        error: null,
+      }
+    })
+  },
+
+  async setEventSportsFinalState(
+    eventId: string,
+    {
+      sportsEnded,
+      sportsScore,
+    }: {
+      sportsEnded: boolean
+      sportsScore: string | null
+    },
+  ): Promise<QueryResult<{
+    id: string
+    slug: string
+    sports_score: string | null
+    sports_live: boolean | null
+    sports_ended: boolean | null
+  }>> {
+    return runQuery(async () => {
+      const row = await db
+        .select({
+          id: events.id,
+          slug: events.slug,
+        })
+        .from(events)
+        .where(eq(events.id, eventId))
+        .limit(1)
+
+      const eventRow = row[0]
+      if (!eventRow) {
+        return { data: null, error: 'Event not found.' }
+      }
+
+      const now = new Date()
+      const sportsPayload: {
+        sports_ended: boolean
+        sports_score: string | null
+        sports_live?: boolean
+        updated_at: Date
+      } = {
+        sports_ended: sportsEnded,
+        sports_score: sportsScore,
+        updated_at: now,
+      }
+
+      if (sportsEnded) {
+        sportsPayload.sports_live = false
+      }
+
+      await db
+        .insert(event_sports)
+        .values({
+          event_id: eventId,
+          ...sportsPayload,
+        })
+        .onConflictDoUpdate({
+          target: event_sports.event_id,
+          set: sportsPayload,
+        })
+
+      const sportsRows = await db
+        .select({
+          sports_score: event_sports.sports_score,
+          sports_live: event_sports.sports_live,
+          sports_ended: event_sports.sports_ended,
+        })
+        .from(event_sports)
+        .where(eq(event_sports.event_id, eventId))
+        .limit(1)
+
+      const sportsRow = sportsRows[0]
+
+      return {
+        data: {
+          id: eventRow.id,
+          slug: eventRow.slug,
+          sports_score: sportsRow?.sports_score ?? null,
+          sports_live: sportsRow?.sports_live ?? null,
+          sports_ended: sportsRow?.sports_ended ?? null,
         },
         error: null,
       }

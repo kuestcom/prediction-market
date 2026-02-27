@@ -15,6 +15,10 @@ export interface AdminEventRow {
   volume: number
   volume_24h: number
   is_hidden: boolean
+  sports_score: string | null
+  sports_live: boolean | null
+  sports_ended: boolean | null
+  is_sports_games_moneyline: boolean
   end_date: string | null
   created_at: string
   updated_at: string
