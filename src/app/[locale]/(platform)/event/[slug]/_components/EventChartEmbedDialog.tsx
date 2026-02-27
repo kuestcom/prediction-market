@@ -351,13 +351,18 @@ export default function EventChartEmbedDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl sm:max-w-4xl sm:p-8">
-        <div className="space-y-6">
+      <DialogContent
+        className={cn(
+          'max-h-[90vh] w-[calc(100%-1rem)] max-w-4xl overflow-y-auto p-3',
+          'sm:w-full sm:max-w-4xl sm:p-8',
+        )}
+      >
+        <div className="space-y-4 sm:space-y-6">
           <DialogHeader>
             <DialogTitle className="text-center text-2xl font-bold">{t('Embed')}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="grid items-stretch gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="space-y-6">
               <div className="space-y-3">
                 <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('THEME')}</Label>

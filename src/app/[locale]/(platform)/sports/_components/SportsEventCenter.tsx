@@ -3,12 +3,11 @@
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import type { SportsGamesMarketType } from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import type { OddsFormat } from '@/lib/odds-format'
-import { CheckIcon, Code2Icon, SettingsIcon, ShareIcon } from 'lucide-react'
+import { CheckIcon, ChevronLeftIcon, ShareIcon } from 'lucide-react'
 import { useLocale } from 'next-intl'
 import Image from 'next/image'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
-import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
 import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
 import EventOrderPanelTermsDisclaimer
@@ -31,14 +30,6 @@ import SportsLivestreamFloatingPlayer
   from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
@@ -256,7 +247,6 @@ export default function SportsEventCenter({
   const openLivestream = useSportsLivestream(state => state.openStream)
   const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
-  const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
   const [oddsFormat, setOddsFormat] = useState<OddsFormat>('price')
   const [hasLoadedOddsFormat, setHasLoadedOddsFormat] = useState(false)
 
@@ -321,9 +311,13 @@ export default function SportsEventCenter({
     total: 'orderBook',
     btts: 'orderBook',
   })
+  const previousCardIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    const nextSelectedBySection: Record<EventSectionKey, string | null> = {
+    const isNewCard = previousCardIdRef.current !== card.id
+    previousCardIdRef.current = card.id
+
+    const defaultSelectedBySection: Record<EventSectionKey, string | null> = {
       moneyline: null,
       spread: null,
       total: null,
@@ -332,28 +326,75 @@ export default function SportsEventCenter({
 
     for (const section of SECTION_ORDER) {
       const firstButton = groupedButtons[section.key][0] ?? null
-      nextSelectedBySection[section.key] = firstButton?.key ?? null
+      defaultSelectedBySection[section.key] = firstButton?.key ?? null
     }
 
     if (marketSlugToButtonKey) {
       const marketButton = card.buttons.find(button => button.key === marketSlugToButtonKey)
       if (marketButton) {
-        nextSelectedBySection[marketButton.marketType as EventSectionKey] = marketButton.key
+        defaultSelectedBySection[marketButton.marketType as EventSectionKey] = marketButton.key
       }
     }
 
-    setSelectedButtonBySection(nextSelectedBySection)
+    setSelectedButtonBySection((current) => {
+      if (isNewCard) {
+        return defaultSelectedBySection
+      }
+
+      const next: Record<EventSectionKey, string | null> = {
+        ...defaultSelectedBySection,
+      }
+
+      for (const section of SECTION_ORDER) {
+        const currentButtonKey = current[section.key]
+        if (!currentButtonKey) {
+          continue
+        }
+
+        const stillExists = groupedButtons[section.key].some(button => button.key === currentButtonKey)
+        if (stillExists) {
+          next[section.key] = currentButtonKey
+        }
+      }
+
+      return next
+    })
 
     const defaultTradeButton = marketSlugToButtonKey
-      ?? nextSelectedBySection.moneyline
-      ?? nextSelectedBySection.spread
-      ?? nextSelectedBySection.total
-      ?? nextSelectedBySection.btts
+      ?? defaultSelectedBySection.moneyline
+      ?? defaultSelectedBySection.spread
+      ?? defaultSelectedBySection.total
+      ?? defaultSelectedBySection.btts
       ?? resolveDefaultConditionId(card)
 
-    setActiveTradeButtonKey(defaultTradeButton)
-    setOpenSectionKey(null)
-  }, [card, card.buttons, groupedButtons, marketSlugToButtonKey])
+    setActiveTradeButtonKey((current) => {
+      if (marketSlugToButtonKey) {
+        const matchesMarketSlug = card.buttons.some(button => button.key === marketSlugToButtonKey)
+        if (matchesMarketSlug) {
+          return marketSlugToButtonKey
+        }
+      }
+
+      if (!isNewCard && current) {
+        const stillExists = card.buttons.some(button => button.key === current)
+        if (stillExists) {
+          return current
+        }
+      }
+
+      return defaultTradeButton
+    })
+
+    setOpenSectionKey((current) => {
+      if (isNewCard) {
+        return null
+      }
+      if (current && groupedButtons[current].length > 0) {
+        return current
+      }
+      return null
+    })
+  }, [card, card.id, card.buttons, groupedButtons, marketSlugToButtonKey])
 
   const moneylineButtonKey = selectedButtonBySection.moneyline ?? groupedButtons.moneyline[0]?.key ?? null
 
@@ -563,8 +604,24 @@ export default function SportsEventCenter({
           className="min-w-0 min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:pr-1 lg:ml-4"
         >
           <div className="mb-4">
-            <div className="mb-1 flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+            <div className="relative mb-1 flex min-h-9 items-center justify-center">
+              <Link
+                href={`/sports/${sportSlug}/games`}
+                aria-label="Back to games"
+                className={cn(
+                  headerIconButtonClass,
+                  'absolute left-0 inline-flex size-8 items-center justify-center p-0 text-foreground md:size-9',
+                )}
+              >
+                <ChevronLeftIcon className="size-4 text-foreground" />
+              </Link>
+
+              <div
+                className="
+                  flex min-w-0 items-center justify-center gap-1 px-14 text-center text-sm text-muted-foreground
+                  sm:px-22
+                "
+              >
                 <Link href="/sports/live" className="hover:text-foreground">
                   Sports
                 </Link>
@@ -574,60 +631,13 @@ export default function SportsEventCenter({
                 </Link>
               </div>
 
-              <div className="flex items-center gap-1 text-foreground">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Odds format settings"
-                      className={cn(headerIconButtonClass, 'size-auto p-0')}
-                    >
-                      <SettingsIcon className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    side="bottom"
-                    align="end"
-                    sideOffset={8}
-                    className="w-44 border border-border bg-background p-1 text-foreground shadow-xl"
-                  >
-                    <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
-                      Odds Format
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {ODDS_FORMAT_OPTIONS.map(option => (
-                      <DropdownMenuItem
-                        key={option.value}
-                        className="cursor-pointer rounded-sm px-2 py-1.5 text-sm text-foreground"
-                        onSelect={(event) => {
-                          event.preventDefault()
-                          setOddsFormat(option.value)
-                        }}
-                      >
-                        <span>{option.label}</span>
-                        {oddsFormat === option.value && <CheckIcon className="ml-auto size-3.5 text-primary" />}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Embed"
-                  className={cn(headerIconButtonClass, 'size-auto p-0')}
-                  onClick={() => setEmbedDialogOpen(true)}
-                >
-                  <Code2Icon className="size-4" />
-                </Button>
+              <div className="absolute right-0 flex items-center gap-1 text-foreground">
                 <EventBookmark event={card.event} />
                 <SportsEventShareButton event={card.event} />
               </div>
             </div>
 
-            <h1 className="text-2xl font-semibold text-foreground">
+            <h1 className="text-center text-xl font-semibold text-foreground sm:text-2xl">
               {eventTitle}
             </h1>
           </div>
@@ -1008,13 +1018,6 @@ export default function SportsEventCenter({
           primaryOutcomeIndex={activeTradePrimaryOutcomeIndex}
         />
       )}
-
-      <EventChartEmbedDialog
-        open={embedDialogOpen}
-        onOpenChange={setEmbedDialogOpen}
-        markets={card.detailMarkets}
-        initialMarketId={activeTradeContext?.market.condition_id ?? graphConditionId}
-      />
 
       <SportsLivestreamFloatingPlayer />
     </>
