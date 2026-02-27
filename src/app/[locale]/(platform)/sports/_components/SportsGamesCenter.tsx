@@ -2833,19 +2833,23 @@ export function SportsGameDetailsPanel({
       .map(outcome => outcome.token_id)
       .filter((tokenId): tokenId is string => Boolean(tokenId))
   }, [selectedMarket])
+  const isSelectedMarketResolved = Boolean(selectedMarket?.is_resolved || selectedMarket?.condition?.resolved)
 
   const detailTabs = useMemo<Array<{ id: DetailsTab, label: string }>>(() => {
-    const tabs: Array<{ id: DetailsTab, label: string }> = [
-      { id: 'orderBook', label: 'Order Book' },
-      { id: 'graph', label: 'Graph' },
-    ]
+    const tabs: Array<{ id: DetailsTab, label: string }> = []
+
+    if (!isSelectedMarketResolved) {
+      tabs.push({ id: 'orderBook', label: 'Order Book' })
+    }
+
+    tabs.push({ id: 'graph', label: 'Graph' })
 
     if (showAboutTab && aboutEvent) {
       tabs.push({ id: 'about', label: 'About' })
     }
 
     return tabs
-  }, [aboutEvent, showAboutTab])
+  }, [aboutEvent, isSelectedMarketResolved, showAboutTab])
 
   const resolvedActiveDetailsTab = useMemo<DetailsTab>(() => {
     if (detailTabs.some(tab => tab.id === activeDetailsTab)) {

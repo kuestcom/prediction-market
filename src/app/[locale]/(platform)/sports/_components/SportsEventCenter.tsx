@@ -2,7 +2,10 @@
 
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import type { SportsGamesMarketType } from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
+import type { SportsRedeemModalGroup, SportsRedeemModalSection } from '@/app/[locale]/(platform)/sports/_components/SportsRedeemModal'
 import type { OddsFormat } from '@/lib/odds-format'
+import type { UserPosition } from '@/types'
+import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, ChevronLeftIcon, ShareIcon } from 'lucide-react'
 import { useLocale } from 'next-intl'
 import Image from 'next/image'
@@ -28,12 +31,15 @@ import {
 } from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import SportsLivestreamFloatingPlayer
   from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
+import SportsRedeemModal from '@/app/[locale]/(platform)/sports/_components/SportsRedeemModal'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
-import { ORDER_SIDE } from '@/lib/constants'
+import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
+import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
+import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatVolume } from '@/lib/formatters'
 import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 import { cn } from '@/lib/utils'
@@ -63,6 +69,197 @@ const headerIconButtonClass = `
   hover:bg-muted/80 focus-visible:ring-1 focus-visible:ring-ring md:h-9 md:w-9
 `
 const SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY = 'sports:event:odds-format'
+
+function resolvePositionShares(position: UserPosition) {
+  const totalShares = typeof position.total_shares === 'number' ? position.total_shares : Number(position.size ?? 0)
+  return Number.isFinite(totalShares) ? totalShares : 0
+}
+
+function resolveOutcomeIndexFromPosition(position: UserPosition) {
+  if (position.outcome_index === OUTCOME_INDEX.YES || position.outcome_index === OUTCOME_INDEX.NO) {
+    return position.outcome_index
+  }
+
+  const normalizedOutcome = position.outcome_text?.trim().toLowerCase()
+  if (normalizedOutcome === 'no') {
+    return OUTCOME_INDEX.NO
+  }
+  if (normalizedOutcome === 'yes') {
+    return OUTCOME_INDEX.YES
+  }
+  return null
+}
+
+function resolveIndexSetFromOutcomeIndex(outcomeIndex: number | null | undefined) {
+  if (outcomeIndex === OUTCOME_INDEX.YES) {
+    return 1
+  }
+  if (outcomeIndex === OUTCOME_INDEX.NO) {
+    return 2
+  }
+  return null
+}
+
+function resolveTeamShortLabel(team: SportsGamesCard['teams'][number] | null | undefined) {
+  const abbreviation = team?.abbreviation?.trim()
+  if (abbreviation) {
+    return abbreviation.toUpperCase()
+  }
+
+  const name = team?.name?.trim()
+  if (!name) {
+    return '—'
+  }
+
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(part => part[0]?.toUpperCase() ?? '')
+    .join('')
+    .slice(0, 3)
+
+  return initials || name.slice(0, 3).toUpperCase()
+}
+
+function normalizeComparableToken(value: string | null | undefined) {
+  return value
+    ?.normalize('NFKD')
+    .replace(/[\u0300-\u036F]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '')
+    .trim()
+    ?? ''
+}
+
+function resolveTeamByTone(card: SportsGamesCard, tone: SportsGamesButton['tone']) {
+  if (tone === 'team1') {
+    return card.teams[0] ?? null
+  }
+  if (tone === 'team2') {
+    return card.teams[1] ?? null
+  }
+  return null
+}
+
+function resolveRedeemOptionLabel(
+  card: SportsGamesCard,
+  market: SportsGamesCard['detailMarkets'][number],
+  button: SportsGamesButton,
+) {
+  const rawLabel = button.label?.trim() ?? ''
+  const team = resolveTeamByTone(card, button.tone)
+
+  if (team?.name) {
+    const firstToken = rawLabel.split(/\s+/)[0] ?? ''
+    const normalizedFirstToken = normalizeComparableToken(firstToken)
+    const normalizedTeamAbbreviation = normalizeComparableToken(team.abbreviation)
+    const normalizedTeamName = normalizeComparableToken(team.name)
+
+    if (normalizedFirstToken && (
+      (normalizedTeamAbbreviation && normalizedFirstToken === normalizedTeamAbbreviation)
+      || (normalizedTeamName && normalizedTeamName.startsWith(normalizedFirstToken))
+    )) {
+      return `${team.name}${rawLabel.slice(firstToken.length)}`
+    }
+
+    return team.name
+  }
+
+  if (button.tone === 'draw') {
+    return 'Draw'
+  }
+
+  if (button.tone === 'over') {
+    return rawLabel || 'Over'
+  }
+
+  if (button.tone === 'under') {
+    return rawLabel || 'Under'
+  }
+
+  return market.sports_group_item_title?.trim()
+    || market.short_title?.trim()
+    || market.title
+    || rawLabel
+}
+
+function normalizeHexColor(value: string | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  let normalized = value.trim()
+  if (!normalized) {
+    return null
+  }
+
+  if (!normalized.startsWith('#')) {
+    normalized = `#${normalized}`
+  }
+
+  if (/^#[0-9A-F]{3}$/i.test(normalized) || /^#[0-9A-F]{6}$/i.test(normalized)) {
+    return normalized
+  }
+
+  return null
+}
+
+function resolveHexToRgbComponents(value: string) {
+  const hex = value.replace('#', '')
+  const expandedHex = hex.length === 3
+    ? hex.split('').map(char => `${char}${char}`).join('')
+    : hex
+
+  const red = Number.parseInt(expandedHex.slice(0, 2), 16)
+  const green = Number.parseInt(expandedHex.slice(2, 4), 16)
+  const blue = Number.parseInt(expandedHex.slice(4, 6), 16)
+  if ([red, green, blue].some(component => Number.isNaN(component))) {
+    return null
+  }
+
+  return `${red} ${green} ${blue}`
+}
+
+function resolveRedeemTagAccent(
+  button: SportsGamesButton | null,
+  outcomeIndex: number | null,
+) {
+  const normalizedTeamColor = normalizeHexColor(button?.color)
+  if (
+    button
+    && (button.tone === 'team1' || button.tone === 'team2')
+    && normalizedTeamColor
+  ) {
+    const rgbComponents = resolveHexToRgbComponents(normalizedTeamColor)
+    const readableTeamColor = ensureReadableTextColorOnDark(normalizedTeamColor)
+    return {
+      badgeClassName: '',
+      badgeStyle: {
+        color: readableTeamColor ?? normalizedTeamColor,
+        backgroundColor: rgbComponents ? `rgb(${rgbComponents} / 0.10)` : undefined,
+      } as const,
+    }
+  }
+
+  if ((button && button.tone === 'over') || outcomeIndex === OUTCOME_INDEX.YES) {
+    return {
+      badgeClassName: 'bg-yes/10 text-yes',
+      badgeStyle: undefined,
+    }
+  }
+
+  if ((button && button.tone === 'under') || outcomeIndex === OUTCOME_INDEX.NO) {
+    return {
+      badgeClassName: 'bg-no/10 text-no',
+      badgeStyle: undefined,
+    }
+  }
+
+  return {
+    badgeClassName: 'bg-muted/60 text-muted-foreground',
+    badgeStyle: undefined,
+  }
+}
 
 function SportsEventShareButton({ event }: { event: SportsGamesCard['event'] }) {
   const user = useUser()
@@ -247,8 +444,40 @@ export default function SportsEventCenter({
   const openLivestream = useSportsLivestream(state => state.openStream)
   const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
+  const user = useUser()
   const [oddsFormat, setOddsFormat] = useState<OddsFormat>('price')
   const [hasLoadedOddsFormat, setHasLoadedOddsFormat] = useState(false)
+  const [claimedConditionIds, setClaimedConditionIds] = useState<Record<string, true>>({})
+  const [redeemSectionKey, setRedeemSectionKey] = useState<EventSectionKey | null>(null)
+  const [redeemDefaultConditionId, setRedeemDefaultConditionId] = useState<string | null>(null)
+
+  const ownerAddress = useMemo(() => {
+    if (user?.proxy_wallet_address && user.proxy_wallet_status === 'deployed') {
+      return user.proxy_wallet_address
+    }
+    return null
+  }, [user?.proxy_wallet_address, user?.proxy_wallet_status])
+
+  const { data: userPositions } = useQuery<UserPosition[]>({
+    queryKey: ['sports-event-user-positions', ownerAddress, card.id],
+    enabled: Boolean(ownerAddress),
+    staleTime: 1000 * 30,
+    gcTime: 1000 * 60 * 10,
+    refetchInterval: ownerAddress ? 15_000 : false,
+    refetchIntervalInBackground: true,
+    queryFn: ({ signal }) => fetchUserPositionsForMarket({
+      pageParam: 0,
+      userAddress: ownerAddress!,
+      status: 'active',
+      signal,
+    }),
+  })
+
+  useEffect(() => {
+    setClaimedConditionIds({})
+    setRedeemSectionKey(null)
+    setRedeemDefaultConditionId(null)
+  }, [card.id])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -278,10 +507,193 @@ export default function SportsEventCenter({
   }, [oddsFormat])
 
   const groupedButtons = useMemo(() => groupButtonsByMarketType(card.buttons), [card.buttons])
+  const detailMarketByConditionId = useMemo(
+    () => new Map(card.detailMarkets.map(market => [market.condition_id, market] as const)),
+    [card.detailMarkets],
+  )
+  const buttonByConditionAndOutcome = useMemo(() => {
+    const map = new Map<string, SportsGamesButton>()
+    card.buttons.forEach((button) => {
+      map.set(`${button.conditionId}:${button.outcomeIndex}`, button)
+    })
+    return map
+  }, [card.buttons])
+  const firstButtonByConditionId = useMemo(() => {
+    const map = new Map<string, SportsGamesButton>()
+    card.buttons.forEach((button) => {
+      if (!map.has(button.conditionId)) {
+        map.set(button.conditionId, button)
+      }
+    })
+    return map
+  }, [card.buttons])
   const availableSections = useMemo(
     () => SECTION_ORDER.filter(section => groupedButtons[section.key].length > 0),
     [groupedButtons],
   )
+  const sectionResolvedByKey = useMemo<Record<EventSectionKey, boolean>>(() => {
+    const resolved: Record<EventSectionKey, boolean> = {
+      moneyline: false,
+      spread: false,
+      total: false,
+      btts: false,
+    }
+
+    SECTION_ORDER.forEach((section) => {
+      const conditionIds = Array.from(new Set(groupedButtons[section.key].map(button => button.conditionId)))
+      if (conditionIds.length === 0) {
+        return
+      }
+
+      resolved[section.key] = conditionIds.every((conditionId) => {
+        const market = detailMarketByConditionId.get(conditionId)
+        return Boolean(market?.is_resolved || market?.condition?.resolved)
+      })
+    })
+
+    return resolved
+  }, [detailMarketByConditionId, groupedButtons])
+
+  const claimGroupsBySection = useMemo<Record<EventSectionKey, SportsRedeemModalGroup[]>>(() => {
+    const bySection: Record<EventSectionKey, SportsRedeemModalGroup[]> = {
+      moneyline: [],
+      spread: [],
+      total: [],
+      btts: [],
+    }
+
+    if (!userPositions?.length) {
+      return bySection
+    }
+
+    const bySectionCondition = new Map<string, {
+      sectionKey: EventSectionKey
+      group: SportsRedeemModalGroup & { _indexSetCollection: Set<number> }
+    }>()
+
+    userPositions.forEach((position) => {
+      if (!position.redeemable) {
+        return
+      }
+
+      const conditionId = position.market?.condition_id
+      if (!conditionId || claimedConditionIds[conditionId]) {
+        return
+      }
+
+      const market = detailMarketByConditionId.get(conditionId)
+      const firstButton = firstButtonByConditionId.get(conditionId)
+      if (!market || !firstButton) {
+        return
+      }
+
+      const sectionKey = firstButton.marketType as EventSectionKey
+      if (!SECTION_ORDER.some(section => section.key === sectionKey)) {
+        return
+      }
+
+      const shares = resolvePositionShares(position)
+      if (!(shares > 0)) {
+        return
+      }
+
+      const key = `${sectionKey}:${conditionId}`
+      let bucket = bySectionCondition.get(key)
+      if (!bucket) {
+        bucket = {
+          sectionKey,
+          group: {
+            conditionId,
+            title: resolveRedeemOptionLabel(card, market, firstButton),
+            amount: 0,
+            indexSets: [],
+            positions: [],
+            _indexSetCollection: new Set<number>(),
+          },
+        }
+        bySectionCondition.set(key, bucket)
+      }
+
+      const outcomeIndex = resolveOutcomeIndexFromPosition(position)
+      const indexSet = resolveIndexSetFromOutcomeIndex(outcomeIndex)
+      if (indexSet) {
+        bucket.group._indexSetCollection.add(indexSet)
+      }
+
+      const positionButton = (outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO)
+        ? (buttonByConditionAndOutcome.get(`${conditionId}:${outcomeIndex}`) ?? firstButton)
+        : firstButton
+      const outcomeLabel = (outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO)
+        ? (market.outcomes.find(outcome => outcome.outcome_index === outcomeIndex)?.outcome_text
+          ?? position.outcome_text
+          ?? `Outcome ${outcomeIndex + 1}`)
+        : (position.outcome_text || 'Outcome')
+      const preferredButton = [positionButton, firstButton].find((button) => {
+        const normalizedLabel = button.label?.trim().toLowerCase()
+        return Boolean(normalizedLabel) && normalizedLabel !== 'yes' && normalizedLabel !== 'no'
+      })
+      const preferredButtonLabel = preferredButton
+        ? resolveRedeemOptionLabel(card, market, preferredButton)
+        : null
+      const fallbackButtonLabel = [positionButton.label?.trim(), firstButton.label?.trim()].find((label) => {
+        const normalizedLabel = label?.toLowerCase()
+        return Boolean(label) && normalizedLabel !== 'yes' && normalizedLabel !== 'no'
+      })
+      const positionOptionLabel = preferredButtonLabel
+        || fallbackButtonLabel
+        || market.sports_group_item_title?.trim()
+        || market.short_title?.trim()
+        || market.title
+      const outcomeSideLabel = outcomeIndex === OUTCOME_INDEX.NO
+        ? 'No'
+        : outcomeIndex === OUTCOME_INDEX.YES
+          ? 'Yes'
+          : null
+      const positionLabel = outcomeSideLabel
+        ? `${positionOptionLabel || outcomeLabel} - ${outcomeSideLabel}`
+        : outcomeLabel
+      const tagAccent = resolveRedeemTagAccent(positionButton, outcomeIndex)
+
+      bucket.group.positions.push({
+        key: `${conditionId}-${outcomeLabel}-${bucket.group.positions.length}`,
+        label: positionLabel,
+        shares,
+        value: shares,
+        badgeClassName: tagAccent.badgeClassName,
+        badgeStyle: tagAccent.badgeStyle,
+      })
+      bucket.group.amount += shares
+    })
+
+    bySectionCondition.forEach(({ sectionKey, group }) => {
+      if (group._indexSetCollection.size === 0) {
+        const market = detailMarketByConditionId.get(group.conditionId)
+        const winningOutcome = market?.outcomes.find(outcome => outcome.is_winning_outcome)
+        const fallbackIndexSet = resolveIndexSetFromOutcomeIndex(winningOutcome?.outcome_index)
+        if (fallbackIndexSet) {
+          group._indexSetCollection.add(fallbackIndexSet)
+        }
+      }
+
+      if (group._indexSetCollection.size === 0 || !(group.amount > 0)) {
+        return
+      }
+
+      bySection[sectionKey].push({
+        conditionId: group.conditionId,
+        title: group.title,
+        amount: group.amount,
+        indexSets: Array.from(group._indexSetCollection).sort((a, b) => a - b),
+        positions: group.positions,
+      })
+    })
+
+    SECTION_ORDER.forEach((section) => {
+      bySection[section.key].sort((left, right) => right.amount - left.amount)
+    })
+
+    return bySection
+  }, [buttonByConditionAndOutcome, card, claimedConditionIds, detailMarketByConditionId, firstButtonByConditionId, userPositions])
 
   const marketSlugToButtonKey = useMemo(() => {
     if (!initialMarketSlug) {
@@ -397,15 +809,46 @@ export default function SportsEventCenter({
   }, [card, card.id, card.buttons, groupedButtons, marketSlugToButtonKey])
 
   const moneylineButtonKey = selectedButtonBySection.moneyline ?? groupedButtons.moneyline[0]?.key ?? null
+  const fallbackButtonFromOrderState = useMemo(() => {
+    if (!orderMarketConditionId) {
+      return null
+    }
+
+    if (orderOutcomeIndex === OUTCOME_INDEX.YES || orderOutcomeIndex === OUTCOME_INDEX.NO) {
+      const exactButton = card.buttons.find(button =>
+        button.conditionId === orderMarketConditionId && button.outcomeIndex === orderOutcomeIndex,
+      )
+      if (exactButton) {
+        return exactButton.key
+      }
+    }
+
+    const conditionButton = card.buttons.find(button => button.conditionId === orderMarketConditionId)
+    return conditionButton?.key ?? null
+  }, [card.buttons, orderMarketConditionId, orderOutcomeIndex])
 
   const activeTradeContext = useMemo(() => {
-    const fallbackButtonKey = moneylineButtonKey
-      ?? selectedButtonBySection.spread
-      ?? selectedButtonBySection.total
-      ?? selectedButtonBySection.btts
-      ?? resolveDefaultConditionId(card)
+    const candidateKeys = [
+      activeTradeButtonKey,
+      fallbackButtonFromOrderState,
+      openSectionKey ? selectedButtonBySection[openSectionKey] : null,
+      moneylineButtonKey,
+      selectedButtonBySection.spread,
+      selectedButtonBySection.total,
+      selectedButtonBySection.btts,
+      resolveDefaultConditionId(card),
+    ]
+    const effectiveButtonKey = candidateKeys.find((buttonKey) => {
+      if (!buttonKey) {
+        return false
+      }
 
-    const effectiveButtonKey = activeTradeButtonKey ?? fallbackButtonKey
+      return card.buttons.some(button => button.key === buttonKey)
+    }) ?? null
+    if (!effectiveButtonKey) {
+      return null
+    }
+
     const button = resolveSelectedButton(card, effectiveButtonKey)
     if (!button) {
       return null
@@ -425,10 +868,10 @@ export default function SportsEventCenter({
   }, [
     activeTradeButtonKey,
     card,
+    fallbackButtonFromOrderState,
     moneylineButtonKey,
-    selectedButtonBySection.btts,
-    selectedButtonBySection.spread,
-    selectedButtonBySection.total,
+    openSectionKey,
+    selectedButtonBySection,
   ])
 
   const activeTradeHeaderContext = useMemo(() => {
@@ -581,6 +1024,9 @@ export default function SportsEventCenter({
 
   const team1 = card.teams[0] ?? null
   const team2 = card.teams[1] ?? null
+  const shortTeam1Label = resolveTeamShortLabel(team1)
+  const shortTeam2Label = resolveTeamShortLabel(team2)
+  const eventShortLabel = `${shortTeam1Label} vs. ${shortTeam2Label}`
   const eventTitle = team1 && team2
     ? `${team1.name} vs ${team2.name}`
     : card.title
@@ -591,6 +1037,21 @@ export default function SportsEventCenter({
   const allCardConditionIds = useMemo(
     () => new Set(card.detailMarkets.map(market => market.condition_id)),
     [card.detailMarkets],
+  )
+  const redeemSectionConfig = useMemo(
+    () => (redeemSectionKey ? SECTION_ORDER.find(section => section.key === redeemSectionKey) ?? null : null),
+    [redeemSectionKey],
+  )
+  const redeemModalSections = useMemo<SportsRedeemModalSection[]>(
+    () =>
+      SECTION_ORDER
+        .map(section => ({
+          key: section.key,
+          label: section.label,
+          groups: claimGroupsBySection[section.key],
+        }))
+        .filter(section => section.groups.length > 0),
+    [claimGroupsBySection],
   )
 
   return (
@@ -796,8 +1257,12 @@ export default function SportsEventCenter({
               const sectionConditionIds = sectionConditionIdsByKey[section.key]
               const activeTab = tabBySection[section.key] ?? 'orderBook'
               const selectedSectionButton = resolveSelectedButton(card, selectedButtonKey)
+              const isSectionResolved = sectionResolvedByKey[section.key]
+              const sectionClaimGroups = claimGroupsBySection[section.key]
+              const shouldShowRedeemButton = isSectionResolved && sectionClaimGroups.length > 0
               const shouldUseClosedLinePickerSpacing = (
-                !isSectionOpen
+                !isSectionResolved
+                && !isSectionOpen
                 && (selectedSectionButton?.marketType === 'spread' || selectedSectionButton?.marketType === 'total')
               )
               const firstSectionButtonKey = sectionButtons[0]?.key ?? null
@@ -862,87 +1327,123 @@ export default function SportsEventCenter({
                       </p>
                     </div>
 
-                    <div
-                      className={cn(
-                        'grid min-w-0 flex-1 items-stretch gap-2',
-                        'min-[1200px]:ml-auto min-[1200px]:w-[372px] min-[1200px]:flex-none',
-                        sectionButtons.length >= 3 ? 'grid-cols-3' : 'grid-cols-2',
-                        'min-[1200px]:grid-cols-3',
-                      )}
-                    >
-                      {sectionButtons.map((button) => {
-                        const isActive = activeTradeButtonKey === button.key
-                        const hasTeamColor = isActive
-                          && (button.tone === 'team1' || button.tone === 'team2')
-                          && Boolean(button.color)
-                        const isOverButton = isActive && button.tone === 'over'
-                        const isUnderButton = isActive && button.tone === 'under'
+                    {!isSectionResolved && (
+                      <div
+                        className={cn(
+                          'grid min-w-0 flex-1 items-stretch gap-2',
+                          'min-[1200px]:ml-auto min-[1200px]:w-[372px] min-[1200px]:flex-none',
+                          sectionButtons.length >= 3 ? 'grid-cols-3' : 'grid-cols-2',
+                          'min-[1200px]:grid-cols-3',
+                        )}
+                      >
+                        {sectionButtons.map((button) => {
+                          const isActive = activeTradeButtonKey === button.key
+                          const hasTeamColor = isActive
+                            && (button.tone === 'team1' || button.tone === 'team2')
+                            && Boolean(button.color)
+                          const isOverButton = isActive && button.tone === 'over'
+                          const isUnderButton = isActive && button.tone === 'under'
 
-                        return (
-                          <div
-                            key={`${section.key}-${button.key}`}
-                            className={cn(
-                              'relative min-w-0 overflow-hidden rounded-lg pb-1.25',
-                            )}
-                          >
+                          return (
                             <div
+                              key={`${section.key}-${button.key}`}
                               className={cn(
-                                'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
-                                !hasTeamColor && !isOverButton && !isUnderButton && 'bg-border/70',
-                                isOverButton && 'bg-yes/70',
-                                isUnderButton && 'bg-no/70',
-                              )}
-                              style={hasTeamColor ? resolveButtonDepthStyle(button.color) : undefined}
-                            />
-                            <button
-                              type="button"
-                              data-sports-card-control="true"
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                updateSectionSelection(section.key, button.key, { panelMode: 'full' })
-                              }}
-                              style={hasTeamColor ? resolveButtonStyle(button.color) : undefined}
-                              className={cn(
-                                `
-                                  relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg px-2
-                                  text-xs font-semibold shadow-sm transition-transform duration-150 ease-out
-                                  hover:translate-y-px
-                                  active:translate-y-0.5
-                                `,
-                                !hasTeamColor && !isOverButton && !isUnderButton
-                                && 'bg-secondary text-secondary-foreground hover:bg-accent',
-                                isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
-                                isUnderButton && 'bg-no text-white hover:bg-no-foreground',
+                                'relative min-w-0 overflow-hidden rounded-lg pb-1.25',
                               )}
                             >
-                              {section.key === 'moneyline'
-                                ? (
-                                    <>
-                                      <span className="mr-1 uppercase opacity-80">{button.label}</span>
-                                      <span className={cn(
-                                        'text-sm leading-none tabular-nums transition-opacity',
-                                        isActive ? 'text-foreground opacity-100' : 'opacity-45',
-                                      )}
-                                      >
-                                        {formatButtonOdds(button.cents)}
+                              <div
+                                className={cn(
+                                  'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
+                                  !hasTeamColor && !isOverButton && !isUnderButton && 'bg-border/70',
+                                  isOverButton && 'bg-yes/70',
+                                  isUnderButton && 'bg-no/70',
+                                )}
+                                style={hasTeamColor ? resolveButtonDepthStyle(button.color) : undefined}
+                              />
+                              <button
+                                type="button"
+                                data-sports-card-control="true"
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  updateSectionSelection(section.key, button.key, { panelMode: 'full' })
+                                }}
+                                style={hasTeamColor ? resolveButtonStyle(button.color) : undefined}
+                                className={cn(
+                                  `
+                                    relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg px-2
+                                    text-xs font-semibold shadow-sm transition-transform duration-150 ease-out
+                                    hover:translate-y-px
+                                    active:translate-y-0.5
+                                  `,
+                                  !hasTeamColor && !isOverButton && !isUnderButton
+                                  && 'bg-secondary text-secondary-foreground hover:bg-accent',
+                                  isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
+                                  isUnderButton && 'bg-no text-white hover:bg-no-foreground',
+                                )}
+                              >
+                                {section.key === 'moneyline'
+                                  ? (
+                                      <>
+                                        <span className="mr-1 uppercase opacity-80">{button.label}</span>
+                                        <span className={cn(
+                                          'text-sm leading-none tabular-nums transition-opacity',
+                                          isActive ? 'text-foreground opacity-100' : 'opacity-45',
+                                        )}
+                                        >
+                                          {formatButtonOdds(button.cents)}
+                                        </span>
+                                      </>
+                                    )
+                                  : (
+                                      <span className="flex w-full items-center justify-between gap-1 px-1">
+                                        <span className="min-w-0 truncate text-left uppercase opacity-80">
+                                          {button.label}
+                                        </span>
+                                        <span className="shrink-0 text-sm leading-none tabular-nums">
+                                          {formatButtonOdds(button.cents)}
+                                        </span>
                                       </span>
-                                    </>
-                                  )
-                                : (
-                                    <span className="flex w-full items-center justify-between gap-1 px-1">
-                                      <span className="min-w-0 truncate text-left uppercase opacity-80">
-                                        {button.label}
-                                      </span>
-                                      <span className="shrink-0 text-sm leading-none tabular-nums">
-                                        {formatButtonOdds(button.cents)}
-                                      </span>
-                                    </span>
-                                  )}
-                            </button>
-                          </div>
-                        )
-                      })}
-                    </div>
+                                    )}
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {shouldShowRedeemButton && (
+                      <div
+                        className="
+                          min-w-0 flex-1
+                          min-[1200px]:ml-auto min-[1200px]:w-[calc((372px-1rem)/3)] min-[1200px]:flex-none
+                        "
+                      >
+                        <div className="relative min-w-0 overflow-hidden rounded-lg pb-1.25">
+                          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg bg-primary" />
+                          <button
+                            type="button"
+                            data-sports-card-control="true"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              const sectionDefaultConditionId = selectedSectionButton?.conditionId
+                                ?? sectionClaimGroups[0]?.conditionId
+                                ?? null
+                              setRedeemDefaultConditionId(sectionDefaultConditionId)
+                              setRedeemSectionKey(section.key)
+                            }}
+                            className={`
+                              relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg bg-primary
+                              px-3 text-xs font-semibold text-primary-foreground shadow-sm transition-transform
+                              duration-150 ease-out
+                              hover:translate-y-px hover:bg-primary
+                              active:translate-y-0.5
+                            `}
+                          >
+                            Redeem
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div
@@ -993,6 +1494,7 @@ export default function SportsEventCenter({
                     event={card.event}
                     oddsFormat={oddsFormat}
                     outcomeButtonStyleVariant="sports3d"
+                    optimisticallyClaimedConditionIds={claimedConditionIds}
                     desktopMarketInfo={(
                       <SportsOrderPanelMarketInfo
                         card={card}
@@ -1019,6 +1521,7 @@ export default function SportsEventCenter({
           event={card.event}
           oddsFormat={oddsFormat}
           outcomeButtonStyleVariant="sports3d"
+          optimisticallyClaimedConditionIds={claimedConditionIds}
           mobileMarketInfo={(
             <SportsOrderPanelMarketInfo
               card={card}
@@ -1028,6 +1531,32 @@ export default function SportsEventCenter({
             />
           )}
           primaryOutcomeIndex={activeTradePrimaryOutcomeIndex}
+        />
+      )}
+
+      {redeemSectionConfig && (
+        <SportsRedeemModal
+          open={Boolean(redeemSectionConfig)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setRedeemSectionKey(null)
+              setRedeemDefaultConditionId(null)
+            }
+          }}
+          title="Cash out"
+          subtitle={eventShortLabel}
+          sections={redeemModalSections}
+          defaultSelectedSectionKey={redeemSectionKey}
+          defaultSelectedConditionId={redeemDefaultConditionId}
+          onClaimSuccess={(conditionIds) => {
+            setClaimedConditionIds((current) => {
+              const next = { ...current }
+              conditionIds.forEach((conditionId) => {
+                next[conditionId] = true
+              })
+              return next
+            })
+          }}
         />
       )}
 
