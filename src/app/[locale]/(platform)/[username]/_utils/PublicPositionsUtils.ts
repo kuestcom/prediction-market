@@ -21,6 +21,8 @@ export interface DataApiPosition {
   percentRealizedPnl?: number
   redeemable?: boolean
   mergeable?: boolean
+  isResolved?: boolean
+  is_resolved?: boolean
   title?: string
   slug?: string
   icon?: string
@@ -278,6 +280,8 @@ export function mapDataApiPosition(position: DataApiPosition, status: 'active' |
     oppositeOutcome: position.oppositeOutcome,
     mergeable: position.mergeable,
     size: Number.isFinite(sizeValue) ? sizeValue : undefined,
+    redeemable: Boolean(position.redeemable),
+    isResolved: Boolean(position.isResolved ?? position.is_resolved),
   }
 }
 

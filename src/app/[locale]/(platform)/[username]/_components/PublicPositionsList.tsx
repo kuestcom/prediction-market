@@ -150,7 +150,10 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
   })
 
   const positions = useMemo(
-    () => data?.pages.flat() ?? [],
+    () =>
+      (data?.pages.flat() ?? []).filter(
+        position => !position.redeemable && !position.isResolved,
+      ),
     [data?.pages],
   )
 
