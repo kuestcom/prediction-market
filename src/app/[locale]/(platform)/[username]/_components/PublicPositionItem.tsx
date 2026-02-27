@@ -17,4 +17,6 @@ export interface PublicPosition {
   oppositeAsset?: string
   size?: number
   curPrice?: number
+  redeemable?: boolean
+  isResolved?: boolean
 }

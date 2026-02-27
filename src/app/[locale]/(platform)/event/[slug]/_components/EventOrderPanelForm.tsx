@@ -65,6 +65,7 @@ interface EventOrderPanelFormProps {
   primaryOutcomeIndex?: number | null
   oddsFormat?: OddsFormat
   outcomeButtonStyleVariant?: 'default' | 'sports3d'
+  optimisticallyClaimedConditionIds?: Record<string, true>
 }
 
 function resolveWinningOutcomeIndex(market: Event['markets'][number] | null | undefined) {
@@ -111,6 +112,30 @@ function resolveIndexSetFromOutcomeIndex(outcomeIndex: number | undefined) {
   return null
 }
 
+function markConditionAsClaimedInPositions<T extends {
+  market?: { condition_id?: string | null } | null
+  redeemable?: boolean
+}>(positions: T[] | undefined, conditionId: string): T[] | undefined {
+  if (!Array.isArray(positions) || !conditionId) {
+    return positions
+  }
+
+  let hasChanges = false
+  const next = positions.map((position) => {
+    if (!position || position.market?.condition_id !== conditionId || position.redeemable === false) {
+      return position
+    }
+
+    hasChanges = true
+    return {
+      ...position,
+      redeemable: false,
+    }
+  })
+
+  return hasChanges ? next : positions
+}
+
 function resolveValidCustomExpirationTimestamp(params: {
   limitExpirationOption: string
   limitExpirationTimestamp: number | null | undefined
@@ -149,6 +174,7 @@ export default function EventOrderPanelForm({
   primaryOutcomeIndex = null,
   oddsFormat = 'price',
   outcomeButtonStyleVariant = 'default',
+  optimisticallyClaimedConditionIds = {},
 }: EventOrderPanelFormProps) {
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
@@ -177,7 +203,7 @@ export default function EventOrderPanelForm({
   const [shouldShakeInput, setShouldShakeInput] = useState(false)
   const [shouldShakeLimitShares, setShouldShakeLimitShares] = useState(false)
   const [isClaimSubmitting, setIsClaimSubmitting] = useState(false)
-  const [claimedConditionId, setClaimedConditionId] = useState<string | null>(null)
+  const [claimedConditionIds, setClaimedConditionIds] = useState<Record<string, true>>({})
   const limitSharesInputRef = useRef<HTMLInputElement | null>(null)
   const limitSharesNumber = Number.parseFloat(state.limitShares) || 0
   const { balance, isLoadingBalance } = useBalance()
@@ -409,7 +435,10 @@ export default function EventOrderPanelForm({
   }, [claimablePositionsForMarket, resolvedOutcomeIndex])
   const hasSubmittedClaimForMarket = Boolean(
     state.market?.condition_id
-    && claimedConditionId === state.market.condition_id,
+    && (
+      claimedConditionIds[state.market.condition_id]
+      || optimisticallyClaimedConditionIds[state.market.condition_id]
+    ),
   )
   const hasClaimableWinnings = Boolean(state.market?.condition_id)
     && claimableShares > 0
@@ -628,8 +657,8 @@ export default function EventOrderPanelForm({
   }, [isLimitOrder, limitSharesNumber])
 
   useEffect(() => {
-    setClaimedConditionId(null)
-  }, [state.market?.condition_id])
+    setClaimedConditionIds({})
+  }, [event.id])
 
   useEffect(() => {
     setShowInsufficientSharesWarning(false)
@@ -1090,7 +1119,27 @@ export default function EventOrderPanelForm({
       toast.success(t('Claim submitted'), {
         description: t('We sent your claim transaction.'),
       })
-      setClaimedConditionId(conditionId)
+      setClaimedConditionIds((current) => {
+        if (current[conditionId]) {
+          return current
+        }
+
+        return {
+          ...current,
+          [conditionId]: true,
+        }
+      })
+
+      queryClient.setQueriesData({ queryKey: ['order-panel-user-positions'] }, current =>
+        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId))
+      queryClient.setQueriesData({ queryKey: ['user-market-positions'] }, current =>
+        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId))
+      queryClient.setQueriesData({ queryKey: ['event-user-positions'] }, current =>
+        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId))
+      queryClient.setQueriesData({ queryKey: ['user-event-positions'] }, current =>
+        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId))
+      queryClient.setQueriesData({ queryKey: ['sports-card-user-positions'] }, current =>
+        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId))
 
       void queryClient.invalidateQueries({ queryKey: ['order-panel-user-positions'] })
       void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })

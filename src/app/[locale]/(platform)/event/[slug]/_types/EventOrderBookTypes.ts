@@ -21,6 +21,7 @@ export interface EventOrderBookProps {
   tradeLabel?: string
   onToggleOutcome?: () => void
   toggleOutcomeTooltip?: string
+  openMobileOrderPanelOnLevelSelect?: boolean
 }
 
 export interface OrderbookLevelSummary {

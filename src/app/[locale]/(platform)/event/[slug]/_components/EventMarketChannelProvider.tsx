@@ -393,4 +393,14 @@ export function useMarketChannelSubscription(listener: MarketChannelListener) {
   }, [context, listener])
 }
 
+export function useOptionalMarketChannelSubscription(listener: MarketChannelListener) {
+  const context = use(MarketChannelContext)
+  useEffect(() => {
+    if (!context) {
+      return
+    }
+    return context.subscribe(listener)
+  }, [context, listener])
+}
+
 export default EventMarketChannelProvider

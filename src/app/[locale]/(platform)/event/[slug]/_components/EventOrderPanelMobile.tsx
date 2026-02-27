@@ -22,6 +22,7 @@ interface EventMobileOrderPanelProps {
   primaryOutcomeIndex?: number | null
   oddsFormat?: OddsFormat
   outcomeButtonStyleVariant?: 'default' | 'sports3d'
+  optimisticallyClaimedConditionIds?: Record<string, true>
 }
 
 export default function EventOrderPanelMobile({
@@ -31,6 +32,7 @@ export default function EventOrderPanelMobile({
   primaryOutcomeIndex = null,
   oddsFormat = 'price',
   outcomeButtonStyleVariant = 'default',
+  optimisticallyClaimedConditionIds,
 }: EventMobileOrderPanelProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -115,6 +117,7 @@ export default function EventOrderPanelMobile({
           primaryOutcomeIndex={primaryOutcomeIndex}
           oddsFormat={oddsFormat}
           outcomeButtonStyleVariant={outcomeButtonStyleVariant}
+          optimisticallyClaimedConditionIds={optimisticallyClaimedConditionIds}
         />
         <EventOrderPanelTermsDisclaimer />
       </DrawerContent>

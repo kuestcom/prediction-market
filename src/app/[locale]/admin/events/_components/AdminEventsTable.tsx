@@ -8,6 +8,7 @@ import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { DataTable } from '@/app/[locale]/admin/_components/DataTable'
 import { updateEventLivestreamUrlAction } from '@/app/[locale]/admin/events/_actions/update-event-livestream-url'
+import { updateEventSportsFinalStateAction } from '@/app/[locale]/admin/events/_actions/update-event-sports-final-state'
 import { updateEventSyncSettingsAction } from '@/app/[locale]/admin/events/_actions/update-event-sync-settings'
 import { updateEventVisibilityAction } from '@/app/[locale]/admin/events/_actions/update-event-visibility'
 import { useAdminEventsColumns } from '@/app/[locale]/admin/events/_components/columns'
@@ -32,6 +33,78 @@ import { Link } from '@/i18n/navigation'
 interface AdminEventsTableProps {
   initialAutoDeployNewEventsEnabled: boolean
   mainCategoryOptions: { slug: string, name: string }[]
+}
+
+function parseSportsScoreParts(score: string | null | undefined) {
+  const trimmed = score?.trim()
+  if (!trimmed) {
+    return { home: '', away: '' }
+  }
+
+  const match = trimmed.match(/(\d+)\D+(\d+)/)
+  if (!match) {
+    return { home: '', away: '' }
+  }
+
+  return {
+    home: match[1] ?? '',
+    away: match[2] ?? '',
+  }
+}
+
+function parseMatchTeamsFromTitle(title: string | null | undefined) {
+  const trimmedTitle = title?.trim() ?? ''
+  if (!trimmedTitle) {
+    return { home: 'Team 1', away: 'Team 2' }
+  }
+
+  const splitters = [/\s+vs\.?\s+/i, /\s+x\s+/i, /\s+v\s+/i]
+  for (const splitter of splitters) {
+    const parts = trimmedTitle.split(splitter).map(part => part.trim()).filter(Boolean)
+    if (parts.length === 2) {
+      return {
+        home: parts[0]!,
+        away: parts[1]!,
+      }
+    }
+  }
+
+  return { home: 'Team 1', away: 'Team 2' }
+}
+
+function resolveGameDateFromAdminEvent(event: AdminEventRow | null): Date | null {
+  if (!event) {
+    return null
+  }
+
+  if (event.end_date) {
+    const parsedEndDate = new Date(event.end_date)
+    if (!Number.isNaN(parsedEndDate.getTime())) {
+      return parsedEndDate
+    }
+  }
+
+  const slugMatch = event.slug.match(/(\d{4})-(\d{2})-(\d{2})$/)
+  if (!slugMatch) {
+    return null
+  }
+
+  const year = Number.parseInt(slugMatch[1] ?? '', 10)
+  const monthIndex = Number.parseInt(slugMatch[2] ?? '', 10) - 1
+  const day = Number.parseInt(slugMatch[3] ?? '', 10)
+  if (!Number.isFinite(year) || !Number.isFinite(monthIndex) || !Number.isFinite(day)) {
+    return null
+  }
+
+  return new Date(year, monthIndex, day)
+}
+
+function formatDayMonthLabel(date: Date | null) {
+  if (!date || Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(date)
 }
 
 export default function AdminEventsTable({
@@ -77,6 +150,12 @@ export default function AdminEventsTable({
   const [livestreamUrlValue, setLivestreamUrlValue] = useState('')
   const [livestreamError, setLivestreamError] = useState<string | null>(null)
   const [isSavingLivestream, setIsSavingLivestream] = useState(false)
+  const [sportsFinalEvent, setSportsFinalEvent] = useState<AdminEventRow | null>(null)
+  const [sportsEndedValue, setSportsEndedValue] = useState(false)
+  const [sportsScoreHomeValue, setSportsScoreHomeValue] = useState('')
+  const [sportsScoreAwayValue, setSportsScoreAwayValue] = useState('')
+  const [sportsFinalError, setSportsFinalError] = useState<string | null>(null)
+  const [isSavingSportsFinal, setIsSavingSportsFinal] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [draftMainCategorySlug, setDraftMainCategorySlug] = useState(mainCategorySlug)
   const [draftCreator, setDraftCreator] = useState(creator)
@@ -212,9 +291,81 @@ export default function AdminEventsTable({
     setIsSavingLivestream(false)
   }, [livestreamEvent, livestreamUrlValue, queryClient, t])
 
+  const handleOpenSportsFinalModal = useCallback((event: AdminEventRow) => {
+    const parsedScore = parseSportsScoreParts(event.sports_score)
+    setSportsFinalEvent(event)
+    setSportsEndedValue(event.sports_ended === true)
+    setSportsScoreHomeValue(parsedScore.home)
+    setSportsScoreAwayValue(parsedScore.away)
+    setSportsFinalError(null)
+  }, [])
+
+  const handleCloseSportsFinalModal = useCallback(() => {
+    if (isSavingSportsFinal) {
+      return
+    }
+    setSportsFinalEvent(null)
+    setSportsEndedValue(false)
+    setSportsScoreHomeValue('')
+    setSportsScoreAwayValue('')
+    setSportsFinalError(null)
+  }, [isSavingSportsFinal])
+
+  const handleSaveSportsFinalState = useCallback(async () => {
+    if (!sportsFinalEvent) {
+      return
+    }
+
+    setIsSavingSportsFinal(true)
+    setSportsFinalError(null)
+
+    const normalizedHomeScore = sportsScoreHomeValue.trim()
+    const normalizedAwayScore = sportsScoreAwayValue.trim()
+    const hasHomeScore = normalizedHomeScore.length > 0
+    const hasAwayScore = normalizedAwayScore.length > 0
+
+    if (hasHomeScore !== hasAwayScore) {
+      setSportsFinalError(t('Fill both team scores or leave both empty.'))
+      setIsSavingSportsFinal(false)
+      return
+    }
+
+    if ((hasHomeScore && !/^\d+$/.test(normalizedHomeScore)) || (hasAwayScore && !/^\d+$/.test(normalizedAwayScore))) {
+      setSportsFinalError(t('Scores must contain numbers only.'))
+      setIsSavingSportsFinal(false)
+      return
+    }
+
+    const sportsScore = hasHomeScore && hasAwayScore
+      ? `${Number.parseInt(normalizedHomeScore, 10)} - ${Number.parseInt(normalizedAwayScore, 10)}`
+      : ''
+
+    const result = await updateEventSportsFinalStateAction(sportsFinalEvent.id, {
+      sportsEnded: sportsEndedValue,
+      sportsScore,
+    })
+    if (result.success) {
+      toast.success(sportsEndedValue
+        ? t('{name} marked as final.', { name: sportsFinalEvent.title })
+        : t('{name} updated.', { name: sportsFinalEvent.title }))
+      void queryClient.invalidateQueries({ queryKey: ['admin-events'] })
+      setSportsFinalEvent(null)
+      setSportsEndedValue(false)
+      setSportsScoreHomeValue('')
+      setSportsScoreAwayValue('')
+      setSportsFinalError(null)
+      setIsSavingSportsFinal(false)
+      return
+    }
+
+    setSportsFinalError(result.error ?? t('Failed to update sports final state'))
+    setIsSavingSportsFinal(false)
+  }, [sportsFinalEvent, sportsEndedValue, sportsScoreHomeValue, sportsScoreAwayValue, queryClient, t])
+
   const columns = useAdminEventsColumns({
     onToggleHidden: handleToggleHidden,
     onOpenLivestreamModal: handleOpenLivestreamModal,
+    onOpenSportsFinalModal: handleOpenSportsFinalModal,
     isUpdatingHidden: eventId => pendingHiddenId === eventId,
   })
 
@@ -280,6 +431,8 @@ export default function AdminEventsTable({
       </Label>
     </div>
   )
+
+  const sportsFinalGameDateLabel = formatDayMonthLabel(resolveGameDateFromAdminEvent(sportsFinalEvent))
 
   return (
     <>
@@ -525,6 +678,97 @@ export default function AdminEventsTable({
               disabled={isSavingLivestream}
             >
               {isSavingLivestream ? t('Saving...') : t('Save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(sportsFinalEvent)}
+        onOpenChange={(open) => {
+          if (open) {
+            return
+          }
+          handleCloseSportsFinalModal()
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t('Sports final status')}</DialogTitle>
+            {sportsFinalEvent && (
+              <p className="text-sm text-muted-foreground">
+                {sportsFinalEvent.title}
+                {sportsFinalGameDateLabel ? ` (${sportsFinalGameDateLabel})` : ''}
+              </p>
+            )}
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label>{t('Score')}</Label>
+              <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+                <Input
+                  id="event-sports-score-home"
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={sportsScoreHomeValue}
+                  onChange={event => setSportsScoreHomeValue(event.target.value)}
+                  disabled={isSavingSportsFinal}
+                />
+                <span className="text-sm font-semibold text-muted-foreground">-</span>
+                <Input
+                  id="event-sports-score-away"
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={sportsScoreAwayValue}
+                  onChange={event => setSportsScoreAwayValue(event.target.value)}
+                  disabled={isSavingSportsFinal}
+                />
+              </div>
+              {sportsFinalEvent && (
+                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                  <span className="truncate">{parseMatchTeamsFromTitle(sportsFinalEvent.title).home}</span>
+                  <span className="truncate text-right">{parseMatchTeamsFromTitle(sportsFinalEvent.title).away}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Switch
+                id="event-sports-ended"
+                checked={sportsEndedValue}
+                onCheckedChange={setSportsEndedValue}
+                disabled={isSavingSportsFinal}
+              />
+              <Label htmlFor="event-sports-ended">{t('Ended')}</Label>
+            </div>
+
+            {sportsFinalError && <InputError message={sportsFinalError} />}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCloseSportsFinalModal}
+              disabled={isSavingSportsFinal}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                void handleSaveSportsFinalState()
+              }}
+              disabled={isSavingSportsFinal}
+            >
+              {isSavingSportsFinal ? t('Saving...') : t('Save')}
             </Button>
           </DialogFooter>
         </DialogContent>

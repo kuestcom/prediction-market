@@ -238,6 +238,11 @@ export default function SportsLayoutShell({
         return
       }
 
+      // Allow native wheel behavior for overlays/dropdowns rendered outside sports panes
+      if (target.closest('[data-sports-wheel-ignore="true"]')) {
+        return
+      }
+
       const centerPane = document.querySelector<HTMLElement>('[data-sports-scroll-pane="center"]')
       if (!centerPane || centerPane.scrollHeight <= centerPane.clientHeight + 1) {
         return

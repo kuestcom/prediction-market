@@ -2,7 +2,7 @@ import type { Event } from '@/types'
 import { OUTCOME_INDEX } from '@/lib/constants'
 
 const FINAL_REVIEW_V4_SECONDS = 60 * 60
-const FINAL_REVIEW_NEGRISK_SECONDS = 2 * 24 * 60 * 60
+const FINAL_REVIEW_NEGRISK_SECONDS = 60 * 60
 const FINAL_PRICE_TOLERANCE = 1e-9
 
 const RESOLUTION_STATUS_VALUES = ['posed', 'proposed', 'reproposed', 'challenged', 'disputed', 'resolved'] as const

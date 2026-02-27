@@ -24,6 +24,7 @@ import {
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { ORDER_SIDE, ORDER_TYPE, tableHeaderClass } from '@/lib/constants'
 import { formatOddsFromCents } from '@/lib/odds-format'
@@ -47,6 +48,7 @@ export default function EventOrderBook({
   tradeLabel,
   onToggleOutcome,
   toggleOutcomeTooltip,
+  openMobileOrderPanelOnLevelSelect = false,
 }: EventOrderBookProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -70,6 +72,8 @@ export default function EventOrderBook({
   const inputRef = useOrder(state => state.inputRef)
   const currentOrderType = useOrder(state => state.type)
   const currentOrderSide = useOrder(state => state.side)
+  const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
+  const isMobile = useIsMobile()
   const openOrdersQueryKey = useMemo(
     () => buildUserOpenOrdersQueryKey(user?.id, eventSlug, market.condition_id),
     [eventSlug, market.condition_id, user?.id],
@@ -305,8 +309,23 @@ export default function EventOrderBook({
       }
     }
 
+    if (openMobileOrderPanelOnLevelSelect && isMobile) {
+      setIsMobileOrderPanelOpen(true)
+    }
+
     queueMicrotask(() => inputRef?.current?.focus())
-  }, [currentOrderType, currentOrderSide, setType, setLimitPrice, setLimitShares, setAmount, inputRef])
+  }, [
+    currentOrderType,
+    currentOrderSide,
+    inputRef,
+    isMobile,
+    openMobileOrderPanelOnLevelSelect,
+    setAmount,
+    setIsMobileOrderPanelOpen,
+    setLimitPrice,
+    setLimitShares,
+    setType,
+  ])
 
   if (!tokenId) {
     return (

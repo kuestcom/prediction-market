@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
-import { ArrowUpDownIcon, EyeIcon, EyeOffIcon, RadioIcon, RepeatIcon } from 'lucide-react'
+import { ArrowUpDownIcon, EyeIcon, EyeOffIcon, RadioIcon, RepeatIcon, TrophyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +14,7 @@ import { formatCompactCurrency, formatDate } from '@/lib/formatters'
 interface EventColumnOptions {
   onToggleHidden: (event: AdminEventRow, nextValue: boolean) => void
   onOpenLivestreamModal: (event: AdminEventRow) => void
+  onOpenSportsFinalModal: (event: AdminEventRow) => void
   isUpdatingHidden: (eventId: string) => boolean
 }
 
@@ -46,6 +47,7 @@ function formatSeriesRecurrenceLabel(value: string | null | undefined) {
 export function useAdminEventsColumns({
   onToggleHidden,
   onOpenLivestreamModal,
+  onOpenSportsFinalModal,
   isUpdatingHidden,
 }: EventColumnOptions): ColumnDef<AdminEventRow>[] {
   const t = useExtracted()
@@ -107,16 +109,15 @@ export function useAdminEventsColumns({
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <span className="min-w-0 truncate">{event.slug}</span>
                   {event.series_slug && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex items-center text-muted-foreground">
-                          <RepeatIcon className="size-3.5" />
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {formatSeriesRecurrenceLabel(event.series_recurrence ?? event.series_slug) ?? t('Series')}
-                      </TooltipContent>
-                    </Tooltip>
+                    <span
+                      className="
+                        inline-flex items-center gap-1 rounded-sm border border-border/70 bg-background px-1.5 py-0.5
+                        text-2xs font-medium text-muted-foreground
+                      "
+                    >
+                      <RepeatIcon className="size-3" />
+                      <span>{formatSeriesRecurrenceLabel(event.series_recurrence ?? event.series_slug) ?? t('Series')}</span>
+                    </span>
                   )}
                 </div>
               </div>
@@ -215,7 +216,7 @@ export function useAdminEventsColumns({
     {
       id: 'actions',
       header: () => (
-        <div className="text-center text-xs font-medium text-muted-foreground uppercase">
+        <div className="w-full text-right text-xs font-medium text-muted-foreground uppercase">
           {t('Actions')}
         </div>
       ),
@@ -225,7 +226,27 @@ export function useAdminEventsColumns({
         const nextHiddenState = !event.is_hidden
 
         return (
-          <div className="flex items-center justify-center gap-1">
+          <div className="flex w-full items-center justify-end gap-1">
+            {event.is_sports_games_moneyline && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={`size-8 ${event.sports_ended
+                      ? 'text-primary hover:text-primary'
+                      : 'text-muted-foreground'}`}
+                    onClick={() => onOpenSportsFinalModal(event)}
+                    aria-label={t('Set sports final status')}
+                  >
+                    <TrophyIcon className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('Set sports final status')}</TooltipContent>
+              </Tooltip>
+            )}
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

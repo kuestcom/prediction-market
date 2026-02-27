@@ -4,6 +4,82 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { isClientOnlySort, mapDataApiPosition, resolvePositionsSearchParams, resolvePositionsSortParams } from '@/app/[locale]/(platform)/[username]/_utils/PublicPositionsUtils'
 
 const DATA_API_URL = process.env.DATA_URL!
+const UNRESOLVED_STATUS_TTL_MS = 60_000
+const conditionResolutionCache = new Map<string, { isResolved: boolean, checkedAt: number }>()
+
+function normalizeConditionId(value: string | undefined) {
+  const trimmed = value?.trim().toLowerCase()
+  return trimmed && trimmed.length > 0 ? trimmed : null
+}
+
+async function populateConditionResolutionCache(conditionIds: string[], signal?: AbortSignal) {
+  const now = Date.now()
+  const pendingConditionIds = Array.from(new Set(
+    conditionIds
+      .map(normalizeConditionId)
+      .filter((value): value is string => {
+        if (!value) {
+          return false
+        }
+
+        const cached = conditionResolutionCache.get(value)
+        if (!cached) {
+          return true
+        }
+
+        if (cached.isResolved) {
+          return false
+        }
+
+        return now - cached.checkedAt >= UNRESOLVED_STATUS_TTL_MS
+      }),
+  ))
+
+  if (pendingConditionIds.length === 0) {
+    return
+  }
+
+  const response = await fetch('/api/markets/status', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ conditionIds: pendingConditionIds }),
+    signal,
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch market resolution status.')
+  }
+
+  const payload = await response.json().catch(() => null)
+  const rows = Array.isArray(payload?.data)
+    ? payload.data as Array<{ condition_id?: string, is_resolved?: boolean }>
+    : []
+  rows.forEach((item) => {
+    const conditionId = normalizeConditionId(item?.condition_id)
+    if (!conditionId) {
+      return
+    }
+    conditionResolutionCache.set(conditionId, {
+      isResolved: Boolean(item?.is_resolved),
+      checkedAt: Date.now(),
+    })
+  })
+}
+
+function shouldIncludeInActivePositions(position: PublicPosition) {
+  if (position.redeemable || position.isResolved) {
+    return false
+  }
+
+  const conditionId = normalizeConditionId(position.conditionId)
+  if (!conditionId) {
+    return true
+  }
+
+  return !conditionResolutionCache.get(conditionId)?.isResolved
+}
 
 async function fetchUserPositions({
   pageParam,
@@ -79,7 +155,15 @@ async function fetchUserPositions({
       throw new TypeError('Unexpected response from data service.')
     }
 
-    return result.map(item => mapDataApiPosition(item, status))
+    const mapped = result.map(item => mapDataApiPosition(item, status))
+    if (status === 'active') {
+      await populateConditionResolutionCache(
+        mapped.map(position => position.conditionId ?? ''),
+        signal,
+      ).catch(() => {})
+      return mapped.filter(shouldIncludeInActivePositions)
+    }
+    return mapped
   }
 
   try {

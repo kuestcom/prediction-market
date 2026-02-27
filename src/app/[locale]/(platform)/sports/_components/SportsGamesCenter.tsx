@@ -19,6 +19,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   EqualIcon,
+  ExternalLinkIcon,
   RadioIcon,
   RefreshCwIcon,
   SearchIcon,
@@ -35,14 +36,18 @@ import EventChartControls, { defaultChartSettings } from '@/app/[locale]/(platfo
 import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
 import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'
 import EventConvertPositionsDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventConvertPositionsDialog'
+import { useOptionalMarketChannelSubscription } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventOrderBook, { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
 import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
 import EventOrderPanelTermsDisclaimer
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
+import EventRules from '@/app/[locale]/(platform)/event/[slug]/_components/EventRules'
+import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
 import { TIME_RANGES, useEventPriceHistory } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { loadStoredChartSettings, storeChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
 import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
+import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import SportsLivestreamFloatingPlayer
   from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import { Button } from '@/components/ui/button'
@@ -57,15 +62,25 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { Link, useRouter } from '@/i18n/navigation'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
-import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
+import { MICRO_UNIT, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
-import { formatAmountInputValue, formatCentsLabel, formatCurrency, formatSharesLabel, formatVolume, fromMicro } from '@/lib/formatters'
+import {
+  formatAmountInputValue,
+  formatCentsLabel,
+  formatCurrency,
+  formatSharePriceLabel,
+  formatSharesLabel,
+  formatVolume,
+  fromMicro,
+} from '@/lib/formatters'
 import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { calculateYAxisBounds } from '@/lib/prediction-chart'
+import { buildUmaProposeUrl, buildUmaSettledUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
 import { useSportsLivestream } from '@/stores/useSportsLivestream'
@@ -79,7 +94,7 @@ interface SportsGamesCenterProps {
   categoryTitleBySlug?: Record<string, string>
 }
 
-type DetailsTab = 'orderBook' | 'graph'
+type DetailsTab = 'orderBook' | 'graph' | 'about'
 export type SportsGamesMarketType = SportsGamesButton['marketType']
 export type SportsGameGraphVariant = 'default' | 'sportsEventHero'
 type LinePickerMarketType = Extract<SportsGamesMarketType, 'spread' | 'total'>
@@ -97,6 +112,29 @@ const SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY = 'sports:event:odds-format'
 const SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY = 'sports:games:show-spreads-totals'
 const LIVE_SOON_WINDOW_MS = 24 * 60 * 60 * 1000
 const LIVE_FALLBACK_LIMIT = 10
+const HERO_LEGEND_LABEL_GAP_PX = 8
+const HERO_LEGEND_RIGHT_INSET_PX = 4
+const HERO_LEGEND_MIN_WIDTH_PX = 72
+const HERO_LEGEND_NAME_PADDING_PX = 10
+const HERO_LEGEND_NAME_LINE_HEIGHT_PX = 18
+const HERO_LEGEND_VALUE_LINE_HEIGHT_PX = 32
+const HERO_LEGEND_MIN_HEIGHT_PX = 56
+const HERO_LEGEND_VERTICAL_GAP_PX = 10
+const TRADE_FLOW_MAX_ITEMS = 6
+const TRADE_FLOW_TTL_MS = 8000
+const TRADE_FLOW_CLEANUP_INTERVAL_MS = 500
+const tradeFlowTextStrokeStyle = {
+  textShadow: `
+    1px 0 0 var(--background),
+    -1px 0 0 var(--background),
+    0 1px 0 var(--background),
+    0 -1px 0 var(--background),
+    1px 1px 0 var(--background),
+    -1px -1px 0 var(--background),
+    1px -1px 0 var(--background),
+    -1px 1px 0 var(--background)
+  `,
+} as const
 const GENERIC_SPORTS_CATEGORY_LABELS = new Set([
   'sports',
   'games',
@@ -129,6 +167,13 @@ interface SportsGraphSeriesTarget {
   color: string
 }
 
+interface SportsTradeFlowLabelItem {
+  id: string
+  label: string
+  color: string
+  createdAt: number
+}
+
 interface SportsTradeSelection {
   cardId: string | null
   buttonKey: string | null
@@ -153,6 +198,7 @@ interface SportsPositionTag {
   avgPriceCents: number | null
   totalCost: number | null
   currentValue: number
+  realizedPnl: number
   market: Market
   outcome: Outcome
   button: SportsGamesButton | null
@@ -185,39 +231,91 @@ function resolvePositionShares(position: UserPosition) {
   return Number.isFinite(quantity) ? quantity : 0
 }
 
+function normalizePositionPrice(value: unknown) {
+  const numeric = toFiniteNumber(value)
+  if (numeric == null || numeric <= 0) {
+    return numeric
+  }
+
+  let normalized = numeric
+  while (normalized > 1) {
+    normalized /= 100
+  }
+
+  return normalized
+}
+
 function resolvePositionCostValue(position: UserPosition, shares: number, avgPrice: number | null) {
+  const derivedCost = shares > 0 && typeof avgPrice === 'number' && avgPrice > 0 ? avgPrice * shares : null
+  if (derivedCost != null) {
+    return derivedCost
+  }
+
   const baseCostValue = toFiniteNumber(position.totalBought)
     ?? toFiniteNumber(position.initialValue)
     ?? (typeof position.total_position_cost === 'number'
       ? Number(fromMicro(String(position.total_position_cost), 2))
       : null)
-  const derivedCost = shares > 0 && typeof avgPrice === 'number' ? avgPrice * shares : null
-  if (derivedCost != null) {
-    if (!baseCostValue || baseCostValue <= 0) {
-      return derivedCost
-    }
-    if (derivedCost > 0 && baseCostValue > derivedCost * 10) {
-      return derivedCost
-    }
-  }
+
   return baseCostValue
 }
 
-function resolvePositionCurrentValue(position: UserPosition, shares: number, avgPrice: number | null) {
+function resolvePositionCurrentValue(
+  position: UserPosition,
+  shares: number,
+  avgPrice: number | null,
+  marketPrice: number | null,
+) {
+  if (shares > 0) {
+    const livePrice = marketPrice ?? normalizePositionPrice(position.curPrice)
+    if (livePrice && livePrice > 0) {
+      return livePrice * shares
+    }
+  }
+
   let value = toFiniteNumber(position.currentValue)
     ?? Number(fromMicro(String(position.total_position_value ?? 0), 2))
 
   if (!(value > 0) && shares > 0) {
-    const currentPrice = toFiniteNumber(position.curPrice)
-    if (currentPrice && currentPrice > 0) {
-      value = currentPrice * shares
-    }
-    else if (typeof avgPrice === 'number' && avgPrice > 0) {
+    if (typeof avgPrice === 'number' && avgPrice > 0) {
       value = avgPrice * shares
     }
   }
 
   return Number.isFinite(value) ? value : 0
+}
+
+function normalizePositionPnlValue(value: number | null, baseCostValue: number | null) {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+  if (!baseCostValue || baseCostValue <= 0) {
+    return value ?? 0
+  }
+  if (Math.abs(value ?? 0) <= baseCostValue * 10) {
+    return value ?? 0
+  }
+  const scaled = (value ?? 0) / MICRO_UNIT
+  if (Math.abs(scaled) <= baseCostValue * 10) {
+    return scaled
+  }
+  return 0
+}
+
+function buildTradeFlowLabel(price: number, size: number) {
+  const notional = price * size
+  if (!Number.isFinite(notional) || notional <= 0) {
+    return null
+  }
+  return formatSharePriceLabel(notional / 100, { fallback: '0¢', currencyDigits: 0 })
+}
+
+function pruneTradeFlowItems(items: SportsTradeFlowLabelItem[], now: number) {
+  return items.filter(item => now - item.createdAt <= TRADE_FLOW_TTL_MS)
+}
+
+function trimTradeFlowItems(items: SportsTradeFlowLabelItem[]) {
+  return items.slice(-TRADE_FLOW_MAX_ITEMS)
 }
 
 function resolveMarketTypeLabel(
@@ -838,18 +936,16 @@ export function SportsGameGraph({
   const [hasLoadedChartSettings, setHasLoadedChartSettings] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
+  const [tradeFlowItems, setTradeFlowItems] = useState<SportsTradeFlowLabelItem[]>([])
   const isSecondaryMarketGraph = selectedMarketType === 'spread' || selectedMarketType === 'total'
   const isSportsEventHeroVariant = variant === 'sportsEventHero'
   const chartHeight = isSportsEventHeroVariant ? 332 : 300
   const chartMargin = isSportsEventHeroVariant
     ? { top: 12, right: 46, bottom: 40, left: 0 }
     : { top: 12, right: 30, bottom: 40, left: 0 }
-  const heroLegendLabelWidth = 176
-  const heroLegendLabelGap = 8
-  const heroLegendRightInset = 4
-  const heroLegendDomainRightTrim = 20
-  const heroLegendRenderedWidth = Math.max(72, heroLegendLabelWidth - heroLegendDomainRightTrim)
   const chartContainerRef = useRef<HTMLDivElement | null>(null)
+  const heroLegendTextMeasureCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const tradeFlowIdRef = useRef(0)
   const [measuredChartWidth, setMeasuredChartWidth] = useState<number | null>(null)
 
   const fallbackChartWidth = useMemo(() => {
@@ -1016,6 +1112,34 @@ export function SportsGameGraph({
     [card, isSecondaryMarketGraph, selectedConditionId],
   )
 
+  const tradeFlowSeriesByTokenId = useMemo(() => {
+    const map = new Map<string, { color: string }>()
+    if (!isSportsEventHeroVariant) {
+      return map
+    }
+
+    for (const series of graphSeriesTargets) {
+      if (!series.tokenId) {
+        continue
+      }
+      map.set(String(series.tokenId), {
+        color: series.color,
+      })
+    }
+
+    return map
+  }, [graphSeriesTargets, isSportsEventHeroVariant])
+
+  const tradeFlowTokenSignature = useMemo(
+    () => Array.from(tradeFlowSeriesByTokenId.keys()).sort().join(','),
+    [tradeFlowSeriesByTokenId],
+  )
+
+  useEffect(() => {
+    setTradeFlowItems([])
+    tradeFlowIdRef.current = 0
+  }, [tradeFlowTokenSignature])
+
   const marketTargets = useMemo(
     () => graphSeriesTargets
       .filter((target): target is SportsGraphSeriesTarget & { tokenId: string } => Boolean(target.tokenId))
@@ -1042,6 +1166,39 @@ export function SportsGameGraph({
       color: target.color,
     }))
   }, [graphSeriesTargets])
+
+  const heroLegendRenderedWidth = useMemo(() => {
+    if (!isSportsEventHeroVariant || chartSeries.length === 0) {
+      return HERO_LEGEND_MIN_WIDTH_PX
+    }
+
+    if (typeof document === 'undefined') {
+      return HERO_LEGEND_MIN_WIDTH_PX
+    }
+
+    if (!heroLegendTextMeasureCanvasRef.current) {
+      heroLegendTextMeasureCanvasRef.current = document.createElement('canvas')
+    }
+
+    const context = heroLegendTextMeasureCanvasRef.current.getContext('2d')
+    if (!context) {
+      return HERO_LEGEND_MIN_WIDTH_PX
+    }
+
+    context.font = '500 13px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif'
+
+    const longestLabelWidth = chartSeries.reduce((maxWidth, seriesItem) => {
+      const label = seriesItem.name.trim()
+      if (!label) {
+        return maxWidth
+      }
+
+      return Math.max(maxWidth, context.measureText(label).width)
+    }, 0)
+
+    const targetWidth = Math.ceil(longestLabelWidth + HERO_LEGEND_NAME_PADDING_PX)
+    return Math.max(HERO_LEGEND_MIN_WIDTH_PX, targetWidth)
+  }, [chartSeries, isSportsEventHeroVariant])
 
   const historyChartData = useMemo<DataPoint[]>(() => {
     return normalizedHistory
@@ -1158,7 +1315,7 @@ export function SportsGameGraph({
 
     const dataSpanMs = Math.max(1, lastTimestamp - firstTimestamp)
     const plotWidthPx = Math.max(1, chartWidth - chartMargin.left - chartMargin.right)
-    const reservedRightPx = Math.max(0, heroLegendRenderedWidth + heroLegendLabelGap + heroLegendRightInset)
+    const reservedRightPx = Math.max(0, heroLegendRenderedWidth + HERO_LEGEND_LABEL_GAP_PX + HERO_LEGEND_RIGHT_INSET_PX)
 
     // Keep enough fixed room on the right for legend so the plotted line ends before chart edge.
     if (reservedRightPx >= plotWidthPx - 1) {
@@ -1178,9 +1335,7 @@ export function SportsGameGraph({
     chartMargin.left,
     chartMargin.right,
     chartWidth,
-    heroLegendLabelGap,
     heroLegendRenderedWidth,
-    heroLegendRightInset,
     isSportsEventHeroVariant,
   ])
 
@@ -1217,7 +1372,6 @@ export function SportsGameGraph({
           value: number
           left: number
           top: number
-          maxWidth: number
         }>
       }
 
@@ -1244,30 +1398,47 @@ export function SportsGameGraph({
       const xSpan = Math.max(1, domainEnd - domainStart)
       const plotWidth = Math.max(1, chartWidth - chartMargin.left - chartMargin.right)
       const plotHeight = Math.max(1, chartHeight - chartMargin.top - chartMargin.bottom)
+      const chartTop = chartMargin.top
+      const chartBottom = chartMargin.top + plotHeight
       const dotX = chartMargin.left + ((hoveredTimestamp - domainStart) / xSpan) * plotWidth
       const plotLeft = chartMargin.left
       const plotRight = chartWidth - chartMargin.right
-      const availableFullWidth = plotRight - plotLeft - heroLegendRightInset
+      const availableFullWidth = plotRight - plotLeft - HERO_LEGEND_RIGHT_INSET_PX
       const effectiveLabelWidth = Math.max(0, Math.min(heroLegendRenderedWidth, availableFullWidth))
-      const maxLeft = plotRight - effectiveLabelWidth - heroLegendRightInset
-      const labelLeft = Math.max(plotLeft, Math.min(maxLeft, dotX + heroLegendLabelGap))
-      const labelHeight = 54
-      const labelGap = 6
-      const anchorOffset = labelHeight / 2
-      const minTop = chartMargin.top
-      const maxTop = chartMargin.top + plotHeight - labelHeight
+      const maxLeft = plotRight - effectiveLabelWidth - HERO_LEGEND_RIGHT_INSET_PX
+      const labelLeft = Math.max(plotLeft, Math.min(maxLeft, dotX + HERO_LEGEND_LABEL_GAP_PX))
+      const availableLabelWidth = Math.max(1, chartWidth - labelLeft - HERO_LEGEND_RIGHT_INSET_PX)
+
+      if (!heroLegendTextMeasureCanvasRef.current && typeof document !== 'undefined') {
+        heroLegendTextMeasureCanvasRef.current = document.createElement('canvas')
+      }
+      const labelMeasureContext = heroLegendTextMeasureCanvasRef.current?.getContext('2d') ?? null
+      if (labelMeasureContext) {
+        labelMeasureContext.font = '500 13px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif'
+      }
 
       const preferredEntries = heroLegendSeriesWithValues.map((entry) => {
         const clampedValue = Math.max(yBounds.min, Math.min(yBounds.max, entry.value))
         const dotY = chartMargin.top + ((yBounds.max - clampedValue) / ySpan) * plotHeight
+        const normalizedName = entry.name.trim()
+        const measuredNameWidth = normalizedName
+          ? (labelMeasureContext?.measureText(normalizedName).width ?? normalizedName.length * 7)
+          : 0
+        const wrappedNameLineCount = Math.max(1, Math.ceil(measuredNameWidth / availableLabelWidth))
+        const labelHeight = Math.max(
+          HERO_LEGEND_MIN_HEIGHT_PX,
+          (wrappedNameLineCount * HERO_LEGEND_NAME_LINE_HEIGHT_PX) + HERO_LEGEND_VALUE_LINE_HEIGHT_PX,
+        )
+        const anchorOffset = labelHeight / 2
         const preferredTop = dotY - anchorOffset
+        const maxTopForEntry = chartBottom - labelHeight
 
         return {
           ...entry,
           dotY,
           left: labelLeft,
-          maxWidth: effectiveLabelWidth,
-          preferredTop: Math.max(minTop, Math.min(maxTop, preferredTop)),
+          labelHeight,
+          preferredTop: Math.max(chartTop, Math.min(maxTopForEntry, preferredTop)),
         }
       })
 
@@ -1276,23 +1447,25 @@ export function SportsGameGraph({
 
       const stacked: Array<(typeof sortedByPreferredTop)[number] & { top: number }> = []
       sortedByPreferredTop.forEach((entry, index) => {
-        const previousTop = index > 0 ? stacked[index - 1]!.top : null
-        const top = previousTop == null
+        const previousBottom = index > 0
+          ? (stacked[index - 1]!.top + stacked[index - 1]!.labelHeight)
+          : null
+        const top = previousBottom == null
           ? entry.preferredTop
-          : Math.max(entry.preferredTop, previousTop + labelHeight + labelGap)
-        stacked.push({ ...entry, top: Math.max(minTop, Math.min(maxTop, top)) })
+          : Math.max(entry.preferredTop, previousBottom + HERO_LEGEND_VERTICAL_GAP_PX)
+        const maxTopForEntry = chartBottom - entry.labelHeight
+        stacked.push({ ...entry, top: Math.max(chartTop, Math.min(maxTopForEntry, top)) })
       })
 
-      const last = stacked[stacked.length - 1]
-      if (last && last.top > maxTop) {
-        last.top = maxTop
-        for (let index = stacked.length - 2; index >= 0; index -= 1) {
-          const nextTop = stacked[index + 1]!.top
-          stacked[index]!.top = Math.max(
-            minTop,
-            Math.min(stacked[index]!.preferredTop, nextTop - labelHeight - labelGap),
-          )
-        }
+      for (let index = stacked.length - 2; index >= 0; index -= 1) {
+        const entry = stacked[index]!
+        const next = stacked[index + 1]!
+        const maxTopForEntry = chartBottom - entry.labelHeight
+        const highestTopAllowedByNext = next.top - HERO_LEGEND_VERTICAL_GAP_PX - entry.labelHeight
+        entry.top = Math.max(
+          chartTop,
+          Math.min(maxTopForEntry, Math.min(entry.top, highestTopAllowedByNext)),
+        )
       }
 
       const topByKey = new Map(stacked.map(entry => [entry.key, entry.top] as const))
@@ -1304,8 +1477,6 @@ export function SportsGameGraph({
     [
       chartData,
       chartHeight,
-      heroLegendLabelGap,
-      heroLegendRightInset,
       heroLegendRenderedWidth,
       chartMargin.bottom,
       chartMargin.left,
@@ -1338,6 +1509,64 @@ export function SportsGameGraph({
       .filter((entry): entry is { key: string, name: string, color: string, value: number } => entry !== null),
     [chartSeries, cursorSnapshot, latestSnapshot],
   )
+  const hasTradeFlowLabels = tradeFlowItems.length > 0
+
+  useOptionalMarketChannelSubscription((payload) => {
+    if (!isSportsEventHeroVariant || !payload) {
+      return
+    }
+
+    if (payload.event_type !== 'last_trade_price') {
+      return
+    }
+
+    const assetId = String(payload.asset_id ?? '')
+    if (!assetId) {
+      return
+    }
+
+    const matchedSeries = tradeFlowSeriesByTokenId.get(assetId)
+    if (!matchedSeries) {
+      return
+    }
+
+    const price = Number(payload.price)
+    const size = Number(payload.size)
+    const label = buildTradeFlowLabel(price, size)
+    if (!label) {
+      return
+    }
+
+    const createdAt = Date.now()
+    const id = String(tradeFlowIdRef.current)
+    tradeFlowIdRef.current += 1
+
+    setTradeFlowItems((previous) => {
+      const next = [...previous, { id, label, color: matchedSeries.color, createdAt }]
+      return trimTradeFlowItems(pruneTradeFlowItems(next, createdAt))
+    })
+  })
+
+  useEffect(() => {
+    if (!isSportsEventHeroVariant || !hasTradeFlowLabels) {
+      return
+    }
+
+    const interval = window.setInterval(() => {
+      const now = Date.now()
+      setTradeFlowItems((previous) => {
+        const next = pruneTradeFlowItems(previous, now)
+        if (next.length === previous.length) {
+          return previous
+        }
+        return next
+      })
+    }, TRADE_FLOW_CLEANUP_INTERVAL_MS)
+
+    return () => {
+      window.clearInterval(interval)
+    }
+  }, [hasTradeFlowLabels, isSportsEventHeroVariant])
 
   const legendContent = !isSecondaryMarketGraph && !isSportsEventHeroVariant && legendSeriesWithValues.length > 0
     ? (
@@ -1412,11 +1641,13 @@ export function SportsGameGraph({
                   style={{
                     top: `${entry.top}px`,
                     left: `${entry.left}px`,
-                    width: `${entry.maxWidth}px`,
                   }}
                 >
                   <p
-                    className="truncate text-[13px] leading-snug font-medium tracking-tight"
+                    className={cn(
+                      'text-[13px] leading-snug font-medium tracking-tight',
+                      (windowWidth ?? 1024) >= 768 && 'truncate',
+                    )}
                     style={{ color: entry.color }}
                   >
                     {entry.name}
@@ -1428,6 +1659,27 @@ export function SportsGameGraph({
                     {`${Math.round(entry.value)}%`}
                   </p>
                 </div>
+              ))}
+            </div>
+          )}
+
+          {isSportsEventHeroVariant && hasTradeFlowLabels && (
+            <div className={`
+              pointer-events-none absolute bottom-6 left-4 flex flex-col gap-1 text-sm font-semibold tabular-nums
+            `}
+            >
+              {tradeFlowItems.map(item => (
+                <span
+                  key={item.id}
+                  className="animate-trade-flow-rise"
+                  style={{
+                    ...tradeFlowTextStrokeStyle,
+                    color: item.color,
+                  }}
+                >
+                  +
+                  {item.label}
+                </span>
               ))}
             </div>
           )}
@@ -1816,6 +2068,79 @@ export function SportsOrderPanelMarketInfo({
   )
 }
 
+function SportsEventAboutPanel({
+  event,
+  market,
+}: {
+  event: SportsGamesCard['event']
+  market: Market | null
+}) {
+  const t = useExtracted()
+  const siteIdentity = useSiteIdentity()
+  const aboutRulesEvent = useMemo(() => {
+    if (!market) {
+      return event
+    }
+
+    return {
+      ...event,
+      markets: [
+        market,
+        ...event.markets.filter(item => item.condition_id !== market.condition_id),
+      ],
+    }
+  }, [event, market])
+  const shouldShowResolution = useMemo(
+    () => Boolean(market && shouldDisplayResolutionTimeline(market)),
+    [market],
+  )
+  const resolutionDetailsUrl = useMemo(
+    () => market
+      ? (buildUmaSettledUrl(market.condition, siteIdentity.name) ?? buildUmaProposeUrl(market.condition, siteIdentity.name))
+      : null,
+    [market, siteIdentity.name],
+  )
+
+  return (
+    <div className="grid gap-3 pb-2">
+      <EventRules event={aboutRulesEvent} mode="inline" showEndDate />
+
+      {market && shouldShowResolution && (
+        <section className="grid gap-2">
+          <h4 className="text-base font-medium text-foreground">{t('Resolution')}</h4>
+          <div className={cn(
+            'grid gap-2',
+            resolutionDetailsUrl && 'sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4',
+          )}
+          >
+            <ResolutionTimelinePanel
+              market={market}
+              settledUrl={null}
+              showLink={false}
+              className="min-w-0"
+            />
+            {resolutionDetailsUrl && (
+              <a
+                href={resolutionDetailsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="
+                  inline-flex items-center gap-1.5 justify-self-start text-sm font-medium text-muted-foreground
+                  hover:underline
+                  sm:justify-self-end
+                "
+              >
+                <span>{t('View details')}</span>
+                <ExternalLinkIcon className="size-3.5" />
+              </a>
+            )}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
 interface SportsGameDetailsPanelProps {
   card: SportsGamesCard
   activeDetailsTab: DetailsTab
@@ -1824,6 +2149,10 @@ interface SportsGameDetailsPanelProps {
   defaultGraphTimeRange?: (typeof TIME_RANGES)[number]
   allowedConditionIds?: Set<string> | null
   positionsTitle?: string
+  showAboutTab?: boolean
+  aboutEvent?: SportsGamesCard['event'] | null
+  showRedeemInPositions?: boolean
+  onOpenRedeemForCondition?: ((conditionId: string) => void) | null
   oddsFormat?: OddsFormat
   onChangeTab: (tab: DetailsTab) => void
   onSelectButton: (
@@ -1840,6 +2169,10 @@ export function SportsGameDetailsPanel({
   defaultGraphTimeRange = '1W',
   allowedConditionIds = null,
   positionsTitle,
+  showAboutTab = false,
+  aboutEvent = null,
+  showRedeemInPositions = false,
+  onOpenRedeemForCondition = null,
   oddsFormat = 'price',
   onChangeTab,
   onSelectButton,
@@ -1935,6 +2268,7 @@ export function SportsGameDetailsPanel({
       shares: number
       totalCost: number | null
       currentValue: number
+      realizedPnl: number
       latestActivityAtMs: number
     }>()
 
@@ -1989,11 +2323,16 @@ export function SportsGameDetailsPanel({
       const marketLabel = abbreviatePositionMarketLabel(rawMarketLabel, card.teams)
         || abbreviatePositionMarketLabel(fallbackMarketLabel, card.teams)
       const outcomeLabel = resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'NO' : 'YES'
-      const avgPrice = toFiniteNumber(position.avgPrice)
-        ?? Number(fromMicro(String(position.average_position ?? 0), 6))
+      const avgPrice = normalizePositionPrice(position.avgPrice)
+        ?? normalizePositionPrice(Number(fromMicro(String(position.average_position ?? 0), 6)))
       const normalizedAvgPrice = Number.isFinite(avgPrice) ? avgPrice : null
       const costValue = resolvePositionCostValue(position, shares, normalizedAvgPrice)
-      const currentValue = resolvePositionCurrentValue(position, shares, normalizedAvgPrice)
+      const normalizedMarketPrice = normalizePositionPrice(outcome.buy_price)
+      const currentValue = resolvePositionCurrentValue(position, shares, normalizedAvgPrice, normalizedMarketPrice)
+      const rawRealizedPnl = toFiniteNumber(position.realizedPnl)
+        ?? toFiniteNumber(position.cashPnl)
+        ?? 0
+      const realizedPnl = normalizePositionPnlValue(rawRealizedPnl, costValue)
       const activityMs = Date.parse(position.last_activity_at)
       const normalizedActivityMs = Number.isFinite(activityMs) ? activityMs : 0
       const key = `${conditionId}:${resolvedOutcomeIndex}`
@@ -2012,6 +2351,7 @@ export function SportsGameDetailsPanel({
           shares,
           totalCost: typeof costValue === 'number' ? costValue : null,
           currentValue,
+          realizedPnl,
           latestActivityAtMs: normalizedActivityMs,
         })
         return
@@ -2019,6 +2359,7 @@ export function SportsGameDetailsPanel({
 
       existing.shares += shares
       existing.currentValue += currentValue
+      existing.realizedPnl += realizedPnl
       existing.latestActivityAtMs = Math.max(existing.latestActivityAtMs, normalizedActivityMs)
       if (typeof costValue === 'number') {
         existing.totalCost = (existing.totalCost ?? 0) + costValue
@@ -2046,6 +2387,7 @@ export function SportsGameDetailsPanel({
           avgPriceCents,
           totalCost: item.totalCost,
           currentValue: item.currentValue,
+          realizedPnl: item.realizedPnl,
           market: item.market,
           outcome: item.outcome,
           button: item.button,
@@ -2495,6 +2837,41 @@ export function SportsGameDetailsPanel({
       .map(outcome => outcome.token_id)
       .filter((tokenId): tokenId is string => Boolean(tokenId))
   }, [selectedMarket])
+  const isSelectedMarketResolved = Boolean(selectedMarket?.is_resolved || selectedMarket?.condition?.resolved)
+
+  const detailTabs = useMemo<Array<{ id: DetailsTab, label: string }>>(() => {
+    const tabs: Array<{ id: DetailsTab, label: string }> = []
+
+    if (!isSelectedMarketResolved) {
+      tabs.push({ id: 'orderBook', label: 'Order Book' })
+    }
+
+    tabs.push({ id: 'graph', label: 'Graph' })
+
+    if (showAboutTab && aboutEvent) {
+      tabs.push({ id: 'about', label: 'About' })
+    }
+
+    return tabs
+  }, [aboutEvent, isSelectedMarketResolved, showAboutTab])
+
+  const resolvedActiveDetailsTab = useMemo<DetailsTab>(() => {
+    if (detailTabs.some(tab => tab.id === activeDetailsTab)) {
+      return activeDetailsTab
+    }
+
+    return detailTabs[0]?.id ?? 'orderBook'
+  }, [activeDetailsTab, detailTabs])
+
+  useEffect(() => {
+    if (!showBottomContent) {
+      return
+    }
+
+    if (resolvedActiveDetailsTab !== activeDetailsTab) {
+      onChangeTab(resolvedActiveDetailsTab)
+    }
+  }, [activeDetailsTab, onChangeTab, resolvedActiveDetailsTab, showBottomContent])
 
   const {
     data: orderBookSummaries,
@@ -2529,7 +2906,7 @@ export function SportsGameDetailsPanel({
     <>
       <div
         className={cn(
-          'overflow-hidden transition-[max-height,opacity,margin] duration-200',
+          'overflow-x-visible overflow-y-hidden transition-[max-height,opacity,margin] duration-200',
           hasLinePicker
             ? (showBottomContent ? '-mt-3 mb-3 max-h-32 opacity-100' : '-mt-3 mb-0 max-h-32 opacity-100')
             : 'mb-0 max-h-0 opacity-0',
@@ -2639,10 +3016,7 @@ export function SportsGameDetailsPanel({
           <div className="-mx-2.5 mb-3 border-b bg-card">
             <div className="flex w-full items-center gap-2 px-2.5">
               <div className="flex w-0 flex-1 items-center gap-4 overflow-x-auto">
-                {([
-                  { id: 'orderBook', label: 'Order Book' },
-                  { id: 'graph', label: 'Graph' },
-                ] as const).map(tab => (
+                {detailTabs.map(tab => (
                   <button
                     key={`${card.id}-${tab.id}`}
                     type="button"
@@ -2652,7 +3026,7 @@ export function SportsGameDetailsPanel({
                         border-b-2 border-transparent pt-1 pb-2 text-sm font-semibold whitespace-nowrap
                         transition-colors
                       `,
-                      activeDetailsTab === tab.id
+                      resolvedActiveDetailsTab === tab.id
                         ? 'border-primary text-foreground'
                         : 'text-muted-foreground hover:text-foreground',
                     )}
@@ -2662,7 +3036,7 @@ export function SportsGameDetailsPanel({
                 ))}
               </div>
 
-              {selectedMarketTokenIds.length > 0 && (
+              {selectedMarketTokenIds.length > 0 && resolvedActiveDetailsTab !== 'about' && (
                 <button
                   type="button"
                   className={cn(
@@ -2689,44 +3063,49 @@ export function SportsGameDetailsPanel({
             </div>
           </div>
 
-          {activeDetailsTab === 'orderBook'
-            ? (
-                (selectedMarket && selectedOutcome)
-                  ? (
-                      <div className={cn('-mx-2.5', visiblePositionTags.length === 0 && '-mb-2.5')}>
-                        <EventOrderBook
-                          market={selectedMarket}
-                          outcome={selectedOutcome}
-                          summaries={orderBookSummaries}
-                          isLoadingSummaries={isOrderBookLoading && !orderBookSummaries}
-                          eventSlug={card.slug}
-                          surfaceVariant="sportsCard"
-                          oddsFormat={oddsFormat}
-                          tradeLabel={`TRADE ${tradeSelectionLabel}`}
-                          onToggleOutcome={nextOutcome ? handleToggleOutcome : undefined}
-                          toggleOutcomeTooltip={switchTooltip ?? undefined}
-                        />
-                      </div>
-                    )
-                  : (
-                      <div className="rounded-lg border bg-card px-3 py-6 text-sm text-muted-foreground">
-                        Order book is unavailable for this game.
-                      </div>
-                    )
-              )
-            : (
-                <SportsGameGraph
-                  card={card}
-                  selectedMarketType={selectedButton?.marketType ?? 'moneyline'}
-                  selectedConditionId={selectedButton?.conditionId ?? null}
-                  defaultTimeRange={defaultGraphTimeRange}
-                  variant={
-                    selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
-                      ? 'sportsEventHero'
-                      : 'default'
-                  }
-                />
-              )}
+          {resolvedActiveDetailsTab === 'orderBook' && (
+            (selectedMarket && selectedOutcome)
+              ? (
+                  <div className={cn('-mx-2.5', visiblePositionTags.length === 0 && '-mb-2.5')}>
+                    <EventOrderBook
+                      market={selectedMarket}
+                      outcome={selectedOutcome}
+                      summaries={orderBookSummaries}
+                      isLoadingSummaries={isOrderBookLoading && !orderBookSummaries}
+                      eventSlug={card.slug}
+                      surfaceVariant="sportsCard"
+                      oddsFormat={oddsFormat}
+                      tradeLabel={`TRADE ${tradeSelectionLabel}`}
+                      onToggleOutcome={nextOutcome ? handleToggleOutcome : undefined}
+                      toggleOutcomeTooltip={switchTooltip ?? undefined}
+                      openMobileOrderPanelOnLevelSelect={isMobile}
+                    />
+                  </div>
+                )
+              : (
+                  <div className="rounded-lg border bg-card px-3 py-6 text-sm text-muted-foreground">
+                    Order book is unavailable for this game.
+                  </div>
+                )
+          )}
+
+          {resolvedActiveDetailsTab === 'graph' && (
+            <SportsGameGraph
+              card={card}
+              selectedMarketType={selectedButton?.marketType ?? 'moneyline'}
+              selectedConditionId={selectedButton?.conditionId ?? null}
+              defaultTimeRange={defaultGraphTimeRange}
+              variant={
+                selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
+                  ? 'sportsEventHero'
+                  : 'default'
+              }
+            />
+          )}
+
+          {resolvedActiveDetailsTab === 'about' && aboutEvent && (
+            <SportsEventAboutPanel event={aboutEvent} market={selectedMarket} />
+          )}
         </>
       )}
 
@@ -2763,17 +3142,10 @@ export function SportsGameDetailsPanel({
               <div
                 className={cn(
                   'flex shrink-0 items-center text-foreground',
-                  isStandalonePositionsCard ? 'gap-2 text-sm font-semibold' : 'gap-1 text-sm font-semibold',
+                  isStandalonePositionsCard ? 'text-sm font-semibold' : 'text-sm font-semibold',
                 )}
               >
                 <span>{positionsTitle ?? t('Positions')}</span>
-                <ChevronDownIcon
-                  className={cn(
-                    'transition-transform',
-                    isStandalonePositionsCard ? 'size-4' : 'size-3.5',
-                    isPositionsExpanded ? 'rotate-180' : 'rotate-0',
-                  )}
-                />
               </div>
 
               {showPositionTagSummary && (
@@ -2826,6 +3198,15 @@ export function SportsGameDetailsPanel({
                   )}
                 </>
               )}
+
+              <ChevronDownIcon
+                className={cn(
+                  'shrink-0 transition-transform',
+                  !showPositionTagSummary && 'ml-auto',
+                  isStandalonePositionsCard ? 'size-4' : 'size-3.5',
+                  isPositionsExpanded ? 'rotate-180' : 'rotate-0',
+                )}
+              />
             </div>
 
             {isPositionsExpanded && (
@@ -2861,7 +3242,7 @@ export function SportsGameDetailsPanel({
                         const toWinLabel = formatCurrency(tag.shares, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         const currentLabel = formatCurrency(tag.currentValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                         const pnlValue = typeof tag.totalCost === 'number'
-                          ? tag.currentValue - tag.totalCost
+                          ? tag.currentValue - tag.totalCost + tag.realizedPnl
                           : null
                         const pnlLabel = pnlValue == null
                           ? '—'
@@ -2919,18 +3300,38 @@ export function SportsGameDetailsPanel({
                                     Convert
                                   </button>
                                 )}
-                                <button
-                                  type="button"
-                                  data-sports-card-control="true"
-                                  className={`
-                                    inline-flex h-7 items-center justify-center rounded-sm border border-border/70
-                                    bg-background/40 px-2 text-xs font-semibold text-foreground transition-colors
-                                    hover:bg-secondary/40
-                                  `}
-                                  onClick={event => void handleCashOutTag(tag, event)}
-                                >
-                                  Sell
-                                </button>
+                                {showRedeemInPositions
+                                  ? (
+                                      <button
+                                        type="button"
+                                        data-sports-card-control="true"
+                                        className={`
+                                          inline-flex h-7 items-center justify-center rounded-sm border border-border/70
+                                          bg-background px-2 text-xs font-semibold text-foreground transition-colors
+                                          hover:bg-secondary/35
+                                        `}
+                                        onClick={(event) => {
+                                          event.stopPropagation()
+                                          onOpenRedeemForCondition?.(tag.conditionId)
+                                        }}
+                                      >
+                                        Redeem
+                                      </button>
+                                    )
+                                  : (
+                                      <button
+                                        type="button"
+                                        data-sports-card-control="true"
+                                        className={`
+                                          inline-flex h-7 items-center justify-center rounded-sm border border-border/70
+                                          bg-background/40 px-2 text-xs font-semibold text-foreground transition-colors
+                                          hover:bg-secondary/40
+                                        `}
+                                        onClick={event => void handleCashOutTag(tag, event)}
+                                      >
+                                        Sell
+                                      </button>
+                                    )}
                               </div>
                             </td>
                           </tr>
@@ -3004,7 +3405,7 @@ export default function SportsGamesCenter({
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [oddsFormat, setOddsFormat] = useState<OddsFormat>('price')
-  const [showSpreadsAndTotals, setShowSpreadsAndTotals] = useState(true)
+  const [showSpreadsAndTotals, setShowSpreadsAndTotals] = useState(false)
   const [hasLoadedOddsFormat, setHasLoadedOddsFormat] = useState(false)
   const [currentTimestampMs, setCurrentTimestampMs] = useState(0)
   const [titleRowActionsTarget, setTitleRowActionsTarget] = useState<HTMLElement | null>(null)
@@ -3015,6 +3416,7 @@ export default function SportsGamesCenter({
   const setOrderMarket = useOrder(state => state.setMarket)
   const setOrderOutcome = useOrder(state => state.setOutcome)
   const setOrderSide = useOrder(state => state.setSide)
+  const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
   const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
   const isLivePage = pageMode === 'live'
@@ -3050,9 +3452,7 @@ export default function SportsGamesCenter({
       setOddsFormat(matchedOption.value)
     }
     const storedShowSpreadsAndTotals = window.localStorage.getItem(SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY)
-    if (storedShowSpreadsAndTotals === '0') {
-      setShowSpreadsAndTotals(false)
-    }
+    setShowSpreadsAndTotals(storedShowSpreadsAndTotals === '1')
     setHasLoadedOddsFormat(true)
   }, [])
 
@@ -3075,6 +3475,15 @@ export default function SportsGamesCenter({
 
     setTitleRowActionsTarget(document.getElementById('sports-title-row-actions'))
   }, [isLivePage])
+
+  useEffect(() => {
+    if (!isMobile) {
+      return
+    }
+
+    // Avoid carrying over an open trade drawer while browsing cards on mobile.
+    setIsMobileOrderPanelOpen(false)
+  }, [isMobile, setIsMobileOrderPanelOpen])
 
   const formatButtonOdds = useCallback((cents: number) => {
     if (oddsFormat === 'price') {
@@ -3565,55 +3974,13 @@ export default function SportsGamesCenter({
       }
     }
 
-    const defaultConditionId = resolveDefaultConditionId(card)
-    const selectedButtonKey = resolveDisplayButtonKey(
-      card,
-      selectedConditionByCardId[card.id] ?? defaultConditionId,
-    )
-    const selectedButton = resolveSelectedButton(card, selectedButtonKey)
-    const isSpreadOrTotalSelected = selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
-
-    setTradeSelection({
-      cardId: card.id,
-      buttonKey: selectedButton?.key ?? defaultConditionId,
-    })
-
-    setSelectedConditionByCardId((current) => {
-      if (!defaultConditionId || current[card.id]) {
-        return current
-      }
-
-      return {
-        ...current,
-        [card.id]: defaultConditionId,
-      }
-    })
-
-    if (openCardId !== card.id) {
-      setOpenCardId(card.id)
-      setIsDetailsContentVisible(true)
-      setActiveDetailsTab('orderBook')
-      return
-    }
-
-    if (isDetailsContentVisible) {
-      if (isSpreadOrTotalSelected) {
-        setIsDetailsContentVisible(false)
-        return
-      }
-
-      setOpenCardId(null)
-      setIsDetailsContentVisible(true)
-      return
-    }
-
-    setIsDetailsContentVisible(true)
+    router.push(card.eventHref as Route)
   }
 
   function selectCardButton(
     card: SportsGamesCard,
     buttonKey: string,
-    options?: { panelMode?: 'full' | 'partial' | 'preserve' },
+    _options?: { panelMode?: 'full' | 'partial' | 'preserve' },
   ) {
     const normalizedButtonKey = resolveDisplayButtonKey(card, buttonKey)
     if (!normalizedButtonKey) {
@@ -3636,16 +4003,13 @@ export default function SportsGamesCenter({
       buttonKey: normalizedButtonKey,
     })
 
-    const panelMode = options?.panelMode ?? 'full'
-    if (panelMode === 'partial') {
-      setIsDetailsContentVisible(false)
-    }
-    else if (panelMode === 'full') {
-      setActiveDetailsTab('orderBook')
-      setIsDetailsContentVisible(true)
+    if (isMobile) {
+      setIsMobileOrderPanelOpen(true)
+      return
     }
 
-    setOpenCardId(card.id)
+    setOpenCardId(null)
+    setIsDetailsContentVisible(false)
   }
 
   function renderMarketColumnsHeader(headerKeyPrefix: string) {
@@ -3696,7 +4060,12 @@ export default function SportsGamesCenter({
     const buttonGroups = groupButtonsByMarketType(card.buttons)
     const competitionLabel = resolveCardCompetitionLabel(card, options.categoryLabel)
     const hasLivestreamUrl = Boolean(card.event.livestream_url?.trim())
-    const canWatchLivestream = options.topBadgeMode === 'live' && hasLivestreamUrl
+    const canWatchLivestream = (
+      options.topBadgeMode === 'live'
+      && hasLivestreamUrl
+      && card.event.sports_ended !== true
+      && card.event.sports_live !== false
+    )
 
     return (
       <article
@@ -3722,7 +4091,7 @@ export default function SportsGamesCenter({
             }
           }}
         >
-          <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="mb-2 flex flex-col items-stretch justify-between gap-2.5 sm:flex-row sm:items-center">
             <div className="flex min-w-0 items-center gap-2">
               {options.topBadgeMode === 'live'
                 ? (
@@ -3754,7 +4123,7 @@ export default function SportsGamesCenter({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               {canWatchLivestream && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -3792,8 +4161,9 @@ export default function SportsGamesCenter({
                 onClick={event => event.stopPropagation()}
                 className={cn(
                   `
-                    inline-flex items-center gap-1 rounded-lg bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold
+                    hidden items-center gap-1 rounded-lg bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold
                     text-foreground transition-colors
+                    min-[1024px]:inline-flex
                   `,
                   'hover:bg-secondary hover:ring-1 hover:ring-border',
                 )}

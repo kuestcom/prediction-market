@@ -114,6 +114,7 @@ export default function HeaderNotifications() {
         className="max-h-100 w-85 overflow-hidden lg:w-95"
         align="end"
         collisionPadding={32}
+        data-sports-wheel-ignore="true"
       >
         <div className="border-b border-border px-3 py-2">
           <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
