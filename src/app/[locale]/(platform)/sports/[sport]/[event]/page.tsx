@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -74,11 +75,13 @@ export default async function SportsEventPage({
   const sportLabel = layoutData?.h1TitleBySlug[resolvedSportSlug] ?? resolvedSportSlug.toUpperCase()
 
   return (
-    <SportsEventCenter
-      card={targetCard}
-      sportSlug={resolvedSportSlug}
-      sportLabel={sportLabel}
-      key={`is-bookmarked-${targetCard.event.is_bookmarked}`}
-    />
+    <EventMarketChannelProvider markets={targetCard.detailMarkets}>
+      <SportsEventCenter
+        card={targetCard}
+        sportSlug={resolvedSportSlug}
+        sportLabel={sportLabel}
+        key={`is-bookmarked-${targetCard.event.is_bookmarked}`}
+      />
+    </EventMarketChannelProvider>
   )
 }

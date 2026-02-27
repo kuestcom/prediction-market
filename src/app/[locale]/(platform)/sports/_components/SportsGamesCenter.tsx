@@ -19,6 +19,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   EqualIcon,
+  ExternalLinkIcon,
   RadioIcon,
   RefreshCwIcon,
   SearchIcon,
@@ -35,14 +36,18 @@ import EventChartControls, { defaultChartSettings } from '@/app/[locale]/(platfo
 import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
 import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'
 import EventConvertPositionsDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventConvertPositionsDialog'
+import { useOptionalMarketChannelSubscription } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventOrderBook, { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
 import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
 import EventOrderPanelTermsDisclaimer
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
+import EventRules from '@/app/[locale]/(platform)/event/[slug]/_components/EventRules'
+import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
 import { TIME_RANGES, useEventPriceHistory } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { loadStoredChartSettings, storeChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
 import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
+import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import SportsLivestreamFloatingPlayer
   from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import { Button } from '@/components/ui/button'
@@ -57,15 +62,25 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { Link, useRouter } from '@/i18n/navigation'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { MICRO_UNIT, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
-import { formatAmountInputValue, formatCentsLabel, formatCurrency, formatSharesLabel, formatVolume, fromMicro } from '@/lib/formatters'
+import {
+  formatAmountInputValue,
+  formatCentsLabel,
+  formatCurrency,
+  formatSharePriceLabel,
+  formatSharesLabel,
+  formatVolume,
+  fromMicro,
+} from '@/lib/formatters'
 import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { calculateYAxisBounds } from '@/lib/prediction-chart'
+import { buildUmaProposeUrl, buildUmaSettledUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
 import { useSportsLivestream } from '@/stores/useSportsLivestream'
@@ -79,7 +94,7 @@ interface SportsGamesCenterProps {
   categoryTitleBySlug?: Record<string, string>
 }
 
-type DetailsTab = 'orderBook' | 'graph'
+type DetailsTab = 'orderBook' | 'graph' | 'about'
 export type SportsGamesMarketType = SportsGamesButton['marketType']
 export type SportsGameGraphVariant = 'default' | 'sportsEventHero'
 type LinePickerMarketType = Extract<SportsGamesMarketType, 'spread' | 'total'>
@@ -105,6 +120,21 @@ const HERO_LEGEND_NAME_LINE_HEIGHT_PX = 18
 const HERO_LEGEND_VALUE_LINE_HEIGHT_PX = 32
 const HERO_LEGEND_MIN_HEIGHT_PX = 56
 const HERO_LEGEND_VERTICAL_GAP_PX = 10
+const TRADE_FLOW_MAX_ITEMS = 6
+const TRADE_FLOW_TTL_MS = 8000
+const TRADE_FLOW_CLEANUP_INTERVAL_MS = 500
+const tradeFlowTextStrokeStyle = {
+  textShadow: `
+    1px 0 0 var(--background),
+    -1px 0 0 var(--background),
+    0 1px 0 var(--background),
+    0 -1px 0 var(--background),
+    1px 1px 0 var(--background),
+    -1px -1px 0 var(--background),
+    1px -1px 0 var(--background),
+    -1px 1px 0 var(--background)
+  `,
+} as const
 const GENERIC_SPORTS_CATEGORY_LABELS = new Set([
   'sports',
   'games',
@@ -135,6 +165,13 @@ interface SportsGraphSeriesTarget {
   outcomeIndex: number
   name: string
   color: string
+}
+
+interface SportsTradeFlowLabelItem {
+  id: string
+  label: string
+  color: string
+  createdAt: number
 }
 
 interface SportsTradeSelection {
@@ -263,6 +300,22 @@ function normalizePositionPnlValue(value: number | null, baseCostValue: number |
     return scaled
   }
   return 0
+}
+
+function buildTradeFlowLabel(price: number, size: number) {
+  const notional = price * size
+  if (!Number.isFinite(notional) || notional <= 0) {
+    return null
+  }
+  return formatSharePriceLabel(notional / 100, { fallback: '0¢', currencyDigits: 0 })
+}
+
+function pruneTradeFlowItems(items: SportsTradeFlowLabelItem[], now: number) {
+  return items.filter(item => now - item.createdAt <= TRADE_FLOW_TTL_MS)
+}
+
+function trimTradeFlowItems(items: SportsTradeFlowLabelItem[]) {
+  return items.slice(-TRADE_FLOW_MAX_ITEMS)
 }
 
 function resolveMarketTypeLabel(
@@ -883,6 +936,7 @@ export function SportsGameGraph({
   const [hasLoadedChartSettings, setHasLoadedChartSettings] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
+  const [tradeFlowItems, setTradeFlowItems] = useState<SportsTradeFlowLabelItem[]>([])
   const isSecondaryMarketGraph = selectedMarketType === 'spread' || selectedMarketType === 'total'
   const isSportsEventHeroVariant = variant === 'sportsEventHero'
   const chartHeight = isSportsEventHeroVariant ? 332 : 300
@@ -891,6 +945,7 @@ export function SportsGameGraph({
     : { top: 12, right: 30, bottom: 40, left: 0 }
   const chartContainerRef = useRef<HTMLDivElement | null>(null)
   const heroLegendTextMeasureCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const tradeFlowIdRef = useRef(0)
   const [measuredChartWidth, setMeasuredChartWidth] = useState<number | null>(null)
 
   const fallbackChartWidth = useMemo(() => {
@@ -1056,6 +1111,34 @@ export function SportsGameGraph({
     },
     [card, isSecondaryMarketGraph, selectedConditionId],
   )
+
+  const tradeFlowSeriesByTokenId = useMemo(() => {
+    const map = new Map<string, { color: string }>()
+    if (!isSportsEventHeroVariant) {
+      return map
+    }
+
+    for (const series of graphSeriesTargets) {
+      if (!series.tokenId) {
+        continue
+      }
+      map.set(String(series.tokenId), {
+        color: series.color,
+      })
+    }
+
+    return map
+  }, [graphSeriesTargets, isSportsEventHeroVariant])
+
+  const tradeFlowTokenSignature = useMemo(
+    () => Array.from(tradeFlowSeriesByTokenId.keys()).sort().join(','),
+    [tradeFlowSeriesByTokenId],
+  )
+
+  useEffect(() => {
+    setTradeFlowItems([])
+    tradeFlowIdRef.current = 0
+  }, [tradeFlowTokenSignature])
 
   const marketTargets = useMemo(
     () => graphSeriesTargets
@@ -1426,6 +1509,64 @@ export function SportsGameGraph({
       .filter((entry): entry is { key: string, name: string, color: string, value: number } => entry !== null),
     [chartSeries, cursorSnapshot, latestSnapshot],
   )
+  const hasTradeFlowLabels = tradeFlowItems.length > 0
+
+  useOptionalMarketChannelSubscription((payload) => {
+    if (!isSportsEventHeroVariant || !payload) {
+      return
+    }
+
+    if (payload.event_type !== 'last_trade_price') {
+      return
+    }
+
+    const assetId = String(payload.asset_id ?? '')
+    if (!assetId) {
+      return
+    }
+
+    const matchedSeries = tradeFlowSeriesByTokenId.get(assetId)
+    if (!matchedSeries) {
+      return
+    }
+
+    const price = Number(payload.price)
+    const size = Number(payload.size)
+    const label = buildTradeFlowLabel(price, size)
+    if (!label) {
+      return
+    }
+
+    const createdAt = Date.now()
+    const id = String(tradeFlowIdRef.current)
+    tradeFlowIdRef.current += 1
+
+    setTradeFlowItems((previous) => {
+      const next = [...previous, { id, label, color: matchedSeries.color, createdAt }]
+      return trimTradeFlowItems(pruneTradeFlowItems(next, createdAt))
+    })
+  })
+
+  useEffect(() => {
+    if (!isSportsEventHeroVariant || !hasTradeFlowLabels) {
+      return
+    }
+
+    const interval = window.setInterval(() => {
+      const now = Date.now()
+      setTradeFlowItems((previous) => {
+        const next = pruneTradeFlowItems(previous, now)
+        if (next.length === previous.length) {
+          return previous
+        }
+        return next
+      })
+    }, TRADE_FLOW_CLEANUP_INTERVAL_MS)
+
+    return () => {
+      window.clearInterval(interval)
+    }
+  }, [hasTradeFlowLabels, isSportsEventHeroVariant])
 
   const legendContent = !isSecondaryMarketGraph && !isSportsEventHeroVariant && legendSeriesWithValues.length > 0
     ? (
@@ -1518,6 +1659,27 @@ export function SportsGameGraph({
                     {`${Math.round(entry.value)}%`}
                   </p>
                 </div>
+              ))}
+            </div>
+          )}
+
+          {isSportsEventHeroVariant && hasTradeFlowLabels && (
+            <div className={`
+              pointer-events-none absolute bottom-6 left-4 flex flex-col gap-1 text-sm font-semibold tabular-nums
+            `}
+            >
+              {tradeFlowItems.map(item => (
+                <span
+                  key={item.id}
+                  className="animate-trade-flow-rise"
+                  style={{
+                    ...tradeFlowTextStrokeStyle,
+                    color: item.color,
+                  }}
+                >
+                  +
+                  {item.label}
+                </span>
               ))}
             </div>
           )}
@@ -1906,6 +2068,79 @@ export function SportsOrderPanelMarketInfo({
   )
 }
 
+function SportsEventAboutPanel({
+  event,
+  market,
+}: {
+  event: SportsGamesCard['event']
+  market: Market | null
+}) {
+  const t = useExtracted()
+  const siteIdentity = useSiteIdentity()
+  const aboutRulesEvent = useMemo(() => {
+    if (!market) {
+      return event
+    }
+
+    return {
+      ...event,
+      markets: [
+        market,
+        ...event.markets.filter(item => item.condition_id !== market.condition_id),
+      ],
+    }
+  }, [event, market])
+  const shouldShowResolution = useMemo(
+    () => Boolean(market && shouldDisplayResolutionTimeline(market)),
+    [market],
+  )
+  const resolutionDetailsUrl = useMemo(
+    () => market
+      ? (buildUmaSettledUrl(market.condition, siteIdentity.name) ?? buildUmaProposeUrl(market.condition, siteIdentity.name))
+      : null,
+    [market, siteIdentity.name],
+  )
+
+  return (
+    <div className="grid gap-3 pb-2">
+      <EventRules event={aboutRulesEvent} mode="inline" showEndDate />
+
+      {market && shouldShowResolution && (
+        <section className="grid gap-2">
+          <h4 className="text-base font-medium text-foreground">{t('Resolution')}</h4>
+          <div className={cn(
+            'grid gap-2',
+            resolutionDetailsUrl && 'sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4',
+          )}
+          >
+            <ResolutionTimelinePanel
+              market={market}
+              settledUrl={null}
+              showLink={false}
+              className="min-w-0"
+            />
+            {resolutionDetailsUrl && (
+              <a
+                href={resolutionDetailsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="
+                  inline-flex items-center gap-1.5 justify-self-start text-sm font-medium text-muted-foreground
+                  hover:underline
+                  sm:justify-self-end
+                "
+              >
+                <span>{t('View details')}</span>
+                <ExternalLinkIcon className="size-3.5" />
+              </a>
+            )}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
 interface SportsGameDetailsPanelProps {
   card: SportsGamesCard
   activeDetailsTab: DetailsTab
@@ -1914,6 +2149,8 @@ interface SportsGameDetailsPanelProps {
   defaultGraphTimeRange?: (typeof TIME_RANGES)[number]
   allowedConditionIds?: Set<string> | null
   positionsTitle?: string
+  showAboutTab?: boolean
+  aboutEvent?: SportsGamesCard['event'] | null
   oddsFormat?: OddsFormat
   onChangeTab: (tab: DetailsTab) => void
   onSelectButton: (
@@ -1930,6 +2167,8 @@ export function SportsGameDetailsPanel({
   defaultGraphTimeRange = '1W',
   allowedConditionIds = null,
   positionsTitle,
+  showAboutTab = false,
+  aboutEvent = null,
   oddsFormat = 'price',
   onChangeTab,
   onSelectButton,
@@ -2595,6 +2834,37 @@ export function SportsGameDetailsPanel({
       .filter((tokenId): tokenId is string => Boolean(tokenId))
   }, [selectedMarket])
 
+  const detailTabs = useMemo<Array<{ id: DetailsTab, label: string }>>(() => {
+    const tabs: Array<{ id: DetailsTab, label: string }> = [
+      { id: 'orderBook', label: 'Order Book' },
+      { id: 'graph', label: 'Graph' },
+    ]
+
+    if (showAboutTab && aboutEvent) {
+      tabs.push({ id: 'about', label: 'About' })
+    }
+
+    return tabs
+  }, [aboutEvent, showAboutTab])
+
+  const resolvedActiveDetailsTab = useMemo<DetailsTab>(() => {
+    if (detailTabs.some(tab => tab.id === activeDetailsTab)) {
+      return activeDetailsTab
+    }
+
+    return detailTabs[0]?.id ?? 'orderBook'
+  }, [activeDetailsTab, detailTabs])
+
+  useEffect(() => {
+    if (!showBottomContent) {
+      return
+    }
+
+    if (resolvedActiveDetailsTab !== activeDetailsTab) {
+      onChangeTab(resolvedActiveDetailsTab)
+    }
+  }, [activeDetailsTab, onChangeTab, resolvedActiveDetailsTab, showBottomContent])
+
   const {
     data: orderBookSummaries,
     isLoading: isOrderBookLoading,
@@ -2628,7 +2898,7 @@ export function SportsGameDetailsPanel({
     <>
       <div
         className={cn(
-          'overflow-hidden transition-[max-height,opacity,margin] duration-200',
+          'overflow-x-visible overflow-y-hidden transition-[max-height,opacity,margin] duration-200',
           hasLinePicker
             ? (showBottomContent ? '-mt-3 mb-3 max-h-32 opacity-100' : '-mt-3 mb-0 max-h-32 opacity-100')
             : 'mb-0 max-h-0 opacity-0',
@@ -2738,10 +3008,7 @@ export function SportsGameDetailsPanel({
           <div className="-mx-2.5 mb-3 border-b bg-card">
             <div className="flex w-full items-center gap-2 px-2.5">
               <div className="flex w-0 flex-1 items-center gap-4 overflow-x-auto">
-                {([
-                  { id: 'orderBook', label: 'Order Book' },
-                  { id: 'graph', label: 'Graph' },
-                ] as const).map(tab => (
+                {detailTabs.map(tab => (
                   <button
                     key={`${card.id}-${tab.id}`}
                     type="button"
@@ -2751,7 +3018,7 @@ export function SportsGameDetailsPanel({
                         border-b-2 border-transparent pt-1 pb-2 text-sm font-semibold whitespace-nowrap
                         transition-colors
                       `,
-                      activeDetailsTab === tab.id
+                      resolvedActiveDetailsTab === tab.id
                         ? 'border-primary text-foreground'
                         : 'text-muted-foreground hover:text-foreground',
                     )}
@@ -2761,7 +3028,7 @@ export function SportsGameDetailsPanel({
                 ))}
               </div>
 
-              {selectedMarketTokenIds.length > 0 && (
+              {selectedMarketTokenIds.length > 0 && resolvedActiveDetailsTab !== 'about' && (
                 <button
                   type="button"
                   className={cn(
@@ -2788,45 +3055,49 @@ export function SportsGameDetailsPanel({
             </div>
           </div>
 
-          {activeDetailsTab === 'orderBook'
-            ? (
-                (selectedMarket && selectedOutcome)
-                  ? (
-                      <div className={cn('-mx-2.5', visiblePositionTags.length === 0 && '-mb-2.5')}>
-                        <EventOrderBook
-                          market={selectedMarket}
-                          outcome={selectedOutcome}
-                          summaries={orderBookSummaries}
-                          isLoadingSummaries={isOrderBookLoading && !orderBookSummaries}
-                          eventSlug={card.slug}
-                          surfaceVariant="sportsCard"
-                          oddsFormat={oddsFormat}
-                          tradeLabel={`TRADE ${tradeSelectionLabel}`}
-                          onToggleOutcome={nextOutcome ? handleToggleOutcome : undefined}
-                          toggleOutcomeTooltip={switchTooltip ?? undefined}
-                          openMobileOrderPanelOnLevelSelect={isMobile}
-                        />
-                      </div>
-                    )
-                  : (
-                      <div className="rounded-lg border bg-card px-3 py-6 text-sm text-muted-foreground">
-                        Order book is unavailable for this game.
-                      </div>
-                    )
-              )
-            : (
-                <SportsGameGraph
-                  card={card}
-                  selectedMarketType={selectedButton?.marketType ?? 'moneyline'}
-                  selectedConditionId={selectedButton?.conditionId ?? null}
-                  defaultTimeRange={defaultGraphTimeRange}
-                  variant={
-                    selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
-                      ? 'sportsEventHero'
-                      : 'default'
-                  }
-                />
-              )}
+          {resolvedActiveDetailsTab === 'orderBook' && (
+            (selectedMarket && selectedOutcome)
+              ? (
+                  <div className={cn('-mx-2.5', visiblePositionTags.length === 0 && '-mb-2.5')}>
+                    <EventOrderBook
+                      market={selectedMarket}
+                      outcome={selectedOutcome}
+                      summaries={orderBookSummaries}
+                      isLoadingSummaries={isOrderBookLoading && !orderBookSummaries}
+                      eventSlug={card.slug}
+                      surfaceVariant="sportsCard"
+                      oddsFormat={oddsFormat}
+                      tradeLabel={`TRADE ${tradeSelectionLabel}`}
+                      onToggleOutcome={nextOutcome ? handleToggleOutcome : undefined}
+                      toggleOutcomeTooltip={switchTooltip ?? undefined}
+                      openMobileOrderPanelOnLevelSelect={isMobile}
+                    />
+                  </div>
+                )
+              : (
+                  <div className="rounded-lg border bg-card px-3 py-6 text-sm text-muted-foreground">
+                    Order book is unavailable for this game.
+                  </div>
+                )
+          )}
+
+          {resolvedActiveDetailsTab === 'graph' && (
+            <SportsGameGraph
+              card={card}
+              selectedMarketType={selectedButton?.marketType ?? 'moneyline'}
+              selectedConditionId={selectedButton?.conditionId ?? null}
+              defaultTimeRange={defaultGraphTimeRange}
+              variant={
+                selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
+                  ? 'sportsEventHero'
+                  : 'default'
+              }
+            />
+          )}
+
+          {resolvedActiveDetailsTab === 'about' && aboutEvent && (
+            <SportsEventAboutPanel event={aboutEvent} market={selectedMarket} />
+          )}
         </>
       )}
 

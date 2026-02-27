@@ -41,7 +41,7 @@ import { useOrder } from '@/stores/useOrder'
 import { useSportsLivestream } from '@/stores/useSportsLivestream'
 import { useUser } from '@/stores/useUser'
 
-type DetailsTab = 'orderBook' | 'graph'
+type DetailsTab = 'orderBook' | 'graph' | 'about'
 type EventSectionKey = Extract<SportsGamesMarketType, 'moneyline' | 'spread' | 'total' | 'btts'>
 
 interface SportsEventCenterProps {
@@ -795,6 +795,11 @@ export default function SportsEventCenter({
               const isSectionOpen = openSectionKey === section.key
               const sectionConditionIds = sectionConditionIdsByKey[section.key]
               const activeTab = tabBySection[section.key] ?? 'orderBook'
+              const selectedSectionButton = resolveSelectedButton(card, selectedButtonKey)
+              const shouldUseClosedLinePickerSpacing = (
+                !isSectionOpen
+                && (selectedSectionButton?.marketType === 'spread' || selectedSectionButton?.marketType === 'total')
+              )
               const firstSectionButtonKey = sectionButtons[0]?.key ?? null
               function toggleSection() {
                 setOpenSectionKey(current => current === section.key ? null : section.key)
@@ -862,6 +867,7 @@ export default function SportsEventCenter({
                         'grid min-w-0 flex-1 items-stretch gap-2',
                         'min-[1200px]:ml-auto min-[1200px]:w-[372px] min-[1200px]:flex-none',
                         sectionButtons.length >= 3 ? 'grid-cols-3' : 'grid-cols-2',
+                        'min-[1200px]:grid-cols-3',
                       )}
                     >
                       {sectionButtons.map((button) => {
@@ -942,7 +948,11 @@ export default function SportsEventCenter({
                   <div
                     className={cn(
                       'bg-card px-2.5',
-                      isSectionOpen ? 'border-t pt-3' : 'pt-0',
+                      isSectionOpen
+                        ? 'border-t pt-3'
+                        : shouldUseClosedLinePickerSpacing
+                          ? 'pt-3'
+                          : 'pt-0',
                     )}
                   >
                     <SportsGameDetailsPanel
@@ -952,6 +962,8 @@ export default function SportsEventCenter({
                       showBottomContent={isSectionOpen}
                       defaultGraphTimeRange="ALL"
                       allowedConditionIds={sectionConditionIds}
+                      showAboutTab
+                      aboutEvent={card.event}
                       oddsFormat={oddsFormat}
                       onChangeTab={tab => setTabBySection(current => ({ ...current, [section.key]: tab }))}
                       onSelectButton={(buttonKey, options) => {

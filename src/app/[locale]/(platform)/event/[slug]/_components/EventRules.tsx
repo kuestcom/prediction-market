@@ -16,6 +16,8 @@ import { normalizeAddress } from '@/lib/wallet'
 
 interface EventRulesProps {
   event: Event
+  mode?: 'accordion' | 'inline'
+  showEndDate?: boolean
 }
 
 const RESOLVER_GRADIENTS = [
@@ -47,11 +49,12 @@ function getResolverGradient(address?: string) {
   return RESOLVER_GRADIENTS[checksum % RESOLVER_GRADIENTS.length]
 }
 
-export default function EventRules({ event }: EventRulesProps) {
+export default function EventRules({ event, mode = 'accordion', showEndDate = false }: EventRulesProps) {
   const t = useExtracted()
   const locale = useLocale()
   const siteIdentity = useSiteIdentity()
   const [isExpanded, setIsExpanded] = useState(false)
+  const isInline = mode === 'inline'
 
   function formatRules(rules: string): string {
     if (!rules) {
@@ -89,6 +92,23 @@ export default function EventRules({ event }: EventRulesProps) {
       minute: '2-digit',
       hour12: true,
       timeZone: 'America/New_York',
+    }).format(date)
+  }
+
+  function formatEndDate(value: string | null | undefined): string {
+    if (!value) {
+      return t('—')
+    }
+
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) {
+      return t('—')
+    }
+
+    return new Intl.DateTimeFormat(locale, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
     }).format(date)
   }
 
@@ -161,6 +181,7 @@ export default function EventRules({ event }: EventRulesProps) {
   })()
   const formattedRules = formatRules(event.rules ?? '')
   const createdAtLabel = formatCreatedAt(event.created_at)
+  const endDateLabel = formatEndDate(event.end_date)
   const normalizedResolverAddress = normalizeAddress(resolverAddress)?.toLowerCase()
   const isUmaResolver = normalizedResolverAddress ? UMA_RESOLVER_ADDRESS_SET.has(normalizedResolverAddress) : false
   const hasResolutionSourceUrl = Boolean(resolutionSourceUrl)
@@ -230,7 +251,7 @@ export default function EventRules({ event }: EventRulesProps) {
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
               <LinkIcon className="size-4 -scale-x-100 text-muted-foreground" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="text-xs text-muted-foreground">
                 {t('Resolution Source')}
               </div>
@@ -238,7 +259,11 @@ export default function EventRules({ event }: EventRulesProps) {
                 href={resolutionSourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs break-all text-primary hover:opacity-80"
+                className={cn(
+                  'text-xs text-primary hover:opacity-80',
+                  isInline ? 'block max-w-full truncate' : 'break-all',
+                )}
+                title={resolutionSourceUrl}
               >
                 {resolutionSourceUrl}
               </a>
@@ -247,6 +272,59 @@ export default function EventRules({ event }: EventRulesProps) {
         </div>
       )
     : <></>
+
+  const content = (
+    <div className={cn('space-y-2', { 'p-3': !isInline })}>
+      {formattedRules && (
+        <div className="text-sm/relaxed whitespace-pre-line text-foreground">
+          {renderRulesTextWithLinks(formattedRules)}
+        </div>
+      )}
+      <p className="mt-4 text-sm text-foreground">
+        <span className="font-semibold">
+          {t('Created At')}
+          :
+        </span>
+        {' '}
+        {createdAtLabel}
+        {' '}
+        {t('ET')}
+      </p>
+
+      {showEndDate && (
+        <p className="text-sm text-foreground">
+          <span className="font-semibold">
+            {t('End Date')}
+            :
+          </span>
+          {' '}
+          {endDateLabel}
+        </p>
+      )}
+
+      {hasResolutionSourceUrl
+        ? (
+            <div className={cn('mt-3 grid gap-3 sm:grid-cols-2', { 'mb-3': isInline })}>
+              {resolutionSourceBlock}
+              {resolverBlock}
+            </div>
+          )
+        : (
+            <div className={cn('mt-3', { 'mb-3': isInline })}>
+              {resolverBlock}
+            </div>
+          )}
+    </div>
+  )
+
+  if (isInline) {
+    return (
+      <section className="grid gap-2">
+        <h4 className="text-base font-medium text-foreground">{t('Rules')}</h4>
+        {content}
+      </section>
+    )
+  }
 
   return (
     <section className="overflow-hidden rounded-xl border transition-all duration-500 ease-in-out">
@@ -299,36 +377,7 @@ export default function EventRules({ event }: EventRulesProps) {
         <div
           className={cn('min-h-0 overflow-hidden', { 'border-t border-border/30': isExpanded })}
         >
-          <div className="space-y-2 p-3">
-            {formattedRules && (
-              <div className="text-sm/relaxed whitespace-pre-line text-foreground">
-                {renderRulesTextWithLinks(formattedRules)}
-              </div>
-            )}
-            <p className="mt-4 text-sm text-foreground">
-              <span className="font-semibold">
-                {t('Created At')}
-                :
-              </span>
-              {' '}
-              {createdAtLabel}
-              {' '}
-              {t('ET')}
-            </p>
-
-            {hasResolutionSourceUrl
-              ? (
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    {resolutionSourceBlock}
-                    {resolverBlock}
-                  </div>
-                )
-              : (
-                  <div className="mt-3">
-                    {resolverBlock}
-                  </div>
-                )}
-          </div>
+          {content}
         </div>
       </div>
     </section>
