@@ -6,7 +6,7 @@ steps:
       - |
         required_substitutions=(
           "_SITE_URL"
-          "_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID"
+          "_REOWN_APPKIT_PROJECT_ID"
           "_STORAGE_MODE"
         )
 
@@ -40,7 +40,7 @@ steps:
         fi
     env:
       - _SITE_URL=${_SITE_URL}
-      - _NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=${_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID}
+      - _REOWN_APPKIT_PROJECT_ID=${_REOWN_APPKIT_PROJECT_ID}
       - _STORAGE_MODE=${_STORAGE_MODE}
       - _S3_FORCE_PATH_STYLE=${_S3_FORCE_PATH_STYLE}
 
@@ -50,7 +50,7 @@ steps:
       - -f
       - infra/docker/Dockerfile
       - --build-arg
-      - NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=${_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID}
+      - REOWN_APPKIT_PROJECT_ID=${_REOWN_APPKIT_PROJECT_ID}
       - -t
       - ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}
       - .
@@ -79,7 +79,7 @@ steps:
         runtime_env=(
           "NODE_ENV=production"
           "SITE_URL=${_SITE_URL}"
-          "NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID=${_NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID}"
+          "REOWN_APPKIT_PROJECT_ID=${_REOWN_APPKIT_PROJECT_ID}"
         )
 
         case "${_STORAGE_MODE}" in
@@ -139,7 +139,7 @@ substitutions:
   _IMAGE_NAME: prediction-market
   _SECRET_VERSION: latest
   _SITE_URL: https://markets.example.com
-  _NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID: replace-me
+  _REOWN_APPKIT_PROJECT_ID: replace-me
   _STORAGE_MODE: supabase
   _S3_ENDPOINT: ''
   _S3_REGION: ''

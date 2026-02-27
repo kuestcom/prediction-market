@@ -42,7 +42,7 @@ variable "secret_env" {
       contains(keys(var.secret_env), "CRON_SECRET"),
       contains(keys(var.secret_env), "POSTGRES_URL"),
       contains(keys(var.secret_env), "ADMIN_WALLETS"),
-      contains(keys(var.secret_env), "NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID"),
+      contains(keys(var.secret_env), "REOWN_APPKIT_PROJECT_ID"),
       contains(keys(var.secret_env), "KUEST_ADDRESS"),
       contains(keys(var.secret_env), "KUEST_API_KEY"),
       contains(keys(var.secret_env), "KUEST_API_SECRET"),

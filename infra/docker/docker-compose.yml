@@ -5,7 +5,7 @@ services:
       context: ../..
       dockerfile: infra/docker/Dockerfile
       args:
-        NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID: ${NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID:?NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID is required}
+        REOWN_APPKIT_PROJECT_ID: ${REOWN_APPKIT_PROJECT_ID:?REOWN_APPKIT_PROJECT_ID is required}
     env_file:
       - ../../.env
     environment:

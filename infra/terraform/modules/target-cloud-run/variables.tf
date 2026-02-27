@@ -37,7 +37,7 @@ variable "site_url" {
   description = "Canonical public URL for the app"
 }
 
-variable "next_public_reown_appkit_project_id" {
+variable "reown_appkit_project_id" {
   type        = string
   description = "Reown AppKit project id"
 }

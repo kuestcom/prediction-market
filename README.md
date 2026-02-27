@@ -79,7 +79,7 @@
 >    | --- | --- |
 >    | `KUEST_ADDRESS`<br/>`KUEST_API_KEY`<br/>`KUEST_API_SECRET`<br/>`KUEST_PASSPHRASE` | Kuest CLOB Auth credentials (generate at [auth.kuest.com](https://auth.kuest.com) by connecting your Polygon EVM 0x wallet) |
 >    | `ADMIN_WALLETS` | Wallets that should be admins (comma-separated 0x addresses) |
->    | `NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID` | Reown AppKit Project ID (from [dashboard.reown.com](https://dashboard.reown.com)) |
+>    | `REOWN_APPKIT_PROJECT_ID` | Reown AppKit Project ID (from [dashboard.reown.com](https://dashboard.reown.com)) |
 >    | `BETTER_AUTH_SECRET` | Better Auth secret (32 chars, generate at [better-auth.com](https://www.better-auth.com/docs/installation#set-environment-variables)) |
 >    | `CRON_SECRET` | Create a random secret (16+ chars) |
 >

@@ -11,7 +11,7 @@ locals {
   app_env = merge({
     NODE_ENV                             = "production"
     SITE_URL                             = var.site_url
-    NEXT_PUBLIC_REOWN_APPKIT_PROJECT_ID  = var.next_public_reown_appkit_project_id
+    REOWN_APPKIT_PROJECT_ID              = var.reown_appkit_project_id
   }, var.app_env)
 }
 
