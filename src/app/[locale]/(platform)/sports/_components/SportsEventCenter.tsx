@@ -121,6 +121,26 @@ function resolveTeamShortLabel(team: SportsGamesCard['teams'][number] | null | u
   return initials || name.slice(0, 3).toUpperCase()
 }
 
+function parseSportsScore(value: string | null | undefined) {
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  const match = trimmed.match(/(\d+)\D+(\d+)/)
+  if (!match) {
+    return null
+  }
+
+  const team1 = Number.parseInt(match[1] ?? '', 10)
+  const team2 = Number.parseInt(match[2] ?? '', 10)
+  if (!Number.isFinite(team1) || !Number.isFinite(team2)) {
+    return null
+  }
+
+  return { team1, team2 }
+}
+
 function normalizeComparableToken(value: string | null | undefined) {
   return value
     ?.normalize('NFKD')
@@ -1031,6 +1051,13 @@ export default function SportsEventCenter({
     ? `${team1.name} vs ${team2.name}`
     : card.title
   const hasLivestreamUrl = Boolean(card.event.livestream_url?.trim())
+  const canWatchLivestream = hasLivestreamUrl && card.event.sports_ended !== true && card.event.sports_live !== false
+  const showFinalScore = card.event.sports_ended === true
+  const parsedFinalScore = parseSportsScore(card.event.sports_score)
+  const team1Score = parsedFinalScore?.team1
+  const team2Score = parsedFinalScore?.team2
+  const team1Won = team1Score != null && team2Score != null && team1Score > team2Score
+  const team2Won = team1Score != null && team2Score != null && team2Score > team1Score
 
   const moneylineSelectedButton = resolveSelectedButton(card, moneylineButtonKey)
   const graphConditionId = moneylineSelectedButton?.conditionId ?? null
@@ -1053,6 +1080,25 @@ export default function SportsEventCenter({
         .filter(section => section.groups.length > 0),
     [claimGroupsBySection],
   )
+  const handleOpenRedeemForCondition = useCallback((conditionId: string) => {
+    const normalizedConditionId = conditionId.trim()
+    if (!normalizedConditionId) {
+      return
+    }
+
+    const matchedSection = SECTION_ORDER.find(section =>
+      claimGroupsBySection[section.key].some(group => group.conditionId === normalizedConditionId),
+    ) ?? SECTION_ORDER.find(section => sectionConditionIdsByKey[section.key].has(normalizedConditionId))
+    ?? SECTION_ORDER.find(section => claimGroupsBySection[section.key].length > 0)
+    ?? null
+
+    if (!matchedSection) {
+      return
+    }
+
+    setRedeemDefaultConditionId(normalizedConditionId)
+    setRedeemSectionKey(matchedSection.key)
+  }, [claimGroupsBySection, sectionConditionIdsByKey])
 
   return (
     <>
@@ -1123,7 +1169,7 @@ export default function SportsEventCenter({
             <div className="h-px flex-1 bg-border/70" />
           </div>
 
-          {hasLivestreamUrl && (
+          {canWatchLivestream && (
             <div className="mb-4 flex items-center justify-center">
               <button
                 type="button"
@@ -1167,10 +1213,41 @@ export default function SportsEventCenter({
               <span className="text-base font-semibold text-foreground uppercase">{team1?.abbreviation ?? '—'}</span>
             </div>
 
-            <div className="flex flex-col items-center">
-              <span className="text-sm font-medium text-foreground">{timeLabel}</span>
-              <span className="text-sm font-medium text-muted-foreground">{dayLabel}</span>
-            </div>
+            {showFinalScore
+              ? (
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-2 text-3xl leading-none font-semibold tabular-nums">
+                      <span
+                        className={team1Won
+                          ? 'text-foreground'
+                          : team2Won
+                            ? 'text-muted-foreground'
+                            : 'text-foreground'}
+                      >
+                        {team1Score ?? '—'}
+                      </span>
+                      <span className="text-muted-foreground">-</span>
+                      <span
+                        className={team2Won
+                          ? 'text-foreground'
+                          : team1Won
+                            ? 'text-muted-foreground'
+                            : 'text-foreground'}
+                      >
+                        {team2Score ?? '—'}
+                      </span>
+                    </div>
+                    <span className="mt-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      FINAL
+                    </span>
+                  </div>
+                )
+              : (
+                  <div className="flex flex-col items-center">
+                    <span className="text-sm font-medium text-foreground">{timeLabel}</span>
+                    <span className="text-sm font-medium text-muted-foreground">{dayLabel}</span>
+                  </div>
+                )}
 
             <div className="flex w-20 flex-col items-center gap-2">
               <div className="pointer-events-none flex size-12 items-center justify-center select-none">
@@ -1237,6 +1314,8 @@ export default function SportsEventCenter({
               defaultGraphTimeRange="ALL"
               allowedConditionIds={allCardConditionIds}
               positionsTitle="All Positions"
+              showRedeemInPositions={card.event.sports_ended === true}
+              onOpenRedeemForCondition={handleOpenRedeemForCondition}
               oddsFormat={oddsFormat}
               onChangeTab={() => {}}
               onSelectButton={(buttonKey) => {

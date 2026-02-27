@@ -2151,6 +2151,8 @@ interface SportsGameDetailsPanelProps {
   positionsTitle?: string
   showAboutTab?: boolean
   aboutEvent?: SportsGamesCard['event'] | null
+  showRedeemInPositions?: boolean
+  onOpenRedeemForCondition?: ((conditionId: string) => void) | null
   oddsFormat?: OddsFormat
   onChangeTab: (tab: DetailsTab) => void
   onSelectButton: (
@@ -2169,6 +2171,8 @@ export function SportsGameDetailsPanel({
   positionsTitle,
   showAboutTab = false,
   aboutEvent = null,
+  showRedeemInPositions = false,
+  onOpenRedeemForCondition = null,
   oddsFormat = 'price',
   onChangeTab,
   onSelectButton,
@@ -3138,17 +3142,10 @@ export function SportsGameDetailsPanel({
               <div
                 className={cn(
                   'flex shrink-0 items-center text-foreground',
-                  isStandalonePositionsCard ? 'gap-2 text-sm font-semibold' : 'gap-1 text-sm font-semibold',
+                  isStandalonePositionsCard ? 'text-sm font-semibold' : 'text-sm font-semibold',
                 )}
               >
                 <span>{positionsTitle ?? t('Positions')}</span>
-                <ChevronDownIcon
-                  className={cn(
-                    'transition-transform',
-                    isStandalonePositionsCard ? 'size-4' : 'size-3.5',
-                    isPositionsExpanded ? 'rotate-180' : 'rotate-0',
-                  )}
-                />
               </div>
 
               {showPositionTagSummary && (
@@ -3201,6 +3198,15 @@ export function SportsGameDetailsPanel({
                   )}
                 </>
               )}
+
+              <ChevronDownIcon
+                className={cn(
+                  'shrink-0 transition-transform',
+                  !showPositionTagSummary && 'ml-auto',
+                  isStandalonePositionsCard ? 'size-4' : 'size-3.5',
+                  isPositionsExpanded ? 'rotate-180' : 'rotate-0',
+                )}
+              />
             </div>
 
             {isPositionsExpanded && (
@@ -3294,18 +3300,38 @@ export function SportsGameDetailsPanel({
                                     Convert
                                   </button>
                                 )}
-                                <button
-                                  type="button"
-                                  data-sports-card-control="true"
-                                  className={`
-                                    inline-flex h-7 items-center justify-center rounded-sm border border-border/70
-                                    bg-background/40 px-2 text-xs font-semibold text-foreground transition-colors
-                                    hover:bg-secondary/40
-                                  `}
-                                  onClick={event => void handleCashOutTag(tag, event)}
-                                >
-                                  Sell
-                                </button>
+                                {showRedeemInPositions
+                                  ? (
+                                      <button
+                                        type="button"
+                                        data-sports-card-control="true"
+                                        className={`
+                                          inline-flex h-7 items-center justify-center rounded-sm border border-border/70
+                                          bg-background px-2 text-xs font-semibold text-foreground transition-colors
+                                          hover:bg-secondary/35
+                                        `}
+                                        onClick={(event) => {
+                                          event.stopPropagation()
+                                          onOpenRedeemForCondition?.(tag.conditionId)
+                                        }}
+                                      >
+                                        Redeem
+                                      </button>
+                                    )
+                                  : (
+                                      <button
+                                        type="button"
+                                        data-sports-card-control="true"
+                                        className={`
+                                          inline-flex h-7 items-center justify-center rounded-sm border border-border/70
+                                          bg-background/40 px-2 text-xs font-semibold text-foreground transition-colors
+                                          hover:bg-secondary/40
+                                        `}
+                                        onClick={event => void handleCashOutTag(tag, event)}
+                                      >
+                                        Sell
+                                      </button>
+                                    )}
                               </div>
                             </td>
                           </tr>
@@ -4034,7 +4060,12 @@ export default function SportsGamesCenter({
     const buttonGroups = groupButtonsByMarketType(card.buttons)
     const competitionLabel = resolveCardCompetitionLabel(card, options.categoryLabel)
     const hasLivestreamUrl = Boolean(card.event.livestream_url?.trim())
-    const canWatchLivestream = options.topBadgeMode === 'live' && hasLivestreamUrl
+    const canWatchLivestream = (
+      options.topBadgeMode === 'live'
+      && hasLivestreamUrl
+      && card.event.sports_ended !== true
+      && card.event.sports_live !== false
+    )
 
     return (
       <article
