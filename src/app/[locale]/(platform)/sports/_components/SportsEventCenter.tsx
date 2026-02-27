@@ -15,6 +15,7 @@ import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_compone
 import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
 import EventOrderPanelTermsDisclaimer
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
+import EventTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabs'
 import {
   groupButtonsByMarketType,
   resolveButtonDepthStyle,
@@ -52,6 +53,7 @@ type EventSectionKey = Extract<SportsGamesMarketType, 'moneyline' | 'spread' | '
 
 interface SportsEventCenterProps {
   card: SportsGamesCard
+  relatedCards?: SportsGamesCard[]
   sportSlug: string
   sportLabel: string
   initialMarketSlug?: string | null
@@ -139,6 +141,26 @@ function parseSportsScore(value: string | null | undefined) {
   }
 
   return { team1, team2 }
+}
+
+function resolveRelatedTeamOdds(card: SportsGamesCard) {
+  const moneylineButtons = card.buttons.filter(button => button.marketType === 'moneyline')
+  const team1Button = moneylineButtons.find(button => button.tone === 'team1') ?? moneylineButtons[0] ?? null
+  const team2Button = moneylineButtons.find(button => button.tone === 'team2')
+    ?? moneylineButtons.find(button => button.key !== team1Button?.key)
+    ?? null
+
+  return {
+    team1Cents: team1Button?.cents ?? null,
+    team2Cents: team2Button?.cents ?? null,
+  }
+}
+
+function formatRelatedOddsLabel(cents: number | null) {
+  if (typeof cents !== 'number' || !Number.isFinite(cents)) {
+    return '—'
+  }
+  return `${cents}¢`
 }
 
 function normalizeComparableToken(value: string | null | undefined) {
@@ -447,8 +469,134 @@ function sortSectionButtons(sectionKey: EventSectionKey, buttons: SportsGamesBut
   return buttons
 }
 
+function SportsEventRelatedGames({
+  cards,
+  sportSlug,
+  sportLabel,
+  locale,
+}: {
+  cards: SportsGamesCard[]
+  sportSlug: string
+  sportLabel: string
+  locale: string
+}) {
+  const dateTimeFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }),
+    [locale],
+  )
+
+  if (cards.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="grid gap-2.5">
+      <p className="text-sm font-normal text-muted-foreground">
+        {'More '}
+        <Link href={`/sports/${sportSlug}/games`} className="underline-offset-2 hover:underline">
+          {sportLabel}
+        </Link>
+        {' Games'}
+      </p>
+
+      <div className="grid gap-2">
+        {cards.map((relatedCard) => {
+          const startTime = relatedCard.startTime ? new Date(relatedCard.startTime) : null
+          const hasValidStartTime = Boolean(startTime && !Number.isNaN(startTime.getTime()))
+          const topLineDate = hasValidStartTime ? dateTimeFormatter.format(startTime as Date) : 'Date TBD'
+          const { team1Cents, team2Cents } = resolveRelatedTeamOdds(relatedCard)
+          const team1 = relatedCard.teams[0] ?? null
+          const team2 = relatedCard.teams[1] ?? null
+
+          return (
+            <Link
+              key={relatedCard.id}
+              href={relatedCard.eventHref}
+              className={cn('block rounded-xl px-3 py-2.5 transition-colors hover:bg-card')}
+            >
+              <p className="mb-2 text-xs font-normal text-muted-foreground">
+                {topLineDate}
+                <span className="mx-2 inline-block">·</span>
+                {formatVolume(relatedCard.volume)}
+                {' '}
+                Vol.
+              </p>
+
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex size-6 shrink-0 items-center justify-center">
+                      {team1?.logoUrl
+                        ? (
+                            <Image
+                              src={team1.logoUrl}
+                              alt={`${team1.name} logo`}
+                              width={24}
+                              height={24}
+                              sizes="24px"
+                              className="size-full object-contain object-center"
+                            />
+                          )
+                        : (
+                            <span className="text-2xs font-semibold text-muted-foreground">
+                              {team1?.abbreviation?.slice(0, 1)?.toUpperCase() ?? '—'}
+                            </span>
+                          )}
+                    </span>
+                    <span className="truncate text-xs font-normal text-foreground">
+                      {team1?.name ?? '—'}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-sm font-normal text-muted-foreground">
+                    {formatRelatedOddsLabel(team1Cents)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex size-6 shrink-0 items-center justify-center">
+                      {team2?.logoUrl
+                        ? (
+                            <Image
+                              src={team2.logoUrl}
+                              alt={`${team2.name} logo`}
+                              width={24}
+                              height={24}
+                              sizes="24px"
+                              className="size-full object-contain object-center"
+                            />
+                          )
+                        : (
+                            <span className="text-2xs font-semibold text-muted-foreground">
+                              {team2?.abbreviation?.slice(0, 1)?.toUpperCase() ?? '—'}
+                            </span>
+                          )}
+                    </span>
+                    <span className="truncate text-xs font-normal text-foreground">
+                      {team2?.name ?? '—'}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-sm font-normal text-muted-foreground">
+                    {formatRelatedOddsLabel(team2Cents)}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function SportsEventCenter({
   card,
+  relatedCards = [],
   sportSlug,
   sportLabel,
   initialMarketSlug = null,
@@ -1555,6 +1703,10 @@ export default function SportsEventCenter({
               )
             })}
           </div>
+
+          <div className="mt-8">
+            <EventTabs event={card.event} user={user ?? null} />
+          </div>
         </section>
 
         <aside
@@ -1585,6 +1737,12 @@ export default function SportsEventCenter({
                     primaryOutcomeIndex={activeTradePrimaryOutcomeIndex}
                   />
                   <EventOrderPanelTermsDisclaimer />
+                  <SportsEventRelatedGames
+                    cards={relatedCards}
+                    sportSlug={sportSlug}
+                    sportLabel={sportLabel}
+                    locale={locale}
+                  />
                 </div>
               )
             : (
