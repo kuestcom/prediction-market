@@ -224,12 +224,6 @@ ON CONFLICT (id) DO UPDATE SET
 ALTER TABLE sports_menu_items
   ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE event_sports
-  ENABLE ROW LEVEL SECURITY;
-
-ALTER TABLE market_sports
-  ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "service_role_all_sports_menu_items" ON "sports_menu_items";
 CREATE POLICY "service_role_all_sports_menu_items"
   ON "sports_menu_items"
@@ -238,28 +232,3 @@ CREATE POLICY "service_role_all_sports_menu_items"
   TO "service_role"
   USING (TRUE)
   WITH CHECK (TRUE);
-
-DROP POLICY IF EXISTS "service_role_all_event_sports" ON "event_sports";
-CREATE POLICY "service_role_all_event_sports"
-  ON "event_sports"
-  AS PERMISSIVE
-  FOR ALL
-  TO "service_role"
-  USING (TRUE)
-  WITH CHECK (TRUE);
-
-DROP POLICY IF EXISTS "service_role_all_market_sports" ON "market_sports";
-CREATE POLICY "service_role_all_market_sports"
-  ON "market_sports"
-  AS PERMISSIVE
-  FOR ALL
-  TO "service_role"
-  USING (TRUE)
-  WITH CHECK (TRUE);
-
--- ===========================================
--- Event livestream URL
--- ===========================================
-
-ALTER TABLE events
-  ADD COLUMN IF NOT EXISTS livestream_url TEXT;

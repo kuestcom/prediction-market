@@ -107,3 +107,27 @@ CREATE INDEX IF NOT EXISTS idx_market_sports_event_slug
 CREATE INDEX IF NOT EXISTS idx_market_sports_teams_gin
   ON market_sports
   USING GIN (sports_teams);
+
+ALTER TABLE event_sports
+  ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE market_sports
+  ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "service_role_all_event_sports" ON "event_sports";
+CREATE POLICY "service_role_all_event_sports"
+  ON "event_sports"
+  AS PERMISSIVE
+  FOR ALL
+  TO "service_role"
+  USING (TRUE)
+  WITH CHECK (TRUE);
+
+DROP POLICY IF EXISTS "service_role_all_market_sports" ON "market_sports";
+CREATE POLICY "service_role_all_market_sports"
+  ON "market_sports"
+  AS PERMISSIVE
+  FOR ALL
+  TO "service_role"
+  USING (TRUE)
+  WITH CHECK (TRUE);

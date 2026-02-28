@@ -1,11 +1,4 @@
 -- ===========================================
--- Event start date
--- ===========================================
-
-ALTER TABLE events
-  ADD COLUMN IF NOT EXISTS start_date TIMESTAMPTZ;
-
--- ===========================================
 -- Series social tracker mappings
 -- ===========================================
 

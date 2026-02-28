@@ -14,6 +14,15 @@ CREATE TABLE conditions
   mirror_uma_request_tx_hash   CHAR(66),
   mirror_uma_request_log_index INTEGER,
   mirror_uma_oracle_address    CHAR(42),
+  resolution_status            TEXT,
+  resolution_flagged           BOOLEAN,
+  resolution_paused            BOOLEAN,
+  resolution_last_update       TIMESTAMPTZ,
+  resolution_price             DECIMAL(20, 6),
+  resolution_was_disputed      BOOLEAN,
+  resolution_approved          BOOLEAN,
+  resolution_liveness_seconds  BIGINT,
+  resolution_deadline_at       TIMESTAMPTZ,
   metadata_hash                TEXT,
   creator                      CHAR(42),
   created_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -41,15 +50,20 @@ CREATE TABLE events
   title                TEXT        NOT NULL,
   creator              CHAR(42),
   icon_url             TEXT,
+  livestream_url       TEXT,
   show_market_icons    BOOLEAN              DEFAULT TRUE,
   enable_neg_risk      BOOLEAN              DEFAULT FALSE,
   neg_risk_augmented   BOOLEAN              DEFAULT FALSE,
   neg_risk             BOOLEAN              DEFAULT FALSE,
   neg_risk_market_id   CHAR(66),
+  series_slug          TEXT,
+  series_id            TEXT,
+  series_recurrence    TEXT,
   status               TEXT        NOT NULL DEFAULT 'active',
   rules                TEXT,
   active_markets_count INTEGER              DEFAULT 0,
   total_markets_count  INTEGER              DEFAULT 0,
+  start_date           TIMESTAMPTZ,
   end_date             TIMESTAMPTZ,
   resolved_at          TIMESTAMPTZ,
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -117,6 +131,8 @@ CREATE TABLE subgraph_syncs
   service_name    text        NOT NULL,
   subgraph_name   text        NOT NULL,
   status          text                 DEFAULT 'idle',
+  cursor_updated_at BIGINT,
+  cursor_id       TEXT,
   total_processed INTEGER              DEFAULT 0,
   error_message   TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -132,6 +148,13 @@ CREATE TABLE subgraph_syncs
 
 CREATE INDEX idx_events_end_date ON events (end_date);
 CREATE INDEX idx_events_title_lower_gin_trgm ON events USING GIN (LOWER(title) gin_trgm_ops);
+CREATE INDEX idx_conditions_question_id ON conditions (question_id);
+CREATE INDEX idx_markets_neg_risk_request_id ON markets (neg_risk_request_id) WHERE neg_risk_request_id IS NOT NULL;
+CREATE INDEX idx_markets_event_id_active_resolved ON markets (event_id, is_active, is_resolved);
+CREATE INDEX idx_markets_active_resolved_updated_at ON markets (is_active, is_resolved, updated_at);
+CREATE INDEX idx_event_tags_tag_id_event_id ON event_tags (tag_id, event_id);
+CREATE INDEX idx_markets_event_id_condition_id ON markets (event_id, condition_id);
+CREATE INDEX idx_conditions_updated_at_id ON conditions (updated_at DESC, id DESC);
 
 -- ===========================================
 -- 3. ROW LEVEL SECURITY
