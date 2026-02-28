@@ -116,9 +116,8 @@ function EventMarketCardComponent({
         `
           group relative z-0 flex w-full cursor-pointer flex-col items-start py-3 pr-2 pl-4 transition-all duration-200
           ease-in-out
-          before:pointer-events-none before:absolute before:inset-y-0 before:-right-3 before:-left-3 before:-z-10
-          before:rounded-lg before:bg-black/5 before:opacity-0 before:transition-opacity before:duration-200
-          before:content-['']
+          before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-lg
+          before:bg-black/5 before:opacity-0 before:transition-opacity before:duration-200 before:content-['']
           hover:before:opacity-100
           lg:flex-row lg:items-center lg:rounded-lg lg:px-0
           dark:before:bg-white/5

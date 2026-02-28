@@ -1,13 +1,13 @@
-"use client";
+'use client'
 
-import { TrendingUp } from "lucide-react";
-import type { MarketSearchResult as IMarketSearchResult } from "@/types/market-search";
+import type { MarketSearchResult as IMarketSearchResult } from '@/types/market-search'
+import { TrendingUp } from 'lucide-react'
 
 interface MarketSearchResultProps {
-  result: IMarketSearchResult;
-  isActive: boolean;
-  onSelect: (result: IMarketSearchResult) => void;
-  index: number;
+  result: IMarketSearchResult
+  isActive: boolean
+  onSelect: (result: IMarketSearchResult) => void
+  index: number
 }
 
 /**
@@ -21,15 +21,15 @@ export function MarketSearchResult({
   onSelect,
   index,
 }: MarketSearchResultProps) {
-  const pct = Math.round(result.probability * 100);
+  const pct = Math.round(result.probability * 100)
 
   // Colour the probability badge: green > 60 %, amber 40–60 %, red < 40 %.
-  const badgeColour =
-    pct > 60
-      ? "bg-emerald-900/60 text-emerald-400"
+  const badgeColour
+    = pct > 60
+      ? 'bg-emerald-900/60 text-emerald-400'
       : pct < 40
-      ? "bg-red-900/60 text-red-400"
-      : "bg-amber-900/60 text-amber-400";
+        ? 'bg-red-900/60 text-red-400'
+        : 'bg-amber-900/60 text-amber-400'
 
   return (
     <li
@@ -37,16 +37,16 @@ export function MarketSearchResult({
       role="option"
       aria-selected={isActive}
       data-index={index}
-      onPointerDown={(e) => e.preventDefault()}
+      onPointerDown={e => e.preventDefault()}
       onClick={() => onSelect(result)}
       className={`
         flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors
-        ${isActive ? "bg-gray-800" : "hover:bg-gray-800/50"}
+        ${isActive ? 'bg-gray-800' : 'hover:bg-gray-800/50'}
       `}
     >
       {/* Trending icon placeholder — swap for category icon if desired */}
       <span className="shrink-0 text-gray-500">
-        <TrendingUp className="h-4 w-4" aria-hidden="true" />
+        <TrendingUp className="size-4" aria-hidden="true" />
       </span>
 
       {/* Market question */}
@@ -56,11 +56,12 @@ export function MarketSearchResult({
 
       {/* Probability badge */}
       <span
-        className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold tabular-nums ${badgeColour}`}
+        className={`shrink-0 rounded-sm px-1.5 py-0.5 text-xs font-semibold tabular-nums ${badgeColour}`}
         title={`${pct}% YES probability`}
       >
-        {pct}%
+        {pct}
+        %
       </span>
     </li>
-  );
+  )
 }

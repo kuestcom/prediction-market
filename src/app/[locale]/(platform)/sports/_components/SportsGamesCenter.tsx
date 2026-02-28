@@ -3214,11 +3214,11 @@ export function SportsGameDetailsPanel({
                     <thead>
                       <tr className="text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
                         <th className="py-2 text-left">Type</th>
-                        <th className="px-2 py-2 text-left">Outcome</th>
-                        <th className="px-2 py-2 text-right">Avg</th>
-                        <th className="px-2 py-2 text-right">Cost</th>
-                        <th className="px-2 py-2 text-right">To Win</th>
-                        <th className="px-2 py-2 text-right">Current</th>
+                        <th className="p-2 text-left">Outcome</th>
+                        <th className="p-2 text-right">Avg</th>
+                        <th className="p-2 text-right">Cost</th>
+                        <th className="p-2 text-right">To Win</th>
+                        <th className="p-2 text-right">Current</th>
                         <th className="py-2 text-right" />
                       </tr>
                       <tr>
@@ -3259,7 +3259,7 @@ export function SportsGameDetailsPanel({
                         return (
                           <tr key={tag.key} className="text-xs text-foreground">
                             <td className="py-2 font-medium">{tag.marketTypeLabel}</td>
-                            <td className="px-2 py-2">
+                            <td className="p-2">
                               <span
                                 className={cn(
                                   'inline-flex min-w-0 items-center rounded-sm px-2.5 py-1 text-xs font-semibold',
@@ -3270,12 +3270,12 @@ export function SportsGameDetailsPanel({
                                 {`${tag.summaryLabel} | ${formatSharesLabel(tag.shares)}`}
                               </span>
                             </td>
-                            <td className="px-2 py-2 text-right font-medium">
+                            <td className="p-2 text-right font-medium">
                               {formatAverageCellLabel(tag.avgPriceCents)}
                             </td>
-                            <td className="px-2 py-2 text-right font-medium">{costLabel}</td>
-                            <td className="px-2 py-2 text-right font-medium">{toWinLabel}</td>
-                            <td className={cn('px-2 py-2 text-right font-medium', pnlClass)}>
+                            <td className="p-2 text-right font-medium">{costLabel}</td>
+                            <td className="p-2 text-right font-medium">{toWinLabel}</td>
+                            <td className={cn('p-2 text-right font-medium', pnlClass)}>
                               {currentLabel}
                               {' '}
                               (
