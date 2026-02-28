@@ -2,10 +2,10 @@
 
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
-import type { Event } from '@/types'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
+import { mergeUniqueEventsById } from '@/app/[locale]/(platform)/sports/_components/sports-games-utils'
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
@@ -29,23 +29,6 @@ function parseWeekParam(value: string) {
   }
 
   return parsed
-}
-
-function mergeUniqueEventsById(...collections: Array<Event[] | null | undefined>) {
-  const merged: Event[] = []
-  const seenIds = new Set<string>()
-
-  for (const collection of collections) {
-    for (const event of collection ?? []) {
-      if (!event?.id || seenIds.has(event.id)) {
-        continue
-      }
-      seenIds.add(event.id)
-      merged.push(event)
-    }
-  }
-
-  return merged
 }
 
 export default async function SportsGamesBySportWeekPage({
