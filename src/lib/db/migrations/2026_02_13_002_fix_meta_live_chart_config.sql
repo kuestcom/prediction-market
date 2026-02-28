@@ -297,11 +297,11 @@ SET show_price_decimals = CASE
 END;
 
 -- Configure live trading window length (in minutes) by series cadence:
--- 5m => 5, 15m => 15, hourly => 60, 4h => 240, daily => 390 (equities) / 1440 (crypto).
+-- 15m => 15, 5m => 5, hourly => 60, 4h => 240, daily => 390 (equities) / 1440 (crypto).
 UPDATE event_live_chart_configs
 SET active_window_minutes = CASE
-  WHEN series_slug ILIKE '%5m%' THEN 5
   WHEN series_slug ILIKE '%15m%' THEN 15
+  WHEN series_slug ILIKE '%5m%' THEN 5
   WHEN series_slug ILIKE '%hourly%' THEN 60
   WHEN series_slug ILIKE '%4h%' THEN 240
   WHEN series_slug ILIKE '%daily%' AND topic = 'equity_prices' THEN 390
