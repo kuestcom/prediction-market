@@ -42,7 +42,7 @@
     "@visx/scale": "4.0.1-alpha.0",
     "@visx/shape": "4.0.1-alpha.0",
     "@visx/tooltip": "4.0.1-alpha.0",
-    "better-auth": "^1.4.18",
+    "better-auth": "^1.4.19",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
