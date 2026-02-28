@@ -19,6 +19,7 @@ interface ReplyItemProps {
   parentProfileSlug: string
   commentId: string
   user: any
+  usePrimaryPositionTone?: boolean
   isSingleMarket: boolean
   marketsByConditionId: Map<string, Market>
   onLikeToggle: (commentId: string, replyId: string) => void
@@ -38,6 +39,7 @@ export default function EventCommentReplyItem({
   parentProfileSlug,
   commentId,
   user,
+  usePrimaryPositionTone = false,
   isSingleMarket,
   marketsByConditionId,
   onLikeToggle,
@@ -104,6 +106,7 @@ export default function EventCommentReplyItem({
             positions={reply.positions}
             isSingleMarket={isSingleMarket}
             marketsByConditionId={marketsByConditionId}
+            usePrimaryTone={usePrimaryPositionTone}
           />
         )}
       >

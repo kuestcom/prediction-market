@@ -16,17 +16,35 @@ export const metadata: Metadata = {
 }
 
 export async function generateStaticParams() {
-  return [{ sport: STATIC_PARAMS_PLACEHOLDER }]
+  return [{
+    sport: STATIC_PARAMS_PLACEHOLDER,
+    week: STATIC_PARAMS_PLACEHOLDER,
+  }]
 }
 
-export default async function SportsGamesBySportPage({
+function parseWeekParam(value: string) {
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null
+  }
+
+  return parsed
+}
+
+export default async function SportsGamesBySportWeekPage({
   params,
 }: {
-  params: Promise<{ locale: string, sport: string }>
+  params: Promise<{ locale: string, sport: string, week: string }>
 }) {
-  const { locale, sport } = await params
+  const { locale, sport, week } = await params
   setRequestLocale(locale)
-  if (sport === STATIC_PARAMS_PLACEHOLDER) {
+
+  if (sport === STATIC_PARAMS_PLACEHOLDER || week === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
+
+  const parsedWeek = parseWeekParam(week)
+  if (parsedWeek == null) {
     notFound()
   }
 
@@ -68,6 +86,7 @@ export default async function SportsGamesBySportPage({
       cards={cards}
       sportSlug={canonicalSportSlug}
       sportTitle={sportTitle}
+      initialWeek={parsedWeek}
     />
   )
 }

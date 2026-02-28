@@ -34,6 +34,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
   const [sortBy, setSortBy] = useState<'newest' | 'most_liked'>('newest')
   const [holdersOnly, setHoldersOnly] = useState(false)
   const holdersCheckboxId = useId()
+  const isSportsEvent = Boolean(event.sports_sport_slug?.trim())
   const marketsByConditionId = useMemo(() => {
     const map = new Map<string, Event['markets'][number]>()
     event.markets.forEach((market) => {
@@ -170,9 +171,13 @@ export default function EventComments({ event, user }: EventCommentsProps) {
           <SelectTrigger size="default" className="h-9 px-3 text-sm dark:bg-transparent">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">{t('Newest')}</SelectItem>
-            <SelectItem value="most_liked">{t('Most liked')}</SelectItem>
+          <SelectContent className="p-1">
+            <SelectItem value="newest" className="my-0.5 cursor-pointer rounded-sm py-1.5 pl-2">
+              {t('Newest')}
+            </SelectItem>
+            <SelectItem value="most_liked" className="my-0.5 cursor-pointer rounded-sm py-1.5 pl-2">
+              {t('Most liked')}
+            </SelectItem>
           </SelectContent>
         </Select>
         <label
@@ -213,6 +218,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
                   key={comment.id}
                   comment={comment}
                   user={user}
+                  usePrimaryPositionTone={isSportsEvent}
                   isSingleMarket={(event.total_markets_count ?? event.markets.length) <= 1}
                   marketsByConditionId={marketsByConditionId}
                   onLikeToggle={handleLikeToggled}

@@ -49,6 +49,7 @@ export default function EventActivity({ event }: EventActivityProps) {
   const lastWsRefreshAtRef = useRef(0)
   const wsRefreshThrottleMs = 2000
   const normalizeOutcomeLabel = useOutcomeLabel()
+  const isSportsEvent = Boolean(event.sports_sport_slug?.trim())
 
   useEffect(() => {
     queueMicrotask(() => setInfiniteScrollError(null))
@@ -331,9 +332,11 @@ export default function EventActivity({ event }: EventActivityProps) {
               const priceLabel = formatSharePriceLabel(Number(activity.price))
               const valueLabel = formatTotalValue(activity.total_value)
               const amountLabel = fromMicro(activity.amount)
-              const outcomeColorClass = (activity.outcome.text || '').toLowerCase() === 'yes'
-                ? 'text-yes'
-                : 'text-no'
+              const outcomeColorClass = isSportsEvent
+                ? 'text-primary'
+                : (activity.outcome.text || '').toLowerCase() === 'yes'
+                    ? 'text-yes'
+                    : 'text-no'
               const rawUsername = activity.user.username
                 || activity.user.address
                 || 'trader'

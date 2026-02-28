@@ -17,6 +17,7 @@ import EventCommentsLoadMoreReplies from './EventCommentsLoadMoreReplies'
 interface CommentItemProps {
   comment: Comment
   user: any
+  usePrimaryPositionTone?: boolean
   isSingleMarket: boolean
   marketsByConditionId: Map<string, Market>
   onLikeToggle: (commentId: string) => void
@@ -40,6 +41,7 @@ interface CommentItemProps {
 export default function EventCommentItem({
   comment,
   user,
+  usePrimaryPositionTone = false,
   isSingleMarket,
   marketsByConditionId,
   onLikeToggle,
@@ -112,6 +114,7 @@ export default function EventCommentItem({
             positions={comment.positions}
             isSingleMarket={isSingleMarket}
             marketsByConditionId={marketsByConditionId}
+            usePrimaryTone={usePrimaryPositionTone}
           />
         )}
       >
@@ -184,6 +187,7 @@ export default function EventCommentItem({
               parentProfileSlug={profileSlug}
               commentId={comment.id}
               user={user}
+              usePrimaryPositionTone={usePrimaryPositionTone}
               isSingleMarket={isSingleMarket}
               marketsByConditionId={marketsByConditionId}
               onLikeToggle={onUpdateReply}

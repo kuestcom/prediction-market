@@ -19,6 +19,20 @@ export async function generateStaticParams() {
   return [{ market: STATIC_PARAMS_PLACEHOLDER }]
 }
 
+function isSameSportsGame(
+  left: ReturnType<typeof buildSportsGamesCards>[number],
+  right: ReturnType<typeof buildSportsGamesCards>[number],
+) {
+  const leftSportsEventSlug = left.event.sports_event_slug?.trim().toLowerCase() ?? null
+  const rightSportsEventSlug = right.event.sports_event_slug?.trim().toLowerCase() ?? null
+
+  if (leftSportsEventSlug && rightSportsEventSlug) {
+    return leftSportsEventSlug === rightSportsEventSlug
+  }
+
+  return left.id === right.id || left.event.id === right.event.id || left.event.slug === right.event.slug
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -75,13 +89,37 @@ export default async function SportsEventMarketPage({
   const resolvedSportSlug = canonicalSportSlug
     || targetCard.event.sports_sport_slug
     || sport
-  const { data: layoutData } = await SportsMenuRepository.getLayoutData()
+  const [{ data: layoutData }, { data: relatedEventsResult }] = await Promise.all([
+    SportsMenuRepository.getLayoutData(),
+    EventRepository.listEvents({
+      tag: 'sports',
+      search: '',
+      userId: '',
+      bookmarked: false,
+      status: 'active',
+      locale: resolvedLocale,
+      sportsSportSlug: resolvedSportSlug,
+      sportsSection: 'games',
+    }),
+  ])
+
+  const relatedCards = buildSportsGamesCards(relatedEventsResult ?? [])
+    .filter(relatedCard => !isSameSportsGame(relatedCard, targetCard))
+    .filter(relatedCard => relatedCard.event.sports_ended !== true)
+    .filter(relatedCard => relatedCard.event.status === 'active')
+    .filter((relatedCard) => {
+      const relatedSportSlug = relatedCard.event.sports_sport_slug?.trim().toLowerCase()
+      return !relatedSportSlug || relatedSportSlug === resolvedSportSlug.toLowerCase()
+    })
+    .slice(0, 3)
+
   const sportLabel = layoutData?.h1TitleBySlug[resolvedSportSlug] ?? resolvedSportSlug.toUpperCase()
 
   return (
     <EventMarketChannelProvider markets={targetCard.detailMarkets}>
       <SportsEventCenter
         card={targetCard}
+        relatedCards={relatedCards}
         sportSlug={resolvedSportSlug}
         sportLabel={sportLabel}
         initialMarketSlug={market}
