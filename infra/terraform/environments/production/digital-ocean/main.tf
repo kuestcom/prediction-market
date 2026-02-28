@@ -26,7 +26,6 @@ module "target_digital_ocean" {
   instance_size_slug                   = var.instance_size_slug
   instance_count                       = var.instance_count
   site_url                             = var.site_url
-  reown_appkit_project_id              = var.reown_appkit_project_id
   app_env                              = var.app_env
   secret_env                           = var.secret_env
 }

@@ -2,8 +2,6 @@ FROM node:24-bookworm-slim AS build
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ARG REOWN_APPKIT_PROJECT_ID
-ENV REOWN_APPKIT_PROJECT_ID=$REOWN_APPKIT_PROJECT_ID
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \

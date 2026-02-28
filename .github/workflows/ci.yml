@@ -36,8 +36,6 @@ jobs:
           cache: npm
       - run: npm install
       - run: npm run build
-        env:
-          REOWN_APPKIT_PROJECT_ID: dummy
 
   e2e:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/main')

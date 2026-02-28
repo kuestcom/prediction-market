@@ -4,8 +4,6 @@ services:
     build:
       context: ../..
       dockerfile: infra/docker/Dockerfile
-      args:
-        REOWN_APPKIT_PROJECT_ID: ${REOWN_APPKIT_PROJECT_ID:?REOWN_APPKIT_PROJECT_ID is required}
     env_file:
       - ../../.env
     environment:

@@ -10,10 +10,10 @@ http_port                            = 3000
 instance_size_slug                   = "basic-xxs"
 instance_count                       = 1
 site_url                             = "https://markets.example.com"
-reown_appkit_project_id              = "replace-me"
 
 secret_env = {
   BETTER_AUTH_SECRET                  = "replace-me"
+  REOWN_APPKIT_PROJECT_ID             = "replace-me"
   CRON_SECRET                         = "replace-me"
   POSTGRES_URL                        = "replace-me"
   ADMIN_WALLETS                       = "replace-me"

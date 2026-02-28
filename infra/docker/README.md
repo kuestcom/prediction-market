@@ -50,7 +50,6 @@ docker compose --env-file .env -f infra/docker/docker-compose.production.yml --p
 
 Required for production compose:
 
-- `REOWN_APPKIT_PROJECT_ID` (build arg)
 - `SITE_URL` (runtime)
 - `CADDY_DOMAIN` (recommended for automatic TLS)
 
