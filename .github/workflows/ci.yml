@@ -37,12 +37,7 @@ jobs:
       - run: npm install
       - run: npm run build
         env:
-          SUPABASE_URL: https://dummy
-          SUPABASE_SERVICE_ROLE_KEY: dummy
-          POSTGRES_URL: postgres://dummy:dummy@localhost:5432/dummy
-          BETTER_AUTH_SECRET: 00000000000000000000000000000000
           REOWN_APPKIT_PROJECT_ID: dummy
-          NEXT_PUBLIC_SITE_LOGO_SVG: <svg>dummy</svg>
 
   e2e:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/main')
