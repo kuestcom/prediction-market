@@ -30,11 +30,6 @@ variable "site_url" {
   description = "Canonical public app URL"
 }
 
-variable "reown_appkit_project_id" {
-  type        = string
-  description = "Reown AppKit project id"
-}
-
 variable "app_env" {
   type        = map(string)
   description = "Additional non-sensitive env vars"

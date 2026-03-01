@@ -4,17 +4,20 @@
 
 CREATE TABLE event_live_chart_configs
 (
-  series_slug    TEXT PRIMARY KEY,
-  topic          TEXT        NOT NULL DEFAULT 'crypto_prices_chainlink',
-  event_type     TEXT        NOT NULL DEFAULT 'update',
-  symbol         TEXT        NOT NULL,
-  display_name   TEXT        NOT NULL,
-  display_symbol TEXT        NOT NULL,
-  line_color     TEXT        NOT NULL DEFAULT '#F59E0B',
-  icon_path      TEXT,
-  enabled        BOOLEAN     NOT NULL DEFAULT TRUE,
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  series_slug            TEXT PRIMARY KEY,
+  topic                  TEXT        NOT NULL DEFAULT 'crypto_prices_chainlink',
+  event_type             TEXT        NOT NULL DEFAULT 'update',
+  symbol                 TEXT        NOT NULL,
+  display_name           TEXT        NOT NULL,
+  display_symbol         TEXT        NOT NULL,
+  line_color             TEXT        NOT NULL DEFAULT '#F59E0B',
+  icon_path              TEXT,
+  enabled                BOOLEAN     NOT NULL DEFAULT TRUE,
+  show_price_decimals    BOOLEAN     NOT NULL DEFAULT TRUE,
+  active_window_minutes  INTEGER     NOT NULL DEFAULT 1440,
+  created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT event_live_chart_configs_active_window_minutes_positive CHECK (active_window_minutes > 0)
 );
 
 ALTER TABLE event_live_chart_configs
@@ -56,3 +59,9 @@ VALUES (
   '/images/live-assets/meta.svg',
   TRUE
 );
+
+COMMENT ON COLUMN event_live_chart_configs.show_price_decimals IS
+  'When true, render live chart prices with cents/decimals.';
+
+COMMENT ON COLUMN event_live_chart_configs.active_window_minutes IS
+  'How many minutes before event end the market is considered actively trading.';

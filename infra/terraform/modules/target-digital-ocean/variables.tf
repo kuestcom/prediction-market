@@ -68,11 +68,6 @@ variable "site_url" {
   description = "Canonical public URL for the app"
 }
 
-variable "reown_appkit_project_id" {
-  type        = string
-  description = "Reown AppKit project id"
-}
-
 variable "app_env" {
   type        = map(string)
   description = "Additional non-sensitive application environment variables"
@@ -86,6 +81,7 @@ variable "secret_env" {
   validation {
     condition = alltrue([
       contains(keys(var.secret_env), "BETTER_AUTH_SECRET"),
+      contains(keys(var.secret_env), "REOWN_APPKIT_PROJECT_ID"),
       contains(keys(var.secret_env), "CRON_SECRET"),
       contains(keys(var.secret_env), "POSTGRES_URL"),
       contains(keys(var.secret_env), "ADMIN_WALLETS"),

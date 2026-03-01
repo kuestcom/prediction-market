@@ -286,3 +286,25 @@ SET
   icon_path = EXCLUDED.icon_path,
   enabled = EXCLUDED.enabled,
   updated_at = NOW();
+
+-- Configure display precision per market family.
+-- Equities keep decimal precision, crypto series stay integer by default.
+UPDATE event_live_chart_configs
+SET show_price_decimals = CASE
+  WHEN topic = 'equity_prices' THEN TRUE
+  WHEN topic = 'crypto_prices_chainlink' THEN FALSE
+  ELSE show_price_decimals
+END;
+
+-- Configure live trading window length (in minutes) by series cadence:
+-- 15m => 15, 5m => 5, hourly => 60, 4h => 240, daily => 390 (equities) / 1440 (crypto).
+UPDATE event_live_chart_configs
+SET active_window_minutes = CASE
+  WHEN series_slug ILIKE '%15m%' THEN 15
+  WHEN series_slug ILIKE '%5m%' THEN 5
+  WHEN series_slug ILIKE '%hourly%' THEN 60
+  WHEN series_slug ILIKE '%4h%' THEN 240
+  WHEN series_slug ILIKE '%daily%' AND topic = 'equity_prices' THEN 390
+  WHEN series_slug ILIKE '%daily%' THEN 1440
+  ELSE active_window_minutes
+END;

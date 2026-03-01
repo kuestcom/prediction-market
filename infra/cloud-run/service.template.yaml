@@ -23,7 +23,10 @@ spec:
             - name: SITE_URL
               value: https://markets.example.com
             - name: REOWN_APPKIT_PROJECT_ID
-              value: replace-me
+              valueFrom:
+                secretKeyRef:
+                  name: REOWN_APPKIT_PROJECT_ID
+                  key: latest
             - name: POSTGRES_URL
               valueFrom:
                 secretKeyRef:

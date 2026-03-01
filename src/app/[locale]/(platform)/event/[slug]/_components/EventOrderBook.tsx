@@ -357,7 +357,7 @@ export default function EventOrderBook({
           className={cn(
             tableHeaderClass,
             'grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b',
-            isSportsCardSurface && 'sticky top-0 z-10',
+            'sticky top-0 z-10',
             surfaceClass,
           )}
         >
