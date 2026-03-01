@@ -54,6 +54,10 @@ const config: NextConfig = {
   async rewrites() {
     return [
       {
+        source: '/sitemaps/:id.xml',
+        destination: '/sitemaps/sitemap/:id.xml',
+      },
+      {
         source: '/:locale/@:username',
         destination: '/:locale/:username',
       },
