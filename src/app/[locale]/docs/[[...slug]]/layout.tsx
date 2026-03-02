@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react'
+import type { SupportedLocale } from '@/i18n/locales'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { BookOpenIcon, CodeIcon, GitForkIcon, HomeIcon } from 'lucide-react'
 import { setRequestLocale } from 'next-intl/server'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { getDocsSidebarTree } from '@/lib/docs/sidebar-tree'
+import { withLocalePrefix } from '@/lib/locale-path'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 interface DocsSlugLayoutProps {
@@ -17,6 +19,11 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
   const runtimeTheme = await loadRuntimeThemeState()
   const site = runtimeTheme.site
   const docsTree = getDocsSidebarTree(slug)
+  const currentLocale = locale as SupportedLocale
+
+  function docsPath(pathname: string) {
+    return withLocalePrefix(pathname, currentLocale)
+  }
 
   return (
     <DocsLayout
@@ -43,13 +50,13 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
           {
             title: 'User Guide',
             description: 'How to use the platform',
-            url: '/docs/users',
+            url: docsPath('/docs/users'),
             icon: <BookOpenIcon className="size-4" />,
           },
           {
             title: 'API Reference',
             description: 'REST and WebSocket contracts',
-            url: '/docs/api-reference',
+            url: docsPath('/docs/api-reference'),
             icon: <CodeIcon className="size-4" />,
           },
           ...(JSON.parse(process.env.FORK_OWNER_GUIDE || 'false')
@@ -57,7 +64,7 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
                 {
                   title: 'Fork Owner Guide',
                   description: 'Create your own platform',
-                  url: '/docs/owners',
+                  url: docsPath('/docs/owners'),
                   icon: <GitForkIcon className="size-4" />,
                 },
               ]
