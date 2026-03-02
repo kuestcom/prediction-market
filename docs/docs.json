@@ -13,7 +13,7 @@
           {
             "group": "User Guide",
             "pages": [
-              "users/index",
+              "index",
               {
                 "group": "Getting started",
                 "pages": [

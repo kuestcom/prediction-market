@@ -1,6 +1,5 @@
 import type { NextConfig } from 'next'
 import { withSentryConfig } from '@sentry/nextjs'
-import { createMDX } from 'fumadocs-mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
 import siteUrlUtils from './src/lib/site-url'
 
@@ -79,10 +78,6 @@ const config: NextConfig = {
   },
 }
 
-const withMDX = createMDX({
-  configPath: 'docs.config.ts',
-})
-
 const withNextIntl = createNextIntlPlugin({
   experimental: {
     srcPath: './src',
@@ -97,6 +92,6 @@ const withNextIntl = createNextIntlPlugin({
   },
 })
 
-export default withSentryConfig(withNextIntl(withMDX(config)), {
+export default withSentryConfig(withNextIntl(config), {
   telemetry: false,
 })

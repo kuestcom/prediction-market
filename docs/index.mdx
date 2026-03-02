@@ -1,0 +1,56 @@
+---
+title: Introduction
+description: Learn the basics of prediction markets and how to start trading.
+icon: BookOpen
+---
+export const ENV = globalThis.process?.env ?? {}
+
+## What is {ENV.NEXT_PUBLIC_SITE_NAME}?
+
+{ENV.NEXT_PUBLIC_SITE_NAME} is a prediction market that lets you measure
+and trade sentiment on real-world events—from high-stakes elections and macro
+data releases to entertainment headlines. Market prices emerge from what
+participants are willing to risk, so the odds capture collective expectations
+instead of pundit opinions.
+
+<Info>
+  **Signals from skin in the game**
+  Because every position is backed by capital, prices react quickly when traders
+  uncover new information. {ENV.NEXT_PUBLIC_SITE_NAME} surfaces those
+  signals as live probabilities.
+</Info>
+
+### Quick overview
+
+- Trade outcome shares for questions like “Will Donald Trump retake the U.S.
+  presidency in 2024?”.
+- Shares trade between 0.00 and 1.00 USDC, and each opposing outcome pair (“YES” + “NO”) is fully backed by 1.00 USDC.
+- New shares are minted when both sides agree on a price, so each trade remains
+  fully collateralized.
+- Winning shares redeem for 1.00 USDC when a market resolves, while losing
+  shares expire at zero.
+- You are always trading against other users, which means you can sell early,
+  capture profits repeatedly, and you are never limited for winning too often.
+
+### Understanding prices
+
+Prices map directly to implied probabilities. If “YES” shares trade at 0.27
+USDC, the market assigns a 27% chance to that outcome. As with equity markets,
+{ENV.NEXT_PUBLIC_SITE_NAME} does not set odds—supply and demand in the
+order book does.
+
+### Ways to profit
+
+If you believe the market is underestimating an outcome, buy shares at the
+current price. A correct resolution pays out 1.00 USDC, so a purchase at 0.27 USDC
+returns 0.73 USDC per share. You can also sell at any time before settlement to
+lock in gains or limit downside as prices move.
+
+### Accuracy of the odds
+
+Academic studies consistently show that prediction markets aggregate dispersed
+knowledge more effectively than isolated forecasts, polls, or analysts. As more
+informed traders join, they arbitrage mispriced contracts and push probabilities
+closer to fair value. Whether you are seeking better insights about the future or
+looking to monetize your expertise, {ENV.NEXT_PUBLIC_SITE_NAME} provides a
+transparent, market-driven source of truth.

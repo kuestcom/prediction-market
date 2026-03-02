@@ -126,7 +126,7 @@ export default function HeaderDropdownUserMenuGuest() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <Link href="/docs/users" data-testid="header-docs-link">{t('Documentation')}</Link>
+            <Link href="/docs" data-testid="header-docs-link">{t('Documentation')}</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
             <Link href="/terms-of-use" data-testid="header-terms-link">{t('Terms of Use')}</Link>
