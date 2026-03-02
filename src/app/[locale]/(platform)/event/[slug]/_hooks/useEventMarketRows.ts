@@ -74,9 +74,8 @@ export function buildEventMarketRows(
     const normalizedChance = hasMarketChance
       ? clamp(rawChance ?? 0, MIN_PERCENT, MAX_PERCENT)
       : null
-    const fallbackYesPrice = normalizedChance != null
-      ? clamp(normalizedChance / 100, 0, 1)
-      : normalizedYesPrice
+    const fallbackYesPrice = normalizedYesPrice
+      ?? (normalizedChance != null ? clamp(normalizedChance / 100, 0, 1) : null)
     const yesPriceValue = normalizedBestAsk ?? fallbackYesPrice
     const noPriceValue = normalizedBestBid != null
       ? clamp(1 - normalizedBestBid, 0, 1)
