@@ -17,11 +17,11 @@ All endpoints documented here are powered by our OpenAPI specification. Use the 
 Jump straight into the resources you need. Every link below opens the corresponding API reference page, so you have an easy index even on mobile devices.
 
 ### Platform
-- [Introduction](/platform/introduction) — overview of the {ENV.NEXT_PUBLIC_SITE_NAME} CLOB ecosystem and documentation structure.
-- [API Rate Limits](/platform/api-rate-limits) — current throttling caps for live {ENV.NEXT_PUBLIC_SITE_NAME} endpoints.
+- [Introduction](/api-reference/introduction) — overview of the {ENV.NEXT_PUBLIC_SITE_NAME} CLOB ecosystem and documentation structure.
+- [API Rate Limits](/api-reference/rate-limits) — current throttling caps for live {ENV.NEXT_PUBLIC_SITE_NAME} endpoints.
 
 #### Authentication
-- [Authentication overview](/platform/auth/authentication-overview) — understand L1 wallet signing and L2 API credential flows.
+- [Authentication overview](/api-reference/authentication) — understand L1 wallet signing and L2 API credential flows.
 - [Create API key](/platform/auth/create-api-key) — issue deterministic credentials from an L1 signature.
 - [Revoke API key](/platform/auth/delete-api-key) — invalidate an existing API key/pair.
 - [List API keys](/platform/auth/get-api-keys) — inspect active and revoked credentials for an address.
@@ -32,27 +32,27 @@ Jump straight into the resources you need. Every link below opens the correspond
 - [API Health Check](/clob/health-check) — simple readiness probe that returns `OK`.
 
 #### Orderbook
-- [Get order book summary](/clob/orderbook/get-order-book-summary) — single-token snapshot of bids, asks, and market metadata.
-- [Get multiple order books summaries by request](/clob/orderbook/get-multiple-order-books-summaries-by-request) — batch snapshots for multiple tokens in one call.
+- [Get order book summary](/api-reference/market-data/get-order-book) — single-token snapshot of bids, asks, and market metadata.
+- [Get multiple order books summaries by request](/api-reference/market-data/get-order-books-request-body) — batch snapshots for multiple tokens in one call.
 
 #### Orders
-- [Create order](/clob/orders/create-order) — submit new orders to the {ENV.NEXT_PUBLIC_SITE_NAME} CLOB with configurable execution policies.
-- [Place multiple orders (batch)](/clob/orders/create-orders-batch) — queue up to 15 placements in a single call.
-- [Get order](/clob/orders/get-order) — inspect status, fills, and trade associations for a previously submitted order.
-- [Get orders by IDs](/clob/orders/get-orders-by-ids) — batch retrieval (HTTP 207 Multi-Status) of up to 500 order details in one call.
-- [List open orders](/clob/orders/get-active-orders) — stream the live orders owned by your authenticated L2 credentials.
-- [Cancel order](/clob/orders/cancel-order) — remove resting orders by ULID and see which cancellations succeeded.
+- [Create order](/api-reference/trade/post-a-new-order) — submit new orders to the {ENV.NEXT_PUBLIC_SITE_NAME} CLOB with configurable execution policies.
+- [Place multiple orders (batch)](/api-reference/trade/post-a-new-orders-batch) — queue up to 15 placements in a single call.
+- [Get order](/api-reference/trade/get-single-order-by-id) — inspect status, fills, and trade associations for a previously submitted order.
+- [Get orders by IDs](/api-reference/trade/get-single-order-by-ids-by-ids) — batch retrieval (HTTP 207 Multi-Status) of up to 500 order details in one call.
+- [List open orders](/api-reference/trade/get-user-orders) — stream the live orders owned by your authenticated L2 credentials.
+- [Cancel order](/api-reference/trade/cancel-single-order) — remove resting orders by ULID and see which cancellations succeeded.
 
 #### Pricing
-- [Get market price](/clob/pricing/get-market-price) — best bid/ask for a token-side pair.
-- [Get multiple market prices by request](/clob/pricing/get-multiple-market-prices-by-request) — batch POST variant that returns quotes for every requested side.
-- [Get midpoint price](/clob/pricing/get-midpoint-price) — midpoint quote for any token.
-- [Get price history for a traded token](/clob/pricing/get-price-history-for-a-traded-token) — historical price series with configurable window and fidelity.
-- [Get bid-ask spreads](/clob/spreads/get-bid-ask-spreads) — aggregated spread information for one or more tokens.
+- [Get market price](/api-reference/market-data/get-market-price) — best bid/ask for a token-side pair.
+- [Get multiple market prices by request](/api-reference/market-data/get-market-prices-request-body) — batch POST variant that returns quotes for every requested side.
+- [Get midpoint price](/api-reference/data/get-midpoint-price) — midpoint quote for any token.
+- [Get price history for a traded token](/api-reference/markets/get-prices-history) — historical price series with configurable window and fidelity.
+- [Get bid-ask spreads](/api-reference/market-data/get-spreads) — aggregated spread information for one or more tokens.
 
 #### Trades
 - [Trades overview](/clob/trades/trades-overview) — recap of how authenticated trade feeds work.
-- [List trades](/clob/trades/get-trades) — filter fills where your credentials acted as maker or taker.
+- [List trades](/api-reference/trade/get-trades) — filter fills where your credentials acted as maker or taker.
 - [Get trade volumes](/clob/trades/get-trade-volumes) — fetch aggregate and 24h volumes for up to 100 conditions.
 
 ### Relayer
@@ -83,22 +83,22 @@ Jump straight into the resources you need. Every link below opens the correspond
 - [Health check](/data-api/health-check) — confirms <code>{ENV.DATA_URL ?? 'https://data-api.kuest.com'}</code> is running.
 
 #### Portfolio
-- [Get current positions](/data-api/positions/get-current-positions) — cached balances plus unrealized PnL.
-- [Get closed positions](/data-api/positions/get-closed-positions) — realized trades with exit timestamps.
-- [Get portfolio value](/data-api/positions/get-total-value) — fetch per-wallet USD exposure.
-- [Get total markets traded](/data-api/positions/get-total-markets-traded) — count unique markets for a wallet.
+- [Get current positions](/api-reference/core/get-current-positions-for-a-user) — cached balances plus unrealized PnL.
+- [Get closed positions](/api-reference/core/get-closed-positions-for-a-user) — realized trades with exit timestamps.
+- [Get portfolio value](/api-reference/core/get-total-value-of-a-users-positions) — fetch per-wallet USD exposure.
+- [Get total markets traded](/api-reference/misc/get-total-markets-a-user-has-traded) — count unique markets for a wallet.
 - [Get total volume](/data-api/positions/get-total-volume) — aggregate notional volume for a wallet.
 
 #### Activity & markets
-- [Get trades](/data-api/activity/get-trades) — replay {ENV.NEXT_PUBLIC_SITE_NAME} fills with maker/taker data.
-- [Get user activity](/data-api/activity/get-user-activity) — ledger view that includes splits, merges, and rewards.
-- [Get top holders](/data-api/markets/get-top-holders) — leaderboard of balances per market.
-- [Get open interest](/data-api/markets/get-open-interest) — cached OI per condition ID.
-- [Get live volume for an event](/data-api/markets/get-live-volume) — aggregate collateral flow per event.
+- [Get trades](/api-reference/core/get-trades-for-a-user-or-markets) — replay {ENV.NEXT_PUBLIC_SITE_NAME} fills with maker/taker data.
+- [Get user activity](/api-reference/core/get-user-activity) — ledger view that includes splits, merges, and rewards.
+- [Get top holders](/api-reference/core/get-top-holders-for-markets) — leaderboard of balances per market.
+- [Get open interest](/api-reference/misc/get-open-interest) — cached OI per condition ID.
+- [Get live volume for an event](/api-reference/misc/get-live-volume-for-an-event) — aggregate collateral flow per event.
 
 #### Builders
-- [Get aggregated builder leaderboard](/data-api/builders/get-aggregated-builder-leaderboard) — preview of partner performance metrics.
-- [Get daily builder volume time-series](/data-api/builders/get-daily-builder-volume-time-series) — day-by-day builder stats.
+- [Get aggregated builder leaderboard](/api-reference/builders/get-aggregated-builder-leaderboard) — preview of partner performance metrics.
+- [Get daily builder volume time-series](/api-reference/builders/get-daily-builder-volume-time-series) — day-by-day builder stats.
 
 ## Working with the playground
 

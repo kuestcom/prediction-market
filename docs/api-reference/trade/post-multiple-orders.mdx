@@ -7,14 +7,14 @@ openapi: 'POST /orders'
 Submit up to 15 orders in one request. Every entry in the array shares the same payload shape as `POST /order`, so you can mix execution policies or token IDs while saving round trips.
 
 <Info>
-Batch placement also requires L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`. Review the flow in the [`Authentication overview`](/platform/auth/authentication-overview).
+Batch placement also requires L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`. Review the flow in the [`Authentication overview`](/api-reference/authentication).
 </Info>
 
 <Note>
 If the system-wide pause is active, the batch request responds with `409` and `{"error":"system_paused"}`. Books paused individually still return `409` along with `{"error":"condition_paused"}`. Every entry in the batch must use an `owner` value that matches `KUEST_ADDRESS`; otherwise the API returns `400` with `{"error":"owner_address_mismatch"}`.
 </Note>
 
-Each entry in the response includes a `status` field mirroring [Place single order](/clob/orders/create-order#placement-status).
+Each entry in the response includes a `status` field mirroring [Place single order](/api-reference/trade/post-a-new-order#placement-status).
 
 <Details title="View example payload">
 
@@ -95,11 +95,11 @@ Each entry in the response includes a `status` field mirroring [Place single ord
 
 Every array entry mirrors the single-order placement response structure, enabling you to inspect insert success, warnings, and order IDs independently.
 
-Need to check the final state of a submitted order? Call [`GET /data/order/{id}`](/clob/orders/get-order). To revoke any remaining quantity, use [`DELETE /order`](/clob/orders/cancel-order).
+Need to check the final state of a submitted order? Call [`GET /data/order/{id}`](/api-reference/trade/get-single-order-by-id). To revoke any remaining quantity, use [`DELETE /order`](/api-reference/trade/cancel-single-order).
 
 ## Batch item fields
 
-Each array element accepts the same fields documented in [`POST /order`](/clob/orders/create-order). Provide the `owner` field alongside `orderType` and the nested `order` payload so it matches the `KUEST_ADDRESS` header. Key constraints repeated here for convenience:
+Each array element accepts the same fields documented in [`POST /order`](/api-reference/trade/post-a-new-order). Provide the `owner` field alongside `orderType` and the nested `order` payload so it matches the `KUEST_ADDRESS` header. Key constraints repeated here for convenience:
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
@@ -124,7 +124,7 @@ Each array element accepts the same fields documented in [`POST /order`](/clob/o
 | `order.signature` | string | Yes | Hex-encoded signature over the order payload. |
 
 <Note>
-`order.metadata` remains optional just like the single-order endpoint and can be omitted entirely in batch submissions. `order.side` must be the uppercase string `BUY` or `SELL`, and `owner` must align with the `KUEST_ADDRESS` header. When the exchange enforces a minimum fee, `order.feeRateBps` must be greater than or equal to the base fee returned by [`GET /fee-rate`](/clob/market-config/get-fee-rate) for the same `order.tokenId`.
+`order.metadata` remains optional just like the single-order endpoint and can be omitted entirely in batch submissions. `order.side` must be the uppercase string `BUY` or `SELL`, and `owner` must align with the `KUEST_ADDRESS` header. When the exchange enforces a minimum fee, `order.feeRateBps` must be greater than or equal to the base fee returned by [`GET /fee-rate`](/api-reference/market-data/get-fee-rate) for the same `order.tokenId`.
 </Note>
 
 

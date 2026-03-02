@@ -4,7 +4,7 @@ openapi: 'POST /data/orders'
 ---
 
 
-Request multiple orders (between 1 and 500 ULIDs) in a single call. Each entry mirrors [`GET /data/order/{id}`](/clob/orders/get-order), so you can refresh many orders without issuing repeated requests.
+Request multiple orders (between 1 and 500 ULIDs) in a single call. Each entry mirrors [`GET /data/order/{id}`](/api-reference/trade/get-single-order-by-id), so you can refresh many orders without issuing repeated requests.
 
 <Info>
 No authentication headers are required. Responses always use HTTP `207 Multi-Status`, and each array element carries its own `status`, `order`, and `error` fields.

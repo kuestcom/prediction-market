@@ -4,7 +4,7 @@ openapi: 'POST /wallet/proxy'
 ---
 export const ENV = globalThis.process?.env ?? {}
 
-Submit batched contract calls through the {ENV.NEXT_PUBLIC_SITE_NAME} L2 relay. This router shares the exact authentication headers used by [`POST /order`](/clob/orders/create-order) and executes transactions from the managed proxy wallet tied to your API key.
+Submit batched contract calls through the {ENV.NEXT_PUBLIC_SITE_NAME} L2 relay. This router shares the exact authentication headers used by [`POST /order`](/api-reference/trade/post-a-new-order) and executes transactions from the managed proxy wallet tied to your API key.
 
 <Info>
 Always include the L2 headers `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`. The `owner` field must match `KUEST_ADDRESS`.

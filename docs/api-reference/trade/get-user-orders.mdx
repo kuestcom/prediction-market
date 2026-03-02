@@ -25,7 +25,7 @@ Omit parameters you do not need; empty strings are ignored. If the combination i
 
 The endpoint returns a paginated object with:
 
-- `data`: array of open orders (same structure as [`GET /data/order/{id}`](/clob/orders/get-order), with `status` fixed to `live`).
+- `data`: array of open orders (same structure as [`GET /data/order/{id}`](/api-reference/trade/get-single-order-by-id), with `status` fixed to `live`).
 - `next_cursor`: Base64-encoded offset for the next page (`LTE=` when no more pages).
 - `limit`: page size used for the query.
 - `count`: number of items in `data`.

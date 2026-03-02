@@ -10,7 +10,7 @@ Cancel a resting order using its ULID. Provide the identifier in the JSON body a
 Cancellation requests also require L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
 </Info>
 
-The response always returns HTTP `200 OK`. Successful cancellations append the ULID to `canceled`. If an order cannot be cancelled, it remains in `not_canceled` with a short reason string. Use [`GET /data/order/{id}`](/clob/orders/get-order) to confirm the terminal status after issuing a cancellation.
+The response always returns HTTP `200 OK`. Successful cancellations append the ULID to `canceled`. If an order cannot be cancelled, it remains in `not_canceled` with a short reason string. Use [`GET /data/order/{id}`](/api-reference/trade/get-single-order-by-id) to confirm the terminal status after issuing a cancellation.
 
 ## Response fields
 

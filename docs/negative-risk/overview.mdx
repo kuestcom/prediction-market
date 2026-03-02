@@ -38,8 +38,8 @@ When augmented negative risk is active, conversions should still ignore placehol
 
 ## Detecting support through APIs
 
-- [Data API](/data-api/markets/get-top-holders) — The `negRisk` and `negRiskAugmented` flags are present on event payloads.
-- [Subgraphs](/subgraph/overview) — Query the metadata entity for `enableNegRisk` to show conversion controls.
+- [Data API](/api-reference/core/get-top-holders-for-markets) — The `negRisk` and `negRiskAugmented` flags are present on event payloads.
+- [Subgraphs](/market-data/subgraph) — Query the metadata entity for `enableNegRisk` to show conversion controls.
 - Relayer — Convert transactions can be sent through the relayer like any other Safe call if your user lacks gas on Amoy.
 
 If you are unsure whether a historical market supported negative risk, check the event payload in the Data API or scan the Amoy subgraph for adapter interactions tied to that `conditionId`.

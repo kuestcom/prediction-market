@@ -34,7 +34,7 @@ export const ENV = globalThis.process?.env ?? {}
 
 <AccordionGroup>
   <Accordion title="Enable this guide inside your fork">
-    Set `NEXT_PUBLIC_FORK_OWNER_GUIDE=true` to expose the **Fork Owner Guide** section in your hosted docs - helpful for operators without repo access.
+    Set `DOCS_OWNERS_ENABLED=true` to expose the **Fork Owner Guide** section in your hosted docs - helpful for operators without repo access.
   </Accordion>
   <Accordion title="Restrict markets to specific creators">
     Use `MARKET_CREATORS_ADDRESS` with a comma-separated list of addresses to only show markets created by those wallets. Leave it blank to display the full network catalog.

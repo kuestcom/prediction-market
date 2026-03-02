@@ -4,7 +4,7 @@ openapi: 'GET /data/order/{id}'
 ---
 
 
-Retrieve the latest state for a previously submitted order. The response captures execution progress, timestamps, and any trades already linked to the order. Link back to [`POST /order`](/clob/orders/create-order) to see the payload that generates each ULID, and use [`DELETE /order`](/clob/orders/cancel-order) if you need to retire the order after inspection.
+Retrieve the latest state for a previously submitted order. The response captures execution progress, timestamps, and any trades already linked to the order. Link back to [`POST /order`](/api-reference/trade/post-a-new-order) to see the payload that generates each ULID, and use [`DELETE /order`](/api-reference/trade/cancel-single-order) if you need to retire the order after inspection.
 
 ## Response fields
 

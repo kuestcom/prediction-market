@@ -7,7 +7,7 @@ export const ENV = globalThis.process?.env ?? {}
 Submit a new order to the {ENV.NEXT_PUBLIC_SITE_NAME} central limit order book. Orders are accepted for matching immediately; validation happens synchronously and the response tells you whether the request was persisted.
 
 <Info>
-All order placement calls require the L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`. Review how to obtain them in the [`Authentication overview`](/platform/auth/authentication-overview) or use the managed console at <a href="https://auth.kuest.com" target="_blank" rel="noreferrer">auth.kuest.com</a>.
+All order placement calls require the L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`. Review how to obtain them in the [`Authentication overview`](/api-reference/authentication) or use the managed console at <a href="https://auth.kuest.com" target="_blank" rel="noreferrer">auth.kuest.com</a>.
 </Info>
 
 <Note>
@@ -60,7 +60,7 @@ For `GTD` orders you must supply an `order.expiration` in the future. `GTC`, `FA
 | `signature` | string | Yes | Hex-encoded signature produced over the order payload. |
 
 <Note>
-When the exchange enforces a minimum fee, `feeRateBps` must be greater than or equal to the base fee returned by [`GET /fee-rate`](/clob/market-config/get-fee-rate) for the same `tokenId`.
+When the exchange enforces a minimum fee, `feeRateBps` must be greater than or equal to the base fee returned by [`GET /fee-rate`](/api-reference/market-data/get-fee-rate) for the same `tokenId`.
 </Note>
 
 <Info>
@@ -83,8 +83,8 @@ For `GTD`, the engine enforces a one-minute safety buffer. If you need the order
 ## Execution and follow-up
 
 - A successful placement returns `200 OK` with `success: true`.
-- `orderID` is the order identifier for tracking. Use [`GET /data/order/{id}`](/clob/orders/get-order) to check final status and filled amounts.
-- Need to retire a resting order? Call [`DELETE /order`](/clob/orders/cancel-order).
+- `orderID` is the order identifier for tracking. Use [`GET /data/order/{id}`](/api-reference/trade/get-single-order-by-id) to check final status and filled amounts.
+- Need to retire a resting order? Call [`DELETE /order`](/api-reference/trade/cancel-single-order).
 
 Order status values returned by `GET /data/order/{id}` are:
 

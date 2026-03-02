@@ -79,14 +79,14 @@
           {
             "group": "Platform",
             "pages": [
-              "platform/introduction",
-              "platform/api-rate-limits",
+              "api-reference/introduction",
+              "api-reference/rate-limits",
               {
                 "group": "Authentication",
                 "expanded": false,
                 "pages": [
-                  "platform/auth/authentication-overview",
-                  "platform/auth/get-server-time",
+                  "api-reference/authentication",
+                  "api-reference/data/get-server-time",
                   "platform/auth/create-api-key",
                   "platform/auth/derive-api-key",
                   "platform/auth/get-api-keys",
@@ -121,50 +121,50 @@
                 "group": "Orderbook",
                 "expanded": false,
                 "pages": [
-                  "clob/orderbook/get-order-book-summary",
-                  "clob/orderbook/get-multiple-order-books-summaries-by-request"
+                  "api-reference/market-data/get-order-book",
+                  "api-reference/market-data/get-order-books-request-body"
                 ]
               },
               {
                 "group": "Orders",
                 "expanded": false,
                 "pages": [
-                  "clob/orders/create-order",
-                  "clob/orders/create-orders-batch",
-                  "clob/orders/get-order",
+                  "api-reference/trade/post-a-new-order",
+                  "api-reference/trade/post-multiple-orders",
+                  "api-reference/trade/get-single-order-by-id",
                   "clob/orders/get-orders-by-ids",
-                  "clob/orders/get-order-scoring",
+                  "api-reference/trade/get-order-scoring-status",
                   "clob/orders/get-orders-scoring",
-                  "clob/orders/get-active-orders",
-                  "clob/orders/cancel-order",
-                  "clob/orders/cancel-all",
-                  "clob/orders/cancel-market-orders"
+                  "api-reference/trade/get-user-orders",
+                  "api-reference/trade/cancel-single-order",
+                  "api-reference/trade/cancel-all-orders",
+                  "api-reference/trade/cancel-orders-for-a-market"
                 ]
               },
               {
                 "group": "Pricing",
                 "expanded": false,
                 "pages": [
-                  "clob/pricing/get-market-price",
-                  "clob/pricing/get-multiple-market-prices-by-request",
-                  "clob/pricing/get-last-trade-price",
-                  "clob/pricing/get-last-trades-prices",
-                  "clob/pricing/get-midpoint-price",
-                  "clob/pricing/get-midpoints",
-                  "clob/pricing/get-price-history-for-a-traded-token",
-                  "clob/spreads/get-bid-ask-spread",
-                  "clob/spreads/get-bid-ask-spreads"
+                  "api-reference/market-data/get-market-price",
+                  "api-reference/market-data/get-market-prices-request-body",
+                  "api-reference/market-data/get-last-trade-price",
+                  "api-reference/market-data/get-last-trade-prices-query-parameters",
+                  "api-reference/data/get-midpoint-price",
+                  "api-reference/market-data/get-midpoint-prices-query-parameters",
+                  "api-reference/markets/get-prices-history",
+                  "api-reference/market-data/get-spread",
+                  "api-reference/market-data/get-spreads"
                 ]
               },
               {
                 "group": "Markets",
                 "expanded": false,
                 "pages": [
-                  "clob/markets/get-markets",
-                  "clob/markets/get-market",
-                  "clob/markets/get-sampling-markets",
-                  "clob/markets/get-simplified-markets",
-                  "clob/markets/get-sampling-simplified-markets"
+                  "api-reference/markets/list-markets",
+                  "api-reference/markets/get-market-by-id",
+                  "api-reference/markets/get-sampling-markets",
+                  "api-reference/markets/get-simplified-markets",
+                  "api-reference/markets/get-sampling-simplified-markets"
                 ]
               },
               {
@@ -173,9 +173,9 @@
                 "pages": [
                   "clob/market-config/get-balance-allowance",
                   "clob/market-config/update-balance-allowance",
-                  "clob/market-config/get-tick-size",
-                  "clob/market-config/get-neg-risk",
-                  "clob/market-config/get-fee-rate"
+                  "api-reference/market-data/get-tick-size",
+                  "advanced/neg-risk",
+                  "api-reference/market-data/get-fee-rate"
                 ]
               },
               {
@@ -183,7 +183,7 @@
                 "expanded": false,
                 "pages": [
                   "clob/trades/trades-overview",
-                  "clob/trades/get-trades",
+                  "api-reference/trade/get-trades",
                   "clob/trades/get-trade-volumes"
                 ]
               },
@@ -199,7 +199,7 @@
                 "group": "Builder",
                 "expanded": false,
                 "pages": [
-                  "clob/builder/get-builder-trades"
+                  "api-reference/trade/get-builder-trades"
                 ]
               },
               {
@@ -222,7 +222,7 @@
                 "group": "Heartbeats",
                 "expanded": false,
                 "pages": [
-                  "clob/heartbeats/post-heartbeat"
+                  "api-reference/trade/send-heartbeat"
                 ]
               }
             ]
@@ -282,10 +282,10 @@
                 "group": "Portfolio",
                 "expanded": false,
                 "pages": [
-                  "data-api/positions/get-current-positions",
-                  "data-api/positions/get-closed-positions",
-                  "data-api/positions/get-total-value",
-                  "data-api/positions/get-total-markets-traded",
+                  "api-reference/core/get-current-positions-for-a-user",
+                  "api-reference/core/get-closed-positions-for-a-user",
+                  "api-reference/core/get-total-value-of-a-users-positions",
+                  "api-reference/misc/get-total-markets-a-user-has-traded",
                   "data-api/positions/get-total-volume"
                 ]
               },
@@ -293,12 +293,12 @@
                 "group": "Activity & markets",
                 "expanded": false,
                 "pages": [
-                  "data-api/activity/get-trades",
-                  "data-api/activity/get-user-activity",
+                  "api-reference/core/get-trades-for-a-user-or-markets",
+                  "api-reference/core/get-user-activity",
                   "data-api/activity/get-other",
-                  "data-api/markets/get-top-holders",
-                  "data-api/markets/get-open-interest",
-                  "data-api/markets/get-live-volume"
+                  "api-reference/core/get-top-holders-for-markets",
+                  "api-reference/misc/get-open-interest",
+                  "api-reference/misc/get-live-volume-for-an-event"
                 ]
               },
               {
@@ -313,7 +313,7 @@
                 "group": "Leaderboards",
                 "expanded": false,
                 "pages": [
-                  "data-api/leaderboards/get-trader-leaderboard",
+                  "api-reference/core/get-trader-leaderboard-rankings",
                   "data-api/leaderboards/get-biggest-wins"
                 ]
               },
@@ -321,8 +321,8 @@
                 "group": "Builders",
                 "expanded": false,
                 "pages": [
-                  "data-api/builders/get-aggregated-builder-leaderboard",
-                  "data-api/builders/get-daily-builder-volume-time-series"
+                  "api-reference/builders/get-aggregated-builder-leaderboard",
+                  "api-reference/builders/get-daily-builder-volume-time-series"
                 ]
               }
             ]
@@ -359,16 +359,16 @@
           {
             "group": "Subgraph",
             "pages": [
-              "subgraph/overview"
+              "market-data/subgraph"
             ]
           },
           {
             "group": "Conditional Token Framework",
             "pages": [
-              "conditional/overview",
-              "conditional/split",
-              "conditional/merge",
-              "conditional/redeem",
+              "trading/ctf/overview",
+              "trading/ctf/split",
+              "trading/ctf/merge",
+              "trading/ctf/redeem",
               "conditional/deployment-resources"
             ]
           },
@@ -399,7 +399,7 @@
                 "group": "Profiles",
                 "expanded": false,
                 "pages": [
-                  "community/profile/get-profile",
+                  "api-reference/profiles/get-public-profile-by-wallet-address",
                   "community/profile/post-profile"
                 ]
               },
@@ -407,9 +407,9 @@
                 "group": "Comments",
                 "expanded": false,
                 "pages": [
-                  "community/comments/get-comments",
+                  "api-reference/comments/list-comments",
                   "community/comments/post-comments",
-                  "community/comments/get-comment-replies",
+                  "api-reference/comments/get-comments-by-comment-id",
                   "community/comments/delete-comment",
                   "community/comments/post-comment-reaction",
                   "community/comments/get-comment-metrics"
@@ -420,11 +420,11 @@
           {
             "group": "Websocket",
             "pages": [
-              "websocket/overview",
+              "market-data/websocket/overview",
               "websocket/quickstart",
-              "websocket/user-channel",
-              "websocket/market-channel",
-              "websocket/live-data"
+              "market-data/websocket/user-channel",
+              "market-data/websocket/market-channel",
+              "market-data/websocket/rtds"
             ]
           }
         ]
