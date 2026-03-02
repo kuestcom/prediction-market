@@ -60,6 +60,11 @@ export function useEventOutcomeChances() {
   return context.chanceByMarket
 }
 
+export function useOptionalEventOutcomeChances() {
+  const context = use(EventOutcomeChanceContext)
+  return context?.chanceByMarket ?? {}
+}
+
 export function useUpdateEventOutcomeChances() {
   const context = use(EventOutcomeChanceContext)
   if (!context) {

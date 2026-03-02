@@ -4,6 +4,7 @@ import type { RefObject } from 'react'
 import type { Event, Market, OrderSide, OrderType, Outcome } from '@/types'
 import { useEffect, useMemo, useRef } from 'react'
 import { create } from 'zustand'
+import { useOptionalEventOutcomeChances } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOutcomeChanceProvider'
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useOrderBookSummaries'
 import { normalizeBookLevels } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderPanelUtils'
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
@@ -107,6 +108,19 @@ function getTopOfBookPrice(
   return levels[0]?.priceDollars ?? null
 }
 
+function clampUnitPrice(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return null
+  }
+  if (value < 0) {
+    return 0
+  }
+  if (value > 1) {
+    return 1
+  }
+  return value
+}
+
 export function useOutcomeTopOfBookPrice(
   outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
   sideOverride?: OrderSide,
@@ -120,17 +134,40 @@ export function useOutcomeTopOfBookPrice(
     tokenId ? [tokenId] : [],
     { enabled: Boolean(tokenId) },
   )
-
-  return useMemo(() => {
-    if (!tokenId) {
+  const chanceByMarket = useOptionalEventOutcomeChances()
+  const fallbackYesPrice = useMemo(() => {
+    const conditionId = market?.condition_id
+    if (!conditionId) {
       return null
     }
 
-    const summary = orderBookSummaries?.[tokenId]
-    const resolvedSide = sideOverride ?? orderSide
-    const bookSide = resolvedSide === ORDER_SIDE.BUY ? 'ask' : 'bid'
-    return getTopOfBookPrice(summary, bookSide)
-  }, [orderBookSummaries, orderSide, sideOverride, tokenId])
+    const liveChance = chanceByMarket[conditionId]
+    if (typeof liveChance === 'number' && Number.isFinite(liveChance)) {
+      return clampUnitPrice(liveChance / 100)
+    }
+
+    return null
+  }, [chanceByMarket, market?.condition_id])
+
+  return useMemo(() => {
+    if (tokenId) {
+      const summary = orderBookSummaries?.[tokenId]
+      const resolvedSide = sideOverride ?? orderSide
+      const bookSide = resolvedSide === ORDER_SIDE.BUY ? 'ask' : 'bid'
+      const topOfBookPrice = getTopOfBookPrice(summary, bookSide)
+      if (topOfBookPrice != null) {
+        return topOfBookPrice
+      }
+    }
+
+    if (fallbackYesPrice == null) {
+      return null
+    }
+
+    return outcomeIndex === OUTCOME_INDEX.NO
+      ? clampUnitPrice(1 - fallbackYesPrice)
+      : fallbackYesPrice
+  }, [fallbackYesPrice, orderBookSummaries, orderSide, outcomeIndex, sideOverride, tokenId])
 }
 
 export function useYesPrice() {
