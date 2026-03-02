@@ -640,6 +640,10 @@ function computeResolutionDeadline(
   livenessSeconds: number | null,
   negRisk: boolean,
 ): string | null {
+  if (status === 'resolved') {
+    return null
+  }
+
   if (flagged) {
     const safetyPeriod = negRisk ? SAFETY_PERIOD_NEGRISK_SECONDS : SAFETY_PERIOD_V4_SECONDS
     return new Date((lastUpdateTimestamp + safetyPeriod) * 1000).toISOString()
