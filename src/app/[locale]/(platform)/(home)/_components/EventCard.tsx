@@ -86,8 +86,8 @@ export default function EventCard({
     const activeMarkets = event.markets.filter(market => !isMarketResolved(market))
     return activeMarkets.length > 0 ? activeMarkets : event.markets
   }, [event.markets, isResolvedEvent])
-  const isSingleMarket = event.markets.length === 1
-  const primaryMarket = event.markets[0]
+  const isSingleMarket = marketsToDisplay.length === 1
+  const primaryMarket = marketsToDisplay[0]
   const yesOutcome = primaryMarket?.outcomes[0]
   const noOutcome = primaryMarket?.outcomes[1]
   const shouldShowNewBadge = shouldShowEventNewBadge(event)
@@ -330,6 +330,7 @@ export default function EventCard({
           activeOutcome={activeOutcome}
           isInTradingMode={isInTradingMode}
           isSingleMarket={isSingleMarket}
+          primaryMarket={primaryMarket}
           roundedPrimaryDisplayChance={roundedPrimaryDisplayChance}
           onCancelTrade={handleCancelTrade}
         />
