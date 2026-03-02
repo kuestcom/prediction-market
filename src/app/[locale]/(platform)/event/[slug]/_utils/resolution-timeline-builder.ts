@@ -195,10 +195,16 @@ export function buildResolutionTimeline(
   const deadlineMs = resolveResolutionDeadlineMs(market)
   const isFlagged = Boolean(condition?.resolution_flagged)
   const hasOpenDeadline = deadlineMs != null && deadlineMs > nowMs
+  const hasPastDeadline = deadlineMs != null && deadlineMs <= nowMs
   const isDisputeWindowActive = !isFlagged
     && hasOpenDeadline
     && (status === 'proposed' || status === 'reproposed' || status === 'challenged' || status === 'disputed')
-  const isFinalReviewActive = isFlagged && hasOpenDeadline
+  const isDisputeWindowPending = !isResolved
+    && !isFlagged
+    && hasPastDeadline
+    && (status === 'proposed' || status === 'reproposed' || status === 'challenged' || status === 'disputed')
+  const isFinalReviewActive = !isResolved && isFlagged && hasOpenDeadline
+  const isFinalReviewPending = !isResolved && isFlagged && hasPastDeadline
   const isReviewActive = isDisputeWindowActive || isFinalReviewActive
   const resolutionTimestampMs = parseTimestampToMs(condition?.resolution_last_update)
 
@@ -208,7 +214,7 @@ export function buildResolutionTimeline(
     || status === 'challenged'
     || status === 'disputed'
     || status === 'resolved'
-  const shouldShowNoDispute = !isDisputed && (isResolved || isFinalReviewActive)
+  const shouldShowNoDispute = !isDisputed && (isResolved || isFinalReviewActive || isFinalReviewPending)
   const shouldShowDisputed = isDisputed
   const shouldShowFinalOutcome = isResolved && !isFinalReviewActive
 
@@ -267,6 +273,19 @@ export function buildResolutionTimeline(
     })
   }
 
+  if (isDisputeWindowPending && deadlineMs != null) {
+    items.push({
+      id: 'dispute-window',
+      type: 'disputeWindow',
+      icon: 'open',
+      state: 'pending',
+      outcome: null,
+      timestampMs: resolutionTimestampMs,
+      deadlineMs,
+      remainingSeconds: 0,
+    })
+  }
+
   if (isFinalReviewActive && deadlineMs != null) {
     const remainingSeconds = Math.max(0, Math.ceil((deadlineMs - nowMs) / 1000))
     items.push({
@@ -278,6 +297,19 @@ export function buildResolutionTimeline(
       timestampMs: resolutionTimestampMs,
       deadlineMs,
       remainingSeconds,
+    })
+  }
+
+  if (isFinalReviewPending && deadlineMs != null) {
+    items.push({
+      id: 'final-review',
+      type: 'finalReview',
+      icon: 'open',
+      state: 'pending',
+      outcome: null,
+      timestampMs: resolutionTimestampMs,
+      deadlineMs,
+      remainingSeconds: 0,
     })
   }
 

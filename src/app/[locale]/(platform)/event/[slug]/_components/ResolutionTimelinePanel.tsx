@@ -92,25 +92,37 @@ function TimelineLabel({
   }
 
   if (item.type === 'finalReview') {
-    const countdown = formatResolutionCountdown(item.remainingSeconds ?? 0)
+    const remainingSeconds = item.remainingSeconds ?? 0
+    const showCountdown = remainingSeconds > 0
+    const countdown = formatResolutionCountdown(remainingSeconds)
     return (
       <span className="text-sm font-medium text-foreground">
         {t('Final review')}
-        {' '}
-        <span className="font-semibold text-primary">{countdown}</span>
+        {showCountdown && (
+          <>
+            {' '}
+            <span className="font-semibold text-primary">{countdown}</span>
+          </>
+        )}
       </span>
     )
   }
 
   if (item.type === 'disputeWindow') {
-    const countdown = formatResolutionCountdown(item.remainingSeconds ?? 0)
+    const remainingSeconds = item.remainingSeconds ?? 0
+    const showCountdown = remainingSeconds > 0
+    const countdown = formatResolutionCountdown(remainingSeconds)
 
     return (
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-medium text-foreground">
           {t('Dispute window')}
-          {' '}
-          <span className="font-semibold text-primary">{countdown}</span>
+          {showCountdown && (
+            <>
+              {' '}
+              <span className="font-semibold text-primary">{countdown}</span>
+            </>
+          )}
         </span>
         {disputeUrl
           ? (
