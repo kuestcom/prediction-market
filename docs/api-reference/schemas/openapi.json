@@ -1247,9 +1247,6 @@
             "$ref": "#/components/parameters/KuestNonce"
           },
           {
-            "$ref": "#/components/parameters/XChainId"
-          },
-          {
             "$ref": "#/components/parameters/KuestReferral"
           }
         ],
@@ -1295,9 +1292,6 @@
           },
           {
             "$ref": "#/components/parameters/KuestNonce"
-          },
-          {
-            "$ref": "#/components/parameters/XChainId"
           }
         ],
         "responses": {
@@ -3507,16 +3501,6 @@
           "type": "string"
         },
         "description": "Unsigned 256-bit nonce value represented as a decimal string."
-      },
-      "XChainId": {
-        "name": "X-Chain-Id",
-        "in": "header",
-        "required": true,
-        "schema": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "description": "EVM chain ID used for the signature domain."
       },
       "KuestApiKey": {
         "name": "KUEST_API_KEY",
