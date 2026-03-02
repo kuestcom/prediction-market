@@ -1,0 +1,96 @@
+---
+title: 'Place single order'
+openapi: 'POST /order'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Submit a new order to the {ENV.NEXT_PUBLIC_SITE_NAME} central limit order book. Orders are accepted for matching immediately; validation happens synchronously and the response tells you whether the request was persisted.
+
+<Info>
+All order placement calls require the L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`. Review how to obtain them in the [`Authentication overview`](/platform/auth/authentication-overview) or use the managed console at <a href="https://auth.kuest.com" target="_blank" rel="noreferrer">auth.kuest.com</a>.
+</Info>
+
+<Note>
+When the global circuit breaker is enabled, this endpoint returns `409` with `{"error":"system_paused"}`. Individually paused books still reply with `409` and `{"error":"condition_paused"}`. Make sure the `owner` field matches the `KUEST_ADDRESS` header; otherwise the API returns `400` and `{"error":"owner_address_mismatch"}`.
+</Note>
+
+## Placement status
+
+Order submissions respond with a `status` field:
+
+| Status | Meaning |
+| --- | --- |
+| `live` | Order accepted and resting on the book. |
+| `error` | Order rejected; see `errorMsg` for details. |
+
+
+## Request body
+
+### Root fields
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `owner` | string | Yes | Polygon address that owns the API key. Must match the `KUEST_ADDRESS` header. |
+| `orderType` | string | Yes | Time-in-force policy for the order (`FOK`, `FAK`, `GTC`, `GTD`). |
+| `postOnly` | boolean | No | When true, the order must rest on the book (GTC/GTD only). |
+| `order` | object | Yes | Full order payload described below. |
+
+<Note>
+For `GTD` orders you must supply an `order.expiration` in the future. `GTC`, `FAK`, and `FOK` may omit `expiration`; the engine simply ignores the value when it is not needed.
+</Note>
+
+### `order` object
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `tokenId` | string | Yes | Identifier of the token/outcome being traded. |
+| `conditionId` | string | Yes | Market condition identifier tied to the token. |
+| `expiration` | string | Conditional | Unix timestamp (seconds) when the order becomes invalid. Required for `GTD`, optional otherwise. |
+| `maker` | string | Yes | Address that holds the asset being offered. |
+| `signer` | string | Yes | Address that produced the signature authorizing the order. |
+| `taker` | string | Yes | Counterparty address. Use the zero address for open orders. |
+| `makerAmount` | string | Yes | Quantity provided by the maker, denominated with fixed precision. |
+| `takerAmount` | string | Yes | Quantity expected from the taker. Must stay within allowed tick sizes. |
+| `side` | string | Yes | Either `BUY` or `SELL`. |
+| `metadata` | object\|null | No | Optional JSON metadata stored with the order. |
+| `nonce` | string | Yes | Monotonic value chosen by the maker to guard against reuse. |
+| `feeRateBps` | string | Yes | Maker fee rate in basis points. |
+| `salt` | string | Yes | Unique entropy for replay protection. Reuse causes duplicate rejection. |
+| `signatureType` | number | Yes | `0` = EOA, `1` = proxy signer, `2` = Gnosis Safe signer. |
+| `signature` | string | Yes | Hex-encoded signature produced over the order payload. |
+
+<Note>
+When the exchange enforces a minimum fee, `feeRateBps` must be greater than or equal to the base fee returned by [`GET /fee-rate`](/clob/market-config/get-fee-rate) for the same `tokenId`.
+</Note>
+
+<Info>
+All fixed-precision numeric values (`makerAmount`, `takerAmount`, `nonce`, `feeRateBps`, `expiration`) must be sent as strings to avoid precision issues during parsing. `side` must be the uppercase string `BUY` or `SELL`. `owner` must match the `KUEST_ADDRESS` header supplied with the request.
+</Info>
+
+
+
+### Order types
+
+| **Type** | **Partial fills?** | **Rests on the book?** | **Auto expiration?** |
+| --- | --- | --- | --- |
+| **FOK** (Fill-Or-Kill) | ❌ No | ❌ No | ✅ Immediately if not 100% filled |
+| **FAK** (Fill-And-Kill / IOC) | ✅ Yes | ❌ No | ✅ Any remaining size cancels right away |
+| **GTC** (Good-Til-Cancelled) | ✅ Yes | ✅ Yes, until cancelled | ❌ No |
+| **GTD** (Good-Til-Date) | ✅ Yes | ✅ Yes, until the given timestamp | ✅ At the specified expiration time |
+
+For `GTD`, the engine enforces a one-minute safety buffer. If you need the order to expire in 90 seconds, set `expiration = now + 90 + 60`.
+
+## Execution and follow-up
+
+- A successful placement returns `200 OK` with `success: true`.
+- `orderID` is the order identifier for tracking. Use [`GET /data/order/{id}`](/clob/orders/get-order) to check final status and filled amounts.
+- Need to retire a resting order? Call [`DELETE /order`](/clob/orders/cancel-order).
+
+Order status values returned by `GET /data/order/{id}` are:
+
+| Status | Meaning |
+| --- | --- |
+| `open` | Order is resting on the book. |
+| `partially_filled` | Order remains on the book with some fills. |
+| `filled` | Order fully executed. |
+| `cancelled` | Order removed. For IOC/FAK, partial fills still return `cancelled` with non-zero filled amounts. |

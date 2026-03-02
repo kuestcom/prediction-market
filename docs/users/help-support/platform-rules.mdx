@@ -3,16 +3,17 @@ title: Moderation
 description: Community rules and moderation policies
 icon: Shield
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## Community Guidelines
 
-{process.env.NEXT_PUBLIC_SITE_NAME} is built around open participation.
+{ENV.NEXT_PUBLIC_SITE_NAME} is built around open participation.
 To keep the community safe and fair:
 
 - Be respectful in all discussions
@@ -35,4 +36,4 @@ Violations of the rules may result in:
 ## Transparency
 
 All moderation actions aim to protect the community and ensure fair markets.
-For questions, contact moderators via Discord or email support.
+For questions, contact moderators via email support{ENV.NEXT_PUBLIC_DISCORD_LINK && <> or <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a></>}.

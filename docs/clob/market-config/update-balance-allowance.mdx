@@ -1,0 +1,15 @@
+---
+title: 'Refresh balance and allowance'
+openapi: 'GET /balance-allowance/update'
+---
+
+
+Forces a fresh on-chain read of balance and allowance for the authenticated account.
+
+<Info>
+This endpoint requires L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Info>
+
+Use the same query parameters as [`GET /balance-allowance`](/clob/market-config/get-balance-allowance).
+
+The response mirrors `GET /balance-allowance` with `balance` and the `allowances` map.

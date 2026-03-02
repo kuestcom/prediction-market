@@ -3,27 +3,26 @@ title: Order Types
 description: Learn about market and limit orders
 icon: List
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
-
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## Types of Orders
 
-{process.env.NEXT_PUBLIC_SITE_NAME} supports two primary order types:
+{ENV.NEXT_PUBLIC_SITE_NAME} supports two primary order types:
 
-<Accordions type="single" collapsible>
-  <Accordion title="Market orders" value="market">
+<AccordionGroup>
+  <Accordion title="Market orders">
     Execute immediately at the best available price in the order book. Choose
     this when you value speed and certainty of execution.
   </Accordion>
-  <Accordion title="Limit orders" value="limit">
+  <Accordion title="Limit orders">
     Set the exact price you are willing to pay or accept. The order remains
     open until another trader matches it, making limits ideal for precise
     pricing or larger trades.
   </Accordion>
-</Accordions>
+</AccordionGroup>

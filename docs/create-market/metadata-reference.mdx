@@ -1,0 +1,83 @@
+---
+title: 'Metadata field reference'
+---
+
+# Metadata field reference
+
+This page documents the metadata JSON structure used in market creation and metadata updates.
+
+## Top-level fields
+
+| Field | Type | Required | When present |
+| --- | --- | --- | --- |
+| `condition_id` | `string` (`0x...`) | Yes | Always. |
+| `question_id` | `string` (`0x...`) | Yes | Always. |
+| `adapter_address` | `string` (address) | Yes | Always. |
+| `resolution_adapter_address` | `string` (address) | Yes | Always. |
+| `resolver` | `string` (address) | Yes | Always (defaults to `resolution_adapter_address` if not explicitly provided). |
+| `name` | `string` | Yes | Always. Same value as `question`. |
+| `question` | `string` | Yes | Always. |
+| `slug` | `string` | Yes | Always. |
+| `icon` | `string` (Irys tx id) | Yes | Always. Uses market image when provided, otherwise event image. |
+| `outcome_token_ids` | `string[2]` | Yes | Always. |
+| `outcomes` | `array` | Yes | Always. Two entries: Yes/No-style token mapping. |
+| `version` | `string` | Yes | Always. |
+| `schema` | `string` | Yes | Always. |
+| `end_time` | `string` (ISO datetime) | Yes | Always. |
+| `neg_risk` | `boolean` | Yes | Always (`true` only for single-true multi-market mode). |
+| `neg_risk_other` | `boolean` | Yes | Always (`false`). |
+| `short_title` | `string` | No | Multi-market options when short name is provided. |
+| `market_rules` | `string` | No | Present when rules text exists. |
+| `resolution_source` | `string` (URL) | No | Present when a source URL is provided. |
+| `resolution_source_url` | `string` (URL) | No | Same condition as `resolution_source`. |
+| `uma_request_tx_hash` | `string` (`0x...`) | No | Present after request log is found during finalized metadata publishing. |
+| `uma_request_log_index` | `number` | No | Present with `uma_request_tx_hash`. |
+| `uma_oracle_address` | `string` (address) | No | Present with UMA request log data. |
+| `neg_risk_request_id` | `string` (`0x...`) | No | Only for single-true multi-market mode. |
+| `neg_risk_market_id` | `string` (`0x...`) | No | Only for single-true multi-market mode. |
+| `event` | `object` | Yes | Always. See event object fields below. |
+
+## `outcomes[]` fields
+
+| Field | Type | Required | When present |
+| --- | --- | --- | --- |
+| `outcome` | `string` | Yes | Always. |
+| `token_id` | `string` | Yes | Always. |
+
+## `event` object fields
+
+| Field | Type | Required | When present |
+| --- | --- | --- | --- |
+| `slug` | `string` | Yes | Always. |
+| `title` | `string` | Yes | Always. |
+| `icon` | `string` (Irys tx id) | Yes | Always (event image). |
+| `show_market_icons` | `boolean` | Yes | Always. `true` when at least one market-specific image exists; otherwise `false`. |
+| `tags` | `string[]` | Yes | Always (category slugs). |
+| `end_time` | `string` (ISO datetime) | Yes | Always. |
+| `rules` | `string` | No | Present when rules text exists. |
+| `series_slug` | `string` | No | Present when series slug is available. |
+| `series_id` | `string` | No | Present when series id is available. |
+| `recurrence` | `string` | No | Present when recurrence is available. |
+| `enable_neg_risk` | `boolean` | No | Only for single-true multi-market mode. |
+| `neg_risk_augmented` | `boolean` | No | Only for single-true multi-market mode. |
+| `neg_risk` | `boolean` | No | Only for single-true multi-market mode. |
+| `neg_risk_market_id` | `string` (`0x...`) | No | Only for single-true multi-market mode when market id exists. |
+
+## Mirror fields
+
+| Field | Type | Required | When present |
+| --- | --- | --- | --- |
+| `mirror_adapter_address` | `string` (address) | No | Present when upstream mirror data exists. |
+| `mirror_condition_id` | `string` (`0x...`) | No | Present when upstream mirror data exists. |
+| `mirror_question_id` | `string` (`0x...`) | No | Present when upstream mirror data exists. |
+| `mirror_outcome_token_ids` | `string[]` | No | Present when upstream mirror data exists. |
+| `mirror_uma_request_tx_hash` | `string` (`0x...`) | No | Present when upstream mirror data exists. |
+| `mirror_uma_request_log_index` | `number` | No | Present when upstream mirror data exists. |
+| `mirror_uma_oracle_address` | `string` (address) | No | Present when upstream mirror data exists. |
+| `mirror_neg_risk_request_id` | `string` (`0x...`) | No | Present when upstream mirror data exists. |
+| `mirror_neg_risk_market_id` | `string` (`0x...`) | No | Present when upstream mirror data exists. |
+
+## Notes
+
+- Fields not applicable to the current market mode are omitted (not set as placeholder values).
+- `mirror_*` fields returned by API endpoints represent upstream data.

@@ -1,0 +1,75 @@
+---
+title: 'WebSocket quickstart'
+description: 'Connect to the WebSocket gateway and subscribe to market or user updates.'
+---
+
+
+Use the WebSocket gateway to stream market data or your private order and trade updates.
+
+## Prerequisites
+
+- For the user channel, generate L2 API credentials. See [Authentication overview](/platform/auth/authentication-overview) and [Create API key](/platform/auth/create-api-key).
+
+## Market channel example
+
+```bash
+npm install ws
+```
+
+```javascript
+import WebSocket from "ws";
+
+const wsBase = process.env.WS_CLOB_URL ?? "wss://ws-subscriptions-clob.kuest.com";
+const socket = new WebSocket(`${wsBase}/ws/market`);
+
+socket.on("open", () => {
+  socket.send(
+    JSON.stringify({
+      type: "market",
+      assets_ids: ["<token_id>"],
+      custom_feature_enabled: true
+    })
+  );
+});
+
+socket.on("message", (data) => {
+  console.log(JSON.parse(data.toString()));
+});
+```
+
+## User channel example
+
+```javascript
+import WebSocket from "ws";
+
+const wsBase = process.env.WS_CLOB_URL ?? "wss://ws-subscriptions-clob.kuest.com";
+const socket = new WebSocket(`${wsBase}/ws/user`);
+
+socket.on("open", () => {
+  socket.send(
+    JSON.stringify({
+      type: "user",
+      markets: ["<condition_id>"],
+      auth: {
+        apikey: "<uuid>",
+        secret: "<base64-secret>",
+        passphrase: "<hex-passphrase>"
+      }
+    })
+  );
+});
+
+socket.on("message", (data) => {
+  console.log(JSON.parse(data.toString()));
+});
+```
+
+## Unsubscribe
+
+```json
+{
+  "operation": "unsubscribe",
+  "assets_ids": ["<token_id>"],
+  "markets": ["<condition_id>"]
+}
+```

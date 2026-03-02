@@ -1,0 +1,262 @@
+---
+title: 'Market channel'
+description: 'Public stream for order book and price updates.'
+asyncapi: '/api-reference/websocket-asyncapi.yaml market'
+---
+
+
+Public channel for market data updates (level 2 order book and price signals).
+
+**Subscribe**
+
+`<wss-channel> market`
+
+## book message
+
+Emitted when:
+
+- First subscribed to a market.
+- A trade or order update affects the book.
+
+### Structure
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `event_type` | string | `book`. |
+| `asset_id` | string | Asset ID (token ID). |
+| `market` | string | Condition ID of the market. |
+| `timestamp` | string | Unix timestamp in milliseconds. |
+| `hash` | string | Hash summary of the order book content. |
+| `bids` | OrderSummary[] | Aggregate bid levels (price, size). |
+| `asks` | OrderSummary[] | Aggregate ask levels (price, size). |
+
+Where an `OrderSummary` object is of the form:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `price` | string | Price level. |
+| `size` | string | Size available at the price level. |
+
+```json
+{
+  "event_type": "book",
+  "asset_id": "65818619657568813474341868652308942079804919287380422192892211131408793125422",
+  "market": "0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af",
+  "bids": [
+    { "price": "0.48", "size": "30" },
+    { "price": "0.49", "size": "20" },
+    { "price": "0.50", "size": "15" }
+  ],
+  "asks": [
+    { "price": "0.52", "size": "25" },
+    { "price": "0.53", "size": "60" },
+    { "price": "0.54", "size": "10" }
+  ],
+  "timestamp": "1713471000000",
+  "hash": "9d6d9e8831a150ac4cd878f99f7b2c6d419b875f"
+}
+```
+
+## price_change message
+
+Emitted when:
+
+- A new order is placed.
+- An order is canceled.
+
+### Structure
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `event_type` | string | `price_change`. |
+| `market` | string | Condition ID of the market. |
+| `price_changes` | PriceChange[] | Array of price change objects. |
+| `timestamp` | string | Unix timestamp in milliseconds. |
+
+Where a `PriceChange` object is of the form:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `asset_id` | string | Asset ID (token ID). |
+| `price` | string | Price level affected. |
+| `size` | string | New aggregate size for the price level. |
+| `side` | string | `BUY` or `SELL`. |
+| `hash` | string | Internal order ID that triggered the change. |
+| `best_bid` | string | Current best bid price. |
+| `best_ask` | string | Current best ask price. |
+
+```json
+{
+  "market": "0x5f65177b394277fd294cd75650044e32ba009a95022d88a0c1d565897d72f8f1",
+  "price_changes": [
+    {
+      "asset_id": "71321045679252212594626385532706912750332728571942532289631379312455583992563",
+      "price": "0.5",
+      "size": "200",
+      "side": "BUY",
+      "hash": "01HVD3BQXT1QZ3J5P1S2QJ7XQ9",
+      "best_bid": "0.5",
+      "best_ask": "1"
+    },
+    {
+      "asset_id": "52114319501245915516055106046884209969926127482827954674443846427813813222426",
+      "price": "0.5",
+      "size": "200",
+      "side": "SELL",
+      "hash": "01HVD3C3J8BYH0D4T0PX7V5T0J",
+      "best_bid": "0",
+      "best_ask": "0.5"
+    }
+  ],
+  "timestamp": "1713471002351",
+  "event_type": "price_change"
+}
+```
+
+## tick_size_change message
+
+Emitted when:
+
+- The minimum tick size of the market changes.
+
+### Structure
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `event_type` | string | `tick_size_change`. |
+| `asset_id` | string | Asset ID (token ID). |
+| `market` | string | Condition ID of the market. |
+| `old_tick_size` | string | Previous minimum tick size. |
+| `new_tick_size` | string | Current minimum tick size. |
+| `side` | string | Side that triggered the change. |
+| `timestamp` | string | Time of the event. |
+
+```json
+{
+  "event_type": "tick_size_change",
+  "asset_id": "65818619657568813474341868652308942079804919287380422192892211131408793125422",
+  "market": "0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af",
+  "old_tick_size": "0.01",
+  "new_tick_size": "0.001",
+  "side": "BUY",
+  "timestamp": "1713472000000"
+}
+```
+
+## last_trade_price message
+
+Emitted when a maker and taker order is matched and produces a trade.
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `asset_id` | string | Asset ID (token ID). |
+| `event_type` | string | `last_trade_price`. |
+| `market` | string | Condition ID of the market. |
+| `price` | string | Trade price. |
+| `side` | string | `BUY` or `SELL`. |
+| `size` | string | Trade size. |
+| `fee_rate_bps` | string | Fee rate in bps. |
+| `timestamp` | string | Unix timestamp in milliseconds. |
+
+```json
+{
+  "asset_id": "114122071509644379678018727908709560226618148003371446110114509806601493071694",
+  "event_type": "last_trade_price",
+  "market": "0x6a67b9d828d53862160e470329ffea5246f338ecfffdf2cab45211ec578b0347",
+  "price": "0.456",
+  "side": "BUY",
+  "size": "219.217767",
+  "fee_rate_bps": "0",
+  "timestamp": "1713472146322"
+}
+```
+
+## best_bid_ask message
+
+Emitted when the best bid and ask prices for a market change. This message requires `custom_feature_enabled: true` at subscription time.
+
+### Structure
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `event_type` | string | `best_bid_ask`. |
+| `market` | string | Condition ID of the market. |
+| `asset_id` | string | Asset ID (token ID). |
+| `best_bid` | string | Current best bid price. |
+| `best_ask` | string | Current best ask price. |
+| `spread` | string | Spread between best bid and ask. |
+| `timestamp` | string | Unix timestamp in milliseconds. |
+
+```json
+{
+  "event_type": "best_bid_ask",
+  "market": "0x0005c0d312de0be897668695bae9f32b624b4a1ae8b140c49f08447fcc74f442",
+  "asset_id": "85354956062430465315924116860125388538595433819574542752031640332592237464430",
+  "best_bid": "0.73",
+  "best_ask": "0.77",
+  "spread": "0.04",
+  "timestamp": "1713472469958"
+}
+```
+
+## new_market message
+
+Emitted when new market metadata is ingested. This message requires `custom_feature_enabled: true` at subscription time.
+Delivery follows the market-channel filter: the payload is sent only if the subscriber is listening to at least one `asset_id` listed in `assets_ids`.
+
+### Structure
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `event_type` | string | `new_market`. |
+| `id` | string | Condition ID of the market. |
+| `question` | string | Market question or name. |
+| `market` | string | Condition ID of the market. |
+| `slug` | string | Market slug. |
+| `description` | string | Market rules/description. |
+| `assets_ids` | string[] | Asset IDs (token IDs) for the market. |
+| `outcomes` | string[] | Outcome labels. |
+| `event_message` | object | Event context for the market. |
+| `timestamp` | string | Unix timestamp in milliseconds. |
+
+Where an `event_message` object is of the form:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `id` | string | Event identifier (from metadata). |
+| `ticker` | string | Event ticker/short label. |
+| `slug` | string | Event slug. |
+| `title` | string | Event title. |
+| `description` | string | Event description. |
+
+```json
+{
+  "event_type": "new_market",
+  "id": "0x5a2d458a92f45cbf1c6a4b1c1b3ad9c1a3a2f594ef61df438db96b5f09e4f1a8",
+  "question": "Will ETH trade above $3,500 on March 1?",
+  "market": "0x5a2d458a92f45cbf1c6a4b1c1b3ad9c1a3a2f594ef61df438db96b5f09e4f1a8",
+  "slug": "eth-3500-mar-1",
+  "description": "Resolves to YES if ETH/USD spot trades above $3,500 by 2026-03-01 23:59 UTC.",
+  "assets_ids": [
+    "46860456514696179540717992456328056838600440010509427697932652938974638915087",
+    "22422564065514396969059610985850822840144754639731906376994343719722467258920"
+  ],
+  "outcomes": ["Yes", "No"],
+  "event_message": {
+    "id": "132",
+    "ticker": "eth-3500-mar-1",
+    "slug": "crypto",
+    "title": "Crypto",
+    "description": "Markets related to major crypto assets."
+  },
+  "timestamp": "1713473000000"
+}
+```
+
+## Notes
+
+- All numeric values are strings.
+- `book.hash` uses `sha1(orderbook_summary_json)` with the hash field zeroed (40 hex chars, no `0x`).
+- `price_change.hash` currently uses the internal order ULID.
+- `market_resolved` is planned (requires `custom_feature_enabled`).
+- Expected fields: `event_type`, `id`, `question`, `market`, `slug`, `description`, `assets_ids`, `winning_asset_id`, `winning_outcome`, `event_message { id, ticker, slug, title, description }`, `timestamp`.

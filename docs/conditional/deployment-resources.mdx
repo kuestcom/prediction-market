@@ -1,0 +1,29 @@
+---
+title: 'Deployment & resources'
+description: 'Reference material for CTF deployments, audits, and supporting libraries on Polygon Amoy.'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+# Deployment and additional resources
+
+{ENV.NEXT_PUBLIC_SITE_NAME} publishes verified Conditional Token Framework deployments on **Polygon Amoy** and mirrors the exact same layout on mainnet. We also reuse the canonical Gnosis contracts, so any bytecode you compile from the upstream repository matches what is already live. Use the guidance below whenever you need to inspect a contract, rebuild calldata, or audit a new release.
+
+## Discovering contract addresses
+
+- When interacting via the relayer, use `GET /core/get-deployed` to confirm whether your Safe already exists on the current network before approving CTF calls.
+- Prefer deterministic deployments (CREATE2) for helper contracts. You can pre-compute the final address off-chain and bake it into your subgraph mappings or front-end configuration.
+
+## Tooling checklist
+
+1. Add a Polygon Amoy RPC to your wallet or backend (for example, `https://rpc-amoy.polygon.technology`).
+2. Install [conditional-tokens-contracts](https://github.com/gnosis/conditional-tokens-contracts) or compile the contracts locally with Foundry/Hardhat.
+3. Reuse {ENV.NEXT_PUBLIC_SITE_NAME}’s publicly available ABIs from our API responses or from the verified contracts on the explorer.
+4. Run smoke tests by splitting a small amount of Amoy USDC, trading the outcomes, and merging them back before hitting production.
+
+## Helpful references
+
+- Sample scripts in the {ENV.NEXT_PUBLIC_SITE_NAME} engineering repo — use these as starting points for Foundry/Hardhat tasks (request access via support if you need it).
+- [Polygon RPC catalog](https://chainlist.org/chain/80002) — alternative Amoy endpoints when a provider is under maintenance.
+- [CTF source code](https://github.com/gnosis/conditional-tokens-contracts) — audited implementation used by {ENV.NEXT_PUBLIC_SITE_NAME}.
+- [Audit results](https://github.com/gnosis/conditional-tokens-contracts/tree/master/docs/audit) — independent reviews of the contracts we rely on.
+- [Position ID walkthrough](https://gist.github.com/L-Kov/950bce141a9d1aa1ed3b1cfce6d30217) — reference math for deriving ERC-1155 token IDs locally.

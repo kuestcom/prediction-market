@@ -1,0 +1,15 @@
+---
+title: 'Health check'
+openapi: 'GET /'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Ping <code>{ENV.DATA_URL ?? 'https://data-api.kuest.com'}/</code> to confirm that the service is online. A healthy instance returns `{ "data": "OK" }`; any other HTTP status indicates that the load balancer, the service, or its upstream caches are unhealthy.
+
+## When to call it
+
+- Up-time monitors (Datadog, Better Uptime, etc.)
+- Simple readiness probes in CI/CD jobs before running expensive smoke tests
+- Local development scripts that need to verify a tunnelled instance is reachable
+
+The route has no authentication or query parameters and responds quickly because it bypasses any database access.

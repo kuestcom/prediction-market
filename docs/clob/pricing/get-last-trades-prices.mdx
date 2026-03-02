@@ -1,0 +1,25 @@
+---
+title: 'Get last trade prices'
+openapi: 'POST /last-trades-prices'
+---
+
+
+Retrieve the most recent executed trade price for every `token_id` you include in the request array.
+
+## Request payload
+
+Send a JSON array where each object contains a single required field:
+
+- `token_id` — string identifier for the outcome you want to price.
+
+Submit as many token identifiers as you need; the service responds only for markets with at least one recorded fill.
+
+## Response body
+
+The endpoint returns an array with one object per token that has a recorded trade. Each entry contains:
+
+- `token_id` — identifier echoed back from the request.
+- `price` — string-formatted decimal value for the latest execution.
+- `side` — `BUY` if the last trade lifted an ask, or `SELL` if it hit a bid.
+
+Use the playground to experiment with different token sets or pair this endpoint with `GET /trades` when you need the full trade history.

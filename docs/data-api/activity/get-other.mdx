@@ -1,0 +1,14 @@
+---
+title: 'Get other balance'
+openapi: 'GET /other'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Use <code>{ENV.DATA_URL ?? 'https://data-api.kuest.com'}/other</code> to fetch the aggregated converted balance for negative-risk augmented events. Provide the event `slug` plus the wallet address in `user` (proxy or EOA).
+
+If the wallet has no conversions for the event (or the event is not eligible), the response is an empty array.
+
+Response objects include:
+- `slug`: event slug
+- `user`: wallet address
+- `size`: converted balance (shares)

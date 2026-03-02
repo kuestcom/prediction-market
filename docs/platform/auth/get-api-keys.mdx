@@ -1,0 +1,23 @@
+---
+title: 'List API keys'
+openapi: 'GET /auth/api-keys'
+---
+
+
+Retrieve the API keys associated with the authenticated Polygon address.
+
+<Tip>
+This endpoint requires the <strong>L2 header</strong>. Provide `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Tip>
+
+## Required headers
+
+| Header | Description |
+| --- | --- |
+| `KUEST_ADDRESS` | Polygon address that owns the credentials. |
+| `KUEST_SIGNATURE` | HMAC signature generated with the API secret. |
+| `KUEST_TIMESTAMP` | Current Unix timestamp (seconds). |
+| `KUEST_API_KEY` | API key authorizing the request. |
+| `KUEST_PASSPHRASE` | Passphrase paired with the API key. |
+
+The array only contains active API key identifiers. Revoked keys are excluded from this response. To retire a key, call [`DELETE /auth/api-key`](/platform/auth/delete-api-key). For UI-based management, open <a href="https://auth.kuest.com" target="_blank" rel="noreferrer">auth.kuest.com</a>.

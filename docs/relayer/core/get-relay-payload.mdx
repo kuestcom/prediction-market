@@ -1,0 +1,30 @@
+---
+title: 'Get relay payload'
+openapi: 'GET /relay-payload'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Fetch the relay address and next nonce required to sign proxy wallet submissions.
+
+<Info>
+Call <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/relay-payload</code> with the standard L2 headers (`KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, `KUEST_PASSPHRASE`).
+</Info>
+
+## Query parameters
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| `address` | string | Yes | Owner address that will sign the proxy relay request. |
+| `type` | string | Yes | Must be `PROXY`. |
+
+## Response
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `address` | string | Relay address that will submit the proxy transaction. |
+| `nonce` | string | Next proxy nonce for the owner. |
+
+## Usage notes
+
+- Use `address` as the `relay` field inside `signatureParams` for `PROXY` submissions.
+- Use `nonce` as the `nonce` field in your `/submit` payload.

@@ -1,0 +1,17 @@
+---
+title: 'Get closed-only status'
+openapi: 'GET /auth/ban-status/closed-only'
+---
+
+
+Check whether the authenticated account is restricted to closed-only mode.
+
+<Tip>
+This endpoint requires the <strong>L2 header</strong>. Provide `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Tip>
+
+## Response fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `closedOnly` | boolean | Indicates whether the account is restricted. |

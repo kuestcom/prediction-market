@@ -1,0 +1,3167 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Data API",
+    "version": "0.1.0",
+    "description": "Preview specification for the Data API."
+  },
+  "servers": [
+    {
+      "url": "https://data-api.kuest.com",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Health check",
+        "description": "Simple readiness probe that returns `OK` when the service is responding.",
+        "tags": [
+          "Health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Service is reachable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "data": "OK"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/positions": {
+      "get": {
+        "summary": "List live positions",
+        "description": "Returns cached positions for a wallet, enriched with metadata and lifecycle hints.",
+        "tags": [
+          "Positions"
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Wallet address whose positions should be returned.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "0x56687bf447db6ffa42ffe2204a05edaa20f55839"
+            }
+          },
+          {
+            "name": "market",
+            "in": "query",
+            "description": "Comma-separated list of condition IDs.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Hash64"
+              }
+            },
+            "style": "form",
+            "explode": false
+          },
+          {
+            "name": "sizeThreshold",
+            "in": "query",
+            "description": "Minimum token balance to include in the response.",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "default": 1
+            }
+          },
+          {
+            "name": "redeemable",
+            "in": "query",
+            "description": "Set to true to only return claims that can currently be redeemed.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "mergeable",
+            "in": "query",
+            "description": "Set to true to only return positions that can be merged.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of rows to return (max 500).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500,
+              "default": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Cursor offset for pagination (max 10,000).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000,
+              "default": 0
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Sort column for the response.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CURRENT",
+                "INITIAL",
+                "TOKENS",
+                "CASHPNL",
+                "PERCENTPNL",
+                "TITLE",
+                "RESOLVING",
+                "PRICE",
+                "AVGPRICE"
+              ],
+              "default": "TOKENS"
+            }
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Sort direction (ascending or descending).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ],
+              "default": "DESC"
+            }
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "description": "Substring search against market title (max 100 chars).",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Positions were found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Position"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "asset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
+                        "conditionId": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917",
+                        "size": 1185.42,
+                        "avgPrice": 0.41,
+                        "initialValue": 486.02,
+                        "currentValue": 623.55,
+                        "cashPnl": 137.53,
+                        "percentPnl": 28.32,
+                        "totalBought": 1625,
+                        "realizedPnl": 212.48,
+                        "percentRealizedPnl": 13.07,
+                        "curPrice": 0.53,
+                        "redeemable": true,
+                        "mergeable": false,
+                        "title": "Will the Fed cut rates in September?",
+                        "slug": "fed-rate-cut-sep-2024",
+                        "icon": "https://cdn.domain.com/markets/fed.png",
+                        "eventSlug": "fomc-2024-policy",
+                        "outcome": "Yes",
+                        "outcomeIndex": 0,
+                        "oppositeOutcome": "No",
+                        "oppositeAsset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:1",
+                        "timestamp": 1719273600,
+                        "endDate": "2024-09-18T18:00:00Z",
+                        "negativeRisk": true
+                      },
+                      {
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "asset": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5:1",
+                        "conditionId": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5",
+                        "size": 940.11,
+                        "avgPrice": 0.47,
+                        "initialValue": 441.85,
+                        "currentValue": 389.84,
+                        "cashPnl": -52.01,
+                        "percentPnl": -11.77,
+                        "totalBought": 1300,
+                        "realizedPnl": 98.67,
+                        "percentRealizedPnl": 7.59,
+                        "curPrice": 0.42,
+                        "redeemable": false,
+                        "mergeable": true,
+                        "title": "Will turnout exceed 60% in the French election?",
+                        "slug": "france-turnout-60",
+                        "icon": "https://cdn.domain.com/markets/france-election.png",
+                        "eventSlug": "french-presidential-2024",
+                        "outcome": "No",
+                        "outcomeIndex": 1,
+                        "oppositeOutcome": "Yes",
+                        "oppositeAsset": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5:0",
+                        "timestamp": 1718083200,
+                        "endDate": "2024-07-07T20:00:00Z",
+                        "negativeRisk": false
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unknown_field: foo"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unauthorized: ip_not_allowlisted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/closed-positions": {
+      "get": {
+        "summary": "List closed positions",
+        "description": "Returns cached exits for a wallet with filtering, sorting, and pagination.",
+        "tags": [
+          "Positions"
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Wallet address whose positions should be returned.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "0x56687bf447db6ffa42ffe2204a05edaa20f55839"
+            }
+          },
+          {
+            "name": "market",
+            "in": "query",
+            "description": "Comma-separated list of condition IDs.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Hash64"
+              }
+            },
+            "style": "form",
+            "explode": false
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "description": "Substring search against market title (max 100 chars).",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of rows to return (max 50).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 50,
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Cursor offset for pagination (max 100,000).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Sort column.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "REALIZEDPNL",
+                "TITLE",
+                "PRICE",
+                "AVGPRICE",
+                "TIMESTAMP"
+              ],
+              "default": "REALIZEDPNL"
+            }
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Sort direction.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ],
+              "default": "DESC"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Closed positions were found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClosedPosition"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "asset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
+                        "conditionId": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917",
+                        "size": 610.2,
+                        "avgPrice": 0.39,
+                        "initialValue": 237.98,
+                        "currentValue": 0,
+                        "cashPnl": 418.56,
+                        "totalBought": 1120.4,
+                        "realizedPnl": 418.56,
+                        "percentPnl": 37.35,
+                        "percentRealizedPnl": 37.35,
+                        "curPrice": 0.68,
+                        "redeemable": false,
+                        "mergeable": false,
+                        "title": "Will the Fed cut rates in September?",
+                        "slug": "fed-rate-cut-sep-2024",
+                        "icon": "https://cdn.domain.com/markets/fed.png",
+                        "eventSlug": "fomc-2024-policy",
+                        "outcome": "Yes",
+                        "outcomeIndex": 0,
+                        "oppositeOutcome": "No",
+                        "oppositeAsset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:1",
+                        "timestamp": 1718121600,
+                        "endDate": "2024-09-18T18:00:00Z"
+                      },
+                      {
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "asset": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5:1",
+                        "conditionId": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5",
+                        "size": 980.5,
+                        "avgPrice": 0.47,
+                        "initialValue": 460.84,
+                        "currentValue": 0,
+                        "cashPnl": 512.91,
+                        "totalBought": 1685.75,
+                        "realizedPnl": 512.91,
+                        "percentPnl": 30.43,
+                        "percentRealizedPnl": 30.43,
+                        "curPrice": 0.9,
+                        "redeemable": false,
+                        "mergeable": false,
+                        "title": "Will turnout exceed 60% in the French election?",
+                        "slug": "france-turnout-60",
+                        "icon": "https://cdn.domain.com/markets/france-election.png",
+                        "eventSlug": "french-presidential-2024",
+                        "outcome": "No",
+                        "outcomeIndex": 1,
+                        "oppositeOutcome": "Yes",
+                        "oppositeAsset": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5:0",
+                        "timestamp": 1715668800,
+                        "endDate": "2024-07-07T20:00:00Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "missing_field: user"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unauthorized: ip_not_allowlisted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/value": {
+      "get": {
+        "summary": "Get total portfolio value",
+        "description": "Returns the aggregated exposure for a wallet. Additional filters such as `market` are not implemented yet.",
+        "tags": [
+          "Positions"
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "description": "EVM address whose aggregated position value should be returned.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "0x56687bf447db6ffa42ffe2204a05edaa20f55839"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Value summary computed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Value"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "user": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "value": 15892.36
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "missing_field: user"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/traded": {
+      "get": {
+        "summary": "Count traded markets",
+        "description": "Returns how many distinct markets a wallet has traded in. Only the `user` parameter is recognized.",
+        "tags": [
+          "Positions"
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Wallet address to inspect.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "0x56687bf447db6ffa42ffe2204a05edaa20f55839"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Counter returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Traded"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "user": "0x2b1f7A50E7a493366F9765F006087Ec6524f4a6A",
+                      "traded": "47"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "missing_field: user"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unauthorized: ip_not_allowlisted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/volume": {
+      "get": {
+        "summary": "Get total user volume",
+        "description": "Returns the aggregate notional volume for a wallet based on the activity ledger.",
+        "tags": [
+          "Positions"
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Wallet address to inspect.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "0x56687bf447db6ffa42ffe2204a05edaa20f55839"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Volume returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Volume"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "user": "0x2b1f7A50E7a493366F9765F006087Ec6524f4a6A",
+                      "volume": "8109.936"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "missing_field: user"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unauthorized: ip_not_allowlisted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/holders": {
+      "get": {
+        "summary": "List top token holders",
+        "description": "Ranks wallets by outcome token balance for each requested market.",
+        "tags": [
+          "Market data"
+        ],
+        "parameters": [
+          {
+            "name": "market",
+            "in": "query",
+            "description": "Comma-separated list of condition IDs.",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Hash64"
+              }
+            },
+            "style": "form",
+            "explode": false
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of holders to return per market (max 500).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500,
+              "default": 100
+            }
+          },
+          {
+            "name": "minBalance",
+            "in": "query",
+            "description": "Drop wallets below this token balance.",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Holder leaderboard returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MetaHolder"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "token": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
+                        "holders": [
+                          {
+                            "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                            "bio": "Macro strategist backing major economic events.",
+                            "asset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
+                            "pseudonym": "macro.whale",
+                            "amount": 12500,
+                            "displayUsernamePublic": true,
+                            "outcomeIndex": 0,
+                            "name": "Macro Whale",
+                            "profileImage": "https://cdn.domain.com/users/macro-whale.png",
+                            "profileImageOptimized": "https://cdn.domain.com/users/macro-whale@2x.jpg"
+                          },
+                          {
+                            "proxyWallet": "0x94d37B9c164888FbA4d4b3D4639a65f8AC54a1B6",
+                            "bio": "On-chain analyst seeding liquidity.",
+                            "asset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
+                            "pseudonym": "liquidity.lab",
+                            "amount": 8200.75,
+                            "displayUsernamePublic": false,
+                            "outcomeIndex": 0,
+                            "name": "Liquidity Lab",
+                            "profileImage": "https://cdn.domain.com/users/liquidity-lab.png",
+                            "profileImageOptimized": "https://cdn.domain.com/users/liquidity-lab@2x.jpg"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unknown_field: minBalance"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unauthorized: ip_not_allowlisted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activity": {
+      "get": {
+        "summary": "Get wallet activity",
+        "description": "Returns the cached user activity feed. Today it only surfaces trade rows and ignores other filters such as `type` and `side`.",
+        "tags": [
+          "Activity"
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Wallet whose activity feed should be returned. Required.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "0x56687bf447db6ffa42ffe2204a05edaa20f55839"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of events to return (max 500).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of rows to skip (max 10,000).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity records returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Activity"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "timestamp": 1718125200,
+                        "conditionId": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917",
+                        "type": "TRADE",
+                        "size": 200,
+                        "usdcSize": 91.5,
+                        "transactionHash": "0xe12b59bdc88cc2f545aba5dfa8d6c7c1a2477bf44a909b2098e8bff25b6f8891",
+                        "price": 0.46,
+                        "asset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
+                        "side": "BUY",
+                        "outcomeIndex": 0,
+                        "title": "Will the Fed cut rates in September?",
+                        "slug": "fed-rate-cut-sep-2024",
+                        "icon": "https://cdn.domain.com/markets/fed.png",
+                        "eventSlug": "fomc-2024-policy",
+                        "outcome": "Yes",
+                        "name": "Macro Whale",
+                        "pseudonym": "macro.whale",
+                        "bio": "Macro strategist backing major economic events.",
+                        "profileImage": "https://cdn.domain.com/users/macro-whale.png",
+                        "profileImageOptimized": "https://cdn.domain.com/users/macro-whale@2x.jpg"
+                      },
+                      {
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "timestamp": 1717664400,
+                        "conditionId": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5",
+                        "type": "TRADE",
+                        "size": 150.25,
+                        "usdcSize": 72.62,
+                        "transactionHash": "0x74a824dddf426a1138d3fb0dc32d61837721528de933e3f3f9bf37fd61e48bb4",
+                        "price": 0.48,
+                        "asset": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5:1",
+                        "side": "SELL",
+                        "outcomeIndex": 1,
+                        "title": "Will turnout exceed 60% in the French election?",
+                        "slug": "france-turnout-60",
+                        "icon": "https://cdn.domain.com/markets/france-election.png",
+                        "eventSlug": "french-presidential-2024",
+                        "outcome": "No",
+                        "name": "Civic Data Fund",
+                        "pseudonym": "civic.fund",
+                        "bio": "Collective focused on political prediction markets.",
+                        "profileImage": "https://cdn.domain.com/users/civic-fund.png",
+                        "profileImageOptimized": "https://cdn.domain.com/users/civic-fund@2x.jpg"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unknown_field: type"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unauthorized: ip_not_allowlisted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/other": {
+      "get": {
+        "summary": "Get other balance",
+        "description": "Returns the aggregated converted balance for negative-risk augmented events. Supply the event slug and wallet address.",
+        "tags": [
+          "Activity"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "query",
+            "description": "Event slug to inspect.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "how-many-spacex-launches-in-2026"
+            }
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Wallet address to inspect.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "0x56687bf447db6ffa42ffe2204a05edaa20f55839"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Other balance returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OtherBalance"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "slug": "how-many-spacex-launches-in-2026",
+                        "user": "0x576ddbc627f5bdb8b419ec779bb7e6e218ffe124",
+                        "size": 1.9607
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "missing_field: slug"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trades": {
+      "get": {
+        "summary": "Get trade history",
+        "description": "Returns cached trade fills with filters for `user`, `market`, pagination, side selection, taker flags, and notional thresholds.",
+        "tags": [
+          "Activity"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum rows to return (max 10,000).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000,
+              "default": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Cursor offset for pagination.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000,
+              "default": 0
+            }
+          },
+          {
+            "name": "takerOnly",
+            "in": "query",
+            "description": "Limit results to taker fills (default true).",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          {
+            "name": "filterType",
+            "in": "query",
+            "description": "Apply a cash or token threshold filter (requires filterAmount).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CASH",
+                "TOKENS"
+              ]
+            }
+          },
+          {
+            "name": "filterAmount",
+            "in": "query",
+            "description": "Threshold used alongside filterType.",
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "market",
+            "in": "query",
+            "description": "Comma-separated list of condition IDs.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Hash64"
+              }
+            },
+            "style": "form",
+            "explode": false
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Wallet address to scope results to.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "description": "Limit to BUY or SELL fills.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BUY",
+                "SELL"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trade rows returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Trade"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "side": "BUY",
+                        "asset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
+                        "conditionId": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917",
+                        "size": 420.5,
+                        "price": 0.46,
+                        "timestamp": 1718121600,
+                        "usdcSize": 193.43,
+                        "title": "Will the Fed cut rates in September?",
+                        "slug": "fed-rate-cut-sep-2024",
+                        "icon": "https://cdn.domain.com/markets/fed.png",
+                        "eventSlug": "fomc-2024-policy",
+                        "outcome": "Yes",
+                        "outcomeIndex": 0,
+                        "name": "Macro Whale",
+                        "pseudonym": "macro.whale",
+                        "bio": "Macro strategist backing major economic events.",
+                        "profileImage": "https://cdn.domain.com/users/macro-whale.png",
+                        "profileImageOptimized": "https://cdn.domain.com/users/macro-whale@2x.jpg",
+                        "transactionHash": "0xa8b1be184ad6b5a219d121935e7b4f6a1cb5df38e7b74d2880aed672541da831"
+                      },
+                      {
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "side": "SELL",
+                        "asset": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5:1",
+                        "conditionId": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5",
+                        "size": 280.75,
+                        "price": 0.51,
+                        "timestamp": 1717660800,
+                        "usdcSize": 143.18,
+                        "title": "Will turnout exceed 60% in the French election?",
+                        "slug": "france-turnout-60",
+                        "icon": "https://cdn.domain.com/markets/france-election.png",
+                        "eventSlug": "french-presidential-2024",
+                        "outcome": "No",
+                        "outcomeIndex": 1,
+                        "name": "Civic Data Fund",
+                        "pseudonym": "civic.fund",
+                        "bio": "Collective focused on political prediction markets.",
+                        "profileImage": "https://cdn.domain.com/users/civic-fund.png",
+                        "profileImageOptimized": "https://cdn.domain.com/users/civic-fund@2x.jpg",
+                        "transactionHash": "0x4ce08d5e23b884ddaf8b4691cfd04e6c4f80c378a9cfd76f4043f8197a9482cd"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unknown_field: takerOnly"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unauthorized: ip_not_allowlisted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/referrers": {
+      "get": {
+        "summary": "Get referrer fee totals",
+        "description": "Returns aggregated fee totals (in USDC base units at fee charge time) for a receiver address treated as a referrer. Results are grouped by exchange, ordered by updatedAt descending.",
+        "tags": [
+          "Referrals"
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "description": "Receiver address to aggregate referrer fees for.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "0x8e0d7a3d9f66f1e6b7a5c0b0b8b0c3e0f1a2b3c4"
+            }
+          },
+          {
+            "name": "exchange",
+            "in": "query",
+            "description": "CTFExchange/NegRisk address to scope results to (lowercased).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "0x4bfb41d5b3570defd03c39a9a4d8de6bd8b8982e"
+            }
+          },
+          {
+            "name": "tokenId",
+            "in": "query",
+            "description": "Optional token id to scope results. If provided, totals include only that token\u2019s fees converted to USDC at charge time. If omitted, totals aggregate all tokens and tokenId in the response is 0.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "0"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of rows to return (max 500).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500,
+              "default": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of rows to skip.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Referrer totals returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReferralAggregate"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "exchange": "0x4bfb41d5b3570defd03c39a9a4d8de6bd8b8982e",
+                        "receiver": "0x8e0d7a3d9f66f1e6b7a5c0b0b8b0c3e0f1a2b3c4",
+                        "tokenId": "0",
+                        "totalAmount": "184250000",
+                        "updatedAt": 1735560942,
+                        "totalVolume": "184250000"
+                      },
+                      {
+                        "exchange": "0x4bfb41d5b3570defd03c39a9a4d8de6bd8b8982e",
+                        "receiver": "0x8e0d7a3d9f66f1e6b7a5c0b0b8b0c3e0f1a2b3c4",
+                        "tokenId": "35298173513404621577479069037847775250424943719108005377003027356519523123136",
+                        "totalAmount": "7400000",
+                        "updatedAt": 1735560120,
+                        "totalVolume": "7400000"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "missing_field: address"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unauthorized: ip_not_allowlisted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/affiliates": {
+      "get": {
+        "summary": "Get affiliate fee totals",
+        "description": "Returns aggregated fee totals (in USDC base units at fee charge time) for a receiver address treated as a affiliate. Results are grouped by exchange, ordered by updatedAt descending.",
+        "tags": [
+          "Referrals"
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "description": "Receiver address to aggregate affiliate fees for.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "0x52a7a01677fb46117adc584fc331bfd54cf685c0"
+            }
+          },
+          {
+            "name": "exchange",
+            "in": "query",
+            "description": "CTFExchange/NegRisk address to scope results to (lowercased).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "0x4bfb41d5b3570defd03c39a9a4d8de6bd8b8982e"
+            }
+          },
+          {
+            "name": "tokenId",
+            "in": "query",
+            "description": "Optional token id to scope results. If provided, totals include only that token\u2019s fees converted to USDC at charge time. If omitted, totals aggregate all tokens and tokenId in the response is 0.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "0"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of rows to return (max 500).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500,
+              "default": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of rows to skip.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Affiliate totals returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReferralAggregate"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "exchange": "0x4bfb41d5b3570defd03c39a9a4d8de6bd8b8982e",
+                        "receiver": "0x52a7a01677fb46117adc584fc331bfd54cf685c0",
+                        "tokenId": "0",
+                        "totalAmount": "32500000",
+                        "updatedAt": 1735561201,
+                        "totalVolume": "32500000"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "missing_field: address"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unauthorized: ip_not_allowlisted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oi": {
+      "get": {
+        "summary": "Get open interest",
+        "description": "Returns open interest for each market. Values are serialized as strings.",
+        "tags": [
+          "Market data"
+        ],
+        "parameters": [
+          {
+            "name": "market",
+            "in": "query",
+            "description": "Optional comma-separated list of condition IDs to inspect.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Hash64"
+              }
+            },
+            "style": "form",
+            "explode": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Open interest returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OpenInterest"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "market": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917",
+                        "value": "187500.12"
+                      },
+                      {
+                        "market": "0x6e4a2737b079f0ac5dbcaf6142f0c2dbf0a2c8822d38a8e1ec3a4ed607cb1c45",
+                        "value": "142210.44"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unknown_field: foo"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live-volume": {
+      "get": {
+        "summary": "Get live event volume",
+        "description": "Returns the total matched volume snapshot for the requested event. Provide a comma-separated `market` query that lists the condition IDs for the event you want to inspect.",
+        "tags": [
+          "Market data"
+        ],
+        "parameters": [
+          {
+            "name": "market",
+            "in": "query",
+            "description": "Comma-separated list of condition IDs.",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Hash64"
+              }
+            },
+            "style": "form",
+            "explode": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Live volume returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LiveVolume"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "total": "284512.77",
+                        "markets": [
+                          {
+                            "market": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917",
+                            "value": "162344.55"
+                          },
+                          {
+                            "market": "0x3ad2cfba08c4a214049f8f4c4c1e7f9a924b1332d604798b85a1afd7b9e884d3",
+                            "value": "122168.22"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "missing_field: market"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/builders/leaderboard": {
+      "get": {
+        "summary": "Get builder leaderboard",
+        "description": "Placeholder route for the builder leaderboard. It currently returns an empty array until the attribution ETL is live.",
+        "tags": [
+          "Builders"
+        ],
+        "parameters": [
+          {
+            "name": "timePeriod",
+            "in": "query",
+            "description": "Time window for aggregation.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DAY",
+                "WEEK",
+                "MONTH",
+                "ALL"
+              ],
+              "default": "DAY"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of builders to return.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 50,
+              "default": 25
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Starting index for pagination.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Leaderboard returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LeaderboardEntry"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "not_implemented"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/builders/volume": {
+      "get": {
+        "summary": "Get builder volume series",
+        "description": "Placeholder route for the builder time-series. It currently returns an empty array until the attribution ETL is live.",
+        "tags": [
+          "Builders"
+        ],
+        "parameters": [
+          {
+            "name": "timePeriod",
+            "in": "query",
+            "description": "Time window to seed the daily series.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DAY",
+                "WEEK",
+                "MONTH",
+                "ALL"
+              ],
+              "default": "DAY"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Volume series returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BuilderVolumeEntry"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "not_implemented"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error: unexpected database failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/leaderboard": {
+      "get": {
+        "summary": "Get trader leaderboard",
+        "description": "Returns trader rankings by profit/loss or volume.",
+        "tags": [
+          "Leaderboards"
+        ],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Category filter.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OVERALL",
+                "POLITICS",
+                "SPORTS",
+                "CRYPTO",
+                "FINANCE",
+                "CULTURE",
+                "MENTIONS",
+                "WEATHER",
+                "ECONOMICS",
+                "TECH"
+              ],
+              "default": "OVERALL"
+            }
+          },
+          {
+            "name": "timePeriod",
+            "in": "query",
+            "description": "Time window for aggregation.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DAY",
+                "WEEK",
+                "MONTH",
+                "ALL"
+              ],
+              "default": "DAY"
+            }
+          },
+          {
+            "name": "orderBy",
+            "in": "query",
+            "description": "Ordering criteria.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PNL",
+                "VOL"
+              ],
+              "default": "PNL"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of traders to return.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 25
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Starting index for pagination.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000,
+              "default": 0
+            }
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Filter to a single wallet address.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "0x56687bf447db6ffa42ffe2204a05edaa20f55839"
+            }
+          },
+          {
+            "name": "userName",
+            "in": "query",
+            "description": "Filter to a single username.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Leaderboard returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TraderLeaderboardEntry"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "rank": "1",
+                        "proxyWallet": "0x1234567890abcdef1234567890abcdef12345678",
+                        "userName": "Theo4",
+                        "vol": 22862194,
+                        "pnl": 8499002,
+                        "profileImage": "https://cdn.kuest.com/profiles/theo4.png",
+                        "xUsername": null,
+                        "verifiedBadge": null
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unknown_field: foo"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/leaderboard/biggest-wins": {
+      "get": {
+        "summary": "Get biggest wins",
+        "description": "Returns the largest realized wins for closed positions.",
+        "tags": [
+          "Leaderboards"
+        ],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Category filter.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OVERALL",
+                "POLITICS",
+                "SPORTS",
+                "CRYPTO",
+                "FINANCE",
+                "CULTURE",
+                "MENTIONS",
+                "WEATHER",
+                "ECONOMICS",
+                "TECH"
+              ],
+              "default": "OVERALL"
+            }
+          },
+          {
+            "name": "timePeriod",
+            "in": "query",
+            "description": "Time window for aggregation.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DAY",
+                "WEEK",
+                "MONTH",
+                "ALL"
+              ],
+              "default": "DAY"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of rows to return.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Starting index for pagination.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Biggest wins returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BiggestWinEntry"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "winRank": "1",
+                        "proxyWallet": "0x1234567890abcdef1234567890abcdef12345678",
+                        "userName": "Theo4",
+                        "eventTitle": "Popular Vote Winner 2024",
+                        "slug": "popular-vote-winner-2024",
+                        "icon": "https://cdn.kuest.com/markets/popular-vote.png",
+                        "eventSlug": "presidential-election-2024",
+                        "initialValue": 8499002,
+                        "finalValue": 22862194,
+                        "pnl": 14363192,
+                        "profileImage": "https://cdn.kuest.com/profiles/theo4.png"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unknown_field: foo"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/biggest-winners": {
+      "get": {
+        "summary": "Get biggest winners",
+        "description": "Returns the largest realized wins for closed positions.",
+        "tags": [
+          "Leaderboards"
+        ],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Category filter.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OVERALL",
+                "POLITICS",
+                "SPORTS",
+                "CRYPTO",
+                "FINANCE",
+                "CULTURE",
+                "MENTIONS",
+                "WEATHER",
+                "ECONOMICS",
+                "TECH"
+              ],
+              "default": "OVERALL"
+            }
+          },
+          {
+            "name": "timePeriod",
+            "in": "query",
+            "description": "Time window for aggregation.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DAY",
+                "WEEK",
+                "MONTH",
+                "ALL"
+              ],
+              "default": "DAY"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of rows to return.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Starting index for pagination.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Biggest wins returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BiggestWinEntry"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "winRank": "1",
+                        "proxyWallet": "0x1234567890abcdef1234567890abcdef12345678",
+                        "userName": "Theo4",
+                        "eventTitle": "Popular Vote Winner 2024",
+                        "slug": "popular-vote-winner-2024",
+                        "icon": "https://cdn.kuest.com/markets/popular-vote.png",
+                        "eventSlug": "presidential-election-2024",
+                        "initialValue": 8499002,
+                        "finalValue": 22862194,
+                        "pnl": 14363192,
+                        "profileImage": "https://cdn.kuest.com/profiles/theo4.png"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "unknown_field: foo"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "error": "internal_error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "example": "OK"
+          }
+        }
+      },
+      "Address": {
+        "type": "string",
+        "description": "0x-prefixed EVM address (40 hex chars).",
+        "pattern": "^0x[a-fA-F0-9]{40}$",
+        "example": "0x56687bf447db6ffa42ffe2204a05edaa20f55839"
+      },
+      "Hash64": {
+        "type": "string",
+        "description": "0x-prefixed 64-character hex string.",
+        "pattern": "^0x[a-fA-F0-9]{64}$",
+        "example": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917"
+      },
+      "LeaderboardEntry": {
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "string"
+          },
+          "builder": {
+            "type": "string"
+          },
+          "volume": {
+            "type": "number"
+          },
+          "activeUsers": {
+            "type": "integer"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "builderLogo": {
+            "type": "string"
+          }
+        }
+      },
+      "BuilderVolumeEntry": {
+        "type": "object",
+        "properties": {
+          "dt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "builder": {
+            "type": "string"
+          },
+          "builderLogo": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "volume": {
+            "type": "number"
+          },
+          "activeUsers": {
+            "type": "integer"
+          },
+          "rank": {
+            "type": "string"
+          }
+        }
+      },
+      "Position": {
+        "type": "object",
+        "properties": {
+          "proxyWallet": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "asset": {
+            "type": "string"
+          },
+          "conditionId": {
+            "$ref": "#/components/schemas/Hash64"
+          },
+          "size": {
+            "type": "number"
+          },
+          "avgPrice": {
+            "type": "number"
+          },
+          "initialValue": {
+            "type": "number"
+          },
+          "currentValue": {
+            "type": "number"
+          },
+          "cashPnl": {
+            "type": "number"
+          },
+          "totalBought": {
+            "type": "number"
+          },
+          "realizedPnl": {
+            "type": "number"
+          },
+          "percentPnl": {
+            "type": "number"
+          },
+          "percentRealizedPnl": {
+            "type": "number"
+          },
+          "curPrice": {
+            "type": "number"
+          },
+          "redeemable": {
+            "type": "boolean"
+          },
+          "mergeable": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "eventSlug": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "outcomeIndex": {
+            "type": "integer"
+          },
+          "oppositeOutcome": {
+            "type": "string"
+          },
+          "oppositeAsset": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "negativeRisk": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ClosedPosition": {
+        "type": "object",
+        "properties": {
+          "proxyWallet": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "asset": {
+            "type": "string"
+          },
+          "conditionId": {
+            "$ref": "#/components/schemas/Hash64"
+          },
+          "size": {
+            "type": "number"
+          },
+          "avgPrice": {
+            "type": "number"
+          },
+          "initialValue": {
+            "type": "number"
+          },
+          "currentValue": {
+            "type": "number"
+          },
+          "cashPnl": {
+            "type": "number"
+          },
+          "totalBought": {
+            "type": "number"
+          },
+          "realizedPnl": {
+            "type": "number"
+          },
+          "percentPnl": {
+            "type": "number"
+          },
+          "percentRealizedPnl": {
+            "type": "number"
+          },
+          "curPrice": {
+            "type": "number"
+          },
+          "redeemable": {
+            "type": "boolean"
+          },
+          "mergeable": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "eventSlug": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "outcomeIndex": {
+            "type": "integer"
+          },
+          "oppositeOutcome": {
+            "type": "string"
+          },
+          "oppositeAsset": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Value": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      },
+      "Traded": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "traded": {
+            "type": "integer"
+          }
+        }
+      },
+      "Volume": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "volume": {
+            "type": "string"
+          }
+        }
+      },
+      "ReferralAggregate": {
+        "type": "object",
+        "properties": {
+          "exchange": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "receiver": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "tokenId": {
+            "type": "string"
+          },
+          "totalAmount": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalVolume": {
+            "type": "string"
+          }
+        }
+      },
+      "MetaHolder": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "holders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Holder"
+            }
+          }
+        }
+      },
+      "Activity": {
+        "type": "object",
+        "properties": {
+          "proxyWallet": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "conditionId": {
+            "$ref": "#/components/schemas/Hash64"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "TRADE",
+              "SPLIT",
+              "MERGE",
+              "REDEEM",
+              "REWARD",
+              "CONVERSION"
+            ]
+          },
+          "size": {
+            "type": "number"
+          },
+          "usdcSize": {
+            "type": "number"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "price": {
+            "type": "number"
+          },
+          "side": {
+            "type": "string",
+            "nullable": true
+          },
+          "asset": {
+            "type": "string",
+            "nullable": true
+          },
+          "outcomeIndex": {
+            "type": "integer",
+            "nullable": true
+          },
+          "transactionHash": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "outcome": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "pseudonym": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "profileImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "profileImageOptimized": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "OtherBalance": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "Event slug."
+          },
+          "user": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "size": {
+            "type": "number"
+          }
+        }
+      },
+      "Trade": {
+        "type": "object",
+        "properties": {
+          "proxyWallet": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ]
+          },
+          "asset": {
+            "type": "string"
+          },
+          "conditionId": {
+            "$ref": "#/components/schemas/Hash64"
+          },
+          "size": {
+            "type": "number"
+          },
+          "price": {
+            "type": "number"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "transactionHash": {
+            "type": "string"
+          },
+          "usdcSize": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "eventSlug": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "outcomeIndex": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "pseudonym": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "profileImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "profileImageOptimized": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "OpenInterest": {
+        "type": "object",
+        "properties": {
+          "market": {
+            "$ref": "#/components/schemas/Hash64"
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      },
+      "MarketVolume": {
+        "type": "object",
+        "properties": {
+          "market": {
+            "$ref": "#/components/schemas/Hash64"
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      },
+      "LiveVolume": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "markets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MarketVolume"
+            }
+          }
+        }
+      },
+      "Holder": {
+        "type": "object",
+        "properties": {
+          "proxyWallet": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "asset": {
+            "type": "string"
+          },
+          "pseudonym": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number"
+          },
+          "displayUsernamePublic": {
+            "type": "boolean"
+          },
+          "outcomeIndex": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "profileImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "profileImageOptimized": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "TraderLeaderboardEntry": {
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "string"
+          },
+          "proxyWallet": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "vol": {
+            "type": "number"
+          },
+          "pnl": {
+            "type": "number"
+          },
+          "profileImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "xUsername": {
+            "type": "string",
+            "nullable": true
+          },
+          "verifiedBadge": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "BiggestWinEntry": {
+        "type": "object",
+        "properties": {
+          "winRank": {
+            "type": "string"
+          },
+          "proxyWallet": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "initialValue": {
+            "type": "number"
+          },
+          "finalValue": {
+            "type": "number"
+          },
+          "pnl": {
+            "type": "number"
+          },
+          "profileImage": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+  }
+}

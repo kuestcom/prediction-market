@@ -1,0 +1,240 @@
+---
+title: 'Live data channel'
+description: 'Stream activity, comments, and crypto price updates from the live data socket.'
+asyncapi: '/api-reference/websocket-live-data-asyncapi.yaml live-data'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Live data streams deliver matched orders and comment events, plus crypto price updates for multiple symbols.
+
+## Endpoint
+
+- Production: <code>{ENV.WS_LIVE_DATA_URL ?? 'wss://ws-live-data.kuest.com'}/</code>
+
+## Heartbeats
+
+Send any variation of `PING` (`ping`, `PiNg`, `PING`). The server replies with `PONG`.
+
+## Request format
+
+Send a JSON payload right after opening the socket:
+
+- `action`: `subscribe` or `unsubscribe`.
+- `subscriptions`: array of topic subscriptions.
+- `topic`: stream identifier.
+- `type`: event type within that topic.
+- `filters`: optional topic-specific filters (JSON object or JSON string).
+
+## Topic and filter reference
+
+| Topic | Allowed `type` | Supported filters |
+| --- | --- | --- |
+| `activity` | `orders_matched`, `*` | `event_slug` or `eventSlug` |
+| `comments` | `comment_created`, `comment_removed`, `*` | `event_slug` / `eventSlug`, `market`, `asset_id` |
+| `crypto_prices_chainlink` | `update`, `*` | `symbol` or `symbols` |
+| `crypto_prices_binance` | `update`, `*` | `symbol` or `symbols` |
+
+`symbol` is used for one symbol. `symbols` is an array for multi-symbol subscriptions.
+
+Common symbols:
+
+- Chainlink format: `btc/usd`, `eth/usd`, `sol/usd`, `xrp/usd`.
+- Binance format: `btcusdt`, `ethusdt`, `solusdt`, `xrpusdt`.
+
+## Subscribe
+
+Send a subscription payload immediately after opening the socket.
+
+```json
+{
+  "action": "subscribe",
+  "subscriptions": [
+    {
+      "topic": "activity",
+      "type": "orders_matched",
+      "filters": { "event_slug": "x-banned-in-uk-by-march-31" }
+    },
+    {
+      "topic": "comments",
+      "type": "*",
+      "filters": { "event_slug": "x-banned-in-uk-by-march-31" }
+    },
+    {
+      "topic": "crypto_prices_chainlink",
+      "type": "*",
+      "filters": { "symbols": ["btc/usd", "eth/usd", "sol/usd", "xrp/usd"] }
+    },
+    {
+      "topic": "crypto_prices_binance",
+      "type": "*",
+      "filters": { "symbols": ["btcusdt", "ethusdt", "solusdt", "xrpusdt"] }
+    }
+  ]
+}
+```
+
+`filters` can be either a JSON object or a JSON string. Both are accepted.
+
+You can subscribe to multiple topics and symbols in a single socket connection.
+
+### Global feed example
+
+```json
+{
+  "action": "subscribe",
+  "subscriptions": [
+    {
+      "topic": "activity",
+      "type": "orders_matched"
+    }
+  ]
+}
+```
+
+### Single-symbol crypto example
+
+```json
+{
+  "action": "subscribe",
+  "subscriptions": [
+    {
+      "topic": "crypto_prices_chainlink",
+      "type": "update",
+      "filters": { "symbol": "btc/usd" }
+    },
+    {
+      "topic": "crypto_prices_binance",
+      "type": "update",
+      "filters": { "symbol": "btcusdt" }
+    }
+  ]
+}
+```
+
+## Unsubscribe
+
+```json
+{
+  "action": "unsubscribe",
+  "subscriptions": [
+    {
+      "topic": "activity",
+      "type": "orders_matched",
+      "filters": { "event_slug": "x-banned-in-uk-by-march-31" }
+    },
+    {
+      "topic": "crypto_prices_chainlink",
+      "type": "update",
+      "filters": { "symbol": "btc/usd" }
+    }
+  ]
+}
+```
+
+## Activity messages
+
+Matched orders are delivered as `orders_matched` events with a payload object.
+
+```json
+{
+  "connection_id": "ws-1710000000000-1",
+  "topic": "activity",
+  "type": "orders_matched",
+  "timestamp": 1710000000000,
+  "payload": {
+    "bio": "",
+    "name": "salted.caramel",
+    "profileImage": "https://gateway.irys.xyz/u_MO35Chic67ttHdBqD-hMcAUBjppgGxMkdEY716TFg",
+    "pseudonym": "",
+    "proxyWallet": "0xe25b9180f5687aa85bd94ee309bb72a464320f1b",
+    "side": "BUY",
+    "asset": "1234",
+    "conditionId": "0xabc",
+    "size": 10.5,
+    "price": 0.42,
+    "timestamp": 1710000000,
+    "transactionHash": "0xdeadbeef",
+    "usdcSize": 4.41,
+    "title": "Example market",
+    "slug": "example-market",
+    "icon": "https://cdn.domain.com/markets/example.png",
+    "eventSlug": "x-banned-in-uk-by-march-31",
+    "tags": ["Politics", "Trump"],
+    "outcome": "YES",
+    "outcomeIndex": 0
+  }
+}
+```
+
+`tags` is an array of event labels you can use to filter on the client.
+
+## Comment messages
+
+Comment events are delivered as `comment_created` or `comment_removed`.
+
+```json
+{
+  "connection_id": "ws-1710000000000-1",
+  "topic": "comments",
+  "type": "comment_created",
+  "timestamp": 1710000000000,
+  "payload": {
+    "id": "1763355",
+    "body": "Example comment text",
+    "createdAt": "2025-07-25T14:49:35.801298Z",
+    "parentCommentID": "1763325",
+    "parentEntityType": "Event",
+    "profile": {
+      "baseAddress": "0xce533188d53a16ed580fd5121dedf166d3482677",
+      "displayUsernamePublic": true,
+      "name": "salted.caramel",
+      "profileImage": "https://gateway.irys.xyz/u_MO35Chic67ttHdBqD-hMcAUBjppgGxMkdEY716TFg",
+      "proxyWallet": "0x4ca749dcfa93c87e5ee23e2d21ff4422c7a4c1ee",
+      "pseudonym": "Adored-Disparity"
+    },
+    "positions": [
+      {
+        "conditionId": "0xabc",
+        "outcomeIndex": 0,
+        "amount": 10
+      }
+    ],
+    "reactionCount": 0,
+    "replyAddress": "0x0bda5d16f76cd1d3485bcc7a44bc6fa7db004cdd",
+    "reportCount": 0,
+    "userAddress": "0xce533188d53a16ed580fd5121dedf166d3482677"
+  }
+}
+```
+
+## Crypto price messages
+
+Crypto price updates are delivered as `update` events with a payload object.
+
+```json
+{
+  "connection_id": "ws-1710000000000-1",
+  "topic": "crypto_prices_chainlink",
+  "type": "update",
+  "timestamp": 1710000000000,
+  "payload": {
+    "symbol": "btc/usd",
+    "timestamp": 1710000000,
+    "value": 65432.12
+  }
+}
+```
+
+```json
+{
+  "connection_id": "ws-1710000000000-1",
+  "topic": "crypto_prices_binance",
+  "type": "update",
+  "timestamp": 1710000000000,
+  "payload": {
+    "symbol": "btcusdt",
+    "timestamp": 1710000000,
+    "value": 65431.88
+  }
+}
+```

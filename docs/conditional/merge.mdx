@@ -1,0 +1,33 @@
+---
+title: 'Merging tokens'
+description: 'Return paired outcome tokens back into collateral on Polygon Amoy.'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+# Merge outcome tokens
+
+Merging reverses a previous split by burning complementary outcome tokens and minting the underlying collateral. Use this whenever you want to exit a position before resolution or recycle liquidity for another market.
+
+## Workflow
+
+1. Ensure you hold *both* sides of the market (`indexSet 1` and `indexSet 2` for binaries).
+2. Approve the ConditionalTokens contract to spend the ERC-1155 balances you plan to merge.
+3. Call `mergePositions(collateralToken, conditionId, partition, amount)` using the same partition array you used for the split.
+
+```solidity
+conditionalTokens.mergePositions(
+  address(USDC),
+  bytes32(conditionId),
+  partition,
+  amount
+);
+```
+
+- `amount` can be less than your total holdings, making partial unwinds straightforward.
+- The contract emits `PositionsMerged`, letting indexers and your backend rebuild portfolio state.
+
+## Best practices on Amoy
+
+- Watch the `blockNumber` returned by your subgraph when syncing merges. Amoy occasionally re-orgs, and replaying events keeps warehouses accurate.
+- If you provided liquidity via an FPMM, withdraw from the pool before merging, otherwise part of your collateral remains locked.
+- Consider leaving a minimal balance on Amoy to keep testing loops fast—{ENV.NEXT_PUBLIC_SITE_NAME}’s relayer can top-up the rest when promoting to production.

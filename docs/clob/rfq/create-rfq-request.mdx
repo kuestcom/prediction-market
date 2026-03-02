@@ -1,0 +1,13 @@
+---
+title: 'Create RFQ request'
+openapi: 'POST /rfq/request'
+---
+
+
+Create a new RFQ request.
+
+<Info>
+This endpoint requires L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Info>
+
+Provide `assetIn`, `assetOut`, and the base-unit amounts alongside `userType`.

@@ -3,38 +3,34 @@ title: Two-Factor Auth
 description: Add an extra layer of security to your account
 icon: Shield
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
-
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## Enable 2FA
 
 <Steps>
-  <Step>
-    ### Open the Two-Factor screen
+  <Step title="Open the Two-Factor screen">
 
     Visit <strong>My Account → Two-Factor Auth</strong> to start the setup
     flow.
   </Step>
-  <Step>
-    ### Scan and verify
+  <Step title="Scan and verify">
 
     Scan the QR code with your authenticator app and type the 6-digit code to
     confirm the pairing.
   </Step>
-  <Step>
-    ### Save backup codes
+  <Step title="Save backup codes">
 
     Download or copy the backup codes and store them securely for account
     recovery.
   </Step>
 </Steps>
 
-<Callout type="warning">
+<Warning>
 If you lose access to your 2FA device and backup codes, account recovery may take longer and require additional verification.
-</Callout>
+</Warning>

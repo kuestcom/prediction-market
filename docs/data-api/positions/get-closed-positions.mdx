@@ -1,0 +1,20 @@
+---
+title: 'Get closed positions'
+openapi: 'GET /closed-positions'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Call <code>{ENV.DATA_URL ?? 'https://data-api.kuest.com'}/closed-positions</code> to retrieve positions that have been completely exited. Each entry includes realized PnL, the exit timestamp, and the presentation data (`title`, `eventSlug`, `outcome`, etc.) needed for UI rendering.
+
+## Filter options
+
+- `user` is required and must be the wallet you are inspecting.
+- `market` accepts the same CSV list of condition IDs as the live positions endpoint.
+- `title` supports a loose substring match for quick lookups.
+- Use `limit` (max 50) and `offset` (max 100,000) to page through long histories.
+
+## Sorting
+
+Pick the sort column with `sortBy`. The defaults favor `REALIZEDPNL`, but you can switch to `PRICE`, `AVGPRICE`, or `TIMESTAMP`. Combine `sortDirection=ASC|DESC` to control ordering.
+
+Because this view is built from cached trade data rather than live settlement, treat it as informational until GA.

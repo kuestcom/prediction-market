@@ -3,22 +3,23 @@ title: How to Deposit
 description: How to add cash to your balance
 icon: DollarSign
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-## Depositing funds on {process.env.NEXT_PUBLIC_SITE_NAME}
+## Depositing funds on {ENV.NEXT_PUBLIC_SITE_NAME}
 
-This guide will walk you through the deposit process for {process.env.NEXT_PUBLIC_SITE_NAME}, covering popular methods and step-by-step instructions for buying and depositing USDC.
+This guide will walk you through the deposit process for {ENV.NEXT_PUBLIC_SITE_NAME}, covering popular methods and step-by-step instructions for buying and depositing USDC.
 
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>
+</Note>
 )}
 
 ## About USDC and Polygon
 
-{process.env.NEXT_PUBLIC_SITE_NAME} uses <a href="https://circle.com/en/usdc" target="_blank">USDC (USD Coin)</a>, a federally regulated "stable coin" backed by the US dollar.
+{ENV.NEXT_PUBLIC_SITE_NAME} uses <a href="https://circle.com/en/usdc" target="_blank">USDC (USD Coin)</a>, a federally regulated "stable coin" backed by the US dollar.
 
-{process.env.NEXT_PUBLIC_SITE_NAME} utilizes USDC on the Polygon network for transactions. By using USDC on Polygon, {process.env.NEXT_PUBLIC_SITE_NAME} ensures fast and reliable transactions, enhancing the overall user experience.
+{ENV.NEXT_PUBLIC_SITE_NAME} utilizes USDC on the Polygon network for transactions. By using USDC on Polygon, {ENV.NEXT_PUBLIC_SITE_NAME} ensures fast and reliable transactions, enhancing the overall user experience.
 
 ### How to purchase and deposit USDC
 
@@ -26,13 +27,12 @@ USDC is available on most major exchanges, including Coinbase.
 
 If your exchange supports sending or withdrawing to Polygon, we recommend this option for faster and fee-free transactions. Alternatively, you can deposit USDC via the Ethereum network.
 
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout type="warning">
-  If you decide to use an exchange to purchase and send (deposit) USDC to your Polygon deposit address, please ensure you’re sending on Polygon Network. If you’re unsure, please reach out to support on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Warning>
+  If you decide to use an exchange to purchase and send (deposit) USDC to your Polygon deposit address, please ensure you’re sending on Polygon Network. If you’re unsure, please reach out to support on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Warning>
 )}
 
 ### Deposit with Visa or Mastercard
 
 <a href="https://meld.io" target="_blank">Meld.io</a> enables you to buy USDC (on Polygon) using your Visa, Mastercard, and select bank cards. Please be aware that payment options and transaction limits may vary depending on your region.
-

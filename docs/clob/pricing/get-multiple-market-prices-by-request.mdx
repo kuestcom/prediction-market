@@ -1,0 +1,20 @@
+---
+title: 'Get multiple market prices by request'
+openapi: 'POST /prices'
+---
+
+
+Query multiple tokens in a single call by submitting an array payload.
+
+## Request payload
+
+Send a JSON array where each object includes:
+
+- `token_id` (required) — string identifier for the market outcome you want to price.
+- `side` (optional) — hint for the preferred book edge to evaluate. When you omit this field the service returns both sides automatically. Even when you supply `BUY` or `SELL`, the response still contains prices for both sides so you can compare the spread.
+
+## Response body
+
+The response is an object keyed by the requested `token_id`. Every entry includes `BUY` and `SELL` fields, each holding the latest executable price for that side of the book.
+
+Use the playground controls to test different token lists and confirm how the optional side hint influences pricing.

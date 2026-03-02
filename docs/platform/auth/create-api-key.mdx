@@ -1,0 +1,42 @@
+---
+title: 'Create API key'
+openapi: 'POST /auth/api-key'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Generate a new set of {ENV.NEXT_PUBLIC_SITE_NAME} API credentials using an L1 wallet signature.
+
+<Info>
+You can also use the hosted console at <a href="https://auth.kuest.com" target="_blank" rel="noreferrer">auth.kuest.com</a> to connect your wallet, mint credentials, view existing keys, or revoke them without crafting raw requests.
+</Info>
+
+<Tip>
+This endpoint requires the <strong>L1 header</strong>. Provide `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, and `KUEST_NONCE`. To credit a referral, include the optional `KUEST_REFERRAL` header.
+</Tip>
+
+## Required headers
+
+| Header | Description |
+| --- | --- |
+| `KUEST_ADDRESS` | Polygon address that controls the wallet signing the request. |
+| `KUEST_SIGNATURE` | EIP-712 signature authorizing the API key creation. |
+| `KUEST_TIMESTAMP` | Current Unix timestamp (seconds). |
+| `KUEST_NONCE` | Monotonic nonce tied to the signature. |
+
+## Optional headers
+
+| Header | Description |
+| --- | --- |
+| `KUEST_REFERRAL` | Referral wallet address to credit, must be a 0x-prefixed Polygon address (for example, `0x1bc5698917fe6b0d10fa60b739c81854f808fdc2`). |
+
+## Response fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `apiKey` | string | UUID v4 identifier for subsequent API requests (`KUEST_API_KEY`). |
+| `secret` | string | Base64-encoded secret (may include padding `=`) used to sign L2 requests; store securely. |
+| `passphrase` | string | 64-character hex string sent with each L2 request (`KUEST_PASSPHRASE`). |
+
+<Info>
+The `secret` and `passphrase` are returned only once. Persist them securely—{ENV.NEXT_PUBLIC_SITE_NAME} cannot recover these values later. To inspect keys later, use [`GET /auth/api-keys`](/platform/auth/get-api-keys); to revoke, call [`DELETE /auth/api-key`](/platform/auth/delete-api-key).
+</Info>

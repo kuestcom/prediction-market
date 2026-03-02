@@ -1,0 +1,13 @@
+---
+title: 'Post heartbeat'
+openapi: 'POST /v1/heartbeats'
+---
+
+
+Send a heartbeat to keep orders active.
+
+<Info>
+This endpoint requires L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Info>
+
+Use the returned `heartbeat_id` in subsequent requests to continue the session.

@@ -1,0 +1,15 @@
+---
+title: 'Get balance and allowance'
+openapi: 'GET /balance-allowance'
+---
+
+
+Returns the on-chain balance and allowance for the authenticated account.
+
+<Info>
+This endpoint requires L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Info>
+
+Use `asset_type=COLLATERAL` for the collateral ERC-20 balance/allowance (omit `token_id`). For conditional assets, set `asset_type=CONDITIONAL` and pass the `token_id`.
+
+The response includes a `balance` string plus an `allowances` map keyed by exchange address.

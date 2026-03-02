@@ -3,13 +3,12 @@ title: Market Overview
 description: Learn how markets work
 icon: BarChart
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
-
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## What is a Market?
@@ -27,7 +26,7 @@ Each market has:
 
 ## How Probabilities Work
 
-Prices in {process.env.NEXT_PUBLIC_SITE_NAME} are expressed as probabilities:
+Prices in {ENV.NEXT_PUBLIC_SITE_NAME} are expressed as probabilities:
 
 - A price of **0.65 (65%)** means the market currently estimates a **65% chance** that the outcome will happen.
 - If the outcome resolves as true, each share is worth **$1**.
@@ -38,20 +37,17 @@ Prices in {process.env.NEXT_PUBLIC_SITE_NAME} are expressed as probabilities:
 ## Navigating the Market Page
 
 <Steps>
-  <Step>
-    ### Browse available markets
+  <Step title="Browse available markets">
 
     Open the **Markets** tab to explore active events, then narrow results using
     filters or the search bar to focus on topics you care about.
   </Step>
-  <Step>
-    ### Open a market
+  <Step title="Open a market">
 
     Click any market card to inspect the price chart, recent fills, current
     order book, and the outcomes you can trade.
   </Step>
-  <Step>
-    ### Review prices and liquidity
+  <Step title="Review prices and liquidity">
 
     Check the best bids/asks, historical price movement, and displayed volume to
     gauge how much liquidity is available before placing an order.

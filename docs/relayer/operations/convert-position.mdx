@@ -1,0 +1,29 @@
+---
+title: 'Relayer convert position'
+openapi: 'POST /operations/convert-position'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Convert negative-risk `NO` positions into the complementary `YES` positions (and collateral, when applicable) by calling `convertPositions` on the Negative Risk adapter.
+
+<Info>
+POST to <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/operations/convert-position</code> with the standard L2 headers. The relayer broadcasts the signed Safe transaction; execution happens from the Safe proxy.
+</Info>
+
+## Request body
+
+`convert-position` accepts the same payload as [`POST /submit`](/relayer/core/post-submit). Use:
+
+- `type`: `SAFE`
+- `proxyWallet`: Safe address executing the call
+- `to`: Negative Risk adapter contract address
+- `data`: ABI-encoded `convertPositions(marketId, indexSet, amount)` calldata
+
+All other fields (`from`, `nonce`, `signature`, `signatureParams`, `value`, `metadata`) follow the `/submit` schema.
+
+## Notes
+
+- The Safe must hold the `NO` positions and set `setApprovalForAll` for the Negative Risk adapter on Conditional Tokens.
+- The `nonce` must match `GET /nonce` with `type=SAFE`; mismatches return `409`.
+- Invalid `index_set` values (zero or exceeding the market question count) will revert on-chain.
+- Use this only on negative-risk markets; standard markets do not support conversions.

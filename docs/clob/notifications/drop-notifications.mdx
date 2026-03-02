@@ -1,0 +1,13 @@
+---
+title: 'Drop notifications'
+openapi: 'DELETE /notifications'
+---
+
+
+Remove one or more notifications for the authenticated account.
+
+<Info>
+This endpoint requires L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Info>
+
+Pass `ids` as a comma-separated list of notification identifiers to delete.

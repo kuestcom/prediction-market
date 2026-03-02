@@ -1,0 +1,23 @@
+---
+title: 'Get user activity'
+openapi: 'GET /activity'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+<Note>
+🟠 Trades, splits, merges, redemptions, and neg-risk conversions are live today. Reward events and profile metadata will appear once the remaining feeds are wired in.
+</Note>
+
+<code>{ENV.DATA_URL ?? 'https://data-api.kuest.com'}/activity</code> returns a ledger-style list that interleaves trades, splits, merges, redemptions, conversions, and rewards. Each row is enriched with market metadata and profile info so your UI can display avatars and event titles without extra queries.
+
+## Filtering
+
+- `user` is required and must be the wallet (proxy or EOA) you want to inspect.
+- `market` accepts comma-separated condition IDs with standard `form` encoding.
+- `type` accepts CSV-style lists of activity categories (TRADE, SPLIT, MERGE, REDEEM, REWARD, CONVERSION).
+- `start` / `end` can bound the time window using Unix timestamps.
+- `side` helps you isolate buys vs. sells when `type=TRADE` rows are included.
+
+## Pagination and sorting
+
+Use `limit` (max 500) and `offset` (max 10,000) to page through large histories. `sortBy` toggles between TIMESTAMP, TOKENS, or CASH ordering, and `sortDirection` controls ascending/descending results.

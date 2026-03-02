@@ -4,42 +4,35 @@ description: Recommended sequence to get your fork live without surprises.
 icon: CheckSquare
 ---
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
 
-<Callout type="info">
+<Info>
   This checklist compresses the README into a minimal flow with the extra context fork owners usually need.
-</Callout>
+</Info>
 
 ## Complete in order
 
 <Steps>
-  <Step>
-    ### Fork the GitHub repository
+  <Step title="Fork the GitHub repository">
 
-    Click **Fork** on the upstream project, choose a short repo name (e.g. `acme-kuest`), and set visibility according to your needs.
+    Click **Fork** on the upstream project, choose a short repo name (e.g. <code>acme-company</code>), and set visibility according to your needs.
   </Step>
-  <Step>
-    ### Import the fork into Vercel
+  <Step title="Import the fork into Vercel">
 
     In the Vercel dashboard go to **Add New -> Project**, connect GitHub, pick the fork, and continue. Expect the first deploy to fail until secrets exist.
   </Step>
-  <Step>
-    ### Provision Supabase
+  <Step title="Provision Supabase">
 
     From the project view open **Storage -> Supabase -> Create**, accept the defaults, and link the database to the project when prompted.
   </Step>
-  <Step>
-    ### Configure environment variables
+  <Step title="Configure environment variables">
 
     Download `.env.example`, fill in your values (Reown AppKit, Better Auth, admin wallets, etc.), then use **Import .env** inside **Settings -> Environment Variables**.
   </Step>
-  <Step>
-    ### Run the production deploy
+  <Step title="Run the production deploy">
 
     Trigger the deploy after secrets are populated (for most teams this will be the first successful build). Confirm the site loads without errors.
   </Step>
-  <Step>
-    ### Enable GitHub Actions on the fork
+  <Step title="Enable GitHub Actions on the fork">
 
     In your forked repo open **Settings -> Actions -> General** and pick **Allow all actions and reusable workflows** so upstream sync workflows can run.
   </Step>

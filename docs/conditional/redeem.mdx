@@ -1,0 +1,39 @@
+---
+title: 'Redeeming tokens'
+description: 'Claim collateral for resolved positions using the Conditional Token Framework on Amoy.'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+# Redeem resolved positions
+
+Once a condition is resolved, holders of the winning outcome token can redeem it for collateral 1:1. Redemption is permissionless and final—after the burn, the token balance drops to zero and you receive USDC back on **Polygon Amoy**.
+
+## Resolution requirements
+
+Before calling `redeemPositions` confirm that:
+
+- The oracle has reported the winning outcome and triggered `ConditionResolution` on-chain.
+- Your wallet holds the winning `positionId` balance.
+- No prior redemption has been processed for the same `(owner, positionId)` pair.
+
+## Contract call
+
+```solidity
+conditionalTokens.redeemPositions(
+  address(USDC),
+  bytes32(conditionId),
+  partition,
+  winningIndexSet
+);
+```
+
+- `partition` should include every outcome index set. Only the winning entries are burned.
+- `winningIndexSet` is the bitmask that the oracle reported. For binary markets this is either `1` (yes) or `2` (no).
+
+## Handling payouts in your app
+
+1. Subscribe to the `TransferSingle` events emitted by `redeemPositions` to confirm the burn.
+2. Update any off-chain ledger to mark the position as settled and move the funds into “available balance.”
+3. Use our [relayer APIs](/relayer/core/post-submit) if you need {ENV.NEXT_PUBLIC_SITE_NAME} to submit the transaction on behalf of a user who lacks gas on Amoy.
+
+Redeeming is a one-way action, so only call it after you are comfortable with the resolution status published by the oracle.

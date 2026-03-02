@@ -1,0 +1,21 @@
+---
+title: 'Get trader leaderboard'
+openapi: 'GET /v1/leaderboard'
+---
+
+`https://data-api.kuest.com/v1/leaderboard` ranks traders by volume or PnL, with filters for category, time period, and user.
+
+## Query parameters
+
+- `category`: Category filter (`OVERALL`, `POLITICS`, `SPORTS`, `CRYPTO`, `FINANCE`, `CULTURE`, `MENTIONS`, `WEATHER`, `ECONOMICS`, `TECH`).
+- `timePeriod`: Time window (`DAY`, `WEEK`, `MONTH`, `ALL`).
+- `orderBy`: Ordering (`PNL` or `VOL`).
+- `limit`: Max rows (1-50, default 25).
+- `offset`: Pagination (0-1000).
+- `user`: Filter by wallet address.
+- `userName`: Filter by username.
+
+## Notes
+
+- `DAY/WEEK/MONTH`: PnL is approximate for the selected window.
+- `ALL`: PnL uses realized totals from closed positions.

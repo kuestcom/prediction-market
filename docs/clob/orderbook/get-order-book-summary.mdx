@@ -1,0 +1,10 @@
+---
+title: 'Get order book summary'
+openapi: 'GET /book'
+---
+
+
+Fetch the latest order book snapshot for a single `token_id`.
+
+The `timestamp` value is a Unix millisecond timestamp; convert it to human-readable time as needed on the client.
+Only the first few depth levels are shown above; the full payload can contain additional bids and asks.

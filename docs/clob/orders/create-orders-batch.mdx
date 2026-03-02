@@ -1,0 +1,142 @@
+---
+title: 'Place multiple orders'
+openapi: 'POST /orders'
+---
+
+
+Submit up to 15 orders in one request. Every entry in the array shares the same payload shape as `POST /order`, so you can mix execution policies or token IDs while saving round trips.
+
+<Info>
+Batch placement also requires L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`. Review the flow in the [`Authentication overview`](/platform/auth/authentication-overview).
+</Info>
+
+<Note>
+If the system-wide pause is active, the batch request responds with `409` and `{"error":"system_paused"}`. Books paused individually still return `409` along with `{"error":"condition_paused"}`. Every entry in the batch must use an `owner` value that matches `KUEST_ADDRESS`; otherwise the API returns `400` with `{"error":"owner_address_mismatch"}`.
+</Note>
+
+Each entry in the response includes a `status` field mirroring [Place single order](/clob/orders/create-order#placement-status).
+
+<Details title="View example payload">
+
+## Example payload
+
+```json
+[
+  {
+    "owner": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa",
+    "orderType": "GTC",
+    "order": {
+      "tokenId": "0x51524f4c595f5945535f544f4b454e5f4944",
+      "conditionId": "0x504f4c595f434f4e444954494f4e5f4944",
+      "expiration": "1767225599",
+      "maker": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa",
+      "signer": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa",
+      "taker": "0x0000000000000000000000000000000000000000",
+      "makerAmount": "75000000",
+      "takerAmount": "100000000",
+      "side": "BUY",
+      "metadata": {
+        "strategy": "manual_limit",
+        "campaign": "launch-week"
+      },
+      "nonce": "42",
+      "feeRateBps": "200",
+      "salt": "176543219998812345678901234",
+      "signatureType": 0,
+      "signature": "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    }
+  },
+  {
+    "owner": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa",
+    "orderType": "FAK",
+    "order": {
+      "tokenId": "0x93025177978745967226369398316375153283719303181694312089956059680730874301533",
+      "conditionId": "0x93025177978745967226369398316375153283719303181694312089956059680730874301530",
+      "expiration": "1767225599",
+      "maker": "0xBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBb",
+      "signer": "0xBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBb",
+      "taker": "0x0000000000000000000000000000000000000000",
+      "makerAmount": "50000000",
+      "takerAmount": "60000000",
+      "side": "SELL",
+      "metadata": null,
+      "nonce": "99",
+      "feeRateBps": "100",
+      "salt": "176543219998812345678901235",
+      "signatureType": 1,
+      "signature": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+    }
+  },
+  {
+    "owner": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa",
+    "orderType": "FOK",
+    "order": {
+      "tokenId": "0x71321045679252212594626385532706912750332728571942532289631379312455583992563",
+      "conditionId": "0x71321045679252212594626385532706912750332728571942532289631379312000000000000",
+      "expiration": "1767225800",
+      "maker": "0xCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCc",
+      "signer": "0xCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCc",
+      "taker": "0x0000000000000000000000000000000000000000",
+      "makerAmount": "25000000",
+      "takerAmount": "30000000",
+      "side": "BUY",
+      "metadata": null,
+      "nonce": "123",
+      "feeRateBps": "100",
+      "salt": "176543219998812345678901236",
+      "signatureType": 0,
+      "signature": "0xfeebdaedfeebdaedfeebdaedfeebdaedfeebdaedfeebdaedfeebdaedfeebdaed"
+    }
+  }
+]
+```
+
+</Details>
+
+Every array entry mirrors the single-order placement response structure, enabling you to inspect insert success, warnings, and order IDs independently.
+
+Need to check the final state of a submitted order? Call [`GET /data/order/{id}`](/clob/orders/get-order). To revoke any remaining quantity, use [`DELETE /order`](/clob/orders/cancel-order).
+
+## Batch item fields
+
+Each array element accepts the same fields documented in [`POST /order`](/clob/orders/create-order). Provide the `owner` field alongside `orderType` and the nested `order` payload so it matches the `KUEST_ADDRESS` header. Key constraints repeated here for convenience:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `owner` | string | Yes | Polygon address that owns the API key. Must match the `KUEST_ADDRESS` header. |
+| `orderType` | string | Yes | Time-in-force policy for the order (`FOK`, `FAK`, `GTC`, `GTD`). |
+| `postOnly` | boolean | No | When true, the order must rest on the book (GTC/GTD only). |
+| `order` | object | Yes | Full order payload identical to the single-order endpoint. |
+| `order.tokenId` | string | Yes | Identifier of the token/outcome being traded. |
+| `order.conditionId` | string | Yes | Market condition identifier tied to the token. |
+| `order.expiration` | string | Conditional | Required for `GTD`, optional elsewhere. |
+| `order.maker` | string | Yes | Address that holds the asset being offered. |
+| `order.signer` | string | Yes | Address that signed the order. |
+| `order.taker` | string | Yes | Counterparty address (use the zero address for open orders). |
+| `order.makerAmount` | string | Yes | Maker quantity with fixed precision. |
+| `order.takerAmount` | string | Yes | Taker quantity with fixed precision. |
+| `order.side` | string | Yes | Either `BUY` or `SELL`. |
+| `order.metadata` | object\|null | No | Optional JSON metadata stored with the order. |
+| `order.nonce` | string | Yes | Monotonic maker nonce. |
+| `order.feeRateBps` | string | Yes | Maker fee rate in basis points. |
+| `order.salt` | string | Yes | Unique entropy for replay protection. |
+| `order.signatureType` | number | Yes | `0` = EOA, `1` = proxy signer, `2` = Gnosis Safe signer. |
+| `order.signature` | string | Yes | Hex-encoded signature over the order payload. |
+
+<Note>
+`order.metadata` remains optional just like the single-order endpoint and can be omitted entirely in batch submissions. `order.side` must be the uppercase string `BUY` or `SELL`, and `owner` must align with the `KUEST_ADDRESS` header. When the exchange enforces a minimum fee, `order.feeRateBps` must be greater than or equal to the base fee returned by [`GET /fee-rate`](/clob/market-config/get-fee-rate) for the same `order.tokenId`.
+</Note>
+
+
+## Order types
+
+| **Type** | **Partial fills?** | **Rests on the book?** | **Auto expiration?** |
+| --- | --- | --- | --- |
+| **FOK** (Fill-Or-Kill) | ❌ No | ❌ No | ✅ Immediately if not 100% filled |
+| **FAK** (Fill-And-Kill / IOC) | ✅ Yes | ❌ No | ✅ Any remaining size cancels right away |
+| **GTC** (Good-Til-Cancelled) | ✅ Yes | ✅ Yes, until cancelled | ❌ No |
+| **GTD** (Good-Til-Date) | ✅ Yes | ✅ Yes, until the given timestamp | ✅ At the specified expiration time |
+
+For `GTD`, remember the one-minute safety buffer: if the order should expire in 90 seconds, set `expiration = now + 90 + 60`.
+
+Requests with fewer than 1 or more than 15 entries return HTTP `400 Bad Request` without per-order results. When the batch exceeds the limit, the response body includes the message `"batch supports at most 15 orders"` to clarify the rejection.

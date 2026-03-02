@@ -1,0 +1,16 @@
+---
+title: "Get portfolio value"
+openapi: 'GET /value'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+<Note>
+🔴 Portfolio valuations depend on in-progress pricing feeds. Treat the returned USD numbers as indicative until pricing is finalized.
+</Note>
+
+<code>GET {ENV.DATA_URL ?? 'https://data-api.kuest.com'}/value</code> summarizes the total USD-denominated exposure for a wallet. The response is intentionally compact—each object contains the `user` field and an aggregated `value` number—so you can poll it frequently.
+
+- The `user` query parameter is required.
+- Use the optional `market` CSV filter to limit the calculation to specific condition IDs (for example, when showing per-event drilldowns).
+
+This route will eventually swap in FPMM-based mid prices; for now, it uses whatever cached marks are available.

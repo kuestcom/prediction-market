@@ -1,0 +1,29 @@
+---
+title: 'Relayer split position'
+openapi: 'POST /operations/split-position'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Ask the relayer to call `splitPosition` on Conditional Tokens, transforming collateral into outcome tokens for the provided condition and partition.
+
+<Info>
+POST to <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/operations/split-position</code> with the same L2 authentication headers. The relayer broadcasts the signed Safe transaction; execution happens from the Safe proxy.
+</Info>
+
+## Request body
+
+`split-position` accepts the same payload as [`POST /submit`](/relayer/core/post-submit). Use:
+
+- `type`: `SAFE`
+- `proxyWallet`: Safe address executing the call
+- `to`: Conditional Tokens contract address
+- `data`: ABI-encoded `splitPosition(...)` calldata
+
+All other fields (`from`, `nonce`, `signature`, `signatureParams`, `value`, `metadata`) follow the `/submit` schema.
+
+## Notes
+
+- Ensure the Safe holds the collateral and has approved the Conditional Tokens contract to transfer it.
+- The `nonce` must match `GET /nonce` with `type=SAFE`; mismatches return `409`.
+- The relayer enforces deterministic casing and 0x prefixes for all identifier fields; malformed values return `400`.
+- Outcome tokens are minted to the Safe (`proxyWallet`) that executed the call.

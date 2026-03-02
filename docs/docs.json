@@ -1,0 +1,474 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Prediction Market Docs",
+  "colors": {
+    "primary": "#14b8a6"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Users",
+        "groups": [
+          {
+            "group": "User Guide",
+            "pages": [
+              "users/index",
+              {
+                "group": "Getting started",
+                "pages": [
+                  "users/getting-started/how-to-sign-up",
+                  "users/getting-started/how-to-deposit",
+                  "users/getting-started/how-to-claim"
+                ]
+              },
+              {
+                "group": "Exploring markets",
+                "pages": [
+                  "users/exploring-markets/market-overview",
+                  "users/exploring-markets/order-types",
+                  "users/exploring-markets/buy-sell-shares",
+                  "users/exploring-markets/canceling-orders",
+                  "users/exploring-markets/understanding-prices"
+                ]
+              },
+              {
+                "group": "My account",
+                "pages": [
+                  "users/my-account/portfolio-open-positions",
+                  "users/my-account/transaction-history",
+                  "users/my-account/two-factor-auth",
+                  "users/my-account/notifications",
+                  "users/my-account/profile-settings",
+                  "users/my-account/public-profile",
+                  "users/my-account/account-security",
+                  "users/my-account/affiliate-program"
+                ]
+              },
+              {
+                "group": "Resolution Settlement",
+                "pages": [
+                  "users/resolution-settlement/market-resolution",
+                  "users/resolution-settlement/disputes-edge-cases",
+                  "users/resolution-settlement/claiming-winnings"
+                ]
+              },
+              {
+                "group": "Fees Limits",
+                "pages": [
+                  "users/fees-limits/trading-fees",
+                  "users/fees-limits/fee-examples",
+                  "users/fees-limits/trading-limits"
+                ]
+              },
+              {
+                "group": "Help Support",
+                "pages": [
+                  "users/help-support/faq",
+                  "users/help-support/contact-support",
+                  "users/help-support/platform-rules"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "For Developers",
+        "groups": [
+          {
+            "group": "Platform",
+            "pages": [
+              "platform/introduction",
+              "platform/api-rate-limits",
+              {
+                "group": "Authentication",
+                "expanded": false,
+                "pages": [
+                  "platform/auth/authentication-overview",
+                  "platform/auth/get-server-time",
+                  "platform/auth/create-api-key",
+                  "platform/auth/derive-api-key",
+                  "platform/auth/get-api-keys",
+                  "platform/auth/delete-api-key",
+                  "platform/auth/create-readonly-api-key",
+                  "platform/auth/get-readonly-api-keys",
+                  "platform/auth/delete-readonly-api-key",
+                  "platform/auth/validate-readonly-api-key",
+                  "platform/auth/get-closed-only-status"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Create Market",
+            "pages": [
+              "create-market/health-check",
+              "create-market/get-market-config",
+              "create-market/metadata-reference",
+              "create-market/post-prepare-auth",
+              "create-market/post-prepare",
+              "create-market/get-pending",
+              "create-market/post-tx-confirm",
+              "create-market/post-finalize"
+            ]
+          },
+          {
+            "group": "CLOB",
+            "pages": [
+              "clob/health-check",
+              {
+                "group": "Orderbook",
+                "expanded": false,
+                "pages": [
+                  "clob/orderbook/get-order-book-summary",
+                  "clob/orderbook/get-multiple-order-books-summaries-by-request"
+                ]
+              },
+              {
+                "group": "Orders",
+                "expanded": false,
+                "pages": [
+                  "clob/orders/create-order",
+                  "clob/orders/create-orders-batch",
+                  "clob/orders/get-order",
+                  "clob/orders/get-orders-by-ids",
+                  "clob/orders/get-order-scoring",
+                  "clob/orders/get-orders-scoring",
+                  "clob/orders/get-active-orders",
+                  "clob/orders/cancel-order",
+                  "clob/orders/cancel-all",
+                  "clob/orders/cancel-market-orders"
+                ]
+              },
+              {
+                "group": "Pricing",
+                "expanded": false,
+                "pages": [
+                  "clob/pricing/get-market-price",
+                  "clob/pricing/get-multiple-market-prices-by-request",
+                  "clob/pricing/get-last-trade-price",
+                  "clob/pricing/get-last-trades-prices",
+                  "clob/pricing/get-midpoint-price",
+                  "clob/pricing/get-midpoints",
+                  "clob/pricing/get-price-history-for-a-traded-token",
+                  "clob/spreads/get-bid-ask-spread",
+                  "clob/spreads/get-bid-ask-spreads"
+                ]
+              },
+              {
+                "group": "Markets",
+                "expanded": false,
+                "pages": [
+                  "clob/markets/get-markets",
+                  "clob/markets/get-market",
+                  "clob/markets/get-sampling-markets",
+                  "clob/markets/get-simplified-markets",
+                  "clob/markets/get-sampling-simplified-markets"
+                ]
+              },
+              {
+                "group": "Market config",
+                "expanded": false,
+                "pages": [
+                  "clob/market-config/get-balance-allowance",
+                  "clob/market-config/update-balance-allowance",
+                  "clob/market-config/get-tick-size",
+                  "clob/market-config/get-neg-risk",
+                  "clob/market-config/get-fee-rate"
+                ]
+              },
+              {
+                "group": "Trades",
+                "expanded": false,
+                "pages": [
+                  "clob/trades/trades-overview",
+                  "clob/trades/get-trades",
+                  "clob/trades/get-trade-volumes"
+                ]
+              },
+              {
+                "group": "Notifications",
+                "expanded": false,
+                "pages": [
+                  "clob/notifications/get-notifications",
+                  "clob/notifications/drop-notifications"
+                ]
+              },
+              {
+                "group": "Builder",
+                "expanded": false,
+                "pages": [
+                  "clob/builder/get-builder-trades"
+                ]
+              },
+              {
+                "group": "RFQ",
+                "expanded": false,
+                "pages": [
+                  "clob/rfq/create-rfq-request",
+                  "clob/rfq/cancel-rfq-request",
+                  "clob/rfq/get-rfq-requests",
+                  "clob/rfq/create-rfq-quote",
+                  "clob/rfq/cancel-rfq-quote",
+                  "clob/rfq/get-rfq-quotes",
+                  "clob/rfq/get-rfq-best-quote",
+                  "clob/rfq/accept-rfq-quote",
+                  "clob/rfq/approve-rfq-order",
+                  "clob/rfq/get-rfq-config"
+                ]
+              },
+              {
+                "group": "Heartbeats",
+                "expanded": false,
+                "pages": [
+                  "clob/heartbeats/post-heartbeat"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Relayer",
+            "pages": [
+              "relayer/health-check",
+              {
+                "group": "Wallet",
+                "expanded": false,
+                "pages": [
+                  "relayer/wallet/proxy",
+                  "relayer/wallet/safe"
+                ]
+              },
+              {
+                "group": "Relayer core",
+                "expanded": false,
+                "pages": [
+                  "relayer/core/get-nonce",
+                  "relayer/core/get-relay-payload",
+                  "relayer/core/get-transactions",
+                  "relayer/core/get-transaction",
+                  "relayer/core/post-submit",
+                  "relayer/core/get-deployed"
+                ]
+              },
+              {
+                "group": "Swaps",
+                "expanded": false,
+                "pages": [
+                  "relayer/swaps/usdc-e-build",
+                  "relayer/swaps/usdc-e-submit"
+                ]
+              },
+              {
+                "group": "Auxiliary operations",
+                "expanded": false,
+                "pages": [
+                  "relayer/operations/approve",
+                  "relayer/operations/set-approval",
+                  "relayer/operations/split-position",
+                  "relayer/operations/merge-position",
+                  "relayer/operations/convert-position",
+                  "relayer/operations/redeem-position"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Data API",
+            "pages": [
+              "data-api/introduction",
+              "data-api/health-check",
+              {
+                "group": "Portfolio",
+                "expanded": false,
+                "pages": [
+                  "data-api/positions/get-current-positions",
+                  "data-api/positions/get-closed-positions",
+                  "data-api/positions/get-total-value",
+                  "data-api/positions/get-total-markets-traded",
+                  "data-api/positions/get-total-volume"
+                ]
+              },
+              {
+                "group": "Activity & markets",
+                "expanded": false,
+                "pages": [
+                  "data-api/activity/get-trades",
+                  "data-api/activity/get-user-activity",
+                  "data-api/activity/get-other",
+                  "data-api/markets/get-top-holders",
+                  "data-api/markets/get-open-interest",
+                  "data-api/markets/get-live-volume"
+                ]
+              },
+              {
+                "group": "Referrals",
+                "expanded": false,
+                "pages": [
+                  "data-api/referrals/get-referrers",
+                  "data-api/referrals/get-affiliates"
+                ]
+              },
+              {
+                "group": "Leaderboards",
+                "expanded": false,
+                "pages": [
+                  "data-api/leaderboards/get-trader-leaderboard",
+                  "data-api/leaderboards/get-biggest-wins"
+                ]
+              },
+              {
+                "group": "Builders",
+                "expanded": false,
+                "pages": [
+                  "data-api/builders/get-aggregated-builder-leaderboard",
+                  "data-api/builders/get-daily-builder-volume-time-series"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Price Reference",
+            "pages": [
+              "price-reference/introduction",
+              "price-reference/health-check",
+              {
+                "group": "Marks",
+                "expanded": false,
+                "pages": [
+                  "price-reference/marks/get-latest-marks",
+                  "price-reference/marks/get-marks-history"
+                ]
+              },
+              {
+                "group": "Series",
+                "expanded": false,
+                "pages": [
+                  "price-reference/series/get-series-map"
+                ]
+              },
+              {
+                "group": "Internal",
+                "expanded": false,
+                "pages": [
+                  "price-reference/internal/post-ingest-run"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Subgraph",
+            "pages": [
+              "subgraph/overview"
+            ]
+          },
+          {
+            "group": "Conditional Token Framework",
+            "pages": [
+              "conditional/overview",
+              "conditional/split",
+              "conditional/merge",
+              "conditional/redeem",
+              "conditional/deployment-resources"
+            ]
+          },
+          {
+            "group": "Proxy wallet",
+            "pages": [
+              "proxy-wallet/overview"
+            ]
+          },
+          {
+            "group": "Negative risk",
+            "pages": [
+              "negative-risk/overview"
+            ]
+          },
+          {
+            "group": "Community",
+            "pages": [
+              {
+                "group": "Auth",
+                "expanded": false,
+                "pages": [
+                  "community/auth/post-auth-nonce",
+                  "community/auth/post-auth-verify"
+                ]
+              },
+              {
+                "group": "Profiles",
+                "expanded": false,
+                "pages": [
+                  "community/profile/get-profile",
+                  "community/profile/post-profile"
+                ]
+              },
+              {
+                "group": "Comments",
+                "expanded": false,
+                "pages": [
+                  "community/comments/get-comments",
+                  "community/comments/post-comments",
+                  "community/comments/get-comment-replies",
+                  "community/comments/delete-comment",
+                  "community/comments/post-comment-reaction",
+                  "community/comments/get-comment-metrics"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Websocket",
+            "pages": [
+              "websocket/overview",
+              "websocket/quickstart",
+              "websocket/user-channel",
+              "websocket/market-channel",
+              "websocket/live-data"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Owners",
+        "groups": [
+          {
+            "group": "Fork Owner Guide",
+            "pages": [
+              "owners/index",
+              {
+                "group": "Launch workflow",
+                "pages": [
+                  "owners/launch-checklist"
+                ]
+              },
+              {
+                "group": "Configuration",
+                "pages": [
+                  "owners/environment-variables"
+                ]
+              },
+              {
+                "group": "Integrations",
+                "pages": [
+                  "owners/market-context-generator"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "api": {
+    "openapi": [
+      "api-reference/openapi.json",
+      "api-reference/openapi2.json",
+      "api-reference/openapi-relayer.json",
+      "api-reference/openapi-data-api.json",
+      "api-reference/openapi-price-reference.json",
+      "api-reference/openapi-community.json",
+      "api-reference/openapi-create-market.json"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+---
+title: 'Check Safe deployment'
+openapi: 'GET /deployed'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Verify whether a specific Safe proxy already exists on-chain. This guardrail prevents redundant deployment attempts and lets builders skip `SAFE-CREATE` when the Safe is live.
+
+<Info>
+Call <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/deployed</code> with the usual L2 headers plus the Safe address you want to inspect.
+</Info>
+
+## Query parameters
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| `address` | string | Yes | Safe proxy address calculated by your builder. |
+
+## Notes
+
+- The relayer performs an on-chain lookup; `true` confirms that bytecode already exists at the address.
+- If you request an address outside your tenancy, the response still reflects the on-chain state—it is not restricted by ownership.
+- Use this endpoint before calling [`POST /submit`](/relayer/core/post-submit) with `SAFE-CREATE` to avoid nonce conflicts.

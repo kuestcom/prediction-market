@@ -1,0 +1,80 @@
+---
+title: 'WebSocket overview'
+description: 'Overview and general information about the CLOB WebSocket gateway.'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+{ENV.NEXT_PUBLIC_SITE_NAME} exposes a WebSocket gateway for low-latency market and user updates.
+
+## Endpoints
+
+- Production: <code>{ENV.WS_CLOB_URL ?? 'wss://ws-subscriptions-clob.kuest.com'}/ws/{market|user}</code>
+
+## Channels
+
+| Channel | Use case | Auth |
+| --- | --- | --- |
+| `market` | Public market data (order book, price changes, tick size, best bid/ask, last trade). | None |
+| `user` | Private order and trade updates scoped to your API key. | Required |
+
+## Subscribe
+
+Send a subscription payload immediately after opening the socket.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `type` | string | `market` or `user`. |
+| `assets_ids` | string[] | Token IDs to receive market events for (market channel only). |
+| `markets` | string[] | Condition IDs to receive user events for (user channel only). |
+| `auth` | object | L2 API credentials for the user channel. |
+| `custom_feature_enabled` | boolean | Enable additional market data (`best_bid_ask`, `new_market`, planned `market_resolved`). |
+
+Example (market):
+
+```json
+{
+  "type": "market",
+  "assets_ids": ["<token_id>"],
+  "custom_feature_enabled": true
+}
+```
+
+Example (user):
+
+```json
+{
+  "type": "user",
+  "markets": ["<condition_id>"],
+  "auth": {
+    "apikey": "<uuid>",
+    "secret": "<base64-secret>",
+    "passphrase": "<hex-passphrase>"
+  }
+}
+```
+
+## Update subscriptions
+
+To remove subscriptions, send an unsubscribe payload:
+
+```json
+{
+  "operation": "unsubscribe",
+  "assets_ids": ["<token_id>"],
+  "markets": ["<condition_id>"]
+}
+```
+
+## Payload conventions
+
+- All numeric values are strings (prices, sizes, timestamps).
+- `owner`, `trade_owner`, and `order_owner` are rewritten to the caller API key.
+- `book.hash` uses `sha1(orderbook_summary_json)` with the hash field zeroed.
+- `price_change.hash` currently uses the internal order ULID.
+
+## Availability
+
+- Available: `book`, `price_change`, `tick_size_change`, `last_trade_price`, `best_bid_ask` (requires `custom_feature_enabled`), `new_market` (requires `custom_feature_enabled`), `order`, `trade`.
+- Planned: `market_resolved` (requires `custom_feature_enabled`), trade status `RETRYING` (TBD).
+
+See the [User channel](/websocket/user-channel) and [Market channel](/websocket/market-channel) pages for event schemas.

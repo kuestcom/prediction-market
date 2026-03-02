@@ -1,0 +1,17 @@
+---
+title: 'Create readonly API key'
+openapi: 'POST /auth/readonly-api-key'
+---
+
+
+Create a readonly API key tied to your account.
+
+<Tip>
+This endpoint requires the <strong>L2 header</strong>. Provide `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Tip>
+
+## Response fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `apiKey` | string | Readonly API key identifier. |

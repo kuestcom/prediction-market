@@ -1,0 +1,37 @@
+---
+title: 'List relayer transactions'
+openapi: 'GET /transactions'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Inspect every transaction the authenticated account has submitted to the relayer. The feed covers Safe deployments, Safe executions, and ProxyWallet relays along with their current state and hashes.
+
+<Info>
+Call <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/transactions</code> with the standard L2 headers. The relayer derives the account from your credentials and automatically scopes the response.
+</Info>
+
+## Response payload
+
+Each element in the returned array exposes the metadata {ENV.NEXT_PUBLIC_SITE_NAME} stores for the transaction.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `transactionID` | string | ULID assigned when the relayer accepts the request. |
+| `transactionHash` | string | On-chain transaction hash when broadcast. |
+| `from` | string | Source address (Safe owner or Proxy wallet). |
+| `to` | string | Destination contract. |
+| `proxyAddress` | string | Proxy wallet executing the call, when applicable. |
+| `data` | string | 0x-encoded calldata sent on-chain. |
+| `nonce` | string | Decimal nonce used by the relayer. |
+| `value` | string | Amount of wei forwarded with the call. |
+| `state` | string | Current lifecycle state such as `STATE_ACCEPTED`, `STATE_MINED`, or `STATE_FAILED`. |
+| `type` | string | Operation type (`SAFE`, `SAFE-CREATE`, or `PROXY`). |
+| `metadata` | string\|null | Free-form string stored alongside the submission. |
+| `createdAt` | string | ISO 8601 timestamp for initial persistence. |
+| `updatedAt` | string | ISO 8601 timestamp for the latest state transition. |
+
+## Notes
+
+- Results are returned in descending `createdAt` order; use client-side filtering for pagination.
+- Only the authenticated account may access its history. Requests with mismatched headers respond with `403`.
+- When a transaction is still pending, `transactionHash` may be `null` until the relayer broadcasts it.

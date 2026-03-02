@@ -3,20 +3,33 @@ title: Help & Support
 description: Get help while using the platform
 icon: LifeBuoy
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## Support Channels
 
-There are several ways to get help while using {process.env.NEXT_PUBLIC_SITE_NAME}:
+There are several ways to get help while using {ENV.NEXT_PUBLIC_SITE_NAME}:
 
-- **Discord community** – fastest way to get peer-to-peer help and updates
-- **FAQ page** – quick answers to common questions
-- **Email support** – for account-specific issues (response times vary)
+<ul>
+  {ENV.NEXT_PUBLIC_DISCORD_LINK && (
+    <li>
+      <strong>
+        <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">
+          Discord community
+        </a>
+      </strong>
+      {' '}
+      – fastest way to get peer-to-peer help and updates
+    </li>
+  )}
+  <li><strong>FAQ page</strong> – quick answers to common questions</li>
+  <li><strong>Email support</strong> – for account-specific issues (response times vary)</li>
+</ul>
 
 ---
 
@@ -31,6 +44,6 @@ There are several ways to get help while using {process.env.NEXT_PUBLIC_SITE_NAM
 
 If your issue is not resolved through normal support:
 
-1. Open a ticket via Discord or email
+1. Open a ticket via email{ENV.NEXT_PUBLIC_DISCORD_LINK && <> or <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a></>}
 2. Include screenshots, transaction IDs, and a clear description of the problem
 3. The support team may escalate to technical or compliance review if necessary

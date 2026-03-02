@@ -6,16 +6,18 @@ icon: Percent
 
 
 
+
 ## Current platform fee
 
 - **Default rate:** <TradingFeeDisplay /> per trade pulled from the affiliate settings.
 - **Configurable range:** Admins can raise the fee up to 9.00% from **Admin → Affiliate**.
 - **Rounding:** Fees are rounded to 6 decimal places when recorded on-chain.
 
-<Callout type="info" title="How the math works">
+<Info>
+  **How the math works**
   Trading fee (USDC) = Order notional × <TradingFeeDisplay />.
   A 150 USDC fill at the current rate costs <FeeCalculationExample amount={150} format="inline" /> in fees.
-</Callout>
+</Info>
 
 ## Maker vs taker
 

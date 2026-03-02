@@ -1,0 +1,45 @@
+---
+title: 'Negative risk overview'
+description: 'How the platform models negative risk events, conversions, and augmented variants on Polygon Amoy.'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+# Negative risk markets
+
+{ENV.NEXT_PUBLIC_SITE_NAME} occasionally deploys *winner-take-all* events as **negative risk** structures. In these setups, every market inside the event references the same collateral pool, so a `NO` share in one market can be turned into a `YES` share in every other market. The mechanism is enabled on **Polygon Amoy** first, mirroring production layouts before we go live.
+
+Our APIs expose the `negRisk` boolean at the event level. When it is `true`, make sure your app understands the conversion logic described below.
+
+## Why negative risk exists
+
+- **Capital efficiency** — Liquidity providers can price many correlated markets with the same collateral rather than locking funds per market.
+- **Consistent resolution** — Because the markets share a pool, only one of them can resolve positively. The convert action enforces this invariant.
+- **Simpler hedging** — Traders can move into or out of exposure without bridging assets; they convert across markets in a single on-chain call.
+
+## Convert flow
+
+Conversions are routed through the Negative Risk Adapter contract. To exercise it:
+
+1. Approve the adapter to spend your outcome tokens.
+2. Call the adapter’s `convert` method, specifying the event, market you are exiting, and the destination market.
+3. Receive the equivalent `YES` balance in the target market; your `NO` tokens are burned so the invariant holds.
+
+{ENV.NEXT_PUBLIC_SITE_NAME} exposes the adapter ABI and address alongside every negative-risk event announcement. Until the mainnet release, rely on the Amoy deployment shared in those announcements.
+
+## Augmented negative risk
+
+Some events need room for unnamed outcomes that may appear later. In those cases we enable **augmented negative risk** by setting both `enableNegRisk = true` and `negRiskAugmented = true`.
+
+- Named outcomes are meant for trading.
+- Placeholder outcomes (for example, `Participant A`, `Participant B`) can later be clarified through our bulletin board. Do not trade them unless they become fully specified.
+- The explicit `Other` outcome only resolves if the winning scenario was never given a dedicated market.
+
+When augmented negative risk is active, conversions should still ignore placeholder tokens until they have been clarified. The {ENV.NEXT_PUBLIC_SITE_NAME} UI hides them automatically, but third-party front ends should apply the same rule.
+
+## Detecting support through APIs
+
+- [Data API](/data-api/markets/get-top-holders) — The `negRisk` and `negRiskAugmented` flags are present on event payloads.
+- [Subgraphs](/subgraph/overview) — Query the metadata entity for `enableNegRisk` to show conversion controls.
+- Relayer — Convert transactions can be sent through the relayer like any other Safe call if your user lacks gas on Amoy.
+
+If you are unsure whether a historical market supported negative risk, check the event payload in the Data API or scan the Amoy subgraph for adapter interactions tied to that `conditionId`.

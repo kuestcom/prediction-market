@@ -1,0 +1,33 @@
+---
+title: 'Submit USDC → USDC.e swap'
+openapi: 'POST /swap/usdc-e/submit'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Submit a signed Safe payload from [`POST /swap/usdc-e/build`](/relayer/swaps/usdc-e-build). The relayer verifies the Safe owner, validates the multisend target, and broadcasts the transaction on-chain.
+
+<Info>
+POST to <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/swap/usdc-e/submit</code> with the standard L2 headers. The payload mirrors <code>POST /submit</code> but is restricted to <code>SAFE</code> operations targeting the Safe multisend contract.
+</Info>
+
+## Request body
+
+This endpoint accepts the same payload as [`POST /submit`](/relayer/core/post-submit). Use the <code>transaction</code> and <code>nonce</code> from the build response, and copy the build <code>signatureParams</code> into the request.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `type` | string | Yes | Must be `SAFE`. |
+| `from` | string | Yes | Safe owner address (must match `KUEST_ADDRESS`). |
+| `to` | string | Yes | Must match the Safe multisend contract returned by the build endpoint. |
+| `proxyWallet` | string | Yes | Safe proxy executing the swap. |
+| `data` | string | Yes | Multisend calldata from the build response. |
+| `nonce` | string | Yes | Safe nonce from the build response. |
+| `value` | string | No | Always `0`. |
+| `signature` | string | Yes | Packed Safe signature over the typed data hash. |
+| `signatureParams` | object | Yes | Signature metadata from the build response. |
+| `metadata` | string | No | Optional label (e.g. `swap_usdc_e`). |
+
+## Usage notes
+
+- The relayer does not perform a new quote on submit. If the quote is stale, rebuild and sign again.
+- If the Safe nonce is out of sync, the relayer responds with `409` and you must rebuild.

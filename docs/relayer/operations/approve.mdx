@@ -1,0 +1,25 @@
+---
+title: 'Relayer approve operation'
+openapi: 'POST /operations/approve'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Ask the custodial relayer to submit an ERC-20 `approve()` transaction on your behalf. This is useful when you want the relayer to prime allowances before executing Safe calls.
+
+<Info>
+POST to <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/operations/approve</code> with the standard L2 headers. The relayer signs and broadcasts the allowance transaction from its managed operator.
+</Info>
+
+## Request body
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `token` | string | Yes | ERC-20 token contract that will grant allowances. |
+| `spender` | string | Yes | Address that should be allowed to spend tokens. |
+| `amount` | string | Yes | Decimal string representing the allowance amount (use `2^256-1` for max). |
+
+## Notes
+
+- Allowance approvals are executed sequentially to avoid nonce collisions; expect the relayer to reuse the same managed address.
+- Failed RPC calls respond with `502` and include the upstream error string.
+- Use [`POST /submit`](/relayer/core/post-submit) for user-owned approvals; this endpoint is strictly for custodial relayer operations.

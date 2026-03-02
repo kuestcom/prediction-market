@@ -1,0 +1,45 @@
+---
+title: 'API Rate Limits'
+---
+
+export const ENV = globalThis.process?.env ?? {}
+export const SITE_NAME = ENV.NEXT_PUBLIC_SITE_NAME ?? 'the site'
+
+Reference the tables below to understand the live request caps that apply to the {SITE_NAME} CLOB API.
+
+## How Rate Limiting Works
+
+All quotas are enforced through Cloudflare throttling. When you exceed the configured ceiling for an endpoint, additional requests are queued instead of being rejected outright. Short bursts above the sustained rate are tolerated on some routes, and counters reset according to sliding windows (for example, every 10 seconds or every minute).
+
+## General Rate Limits
+
+| Endpoint                  | Limit               | Notes                                              |
+| ------------------------- | ------------------- | -------------------------------------------------- |
+| CLOB API (general)        | 5000 requests / 10s | Throttle requests over the maximum configured rate |
+| Health check (`GET /`)    | 50 requests / 10s   | Throttle requests over the maximum configured rate |
+
+## CLOB Market Data
+
+| Endpoint               | Limit              | Notes                                              |
+| ---------------------- | ------------------ | -------------------------------------------------- |
+| `GET /book`            | 200 requests / 10s | Throttle requests over the maximum configured rate |
+| `POST /books`          | 80 requests / 10s  | Throttle requests over the maximum configured rate |
+| `GET /price`           | 200 requests / 10s | Throttle requests over the maximum configured rate |
+| `POST /prices`         | 80 requests / 10s  | Throttle requests over the maximum configured rate |
+| `GET /midpoint`        | 200 requests / 10s | Throttle requests over the maximum configured rate |
+| `GET /prices-history`  | 100 requests / 10s | Throttle requests over the maximum configured rate |
+
+## CLOB Ledger Endpoints
+
+| Endpoint      | Limit              | Notes                                              |
+| ------------- | ------------------ | -------------------------------------------------- |
+| `GET /trades` | 150 requests / 10s | Throttle requests over the maximum configured rate |
+
+## CLOB Trading Endpoints
+
+| Endpoint        | Limit                               | Notes                                                      |
+| --------------- | ----------------------------------- | ---------------------------------------------------------- |
+| `POST /order`   | 2400 requests / 10s (240/s)         | BURST — Throttle requests over the maximum configured rate |
+| `POST /order`   | 24000 requests / 10 minutes (40/s)  | Throttle requests over the maximum configured rate         |
+| `DELETE /order` | 2400 requests / 10s (240/s)         | BURST — Throttle requests over the maximum configured rate |
+| `DELETE /order` | 24000 requests / 10 minutes (40/s)  | Throttle requests over the maximum configured rate         |

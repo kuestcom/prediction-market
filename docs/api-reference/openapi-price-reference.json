@@ -1,0 +1,539 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Price Reference API",
+    "version": "0.1.0",
+    "description": "Reference price service for live-series markets."
+  },
+  "servers": [
+    {
+      "url": "https://price-reference.kuest.com",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Health check",
+        "description": "Simple readiness probe that returns plain text `OK`.",
+        "tags": [
+          "Health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Service is reachable.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/marks/latest": {
+      "get": {
+        "summary": "Get latest finalized marks",
+        "description": "Returns the most recent finalized mark per configured instrument/interval, plus the opening reference for the next window.",
+        "tags": [
+          "Marks"
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest marks by instrument.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestMarksResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/marks/history": {
+      "get": {
+        "summary": "Get historical marks",
+        "description": "Returns finalized mark windows for one instrument, optionally filtered by interval and time range.",
+        "tags": [
+          "Marks"
+        ],
+        "parameters": [
+          {
+            "name": "instrument",
+            "in": "query",
+            "required": true,
+            "description": "Instrument symbol.",
+            "schema": {
+              "type": "string",
+              "example": "BTC/USD"
+            }
+          },
+          {
+            "name": "interval",
+            "in": "query",
+            "required": false,
+            "description": "Window interval.",
+            "schema": {
+              "$ref": "#/components/schemas/Interval"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "Inclusive lower bound for `window_end_ms` in Unix milliseconds.",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Inclusive upper bound for `window_end_ms` in Unix milliseconds.",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum rows returned (default 200, max 1000).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historical marks.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarksHistoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/series-map": {
+      "get": {
+        "summary": "Get series mapping",
+        "description": "Returns the mapping between `series_slug` and instrument/interval/source metadata.",
+        "tags": [
+          "Series"
+        ],
+        "responses": {
+          "200": {
+            "description": "Configured series mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesMapResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/ingest-run": {
+      "post": {
+        "summary": "Trigger ingestion now",
+        "description": "Runs an immediate ingest pass for all configured markets.",
+        "tags": [
+          "Internal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ingest execution result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestRunResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Interval": {
+        "type": "string",
+        "enum": [
+          "5m",
+          "15m",
+          "1h",
+          "4h",
+          "1d"
+        ]
+      },
+      "Source": {
+        "type": "string",
+        "enum": [
+          "chainlink",
+          "massive"
+        ]
+      },
+      "LastFinal": {
+        "type": "object",
+        "required": [
+          "window_start_ms",
+          "window_end_ms",
+          "price",
+          "source",
+          "source_timestamp_ms",
+          "source_ref",
+          "status"
+        ],
+        "properties": {
+          "window_start_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "window_end_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "price": {
+            "type": "number"
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "source_timestamp_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "source_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "example": "final"
+          }
+        }
+      },
+      "NextWindow": {
+        "type": "object",
+        "required": [
+          "window_start_ms",
+          "window_end_ms",
+          "opening_reference_price"
+        ],
+        "properties": {
+          "window_start_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "window_end_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "opening_reference_price": {
+            "type": "number"
+          }
+        }
+      },
+      "LatestMarketEntry": {
+        "type": "object",
+        "required": [
+          "instrument",
+          "interval",
+          "source",
+          "display_name",
+          "display_symbol",
+          "last_final",
+          "next_window"
+        ],
+        "properties": {
+          "instrument": {
+            "type": "string",
+            "example": "BTC/USD"
+          },
+          "interval": {
+            "$ref": "#/components/schemas/Interval"
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "display_name": {
+            "type": "string",
+            "example": "Bitcoin"
+          },
+          "display_symbol": {
+            "type": "string",
+            "example": "BTC/USD"
+          },
+          "last_final": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LastFinal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_window": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NextWindow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "LatestMarksResponse": {
+        "type": "object",
+        "required": [
+          "schema_version",
+          "generated_at",
+          "markets"
+        ],
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "example": "1.0"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "markets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LatestMarketEntry"
+            }
+          }
+        }
+      },
+      "MarkHistoryRow": {
+        "type": "object",
+        "required": [
+          "instrument",
+          "interval",
+          "window_start_ms",
+          "window_end_ms",
+          "settlement_price",
+          "source",
+          "source_timestamp_ms",
+          "source_ref",
+          "status"
+        ],
+        "properties": {
+          "instrument": {
+            "type": "string"
+          },
+          "interval": {
+            "$ref": "#/components/schemas/Interval"
+          },
+          "window_start_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "window_end_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "settlement_price": {
+            "type": "number"
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "source_timestamp_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "source_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "example": "final"
+          }
+        }
+      },
+      "MarksHistoryResponse": {
+        "type": "object",
+        "required": [
+          "schema_version",
+          "generated_at",
+          "instrument",
+          "interval",
+          "rows"
+        ],
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "example": "1.0"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "instrument": {
+            "type": "string"
+          },
+          "interval": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MarkHistoryRow"
+            }
+          }
+        }
+      },
+      "SeriesMapItem": {
+        "type": "object",
+        "required": [
+          "series_slug",
+          "instrument",
+          "interval",
+          "source",
+          "display_name",
+          "display_symbol"
+        ],
+        "properties": {
+          "series_slug": {
+            "type": "string"
+          },
+          "instrument": {
+            "type": "string"
+          },
+          "interval": {
+            "$ref": "#/components/schemas/Interval"
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "display_symbol": {
+            "type": "string"
+          }
+        }
+      },
+      "SeriesMapResponse": {
+        "type": "object",
+        "required": [
+          "schema_version",
+          "generated_at",
+          "series"
+        ],
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "example": "1.0"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeriesMapItem"
+            }
+          }
+        }
+      },
+      "IngestRunResponse": {
+        "type": "object",
+        "required": [
+          "ok",
+          "updated",
+          "errors"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "updated": {
+            "type": "integer"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

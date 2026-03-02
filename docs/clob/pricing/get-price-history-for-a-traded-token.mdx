@@ -1,0 +1,15 @@
+---
+title: 'Get price history for a traded token'
+openapi: 'GET /prices-history'
+---
+
+
+Retrieve historical midpoint prices for a specific token or condition. The endpoint returns evenly spaced samples based on the `granularity` you supply.
+
+## Response shape
+
+- `history` — array of `{ "t": number, "p": string }` points.
+  - `t` is the Unix timestamp (UTC seconds) for the bucket.
+  - `p` is the midpoint price at that instant, returned as a fixed-precision string to avoid floating-point drift.
+
+Use the string-formatted prices directly in UI components or parse them with arbitrary-precision math libraries when additional calculations are required.

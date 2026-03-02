@@ -1,0 +1,40 @@
+---
+title: 'Data API overview'
+description: 'Early look at the analytics surface that mirrors the interfaces used inside the platform.'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+# {ENV.NEXT_PUBLIC_SITE_NAME} Data API
+
+<Note>
+🔴 This API surface is actively being wired up. Names, filters, and even full routes may evolve before the public release.
+</Note>
+
+The {ENV.NEXT_PUBLIC_SITE_NAME} Data API exposes the portfolio, market, and builder analytics that power the {ENV.NEXT_PUBLIC_SITE_NAME} prediction markets. Every route mirrors the interfaces our internal analytics teams rely on, but the data originates from {ENV.NEXT_PUBLIC_SITE_NAME}-run subgraphs, caches, and databases so we can guarantee freshness and uptime.
+
+## Base URL and format
+
+- **Hostname**: <code>{ENV.DATA_URL ?? 'https://data-api.kuest.com'}</code>
+- **Protocol**: HTTPS only; responses are JSON.
+- **Authentication**: Not required for read operations. Rate limiting will be enforced once the API goes into production.
+- **Specification**: All requests and sample payloads live inside `api-reference/openapi-data-api.json`, which powers the panel on the right-hand side of each page.
+
+## Endpoint families
+
+| Topic | Description | Sample endpoints |
+| --- | --- | --- |
+| Health | Readiness probes for monitors. | [`GET /`](/data-api/health-check) |
+| Portfolio | Position snapshots, historical exits, and wallet totals. | [`GET /positions`](/data-api/positions/get-current-positions), [`GET /closed-positions`](/data-api/positions/get-closed-positions), [`GET /value`](/data-api/positions/get-total-value), [`GET /traded`](/data-api/positions/get-total-markets-traded), [`GET /volume`](/data-api/positions/get-total-volume) |
+| Market metrics | Aggregate stats derived from {ENV.NEXT_PUBLIC_SITE_NAME} liquidity. | [`GET /holders`](/data-api/markets/get-top-holders), [`GET /oi`](/data-api/markets/get-open-interest), [`GET /live-volume`](/data-api/markets/get-live-volume) |
+| Activity | Historical fills and ledger-like user activity. | [`GET /trades`](/data-api/activity/get-trades), [`GET /activity`](/data-api/activity/get-user-activity) |
+| Referrals | Aggregated fee totals for referrers and affiliates. | [`GET /referrers`](/data-api/referrals/get-referrers), [`GET /affiliates`](/data-api/referrals/get-affiliates) |
+| Leaderboards | Trader rankings and biggest wins. | [`GET /v1/leaderboard`](/data-api/leaderboards/get-trader-leaderboard), [`GET /v1/leaderboard/biggest-wins`](/data-api/leaderboards/get-biggest-wins) |
+| Builders | Early endpoints that will summarize third-party builder performance. | [`GET /v1/builders/leaderboard`](/data-api/builders/get-aggregated-builder-leaderboard), [`GET /v1/builders/volume`](/data-api/builders/get-daily-builder-volume-time-series) |
+
+## Usage tips
+
+1. Prefer `market` filters when you have known condition IDs. The API accepts CSV lists (`market=0xabc,0xdef`) using standard `form` encoding (`explode=false`).
+2. Pagination is handled with `limit` and `offset` pairs. Lower values keep response times predictable while the cache is still maturing.
+3. Builder routes are placeholders until the attribution ETL ships; expect empty arrays for now.
+
+As the ingestion jobs stabilize we will remove the warning banner above and expand these docs with live examples.

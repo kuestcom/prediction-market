@@ -1,0 +1,406 @@
+asyncapi: 3.0.0
+info:
+  title: Live Data WebSocket API
+  version: 1.0.0
+  description: Live data stream for activity, comments, and crypto price updates.
+defaultContentType: application/json
+servers:
+  production:
+    host: ws-live-data.kuest.com
+    protocol: wss
+    description: Production live data socket.
+channels:
+  live-data:
+    address: /
+    description: Live data channel for activity, comments, and crypto price updates.
+    messages:
+      Subscribe:
+        $ref: '#/components/messages/Subscribe'
+      Unsubscribe:
+        $ref: '#/components/messages/Unsubscribe'
+      Ping:
+        $ref: '#/components/messages/Ping'
+      Pong:
+        $ref: '#/components/messages/Pong'
+      ActivityEvent:
+        $ref: '#/components/messages/ActivityEvent'
+      CommentEvent:
+        $ref: '#/components/messages/CommentEvent'
+      ChainlinkEvent:
+        $ref: '#/components/messages/ChainlinkEvent'
+      BinanceEvent:
+        $ref: '#/components/messages/BinanceEvent'
+operations:
+  liveDataSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/live-data'
+    messages:
+      - $ref: '#/channels/live-data/messages/Subscribe'
+  liveDataUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/live-data'
+    messages:
+      - $ref: '#/channels/live-data/messages/Unsubscribe'
+  liveDataPing:
+    action: receive
+    channel:
+      $ref: '#/channels/live-data'
+    messages:
+      - $ref: '#/channels/live-data/messages/Ping'
+  liveDataEvents:
+    action: send
+    channel:
+      $ref: '#/channels/live-data'
+    messages:
+      - $ref: '#/channels/live-data/messages/ActivityEvent'
+      - $ref: '#/channels/live-data/messages/CommentEvent'
+      - $ref: '#/channels/live-data/messages/ChainlinkEvent'
+      - $ref: '#/channels/live-data/messages/BinanceEvent'
+      - $ref: '#/channels/live-data/messages/Pong'
+components:
+  messages:
+    Subscribe:
+      name: Subscribe
+      title: Subscribe
+      summary: Subscribe to live data topics.
+      payload:
+        $ref: '#/components/schemas/SubscribeRequest'
+    Unsubscribe:
+      name: Unsubscribe
+      title: Unsubscribe
+      summary: Remove live data subscriptions.
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+    Ping:
+      name: Ping
+      title: Ping
+      summary: Client keepalive ping (raw text).
+      payload:
+        $ref: '#/components/schemas/Ping'
+    Pong:
+      name: Pong
+      title: Pong
+      summary: Server response to ping (always PONG).
+      payload:
+        $ref: '#/components/schemas/Pong'
+    ActivityEvent:
+      name: ActivityEvent
+      title: Matched orders event
+      payload:
+        $ref: '#/components/schemas/ActivityEvent'
+    CommentEvent:
+      name: CommentEvent
+      title: Comment event
+      payload:
+        $ref: '#/components/schemas/CommentEvent'
+    ChainlinkEvent:
+      name: ChainlinkEvent
+      title: Chainlink price event
+      payload:
+        $ref: '#/components/schemas/ChainlinkEvent'
+    BinanceEvent:
+      name: BinanceEvent
+      title: Binance price event
+      payload:
+        $ref: '#/components/schemas/BinanceEvent'
+  schemas:
+    SubscribeRequest:
+      type: object
+      required:
+        - action
+        - subscriptions
+      properties:
+        action:
+          type: string
+          enum: [subscribe]
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subscription'
+    UnsubscribeRequest:
+      type: object
+      required:
+        - action
+        - subscriptions
+      properties:
+        action:
+          type: string
+          enum: [unsubscribe]
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subscription'
+    Subscription:
+      type: object
+      required:
+        - topic
+        - type
+      properties:
+        topic:
+          type: string
+          enum: [activity, comments, crypto_prices_chainlink, crypto_prices_binance]
+        type:
+          type: string
+          enum: [orders_matched, comment_created, comment_removed, update, '*']
+        filters:
+          description: Optional topic-specific filters.
+          oneOf:
+            - $ref: '#/components/schemas/EventSlugFilter'
+            - $ref: '#/components/schemas/CommentFilter'
+            - $ref: '#/components/schemas/ChainlinkSymbolFilter'
+            - $ref: '#/components/schemas/ChainlinkSymbolsFilter'
+            - $ref: '#/components/schemas/BinanceSymbolFilter'
+            - $ref: '#/components/schemas/BinanceSymbolsFilter'
+            - $ref: '#/components/schemas/GenericFilter'
+            - type: string
+    EventSlugFilter:
+      type: object
+      properties:
+        event_slug:
+          type: string
+        eventSlug:
+          type: string
+    CommentFilter:
+      type: object
+      properties:
+        event_slug:
+          type: string
+        eventSlug:
+          type: string
+        market:
+          type: string
+        asset_id:
+          type: string
+    GenericFilter:
+      type: object
+      additionalProperties: true
+    ChainlinkSymbolFilter:
+      type: object
+      required:
+        - symbol
+      properties:
+        symbol:
+          type: string
+          enum: [btc/usd, eth/usd, sol/usd, xrp/usd]
+    ChainlinkSymbolsFilter:
+      type: object
+      required:
+        - symbols
+      properties:
+        symbols:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum: [btc/usd, eth/usd, sol/usd, xrp/usd]
+    BinanceSymbolFilter:
+      type: object
+      required:
+        - symbol
+      properties:
+        symbol:
+          type: string
+          enum: [btcusdt, ethusdt, solusdt, xrpusdt]
+    BinanceSymbolsFilter:
+      type: object
+      required:
+        - symbols
+      properties:
+        symbols:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum: [btcusdt, ethusdt, solusdt, xrpusdt]
+    Ping:
+      type: string
+      pattern: '^[Pp][Ii][Nn][Gg]$'
+      example: ping
+    Pong:
+      type: string
+      enum: [PONG]
+    ActivityEvent:
+      type: object
+      properties:
+        connection_id:
+          type: string
+        topic:
+          type: string
+          enum: [activity]
+        type:
+          type: string
+          enum: [orders_matched]
+        timestamp:
+          type: integer
+          format: int64
+        payload:
+          $ref: '#/components/schemas/ActivityPayload'
+    ActivityPayload:
+      type: object
+      properties:
+        bio:
+          type: string
+        name:
+          type: string
+        profileImage:
+          type: string
+        pseudonym:
+          type: string
+        proxyWallet:
+          type: string
+        side:
+          type: string
+        asset:
+          type: string
+        conditionId:
+          type: string
+        size:
+          type: number
+        price:
+          type: number
+        timestamp:
+          type: integer
+          format: int64
+        transactionHash:
+          type: string
+        usdcSize:
+          type: number
+        title:
+          type: string
+        slug:
+          type: string
+        icon:
+          type: string
+        eventSlug:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        outcome:
+          type: string
+        outcomeIndex:
+          type: integer
+    CommentEvent:
+      type: object
+      properties:
+        connection_id:
+          type: string
+        topic:
+          type: string
+          enum: [comments]
+        type:
+          type: string
+          enum: [comment_created, comment_removed]
+        timestamp:
+          type: integer
+          format: int64
+        payload:
+          $ref: '#/components/schemas/CommentPayload'
+    ChainlinkEvent:
+      type: object
+      properties:
+        connection_id:
+          type: string
+        topic:
+          type: string
+          enum: [crypto_prices_chainlink]
+        type:
+          type: string
+          enum: [update]
+        timestamp:
+          type: integer
+          format: int64
+        payload:
+          $ref: '#/components/schemas/ChainlinkPayload'
+    BinanceEvent:
+      type: object
+      properties:
+        connection_id:
+          type: string
+        topic:
+          type: string
+          enum: [crypto_prices_binance]
+        type:
+          type: string
+          enum: [update]
+        timestamp:
+          type: integer
+          format: int64
+        payload:
+          $ref: '#/components/schemas/BinancePayload'
+    ChainlinkPayload:
+      type: object
+      properties:
+        symbol:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+        value:
+          type: number
+    BinancePayload:
+      type: object
+      properties:
+        symbol:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+        value:
+          type: number
+    CommentPayload:
+      type: object
+      properties:
+        id:
+          type: string
+        body:
+          type: string
+        createdAt:
+          type: string
+        parentCommentID:
+          type: string
+        parentEntityType:
+          type: string
+        profile:
+          $ref: '#/components/schemas/CommentProfile'
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentPosition'
+        reactionCount:
+          type: integer
+        replyAddress:
+          type: string
+        reportCount:
+          type: integer
+        userAddress:
+          type: string
+    CommentProfile:
+      type: object
+      properties:
+        baseAddress:
+          type: string
+        displayUsernamePublic:
+          type: boolean
+        name:
+          type: string
+        profileImage:
+          type: string
+        proxyWallet:
+          type: string
+        pseudonym:
+          type: string
+    CommentPosition:
+      type: object
+      properties:
+        conditionId:
+          type: string
+        outcomeIndex:
+          type: integer
+        amount:
+          type: number

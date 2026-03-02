@@ -1,0 +1,45 @@
+---
+title: 'Splitting USDC'
+description: 'How to split Amoy USDC into outcome tokens using the Conditional Token Framework.'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+# Split USDC into outcome positions
+
+Splitting collateral produces a pair of ERC-1155 outcome tokens that represent the possible answers to a market question. On **Polygon Amoy**, this flow mirrors production so you can rehearse every allowance and signature step before promoting to mainnet.
+
+## Prerequisites
+
+1. Hold testnet USDC on Amoy. You can mint from the [official faucet](https://faucet.circle.com/).
+2. Approve the ConditionalTokens contract for the total amount you plan to split.
+3. Know the `conditionId` and the integer index set for the outcome you want to mint.
+
+## Contract call
+
+Call `splitPosition(collateralToken, conditionId, partition, amount)` where:
+
+- `collateralToken` is Amoy USDC.
+- `conditionId` is the 32-byte identifier you created via the oracle.
+- `partition` is `[1, 2]` for binary markets (yes/no). Multisided markets should pass more index sets.
+- `amount` is the collateral (in wei) to convert.
+
+```solidity
+uint256[] memory partition = new uint256[](2);
+partition[0] = 1; // yes
+partition[1] = 2; // no
+
+conditionalTokens.splitPosition(
+  address(USDC),
+  bytes32(conditionId),
+  partition,
+  amount
+);
+```
+
+After the transaction confirms, you now hold ERC-1155 balances for each `positionId`. These balances can be deposited into the {ENV.NEXT_PUBLIC_SITE_NAME} CLOB or pooled inside an FPMM.
+
+## Operational tips
+
+- Always log the `ConditionCreated` and `PositionSplit` events emitted on Amoy so your backend remains in lockstep with on-chain IDs.
+- When batching multiple splits, increment allowances rather than re-approving for every call; Polygon gas costs favor fewer approvals.
+- Splitting is reversible: you can `mergePositions` at any time before resolution to recover the original collateral 1:1 (minus gas).

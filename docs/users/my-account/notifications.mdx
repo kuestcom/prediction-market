@@ -3,12 +3,12 @@ title: Notifications
 description: Configure email and in-app notifications
 icon: Bell
 ---
-import { Steps, Step } from 'fumadocs-ui/components/steps'
+export const ENV = globalThis.process?.env ?? {}
 
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## Notification Channels
@@ -28,20 +28,17 @@ You can configure how you receive alerts:
 ## How to Configure
 
 <Steps>
-  <Step>
-    ### Open notification settings
+  <Step title="Open notification settings">
 
     Navigate to <strong>My Account → Notifications</strong> to adjust how
     you’re alerted.
   </Step>
-  <Step>
-    ### Toggle channels
+  <Step title="Toggle channels">
 
     Enable or disable email and in-app switches for fills, resolutions, and
     other alerts.
   </Step>
-  <Step>
-    ### Save your choices
+  <Step title="Save your choices">
 
     Changes apply instantly—no extra confirmation needed.
   </Step>

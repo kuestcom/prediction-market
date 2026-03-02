@@ -1,0 +1,29 @@
+---
+title: 'Subgraph overview'
+description: 'Maintained subgraphs that expose CTF, PnL, order book, and settlement data on Amoy.'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+# Subgraphs on Amoy
+
+## Example query
+
+```bash
+curl -X POST "$SUBGRAPH_URL" \
+  -H 'content-type: application/json' \
+  -d '{
+    "query": "{ wallet (id: \"0xabc...\") { id realizedPnL unrealizedPnL } }"
+  }'
+```
+
+The response follows the GraphQL specification, so you can rely on strongly typed schemas, pagination via `first`/`skip`, and reusable fragments.
+
+## Monitoring and pagination tips
+
+- Most {ENV.NEXT_PUBLIC_SITE_NAME} subgraphs expose `meta { block { number } }`. Poll this to ensure your backend is ingesting a sufficiently fresh block height.
+- When syncing historical data, paginate by deterministic fields such as `timestamp` or `blockNumber`. This avoids skipping data if the indexer reorders IDs.
+- Use field-level filters (e.g., `where: { condition_in: [...] }`) to stay within the default 100-item limit and reduce response latency.
+
+## When to use the Data API instead
+
+If you need curated aggregates, such as leaderboard snapshots or normalized mark prices, our RESTful [Data API](/data-api/introduction) includes caching. Subgraphs remain the better choice when you need raw, verifiable on-chain events or want to power your own analytics warehouse.

@@ -1,0 +1,36 @@
+---
+title: 'Build USDC → USDC.e swap'
+openapi: 'POST /swap/usdc-e/build'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Build a Safe multisend payload that approves native USDC and swaps it into USDC.e using Uniswap V3. The response includes the Safe transaction, nonce, and `signatureParams` required for signing.
+
+<Info>
+POST to <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/swap/usdc-e/build</code> with the standard L2 headers. The relayer validates that <code>from</code> matches the authenticated account and that the Safe proxy is registered.
+</Info>
+
+## Request body
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `from` | string | Yes | Safe owner address that must match `KUEST_ADDRESS`. |
+| `proxyWallet` | string | Yes | Safe proxy that will execute the swap. |
+| `amount` | string | Yes | USDC amount in base units (6 decimals). Example: `1000000` = 1 USDC. |
+| `slippageBps` | number | No | Slippage tolerance in basis points. Default: `50` (0.5%). |
+
+## Response fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `nonce` | string | Safe nonce that must be signed. |
+| `transaction` | object | Safe transaction payload pointing to the Safe multisend contract. |
+| `signatureParams` | object | Gas + refund params to include in the Safe signature payload. |
+| `amountIn` | string | Echo of the input amount (base units). |
+| `amountOutMinimum` | string | Minimum USDC.e out after slippage. |
+| `fee` | number | Uniswap V3 pool fee selected (e.g. 100 = 0.01%). |
+| `deadline` | number | Unix timestamp deadline used in the swap call. |
+
+<Note>
+Use the returned <code>transaction</code>, <code>nonce</code>, and <code>signatureParams</code> to build the Safe typed data and produce the signature you will send to <code>/swap/usdc-e/submit</code>.
+</Note>

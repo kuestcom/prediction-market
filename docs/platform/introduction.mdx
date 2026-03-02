@@ -1,0 +1,125 @@
+---
+title: 'Introduction'
+description: 'Official developer portal for the Platform, CLOB, Relayer, and Data APIs.'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+# {ENV.NEXT_PUBLIC_SITE_NAME} Dev Docs
+
+Welcome to the {ENV.NEXT_PUBLIC_SITE_NAME} developer hub. Here you will find everything required to integrate with our Central Limit Order Book (CLOB) services—order book depth, real-time pricing, historical data, and aggregated spreads.
+
+<Info>
+All endpoints documented here are powered by our OpenAPI specification. Use the playground on each page to send test requests against <code>{ENV.CLOB_URL ?? 'https://clob.kuest.com'}</code> (CLOB), <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}</code> (Relayer), or <code>{ENV.DATA_URL ?? 'https://data-api.kuest.com'}</code> (Data API).
+</Info>
+
+## Quick navigation
+
+Jump straight into the resources you need. Every link below opens the corresponding API reference page, so you have an easy index even on mobile devices.
+
+### Platform
+- [Introduction](/platform/introduction) — overview of the {ENV.NEXT_PUBLIC_SITE_NAME} CLOB ecosystem and documentation structure.
+- [API Rate Limits](/platform/api-rate-limits) — current throttling caps for live {ENV.NEXT_PUBLIC_SITE_NAME} endpoints.
+
+#### Authentication
+- [Authentication overview](/platform/auth/authentication-overview) — understand L1 wallet signing and L2 API credential flows.
+- [Create API key](/platform/auth/create-api-key) — issue deterministic credentials from an L1 signature.
+- [Revoke API key](/platform/auth/delete-api-key) — invalidate an existing API key/pair.
+- [List API keys](/platform/auth/get-api-keys) — inspect active and revoked credentials for an address.
+
+### CLOB
+
+#### Health
+- [API Health Check](/clob/health-check) — simple readiness probe that returns `OK`.
+
+#### Orderbook
+- [Get order book summary](/clob/orderbook/get-order-book-summary) — single-token snapshot of bids, asks, and market metadata.
+- [Get multiple order books summaries by request](/clob/orderbook/get-multiple-order-books-summaries-by-request) — batch snapshots for multiple tokens in one call.
+
+#### Orders
+- [Create order](/clob/orders/create-order) — submit new orders to the {ENV.NEXT_PUBLIC_SITE_NAME} CLOB with configurable execution policies.
+- [Place multiple orders (batch)](/clob/orders/create-orders-batch) — queue up to 15 placements in a single call.
+- [Get order](/clob/orders/get-order) — inspect status, fills, and trade associations for a previously submitted order.
+- [Get orders by IDs](/clob/orders/get-orders-by-ids) — batch retrieval (HTTP 207 Multi-Status) of up to 500 order details in one call.
+- [List open orders](/clob/orders/get-active-orders) — stream the live orders owned by your authenticated L2 credentials.
+- [Cancel order](/clob/orders/cancel-order) — remove resting orders by ULID and see which cancellations succeeded.
+
+#### Pricing
+- [Get market price](/clob/pricing/get-market-price) — best bid/ask for a token-side pair.
+- [Get multiple market prices by request](/clob/pricing/get-multiple-market-prices-by-request) — batch POST variant that returns quotes for every requested side.
+- [Get midpoint price](/clob/pricing/get-midpoint-price) — midpoint quote for any token.
+- [Get price history for a traded token](/clob/pricing/get-price-history-for-a-traded-token) — historical price series with configurable window and fidelity.
+- [Get bid-ask spreads](/clob/spreads/get-bid-ask-spreads) — aggregated spread information for one or more tokens.
+
+#### Trades
+- [Trades overview](/clob/trades/trades-overview) — recap of how authenticated trade feeds work.
+- [List trades](/clob/trades/get-trades) — filter fills where your credentials acted as maker or taker.
+- [Get trade volumes](/clob/trades/get-trade-volumes) — fetch aggregate and 24h volumes for up to 100 conditions.
+
+### Relayer
+- [Relayer Health Check](/relayer/health-check) — confirm that <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}</code> is returning `OK`.
+
+#### Wallet
+- [Proxy wallet call](/relayer/wallet/proxy) — batched RelayHub calls routed through the managed relayer host.
+- [Deploy Safe wallet](/relayer/wallet/safe) — SafeProxyFactory deployment identical to the former CLOB endpoint, now hosted on the relayer domain.
+
+#### Relayer core
+- [Get relayer nonce](/relayer/core/get-nonce) — discover the next nonce for `SAFE` or `SAFE-CREATE` operations.
+- [Get relay payload](/relayer/core/get-relay-payload) — fetch relay address and nonce for `PROXY` submissions.
+- [List relayer transactions](/relayer/core/get-transactions) — retrieve the full history of submissions tied to your credentials.
+- [Get relayer transaction](/relayer/core/get-transaction) — poll a single `transactionID` for state transitions.
+- [Submit relayer transaction](/relayer/core/post-submit) — primary entry point for Safe executions and deployments.
+- [Check Safe deployment](/relayer/core/get-deployed) — confirm if a deterministic Safe address already exists on-chain.
+
+#### Auxiliary operations
+- [Relayer approve operation](/relayer/operations/approve) — ask the operator to issue ERC-20 `approve()` transactions.
+- [Relayer set-approval operation](/relayer/operations/set-approval) — toggle `setApprovalForAll` on Conditional Tokens.
+- [Relayer split position](/relayer/operations/split-position) — convert collateral into outcome tokens via the relayer.
+- [Relayer merge position](/relayer/operations/merge-position) — merge outcome positions back into collateral.
+- [Relayer convert position](/relayer/operations/convert-position) — convert `NO` exposure into the complementary `YES` positions.
+- [Relayer redeem position](/relayer/operations/redeem-position) — redeem resolved outcome tokens and return collateral.
+
+### Data API
+- [Data API overview](/data-api/introduction) — explains the analytics-focused surface powered by {ENV.NEXT_PUBLIC_SITE_NAME} subgraphs.
+- [Health check](/data-api/health-check) — confirms <code>{ENV.DATA_URL ?? 'https://data-api.kuest.com'}</code> is running.
+
+#### Portfolio
+- [Get current positions](/data-api/positions/get-current-positions) — cached balances plus unrealized PnL.
+- [Get closed positions](/data-api/positions/get-closed-positions) — realized trades with exit timestamps.
+- [Get portfolio value](/data-api/positions/get-total-value) — fetch per-wallet USD exposure.
+- [Get total markets traded](/data-api/positions/get-total-markets-traded) — count unique markets for a wallet.
+- [Get total volume](/data-api/positions/get-total-volume) — aggregate notional volume for a wallet.
+
+#### Activity & markets
+- [Get trades](/data-api/activity/get-trades) — replay {ENV.NEXT_PUBLIC_SITE_NAME} fills with maker/taker data.
+- [Get user activity](/data-api/activity/get-user-activity) — ledger view that includes splits, merges, and rewards.
+- [Get top holders](/data-api/markets/get-top-holders) — leaderboard of balances per market.
+- [Get open interest](/data-api/markets/get-open-interest) — cached OI per condition ID.
+- [Get live volume for an event](/data-api/markets/get-live-volume) — aggregate collateral flow per event.
+
+#### Builders
+- [Get aggregated builder leaderboard](/data-api/builders/get-aggregated-builder-leaderboard) — preview of partner performance metrics.
+- [Get daily builder volume time-series](/data-api/builders/get-daily-builder-volume-time-series) — day-by-day builder stats.
+
+## Working with the playground
+
+<Steps>
+  <Step>Open an endpoint and ensure the required parameters are filled in. Defaults are provided where possible.</Step>
+  <Step>Click <strong>Send request</strong> to hit the live environment. Responses include headers, body, and timing information.</Step>
+  <Step>Use the <strong>Copy</strong> button above the generated cURL snippet to bring requests into your tooling or scripts.</Step>
+</Steps>
+
+## Glossary
+
+| Term | Definition |
+| --- | --- |
+| **Token** | Represents exposure to a specific yes/no outcome within a market. Prices float between 0 and 1 to reflect sentiment, and the token tied to the resolved outcome redeems for 1 USDC. Tokens are sometimes referred to as *asset IDs*. |
+| **Market** | A single outcome pairing on the CLOB. Each market references two token IDs (yes/no), plus a market address, question ID, and condition ID. |
+| **Event** | A collection of closely related markets grouped under a shared topic so traders can find the entire set at once. |
+| **Slug** | A human-readable identifier embedded in the URL for a market or event, designed to be easy to reference and share. |
+| **Central Limit Order Book** | The off-chain matching engine that processes resting and market orders before any settlement is posted on-chain. |
+| **Polygon Network** | The layer-2 blockchain that {ENV.NEXT_PUBLIC_SITE_NAME} uses for on-chain lifecycle actions such as contract deployment and token transfers. |
+| **Fork** | A copy and adaptation of an open-source project. In {ENV.NEXT_PUBLIC_SITE_NAME}, it refers to creating your own prediction market connected to global liquidity. |
+
+## Need assistance?
+
+If you need an endpoint that is not yet published or run into issues, contact the {ENV.NEXT_PUBLIC_SITE_NAME} engineering team. We continuously expand these docs as new capabilities become available.

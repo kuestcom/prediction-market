@@ -3,20 +3,22 @@ title: Introduction
 description: Learn the basics of prediction markets and how to start trading.
 icon: BookOpen
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-## What is {process.env.NEXT_PUBLIC_SITE_NAME}?
+## What is {ENV.NEXT_PUBLIC_SITE_NAME}?
 
-{process.env.NEXT_PUBLIC_SITE_NAME} is a prediction market that lets you measure
+{ENV.NEXT_PUBLIC_SITE_NAME} is a prediction market that lets you measure
 and trade sentiment on real-world events—from high-stakes elections and macro
 data releases to entertainment headlines. Market prices emerge from what
 participants are willing to risk, so the odds capture collective expectations
 instead of pundit opinions.
 
-<Callout type="info" title="Signals from skin in the game">
+<Info>
+  **Signals from skin in the game**
   Because every position is backed by capital, prices react quickly when traders
-  uncover new information. {process.env.NEXT_PUBLIC_SITE_NAME} surfaces those
+  uncover new information. {ENV.NEXT_PUBLIC_SITE_NAME} surfaces those
   signals as live probabilities.
-</Callout>
+</Info>
 
 ### Quick overview
 
@@ -34,7 +36,7 @@ instead of pundit opinions.
 
 Prices map directly to implied probabilities. If “YES” shares trade at 0.27
 USDC, the market assigns a 27% chance to that outcome. As with equity markets,
-{process.env.NEXT_PUBLIC_SITE_NAME} does not set odds—supply and demand in the
+{ENV.NEXT_PUBLIC_SITE_NAME} does not set odds—supply and demand in the
 order book does.
 
 ### Ways to profit
@@ -50,5 +52,5 @@ Academic studies consistently show that prediction markets aggregate dispersed
 knowledge more effectively than isolated forecasts, polls, or analysts. As more
 informed traders join, they arbitrage mispriced contracts and push probabilities
 closer to fair value. Whether you are seeking better insights about the future or
-looking to monetize your expertise, {process.env.NEXT_PUBLIC_SITE_NAME} provides a
+looking to monetize your expertise, {ENV.NEXT_PUBLIC_SITE_NAME} provides a
 transparent, market-driven source of truth.

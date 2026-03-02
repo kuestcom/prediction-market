@@ -1,0 +1,22 @@
+---
+title: 'Get biggest winners'
+openapi: 'GET /v1/biggest-winners'
+---
+
+`https://data-api.kuest.com/v1/biggest-winners` lists the largest realized wins from closed positions, with category filters and pagination.
+
+## Query parameters
+
+- `category`: Category filter (`OVERALL`, `POLITICS`, `SPORTS`, `CRYPTO`, `FINANCE`, `CULTURE`, `MENTIONS`, `WEATHER`, `ECONOMICS`, `TECH`).
+- `timePeriod`: Time window (`DAY`, `WEEK`, `MONTH`, `ALL`).
+- `limit`: Max rows (1-50, default 20).
+- `offset`: Pagination (0-1000).
+
+## Campos relevantes
+
+- `winRank`: Rank within the filtered results.
+- `eventTitle`: Event title.
+- `initialValue`: Estimated cost basis for the position.
+- `finalValue`: Returned value (`initialValue + pnl`).
+- `pnl`: Realized profit for the position.
+- `slug` e `icon`: Dados do mercado para renderizar no frontend.

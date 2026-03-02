@@ -1,0 +1,31 @@
+---
+title: 'List open orders'
+openapi: 'GET /data/orders'
+---
+
+
+Retrieve the active (live) orders owned by the authenticated L2 credentials.
+
+<Info>
+Send the L2 headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`. The response only includes orders linked to that credential set.
+</Info>
+
+## Query parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `id` | string | No | Order ULID to fetch (case-insensitive). |
+| `market` | string | No | ConditionID to filter on. |
+| `asset_id` | string | No | Token/asset ID to filter on. |
+| `next_cursor` | string | No | Base64-encoded offset for pagination (`MA==` to start, `LTE=` when exhausted). |
+
+Omit parameters you do not need; empty strings are ignored. If the combination is invalid the endpoint returns `400 invalid_filter`.
+
+## Response
+
+The endpoint returns a paginated object with:
+
+- `data`: array of open orders (same structure as [`GET /data/order/{id}`](/clob/orders/get-order), with `status` fixed to `live`).
+- `next_cursor`: Base64-encoded offset for the next page (`LTE=` when no more pages).
+- `limit`: page size used for the query.
+- `count`: number of items in `data`.

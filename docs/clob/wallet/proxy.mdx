@@ -1,0 +1,70 @@
+---
+title: 'Proxy wallet call'
+openapi: 'POST /wallet/proxy'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Submit batched contract calls through the {ENV.NEXT_PUBLIC_SITE_NAME} L2 relay. This router shares the exact authentication headers used by [`POST /order`](/clob/orders/create-order) and executes transactions from the managed proxy wallet tied to your API key.
+
+<Info>
+Always include the L2 headers `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`. The `owner` field must match `KUEST_ADDRESS`.
+</Info>
+
+<Note>
+`calls` defaults to an empty array. When you omit calls the relay only ensures the smart wallet is deployed, increments the nonce, and returns the RelayHub transaction hash.
+</Note>
+
+<Note>
+If the proxy already exists and you send an empty `calls` array, the service does not post a new RelayHub transaction and responds with `txHash = 0x000…000` while still reporting the configured confirmation target.
+</Note>
+
+## Request body
+
+### Root fields
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `owner` | string | Yes | Polygon/EVM address that matches the authenticated API key. |
+| `calls` | array&lt;object&gt; | No | Ordered list of proxy invocations. Defaults to `[]`. |
+| `nonce` | string | Yes | Decimal RelayHub nonce for `owner`. Fetch with `RelayHub.getNonce(owner)`. |
+| `signature` | string | Yes | EIP-191 signature covering the payload defined in **Signature requirements**. |
+| `approvalData` | string | No | Hex blob forwarded to `acceptRelayedCall`. Use `0x` when unused. |
+
+### Call entries (`calls[]`)
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `type` | string | Yes | `"CALL"` for a standard call or `"DELEGATE_CALL"` to preserve storage context (`1` and `2` respectively on-chain). |
+| `to` | string | Yes | Target contract address. |
+| `value` | string | No | Decimal string amount of wei to forward. Defaults to `"0"`. |
+| `data` | string | No | Lowercase 0x-prefixed calldata. Defaults to `0x`. |
+
+`value` and `data` must be strictly formatted strings—no scientific notation or uppercase hex. The router executes calls sequentially and stops if any revert, surfacing the RelayHub error.
+
+## Execution behavior
+
+- Wallet deployment happens automatically the first time you call the endpoint (or when you send an empty `calls` array).
+- Gas price, gas limit, and transaction fee inputs are ignored; the backend enforces the environment-configured values present in the signature payload.
+- The response returns the RelayHub transaction hash (`txHash`) plus confirmation depth once available.
+- If the target contract reverts, the router still posts the RelayHub tx but responds with `400 {"error":"relay call reverted"}` along with the revert reason in the logs.
+
+## Signature requirements
+
+1. Obtain the latest `nonce = RelayHub.getNonce(owner)` before constructing the payload.
+2. Encode the relayed call following OpenZeppelin GSN v1:  
+   `keccak256(abi.encodePacked("rlx:", owner, proxyFactory, encodedFunction, transactionFee, gasPrice, gasLimit, nonce, relayHub, relayAddress))`.
+3. Ensure `transactionFee`, `gasPrice`, and `gasLimit` match the configured backend values. Mismatches cause `WrongSignature`/`WrongNonce` errors that bubble up as `400` responses.
+4. Sign the hash with `toEthSignedMessageHash()` (EIP-191) using the same key referenced by the `KUEST_ADDRESS` header.
+
+## Responses and errors
+
+| Status | Body | Description |
+| --- | --- | --- |
+| `200` | `{"txHash": "...","confirmations": 1}` | RelayHub accepted the call and the transaction hash is returned. `confirmations` increments as replays are queried. |
+| `400` | `{"error":"owner_address_mismatch"}` | `owner` differs from the authenticated address. |
+| `400` | `{"error":"invalid_field ... "}` | Malformed address/hex/value, negative numbers, or schema violations. |
+| `400` | `{"error":"relay call reverted"}` | Proxy execution reverted inside the recipient contract. |
+| `400`/`503` | `{"error":"wallet_service_disabled"}` | Wallet service missing or disabled in the environment. |
+| `502` | `{"error":"wallet_transport_error: ..."}` | RPC/RelayHub transport failure before execution. |
+
+`txHash` always references the RelayHub transaction—use your own wallet logs or explorer traces if you need the proxy wallet address or emitted events from downstream contracts.

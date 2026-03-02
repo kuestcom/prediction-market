@@ -1,0 +1,153 @@
+---
+title: 'User channel'
+description: 'Authenticated stream for order and trade updates tied to your API key.'
+asyncapi: '/api-reference/websocket-asyncapi.yaml user'
+---
+
+
+Authenticated channel for updates related to user activity (orders and trades) scoped to your API key.
+
+## Authentication
+
+<Tip>Only the `user` channel requires authentication.</Tip>
+
+Provide the same L2 credentials used for private REST requests.
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `apikey` | Yes | UUID v4 API key returned by `POST /auth/api-key`. |
+| `secret` | Yes | Base64-encoded secret associated with the API key. |
+| `passphrase` | Yes | Hex passphrase used to unwrap the secret client-side. |
+
+Need new credentials? See [Authentication overview](/platform/auth/authentication-overview) and [Create API key](/platform/auth/create-api-key).
+
+**Subscribe**
+
+`<wss-channel> user`
+
+
+## Trade message
+
+Emitted when:
+
+- A market order is matched (`MATCHED`).
+- A limit order for the user is included in a trade (`MATCHED`).
+- Subsequent status changes occur (`MINED`, `CONFIRMED`, `FAILED`).
+
+### Structure
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `asset_id` | string | Asset ID (token ID) of the order. |
+| `event_type` | string | `trade`. |
+| `id` | string | Trade ID. |
+| `last_update` | string | Time of last update to the trade. |
+| `maker_orders` | MakerOrder[] | Array of maker order details. |
+| `market` | string | Market identifier (condition ID). |
+| `matchtime` | string | Time the trade was matched. |
+| `outcome` | string | Outcome (empty for now). |
+| `owner` | string | API key of the event owner. |
+| `price` | string | Price. |
+| `side` | string | `BUY` or `SELL`. |
+| `size` | string | Size. |
+| `status` | string | `MATCHED`, `MINED`, `CONFIRMED`, or `FAILED` (planned: `RETRYING`). |
+| `taker_order_id` | string | ID of the taker order. |
+| `timestamp` | string | Time of the event. |
+| `trade_owner` | string | API key of the trade owner. |
+| `type` | string | `TRADE`. |
+
+Where a `MakerOrder` object is of the form:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `asset_id` | string | Asset ID of the maker order. |
+| `matched_amount` | string | Amount of the maker order matched in the trade. |
+| `order_id` | string | Maker order ID. |
+| `outcome` | string | Outcome (empty for now). |
+| `owner` | string | Owner of the maker order. |
+| `price` | string | Price of the maker order. |
+
+```json
+{
+  "asset_id": "52114319501245915516055106046884209969926127482827954674443846427813813222426",
+  "event_type": "trade",
+  "id": "28c4d2eb-bbea-40e7-a9f0-b2fdb56b2c2e",
+  "last_update": "1713470000",
+  "maker_orders": [
+    {
+      "asset_id": "52114319501245915516055106046884209969926127482827954674443846427813813222426",
+      "matched_amount": "10",
+      "order_id": "01HVD3B4M2H61WFFYB7G9B9GQZ",
+      "outcome": "",
+      "owner": "<maker_owner>",
+      "price": "0.57"
+    }
+  ],
+  "market": "0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af",
+  "matchtime": "1713470000",
+  "outcome": "",
+  "owner": "<api_key>",
+  "price": "0.57",
+  "side": "BUY",
+  "size": "10",
+  "status": "MATCHED",
+  "taker_order_id": "01HVD3BQXT1QZ3J5P1S2QJ7XQ9",
+  "timestamp": "1713470000",
+  "trade_owner": "<api_key>",
+  "type": "TRADE"
+}
+```
+
+## Order message
+
+Emitted when:
+
+- An order is placed (`PLACEMENT`).
+- An order is updated (partially matched) (`UPDATE`).
+- An order is canceled (`CANCELLATION`).
+
+### Structure
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `asset_id` | string | Asset ID (token ID) of the order. |
+| `associate_trades` | string[] or null | Trade IDs referencing fills that include this order. |
+| `event_type` | string | `order`. |
+| `id` | string | Order ID. |
+| `market` | string | Condition ID of the market. |
+| `order_owner` | string | Owner of the order. |
+| `original_size` | string | Original order size. |
+| `outcome` | string | Outcome (empty for now). |
+| `owner` | string | Owner of the order. |
+| `price` | string | Price of the order. |
+| `side` | string | `BUY` or `SELL`. |
+| `size_matched` | string | Size of the order that has been matched. |
+| `timestamp` | string | Time of the event. |
+| `type` | string | `PLACEMENT`, `UPDATE`, or `CANCELLATION`. |
+
+```json
+{
+  "asset_id": "52114319501245915516055106046884209969926127482827954674443846427813813222426",
+  "associate_trades": null,
+  "event_type": "order",
+  "id": "01HVD3B4M2H61WFFYB7G9B9GQZ",
+  "market": "0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af",
+  "order_owner": "<api_key>",
+  "original_size": "10",
+  "outcome": "",
+  "owner": "<api_key>",
+  "price": "0.57",
+  "side": "SELL",
+  "size_matched": "0",
+  "timestamp": "1713470000",
+  "type": "PLACEMENT"
+}
+```
+
+### Notes
+
+- All numeric values are strings.
+- `owner`, `trade_owner`, and `order_owner` are rewritten to the caller API key.
+- `outcome` fields are currently empty.
+- `CONFIRMED` is emitted after the on-chain transaction reaches `TX_CONFIRMATIONS` (same instant as `MINED` in the current flow).
+- Trade status `RETRYING` is planned (TBD).

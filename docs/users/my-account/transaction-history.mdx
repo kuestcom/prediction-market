@@ -3,13 +3,12 @@ title: Transaction History
 description: Orders, trades, deposits, withdrawals — and CSV export
 icon: Clock
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
-
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## Tabs
@@ -25,20 +24,17 @@ import { Steps, Step } from 'fumadocs-ui/components/steps'
 Download your account history for records or taxes:
 
 <Steps>
-  <Step>
-    ### Choose a tab or date range
+  <Step title="Choose a tab or date range">
 
     Filter by tab (Orders, Trades, Deposits, Withdrawals) and, if needed,
     adjust the date range to limit the export.
   </Step>
-  <Step>
-    ### Click Export CSV
+  <Step title="Click Export CSV">
 
-    {process.env.NEXT_PUBLIC_SITE_NAME} generates a CSV containing the rows you
+    {ENV.NEXT_PUBLIC_SITE_NAME} generates a CSV containing the rows you
     currently see in the table.
   </Step>
-  <Step>
-    ### Save securely
+  <Step title="Save securely">
 
     Download and store the file safely for bookkeeping, taxes, or compliance
     reviews.

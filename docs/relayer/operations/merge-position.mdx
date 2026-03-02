@@ -1,0 +1,28 @@
+---
+title: 'Relayer merge position'
+openapi: 'POST /operations/merge-position'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Trigger `mergePositions` so the relayer converts outcome tokens back into collateral on your behalf. Use this once you no longer need the split exposure or after outcomes converge.
+
+<Info>
+Use <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/operations/merge-position</code> with the same L2 authentication headers. The relayer broadcasts the signed Safe transaction; execution happens from the Safe proxy.
+</Info>
+
+## Request body
+
+`merge-position` accepts the same payload as [`POST /submit`](/relayer/core/post-submit). Use:
+
+- `type`: `SAFE`
+- `proxyWallet`: Safe address executing the call
+- `to`: Conditional Tokens contract address
+- `data`: ABI-encoded `mergePositions(...)` calldata
+
+All other fields (`from`, `nonce`, `signature`, `signatureParams`, `value`, `metadata`) follow the `/submit` schema.
+
+## Notes
+
+- The Safe must hold the outcome tokens being merged.
+- The `nonce` must match `GET /nonce` with `type=SAFE`; mismatches return `409`.
+- Expect `400` responses when the supplied calldata is malformed or incompatible with the on-chain state.

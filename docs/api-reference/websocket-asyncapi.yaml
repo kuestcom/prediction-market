@@ -1,0 +1,512 @@
+asyncapi: 3.0.0
+info:
+  title: CLOB WebSocket API
+  version: 1.0.0
+  description: WebSocket gateway for market and user updates.
+defaultContentType: application/json
+servers:
+  production:
+    host: ws-subscriptions-clob.kuest.com
+    protocol: wss
+    description: Production WebSocket server.
+channels:
+  market:
+    address: /ws/market
+    description: Public market data channel.
+    messages:
+      MarketSubscribe:
+        $ref: '#/components/messages/MarketSubscribe'
+      MarketUnsubscribe:
+        $ref: '#/components/messages/Unsubscribe'
+      Ping:
+        $ref: '#/components/messages/Ping'
+      Pong:
+        $ref: '#/components/messages/Pong'
+      BookEvent:
+        $ref: '#/components/messages/BookEvent'
+      PriceChangeEvent:
+        $ref: '#/components/messages/PriceChangeEvent'
+      TickSizeChangeEvent:
+        $ref: '#/components/messages/TickSizeChangeEvent'
+      LastTradePriceEvent:
+        $ref: '#/components/messages/LastTradePriceEvent'
+      BestBidAskEvent:
+        $ref: '#/components/messages/BestBidAskEvent'
+      NewMarketEvent:
+        $ref: '#/components/messages/NewMarketEvent'
+  user:
+    address: /ws/user
+    description: Authenticated user channel.
+    messages:
+      UserSubscribe:
+        $ref: '#/components/messages/UserSubscribe'
+      UserUnsubscribe:
+        $ref: '#/components/messages/Unsubscribe'
+      Ping:
+        $ref: '#/components/messages/Ping'
+      Pong:
+        $ref: '#/components/messages/Pong'
+      OrderEvent:
+        $ref: '#/components/messages/OrderEvent'
+      TradeEvent:
+        $ref: '#/components/messages/TradeEvent'
+operations:
+  marketSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/market'
+    messages:
+      - $ref: '#/channels/market/messages/MarketSubscribe'
+  marketUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/market'
+    messages:
+      - $ref: '#/channels/market/messages/MarketUnsubscribe'
+  marketPing:
+    action: receive
+    channel:
+      $ref: '#/channels/market'
+    messages:
+      - $ref: '#/channels/market/messages/Ping'
+  marketEvents:
+    action: send
+    channel:
+      $ref: '#/channels/market'
+    messages:
+      - $ref: '#/channels/market/messages/BookEvent'
+      - $ref: '#/channels/market/messages/PriceChangeEvent'
+      - $ref: '#/channels/market/messages/TickSizeChangeEvent'
+      - $ref: '#/channels/market/messages/LastTradePriceEvent'
+      - $ref: '#/channels/market/messages/BestBidAskEvent'
+      - $ref: '#/channels/market/messages/NewMarketEvent'
+      - $ref: '#/channels/market/messages/Pong'
+  userSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/user'
+    messages:
+      - $ref: '#/channels/user/messages/UserSubscribe'
+  userUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/user'
+    messages:
+      - $ref: '#/channels/user/messages/UserUnsubscribe'
+  userPing:
+    action: receive
+    channel:
+      $ref: '#/channels/user'
+    messages:
+      - $ref: '#/channels/user/messages/Ping'
+  userEvents:
+    action: send
+    channel:
+      $ref: '#/channels/user'
+    messages:
+      - $ref: '#/channels/user/messages/OrderEvent'
+      - $ref: '#/channels/user/messages/TradeEvent'
+      - $ref: '#/channels/user/messages/Pong'
+components:
+  messages:
+    MarketSubscribe:
+      name: MarketSubscribe
+      title: Market subscribe
+      summary: Subscribe to market events for specific token IDs.
+      payload:
+        $ref: '#/components/schemas/MarketSubscribe'
+    UserSubscribe:
+      name: UserSubscribe
+      title: User subscribe
+      summary: Subscribe to user events for specific markets.
+      payload:
+        $ref: '#/components/schemas/UserSubscribe'
+    Unsubscribe:
+      name: Unsubscribe
+      title: Unsubscribe
+      summary: Remove subscriptions for assets or markets.
+      payload:
+        $ref: '#/components/schemas/Unsubscribe'
+    Ping:
+      name: Ping
+      title: Ping
+      summary: Client keepalive ping (raw text).
+      payload:
+        $ref: '#/components/schemas/Ping'
+    Pong:
+      name: Pong
+      title: Pong
+      summary: Server response to ping (always PONG).
+      payload:
+        $ref: '#/components/schemas/Pong'
+    BookEvent:
+      name: BookEvent
+      title: Order book snapshot
+      payload:
+        $ref: '#/components/schemas/BookEvent'
+    PriceChangeEvent:
+      name: PriceChangeEvent
+      title: Price change
+      payload:
+        $ref: '#/components/schemas/PriceChangeEvent'
+    TickSizeChangeEvent:
+      name: TickSizeChangeEvent
+      title: Tick size change
+      payload:
+        $ref: '#/components/schemas/TickSizeChangeEvent'
+    LastTradePriceEvent:
+      name: LastTradePriceEvent
+      title: Last trade price
+      payload:
+        $ref: '#/components/schemas/LastTradePriceEvent'
+    BestBidAskEvent:
+      name: BestBidAskEvent
+      title: Best bid and ask
+      payload:
+        $ref: '#/components/schemas/BestBidAskEvent'
+    NewMarketEvent:
+      name: NewMarketEvent
+      title: New market
+      payload:
+        $ref: '#/components/schemas/NewMarketEvent'
+    OrderEvent:
+      name: OrderEvent
+      title: Order update
+      payload:
+        $ref: '#/components/schemas/OrderEvent'
+    TradeEvent:
+      name: TradeEvent
+      title: Trade update
+      payload:
+        $ref: '#/components/schemas/TradeEvent'
+  schemas:
+    Auth:
+      type: object
+      required:
+        - apikey
+        - secret
+        - passphrase
+      properties:
+        apikey:
+          type: string
+          description: UUID v4 API key.
+        secret:
+          type: string
+          description: Base64-encoded secret.
+        passphrase:
+          type: string
+          description: Hex passphrase.
+    MarketSubscribe:
+      type: object
+      required:
+        - type
+        - assets_ids
+      properties:
+        type:
+          type: string
+          enum: [market]
+        assets_ids:
+          type: array
+          items:
+            type: string
+        custom_feature_enabled:
+          type: boolean
+          description: Enables additional market data such as best_bid_ask.
+    UserSubscribe:
+      type: object
+      required:
+        - type
+        - markets
+        - auth
+      properties:
+        type:
+          type: string
+          enum: [user]
+        markets:
+          type: array
+          items:
+            type: string
+        auth:
+          $ref: '#/components/schemas/Auth'
+    Unsubscribe:
+      type: object
+      required:
+        - operation
+      properties:
+        operation:
+          type: string
+          enum: [unsubscribe]
+        assets_ids:
+          type: array
+          items:
+            type: string
+        markets:
+          type: array
+          items:
+            type: string
+      anyOf:
+        - required: [assets_ids]
+        - required: [markets]
+    Ping:
+      type: string
+      pattern: '^[Pp][Ii][Nn][Gg]$'
+      example: ping
+    Pong:
+      type: string
+      enum: [PONG]
+    OrderSummary:
+      type: object
+      properties:
+        price:
+          type: string
+        size:
+          type: string
+    BookEvent:
+      type: object
+      properties:
+        event_type:
+          type: string
+          enum: [book]
+        asset_id:
+          type: string
+        market:
+          type: string
+        bids:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderSummary'
+        asks:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderSummary'
+        timestamp:
+          type: string
+        hash:
+          type: string
+    PriceChange:
+      type: object
+      properties:
+        asset_id:
+          type: string
+        price:
+          type: string
+        size:
+          type: string
+        side:
+          type: string
+          enum: [BUY, SELL]
+        hash:
+          type: string
+        best_bid:
+          type: string
+        best_ask:
+          type: string
+    PriceChangeEvent:
+      type: object
+      properties:
+        event_type:
+          type: string
+          enum: [price_change]
+        market:
+          type: string
+        price_changes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceChange'
+        timestamp:
+          type: string
+    TickSizeChangeEvent:
+      type: object
+      properties:
+        event_type:
+          type: string
+          enum: [tick_size_change]
+        asset_id:
+          type: string
+        market:
+          type: string
+        old_tick_size:
+          type: string
+        new_tick_size:
+          type: string
+        side:
+          type: string
+        timestamp:
+          type: string
+    LastTradePriceEvent:
+      type: object
+      properties:
+        event_type:
+          type: string
+          enum: [last_trade_price]
+        asset_id:
+          type: string
+        market:
+          type: string
+        price:
+          type: string
+        side:
+          type: string
+          enum: [BUY, SELL]
+        size:
+          type: string
+        fee_rate_bps:
+          type: string
+        timestamp:
+          type: string
+    BestBidAskEvent:
+      type: object
+      properties:
+        event_type:
+          type: string
+          enum: [best_bid_ask]
+        market:
+          type: string
+        asset_id:
+          type: string
+        best_bid:
+          type: string
+        best_ask:
+          type: string
+        spread:
+          type: string
+        timestamp:
+          type: string
+    EventMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        ticker:
+          type: string
+        slug:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+    NewMarketEvent:
+      type: object
+      properties:
+        event_type:
+          type: string
+          enum: [new_market]
+        id:
+          type: string
+          description: Condition ID of the market.
+        question:
+          type: string
+        market:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        assets_ids:
+          type: array
+          items:
+            type: string
+        outcomes:
+          type: array
+          items:
+            type: string
+        event_message:
+          $ref: '#/components/schemas/EventMessage'
+        timestamp:
+          type: string
+    OrderEvent:
+      type: object
+      properties:
+        event_type:
+          type: string
+          enum: [order]
+        asset_id:
+          type: string
+        associate_trades:
+          oneOf:
+            - type: array
+              items:
+                type: string
+            - type: 'null'
+        id:
+          type: string
+        market:
+          type: string
+        order_owner:
+          type: string
+        original_size:
+          type: string
+        outcome:
+          type: string
+        owner:
+          type: string
+        price:
+          type: string
+        side:
+          type: string
+          enum: [BUY, SELL]
+        size_matched:
+          type: string
+        timestamp:
+          type: string
+        type:
+          type: string
+          enum: [PLACEMENT, UPDATE, CANCELLATION]
+    MakerOrder:
+      type: object
+      properties:
+        asset_id:
+          type: string
+        matched_amount:
+          type: string
+        order_id:
+          type: string
+        outcome:
+          type: string
+        owner:
+          type: string
+        price:
+          type: string
+    TradeEvent:
+      type: object
+      properties:
+        event_type:
+          type: string
+          enum: [trade]
+        asset_id:
+          type: string
+        id:
+          type: string
+        last_update:
+          type: string
+        maker_orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/MakerOrder'
+        market:
+          type: string
+        matchtime:
+          type: string
+        outcome:
+          type: string
+        owner:
+          type: string
+        price:
+          type: string
+        side:
+          type: string
+          enum: [BUY, SELL]
+        size:
+          type: string
+        status:
+          type: string
+          enum: [MATCHED, MINED, CONFIRMED, FAILED]
+        taker_order_id:
+          type: string
+        timestamp:
+          type: string
+        trade_owner:
+          type: string
+        type:
+          type: string
+          enum: [TRADE]

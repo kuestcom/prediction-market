@@ -1,0 +1,30 @@
+---
+title: 'Conditional Token Framework'
+description: 'Primer on the Conditional Token Framework (CTF) contracts used on Polygon Amoy.'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+# Conditional Token Framework overview
+
+The Conditional Token Framework (CTF) defines how {ENV.NEXT_PUBLIC_SITE_NAME} splits USDC into binary outcome tokens, merges them back into collateral, and finally redeems the winning side once an event is resolved. We run the exact same contracts that power production markets, but every example here targets **Polygon Amoy** so you can test settlement flows without spending mainnet funds.
+
+<Info>
+CTF contracts are ERC-1155 compatible. Every outcome token is deterministically derived from `(collateral, conditionId, indexSet)` so builders can re-create balances locally and never lose sync with the on-chain state.
+</Info>
+
+## Core components
+
+- **ConditionalTokens** — ERC-1155 implementation that mints/burns outcome positions.
+- **Position IDs** — Keccak hash over the collateral and collection IDs; used anywhere balances need to be tracked or signed.
+- **Fixed Product Market Maker (FPMM)** — Facilitates trading of outcome tokens while keeping the invariant `x * y = k` per market pair.
+- **Resolution oracle** — Publishes the winning outcome so the ConditionalTokens contract can release collateral.
+
+## Lifecycle at a glance
+
+<Steps>
+  <Step>Collateral is **split** into two outcome tokens via `splitPosition`.</Step>
+  <Step>Liquidity providers deposit tokens into markets or place orders on the CLOB.</Step>
+  <Step>Once an event resolves, positions are **merged** back into collateral or **redeemed** for the winning payout.</Step>
+</Steps>
+
+Throughout these docs you will find Amoy-specific examples for splitting, merging, redeeming, and deploying helper contracts so you can run dry runs that closely resemble production.

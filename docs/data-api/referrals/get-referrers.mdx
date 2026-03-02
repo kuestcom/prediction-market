@@ -1,0 +1,20 @@
+---
+title: 'Get referrer fee totals'
+openapi: 'GET /referrers'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+<code>GET {ENV.DATA_URL ?? 'https://data-api.kuest.com'}/referrers</code> returns aggregated fee totals (in USDC base units at fee charge time) for an address you treat as a referrer. Results are grouped by `exchange`, ordered by `updatedAt` (desc).
+
+## Filters and pagination
+
+- `address` is required and should be the receiver wallet.
+- `exchange` scopes to a single CTFExchange/NegRisk address (lowercased).
+- `tokenId` is optional. If provided, totals include only that token’s fees (converted to USDC at charge time). If omitted, totals aggregate all tokens and the response `tokenId` is `0`.
+- `limit` defaults to 100 (max 500); `offset` defaults to 0.
+
+## Amount semantics
+
+- `totalAmount` is returned as raw USDC base units at fee charge time; divide by 1e6 for UI display.
+- `totalVolume` is returned as raw USDC base units for executed trades that generated fees; divide by 1e6 for UI display.
+- Empty results return `[]`.

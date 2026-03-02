@@ -1,0 +1,20 @@
+---
+title: 'Validate readonly API key'
+openapi: 'GET /auth/validate-readonly-api-key'
+---
+
+
+Validate whether a readonly API key is active for a given address. This endpoint is public and does not require authentication headers.
+
+## Query parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `address` | string | Yes | Wallet address associated with the readonly key. |
+| `key` | string | Yes | Readonly API key to validate. |
+
+## Response fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `valid` | boolean | Whether the readonly key is valid for the address. |

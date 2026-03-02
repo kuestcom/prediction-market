@@ -1,0 +1,13 @@
+---
+title: 'Get open interest'
+openapi: 'GET /oi'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+<Note>
+🟡 Totals mirror the cached {ENV.NEXT_PUBLIC_SITE_NAME} balances, so extremely new markets may take a sync or two to appear.
+</Note>
+
+Call <code>{ENV.DATA_URL ?? 'https://data-api.kuest.com'}/oi</code> to retrieve the notional value locked in each market. Without filters the endpoint returns every cached market; include a `market` CSV query to narrow the scope.
+
+This route is ideal for surfacing liquidity indicators alongside price feeds or for alerting systems that watch for sudden drops in interest.

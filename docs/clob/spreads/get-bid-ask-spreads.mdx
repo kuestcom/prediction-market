@@ -1,0 +1,9 @@
+---
+title: 'Get bid-ask spreads'
+openapi: 'POST /spreads'
+---
+
+
+Fetch the current bid-ask spread for one or more tokens by sending their CLOB `token_id`s.
+
+The response is a map where each key is the requested `token_id` and the value is the spread (best ask minus best bid).

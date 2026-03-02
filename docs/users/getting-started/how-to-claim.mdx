@@ -3,38 +3,36 @@ title: Claim
 description: Claim your rewards once a market is resolved.
 icon: BadgeCheck
 ---
-
-import { Steps, Step } from 'fumadocs-ui/components/steps'
+export const ENV = globalThis.process?.env ?? {}
 
 ## Claim workflow
 
-<Callout type="info" title="Before you start">
+<Info>
+  **Before you start**
   Ensure your wallet holds a little extra MATIC for gas so the claim transaction can
   complete without delays.
-</Callout>
+</Info>
 
 <Steps>
-  <Step>
-    ### Confirm the market resolution
+  <Step title="Confirm the market resolution">
 
-    On {process.env.NEXT_PUBLIC_SITE_NAME}, open the market page and verify the
+    On {ENV.NEXT_PUBLIC_SITE_NAME}, open the market page and verify the
     outcome you backed shows the resolved badge.
   </Step>
-  <Step>
-    ### Queue a claim transaction
+  <Step title="Queue a claim transaction">
 
     Click <code>Claim</code> on the winning outcome. The interface previews your
     expected payout and fees before you sign in your wallet.
   </Step>
-  <Step>
-    ### Sign and wait for confirmation
+  <Step title="Sign and wait for confirmation">
 
     Approve the transaction in the connected wallet. Once the network confirms,
     the winnings land in your available balance automatically.
   </Step>
 </Steps>
 
-<Callout type="success" title="Need more help?">
+<Check>
+  **Need more help?**
   Explore the Resolution &amp; Settlement section for dispute steps and edge-case
   guidance if your claim requires additional review.
-</Callout>
+</Check>

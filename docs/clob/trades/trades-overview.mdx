@@ -1,0 +1,27 @@
+---
+title: 'Trades overview'
+description: 'How to retrieve fills executed against your orders.'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+# Trades overview
+
+Use the trades endpoints to audit fills that executed against your {ENV.NEXT_PUBLIC_SITE_NAME} orders. Every response is scoped to the authenticated L2 account, so you only see trades where your wallet or API key participated.
+
+## Authentication
+
+All trade queries require the L2 headers:
+
+- `KUEST_ADDRESS`
+- `KUEST_SIGNATURE`
+- `KUEST_TIMESTAMP`
+- `KUEST_API_KEY`
+- `KUEST_PASSPHRASE`
+
+Refer to the [Authentication overview](/platform/auth/authentication-overview) for minting credentials.
+
+## Available endpoints
+
+- [`GET /data/trades`](/clob/trades/get-trades) — filter and page through trades where your account acted as maker or taker.
+
+Future revisions will add aggregate views and on-chain settlement metadata as those signals become available in the API.

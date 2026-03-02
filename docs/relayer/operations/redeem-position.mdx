@@ -1,0 +1,29 @@
+---
+title: 'Relayer redeem position'
+openapi: 'POST /operations/redeem-position'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Redeem resolved outcome tokens for collateral by having the relayer call `redeemPositions`. This is typically the final step once a market has been settled on-chain.
+
+<Info>
+POST to <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/operations/redeem-position</code> with the usual L2 headers. You will receive the relayer-broadcast hash and confirmations for the Safe execution.
+</Info>
+
+## Request body
+
+`redeem-position` accepts the same payload as [`POST /submit`](/relayer/core/post-submit). Use:
+
+- `type`: `SAFE`
+- `proxyWallet`: Safe address executing the call
+- `to`: Conditional Tokens contract address
+- `data`: ABI-encoded `redeemPositions(...)` calldata
+
+All other fields (`from`, `nonce`, `signature`, `signatureParams`, `value`, `metadata`) follow the `/submit` schema.
+
+## Notes
+
+- Ensure the outcomes have resolved; otherwise the Safe transaction will revert.
+- The `nonce` must match `GET /nonce` with `type=SAFE`; mismatches return `409`.
+- Collateral is paid out to the Safe (`proxyWallet`) that executed the call.
+- Validation failures (bad hex, missing fields) return `400`. Execution issues surface as `502` with the RPC error appended to `error`.

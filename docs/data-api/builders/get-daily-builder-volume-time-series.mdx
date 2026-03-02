@@ -1,0 +1,13 @@
+---
+title: 'Get daily builder volume time-series'
+openapi: 'GET /v1/builders/volume'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+<Note>
+🔴 Daily builder volumes are placeholders until the attribution ETL is wired into production.
+</Note>
+
+<code>GET {ENV.DATA_URL ?? 'https://data-api.kuest.com'}/v1/builders/volume</code> spits out a day-by-day record for each builder, including the ISO timestamp (`dt`), volume, active user count, rank, and verification badge data.
+
+Pick the time horizon with `timePeriod` (same values as the leaderboard endpoint). The route does not paginate because each day is a separate array entry, so scroll or aggregate as needed on the client.

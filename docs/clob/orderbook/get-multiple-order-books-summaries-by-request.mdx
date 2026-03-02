@@ -1,0 +1,60 @@
+---
+title: 'Get multiple order books summaries by request'
+openapi: 'POST /books'
+---
+
+
+Submit a batch of `token_id`s to retrieve their latest order book snapshots in a single call.
+
+<Details title="View example request">
+
+```bash
+curl -X POST "${CLOB_URL:-https://clob.kuest.com}/books" \
+  -H 'Content-Type: application/json' \
+  -d '[{"token_id":"66991175107696133528353695394151645462081911990365106169948013117379189357520","side":"BUY"},{"token_id":"106199154714545451005463800266480893448383896699905306895283360115694583822185","side":"SELL"}]'
+```
+
+</Details>
+
+<Details title="View example response">
+
+```json
+[
+  {
+    "market": "0x386a6833f7f758e22588159c614939047ff2d8e24810e8cf5e946ebc2bdaf82c",
+    "asset_id": "66991175107696133528353695394151645462081911990365106169948013117379189357520",
+    "timestamp": "1762177835497",
+    "hash": "c3bbc748d4ca1009aa2968e40c64570d2d9bce718d52348c3017c290fb69faf6",
+    "bids": [],
+    "asks": [
+      {"price": "0.45", "size": "5"},
+      {"price": "0.5", "size": "5"},
+      {"price": "0.55", "size": "5"},
+      {"price": "0.6", "size": "5"},
+      {"price": "0.65", "size": "5"}
+    ],
+    "min_order_size": "0.001",
+    "tick_size": "0.0001",
+    "neg_risk": false
+  },
+  {
+    "market": "0x386a6833f7f758e22588159c614939047ff2d8e24810e8cf5e946ebc2bdaf82c",
+    "asset_id": "106199154714545451005463800266480893448383896699905306895283360115694583822185",
+    "timestamp": "1762177835497",
+    "hash": "aad9015f4c0aa3ddb2c1ad865a06966e64934e8405bc73c8a8a189343d49fa00",
+    "bids": [],
+    "asks": [
+      {"price": "0.9894", "size": "1821.760525"},
+      {"price": "0.99", "size": "2547"}
+    ],
+    "min_order_size": "0.001",
+    "tick_size": "0.0001",
+    "neg_risk": false
+  }
+]
+```
+
+</Details>
+
+The `timestamp` is a Unix millisecond timestamp indicating when the snapshot was taken.
+Only the first few bid and ask levels are shown in this excerpt; the live response can include many more.

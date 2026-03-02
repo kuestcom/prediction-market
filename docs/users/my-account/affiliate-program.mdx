@@ -3,13 +3,12 @@ title: Affiliate Program
 description: Earn a share of trading fees when people trade through your link
 icon: Link
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-
-
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? Reach out on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a> and the team will walk you through the affiliate tools.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? Reach out on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a> and the team will walk you through the affiliate tools.
+</Note>
 )}
 
 ## Share your referral link

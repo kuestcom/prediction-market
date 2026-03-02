@@ -3,39 +3,38 @@ title: FAQ
 description: Frequently asked questions about the platform
 icon: HelpCircle
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
-
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
-<Accordions type="single" collapsible>
-  <Accordion title="What fees do I pay when I trade?" value="fees">
+<AccordionGroup>
+  <Accordion title="What fees do I pay when I trade?">
     Each trade includes a <strong>1% protocol fee</strong> plus the platform’s
     trading fee (currently 1%). Part of the platform fee can be shared with
     affiliates, and the exact amount appears before you confirm any order.
   </Accordion>
-  <Accordion title="How do I claim my winnings?" value="claim">
+  <Accordion title="How do I claim my winnings?">
     Visit <strong>My Account → Portfolio</strong> and press the
     <strong>Claim</strong> button next to markets that resolved in your favor.
     Payouts hit your balance right away.
   </Accordion>
-  <Accordion title="How long do deposits take?" value="deposit">
+  <Accordion title="How long do deposits take?">
     Crypto deposits usually confirm within minutes, depending on network
     congestion. Fiat on-ramps can take several hours or up to two business days
     based on your provider.
   </Accordion>
-  <Accordion title="What if I disagree with a market resolution?" value="dispute">
+  <Accordion title="What if I disagree with a market resolution?">
     Use the <strong>Dispute</strong> button on the market page during the listed
     dispute window. You’ll stake a small fee and must supply verifiable
     evidence; valid disputes receive the stake back.
   </Accordion>
-  <Accordion title="Are there withdrawal limits?" value="withdraw">
+  <Accordion title="Are there withdrawal limits?">
     Crypto withdrawals are generally unlimited. Fiat withdrawals may have
     provider-specific limits, and all requests are processed as quickly as
     possible.
   </Accordion>
-</Accordions>
+</AccordionGroup>

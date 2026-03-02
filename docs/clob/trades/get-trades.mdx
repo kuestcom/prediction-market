@@ -1,0 +1,70 @@
+---
+title: 'List trades'
+openapi: 'GET /data/trades'
+---
+
+
+Fetch trades where your authenticated account participated as the taker or as one of the matched makers.
+
+<Info>
+Provide the L2 headers (`KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, `KUEST_PASSPHRASE`). The endpoint only returns fills linked to that credential set.
+</Info>
+
+## Query parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `id` | string | No | Trade ULID (case-insensitive). Returns at most one entry. |
+| `taker` | string | No | Filter by taker wallet address. |
+| `maker` | string | No | Filter by maker wallet address. |
+| `market` | string | No | ConditionID (market identifier). |
+| `before` | string | No | Unix timestamp (seconds); include trades strictly before this instant. |
+| `after` | string | No | Unix timestamp (seconds); include trades strictly after this instant. |
+| `next_cursor` | string | No | Base64-encoded offset for pagination (`MA==` to start, `LTE=` when exhausted). |
+
+Filters can be combined. Omitted parameters are ignored, and empty strings are treated as if the filter were not supplied.
+
+## Response fields
+
+The endpoint returns a paginated object with `data`, `next_cursor`, `limit`, and `count`. Each entry inside `data` contains:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | string | Trade ULID. |
+| `taker_order_id` | string | ULID for the market order that initiated the trade. |
+| `market` | string | Condition (market) ULID. |
+| `asset_id` | string | Token ID tied to the taker order. |
+| `side` | string | `buy` or `sell`, from the taker’s perspective. |
+| `size` | string | Executed quantity (decimal string). |
+| `fee_rate_bps` | string | Taker fee rate in basis points. |
+| `price` | string | Executed price (decimal string between 0 and 1). |
+| `status` | string | Currently always `CONFIRMED`. |
+| `match_time` | string | ISO-8601 timestamp for when the trade matched. |
+| `last_update` | string | ISO-8601 timestamp of the latest status update (same as `match_time` for now). |
+| `outcome` | string | Placeholder outcome label; currently empty. |
+| `maker_address` | string | Wallet that funded the taker order. |
+| `owner` | string | API key owner for the taker order (falls back to the taker wallet). |
+| `transaction_hash` | string\|null | Not populated yet; reserved for on-chain settlement hashes. |
+| `bucket_index` | integer | Always `0` until bucketed settlements are exposed. |
+| `maker_orders` | array | Maker orders that filled the trade. |
+| `type` | string | `TAKER` if your account submitted the market order, otherwise `MAKER`. |
+
+### `maker_orders` entries
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `order_id` | string | Maker order ULID. |
+| `maker_address` | string | Maker wallet address. |
+| `owner` | string | API key owner for the maker order (falls back to the maker wallet). |
+| `matched_amount` | string | Quantity filled from the maker order (decimal string). |
+| `fee_rate_bps` | string | Maker fee rate in basis points. |
+| `price` | string | Maker order price. |
+| `asset_id` | string | Token ID associated with the maker order. |
+| `outcome` | string | Placeholder outcome label; currently empty. |
+| `side` | string | Maker order side (`buy` or `sell`). |
+
+## Known gaps
+
+- `status` is fixed to `CONFIRMED` until lifecycle updates propagate through the API.
+- `transaction_hash`, `bucket_index`, and `outcome` are placeholder fields for future on-chain and bucketed settlement support.
+- Each trade currently exposes a single maker fill; multi-fill buckets will surface once the API publishes them.

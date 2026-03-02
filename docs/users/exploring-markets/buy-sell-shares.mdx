@@ -3,13 +3,12 @@ title: Buy & Sell Shares
 description: How to trade on the platform
 icon: ShoppingCart
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
-
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## Buying Shares
@@ -17,20 +16,17 @@ import { Steps, Step } from 'fumadocs-ui/components/steps'
 When you buy shares of an outcome, you are betting that the event will resolve **true**.
 
 <Steps>
-  <Step>
-    ### Select an outcome
+  <Step title="Select an outcome">
 
     Open the market and pick <strong>Yes</strong>, <strong>No</strong>, or any
     other available outcome you want to back.
   </Step>
-  <Step>
-    ### Choose order type
+  <Step title="Choose order type">
 
     Submit a <strong>Market</strong> order to fill immediately, or a
     <strong>Limit</strong> order to specify your price and wait for a match.
   </Step>
-  <Step>
-    ### Confirm purchase
+  <Step title="Confirm purchase">
 
     Enter the USDC amount you want to invest, review the fee and expected
     payout, then confirm. Your shares appear in your <strong>Portfolio</strong>

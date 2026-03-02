@@ -1,0 +1,9 @@
+---
+title: 'Get total markets traded'
+openapi: 'GET /traded'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Use <code>{ENV.DATA_URL ?? 'https://data-api.kuest.com'}/traded</code> when you only need a scalar representing how many distinct markets a wallet has touched. The response echoes the `user` plus a `traded` integer.
+
+Because the endpoint is cheap, it works well for profile badges (“traded in N markets”) or gating features such as leaderboards.

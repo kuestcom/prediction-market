@@ -1,0 +1,9 @@
+---
+title: 'Get total volume'
+openapi: 'GET /volume'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Use <code>{ENV.DATA_URL ?? 'https://data-api.kuest.com'}/volume</code> when you need the total notional volume for a wallet. The response echoes the `user` and a string `volume` so you can format the value without losing precision.
+
+The total matches the user activity ledger and includes trades plus non-trade events such as splits, merges, redemptions, conversions, deposits, and withdrawals.

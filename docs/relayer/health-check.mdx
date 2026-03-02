@@ -1,0 +1,15 @@
+---
+title: 'Relayer Health Check'
+openapi: 'GET /'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Ping the {ENV.NEXT_PUBLIC_SITE_NAME} relayer cluster to verify connectivity before attempting wallet or transaction submissions.
+
+<Info>
+The relayer health probe lives at <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/</code>. It is a public endpoint and replies with the literal body <code>OK</code> when the service is healthy.
+</Info>
+
+<Tip>
+All relayer endpoints reuse the same L2 API headers minted via <a href="https://auth.kuest.com" target="_blank" rel="noreferrer">auth.kuest.com</a>. If you need a refresher on generating credentials, see the [`Authentication overview`](/platform/auth/authentication-overview).
+</Tip>

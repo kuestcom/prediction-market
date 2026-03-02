@@ -1,0 +1,1819 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CLOB API",
+    "description": "Endpoints for interacting with central limit order book (CLOB) pricing and spread data.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://clob.kuest.com"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Admin",
+      "description": "Internal administrative tools."
+    }
+  ],
+  "paths": {
+    "/admin/users/{user_id}/ban": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Ban user",
+        "description": "Bans a user account, optionally cascading to related entities when requested.",
+        "operationId": "banUser",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "description": "Internal identifier of the user to ban.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "user_01HZY0WYH9Y9SAFQ2E4GZ8MNQ4"
+          },
+          {
+            "name": "cascade",
+            "in": "query",
+            "required": false,
+            "description": "When true, bans all accounts linked to the user (by referrer_id).",
+            "schema": {
+              "type": "boolean"
+            },
+            "example": true
+          },
+          {
+            "name": "KUEST_ADDRESS",
+            "in": "header",
+            "required": true,
+            "description": "Wallet address associated with the admin API credentials.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa"
+          },
+          {
+            "name": "KUEST_SIGNATURE",
+            "in": "header",
+            "required": true,
+            "description": "EIP-712 signature authorizing the L2 request.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x74268d0f64f343ef82b997ef3f0a4ba70554384853d7fd87bdeef3ae0f4c3f431c"
+          },
+          {
+            "name": "KUEST_TIMESTAMP",
+            "in": "header",
+            "required": true,
+            "description": "Unix timestamp (seconds) matching the signed payload.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1767225805"
+          },
+          {
+            "name": "KUEST_API_KEY",
+            "in": "header",
+            "required": true,
+            "description": "API key identifier issued via L2 credential flow.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "5f0c1f74-0c0e-4dc4-9d3f-5b0c8c2f6c62"
+          },
+          {
+            "name": "KUEST_PASSPHRASE",
+            "in": "header",
+            "required": true,
+            "description": "64-character passphrase used with the API key.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "8f2b1c0d8a6e4f7b9c2d1e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Ban accepted; no content returned."
+          },
+          "400": {
+            "description": "Malformed cascade query parameter (must be a boolean).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "invalid parameter"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid L2 authentication headers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks admin privileges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "admin_only"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No user found for the provided identifier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "resource not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "internal server error"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List users",
+        "description": "Returns admin-visible user records with wallet details and API key metadata.",
+        "operationId": "adminListUsers",
+        "parameters": [
+          {
+            "name": "wallet",
+            "in": "query",
+            "required": false,
+            "description": "Filter by wallet address (case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "description": "Filter to the user owning the supplied API key UUID.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "description": "Filter by user role (`fork`, `client`, or `admin`).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Filter by user status (`active`, `inactive`, or `banned`).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Zero-based page index used with `limit`.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size between 1 and 1000 (defaults to 1000).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "example": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching users and their API keys.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminUserSummary"
+                  }
+                },
+                "example": [
+                  {
+                    "user_id": "01J92TQ98XMJ7KABHQ9X1Z1C7N",
+                    "wallet": "0x5F0a0C7bF5E40C26504f71679a72E68d93F5F1E2",
+                    "status": "active",
+                    "role": "client",
+                    "referrer_id": "01J7W3F4P5XAWQ7P1P3M7E5J9N",
+                    "created_at": "2024-08-17T14:22:19.384271Z",
+                    "keys": [
+                      {
+                        "key": "e0a07e1f-9c6b-46af-bcc9-2a0cfe94c6f8",
+                        "status": "active",
+                        "chain_id": 80002,
+                        "nonce": "42",
+                        "created_at": "2024-08-17T14:22:19.389512Z",
+                        "revoked_at": null,
+                        "last_used_at": "2024-09-10T10:05:11.203147Z"
+                      },
+                      {
+                        "key": "1a5c9109-e6d3-4e2e-8bd0-8e2787d9f791",
+                        "status": "revoked",
+                        "chain_id": 137,
+                        "nonce": "314159265358979323846",
+                        "created_at": "2024-07-02T09:11:37.124508Z",
+                        "revoked_at": "2024-08-01T18:47:55.003219Z",
+                        "last_used_at": "2024-07-28T21:42:10.551007Z"
+                      }
+                    ]
+                  },
+                  {
+                    "user_id": "01J92VR8G2NWT1J1XEZR1ZC4C5",
+                    "wallet": "0xb1C31B669B1F2f7807282C3d4C7793eF5612e067",
+                    "status": "active",
+                    "role": "client",
+                    "referrer_id": null,
+                    "created_at": "2024-08-16T20:11:03.901273Z",
+                    "keys": [
+                      {
+                        "key": "7f8f9b60-5714-4385-9ad4-4ff0fbf7f411",
+                        "status": "active",
+                        "chain_id": 80002,
+                        "nonce": "7",
+                        "created_at": "2024-08-16T20:11:03.907812Z",
+                        "revoked_at": null,
+                        "last_used_at": "2024-09-09T08:33:27.004512Z"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameter (for example, non-UUID `key`, invalid `page`, or out-of-range `limit`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "invalid_limit"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid L2 authentication headers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks admin privileges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "admin_only"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/conditions/{condition_id}/pause": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Pause condition",
+        "description": "Pauses a condition so new orders stop being accepted.",
+        "operationId": "admin_conditions_condition_id_pause",
+        "parameters": [
+          {
+            "name": "condition_id",
+            "in": "path",
+            "required": true,
+            "description": "Identifier of the condition to target.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x9febb3d92e347a0990353d363df23878"
+          },
+          {
+            "name": "KUEST_ADDRESS",
+            "in": "header",
+            "required": true,
+            "description": "Wallet address associated with the admin API credentials.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa"
+          },
+          {
+            "name": "KUEST_SIGNATURE",
+            "in": "header",
+            "required": true,
+            "description": "EIP-712 signature authorizing the L2 request.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x74268d0f64f343ef82b997ef3f0a4ba70554384853d7fd87bdeef3ae0f4c3f431c"
+          },
+          {
+            "name": "KUEST_TIMESTAMP",
+            "in": "header",
+            "required": true,
+            "description": "Unix timestamp (seconds) matching the signed payload.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1767225805"
+          },
+          {
+            "name": "KUEST_API_KEY",
+            "in": "header",
+            "required": true,
+            "description": "API key identifier issued via L2 credential flow.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "5f0c1f74-0c0e-4dc4-9d3f-5b0c8c2f6c62"
+          },
+          {
+            "name": "KUEST_PASSPHRASE",
+            "in": "header",
+            "required": true,
+            "description": "64-character passphrase used with the API key.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "8f2b1c0d8a6e4f7b9c2d1e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Condition paused successfully."
+          },
+          "401": {
+            "description": "Missing or invalid L2 authentication headers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks admin privileges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "admin_only"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/conditions/{condition_id}/resume": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Resume condition",
+        "description": "Resumes a condition so new orders are accepted again.",
+        "operationId": "admin_conditions_condition_id_resume",
+        "parameters": [
+          {
+            "name": "condition_id",
+            "in": "path",
+            "required": true,
+            "description": "Identifier of the condition to target.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x9febb3d92e347a0990353d363df23878"
+          },
+          {
+            "name": "KUEST_ADDRESS",
+            "in": "header",
+            "required": true,
+            "description": "Wallet address associated with the admin API credentials.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa"
+          },
+          {
+            "name": "KUEST_SIGNATURE",
+            "in": "header",
+            "required": true,
+            "description": "EIP-712 signature authorizing the L2 request.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x74268d0f64f343ef82b997ef3f0a4ba70554384853d7fd87bdeef3ae0f4c3f431c"
+          },
+          {
+            "name": "KUEST_TIMESTAMP",
+            "in": "header",
+            "required": true,
+            "description": "Unix timestamp (seconds) matching the signed payload.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1767225805"
+          },
+          {
+            "name": "KUEST_API_KEY",
+            "in": "header",
+            "required": true,
+            "description": "API key identifier issued via L2 credential flow.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "5f0c1f74-0c0e-4dc4-9d3f-5b0c8c2f6c62"
+          },
+          {
+            "name": "KUEST_PASSPHRASE",
+            "in": "header",
+            "required": true,
+            "description": "64-character passphrase used with the API key.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "8f2b1c0d8a6e4f7b9c2d1e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Condition resumed successfully."
+          },
+          "401": {
+            "description": "Missing or invalid L2 authentication headers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks admin privileges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "admin_only"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/conditions/{condition_id}/clear": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Clear condition",
+        "description": "Clears resting orders for a paused condition, marking them as cancelled or partially filled.",
+        "operationId": "admin_conditions_condition_id_clear",
+        "parameters": [
+          {
+            "name": "condition_id",
+            "in": "path",
+            "required": true,
+            "description": "Identifier of the condition to target.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x9febb3d92e347a0990353d363df23878"
+          },
+          {
+            "name": "KUEST_ADDRESS",
+            "in": "header",
+            "required": true,
+            "description": "Wallet address associated with the admin API credentials.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa"
+          },
+          {
+            "name": "KUEST_SIGNATURE",
+            "in": "header",
+            "required": true,
+            "description": "EIP-712 signature authorizing the L2 request.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x74268d0f64f343ef82b997ef3f0a4ba70554384853d7fd87bdeef3ae0f4c3f431c"
+          },
+          {
+            "name": "KUEST_TIMESTAMP",
+            "in": "header",
+            "required": true,
+            "description": "Unix timestamp (seconds) matching the signed payload.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1767225805"
+          },
+          {
+            "name": "KUEST_API_KEY",
+            "in": "header",
+            "required": true,
+            "description": "API key identifier issued via L2 credential flow.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "5f0c1f74-0c0e-4dc4-9d3f-5b0c8c2f6c62"
+          },
+          {
+            "name": "KUEST_PASSPHRASE",
+            "in": "header",
+            "required": true,
+            "description": "64-character passphrase used with the API key.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "8f2b1c0d8a6e4f7b9c2d1e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Clearing completed; open orders marked cancelled and partial fills retained."
+          },
+          "401": {
+            "description": "Missing or invalid L2 authentication headers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks admin privileges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "admin_only"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "404": {
+            "description": "Condition not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "condition not found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Condition is not paused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "condition_not_paused"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/conditions": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List conditions",
+        "description": "Lists conditions with aggregate statistics for admin review.",
+        "operationId": "adminListConditions",
+        "parameters": [
+          {
+            "name": "KUEST_ADDRESS",
+            "in": "header",
+            "required": true,
+            "description": "Wallet address associated with the admin API credentials.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa"
+          },
+          {
+            "name": "KUEST_SIGNATURE",
+            "in": "header",
+            "required": true,
+            "description": "EIP-712 signature authorizing the L2 request.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x74268d0f64f343ef82b997ef3f0a4ba70554384853d7fd87bdeef3ae0f4c3f431c"
+          },
+          {
+            "name": "KUEST_TIMESTAMP",
+            "in": "header",
+            "required": true,
+            "description": "Unix timestamp (seconds) matching the signed payload.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1767225805"
+          },
+          {
+            "name": "KUEST_API_KEY",
+            "in": "header",
+            "required": true,
+            "description": "API key identifier issued via L2 credential flow.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "5f0c1f74-0c0e-4dc4-9d3f-5b0c8c2f6c62"
+          },
+          {
+            "name": "KUEST_PASSPHRASE",
+            "in": "header",
+            "required": true,
+            "description": "64-character passphrase used with the API key.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "8f2b1c0d8a6e4f7b9c2d1e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminConditionListRequest"
+              },
+              "example": {
+                "condition_ids": [
+                  "0x9febb3d92e347a0990353d363df23878"
+                ],
+                "token_ids": [
+                  "0x34b62d0ca7bf5d069a0f3c8ec7d8f9a1"
+                ],
+                "status": "paused",
+                "page": 0,
+                "limit": 2
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Condition summaries for the requested page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminConditionListResponse"
+                },
+                "example": {
+                  "page": 0,
+                  "limit": 2,
+                  "items": [
+                    {
+                      "condition_id": "0x9febb3d92e347a0990353d363df23878",
+                      "status": "paused",
+                      "expires_at": null,
+                      "token_ids": [
+                        "0x34b62d0ca7bf5d069a0f3c8ec7d8f9a1",
+                        "0x98e77b2c1d4f56a7890ab1234cde5678"
+                      ],
+                      "open_orders": 147,
+                      "filled_orders": 3,
+                      "trade_count": 28,
+                      "total_buy_maker_amount": "4825000000",
+                      "total_buy_taker_amount": "2391000000",
+                      "total_sell_maker_amount": "3684000000",
+                      "total_sell_taker_amount": "6130000000"
+                    },
+                    {
+                      "condition_id": "0x4c2f3d618b2947df8407c02a8fae214b",
+                      "status": "active",
+                      "expires_at": 1767228800,
+                      "token_ids": [
+                        "0x12ab34cd56ef78ab90cd12ef34ab56cd"
+                      ],
+                      "open_orders": 52,
+                      "filled_orders": 11,
+                      "trade_count": 9,
+                      "total_buy_maker_amount": "1825000000",
+                      "total_buy_taker_amount": "1210000000",
+                      "total_sell_maker_amount": "925000000",
+                      "total_sell_taker_amount": "1730000000"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request payload (for example, `invalid_limit` or `invalid_page`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "invalid_limit"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid L2 authentication headers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks admin privileges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "admin_only"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/system/pause": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Pause system",
+        "description": "Activates the global circuit breaker, preventing new orders.",
+        "operationId": "adminSystemPause",
+        "parameters": [
+          {
+            "name": "KUEST_ADDRESS",
+            "in": "header",
+            "required": true,
+            "description": "Wallet address associated with the admin API credentials.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa"
+          },
+          {
+            "name": "KUEST_SIGNATURE",
+            "in": "header",
+            "required": true,
+            "description": "EIP-712 signature authorizing the L2 request.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x74268d0f64f343ef82b997ef3f0a4ba70554384853d7fd87bdeef3ae0f4c3f431c"
+          },
+          {
+            "name": "KUEST_TIMESTAMP",
+            "in": "header",
+            "required": true,
+            "description": "Unix timestamp (seconds) matching the signed payload.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1767225805"
+          },
+          {
+            "name": "KUEST_API_KEY",
+            "in": "header",
+            "required": true,
+            "description": "API key identifier issued via L2 credential flow.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "5f0c1f74-0c0e-4dc4-9d3f-5b0c8c2f6c62"
+          },
+          {
+            "name": "KUEST_PASSPHRASE",
+            "in": "header",
+            "required": true,
+            "description": "64-character passphrase used with the API key.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "8f2b1c0d8a6e4f7b9c2d1e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemPauseRequest"
+              },
+              "example": {
+                "reason": "Planned maintenance window"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "System pause recorded; no content returned."
+          },
+          "401": {
+            "description": "Missing or invalid L2 authentication headers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks admin privileges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "admin_only"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/system/resume": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Resume system",
+        "description": "Turns off the global circuit breaker, allowing new orders.",
+        "operationId": "adminSystemResume",
+        "parameters": [
+          {
+            "name": "KUEST_ADDRESS",
+            "in": "header",
+            "required": true,
+            "description": "Wallet address associated with the admin API credentials.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa"
+          },
+          {
+            "name": "KUEST_SIGNATURE",
+            "in": "header",
+            "required": true,
+            "description": "EIP-712 signature authorizing the L2 request.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x74268d0f64f343ef82b997ef3f0a4ba70554384853d7fd87bdeef3ae0f4c3f431c"
+          },
+          {
+            "name": "KUEST_TIMESTAMP",
+            "in": "header",
+            "required": true,
+            "description": "Unix timestamp (seconds) matching the signed payload.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1767225805"
+          },
+          {
+            "name": "KUEST_API_KEY",
+            "in": "header",
+            "required": true,
+            "description": "API key identifier issued via L2 credential flow.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "5f0c1f74-0c0e-4dc4-9d3f-5b0c8c2f6c62"
+          },
+          {
+            "name": "KUEST_PASSPHRASE",
+            "in": "header",
+            "required": true,
+            "description": "64-character passphrase used with the API key.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "8f2b1c0d8a6e4f7b9c2d1e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "System resumed; no content returned."
+          },
+          "401": {
+            "description": "Missing or invalid L2 authentication headers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks admin privileges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "admin_only"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/system/status": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get system status",
+        "description": "Returns the current state of the global circuit breaker.",
+        "operationId": "adminSystemStatus",
+        "parameters": [
+          {
+            "name": "KUEST_ADDRESS",
+            "in": "header",
+            "required": true,
+            "description": "Wallet address associated with the admin credentials.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x7e6E0dC2a42A7236bF8A8E3F582F9F7a23d94e7A"
+          },
+          {
+            "name": "KUEST_SIGNATURE",
+            "in": "header",
+            "required": true,
+            "description": "EIP-712 signature authorizing the request.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "8gqLlA1XaUwRfA8TZ0SfCo6OrVTBcuksWzvXf0QFYvU="
+          },
+          {
+            "name": "KUEST_TIMESTAMP",
+            "in": "header",
+            "required": true,
+            "description": "Unix timestamp (seconds) matching the signed payload.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1730767012"
+          },
+          {
+            "name": "KUEST_API_KEY",
+            "in": "header",
+            "required": true,
+            "description": "API key identifier issued via L2 credential flow.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0b57c8a1-8e87-4a34-9836-4a1a6d3a17c4"
+          },
+          {
+            "name": "KUEST_PASSPHRASE",
+            "in": "header",
+            "required": true,
+            "description": "64-character passphrase paired with the API key.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "8f6e5d3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2918171615141312"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current system pause status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStatus"
+                },
+                "examples": {
+                  "active": {
+                    "summary": "System operational",
+                    "value": {
+                      "paused": false,
+                      "reason": null,
+                      "updated_at": "2025-11-04T13:23:10.977Z"
+                    }
+                  },
+                  "paused": {
+                    "summary": "System paused with reason",
+                    "value": {
+                      "paused": true,
+                      "reason": "scheduled maintenance window",
+                      "updated_at": "2025-11-04T14:05:22.431Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid L2 authentication headers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks admin privileges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorPayload"
+                },
+                "example": {
+                  "error": "admin_only"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/last-trade-price": {
+      "get": {
+        "tags": [
+          "Pricing"
+        ],
+        "summary": "Get last trade price",
+        "operationId": "getLastTradePrice",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "query",
+            "required": true,
+            "description": "Token identifier to inspect.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Most recent trade price for the token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LastTradePriceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/midpoints": {
+      "post": {
+        "tags": [
+          "Pricing"
+        ],
+        "summary": "Get midpoints for many tokens",
+        "operationId": "postMidpoints",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MidpointRequest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Midpoint prices per token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MidpointsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/spread": {
+      "get": {
+        "tags": [
+          "Pricing"
+        ],
+        "summary": "Get the bid/ask spread",
+        "operationId": "getSpread",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "query",
+            "required": true,
+            "description": "Token identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Spread between best ask and best bid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpreadResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/order-scoring": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Check if an order is scoring (L2)",
+        "operationId": "isOrderScoring",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "order_id",
+            "in": "query",
+            "required": true,
+            "description": "Order identifier to check.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whether the order is scoring.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderScoringResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/orders-scoring": {
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Check if orders are scoring (L2)",
+        "operationId": "areOrdersScoring",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scoring status for each order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrdersScoringResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminKeySummary": {
+        "type": "object",
+        "required": [
+          "key",
+          "status",
+          "chain_id",
+          "nonce",
+          "created_at"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "format": "uuid",
+            "description": "API key identifier."
+          },
+          "status": {
+            "type": "string",
+            "description": "API key status (active or revoked)."
+          },
+          "chain_id": {
+            "type": "integer",
+            "description": "EVM chain ID associated with the key."
+          },
+          "nonce": {
+            "type": "string",
+            "description": "Current nonce value for signature replay protection."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the key was created."
+          },
+          "revoked_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Timestamp when the key was revoked, if applicable."
+          },
+          "last_used_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Most recent usage timestamp for the key."
+          }
+        }
+      },
+      "AdminUserSummary": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "wallet",
+          "status",
+          "role",
+          "created_at",
+          "keys"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Internal identifier of the user."
+          },
+          "wallet": {
+            "type": "string",
+            "description": "Primary wallet address for the user."
+          },
+          "status": {
+            "type": "string",
+            "description": "User status (`active`, `inactive`, or `banned`)."
+          },
+          "role": {
+            "type": "string",
+            "description": "Role assigned to the user (`fork`, `client`, or `admin`)."
+          },
+          "referrer_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "Upstream referrer user ID when present."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp for the user."
+          },
+          "keys": {
+            "type": "array",
+            "description": "API keys registered to the user (newest first).",
+            "items": {
+              "$ref": "#/components/schemas/AdminKeySummary"
+            }
+          }
+        }
+      },
+      "ErrorPayload": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message."
+          }
+        }
+      },
+      "AdminConditionListRequest": {
+        "type": "object",
+        "properties": {
+          "condition_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of condition IDs to include. Empty strings are ignored."
+          },
+          "token_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of token IDs to match against associated conditions."
+          },
+          "status": {
+            "type": "string",
+            "description": "Filter by condition status (e.g., `active`, `paused`)."
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Zero-based page index. Defaults to `0`."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "Page size between 1 and 1000. Defaults to `1000`."
+          }
+        }
+      },
+      "AdminConditionSummary": {
+        "type": "object",
+        "required": [
+          "condition_id",
+          "status",
+          "token_ids",
+          "open_orders",
+          "filled_orders",
+          "trade_count",
+          "total_buy_maker_amount",
+          "total_buy_taker_amount",
+          "total_sell_maker_amount",
+          "total_sell_taker_amount"
+        ],
+        "properties": {
+          "condition_id": {
+            "type": "string",
+            "description": "Condition identifier."
+          },
+          "status": {
+            "type": "string",
+            "description": "Current status (`active`, `paused`, etc.)."
+          },
+          "expires_at": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Expiration timestamp (seconds) when available."
+          },
+          "token_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tokens linked to this condition."
+          },
+          "open_orders": {
+            "type": "integer",
+            "description": "Number of open orders."
+          },
+          "filled_orders": {
+            "type": "integer",
+            "description": "Number of filled orders."
+          },
+          "trade_count": {
+            "type": "integer",
+            "description": "Total trades associated with the condition."
+          },
+          "total_buy_maker_amount": {
+            "type": "string",
+            "description": "Aggregate maker amount for buy orders (stringified integer)."
+          },
+          "total_buy_taker_amount": {
+            "type": "string",
+            "description": "Aggregate taker amount for buy orders (stringified integer)."
+          },
+          "total_sell_maker_amount": {
+            "type": "string",
+            "description": "Aggregate maker amount for sell orders (stringified integer)."
+          },
+          "total_sell_taker_amount": {
+            "type": "string",
+            "description": "Aggregate taker amount for sell orders (stringified integer)."
+          }
+        }
+      },
+      "AdminConditionListResponse": {
+        "type": "object",
+        "required": [
+          "page",
+          "limit",
+          "items"
+        ],
+        "properties": {
+          "page": {
+            "type": "integer",
+            "description": "Echo of the requested page index."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Echo of the requested limit."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminConditionSummary"
+            },
+            "description": "Condition summaries for the current page."
+          }
+        }
+      },
+      "SystemPauseRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Optional reason recorded with the system pause. Trimmed; empty strings ignored."
+          }
+        }
+      },
+      "SystemStatus": {
+        "type": "object",
+        "required": [
+          "paused",
+          "reason",
+          "updated_at"
+        ],
+        "properties": {
+          "paused": {
+            "type": "boolean",
+            "description": "Whether the global circuit breaker is enabled."
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional message recorded with the pause."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the status last changed (UTC)."
+          }
+        }
+      },
+      "ServerTimeResponse": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Unix timestamp in seconds."
+      },
+      "LastTradePriceResponse": {
+        "type": "object",
+        "required": [
+          "price",
+          "side"
+        ],
+        "properties": {
+          "price": {
+            "type": "string",
+            "description": "Last traded price formatted as a string."
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ],
+            "description": "Side of the most recent aggressor."
+          }
+        }
+      },
+      "MidpointRequest": {
+        "type": "object",
+        "required": [
+          "token_id"
+        ],
+        "properties": {
+          "token_id": {
+            "type": "string"
+          }
+        }
+      },
+      "MidpointsResponse": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        },
+        "description": "Midpoint price per token."
+      },
+      "SpreadResponse": {
+        "type": "object",
+        "required": [
+          "spread"
+        ],
+        "properties": {
+          "spread": {
+            "type": "string"
+          }
+        }
+      },
+      "OrderScoringResponse": {
+        "type": "object",
+        "required": [
+          "scoring"
+        ],
+        "properties": {
+          "scoring": {
+            "type": "boolean",
+            "description": "Whether the order is currently scoring."
+          }
+        }
+      },
+      "OrdersScoringResponse": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "boolean"
+        },
+        "description": "Map of order IDs to scoring status."
+      }
+    },
+    "parameters": {
+      "KuestAddress": {
+        "name": "KUEST_ADDRESS",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Wallet address associated with the L2 credentials."
+      },
+      "KuestApiKey": {
+        "name": "KUEST_API_KEY",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "API key identifier issued via L2 credential flow."
+      },
+      "KuestPassphrase": {
+        "name": "KUEST_PASSPHRASE",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "64-character passphrase used with the API key."
+      },
+      "KuestTimestamp": {
+        "name": "KUEST_TIMESTAMP",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Unix timestamp (seconds) matching the signed payload."
+      },
+      "KuestSignatureL2": {
+        "name": "KUEST_SIGNATURE",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "EIP-712 signature authorizing the L2 request."
+      }
+    },
+    "responses": {
+      "ErrorResponse": {
+        "description": "Standard error response payload.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorPayload"
+            },
+            "example": {
+              "error": "internal server error"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+---
+title: 'Get order'
+openapi: 'GET /data/order/{id}'
+---
+
+
+Retrieve the latest state for a previously submitted order. The response captures execution progress, timestamps, and any trades already linked to the order. Link back to [`POST /order`](/clob/orders/create-order) to see the payload that generates each ULID, and use [`DELETE /order`](/clob/orders/cancel-order) if you need to retire the order after inspection.
+
+## Response fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `associate_trades` | string[] | Trade identifiers linked to this order. Empty when no matches occurred. |
+| `id` | string | ULID assigned to the order. |
+| `status` | string | Lifecycle state: `live`, `matched`, `delayed`, or `unmatched`. |
+| `market` | string | Market identifier associated with the order. |
+| `original_size` | string | Size requested when the order was submitted. |
+| `outcome` | string | Market outcome identifier (market address + outcome index). |
+| `maker_address` | string | Address that funded the maker side. |
+| `owner` | string | API key owner recorded with the order when available. |
+| `price` | string | Limit price formatted with fixed precision. |
+| `side` | string | Either `BUY` or `SELL`. |
+| `size_matched` | string | Total quantity matched so far. |
+| `asset_id` | string | Token identifier for the traded outcome. |
+| `expiration` | string | Expiration timestamp in Unix seconds. |
+| `type` | string | Execution policy (`GTC`, `GTD`, `FAK`, `FOK`). |
+| `created_at` | string | ISO-8601 timestamp for when the order was inserted. |
+| `updated_at` | string | ISO-8601 timestamp for the most recent update (fill, cancel, etc.). |
+
+<Info>
+`status` reflects the latest lifecycle transition: `live` (resting), `matched` (filled immediately), `delayed` (awaiting deferred matching), or `unmatched` (marketable but ultimately unfilled after the delay window).
+</Info>

@@ -3,13 +3,12 @@ title: Claiming Winnings
 description: How to receive your payouts when markets resolve
 icon: Award
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
-
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## Claiming Your Rewards
@@ -17,20 +16,17 @@ import { Steps, Step } from 'fumadocs-ui/components/steps'
 Once a market resolves, holders of winning shares can claim their payout.
 
 <Steps>
-  <Step>
-    ### Go to Portfolio
+  <Step title="Go to Portfolio">
 
     Navigate to <strong>My Account → Portfolio</strong> and look for markets with
     a <strong>Claim</strong> button next to your winning position.
   </Step>
-  <Step>
-    ### Claim winnings
+  <Step title="Claim winnings">
 
     Click <strong>Claim</strong> to send the payout transaction. Your balance
     updates as soon as the transaction confirms on-chain.
   </Step>
-  <Step>
-    ### Withdraw or reuse
+  <Step title="Withdraw or reuse">
 
     Use the credited funds to enter new markets or withdraw to your connected
     wallet whenever you like.

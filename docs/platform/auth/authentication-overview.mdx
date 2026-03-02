@@ -1,0 +1,85 @@
+---
+title: 'Authentication overview'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+{ENV.NEXT_PUBLIC_SITE_NAME} uses a two-tier authentication flow modeled after common CLOB infrastructures. Every private request includes either an L1 wallet signature or an L2 API credential signature, depending on the action being performed.
+
+<Info>
+Prefer a UI? Visit <a href="https://auth.kuest.com" target="_blank" rel="noreferrer">auth.kuest.com</a> to connect your wallet, generate credentials, list existing keys, or revoke them without crafting requests manually.
+</Info>
+
+## L1 authentication (wallet signature)
+
+Creating or revoking API keys requires an EIP-712 signature produced by the Polygon wallet that owns the account.
+
+### Headers
+
+| Header | Description |
+| --- | --- |
+| `KUEST_ADDRESS` | Polygon address that owns the account. |
+| `KUEST_SIGNATURE` | EIP-712 signature over the auth payload. |
+| `KUEST_TIMESTAMP` | Unix timestamp (seconds) at signing time. |
+| `KUEST_NONCE` | Monotonic nonce bound to the signature. |
+
+### Typed data schema
+
+```json
+{
+  "domain": {
+    "name": "ClobAuthDomain",
+    "version": "1",
+    "chainId": 137
+  },
+  "types": {
+    "ClobAuth": [
+      {"name": "address", "type": "address"},
+      {"name": "timestamp", "type": "string"},
+      {"name": "nonce", "type": "uint256"},
+      {"name": "message", "type": "string"}
+    ]
+  },
+  "message": {
+    "address": "<signing address>",
+    "timestamp": "<unix timestamp>",
+    "nonce": "<uint256 nonce>",
+    "message": "This message attests that I control the given wallet"
+  }
+}
+```
+
+The signed payload is never stored; {ENV.NEXT_PUBLIC_SITE_NAME} validates it and discards the components after deriving credentials.
+
+## L2 authentication (API credentials)
+
+Once an API key is issued, subsequent private requests authenticate with L2 headers derived from the `secret` and `passphrase`.
+
+<Tip>
+Need an immediate credential? Jump to [`Create API key`](/platform/auth/create-api-key) for the raw request or use the <a href="https://auth.kuest.com" target="_blank" rel="noreferrer">auth.kuest.com console</a>.
+</Tip>
+
+### Headers
+
+| Header | Description |
+| --- | --- |
+| `KUEST_ADDRESS` | Polygon address that originally generated the key. |
+| `KUEST_SIGNATURE` | HMAC signature built from the API secret. |
+| `KUEST_TIMESTAMP` | Unix timestamp (seconds) for replay protection. |
+| `KUEST_API_KEY` | UUID v4 identifier returned by `POST /auth/api-key`. |
+| `KUEST_PASSPHRASE` | 64-character hex passphrase used to unwrap the secret client-side and included in every request. |
+
+### Storage guarantees
+
+- The API secret and passphrase are **never** persisted by {ENV.NEXT_PUBLIC_SITE_NAME}. They are generated deterministically from the wallet signature and returned once.
+- Because the passphrase travels with each request, use it to decrypt any local storage of the secret and treat both values as sensitive.
+- Revoking an API key invalidates the key/secret/passphrase trio immediately; list endpoints will omit revoked keys.
+
+## Which header to use?
+
+| Action | Required header |
+| --- | --- |
+| `POST /auth/api-key` | L1 |
+| `DELETE /auth/api-key` | L2 |
+| `GET /auth/api-keys` | L2 |
+| Order placement / cancellation | L2 |
+| Public market data endpoints | None |

@@ -1,0 +1,25 @@
+---
+title: 'Relayer set-approval operation'
+openapi: 'POST /operations/set-approval'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Instruct the relayer to toggle `setApprovalForAll` on the Conditional Tokens contract (or a custom address). This enables the operator to move outcome tokens before Safe deployments are available.
+
+<Info>
+Send requests to <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/operations/set-approval</code> with the usual L2 headers. The relayer signs on behalf of its custodial address and returns the broadcast transaction hash.
+</Info>
+
+## Request body
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `operator` | string | Yes | Address that should gain or lose `setApprovalForAll` privileges. |
+| `approved` | boolean | Yes | `true` to grant approvals, `false` to revoke. |
+| `contract` | string | No | ERC-1155 contract to target. Defaults to the Conditional Tokens address when omitted. |
+
+## Notes
+
+- When `contract` is omitted, the relayer uses the default Conditional Tokens deployment for the connected chain.
+- Approval toggles are idempotent; requesting `approved: true` twice yields the same response while keeping confirmations accurate.
+- Errors surface as `400` (validation) or `502` (RPC broadcast). Check the returned `error` field for troubleshooting details.

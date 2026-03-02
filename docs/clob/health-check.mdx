@@ -1,0 +1,11 @@
+---
+title: 'API Health Check'
+openapi: 'GET /'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+The {ENV.NEXT_PUBLIC_SITE_NAME} CLOB service exposes a lightweight health probe at the root of the API domain. Use it to verify connectivity.
+
+<Info>
+  The health check lives at <code>{ENV.CLOB_URL ?? 'https://clob.kuest.com'}/</code> and returns the plain text body <code>OK</code> with HTTP status 200 when the cluster is healthy.
+</Info>

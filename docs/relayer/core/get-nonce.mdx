@@ -1,0 +1,26 @@
+---
+title: 'Get relayer nonce'
+openapi: 'GET /nonce'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Retrieve the next nonce that the relayer expects for a Safe execution (`SAFE`) or Safe deployment (`SAFE-CREATE`). Fetching the nonce before building each payload keeps builders in sync with the server-side queue and prevents duplicate submissions.
+
+<Info>
+Invoke <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/nonce</code> with the standard L2 headers (`KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, `KUEST_PASSPHRASE`). The relayer enforces that the `address` query matches the authenticated account.
+</Info>
+
+## Query parameters
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| `address` | string | Yes | Safe or Safe owner address tied to your API key. |
+| `type` | string | Yes | Either `SAFE` for executions or `SAFE-CREATE` for deployments. |
+
+
+## Usage notes
+
+- The relayer keeps separate sequences per `type`. Always request the nonce for the operation you intend to send next.
+- Responses return decimal strings to avoid precision loss. Submit the same value verbatim inside `/submit` payloads.
+- Proxy transactions should use [`GET /relay-payload`](/relayer/core/get-relay-payload) instead of `/nonce`.
+- If the backend is re-syncing, you may receive a `409` error instructing you to retry once sync completes.

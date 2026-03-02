@@ -1,0 +1,27 @@
+---
+title: 'Cancel market orders'
+openapi: 'DELETE /cancel-market-orders'
+---
+
+
+Cancel all open orders for a specific market and/or asset.
+
+<Info>
+Cancellation requests require L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Info>
+
+At least one of `market` or `assetId` is required. The response always returns HTTP `200 OK`. Successful cancellations append the ULIDs to `canceled`. If any order cannot be cancelled, it appears in `not_canceled` with a short reason string.
+
+## Request fields
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `market` | string | No | Condition ID to cancel orders for. |
+| `assetId` | string | No | Token ID to cancel orders for. |
+
+## Response fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `canceled` | string[] | List of order ULIDs successfully cancelled. |
+| `not_canceled` | object | Map of order IDs that were not cancelled to the reason string. |

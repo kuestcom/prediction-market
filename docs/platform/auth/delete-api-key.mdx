@@ -1,0 +1,29 @@
+---
+title: 'Revoke API key'
+openapi: 'DELETE /auth/api-key'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Invalidate a {ENV.NEXT_PUBLIC_SITE_NAME} API key so it can no longer authenticate L2 requests.
+
+<Tip>
+This endpoint requires the <strong>L2 header</strong>. Provide `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Tip>
+
+## Required headers
+
+| Header | Description |
+| --- | --- |
+| `KUEST_ADDRESS` | Polygon address that owns the credentials. |
+| `KUEST_SIGNATURE` | HMAC signature generated with the API secret. |
+| `KUEST_TIMESTAMP` | Current Unix timestamp (seconds). |
+| `KUEST_API_KEY` | API key being revoked. |
+| `KUEST_PASSPHRASE` | Passphrase associated with the API key. |
+
+## Response fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `revoked` | boolean | Indicates whether the provided API key was successfully revoked. |
+
+After revoking, rerun [`GET /auth/api-keys`](/platform/auth/get-api-keys) to confirm it no longer appears. Need a fresh credential later? See [`POST /auth/api-key`](/platform/auth/create-api-key).

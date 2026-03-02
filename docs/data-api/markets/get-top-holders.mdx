@@ -1,0 +1,19 @@
+---
+title: 'Get top holders for markets'
+openapi: 'GET /holders'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+<Note>
+🟡 Holder rankings refresh every sync cycle. Expect a short delay between on-chain transfers and the leaderboard reflecting them.
+</Note>
+
+<code>{ENV.DATA_URL ?? 'https://data-api.kuest.com'}/holders</code> ranks wallets by token balance for the specified markets. Each entry bundles the token identifier plus an array of user records (proxy wallet, pseudonym, avatar, bio, balance, and outcome index).
+
+## Query parameters
+
+- `market` (required): CSV list of condition IDs. The API fetches top holders for each entry.
+- `limit`: Number of holders per market (max 500).
+- `minBalance`: Drop wallets below the provided token amount.
+
+Because the output is grouped, you can feed it directly into “top holders” sections without additional reshaping.

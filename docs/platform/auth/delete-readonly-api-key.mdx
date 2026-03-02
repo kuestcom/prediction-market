@@ -1,0 +1,23 @@
+---
+title: 'Delete readonly API key'
+openapi: 'DELETE /auth/readonly-api-key'
+---
+
+
+Revoke a readonly API key by identifier.
+
+<Tip>
+This endpoint requires the <strong>L2 header</strong>. Provide `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Tip>
+
+## Request body
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `key` | string | Yes | Readonly API key to revoke. |
+
+## Response fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `deleted` | boolean | Whether the key was revoked. |

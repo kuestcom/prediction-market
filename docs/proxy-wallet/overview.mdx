@@ -1,0 +1,32 @@
+---
+title: 'Proxy wallet overview'
+description: 'Understanding Safe proxies and legacy proxy factories on Polygon Amoy.'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+# Proxy wallet (Amoy)
+
+When a builder signs into {ENV.NEXT_PUBLIC_SITE_NAME} tooling for the first time, we deterministically deploy a 1-of-1 Safe proxy on **Polygon Amoy**. That contract becomes the canonical holder of the user’s ERC-1155 outcome tokens and USDC balances, letting us batch settlement steps and relay every transaction with predictable gas.
+
+Proxy wallets help us keep UX simple: multi-call bundles stay atomic, relayers can pay gas on behalf of users, and you can interact with your inventory programmatically through the Safe once it exists.
+
+## Core addresses
+
+| Contract | Amoy address | Status |
+| --- | --- | --- |
+| Safe Proxy factory | `0x0202c1c426C77cEE55979e4fB3496288fAba8413` | Default deployment path for every login provider; used whenever a user’s Safe needs to be created or upgraded. |
+| Proxy Factory | `0xc70A03a24424d934D7bd7E43de48e2Dafcc0Fe02` | Legacy factory kept for backward compatibility; currently not used by any Amoy workflow. |
+
+<Info>
+Every user still ends up with their own Safe proxy. The factory above emits deterministic deployments (CREATE2), so you can pre-compute wallet addresses from the owner EOA before actually submitting any transaction.
+</Info>
+
+## Programmatic control
+
+1. Retrieve the deterministic proxy address by hashing the owner, factory, and initializer. The relayer endpoints already expose helpers for this.
+2. Sign transactions locally using the Safe transaction hash rules. Keep the payload ready whether you plan to submit it yourself or via [`POST /core/post-submit`](/relayer/core/post-submit).
+3. Poll [`GET /core/get-transactions`](/relayer/core/get-transactions) for status updates whenever {ENV.NEXT_PUBLIC_SITE_NAME} broadcasts on your behalf.
+
+## Legacy proxy factory
+
+The custom {ENV.NEXT_PUBLIC_SITE_NAME} Proxy Factory remains deployed on Amoy so historical wallets can still be replayed, but **it is not part of any active login or onboarding path today**. Safe proxies fully cover both MetaMask-style EOAs and embedded wallets, which keeps the surface area smaller and simplifies audits. Keep the factory address handy only if you run archival tasks or migrate very old accounts.

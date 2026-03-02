@@ -1,0 +1,23 @@
+---
+title: 'Get relayer transaction'
+openapi: 'GET /transaction'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+Fetch a single relayer transaction by `transactionID`. This endpoint is handy when polling for status updates without downloading the whole history feed.
+
+<Info>
+Send the request to <code>{ENV.RELAYER_URL ?? 'https://relayer.kuest.com'}/transaction</code> and include the same L2 headers required by the other relayer endpoints. Only transactions owned by the authenticated address are returned.
+</Info>
+
+## Query parameters
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| `id` | string | Yes | ULID returned by `/submit` or `/transactions`. |
+
+## Notes
+
+- When no transaction matches the supplied `id`, you receive an empty array and HTTP 200.
+- `state` progresses through `STATE_ACCEPTED`, `STATE_BROADCAST`, and `STATE_MINED`; failed submissions reply with `STATE_REJECTED` alongside an error property.
+- The relayer enforces ownership; querying someone else’s transaction returns an empty list.

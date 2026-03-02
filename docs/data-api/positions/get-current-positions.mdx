@@ -1,0 +1,23 @@
+---
+title: 'Get current positions'
+openapi: 'GET /positions'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+<code>GET {ENV.DATA_URL ?? 'https://data-api.kuest.com'}/positions</code> returns every open claim held by a wallet, enriched with market metadata (titles, slugs, icons, and event slugs). The `user` query parameter is mandatory and must be an EVM address.
+
+## Key filters
+
+- Use `market` (CSV list of condition IDs) to scope down the response.
+- Apply `sizeThreshold` to strip dust balances. It defaults to `1` so you can raise it for dashboards that only care about sizable exposure.
+- Toggle `redeemable=true` or `mergeable=true` to surface lifecycle-specific positions.
+- Use the `title` substring filter when you need fuzzy search against human-readable market names.
+
+## Sorting and pagination
+
+`limit` (max 500) and `offset` (max 10,000) implement simple pagination. Additional knobs:
+
+- `sortBy`: choose between value-based fields (`CURRENT`, `TOKENS`, etc.) or descriptive ones like `TITLE` or `RESOLVING`.
+- `sortDirection`: ascending or descending ordering.
+
+The schema surfaces both unrealized (`cashPnl`, `percentPnl`) and realized metrics, plus hints such as `negativeRisk` to help front-ends flag advanced positions.

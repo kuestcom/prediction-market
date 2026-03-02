@@ -1,0 +1,1466 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Create Market API",
+    "version": "1.1.0",
+    "description": "Contract for create-market endpoints."
+  },
+  "servers": [
+    {
+      "url": "https://create-market.kuest.com",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Create Market"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "Create Market"
+        ],
+        "summary": "Health check",
+        "operationId": "getCreateMarketHealth",
+        "responses": {
+          "200": {
+            "description": "Worker health response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "OK"
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/market-config": {
+      "get": {
+        "tags": [
+          "Create Market"
+        ],
+        "summary": "Get runtime market config",
+        "operationId": "getMarketConfig",
+        "responses": {
+          "200": {
+            "description": "Runtime constants used by the admin create-market flow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketConfigResponse"
+                },
+                "example": {
+                  "defaultChainId": 80002,
+                  "supportedChainIds": [
+                    80002,
+                    137
+                  ],
+                  "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
+                  "umaAdapter": "0x08Ce1f626Ef319fAB728F8b4cE3D8875C2C9Ce66",
+                  "ctfExchange": "0xB5592f7CccA122558D2201e190826276f3a661cb",
+                  "negRiskOperator": "0x6538FC1837Ffb577f9f02355E2dBd73410E66D9",
+                  "negRiskCtfExchange": "0xef02d1Ea5B42432C4E99C2785d1a4020d2F2bB31",
+                  "negRiskUmaAdapter": "0xD6fa9B2bE6E345Ee357658Fd980d48f1bEF2D1B7",
+                  "rewardUsdc": "5",
+                  "proposalBondUsdc": "500",
+                  "livenessSeconds": 7200,
+                  "requiredCreatorFundingUsdc": "5.00",
+                  "executionMode": "eoa",
+                  "imagePolicy": {
+                    "maxUploadBytes": 2097152,
+                    "targetPx": 256,
+                    "targetMaxBytes": 102400
+                  },
+                  "chains": [
+                    {
+                      "chainId": 80002,
+                      "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
+                      "umaAdapter": "0x08Ce1f626Ef319fAB728F8b4cE3D8875C2C9Ce66",
+                      "ctfExchange": "0xB5592f7CccA122558D2201e190826276f3a661cb",
+                      "negRiskOperator": "0x6538FC1837Ffb577f9f02355E2dBd73410E66D9",
+                      "negRiskCtfExchange": "0xef02d1Ea5B42432C4E99C2785d1a4020d2F2bB31",
+                      "negRiskUmaAdapter": "0xD6fa9B2bE6E345Ee357658Fd980d48f1bEF2D1B7"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/prepare-auth": {
+      "post": {
+        "tags": [
+          "Create Market"
+        ],
+        "summary": "Create EIP-712 auth challenge",
+        "operationId": "postPrepareAuth",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareAuthRequest"
+              },
+              "example": {
+                "creator": "0x1111111111111111111111111111111111111111",
+                "chainId": 80002,
+                "payloadHash": "0x80f7bf1a2f8c6d6fc0b4537437d1c8f0f1d9ed9d622f5af7e253d45c0f8f2a31"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "EIP-712 challenge data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrepareAuthResponse"
+                },
+                "example": {
+                  "requestId": "8b583ebd-1f8f-46fa-b31b-06643f58d457",
+                  "nonce": "0x4f7f7ec0db1ebce7db6f0c8b9426fe2fd836682fef5f50013ad0dbb37412de11",
+                  "expiresAt": 1771292548580,
+                  "creator": "0x1111111111111111111111111111111111111111",
+                  "chainId": 80002,
+                  "payloadHash": "0x80f7bf1a2f8c6d6fc0b4537437d1c8f0f1d9ed9d622f5af7e253d45c0f8f2a31",
+                  "domain": {
+                    "name": "Create Market",
+                    "version": "1",
+                    "verifyingContract": "0x0000000000000000000000000000000000000000"
+                  },
+                  "primaryType": "CreateMarketAuth",
+                  "types": {
+                    "CreateMarketAuth": [
+                      {
+                        "name": "requestId",
+                        "type": "string"
+                      },
+                      {
+                        "name": "creator",
+                        "type": "address"
+                      },
+                      {
+                        "name": "payloadHash",
+                        "type": "bytes32"
+                      },
+                      {
+                        "name": "nonce",
+                        "type": "bytes32"
+                      },
+                      {
+                        "name": "expiresAt",
+                        "type": "uint256"
+                      },
+                      {
+                        "name": "chainId",
+                        "type": "uint256"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/prepare": {
+      "post": {
+        "tags": [
+          "Create Market"
+        ],
+        "summary": "Prepare market creation payload",
+        "description": "Validates fields, normalizes images, uploads to Irys, checks onchain initialization conflicts, and returns transaction calldata for EOA signature. In `multipart/form-data`, send `payload` and `auth` as JSON strings.",
+        "operationId": "postPrepareMarket",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareFormData"
+              },
+              "examples": {
+                "binary_market": {
+                  "summary": "Binary market",
+                  "value": {
+                    "payload": "{\"chainId\":80002,\"creator\":\"0x1111111111111111111111111111111111111111\",\"title\":\"Will BTC close above $110k on March 31, 2028?\",\"slug\":\"will-btc-close-above-110k-on-march-31-2028\",\"endDateIso\":\"2028-03-31T23:00:00Z\",\"mainCategorySlug\":\"crypto\",\"categories\":[{\"label\":\"Crypto\",\"slug\":\"crypto\"},{\"label\":\"Bitcoin\",\"slug\":\"bitcoin\"},{\"label\":\"Price Action\",\"slug\":\"price-action\"},{\"label\":\"March\",\"slug\":\"march\"},{\"label\":\"Macro\",\"slug\":\"macro\"}],\"marketMode\":\"binary\",\"binaryQuestion\":\"Will BTC close above $110k on March 31, 2028?\",\"binaryOutcomeYes\":\"Yes\",\"binaryOutcomeNo\":\"No\",\"resolutionSource\":\"https://www.reuters.com/\",\"resolutionRules\":\"Resolve YES if BTC/USD spot closes strictly above 110000.00 at 23:00:00 UTC on March 31, 2028 using the listed source and fallback source when unavailable.\"}",
+                    "auth": "{\"requestId\":\"8b583ebd-1f8f-46fa-b31b-06643f58d457\",\"nonce\":\"0x4f7f7ec0db1ebce7db6f0c8b9426fe2fd836682fef5f50013ad0dbb37412de11\",\"expiresAt\":1771292548580,\"payloadHash\":\"0x80f7bf1a2f8c6d6fc0b4537437d1c8f0f1d9ed9d622f5af7e253d45c0f8f2a31\",\"signature\":\"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                    "eventImage": "(binary)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prepared metadata references and transaction plan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrepareResponse"
+                },
+                "example": {
+                  "requestId": "8b583ebd-1f8f-46fa-b31b-06643f58d457",
+                  "chainId": 80002,
+                  "creator": "0x1111111111111111111111111111111111111111",
+                  "event": {
+                    "title": "Will BTC close above $110k on March 31, 2028?",
+                    "slug": "will-btc-close-above-110k-on-march-31-2028",
+                    "endDateIso": "2028-03-31T23:00:00.000Z",
+                    "mainCategory": "crypto",
+                    "categories": [
+                      "crypto",
+                      "bitcoin",
+                      "price-action",
+                      "march",
+                      "macro"
+                    ],
+                    "marketMode": "binary",
+                    "negRiskMarketId": null
+                  },
+                  "metadata": {
+                    "eventImageUri": "irys://5r0hmkzYcVP9Quy2f8VfQzLJ7mgoQ4Ur3D",
+                    "markets": [
+                      {
+                        "key": "binary",
+                        "slug": "will-btc-close-above-110k-on-march-31-2028",
+                        "question": "Will BTC close above $110k on March 31, 2028?",
+                        "shortName": null,
+                        "metadataTxId": "7N8t5fb6X9uP2zv4rYjYkJ8V8EuCthXtp",
+                        "metadataUri": "irys://7N8t5fb6X9uP2zv4rYjYkJ8V8EuCthXtp",
+                        "requestId": null,
+                        "questionId": "0x80f7bf1a2f8c6d6fc0b4537437d1c8f0f1d9ed9d622f5af7e253d45c0f8f2a31",
+                        "conditionId": "0x3ab356f9f2142d4c3ca4e442bcf952f3df9fbe74fcb696ca6c2575c9980f9f83",
+                        "optionImageUri": null
+                      }
+                    ]
+                  },
+                  "txPlan": [
+                    {
+                      "id": "approve-usdc",
+                      "to": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
+                      "value": "0",
+                      "data": "0x095ea7b300000000000000000000000008ce1f626ef319fab728f8b4ce3d8875c2c9ce6600000000000000000000000000000000000000000000000000000000004c4b40",
+                      "description": "Approve 5 USDC for UMA rewards"
+                    },
+                    {
+                      "id": "initialize-market-1",
+                      "to": "0x08Ce1f626Ef319fAB728F8b4cE3D8875C2C9Ce66",
+                      "value": "0",
+                      "data": "0x1f7a6ad6...",
+                      "description": "Initialize market \"Will BTC close above $110k on March 31, 2028?\"",
+                      "marketKey": "binary"
+                    }
+                  ],
+                  "checks": {
+                    "creatorMustMatchSender": true,
+                    "requiredCreatorFundingUsdc": "5.00",
+                    "estimatedTotalRewardUsdc": "5",
+                    "estimatedTotalRewardBase": "5000000"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                },
+                "example": {
+                  "error": {
+                    "code": "validation_error",
+                    "message": "At least 5 categories are required",
+                    "details": null
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Question already initialized onchain for the same creator/ancillary data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                },
+                "example": {
+                  "error": {
+                    "code": "already_initialized",
+                    "message": "One or more questions are already initialized onchain for this creator/ancillary combination",
+                    "details": {
+                      "duplicates": [
+                        {
+                          "key": "binary",
+                          "slug": "will-btc-close-above-110k-on-march-31-2028",
+                          "questionId": "0x80f7bf1a2f8c6d6fc0b4537437d1c8f0f1d9ed9d622f5af7e253d45c0f8f2a31",
+                          "conditionId": "0x3ab356f9f2142d4c3ca4e442bcf952f3df9fbe74fcb696ca6c2575c9980f9f83"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/pending": {
+      "get": {
+        "tags": [
+          "Create Market"
+        ],
+        "summary": "Get pending request for creator",
+        "operationId": "getPendingRequest",
+        "parameters": [
+          {
+            "name": "creator",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Address"
+            },
+            "description": "Creator EOA address."
+          },
+          {
+            "name": "chainId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Optional chain filter."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest resumable request for creator, or null.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingResponse"
+                },
+                "example": {
+                  "request": {
+                    "requestId": "8b583ebd-1f8f-46fa-b31b-06643f58d457",
+                    "status": "prepared",
+                    "creator": "0x1111111111111111111111111111111111111111",
+                    "chainId": 80002,
+                    "expiresAt": 1771292548580,
+                    "updatedAt": 1771290202392,
+                    "errorMessage": null,
+                    "prepared": {
+                      "requestId": "8b583ebd-1f8f-46fa-b31b-06643f58d457",
+                      "chainId": 80002,
+                      "creator": "0x1111111111111111111111111111111111111111",
+                      "txPlan": [
+                        {
+                          "id": "approve-usdc",
+                          "to": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
+                          "value": "0",
+                          "data": "0x095ea7b3...",
+                          "description": "Approve 5 USDC for UMA rewards"
+                        }
+                      ]
+                    },
+                    "txs": [
+                      {
+                        "id": "approve-usdc",
+                        "hash": "0xe05e9dde82fac8f82972788053c97b2b8513d69ad54f9f19b7461124557c1537"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/tx-confirm": {
+      "post": {
+        "tags": [
+          "Create Market"
+        ],
+        "summary": "Persist confirmed transaction hashes",
+        "operationId": "postTxConfirm",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TxConfirmRequest"
+              },
+              "example": {
+                "requestId": "8b583ebd-1f8f-46fa-b31b-06643f58d457",
+                "creator": "0x1111111111111111111111111111111111111111",
+                "txs": [
+                  {
+                    "id": "approve-usdc",
+                    "hash": "0xe05e9dde82fac8f82972788053c97b2b8513d69ad54f9f19b7461124557c1537"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved tx hashes for the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TxConfirmResponse"
+                },
+                "example": {
+                  "requestId": "8b583ebd-1f8f-46fa-b31b-06643f58d457",
+                  "status": "prepared",
+                  "confirmedTxs": [
+                    {
+                      "id": "approve-usdc",
+                      "hash": "0xe05e9dde82fac8f82972788053c97b2b8513d69ad54f9f19b7461124557c1537"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/finalize": {
+      "post": {
+        "tags": [
+          "Create Market"
+        ],
+        "summary": "Finalize and register markets",
+        "operationId": "postFinalize",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeRequest"
+              },
+              "example": {
+                "requestId": "8b583ebd-1f8f-46fa-b31b-06643f58d457",
+                "creator": "0x1111111111111111111111111111111111111111",
+                "txs": [
+                  {
+                    "id": "approve-usdc",
+                    "hash": "0xe05e9dde82fac8f82972788053c97b2b8513d69ad54f9f19b7461124557c1537"
+                  },
+                  {
+                    "id": "initialize-market-1",
+                    "hash": "0x1e4657fc7d235e744080d7b009d53b5ff8a302d01fdaf77cd256d1f01c3ad3be"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Finalized request and registerToken execution result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizeResponse"
+                },
+                "example": {
+                  "requestId": "8b583ebd-1f8f-46fa-b31b-06643f58d457",
+                  "status": "finalized",
+                  "creatorTxCount": 2,
+                  "registerResults": [
+                    {
+                      "key": "binary",
+                      "conditionId": "0x8169d94703726c1312976a3f408a15184334d95dcadc78e4e9f96d3b0f0df8df",
+                      "exchange": "0xB5592f7CccA122558D2201e190826276f3a661cb",
+                      "tokenA": "78849133110239156497695610160414324368604052631638211845571054319779561887178",
+                      "tokenB": "74971562590235665669963598240180085947836206808199917948309517561307482247352",
+                      "alreadyRegistered": false,
+                      "txHash": "0xc5131714f6396487f600bf2770f59989a18187e1aa50e2f1f46b554bc722f620"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Address": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{40}$"
+      },
+      "Hex32": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{64}$"
+      },
+      "TxHash": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{64}$"
+      },
+      "MarketMode": {
+        "type": "string",
+        "enum": [
+          "binary",
+          "multi_multiple",
+          "multi_unique"
+        ]
+      },
+      "AuthTypedField": {
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "PrepareAuthRequest": {
+        "type": "object",
+        "required": [
+          "creator",
+          "chainId",
+          "payloadHash"
+        ],
+        "properties": {
+          "creator": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "chainId": {
+            "type": "integer"
+          },
+          "payloadHash": {
+            "$ref": "#/components/schemas/Hex32"
+          }
+        }
+      },
+      "PrepareAuthResponse": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "nonce",
+          "expiresAt",
+          "creator",
+          "chainId",
+          "payloadHash",
+          "domain",
+          "primaryType",
+          "types"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "nonce": {
+            "$ref": "#/components/schemas/Hex32"
+          },
+          "expiresAt": {
+            "type": "integer"
+          },
+          "creator": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "chainId": {
+            "type": "integer"
+          },
+          "payloadHash": {
+            "$ref": "#/components/schemas/Hex32"
+          },
+          "domain": {
+            "type": "object",
+            "required": [
+              "name",
+              "version",
+              "verifyingContract"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "verifyingContract": {
+                "$ref": "#/components/schemas/Address"
+              }
+            }
+          },
+          "primaryType": {
+            "type": "string",
+            "enum": [
+              "CreateMarketAuth"
+            ]
+          },
+          "types": {
+            "type": "object",
+            "required": [
+              "CreateMarketAuth"
+            ],
+            "properties": {
+              "CreateMarketAuth": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AuthTypedField"
+                }
+              }
+            }
+          }
+        }
+      },
+      "PrepareAuthEnvelope": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "nonce",
+          "expiresAt",
+          "payloadHash",
+          "signature"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "nonce": {
+            "$ref": "#/components/schemas/Hex32"
+          },
+          "expiresAt": {
+            "type": "integer"
+          },
+          "payloadHash": {
+            "$ref": "#/components/schemas/Hex32"
+          },
+          "signature": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{130}$"
+          }
+        }
+      },
+      "CategoryObject": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        }
+      },
+      "PrepareOption": {
+        "type": "object",
+        "required": [
+          "title",
+          "shortName"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Optional option key. If omitted, backend uses option-{index}."
+          },
+          "title": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Optional. If omitted, slug is derived from title."
+          }
+        }
+      },
+      "PreparePayload": {
+        "type": "object",
+        "required": [
+          "creator",
+          "title",
+          "slug",
+          "endDateIso",
+          "mainCategorySlug",
+          "categories",
+          "marketMode",
+          "resolutionRules"
+        ],
+        "properties": {
+          "chainId": {
+            "type": "integer",
+            "description": "If omitted, backend default chain is used."
+          },
+          "creator": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "endDateIso": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "mainCategorySlug": {
+            "type": "string"
+          },
+          "categories": {
+            "type": "array",
+            "minItems": 5,
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/CategoryObject"
+                }
+              ]
+            }
+          },
+          "marketMode": {
+            "$ref": "#/components/schemas/MarketMode"
+          },
+          "binaryQuestion": {
+            "type": "string",
+            "description": "Required when marketMode=binary."
+          },
+          "binaryOutcomeYes": {
+            "type": "string",
+            "description": "Required when marketMode=binary."
+          },
+          "binaryOutcomeNo": {
+            "type": "string",
+            "description": "Required when marketMode=binary."
+          },
+          "options": {
+            "type": "array",
+            "description": "Required when marketMode=multi_multiple or marketMode=multi_unique.",
+            "minItems": 2,
+            "items": {
+              "$ref": "#/components/schemas/PrepareOption"
+            }
+          },
+          "resolutionSource": {
+            "type": "string",
+            "format": "uri"
+          },
+          "resolutionSourceUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "resolutionRules": {
+            "type": "string",
+            "minLength": 60
+          }
+        }
+      },
+      "PrepareFormData": {
+        "type": "object",
+        "required": [
+          "payload",
+          "auth",
+          "eventImage"
+        ],
+        "properties": {
+          "payload": {
+            "type": "string",
+            "description": "JSON string for the PreparePayload object."
+          },
+          "auth": {
+            "type": "string",
+            "description": "JSON string for the PrepareAuthEnvelope object."
+          },
+          "eventImage": {
+            "type": "string",
+            "format": "binary",
+            "description": "Required. PNG, JPG/JPEG, or WebP."
+          },
+          "optionImages": {
+            "type": "array",
+            "description": "Optional fallback list matched by option order.",
+            "items": {
+              "type": "string",
+              "format": "binary"
+            }
+          },
+          "optionImages[]": {
+            "type": "array",
+            "description": "Optional fallback list (same behavior as optionImages).",
+            "items": {
+              "type": "string",
+              "format": "binary"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "ImagePolicy": {
+        "type": "object",
+        "required": [
+          "maxUploadBytes",
+          "targetPx",
+          "targetMaxBytes"
+        ],
+        "properties": {
+          "maxUploadBytes": {
+            "type": "integer"
+          },
+          "targetPx": {
+            "type": "integer"
+          },
+          "targetMaxBytes": {
+            "type": "integer"
+          }
+        }
+      },
+      "ChainConfigItem": {
+        "type": "object",
+        "required": [
+          "chainId",
+          "usdcToken",
+          "umaAdapter",
+          "ctfExchange",
+          "negRiskOperator",
+          "negRiskCtfExchange",
+          "negRiskUmaAdapter"
+        ],
+        "properties": {
+          "chainId": {
+            "type": "integer"
+          },
+          "usdcToken": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "umaAdapter": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "ctfExchange": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "negRiskOperator": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "negRiskCtfExchange": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "negRiskUmaAdapter": {
+            "$ref": "#/components/schemas/Address"
+          }
+        }
+      },
+      "MarketConfigResponse": {
+        "type": "object",
+        "required": [
+          "defaultChainId",
+          "supportedChainIds",
+          "usdcToken",
+          "umaAdapter",
+          "ctfExchange",
+          "negRiskOperator",
+          "negRiskCtfExchange",
+          "negRiskUmaAdapter",
+          "rewardUsdc",
+          "proposalBondUsdc",
+          "livenessSeconds",
+          "requiredCreatorFundingUsdc",
+          "executionMode",
+          "imagePolicy",
+          "chains"
+        ],
+        "properties": {
+          "defaultChainId": {
+            "type": "integer"
+          },
+          "supportedChainIds": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "usdcToken": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "umaAdapter": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "ctfExchange": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "negRiskOperator": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "negRiskCtfExchange": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "negRiskUmaAdapter": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "rewardUsdc": {
+            "type": "string"
+          },
+          "proposalBondUsdc": {
+            "type": "string"
+          },
+          "livenessSeconds": {
+            "type": "integer"
+          },
+          "requiredCreatorFundingUsdc": {
+            "type": "string"
+          },
+          "executionMode": {
+            "type": "string",
+            "enum": [
+              "eoa"
+            ]
+          },
+          "imagePolicy": {
+            "$ref": "#/components/schemas/ImagePolicy"
+          },
+          "chains": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChainConfigItem"
+            }
+          }
+        }
+      },
+      "PreparedEvent": {
+        "type": "object",
+        "required": [
+          "title",
+          "slug",
+          "endDateIso",
+          "mainCategory",
+          "categories",
+          "marketMode",
+          "negRiskMarketId"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "endDateIso": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "mainCategory": {
+            "type": "string"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "marketMode": {
+            "$ref": "#/components/schemas/MarketMode"
+          },
+          "negRiskMarketId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PreparedMarketItem": {
+        "type": "object",
+        "required": [
+          "key",
+          "slug",
+          "question",
+          "shortName",
+          "metadataTxId",
+          "metadataUri",
+          "requestId",
+          "questionId",
+          "conditionId",
+          "optionImageUri"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadataTxId": {
+            "type": "string"
+          },
+          "metadataUri": {
+            "type": "string",
+            "pattern": "^irys://"
+          },
+          "requestId": {
+            "type": "string",
+            "nullable": true
+          },
+          "questionId": {
+            "$ref": "#/components/schemas/Hex32"
+          },
+          "conditionId": {
+            "$ref": "#/components/schemas/Hex32"
+          },
+          "optionImageUri": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^irys://"
+          }
+        }
+      },
+      "PreparedMetadata": {
+        "type": "object",
+        "required": [
+          "eventImageUri",
+          "markets"
+        ],
+        "properties": {
+          "eventImageUri": {
+            "type": "string",
+            "pattern": "^irys://"
+          },
+          "markets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PreparedMarketItem"
+            }
+          }
+        }
+      },
+      "TxPlanItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "to",
+          "value",
+          "data",
+          "description"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "to": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "value": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]+$"
+          },
+          "description": {
+            "type": "string"
+          },
+          "marketKey": {
+            "type": "string"
+          }
+        }
+      },
+      "PrepareChecks": {
+        "type": "object",
+        "required": [
+          "creatorMustMatchSender",
+          "requiredCreatorFundingUsdc",
+          "estimatedTotalRewardUsdc",
+          "estimatedTotalRewardBase"
+        ],
+        "properties": {
+          "creatorMustMatchSender": {
+            "type": "boolean"
+          },
+          "requiredCreatorFundingUsdc": {
+            "type": "string"
+          },
+          "estimatedTotalRewardUsdc": {
+            "type": "string"
+          },
+          "estimatedTotalRewardBase": {
+            "type": "string"
+          }
+        }
+      },
+      "PrepareResponse": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "chainId",
+          "creator",
+          "event",
+          "metadata",
+          "txPlan",
+          "checks"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "chainId": {
+            "type": "integer"
+          },
+          "creator": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "event": {
+            "$ref": "#/components/schemas/PreparedEvent"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/PreparedMetadata"
+          },
+          "txPlan": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TxPlanItem"
+            }
+          },
+          "checks": {
+            "$ref": "#/components/schemas/PrepareChecks"
+          }
+        }
+      },
+      "TxHashItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "hash"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "hash": {
+            "$ref": "#/components/schemas/TxHash"
+          }
+        }
+      },
+      "PendingPreparedState": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "chainId",
+          "creator",
+          "txPlan"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "chainId": {
+            "type": "integer"
+          },
+          "creator": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "txPlan": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TxPlanItem"
+            }
+          }
+        }
+      },
+      "PendingRequest": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "status",
+          "creator",
+          "chainId",
+          "expiresAt",
+          "updatedAt",
+          "errorMessage",
+          "prepared",
+          "txs"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "creator": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "chainId": {
+            "type": "integer"
+          },
+          "expiresAt": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "integer"
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "prepared": {
+            "$ref": "#/components/schemas/PendingPreparedState"
+          },
+          "txs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TxHashItem"
+            }
+          }
+        }
+      },
+      "PendingResponse": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/PendingRequest",
+            "nullable": true
+          }
+        }
+      },
+      "TxConfirmRequest": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "creator",
+          "txs"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "creator": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "txs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/TxHashItem"
+            }
+          }
+        }
+      },
+      "TxConfirmResponse": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "status",
+          "confirmedTxs"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "confirmedTxs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TxHashItem"
+            }
+          }
+        }
+      },
+      "FinalizeRequest": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "creator"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "creator": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "txs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TxHashItem"
+            }
+          }
+        }
+      },
+      "RegisterResultItem": {
+        "type": "object",
+        "required": [
+          "key",
+          "conditionId",
+          "exchange",
+          "tokenA",
+          "tokenB",
+          "alreadyRegistered",
+          "txHash"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "conditionId": {
+            "$ref": "#/components/schemas/Hex32"
+          },
+          "exchange": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "tokenA": {
+            "type": "string"
+          },
+          "tokenB": {
+            "type": "string"
+          },
+          "alreadyRegistered": {
+            "type": "boolean"
+          },
+          "txHash": {
+            "$ref": "#/components/schemas/TxHash",
+            "nullable": true
+          }
+        }
+      },
+      "FinalizeResponse": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "status"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "alreadyFinalized": {
+            "type": "boolean"
+          },
+          "creatorTxCount": {
+            "type": "integer"
+          },
+          "registerResults": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegisterResultItem"
+            }
+          }
+        }
+      },
+      "ErrorBody": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "nullable": true,
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "ErrorResponse": {
+        "description": "Error payload",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorBody"
+            },
+            "example": {
+              "error": {
+                "code": "validation_error",
+                "message": "requestId is invalid",
+                "details": null
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

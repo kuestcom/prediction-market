@@ -3,33 +3,29 @@ title: How to Sign-Up
 description: Create your account using social login or a crypto wallet
 icon: LogIn
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
-
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## Getting Started
 
 <Steps>
-  <Step>
-    ### Choose your sign-up method
+  <Step title="Choose your sign-up method">
 
-    Use a social account (Google, X, Discord, Farcaster, GitHub, Apple, or Facebook)
-    or connect a crypto wallet such as MetaMask, Trust Wallet, Coinbase Wallet,
-    OKX Wallet, or Binance Wallet.
+    Use a social account (see supported providers below) or connect a crypto
+    wallet such as MetaMask, Trust Wallet, Coinbase Wallet, OKX Wallet, or
+    Binance Wallet.
   </Step>
-  <Step>
-    ### Verify your account
+  <Step title="Verify your account">
 
     Follow the on-screen prompts. Social logins simply require authorization,
     while wallet connections require you to approve the request inside your wallet app.
   </Step>
-  <Step>
-    ### Start trading
+  <Step title="Start trading">
 
     After onboarding, deposit funds and explore markets to place your first trades.
   </Step>
@@ -39,21 +35,32 @@ import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 ## Social Sign-Up
 
-Signing up with your email address or a social login provider is the quickest way to get started with {process.env.NEXT_PUBLIC_SITE_NAME}.
-Supported options include **Google, X (Twitter), Discord, Farcaster, GitHub, Apple, and Facebook**.
+Signing up with your email address or a social login provider is the quickest way to get started with {ENV.NEXT_PUBLIC_SITE_NAME}.
+Supported options include:
+
+<ul>
+  <li>Google</li>
+  <li>X (Twitter)</li>
+  {ENV.NEXT_PUBLIC_DISCORD_LINK && <li>Discord</li>}
+  <li>Farcaster</li>
+  <li>GitHub</li>
+  <li>Apple</li>
+  <li>Facebook</li>
+</ul>
+
 This method is secure and requires no wallet setup.
 
 ---
 
 ## Crypto Wallet Sign-Up
 
-{process.env.NEXT_PUBLIC_SITE_NAME} also supports direct sign-up using a crypto wallet.
+{ENV.NEXT_PUBLIC_SITE_NAME} also supports direct sign-up using a crypto wallet.
 Popular wallets such as **MetaMask, Trust Wallet, Coinbase Wallet, OKX Wallet, and Binance Wallet** are supported through **Reown (formerly WalletConnect)**.
 
-<Callout type="info">
-When you connect with a wallet, your funds remain **fully in your control** — they are never held by {process.env.NEXT_PUBLIC_SITE_NAME}.
+<Info>
+When you connect with a wallet, your funds remain **fully in your control** — they are never held by {ENV.NEXT_PUBLIC_SITE_NAME}.
 Reown is a secure connection layer that allows you to log in without creating a password and without giving custody of your assets.
-</Callout>
+</Info>
 
 ---
 

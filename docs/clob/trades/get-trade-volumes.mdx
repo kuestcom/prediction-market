@@ -1,0 +1,39 @@
+---
+title: 'Get trade volumes'
+openapi: 'POST /data/volumes'
+---
+
+
+Aggregate matched volume for every condition and token pair supplied in the payload. The endpoint is optimized for dashboards: you can refresh up to 100 conditions per call, and the response always uses HTTP `207 Multi-Status` so you can see the outcome of each condition independently.
+
+<Info>
+No authentication headers are required. Only the JSON body described below is needed.
+</Info>
+
+## Request body
+
+- `include_24h` — optional boolean. Defaults to `false`; set to `true` to receive a `volume_24h` field per successful condition.
+- `conditions` — required array (1–100 entries). Each item must define a `condition_id` plus exactly two unique `token_ids` that belong to that condition. Duplicate tokens or empty strings trigger per-condition errors.
+
+When a token ID is formatted correctly but does not exist on the book, the API still returns the condition with `status: 200` and reports the volume as `0.0`.
+
+## Response semantics
+
+- The HTTP response status is always `207 Multi-Status`. Each element in the array contains `condition_id`, `status`, and either the aggregated volumes or an `error` string.
+- `status: 200` entries include `volume` (total matched volume for the pair) and, when `include_24h` was true, `volume_24h`. Both values are returned as decimal strings.
+- `status: 400` indicates a validation issue isolated to that condition (missing tokens, duplicate token IDs, blank strings, etc.).
+- `status: 500` surfaces unexpected backend issues for that condition; retrying later is recommended.
+
+## Error reference
+
+| Error | Meaning |
+| --- | --- |
+| `conditions_array_must_contain_at_least_one_entry` | The request body omitted `conditions` or sent an empty list. |
+| `maximum_of_100_conditions_allowed` | More than 100 conditions were provided. |
+| `condition_id_cannot_be_empty` | `condition_id` was blank. |
+| `token_ids_must_have_two_entries` | A condition did not include exactly two token IDs. |
+| `token_id_cannot_be_empty` | One of the provided token IDs was blank. |
+| `token_ids_must_be_unique` | The same token ID was repeated within a condition. |
+| `internal_error` | Unexpected failure while fetching volume data. |
+
+Handle the array by checking each `status`. Successful entries may be mixed with error entries in the same response, so you can partially update your dashboards without rerunning the entire request.

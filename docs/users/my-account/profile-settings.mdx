@@ -3,34 +3,30 @@ title: Profile Settings
 description: Manage your profile, username, and preferences
 icon: Settings
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
-
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## Profile
 
-Update how your account appears across {process.env.NEXT_PUBLIC_SITE_NAME}.
+Update how your account appears across {ENV.NEXT_PUBLIC_SITE_NAME}.
 
 <Steps>
-  <Step>
-    ### Upload an avatar
+  <Step title="Upload an avatar">
 
     Click <strong>Upload</strong> and choose a JPG/PNG/WEBP image up to 5 MB to
     personalize your profile.
   </Step>
-  <Step>
-    ### Update details
+  <Step title="Update details">
 
     Edit your <strong>Email</strong> and <strong>Username</strong>, then press
     <strong>Save changes</strong> to apply.
   </Step>
-  <Step>
-    ### Preview the public page
+  <Step title="Preview the public page">
 
     Use <strong>View public profile</strong> to see how your activity and stats
     appear to other users.

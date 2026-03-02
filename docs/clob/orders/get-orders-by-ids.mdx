@@ -1,0 +1,61 @@
+---
+title: 'Get orders by IDs'
+openapi: 'POST /data/orders'
+---
+
+
+Request multiple orders (between 1 and 500 ULIDs) in a single call. Each entry mirrors [`GET /data/order/{id}`](/clob/orders/get-order), so you can refresh many orders without issuing repeated requests.
+
+<Info>
+No authentication headers are required. Responses always use HTTP `207 Multi-Status`, and each array element carries its own `status`, `order`, and `error` fields.
+</Info>
+
+## Request body
+
+Send a JSON array of `{ "orderId": "<ULID>" }` entries:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `orderId` | string | Yes | ULID of the order to fetch (case-insensitive). Leave empty only if you need to test error handling; blank values return `order_id_cannot_be_empty`. |
+
+The array must contain at least 1 and no more than 500 entries. Duplicate ULIDs are allowed and simply return duplicate responses.
+
+## Response semantics
+
+- The HTTP status is always `207 Multi-Status`. Each element in the response array includes the original `order_id`, an integer `status`, and either `order` (when the lookup succeeded) or `error` (for failures).
+- `status: 200` — `order` contains the same structure documented for the single-order endpoint, and `error` is `null`/omitted.
+- `status: 400` — validation failure for that entry (currently only `order_id_cannot_be_empty`).
+- `status: 404` — `order_not_found` when the ULID does not exist.
+- `status: 500` — unexpected backend issue; the `error` string surfaces the internal failure reason.
+
+### Per-entry fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `order_id` | string | ULID echoed from the request (blank if the original entry was blank). |
+| `status` | integer | Entry-specific status code (`200`, `400`, `404`, or `500`). |
+| `order` | object | Present only when `status` is `200`. Structure detailed below. |
+| `error` | string | Present only when `status` is not `200`. Includes values like `order_id_cannot_be_empty`, `order_not_found`, or `internal_error`. |
+
+## Order fields
+
+When `status` is 200, the `order` object exposes the same attributes as [`GET /data/order/{id}`]. Key fields are summarized below:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `associateTrades` | string[] | Trade identifiers linked to this order. Empty when no matches occurred. |
+| `id` | string | ULID assigned to the order. |
+| `status` | string | Lifecycle state: `live`, `matched`, `delayed`, or `unmatched`. |
+| `market` | string | Market identifier associated with the order. |
+| `originalSize` | string | Size requested when the order was submitted. |
+| `outcome` | string | Market outcome identifier (market address + outcome index). |
+| `makerAddress` | string | Address that funded the maker side. |
+| `owner` | string | API key owner recorded with the order when available. |
+| `price` | string | Limit price formatted with fixed precision. |
+| `side` | string | Either `BUY` or `SELL`. |
+| `sizeMatched` | string | Total quantity matched so far. |
+| `assetId` | string | Token identifier for the traded outcome. |
+| `expiration` | string | Expiration timestamp in Unix seconds. |
+| `type` | string | Execution policy (`GTC`, `GTD`, `FAK`, `FOK`). |
+| `createdAt` | string | ISO-8601 timestamp for when the order was inserted. |
+| `updatedAt` | string | ISO-8601 timestamp for the most recent update (fill, cancel, etc.). |

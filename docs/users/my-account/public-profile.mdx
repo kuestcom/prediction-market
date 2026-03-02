@@ -3,11 +3,12 @@ title: Public Profile
 description: What others can see on your profile page
 icon: UserCircle
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## Overview
@@ -24,6 +25,6 @@ Your public profile showcases high-level stats:
 - **Positions** – open holdings (if you opt to display them)
 - **Activity** – recent buys/sells with amounts and timestamps
 
-<Callout type="info">
+<Info>
 You can access this page from **Profile Settings → View public profile**.
-</Callout>
+</Info>

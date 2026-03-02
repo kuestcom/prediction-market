@@ -1,0 +1,13 @@
+---
+title: 'Get live volume for an event'
+openapi: 'GET /live-volume'
+---
+export const ENV = globalThis.process?.env ?? {}
+
+<Note>
+🟡 Totals update as new fills land in the cache, so very recent trades may take a few seconds to be reflected.
+</Note>
+
+<code>GET {ENV.DATA_URL ?? 'https://data-api.kuest.com'}/live-volume?market=0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917,0x3ad2cfba08c4a214049f8f4c4c1e7f9a924b1332d604798b85a1afd7b9e884d3</code> aggregates collateral traded within a single event. The response contains the overall `total` plus a `markets` array that breaks the number out per condition ID.
+
+Use it for dashboards that highlight the hottest events or for alerting tools that watch for sudden bursts of liquidity. The required `market` query expects a comma-separated list of condition IDs; pass every condition that belongs to the event to scope the snapshot correctly.

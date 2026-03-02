@@ -1,0 +1,1794 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Relayer API",
+    "description": "Endpoints for relayer services: wallet helpers, nonce lookups, and transaction submission.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://relayer.kuest.com"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Service",
+      "description": "Relayer availability and monitoring."
+    },
+    {
+      "name": "Wallet",
+      "description": "Wallet helpers hosted on the relayer."
+    },
+    {
+      "name": "Relayer core",
+      "description": "Nonce, history, and submission flows."
+    },
+    {
+      "name": "Operations",
+      "description": "Custodial conditional token operations executed by the relayer."
+    },
+    {
+      "name": "Swaps",
+      "description": "Swap helpers executed via Safe multisend transactions."
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "Service"
+        ],
+        "summary": "Relayer health check",
+        "description": "Returns 200 OK when the relayer cluster is reachable.",
+        "operationId": "relayerHealth",
+        "responses": {
+          "200": {
+            "description": "Relayer is healthy.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "OK"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Relayer is unavailable."
+          }
+        }
+      }
+    },
+    "/wallet/proxy": {
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Execute proxy wallet call",
+        "description": "Submits RelayHub-backed smart wallet calls through the relayer. Requires the same L2 authentication headers used by `POST /order`.",
+        "operationId": "proxyWalletCall",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletProxyRequest"
+              },
+              "example": {
+                "owner": "0x82d3c1afe6b917c2d4ef6ab3b5c17408b9f5a4ce",
+                "calls": [
+                  {
+                    "type": "CALL",
+                    "to": "0x5fa1e8b0dc9b67a4350e2cfea3d5b7c48290d579",
+                    "value": "0",
+                    "data": "0xa9059cbb000000000000000000000000b9d7c3f1e6a547281bf4aca0fe4d73c5887c1d5a00000000000000000000000000000000000000000000000000000000000003e8"
+                  },
+                  {
+                    "type": "DELEGATE_CALL",
+                    "to": "0x3d12ac4a8fe9052f8f049cd64496f89c45d1eb12",
+                    "value": "0",
+                    "data": "0x6a761202"
+                  }
+                ],
+                "nonce": "17",
+                "signature": "0xbd8cd8efe71e382e0ab025ede9a7b09e34154a2796ae036bf438082e35801297c4a262fc73c55690f4c7da011f82ef80e8f0d1a36078fac3b7eaa1280b6366baf6",
+                "approvalData": "0x"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Proxy wallet call accepted by the relay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletProxyResponse"
+                },
+                "example": {
+                  "txHash": "0xa1f59c7d9e4b08e43fa4c6ed28f15c9f7ed1b0a2bde3f59c8d31b2388a148a52",
+                  "confirmations": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, owner mismatch, downstream revert, or service disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletProxyError"
+                },
+                "examples": {
+                  "ownerMismatch": {
+                    "summary": "Owner header mismatch",
+                    "value": {
+                      "error": "owner_address_mismatch"
+                    }
+                  },
+                  "invalidField": {
+                    "summary": "Invalid hex, decimal, or schema input",
+                    "value": {
+                      "error": "invalid_field data"
+                    }
+                  },
+                  "relayRevert": {
+                    "summary": "Recipient reverted",
+                    "value": {
+                      "error": "relay call reverted"
+                    }
+                  },
+                  "serviceDisabled": {
+                    "summary": "Wallet relay disabled in environment",
+                    "value": {
+                      "error": "wallet_service_disabled"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "RelayHub/RPC transport error before execution.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletProxyError"
+                },
+                "example": {
+                  "error": "wallet_transport_error: timeout waiting for relay"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Wallet relay service missing from cluster state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletProxyError"
+                },
+                "example": {
+                  "error": "wallet_service_disabled"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wallet/safe": {
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Deploy deterministic Safe",
+        "description": "Deploys the deterministic Gnosis Safe proxy for the authenticated owner via the relayer.",
+        "operationId": "deploySafe",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletSafeRequest"
+              },
+              "example": {
+                "owner": "0x98d2ad0b82a08f17f7d24f0c6d6ec8cb1d8d7ef0",
+                "paymentToken": "0x0000000000000000000000000000000000000000",
+                "payment": "0",
+                "paymentReceiver": "0x7f3a0f1e5b9c86c3d6d1bd116b708d4550d7a6e0",
+                "signature": "0x8a8bf977b05d7c2c0f84d602fafd0ea0bff0c09336978d9270a40f6d66166ebf5d09d507e4fb2ff5a6b73ecdfc8d1b4d3671d7ff3aaab1f4a429aec89db1f0951c"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Safe deployment transaction accepted or previously deployed Safe detected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletSafeResponse"
+                },
+                "example": {
+                  "txHash": "0x4c7f2d9c57e7cf1b1d2c75dae053086eba7a0a44a404f4b1aede2140b9406e0a",
+                  "confirmations": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Owner mismatch, invalid payload, or Safe deploy revert.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletProxyError"
+                },
+                "examples": {
+                  "ownerMismatch": {
+                    "summary": "Owner header mismatch",
+                    "value": {
+                      "error": "owner_address_mismatch"
+                    }
+                  },
+                  "invalidField": {
+                    "summary": "Invalid address/hex/number",
+                    "value": {
+                      "error": "invalid_field paymentReceiver"
+                    }
+                  },
+                  "revert": {
+                    "summary": "SafeProxyFactory reverted",
+                    "value": {
+                      "error": "safe proxy deployment reverted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Transport error submitting the SafeProxyFactory tx.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletProxyError"
+                },
+                "example": {
+                  "error": "wallet_transport_error: timeout waiting for confirmations"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Wallet service missing or disabled for Safe deployments.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletProxyError"
+                },
+                "example": {
+                  "error": "wallet_service_disabled"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/nonce": {
+      "get": {
+        "tags": [
+          "Relayer core"
+        ],
+        "summary": "Get relayer nonce",
+        "description": "Retrieve the next SAFE or SAFE-CREATE nonce recognized by the relayer.",
+        "operationId": "getRelayerNonce",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "description": "Safe or owner address tied to your credentials.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "description": "Nonce namespace to inspect.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SAFE",
+                "SAFE-CREATE"
+              ]
+            },
+            "example": "SAFE"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nonce lookup succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerNonceResponse"
+                },
+                "example": {
+                  "nonce": "7"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid address or type.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_field type"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/relay-payload": {
+      "get": {
+        "tags": [
+          "Relayer core"
+        ],
+        "summary": "Get relay payload",
+        "description": "Fetch the relay address and next proxy nonce for proxy transactions.",
+        "operationId": "getRelayPayload",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "description": "Owner address that will sign the proxy relay request.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "description": "Nonce namespace to inspect.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PROXY"
+              ]
+            },
+            "example": "PROXY"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Relay payload lookup succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerRelayPayloadResponse"
+                },
+                "example": {
+                  "address": "0x4d97dcd97ec945f40cf65f87097ace5ea0476045",
+                  "nonce": "3"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid address or type.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_field type"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transactions": {
+      "get": {
+        "tags": [
+          "Relayer core"
+        ],
+        "summary": "List relayer transactions",
+        "description": "Return every transaction submitted by the authenticated account.",
+        "operationId": "listRelayerTransactions",
+        "responses": {
+          "200": {
+            "description": "Transactions fetched successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RelayerTransaction"
+                  }
+                },
+                "example": [
+                  {
+                    "transactionID": "01JAA0Y2Q9M5T8M6P5HAX7F1RM",
+                    "transactionHash": "0xaabc8230e2bf9c5f5d514b8a9be4739fce8c17b1d0a4b8d9ae8ea7e7da65e021",
+                    "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
+                    "to": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                    "proxyAddress": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
+                    "data": "0x095ea7b30000000000000000000000004d97dcd97ec945f40cf65f87097ace5ea0476045ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                    "nonce": "7",
+                    "value": "0",
+                    "state": "STATE_MINED",
+                    "type": "SAFE",
+                    "metadata": "first USDC approve",
+                    "createdAt": "2025-02-15T18:29:12.417Z",
+                    "updatedAt": "2025-02-15T18:30:05.019Z"
+                  }
+                ]
+              }
+            }
+          },
+          "403": {
+            "description": "Authentication headers missing or mismatched.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "forbidden"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transaction": {
+      "get": {
+        "tags": [
+          "Relayer core"
+        ],
+        "summary": "Get relayer transaction",
+        "description": "Fetch a single transaction by transactionID.",
+        "operationId": "getRelayerTransaction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "description": "Transaction ULID assigned by the relayer.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "01JAA0Y2Q9M5T8M6P5HAX7F1RM"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction fetched (0 or 1 results).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RelayerTransaction"
+                  }
+                },
+                "example": [
+                  {
+                    "transactionID": "01JAA0Y2Q9M5T8M6P5HAX7F1RM",
+                    "transactionHash": "0xaabc8230e2bf9c5f5d514b8a9be4739fce8c17b1d0a4b8d9ae8ea7e7da65e021",
+                    "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
+                    "to": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                    "proxyAddress": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
+                    "data": "0x095ea7b30000000000000000000000004d97dcd97ec945f40cf65f87097ace5ea0476045ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                    "nonce": "7",
+                    "value": "0",
+                    "state": "STATE_MINED",
+                    "type": "SAFE",
+                    "metadata": "first USDC approve",
+                    "createdAt": "2025-02-15T18:29:12.417Z",
+                    "updatedAt": "2025-02-15T18:30:05.019Z"
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid transaction id supplied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_field id"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submit": {
+      "post": {
+        "tags": [
+          "Relayer core"
+        ],
+        "summary": "Submit relayer transaction",
+        "description": "Persist a SAFE, SAFE-CREATE, or PROXY payload and let the relayer broadcast it on-chain.",
+        "operationId": "submitRelayerTransaction",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelayerSubmitRequest"
+              },
+              "example": {
+                "type": "SAFE",
+                "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
+                "to": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
+                "data": "0x095ea7b30000000000000000000000004d97dcd97ec945f40cf65f87097ace5ea0476045ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "nonce": "7",
+                "value": "0",
+                "signature": "0xf368488355b0566e99eff3bccc35e98b77d8f3a6e6866176188488c34f0305b07e4a4c600c7a1592e4ac1e96b5887ebff2cb26987a3ad501006b39944df098c21f",
+                "signatureParams": {
+                  "operation": "0",
+                  "safeTxnGas": "0",
+                  "baseGas": "0",
+                  "gasPrice": "0",
+                  "gasToken": "0x0000000000000000000000000000000000000000",
+                  "refundReceiver": "0x0000000000000000000000000000000000000000"
+                },
+                "metadata": "usdc approval ctf"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction stored and broadcast.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerSubmitResponse"
+                },
+                "example": {
+                  "transactionID": "01JAA0Y2Q9M5T8M6P5HAX7F1RM",
+                  "state": "STATE_MINED",
+                  "transactionHash": "0xaabc8230e2bf9c5f5d514b8a9be4739fce8c17b1d0a4b8d9ae8ea7e7da65e021",
+                  "hash": "0xaabc8230e2bf9c5f5d514b8a9be4739fce8c17b1d0a4b8d9ae8ea7e7da65e021"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload or nonce conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_field data"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deployed": {
+      "get": {
+        "tags": [
+          "Relayer core"
+        ],
+        "summary": "Check Safe deployment",
+        "description": "Return whether bytecode already exists at the provided Safe address.",
+        "operationId": "checkSafeDeployed",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "description": "Safe proxy address to inspect.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deployment status returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerDeployedResponse"
+                },
+                "example": {
+                  "deployed": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Safe address provided.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_field address"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operations/approve": {
+      "post": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Approve token",
+        "description": "Ask the relayer to submit an ERC-20 approve() transaction on your behalf.",
+        "operationId": "relayerApprove",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelayerApproveRequest"
+              },
+              "example": {
+                "token": "0x2791Bca1F2de4661ED88A30C99A7a9449Aa84174",
+                "spender": "0x4d97dcd97ec945f40cf65f87097ace5ea0476045",
+                "amount": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction broadcast by the relayer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerOperationResponse"
+                },
+                "example": {
+                  "txHash": "0x61a1b449f2b534d08a2f807cd5de867f9013e44e2df421a1d8c5b7f467ff3154",
+                  "confirmations": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload or missing fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_field contract"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operations/set-approval": {
+      "post": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Toggle setApprovalForAll",
+        "description": "Toggle setApprovalForAll on Conditional Tokens via the relayer.",
+        "operationId": "relayerSetApproval",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelayerSetApprovalRequest"
+              },
+              "example": {
+                "operator": "0x4d97dcd97ec945f40cf65f87097ace5ea0476045",
+                "approved": true,
+                "contract": "0xCeAfDb29f9fC7c25fF6F0768d45b288c9b7C5cA5"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction broadcast by the relayer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerOperationResponse"
+                },
+                "example": {
+                  "txHash": "0x0123...",
+                  "confirmations": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload or missing fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_field contract"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operations/split-position": {
+      "post": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Split position",
+        "description": "Invoke splitPosition on Conditional Tokens via a Safe execution.",
+        "operationId": "relayerSplitPosition",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelayerSafeOperationRequest"
+              },
+              "example": {
+                "type": "SAFE",
+                "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
+                "to": "0xCeAfDb29f9fC7c25fF6F0768d45b288c9b7C5cA5",
+                "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
+                "data": "0x3e8d0a3f...",
+                "nonce": "7",
+                "value": "0",
+                "signature": "0xf368488355b0566e99eff3bccc35e98b77d8f3a6e6866176188488c34f0305b07e4a4c600c7a1592e4ac1e96b5887ebff2cb26987a3ad501006b39944df098c21f",
+                "signatureParams": {
+                  "operation": "0",
+                  "safeTxnGas": "0",
+                  "baseGas": "0",
+                  "gasPrice": "0",
+                  "gasToken": "0x0000000000000000000000000000000000000000",
+                  "refundReceiver": "0x0000000000000000000000000000000000000000"
+                },
+                "metadata": "split position"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction broadcast by the relayer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerOperationResponse"
+                },
+                "example": {
+                  "txHash": "0x0123...",
+                  "confirmations": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload or missing fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_field contract"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operations/merge-position": {
+      "post": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Merge position",
+        "description": "Invoke mergePositions via a Safe execution.",
+        "operationId": "relayerMergePosition",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelayerSafeOperationRequest"
+              },
+              "example": {
+                "type": "SAFE",
+                "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
+                "to": "0xCeAfDb29f9fC7c25fF6F0768d45b288c9b7C5cA5",
+                "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
+                "data": "0x5fd8c710...",
+                "nonce": "8",
+                "value": "0",
+                "signature": "0xf368488355b0566e99eff3bccc35e98b77d8f3a6e6866176188488c34f0305b07e4a4c600c7a1592e4ac1e96b5887ebff2cb26987a3ad501006b39944df098c21f",
+                "signatureParams": {
+                  "operation": "0",
+                  "safeTxnGas": "0",
+                  "baseGas": "0",
+                  "gasPrice": "0",
+                  "gasToken": "0x0000000000000000000000000000000000000000",
+                  "refundReceiver": "0x0000000000000000000000000000000000000000"
+                },
+                "metadata": "merge position"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction broadcast by the relayer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerOperationResponse"
+                },
+                "example": {
+                  "txHash": "0x0123...",
+                  "confirmations": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload or missing fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_field contract"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operations/convert-position": {
+      "post": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Convert position",
+        "description": "Call convertPositions on the Negative Risk adapter via a Safe execution.",
+        "operationId": "relayerConvertPosition",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelayerSafeOperationRequest"
+              },
+              "example": {
+                "type": "SAFE",
+                "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
+                "to": "0x724259Fe88100FE18C134324C4853975FBDa4d76",
+                "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
+                "data": "0x2c8c5d2e...",
+                "nonce": "10",
+                "value": "0",
+                "signature": "0xf368488355b0566e99eff3bccc35e98b77d8f3a6e6866176188488c34f0305b07e4a4c600c7a1592e4ac1e96b5887ebff2cb26987a3ad501006b39944df098c21f",
+                "signatureParams": {
+                  "operation": "0",
+                  "safeTxnGas": "0",
+                  "baseGas": "0",
+                  "gasPrice": "0",
+                  "gasToken": "0x0000000000000000000000000000000000000000",
+                  "refundReceiver": "0x0000000000000000000000000000000000000000"
+                },
+                "metadata": "convert position"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction broadcast by the relayer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerOperationResponse"
+                },
+                "example": {
+                  "txHash": "0x0123...",
+                  "confirmations": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload or missing fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_field contract"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operations/redeem-position": {
+      "post": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Redeem position",
+        "description": "Call redeemPositions via a Safe execution for resolved outcomes.",
+        "operationId": "relayerRedeemPosition",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelayerSafeOperationRequest"
+              },
+              "example": {
+                "type": "SAFE",
+                "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
+                "to": "0xCeAfDb29f9fC7c25fF6F0768d45b288c9b7C5cA5",
+                "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
+                "data": "0x5c778605...",
+                "nonce": "9",
+                "value": "0",
+                "signature": "0xf368488355b0566e99eff3bccc35e98b77d8f3a6e6866176188488c34f0305b07e4a4c600c7a1592e4ac1e96b5887ebff2cb26987a3ad501006b39944df098c21f",
+                "signatureParams": {
+                  "operation": "0",
+                  "safeTxnGas": "0",
+                  "baseGas": "0",
+                  "gasPrice": "0",
+                  "gasToken": "0x0000000000000000000000000000000000000000",
+                  "refundReceiver": "0x0000000000000000000000000000000000000000"
+                },
+                "metadata": "redeem position"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction broadcast by the relayer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerOperationResponse"
+                },
+                "example": {
+                  "txHash": "0x0123...",
+                  "confirmations": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload or missing fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_field contract"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/swap/usdc-e/build": {
+      "post": {
+        "tags": [
+          "Swaps"
+        ],
+        "summary": "Build USDC → USDC.e swap",
+        "description": "Build a Safe multisend payload that approves native USDC and swaps into USDC.e via Uniswap V3.",
+        "operationId": "buildUsdcESwap",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelayerUsdcESwapBuildRequest"
+              },
+              "example": {
+                "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
+                "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
+                "amount": "1000000",
+                "slippageBps": 50
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Swap payload built and ready for signing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerUsdcESwapBuildResponse"
+                },
+                "example": {
+                  "nonce": "12",
+                  "transaction": {
+                    "to": "0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761",
+                    "value": "0",
+                    "data": "0x8d80ff0a0000000000000000000000000000000000000000000000000000000000000040",
+                    "operation": 1
+                  },
+                  "signatureParams": {
+                    "operation": "1",
+                    "safeTxnGas": "0",
+                    "baseGas": "0",
+                    "gasPrice": "0",
+                    "gasToken": "0x0000000000000000000000000000000000000000",
+                    "refundReceiver": "0x0000000000000000000000000000000000000000"
+                  },
+                  "amountIn": "1000000",
+                  "amountOutMinimum": "999000",
+                  "fee": 100,
+                  "deadline": 1711990000
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload or Safe mismatch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_field amount"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/swap/usdc-e/submit": {
+      "post": {
+        "tags": [
+          "Swaps"
+        ],
+        "summary": "Submit USDC → USDC.e swap",
+        "description": "Submit a signed Safe multisend payload returned by `/swap/usdc-e/build`.",
+        "operationId": "submitUsdcESwap",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelayerSafeOperationRequest"
+              },
+              "example": {
+                "type": "SAFE",
+                "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
+                "to": "0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761",
+                "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
+                "data": "0x8d80ff0a0000000000000000000000000000000000000000000000000000000000000040",
+                "nonce": "12",
+                "value": "0",
+                "signature": "0xf368488355b0566e99eff3bccc35e98b77d8f3a6e6866176188488c34f0305b07e4a4c600c7a1592e4ac1e96b5887ebff2cb26987a3ad501006b39944df098c21f",
+                "signatureParams": {
+                  "operation": "1",
+                  "safeTxnGas": "0",
+                  "baseGas": "0",
+                  "gasPrice": "0",
+                  "gasToken": "0x0000000000000000000000000000000000000000",
+                  "refundReceiver": "0x0000000000000000000000000000000000000000"
+                },
+                "metadata": "swap_usdc_e"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Swap transaction broadcast by the relayer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerOperationResponse"
+                },
+                "example": {
+                  "txHash": "0x61a1b449f2b534d08a2f807cd5de867f9013e44e2df421a1d8c5b7f467ff3154",
+                  "confirmations": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload or mismatched Safe data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayerError"
+                },
+                "example": {
+                  "error": "invalid_swap_target"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "WalletProxyCall": {
+        "type": "object",
+        "required": [
+          "type",
+          "to"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Invocation type: `CALL` executes normally, `DELEGATE_CALL` keeps the wallet storage context.",
+            "enum": [
+              "CALL",
+              "DELEGATE_CALL"
+            ],
+            "example": "CALL"
+          },
+          "to": {
+            "type": "string",
+            "description": "Target contract address.",
+            "example": "0x5fa1e8b0dc9b67a4350e2cfea3d5b7c48290d579"
+          },
+          "value": {
+            "type": "string",
+            "description": "Decimal string amount of wei forwarded with the call.",
+            "example": "0"
+          },
+          "data": {
+            "type": "string",
+            "description": "Lowercase 0x-prefixed calldata. Defaults to `0x` when omitted.",
+            "example": "0xa9059cbb000000000000000000000000b9d7c3f1e6a547281bf4aca0fe4d73c5887c1d5a00000000000000000000000000000000000000000000000000000000000003e8"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WalletProxyRequest": {
+        "type": "object",
+        "required": [
+          "owner",
+          "nonce",
+          "signature"
+        ],
+        "properties": {
+          "owner": {
+            "type": "string",
+            "description": "Polygon/EVM address that must match the `KUEST_ADDRESS` header.",
+            "example": "0x82d3c1afe6b917c2d4ef6ab3b5c17408b9f5a4ce"
+          },
+          "calls": {
+            "type": "array",
+            "description": "Ordered list of proxy wallet invocations. Defaults to an empty array to trigger wallet deployment only.",
+            "items": {
+              "$ref": "#/components/schemas/WalletProxyCall"
+            },
+            "example": [
+              {
+                "type": "CALL",
+                "to": "0x5fa1e8b0dc9b67a4350e2cfea3d5b7c48290d579",
+                "value": "0",
+                "data": "0xa9059cbb000000000000000000000000b9d7c3f1e6a547281bf4aca0fe4d73c5887c1d5a00000000000000000000000000000000000000000000000000000000000003e8"
+              }
+            ]
+          },
+          "nonce": {
+            "type": "string",
+            "description": "Decimal RelayHub nonce for the owner. Fetch it via `RelayHub.getNonce(owner)`.",
+            "example": "17"
+          },
+          "signature": {
+            "type": "string",
+            "description": "EIP-191 signature produced over the OpenZeppelin GSN v1 payload.",
+            "example": "0xbd8cd8efe71e382e0ab025ede9a7b09e34154a2796ae036bf438082e35801297c4a262fc73c55690f4c7da011f82ef80e8f0d1a36078fac3b7eaa1280b6366baf6"
+          },
+          "approvalData": {
+            "type": "string",
+            "description": "Hex blob forwarded to `acceptRelayedCall`. Use `0x` to skip.",
+            "example": "0x"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WalletProxyResponse": {
+        "type": "object",
+        "required": [
+          "txHash",
+          "confirmations"
+        ],
+        "properties": {
+          "txHash": {
+            "type": "string",
+            "description": "RelayHub transaction hash broadcast by the router.",
+            "example": "0xa1f59c7d9e4b08e43fa4c6ed28f15c9f7ed1b0a2bde3f59c8d31b2388a148a52"
+          },
+          "confirmations": {
+            "type": "integer",
+            "description": "Number of confirmations observed when responding.",
+            "example": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "WalletProxyError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Machine-readable error string returned by the wallet proxy service.",
+            "example": "owner_address_mismatch"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WalletSafeRequest": {
+        "type": "object",
+        "required": [
+          "owner",
+          "signature"
+        ],
+        "properties": {
+          "owner": {
+            "type": "string",
+            "description": "Polygon/EVM address that must equal the authenticated `KUEST_ADDRESS`.",
+            "example": "0x98d2ad0b82a08f17f7d24f0c6d6ec8cb1d8d7ef0"
+          },
+          "paymentToken": {
+            "type": "string",
+            "description": "Token used to pay deployment fees (zero address represents MATIC). Defaults to `0x000...000`.",
+            "example": "0x0000000000000000000000000000000000000000"
+          },
+          "payment": {
+            "type": "string",
+            "description": "Decimal string wei amount charged for deployment. Defaults to \"0\".",
+            "example": "0"
+          },
+          "paymentReceiver": {
+            "type": "string",
+            "description": "Address that receives the payment amount when non-zero.",
+            "example": "0x7f3a0f1e5b9c86c3d6d1bd116b708d4550d7a6e0"
+          },
+          "signature": {
+            "type": "string",
+            "description": "EIP-712 signature over the `CreateProxy` struct using the Contract Proxy Factory domain.",
+            "example": "0x8a8bf977b05d7c2c0f84d602fafd0ea0bff0c09336978d9270a40f6d66166ebf5d09d507e4fb2ff5a6b73ecdfc8d1b4d3671d7ff3aaab1f4a429aec89db1f0951c"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WalletSafeResponse": {
+        "type": "object",
+        "required": [
+          "txHash",
+          "confirmations"
+        ],
+        "properties": {
+          "txHash": {
+            "type": "string",
+            "description": "SafeProxyFactory transaction hash. Zero hash (`0x000\u2026000`) means the Safe already existed and no new transaction was submitted.",
+            "example": "0x4c7f2d9c57e7cf1b1d2c75dae053086eba7a0a44a404f4b1aede2140b9406e0a"
+          },
+          "confirmations": {
+            "type": "integer",
+            "description": "Number of confirmations waited before returning.",
+            "example": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "RelayerError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Human-readable explanation of the failure"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "RelayerNonceResponse": {
+        "type": "object",
+        "properties": {
+          "nonce": {
+            "type": "string",
+            "example": "7",
+            "description": "Next nonce the relayer expects for the provided type."
+          }
+        },
+        "required": [
+          "nonce"
+        ]
+      },
+      "RelayerRelayPayloadResponse": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Relay address that will submit proxy transactions."
+          },
+          "nonce": {
+            "type": "string",
+            "description": "Next proxy nonce for the owner."
+          }
+        },
+        "required": [
+          "address",
+          "nonce"
+        ]
+      },
+      "RelayerTransaction": {
+        "type": "object",
+        "properties": {
+          "transactionID": {
+            "type": "string"
+          },
+          "transactionHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "proxyAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "type": "string"
+          },
+          "nonce": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "description": "Current lifecycle state tracked by the relayer."
+          },
+          "type": {
+            "type": "string",
+            "description": "Operation type such as SAFE, SAFE-CREATE, or PROXY."
+          },
+          "metadata": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "transactionID",
+          "from",
+          "to",
+          "nonce",
+          "state",
+          "type",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "RelayerSignatureParams": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "description": "Safe operation: 0 = CALL, 1 = DELEGATECALL."
+          },
+          "safeTxnGas": {
+            "type": "string",
+            "description": "Safe transaction gas limit."
+          },
+          "safeTxGas": {
+            "type": "string",
+            "description": "Alias for safeTxnGas."
+          },
+          "baseGas": {
+            "type": "string"
+          },
+          "gasPrice": {
+            "type": "string"
+          },
+          "gasToken": {
+            "type": "string"
+          },
+          "refundReceiver": {
+            "type": "string"
+          },
+          "gasLimit": {
+            "type": "string",
+            "description": "Proxy relay gas limit."
+          },
+          "relayerFee": {
+            "type": "string",
+            "description": "Proxy relay fee."
+          },
+          "relayHub": {
+            "type": "string",
+            "description": "Relay hub address used in the proxy signature."
+          },
+          "relay": {
+            "type": "string",
+            "description": "Relay address used in the proxy signature."
+          },
+          "paymentToken": {
+            "type": "string",
+            "description": "Required for SAFE-CREATE submissions."
+          },
+          "payment": {
+            "type": "string"
+          },
+          "paymentReceiver": {
+            "type": "string"
+          }
+        }
+      },
+      "RelayerSubmitRequest": {
+        "type": "object",
+        "description": "Signed SAFE, SAFE-CREATE, or PROXY payload that the relayer should persist and broadcast.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "SAFE",
+              "SAFE-CREATE",
+              "PROXY"
+            ]
+          },
+          "from": {
+            "type": "string",
+            "description": "Safe owner submitting the request."
+          },
+          "to": {
+            "type": "string",
+            "description": "Contract to execute."
+          },
+          "proxyWallet": {
+            "type": "string",
+            "description": "Proxy address tied to the request (required for SAFE and PROXY).",
+            "nullable": true
+          },
+          "data": {
+            "type": "string"
+          },
+          "nonce": {
+            "type": "string",
+            "description": "Required for SAFE and PROXY submissions."
+          },
+          "value": {
+            "type": "string",
+            "default": "0"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "signatureParams": {
+            "$ref": "#/components/schemas/RelayerSignatureParams"
+          },
+          "metadata": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "type",
+          "from",
+          "to",
+          "data",
+          "signature",
+          "signatureParams"
+        ]
+      },
+      "RelayerSafeOperationRequest": {
+        "type": "object",
+        "description": "Signed SAFE payload executed immediately by relayer operations.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "SAFE"
+            ]
+          },
+          "from": {
+            "type": "string",
+            "description": "Safe owner submitting the request."
+          },
+          "to": {
+            "type": "string",
+            "description": "Contract to execute."
+          },
+          "proxyWallet": {
+            "type": "string",
+            "description": "Existing Safe proxy address."
+          },
+          "data": {
+            "type": "string"
+          },
+          "nonce": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "default": "0"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "signatureParams": {
+            "$ref": "#/components/schemas/RelayerSignatureParams"
+          },
+          "metadata": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "type",
+          "from",
+          "to",
+          "proxyWallet",
+          "data",
+          "nonce",
+          "signature",
+          "signatureParams"
+        ]
+      },
+      "RelayerUsdcESwapBuildRequest": {
+        "type": "object",
+        "description": "Request payload for building a USDC → USDC.e swap multisend.",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Safe owner address that must match the authenticated account."
+          },
+          "proxyWallet": {
+            "type": "string",
+            "description": "Safe proxy that will execute the swap."
+          },
+          "amount": {
+            "type": "string",
+            "description": "USDC amount in base units (6 decimals)."
+          },
+          "slippageBps": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Optional slippage tolerance in basis points."
+          }
+        },
+        "required": [
+          "from",
+          "proxyWallet",
+          "amount"
+        ]
+      },
+      "RelayerSwapTransaction": {
+        "type": "object",
+        "description": "Safe transaction payload returned by swap build endpoints.",
+        "properties": {
+          "to": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "to",
+          "value",
+          "data",
+          "operation"
+        ]
+      },
+      "RelayerUsdcESwapBuildResponse": {
+        "type": "object",
+        "description": "Built swap payload plus quote metadata.",
+        "properties": {
+          "nonce": {
+            "type": "string"
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/RelayerSwapTransaction"
+          },
+          "signatureParams": {
+            "$ref": "#/components/schemas/RelayerSignatureParams"
+          },
+          "amountIn": {
+            "type": "string"
+          },
+          "amountOutMinimum": {
+            "type": "string"
+          },
+          "fee": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deadline": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "nonce",
+          "transaction",
+          "signatureParams",
+          "amountIn",
+          "amountOutMinimum",
+          "fee",
+          "deadline"
+        ]
+      },
+      "RelayerSubmitResponse": {
+        "type": "object",
+        "properties": {
+          "transactionID": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "transactionHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "hash": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "transactionID",
+          "state"
+        ]
+      },
+      "RelayerDeployedResponse": {
+        "type": "object",
+        "properties": {
+          "deployed": {
+            "type": "boolean",
+            "description": "True when bytecode already exists at the Safe address."
+          }
+        },
+        "required": [
+          "deployed"
+        ]
+      },
+      "RelayerApproveRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "ERC-20 token contract."
+          },
+          "spender": {
+            "type": "string",
+            "description": "Address receiving the allowance."
+          },
+          "amount": {
+            "type": "string",
+            "description": "Allowance amount, typically 2^256-1 for max."
+          }
+        },
+        "required": [
+          "token",
+          "spender",
+          "amount"
+        ]
+      },
+      "RelayerSetApprovalRequest": {
+        "type": "object",
+        "properties": {
+          "operator": {
+            "type": "string"
+          },
+          "approved": {
+            "type": "boolean"
+          },
+          "contract": {
+            "type": "string",
+            "description": "Conditional Tokens contract. Defaults to production address when omitted."
+          }
+        },
+        "required": [
+          "operator",
+          "approved"
+        ]
+      },
+      "RelayerOperationResponse": {
+        "type": "object",
+        "properties": {
+          "txHash": {
+            "type": "string"
+          },
+          "confirmations": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "txHash",
+          "confirmations"
+        ]
+      }
+    }
+  }
+}

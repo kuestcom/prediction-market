@@ -3,40 +3,36 @@ title: Disputes
 description: What to do if you disagree with a market resolution
 icon: AlertTriangle
 ---
+export const ENV = globalThis.process?.env ?? {}
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
-
-{process.env.NEXT_PUBLIC_DISCORD_LINK && (
-<Callout>
-  Need Help? For assistance, reach out to us on <a href={process.env.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
-</Callout>
+{ENV.NEXT_PUBLIC_DISCORD_LINK && (
+<Note>
+  Need Help? For assistance, reach out to us on <a href={ENV.NEXT_PUBLIC_DISCORD_LINK} rel="noopener noreferrer" target="_blank">Discord</a>.
+</Note>
 )}
 
 ## Disputing a Resolution
 
 In rare cases, you may believe a market was resolved incorrectly.
 
-{process.env.NEXT_PUBLIC_SITE_NAME} provides a **dispute process** to ensure fairness.
+{ENV.NEXT_PUBLIC_SITE_NAME} provides a **dispute process** to ensure fairness.
 
 ---
 
 ## How Disputes Work
 
 <Steps>
-  <Step>
-    ### Submit a dispute
+  <Step title="Submit a dispute">
 
     Use the <strong>Dispute</strong> button within the window shown on the market
     page to challenge the posted outcome.
   </Step>
-  <Step>
-    ### Stake the dispute fee
+  <Step title="Stake the dispute fee">
 
     Provide the required stake to prevent spam submissions. Valid disputes
     receive that stake back once the case is resolved.
   </Step>
-  <Step>
-    ### Await review and final decision
+  <Step title="Await review and final decision">
 
     Moderators evaluate the evidence, cross-check official sources, and apply
     the final resolution. The market updates automatically after the decision.

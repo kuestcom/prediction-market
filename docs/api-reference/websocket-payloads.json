@@ -1,0 +1,150 @@
+{
+  "subscriptions": {
+    "market": {
+      "type": "market",
+      "assets_ids": ["<token_id>"],
+      "custom_feature_enabled": true
+    },
+    "user": {
+      "type": "user",
+      "markets": ["<condition_id>"],
+      "auth": {
+        "apikey": "<uuid>",
+        "secret": "<base64-secret>",
+        "passphrase": "<hex-passphrase>"
+      }
+    },
+    "unsubscribe": {
+      "operation": "unsubscribe",
+      "assets_ids": ["<token_id>"],
+      "markets": ["<condition_id>"]
+    }
+  },
+  "events": {
+    "market": {
+      "book": {
+        "event_type": "book",
+        "asset_id": "<token_id>",
+        "market": "<condition_id>",
+        "bids": [
+          { "price": "0.48", "size": "30" },
+          { "price": "0.49", "size": "20" }
+        ],
+        "asks": [
+          { "price": "0.52", "size": "25" },
+          { "price": "0.53", "size": "60" }
+        ],
+        "timestamp": "1713471000000",
+        "hash": "9d6d9e8831a150ac4cd878f99f7b2c6d419b875f"
+      },
+      "price_change": {
+        "market": "<condition_id>",
+        "price_changes": [
+          {
+            "asset_id": "<token_id>",
+            "price": "0.5",
+            "size": "200",
+            "side": "BUY",
+            "hash": "01HVD3BQXT1QZ3J5P1S2QJ7XQ9",
+            "best_bid": "0.5",
+            "best_ask": "1"
+          }
+        ],
+        "timestamp": "1713471002351",
+        "event_type": "price_change"
+      },
+      "tick_size_change": {
+        "event_type": "tick_size_change",
+        "asset_id": "<token_id>",
+        "market": "<condition_id>",
+        "old_tick_size": "0.01",
+        "new_tick_size": "0.001",
+        "side": "BUY",
+        "timestamp": "1713472000000"
+      },
+      "last_trade_price": {
+        "asset_id": "<token_id>",
+        "event_type": "last_trade_price",
+        "market": "<condition_id>",
+        "price": "0.456",
+        "side": "BUY",
+        "size": "219.217767",
+        "fee_rate_bps": "0",
+        "timestamp": "1713472146322"
+      },
+      "best_bid_ask": {
+        "event_type": "best_bid_ask",
+        "market": "<condition_id>",
+        "asset_id": "<token_id>",
+        "best_bid": "0.73",
+        "best_ask": "0.77",
+        "spread": "0.04",
+        "timestamp": "1713472469958"
+      },
+      "new_market": {
+        "event_type": "new_market",
+        "id": "<condition_id>",
+        "question": "Will ETH trade above $3,500 on March 1?",
+        "market": "<condition_id>",
+        "slug": "eth-3500-mar-1",
+        "description": "Resolves to YES if ETH/USD spot trades above $3,500 by 2026-03-01 23:59 UTC.",
+        "assets_ids": ["<token_id_yes>", "<token_id_no>"],
+        "outcomes": ["Yes", "No"],
+        "event_message": {
+          "id": "132",
+          "ticker": "eth-3500-mar-1",
+          "slug": "crypto",
+          "title": "Crypto",
+          "description": "Markets related to major crypto assets."
+        },
+        "timestamp": "1713473000000"
+      }
+    },
+    "user": {
+      "order": {
+        "asset_id": "<token_id>",
+        "associate_trades": null,
+        "event_type": "order",
+        "id": "01HVD3B4M2H61WFFYB7G9B9GQZ",
+        "market": "<condition_id>",
+        "order_owner": "<api_key>",
+        "original_size": "10",
+        "outcome": "",
+        "owner": "<api_key>",
+        "price": "0.57",
+        "side": "SELL",
+        "size_matched": "0",
+        "timestamp": "1713470000",
+        "type": "PLACEMENT"
+      },
+      "trade": {
+        "asset_id": "<token_id>",
+        "event_type": "trade",
+        "id": "28c4d2eb-bbea-40e7-a9f0-b2fdb56b2c2e",
+        "last_update": "1713470000",
+        "maker_orders": [
+          {
+            "asset_id": "<token_id>",
+            "matched_amount": "10",
+            "order_id": "01HVD3B4M2H61WFFYB7G9B9GQZ",
+            "outcome": "",
+            "owner": "<maker_owner>",
+            "price": "0.57"
+          }
+        ],
+        "market": "<condition_id>",
+        "matchtime": "1713470000",
+        "outcome": "",
+        "owner": "<api_key>",
+        "price": "0.57",
+        "side": "BUY",
+        "size": "10",
+        "status": "MATCHED",
+        "taker_order_id": "01HVD3BQXT1QZ3J5P1S2QJ7XQ9",
+        "timestamp": "1713470000",
+        "trade_owner": "<api_key>",
+        "type": "TRADE"
+      }
+    }
+  }
+}

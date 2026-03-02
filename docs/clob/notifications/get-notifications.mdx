@@ -1,0 +1,13 @@
+---
+title: 'Get notifications'
+openapi: 'GET /notifications'
+---
+
+
+Fetch notifications for the authenticated account.
+
+<Info>
+This endpoint requires L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Info>
+
+Use `signature_type` if you need to pass the signature type used by the caller.

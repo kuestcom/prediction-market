@@ -4,32 +4,27 @@ description: Optional OpenRouter integration for real-time market insights.
 icon: Sparkles
 ---
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
 
-<Callout type="warning">
+<Warning>
   This feature issues external requests. Keep an eye on usage quotas and provider policies before enabling it in production.
-</Callout>
+</Warning>
 
 ## How to enable
 
 <Steps>
-  <Step>
-    ### Create an OpenRouter API key
+  <Step title="Create an OpenRouter API key">
 
     Visit <a href="https://openrouter.ai/settings/keys" target="_blank">OpenRouter -> API Keys</a>, generate a key, and copy it. Models that support live browsing (for example `perplexity/sonar`) deliver richer context.
   </Step>
-  <Step>
-    ### Configure it in the admin panel
+  <Step title="Configure it in the admin panel">
 
     Navigate to **Admin → Market Context**, paste the API key, and flip the toggle on. The settings are stored in the `settings` table so every deploy stays in sync.
   </Step>
-  <Step>
-    ### Pick a model (optional)
+  <Step title="Pick a model (optional)">
 
     Use the model dropdown to select a specific OpenRouter model or leave it on **Let OpenRouter decide** to allow the provider to pick the best option. Saving the form also lets you refine the prompt template.
   </Step>
-  <Step>
-    ### Enable the Market Context generator
+  <Step title="Enable the Market Context generator">
 
     With the toggle on and the key stored, the generator becomes available in event pages. Disable the toggle anytime to suspend the integration without losing your key.
   </Step>
@@ -39,9 +34,9 @@ import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 ## Using free plans
 
-<Callout type="warning">
+<Warning>
   Running live context on the free tier is not recommended for production - keep it to demos or local testing.
-</Callout>
+</Warning>
 
 If you rely on OpenRouter's free tier:
 
