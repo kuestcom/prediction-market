@@ -136,10 +136,9 @@ describe('resolution timeline builder', () => {
 
   it('renders final review with active countdown when flagged and deadline is open', () => {
     const market = createMarket({
-      is_resolved: true,
       condition: {
-        resolved: true,
-        resolution_status: 'resolved',
+        resolved: false,
+        resolution_status: 'proposed',
         resolution_price: 0.5,
         resolution_flagged: true,
         resolution_was_disputed: false,
@@ -225,7 +224,7 @@ describe('resolution timeline builder', () => {
 
     const finalReviewMarket = createMarket({
       condition: {
-        resolution_status: 'resolved',
+        resolution_status: 'proposed',
         resolution_flagged: true,
         resolution_deadline_at: '2026-02-10T01:00:00.000Z',
       },

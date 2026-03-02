@@ -68,6 +68,8 @@ interface EventOrderPanelFormProps {
   optimisticallyClaimedConditionIds?: Record<string, true>
 }
 
+const RESOLUTION_PRICE_TOLERANCE = 1e-9
+
 function resolveWinningOutcomeIndex(market: Event['markets'][number] | null | undefined) {
   if (!market) {
     return null
@@ -76,6 +78,19 @@ function resolveWinningOutcomeIndex(market: Event['markets'][number] | null | un
   const explicitWinner = market.outcomes?.find(outcome => outcome.is_winning_outcome)
   if (explicitWinner && (explicitWinner.outcome_index === OUTCOME_INDEX.YES || explicitWinner.outcome_index === OUTCOME_INDEX.NO)) {
     return explicitWinner.outcome_index
+  }
+
+  const rawResolutionPrice = market.condition?.resolution_price
+  if (rawResolutionPrice != null) {
+    const resolutionPrice = Number(rawResolutionPrice)
+    if (Number.isFinite(resolutionPrice)) {
+      if (Math.abs(resolutionPrice - 1) <= RESOLUTION_PRICE_TOLERANCE) {
+        return OUTCOME_INDEX.YES
+      }
+      if (Math.abs(resolutionPrice) <= RESOLUTION_PRICE_TOLERANCE) {
+        return OUTCOME_INDEX.NO
+      }
+    }
   }
 
   const payoutNumerators = market.condition?.payout_numerators

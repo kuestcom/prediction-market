@@ -333,7 +333,7 @@ export default function EventContent({
             )}
             {marketContextEnabled && <EventMarketContext event={event} />}
             <EventRules event={event} />
-            {selectedMarket && shouldDisplayResolutionTimeline(selectedMarket) && (
+            {event.total_markets_count === 1 && selectedMarket && shouldDisplayResolutionTimeline(selectedMarket) && (
               <div className="rounded-xl border bg-background p-4">
                 <ResolutionTimelinePanel market={selectedMarket} settledUrl={null} showLink={false} />
               </div>

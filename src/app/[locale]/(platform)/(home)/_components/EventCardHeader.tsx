@@ -1,4 +1,4 @@
-import type { Event } from '@/types'
+import type { Event, Market } from '@/types'
 import type { SelectedOutcome } from '@/types/EventCardTypes'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
@@ -17,6 +17,7 @@ interface EventCardHeaderProps {
   activeOutcome?: SelectedOutcome | null
   isInTradingMode: boolean
   isSingleMarket: boolean
+  primaryMarket?: Market
   roundedPrimaryDisplayChance: number
   onCancelTrade: () => void
 }
@@ -26,6 +27,7 @@ export default function EventCardHeader({
   activeOutcome,
   isInTradingMode,
   isSingleMarket,
+  primaryMarket,
   roundedPrimaryDisplayChance,
   onCancelTrade,
 }: EventCardHeaderProps) {
@@ -39,7 +41,6 @@ export default function EventCardHeader({
   const headerIcon = (isInTradingMode && activeMarket?.icon_url) ? activeMarket.icon_url : event.icon_url
   const iconSizeClass = isInTradingMode ? 'size-7' : 'size-10'
   const isResolvedEvent = event.status === 'resolved'
-  const primaryMarket = event.markets[0]
   const yesOutcome = primaryMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES) ?? primaryMarket?.outcomes[0]
   const noOutcome = primaryMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO) ?? primaryMarket?.outcomes[1]
   const outcomeLabels = new Set([

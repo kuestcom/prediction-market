@@ -38,6 +38,10 @@ import { useUser } from '@/stores/useUser'
 
 const EMPTY_PRICE_OVERRIDES: Record<string, number> = {}
 
+function isMarketResolved(market: Market) {
+  return Boolean(market.is_resolved || market.condition?.resolved)
+}
+
 export default function EventCard({
   event,
   priceOverridesByMarket = EMPTY_PRICE_OVERRIDES,
@@ -73,10 +77,19 @@ export default function EventCard({
 
   const activeOutcome = isOpen ? selectedOutcome : null
   const isInTradingMode = Boolean(activeOutcome)
-  const isSingleMarket = event.markets.length === 1
-  const yesOutcome = event.markets[0].outcomes[0]
-  const noOutcome = event.markets[0].outcomes[1]
   const isResolvedEvent = event.status === 'resolved'
+  const marketsToDisplay = useMemo(() => {
+    if (isResolvedEvent) {
+      return event.markets
+    }
+
+    const activeMarkets = event.markets.filter(market => !isMarketResolved(market))
+    return activeMarkets.length > 0 ? activeMarkets : event.markets
+  }, [event.markets, isResolvedEvent])
+  const isSingleMarket = marketsToDisplay.length === 1
+  const primaryMarket = marketsToDisplay[0]
+  const yesOutcome = primaryMarket?.outcomes[0]
+  const noOutcome = primaryMarket?.outcomes[1]
   const shouldShowNewBadge = shouldShowEventNewBadge(event)
   const shouldShowLiveBadge = !isResolvedEvent && Boolean(event.has_live_chart)
   const isNegRiskEnabled = Boolean(event.enable_neg_risk)
@@ -99,7 +112,6 @@ export default function EventCard({
     return chanceByMarket[marketId] ?? 0
   }
 
-  const primaryMarket = event.markets[0]
   const primaryDisplayChance = primaryMarket ? getDisplayChance(primaryMarket.condition_id) : 0
   const roundedPrimaryDisplayChance = Math.round(primaryDisplayChance)
   const endedLabel = useMemo(() => {
@@ -318,6 +330,7 @@ export default function EventCard({
           activeOutcome={activeOutcome}
           isInTradingMode={isInTradingMode}
           isSingleMarket={isSingleMarket}
+          primaryMarket={primaryMarket}
           roundedPrimaryDisplayChance={roundedPrimaryDisplayChance}
           onCancelTrade={handleCancelTrade}
         />
@@ -357,6 +370,7 @@ export default function EventCard({
                   {!isSingleMarket && (
                     <EventCardMarketsList
                       event={event}
+                      markets={marketsToDisplay}
                       isResolvedEvent={isResolvedEvent}
                       getDisplayChance={getDisplayChance}
                       onTrade={handleTrade}

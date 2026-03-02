@@ -69,17 +69,18 @@ export function buildEventMarketRows(
     const normalizedBestBid = typeof marketQuote?.bid === 'number'
       ? clamp(marketQuote.bid, 0, 1)
       : null
-    const yesPriceValue = normalizedBestAsk ?? normalizedYesPrice
-    const noPriceValue = normalizedBestBid != null
-      ? clamp(1 - normalizedBestBid, 0, 1)
-      : (normalizedYesPrice != null ? clamp(1 - normalizedYesPrice, 0, 1) : null)
-    const yesPriceCentsOverride = normalizedYesPrice != null ? toCents(normalizedYesPrice) : null
-
     const rawChance = outcomeChances[market.condition_id]
     const hasMarketChance = Number.isFinite(rawChance)
     const normalizedChance = hasMarketChance
       ? clamp(rawChance ?? 0, MIN_PERCENT, MAX_PERCENT)
       : null
+    const fallbackYesPrice = normalizedYesPrice
+      ?? (normalizedChance != null ? clamp(normalizedChance / 100, 0, 1) : null)
+    const yesPriceValue = normalizedBestAsk ?? fallbackYesPrice
+    const noPriceValue = normalizedBestBid != null
+      ? clamp(1 - normalizedBestBid, 0, 1)
+      : (fallbackYesPrice != null ? clamp(1 - fallbackYesPrice, 0, 1) : null)
+    const yesPriceCentsOverride = fallbackYesPrice != null ? toCents(fallbackYesPrice) : null
     const normalizedChanceValue = normalizedChance ?? 0
     const roundedChance = Math.round(normalizedChanceValue)
     const isSubOnePercent = normalizedChance != null && normalizedChance < 1
