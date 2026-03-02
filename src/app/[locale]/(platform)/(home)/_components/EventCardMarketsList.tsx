@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 
 interface EventCardMarketsListProps {
   event: Event
+  markets: Market[]
   isResolvedEvent: boolean
   getDisplayChance: (marketId: string) => number
   onTrade: (outcome: Outcome, market: Market, variant: 'yes' | 'no') => void
@@ -17,6 +18,7 @@ interface EventCardMarketsListProps {
 
 export default function EventCardMarketsList({
   event,
+  markets,
   isResolvedEvent,
   getDisplayChance,
   onTrade,
@@ -24,7 +26,7 @@ export default function EventCardMarketsList({
 }: EventCardMarketsListProps) {
   const normalizeOutcomeLabel = useOutcomeLabel()
   const marketsToRender = isResolvedEvent
-    ? event.markets
+    ? markets
         .map((market, index) => {
           const resolvedOutcome = market.outcomes.find(outcome => outcome.is_winning_outcome)
           const resolvedOutcomeIndex = resolvedOutcome?.outcome_index ?? null
@@ -42,7 +44,7 @@ export default function EventCardMarketsList({
         })
         .sort((a, b) => (a.rank - b.rank) || (a.index - b.index))
         .map(item => item.market)
-    : event.markets
+    : markets
 
   return (
     <div
