@@ -1060,7 +1060,9 @@ function MarketDetailTabs({
             })}
           </div>
 
-          <ConnectionStatusIndicator className="-mt-2" status={marketChannelStatus} />
+          {!shouldHideOrderBook && (
+            <ConnectionStatusIndicator className="-mt-2" status={marketChannelStatus} />
+          )}
 
           {!shouldHideOrderBook && (
             <button
