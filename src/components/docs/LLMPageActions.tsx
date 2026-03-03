@@ -111,6 +111,7 @@ export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
 
   useEffect(() => {
     let cancelled = false
+    setMarkdownContent(null)
 
     async function preloadMarkdown() {
       try {
