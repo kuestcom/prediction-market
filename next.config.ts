@@ -54,6 +54,14 @@ const config: NextConfig = {
   async rewrites() {
     return [
       {
+        source: '/docs/:path*.mdx',
+        destination: '/en/llms.mdx/docs/:path*',
+      },
+      {
+        source: '/:locale/docs/:path*.mdx',
+        destination: '/:locale/llms.mdx/docs/:path*',
+      },
+      {
         source: '/sitemaps/:id.xml',
         destination: '/sitemaps/sitemap/:id.xml',
       },
