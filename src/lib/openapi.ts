@@ -2,6 +2,25 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { createOpenAPI } from 'fumadocs-openapi/server'
 
+function resolveServerUrl(envValue: string | undefined): string | undefined {
+  const value = envValue?.trim()
+
+  if (!value) {
+    return undefined
+  }
+
+  return value
+}
+
+export const OPENAPI_SERVER_URLS = {
+  clob: resolveServerUrl(process.env.CLOB_URL),
+  createMarket: resolveServerUrl(process.env.CREATE_MARKET_URL),
+  community: resolveServerUrl(process.env.COMMUNITY_URL),
+  dataApi: resolveServerUrl(process.env.DATA_URL),
+  priceReference: resolveServerUrl(process.env.PRICE_REFERENCE_URL),
+  relayer: resolveServerUrl(process.env.RELAYER_URL),
+} as const
+
 type SchemaServer = Record<string, unknown> & {
   url?: string
 }
@@ -10,7 +29,11 @@ type OpenApiSchema = Record<string, unknown> & {
   servers?: SchemaServer[]
 }
 
-function applyServerUrl(schema: OpenApiSchema, serverUrl: string): OpenApiSchema {
+function applyServerUrl(schema: OpenApiSchema, serverUrl?: string): OpenApiSchema {
+  if (!serverUrl) {
+    return schema
+  }
+
   const existingServers = Array.isArray(schema.servers) ? schema.servers : []
 
   if (existingServers.length === 0) {
@@ -62,13 +85,13 @@ export const openapi = createOpenAPI({
     ])
 
     return {
-      'clob': applyServerUrl(clobSchema, process.env.CLOB_URL!),
-      'clob-extended': applyServerUrl(clobExtendedSchema, process.env.CLOB_URL!),
-      'create-market': applyServerUrl(createMarketSchema, process.env.CREATE_MARKET_URL!),
-      'community': applyServerUrl(communitySchema, process.env.COMMUNITY_URL!),
-      'data-api': applyServerUrl(dataApiSchema, process.env.DATA_URL!),
-      'price-reference': applyServerUrl(priceReferenceSchema, process.env.PRICE_REFERENCE_URL!),
-      'relayer': applyServerUrl(relayerSchema, process.env.RELAYER_URL!),
+      'clob': applyServerUrl(clobSchema, OPENAPI_SERVER_URLS.clob),
+      'clob-extended': applyServerUrl(clobExtendedSchema, OPENAPI_SERVER_URLS.clob),
+      'create-market': applyServerUrl(createMarketSchema, OPENAPI_SERVER_URLS.createMarket),
+      'community': applyServerUrl(communitySchema, OPENAPI_SERVER_URLS.community),
+      'data-api': applyServerUrl(dataApiSchema, OPENAPI_SERVER_URLS.dataApi),
+      'price-reference': applyServerUrl(priceReferenceSchema, OPENAPI_SERVER_URLS.priceReference),
+      'relayer': applyServerUrl(relayerSchema, OPENAPI_SERVER_URLS.relayer),
     }
   },
   proxyUrl: '/docs/api/proxy',
