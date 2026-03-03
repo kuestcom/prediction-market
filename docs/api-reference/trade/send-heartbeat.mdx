@@ -4,6 +4,15 @@ description: "Post a heartbeat."
 _openapi:
   method: POST
 ---
+Send a heartbeat to keep orders active.
+
+<Callout type="info">
+This endpoint requires L2 authentication headers: `KUEST_ADDRESS`, `KUEST_SIGNATURE`, `KUEST_TIMESTAMP`, `KUEST_API_KEY`, and `KUEST_PASSPHRASE`.
+</Callout>
+
+Use the returned `heartbeat_id` in subsequent requests to continue the session.
+
+## Playground
 
 <APIPage
   document="clob"

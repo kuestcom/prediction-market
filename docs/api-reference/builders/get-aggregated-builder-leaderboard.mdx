@@ -4,6 +4,18 @@ description: "Placeholder route for the builder leaderboard."
 _openapi:
   method: GET
 ---
+<Callout type="info">
+Builder analytics still lack real attribution data. Responses will be empty until the ETL pipeline launches.
+</Callout>
+
+This route aggregates volume, active user counts, and verification indicators for each builder (community curator, partner, etc.). Use it to seed leaderboard tables or badges that recognize high-performing builders.
+
+- `timePeriod`: `DAY`, `WEEK`, `MONTH`, or `ALL` (defaults to `DAY`).
+- `limit` and `offset` paginate through the ranked list (max 50 per page).
+
+Each object includes the `rank`, `builder` label, `volume`, `activeUsers`, `verified` flag, and optional logo URL.
+
+## Playground
 
 <APIPage
   document="data-api"

@@ -1,7 +1,117 @@
 ---
 title: Authentication
-description: Authentication endpoints and credential models.
+description: L1 and L2 authentication model, required headers, and auth playgrounds.
 ---
+
+{process.env.NEXT_PUBLIC_SITE_NAME} uses a two-tier authentication flow:
+
+- **L1 (wallet signature)** for creating or deriving API keys.
+- **L2 (API credentials)** for authenticated trading and account endpoints.
+
+<Callout type="info" title="Credential Console">
+  Use <a href="https://auth.kuest.com" target="_blank" rel="noreferrer">auth.kuest.com</a> to create, list, and revoke API keys without crafting raw requests.
+</Callout>
+
+## L1 authentication (wallet signature)
+
+Creating credentials requires an EIP-712 signature produced by the Polygon wallet that owns the account.
+
+### Required headers
+
+| Header | Description |
+| --- | --- |
+| `KUEST_ADDRESS` | Polygon address that owns the account. |
+| `KUEST_SIGNATURE` | EIP-712 signature over the auth payload. |
+| `KUEST_TIMESTAMP` | Unix timestamp in seconds at signing time. |
+| `KUEST_NONCE` | Monotonic nonce bound to the signature. |
+
+### Typed data schema
+
+```json
+{
+  "domain": {
+    "name": "ClobAuthDomain",
+    "version": "1",
+    "chainId": 137
+  },
+  "types": {
+    "ClobAuth": [
+      { "name": "address", "type": "address" },
+      { "name": "timestamp", "type": "string" },
+      { "name": "nonce", "type": "uint256" },
+      { "name": "message", "type": "string" }
+    ]
+  },
+  "message": {
+    "address": "<signing address>",
+    "timestamp": "<unix timestamp>",
+    "nonce": "<uint256 nonce>",
+    "message": "This message attests that I control the given wallet"
+  }
+}
+```
+
+## L2 authentication (API credentials)
+
+After creating an API key, authenticated requests use L2 headers derived from `secret` and `passphrase`.
+
+### Required headers
+
+| Header | Description |
+| --- | --- |
+| `KUEST_ADDRESS` | Polygon address that generated the key. |
+| `KUEST_SIGNATURE` | HMAC signature generated from the API secret. |
+| `KUEST_TIMESTAMP` | Unix timestamp in seconds for replay protection. |
+| `KUEST_API_KEY` | UUID v4 from `POST /auth/api-key`. |
+| `KUEST_PASSPHRASE` | 64-char hex passphrase paired with the key. |
+
+### Storage guarantees
+
+- `secret` and `passphrase` are generated and returned once.
+- Store both securely; they cannot be recovered later.
+- Revoking a key invalidates the `apiKey` + `secret` + `passphrase` tuple immediately.
+
+## Which header to use?
+
+| Action | Required auth |
+| --- | --- |
+| `POST /auth/api-key` | L1 |
+| `GET /auth/derive-api-key` | L1 |
+| `GET /auth/api-keys` | L2 |
+| `DELETE /auth/derive-api-key` | L2 |
+| Order placement and cancellation | L2 |
+| Public market data and server time | None |
+
+## Endpoint notes
+
+### Create API key (`POST /auth/api-key`)
+
+- Uses L1 headers.
+- Optional header: `KUEST_REFERRAL` for referral attribution.
+- Response includes `apiKey`, `secret`, and `passphrase`.
+
+### Derive API key (`GET /auth/derive-api-key`)
+
+- Uses L1 headers.
+- Re-derives deterministic credentials from an existing address/nonce pair.
+- Returns `404` if the pair has no previously created key.
+
+### List API keys (`GET /auth/api-keys`)
+
+- Uses L2 headers.
+- Returns active keys for the authenticated address.
+- Revoked keys are excluded from the response.
+
+### Revoke API key (`DELETE /auth/derive-api-key`)
+
+- Uses L2 headers.
+- Invalidates the provided key immediately.
+
+### Community auth
+
+Community endpoints use nonce + signature verification:
+- `POST /auth/nonce`
+- `POST /auth/verify`
 
 ## Playground
 

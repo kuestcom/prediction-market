@@ -4,6 +4,18 @@ description: "Returns cached trade fills with filters for user, market, paginati
 _openapi:
   method: GET
 ---
+<code>{process.env.DATA_URL}/trades</code> surfaces every fill captured by the {process.env.NEXT_PUBLIC_SITE_NAME} orderbook subgraph. You can query by wallet or by a batch of markets.
+
+## Parameters worth noting
+
+- `limit`/`offset` support up to 10,000 rows for heavy exports.
+- `takerOnly=true` (default) filters out maker fills; set it to `false` for a complete view.
+- Pair `filterType=CASH|TOKENS` with `filterAmount` to return only trades larger than a given notional amount.
+- `side` lets you focus on buys or sells when looking at a specific wallet.
+
+The `market` parameter accepts CSV lists and cannot be combined with other future scoping filters.
+
+## Playground
 
 <APIPage
   document="data-api"

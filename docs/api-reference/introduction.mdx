@@ -1,16 +1,74 @@
 ---
 title: Introduction
-description: General overview of the API reference.
+description: Official developer portal for trading, market data, analytics, and WebSocket APIs.
 ---
 
-## Overview
+# {process.env.NEXT_PUBLIC_SITE_NAME} Developer Docs
 
-This section contains the API reference for Kuest services.
+Welcome to the {process.env.NEXT_PUBLIC_SITE_NAME} developer hub. This section documents the REST and WebSocket interfaces used by trading clients, analytics dashboards, and community features.
 
-## What you will find
+<Callout type="info" title="Base URLs">
+  Use these hosts while testing endpoints:
 
-- REST endpoints with request/response playgrounds
-- WebSocket channels and live stream examples
-- Endpoint pages organized by topic
+  `CLOB_URL`: {process.env.CLOB_URL}
 
-Use the sidebar to navigate by category and open each endpoint page.
+
+  `DATA_URL`: {process.env.DATA_URL}
+
+
+  `WS_CLOB_URL`: {process.env.WS_CLOB_URL}
+
+
+  `WS_LIVE_DATA_URL`: {process.env.WS_LIVE_DATA_URL}
+</Callout>
+
+## Quick navigation
+
+### Platform
+- [Introduction](./introduction) - API reference index and conventions.
+- [API Rate Limits](./rate-limits) - request caps and throttling windows.
+- [Authentication](./authentication) - L1/L2 auth model and credential usage.
+- [Get Server Time](./data/get-server-time) - public endpoint for time sync.
+
+### Trading and market data
+- [Post A New Order](./trade/post-a-new-order) - place a single order.
+- [Post Multiple Orders](./trade/post-multiple-orders) - place up to 15 orders in one call.
+- [Get User Orders](./trade/get-user-orders) - query active orders for the authenticated user.
+- [Cancel Single Order](./trade/cancel-single-order) - cancel one order by ID.
+- [Get Order Book](./market-data/get-order-book) - snapshot bids and asks for one token.
+- [Get Market Price](./market-data/get-market-price) - best bid and ask for one token-side pair.
+- [Get Spread](./market-data/get-spread) - bid/ask spread for a market.
+- [List Markets](./markets/list-markets) - browse available markets.
+
+### Analytics and community
+- [Get Current Positions For A User](./core/get-current-positions-for-a-user)
+- [Get Trades For A User Or Markets](./core/get-trades-for-a-user-or-markets)
+- [Get Open Interest](./misc/get-open-interest)
+- [Get Aggregated Builder Leaderboard](./builders/get-aggregated-builder-leaderboard)
+- [Get Public Profile By Wallet Address](./profiles/get-public-profile-by-wallet-address)
+- [List Comments](./comments/list-comments)
+
+### WebSocket
+- [Market](./wss/market) - public order book and pricing stream.
+- [User](./wss/user) - private order/trade stream authenticated with API keys.
+- [Sports](./wss/sports) - live activity, comments, and crypto price updates.
+
+## Working with playgrounds
+
+1. Open an endpoint page and fill in required parameters.
+2. Click `Send request` to execute against the configured host.
+3. Inspect response headers/body and copy the generated request for your client.
+
+## Glossary
+
+| Term | Definition |
+| --- | --- |
+| **Token / Asset ID** | Exposure to a specific market outcome. Winning outcome tokens redeem for 1 USDC at resolution. |
+| **Market** | One prediction market defined by condition ID, token IDs, and metadata. |
+| **Event** | Group of related markets under one theme. |
+| **Slug** | Human-readable identifier used in URLs. |
+| **CLOB** | Central limit order book used for matching and pricing. |
+
+## Need help?
+
+If you need unpublished routes or run into integration issues, contact the engineering team and include the request path, headers (without secrets), and response payload.

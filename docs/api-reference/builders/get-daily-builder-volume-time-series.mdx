@@ -4,6 +4,15 @@ description: "Placeholder route for the builder time-series."
 _openapi:
   method: GET
 ---
+<Callout type="info">
+Daily builder volumes are placeholders until the attribution ETL is wired into production.
+</Callout>
+
+<code>GET {process.env.DATA_URL}/v1/builders/volume</code> spits out a day-by-day record for each builder, including the ISO timestamp (`dt`), volume, active user count, rank, and verification badge data.
+
+Pick the time horizon with `timePeriod` (same values as the leaderboard endpoint). The route does not paginate because each day is a separate array entry, so scroll or aggregate as needed on the client.
+
+## Playground
 
 <APIPage
   document="data-api"

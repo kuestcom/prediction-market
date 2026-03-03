@@ -1,7 +1,35 @@
 ---
 title: Sports
 description: "Subscribe to live activity, comments, and price updates over WebSocket."
+_openapi:
+  method: WSS
 ---
+
+Live data stream for activity events, comment updates, and crypto prices.
+
+## Endpoint
+
+- Production: <code>{process.env.WS_LIVE_DATA_URL}</code>
+
+## Heartbeats
+
+Send any variant of `PING` (`ping`, `PiNg`, `PING`). The server replies with `PONG`.
+
+## Subscription envelope
+
+| Field | Description |
+| --- | --- |
+| `action` | `subscribe` or `unsubscribe`. |
+| `subscriptions` | Array of topic subscriptions. |
+| `topic` | Stream identifier (`activity`, `comments`, `crypto_prices_chainlink`, `crypto_prices_binance`). |
+| `type` | Event type inside a topic (`orders_matched`, `comment_created`, `update`, or `*`). |
+| `filters` | Optional topic-specific filter object. |
+
+## Notes
+
+- `symbol` is used for one symbol; `symbols` supports arrays.
+- `filters` may be sent as a JSON object or JSON string.
+- One connection can subscribe to multiple topics.
 
 ## WebSocket Playground
 

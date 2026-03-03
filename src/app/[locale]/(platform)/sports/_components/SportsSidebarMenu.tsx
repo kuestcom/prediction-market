@@ -408,7 +408,7 @@ function SportsMobileSheetLink({
         })
       }}
       className={cn(
-        `flex w-full items-center gap-2.5 rounded-md px-3 py-3 text-left transition-colors hover:bg-muted/55`,
+        `flex w-full items-center gap-2.5 rounded-md p-3 text-left transition-colors hover:bg-muted/55`,
         nested && 'py-2.5 pl-7',
         isActive ? 'bg-muted/70' : 'bg-transparent',
       )}
@@ -698,7 +698,7 @@ export default function SportsSidebarMenu({
           <button
             type="button"
             className={`
-              flex w-full items-center justify-between rounded-md bg-transparent px-3 py-3 text-left transition-colors
+              flex w-full items-center justify-between rounded-md bg-transparent p-3 text-left transition-colors
               hover:bg-muted/55
             `}
             onClick={() => {
@@ -810,10 +810,7 @@ export default function SportsSidebarMenu({
         <div key={entry.id}>
           <button
             type="button"
-            className={`
-              flex w-full items-center gap-2.5 rounded-md px-3 py-3 text-left transition-colors
-              hover:bg-muted/55
-            `}
+            className="flex w-full items-center gap-2.5 rounded-md p-3 text-left transition-colors hover:bg-muted/55"
             onClick={() => {
               setExpandedGroups(current => ({
                 ...current,

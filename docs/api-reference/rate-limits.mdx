@@ -1,0 +1,49 @@
+---
+title: API Rate Limits
+description: Request caps and throttling windows for CLOB endpoints.
+---
+
+Reference the tables below to understand the live request caps for the CLOB API.
+
+<Callout type="info" title="How throttling works">
+  Limits are enforced at the edge. When request volume exceeds a configured cap,
+  traffic is throttled for that window.
+</Callout>
+
+## General limits
+
+| Endpoint | Limit | Notes |
+| --- | --- | --- |
+| CLOB API (general) | 5000 requests / 10s | Throttled above configured maximum |
+| Health check (`GET /`) | 50 requests / 10s | Throttled above configured maximum |
+
+## Market data limits
+
+| Endpoint | Limit | Notes |
+| --- | --- | --- |
+| `GET /book` | 200 requests / 10s | Throttled above configured maximum |
+| `POST /books` | 80 requests / 10s | Throttled above configured maximum |
+| `GET /price` | 200 requests / 10s | Throttled above configured maximum |
+| `POST /prices` | 80 requests / 10s | Throttled above configured maximum |
+| `GET /midpoint` | 200 requests / 10s | Throttled above configured maximum |
+| `GET /prices-history` | 100 requests / 10s | Throttled above configured maximum |
+
+## Ledger endpoint limits
+
+| Endpoint | Limit | Notes |
+| --- | --- | --- |
+| `GET /trades` | 150 requests / 10s | Throttled above configured maximum |
+
+## Trading endpoint limits
+
+| Endpoint | Limit | Notes |
+| --- | --- | --- |
+| `POST /order` | 2400 requests / 10s (240/s) | Burst window |
+| `POST /order` | 24000 requests / 10 minutes (40/s) | Sustained window |
+| `DELETE /order` | 2400 requests / 10s (240/s) | Burst window |
+| `DELETE /order` | 24000 requests / 10 minutes (40/s) | Sustained window |
+
+<Callout type="warning" title="Subject to change">
+  Treat these values as operational defaults. Production limits may be adjusted
+  without a version bump.
+</Callout>

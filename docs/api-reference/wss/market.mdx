@@ -1,7 +1,38 @@
 ---
 title: Market
 description: "Subscribe to market order book and trade updates over WebSocket."
+_openapi:
+  method: WSS
 ---
+
+Public market stream for order book snapshots and price updates.
+
+## Endpoint
+
+- Production: <code>{process.env.WS_CLOB_URL}/ws/market</code>
+
+## Subscription payload
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `type` | string | Must be `market`. |
+| `assets_ids` | string[] | Token IDs to stream. |
+| `custom_feature_enabled` | boolean | Enables `best_bid_ask` and `new_market` events. |
+
+## Event types
+
+- `book`: full level-2 order book snapshot.
+- `price_change`: incremental updates when orders are placed or canceled.
+- `tick_size_change`: minimum tick-size changes.
+- `last_trade_price`: latest matched trade.
+- `best_bid_ask`: top-of-book signal (requires `custom_feature_enabled`).
+- `new_market`: metadata for newly ingested markets (requires `custom_feature_enabled`).
+
+## Notes
+
+- Numeric values are returned as strings.
+- `book.hash` is a summary hash of the order book payload.
+- Use one connection for multiple token subscriptions when possible.
 
 ## WebSocket Playground
 

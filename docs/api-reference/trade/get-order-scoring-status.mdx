@@ -1,12 +1,18 @@
 ---
 title: Get Order Scoring Status
 description: "Check if an order is scoring (L2)."
+_openapi:
+  method: GET
 ---
+Check whether a single order is currently scoring.
+
+This endpoint requires L2 authentication headers.
+
+## Playground
 
 <APIPage
   document="clob"
   operations={[
-    { path: '/order-scoring', method: 'get' },
-    { path: '/orders-scoring', method: 'post' }
+    { path: '/order-scoring', method: 'get' }
   ]}
 />

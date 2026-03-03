@@ -1,7 +1,34 @@
 ---
 title: User
 description: "Subscribe to authenticated user updates over WebSocket."
+_openapi:
+  method: WSS
 ---
+
+Authenticated stream for order and trade updates scoped to your API credentials.
+
+## Endpoint
+
+- Production: <code>{process.env.WS_CLOB_URL}/ws/user</code>
+
+## Required auth object
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `apikey` | Yes | UUID v4 API key returned by `POST /auth/api-key`. |
+| `secret` | Yes | Base64 secret paired with the API key. |
+| `passphrase` | Yes | Hex passphrase used with the secret. |
+
+## Event types
+
+- `trade`: trade lifecycle updates (`MATCHED`, `MINED`, `CONFIRMED`, `FAILED`).
+- `order`: order lifecycle updates (`PLACEMENT`, `UPDATE`, `CANCELLATION`).
+
+## Notes
+
+- Numeric fields are strings.
+- `owner`, `trade_owner`, and `order_owner` are normalized to the caller API key.
+- Reuse the same L2 credentials used for private REST endpoints.
 
 ## WebSocket Playground
 

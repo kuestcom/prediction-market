@@ -4,6 +4,12 @@ description: "Get a token order book snapshot."
 _openapi:
   method: GET
 ---
+Fetch the latest order book snapshot for a single `token_id`.
+
+The `timestamp` value is a Unix millisecond timestamp; convert it to human-readable time as needed on the client.
+Only the first few depth levels are shown above; the full payload can contain additional bids and asks.
+
+## Playground
 
 <APIPage
   document="clob"

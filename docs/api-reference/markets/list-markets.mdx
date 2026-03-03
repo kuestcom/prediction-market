@@ -4,6 +4,11 @@ description: "List markets."
 _openapi:
   method: GET
 ---
+Returns a paginated list of markets and metadata.
+
+Use `next_cursor=MA==` for the first page and continue until the API returns `LTE=`.
+
+## Playground
 
 <APIPage
   document="clob"

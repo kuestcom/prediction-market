@@ -5,6 +5,7 @@
   "root": true,
   "pages": [
     "introduction",
+    "rate-limits",
     "authentication",
     "---Trade---",
     "...trade",
@@ -26,7 +27,7 @@
     "...misc",
     "---Series---",
     "...series",
-    "---Wss---",
+    "---WebSocket---",
     "...wss"
   ]
 }
