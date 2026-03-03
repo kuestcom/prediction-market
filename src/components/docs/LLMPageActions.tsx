@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckIcon, ChevronDownIcon, CopyIcon, FileTextIcon, LinkIcon } from 'lucide-react'
+import { CheckIcon, ChevronDownIcon, CopyIcon, FileTextIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -9,10 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-
-interface LLMCopyButtonProps {
-  markdownUrl: string
-}
 
 interface ViewOptionsProps {
   markdownUrl: string
@@ -38,6 +34,80 @@ function openExternal(url: string) {
   const popup = window.open(url, '_blank', 'noopener,noreferrer')
   if (!popup && url.startsWith('cursor://')) {
     window.location.href = url
+  }
+}
+
+async function copyText(text: string) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return
+    }
+    catch {
+      //
+    }
+  }
+
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  textarea.style.pointerEvents = 'none'
+  document.body.appendChild(textarea)
+  textarea.focus()
+  textarea.select()
+
+  const copied = document.execCommand('copy')
+  document.body.removeChild(textarea)
+
+  if (!copied) {
+    throw new Error('Copy command failed')
+  }
+}
+
+async function copyMarkdown(markdownUrl: string, absoluteMarkdownUrl: string) {
+  const markdownPromise = fetch(markdownUrl, {
+    headers: {
+      Accept: 'text/markdown',
+    },
+  }).then((response) => {
+    if (!response.ok) {
+      throw new Error(`Failed to fetch markdown (${response.status})`)
+    }
+    return response.text()
+  })
+
+  if (
+    typeof navigator !== 'undefined'
+    && navigator.clipboard?.write
+    && typeof ClipboardItem !== 'undefined'
+  ) {
+    try {
+      const item = new ClipboardItem({
+        'text/plain': markdownPromise.then(markdown => new Blob([markdown], { type: 'text/plain' })),
+      })
+      await navigator.clipboard.write([item])
+      return true
+    }
+    catch {
+      // Fallback below.
+    }
+  }
+
+  try {
+    const markdown = await markdownPromise
+    await copyText(markdown)
+    return true
+  }
+  catch {
+    try {
+      await copyText(absoluteMarkdownUrl)
+      return true
+    }
+    catch {
+      return false
+    }
   }
 }
 
@@ -74,7 +144,7 @@ function CursorIcon({ className }: BrandIconProps) {
   )
 }
 
-export function LLMCopyButton({ markdownUrl }: LLMCopyButtonProps) {
+export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -84,43 +154,24 @@ export function LLMCopyButton({ markdownUrl }: LLMCopyButtonProps) {
     }
 
     setLoading(true)
+    const absoluteMarkdownUrl = toAbsoluteUrl(markdownUrl)
     try {
-      const response = await fetch(markdownUrl, {
-        headers: {
-          Accept: 'text/markdown',
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch markdown (${response.status})`)
+      const success = await copyMarkdown(markdownUrl, absoluteMarkdownUrl)
+      if (!success) {
+        return
       }
 
-      const markdown = await response.text()
-      await navigator.clipboard.writeText(markdown)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1800)
     }
     catch {
-      await navigator.clipboard.writeText(markdownUrl)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1800)
+      // No-op: keep UI stable when copy is blocked entirely by the platform.
     }
     finally {
       setLoading(false)
     }
   }
 
-  return (
-    <Button type="button" variant="outline" size="sm" onClick={onCopy} disabled={loading}>
-      {copied
-        ? <CheckIcon className="size-4" />
-        : <CopyIcon className="size-4" />}
-      {copied ? 'Copied' : loading ? 'Copying...' : 'Copy for LLM'}
-    </Button>
-  )
-}
-
-export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
   function openOnChatGPT() {
     const absoluteMarkdownUrl = toAbsoluteUrl(markdownUrl)
     const prompt = buildAssistantPrompt(absoluteMarkdownUrl)
@@ -140,34 +191,58 @@ export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button type="button" variant="outline" size="sm">
-          <LinkIcon className="size-4" />
-          View
-          <ChevronDownIcon className="size-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-44">
-        <DropdownMenuItem asChild>
-          <a href={markdownUrl} target="_blank" rel="noreferrer">
-            <FileTextIcon className="size-4" />
-            Open Markdown
-          </a>
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={openOnChatGPT}>
-          <OpenAIIcon className="size-4" />
-          Open on ChatGPT
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={openOnClaude}>
-          <ClaudeIcon className="size-4" />
-          Open on Claude
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={openOnCursor}>
-          <CursorIcon className="size-4" />
-          Open on Cursor
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div
+      className="
+        inline-flex items-center overflow-hidden rounded-sm border bg-background shadow-xs
+        dark:border-input dark:bg-input/30
+      "
+    >
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => void onCopy()}
+        disabled={loading}
+        className="rounded-none border-0 shadow-none"
+      >
+        {copied
+          ? <CheckIcon className="size-4" />
+          : <CopyIcon className="size-4" />}
+        {copied ? 'Copied' : loading ? 'Copying...' : 'Copy for LLM'}
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="rounded-none border-0 border-l px-2 shadow-none"
+            aria-label="More options"
+          >
+            <ChevronDownIcon className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-44">
+          <DropdownMenuItem asChild>
+            <a href={markdownUrl} target="_blank" rel="noreferrer">
+              <FileTextIcon className="size-4" />
+              Open Markdown
+            </a>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={openOnChatGPT}>
+            <OpenAIIcon className="size-4" />
+            Open on ChatGPT
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={openOnClaude}>
+            <ClaudeIcon className="size-4" />
+            Open on Claude
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={openOnCursor}>
+            <CursorIcon className="size-4" />
+            Open on Cursor
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }

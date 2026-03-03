@@ -11,7 +11,7 @@ import { PlatformShareDisplay } from '@/app/[locale]/docs/_components/PlatformSh
 import { TradingFeeDisplay } from '@/app/[locale]/docs/_components/TradingFeeDisplay'
 import { WebSocketPlayground } from '@/app/[locale]/docs/_components/WebSocketPlayground'
 import { APIPage } from '@/components/docs/APIPage'
-import { LLMCopyButton, ViewOptions } from '@/components/docs/LLMPageActions'
+import { ViewOptions } from '@/components/docs/LLMPageActions'
 import { withLocalePrefix } from '@/lib/locale-path'
 import { source } from '@/lib/source'
 
@@ -62,7 +62,6 @@ export default async function Page(props: PageProps<'/[locale]/docs/[[...slug]]'
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <div className="flex flex-wrap items-center gap-2 border-b pb-4">
-        <LLMCopyButton markdownUrl={markdownUrl} />
         <ViewOptions markdownUrl={markdownUrl} />
       </div>
       <DocsBody className={isApiReferencePage ? 'max-w-none' : undefined}>

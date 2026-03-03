@@ -51,7 +51,9 @@ export default async function proxy(request: NextRequest) {
   if (isMarkdownPreferred(request)) {
     const rewrittenPath = rewriteMarkdownWithLocale(url.pathname) || rewriteMarkdownDefaultLocale(url.pathname)
     if (rewrittenPath) {
-      return NextResponse.rewrite(new URL(rewrittenPath, request.url))
+      const rewrittenUrl = new URL(rewrittenPath, request.url)
+      rewrittenUrl.search = url.search
+      return NextResponse.rewrite(rewrittenUrl)
     }
   }
 
