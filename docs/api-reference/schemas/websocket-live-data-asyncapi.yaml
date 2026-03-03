@@ -76,12 +76,14 @@ components:
     Ping:
       name: Ping
       title: Ping
+      contentType: text/plain
       summary: Client keepalive ping (raw text).
       payload:
         $ref: '#/components/schemas/Ping'
     Pong:
       name: Pong
       title: Pong
+      contentType: text/plain
       summary: Server response to ping (always PONG).
       payload:
         $ref: '#/components/schemas/Pong'

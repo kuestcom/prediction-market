@@ -75,74 +75,6 @@
         }
       }
     },
-    "/admin/system/pause": {
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Pause order intake globally",
-        "operationId": "adminPauseSystem",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SystemPauseRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "System paused"
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
-    "/admin/system/resume": {
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Resume order intake globally",
-        "operationId": "adminResumeSystem",
-        "responses": {
-          "204": {
-            "description": "System unpaused"
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
-    "/admin/system/status": {
-      "get": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Fetch global circuit breaker status",
-        "operationId": "adminSystemStatus",
-        "responses": {
-          "200": {
-            "description": "Current system pause state.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SystemStatus"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
     "/order": {
       "post": {
         "tags": [
@@ -385,19 +317,6 @@
           }
         },
         "responses": {
-          "409": {
-            "description": "One or more conditions or the system is paused.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          },
           "200": {
             "description": "Batch order placement results",
             "content": {
@@ -410,6 +329,19 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "One or more conditions or the system is paused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
           }
         }
       }
@@ -970,262 +902,6 @@
         }
       }
     },
-    "/admin/conditions": {
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Query conditions with aggregated metrics",
-        "operationId": "adminListConditions",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AdminConditionQuery"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Matching conditions and their metrics.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminConditionListResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
-    "/admin/conditions/{condition_id}/pause": {
-      "parameters": [
-        {
-          "name": "condition_id",
-          "in": "path",
-          "required": true,
-          "description": "Condition identifier",
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Pause a condition",
-        "operationId": "adminPauseCondition",
-        "responses": {
-          "204": {
-            "description": "Condition paused"
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
-    "/admin/conditions/{condition_id}/resume": {
-      "parameters": [
-        {
-          "name": "condition_id",
-          "in": "path",
-          "required": true,
-          "description": "Condition identifier",
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Resume a condition",
-        "operationId": "adminResumeCondition",
-        "responses": {
-          "204": {
-            "description": "Condition resumed"
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
-    "/admin/conditions/{condition_id}/clear": {
-      "parameters": [
-        {
-          "name": "condition_id",
-          "in": "path",
-          "required": true,
-          "description": "Condition identifier",
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Cancel outstanding orders for a paused condition",
-        "operationId": "adminClearCondition",
-        "responses": {
-          "204": {
-            "description": "Condition cleared"
-          },
-          "409": {
-            "description": "Condition must be paused before it can be cleared.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
-    "/admin/users": {
-      "get": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "List users with wallet and API key metadata",
-        "operationId": "adminListUsers",
-        "parameters": [
-          {
-            "name": "wallet",
-            "in": "query",
-            "required": false,
-            "description": "Filter by wallet address (case-insensitive).",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "key",
-            "in": "query",
-            "required": false,
-            "description": "Filter to the user owning the supplied API key UUID.",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "description": "Filter by user role (`fork`, `client`, or `admin`).",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Filter by user status (`active`, `inactive`, or `banned`).",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "description": "Zero-based page index. Each page returns up to 1,000 users.",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "minimum": 0,
-              "default": 0
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "description": "Number of users per page (1-1000, defaults to 1000).",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "minimum": 1,
-              "maximum": 1000,
-              "default": 1000
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Matching users and their API keys.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AdminUserSummary"
-                  }
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
-    "/admin/users/{user_id}/ban": {
-      "parameters": [
-        {
-          "name": "user_id",
-          "in": "path",
-          "required": true,
-          "description": "User identifier",
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "cascade",
-          "in": "query",
-          "required": false,
-          "description": "Also ban users referred by this user",
-          "schema": {
-            "type": "boolean"
-          }
-        }
-      ],
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Ban a user and revoke their API keys",
-        "operationId": "adminBanUser",
-        "responses": {
-          "204": {
-            "description": "User banned"
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
     "/auth/api-key": {
       "post": {
         "tags": [
@@ -1305,6 +981,12 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
           "404": {
             "description": "API key not found for the provided address/nonce",
             "content": {
@@ -1314,12 +996,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ErrorResponse"
-          },
-          "401": {
-            "$ref": "#/components/responses/ErrorResponse"
           },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
@@ -2545,9 +2221,6 @@
           }
         },
         "responses": {
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          },
           "200": {
             "description": "Request created.",
             "content": {
@@ -2557,6 +2230,9 @@
                 }
               }
             }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
           }
         }
       },
@@ -2807,9 +2483,6 @@
           }
         },
         "responses": {
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          },
           "200": {
             "description": "Quote created.",
             "content": {
@@ -2819,6 +2492,9 @@
                 }
               }
             }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
           }
         }
       },
@@ -3528,7 +3204,7 @@
         "schema": {
           "type": "string"
         },
-        "description": "Optional wallet address (0x\u2026) to credit as the referrer."
+        "description": "Optional wallet address (0x…) to credit as the referrer."
       }
     },
     "responses": {
