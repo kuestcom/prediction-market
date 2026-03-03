@@ -6,7 +6,7 @@ description: "Subscribe to market order book and trade updates over WebSocket."
 ## WebSocket Playground
 
 <WebSocketPlayground
-  endpoint="wss://ws-subscriptions-clob.kuest.com/ws/market"
+  endpoint={`${process.env.WS_CLOB_URL}/ws/market`}
   defaultMessage={`{
   "type": "market",
   "assets_ids": ["<asset_id>"],

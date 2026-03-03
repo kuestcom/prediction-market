@@ -6,7 +6,7 @@ description: "Subscribe to authenticated user updates over WebSocket."
 ## WebSocket Playground
 
 <WebSocketPlayground
-  endpoint="wss://ws-subscriptions-clob.kuest.com/ws/user"
+  endpoint={`${process.env.WS_CLOB_URL}/ws/user`}
   defaultMessage={`{
   "type": "user",
   "markets": ["<condition_id>"],

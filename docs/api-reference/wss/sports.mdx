@@ -6,7 +6,7 @@ description: "Subscribe to live activity, comments, and price updates over WebSo
 ## WebSocket Playground
 
 <WebSocketPlayground
-  endpoint="wss://ws-live-data.kuest.com"
+  endpoint={process.env.WS_LIVE_DATA_URL}
   defaultMessage={`{
   "action": "subscribe",
   "subscriptions": [

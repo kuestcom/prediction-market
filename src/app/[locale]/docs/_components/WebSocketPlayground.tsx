@@ -12,6 +12,7 @@ const DEFAULT_MESSAGE = `{
   "type": "subscribe",
   "channel": "events"
 }`
+const DEFAULT_ENDPOINT = process.env.WS_LIVE_DATA_URL!
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 type LogLevel = 'system' | 'sent' | 'received' | 'error'
@@ -83,7 +84,7 @@ function formatTime(timestamp: number) {
 }
 
 export function WebSocketPlayground({
-  endpoint = 'wss://api.kuest.xyz/v1/stream',
+  endpoint = DEFAULT_ENDPOINT,
   defaultMessage = DEFAULT_MESSAGE,
   authQueryKey = 'token',
   maxLogs = 120,
@@ -261,7 +262,7 @@ export function WebSocketPlayground({
               id={`${instanceId}-url`}
               value={url}
               onChange={event => setUrl(event.target.value)}
-              placeholder="wss://api.kuest.xyz/v1/stream"
+              placeholder={DEFAULT_ENDPOINT}
             />
           </div>
           <div className="space-y-2">

@@ -1,22 +1,17 @@
 import { openapi } from '@/lib/openapi'
+import { resolveServiceUrls, toUrlOrigin } from '@/lib/service-urls'
+
+const serviceUrls = resolveServiceUrls()
 
 const allowedOrigins = [
-  process.env.CLOB_URL,
-  process.env.DATA_URL,
-  process.env.RELAYER_URL,
-  process.env.CREATE_MARKET_URL,
-  process.env.COMMUNITY_URL,
-  'https://price-reference.kuest.com',
+  serviceUrls.clobUrl,
+  serviceUrls.dataUrl,
+  serviceUrls.relayerUrl,
+  serviceUrls.createMarketUrl,
+  serviceUrls.communityUrl,
+  serviceUrls.priceReferenceUrl,
 ]
-  .filter(Boolean)
-  .map((url) => {
-    try {
-      return new URL(url!).origin
-    }
-    catch {
-      return null
-    }
-  })
+  .map(toUrlOrigin)
   .filter((origin): origin is string => Boolean(origin))
 
 export const { GET, POST, PUT, DELETE, PATCH, HEAD } = openapi.createProxy({
