@@ -1297,7 +1297,7 @@
           },
           "paymentToken": {
             "type": "string",
-            "description": "Token used to pay deployment fees (zero address represents MATIC). Defaults to `0x000...000`.",
+            "description": "Token used to pay deployment fees (zero address represents POL, the native Polygon gas token). Defaults to `0x000...000`.",
             "example": "0x0000000000000000000000000000000000000000"
           },
           "payment": {
