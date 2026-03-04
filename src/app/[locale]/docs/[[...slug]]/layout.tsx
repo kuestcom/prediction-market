@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import type { SupportedLocale } from '@/i18n/locales'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
@@ -11,6 +12,18 @@ import { loadRuntimeThemeState } from '@/lib/theme-settings'
 interface DocsSlugLayoutProps {
   params: Promise<{ locale: string, slug?: string[] }>
   children: ReactNode
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const runtimeTheme = await loadRuntimeThemeState()
+  const site = runtimeTheme.site
+
+  return {
+    title: {
+      template: `%s | ${site.name} Documentation`,
+      default: `${site.name} Documentation`,
+    },
+  }
 }
 
 export default async function Layout({ params, children }: DocsSlugLayoutProps) {
@@ -27,6 +40,7 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
   return (
     <DocsLayout
       nav={{
+        url: '/docs',
         title: (
           <>
             <SiteLogoIcon
@@ -78,7 +92,7 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
         {
           type: 'main',
           url: '/',
-          text: site.name,
+          text: 'Main site',
           icon: <HomeIcon />,
         },
         ...(site.discordLink
@@ -86,7 +100,7 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
               {
                 type: 'main' as const,
                 url: site.discordLink,
-                text: 'Discord Community',
+                text: 'Get Help',
                 icon: (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

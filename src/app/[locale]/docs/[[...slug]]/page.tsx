@@ -16,6 +16,7 @@ import { APIPage } from '@/components/docs/APIPage'
 import { ViewOptions } from '@/components/docs/LLMPageActions'
 import { withLocalePrefix } from '@/lib/locale-path'
 import { source } from '@/lib/source'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
@@ -80,6 +81,8 @@ export async function generateStaticParams() {
 export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slug]]'>): Promise<Metadata> {
   const params = await props.params
   setRequestLocale(params.locale)
+  const runtimeTheme = await loadRuntimeThemeState()
+  const siteDocumentationTitle = `${runtimeTheme.site.name} Documentation`
 
   const isOwnerGuideEnabled = JSON.parse(process.env.FORK_OWNER_GUIDE || 'false')
   if (params.slug?.[0] === 'owners' && !isOwnerGuideEnabled) {
@@ -88,7 +91,9 @@ export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slu
   if (params.slug?.[0] === 'api-reference' && params.slug.length === 1) {
     const introductionPage = source.getPage(['api-reference', 'introduction'])
     return {
-      title: introductionPage?.data.title ?? 'API Reference',
+      title: {
+        absolute: `${introductionPage?.data.title ?? 'API Reference'} | ${siteDocumentationTitle}`,
+      },
       description: introductionPage?.data.description ?? 'API reference',
     }
   }
@@ -97,9 +102,12 @@ export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slu
   if (!page) {
     notFound()
   }
+  const pageTitle = page.data.title ?? 'Documentation'
 
   return {
-    title: page.data.title,
+    title: {
+      absolute: `${pageTitle} | ${siteDocumentationTitle}`,
+    },
     description: page.data.description,
   }
 }
