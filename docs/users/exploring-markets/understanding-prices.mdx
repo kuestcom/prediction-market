@@ -1,6 +1,6 @@
 ---
 title: Understanding Prices
-description: Learn how prices reflect probabilities
+description: Learn how prices map to probabilities and move with order flow.
 icon: DollarSign
 ---
 
@@ -8,36 +8,33 @@ import { DiscordLink, IfDiscordLink } from '@/components/docs/DiscordLink'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## Price as Probability
+## Probability pricing
 
-Each share is priced between **$0 and $1**:
+Outcome shares trade between <strong>$0.00</strong> and <strong>$1.00</strong>.
+The price is the market-implied probability.
 
-- A price of $0.70 means the market estimates a **70% chance** the outcome is true.
-- A price of $0.20 means a **20% chance**.
+- $0.25 implies ~25%
+- $0.70 implies ~70%
 
----
+## Payout logic
 
-## How Payouts Work
+- Winning outcome share: <strong>$1.00</strong>
+- Losing outcome share: <strong>$0.00</strong>
 
-- If the outcome resolves as true → each share pays **$1**
-- If false → shares pay **$0**
+Example: buying at $0.40 gives up to $0.60 upside per winning share.
 
-**Example:**
-You buy 100 “Yes” shares at $0.40.
-- Cost = $40
-- If “Yes” wins, payout = $100 → profit = $60
-- If “No” wins, payout = $0
+## Why prices change
 
----
+- New information enters the market.
+- Buy/sell pressure shifts bids and asks.
+- Liquidity depth changes execution quality.
 
-## Why Prices Move
+## Order-book signals to watch
 
-Prices change as traders buy and sell:
-- High demand for “Yes” pushes price up
-- More “No” sellers push price down
-
-This continuous trading updates the **real-time probability** shown in the market.
+- <strong>Best bid/ask</strong>: nearest executable prices.
+- <strong>Spread</strong>: narrower spread usually means cleaner fills.
+- <strong>Midpoint</strong>: quick fair-value reference between bid and ask.

@@ -1,6 +1,6 @@
 {
   "title": "Resolution & Settlement",
-  "description": "Learn how markets finalize and how to claim payouts.",
+  "description": "Track finalization states, dispute windows, and claim flows.",
   "icon": "Gavel",
   "pages": [
     "market-resolution",

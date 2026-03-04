@@ -1,6 +1,6 @@
 ---
 title: Canceling Orders
-description: Manage and cancel your open orders
+description: Cancel open limit orders from your portfolio.
 icon: X
 ---
 
@@ -9,31 +9,34 @@ import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## How to Cancel Orders
-
-You can cancel any open limit order before it is matched.
+## Cancel a single order
 
 <Steps>
   <Step>
-    ### Open your open orders
+    ### Open Portfolio
 
-    Navigate to <strong>My Account → Open Orders</strong> to review all active
-    limit orders waiting to fill.
+    Go to <strong>/portfolio</strong> and switch to the <strong>Open Orders</strong> tab.
   </Step>
   <Step>
-    ### Select the order
+    ### Find your order
 
-    Locate the order marked <strong>Open</strong> that you want to cancel and
-    expand the row for details.
+    Use search/sort if needed and locate the active limit order.
   </Step>
   <Step>
-    ### Cancel and confirm
+    ### Cancel
 
-    Press <strong>Cancel Order</strong> to release the reserved funds back to
-    your available balance immediately.
+    Click <strong>Cancel</strong> on the order row.
   </Step>
 </Steps>
+
+## Cancel all open orders
+
+If available for your account, use the <strong>Cancel all</strong> action in the Open Orders tab to remove all active orders for your wallet.
+
+<Callout type="info">
+  Cancellation only affects unfilled quantity. Already-filled portions remain in your position history.
+</Callout>

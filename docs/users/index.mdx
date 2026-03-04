@@ -1,6 +1,6 @@
 ---
 title: Introduction
-description: Learn the basics of prediction markets and how to start trading.
+description: Learn how the platform works and how to place your first trade.
 icon: BookOpen
 ---
 
@@ -8,49 +8,35 @@ import { SiteName } from '@/components/docs/SiteName'
 
 ## What is <SiteName />?
 
-<SiteName /> is a prediction market that lets you measure
-and trade sentiment on real-world events—from high-stakes elections and macro
-data releases to entertainment headlines. Market prices emerge from what
-participants are willing to risk, so the odds capture collective expectations
-instead of pundit opinions.
+<SiteName /> is a peer-to-peer prediction market where users trade on the outcome of real-world events.
+Prices move in real time and represent crowd-implied probabilities.
 
-<Callout type="info" title="Signals from skin in the game">
-  Because every position is backed by capital, prices react quickly when traders
-  uncover new information. <SiteName /> surfaces those
-  signals as live probabilities.
+<Callout type="info" title="User docs first">
+  This section is focused on product usage (account, deposits, trading, portfolio, claims).
+  For endpoint-level integration details, use the API Reference tab.
 </Callout>
 
-### Quick overview
+## How markets are structured
 
-- Trade outcome shares for questions like “Will Donald Trump retake the U.S.
-  presidency in 2024?”.
-- Shares trade between 0.00 and 1.00 USDC, and each opposing outcome pair (“YES” + “NO”) is fully backed by 1.00 USDC.
-- New shares are minted when both sides agree on a price, so each trade remains
-  fully collateralized.
-- Winning shares redeem for 1.00 USDC when a market resolves, while losing
-  shares expire at zero.
-- You are always trading against other users, which means you can sell early,
-  capture profits repeatedly, and you are never limited for winning too often.
+- An **event** is a topic (for example, an election or earnings release).
+- A **market** is a tradable outcome question inside that event.
+- Most markets expose **Yes/No** outcomes priced between **$0.00 and $1.00**.
 
-### Understanding prices
+## Price = probability
 
-Prices map directly to implied probabilities. If “YES” shares trade at 0.27
-USDC, the market assigns a 27% chance to that outcome. As with equity markets,
-<SiteName /> does not set odds—supply and demand in the
-order book does.
+If a "Yes" share is trading at **$0.37**, the market is pricing that outcome at roughly **37% probability**.
+As traders buy and sell, the probability updates.
 
-### Ways to profit
+## Payout basics
 
-If you believe the market is underestimating an outcome, buy shares at the
-current price. A correct resolution pays out 1.00 USDC, so a purchase at 0.27 USDC
-returns 0.73 USDC per share. You can also sell at any time before settlement to
-lock in gains or limit downside as prices move.
+- Winning shares settle to **$1.00** per share at resolution.
+- Losing shares settle to **$0.00**.
+- You can usually exit before resolution by selling your position.
 
-### Accuracy of the odds
+## Start in 3 steps
 
-Academic studies consistently show that prediction markets aggregate dispersed
-knowledge more effectively than isolated forecasts, polls, or analysts. As more
-informed traders join, they arbitrage mispriced contracts and push probabilities
-closer to fair value. Whether you are seeking better insights about the future or
-looking to monetize your expertise, <SiteName /> provides a
-transparent, market-driven source of truth.
+1. Create your account and connect your wallet.
+2. Fund your account (wallet transfer, on-ramp, or direct USDC transfer).
+3. Open a market, choose your order type, and submit your trade.
+
+Continue with **Getting Started** for the full onboarding flow.

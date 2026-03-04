@@ -1,48 +1,40 @@
 ---
 title: Transaction History
-description: Orders, trades, deposits, withdrawals — and CSV export
+description: Review activity and export CSV for reporting.
 icon: Clock
 ---
 
 import { DiscordLink, IfDiscordLink } from '@/components/docs/DiscordLink'
-import { SiteName } from '@/components/docs/SiteName'
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## Tabs
+## Where history lives
 
-- **Orders** – open, partially filled, filled, canceled
-- **Trades** – executed fills (price, size, side)
-- **Deposits** / **Withdrawals** – transfers in and out
+Open <strong>/portfolio</strong> and select the <strong>History</strong> tab.
 
----
+You can search, filter, and sort activity such as trades and other wallet actions captured by the platform.
 
 ## Export CSV
 
-Download your account history for records or taxes:
-
 <Steps>
   <Step>
-    ### Choose a tab or date range
+    ### Filter your view
 
-    Filter by tab (Orders, Trades, Deposits, Withdrawals) and, if needed,
-    adjust the date range to limit the export.
+    Apply search/type/sort filters in the History tab.
   </Step>
   <Step>
-    ### Click Export CSV
+    ### Export
 
-    <SiteName /> generates a CSV containing the rows you
-    currently see in the table.
+    Click the <strong>download</strong> icon to export a CSV of the currently visible rows.
   </Step>
   <Step>
-    ### Save securely
+    ### Store securely
 
-    Download and store the file safely for bookkeeping, taxes, or compliance
-    reviews.
+    Keep exported files safely for tax, accounting, or compliance workflows.
   </Step>
 </Steps>

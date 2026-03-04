@@ -1,6 +1,6 @@
 ---
 title: Claiming Winnings
-description: How to receive your payouts when markets resolve
+description: Claim from portfolio or market panel after final resolution.
 icon: Award
 ---
 
@@ -9,39 +9,36 @@ import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## Claiming Your Rewards
+## Ways to claim
 
-Once a market resolves, holders of winning shares can claim their payout.
+- <strong>Portfolio claim card</strong>: claim multiple redeemable markets at once.
+- <strong>Market order panel</strong>: use <strong>Claim winnings</strong> when shown.
 
 <Steps>
   <Step>
-    ### Go to Portfolio
+    ### Open claim surface
 
-    Navigate to <strong>My Account → Portfolio</strong> and look for markets with
-    a <strong>Claim</strong> button next to your winning position.
+    Go to <strong>/portfolio</strong> or the specific resolved market.
   </Step>
   <Step>
-    ### Claim winnings
+    ### Submit claim
 
-    Click <strong>Claim</strong> to send the payout transaction. Your balance
-    updates as soon as the transaction confirms on-chain.
+    Click claim and sign the request.
   </Step>
   <Step>
-    ### Withdraw or reuse
+    ### Balance update
 
-    Use the credited funds to enter new markets or withdraw to your connected
-    wallet whenever you like.
+    After confirmation, funds are credited to your available balance.
   </Step>
 </Steps>
 
----
-
 ## Example
 
-- You buy 50 “Yes” shares at $0.30 → cost $15
-- Market resolves **Yes** → each share pays $1 → you receive $50
-- Profit = $35 (minus fees)
+- Buy 100 shares at $0.35 (cost $35)
+- Outcome wins and settles
+- Redeem value is $100
+- Gross result: +$65 before fees

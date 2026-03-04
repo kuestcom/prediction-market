@@ -1,6 +1,6 @@
 ---
 title: Notifications
-description: Configure email and in-app notifications
+description: Configure in-app and email notification preferences.
 icon: Bell
 ---
 
@@ -9,42 +9,35 @@ import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## Notification Channels
+## Open notifications settings
 
-You can configure how you receive alerts:
+Use <strong>/settings/notifications</strong>.
 
-- **Email**
-  - Market resolutions → Get notified when a market you hold positions in is resolved
+## Current notification controls
 
-- **In-app**
-  - Order fills → Alerts when your orders are filled
-  - Hide small fills (&lt;1 share) → Option to ignore micro fills
-  - Resolutions → In-app notification when markets resolve
-
----
-
-## How to Configure
+- <strong>In-app: Order fills</strong>
+- <strong>Email resolutions</strong>
+- <strong>In-app resolutions</strong>
+- <strong>Hide small fills (&lt;1 share)</strong>
 
 <Steps>
   <Step>
-    ### Open notification settings
+    ### Go to settings
 
-    Navigate to <strong>My Account → Notifications</strong> to adjust how
-    you’re alerted.
+    Open <strong>Settings → Notifications</strong>.
   </Step>
   <Step>
-    ### Toggle channels
+    ### Change toggles
 
-    Enable or disable email and in-app switches for fills, resolutions, and
-    other alerts.
+    Enable or disable the channels available for your deployment.
   </Step>
   <Step>
-    ### Save your choices
+    ### Confirm update
 
-    Changes apply instantly—no extra confirmation needed.
+    Preferences are saved immediately after toggle changes.
   </Step>
 </Steps>

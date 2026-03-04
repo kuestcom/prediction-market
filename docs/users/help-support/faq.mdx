@@ -1,6 +1,6 @@
 ---
 title: FAQ
-description: Frequently asked questions about the platform
+description: Common user questions about trading, claims, and account settings.
 icon: HelpCircle
 ---
 
@@ -9,34 +9,33 @@ import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
 <Accordions type="single" collapsible>
-  <Accordion title="What fees do I pay when I trade?" value="fees">
-    Each trade includes a <strong>1% protocol fee</strong> plus the platform’s
-    trading fee (currently 1%). Part of the platform fee can be shared with
-    affiliates, and the exact amount appears before you confirm any order.
+  <Accordion title="What fee do I pay to trade?" value="fees">
+    Each trade uses the live configured trading fee: <strong><TradingFeeDisplay /></strong>.
+    If your order has a referral, this fee is split between affiliate and platform.
   </Accordion>
-  <Accordion title="How do I claim my winnings?" value="claim">
-    Visit <strong>My Account → Portfolio</strong> and press the
-    <strong>Claim</strong> button next to markets that resolved in your favor.
-    Payouts hit your balance right away.
+
+  <Accordion title="Where do I cancel open orders?" value="cancel-orders">
+    Open <strong>/portfolio</strong>, switch to <strong>Open Orders</strong>, then cancel single orders
+    or use <strong>Cancel all</strong> when available.
   </Accordion>
-  <Accordion title="How long do deposits take?" value="deposit">
-    Crypto deposits usually confirm within minutes, depending on network
-    congestion. Fiat on-ramps can take several hours or up to two business days
-    based on your provider.
+
+  <Accordion title="How do I claim winnings?" value="claim">
+    Claim from the Portfolio winnings card or from the resolved market panel using
+    <strong>Claim winnings</strong> when displayed.
   </Accordion>
-  <Accordion title="What if I disagree with a market resolution?" value="dispute">
-    Use the <strong>Dispute</strong> button on the market page during the listed
-    dispute window. You’ll stake a small fee and must supply verifiable
-    evidence; valid disputes receive the stake back.
+
+  <Accordion title="What if a market is disputed?" value="dispute">
+    Watch the market timeline status (Dispute window/Disputed/Final review).
+    When enabled, the market shows a dispute action linking to the oracle dispute flow.
   </Accordion>
-  <Accordion title="Are there withdrawal limits?" value="withdraw">
-    Crypto withdrawals are generally unlimited. Fiat withdrawals may have
-    provider-specific limits, and all requests are processed as quickly as
-    possible.
+
+  <Accordion title="Where is transaction history export?" value="csv">
+    Go to <strong>/portfolio</strong> → <strong>History</strong> and use the export icon
+    to download CSV for the current filtered view.
   </Accordion>
 </Accordions>

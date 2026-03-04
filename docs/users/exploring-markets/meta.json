@@ -1,9 +1,10 @@
 {
-  "title": "Exploring Markets",
-  "description": "Navigate markets and understand pricing.",
+  "title": "Trading Basics",
+  "description": "Understand market structure, prices, and order execution.",
   "icon": "Compass",
   "pages": [
     "market-overview",
+    "market-terms",
     "buy-sell-shares",
     "understanding-prices",
     "order-types",

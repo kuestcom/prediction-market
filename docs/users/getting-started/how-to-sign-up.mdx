@@ -1,66 +1,39 @@
 ---
-title: How to Sign-Up
-description: Create your account using social login or a crypto wallet
+title: How to Sign Up
+description: Create your account and prepare your wallet for trading.
 icon: LogIn
 ---
 
 import { DiscordLink, IfDiscordLink } from '@/components/docs/DiscordLink'
-import { SiteName } from '@/components/docs/SiteName'
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help during onboarding? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## Getting Started
+## Create your account
 
 <Steps>
   <Step>
-    ### Choose your sign-up method
+    ### Open the auth modal
 
-    Use a social account (Google, X, Discord, Farcaster, GitHub, Apple, or Facebook)
-    or connect a crypto wallet such as MetaMask, Trust Wallet, Coinbase Wallet,
-    OKX Wallet, or Binance Wallet.
+    Click <strong>Sign Up</strong> or <strong>Log In</strong> in the header.
   </Step>
   <Step>
-    ### Verify your account
+    ### Connect and authorize
 
-    Follow the on-screen prompts. Social logins simply require authorization,
-    while wallet connections require you to approve the request inside your wallet app.
+    Choose your wallet in the connection modal and approve the signature request.
   </Step>
   <Step>
-    ### Start trading
+    ### Finish setup
 
-    After onboarding, deposit funds and explore markets to place your first trades.
+    Once connected, your session is active and you can open markets, fund your account, and trade.
   </Step>
 </Steps>
 
----
+## First trade requirement
 
-## Social Sign-Up
-
-Signing up with your email address or a social login provider is the quickest way to get started with <SiteName />.
-Supported options include **Google, X (Twitter), Discord, Farcaster, GitHub, Apple, and Facebook**.
-This method is secure and requires no wallet setup.
-
----
-
-## Crypto Wallet Sign-Up
-
-<SiteName /> also supports direct sign-up using a crypto wallet.
-Popular wallets such as **MetaMask, Trust Wallet, Coinbase Wallet, OKX Wallet, and Binance Wallet** are supported through **Reown (formerly WalletConnect)**.
-
-<Callout type="info">
-When you connect with a wallet, your funds remain **fully in your control** — they are never held by <SiteName />.
-Reown is a secure connection layer that allows you to log in without creating a password and without giving custody of your assets.
-</Callout>
-
----
-
-## Tips
-
-- If you have MetaMask or Coinbase Wallet browser extensions installed but wish to connect using their mobile apps,
-  you may need to **disable the browser extension** and reload the page.
-- You can always switch between login methods later if needed.
+Before your first order, <SiteName /> may ask you to complete a one-time trading setup
+(proxy wallet + required approvals). The UI guides you through each step.

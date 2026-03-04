@@ -1,6 +1,6 @@
 ---
 title: Order Types
-description: Learn about market and limit orders
+description: Choose market or limit execution based on speed vs price control.
 icon: List
 ---
 
@@ -10,22 +10,30 @@ import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## Types of Orders
-
-<SiteName /> supports two primary order types:
+## Available order types
 
 <Accordions type="single" collapsible>
-  <Accordion title="Market orders" value="market">
-    Execute immediately at the best available price in the order book. Choose
-    this when you value speed and certainty of execution.
+  <Accordion title="Market order" value="market-order">
+    Executes against available liquidity immediately. Best when speed matters more than exact price.
   </Accordion>
-  <Accordion title="Limit orders" value="limit">
-    Set the exact price you are willing to pay or accept. The order remains
-    open until another trader matches it, making limits ideal for precise
-    pricing or larger trades.
+
+  <Accordion title="Limit order" value="limit-order">
+    Lets you define the exact price. The order stays open until matched, canceled, or expired.
   </Accordion>
 </Accordions>
+
+## Execution preference (market orders)
+
+In <strong>Settings → Trading</strong>, <SiteName /> supports:
+
+- <strong>FAK (Fill and Kill)</strong>: fill what is available now, cancel the rest.
+- <strong>FOK (Fill or Kill)</strong>: fill entire order immediately or cancel fully.
+
+## Quick guidance
+
+- Use <strong>market</strong> in fast-moving markets when immediate execution matters.
+- Use <strong>limit</strong> when you want strict price control.

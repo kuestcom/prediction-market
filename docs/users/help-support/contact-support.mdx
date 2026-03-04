@@ -1,6 +1,6 @@
 ---
 title: Help & Support
-description: Get help while using the platform
+description: Where to get help and what details to include.
 icon: LifeBuoy
 ---
 
@@ -9,31 +9,31 @@ import { SiteName } from '@/components/docs/SiteName'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help right now? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## Support Channels
+## Fastest support path
 
-There are several ways to get help while using <SiteName />:
+For most issues, use the support/community channel configured for your deployment.
+On many deployments this is Discord.
 
-- **Discord community** – fastest way to get peer-to-peer help and updates
-- **FAQ page** – quick answers to common questions
-- **Email support** – for account-specific issues (response times vary)
+## Before opening a ticket
 
----
+Include:
 
-## Support Hours
+- clear issue description
+- market URL (if relevant)
+- wallet address
+- transaction hash (if onchain action failed)
+- screenshot/video of the error
 
-- Community channels: **24/7** (responses depend on community activity)
-- Direct support: typically answered during **business hours** (Monday–Friday)
+This helps <SiteName /> support triage quickly.
 
----
+## Escalation cases
 
-## Escalation
+Escalation is usually needed for:
 
-If your issue is not resolved through normal support:
-
-1. Open a ticket via Discord or email
-2. Include screenshots, transaction IDs, and a clear description of the problem
-3. The support team may escalate to technical or compliance review if necessary
+- unresolved deposits/withdrawals
+- claim failures after finalized resolution
+- account-access/security concerns

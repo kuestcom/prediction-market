@@ -1,6 +1,6 @@
 ---
 title: Buy & Sell Shares
-description: How to trade on the platform
+description: Step-by-step flow to open, close, and manage positions.
 icon: ShoppingCart
 ---
 
@@ -9,43 +9,48 @@ import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## Buying Shares
-
-When you buy shares of an outcome, you are betting that the event will resolve **true**.
+## Buy flow
 
 <Steps>
   <Step>
-    ### Select an outcome
+    ### Select outcome
 
-    Open the market and pick <strong>Yes</strong>, <strong>No</strong>, or any
-    other available outcome you want to back.
+    Open the market and choose the side you want to back.
   </Step>
   <Step>
-    ### Choose order type
+    ### Set order details
 
-    Submit a <strong>Market</strong> order to fill immediately, or a
-    <strong>Limit</strong> order to specify your price and wait for a match.
+    Choose market or limit, input amount/shares, and check the estimated cost and fee.
   </Step>
   <Step>
-    ### Confirm purchase
+    ### Submit
 
-    Enter the USDC amount you want to invest, review the fee and expected
-    payout, then confirm. Your shares appear in your <strong>Portfolio</strong>
-    instantly.
+    Confirm and sign. Filled amounts appear in your portfolio position.
   </Step>
 </Steps>
 
----
+## Sell flow
 
-## Selling Shares
+<Steps>
+  <Step>
+    ### Choose position side
 
-You can sell your shares at any time before resolution:
+    In the same market, switch to <strong>Sell</strong>.
+  </Step>
+  <Step>
+    ### Pick execution mode
 
-- Sell via **Market Order** to exit instantly
-- Place a **Limit Order** to try to sell at a better price
+    Use market for instant exit, or limit to target a specific price.
+  </Step>
+  <Step>
+    ### Confirm sell order
 
-When the market resolves, all remaining shares are automatically settled based on the winning outcome.
+    Sign and monitor fill progress in <strong>Portfolio → Open Orders</strong>.
+  </Step>
+</Steps>
+
+You can close before resolution or hold through settlement and claim if your outcome wins.

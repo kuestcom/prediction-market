@@ -1,41 +1,39 @@
 ---
 title: Claim
-description: Claim your rewards once a market is resolved.
+description: Claim payouts after a market resolves in your favor.
 icon: BadgeCheck
 ---
 
-import { SiteName } from '@/components/docs/SiteName'
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 ## Claim workflow
 
-<Callout type="info" title="Before you start">
-  Ensure your wallet holds a little extra MATIC for gas so the claim transaction can
-  complete without delays.
-</Callout>
-
 <Steps>
   <Step>
-    ### Confirm the market resolution
+    ### Wait for resolution
 
-    On <SiteName />, open the market page and verify the
-    outcome you backed shows the resolved badge.
+    Open a resolved market and confirm your outcome is the winner.
   </Step>
   <Step>
-    ### Queue a claim transaction
+    ### Start claim
 
-    Click <code>Claim</code> on the winning outcome. The interface previews your
-    expected payout and fees before you sign in your wallet.
+    Use <strong>Claim</strong> from the Portfolio claim card, or
+    <strong>Claim winnings</strong> inside the market panel when available.
   </Step>
   <Step>
-    ### Sign and wait for confirmation
+    ### Approve and confirm
 
-    Approve the transaction in the connected wallet. Once the network confirms,
-    the winnings land in your available balance automatically.
+    Sign the claim transaction request and wait for confirmation.
   </Step>
 </Steps>
 
-<Callout type="success" title="Need more help?">
-  Explore the Resolution &amp; Settlement section for dispute steps and edge-case
-  guidance if your claim requires additional review.
+<Callout type="info" title="Prerequisite">
+  Your trading setup (proxy wallet + required auth/approvals) must be completed before claiming.
+</Callout>
+
+After claim confirmation, funds are credited to your available balance and can be reused for new trades
+or withdrawn.
+
+<Callout type="success" title="Need deeper resolution details?">
+  See <strong>Resolution &amp; Settlement</strong> for timelines, dispute windows, and edge cases.
 </Callout>

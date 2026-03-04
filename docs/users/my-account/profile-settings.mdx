@@ -1,46 +1,40 @@
 ---
 title: Profile Settings
-description: Manage your profile, username, and preferences
+description: Update your avatar, username, and account profile details.
 icon: Settings
 ---
 
 import { DiscordLink, IfDiscordLink } from '@/components/docs/DiscordLink'
-import { SiteName } from '@/components/docs/SiteName'
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## Profile
-
-Update how your account appears across <SiteName />.
+## Edit profile
 
 <Steps>
   <Step>
-    ### Upload an avatar
+    ### Open settings
 
-    Click <strong>Upload</strong> and choose a JPG/PNG/WEBP image up to 5 MB to
-    personalize your profile.
+    Go to <strong>/settings</strong>.
   </Step>
   <Step>
-    ### Update details
+    ### Update profile fields
 
-    Edit your <strong>Email</strong> and <strong>Username</strong>, then press
-    <strong>Save changes</strong> to apply.
+    Upload avatar (JPG/PNG/WEBP up to 5 MB), edit email and username, then save.
   </Step>
   <Step>
-    ### Preview the public page
+    ### Preview public page
 
-    Use <strong>View public profile</strong> to see how your activity and stats
-    appear to other users.
+    Use <strong>View Public Profile</strong> to see how your profile appears to others.
   </Step>
 </Steps>
 
----
+## Username rules
 
-## Tips
-- Usernames are unique. If a name is taken, try a variation.
-- Keep a recognizable avatar so friends can find you easily.
+- Usernames are unique.
+- Allowed characters: letters, numbers, dot, hyphen.
+- Username cannot start or end with dot/hyphen.

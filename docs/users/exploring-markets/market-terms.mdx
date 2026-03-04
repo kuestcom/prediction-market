@@ -1,0 +1,57 @@
+---
+title: Market Terms
+description: Key terms you will see while trading.
+icon: BookMarked
+---
+
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
+
+<Accordions type="single" collapsible>
+  <Accordion title="Event" value="event">
+    A container that groups one or more related markets.
+  </Accordion>
+
+  <Accordion title="Market" value="market">
+    A tradable prediction question inside an event.
+  </Accordion>
+
+  <Accordion title="Outcome" value="outcome">
+    The side you trade (for example, Yes or No).
+  </Accordion>
+
+  <Accordion title="Order Book" value="order-book">
+    A live list of buy and sell orders waiting to be matched at specific prices.
+  </Accordion>
+
+  <Accordion title="Bid / Ask" value="bid-ask">
+    Bid is the best current buy price; ask is the best current sell price.
+  </Accordion>
+
+  <Accordion title="Spread" value="spread">
+    The gap between best ask and best bid. Lower spread usually means easier execution.
+  </Accordion>
+
+  <Accordion title="Midpoint" value="midpoint">
+    The average of best bid and best ask; a quick reference for current fair value.
+  </Accordion>
+
+  <Accordion title="Liquidity" value="liquidity">
+    How much size can be traded without moving price too much.
+  </Accordion>
+
+  <Accordion title="Slippage" value="slippage">
+    Difference between expected and executed price, usually from thin liquidity or fast moves.
+  </Accordion>
+
+  <Accordion title="Resolution" value="resolution">
+    The final market outcome after the event ends and oracle process completes.
+  </Accordion>
+
+  <Accordion title="Dispute Window" value="dispute-window">
+    Time window where a proposed resolution can be challenged through the oracle flow.
+  </Accordion>
+
+  <Accordion title="Proxy Wallet" value="proxy-wallet">
+    Trading wallet used by the platform flow to manage approvals and onchain actions.
+  </Accordion>
+</Accordions>

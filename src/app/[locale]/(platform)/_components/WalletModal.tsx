@@ -67,7 +67,6 @@ const WITHDRAW_TOKEN_OPTIONS = [
   { value: 'CBBTC', label: 'CBBTC', icon: '/images/withdraw/token/cbbtc.svg', enabled: false },
   { value: 'DAI', label: 'DAI', icon: '/images/withdraw/token/dai.svg', enabled: false },
   { value: 'ETH', label: 'ETH', icon: '/images/withdraw/token/eth.svg', enabled: false },
-  { value: 'MATIC', label: 'MATIC', icon: '/images/withdraw/token/matic.svg', enabled: false },
   { value: 'POL', label: 'POL', icon: '/images/withdraw/token/matic.svg', enabled: false },
   { value: 'SOL', label: 'SOL', icon: '/images/withdraw/token/sol.svg', enabled: false },
   { value: 'USDe', label: 'USDe', icon: '/images/withdraw/token/usde.svg', enabled: false },

@@ -69,7 +69,7 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
           {
             title: 'API Reference',
             description: 'For Developers',
-            url: docsPath('/docs/api-reference'),
+            url: docsPath('/docs/api-reference/introduction'),
             icon: <CodeIcon className="size-4" />,
           },
           ...(JSON.parse(process.env.FORK_OWNER_GUIDE || 'false')

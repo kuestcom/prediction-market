@@ -1,6 +1,6 @@
 ---
 title: Portfolio & Open Positions
-description: Track positions, PnL, and claims
+description: Track positions, open orders, history, and claimable winnings.
 icon: PieChart
 ---
 
@@ -9,44 +9,37 @@ import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## What you’ll see
+## Portfolio tabs
 
-- **Positions Value** – current value of open shares
-- **Profit/Loss** – realized + unrealized PnL
-- **Volume Traded** & **Markets Traded** – lifetime activity
-- **Tabs**: *Positions* and *Activity* (latest buys/sells with amounts and timestamps)
+In <strong>/portfolio</strong>, you can switch between:
 
----
+- <strong>Positions</strong>: open holdings and mark-to-market view
+- <strong>Open Orders</strong>: active limit orders waiting to fill
+- <strong>History</strong>: executed activity and export tools
 
-## Claims
+## Claim-ready markets
 
-When a market resolves in your favor, a **Claim** button appears.
+When you have redeemable winning positions, a claim card appears in Portfolio.
+You can submit a single claim that covers all available markets.
 
 <Steps>
   <Step>
     ### Open Portfolio
 
-    Head to <strong>My Account → Portfolio</strong> to see your open
-    positions and activity feed.
+    Visit <strong>/portfolio</strong>.
   </Step>
   <Step>
-    ### Locate resolved markets
+    ### Check claimable markets
 
-    Markets ready to settle display a <strong>Claim</strong> button next to the
-    position.
+    If available, click <strong>Claim</strong> on the winnings card.
   </Step>
   <Step>
-    ### Confirm the claim
+    ### Sign transaction
 
-    Click <strong>Claim</strong> to credit your balance with the payout. Funds
-    arrive as soon as the transaction finalizes.
+    Confirm the claim request and wait for balance update.
   </Step>
 </Steps>
-
-<Callout type="info">
-Payouts credit instantly after confirmation. Network fees may apply.
-</Callout>

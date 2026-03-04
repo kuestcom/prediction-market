@@ -1,6 +1,6 @@
 ---
 title: Market Overview
-description: Learn how markets work
+description: Understand how events, markets, and outcomes are organized.
 icon: BarChart
 ---
 
@@ -10,52 +10,44 @@ import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## What is a Market?
+## Event vs market
 
-A market represents a real-world question with possible outcomes, such as
-**“Will candidate X win the election?”** or **“Will company Y launch a product this year?”**
+- An <strong>event</strong> groups related questions.
+- A <strong>market</strong> is the tradable question you buy/sell.
+- Each market has outcomes (usually <strong>Yes</strong>/<strong>No</strong>) with live prices.
 
-Each market has:
+## What you see on a market page
 
-- A **title** that states the question
-- A list of **outcomes** (usually “Yes” / “No”, but can be multiple choices)
-- A **price** for each outcome, shown as a percentage probability
+- Current chance/probability for each outcome
+- Price chart and recent trades
+- Order book (buyers and sellers waiting at each price)
+- Your open orders and position context
 
----
-
-## How Probabilities Work
-
-Prices in <SiteName /> are expressed as probabilities:
-
-- A price of **0.65 (65%)** means the market currently estimates a **65% chance** that the outcome will happen.
-- If the outcome resolves as true, each share is worth **$1**.
-- If false, the shares expire worthless.
-
----
-
-## Navigating the Market Page
+## Typical workflow
 
 <Steps>
   <Step>
-    ### Browse available markets
+    ### Find a market
 
-    Open the **Markets** tab to explore active events, then narrow results using
-    filters or the search bar to focus on topics you care about.
+    Browse the home feed or search by topic.
   </Step>
   <Step>
-    ### Open a market
+    ### Open details
 
-    Click any market card to inspect the price chart, recent fills, current
-    order book, and the outcomes you can trade.
+    Enter the market page to inspect prices, chart, and liquidity.
   </Step>
   <Step>
-    ### Review prices and liquidity
+    ### Place your trade
 
-    Check the best bids/asks, historical price movement, and displayed volume to
-    gauge how much liquidity is available before placing an order.
+    Select an outcome, choose order type, review cost/fees, and submit.
   </Step>
 </Steps>
+
+## Settlement summary
+
+At resolution, winning shares settle to $1 and losing shares to $0.
+On <SiteName />, claim controls appear when your position is redeemable.

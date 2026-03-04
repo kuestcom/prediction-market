@@ -1,6 +1,6 @@
 ---
 title: Market Resolution
-description: Learn how markets are resolved
+description: Understand how markets finalize and when results become claimable.
 icon: CheckCircle
 ---
 
@@ -10,45 +10,36 @@ import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 <IfDiscordLink>
 <Callout>
-  Need Help? For assistance, reach out to us on <DiscordLink>Discord</DiscordLink>.
+  Need help? Reach us on <DiscordLink>Discord</DiscordLink>.
 </Callout>
 </IfDiscordLink>
 
-## What is Market Resolution?
+## What resolution means
 
-Each market eventually resolves to a final outcome — either **Yes**, **No**, or one of the listed choices.
-Resolution determines which traders win and which lose.
+Resolution is the final outcome decision for a market.
+After resolution is finalized, winning positions become redeemable.
 
----
-
-## How Resolution Works
+## Resolution timeline on market pages
 
 <Steps>
   <Step>
-    ### Event concludes
+    ### Outcome proposed
 
-    The real-world condition tied to the market is finished (for example, polls
-    close, earnings call completes, or the deadline passes).
+    The oracle workflow receives a proposed result.
   </Step>
   <Step>
-    ### Outcome reported
+    ### Dispute window / final review
 
-    Trusted sources and on-chain oracles feed the outcome into
-    <SiteName />. Moderators confirm accuracy and flag
-    any disputes.
+    A challenge window may apply before the result is finalized.
   </Step>
   <Step>
-    ### Market status updates
+    ### Final outcome
 
-    The market flips to <strong>Resolved</strong>; winning shares become
-    claimable and non-winning shares expire worth zero.
+    The market is finalized and claims are enabled for winning positions.
   </Step>
 </Steps>
 
----
-
-## Resolution Timelines
-
-- Most markets resolve within a few hours after the event concludes.
-- Some may take longer if the outcome is unclear or awaiting official confirmation.
-- The resolution timestamp appears directly in the market page.
+<Callout type="info">
+  On <SiteName />, this status appears directly in the market timeline panel
+  (including dispute/final review states when available).
+</Callout>

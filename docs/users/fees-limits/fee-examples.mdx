@@ -1,17 +1,24 @@
 ---
 title: Fee Examples
-description: Walk through sample trades to see fees in action.
+description: Practical examples using the live trading-fee configuration.
 icon: Calculator
 ---
 
-## Scenario 1: Market order
+## Example A: market buy
 
-You buy shares worth $100 at the taker rate of 1%. The total fee is $1.00, shown before confirmation.
+A $100 notional market buy applies the current fee rate of <TradingFeeDisplay />.
 
-## Scenario 2: Limit order fill
+<FeeCalculationExample amount={100} />
 
-A limit order for $250 executes at the maker rebate of 0.2%, crediting $0.50 back to your balance.
+## Example B: limit order with partial fills
 
-## Scenario 3: Partial fills
+If a $300 limit order fills in 3 parts, each fill is charged separately and the final fee is the sum of all fills.
 
-If your order fills in multiple parts, fees are assessed on each fill and summed in the transaction receipt.
+## Example C: affiliate-attributed trade
+
+When a referral is present, the fee is split automatically:
+
+- Affiliate share: <AffiliateShareDisplay />
+- Platform share: <PlatformShareDisplay />
+
+<FeeCalculationExample amount={300} />

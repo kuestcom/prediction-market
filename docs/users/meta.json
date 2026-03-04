@@ -1,21 +1,21 @@
 {
-  "title": "Documentation",
-  "description": "How to trade and use the platform",
+  "title": "User Guide",
+  "description": "How to fund your wallet, trade markets, and manage your account.",
   "icon": "BookOpen",
   "root": true,
   "pages": [
     "index",
-    "---Getting started---",
+    "---Getting Started---",
     "...getting-started",
-    "---Exploring markets---",
+    "---Trading Basics---",
     "...exploring-markets",
-    "---My account---",
+    "---Portfolio & Settings---",
     "...my-account",
-    "---Resolution Settlement---",
+    "---Resolution & Settlement---",
     "...resolution-settlement",
-    "---Fees Limits---",
+    "---Fees & Limits---",
     "...fees-limits",
-    "---Help Support---",
+    "---Help & Support---",
     "...help-support"
   ]
 }
