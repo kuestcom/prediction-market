@@ -72,7 +72,7 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
             url: docsPath('/docs/api-reference/introduction'),
             icon: <CodeIcon className="size-4" />,
           },
-          ...(JSON.parse(process.env.FORK_OWNER_GUIDE || 'false')
+          ...(process.env.FORK_OWNER_GUIDE === 'true'
             ? [
                 {
                   title: 'Fork Owner Guide',
