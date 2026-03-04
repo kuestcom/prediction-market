@@ -1,0 +1,16 @@
+---
+title: Post Comment Reaction
+description: "Create or toggle a reaction for a comment."
+_openapi:
+  method: POST
+---
+Like, unlike, or toggle a reaction for a comment. This action requires an authenticated community session.
+
+## Playground
+
+<APIPage
+  document="community"
+  operations={[
+    { path: '/comments/{id}/reactions', method: 'post' }
+  ]}
+/>

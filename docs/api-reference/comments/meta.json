@@ -3,8 +3,12 @@
   "description": "Comment endpoints for reading discussion threads and user comments.",
   "icon": "MessageSquare",
   "pages": [
+    "delete-comment",
+    "get-comment-metrics",
     "get-comments-by-comment-id",
     "get-comments-by-user-address",
-    "list-comments"
+    "list-comments",
+    "post-comment-reaction",
+    "post-comments"
   ]
 }

@@ -20,12 +20,12 @@ import { source } from '@/lib/source'
 function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
+    APIPage,
     TradingFeeDisplay,
     AffiliateShareDisplay,
     PlatformShareDisplay,
     FeeCalculationExample,
     WebSocketPlayground,
-    APIPage,
     ...components,
   }
 }
@@ -63,7 +63,7 @@ export default async function Page(props: PageProps<'/[locale]/docs/[[...slug]]'
     >
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
-      <div className="flex flex-wrap items-center gap-2 border-b pb-4">
+      <div className="-mt-4 flex flex-wrap items-center gap-2 border-b pb-4">
         <ViewOptions markdownUrl={markdownUrl} />
       </div>
       <DocsBody className={isApiReferencePage ? 'max-w-none' : undefined}>

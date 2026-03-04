@@ -47,14 +47,14 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
       sidebar={{
         tabs: [
           {
-            title: 'User Guide',
-            description: 'How to use the platform',
+            title: 'Documentation',
+            description: 'For Users',
             url: docsPath('/docs/users'),
             icon: <BookOpenIcon className="size-4" />,
           },
           {
             title: 'API Reference',
-            description: 'REST and WebSocket contracts',
+            description: 'For Developers',
             url: docsPath('/docs/api-reference'),
             icon: <CodeIcon className="size-4" />,
           },
@@ -62,7 +62,7 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
             ? [
                 {
                   title: 'Fork Owner Guide',
-                  description: 'Create your own platform',
+                  description: 'For Entrepeneurs',
                   url: docsPath('/docs/owners'),
                   icon: <GitForkIcon className="size-4" />,
                 },

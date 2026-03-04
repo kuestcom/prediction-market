@@ -1,0 +1,16 @@
+---
+title: Delete Comment
+description: "Soft delete a comment authored by the current session."
+_openapi:
+  method: DELETE
+---
+Soft delete a comment using its identifier. This action requires an authenticated community session.
+
+## Playground
+
+<APIPage
+  document="community"
+  operations={[
+    { path: '/comments/{id}', method: 'delete' }
+  ]}
+/>
