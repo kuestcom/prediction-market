@@ -4,8 +4,10 @@ import type { Table } from '@tanstack/react-table'
 import type { ReactNode } from 'react'
 import { XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useDebounce } from '@/hooks/useDebounce'
 import { cn } from '@/lib/utils'
 import { DataTableViewOptions } from './DataTableViewOptions'
 
@@ -16,7 +18,6 @@ interface DataTableToolbarProps<TData> {
   searchPlaceholder?: string
   enableColumnVisibility?: boolean
   enableSelection?: boolean
-  isLoading?: boolean
   leftContent?: ReactNode
   rightContent?: ReactNode
   searchInputClassName?: string
@@ -30,15 +31,29 @@ export function DataTableToolbar<TData>({
   searchPlaceholder,
   enableColumnVisibility = true,
   enableSelection = false,
-  isLoading = false,
   leftContent,
   rightContent,
   searchInputClassName,
   searchLeadingIcon,
 }: DataTableToolbarProps<TData>) {
   const t = useExtracted()
+  const [searchInput, setSearchInput] = useState(search)
+  const debouncedSearchInput = useDebounce(searchInput, 300)
+
+  useEffect(() => {
+    setSearchInput(search)
+  }, [search])
+
+  useEffect(() => {
+    if (debouncedSearchInput !== searchInput || debouncedSearchInput === search) {
+      return
+    }
+
+    onSearchChange(debouncedSearchInput)
+  }, [debouncedSearchInput, onSearchChange, search, searchInput])
+
   const resolvedSearchPlaceholder = searchPlaceholder ?? t('Search...')
-  const isFiltered = search.length > 0
+  const isFiltered = searchInput.length > 0
   const selectedRowsCount = table.getFilteredSelectedRowModel().rows.length
 
   return (
@@ -52,23 +67,24 @@ export function DataTableToolbar<TData>({
           )}
           <Input
             placeholder={resolvedSearchPlaceholder}
-            value={search}
-            onChange={event => onSearchChange(event.target.value)}
+            value={searchInput}
+            onChange={event => setSearchInput(event.target.value)}
             className={cn(
               'h-8 w-37.5 lg:w-62.5',
               searchLeadingIcon && 'pl-8',
               searchInputClassName,
             )}
-            disabled={isLoading}
           />
         </div>
         {leftContent}
         {isFiltered && (
           <Button
             variant="ghost"
-            onClick={() => onSearchChange('')}
+            onClick={() => {
+              setSearchInput('')
+              onSearchChange('')
+            }}
             className="h-9 px-2 lg:px-3"
-            disabled={isLoading}
           >
             {t('Reset')}
             <XIcon className="ml-2 size-4" />

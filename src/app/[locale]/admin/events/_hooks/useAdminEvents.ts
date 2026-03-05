@@ -1,7 +1,6 @@
 import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
-import { useDebounce } from '@/hooks/useDebounce'
 
 export interface AdminEventRow {
   id: string
@@ -103,18 +102,16 @@ export function useAdminEvents(params: UseAdminEventsParams = {}) {
     activeOnly = false,
   } = params
 
-  const debouncedSearch = useDebounce(search, 300)
-
   const queryKey = useMemo(() => [
     'admin-events',
-    { limit, search: debouncedSearch, sortBy, sortOrder, pageIndex, mainCategorySlug, creator, seriesSlug, activeOnly },
-  ], [limit, debouncedSearch, sortBy, sortOrder, pageIndex, mainCategorySlug, creator, seriesSlug, activeOnly])
+    { limit, search, sortBy, sortOrder, pageIndex, mainCategorySlug, creator, seriesSlug, activeOnly },
+  ], [limit, search, sortBy, sortOrder, pageIndex, mainCategorySlug, creator, seriesSlug, activeOnly])
 
   const query = useQuery({
     queryKey,
     queryFn: () => fetchAdminEvents({
       limit,
-      search: debouncedSearch,
+      search,
       sortBy,
       sortOrder,
       pageIndex,

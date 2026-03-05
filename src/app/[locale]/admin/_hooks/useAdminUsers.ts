@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
-import { useDebounce } from '@/hooks/useDebounce'
 
 interface AdminUserRow {
   id: string
@@ -59,18 +58,16 @@ async function fetchAdminUsers(params: UseAdminUsersParams): Promise<AdminUsersR
 export function useAdminUsers(params: UseAdminUsersParams = {}) {
   const { limit = 50, search, sortBy = 'created_at', sortOrder = 'desc', pageIndex = 0 } = params
 
-  const debouncedSearch = useDebounce(search, 300)
-
   const queryKey = useMemo(() => [
     'admin-users',
-    { limit, search: debouncedSearch, sortBy, sortOrder, pageIndex },
-  ], [limit, debouncedSearch, sortBy, sortOrder, pageIndex])
+    { limit, search, sortBy, sortOrder, pageIndex },
+  ], [limit, search, sortBy, sortOrder, pageIndex])
 
   const query = useQuery({
     queryKey,
     queryFn: () => fetchAdminUsers({
       limit,
-      search: debouncedSearch,
+      search,
       sortBy,
       sortOrder,
       pageIndex,

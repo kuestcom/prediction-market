@@ -150,7 +150,6 @@ export function DataTable<TData, TValue>({
           table={table}
           enableColumnVisibility={enableColumnVisibility}
           enableSelection={enableSelection}
-          isLoading={isLoading}
           leftContent={toolbarLeftContent}
           rightContent={toolbarRightContent}
           searchInputClassName={searchInputClassName}
@@ -205,7 +204,6 @@ export function DataTable<TData, TValue>({
         table={table}
         enableColumnVisibility={enableColumnVisibility}
         enableSelection={enableSelection}
-        isLoading={isLoading}
         leftContent={toolbarLeftContent}
         rightContent={toolbarRightContent}
         searchInputClassName={searchInputClassName}

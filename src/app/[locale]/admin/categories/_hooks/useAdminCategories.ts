@@ -1,7 +1,6 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
-import { useDebounce } from '@/hooks/useDebounce'
 
 export interface AdminCategoryRow {
   id: number
@@ -72,18 +71,16 @@ export function useAdminCategories(params: UseAdminCategoriesParams = {}) {
     pageIndex = 0,
   } = params
 
-  const debouncedSearch = useDebounce(search, 300)
-
   const queryKey = useMemo(() => [
     'admin-categories',
-    { limit, search: debouncedSearch, sortBy, sortOrder, pageIndex },
-  ], [limit, debouncedSearch, sortBy, sortOrder, pageIndex])
+    { limit, search, sortBy, sortOrder, pageIndex },
+  ], [limit, search, sortBy, sortOrder, pageIndex])
 
   const query = useQuery({
     queryKey,
     queryFn: () => fetchAdminCategories({
       limit,
-      search: debouncedSearch,
+      search,
       sortBy,
       sortOrder,
       pageIndex,
