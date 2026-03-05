@@ -32,16 +32,20 @@ export default function EventHeader({ event }: EventHeaderProps) {
         <span className="pointer-events-none absolute inset-x-4 bottom-0 border-b" />
       )}
       <div className="relative z-10 flex flex-1 items-center gap-2 lg:gap-4">
-        <Image
-          src={event.icon_url}
-          alt={event.creator || 'Market creator'}
-          width={64}
-          height={64}
+        <div
           className={cn(
-            'shrink-0 rounded-sm transition-all ease-in-out dark:bg-foreground',
+            'relative shrink-0 overflow-hidden rounded-sm transition-all ease-in-out dark:bg-foreground',
             scrolled ? 'size-10' : 'size-10 lg:size-16',
           )}
-        />
+        >
+          <Image
+            src={event.icon_url}
+            alt={event.creator || 'Market creator'}
+            fill
+            sizes={scrolled ? '40px' : '(min-width: 1024px) 64px, 40px'}
+            className="scale-[1.35] object-cover object-center"
+          />
+        </div>
 
         <h1 className={cn(
           'leading-tight! font-semibold transition-all ease-in-out',

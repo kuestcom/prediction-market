@@ -62,16 +62,16 @@ export default function EventCardHeader({
       <Link href={eventHref} className="flex flex-1 items-center gap-2 pr-2">
         <div
           className={`
-            flex ${iconSizeClass}
+            relative flex ${iconSizeClass}
             shrink-0 items-center justify-center self-start overflow-hidden rounded-sm
           `}
         >
           <Image
             src={headerIcon}
             alt={headerTitle || event.creator || 'Market'}
-            width={38}
-            height={38}
-            className="size-9.5 rounded-sm object-cover"
+            fill
+            sizes={isInTradingMode ? '28px' : '40px'}
+            className="scale-[1.35] object-cover object-center"
           />
         </div>
 
