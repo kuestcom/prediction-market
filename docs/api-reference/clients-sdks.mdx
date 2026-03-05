@@ -5,10 +5,22 @@ description: Official SDKs for interacting with Kuest CLOB services in Python an
 
 ## Official SDKs
 
-| Language | Package | Repository | Install |
-| --- | --- | --- | --- |
-| Python | `kuest-py-clob-client` | <a href="https://github.com/kuestcom/py-clob-client" target="_blank" rel="noreferrer">kuestcom/py-clob-client</a> | `pip install kuest-py-clob-client` |
-| Rust | `kuest-client-sdk` | <a href="https://github.com/kuestcom/rs-clob-client" target="_blank" rel="noreferrer">kuestcom/rs-clob-client</a> | `cargo add kuest-client-sdk` |
+<Cards>
+  <Card
+    title="Python SDK"
+    description="Typed CLOB client for Python bots and backend services."
+  >
+    <div><code>pip install kuest-py-clob-client</code></div>
+    <a href="https://github.com/kuestcom/py-clob-client" target="_blank" rel="noreferrer">kuestcom/py-clob-client</a>
+  </Card>
+  <Card
+    title="Rust SDK"
+    description="Async Rust client with CLOB and optional module support."
+  >
+    <div><code>cargo add kuest-client-sdk</code></div>
+    <a href="https://github.com/kuestcom/rs-clob-client" target="_blank" rel="noreferrer">kuestcom/rs-clob-client</a>
+  </Card>
+</Cards>
 
 <Callout type="info">
   Use the SDKs for production bots and integrations when you want typed requests, auth helpers, and less manual signing boilerplate.
@@ -49,6 +61,6 @@ Authenticated CLOB, WebSocket streaming, and optional API modules are documented
 
 ## Auth and wallet notes
 
-- Review [Authentication](./authentication) before placing orders.
+- Review [Authentication](/docs/api-reference/authentication) before placing orders.
 - EOA users may need to configure token allowances before trading.
 - Proxy/Safe wallet flows are supported by both SDKs with signature-type specific setup.

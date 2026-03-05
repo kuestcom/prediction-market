@@ -1,14 +1,128 @@
 ---
 title: Authentication
-description: L1 and L2 authentication model and required headers.
+description: How to authenticate requests to the CLOB API.
 ---
 
-<APIPage
-  document="clob"
-  operations={[
-    { path: '/auth/api-key', method: 'post' },
-    { path: '/auth/api-keys', method: 'get' },
-    { path: '/auth/derive-api-key', method: 'get' },
-    { path: '/auth/derive-api-key', method: 'delete' }
-  ]}
-/>
+The CLOB API uses two authentication levels: **L1 (wallet signature)** and **L2 (API credentials)**.
+
+## Public vs Authenticated
+
+<Cards>
+  <Card
+    title="Public (No Auth)"
+    description="Market discovery, order book snapshots, prices, spreads, and most analytics endpoints are public."
+  />
+
+  <Card
+    title="Authenticated (CLOB)"
+    description="Trading and account-management endpoints require all L2 `KUEST_*` headers."
+  />
+</Cards>
+
+## Two-Level Authentication Model
+
+### L1 Authentication
+
+L1 uses an EIP-712 wallet signature to prove ownership of the Polygon address.
+
+Use L1 to:
+- create API credentials
+- derive existing API credentials
+- bootstrap authenticated trading sessions
+
+### L2 Authentication
+
+L2 uses API credentials (`apiKey`, `secret`, `passphrase`) generated from L1.
+Requests are authenticated with HMAC-SHA256 signatures.
+
+Use L2 to:
+- list and revoke API keys
+- place/cancel orders
+- call private account/trading routes
+
+<Callout type="info">
+  Even with L2 headers, order placement still requires the order payload to be signed client-side before submission.
+</Callout>
+
+## Getting API Credentials
+
+### Using SDKs
+
+Use the official SDKs whenever possible:
+- [Clients & SDKs](/docs/api-reference/clients-sdks)
+- [Python SDK](https://github.com/kuestcom/py-clob-client)
+- [Rust SDK](https://github.com/kuestcom/rs-clob-client)
+
+### Using the REST API
+
+```bash
+POST {CLOB_URL}/auth/api-key
+GET  {CLOB_URL}/auth/derive-api-key
+```
+
+Required L1 headers:
+
+| Header | Description |
+| --- | --- |
+| `KUEST_ADDRESS` | Polygon signer address |
+| `KUEST_SIGNATURE` | EIP-712 signature over auth payload |
+| `KUEST_TIMESTAMP` | Current UNIX timestamp (seconds) |
+| `KUEST_NONCE` | Nonce (commonly `0`) |
+
+Optional L1 header:
+
+| Header | Description |
+| --- | --- |
+| `KUEST_REFERRAL` | Referral identifier for attribution |
+
+EIP-712 payload shape:
+
+```json
+{
+  "domain": {
+    "name": "ClobAuthDomain",
+    "version": "1",
+    "chainId": 137
+  },
+  "types": {
+    "ClobAuth": [
+      { "name": "address", "type": "address" },
+      { "name": "timestamp", "type": "string" },
+      { "name": "nonce", "type": "uint256" },
+      { "name": "message", "type": "string" }
+    ]
+  },
+  "message": {
+    "address": "<signing address>",
+    "timestamp": "<unix timestamp>",
+    "nonce": "<nonce>",
+    "message": "This message attests that I control the given wallet"
+  }
+}
+```
+
+Credential response:
+
+```json
+{
+  "apiKey": "550e8400-e29b-41d4-a716-446655440000",
+  "secret": "<generated-secret>",
+  "passphrase": "<generated-passphrase>"
+}
+```
+
+Store `secret` and `passphrase` securely. They are not recoverable later.
+
+## L2 Authentication Headers
+
+All authenticated trading/account routes require these 5 headers:
+
+| Header | Description |
+| --- | --- |
+| `KUEST_ADDRESS` | Polygon signer address |
+| `KUEST_SIGNATURE` | HMAC signature for the request |
+| `KUEST_TIMESTAMP` | Current UNIX timestamp (seconds) |
+| `KUEST_API_KEY` | API key UUID |
+| `KUEST_PASSPHRASE` | Passphrase paired with the API key |
+
+For timestamp drift protection, sync with [Get Server Time](/docs/api-reference/data/get-server-time) before signing.

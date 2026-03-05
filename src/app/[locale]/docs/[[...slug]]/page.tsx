@@ -62,13 +62,25 @@ export default async function Page(props: PageProps<'/[locale]/docs/[[...slug]]'
         style: 'clerk',
       }}
     >
-      <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
-      <div className="-mt-4 flex flex-wrap items-center gap-2 border-b pb-4">
-        <ViewOptions markdownUrl={markdownUrl} />
-        <DiscordLink className="h-8.5">
-          Get Help
-        </DiscordLink>
+      <div className="border-b pb-4 lg:pb-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <DocsTitle>{page.data.title}</DocsTitle>
+            <DocsDescription>{page.data.description}</DocsDescription>
+          </div>
+          <div className="hidden shrink-0 items-center gap-2 lg:flex">
+            <ViewOptions markdownUrl={markdownUrl} />
+            <DiscordLink className="h-8.5">
+              Get Help
+            </DiscordLink>
+          </div>
+        </div>
+        <div className="-mt-4 flex flex-wrap items-center gap-2 lg:hidden">
+          <ViewOptions markdownUrl={markdownUrl} />
+          <DiscordLink className="h-8.5">
+            Get Help
+          </DiscordLink>
+        </div>
       </div>
       <DocsBody className={isApiReferencePage ? 'max-w-none' : undefined}>
         <MDX components={getMDXComponents()} />

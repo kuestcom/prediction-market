@@ -3,21 +3,38 @@ title: API Rate Limits
 description: Request caps and throttling windows for CLOB endpoints.
 ---
 
-Reference the tables below to understand the live request caps for the CLOB API.
-
 <Callout type="info" title="How throttling works">
   Limits are enforced at the edge. When request volume exceeds a configured cap,
   traffic is throttled for that window.
 </Callout>
 
-## General limits
+## At a Glance
+
+<Cards>
+  <Card
+    title="General CLOB"
+    description="5000 requests / 10s across general API traffic."
+  />
+  <Card
+    title="Market Data"
+    description="High-throughput read limits for book, price, midpoint, and history routes."
+  />
+  <Card
+    title="Trading Writes"
+    description="Dual-window enforcement for burst and sustained order/cancel traffic."
+  />
+</Cards>
+
+## Detailed Limits
+
+### General
 
 | Endpoint | Limit | Notes |
 | --- | --- | --- |
 | CLOB API (general) | 5000 requests / 10s | Throttled above configured maximum |
 | Health check (`GET /`) | 50 requests / 10s | Throttled above configured maximum |
 
-## Market data limits
+### Market Data
 
 | Endpoint | Limit | Notes |
 | --- | --- | --- |
@@ -28,13 +45,13 @@ Reference the tables below to understand the live request caps for the CLOB API.
 | `GET /midpoint` | 200 requests / 10s | Throttled above configured maximum |
 | `GET /prices-history` | 100 requests / 10s | Throttled above configured maximum |
 
-## Ledger endpoint limits
+### Ledger
 
 | Endpoint | Limit | Notes |
 | --- | --- | --- |
 | `GET /trades` | 150 requests / 10s | Throttled above configured maximum |
 
-## Trading endpoint limits
+### Trading
 
 | Endpoint | Limit | Notes |
 | --- | --- | --- |
