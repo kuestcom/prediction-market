@@ -42,6 +42,13 @@ export default function HomeSecondaryNavigation({
     [activeSubtagSlug, tag.slug, tagItems],
   )
 
+  const cancelIndicatorRetry = useCallback(() => {
+    if (indicatorRetryRef.current !== null) {
+      cancelAnimationFrame(indicatorRetryRef.current)
+      indicatorRetryRef.current = null
+    }
+  }, [])
+
   const updateScrollShadows = useCallback(() => {
     const container = scrollContainerRef.current
     if (!container) {
@@ -71,12 +78,14 @@ export default function HomeSecondaryNavigation({
       return
     }
 
+    cancelIndicatorRetry()
+
     const { offsetLeft, offsetWidth } = activeButton
     queueMicrotask(() => {
       setIndicatorStyle({ left: offsetLeft, width: offsetWidth })
       setIndicatorReady(true)
     })
-  }, [resolvedActiveSubtagSlug, tagItems])
+  }, [cancelIndicatorRetry, resolvedActiveSubtagSlug, tagItems])
 
   useEffect(() => {
     buttonRef.current = Array.from({ length: tagItems.length }).map((_, index) => buttonRef.current[index] ?? null)
@@ -88,8 +97,13 @@ export default function HomeSecondaryNavigation({
       updateIndicator()
     })
 
-    return () => cancelAnimationFrame(rafId)
-  }, [updateIndicator, updateScrollShadows])
+    return () => {
+      cancelAnimationFrame(rafId)
+      cancelIndicatorRetry()
+    }
+  }, [cancelIndicatorRetry, updateIndicator, updateScrollShadows])
+
+  useEffect(() => cancelIndicatorRetry, [cancelIndicatorRetry])
 
   useEffect(() => {
     const container = scrollContainerRef.current
