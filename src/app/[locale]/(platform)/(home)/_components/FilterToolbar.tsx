@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils'
 interface FilterToolbarProps {
   filters: FilterState
   onFiltersChange: (filters: Partial<FilterState>) => void
+  hideDesktopNavigationTags?: boolean
+  desktopTitle?: string
 }
 
 interface BookmarkToggleProps {
@@ -69,7 +71,12 @@ function createDefaultFilters(overrides: Partial<FilterSettings> = {}): FilterSe
   }
 }
 
-export default function FilterToolbar({ filters, onFiltersChange }: FilterToolbarProps) {
+export default function FilterToolbar({
+  filters,
+  onFiltersChange,
+  hideDesktopNavigationTags = false,
+  desktopTitle,
+}: FilterToolbarProps) {
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -193,6 +200,12 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
   return (
     <div className="flex w-full min-w-0 flex-col gap-3">
       <div className="flex w-full min-w-0 flex-col gap-3 md:flex-row md:items-center md:gap-4">
+        {desktopTitle && (
+          <h1 className="order-0 hidden text-xl font-semibold tracking-tight text-foreground lg:block">
+            {desktopTitle}
+          </h1>
+        )}
+
         <div className="order-1 flex w-full min-w-0 items-center gap-3 md:order-3 md:ml-auto md:w-auto md:min-w-0">
           <div className="min-w-0 flex-1">
             <FilterToolbarSearchInput
@@ -227,12 +240,18 @@ export default function FilterToolbar({ filters, onFiltersChange }: FilterToolba
           />
         )}
 
-        <Separator orientation="vertical" className="order-4 hidden shrink-0 md:order-2 md:flex" />
+        <Separator
+          orientation="vertical"
+          className={cn('order-4 hidden shrink-0 md:order-2 md:flex', hideDesktopNavigationTags && 'lg:hidden')}
+        />
 
         <div
           id="navigation-tags"
           data-teleport-ready={isNavigationTagsReady ? 'true' : 'false'}
-          className="order-3 max-w-full min-w-0 flex-1 overflow-hidden md:order-1 md:flex md:items-center"
+          className={cn(
+            'order-3 max-w-full min-w-0 flex-1 overflow-hidden md:order-1 md:flex md:items-center',
+            hideDesktopNavigationTags && 'lg:hidden',
+          )}
         />
       </div>
 

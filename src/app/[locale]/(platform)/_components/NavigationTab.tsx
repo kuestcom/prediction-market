@@ -8,8 +8,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { Teleport } from '@/components/Teleport'
 import { Button } from '@/components/ui/button'
-import { Link, redirect, usePathname } from '@/i18n/navigation'
-import { CATEGORY_PATH_SLUG_SET, getCategoryTitle } from '@/lib/constants'
+import { Link, redirect, usePathname, useRouter } from '@/i18n/navigation'
+import { getCategoryTitle, isCategoryPathSidebarSlug, isCategoryPathSlug } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
 interface NavigationTabProps {
@@ -25,23 +25,50 @@ interface NavigationTabProps {
 export default function NavigationTab({ tag, childParentMap, tabIndex }: NavigationTabProps) {
   const t = useExtracted()
   const pathname = usePathname()
+  const router = useRouter()
   const isHomePage = pathname === '/'
-  const selectedMainTagPathSlug = useMemo(() => {
+  const { selectedMainTagPathSlug, selectedSubtagPathSlug } = useMemo(() => {
     const pathSegments = pathname.split('/').filter(Boolean)
     if (pathSegments.length === 0) {
-      return null
+      return {
+        selectedMainTagPathSlug: null,
+        selectedSubtagPathSlug: null,
+      }
     }
 
-    const [candidate] = pathSegments
+    const [candidate, subcategoryCandidate] = pathSegments
     if (candidate === 'sports') {
-      return candidate
+      return {
+        selectedMainTagPathSlug: candidate,
+        selectedSubtagPathSlug: null,
+      }
     }
 
-    if (pathSegments.length !== 1) {
-      return null
+    if (!isCategoryPathSlug(candidate)) {
+      return {
+        selectedMainTagPathSlug: null,
+        selectedSubtagPathSlug: null,
+      }
     }
 
-    return CATEGORY_PATH_SLUG_SET.has(candidate) ? candidate : null
+    if (pathSegments.length === 1) {
+      return {
+        selectedMainTagPathSlug: candidate,
+        selectedSubtagPathSlug: null,
+      }
+    }
+
+    if (pathSegments.length === 2) {
+      return {
+        selectedMainTagPathSlug: candidate,
+        selectedSubtagPathSlug: subcategoryCandidate,
+      }
+    }
+
+    return {
+      selectedMainTagPathSlug: null,
+      selectedSubtagPathSlug: null,
+    }
   }, [pathname])
   const isMainTagPathPage = selectedMainTagPathSlug !== null
   const isSportsPathPage = isMainTagPathPage && selectedMainTagPathSlug === 'sports'
@@ -57,10 +84,14 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
       return rawTagFromFilters
     }
 
+    if (selectedSubtagPathSlug) {
+      return selectedSubtagPathSlug
+    }
+
     const belongsToSelectedMainTag = rawTagFromFilters === selectedMainTagPathSlug || filters.mainTag === selectedMainTagPathSlug
 
     return belongsToSelectedMainTag ? rawTagFromFilters : selectedMainTagPathSlug
-  }, [filters.mainTag, isMainTagPathPage, rawTagFromFilters, selectedMainTagPathSlug])
+  }, [filters.mainTag, isMainTagPathPage, rawTagFromFilters, selectedMainTagPathSlug, selectedSubtagPathSlug])
   const tagFromFilters = isMainTagPathPage ? pathPageTagFromFilters : rawTagFromFilters
   const fallbackMainTag = filters.mainTag || childParentMap[tagFromFilters] || tagFromFilters || 'trending'
   const mainTagFromFilters = isMainTagPathPage
@@ -70,7 +101,9 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
       : pathname === '/mentions' ? 'mentions' : 'trending'
   const shouldShowCategoryPathTitle = isMainTagPathPage
     && selectedMainTagPathSlug === tag.slug
-    && CATEGORY_PATH_SLUG_SET.has(tag.slug)
+    && isCategoryPathSlug(tag.slug)
+  const shouldUseDesktopSidebar = shouldShowCategoryPathTitle && isCategoryPathSidebarSlug(tag.slug)
+  const shouldUsePathSubcategoryNavigation = shouldUseDesktopSidebar && selectedMainTagPathSlug === tag.slug
 
   const isActive = mainTagFromFilters === tag.slug
 
@@ -100,7 +133,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
   const mainTagHref = useMemo<Route>(
     () => (tag.slug === 'sports'
       ? '/sports' as Route
-      : CATEGORY_PATH_SLUG_SET.has(tag.slug)
+      : isCategoryPathSlug(tag.slug)
         ? `/${tag.slug}` as Route
         : '/' as Route),
     [tag.slug],
@@ -377,8 +410,16 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
       redirect('/mentions')
     }
 
-    updateFilters({ tag: targetTag, mainTag: parentTag ?? targetTag })
-  }, [updateFilters])
+    const mainTag = parentTag ?? targetTag
+    updateFilters({ tag: targetTag, mainTag })
+
+    if (shouldUsePathSubcategoryNavigation) {
+      const nextPath = targetTag === tag.slug
+        ? `/${tag.slug}`
+        : `/${tag.slug}/${targetTag}`
+      router.push(nextPath as Route)
+    }
+  }, [router, shouldUsePathSubcategoryNavigation, tag.slug, updateFilters])
 
   return (
     <>
@@ -425,7 +466,8 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
                 {getCategoryTitle(tag.slug as CategoryPathSlug)}
               </h1>
             )}
-            <div className="relative min-w-0 flex-1">
+
+            <div className={cn('relative min-w-0 flex-1', shouldUseDesktopSidebar && 'lg:hidden')}>
               <div
                 ref={scrollContainerRef}
                 className={cn(

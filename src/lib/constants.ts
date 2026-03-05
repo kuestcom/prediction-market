@@ -79,6 +79,11 @@ export const CATEGORY_PATH_SLUGS = [
 ] as const
 export const CATEGORY_PATH_SLUG_SET = new Set<string>(CATEGORY_PATH_SLUGS)
 export type CategoryPathSlug = (typeof CATEGORY_PATH_SLUGS)[number]
+export const CATEGORY_PATH_SIDEBAR_SLUGS = CATEGORY_PATH_SLUGS.filter(
+  (slug): slug is Exclude<CategoryPathSlug, 'new'> => slug !== 'new',
+)
+export const CATEGORY_PATH_SIDEBAR_SLUG_SET = new Set<string>(CATEGORY_PATH_SIDEBAR_SLUGS)
+export type CategoryPathSidebarSlug = (typeof CATEGORY_PATH_SIDEBAR_SLUGS)[number]
 
 const CATEGORY_PATH_LABEL_BY_SLUG: Record<CategoryPathSlug, string> = {
   'new': 'New Events',
@@ -97,4 +102,12 @@ export function getCategorySeoTitle(slug: CategoryPathSlug) {
 
 export function getCategoryTitle(slug: CategoryPathSlug) {
   return CATEGORY_PATH_LABEL_BY_SLUG[slug]
+}
+
+export function isCategoryPathSlug(value: string): value is CategoryPathSlug {
+  return CATEGORY_PATH_SLUG_SET.has(value)
+}
+
+export function isCategoryPathSidebarSlug(value: string): value is CategoryPathSidebarSlug {
+  return CATEGORY_PATH_SIDEBAR_SLUG_SET.has(value)
 }

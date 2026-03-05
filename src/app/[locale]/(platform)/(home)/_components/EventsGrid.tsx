@@ -21,6 +21,7 @@ import { useUser } from '@/stores/useUser'
 interface EventsGridProps {
   filters: FilterState
   initialEvents: Event[]
+  maxColumns?: number
 }
 
 const EMPTY_EVENTS: Event[] = []
@@ -147,6 +148,7 @@ async function fetchEvents({
 export default function EventsGrid({
   filters,
   initialEvents = EMPTY_EVENTS,
+  maxColumns,
 }: EventsGridProps) {
   const locale = useLocale()
   const parentRef = useRef<HTMLDivElement | null>(null)
@@ -313,7 +315,7 @@ export default function EventsGrid({
     return Object.fromEntries(entries)
   }, [lastTradesByMarket, marketQuotesByMarket])
 
-  const columns = useColumns()
+  const columns = useColumns(maxColumns)
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -353,7 +355,7 @@ export default function EventsGrid({
   if (isLoadingNewData) {
     return (
       <div ref={parentRef}>
-        <EventsGridSkeleton />
+        <EventsGridSkeleton maxColumns={maxColumns} />
       </div>
     )
   }

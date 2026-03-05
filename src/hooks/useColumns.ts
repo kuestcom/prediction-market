@@ -1,25 +1,22 @@
 import { useEffect, useState } from 'react'
 
-export function useColumns() {
-  const [columns, setColumns] = useState(4)
+export function useColumns(maxColumns = Number.POSITIVE_INFINITY) {
+  const [columns, setColumns] = useState(Math.min(4, maxColumns))
 
   useEffect(() => {
     function updateColumns() {
       const width = window.innerWidth
 
       queueMicrotask(() => {
-        if (width >= 1280) {
-          setColumns(4)
-        }
-        else if (width >= 1024) {
-          setColumns(3)
-        }
-        else if (width >= 768) {
-          setColumns(2)
-        }
-        else {
-          setColumns(1)
-        }
+        const nextColumns = width >= 1280
+          ? 4
+          : width >= 1024
+            ? 3
+            : width >= 768
+              ? 2
+              : 1
+
+        setColumns(Math.min(nextColumns, maxColumns))
       })
     }
 
@@ -36,7 +33,7 @@ export function useColumns() {
     return () => {
       mediaQueries.forEach(mq => mq.removeEventListener('change', updateColumns))
     }
-  }, [])
+  }, [maxColumns])
 
   return columns
 }
