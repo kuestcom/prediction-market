@@ -27,6 +27,7 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
   const pathname = usePathname()
   const router = useRouter()
   const isHomePage = pathname === '/'
+  const isEventPathPage = pathname.startsWith('/event/')
   const { selectedMainTagPathSlug, selectedSubtagPathSlug } = useMemo(() => {
     const pathSegments = pathname.split('/').filter(Boolean)
     if (pathSegments.length === 0) {
@@ -78,7 +79,11 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
   const showBookmarkedOnly = isHomeLikePage ? filters.bookmarked : false
   const rawTagFromFilters = isHomeLikePage
     ? (showBookmarkedOnly && filters.tag === 'trending' ? '' : filters.tag)
-    : pathname === '/mentions' ? 'mentions' : 'trending'
+    : pathname === '/mentions'
+      ? 'mentions'
+      : isEventPathPage
+        ? filters.tag
+        : 'trending'
   const pathPageTagFromFilters = useMemo(() => {
     if (!isMainTagPathPage || !selectedMainTagPathSlug) {
       return rawTagFromFilters
@@ -98,7 +103,11 @@ export default function NavigationTab({ tag, childParentMap, tabIndex }: Navigat
     ? selectedMainTagPathSlug || 'trending'
     : isHomePage
       ? fallbackMainTag
-      : pathname === '/mentions' ? 'mentions' : 'trending'
+      : pathname === '/mentions'
+        ? 'mentions'
+        : isEventPathPage
+          ? fallbackMainTag
+          : 'trending'
   const shouldShowCategoryPathTitle = isMainTagPathPage
     && selectedMainTagPathSlug === tag.slug
     && isCategoryPathSlug(tag.slug)
