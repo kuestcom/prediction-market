@@ -3167,7 +3167,7 @@
         "schema": {
           "type": "string"
         },
-        "description": "Millisecond epoch timestamp (string) used for freshness checks."
+        "description": "Unix timestamp in seconds (string) used for freshness checks."
       },
       "KuestNonce": {
         "name": "KUEST_NONCE",
