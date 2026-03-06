@@ -76,7 +76,8 @@ function isResolvedLike(event: Event) {
 }
 
 function isOverdueUnresolved(event: Event, nowMs: number) {
-  return !isResolvedLike(event) && toTimestamp(event.end_date) < nowMs
+  const endTimestamp = toTimestamp(event.end_date)
+  return !isResolvedLike(event) && Number.isFinite(endTimestamp) && endTimestamp < nowMs
 }
 
 function isMoreMarketsEvent(event: Event) {
@@ -99,7 +100,6 @@ function isPreferredSeriesEvent(candidate: Event, current: Event, nowMs: number)
     }
 
     if (candidateEnd !== currentEnd) {
-      // If multiple series entries are overdue and unresolved, keep the most recent cycle.
       return candidateEnd > currentEnd
     }
 
