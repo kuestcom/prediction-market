@@ -24,21 +24,23 @@ const SCHEDULE_FORMATTER = new Intl.DateTimeFormat('en-US', {
 })
 
 export default function MentionsList({ events }: MentionsListProps) {
+  const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
+
   return (
     <div className="mx-auto flex w-full flex-col gap-4 md:gap-5">
       {events.map(event => (
-        <MentionsListItem key={event.id} event={event} />
+        <MentionsListItem key={event.id} event={event} currentTimestamp={currentTimestamp} />
       ))}
     </div>
   )
 }
 
 interface MentionsListItemProps {
+  currentTimestamp: number | null
   event: Event
 }
 
-function MentionsListItem({ event }: MentionsListItemProps) {
-  const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
+function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
   const parsedEndDate = event.end_date ? new Date(event.end_date) : null
   const hasValidEndDate = parsedEndDate && !Number.isNaN(parsedEndDate.getTime())
   const eventDate = hasValidEndDate ? parsedEndDate : null
