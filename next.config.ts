@@ -66,8 +66,12 @@ const config: NextConfig = {
         destination: '/sitemaps/sitemap/:id.xml',
       },
       {
+        source: '/@:username',
+        destination: '/profile/:username',
+      },
+      {
         source: '/:locale/@:username',
-        destination: '/:locale/:username',
+        destination: '/:locale/profile/:username',
       },
     ]
   },
