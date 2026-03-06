@@ -6,6 +6,7 @@ import type { ActivityOrder } from '@/types'
 import { Loader2Icon, SquareArrowOutUpRightIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventIconImage from '@/components/EventIconImage'
 import ProfileLink from '@/components/ProfileLink'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -17,7 +18,7 @@ import { MICRO_UNIT } from '@/lib/constants'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 import { formatCurrency, formatSharePriceLabel, formatTimeAgo, toMicro } from '@/lib/formatters'
 import { POLYGON_SCAN_BASE } from '@/lib/network'
-import { buildPublicProfilePath } from '@/lib/platform-routing'
+import { buildPublicProfilePath, isDynamicHomeCategorySlug } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
 
 type LiveActivityPayload = DataApiActivity & {
@@ -41,29 +42,13 @@ interface LiveActivityMessage {
 
 interface LiveActivityItem {
   id: string
-  categories: CategoryValue[]
+  categories: string[]
   order: ActivityOrder
 }
 
-const CATEGORY_OPTIONS = [
-  { value: 'all', label: 'All' },
-  { value: 'politics', label: 'Politics' },
-  { value: 'sports', label: 'Sports' },
-  { value: 'crypto', label: 'Crypto' },
-  { value: 'finance', label: 'Finance' },
-  { value: 'geopolitics', label: 'Geopolitics' },
-  { value: 'earnings', label: 'Earnings' },
-  { value: 'culture', label: 'Culture' },
-  { value: 'world', label: 'World' },
-  { value: 'economy', label: 'Economy' },
-  { value: 'climate-science', label: 'Climate & Science' },
-] as const
-
-type CategoryValue = typeof CATEGORY_OPTIONS[number]['value']
-const CATEGORY_VALUES = new Set<CategoryValue>(CATEGORY_OPTIONS.map(option => option.value))
-
-function isCategoryValue(value: string): value is CategoryValue {
-  return CATEGORY_VALUES.has(value as CategoryValue)
+interface ActivityCategoryOption {
+  label: string
+  value: string
 }
 
 const MIN_AMOUNT_OPTIONS = [
@@ -81,7 +66,7 @@ const ROW_HEIGHT_ESTIMATE = 64
 const MIN_VISIBLE_ITEMS = 12
 const MAX_VISIBLE_ITEMS = 28
 
-function normalizeCategoryValue(value?: string | null) {
+function normalizeCategoryValue(value: string | null | undefined, categoryValues: ReadonlySet<string>) {
   if (!value) {
     return null
   }
@@ -107,21 +92,41 @@ function normalizeCategoryValue(value?: string | null) {
   }
 
   const slug = normalized.replace(/\s+/g, '-')
-  if (isCategoryValue(slug)) {
+  if (categoryValues.has(slug)) {
     return slug
   }
 
   return null
 }
 
-function resolveCategoryMatches(tags?: string[] | null) {
+function isActivityCategorySlug(slug: string) {
+  return slug === 'sports' || isDynamicHomeCategorySlug(slug)
+}
+
+function buildActivityCategoryValues(tags: Array<{ slug: string }>) {
+  return new Set(tags.filter(tag => isActivityCategorySlug(tag.slug)).map(tag => tag.slug))
+}
+
+function buildActivityCategoryOptions(tags: Array<{ slug: string, name: string }>, allLabel: string): ActivityCategoryOption[] {
+  return [
+    { value: 'all', label: allLabel },
+    ...tags
+      .filter(tag => isActivityCategorySlug(tag.slug))
+      .map(tag => ({
+        value: tag.slug,
+        label: tag.name,
+      })),
+  ]
+}
+
+function resolveCategoryMatches(tags: string[] | null | undefined, categoryValues: ReadonlySet<string>) {
   if (!tags || tags.length === 0) {
     return []
   }
 
   const normalized = new Set<string>()
   for (const tag of tags) {
-    const normalizedTag = normalizeCategoryValue(tag)
+    const normalizedTag = normalizeCategoryValue(tag, categoryValues)
     if (normalizedTag) {
       normalized.add(normalizedTag)
     }
@@ -131,14 +136,12 @@ function resolveCategoryMatches(tags?: string[] | null) {
     return []
   }
 
-  return CATEGORY_OPTIONS
-    .filter(option => option.value !== 'all' && normalized.has(option.value))
-    .map(option => option.value)
+  return Array.from(normalized)
 }
 
-function resolveCategories(payload: LiveActivityPayload) {
-  const categories = new Set<CategoryValue>()
-  const tagMatches = resolveCategoryMatches(payload.tags ?? payload.eventTags ?? payload.event_tags)
+function resolveCategories(payload: LiveActivityPayload, categoryValues: ReadonlySet<string>) {
+  const categories = new Set<string>()
+  const tagMatches = resolveCategoryMatches(payload.tags ?? payload.eventTags ?? payload.event_tags, categoryValues)
   for (const match of tagMatches) {
     categories.add(match)
   }
@@ -151,9 +154,9 @@ function resolveCategories(payload: LiveActivityPayload) {
     ?? payload.eventCategory
     ?? payload.eventTag
 
-  const normalizedCategory = normalizeCategoryValue(rawCategory)
+  const normalizedCategory = normalizeCategoryValue(rawCategory, categoryValues)
   if (normalizedCategory) {
-    categories.add(normalizedCategory as CategoryValue)
+    categories.add(normalizedCategory)
   }
 
   return Array.from(categories)
@@ -182,6 +185,7 @@ function hasText(value?: string | null) {
 export default function ActivityFeed() {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
+  const { tags } = usePlatformNavigationData()
   const wsUrl = process.env.WS_LIVE_DATA_URL
   const wsUrlRef = useRef<string | null>(wsUrl ?? null)
   const router = useRouter()
@@ -192,6 +196,17 @@ export default function ActivityFeed() {
   const [visibleCount, setVisibleCount] = useState<number>(20)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const seenIdsRef = useRef<Set<string>>(new Set())
+  const categoryValues = useMemo(() => buildActivityCategoryValues(tags), [tags])
+  const categoryOptions = useMemo(
+    () => buildActivityCategoryOptions(tags, t('All')),
+    [t, tags],
+  )
+
+  useEffect(() => {
+    if (categoryFilter !== 'all' && !categoryValues.has(categoryFilter)) {
+      setCategoryFilter('all')
+    }
+  }, [categoryFilter, categoryValues])
 
   useEffect(() => {
     if (!wsUrl) {
@@ -270,7 +285,7 @@ export default function ActivityFeed() {
         if (hasOutcomeIndex) {
           order.outcome.index = rawPayload.outcomeIndex as number
         }
-        const categories = resolveCategories(rawPayload)
+        const categories = resolveCategories(rawPayload, categoryValues)
         nextItems.push({
           id: order.id,
           categories,
@@ -372,7 +387,7 @@ export default function ActivityFeed() {
         ws.close()
       }
     }
-  }, [wsUrl])
+  }, [categoryValues, wsUrl])
 
   useEffect(() => {
     function updateBaseCount() {
@@ -398,7 +413,7 @@ export default function ActivityFeed() {
   const filteredOrders = useMemo(() => {
     let filtered = items
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(item => item.categories.includes(categoryFilter as CategoryValue))
+      filtered = filtered.filter(item => item.categories.includes(categoryFilter))
     }
     return filterActivitiesByMinAmount(filtered.map(item => item.order), minAmountMicro)
   }, [categoryFilter, items, minAmountMicro])
@@ -408,8 +423,8 @@ export default function ActivityFeed() {
   }, [minAmountFilter])
 
   const categoryDisplay = useMemo(() => {
-    return CATEGORY_OPTIONS.find(option => option.value === categoryFilter)?.label ?? 'All'
-  }, [categoryFilter])
+    return categoryOptions.find(option => option.value === categoryFilter)?.label ?? t('All')
+  }, [categoryFilter, categoryOptions, t])
 
   useEffect(() => {
     setVisibleCount(baseVisibleCount)
@@ -477,7 +492,7 @@ export default function ActivityFeed() {
               </SelectValue>
             </SelectTrigger>
             <SelectContent position="popper" align="start">
-              {CATEGORY_OPTIONS.map(option => (
+              {categoryOptions.map(option => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
