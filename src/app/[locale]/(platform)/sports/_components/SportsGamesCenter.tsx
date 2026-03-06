@@ -1783,12 +1783,20 @@ function abbreviatePositionMarketLabel(label: string, teams: SportsGamesCard['te
 function resolveTradeHeaderTitle({
   card,
   selectedButton,
+  selectedMarket,
   marketType,
 }: {
   card: SportsGamesCard
   selectedButton: SportsGamesButton
+  selectedMarket: Market | null
   marketType: SportsGamesMarketType
 }) {
+  const normalizedMarketType = normalizeComparableText(selectedMarket?.sports_market_type)
+  if (normalizedMarketType.includes('exact score')) {
+    const descriptor = resolveMarketDescriptor(selectedMarket)
+    return descriptor ? `Exact Score: ${descriptor}` : 'Exact Score'
+  }
+
   if (marketType === 'btts') {
     return 'Both Teams to Score?'
   }
@@ -2043,27 +2051,40 @@ export function SportsOrderPanelMarketInfo({
   selectedOutcome: Outcome | null
   marketType: SportsGamesMarketType
 }) {
+  const selectedMarket = resolveSelectedMarket(card, selectedButton.key)
   const badgeLabel = resolveSelectedTradeLabel(selectedButton, selectedOutcome)
   const headerTitle = resolveTradeHeaderTitle({
     card,
     selectedButton,
+    selectedMarket,
     marketType,
   })
   const badgeAccent = resolveTradeHeaderBadgeAccent(selectedButton)
-  const marketIcon = marketType === 'total'
-    ? <TotalBadge button={selectedButton} />
-    : marketType === 'btts'
-      ? <BttsBadge button={selectedButton} />
-      : selectedButton.tone === 'draw'
-        ? <DrawBadge />
-        : <TeamLogoBadge card={card} button={selectedButton} />
+  const isExactScoreTrade = normalizeComparableText(selectedMarket?.sports_market_type).includes('exact score')
+  let marketIcon: React.ReactNode = null
+  if (!isExactScoreTrade) {
+    if (marketType === 'total') {
+      marketIcon = <TotalBadge button={selectedButton} />
+    }
+    else if (marketType === 'btts') {
+      marketIcon = <BttsBadge button={selectedButton} />
+    }
+    else if (selectedButton.tone === 'draw') {
+      marketIcon = <DrawBadge />
+    }
+    else {
+      marketIcon = <TeamLogoBadge card={card} button={selectedButton} />
+    }
+  }
 
   return (
     <div className="mb-4">
-      <div className="flex items-start gap-3">
-        <div className="shrink-0">
-          {marketIcon}
-        </div>
+      <div className={cn('flex items-start', marketIcon && 'gap-3')}>
+        {marketIcon && (
+          <div className="shrink-0">
+            {marketIcon}
+          </div>
+        )}
 
         <div className="min-w-0">
           <p className="line-clamp-2 text-base/tight font-bold text-foreground">
