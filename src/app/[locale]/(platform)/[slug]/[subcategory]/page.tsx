@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/[slug]/[
     notFound()
   }
 
-  if (normalizePublicProfileSlug(slug).type !== 'invalid' || slug === 'new' || isPlatformReservedRootSlug(slug)) {
+  if (normalizePublicProfileSlug(slug).type !== 'invalid' || isPlatformReservedRootSlug(slug)) {
     notFound()
   }
 
@@ -39,7 +39,7 @@ export default async function PlatformSubcategoryPage({ params }: PageProps<'/[l
     notFound()
   }
 
-  if (normalizePublicProfileSlug(slug).type !== 'invalid' || slug === 'new' || isPlatformReservedRootSlug(slug)) {
+  if (normalizePublicProfileSlug(slug).type !== 'invalid' || isPlatformReservedRootSlug(slug)) {
     notFound()
   }
 

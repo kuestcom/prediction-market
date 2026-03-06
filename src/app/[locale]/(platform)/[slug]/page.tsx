@@ -4,7 +4,6 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import HomeContent from '@/app/[locale]/(platform)/(home)/_components/HomeContent'
 import {
   buildDynamicHomeCategoryMetadata,
   DynamicHomeCategoryPageContent,
@@ -12,7 +11,6 @@ import {
 } from '@/app/[locale]/(platform)/_lib/dynamic-home-category-page'
 import { buildPublicProfileMetadata, PublicProfilePageContent } from '@/app/[locale]/(platform)/_lib/public-profile-page'
 import {
-  getNewPageSeoTitle,
   isPlatformReservedRootSlug,
   normalizePublicProfileSlug,
 } from '@/lib/platform-routing'
@@ -32,12 +30,6 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/[slug]'>
   const profileSlug = normalizePublicProfileSlug(slug)
   if (profileSlug.type !== 'invalid') {
     return buildPublicProfileMetadata(slug)
-  }
-
-  if (slug === 'new') {
-    return {
-      title: getNewPageSeoTitle(),
-    }
   }
 
   if (isPlatformReservedRootSlug(slug)) {
@@ -65,10 +57,6 @@ export default async function PlatformSlugPage({ params }: PageProps<'/[locale]/
         </div>
       </main>
     )
-  }
-
-  if (slug === 'new') {
-    return <HomeContent locale={resolvedLocale} initialTag="new" />
   }
 
   if (isPlatformReservedRootSlug(slug)) {
