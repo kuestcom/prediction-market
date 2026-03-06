@@ -23,6 +23,9 @@ interface EventsGridProps {
   filters: FilterState
   initialEvents: Event[]
   maxColumns?: number
+  onClearFilters?: () => void
+  routeMainTag: string
+  routeTag: string
 }
 
 const EMPTY_EVENTS: Event[] = []
@@ -150,6 +153,9 @@ export default function EventsGrid({
   filters,
   initialEvents = EMPTY_EVENTS,
   maxColumns,
+  onClearFilters,
+  routeMainTag,
+  routeTag,
 }: EventsGridProps) {
   const locale = useLocale()
   const parentRef = useRef<HTMLDivElement | null>(null)
@@ -159,12 +165,16 @@ export default function EventsGrid({
   const [scrollMargin, setScrollMargin] = useState(0)
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const PAGE_SIZE = 40
-  const isDefaultState = filters.tag === 'trending'
+  const isRouteInitialState = filters.tag === routeTag
+    && filters.mainTag === routeMainTag
     && filters.search === ''
     && !filters.bookmarked
     && filters.frequency === 'all'
     && filters.status === 'active'
-  const shouldUseInitialData = isDefaultState && initialEvents.length > 0
+    && !filters.hideSports
+    && !filters.hideCrypto
+    && !filters.hideEarnings
+  const shouldUseInitialData = isRouteInitialState && initialEvents.length > 0
 
   const {
     status,
@@ -201,7 +211,6 @@ export default function EventsGrid({
     refetchOnWindowFocus: false,
     staleTime: 'static',
     initialDataUpdatedAt: 0,
-    placeholderData: previousData => previousData,
   })
 
   const previousUserKeyRef = useRef(userCacheKey)
@@ -375,7 +384,7 @@ export default function EventsGrid({
   }
 
   if (!allEvents || allEvents.length === 0) {
-    return <EventsEmptyState tag={filters.tag} searchQuery={filters.search} />
+    return <EventsEmptyState tag={filters.tag} searchQuery={filters.search} onClearFilters={onClearFilters} />
   }
 
   if (!visibleEvents || visibleEvents.length === 0) {

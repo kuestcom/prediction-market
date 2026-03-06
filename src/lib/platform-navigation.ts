@@ -161,7 +161,7 @@ export function resolvePlatformNavigationSelection({
   const activeMainTagSlug = pathState.isMainTagPathPage
     ? pathState.selectedMainTagPathSlug || 'trending'
     : pathState.isHomePage
-      ? fallbackMainTag
+      ? 'trending'
       : pathState.isMentionsPage
         ? 'mentions'
         : pathState.isEventPathPage

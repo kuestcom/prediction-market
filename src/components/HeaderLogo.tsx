@@ -1,6 +1,5 @@
 'use client'
 
-import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
@@ -11,15 +10,11 @@ interface HeaderLogoProps {
 
 export default function HeaderLogo({ labelSuffix }: HeaderLogoProps) {
   const site = useSiteIdentity()
-  const { updateFilters } = useFilters()
   const label = labelSuffix ? `${site.name} ${labelSuffix}` : site.name
 
   return (
     <Link
       href="/"
-      onClick={() => {
-        updateFilters({ tag: 'trending', mainTag: 'trending' })
-      }}
       className={`
         flex h-10 shrink-0 items-center gap-2 text-2xl font-medium text-foreground transition-opacity
         hover:opacity-80

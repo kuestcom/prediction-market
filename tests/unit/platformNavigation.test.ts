@@ -97,7 +97,7 @@ describe('platform navigation helpers', () => {
     expect(selection.activeTagSlug).toBe('ukraine')
   })
 
-  it('falls back from a subtag to its parent main tag on the home page', () => {
+  it('keeps trending active on the home page even when filters still reference another category', () => {
     const selection = resolvePlatformNavigationSelection({
       dynamicHomeCategorySlugSet,
       pathname: '/',
@@ -111,7 +111,23 @@ describe('platform navigation helpers', () => {
       },
     })
 
-    expect(selection.activeMainTagSlug).toBe('politics')
+    expect(selection.activeMainTagSlug).toBe('trending')
     expect(selection.activeTagSlug).toBe('trump')
+  })
+
+  it('keeps trending active when navigating back from /new before filters sync', () => {
+    const selection = resolvePlatformNavigationSelection({
+      dynamicHomeCategorySlugSet,
+      pathname: '/',
+      filters: {
+        tag: 'new',
+        mainTag: 'new',
+        bookmarked: false,
+      },
+      childParentMap: {},
+    })
+
+    expect(selection.activeMainTagSlug).toBe('trending')
+    expect(selection.activeTagSlug).toBe('new')
   })
 })

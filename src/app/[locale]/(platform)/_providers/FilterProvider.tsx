@@ -27,7 +27,7 @@ interface FilterProviderProps {
   initialTag?: string
 }
 
-const DEFAULT_FILTERS: FilterState = {
+export const DEFAULT_FILTERS: FilterState = {
   search: '',
   tag: 'trending',
   mainTag: 'trending',

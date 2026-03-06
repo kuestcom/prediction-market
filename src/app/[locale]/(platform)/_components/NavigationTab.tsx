@@ -10,7 +10,7 @@ interface NavigationTabProps {
   containerRef?: (element: HTMLSpanElement | null) => void
   href: Route
   isActive: boolean
-  onClick: () => void
+  onClick?: () => void
   tabPaddingClass: string
   tag: Pick<PlatformNavigationTag, 'name' | 'slug'>
 }

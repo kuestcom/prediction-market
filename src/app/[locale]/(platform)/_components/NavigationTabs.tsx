@@ -25,7 +25,7 @@ function getMainTagHref(slug: string, dynamicHomeCategorySlugSet: ReadonlySet<st
 
 export default function NavigationTabs() {
   const pathname = usePathname()
-  const { filters, updateFilters } = useFilters()
+  const { filters } = useFilters()
   const { tags, childParentMap } = usePlatformNavigationData()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const tabItemRef = useRef<(HTMLSpanElement | null)[]>([])
@@ -122,10 +122,6 @@ export default function NavigationTabs() {
     return () => clearTimeout(timeoutId)
   }, [activeIndex])
 
-  const handleTagClick = useCallback((targetTag: string) => {
-    updateFilters({ tag: targetTag, mainTag: targetTag })
-  }, [updateFilters])
-
   return (
     <nav className="sticky top-15 z-20 bg-background md:top-17">
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-border" />
@@ -162,7 +158,6 @@ export default function NavigationTabs() {
                 href={getMainTagHref(tag.slug, dynamicHomeCategorySlugSet)}
                 isActive={navigationSelection.activeMainTagSlug === tag.slug}
                 tabPaddingClass={index === 0 ? 'px-2.5 pl-0' : 'px-3'}
-                onClick={() => handleTagClick(tag.slug)}
                 containerRef={(element) => {
                   tabItemRef.current[index] = element
                 }}

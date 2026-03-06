@@ -3,14 +3,20 @@ import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { Button } from '@/components/ui/button'
 
 interface EventsEmptyStateProps {
+  onClearFilters?: () => void
   tag: string
   searchQuery: string
 }
 
-export default function EventsEmptyState({ searchQuery, tag }: EventsEmptyStateProps) {
+export default function EventsEmptyState({ onClearFilters, searchQuery, tag }: EventsEmptyStateProps) {
   const { updateFilters } = useFilters()
 
   function handleClearFilters() {
+    if (onClearFilters) {
+      onClearFilters()
+      return
+    }
+
     updateFilters({
       search: '',
       bookmarked: false,
