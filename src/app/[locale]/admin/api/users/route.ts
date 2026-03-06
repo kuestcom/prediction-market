@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { isAdminWallet } from '@/lib/admin'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
+import { buildPublicProfilePath, buildUsernameProfilePath } from '@/lib/platform-routing'
 import { getPublicAssetUrl } from '@/lib/storage'
 
 export async function GET(request: NextRequest) {
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
           })
 
       const proxyWalletAddress = user.proxy_wallet_address
-      const profilePath = user.username
+      const profilePath = buildPublicProfilePath(user.username || proxyWalletAddress || user.address || '')
 
       const referredSource = user.referred_by_user_id
         ? referredMap.get(user.referred_by_user_id)
@@ -81,9 +82,9 @@ export async function GET(request: NextRequest) {
       let referredProfile: string | null = null
 
       if (user.referred_by_user_id && referredSource) {
-        const referredPath = referredSource.username
         referredDisplay = referredSource.username
-        referredProfile = `${baseProfileUrl}/@${referredPath}`
+        const referredPath = buildUsernameProfilePath(referredSource.username)
+        referredProfile = referredPath ? `${baseProfileUrl}${referredPath}` : null
       }
 
       const searchText = [
@@ -101,7 +102,7 @@ export async function GET(request: NextRequest) {
         referred_by_display: referredDisplay,
         referred_by_profile_url: referredProfile,
         created_label: createdLabel,
-        profileUrl: `${baseProfileUrl}/@${profilePath}`,
+        profileUrl: profilePath ? `${baseProfileUrl}${profilePath}` : null,
         created_at: user.created_at,
         search_text: searchText,
       }

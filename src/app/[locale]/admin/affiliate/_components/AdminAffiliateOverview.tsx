@@ -4,6 +4,7 @@ import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { tableHeaderClass } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
+import { buildUsernameProfilePath } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
 
 interface AffiliateRow {
@@ -61,6 +62,7 @@ export default async function AdminAffiliateOverview({ rows }: AdminAffiliateOve
               const placeholderStyle = showPlaceholder
                 ? getAvatarPlaceholderStyle(avatarSeed)
                 : undefined
+              const profileHref = buildUsernameProfilePath(row.username) ?? '#'
               return (
                 <tr key={row.id} className="border-b last:border-b-0">
                   <td className="px-6 py-4">
@@ -84,7 +86,7 @@ export default async function AdminAffiliateOverview({ rows }: AdminAffiliateOve
                           )}
                       <div className="space-y-0.5">
                         <Link
-                          href={`/@${row.username}`}
+                          href={profileHref}
                           className="text-sm font-medium hover:text-primary"
                         >
                           {row.username}
@@ -123,6 +125,7 @@ export default async function AdminAffiliateOverview({ rows }: AdminAffiliateOve
           const placeholderStyle = showPlaceholder
             ? getAvatarPlaceholderStyle(avatarSeed)
             : undefined
+          const profileHref = buildUsernameProfilePath(row.username) ?? '#'
           return (
             <div key={row.id} className="space-y-3 p-4">
               <div className="flex items-center gap-3">
@@ -145,7 +148,7 @@ export default async function AdminAffiliateOverview({ rows }: AdminAffiliateOve
                     )}
                 <div className="flex-1 space-y-0.5">
                   <Link
-                    href={`/@${row.username}`}
+                    href={profileHref}
                     className="block text-sm font-medium hover:text-primary"
                   >
                     {row.username}

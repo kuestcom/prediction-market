@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildDynamicHomeCategorySlugSet,
   buildPublicProfilePath,
+  buildUsernameProfilePath,
   findDynamicHomeCategoryBySlug,
   findDynamicHomeSubcategoryBySlug,
   isDynamicHomeCategorySlug,
@@ -57,6 +58,12 @@ describe('platform routing helpers', () => {
     expect(buildPublicProfilePath('0x1234567890123456789012345678901234567890')).toBe(
       '/0x1234567890123456789012345678901234567890',
     )
+  })
+
+  it('builds username-only profile paths without accepting wallet addresses', () => {
+    expect(buildUsernameProfilePath('bruno')).toBe('/@bruno')
+    expect(buildUsernameProfilePath('@bruno')).toBe('/@bruno')
+    expect(buildUsernameProfilePath('0x1234567890123456789012345678901234567890')).toBeNull()
   })
 
   it('does not treat reserved or invalid slugs as dynamic categories', () => {

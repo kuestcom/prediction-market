@@ -110,6 +110,15 @@ export function normalizePublicProfileSlug(slug: string): NormalizedPublicProfil
   return { type: 'invalid', value: trimmedSlug }
 }
 
+export function buildUsernameProfilePath(username: string): string | null {
+  const trimmedUsername = username.trim().replace(/^@+/, '')
+  if (!trimmedUsername || normalizeAddress(trimmedUsername)) {
+    return null
+  }
+
+  return `/@${trimmedUsername}`
+}
+
 export function buildPublicProfilePath(slug: string): string | null {
   const trimmedSlug = slug.trim()
   if (!trimmedSlug) {
@@ -117,8 +126,7 @@ export function buildPublicProfilePath(slug: string): string | null {
   }
 
   if (trimmedSlug.startsWith('@')) {
-    const normalized = normalizePublicProfileSlug(trimmedSlug)
-    return normalized.type === 'username' ? `/@${normalized.value}` : null
+    return buildUsernameProfilePath(trimmedSlug)
   }
 
   const normalizedAddress = normalizeAddress(trimmedSlug)
@@ -126,7 +134,7 @@ export function buildPublicProfilePath(slug: string): string | null {
     return `/${normalizedAddress}`
   }
 
-  return `/@${trimmedSlug}`
+  return buildUsernameProfilePath(trimmedSlug)
 }
 
 export function getMainTagSeoTitle(name: string) {

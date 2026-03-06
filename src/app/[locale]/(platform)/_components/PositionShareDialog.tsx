@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { buildShareCardUrl } from '@/lib/share-card'
 import { cn } from '@/lib/utils'
 
@@ -147,9 +148,10 @@ export function PositionShareDialog({ open, onOpenChange, payload }: PositionSha
 
     setIsSharingOnX(true)
     try {
-      const username = payload.userName?.trim() || 'user'
+      const profileSlug = payload.userName?.trim() || 'user'
       const baseUrl = window.location.origin
-      const profileUrl = `${baseUrl}/@${encodeURIComponent(username)}`
+      const profilePath = buildPublicProfilePath(profileSlug) ?? '/@user'
+      const profileUrl = new URL(profilePath, baseUrl).toString()
       const shareText = [
         t('I just put my money where my mouth is on @kuest.'),
         '',

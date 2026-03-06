@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useClipboard } from '@/hooks/useClipboard'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { truncateAddress } from '@/lib/formatters'
+import { buildPublicProfilePath, buildUsernameProfilePath } from '@/lib/platform-routing'
 import { useUser } from '@/stores/useUser'
 
 export default function UserInfoSection() {
@@ -27,6 +28,8 @@ export default function UserInfoSection() {
     : undefined
 
   const polygonscanUrl = `https://polygonscan.com/address/${proxyWalletAddress}`
+  const profileHref = buildUsernameProfilePath(user.username || '')
+    ?? buildPublicProfilePath(user.proxy_wallet_address || user.address || '')
 
   function handleCopyWallet() {
     void copy(proxyWalletAddress)
@@ -58,15 +61,24 @@ export default function UserInfoSection() {
             )}
       </div>
       <div className="min-w-0 flex-1 space-y-1.5">
-        <Link
-          href={`/@${user.username}`}
-          className={`
-            truncate text-base/tight font-semibold text-foreground underline-offset-2 transition-colors duration-200
-            hover:underline
-          `}
-        >
-          {displayUsername}
-        </Link>
+        {profileHref
+          ? (
+              <Link
+                href={profileHref as any}
+                className={`
+                  truncate text-base/tight font-semibold text-foreground underline-offset-2 transition-colors
+                  duration-200
+                  hover:underline
+                `}
+              >
+                {displayUsername}
+              </Link>
+            )
+          : (
+              <span className="truncate text-base/tight font-semibold text-foreground">
+                {displayUsername}
+              </span>
+            )}
 
         <div className="flex items-center gap-1.5">
           <Button
