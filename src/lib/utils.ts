@@ -7,14 +7,17 @@ import { IS_BROWSER } from '@/lib/constants'
 export const NEW_MARKET_MAX_AGE_DAYS = 2
 const MS_IN_DAY = 86_400_000
 
-export function isMarketNew(createdAt: string, thresholdDays: number = NEW_MARKET_MAX_AGE_DAYS, currentTime?: number) {
+export function isMarketNew(createdAt: string, thresholdDays: number = NEW_MARKET_MAX_AGE_DAYS, currentTime?: number | null) {
   const createdDate = new Date(createdAt)
   if (Number.isNaN(createdDate.getTime())) {
     return false
   }
 
-  const now = currentTime ?? Date.now()
-  const diffInMs = now - createdDate.getTime()
+  if (currentTime === null || currentTime === undefined) {
+    return false
+  }
+
+  const diffInMs = currentTime - createdDate.getTime()
   return diffInMs <= thresholdDays * MS_IN_DAY
 }
 

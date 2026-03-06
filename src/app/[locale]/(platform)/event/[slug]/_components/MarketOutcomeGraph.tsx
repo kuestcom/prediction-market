@@ -32,6 +32,7 @@ interface MarketOutcomeGraphProps {
   market: Market
   outcome: Outcome
   allMarkets: Market[]
+  currentTimestamp: number | null
   eventCreatedAt: string
   isMobile: boolean
 }
@@ -43,7 +44,14 @@ const PredictionChart = dynamic<PredictionChartProps>(
 const YES_SERIES_COLOR = 'var(--primary)'
 const NO_SERIES_COLOR = 'var(--no)'
 
-export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventCreatedAt, isMobile }: MarketOutcomeGraphProps) {
+export default function MarketOutcomeGraph({
+  market,
+  outcome,
+  allMarkets,
+  currentTimestamp,
+  eventCreatedAt,
+  isMobile,
+}: MarketOutcomeGraphProps) {
   const t = useExtracted()
   const site = useSiteIdentity()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -240,7 +248,7 @@ export default function MarketOutcomeGraph({ market, outcome, allMarkets, eventC
             )}
         controls={(
           <div className="mt-3 flex flex-wrap items-center gap-3 pb-2">
-            <MarketOutcomeMetaInformation market={market} />
+            <MarketOutcomeMetaInformation market={market} currentTimestamp={currentTimestamp} />
             {hasChartData && (
               <div className="ml-auto">
                 <EventChartControls
@@ -303,7 +311,7 @@ function buildChartData(
     .filter((entry): entry is { date: Date, value: number } => entry !== null)
 }
 
-function MarketOutcomeMetaInformation({ market }: { market: Market }) {
+function MarketOutcomeMetaInformation({ market, currentTimestamp }: { market: Market, currentTimestamp: number | null }) {
   const t = useExtracted()
   const volumeRequestPayload = useMemo(() => {
     const tokenIds = (market.outcomes ?? [])
@@ -361,7 +369,7 @@ function MarketOutcomeMetaInformation({ market }: { market: Market }) {
     return market.volume
   }, [market.volume, volumeFromApi])
 
-  const shouldShowNew = isMarketNew(market.created_at)
+  const shouldShowNew = isMarketNew(market.created_at, undefined, currentTimestamp)
   const formattedVolume = Number.isFinite(resolvedVolume)
     ? (resolvedVolume || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
@@ -375,8 +383,8 @@ function MarketOutcomeMetaInformation({ market }: { market: Market }) {
   )
   const maybeEndDate = market.end_time ? new Date(market.end_time) : null
   const expiryDate = maybeEndDate && !Number.isNaN(maybeEndDate.getTime()) ? maybeEndDate : null
-  const remainingDays = expiryDate
-    ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+  const remainingDays = expiryDate && currentTimestamp !== null
+    ? Math.max(0, Math.ceil((expiryDate.getTime() - currentTimestamp) / (24 * 60 * 60 * 1000)))
     : null
   const remainingLabel = remainingDays !== null ? t('In {days} days', { days: String(remainingDays) }) : ''
 

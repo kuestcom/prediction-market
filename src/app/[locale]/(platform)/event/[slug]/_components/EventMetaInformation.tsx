@@ -10,10 +10,11 @@ import { formatDate } from '@/lib/formatters'
 import { isMarketNew } from '@/lib/utils'
 
 interface EventMetaInformationProps {
+  currentTimestamp: number | null
   event: Event
 }
 
-export default function EventMetaInformation({ event }: EventMetaInformationProps) {
+export default function EventMetaInformation({ event, currentTimestamp }: EventMetaInformationProps) {
   const t = useExtracted()
 
   const volumeRequestPayload = useMemo(() => {
@@ -82,7 +83,7 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const isNegRiskAugmented = Boolean(event.neg_risk_augmented)
   const shouldShowNew = event.markets.some(
-    market => isMarketNew(market.created_at),
+    market => isMarketNew(market.created_at, undefined, currentTimestamp),
   )
   const shouldShowVolume = isNegRiskEnabled || !shouldShowNew
   const shouldShowMetaBlock = isNegRiskEnabled || shouldShowVolume
@@ -100,8 +101,8 @@ export default function EventMetaInformation({ event }: EventMetaInformationProp
 
   const maybeEndDate = event.end_date ? new Date(event.end_date) : null
   const expiryDate = maybeEndDate && !Number.isNaN(maybeEndDate.getTime()) ? maybeEndDate : null
-  const remainingDays = expiryDate
-    ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+  const remainingDays = expiryDate && currentTimestamp !== null
+    ? Math.max(0, Math.ceil((expiryDate.getTime() - currentTimestamp) / (24 * 60 * 60 * 1000)))
     : null
   const remainingLabel = remainingDays !== null ? t('In {days} days', { days: String(remainingDays) }) : ''
   const shouldShowDividerAfterNew = shouldShowNew && (shouldShowMetaBlock || Boolean(expiryDate))

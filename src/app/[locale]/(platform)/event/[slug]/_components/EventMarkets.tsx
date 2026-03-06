@@ -28,6 +28,7 @@ import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_ho
 import { isResolutionReviewActive } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
+import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
@@ -107,6 +108,7 @@ interface CashOutModalPayload {
 
 export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   const t = useExtracted()
+  const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const normalizeOutcomeLabel = useOutcomeLabel()
   const selectedMarketId = useOrder(state => state.market?.condition_id)
   const selectedOutcome = useOrder(state => state.outcome)
@@ -589,6 +591,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                   aria-hidden={!isExpanded}
                 >
                   <MarketDetailTabs
+                    currentTimestamp={currentTimestamp}
                     market={market}
                     event={event}
                     isMobile={isMobile}
@@ -672,6 +675,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                         aria-hidden={!isExpanded}
                       >
                         <MarketDetailTabs
+                          currentTimestamp={currentTimestamp}
                           market={market}
                           event={event}
                           isMobile={isMobile}
@@ -882,6 +886,7 @@ function OtherOutcomeRow({ shares, showMarketIcon }: { shares: number, showMarke
 }
 
 interface MarketDetailTabsProps {
+  currentTimestamp: number | null
   market: Event['markets'][number]
   event: Event
   isMobile: boolean
@@ -905,6 +910,7 @@ interface MarketDetailTabsProps {
 }
 
 function MarketDetailTabs({
+  currentTimestamp,
   market,
   event,
   isMobile,
@@ -1107,6 +1113,7 @@ function MarketDetailTabs({
             allMarkets={event.markets}
             eventCreatedAt={event.created_at}
             isMobile={isMobile}
+            currentTimestamp={currentTimestamp}
           />
         )}
 

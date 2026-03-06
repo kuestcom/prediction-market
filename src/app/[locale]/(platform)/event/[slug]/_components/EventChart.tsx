@@ -1209,7 +1209,7 @@ function EventChartComponent({
   if (shouldHideChart) {
     return (
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-        <EventMetaInformation event={event} />
+        <EventMetaInformation event={event} currentTimestamp={nowMs || null} />
         {chartLogo}
       </div>
     )
@@ -1287,7 +1287,7 @@ function EventChartComponent({
         controls={showControls
           ? (
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <EventMetaInformation event={event} />
+                <EventMetaInformation event={event} currentTimestamp={nowMs || null} />
                 {hasChartData
                   ? (
                       <EventChartControls

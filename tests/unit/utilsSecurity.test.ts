@@ -49,6 +49,11 @@ describe('isMarketNew', () => {
     expect(isMarketNew('not-a-date')).toBe(false)
   })
 
+  it('returns false when currentTime is not provided', () => {
+    expect(isMarketNew(new Date(0).toISOString())).toBe(false)
+    expect(isMarketNew(new Date(0).toISOString(), undefined, null)).toBe(false)
+  })
+
   it('uses thresholdDays and supports deterministic time', () => {
     const createdAt = new Date(0).toISOString()
     const within = 3 * 86_400_000

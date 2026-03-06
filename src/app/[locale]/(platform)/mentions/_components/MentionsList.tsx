@@ -60,7 +60,8 @@ function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
   const visibleBadges = marketBadges.slice(0, 2)
   const hiddenBadges = marketBadges.slice(2)
 
-  const hasRecentMarket = event.markets.some(market => isMarketNew(market.created_at, undefined, currentTimestamp ?? undefined))
+  const hasRecentMarket = currentTimestamp !== null
+    && event.markets.some(market => isMarketNew(market.created_at, undefined, currentTimestamp))
   const totalVolume = event.markets.reduce((acc, market) => acc + (market.volume ?? 0), 0)
 
   const statusBadge = hasRecentMarket
