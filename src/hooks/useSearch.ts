@@ -1,11 +1,6 @@
 import type { SearchLoadingStates, SearchResultItems } from '@/types'
 import { useCallback, useEffect, useState } from 'react'
-
-const MORE_MARKETS_SUFFIX_REGEX = /-more-markets(?:-\d+)?$/i
-
-function isMoreMarketsEventSlug(slug: string | null | undefined) {
-  return MORE_MARKETS_SUFFIX_REGEX.test(slug?.trim() ?? '')
-}
+import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 
 interface UseSearch {
   query: string
@@ -44,7 +39,7 @@ export function useSearch(): UseSearch {
       if (response.ok) {
         const data = await response.json()
         const filteredEvents = Array.isArray(data)
-          ? data.filter(event => !isMoreMarketsEventSlug(event?.slug))
+          ? data.filter(event => !isSportsAuxiliaryEventSlug(event?.slug))
           : []
         setResults(prev => ({ ...prev, events: filteredEvents }))
       }

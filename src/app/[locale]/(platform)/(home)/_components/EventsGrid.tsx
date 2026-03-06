@@ -16,6 +16,7 @@ import { buildMarketTargets } from '@/app/[locale]/(platform)/event/[slug]/_hook
 import { useColumns } from '@/hooks/useColumns'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { resolveDisplayPrice } from '@/lib/market-chance'
+import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
@@ -29,8 +30,6 @@ interface EventsGridProps {
 }
 
 const EMPTY_EVENTS: Event[] = []
-const MORE_MARKETS_SUFFIX_REGEX = /-more-markets(?:-\d+)?$/i
-
 function normalizeSeriesSlug(value: string | null | undefined) {
   const normalized = value?.trim().toLowerCase()
   return normalized || null
@@ -81,7 +80,7 @@ function isOverdueUnresolved(event: Event, nowMs: number) {
 }
 
 function isMoreMarketsEvent(event: Event) {
-  return MORE_MARKETS_SUFFIX_REGEX.test(event.slug)
+  return isSportsAuxiliaryEventSlug(event.slug)
 }
 
 function isPreferredSeriesEvent(candidate: Event, current: Event, nowMs: number) {

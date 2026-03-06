@@ -15,6 +15,7 @@ import {
 } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
+import { SPORTS_AUXILIARY_SLUG_SQL_REGEX } from '@/lib/sports-event-slugs'
 import {
   buildSportsSlugResolver,
   resolveCanonicalSportsSlugAlias,
@@ -128,7 +129,7 @@ const getCachedActiveSportsCountRows = unstable_cache(
       .where(and(
         eq(events.status, 'active'),
         gt(events.active_markets_count, 0),
-        sql`LOWER(TRIM(COALESCE(${events.slug}, ''))) NOT LIKE '%-more-markets'`,
+        sql`LOWER(TRIM(COALESCE(${events.slug}, ''))) !~ ${SPORTS_AUXILIARY_SLUG_SQL_REGEX}`,
         or(
           sql`TRIM(COALESCE(${event_sports.sports_sport_slug}, '')) <> ''`,
           sql`jsonb_array_length(COALESCE(${event_sports.sports_tags}, '[]'::jsonb)) > 0`,
