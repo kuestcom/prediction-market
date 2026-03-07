@@ -552,7 +552,7 @@ export function resolveResolvedOrderPanelDisplay(params: {
     }
   }
 
-  const resolvedOutcome = displayMarket?.outcomes.find(
+  const resolvedOutcome = displayMarket?.outcomes?.find(
     outcome => outcome.outcome_index === resolvedOutcomeIndex,
   ) ?? null
   const resolvedOutcomeText = resolvedOutcome?.outcome_text?.trim() ?? null
@@ -610,10 +610,10 @@ export function resolveResolvedOrderPanelDisplay(params: {
     }
   }
 
-  const resolvedYesOutcomeText = displayMarket?.outcomes.find(
+  const resolvedYesOutcomeText = displayMarket?.outcomes?.find(
     outcome => outcome.outcome_index === OUTCOME_INDEX.YES,
   )?.outcome_text
-  const resolvedNoOutcomeText = displayMarket?.outcomes.find(
+  const resolvedNoOutcomeText = displayMarket?.outcomes?.find(
     outcome => outcome.outcome_index === OUTCOME_INDEX.NO,
   )?.outcome_text
   const selectedMarketResolvedOutcomeIndex = resolveWinningOutcomeIndexForBinaryMarket(selectedMarket)

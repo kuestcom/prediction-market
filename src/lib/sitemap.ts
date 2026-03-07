@@ -209,7 +209,7 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
 
     const marketPathMap = new Map<string, SitemapRouteEntry>()
     for (const row of rows as PredictionSitemapRow[]) {
-      const sportsEventSlug = row.sports_event_slug?.trim() || row.event_slug
+      const sportsEventSlug = row.sports_event_slug?.trim() ?? null
       if (shouldIgnoreSportsSitemapSlug(sportsEventSlug)) {
         continue
       }
@@ -293,7 +293,7 @@ function groupEventRowsBySitemap(rows: EventSitemapRow[]): DynamicEventSitemaps 
   const closedByMonthMap = new Map<string, Map<string, SitemapRouteEntry>>()
 
   for (const row of rows) {
-    const sportsEventSlug = row.sports_event_slug?.trim() || row.slug
+    const sportsEventSlug = row.sports_event_slug?.trim() ?? null
     if (shouldIgnoreSportsSitemapSlug(sportsEventSlug)) {
       continue
     }

@@ -8,30 +8,37 @@ import {
 import { OUTCOME_INDEX } from '@/lib/constants'
 
 function createMarket(overrides: Record<string, any> = {}) {
+  const {
+    condition: conditionOverrides,
+    outcomes: outcomeOverrides,
+    ...marketOverrides
+  } = overrides
+
   return {
-    condition_id: overrides.condition_id ?? 'condition-1',
-    event_id: overrides.event_id ?? 'event-1',
-    question_id: overrides.question_id ?? 'question-1',
-    title: overrides.title ?? 'Market',
-    short_title: overrides.short_title ?? overrides.title ?? 'Market',
-    slug: overrides.slug ?? 'market',
-    sports_market_type: overrides.sports_market_type ?? null,
-    sports_group_item_title: overrides.sports_group_item_title ?? null,
-    icon_url: overrides.icon_url ?? null,
-    is_active: overrides.is_active ?? false,
-    is_resolved: overrides.is_resolved ?? true,
-    block_number: overrides.block_number ?? 1,
-    block_timestamp: overrides.block_timestamp ?? new Date().toISOString(),
-    metadata: overrides.metadata ?? null,
-    volume_24h: overrides.volume_24h ?? 0,
-    volume: overrides.volume ?? 0,
-    created_at: overrides.created_at ?? new Date().toISOString(),
-    updated_at: overrides.updated_at ?? new Date().toISOString(),
-    price: overrides.price ?? 0.5,
-    probability: overrides.probability ?? 50,
-    outcomes: overrides.outcomes ?? [
+    ...marketOverrides,
+    condition_id: marketOverrides.condition_id ?? 'condition-1',
+    event_id: marketOverrides.event_id ?? 'event-1',
+    question_id: marketOverrides.question_id ?? 'question-1',
+    title: marketOverrides.title ?? 'Market',
+    short_title: marketOverrides.short_title ?? marketOverrides.title ?? 'Market',
+    slug: marketOverrides.slug ?? 'market',
+    sports_market_type: marketOverrides.sports_market_type ?? null,
+    sports_group_item_title: marketOverrides.sports_group_item_title ?? null,
+    icon_url: marketOverrides.icon_url ?? null,
+    is_active: marketOverrides.is_active ?? false,
+    is_resolved: marketOverrides.is_resolved ?? true,
+    block_number: marketOverrides.block_number ?? 1,
+    block_timestamp: marketOverrides.block_timestamp ?? new Date().toISOString(),
+    metadata: marketOverrides.metadata ?? null,
+    volume_24h: marketOverrides.volume_24h ?? 0,
+    volume: marketOverrides.volume ?? 0,
+    created_at: marketOverrides.created_at ?? new Date().toISOString(),
+    updated_at: marketOverrides.updated_at ?? new Date().toISOString(),
+    price: marketOverrides.price ?? 0.5,
+    probability: marketOverrides.probability ?? 50,
+    outcomes: outcomeOverrides ?? [
       {
-        condition_id: overrides.condition_id ?? 'condition-1',
+        condition_id: marketOverrides.condition_id ?? 'condition-1',
         outcome_index: OUTCOME_INDEX.YES,
         outcome_text: 'Yes',
         token_id: 'yes-token',
@@ -40,7 +47,7 @@ function createMarket(overrides: Record<string, any> = {}) {
         updated_at: new Date().toISOString(),
       },
       {
-        condition_id: overrides.condition_id ?? 'condition-1',
+        condition_id: marketOverrides.condition_id ?? 'condition-1',
         outcome_index: OUTCOME_INDEX.NO,
         outcome_text: 'No',
         token_id: 'no-token',
@@ -50,22 +57,21 @@ function createMarket(overrides: Record<string, any> = {}) {
       },
     ],
     condition: {
-      id: overrides.condition_id ?? 'condition-1',
+      id: marketOverrides.condition_id ?? 'condition-1',
       oracle: 'oracle',
-      question_id: overrides.question_id ?? 'question-1',
+      question_id: marketOverrides.question_id ?? 'question-1',
       outcome_slot_count: 2,
-      resolved: overrides.condition?.resolved ?? true,
-      payout_numerators: overrides.condition?.payout_numerators,
-      payout_denominator: overrides.condition?.payout_denominator,
-      resolution_price: overrides.condition?.resolution_price,
+      resolved: conditionOverrides?.resolved ?? true,
+      payout_numerators: conditionOverrides?.payout_numerators,
+      payout_denominator: conditionOverrides?.payout_denominator,
+      resolution_price: conditionOverrides?.resolution_price,
       volume: 0,
       open_interest: 0,
       active_positions_count: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      ...overrides.condition,
+      ...conditionOverrides,
     },
-    ...overrides,
   }
 }
 
@@ -83,6 +89,16 @@ function createEvent(markets: Array<Record<string, any>>, overrides: Record<stri
 }
 
 describe('resolveWinningOutcomeIndexForBinaryMarket', () => {
+  it('keeps normalized condition defaults when only partial condition overrides are provided', () => {
+    const market = createMarket({
+      condition: { resolution_price: 1 },
+    })
+
+    expect(market.condition.id).toBe('condition-1')
+    expect(market.condition.question_id).toBe('question-1')
+    expect(market.condition.resolved).toBe(true)
+  })
+
   it('uses resolution price when winning flags are unavailable', () => {
     const market = createMarket({
       condition: { resolution_price: 1 },

@@ -222,9 +222,7 @@ export default function EventOrderPanelForm({
       ? t('Yes')
       : resolvedOutcomeIndex === OUTCOME_INDEX.NO
         ? t('No')
-        : (state.market?.sports_market_type || resolvedDisplay.marketTitle)
-            ? t('Yes')
-            : null
+        : null
   const shouldShowResolvedSportsSubtitle = Boolean(
     state.market?.sports_market_type
     || resolvedDisplay.market?.sports_market_type
