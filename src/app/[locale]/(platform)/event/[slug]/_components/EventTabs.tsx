@@ -2,6 +2,7 @@ import type { Event, User } from '@/types'
 import { useMemo, useState } from 'react'
 import EventActivity from '@/app/[locale]/(platform)/event/[slug]/_components/EventActivity'
 import EventComments from '@/app/[locale]/(platform)/event/[slug]/_components/EventComments'
+import EventFaq from '@/app/[locale]/(platform)/event/[slug]/_components/EventFaq'
 import { useMarketChannelStatus } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventTabSelector from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabSelector'
 import EventTopHolders from '@/app/[locale]/(platform)/event/[slug]/_components/EventTopHolders'
@@ -38,7 +39,12 @@ export default function EventTabs({ event, user }: EventTabsProps) {
         liveCommentsStatus={liveCommentsStatus}
         marketChannelStatus={marketChannelStatus}
       />
-      {activeTab === 'comments' && <EventComments event={event} user={user} />}
+      {activeTab === 'comments' && (
+        <>
+          <EventComments event={event} user={user} />
+          <EventFaq event={event} commentsCount={commentsCount} />
+        </>
+      )}
       {activeTab === 'holders' && <EventTopHolders event={event} />}
       {activeTab === 'activity' && <EventActivity event={event} />}
     </div>
