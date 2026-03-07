@@ -2,8 +2,8 @@ import type { Event, PublicProfile, SearchLoadingStates, SearchResultItems } fro
 import { LoaderIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import EventIconImage from '@/components/EventIconImage'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import ProfileLink from '@/components/ProfileLink'
-import { Link } from '@/i18n/navigation'
 import { SearchTabs } from './SearchTabs'
 
 interface SearchResultsProps {
@@ -128,7 +128,7 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
   return (
     <>
       {events.map(result => (
-        <Link
+        <IntentPrefetchLink
           key={`${result.id}-${result.slug}`}
           href={`/event/${result.slug}`}
           onClick={onResultClick}
@@ -158,7 +158,7 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
               %
             </span>
           </div>
-        </Link>
+        </IntentPrefetchLink>
       ))}
     </>
   )

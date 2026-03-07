@@ -4,9 +4,9 @@ import type { ReactNode } from 'react'
 import type { EventSeriesEntry } from '@/types'
 import { ChevronDownIcon, GavelIcon, TriangleIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
 const MAX_PAST_RESULT_BADGES = 5
@@ -367,7 +367,7 @@ export default function EventSeriesPills({
                         return (
                           <Tooltip key={event.id}>
                             <TooltipTrigger asChild>
-                              <Link
+                              <IntentPrefetchLink
                                 href={`/event/${event.slug}`}
                                 className={cn(
                                   `
@@ -386,7 +386,7 @@ export default function EventSeriesPills({
                                   fill="currentColor"
                                   stroke="none"
                                 />
-                              </Link>
+                              </IntentPrefetchLink>
                             </TooltipTrigger>
                             <TooltipContent align="center" className="px-2 py-1 text-xs">
                               {getSeriesEventLabel(event)}
@@ -430,12 +430,12 @@ export default function EventSeriesPills({
 
                   return (
                     <DropdownMenuItem key={event.id} asChild className="cursor-pointer rounded-md py-1.5 text-xs">
-                      <Link href={`/event/${event.slug}`} className="flex w-full items-center gap-2">
+                      <IntentPrefetchLink href={`/event/${event.slug}`} className="flex w-full items-center gap-2">
                         <GavelIcon className="size-3.5 shrink-0 text-foreground" />
                         <span className="text-xs font-semibold text-foreground">{etTimeLabel}</span>
                         <span className="size-1 rounded-full bg-foreground/70" />
                         <span className="text-xs text-muted-foreground">{getSeriesEventLabel(event)}</span>
-                      </Link>
+                      </IntentPrefetchLink>
                     </DropdownMenuItem>
                   )
                 })}
@@ -469,7 +469,7 @@ export default function EventSeriesPills({
             return (
               <Tooltip key={event.id}>
                 <TooltipTrigger asChild>
-                  <Link
+                  <IntentPrefetchLink
                     href={`/event/${event.slug}`}
                     className={cn(
                       `
@@ -494,7 +494,7 @@ export default function EventSeriesPills({
                       </span>
                     )}
                     <span>{pillLabel}</span>
-                  </Link>
+                  </IntentPrefetchLink>
                 </TooltipTrigger>
                 <SeriesEventCountdownTooltipContent
                   event={event}
@@ -564,10 +564,10 @@ export default function EventSeriesPills({
 
                 return (
                   <DropdownMenuItem key={event.id} asChild className="cursor-pointer py-1.5 text-xs font-medium">
-                    <Link href={`/event/${event.slug}`} className="flex w-full items-center gap-2">
+                    <IntentPrefetchLink href={`/event/${event.slug}`} className="flex w-full items-center gap-2">
                       <GavelIcon className="size-3.5 shrink-0 text-muted-foreground" />
                       <span>{getSeriesEventLabel(event)}</span>
-                    </Link>
+                    </IntentPrefetchLink>
                   </DropdownMenuItem>
                 )
               })}
@@ -591,7 +591,7 @@ export default function EventSeriesPills({
         {hasSeriesNavigation && unresolvedEvents.map((event) => {
           const isCurrent = event.slug === currentEventSlug
           return (
-            <Link
+            <IntentPrefetchLink
               key={event.id}
               href={`/event/${event.slug}`}
               className={cn(
@@ -602,7 +602,7 @@ export default function EventSeriesPills({
               )}
             >
               {getSeriesEventLabel(event)}
-            </Link>
+            </IntentPrefetchLink>
           )
         })}
       </div>

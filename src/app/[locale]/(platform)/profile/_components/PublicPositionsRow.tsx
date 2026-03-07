@@ -3,9 +3,9 @@ import type { PublicPosition } from './PublicPositionItem'
 import { ArrowRightIcon, ShareIcon } from 'lucide-react'
 import { formatCurrencyValue, getLatestPrice, getValue } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import EventIconImage from '@/components/EventIconImage'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { Link } from '@/i18n/navigation'
 import { formatCentsLabel, formatCurrency, formatSharesLabel } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
@@ -39,7 +39,7 @@ export default function PublicPositionsRow({
     <tr className="transition-colors hover:bg-muted/50">
       <td className="max-w-0 px-2 py-3 align-middle sm:px-3">
         <div className="flex min-w-0 items-start gap-3">
-          <Link
+          <IntentPrefetchLink
             href={eventHref}
             className="relative size-12 shrink-0 overflow-hidden rounded-sm bg-muted"
           >
@@ -55,9 +55,9 @@ export default function PublicPositionsRow({
               : (
                   <div className="grid size-full place-items-center text-sm text-muted-foreground">No image</div>
                 )}
-          </Link>
+          </IntentPrefetchLink>
           <div className="min-w-0 flex-1 space-y-1">
-            <Link
+            <IntentPrefetchLink
               href={eventHref}
               className={`
                 block max-w-full truncate text-[13px] leading-tight font-semibold text-foreground underline-offset-2
@@ -66,7 +66,7 @@ export default function PublicPositionsRow({
               title={position.title}
             >
               {position.title}
-            </Link>
+            </IntentPrefetchLink>
             <div className="flex flex-wrap items-center gap-1.5 text-xs">
               <span className={cn('inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-semibold', outcomeColor)}>
                 {outcomeLabel}

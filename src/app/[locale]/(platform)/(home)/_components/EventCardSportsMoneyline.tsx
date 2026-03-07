@@ -4,7 +4,7 @@ import type { HomeSportsMoneylineButton, HomeSportsMoneylineModel } from '@/lib/
 import type { Event } from '@/types'
 import Image from 'next/image'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
-import { Link } from '@/i18n/navigation'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
 import { formatVolume } from '@/lib/formatters'
@@ -124,7 +124,7 @@ export default function EventCardSportsMoneyline({
       `}
     >
       <div className="flex w-full flex-col gap-1">
-        <Link
+        <IntentPrefetchLink
           href={resolveButtonHref(model.team1Button)}
           className="group/team-row-1 flex h-9 items-center justify-between gap-2"
         >
@@ -150,8 +150,8 @@ export default function EventCardSportsMoneyline({
             {team1Chance}
             %
           </p>
-        </Link>
-        <Link
+        </IntentPrefetchLink>
+        <IntentPrefetchLink
           href={resolveButtonHref(model.team2Button)}
           className="group/team-row-2 flex h-9 items-center justify-between gap-2"
         >
@@ -177,7 +177,7 @@ export default function EventCardSportsMoneyline({
             {team2Chance}
             %
           </p>
-        </Link>
+        </IntentPrefetchLink>
       </div>
 
       <div className="mt-2 flex flex-col justify-end gap-1.5 pb-2">
@@ -188,7 +188,7 @@ export default function EventCardSportsMoneyline({
               const toneStyles = getButtonToneStyles(button)
 
               return (
-                <Link
+                <IntentPrefetchLink
                   key={`${button.conditionId}:${button.outcomeIndex}`}
                   href={resolveButtonHref(button)}
                   className={cn(
@@ -224,7 +224,7 @@ export default function EventCardSportsMoneyline({
                         />
                       )
                     : null}
-                </Link>
+                </IntentPrefetchLink>
               )
             })}
         </div>

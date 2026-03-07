@@ -3,7 +3,7 @@
 import type { Route } from 'next'
 import type { ReactNode } from 'react'
 import { useExtracted } from 'next-intl'
-import { Link } from '@/i18n/navigation'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { cn } from '@/lib/utils'
 
 interface CategorySidebarProps {
@@ -23,7 +23,7 @@ interface CategorySidebarLinkProps {
 
 function CategorySidebarLink({ children, href, isActive, onClick }: CategorySidebarLinkProps) {
   return (
-    <Link
+    <IntentPrefetchLink
       href={href}
       aria-current={isActive ? 'page' : undefined}
       onClick={onClick}
@@ -35,7 +35,7 @@ function CategorySidebarLink({ children, href, isActive, onClick }: CategorySide
       )}
     >
       <span className="truncate">{children}</span>
-    </Link>
+    </IntentPrefetchLink>
   )
 }
 

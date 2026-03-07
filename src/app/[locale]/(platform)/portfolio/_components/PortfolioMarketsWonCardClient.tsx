@@ -14,6 +14,7 @@ import { useSignMessage } from 'wagmi'
 import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import EventIconImage from '@/components/EventIconImage'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -21,7 +22,6 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
-import { Link } from '@/i18n/navigation'
 import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
@@ -427,9 +427,9 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
             return href
               ? (
-                  <Link key={market.conditionId} href={href} className={itemClassName}>
+                  <IntentPrefetchLink key={market.conditionId} href={href} className={itemClassName}>
                     {content}
-                  </Link>
+                  </IntentPrefetchLink>
                 )
               : (
                   <div key={market.conditionId} className={itemClassName} aria-disabled="true">

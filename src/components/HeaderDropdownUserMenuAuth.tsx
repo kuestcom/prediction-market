@@ -6,6 +6,7 @@ import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import HeaderPortfolio from '@/components/HeaderPortfolio'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
 import ThemeSelector from '@/components/ThemeSelector'
 import { Button } from '@/components/ui/button'
@@ -18,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import UserInfoSection from '@/components/UserInfoSection'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { Link, usePathname } from '@/i18n/navigation'
+import { usePathname } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { useUser } from '@/stores/useUser'
 
@@ -165,28 +166,28 @@ export default function HeaderDropdownUserMenuAuth() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
-            <Link href="/settings" className="flex w-full items-center gap-1.5">
+            <IntentPrefetchLink href="/settings" className="flex w-full items-center gap-1.5">
               <SettingsIcon className="size-4 text-orange-500" />
               {t('Settings')}
-            </Link>
+            </IntentPrefetchLink>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
-            <Link href="/leaderboard" className="flex w-full items-center gap-1.5">
+            <IntentPrefetchLink href="/leaderboard" className="flex w-full items-center gap-1.5">
               <TrophyIcon className="size-4 text-amber-500" />
               {t('Leaderboard')}
-            </Link>
+            </IntentPrefetchLink>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
-            <Link href="/settings/affiliate" className="flex w-full items-center gap-1.5">
+            <IntentPrefetchLink href="/settings/affiliate" className="flex w-full items-center gap-1.5">
               <BadgePercentIcon className="size-4 text-emerald-600" />
               {t('Affiliate')}
-            </Link>
+            </IntentPrefetchLink>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
-            <Link
+            <IntentPrefetchLink
               href="/docs/api-reference"
               target="_blank"
               rel="noreferrer"
@@ -194,15 +195,15 @@ export default function HeaderDropdownUserMenuAuth() {
             >
               <UnplugIcon className="size-4 text-pink-500" />
               {t('APIs')}
-            </Link>
+            </IntentPrefetchLink>
           </DropdownMenuItem>
 
           {user?.is_admin && (
             <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
-              <Link href="/admin" className="flex w-full items-center gap-1.5">
+              <IntentPrefetchLink href="/admin" className="flex w-full items-center gap-1.5">
                 <ShieldIcon className="size-4 text-current" />
                 {t('Admin')}
-              </Link>
+              </IntentPrefetchLink>
             </DropdownMenuItem>
           )}
 
@@ -222,11 +223,11 @@ export default function HeaderDropdownUserMenuAuth() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <Link href="/docs/users" data-testid="header-docs-link">{t('Documentation')}</Link>
+            <IntentPrefetchLink href="/docs/users" data-testid="header-docs-link">{t('Documentation')}</IntentPrefetchLink>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <Link href="/terms-of-use" data-testid="header-terms-link">{t('Terms of Use')}</Link>
+            <IntentPrefetchLink href="/terms-of-use" data-testid="header-terms-link">{t('Terms of Use')}</IntentPrefetchLink>
           </DropdownMenuItem>
 
           <LocaleSwitcherMenuItem />

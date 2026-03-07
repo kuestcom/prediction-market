@@ -50,6 +50,7 @@ import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/
 import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import SportsLivestreamFloatingPlayer
   from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -64,7 +65,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
-import { Link, useRouter } from '@/i18n/navigation'
+import { useRouter } from '@/i18n/navigation'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { MICRO_UNIT, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
@@ -4250,7 +4251,7 @@ export default function SportsGamesCenter({
                 </Tooltip>
               )}
 
-              <Link
+              <IntentPrefetchLink
                 href={card.eventHref}
                 data-sports-card-control="true"
                 onClick={event => event.stopPropagation()}
@@ -4275,7 +4276,7 @@ export default function SportsGamesCenter({
                 )}
                 <span>Game View</span>
                 <ChevronRightIcon className="size-3.5" />
-              </Link>
+              </IntentPrefetchLink>
             </div>
           </div>
 

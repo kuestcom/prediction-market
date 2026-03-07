@@ -10,10 +10,10 @@ import {
   microToUnit,
 } from '@/app/[locale]/(platform)/portfolio/_utils/PortfolioOpenOrdersUtils'
 import EventIconImage from '@/components/EventIconImage'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
-import { Link } from '@/i18n/navigation'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
@@ -45,7 +45,7 @@ export default function PortfolioOpenOrdersRow({ order }: PortfolioOpenOrdersRow
     <tr className="border-b transition-colors hover:bg-muted/50">
       <td className="max-w-0 px-2 py-3 sm:px-3">
         <div className="flex min-w-0 items-start gap-3">
-          <Link
+          <IntentPrefetchLink
             href={eventHref}
             className="relative size-12 shrink-0 overflow-hidden rounded-sm bg-muted"
           >
@@ -63,15 +63,15 @@ export default function PortfolioOpenOrdersRow({ order }: PortfolioOpenOrdersRow
                     No image
                   </div>
                 )}
-          </Link>
+          </IntentPrefetchLink>
           <div className="min-w-0 flex-1 space-y-1">
-            <Link
+            <IntentPrefetchLink
               href={eventHref}
               className="block max-w-full truncate text-sm font-semibold underline-offset-2 hover:underline"
               title={order.market.title}
             >
               {order.market.title}
-            </Link>
+            </IntentPrefetchLink>
           </div>
         </div>
       </td>

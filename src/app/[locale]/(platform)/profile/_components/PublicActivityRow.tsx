@@ -3,7 +3,7 @@ import type { PublicActivityRowProps } from '@/app/[locale]/(platform)/profile/_
 import { CircleDollarSignIcon } from 'lucide-react'
 import { activityIcon, formatPriceCents, formatShares, resolveVariant } from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
 import EventIconImage from '@/components/EventIconImage'
-import { Link } from '@/i18n/navigation'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { MICRO_UNIT } from '@/lib/constants'
 import { formatCurrency, formatTimeAgo } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -53,7 +53,7 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
       )
     : (
         <div className="flex min-w-0 items-start gap-2.5 pl-1">
-          <Link
+          <IntentPrefetchLink
             href={eventHref}
             className="relative size-12 shrink-0 overflow-hidden rounded-sm bg-muted"
           >
@@ -71,10 +71,10 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
                     No image
                   </div>
                 )}
-          </Link>
+          </IntentPrefetchLink>
 
           <div className="min-w-0 flex-1 space-y-1">
-            <Link
+            <IntentPrefetchLink
               href={eventHref}
               className={
                 `
@@ -85,7 +85,7 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
               title={activity.market.title}
             >
               {activity.market.title}
-            </Link>
+            </IntentPrefetchLink>
             <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               {(variant === 'buy' || variant === 'sell') && (
                 <span className={cn('inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs font-semibold', outcomeColor)}>

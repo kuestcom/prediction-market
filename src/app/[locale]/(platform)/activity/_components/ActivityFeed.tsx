@@ -8,11 +8,12 @@ import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventIconImage from '@/components/EventIconImage'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import ProfileLink from '@/components/ProfileLink'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
-import { Link, useRouter } from '@/i18n/navigation'
+import { useRouter } from '@/i18n/navigation'
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { MICRO_UNIT } from '@/lib/constants'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
@@ -571,7 +572,7 @@ export default function ActivityFeed() {
                 }}
               >
                 <div className="flex min-w-0 flex-1 items-start gap-3">
-                  <Link
+                  <IntentPrefetchLink
                     href={eventHref}
                     onClick={event => event.stopPropagation()}
                     className="relative size-12 shrink-0 overflow-hidden rounded-md"
@@ -588,10 +589,10 @@ export default function ActivityFeed() {
                       : (
                           <div className="size-full" aria-hidden />
                         )}
-                  </Link>
+                  </IntentPrefetchLink>
 
                   <div className="min-w-0 flex-1 space-y-1">
-                    <Link
+                    <IntentPrefetchLink
                       href={eventHref}
                       onClick={event => event.stopPropagation()}
                       className={`
@@ -601,7 +602,7 @@ export default function ActivityFeed() {
                       title={activity.market.title}
                     >
                       {activity.market.title}
-                    </Link>
+                    </IntentPrefetchLink>
 
                     <div
                       onClick={event => event.stopPropagation()}

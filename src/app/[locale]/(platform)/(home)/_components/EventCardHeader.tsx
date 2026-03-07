@@ -2,8 +2,8 @@ import type { Event, Market } from '@/types'
 import type { SelectedOutcome } from '@/types/EventCardTypes'
 import { useExtracted } from 'next-intl'
 import EventIconImage from '@/components/EventIconImage'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
-import { Link } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
@@ -59,7 +59,7 @@ export default function EventCardHeader({
 
   return (
     <div className="mb-3 flex items-start justify-between">
-      <Link href={eventHref} className="flex flex-1 items-center gap-2 pr-2">
+      <IntentPrefetchLink href={eventHref} className="flex flex-1 items-center gap-2 pr-2">
         <div
           className={`
             flex ${iconSizeClass}
@@ -84,7 +84,7 @@ export default function EventCardHeader({
         >
           {headerTitle}
         </h3>
-      </Link>
+      </IntentPrefetchLink>
 
       {isInTradingMode
         ? (

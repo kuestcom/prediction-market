@@ -1,8 +1,8 @@
 import type { Event, Market, Outcome } from '@/types'
 import { CheckIcon, XIcon } from 'lucide-react'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
-import { Link } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventMarketPath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
@@ -66,13 +66,13 @@ export default function EventCardMarketsList({
             key={market.condition_id}
             className="flex items-center justify-between"
           >
-            <Link
+            <IntentPrefetchLink
               href={resolveEventMarketPath(event, market.slug)}
               className="block min-w-0 flex-1 truncate text-[13px] underline-offset-2 hover:underline dark:text-white"
               title={market.short_title || market.title}
             >
               {market.short_title || market.title}
-            </Link>
+            </IntentPrefetchLink>
             <div className="ml-2 flex items-center gap-2">
               {isResolvedEvent
                 ? (

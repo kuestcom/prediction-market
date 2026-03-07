@@ -1,6 +1,6 @@
 import { CheckIcon, CopyIcon, ExternalLinkIcon } from 'lucide-react'
 import Image from 'next/image'
-import Link from 'next/link'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
 import { useClipboard } from '@/hooks/useClipboard'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
@@ -63,7 +63,7 @@ export default function UserInfoSection() {
       <div className="min-w-0 flex-1 space-y-1.5">
         {profileHref
           ? (
-              <Link
+              <IntentPrefetchLink
                 href={profileHref as any}
                 className={`
                   truncate text-base/tight font-semibold text-foreground underline-offset-2 transition-colors
@@ -72,7 +72,7 @@ export default function UserInfoSection() {
                 `}
               >
                 {displayUsername}
-              </Link>
+              </IntentPrefetchLink>
             )
           : (
               <span className="truncate text-base/tight font-semibold text-foreground">

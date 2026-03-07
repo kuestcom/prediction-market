@@ -3,6 +3,7 @@
 import { MenuIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
 import ThemeSelector from '@/components/ThemeSelector'
 import { Button } from '@/components/ui/button'
@@ -14,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { Link } from '@/i18n/navigation'
 
 export default function HeaderDropdownUserMenuGuest() {
   const t = useExtracted()
@@ -105,14 +105,14 @@ export default function HeaderDropdownUserMenuGuest() {
           onEscapeKeyDown={() => setMenuOpen(false)}
         >
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-foreground">
-            <Link href="/leaderboard" className="flex w-full items-center gap-1.5">
+            <IntentPrefetchLink href="/leaderboard" className="flex w-full items-center gap-1.5">
               <TrophyIcon className="size-4 text-amber-500" />
               {t('Leaderboard')}
-            </Link>
+            </IntentPrefetchLink>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-foreground">
-            <Link
+            <IntentPrefetchLink
               href="/docs/api-reference"
               target="_blank"
               rel="noreferrer"
@@ -120,7 +120,7 @@ export default function HeaderDropdownUserMenuGuest() {
             >
               <UnplugIcon className="size-4 text-pink-500" />
               {t('APIs')}
-            </Link>
+            </IntentPrefetchLink>
           </DropdownMenuItem>
 
           <div className="flex items-center justify-between gap-2 px-2 py-1 text-sm font-semibold text-foreground">
@@ -131,10 +131,10 @@ export default function HeaderDropdownUserMenuGuest() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <Link href="/docs/users" data-testid="header-docs-link">{t('Documentation')}</Link>
+            <IntentPrefetchLink href="/docs/users" data-testid="header-docs-link">{t('Documentation')}</IntentPrefetchLink>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <Link href="/terms-of-use" data-testid="header-terms-link">{t('Terms of Use')}</Link>
+            <IntentPrefetchLink href="/terms-of-use" data-testid="header-terms-link">{t('Terms of Use')}</IntentPrefetchLink>
           </DropdownMenuItem>
 
           <LocaleSwitcherMenuItem />

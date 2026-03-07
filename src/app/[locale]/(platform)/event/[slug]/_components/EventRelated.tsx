@@ -6,8 +6,8 @@ import { useExtracted, useLocale } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSkeleton'
 import EventIconImage from '@/components/EventIconImage'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
-import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
 interface EventRelatedProps {
@@ -343,7 +343,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
                 <ul className="grid gap-2 lg:w-85">
                   {events.map(relatedEvent => (
                     <li key={relatedEvent.id}>
-                      <Link
+                      <IntentPrefetchLink
                         href={`/event/${relatedEvent.slug}`}
                         className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/80"
                       >
@@ -367,7 +367,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
                               : t('—')}
                           </span>
                         </div>
-                      </Link>
+                      </IntentPrefetchLink>
                     </li>
                   ))}
                 </ul>
