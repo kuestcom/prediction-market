@@ -28,6 +28,9 @@ import { useEventOrderPanelOpenOrders } from '@/app/[locale]/(platform)/event/[s
 import { useEventOrderPanelPositions } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventOrderPanelPositions'
 import { buildUserOpenOrdersQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
+import {
+  resolveResolvedOrderPanelDisplay,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
 import { Button } from '@/components/ui/button'
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
@@ -66,55 +69,6 @@ interface EventOrderPanelFormProps {
   oddsFormat?: OddsFormat
   outcomeButtonStyleVariant?: 'default' | 'sports3d'
   optimisticallyClaimedConditionIds?: Record<string, true>
-}
-
-const RESOLUTION_PRICE_TOLERANCE = 1e-9
-
-function resolveWinningOutcomeIndex(market: Event['markets'][number] | null | undefined) {
-  if (!market) {
-    return null
-  }
-
-  const explicitWinner = market.outcomes?.find(outcome => outcome.is_winning_outcome)
-  if (explicitWinner && (explicitWinner.outcome_index === OUTCOME_INDEX.YES || explicitWinner.outcome_index === OUTCOME_INDEX.NO)) {
-    return explicitWinner.outcome_index
-  }
-
-  const rawResolutionPrice = market.condition?.resolution_price
-  if (rawResolutionPrice != null) {
-    const resolutionPrice = Number(rawResolutionPrice)
-    if (Number.isFinite(resolutionPrice)) {
-      if (Math.abs(resolutionPrice - 1) <= RESOLUTION_PRICE_TOLERANCE) {
-        return OUTCOME_INDEX.YES
-      }
-      if (Math.abs(resolutionPrice) <= RESOLUTION_PRICE_TOLERANCE) {
-        return OUTCOME_INDEX.NO
-      }
-    }
-  }
-
-  const payoutNumerators = market.condition?.payout_numerators
-  if (!Array.isArray(payoutNumerators) || payoutNumerators.length === 0) {
-    return null
-  }
-
-  const numericNumerators = payoutNumerators.map(value => Number(value))
-  const finiteNumerators = numericNumerators.filter(value => Number.isFinite(value))
-  if (finiteNumerators.length === 0) {
-    return null
-  }
-
-  const maxValue = Math.max(...finiteNumerators)
-  if (!(maxValue > 0)) {
-    return null
-  }
-
-  const winnerIndex = numericNumerators.findIndex(value => value === maxValue)
-  if (winnerIndex === OUTCOME_INDEX.YES || winnerIndex === OUTCOME_INDEX.NO) {
-    return winnerIndex
-  }
-
-  return null
 }
 
 function resolveIndexSetFromOutcomeIndex(outcomeIndex: number | undefined) {
@@ -254,34 +208,51 @@ export default function EventOrderPanelForm({
     ? state.market.neg_risk
     : Boolean(event.enable_neg_risk || event.neg_risk)
   const isResolvedMarket = Boolean(state.market?.is_resolved || state.market?.condition?.resolved)
-  const resolvedOutcomeIndex = useMemo(
-    () => resolveWinningOutcomeIndex(state.market),
-    [state.market],
+  const resolvedDisplay = useMemo(
+    () => resolveResolvedOrderPanelDisplay({
+      event,
+      selectedMarket: state.market,
+    }),
+    [event, state.market],
   )
-  const resolvedOutcomeText = state.market?.outcomes.find(
-    outcome => outcome.outcome_index === resolvedOutcomeIndex,
-  )?.outcome_text
-  const resolvedYesOutcomeText = state.market?.outcomes.find(
+  const resolvedOutcomeIndex = resolvedDisplay.resolvedOutcomeIndex
+  const resolvedOutcomeLabel = resolvedDisplay.outcomeLabel
+    ? (normalizeOutcomeLabel(resolvedDisplay.outcomeLabel) || resolvedDisplay.outcomeLabel)
+    : resolvedOutcomeIndex === OUTCOME_INDEX.YES
+      ? t('Yes')
+      : resolvedOutcomeIndex === OUTCOME_INDEX.NO
+        ? t('No')
+        : (state.market?.sports_market_type || resolvedDisplay.marketTitle)
+            ? t('Yes')
+            : null
+  const shouldShowResolvedSportsSubtitle = Boolean(
+    state.market?.sports_market_type
+    || resolvedDisplay.market?.sports_market_type
+    || resolvedDisplay.marketTitle,
+  )
+  const resolvedMarketTitle = resolvedDisplay.marketTitle
+    ?? (
+      shouldShowResolvedSportsSubtitle
+        ? resolvedDisplay.market?.sports_group_item_title?.trim()
+        || resolvedDisplay.market?.short_title?.trim()
+        || resolvedDisplay.market?.title?.trim()
+        || null
+        : null
+    )
+  const resolvedYesOutcomeText = resolvedDisplay.market?.outcomes.find(
     outcome => outcome.outcome_index === OUTCOME_INDEX.YES,
   )?.outcome_text
-  const resolvedNoOutcomeText = state.market?.outcomes.find(
+  ?? state.market?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_text
+  const resolvedNoOutcomeText = resolvedDisplay.market?.outcomes.find(
     outcome => outcome.outcome_index === OUTCOME_INDEX.NO,
   )?.outcome_text
+  ?? state.market?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)?.outcome_text
   const resolvedYesOutcomeLabel = (resolvedYesOutcomeText ? normalizeOutcomeLabel(resolvedYesOutcomeText) : '')
     || resolvedYesOutcomeText
     || t('Yes')
   const resolvedNoOutcomeLabel = (resolvedNoOutcomeText ? normalizeOutcomeLabel(resolvedNoOutcomeText) : '')
     || resolvedNoOutcomeText
     || t('No')
-  const normalizedResolvedOutcomeLabel = resolvedOutcomeText
-    ? normalizeOutcomeLabel(resolvedOutcomeText)
-    : ''
-  const resolvedOutcomeLabel = resolvedOutcomeIndex === OUTCOME_INDEX.NO
-    ? (normalizedResolvedOutcomeLabel || resolvedOutcomeText || t('No'))
-    : resolvedOutcomeIndex === OUTCOME_INDEX.YES
-      ? (normalizedResolvedOutcomeLabel || resolvedOutcomeText || t('Yes'))
-      : t('Resolved')
-  const resolvedMarketTitle = state.market?.short_title || state.market?.title
   const orderDomain = useMemo(() => getExchangeEip712Domain(isNegRiskEnabled), [isNegRiskEnabled])
   const [showLimitMinimumWarning, setShowLimitMinimumWarning] = useState(false)
   const { positionsQuery, aggregatedPositionShares } = useEventOrderPanelPositions({
@@ -1240,7 +1211,7 @@ export default function EventOrderPanelForm({
                 {' '}
                 {resolvedOutcomeLabel}
               </div>
-              {!isSingleMarket && resolvedMarketTitle && (
+              {((!isSingleMarket || shouldShowResolvedSportsSubtitle) && resolvedMarketTitle) && (
                 <div className="text-sm text-muted-foreground">{resolvedMarketTitle}</div>
               )}
               {hasClaimableWinnings && (

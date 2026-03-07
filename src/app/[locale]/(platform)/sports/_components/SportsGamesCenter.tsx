@@ -97,7 +97,7 @@ interface SportsGamesCenterProps {
 
 type DetailsTab = 'orderBook' | 'graph' | 'about'
 export type SportsGamesMarketType = SportsGamesButton['marketType']
-export type SportsGameGraphVariant = 'default' | 'sportsEventHero'
+export type SportsGameGraphVariant = 'default' | 'sportsCardLegend' | 'sportsEventHero'
 type LinePickerMarketType = Extract<SportsGamesMarketType, 'spread' | 'total'>
 
 const MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: string }> = [
@@ -955,8 +955,9 @@ export function SportsGameGraph({
   const [tradeFlowItems, setTradeFlowItems] = useState<SportsTradeFlowLabelItem[]>([])
   const isSecondaryMarketGraph = selectedMarketType === 'spread' || selectedMarketType === 'total'
   const isSportsEventHeroVariant = variant === 'sportsEventHero'
+  const usesPositionedSeriesLegend = variant === 'sportsEventHero' || variant === 'sportsCardLegend'
   const chartHeight = isSportsEventHeroVariant ? 332 : 300
-  const chartMargin = isSportsEventHeroVariant
+  const chartMargin = usesPositionedSeriesLegend
     ? { top: 12, right: 46, bottom: 40, left: 0 }
     : { top: 12, right: 30, bottom: 40, left: 0 }
   const chartContainerRef = useRef<HTMLDivElement | null>(null)
@@ -1184,7 +1185,7 @@ export function SportsGameGraph({
   }, [graphSeriesTargets])
 
   const heroLegendRenderedWidth = useMemo(() => {
-    if (!isSportsEventHeroVariant || chartSeries.length === 0) {
+    if (!usesPositionedSeriesLegend || chartSeries.length === 0) {
       return HERO_LEGEND_MIN_WIDTH_PX
     }
 
@@ -1214,7 +1215,7 @@ export function SportsGameGraph({
 
     const targetWidth = Math.ceil(longestLabelWidth + HERO_LEGEND_NAME_PADDING_PX)
     return Math.max(HERO_LEGEND_MIN_WIDTH_PX, targetWidth)
-  }, [chartSeries, isSportsEventHeroVariant])
+  }, [chartSeries, usesPositionedSeriesLegend])
 
   const historyChartData = useMemo<DataPoint[]>(() => {
     return normalizedHistory
@@ -1319,7 +1320,7 @@ export function SportsGameGraph({
   }, [chartData, chartSeries])
 
   const chartXDomain = useMemo(() => {
-    if (!isSportsEventHeroVariant || chartData.length < 2) {
+    if (!usesPositionedSeriesLegend || chartData.length < 2) {
       return undefined
     }
 
@@ -1352,12 +1353,12 @@ export function SportsGameGraph({
     chartMargin.right,
     chartWidth,
     heroLegendRenderedWidth,
-    isSportsEventHeroVariant,
+    usesPositionedSeriesLegend,
   ])
 
   const heroLegendSeriesWithValues = useMemo(
     () => {
-      if (!isSportsEventHeroVariant) {
+      if (!usesPositionedSeriesLegend) {
         return []
       }
 
@@ -1375,12 +1376,12 @@ export function SportsGameGraph({
         })
         .filter((entry): entry is { key: string, name: string, color: string, value: number } => entry !== null)
     },
-    [chartSeries, cursorSnapshot, isSportsEventHeroVariant, latestSnapshot],
+    [chartSeries, cursorSnapshot, latestSnapshot, usesPositionedSeriesLegend],
   )
 
   const heroLegendPositionedEntries = useMemo(
     () => {
-      if (!isSportsEventHeroVariant || heroLegendSeriesWithValues.length === 0 || chartData.length === 0) {
+      if (!usesPositionedSeriesLegend || heroLegendSeriesWithValues.length === 0 || chartData.length === 0) {
         return [] as Array<{
           key: string
           name: string
@@ -1504,7 +1505,7 @@ export function SportsGameGraph({
       chartXDomain?.start,
       cursorSnapshot?.date,
       heroLegendSeriesWithValues,
-      isSportsEventHeroVariant,
+      usesPositionedSeriesLegend,
     ],
   )
 
@@ -1584,7 +1585,7 @@ export function SportsGameGraph({
     }
   }, [hasTradeFlowLabels, isSportsEventHeroVariant])
 
-  const legendContent = !isSecondaryMarketGraph && !isSportsEventHeroVariant && legendSeriesWithValues.length > 0
+  const legendContent = !isSecondaryMarketGraph && !usesPositionedSeriesLegend && legendSeriesWithValues.length > 0
     ? (
         <div className="flex min-h-5 flex-wrap items-center gap-4">
           {legendSeriesWithValues.map(entry => (
@@ -1617,7 +1618,7 @@ export function SportsGameGraph({
 
   return (
     <>
-      <div style={isSportsEventHeroVariant ? { minHeight: `${chartHeight + 56}px` } : undefined}>
+      <div style={usesPositionedSeriesLegend ? { minHeight: `${chartHeight + 56}px` } : undefined}>
         <div ref={chartContainerRef} className="relative">
           <PredictionChart
             data={chartData}
@@ -1631,12 +1632,12 @@ export function SportsGameGraph({
             xAxisTickCount={3}
             yAxis={undefined}
             legendContent={legendContent}
-            showLegend={!isSecondaryMarketGraph && !isSportsEventHeroVariant}
-            showTooltipSeriesLabels={!isSportsEventHeroVariant}
+            showLegend={!isSecondaryMarketGraph && !usesPositionedSeriesLegend}
+            showTooltipSeriesLabels={!usesPositionedSeriesLegend}
             disableCursorSplit={false}
-            clampCursorToDataExtent={isSportsEventHeroVariant}
-            markerOuterRadius={isSportsEventHeroVariant ? 0 : undefined}
-            markerInnerRadius={isSportsEventHeroVariant ? 4 : undefined}
+            clampCursorToDataExtent={usesPositionedSeriesLegend}
+            markerOuterRadius={usesPositionedSeriesLegend ? 0 : undefined}
+            markerInnerRadius={usesPositionedSeriesLegend ? 4 : undefined}
             lineCurve="monotoneX"
             tooltipValueFormatter={value => `${Math.round(value)}%`}
             autoscale={chartSettings.autoscale}
@@ -1648,7 +1649,7 @@ export function SportsGameGraph({
             leadingGapStart={leadingGapStart}
           />
 
-          {isSportsEventHeroVariant && heroLegendPositionedEntries.length > 0 && (
+          {usesPositionedSeriesLegend && heroLegendPositionedEntries.length > 0 && (
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
               {heroLegendPositionedEntries.map(entry => (
                 <div
@@ -3133,11 +3134,7 @@ export function SportsGameDetailsPanel({
               selectedMarketType={selectedButton?.marketType ?? 'moneyline'}
               selectedConditionId={selectedButton?.conditionId ?? null}
               defaultTimeRange={defaultGraphTimeRange}
-              variant={
-                selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
-                  ? 'sportsEventHero'
-                  : 'default'
-              }
+              variant="sportsCardLegend"
             />
           )}
 

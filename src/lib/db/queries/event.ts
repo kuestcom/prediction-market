@@ -27,6 +27,7 @@ import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { HIDE_FROM_NEW_TAG_SLUG, setEventHiddenFromNew } from '@/lib/event-visibility'
 import { resolveDisplayPrice } from '@/lib/market-chance'
+import { isSportsAuxiliaryEventSlug, stripSportsAuxiliaryEventSuffix } from '@/lib/sports-event-slugs'
 import {
   resolveCanonicalSportsSportSlug,
   resolveSportsSportSlugQueryCandidates,
@@ -487,6 +488,118 @@ function buildSportsVolumeGroupKeySql() {
       NULLIF(LOWER(TRIM(COALESCE(${event_sports.sports_event_slug}, ''))), '')
     )
   `
+}
+
+async function hydrateSportsAuxiliaryEventContext(
+  eventResult: DrizzleEventResult,
+): Promise<DrizzleEventResult> {
+  const currentSports = eventResult.sports
+  if (!currentSports || !isSportsAuxiliaryEventSlug(eventResult.slug)) {
+    return eventResult
+  }
+
+  const baseSlug = stripSportsAuxiliaryEventSuffix(eventResult.slug)
+  if (!baseSlug || baseSlug === eventResult.slug) {
+    return eventResult
+  }
+
+  const shouldLoadBaseSports = (
+    currentSports.sports_score == null
+    || currentSports.sports_period == null
+    || currentSports.sports_elapsed == null
+    || currentSports.sports_live == null
+    || currentSports.sports_ended == null
+    || currentSports.sports_tags == null
+    || currentSports.sports_teams == null
+    || currentSports.sports_team_logo_urls == null
+  )
+  if (!shouldLoadBaseSports) {
+    return eventResult
+  }
+
+  const baseSportsRows = await db
+    .select({
+      sports_score: event_sports.sports_score,
+      sports_period: event_sports.sports_period,
+      sports_elapsed: event_sports.sports_elapsed,
+      sports_live: event_sports.sports_live,
+      sports_ended: event_sports.sports_ended,
+      sports_tags: event_sports.sports_tags,
+      sports_teams: event_sports.sports_teams,
+      sports_team_logo_urls: event_sports.sports_team_logo_urls,
+      sports_start_time: event_sports.sports_start_time,
+      sports_event_week: event_sports.sports_event_week,
+      sports_sport_slug: event_sports.sports_sport_slug,
+    })
+    .from(events)
+    .innerJoin(event_sports, eq(event_sports.event_id, events.id))
+    .where(eq(events.slug, baseSlug))
+    .limit(1)
+
+  const baseSports = baseSportsRows[0]
+  if (!baseSports) {
+    return eventResult
+  }
+
+  return {
+    ...eventResult,
+    sports: {
+      ...currentSports,
+      sports_score: currentSports.sports_score ?? baseSports.sports_score,
+      sports_period: currentSports.sports_period ?? baseSports.sports_period,
+      sports_elapsed: currentSports.sports_elapsed ?? baseSports.sports_elapsed,
+      sports_live: currentSports.sports_live ?? baseSports.sports_live,
+      sports_ended: currentSports.sports_ended ?? baseSports.sports_ended,
+      sports_tags: currentSports.sports_tags ?? baseSports.sports_tags,
+      sports_teams: currentSports.sports_teams ?? baseSports.sports_teams,
+      sports_team_logo_urls: currentSports.sports_team_logo_urls ?? baseSports.sports_team_logo_urls,
+      sports_start_time: currentSports.sports_start_time ?? baseSports.sports_start_time,
+      sports_event_week: currentSports.sports_event_week ?? baseSports.sports_event_week,
+      sports_sport_slug: currentSports.sports_sport_slug ?? baseSports.sports_sport_slug,
+    },
+  }
+}
+
+function hydrateGroupedSportsAuxiliaryEventContexts(
+  groupedEvents: DrizzleEventResult[],
+): DrizzleEventResult[] {
+  const eventsBySlug = new Map(groupedEvents.map(event => [event.slug, event] as const))
+
+  return groupedEvents.map((event) => {
+    const currentSports = event.sports
+    if (!currentSports || !isSportsAuxiliaryEventSlug(event.slug)) {
+      return event
+    }
+
+    const baseSlug = stripSportsAuxiliaryEventSuffix(event.slug)
+    if (!baseSlug || baseSlug === event.slug) {
+      return event
+    }
+
+    const baseEvent = eventsBySlug.get(baseSlug)
+    const baseSports = baseEvent?.sports
+    if (!baseSports) {
+      return event
+    }
+
+    return {
+      ...event,
+      sports: {
+        ...currentSports,
+        sports_score: currentSports.sports_score ?? baseSports.sports_score,
+        sports_period: currentSports.sports_period ?? baseSports.sports_period,
+        sports_elapsed: currentSports.sports_elapsed ?? baseSports.sports_elapsed,
+        sports_live: currentSports.sports_live ?? baseSports.sports_live,
+        sports_ended: currentSports.sports_ended ?? baseSports.sports_ended,
+        sports_tags: currentSports.sports_tags ?? baseSports.sports_tags,
+        sports_teams: currentSports.sports_teams ?? baseSports.sports_teams,
+        sports_team_logo_urls: currentSports.sports_team_logo_urls ?? baseSports.sports_team_logo_urls,
+        sports_start_time: currentSports.sports_start_time ?? baseSports.sports_start_time,
+        sports_event_week: currentSports.sports_event_week ?? baseSports.sports_event_week,
+        sports_sport_slug: currentSports.sports_sport_slug ?? baseSports.sports_sport_slug,
+      },
+    }
+  })
 }
 
 async function getSportsVolumeGroupKeysByEventId(eventIds: string[]) {
@@ -2051,6 +2164,7 @@ export const EventRepository = {
         with: {
           markets: {
             with: {
+              sports: true,
               condition: {
                 with: { outcomes: true },
               },
@@ -2072,9 +2186,11 @@ export const EventRepository = {
         throw new Error('Event not found')
       }
 
+      const hydratedEventResult = await hydrateSportsAuxiliaryEventContext(eventResult as DrizzleEventResult)
+
       const sportsSlugResolver = await getSportsSlugResolverFromDb()
       const transformedEvent = await buildEventResource(
-        eventResult as DrizzleEventResult,
+        hydratedEventResult,
         userId,
         sportsSlugResolver,
         locale,
@@ -2145,19 +2261,21 @@ export const EventRepository = {
         return { data: [], error: null }
       }
 
-      const tokensForPricing = groupedEventsData.flatMap(event =>
+      const hydratedGroupedEventsData = hydrateGroupedSportsAuxiliaryEventContexts(groupedEventsData)
+
+      const tokensForPricing = hydratedGroupedEventsData.flatMap(event =>
         (event.markets ?? []).flatMap(market =>
           (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
         ),
       )
       const tagIds = Array.from(new Set(
-        groupedEventsData.flatMap(event =>
+        hydratedGroupedEventsData.flatMap(event =>
           (event.eventTags ?? [])
             .map(eventTag => eventTag.tag?.id)
             .filter((tagId): tagId is number => typeof tagId === 'number'),
         ),
       ))
-      const eventIds = groupedEventsData.map(event => event.id)
+      const eventIds = hydratedGroupedEventsData.map(event => event.id)
       const [priceMap, localizedTagNamesById, localizedEventTitlesById, groupedVolumesByGroupKey] = await Promise.all([
         fetchOutcomePrices(tokensForPricing),
         getLocalizedTagNamesById(tagIds, locale),
@@ -2167,7 +2285,7 @@ export const EventRepository = {
       const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
 
       const groupedVolume = groupedVolumesByGroupKey.get(baseGroupKey)
-      const eventsWithMarkets = groupedEventsData
+      const eventsWithMarkets = hydratedGroupedEventsData
         .filter(event => event.markets?.length > 0)
         .map(event => eventResource(
           event as DrizzleEventResult,
