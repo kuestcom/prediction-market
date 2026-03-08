@@ -44,7 +44,11 @@ export async function generateMetadata({
   const { locale, sport, event, market } = await params
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale
-  if (sport === STATIC_PARAMS_PLACEHOLDER || event === STATIC_PARAMS_PLACEHOLDER) {
+  if (
+    sport === STATIC_PARAMS_PLACEHOLDER
+    || event === STATIC_PARAMS_PLACEHOLDER
+    || market === STATIC_PARAMS_PLACEHOLDER
+  ) {
     notFound()
   }
   const canonicalEventSlug = await resolveCanonicalEventSlugFromSportsPath(sport, event)
