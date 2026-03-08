@@ -25,6 +25,7 @@ const THEME_PRESET_PRIMARY_COLOR = {
 
 type EventMarket = Event['markets'][number]
 type MarketOutcome = EventMarket['outcomes'][number]
+type ChangeDirection = 'flat' | 'down' | 'up'
 
 interface PriceHistoryPoint {
   t: number
@@ -37,6 +38,18 @@ interface OutcomeButton {
   priceLabel: string
   background: string
   color: string
+}
+
+interface ChartData {
+  points: Array<{
+    x: number
+    y: number
+    value: number
+  }>
+  path: string
+  changeDirection: ChangeDirection
+  changeLabel: string | null
+  changeColor: string
 }
 
 function resolveThemePrimaryColor(primaryValue: string | null | undefined, presetId: string) {
@@ -376,7 +389,7 @@ function samplePriceHistory(points: PriceHistoryPoint[], maxPoints = MAX_CHART_P
   return sampled
 }
 
-function buildChartData(points: PriceHistoryPoint[]) {
+function buildChartData(points: PriceHistoryPoint[]): ChartData {
   const safePoints = samplePriceHistory(points.length > 1 ? points : buildFallbackHistory(points[0]?.p ?? 0.5))
   const values = safePoints.map(point => point.p)
   const minValue = Math.min(...values)
@@ -410,11 +423,13 @@ function buildChartData(points: PriceHistoryPoint[]) {
     ? (lastValue - firstValue) * 100
     : 0
   const roundedDelta = Math.round(delta)
+  const changeDirection: ChangeDirection = roundedDelta > 0 ? 'up' : roundedDelta < 0 ? 'down' : 'flat'
 
   return {
     points: plottedPoints,
     path,
-    changeLabel: plottedPoints.length > 1 ? `${roundedDelta > 0 ? '+' : ''}${roundedDelta}%` : null,
+    changeDirection,
+    changeLabel: plottedPoints.length > 1 ? `${Math.abs(roundedDelta)}%` : null,
     changeColor: roundedDelta >= 0 ? '#2b9a68' : '#d65757',
   }
 }
@@ -458,6 +473,28 @@ function renderOutcomeButton(button: OutcomeButton, index: number) {
         {button.priceLabel}
       </div>
     </div>
+  )
+}
+
+function renderChangeDirectionIcon(direction: ChangeDirection, color: string) {
+  if (direction === 'flat') {
+    return null
+  }
+
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      style={{
+        display: 'flex',
+      }}
+    >
+      <path
+        d={direction === 'up' ? 'M7 2 L12 11 H2 Z' : 'M2 3 H12 L7 12 Z'}
+        fill={color}
+      />
+    </svg>
   )
 }
 
@@ -659,7 +696,7 @@ export async function GET(request: Request) {
                 <div
                   style={{
                     display: 'flex',
-                    alignItems: 'baseline',
+                    alignItems: 'center',
                     gap: '14px',
                   }}
                 >
@@ -668,6 +705,7 @@ export async function GET(request: Request) {
                       display: 'flex',
                       fontSize: '28px',
                       fontWeight: 800,
+                      lineHeight: 1,
                       color: '#111827',
                     }}
                   >
@@ -679,11 +717,18 @@ export async function GET(request: Request) {
                     <div
                       style={{
                         display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
                         fontSize: '20px',
                         fontWeight: 700,
-                        color: chartData.changeColor,
+                        lineHeight: 1,
+                        color: chartData.changeDirection === 'flat' ? '#64748b' : chartData.changeColor,
                       }}
                     >
+                      {renderChangeDirectionIcon(
+                        chartData.changeDirection,
+                        chartData.changeDirection === 'flat' ? '#64748b' : chartData.changeColor,
+                      )}
                       {chartData.changeLabel}
                     </div>
                   )}
