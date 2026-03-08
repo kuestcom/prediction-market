@@ -2,8 +2,9 @@ import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
 import { ImageResponse } from 'next/og'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
+import { OUTCOME_INDEX } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
-import { formatCentsLabel, formatCompactCurrency, formatDate, formatPercent } from '@/lib/formatters'
+import { formatCentsLabel, formatCompactCurrency, formatPercent } from '@/lib/formatters'
 import siteUrlUtils from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -11,8 +12,25 @@ const { resolveSiteUrl } = siteUrlUtils
 
 const IMAGE_WIDTH = 1200
 const IMAGE_HEIGHT = 630
+const CHART_WIDTH = 430
+const CHART_HEIGHT = 120
+const MAX_CHART_POINTS = 28
 
 type EventMarket = Event['markets'][number]
+type MarketOutcome = EventMarket['outcomes'][number]
+
+interface PriceHistoryPoint {
+  t: number
+  p: number
+}
+
+interface OutcomeButton {
+  label: string
+  price: number | null
+  priceLabel: string
+  background: string
+  color: string
+}
 
 function normalizeQueryValue(value: string | null) {
   return value?.trim() ?? ''
@@ -24,27 +42,10 @@ function resolveLocale(value: string | null): SupportedLocale {
     : DEFAULT_LOCALE
 }
 
-function formatLabel(value: string | null | undefined, fallback: string) {
-  const normalized = value?.trim()
-  if (!normalized) {
-    return fallback
-  }
-
-  return normalized
-    .replace(/[-_]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, match => match.toUpperCase())
-}
-
 function sanitizeImageUrl(rawUrl: string | null | undefined, siteUrl: string) {
   const trimmed = rawUrl?.trim()
   if (!trimmed) {
     return ''
-  }
-
-  if (trimmed.startsWith('data:image/')) {
-    return trimmed
   }
 
   try {
@@ -79,162 +80,385 @@ function resolveFocusedMarket(event: Event, marketSlug: string) {
     })[0] ?? null
 }
 
-function resolveHeroImages(event: Event, focusedMarket: EventMarket | null, siteUrl: string) {
-  const uniqueImages = new Set<string>()
+function resolveEventImage(event: Event, focusedMarket: EventMarket | null, siteUrl: string) {
+  const imageCandidates = [
+    focusedMarket?.icon_url,
+    event.icon_url,
+    event.sports_team_logo_urls?.[0],
+  ]
 
-  function pushImage(value: string | null | undefined) {
-    const normalized = sanitizeImageUrl(value, siteUrl)
-    if (normalized) {
-      uniqueImages.add(normalized)
+  for (const candidate of imageCandidates) {
+    const sanitized = sanitizeImageUrl(candidate, siteUrl)
+    if (sanitized) {
+      return sanitized
     }
   }
 
-  for (const logoUrl of event.sports_team_logo_urls ?? []) {
-    pushImage(logoUrl)
-    if (uniqueImages.size >= 2) {
-      return [...uniqueImages]
-    }
-  }
-
-  pushImage(focusedMarket?.icon_url)
-  pushImage(event.icon_url)
-
-  return [...uniqueImages].slice(0, 2)
+  return ''
 }
 
-function resolveStatusDisplay(event: Event) {
-  if (event.status === 'resolved') {
-    return {
-      label: 'Resolved',
-      background: 'rgba(34, 197, 94, 0.18)',
-      border: 'rgba(34, 197, 94, 0.35)',
-      color: '#dcfce7',
-    }
-  }
-
-  if (event.sports_live) {
-    return {
-      label: 'Live',
-      background: 'rgba(239, 68, 68, 0.18)',
-      border: 'rgba(248, 113, 113, 0.35)',
-      color: '#fee2e2',
-    }
-  }
-
-  if (event.status === 'archived') {
-    return {
-      label: 'Archived',
-      background: 'rgba(148, 163, 184, 0.18)',
-      border: 'rgba(148, 163, 184, 0.3)',
-      color: '#e2e8f0',
-    }
-  }
-
-  if (event.status === 'draft') {
-    return {
-      label: 'Draft',
-      background: 'rgba(245, 158, 11, 0.18)',
-      border: 'rgba(251, 191, 36, 0.3)',
-      color: '#fef3c7',
-    }
-  }
-
-  return {
-    label: 'Open',
-    background: 'rgba(59, 130, 246, 0.18)',
-    border: 'rgba(96, 165, 250, 0.35)',
-    color: '#dbeafe',
-  }
+function resolveBinaryOutcome(market: EventMarket, outcomeIndex: number, fallbackIndex: number) {
+  return market.outcomes.find(outcome => outcome.outcome_index === outcomeIndex) ?? market.outcomes[fallbackIndex] ?? null
 }
 
-function resolveDateDisplay(event: Event) {
-  const resolvedAt = event.resolved_at ? new Date(event.resolved_at) : null
-  if (resolvedAt && !Number.isNaN(resolvedAt.getTime())) {
+function resolveOutcomePrice(market: EventMarket, outcome: MarketOutcome | null) {
+  if (!outcome) {
+    return null
+  }
+
+  if (typeof outcome.buy_price === 'number' && Number.isFinite(outcome.buy_price)) {
+    return outcome.buy_price
+  }
+
+  if (outcome.outcome_index === OUTCOME_INDEX.YES) {
+    return market.price
+  }
+
+  if (outcome.outcome_index === OUTCOME_INDEX.NO && Number.isFinite(market.price)) {
+    return 1 - market.price
+  }
+
+  return null
+}
+
+function resolveOutcomeButtonTheme(label: string, index: number) {
+  const normalized = label.trim().toLowerCase()
+  if (
+    normalized.includes('no')
+    || normalized.includes('down')
+    || normalized.includes('under')
+    || normalized.includes('lose')
+  ) {
     return {
-      label: 'Resolved',
-      value: formatDate(resolvedAt),
+      background: '#fbeaea',
+      color: '#d65757',
     }
   }
 
-  const startDate = event.sports_start_time ?? event.start_date
-  if (startDate) {
-    const parsedStartDate = new Date(startDate)
-    if (!Number.isNaN(parsedStartDate.getTime())) {
-      return {
-        label: event.sports_live ? 'Started' : 'Starts',
-        value: formatDate(parsedStartDate),
+  if (
+    normalized.includes('yes')
+    || normalized.includes('up')
+    || normalized.includes('over')
+    || normalized.includes('win')
+  ) {
+    return {
+      background: '#e8f5ee',
+      color: '#2b9a68',
+    }
+  }
+
+  return index % 2 === 0
+    ? {
+        background: '#eef4ff',
+        color: '#3468d6',
       }
-    }
-  }
-
-  const endDate = event.end_date ? new Date(event.end_date) : null
-  if (endDate && !Number.isNaN(endDate.getTime())) {
-    return {
-      label: 'Closes',
-      value: formatDate(endDate),
-    }
-  }
-
-  return {
-    label: 'Status',
-    value: 'Ongoing',
-  }
+    : {
+        background: '#f4efff',
+        color: '#7c4ed8',
+      }
 }
 
-function resolveMarketHighlights(event: Event, focusedMarket: EventMarket | null, explicitMarketRequested: boolean) {
-  if (focusedMarket && explicitMarketRequested) {
-    return [focusedMarket]
-  }
+function resolveBinaryOutcomeButtons(market: EventMarket) {
+  const yesOutcome = resolveBinaryOutcome(market, OUTCOME_INDEX.YES, 0)
+  const noOutcome = resolveBinaryOutcome(market, OUTCOME_INDEX.NO, 1)
+  const orderedOutcomes = [yesOutcome, noOutcome].filter((outcome): outcome is MarketOutcome => outcome !== null)
 
+  return orderedOutcomes.slice(0, 2).map((outcome, index) => {
+    const theme = resolveOutcomeButtonTheme(outcome.outcome_text || '', index)
+    const price = resolveOutcomePrice(market, outcome)
+
+    return {
+      label: outcome.outcome_text?.trim() || (index === 0 ? 'Yes' : 'No'),
+      price,
+      priceLabel: formatCentsLabel(price, { fallback: '—' }),
+      background: theme.background,
+      color: theme.color,
+    }
+  })
+}
+
+function resolveMarketButtons(event: Event) {
   return [...event.markets]
-    .sort((left, right) => {
-      const volumeDelta = (right.volume ?? 0) - (left.volume ?? 0)
-      if (volumeDelta !== 0) {
-        return volumeDelta
-      }
+    .sort((left, right) => (right.probability ?? 0) - (left.probability ?? 0))
+    .slice(0, 2)
+    .map((market, index) => {
+      const label = market.title?.trim() || `Outcome ${index + 1}`
+      const theme = resolveOutcomeButtonTheme(label, index)
 
-      return (right.probability ?? 0) - (left.probability ?? 0)
+      return {
+        label,
+        price: market.price,
+        priceLabel: formatCentsLabel(market.price, { fallback: '—' }),
+        background: theme.background,
+        color: theme.color,
+      }
     })
-    .slice(0, 3)
 }
 
-function renderMetricCard(label: string, value: string, accent?: string) {
+function resolveOutcomeButtons(event: Event, focusedMarket: EventMarket | null, explicitMarketRequested: boolean) {
+  if (!focusedMarket) {
+    return resolveMarketButtons(event)
+  }
+
+  if (event.total_markets_count <= 1 || explicitMarketRequested) {
+    return resolveBinaryOutcomeButtons(focusedMarket)
+  }
+
+  return resolveMarketButtons(event)
+}
+
+function resolveLeadButton(buttons: OutcomeButton[]) {
+  return [...buttons]
+    .filter(button => button.price !== null)
+    .sort((left, right) => (right.price ?? 0) - (left.price ?? 0))[0] ?? buttons[0] ?? null
+}
+
+function resolveChartTokenId(market: EventMarket | null) {
+  if (!market) {
+    return ''
+  }
+
+  const yesOutcome = resolveBinaryOutcome(market, OUTCOME_INDEX.YES, 0)
+  return yesOutcome?.token_id ?? market.outcomes[0]?.token_id ?? ''
+}
+
+function parseResolvedAtSeconds(resolvedAt?: string | null) {
+  if (!resolvedAt) {
+    return Number.NaN
+  }
+
+  const resolved = new Date(resolvedAt)
+  const resolvedMs = resolved.getTime()
+  if (!Number.isFinite(resolvedMs)) {
+    return Number.NaN
+  }
+
+  return Math.floor(resolvedMs / 1000)
+}
+
+function resolveCreatedRange(createdAt: string, resolvedAt?: string | null) {
+  const created = new Date(createdAt)
+  const createdSeconds = Number.isFinite(created.getTime())
+    ? Math.floor(created.getTime() / 1000)
+    : Math.floor(Date.now() / 1000) - (60 * 60 * 24)
+  const realNowSeconds = Math.floor(Date.now() / 1000)
+  const resolvedSeconds = parseResolvedAtSeconds(resolvedAt)
+  const baseEndSeconds = Number.isFinite(resolvedSeconds)
+    ? Math.min(realNowSeconds, resolvedSeconds)
+    : realNowSeconds
+  const nowSeconds = Math.max(createdSeconds + 60, baseEndSeconds)
+  const ageSeconds = Math.max(0, nowSeconds - createdSeconds)
+
+  return {
+    createdSeconds,
+    nowSeconds,
+    ageSeconds,
+  }
+}
+
+function resolveFidelityForSpan(spanSeconds: number) {
+  if (spanSeconds <= 2 * 24 * 60 * 60) {
+    return 5
+  }
+  if (spanSeconds <= 7 * 24 * 60 * 60) {
+    return 30
+  }
+  if (spanSeconds <= 30 * 24 * 60 * 60) {
+    return 180
+  }
+  return 720
+}
+
+function buildPriceHistoryFilters(createdAt: string, resolvedAt?: string | null) {
+  const { createdSeconds, nowSeconds, ageSeconds } = resolveCreatedRange(createdAt, resolvedAt)
+
+  return {
+    fidelity: resolveFidelityForSpan(ageSeconds).toString(),
+    startTs: createdSeconds.toString(),
+    endTs: nowSeconds.toString(),
+  }
+}
+
+async function fetchMarketPriceHistory(tokenId: string, createdAt: string, resolvedAt?: string | null) {
+  if (!tokenId || !process.env.CLOB_URL) {
+    return [] as PriceHistoryPoint[]
+  }
+
+  const filters = buildPriceHistoryFilters(createdAt, resolvedAt)
+  const url = new URL(`${process.env.CLOB_URL}/prices-history`)
+  url.searchParams.set('market', tokenId)
+
+  Object.entries(filters).forEach(([key, value]) => {
+    url.searchParams.set(key, value)
+  })
+
+  try {
+    const response = await fetch(url.toString(), {
+      next: {
+        revalidate: 300,
+      },
+    })
+
+    if (!response.ok) {
+      return []
+    }
+
+    const payload = await response.json() as { history?: PriceHistoryPoint[] }
+    return (payload.history ?? [])
+      .map(point => ({
+        t: Number(point.t),
+        p: Number(point.p),
+      }))
+      .filter(point => Number.isFinite(point.t) && Number.isFinite(point.p))
+      .filter(point => point.p >= 0 && point.p <= 1)
+      .sort((left, right) => left.t - right.t)
+  }
+  catch {
+    return []
+  }
+}
+
+function buildFallbackHistory(price: number | null) {
+  const safePrice = Number.isFinite(price) ? Math.max(0, Math.min(1, price ?? 0.5)) : 0.5
+
+  return Array.from({ length: 8 }, (_, index) => ({
+    t: index,
+    p: safePrice,
+  }))
+}
+
+function samplePriceHistory(points: PriceHistoryPoint[], maxPoints = MAX_CHART_POINTS) {
+  if (points.length <= maxPoints) {
+    return points
+  }
+
+  const sampled: PriceHistoryPoint[] = []
+  const seenIndexes = new Set<number>()
+
+  for (let index = 0; index < maxPoints; index += 1) {
+    const pointIndex = Math.round((index * (points.length - 1)) / (maxPoints - 1))
+    if (seenIndexes.has(pointIndex)) {
+      continue
+    }
+    seenIndexes.add(pointIndex)
+    const point = points[pointIndex]
+    if (point) {
+      sampled.push(point)
+    }
+  }
+
+  return sampled
+}
+
+function buildChartData(points: PriceHistoryPoint[]) {
+  const safePoints = samplePriceHistory(points.length > 1 ? points : buildFallbackHistory(points[0]?.p ?? 0.5))
+  const values = safePoints.map(point => point.p)
+  const minValue = Math.min(...values)
+  const maxValue = Math.max(...values)
+  const padding = Math.max(0.02, (maxValue - minValue) * 0.2)
+  const chartMin = Math.max(0, minValue - padding)
+  const chartMax = Math.min(1, maxValue + padding)
+  const chartRange = Math.max(chartMax - chartMin, 0.04)
+
+  const plottedPoints = safePoints.map((point, index) => {
+    const x = safePoints.length === 1
+      ? CHART_WIDTH / 2
+      : (index * CHART_WIDTH) / (safePoints.length - 1)
+    const normalized = (point.p - chartMin) / chartRange
+    const y = CHART_HEIGHT - (normalized * CHART_HEIGHT)
+
+    return {
+      x,
+      y,
+      value: point.p,
+    }
+  })
+
+  const path = plottedPoints
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(' ')
+
+  const firstValue = plottedPoints[0]?.value
+  const lastValue = plottedPoints[plottedPoints.length - 1]?.value
+  const delta = typeof firstValue === 'number' && typeof lastValue === 'number'
+    ? (lastValue - firstValue) * 100
+    : 0
+  const roundedDelta = Math.round(delta)
+
+  return {
+    points: plottedPoints,
+    path,
+    changeLabel: plottedPoints.length > 1 ? `${roundedDelta > 0 ? '+' : ''}${roundedDelta}%` : null,
+    changeColor: roundedDelta >= 0 ? '#2b9a68' : '#d65757',
+  }
+}
+
+function renderOutcomeButton(button: OutcomeButton, index: number) {
   return (
     <div
+      key={`${button.label}-${index}`}
       style={{
         minWidth: 0,
         flex: 1,
         display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-        borderRadius: '24px',
-        border: '1px solid rgba(148, 163, 184, 0.18)',
-        background: 'rgba(15, 23, 42, 0.62)',
-        padding: '20px 22px',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        borderRadius: '18px',
+        background: button.background,
+        padding: '18px 24px',
+      }}
+    >
+      <div
+        style={{
+          minWidth: 0,
+          display: 'flex',
+          fontSize: '18px',
+          fontWeight: 700,
+          lineHeight: 1.1,
+          color: button.color,
+        }}
+      >
+        {button.label}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          fontSize: '18px',
+          fontWeight: 800,
+          color: button.color,
+        }}
+      >
+        {button.priceLabel}
+      </div>
+    </div>
+  )
+}
+
+function renderFallbackImage(title: string) {
+  return (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
+        padding: '40px',
       }}
     >
       <div
         style={{
           display: 'flex',
-          fontSize: '20px',
-          fontWeight: 600,
-          letterSpacing: '0.04em',
-          textTransform: 'uppercase',
-          color: '#94a3b8',
+          fontSize: '66px',
+          fontWeight: 800,
+          lineHeight: 1,
+          textAlign: 'center',
+          color: '#ffffff',
         }}
       >
-        {label}
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          fontSize: '34px',
-          fontWeight: 700,
-          lineHeight: 1.05,
-          color: accent ?? '#f8fafc',
-        }}
-      >
-        {value}
+        {title}
       </div>
     </div>
   )
@@ -262,19 +486,20 @@ export async function GET(request: Request) {
   const event = eventResult.data
   const siteUrl = resolveSiteUrl(process.env)
   const siteName = runtimeTheme.site.name
-  const statusDisplay = resolveStatusDisplay(event)
-  const dateDisplay = resolveDateDisplay(event)
-  const focusedMarket = resolveFocusedMarket(event, marketSlug)
   const explicitMarketRequested = Boolean(marketSlug)
-  const marketHighlights = resolveMarketHighlights(event, focusedMarket, explicitMarketRequested)
-  const heroImages = resolveHeroImages(event, focusedMarket, siteUrl)
-  const focusLabel = focusedMarket?.title?.trim() ?? ''
-  const focusProbability = focusedMarket && Number.isFinite(focusedMarket.probability)
-    ? formatPercent(focusedMarket.probability, { digits: 0 })
+  const focusedMarket = resolveFocusedMarket(event, marketSlug)
+  const eventImageUrl = resolveEventImage(event, focusedMarket, siteUrl)
+  const outcomeButtons = resolveOutcomeButtons(event, focusedMarket, explicitMarketRequested)
+  const leadButton = resolveLeadButton(outcomeButtons)
+  const chartTokenId = resolveChartTokenId(focusedMarket)
+  const chartHistory = await fetchMarketPriceHistory(chartTokenId, event.created_at, event.resolved_at)
+  const chartData = buildChartData(chartHistory.length > 0 ? chartHistory : buildFallbackHistory(focusedMarket?.price ?? null))
+  const leadPriceLabel = leadButton?.price !== null && leadButton?.price !== undefined
+    ? formatPercent((leadButton.price ?? 0) * 100, { digits: 0 })
     : null
-  const categoryLabel = formatLabel(event.main_tag || event.sports_sport_slug, 'Prediction Market')
-  const marketCountLabel = `${Math.max(event.total_markets_count, event.markets.length)}`
-  const volumeLabel = formatCompactCurrency(event.volume)
+  const volumeLabel = `${formatCompactCurrency(event.volume)} Vol.`
+  const marketLabel = focusedMarket?.title?.trim() ?? ''
+  const chartEndPoint = chartData.points[chartData.points.length - 1] ?? null
 
   return new ImageResponse(
     (
@@ -283,397 +508,237 @@ export async function GET(request: Request) {
           width: '100%',
           height: '100%',
           display: 'flex',
-          position: 'relative',
-          overflow: 'hidden',
-          background: 'radial-gradient(circle at top left, #1e293b 0%, #0f172a 42%, #020617 100%)',
-          color: '#f8fafc',
-          padding: '40px',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f4f4f5',
+          padding: '24px',
           fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         }}
       >
         <div
           style={{
-            position: 'absolute',
-            top: '-120px',
-            left: '-120px',
-            width: '360px',
-            height: '360px',
-            borderRadius: '999px',
-            background: 'rgba(59, 130, 246, 0.16)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            right: '-80px',
-            bottom: '-120px',
-            width: '320px',
-            height: '320px',
-            borderRadius: '999px',
-            background: 'rgba(16, 185, 129, 0.12)',
-          }}
-        />
-
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 1,
             width: '100%',
             height: '100%',
             display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            borderRadius: '34px',
-            border: '1px solid rgba(148, 163, 184, 0.16)',
-            background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.82) 0%, rgba(2, 6, 23, 0.88) 100%)',
-            padding: '34px',
-            boxShadow: '0 30px 80px rgba(2, 6, 23, 0.35)',
+            overflow: 'hidden',
+            borderRadius: '30px',
+            border: '2px solid #d4d4d8',
+            background: '#ffffff',
+            boxShadow: '0 14px 40px rgba(15, 23, 42, 0.08)',
           }}
         >
           <div
             style={{
+              width: '494px',
+              height: '100%',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '24px',
+              justifyContent: 'center',
+              background: '#f3f4f6',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                borderRadius: '999px',
-                background: 'rgba(15, 23, 42, 0.75)',
-                padding: '12px 18px',
-                fontSize: '24px',
-                fontWeight: 700,
-                letterSpacing: '0.01em',
-              }}
-            >
-              <div
-                style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '999px',
-                  background: '#38bdf8',
-                }}
-              />
-              {siteName}
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  borderRadius: '999px',
-                  border: '1px solid rgba(96, 165, 250, 0.25)',
-                  background: 'rgba(37, 99, 235, 0.15)',
-                  padding: '10px 18px',
-                  fontSize: '20px',
-                  fontWeight: 600,
-                  color: '#dbeafe',
-                }}
-              >
-                {categoryLabel}
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  borderRadius: '999px',
-                  border: `1px solid ${statusDisplay.border}`,
-                  background: statusDisplay.background,
-                  padding: '10px 18px',
-                  fontSize: '20px',
-                  fontWeight: 700,
-                  color: statusDisplay.color,
-                }}
-              >
-                {statusDisplay.label}
-              </div>
-            </div>
+            {eventImageUrl
+              ? (
+                  // eslint-disable-next-line next/no-img-element
+                  <img
+                    src={eventImageUrl}
+                    alt=""
+                    width={494}
+                    height={630}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                )
+              : renderFallbackImage(event.title)}
           </div>
 
           <div
             style={{
-              display: 'flex',
-              alignItems: 'stretch',
-              gap: '28px',
+              width: '4px',
+              height: '100%',
+              background: '#111827',
+            }}
+          />
+
+          <div
+            style={{
               flex: 1,
-              marginTop: '26px',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              padding: '26px 28px 24px',
+              background: '#ffffff',
             }}
           >
             <div
               style={{
-                minWidth: 0,
-                flex: 1.45,
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: '28px',
+                gap: '12px',
               }}
             >
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '18px',
+                  fontSize: '19px',
+                  fontWeight: 700,
+                  color: '#94a3b8',
                 }}
               >
-                {focusLabel && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      fontSize: '22px',
-                      fontWeight: 600,
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                      color: '#38bdf8',
-                    }}
-                  >
-                    {explicitMarketRequested ? 'Focused Market' : 'Featured Market'}
-                  </div>
-                )}
-                <div
-                  style={{
-                    display: 'flex',
-                    fontSize: '64px',
-                    fontWeight: 800,
-                    lineHeight: 1.02,
-                    letterSpacing: '-0.03em',
-                    color: '#f8fafc',
-                  }}
-                >
-                  {event.title}
-                </div>
-                {focusLabel && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      maxWidth: '90%',
-                      borderRadius: '18px',
-                      border: '1px solid rgba(56, 189, 248, 0.24)',
-                      background: 'rgba(14, 165, 233, 0.12)',
-                      padding: '14px 18px',
-                      fontSize: '28px',
-                      fontWeight: 600,
-                      lineHeight: 1.15,
-                      color: '#e0f2fe',
-                    }}
-                  >
-                    {focusLabel}
-                  </div>
-                )}
+                {volumeLabel}
               </div>
 
               <div
                 style={{
                   display: 'flex',
-                  gap: '16px',
+                  fontSize: '54px',
+                  fontWeight: 800,
+                  lineHeight: 1.03,
+                  letterSpacing: '-0.03em',
+                  color: '#111827',
                 }}
               >
-                {renderMetricCard('Volume', volumeLabel)}
-                {renderMetricCard(dateDisplay.label, dateDisplay.value)}
-                {renderMetricCard(
-                  focusProbability ? 'Yes Chance' : 'Markets',
-                  focusProbability ?? marketCountLabel,
-                  focusProbability ? '#93c5fd' : undefined,
-                )}
+                {event.title}
+              </div>
+
+              {marketLabel && explicitMarketRequested && (
+                <div
+                  style={{
+                    display: 'flex',
+                    fontSize: '18px',
+                    fontWeight: 600,
+                    color: '#64748b',
+                  }}
+                >
+                  {marketLabel}
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '20px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: '14px',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      fontSize: '28px',
+                      fontWeight: 800,
+                      color: '#111827',
+                    }}
+                  >
+                    {leadPriceLabel ?? '—'}
+                    {' '}
+                    chance
+                  </div>
+                  {chartData.changeLabel && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        fontSize: '20px',
+                        fontWeight: 700,
+                        color: chartData.changeColor,
+                      }}
+                    >
+                      {chartData.changeLabel}
+                    </div>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    fontSize: '16px',
+                    fontWeight: 700,
+                    color: '#c4c7ce',
+                  }}
+                >
+                  {siteName}
+                </div>
               </div>
             </div>
 
             <div
               style={{
-                width: '360px',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: '22px',
-                borderRadius: '30px',
-                border: '1px solid rgba(148, 163, 184, 0.16)',
-                background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.88) 0%, rgba(15, 23, 42, 0.62) 100%)',
-                padding: '24px',
+                gap: '18px',
               }}
             >
               <div
                 style={{
-                  minHeight: '200px',
+                  position: 'relative',
+                  width: `${CHART_WIDTH}px`,
+                  height: `${CHART_HEIGHT}px`,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '18px',
-                  borderRadius: '24px',
-                  background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.92) 100%)',
-                  padding: '24px',
                 }}
               >
-                {heroImages.length > 0
-                  ? heroImages.map((imageUrl, index) => (
-                    // eslint-disable-next-line next/no-img-element
-                      <img
-                        key={`${imageUrl}-${index}`}
-                        src={imageUrl}
-                        alt=""
-                        width={heroImages.length > 1 ? 120 : 168}
-                        height={heroImages.length > 1 ? 120 : 168}
-                        style={{
-                          width: heroImages.length > 1 ? '120px' : '168px',
-                          height: heroImages.length > 1 ? '120px' : '168px',
-                          borderRadius: '999px',
-                          objectFit: 'cover',
-                          border: '4px solid rgba(148, 163, 184, 0.14)',
-                          background: '#0f172a',
-                        }}
-                      />
-                    ))
-                  : (
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '100%',
-                          fontSize: '42px',
-                          fontWeight: 800,
-                          textAlign: 'center',
-                          lineHeight: 1.05,
-                          letterSpacing: '-0.02em',
-                          color: '#cbd5e1',
-                        }}
-                      >
-                        {categoryLabel}
-                      </div>
-                    )}
+                <svg
+                  width={CHART_WIDTH}
+                  height={CHART_HEIGHT}
+                  viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+                  style={{
+                    display: 'block',
+                  }}
+                >
+                  <path
+                    d={chartData.path}
+                    fill="none"
+                    stroke="#3468d6"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  {chartEndPoint && (
+                    <circle
+                      cx={chartEndPoint.x}
+                      cy={chartEndPoint.y}
+                      r="5"
+                      fill="#3468d6"
+                    />
+                  )}
+                </svg>
               </div>
 
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
                   gap: '14px',
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    fontSize: '19px',
-                    fontWeight: 700,
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                    color: '#94a3b8',
-                  }}
-                >
-                  {explicitMarketRequested ? 'Shared View' : 'Market Snapshot'}
-                </div>
-                {marketHighlights.length > 0
-                  ? marketHighlights.map((market, index) => {
-                      const label = market.title?.trim() || `Market ${index + 1}`
-                      const probability = Number.isFinite(market.probability)
-                        ? formatPercent(market.probability, { digits: 0 })
-                        : '—'
-                      const price = formatCentsLabel(market.price, { fallback: '—' })
-
-                      return (
-                        <div
-                          key={`${market.slug || label}-${index}`}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: '18px',
-                            borderRadius: '18px',
-                            border: '1px solid rgba(148, 163, 184, 0.14)',
-                            background: 'rgba(15, 23, 42, 0.55)',
-                            padding: '14px 16px',
-                          }}
-                        >
-                          <div
-                            style={{
-                              minWidth: 0,
-                              flex: 1,
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '6px',
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: 'flex',
-                                fontSize: '22px',
-                                fontWeight: 700,
-                                lineHeight: 1.1,
-                                color: '#f8fafc',
-                              }}
-                            >
-                              {label}
-                            </div>
-                            <div
-                              style={{
-                                display: 'flex',
-                                fontSize: '18px',
-                                fontWeight: 600,
-                                color: '#94a3b8',
-                              }}
-                            >
-                              Last price
-                              {' '}
-                              {price}
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'flex-end',
-                              gap: '4px',
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: 'flex',
-                                fontSize: '28px',
-                                fontWeight: 800,
-                                color: '#93c5fd',
-                              }}
-                            >
-                              {probability}
-                            </div>
-                            <div
-                              style={{
-                                display: 'flex',
-                                fontSize: '16px',
-                                fontWeight: 600,
-                                color: '#64748b',
-                              }}
-                            >
-                              implied odds
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })
+                {outcomeButtons.length > 0
+                  ? outcomeButtons.map((button, index) => renderOutcomeButton(button, index))
                   : (
                       <div
                         style={{
+                          flex: 1,
                           display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           borderRadius: '18px',
-                          border: '1px solid rgba(148, 163, 184, 0.14)',
-                          background: 'rgba(15, 23, 42, 0.55)',
-                          padding: '18px 16px',
-                          fontSize: '20px',
-                          fontWeight: 600,
-                          color: '#cbd5e1',
+                          background: '#f3f4f6',
+                          padding: '20px 24px',
+                          fontSize: '18px',
+                          fontWeight: 700,
+                          color: '#6b7280',
                         }}
                       >
-                        Live event page and pricing snapshot
+                        Market pricing unavailable
                       </div>
                     )}
               </div>
