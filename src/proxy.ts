@@ -8,6 +8,14 @@ import { routing } from './i18n/routing'
 const intlMiddleware = createMiddleware(routing)
 const protectedPrefixes = ['/settings', '/portfolio', '/admin']
 type Locale = (typeof routing.locales)[number]
+const { rewrite: rewriteMarkdownExtensionWithLocale } = rewritePath(
+  '/:locale/docs{/*path}.mdx',
+  '/:locale/llms.mdx/docs{/*path}',
+)
+const { rewrite: rewriteMarkdownExtensionDefaultLocale } = rewritePath(
+  '/docs{/*path}.mdx',
+  '/en/llms.mdx/docs{/*path}',
+)
 const { rewrite: rewriteMarkdownWithLocale } = rewritePath(
   '/:locale/docs{/*path}',
   '/:locale/llms.mdx/docs{/*path}',
@@ -47,6 +55,13 @@ function withLocale(pathname: string, locale: Locale | null) {
 
 export default async function proxy(request: NextRequest) {
   const url = new URL(request.url)
+  const markdownPath = rewriteMarkdownExtensionWithLocale(url.pathname) || rewriteMarkdownExtensionDefaultLocale(url.pathname)
+
+  if (markdownPath) {
+    const rewrittenUrl = new URL(markdownPath, request.url)
+    rewrittenUrl.search = url.search
+    return NextResponse.rewrite(rewrittenUrl)
+  }
 
   if (isMarkdownPreferred(request)) {
     const rewrittenPath = rewriteMarkdownWithLocale(url.pathname) || rewriteMarkdownDefaultLocale(url.pathname)
@@ -96,5 +111,11 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/((?!api|trpc|_next|_vercel|.*\\..*).*)',
+  matcher: [
+    '/((?!api|trpc|_next|_vercel|.*\\..*).*)',
+    '/docs.mdx',
+    '/docs/:path*.mdx',
+    '/:locale/docs.mdx',
+    '/:locale/docs/:path*.mdx',
+  ],
 }
