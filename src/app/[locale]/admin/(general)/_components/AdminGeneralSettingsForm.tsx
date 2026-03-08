@@ -59,6 +59,12 @@ export default function AdminGeneralSettingsForm({
   const initialPwaIcon512Url = initialThemeSiteSettings.pwaIcon512Url
   const initialGoogleAnalyticsId = initialThemeSiteSettings.googleAnalyticsId
   const initialDiscordLink = initialThemeSiteSettings.discordLink
+  const initialTwitterLink = initialThemeSiteSettings.twitterLink
+  const initialFacebookLink = initialThemeSiteSettings.facebookLink
+  const initialInstagramLink = initialThemeSiteSettings.instagramLink
+  const initialTiktokLink = initialThemeSiteSettings.tiktokLink
+  const initialLinkedinLink = initialThemeSiteSettings.linkedinLink
+  const initialYoutubeLink = initialThemeSiteSettings.youtubeLink
   const initialSupportUrl = initialThemeSiteSettings.supportUrl
   const initialFeeRecipientWallet = initialThemeSiteSettings.feeRecipientWallet
   const initialMarketCreators = initialThemeSiteSettings.marketCreators
@@ -81,6 +87,12 @@ export default function AdminGeneralSettingsForm({
   const [pwaIcon512Path, setPwaIcon512Path] = useState(initialPwaIcon512Path)
   const [googleAnalyticsId, setGoogleAnalyticsId] = useState(initialGoogleAnalyticsId)
   const [discordLink, setDiscordLink] = useState(initialDiscordLink)
+  const [twitterLink, setTwitterLink] = useState(initialTwitterLink)
+  const [facebookLink, setFacebookLink] = useState(initialFacebookLink)
+  const [instagramLink, setInstagramLink] = useState(initialInstagramLink)
+  const [tiktokLink, setTiktokLink] = useState(initialTiktokLink)
+  const [linkedinLink, setLinkedinLink] = useState(initialLinkedinLink)
+  const [youtubeLink, setYoutubeLink] = useState(initialYoutubeLink)
   const [supportUrl, setSupportUrl] = useState(initialSupportUrl)
   const [feeRecipientWallet, setFeeRecipientWallet] = useState(initialFeeRecipientWallet)
   const [marketCreators, setMarketCreators] = useState(initialMarketCreators)
@@ -134,6 +146,30 @@ export default function AdminGeneralSettingsForm({
   useEffect(() => {
     setDiscordLink(initialDiscordLink)
   }, [initialDiscordLink])
+
+  useEffect(() => {
+    setTwitterLink(initialTwitterLink)
+  }, [initialTwitterLink])
+
+  useEffect(() => {
+    setFacebookLink(initialFacebookLink)
+  }, [initialFacebookLink])
+
+  useEffect(() => {
+    setInstagramLink(initialInstagramLink)
+  }, [initialInstagramLink])
+
+  useEffect(() => {
+    setTiktokLink(initialTiktokLink)
+  }, [initialTiktokLink])
+
+  useEffect(() => {
+    setLinkedinLink(initialLinkedinLink)
+  }, [initialLinkedinLink])
+
+  useEffect(() => {
+    setYoutubeLink(initialYoutubeLink)
+  }, [initialYoutubeLink])
 
   useEffect(() => {
     setSupportUrl(initialSupportUrl)
@@ -444,6 +480,84 @@ export default function AdminGeneralSettingsForm({
                 onChange={event => setDiscordLink(event.target.value)}
                 disabled={isPending}
                 placeholder={t('https://discord.gg/invite-url (optional)')}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="theme-twitter-link">{t('X / Twitter link')}</Label>
+              <Input
+                id="theme-twitter-link"
+                name="twitter_link"
+                maxLength={2048}
+                value={twitterLink}
+                onChange={event => setTwitterLink(event.target.value)}
+                disabled={isPending}
+                placeholder={t('https://x.com/your-handle (optional)')}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="theme-facebook-link">{t('Facebook link')}</Label>
+              <Input
+                id="theme-facebook-link"
+                name="facebook_link"
+                maxLength={2048}
+                value={facebookLink}
+                onChange={event => setFacebookLink(event.target.value)}
+                disabled={isPending}
+                placeholder={t('https://facebook.com/your-page (optional)')}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="theme-instagram-link">{t('Instagram link')}</Label>
+              <Input
+                id="theme-instagram-link"
+                name="instagram_link"
+                maxLength={2048}
+                value={instagramLink}
+                onChange={event => setInstagramLink(event.target.value)}
+                disabled={isPending}
+                placeholder={t('https://instagram.com/your-handle (optional)')}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="theme-tiktok-link">{t('TikTok link')}</Label>
+              <Input
+                id="theme-tiktok-link"
+                name="tiktok_link"
+                maxLength={2048}
+                value={tiktokLink}
+                onChange={event => setTiktokLink(event.target.value)}
+                disabled={isPending}
+                placeholder={t('https://tiktok.com/@your-handle (optional)')}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="theme-linkedin-link">{t('LinkedIn link')}</Label>
+              <Input
+                id="theme-linkedin-link"
+                name="linkedin_link"
+                maxLength={2048}
+                value={linkedinLink}
+                onChange={event => setLinkedinLink(event.target.value)}
+                disabled={isPending}
+                placeholder={t('https://linkedin.com/company/your-company (optional)')}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="theme-youtube-link">{t('YouTube link')}</Label>
+              <Input
+                id="theme-youtube-link"
+                name="youtube_link"
+                maxLength={2048}
+                value={youtubeLink}
+                onChange={event => setYoutubeLink(event.target.value)}
+                disabled={isPending}
+                placeholder={t('https://youtube.com/@your-channel (optional)')}
               />
             </div>
 

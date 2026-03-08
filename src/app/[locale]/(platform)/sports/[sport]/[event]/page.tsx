@@ -10,12 +10,15 @@ import {
   mergeSportsGamesCardMarkets,
 } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
+import EventStructuredData from '@/components/seo/EventStructuredData'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
 import { resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
+import { resolveEventPagePath } from '@/lib/events-routing'
 import { resolveSportsEventMarketViewKey } from '@/lib/sports-event-slugs'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateStaticParams() {
   return [{ sport: STATIC_PARAMS_PLACEHOLDER, event: STATIC_PARAMS_PLACEHOLDER }]
@@ -73,19 +76,29 @@ export default async function SportsEventPage({
   const resolvedSportSlug = canonicalSportSlug
     || targetCard.event.sports_sport_slug
     || sport
-  const { data: layoutData } = await SportsMenuRepository.getLayoutData()
+  const [{ data: layoutData }, runtimeTheme] = await Promise.all([
+    SportsMenuRepository.getLayoutData(),
+    loadRuntimeThemeState(),
+  ])
   const sportLabel = layoutData?.h1TitleBySlug[resolvedSportSlug] ?? resolvedSportSlug.toUpperCase()
-
   return (
-    <EventMarketChannelProvider markets={allMarkets}>
-      <SportsEventCenter
-        card={targetCard}
-        marketViewCards={targetGroup.marketViewCards}
-        sportSlug={resolvedSportSlug}
-        sportLabel={sportLabel}
-        initialMarketViewKey={resolveSportsEventMarketViewKey(canonicalEventSlug)}
-        key={`is-bookmarked-${targetCard.event.is_bookmarked}`}
+    <>
+      <EventStructuredData
+        event={targetCard.event}
+        locale={resolvedLocale}
+        pagePath={resolveEventPagePath(targetCard.event)}
+        site={runtimeTheme.site}
       />
-    </EventMarketChannelProvider>
+      <EventMarketChannelProvider markets={allMarkets}>
+        <SportsEventCenter
+          card={targetCard}
+          marketViewCards={targetGroup.marketViewCards}
+          sportSlug={resolvedSportSlug}
+          sportLabel={sportLabel}
+          initialMarketViewKey={resolveSportsEventMarketViewKey(canonicalEventSlug)}
+          key={`is-bookmarked-${targetCard.event.is_bookmarked}`}
+        />
+      </EventMarketChannelProvider>
+    </>
   )
 }

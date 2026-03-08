@@ -7,6 +7,7 @@ import { cacheTag } from 'next/cache'
 import { notFound } from 'next/navigation'
 import PwaInstallPrompt from '@/components/PwaInstallPrompt'
 import PwaServiceWorker from '@/components/PwaServiceWorker'
+import SiteStructuredData from '@/components/seo/SiteStructuredData'
 import TestModeBanner from '@/components/TestModeBanner'
 import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { routing } from '@/i18n/routing'
@@ -80,6 +81,7 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
 
   return (
     <>
+      <SiteStructuredData locale={locale} site={runtimeTheme.site} />
       <PwaServiceWorker />
       {runtimeTheme.theme.cssText && <style id="theme-vars" dangerouslySetInnerHTML={{ __html: runtimeTheme.theme.cssText }} />}
       <SiteIdentityProvider site={runtimeTheme.site}>

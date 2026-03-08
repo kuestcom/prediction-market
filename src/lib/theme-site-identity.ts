@@ -3,6 +3,17 @@ import { sanitizeSvg } from '@/lib/utils'
 export const THEME_SITE_LOGO_MODES = ['svg', 'image'] as const
 export type ThemeSiteLogoMode = typeof THEME_SITE_LOGO_MODES[number]
 
+export const THEME_SITE_SOCIAL_LINK_FIELDS = [
+  'discordLink',
+  'twitterLink',
+  'facebookLink',
+  'instagramLink',
+  'tiktokLink',
+  'linkedinLink',
+  'youtubeLink',
+] as const
+export type ThemeSiteSocialLinkField = typeof THEME_SITE_SOCIAL_LINK_FIELDS[number]
+
 const THEME_SITE_LOGO_MODE_SET = new Set<string>(THEME_SITE_LOGO_MODES)
 const DEFAULT_SITE_NAME_FALLBACK = 'Kuest'
 const DEFAULT_SITE_DESCRIPTION_FALLBACK = 'Decentralized Prediction Markets'
@@ -22,7 +33,17 @@ const SVG_WIDTH_ATTR_PATTERN = /\swidth\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/
 const SVG_HEIGHT_ATTR_PATTERN = /\sheight\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i
 const SVG_VIEWBOX_ATTR_PATTERN = /\sviewbox\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i
 
-export interface ThemeSiteIdentity {
+export interface ThemeSiteSocialLinks {
+  discordLink: string | null
+  twitterLink: string | null
+  facebookLink: string | null
+  instagramLink: string | null
+  tiktokLink: string | null
+  linkedinLink: string | null
+  youtubeLink: string | null
+}
+
+export interface ThemeSiteIdentity extends ThemeSiteSocialLinks {
   name: string
   description: string
   logoMode: ThemeSiteLogoMode
@@ -31,7 +52,6 @@ export interface ThemeSiteIdentity {
   logoImageUrl: string | null
   logoUrl: string
   googleAnalyticsId: string | null
-  discordLink: string | null
   supportUrl: string | null
   pwaIcon192Path: string | null
   pwaIcon512Path: string | null
@@ -72,6 +92,12 @@ export function createDefaultThemeSiteIdentity(): ThemeSiteIdentity {
     logoUrl: buildSvgDataUri(logoSvg),
     googleAnalyticsId: null,
     discordLink: null,
+    twitterLink: null,
+    facebookLink: null,
+    instagramLink: null,
+    tiktokLink: null,
+    linkedinLink: null,
+    youtubeLink: null,
     supportUrl: null,
     pwaIcon192Path: null,
     pwaIcon512Path: null,
@@ -84,6 +110,23 @@ export function createDefaultThemeSiteIdentity(): ThemeSiteIdentity {
 function normalizeOptionalString(value: string | null | undefined) {
   const normalized = typeof value === 'string' ? value.trim() : ''
   return normalized.length > 0 ? normalized : null
+}
+
+export function getThemeSiteSameAs(site: Pick<ThemeSiteSocialLinks, ThemeSiteSocialLinkField>) {
+  const seen = new Set<string>()
+  const sameAs: string[] = []
+
+  for (const field of THEME_SITE_SOCIAL_LINK_FIELDS) {
+    const value = site[field]?.trim()
+    if (!value || seen.has(value)) {
+      continue
+    }
+
+    seen.add(value)
+    sameAs.push(value)
+  }
+
+  return sameAs
 }
 
 function extractAttributeValue(match: RegExpMatchArray | null) {

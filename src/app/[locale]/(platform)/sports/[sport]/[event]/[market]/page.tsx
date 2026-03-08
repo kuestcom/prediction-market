@@ -11,12 +11,15 @@ import {
   mergeSportsGamesCardMarkets,
 } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
+import EventStructuredData from '@/components/seo/EventStructuredData'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
 import { resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
+import { resolveEventMarketPath } from '@/lib/events-routing'
 import { resolveSportsEventMarketViewKey } from '@/lib/sports-event-slugs'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateStaticParams() {
   return [{ market: STATIC_PARAMS_PLACEHOLDER }]
@@ -97,7 +100,7 @@ export default async function SportsEventMarketPage({
   const resolvedSportSlug = canonicalSportSlug
     || targetCard.event.sports_sport_slug
     || sport
-  const [{ data: layoutData }, { data: relatedEventsResult }] = await Promise.all([
+  const [{ data: layoutData }, { data: relatedEventsResult }, runtimeTheme] = await Promise.all([
     SportsMenuRepository.getLayoutData(),
     EventRepository.listEvents({
       tag: 'sports',
@@ -109,6 +112,7 @@ export default async function SportsEventMarketPage({
       sportsSportSlug: resolvedSportSlug,
       sportsSection: 'games',
     }),
+    loadRuntimeThemeState(),
   ])
 
   const relatedCards = buildSportsGamesCards(relatedEventsResult ?? [])
@@ -122,19 +126,27 @@ export default async function SportsEventMarketPage({
     .slice(0, 3)
 
   const sportLabel = layoutData?.h1TitleBySlug[resolvedSportSlug] ?? resolvedSportSlug.toUpperCase()
-
   return (
-    <EventMarketChannelProvider markets={allMarkets}>
-      <SportsEventCenter
-        card={targetCard}
-        marketViewCards={targetGroup.marketViewCards}
-        relatedCards={relatedCards}
-        sportSlug={resolvedSportSlug}
-        sportLabel={sportLabel}
-        initialMarketSlug={market}
-        initialMarketViewKey={resolveSportsEventMarketViewKey(canonicalEventSlug)}
-        key={`is-bookmarked-${targetCard.event.is_bookmarked}`}
+    <>
+      <EventStructuredData
+        event={targetCard.event}
+        locale={resolvedLocale}
+        pagePath={resolveEventMarketPath(targetCard.event, market)}
+        marketSlug={market}
+        site={runtimeTheme.site}
       />
-    </EventMarketChannelProvider>
+      <EventMarketChannelProvider markets={allMarkets}>
+        <SportsEventCenter
+          card={targetCard}
+          marketViewCards={targetGroup.marketViewCards}
+          relatedCards={relatedCards}
+          sportSlug={resolvedSportSlug}
+          sportLabel={sportLabel}
+          initialMarketSlug={market}
+          initialMarketViewKey={resolveSportsEventMarketViewKey(canonicalEventSlug)}
+          key={`is-bookmarked-${targetCard.event.is_bookmarked}`}
+        />
+      </EventMarketChannelProvider>
+    </>
   )
 }

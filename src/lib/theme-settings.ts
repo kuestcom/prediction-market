@@ -38,6 +38,12 @@ const THEME_SITE_LOGO_SVG_KEY = 'site_logo_svg'
 const THEME_SITE_LOGO_IMAGE_PATH_KEY = 'site_logo_image_path'
 const THEME_SITE_GOOGLE_ANALYTICS_KEY = 'site_google_analytics'
 const THEME_SITE_DISCORD_LINK_KEY = 'site_discord_link'
+const THEME_SITE_TWITTER_LINK_KEY = 'site_twitter_link'
+const THEME_SITE_FACEBOOK_LINK_KEY = 'site_facebook_link'
+const THEME_SITE_INSTAGRAM_LINK_KEY = 'site_instagram_link'
+const THEME_SITE_TIKTOK_LINK_KEY = 'site_tiktok_link'
+const THEME_SITE_LINKEDIN_LINK_KEY = 'site_linkedin_link'
+const THEME_SITE_YOUTUBE_LINK_KEY = 'site_youtube_link'
 const THEME_SITE_SUPPORT_URL_KEY = 'site_support_url'
 const GENERAL_PWA_ICON_192_PATH_KEY = 'pwa_icon_192_path'
 const GENERAL_PWA_ICON_512_PATH_KEY = 'pwa_icon_512_path'
@@ -81,6 +87,18 @@ interface NormalizedThemeSiteConfig {
   googleAnalyticsIdValue: string
   discordLink: string | null
   discordLinkValue: string
+  twitterLink: string | null
+  twitterLinkValue: string
+  facebookLink: string | null
+  facebookLinkValue: string
+  instagramLink: string | null
+  instagramLinkValue: string
+  tiktokLink: string | null
+  tiktokLinkValue: string
+  linkedinLink: string | null
+  linkedinLinkValue: string
+  youtubeLink: string | null
+  youtubeLinkValue: string
   supportUrl: string | null
   supportUrlValue: string
   feeRecipientWallet: `0x${string}`
@@ -118,6 +136,12 @@ export interface ThemeSiteSettingsFormState {
   pwaIcon512Path: string
   googleAnalyticsId: string
   discordLink: string
+  twitterLink: string
+  facebookLink: string
+  instagramLink: string
+  tiktokLink: string
+  linkedinLink: string
+  youtubeLink: string
   supportUrl: string
   feeRecipientWallet: string
   marketCreators: string
@@ -289,6 +313,12 @@ function normalizeThemeSiteConfig(params: {
   pwaIcon512PathValue: string | null | undefined
   googleAnalyticsIdValue: string | null | undefined
   discordLinkValue: string | null | undefined
+  twitterLinkValue: string | null | undefined
+  facebookLinkValue: string | null | undefined
+  instagramLinkValue: string | null | undefined
+  tiktokLinkValue: string | null | undefined
+  linkedinLinkValue: string | null | undefined
+  youtubeLinkValue: string | null | undefined
   supportUrlValue: string | null | undefined
   feeRecipientWalletValue: string | null | undefined
   marketCreatorsValue: string | null | undefined
@@ -303,6 +333,12 @@ function normalizeThemeSiteConfig(params: {
   pwaIcon512PathErrorLabel: string
   googleAnalyticsIdErrorLabel: string
   discordLinkErrorLabel: string
+  twitterLinkErrorLabel: string
+  facebookLinkErrorLabel: string
+  instagramLinkErrorLabel: string
+  tiktokLinkErrorLabel: string
+  linkedinLinkErrorLabel: string
+  youtubeLinkErrorLabel: string
   supportUrlErrorLabel: string
   feeRecipientWalletErrorLabel: string
   marketCreatorsErrorLabel: string
@@ -350,6 +386,36 @@ function normalizeThemeSiteConfig(params: {
   const discordLinkValidated = validateThemeSiteExternalUrl(params.discordLinkValue, params.discordLinkErrorLabel)
   if (discordLinkValidated.error) {
     return { data: null, error: discordLinkValidated.error }
+  }
+
+  const twitterLinkValidated = validateThemeSiteExternalUrl(params.twitterLinkValue, params.twitterLinkErrorLabel)
+  if (twitterLinkValidated.error) {
+    return { data: null, error: twitterLinkValidated.error }
+  }
+
+  const facebookLinkValidated = validateThemeSiteExternalUrl(params.facebookLinkValue, params.facebookLinkErrorLabel)
+  if (facebookLinkValidated.error) {
+    return { data: null, error: facebookLinkValidated.error }
+  }
+
+  const instagramLinkValidated = validateThemeSiteExternalUrl(params.instagramLinkValue, params.instagramLinkErrorLabel)
+  if (instagramLinkValidated.error) {
+    return { data: null, error: instagramLinkValidated.error }
+  }
+
+  const tiktokLinkValidated = validateThemeSiteExternalUrl(params.tiktokLinkValue, params.tiktokLinkErrorLabel)
+  if (tiktokLinkValidated.error) {
+    return { data: null, error: tiktokLinkValidated.error }
+  }
+
+  const linkedinLinkValidated = validateThemeSiteExternalUrl(params.linkedinLinkValue, params.linkedinLinkErrorLabel)
+  if (linkedinLinkValidated.error) {
+    return { data: null, error: linkedinLinkValidated.error }
+  }
+
+  const youtubeLinkValidated = validateThemeSiteExternalUrl(params.youtubeLinkValue, params.youtubeLinkErrorLabel)
+  if (youtubeLinkValidated.error) {
+    return { data: null, error: youtubeLinkValidated.error }
   }
 
   const supportUrlValidated = validateThemeSiteExternalUrl(params.supportUrlValue, params.supportUrlErrorLabel)
@@ -421,6 +487,18 @@ function normalizeThemeSiteConfig(params: {
       googleAnalyticsIdValue: googleAnalyticsValidated.value ?? '',
       discordLink: discordLinkValidated.value,
       discordLinkValue: discordLinkValidated.value ?? '',
+      twitterLink: twitterLinkValidated.value,
+      twitterLinkValue: twitterLinkValidated.value ?? '',
+      facebookLink: facebookLinkValidated.value,
+      facebookLinkValue: facebookLinkValidated.value ?? '',
+      instagramLink: instagramLinkValidated.value,
+      instagramLinkValue: instagramLinkValidated.value ?? '',
+      tiktokLink: tiktokLinkValidated.value,
+      tiktokLinkValue: tiktokLinkValidated.value ?? '',
+      linkedinLink: linkedinLinkValidated.value,
+      linkedinLinkValue: linkedinLinkValidated.value ?? '',
+      youtubeLink: youtubeLinkValidated.value,
+      youtubeLinkValue: youtubeLinkValidated.value ?? '',
       supportUrl: supportUrlValidated.value,
       supportUrlValue: supportUrlValidated.value ?? '',
       feeRecipientWallet: feeRecipientWalletValidated.value!,
@@ -456,6 +534,12 @@ function buildThemeSiteIdentity(config: NormalizedThemeSiteConfig): ThemeSiteIde
     logoUrl: useImageLogo && logoImageUrl ? logoImageUrl : buildSvgDataUri(config.logoSvg),
     googleAnalyticsId: config.googleAnalyticsId,
     discordLink: config.discordLink,
+    twitterLink: config.twitterLink,
+    facebookLink: config.facebookLink,
+    instagramLink: config.instagramLink,
+    tiktokLink: config.tiktokLink,
+    linkedinLink: config.linkedinLink,
+    youtubeLink: config.youtubeLink,
     supportUrl: config.supportUrl,
     pwaIcon192Path: config.pwaIcon192Path,
     pwaIcon512Path: config.pwaIcon512Path,
@@ -506,6 +590,12 @@ function hasStoredThemeSiteSettings(generalSettings?: SettingsGroup) {
     || generalSettings[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value?.trim()
     || generalSettings[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value?.trim()
     || generalSettings[THEME_SITE_DISCORD_LINK_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_TWITTER_LINK_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_FACEBOOK_LINK_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_INSTAGRAM_LINK_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_TIKTOK_LINK_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_LINKEDIN_LINK_KEY]?.value?.trim()
+    || generalSettings[THEME_SITE_YOUTUBE_LINK_KEY]?.value?.trim()
     || generalSettings[THEME_SITE_SUPPORT_URL_KEY]?.value?.trim()
     || generalSettings[GENERAL_PWA_ICON_192_PATH_KEY]?.value?.trim()
     || generalSettings[GENERAL_PWA_ICON_512_PATH_KEY]?.value?.trim()
@@ -556,6 +646,12 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     pwaIcon512PathValue: generalSettings?.[GENERAL_PWA_ICON_512_PATH_KEY]?.value ?? defaultSite.pwaIcon512Path,
     googleAnalyticsIdValue: generalSettings?.[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value ?? defaultSite.googleAnalyticsId,
     discordLinkValue: generalSettings?.[THEME_SITE_DISCORD_LINK_KEY]?.value ?? defaultSite.discordLink,
+    twitterLinkValue: generalSettings?.[THEME_SITE_TWITTER_LINK_KEY]?.value ?? defaultSite.twitterLink,
+    facebookLinkValue: generalSettings?.[THEME_SITE_FACEBOOK_LINK_KEY]?.value ?? defaultSite.facebookLink,
+    instagramLinkValue: generalSettings?.[THEME_SITE_INSTAGRAM_LINK_KEY]?.value ?? defaultSite.instagramLink,
+    tiktokLinkValue: generalSettings?.[THEME_SITE_TIKTOK_LINK_KEY]?.value ?? defaultSite.tiktokLink,
+    linkedinLinkValue: generalSettings?.[THEME_SITE_LINKEDIN_LINK_KEY]?.value ?? defaultSite.linkedinLink,
+    youtubeLinkValue: generalSettings?.[THEME_SITE_YOUTUBE_LINK_KEY]?.value ?? defaultSite.youtubeLink,
     supportUrlValue: generalSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value ?? defaultSite.supportUrl,
     feeRecipientWalletValue: generalSettings?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value ?? ZERO_ADDRESS,
     marketCreatorsValue: generalSettings?.[GENERAL_MARKET_CREATORS_KEY]?.value ?? '',
@@ -568,6 +664,12 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     pwaIcon512PathErrorLabel: 'PWA icon (512x512)',
     googleAnalyticsIdErrorLabel: 'Google Analytics ID',
     discordLinkErrorLabel: 'Discord link',
+    twitterLinkErrorLabel: 'Twitter link',
+    facebookLinkErrorLabel: 'Facebook link',
+    instagramLinkErrorLabel: 'Instagram link',
+    tiktokLinkErrorLabel: 'TikTok link',
+    linkedinLinkErrorLabel: 'LinkedIn link',
+    youtubeLinkErrorLabel: 'YouTube link',
     supportUrlErrorLabel: 'Support URL',
     feeRecipientWalletErrorLabel: 'Fee recipient wallet',
     marketCreatorsErrorLabel: 'Market creators',
@@ -584,6 +686,12 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
       pwaIcon512Path: normalized.data.pwaIcon512PathValue,
       googleAnalyticsId: normalized.data.googleAnalyticsIdValue,
       discordLink: normalized.data.discordLinkValue,
+      twitterLink: normalized.data.twitterLinkValue,
+      facebookLink: normalized.data.facebookLinkValue,
+      instagramLink: normalized.data.instagramLinkValue,
+      tiktokLink: normalized.data.tiktokLinkValue,
+      linkedinLink: normalized.data.linkedinLinkValue,
+      youtubeLink: normalized.data.youtubeLinkValue,
       supportUrl: normalized.data.supportUrlValue,
       feeRecipientWallet: isZeroAddress(normalized.data.feeRecipientWalletValue)
         ? ''
@@ -605,6 +713,12 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     pwaIcon512Path: defaultSite.pwaIcon512Path ?? '',
     googleAnalyticsId: defaultSite.googleAnalyticsId ?? '',
     discordLink: defaultSite.discordLink ?? '',
+    twitterLink: defaultSite.twitterLink ?? '',
+    facebookLink: defaultSite.facebookLink ?? '',
+    instagramLink: defaultSite.instagramLink ?? '',
+    tiktokLink: defaultSite.tiktokLink ?? '',
+    linkedinLink: defaultSite.linkedinLink ?? '',
+    youtubeLink: defaultSite.youtubeLink ?? '',
     supportUrl: defaultSite.supportUrl ?? '',
     feeRecipientWallet: '',
     marketCreators: '',
@@ -642,6 +756,12 @@ export function validateThemeSiteSettingsInput(params: {
   pwaIcon512Path: string | null | undefined
   googleAnalyticsId: string | null | undefined
   discordLink: string | null | undefined
+  twitterLink: string | null | undefined
+  facebookLink: string | null | undefined
+  instagramLink: string | null | undefined
+  tiktokLink: string | null | undefined
+  linkedinLink: string | null | undefined
+  youtubeLink: string | null | undefined
   supportUrl: string | null | undefined
   feeRecipientWallet: string | null | undefined
   marketCreators: string | null | undefined
@@ -658,6 +778,12 @@ export function validateThemeSiteSettingsInput(params: {
     pwaIcon512PathValue: params.pwaIcon512Path,
     googleAnalyticsIdValue: params.googleAnalyticsId,
     discordLinkValue: params.discordLink,
+    twitterLinkValue: params.twitterLink,
+    facebookLinkValue: params.facebookLink,
+    instagramLinkValue: params.instagramLink,
+    tiktokLinkValue: params.tiktokLink,
+    linkedinLinkValue: params.linkedinLink,
+    youtubeLinkValue: params.youtubeLink,
     supportUrlValue: params.supportUrl,
     feeRecipientWalletValue: params.feeRecipientWallet,
     marketCreatorsValue: params.marketCreators,
@@ -672,6 +798,12 @@ export function validateThemeSiteSettingsInput(params: {
     pwaIcon512PathErrorLabel: 'PWA icon (512x512)',
     googleAnalyticsIdErrorLabel: 'Google Analytics ID',
     discordLinkErrorLabel: 'Discord link',
+    twitterLinkErrorLabel: 'Twitter link',
+    facebookLinkErrorLabel: 'Facebook link',
+    instagramLinkErrorLabel: 'Instagram link',
+    tiktokLinkErrorLabel: 'TikTok link',
+    linkedinLinkErrorLabel: 'LinkedIn link',
+    youtubeLinkErrorLabel: 'YouTube link',
     supportUrlErrorLabel: 'Support URL',
     feeRecipientWalletErrorLabel: 'Fee recipient wallet',
     marketCreatorsErrorLabel: 'Market creators',
@@ -717,6 +849,12 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
         pwaIcon512PathValue: generalSettings?.[GENERAL_PWA_ICON_512_PATH_KEY]?.value,
         googleAnalyticsIdValue: generalSettings?.[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value,
         discordLinkValue: generalSettings?.[THEME_SITE_DISCORD_LINK_KEY]?.value,
+        twitterLinkValue: generalSettings?.[THEME_SITE_TWITTER_LINK_KEY]?.value,
+        facebookLinkValue: generalSettings?.[THEME_SITE_FACEBOOK_LINK_KEY]?.value,
+        instagramLinkValue: generalSettings?.[THEME_SITE_INSTAGRAM_LINK_KEY]?.value,
+        tiktokLinkValue: generalSettings?.[THEME_SITE_TIKTOK_LINK_KEY]?.value,
+        linkedinLinkValue: generalSettings?.[THEME_SITE_LINKEDIN_LINK_KEY]?.value,
+        youtubeLinkValue: generalSettings?.[THEME_SITE_YOUTUBE_LINK_KEY]?.value,
         supportUrlValue: generalSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value,
         feeRecipientWalletValue: generalSettings?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value ?? ZERO_ADDRESS,
         marketCreatorsValue: generalSettings?.[GENERAL_MARKET_CREATORS_KEY]?.value ?? '',
@@ -729,6 +867,12 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
         pwaIcon512PathErrorLabel: 'PWA icon (512x512) in settings',
         googleAnalyticsIdErrorLabel: 'Google Analytics ID in settings',
         discordLinkErrorLabel: 'Discord link in settings',
+        twitterLinkErrorLabel: 'Twitter link in settings',
+        facebookLinkErrorLabel: 'Facebook link in settings',
+        instagramLinkErrorLabel: 'Instagram link in settings',
+        tiktokLinkErrorLabel: 'TikTok link in settings',
+        linkedinLinkErrorLabel: 'LinkedIn link in settings',
+        youtubeLinkErrorLabel: 'YouTube link in settings',
         supportUrlErrorLabel: 'Support URL in settings',
         feeRecipientWalletErrorLabel: 'Fee recipient wallet in settings',
         marketCreatorsErrorLabel: 'Market creators in settings',

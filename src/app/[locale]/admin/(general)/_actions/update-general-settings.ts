@@ -110,6 +110,12 @@ export async function updateGeneralSettingsAction(
   const pwaIcon512FileRaw = formData.get('pwa_icon_512')
   const googleAnalyticsIdRaw = formData.get('google_analytics_id')
   const discordLinkRaw = formData.get('discord_link')
+  const twitterLinkRaw = formData.get('twitter_link')
+  const facebookLinkRaw = formData.get('facebook_link')
+  const instagramLinkRaw = formData.get('instagram_link')
+  const tiktokLinkRaw = formData.get('tiktok_link')
+  const linkedinLinkRaw = formData.get('linkedin_link')
+  const youtubeLinkRaw = formData.get('youtube_link')
   const supportUrlRaw = formData.get('support_url')
   const feeRecipientWalletRaw = formData.get('fee_recipient_wallet')
   const marketCreatorsRaw = formData.get('market_creators')
@@ -127,6 +133,12 @@ export async function updateGeneralSettingsAction(
   let pwaIcon512Path = typeof pwaIcon512PathRaw === 'string' ? pwaIcon512PathRaw : ''
   const googleAnalyticsId = typeof googleAnalyticsIdRaw === 'string' ? googleAnalyticsIdRaw : ''
   const discordLink = typeof discordLinkRaw === 'string' ? discordLinkRaw : ''
+  const twitterLink = typeof twitterLinkRaw === 'string' ? twitterLinkRaw : ''
+  const facebookLink = typeof facebookLinkRaw === 'string' ? facebookLinkRaw : ''
+  const instagramLink = typeof instagramLinkRaw === 'string' ? instagramLinkRaw : ''
+  const tiktokLink = typeof tiktokLinkRaw === 'string' ? tiktokLinkRaw : ''
+  const linkedinLink = typeof linkedinLinkRaw === 'string' ? linkedinLinkRaw : ''
+  const youtubeLink = typeof youtubeLinkRaw === 'string' ? youtubeLinkRaw : ''
   const supportUrl = typeof supportUrlRaw === 'string' ? supportUrlRaw : ''
   const feeRecipientWallet = typeof feeRecipientWalletRaw === 'string' ? feeRecipientWalletRaw : ''
   const marketCreators = typeof marketCreatorsRaw === 'string' ? marketCreatorsRaw : ''
@@ -186,6 +198,12 @@ export async function updateGeneralSettingsAction(
     pwaIcon512Path,
     googleAnalyticsId,
     discordLink,
+    twitterLink,
+    facebookLink,
+    instagramLink,
+    tiktokLink,
+    linkedinLink,
+    youtubeLink,
     supportUrl,
     feeRecipientWallet,
     marketCreators,
@@ -229,6 +247,12 @@ export async function updateGeneralSettingsAction(
     { group: 'general', key: 'pwa_icon_512_path', value: validated.data.pwaIcon512PathValue },
     { group: 'general', key: 'site_google_analytics', value: validated.data.googleAnalyticsIdValue },
     { group: 'general', key: 'site_discord_link', value: validated.data.discordLinkValue },
+    { group: 'general', key: 'site_twitter_link', value: validated.data.twitterLinkValue },
+    { group: 'general', key: 'site_facebook_link', value: validated.data.facebookLinkValue },
+    { group: 'general', key: 'site_instagram_link', value: validated.data.instagramLinkValue },
+    { group: 'general', key: 'site_tiktok_link', value: validated.data.tiktokLinkValue },
+    { group: 'general', key: 'site_linkedin_link', value: validated.data.linkedinLinkValue },
+    { group: 'general', key: 'site_youtube_link', value: validated.data.youtubeLinkValue },
     { group: 'general', key: 'site_support_url', value: validated.data.supportUrlValue },
     { group: 'general', key: 'fee_recipient_wallet', value: validated.data.feeRecipientWalletValue },
     { group: 'general', key: 'market_creators', value: validated.data.marketCreatorsValue },

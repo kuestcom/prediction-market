@@ -3,11 +3,13 @@ import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
+import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
 import { getEventRouteBySlug, loadEventPageContentData } from '@/lib/event-page-data'
 import { resolveEventMarketPath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateStaticParams() {
   return [{ market: STATIC_PARAMS_PLACEHOLDER }]
@@ -49,21 +51,33 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
     })
   }
 
-  const eventPageData = await loadEventPageContentData(slug, resolvedLocale)
+  const [eventPageData, runtimeTheme] = await Promise.all([
+    loadEventPageContentData(slug, resolvedLocale),
+    loadRuntimeThemeState(),
+  ])
   if (!eventPageData) {
     notFound()
   }
 
   return (
-    <EventContent
-      event={eventPageData.event}
-      changeLogEntries={eventPageData.changeLogEntries}
-      user={eventPageData.user}
-      marketContextEnabled={eventPageData.marketContextEnabled}
-      marketSlug={market}
-      seriesEvents={eventPageData.seriesEvents}
-      liveChartConfig={eventPageData.liveChartConfig}
-      key={`is-bookmarked-${eventPageData.event.is_bookmarked}`}
-    />
+    <>
+      <EventStructuredData
+        event={eventPageData.event}
+        locale={resolvedLocale}
+        pagePath={resolveEventMarketPath(eventPageData.event, market)}
+        marketSlug={market}
+        site={runtimeTheme.site}
+      />
+      <EventContent
+        event={eventPageData.event}
+        changeLogEntries={eventPageData.changeLogEntries}
+        user={eventPageData.user}
+        marketContextEnabled={eventPageData.marketContextEnabled}
+        marketSlug={market}
+        seriesEvents={eventPageData.seriesEvents}
+        liveChartConfig={eventPageData.liveChartConfig}
+        key={`is-bookmarked-${eventPageData.event.is_bookmarked}`}
+      />
+    </>
   )
 }
