@@ -13,10 +13,8 @@ import {
 import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
-import {
-  getEventTitleBySlug,
-  resolveCanonicalEventSlugFromSportsPath,
-} from '@/lib/event-page-data'
+import { buildEventPageMetadata } from '@/lib/event-open-graph'
+import { resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
 import { resolveSportsEventMarketViewKey } from '@/lib/sports-event-slugs'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
@@ -43,7 +41,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string, sport: string, event: string, market: string }>
 }): Promise<Metadata> {
-  const { locale, sport, event } = await params
+  const { locale, sport, event, market } = await params
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale
   if (sport === STATIC_PARAMS_PLACEHOLDER || event === STATIC_PARAMS_PLACEHOLDER) {
@@ -53,12 +51,11 @@ export async function generateMetadata({
   if (!canonicalEventSlug) {
     notFound()
   }
-
-  const title = await getEventTitleBySlug(canonicalEventSlug, resolvedLocale)
-
-  return {
-    title,
-  }
+  return await buildEventPageMetadata({
+    eventSlug: canonicalEventSlug,
+    locale: resolvedLocale,
+    marketSlug: market,
+  })
 }
 
 export default async function SportsEventMarketPage({

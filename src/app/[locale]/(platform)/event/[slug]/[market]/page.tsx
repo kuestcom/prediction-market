@@ -4,7 +4,8 @@ import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
 import { redirect } from '@/i18n/navigation'
-import { getEventRouteBySlug, getEventTitleBySlug, loadEventPageContentData } from '@/lib/event-page-data'
+import { buildEventPageMetadata } from '@/lib/event-open-graph'
+import { getEventRouteBySlug, loadEventPageContentData } from '@/lib/event-page-data'
 import { resolveEventMarketPath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
@@ -19,11 +20,11 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/event/[s
   if (slug === STATIC_PARAMS_PLACEHOLDER || market === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
-  const title = await getEventTitleBySlug(slug, resolvedLocale)
-
-  return {
-    title,
-  }
+  return await buildEventPageMetadata({
+    eventSlug: slug,
+    locale: resolvedLocale,
+    marketSlug: market,
+  })
 }
 
 export default async function EventMarketPage({ params }: PageProps<'/[locale]/event/[slug]/[market]'>) {
