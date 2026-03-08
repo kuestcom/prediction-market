@@ -33,14 +33,20 @@ interface StructuredDataBreadcrumbTarget {
   path: string
 }
 
+const STRUCTURED_DATA_URL_PROTOCOLS = new Set(['http:', 'https:'])
+
 function resolveAbsoluteUrl(pathOrUrl: string | null | undefined, siteUrl: string) {
   const normalized = pathOrUrl?.trim()
-  if (!normalized || normalized.startsWith('data:')) {
+  if (!normalized) {
     return null
   }
 
   try {
-    return new URL(normalized, siteUrl).toString()
+    const resolvedUrl = new URL(normalized, siteUrl)
+
+    return STRUCTURED_DATA_URL_PROTOCOLS.has(resolvedUrl.protocol)
+      ? resolvedUrl.toString()
+      : null
   }
   catch {
     return null

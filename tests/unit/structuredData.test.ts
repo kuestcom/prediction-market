@@ -189,4 +189,44 @@ describe('structuredData', () => {
       ]),
     )
   })
+
+  it('omits non-http(s) URLs from structured data fields', () => {
+    process.env.SITE_URL = 'https://kuest.example'
+
+    const event = createEventFixture()
+    event.icon_url = 'javascript:alert(1)'
+
+    const eventStructuredData = buildEventStructuredData({
+      event,
+      locale: 'en',
+      pagePath: '/event/will-the-iranian-regime-fall-by-june-30',
+      site: {
+        ...createDefaultThemeSiteIdentity(),
+        name: 'Kuest',
+        description: 'Prediction markets',
+      },
+    })
+
+    const eventImages = eventStructuredData.event.image as string[]
+    expect(eventImages.length).toBeGreaterThan(0)
+    expect(eventImages).not.toContain('javascript:alert(1)')
+    expect(eventImages.every(url => /^https?:\/\//.test(url))).toBe(true)
+
+    const siteStructuredData = buildSiteStructuredData({
+      locale: 'en',
+      site: {
+        ...createDefaultThemeSiteIdentity(),
+        name: 'Kuest',
+        description: 'Prediction markets',
+        logoImageUrl: 'javascript:alert(1)',
+      },
+    })
+
+    const organizationLogo = siteStructuredData.organization.logo
+    expect(organizationLogo).not.toBe('javascript:alert(1)')
+
+    if (typeof organizationLogo === 'string') {
+      expect(/^https?:\/\//.test(organizationLogo)).toBe(true)
+    }
+  })
 })

@@ -28,7 +28,7 @@ vi.mock('@/lib/encryption', () => ({
   encryptSecret: (...args: any[]) => mocks.encryptSecret(...args),
 }))
 
-vi.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/storage', () => ({
   uploadPublicAsset: (...args: any[]) => mocks.upload(...args),
 }))
 
@@ -123,7 +123,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.encryptSecret).toHaveBeenCalledWith('openrouter-123')
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload).toHaveLength(16)
+    expect(savedPayload).toHaveLength(22)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
@@ -132,6 +132,12 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.find(entry => entry.key === 'pwa_icon_512_path')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'site_google_analytics')?.value).toBe('G-TEST123')
     expect(savedPayload.find(entry => entry.key === 'site_discord_link')?.value).toBe('https://discord.gg/kuest')
+    expect(savedPayload.find(entry => entry.key === 'site_twitter_link')?.value).toBe('')
+    expect(savedPayload.find(entry => entry.key === 'site_facebook_link')?.value).toBe('')
+    expect(savedPayload.find(entry => entry.key === 'site_instagram_link')?.value).toBe('')
+    expect(savedPayload.find(entry => entry.key === 'site_tiktok_link')?.value).toBe('')
+    expect(savedPayload.find(entry => entry.key === 'site_linkedin_link')?.value).toBe('')
+    expect(savedPayload.find(entry => entry.key === 'site_youtube_link')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'site_support_url')?.value).toBe('https://kuest.com/support')
     expect(savedPayload.find(entry => entry.key === 'fee_recipient_wallet')?.value).toBe('0x1111111111111111111111111111111111111111')
     expect(savedPayload.find(entry => entry.key === 'market_creators')?.value).toBe('0x2222222222222222222222222222222222222222\n0x3333333333333333333333333333333333333333')
