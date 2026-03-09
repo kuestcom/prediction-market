@@ -1,10 +1,10 @@
-import type { Event, Market, Outcome } from '@/types'
+import type { Event, Market } from '@/types'
 import { CheckIcon, XIcon } from 'lucide-react'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { OUTCOME_INDEX } from '@/lib/constants'
-import { resolveEventMarketPath } from '@/lib/events-routing'
+import { resolveEventMarketPath, resolveEventOutcomePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
 
 interface EventCardMarketsListProps {
@@ -12,8 +12,6 @@ interface EventCardMarketsListProps {
   markets: Market[]
   isResolvedEvent: boolean
   getDisplayChance: (marketId: string) => number
-  onTrade: (outcome: Outcome, market: Market, variant: 'yes' | 'no') => void
-  onToggle: () => void
 }
 
 export default function EventCardMarketsList({
@@ -21,8 +19,6 @@ export default function EventCardMarketsList({
   markets,
   isResolvedEvent,
   getDisplayChance,
-  onTrade,
-  onToggle,
 }: EventCardMarketsListProps) {
   const normalizeOutcomeLabel = useOutcomeLabel()
   const marketsToRender = isResolvedEvent
@@ -57,6 +53,8 @@ export default function EventCardMarketsList({
         const resolvedOutcome = isResolvedEvent
           ? market.outcomes.find(outcome => outcome.is_winning_outcome)
           : null
+        const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES) ?? market.outcomes[0]
+        const noOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO) ?? market.outcomes[1]
         const resolvedLabel = resolvedOutcome?.outcome_text
         const isYesOutcome = resolvedOutcome?.outcome_index === OUTCOME_INDEX.YES
         const displayResolvedLabel = normalizeOutcomeLabel(resolvedLabel) ?? resolvedLabel
@@ -108,6 +106,10 @@ export default function EventCardMarketsList({
                   )
                 : (
                     (() => {
+                      if (!yesOutcome || !noOutcome) {
+                        return null
+                      }
+
                       const displayChance = Math.round(getDisplayChance(market.condition_id))
                       const oppositeChance = Math.max(0, Math.min(100, 100 - displayChance))
                       return (
@@ -118,41 +120,47 @@ export default function EventCardMarketsList({
                           </span>
                           <div className="flex gap-1">
                             <Button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onTrade(market.outcomes[0], market, 'yes')
-                                onToggle()
-                              }}
+                              asChild
                               variant="yes"
                               className="group/yes h-7 w-10 px-2 py-1 text-xs"
                             >
-                              <span className="truncate group-hover/yes:hidden">
-                                {normalizeOutcomeLabel(market.outcomes[0].outcome_text) ?? market.outcomes[0].outcome_text}
-                              </span>
-                              <span className="hidden group-hover/yes:inline">
-                                {displayChance}
-                                %
-                              </span>
+                              <IntentPrefetchLink
+                                href={resolveEventOutcomePath(event, {
+                                  marketSlug: market.slug,
+                                  conditionId: market.condition_id,
+                                  outcomeIndex: yesOutcome.outcome_index,
+                                })}
+                              >
+                                <span className="truncate group-hover/yes:hidden">
+                                  {normalizeOutcomeLabel(yesOutcome.outcome_text) ?? yesOutcome.outcome_text}
+                                </span>
+                                <span className="hidden group-hover/yes:inline">
+                                  {displayChance}
+                                  %
+                                </span>
+                              </IntentPrefetchLink>
                             </Button>
                             <Button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onTrade(market.outcomes[1], market, 'no')
-                                onToggle()
-                              }}
+                              asChild
                               variant="no"
                               size="sm"
                               className="group/no h-auto w-11 px-2 py-1 text-xs"
                             >
-                              <span className="truncate group-hover/no:hidden">
-                                {normalizeOutcomeLabel(market.outcomes[1].outcome_text) ?? market.outcomes[1].outcome_text}
-                              </span>
-                              <span className="hidden group-hover/no:inline">
-                                {oppositeChance}
-                                %
-                              </span>
+                              <IntentPrefetchLink
+                                href={resolveEventOutcomePath(event, {
+                                  marketSlug: market.slug,
+                                  conditionId: market.condition_id,
+                                  outcomeIndex: noOutcome.outcome_index,
+                                })}
+                              >
+                                <span className="truncate group-hover/no:hidden">
+                                  {normalizeOutcomeLabel(noOutcome.outcome_text) ?? noOutcome.outcome_text}
+                                </span>
+                                <span className="hidden group-hover/no:inline">
+                                  {oppositeChance}
+                                  %
+                                </span>
+                              </IntentPrefetchLink>
                             </Button>
                           </div>
                         </>

@@ -32,3 +32,26 @@ export function resolveEventMarketPath(event: EventRouteInput, marketSlug: strin
 
   return `/event/${event.slug}/${marketSlug}`
 }
+
+interface EventOutcomePathOptions {
+  marketSlug?: string | null
+  conditionId?: string | null
+  outcomeIndex: number
+}
+
+export function resolveEventOutcomePath(event: EventRouteInput, options: EventOutcomePathOptions) {
+  const basePath = options.marketSlug
+    ? resolveEventMarketPath(event, options.marketSlug)
+    : resolveEventPagePath(event)
+  const searchParams = new URLSearchParams()
+
+  if (options.conditionId?.trim()) {
+    searchParams.set('conditionId', options.conditionId.trim())
+  }
+
+  searchParams.set('outcomeIndex', String(options.outcomeIndex))
+
+  const query = searchParams.toString()
+
+  return query ? `${basePath}?${query}` : basePath
+}

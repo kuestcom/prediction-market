@@ -1,45 +1,34 @@
 'use client'
 
-import type { Market, Outcome } from '@/types'
-import type { EventCardProps, SelectedOutcome } from '@/types/EventCardTypes'
-import { useAppKitAccount } from '@reown/appkit/react'
-import { useQueryClient } from '@tanstack/react-query'
-import { use, useMemo, useState } from 'react'
-import { useSignTypedData } from 'wagmi'
+import type { Market } from '@/types'
+import type { EventCardProps } from '@/types/EventCardTypes'
 import EventCardFooter from '@/app/[locale]/(platform)/(home)/_components/EventCardFooter'
 import EventCardHeader from '@/app/[locale]/(platform)/(home)/_components/EventCardHeader'
 import EventCardMarketsList from '@/app/[locale]/(platform)/(home)/_components/EventCardMarketsList'
 import EventCardSingleMarketActions from '@/app/[locale]/(platform)/(home)/_components/EventCardSingleMarketActions'
 import EventCardSportsMoneyline from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
-import EventCardTradePanel from '@/app/[locale]/(platform)/(home)/_components/EventCardTradePanel'
-import { OpenCardContext } from '@/app/[locale]/(platform)/(home)/_components/EventOpenCardProvider'
-import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
-import { handleOrderCancelledFeedback, handleOrderErrorFeedback, handleOrderSuccessFeedback, handleValidationError } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { Card, CardContent } from '@/components/ui/card'
-import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
-import { useAppKit } from '@/hooks/useAppKit'
-import { useBalance } from '@/hooks/useBalance'
-import { useEventCardOrderBook } from '@/hooks/useEventCardOrderBook'
-import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
-import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { formatDisplayAmount } from '@/lib/amount-input'
-import { getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
-import { calculateMarketFill } from '@/lib/event-card-orderbook'
+import { OUTCOME_INDEX } from '@/lib/constants'
 import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
-import { formatCurrency, formatDate } from '@/lib/formatters'
+import { formatDate } from '@/lib/formatters'
 import { buildChanceByMarket } from '@/lib/market-chance'
-import { buildOrderPayload, submitOrder } from '@/lib/orders'
-import { signOrderPayload } from '@/lib/orders/signing'
-import { validateOrder } from '@/lib/orders/validation'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import { cn } from '@/lib/utils'
-import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
-import { useUser } from '@/stores/useUser'
 
 const EMPTY_PRICE_OVERRIDES: Record<string, number> = {}
 
 function isMarketResolved(market: Market) {
   return Boolean(market.is_resolved || market.condition?.resolved)
+}
+
+function resolveBinaryOutcome(market: Market | undefined, outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO) {
+  if (!market) {
+    return null
+  }
+
+  return market.outcomes.find(outcome => outcome.outcome_index === outcomeIndex)
+    ?? market.outcomes[outcomeIndex]
+    ?? null
 }
 
 export default function EventCard({
@@ -48,66 +37,23 @@ export default function EventCard({
   enableHomeSportsMoneylineLayout = false,
   currentTimestamp = null,
 }: EventCardProps) {
-  const { openCardId, setOpenCardId } = use(OpenCardContext)
-  const [isLoading, setIsLoading] = useState(false)
-  const [selectedOutcome, setSelectedOutcome] = useState<SelectedOutcome | null>(null)
-  const [tradeAmount, setTradeAmount] = useState('1')
-  const [lastMouseEvent, setLastMouseEvent] = useState<MouseEvent | null>(null)
-  const { open } = useAppKit()
-  const { isConnected } = useAppKitAccount()
-  const { signTypedDataAsync } = useSignTypedData()
-  const { runWithSignaturePrompt } = useSignaturePromptRunner()
-  const user = useUser()
-  const affiliateMetadata = useAffiliateOrderMetadata()
-  const { balance } = useBalance()
-  const { ensureTradingReady } = useTradingOnboarding()
-  const queryClient = useQueryClient()
-  const normalizeOutcomeLabel = useOutcomeLabel()
-  const hasDeployedProxyWallet = Boolean(user?.proxy_wallet_address && user?.proxy_wallet_status === 'deployed')
-  const proxyWalletAddress = hasDeployedProxyWallet ? normalizeAddress(user?.proxy_wallet_address) : null
-  const userAddress = normalizeAddress(user?.address)
-  const makerAddress = proxyWalletAddress ?? null
-  const signatureType = proxyWalletAddress ? 2 : 0
-  const isOpen = openCardId === `${event.id}`
-  const amountNumber = Number.parseFloat(tradeAmount) || 0
-  const canValidateBalance = Boolean(isConnected && user)
-
-  function onToggle() {
-    setOpenCardId(isOpen ? null : `${event.id}`)
-  }
-
-  const activeOutcome = isOpen ? selectedOutcome : null
-  const isInTradingMode = Boolean(activeOutcome)
   const isResolvedEvent = event.status === 'resolved'
-  const marketsToDisplay = useMemo(() => {
-    if (isResolvedEvent) {
-      return event.markets
-    }
-
-    const activeMarkets = event.markets.filter(market => !isMarketResolved(market))
-    return activeMarkets.length > 0 ? activeMarkets : event.markets
-  }, [event.markets, isResolvedEvent])
+  const marketsToDisplay = isResolvedEvent
+    ? event.markets
+    : (() => {
+        const activeMarkets = event.markets.filter(market => !isMarketResolved(market))
+        return activeMarkets.length > 0 ? activeMarkets : event.markets
+      })()
   const isSingleMarket = marketsToDisplay.length === 1
   const primaryMarket = marketsToDisplay[0]
-  const yesOutcome = primaryMarket?.outcomes[0]
-  const noOutcome = primaryMarket?.outcomes[1]
+  const yesOutcome = resolveBinaryOutcome(primaryMarket, OUTCOME_INDEX.YES)
+  const noOutcome = resolveBinaryOutcome(primaryMarket, OUTCOME_INDEX.NO)
   const shouldShowNewBadge = shouldShowEventNewBadge(event, currentTimestamp)
   const shouldShowLiveBadge = !isResolvedEvent && Boolean(event.has_live_chart)
-  const isNegRiskEnabled = Boolean(event.enable_neg_risk)
-  const orderDomain = useMemo(() => getExchangeEip712Domain(isNegRiskEnabled), [isNegRiskEnabled])
-  const availableBalance = balance.raw
-  const selectedTokenId = selectedOutcome?.outcome.token_id ?? null
-
-  const chanceByMarket = useMemo(
-    () => buildChanceByMarket(event.markets, priceOverridesByMarket),
-    [event.markets, priceOverridesByMarket],
-  )
-  const homeSportsMoneylineModel = useMemo(
-    () => enableHomeSportsMoneylineLayout
-      ? buildHomeSportsMoneylineModel(event)
-      : null,
-    [enableHomeSportsMoneylineLayout, event],
-  )
+  const chanceByMarket = buildChanceByMarket(event.markets, priceOverridesByMarket)
+  const homeSportsMoneylineModel = enableHomeSportsMoneylineLayout
+    ? buildHomeSportsMoneylineModel(event)
+    : null
 
   function getDisplayChance(marketId: string) {
     return chanceByMarket[marketId] ?? 0
@@ -115,188 +61,16 @@ export default function EventCard({
 
   const primaryDisplayChance = primaryMarket ? getDisplayChance(primaryMarket.condition_id) : 0
   const roundedPrimaryDisplayChance = Math.round(primaryDisplayChance)
-  const endedLabel = useMemo(() => {
-    if (!isResolvedEvent || !isSingleMarket) {
-      return null
-    }
-    const endedAt = event.resolved_at ?? null
-    if (!endedAt) {
-      return null
-    }
-    const resolvedDate = new Date(endedAt)
-    if (Number.isNaN(resolvedDate.getTime())) {
-      return null
-    }
-    return `Ended ${formatDate(resolvedDate)}`
-  }, [event.resolved_at, isResolvedEvent, isSingleMarket])
-
-  const resolvedVolume = useMemo(() => event.volume ?? 0, [event.volume])
-
-  const { normalizedAsks } = useEventCardOrderBook(selectedTokenId, isInTradingMode)
-
-  const marketBuyFill = useMemo(() => {
-    if (!isInTradingMode || !selectedOutcome || amountNumber <= 0) {
-      return null
-    }
-    return calculateMarketFill(amountNumber, normalizedAsks)
-  }, [amountNumber, isInTradingMode, normalizedAsks, selectedOutcome])
-
-  const toWinAmount = useMemo(() => {
-    if (!selectedOutcome || amountNumber <= 0) {
-      return 0
-    }
-
-    if (marketBuyFill?.filledShares && marketBuyFill.filledShares > 0) {
-      return marketBuyFill.filledShares
-    }
-
-    const fallbackPrice = typeof selectedOutcome.outcome.buy_price === 'number'
-      ? selectedOutcome.outcome.buy_price
-      : selectedOutcome.market?.probability
-        ? selectedOutcome.market.probability / 100
-        : 0
-
-    return fallbackPrice > 0 ? amountNumber / fallbackPrice : 0
-  }, [amountNumber, marketBuyFill?.filledShares, selectedOutcome])
-
-  const toWinLabel = useMemo(
-    () => formatCurrency(Math.max(0, toWinAmount), { includeSymbol: false }),
-    [toWinAmount],
-  )
-
-  function handleTrade(outcome: Outcome, market: Market, variant: 'yes' | 'no') {
-    setSelectedOutcome({
-      market,
-      outcome,
-      variant,
-    })
-
-    if (!tradeAmount) {
-      setTradeAmount('1')
-    }
-  }
-
-  async function handleConfirmTrade() {
-    if (!selectedOutcome) {
-      return
-    }
-
-    if (!ensureTradingReady()) {
-      return
-    }
-
-    const validation = validateOrder({
-      isLoading,
-      isConnected,
-      user,
-      market: selectedOutcome.market,
-      outcome: selectedOutcome.outcome,
-      amountNumber,
-      side: ORDER_SIDE.BUY,
-      isLimitOrder: false,
-      limitPrice: '0',
-      limitShares: '0',
-      availableBalance: balance.raw,
-    })
-
-    if (!validation.ok) {
-      handleValidationError(validation.reason, { openWalletModal: open })
-      return
-    }
-
-    if (!user || !userAddress || !makerAddress) {
-      return
-    }
-
-    const payload = buildOrderPayload({
-      userAddress,
-      makerAddress,
-      signatureType,
-      outcome: selectedOutcome.outcome,
-      side: ORDER_SIDE.BUY,
-      orderType: ORDER_TYPE.MARKET,
-      amount: tradeAmount,
-      limitPrice: '0',
-      limitShares: '0',
-      marketPriceCents: typeof selectedOutcome.outcome.buy_price === 'number'
-        ? selectedOutcome.outcome.buy_price * 100
-        : undefined,
-      feeRateBps: affiliateMetadata.tradeFeeBps,
-    })
-
-    let signature: string
-    try {
-      signature = await runWithSignaturePrompt(() => signOrderPayload({
-        payload,
-        domain: orderDomain,
-        signTypedDataAsync,
-      }))
-    }
-    catch (error) {
-      if (isUserRejectedRequestError(error)) {
-        handleOrderCancelledFeedback()
-        return
-      }
-
-      handleOrderErrorFeedback('Trade failed', 'We could not sign your order. Please try again.')
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      const result = await submitOrder({
-        order: payload,
-        signature,
-        orderType: ORDER_TYPE.MARKET,
-        conditionId: selectedOutcome.market.condition_id,
-        slug: event.slug,
-      })
-
-      if (result?.error) {
-        handleOrderErrorFeedback('Trade failed', result.error)
-        return
-      }
-
-      handleOrderSuccessFeedback({
-        side: ORDER_SIDE.BUY,
-        amountInput: tradeAmount,
-        outcomeText: normalizeOutcomeLabel(selectedOutcome.outcome.outcome_text) ?? selectedOutcome.outcome.outcome_text,
-        eventTitle: event.title,
-        marketImage: selectedOutcome.market.icon_url,
-        marketTitle: selectedOutcome.market.short_title || selectedOutcome.market.title,
-        sellAmountValue: 0,
-        avgSellPrice: '—',
-        buyPrice: selectedOutcome.outcome.buy_price,
-        queryClient,
-        outcomeIndex: selectedOutcome.outcome.outcome_index,
-        lastMouseEvent,
-      })
-
-      setSelectedOutcome(null)
-      setTradeAmount('1')
-      setLastMouseEvent(null)
-
-      setTimeout(() => {
-        void queryClient.refetchQueries({ queryKey: ['event-activity'] })
-        void queryClient.refetchQueries({ queryKey: ['event-holders'] })
-      }, 3000)
-    }
-    catch {
-      handleOrderErrorFeedback('Trade failed', 'An unexpected error occurred. Please try again.')
-    }
-    finally {
-      setIsLoading(false)
-    }
-  }
-
-  function handleCancelTrade() {
-    setSelectedOutcome(null)
-    setTradeAmount('1')
-    setLastMouseEvent(null)
-    onToggle()
-  }
-
-  const formattedTradeAmount = formatDisplayAmount(tradeAmount)
+  const endedLabel = !isResolvedEvent || !isSingleMarket || !event.resolved_at
+    ? null
+    : (() => {
+        const resolvedDate = new Date(event.resolved_at)
+        if (Number.isNaN(resolvedDate.getTime())) {
+          return null
+        }
+        return `Ended ${formatDate(resolvedDate)}`
+      })()
+  const resolvedVolume = event.volume ?? 0
 
   if (homeSportsMoneylineModel) {
     return (
@@ -311,13 +85,11 @@ export default function EventCard({
 
   return (
     <Card
-      className={
-        cn(`
-          group flex h-45 cursor-pointer flex-col overflow-hidden rounded-xl shadow-md shadow-black/4 transition-all
-          hover:-translate-y-0.5 hover:shadow-black/8
-          dark:hover:bg-secondary
-        `, { 'ring-2 ring-primary/20': isInTradingMode })
-      }
+      className={cn(`
+        group flex h-45 flex-col overflow-hidden rounded-xl shadow-md shadow-black/4 transition-all
+        hover:-translate-y-0.5 hover:shadow-black/8
+        dark:hover:bg-secondary
+      `)}
     >
       <CardContent
         className={
@@ -329,70 +101,40 @@ export default function EventCard({
       >
         <EventCardHeader
           event={event}
-          activeOutcome={activeOutcome}
-          isInTradingMode={isInTradingMode}
           isSingleMarket={isSingleMarket}
           primaryMarket={primaryMarket}
           roundedPrimaryDisplayChance={roundedPrimaryDisplayChance}
-          onCancelTrade={handleCancelTrade}
         />
 
         <div className="flex flex-1 flex-col">
-          {activeOutcome
-            ? (
-                <EventCardTradePanel
-                  activeOutcome={activeOutcome}
-                  formattedTradeAmount={formattedTradeAmount}
-                  amountNumber={amountNumber}
-                  availableBalance={availableBalance}
-                  isLoading={isLoading}
-                  canValidateBalance={canValidateBalance}
-                  isSingleMarket={isSingleMarket}
-                  toWinLabel={toWinLabel}
-                  onAmountChange={setTradeAmount}
-                  onConfirmTrade={(mouseEvent) => {
-                    if (mouseEvent) {
-                      setLastMouseEvent(mouseEvent)
-                    }
-                    void handleConfirmTrade()
-                  }}
-                  onCancelTrade={handleCancelTrade}
-                />
-              )
-            : (
-                <div
-                  className={
-                    cn(isResolvedEvent && isSingleMarket
-                      ? 'mt-6'
-                      : isResolvedEvent && !isSingleMarket
-                        ? 'mt-1'
-                        : 'mt-auto')
-                  }
-                >
-                  {!isSingleMarket && (
-                    <EventCardMarketsList
-                      event={event}
-                      markets={marketsToDisplay}
-                      isResolvedEvent={isResolvedEvent}
-                      getDisplayChance={getDisplayChance}
-                      onTrade={handleTrade}
-                      onToggle={onToggle}
-                    />
-                  )}
+          <div
+            className={
+              cn(isResolvedEvent && isSingleMarket
+                ? 'mt-6'
+                : isResolvedEvent && !isSingleMarket
+                  ? 'mt-1'
+                  : 'mt-auto')
+            }
+          >
+            {!isSingleMarket && (
+              <EventCardMarketsList
+                event={event}
+                markets={marketsToDisplay}
+                isResolvedEvent={isResolvedEvent}
+                getDisplayChance={getDisplayChance}
+              />
+            )}
 
-                  {isSingleMarket && yesOutcome && noOutcome && (
-                    <EventCardSingleMarketActions
-                      yesOutcome={yesOutcome}
-                      noOutcome={noOutcome}
-                      primaryMarket={primaryMarket}
-                      isLoading={isLoading}
-                      isResolvedEvent={isResolvedEvent}
-                      onTrade={handleTrade}
-                      onToggle={onToggle}
-                    />
-                  )}
-                </div>
-              )}
+            {isSingleMarket && yesOutcome && noOutcome && (
+              <EventCardSingleMarketActions
+                event={event}
+                yesOutcome={yesOutcome}
+                noOutcome={noOutcome}
+                primaryMarket={primaryMarket}
+                isResolvedEvent={isResolvedEvent}
+              />
+            )}
+          </div>
         </div>
 
         <EventCardFooter
@@ -400,7 +142,6 @@ export default function EventCard({
           shouldShowNewBadge={shouldShowNewBadge}
           showLiveBadge={shouldShowLiveBadge}
           resolvedVolume={resolvedVolume}
-          isInTradingMode={isInTradingMode}
           endedLabel={endedLabel}
         />
       </CardContent>

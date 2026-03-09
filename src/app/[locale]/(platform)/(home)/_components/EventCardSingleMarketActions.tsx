@@ -1,28 +1,30 @@
 import type { Market, Outcome } from '@/types'
 import { CheckIcon, XIcon } from 'lucide-react'
+import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import { resolveEventOutcomePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
 
 interface EventCardSingleMarketActionsProps {
+  event: {
+    slug: string
+    sports_sport_slug?: string | null
+    sports_event_slug?: string | null
+  }
   yesOutcome: Outcome
   noOutcome: Outcome
   primaryMarket: Market | undefined
-  isLoading: boolean
   isResolvedEvent: boolean
-  onTrade: (outcome: Outcome, market: Market, variant: 'yes' | 'no') => void
-  onToggle: () => void
 }
 
 export default function EventCardSingleMarketActions({
+  event,
   yesOutcome,
   noOutcome,
   primaryMarket,
-  isLoading,
   isResolvedEvent,
-  onTrade,
-  onToggle,
 }: EventCardSingleMarketActionsProps) {
   const normalizeOutcomeLabel = useOutcomeLabel()
   if (!primaryMarket) {
@@ -73,30 +75,34 @@ export default function EventCardSingleMarketActions({
   return (
     <div className="mt-auto mb-2 grid grid-cols-2 gap-2">
       <Button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation()
-          onTrade(yesOutcome, primaryMarket, 'yes')
-          onToggle()
-        }}
-        disabled={isLoading}
+        asChild
         variant="yes"
         size="outcome"
       >
-        <span className="truncate">{normalizeOutcomeLabel(yesOutcome.outcome_text) ?? yesOutcome.outcome_text}</span>
+        <IntentPrefetchLink
+          href={resolveEventOutcomePath(event, {
+            marketSlug: primaryMarket.slug,
+            conditionId: primaryMarket.condition_id,
+            outcomeIndex: OUTCOME_INDEX.YES,
+          })}
+        >
+          <span className="truncate">{normalizeOutcomeLabel(yesOutcome.outcome_text) ?? yesOutcome.outcome_text}</span>
+        </IntentPrefetchLink>
       </Button>
       <Button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation()
-          onTrade(noOutcome, primaryMarket, 'no')
-          onToggle()
-        }}
-        disabled={isLoading}
+        asChild
         variant="no"
         size="outcome"
       >
-        <span className="truncate">{normalizeOutcomeLabel(noOutcome.outcome_text) ?? noOutcome.outcome_text}</span>
+        <IntentPrefetchLink
+          href={resolveEventOutcomePath(event, {
+            marketSlug: primaryMarket.slug,
+            conditionId: primaryMarket.condition_id,
+            outcomeIndex: OUTCOME_INDEX.NO,
+          })}
+        >
+          <span className="truncate">{normalizeOutcomeLabel(noOutcome.outcome_text) ?? noOutcome.outcome_text}</span>
+        </IntentPrefetchLink>
       </Button>
     </div>
   )

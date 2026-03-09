@@ -1,5 +1,4 @@
 import type { Event, Market } from '@/types'
-import type { SelectedOutcome } from '@/types/EventCardTypes'
 import { useExtracted } from 'next-intl'
 import EventIconImage from '@/components/EventIconImage'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
@@ -14,32 +13,19 @@ function normalizeOutcomeText(value: string | null | undefined) {
 
 interface EventCardHeaderProps {
   event: Event
-  activeOutcome?: SelectedOutcome | null
-  isInTradingMode: boolean
   isSingleMarket: boolean
   primaryMarket?: Market
   roundedPrimaryDisplayChance: number
-  onCancelTrade: () => void
 }
 
 export default function EventCardHeader({
   event,
-  activeOutcome,
-  isInTradingMode,
   isSingleMarket,
   primaryMarket,
   roundedPrimaryDisplayChance,
-  onCancelTrade,
 }: EventCardHeaderProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
-  const activeMarket = activeOutcome?.market
-  const tradingTitle = !isSingleMarket
-    ? activeMarket?.short_title || activeMarket?.title
-    : null
-  const headerTitle = (isInTradingMode && tradingTitle) ? tradingTitle : event.title
-  const headerIcon = (isInTradingMode && activeMarket?.icon_url) ? activeMarket.icon_url : event.icon_url
-  const iconSizeClass = isInTradingMode ? 'size-7' : 'size-10'
   const isResolvedEvent = event.status === 'resolved'
   const yesOutcome = primaryMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES) ?? primaryMarket?.outcomes[0]
   const noOutcome = primaryMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO) ?? primaryMarket?.outcomes[1]
@@ -61,15 +47,12 @@ export default function EventCardHeader({
     <div className="mb-3 flex items-start justify-between">
       <IntentPrefetchLink href={eventHref} className="flex flex-1 items-center gap-2 pr-2">
         <div
-          className={`
-            flex ${iconSizeClass}
-            shrink-0 items-center justify-center self-start rounded-sm
-          `}
+          className="flex size-10 shrink-0 items-center justify-center self-start rounded-sm"
         >
           <EventIconImage
-            src={headerIcon}
-            alt={headerTitle || event.creator || 'Market'}
-            sizes={isInTradingMode ? '28px' : '40px'}
+            src={event.icon_url}
+            alt={event.title || event.creator || 'Market'}
+            sizes="40px"
             containerClassName="size-full rounded-sm"
           />
         </div>
@@ -82,83 +65,61 @@ export default function EventCardHeader({
             `
           }
         >
-          {headerTitle}
+          {event.title}
         </h3>
       </IntentPrefetchLink>
 
-      {isInTradingMode
-        ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onCancelTrade()
-              }}
-              className={
-                `
-                  flex size-6 items-center justify-center rounded-md text-slate-600 transition-colors
-                  hover:bg-slate-200
-                  dark:text-slate-400
-                  dark:hover:bg-slate-600
-                `
-              }
+      {isSingleMarket && !isResolvedEvent && (
+        <div className="relative -mt-3 flex flex-col items-center">
+          <div className="relative">
+            <svg
+              width="72"
+              height="52"
+              viewBox="0 0 72 52"
+              className="rotate-0 transform"
             >
-              ✕
-            </button>
-          )
-        : (
-            isSingleMarket && !isResolvedEvent && (
-              <div className="relative -mt-3 flex flex-col items-center">
-                <div className="relative">
-                  <svg
-                    width="72"
-                    height="52"
-                    viewBox="0 0 72 52"
-                    className="rotate-0 transform"
-                  >
-                    <path
-                      d="M 6 46 A 30 30 0 0 1 66 46"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="5"
-                      strokeLinecap="round"
-                      className="text-slate-200 dark:text-slate-600"
-                    />
+              <path
+                d="M 6 46 A 30 30 0 0 1 66 46"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="5"
+                strokeLinecap="round"
+                className="text-slate-200 dark:text-slate-600"
+              />
 
-                    <path
-                      d="M 6 46 A 30 30 0 0 1 66 46"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="5"
-                      strokeLinecap="round"
-                      className={
-                        cn(`transition-all duration-300 ${
-                          roundedPrimaryDisplayChance < 40
-                            ? 'text-no'
-                            : roundedPrimaryDisplayChance === 50
-                              ? 'text-slate-400'
-                              : 'text-yes'
-                        }`)
-                      }
-                      strokeDasharray={`${(roundedPrimaryDisplayChance / 100) * 94.25} 94.25`}
-                      strokeDashoffset="0"
-                    />
-                  </svg>
+              <path
+                d="M 6 46 A 30 30 0 0 1 66 46"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="5"
+                strokeLinecap="round"
+                className={
+                  cn(`transition-all duration-300 ${
+                    roundedPrimaryDisplayChance < 40
+                      ? 'text-no'
+                      : roundedPrimaryDisplayChance === 50
+                        ? 'text-slate-400'
+                        : 'text-yes'
+                  }`)
+                }
+                strokeDasharray={`${(roundedPrimaryDisplayChance / 100) * 94.25} 94.25`}
+                strokeDashoffset="0"
+              />
+            </svg>
 
-                  <div className="absolute inset-0 flex items-center justify-center pt-4">
-                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                      {roundedPrimaryDisplayChance}
-                      %
-                    </span>
-                  </div>
-                </div>
+            <div className="absolute inset-0 flex items-center justify-center pt-4">
+              <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                {roundedPrimaryDisplayChance}
+                %
+              </span>
+            </div>
+          </div>
 
-                <div className="-mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {chanceFooterLabel}
-                </div>
-              </div>
-            )
-          )}
+          <div className="-mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+            {chanceFooterLabel}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

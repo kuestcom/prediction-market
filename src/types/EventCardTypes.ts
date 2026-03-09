@@ -1,16 +1,10 @@
-import type { Event, Market, Outcome } from '@/types'
+import type { Event } from '@/types'
 
 export interface EventCardProps {
   event: Event
   priceOverridesByMarket?: Record<string, number>
   enableHomeSportsMoneylineLayout?: boolean
   currentTimestamp?: number | null
-}
-
-export interface SelectedOutcome {
-  market: Market
-  outcome: Outcome
-  variant: 'yes' | 'no'
 }
 
 export interface OrderbookLevelSummary {

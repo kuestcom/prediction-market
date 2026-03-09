@@ -5,7 +5,6 @@ import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterPro
 import type { Event } from '@/types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CategorySidebar from '@/app/[locale]/(platform)/(home)/_components/CategorySidebar'
-import { OpenCardProvider } from '@/app/[locale]/(platform)/(home)/_components/EventOpenCardProvider'
 import EventsGrid from '@/app/[locale]/(platform)/(home)/_components/EventsGrid'
 import FilterToolbar from '@/app/[locale]/(platform)/(home)/_components/FilterToolbar'
 import HomeSecondaryNavigation from '@/app/[locale]/(platform)/(home)/_components/HomeSecondaryNavigation'
@@ -211,17 +210,15 @@ export default function HomeClient({
             secondaryNavigation={secondaryNavigation}
           />
 
-          <OpenCardProvider>
-            <EventsGrid
-              key={`${pathname}:${targetMainTag}:${targetTag}`}
-              filters={effectiveFilters}
-              initialEvents={canUseServerInitialEvents ? initialEvents : []}
-              onClearFilters={handleClearFilters}
-              routeMainTag={targetMainTag}
-              routeTag={targetTag}
-              maxColumns={hasCategorySidebar ? 3 : undefined}
-            />
-          </OpenCardProvider>
+          <EventsGrid
+            key={`${pathname}:${targetMainTag}:${targetTag}`}
+            filters={effectiveFilters}
+            initialEvents={canUseServerInitialEvents ? initialEvents : []}
+            onClearFilters={handleClearFilters}
+            routeMainTag={targetMainTag}
+            routeTag={targetTag}
+            maxColumns={hasCategorySidebar ? 3 : undefined}
+          />
         </div>
       </div>
     </>

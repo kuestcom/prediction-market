@@ -6,7 +6,7 @@ import Image from 'next/image'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
-import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
+import { resolveEventOutcomePath } from '@/lib/events-routing'
 import { formatVolume } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
@@ -98,7 +98,6 @@ export default function EventCardSportsMoneyline({
   getDisplayChance,
   currentTimestamp,
 }: EventCardSportsMoneylineProps) {
-  const eventHref = resolveEventPagePath(event)
   const marketSlugByConditionId = new Map(
     (event.markets ?? [])
       .filter(market => Boolean(market.condition_id && market.slug))
@@ -106,7 +105,11 @@ export default function EventCardSportsMoneyline({
   )
   function resolveButtonHref(button: HomeSportsMoneylineButton) {
     const marketSlug = marketSlugByConditionId.get(button.conditionId)
-    return marketSlug ? resolveEventMarketPath(event, marketSlug) : eventHref
+    return resolveEventOutcomePath(event, {
+      marketSlug,
+      conditionId: button.conditionId,
+      outcomeIndex: button.outcomeIndex,
+    })
   }
   const isResolvedEvent = event.status === 'resolved'
   const sportsTagLabel = event.sports_sport_slug?.trim()?.toUpperCase() || null

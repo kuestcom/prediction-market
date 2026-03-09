@@ -2,7 +2,6 @@
 
 import type { Event } from '@/types'
 import { useEffect, useRef } from 'react'
-import { OpenCardProvider } from '@/app/[locale]/(platform)/(home)/_components/EventOpenCardProvider'
 import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import SportsEventsGrid from '@/app/[locale]/(platform)/sports/_components/SportsEventsGrid'
 
@@ -38,14 +37,12 @@ export default function SportsClient({
   }, [initialTag, updateFilters])
 
   return (
-    <OpenCardProvider>
-      <SportsEventsGrid
-        filters={filters}
-        initialEvents={initialEvents}
-        initialMode={initialMode}
-        sportsSportSlug={sportsSportSlug}
-        sportsSection={sportsSection}
-      />
-    </OpenCardProvider>
+    <SportsEventsGrid
+      filters={filters}
+      initialEvents={initialEvents}
+      initialMode={initialMode}
+      sportsSportSlug={sportsSportSlug}
+      sportsSection={sportsSection}
+    />
   )
 }

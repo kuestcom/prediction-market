@@ -9,7 +9,6 @@ interface EventCardFooterProps {
   shouldShowNewBadge: boolean
   showLiveBadge: boolean
   resolvedVolume: number
-  isInTradingMode: boolean
   endedLabel?: string | null
 }
 
@@ -18,13 +17,8 @@ export default function EventCardFooter({
   shouldShowNewBadge,
   showLiveBadge,
   resolvedVolume,
-  isInTradingMode,
   endedLabel,
 }: EventCardFooterProps) {
-  if (isInTradingMode) {
-    return null
-  }
-
   const isResolvedEvent = event.status === 'resolved'
   const recurrenceLabel = event.series_recurrence?.trim() || null
   const recurrenceDisplayLabel = recurrenceLabel
