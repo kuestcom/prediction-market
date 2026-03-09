@@ -46,6 +46,11 @@ export default function EventCard({
       })()
   const isSingleMarket = marketsToDisplay.length === 1
   const primaryMarket = marketsToDisplay[0]
+  const originalMarketCount = Math.max(event.total_markets_count, event.markets.length)
+  const shouldUsePrimaryMarketTitle = !isResolvedEvent && isSingleMarket && originalMarketCount > 1
+  const cardTitle = shouldUsePrimaryMarketTitle
+    ? (primaryMarket?.question || primaryMarket?.short_title || primaryMarket?.title || event.title)
+    : event.title
   const yesOutcome = resolveBinaryOutcome(primaryMarket, OUTCOME_INDEX.YES)
   const noOutcome = resolveBinaryOutcome(primaryMarket, OUTCOME_INDEX.NO)
   const shouldShowNewBadge = shouldShowEventNewBadge(event, currentTimestamp)
@@ -101,6 +106,7 @@ export default function EventCard({
       >
         <EventCardHeader
           event={event}
+          title={cardTitle}
           isSingleMarket={isSingleMarket}
           primaryMarket={primaryMarket}
           roundedPrimaryDisplayChance={roundedPrimaryDisplayChance}

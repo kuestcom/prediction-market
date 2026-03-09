@@ -13,6 +13,7 @@ function normalizeOutcomeText(value: string | null | undefined) {
 
 interface EventCardHeaderProps {
   event: Event
+  title: string
   isSingleMarket: boolean
   primaryMarket?: Market
   roundedPrimaryDisplayChance: number
@@ -20,6 +21,7 @@ interface EventCardHeaderProps {
 
 export default function EventCardHeader({
   event,
+  title,
   isSingleMarket,
   primaryMarket,
   roundedPrimaryDisplayChance,
@@ -51,7 +53,7 @@ export default function EventCardHeader({
         >
           <EventIconImage
             src={event.icon_url}
-            alt={event.title || event.creator || 'Market'}
+            alt={title || event.creator || 'Market'}
             sizes="40px"
             containerClassName="size-full rounded-sm"
           />
@@ -65,7 +67,7 @@ export default function EventCardHeader({
             `
           }
         >
-          {event.title}
+          {title}
         </h3>
       </IntentPrefetchLink>
 
