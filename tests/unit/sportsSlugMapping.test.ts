@@ -68,6 +68,26 @@ describe('sports slug mapping', () => {
     expect(candidates).toEqual([])
   })
 
+  it('falls back to series slug when sport slug is not mapped', () => {
+    const slug = resolveCanonicalSportsSportSlug(resolver, {
+      sportsSportSlug: 'custom league',
+      sportsSeriesSlug: 'brazil-serie-a',
+      sportsTags: null,
+    })
+
+    expect(slug).toBe('bra')
+  })
+
+  it('keeps mapped sport slug before falling back to series slug', () => {
+    const slug = resolveCanonicalSportsSportSlug(resolver, {
+      sportsSportSlug: 'brazil',
+      sportsSeriesSlug: 'pakistan-super-league',
+      sportsTags: null,
+    })
+
+    expect(slug).toBe('bra')
+  })
+
   it('resolves h1 and section config from canonical or alias slugs', () => {
     const title = resolveSportsTitleBySlug(resolver, 'brazil')
     const sections = resolveSportsSectionConfigBySlug(resolver, 'pakistan-super-league')

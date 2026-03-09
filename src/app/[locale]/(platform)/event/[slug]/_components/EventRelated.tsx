@@ -8,6 +8,7 @@ import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_compon
 import EventIconImage from '@/components/EventIconImage'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
+import { resolveEventPagePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
 
 interface EventRelatedProps {
@@ -27,6 +28,8 @@ interface RelatedEvent {
   slug: string
   title: string
   icon_url: string
+  sports_event_slug?: string | null
+  sports_sport_slug?: string | null
   chance: number | null
 }
 
@@ -344,7 +347,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
                   {events.map(relatedEvent => (
                     <li key={relatedEvent.id}>
                       <IntentPrefetchLink
-                        href={`/event/${relatedEvent.slug}`}
+                        href={resolveEventPagePath(relatedEvent)}
                         className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/80"
                       >
                         <EventIconImage

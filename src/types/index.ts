@@ -54,6 +54,8 @@ export interface EventSeriesEntry {
   end_date: string | null
   resolved_at: string | null
   created_at: string
+  sports_event_slug?: string | null
+  sports_sport_slug?: string | null
   resolved_direction?: 'up' | 'down' | null
 }
 

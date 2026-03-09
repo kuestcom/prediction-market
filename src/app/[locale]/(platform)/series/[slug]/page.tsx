@@ -4,6 +4,7 @@ import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { redirect } from '@/i18n/navigation'
 import { EventRepository } from '@/lib/db/queries/event'
+import { resolveEventPagePath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 const LIVE_TRADING_WINDOW_MS = 24 * 60 * 60 * 1000
@@ -100,7 +101,7 @@ export default async function SeriesPage({ params }: SeriesPageProps) {
 
   const resolvedLocale = locale as SupportedLocale
   redirect({
-    href: `/event/${targetEvent.slug}`,
+    href: resolveEventPagePath(targetEvent),
     locale: resolvedLocale,
   })
 }

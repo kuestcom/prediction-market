@@ -14,6 +14,7 @@ export interface SportsSlugMappingEntry {
 
 export interface SportsSlugResolutionInput {
   sportsSportSlug?: string | null
+  sportsSeriesSlug?: string | null
   sportsTags?: string[] | null
 }
 
@@ -157,6 +158,7 @@ export function resolveCanonicalSportsSportSlug(
   resolver: SportsSlugResolver,
   {
     sportsSportSlug,
+    sportsSeriesSlug,
     sportsTags,
   }: SportsSlugResolutionInput,
 ) {
@@ -168,7 +170,12 @@ export function resolveCanonicalSportsSportSlug(
     }
   }
 
-  return resolveAlias(resolver, sportsSportSlug)
+  const resolvedSportSlug = resolveAlias(resolver, sportsSportSlug)
+  if (resolvedSportSlug) {
+    return resolvedSportSlug
+  }
+
+  return resolveAlias(resolver, sportsSeriesSlug)
 }
 
 export function resolveSportsSportSlugQueryCandidates(

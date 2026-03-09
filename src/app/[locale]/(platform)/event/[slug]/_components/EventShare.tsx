@@ -14,6 +14,7 @@ import {
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { fetchAffiliateSettingsFromAPI } from '@/lib/affiliate-data'
 import { maybeShowAffiliateToast } from '@/lib/affiliate-toast'
+import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
@@ -36,6 +37,7 @@ export default function EventShare({ event }: EventShareProps) {
   const user = useUser()
   const affiliateCode = user?.affiliate_code?.trim() ?? ''
   const isMultiMarket = event.total_markets_count > 1
+  const eventPath = resolveEventPagePath(event)
 
   function relatedTargetIsWithin(ref: RefObject<HTMLElement | null>, relatedTarget: EventTarget | null) {
     const current = ref.current
@@ -183,7 +185,7 @@ export default function EventShare({ event }: EventShareProps) {
 
   async function handleShare() {
     try {
-      const url = buildShareUrl(`/event/${event.slug}`)
+      const url = buildShareUrl(eventPath)
       await navigator.clipboard.writeText(url)
       setShareSuccess(true)
       showAffiliateToast()
@@ -247,7 +249,7 @@ export default function EventShare({ event }: EventShareProps) {
             <DropdownMenuItem
               onSelect={(menuEvent) => {
                 menuEvent.preventDefault()
-                void handleCopy('event', `/event/${event.slug}`)
+                void handleCopy('event', eventPath)
               }}
               className={cn(
                 'rounded-none px-3 py-2.5 text-sm font-semibold transition-colors first:rounded-t-md last:rounded-b-md',
@@ -268,7 +270,7 @@ export default function EventShare({ event }: EventShareProps) {
                     key={market.condition_id}
                     onSelect={(menuEvent) => {
                       menuEvent.preventDefault()
-                      void handleCopy(key, `/event/${event.slug}/${market.slug}`)
+                      void handleCopy(key, resolveEventMarketPath(event, market.slug))
                     }}
                     className={cn(
                       `

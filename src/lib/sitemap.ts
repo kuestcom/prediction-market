@@ -2,12 +2,14 @@ import { and, desc, eq, exists, inArray, sql } from 'drizzle-orm'
 import { cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
+import { getSportsSlugResolverFromDb } from '@/lib/db/queries/sports-menu'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { event_sports, event_tags, events, markets, tags } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
 import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
 import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
+import { resolveCanonicalSportsSportSlug } from '@/lib/sports-slug-mapping'
 
 const STATIC_SITEMAP_IDS = [
   'base',
@@ -44,7 +46,9 @@ interface EventSitemapRow {
   end_date: Date | null
   updated_at: Date
   sports_sport_slug: string | null
+  sports_series_slug: string | null
   sports_event_slug: string | null
+  sports_tags: unknown
   has_unresolved_markets: boolean
 }
 
@@ -53,11 +57,24 @@ interface PredictionSitemapRow {
   market_slug: string
   updated_at: Date
   sports_sport_slug: string | null
+  sports_series_slug: string | null
   sports_event_slug: string | null
+  sports_tags: unknown
 }
 
 function shouldIgnoreSportsSitemapSlug(slug: string | null | undefined) {
   return isSportsAuxiliaryEventSlug(slug)
+}
+
+function toOptionalStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [] as string[]
+  }
+
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map(item => item.trim())
+    .filter(Boolean)
 }
 
 export function formatDateForSitemap(date: Date): string {
@@ -184,13 +201,16 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
   cacheTag(cacheTags.eventsGlobal)
 
   try {
+    const sportsSlugResolver = await getSportsSlugResolverFromDb()
     const rows = await db
       .select({
         event_slug: events.slug,
         market_slug: markets.slug,
         updated_at: markets.updated_at,
         sports_sport_slug: event_sports.sports_sport_slug,
+        sports_series_slug: event_sports.sports_series_slug,
         sports_event_slug: event_sports.sports_event_slug,
+        sports_tags: event_sports.sports_tags,
       })
       .from(markets)
       .innerJoin(events, eq(events.id, markets.event_id))
@@ -214,9 +234,15 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
         continue
       }
 
+      const canonicalSportsSportSlug = resolveCanonicalSportsSportSlug(sportsSlugResolver, {
+        sportsSportSlug: row.sports_sport_slug,
+        sportsSeriesSlug: row.sports_series_slug,
+        sportsTags: toOptionalStringArray(row.sports_tags),
+      })
+
       const marketPath = resolveEventMarketPath({
         slug: row.event_slug,
-        sports_sport_slug: row.sports_sport_slug,
+        sports_sport_slug: canonicalSportsSportSlug,
         sports_event_slug: row.sports_event_slug,
       }, row.market_slug)
 
@@ -239,6 +265,7 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
   cacheTag(cacheTags.eventsGlobal)
 
   try {
+    const sportsSlugResolver = await getSportsSlugResolverFromDb()
     const hasAnyMarkets = exists(
       db.select({ condition_id: markets.condition_id })
         .from(markets)
@@ -261,7 +288,9 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
         end_date: events.end_date,
         updated_at: events.updated_at,
         sports_sport_slug: event_sports.sports_sport_slug,
+        sports_series_slug: event_sports.sports_series_slug,
         sports_event_slug: event_sports.sports_event_slug,
+        sports_tags: event_sports.sports_tags,
         has_unresolved_markets: hasUnresolvedMarkets,
       })
       .from(events)
@@ -278,7 +307,7 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
       ))
       .orderBy(desc(events.updated_at))
 
-    return groupEventRowsBySitemap(rows as EventSitemapRow[])
+    return groupEventRowsBySitemap(rows as EventSitemapRow[], sportsSlugResolver)
   }
   catch {
     return {
@@ -288,7 +317,7 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
   }
 }
 
-function groupEventRowsBySitemap(rows: EventSitemapRow[]): DynamicEventSitemaps {
+function groupEventRowsBySitemap(rows: EventSitemapRow[], sportsSlugResolver: Awaited<ReturnType<typeof getSportsSlugResolverFromDb>>): DynamicEventSitemaps {
   const activeMap = new Map<string, SitemapRouteEntry>()
   const closedByMonthMap = new Map<string, Map<string, SitemapRouteEntry>>()
 
@@ -298,9 +327,15 @@ function groupEventRowsBySitemap(rows: EventSitemapRow[]): DynamicEventSitemaps 
       continue
     }
 
+    const canonicalSportsSportSlug = resolveCanonicalSportsSportSlug(sportsSlugResolver, {
+      sportsSportSlug: row.sports_sport_slug,
+      sportsSeriesSlug: row.sports_series_slug,
+      sportsTags: toOptionalStringArray(row.sports_tags),
+    })
+
     const eventPath = resolveEventPagePath({
       slug: row.slug,
-      sports_sport_slug: row.sports_sport_slug,
+      sports_sport_slug: canonicalSportsSportSlug,
       sports_event_slug: row.sports_event_slug,
     })
     const eventLastModified = formatDateForSitemap(row.updated_at)

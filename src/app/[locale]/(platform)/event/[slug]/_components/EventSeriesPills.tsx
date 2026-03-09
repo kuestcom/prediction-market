@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { resolveEventPagePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
 
 const MAX_PAST_RESULT_BADGES = 5
@@ -368,7 +369,7 @@ export default function EventSeriesPills({
                           <Tooltip key={event.id}>
                             <TooltipTrigger asChild>
                               <IntentPrefetchLink
-                                href={`/event/${event.slug}`}
+                                href={resolveEventPagePath(event)}
                                 className={cn(
                                   `
                                     inline-flex size-4 items-center justify-center rounded-full transition-transform
@@ -430,7 +431,7 @@ export default function EventSeriesPills({
 
                   return (
                     <DropdownMenuItem key={event.id} asChild className="cursor-pointer rounded-md py-1.5 text-xs">
-                      <IntentPrefetchLink href={`/event/${event.slug}`} className="flex w-full items-center gap-2">
+                      <IntentPrefetchLink href={resolveEventPagePath(event)} className="flex w-full items-center gap-2">
                         <GavelIcon className="size-3.5 shrink-0 text-foreground" />
                         <span className="text-xs font-semibold text-foreground">{etTimeLabel}</span>
                         <span className="size-1 rounded-full bg-foreground/70" />
@@ -470,7 +471,7 @@ export default function EventSeriesPills({
               <Tooltip key={event.id}>
                 <TooltipTrigger asChild>
                   <IntentPrefetchLink
-                    href={`/event/${event.slug}`}
+                    href={resolveEventPagePath(event)}
                     className={cn(
                       `
                         inline-flex h-8 cursor-pointer items-center rounded-full px-3 text-xs leading-none font-semibold
@@ -564,7 +565,7 @@ export default function EventSeriesPills({
 
                 return (
                   <DropdownMenuItem key={event.id} asChild className="cursor-pointer py-1.5 text-xs font-medium">
-                    <IntentPrefetchLink href={`/event/${event.slug}`} className="flex w-full items-center gap-2">
+                    <IntentPrefetchLink href={resolveEventPagePath(event)} className="flex w-full items-center gap-2">
                       <GavelIcon className="size-3.5 shrink-0 text-muted-foreground" />
                       <span>{getSeriesEventLabel(event)}</span>
                     </IntentPrefetchLink>
@@ -593,7 +594,7 @@ export default function EventSeriesPills({
           return (
             <IntentPrefetchLink
               key={event.id}
-              href={`/event/${event.slug}`}
+              href={resolveEventPagePath(event)}
               className={cn(
                 `inline-flex h-8 items-center rounded-full px-3 text-xs leading-none font-semibold transition-colors`,
                 isCurrent

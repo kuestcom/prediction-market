@@ -4,6 +4,7 @@ import { useExtracted } from 'next-intl'
 import EventIconImage from '@/components/EventIconImage'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import ProfileLink from '@/components/ProfileLink'
+import { resolveEventPagePath } from '@/lib/events-routing'
 import { SearchTabs } from './SearchTabs'
 
 interface SearchResultsProps {
@@ -130,7 +131,7 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
       {events.map(result => (
         <IntentPrefetchLink
           key={`${result.id}-${result.slug}`}
-          href={`/event/${result.slug}`}
+          href={resolveEventPagePath(result)}
           onClick={onResultClick}
           data-testid="search-result-item"
           className="flex items-center justify-between p-3 transition-colors last:rounded-b-lg hover:bg-accent"
