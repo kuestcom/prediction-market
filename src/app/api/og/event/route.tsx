@@ -6,6 +6,7 @@ import { oklchToRenderableColor } from '@/lib/color'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
 import { formatCentsLabel, formatCompactCurrency, formatPercent } from '@/lib/formatters'
+import { resolveOutcomeButtonTheme } from '@/lib/outcome-theme'
 import siteUrlUtils from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -158,43 +159,6 @@ function resolveOutcomePrice(market: EventMarket, outcome: MarketOutcome | null)
   }
 
   return null
-}
-
-function resolveOutcomeButtonTheme(label: string, index: number) {
-  const normalized = label.trim().toLowerCase()
-  if (
-    normalized.includes('no')
-    || normalized.includes('down')
-    || normalized.includes('under')
-    || normalized.includes('lose')
-  ) {
-    return {
-      background: '#fbeaea',
-      color: '#d65757',
-    }
-  }
-
-  if (
-    normalized.includes('yes')
-    || normalized.includes('up')
-    || normalized.includes('over')
-    || normalized.includes('win')
-  ) {
-    return {
-      background: '#e8f5ee',
-      color: '#2b9a68',
-    }
-  }
-
-  return index % 2 === 0
-    ? {
-        background: '#eef4ff',
-        color: '#3468d6',
-      }
-    : {
-        background: '#f4efff',
-        color: '#7c4ed8',
-      }
 }
 
 function resolveBinaryOutcomeButtons(market: EventMarket) {

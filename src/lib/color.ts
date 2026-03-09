@@ -15,6 +15,36 @@ function parseCssNumber(value: string) {
   return Number.parseFloat(trimmed)
 }
 
+function parseCssAngle(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return Number.NaN
+  }
+
+  const match = trimmed.match(/^([+-]?(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?)(deg|grad|rad|turn)?$/i)
+  if (!match) {
+    return Number.NaN
+  }
+
+  const numericValue = Number.parseFloat(match[1]!)
+  if (!Number.isFinite(numericValue)) {
+    return Number.NaN
+  }
+
+  switch ((match[2] ?? 'deg').toLowerCase()) {
+    case 'deg':
+      return numericValue
+    case 'grad':
+      return numericValue * 0.9
+    case 'rad':
+      return numericValue * (180 / Math.PI)
+    case 'turn':
+      return numericValue * 360
+    default:
+      return Number.NaN
+  }
+}
+
 function parseOklchColor(value: string) {
   const trimmed = value.trim()
   if (!trimmed.toLowerCase().startsWith('oklch(') || !trimmed.endsWith(')')) {
@@ -34,7 +64,7 @@ function parseOklchColor(value: string) {
 
   const l = parseCssNumber(channels[0]!)
   const c = Number.parseFloat(channels[1]!)
-  const h = Number.parseFloat(channels[2]!)
+  const h = parseCssAngle(channels[2]!)
   const alpha = alphaPart ? parseCssNumber(alphaPart) : 1
 
   if (![l, c, h, alpha].every(channel => Number.isFinite(channel))) {
