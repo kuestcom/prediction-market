@@ -45,7 +45,7 @@ export function resolveEventOutcomePath(event: EventRouteInput, options: EventOu
     : resolveEventPagePath(event)
   const searchParams = new URLSearchParams()
 
-  if (options.conditionId?.trim()) {
+  if (!options.marketSlug && options.conditionId?.trim()) {
     searchParams.set('conditionId', options.conditionId.trim())
   }
 

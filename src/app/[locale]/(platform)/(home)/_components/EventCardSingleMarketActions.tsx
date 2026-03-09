@@ -81,8 +81,6 @@ export default function EventCardSingleMarketActions({
       >
         <IntentPrefetchLink
           href={resolveEventOutcomePath(event, {
-            marketSlug: primaryMarket.slug,
-            conditionId: primaryMarket.condition_id,
             outcomeIndex: OUTCOME_INDEX.YES,
           })}
         >
@@ -96,8 +94,6 @@ export default function EventCardSingleMarketActions({
       >
         <IntentPrefetchLink
           href={resolveEventOutcomePath(event, {
-            marketSlug: primaryMarket.slug,
-            conditionId: primaryMarket.condition_id,
             outcomeIndex: OUTCOME_INDEX.NO,
           })}
         >

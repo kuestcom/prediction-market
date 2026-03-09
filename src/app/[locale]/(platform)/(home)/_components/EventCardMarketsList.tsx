@@ -127,7 +127,6 @@ export default function EventCardMarketsList({
                               <IntentPrefetchLink
                                 href={resolveEventOutcomePath(event, {
                                   marketSlug: market.slug,
-                                  conditionId: market.condition_id,
                                   outcomeIndex: yesOutcome.outcome_index,
                                 })}
                               >
@@ -149,7 +148,6 @@ export default function EventCardMarketsList({
                               <IntentPrefetchLink
                                 href={resolveEventOutcomePath(event, {
                                   marketSlug: market.slug,
-                                  conditionId: market.condition_id,
                                   outcomeIndex: noOutcome.outcome_index,
                                 })}
                               >
