@@ -1,4 +1,4 @@
-export type LivestreamProvider = 'youtube' | 'twitch' | 'unknown'
+export type LivestreamProvider = 'youtube' | 'twitch' | 'kick' | 'unknown'
 
 export interface LivestreamEmbedTarget {
   provider: LivestreamProvider
@@ -86,6 +86,20 @@ function resolveTwitchTarget(url: URL) {
   return null
 }
 
+function resolveKickChannel(url: URL) {
+  const host = url.hostname.toLowerCase()
+  if (!isExactDomainOrSubdomain(host, 'kick.com')) {
+    return null
+  }
+
+  const parts = url.pathname.split('/').filter(Boolean)
+  if (!parts[0]) {
+    return null
+  }
+
+  return parts[0]
+}
+
 function normalizeParentDomain(value: string | null | undefined) {
   const trimmed = value?.trim().toLowerCase() ?? ''
   if (!trimmed) {
@@ -146,6 +160,21 @@ export function resolveLivestreamEmbedTarget(
       provider: 'twitch',
       externalUrl: parsedUrl.toString(),
       embedUrl: `https://player.twitch.tv/?${query.toString()}`,
+    }
+  }
+
+  const kickChannel = resolveKickChannel(parsedUrl)
+  if (kickChannel) {
+    const query = new URLSearchParams({
+      autoplay: 'false',
+      muted: 'false',
+      allowfullscreen: 'true',
+    })
+
+    return {
+      provider: 'kick',
+      externalUrl: parsedUrl.toString(),
+      embedUrl: `https://player.kick.com/${kickChannel}?${query.toString()}`,
     }
   }
 
