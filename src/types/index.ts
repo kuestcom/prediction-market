@@ -16,6 +16,7 @@ export interface Event {
   series_recurrence?: string | null
   sports_event_slug?: string | null
   sports_sport_slug?: string | null
+  sports_section?: 'games' | 'props' | null
   sports_start_time?: string | null
   sports_event_week?: number | null
   sports_score?: string | null

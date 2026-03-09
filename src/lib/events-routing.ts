@@ -2,6 +2,10 @@ interface EventRouteInput {
   slug: string
   sports_sport_slug?: string | null
   sports_event_slug?: string | null
+  sports_section?: 'games' | 'props' | '' | null
+  tags?: Array<{
+    slug?: string | null
+  }> | null
 }
 
 function normalizePathSegment(value: string | null | undefined) {
@@ -9,7 +13,34 @@ function normalizePathSegment(value: string | null | undefined) {
   return normalized || null
 }
 
+function resolveSportsSection(event: EventRouteInput) {
+  const explicitSection = normalizePathSegment(event.sports_section)
+  if (explicitSection === 'games' || explicitSection === 'props') {
+    return explicitSection
+  }
+
+  const tagSlugs = new Set(
+    (event.tags ?? [])
+      .map(tag => normalizePathSegment(tag.slug))
+      .filter((slug): slug is string => Boolean(slug)),
+  )
+
+  if (tagSlugs.has('props') || tagSlugs.has('prop')) {
+    return 'props'
+  }
+
+  if (tagSlugs.has('games') || tagSlugs.has('game')) {
+    return 'games'
+  }
+
+  return null
+}
+
 export function resolveEventBasePath(event: EventRouteInput) {
+  if (resolveSportsSection(event) === 'props') {
+    return null
+  }
+
   const sportsSportSlug = normalizePathSegment(event.sports_sport_slug)
   const sportsEventSlug = normalizePathSegment(event.sports_event_slug)
 

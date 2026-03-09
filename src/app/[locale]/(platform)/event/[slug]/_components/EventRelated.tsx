@@ -30,6 +30,7 @@ interface RelatedEvent {
   icon_url: string
   sports_event_slug?: string | null
   sports_sport_slug?: string | null
+  sports_section?: 'games' | 'props' | null
   chance: number | null
 }
 

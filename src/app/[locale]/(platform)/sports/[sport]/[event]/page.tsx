@@ -11,11 +11,12 @@ import {
 } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
 import EventStructuredData from '@/components/seo/EventStructuredData'
+import { redirect } from '@/i18n/navigation'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
-import { resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
-import { resolveEventPagePath } from '@/lib/events-routing'
+import { getEventRouteBySlug, resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
+import { resolveEventBasePath, resolveEventPagePath } from '@/lib/events-routing'
 import { resolveSportsEventMarketViewKey } from '@/lib/sports-event-slugs'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
@@ -59,6 +60,17 @@ export default async function SportsEventPage({
   const canonicalEventSlug = await resolveCanonicalEventSlugFromSportsPath(sport, event)
   if (!canonicalEventSlug) {
     notFound()
+  }
+
+  const eventRoute = await getEventRouteBySlug(canonicalEventSlug)
+  if (!eventRoute) {
+    notFound()
+  }
+  if (!resolveEventBasePath(eventRoute)) {
+    redirect({
+      href: resolveEventPagePath(eventRoute),
+      locale: resolvedLocale,
+    })
   }
 
   const [{ data: groupedEvents }, { data: canonicalSportSlug }] = await Promise.all([
