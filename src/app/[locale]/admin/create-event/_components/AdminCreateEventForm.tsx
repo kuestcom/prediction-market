@@ -1,6 +1,7 @@
 'use client'
 
 import type { ChangeEvent } from 'react'
+import type { AdminSportsFormState, AdminSportsPreparePayload, AdminSportsPropState, AdminSportsTeamHostStatus } from '@/lib/admin-sports-create'
 import { useAppKitAccount } from '@reown/appkit/react'
 import {
   ArrowLeftIcon,
@@ -40,6 +41,14 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import {
+
+  buildAdminSportsDerivedContent,
+  buildAdminSportsStepErrors,
+  createAdminSportsProp,
+  createInitialAdminSportsForm,
+  isSportsMainCategory,
+} from '@/lib/admin-sports-create'
 import { defaultNetwork } from '@/lib/appkit'
 import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID, POLYGON_SCAN_BASE } from '@/lib/network'
 import { cn } from '@/lib/utils'
@@ -51,7 +60,7 @@ const TOTAL_STEPS = 5
 const MIN_SUB_CATEGORIES = 4
 const USDC_DECIMALS = 6
 const FALLBACK_REQUIRED_USDC = 5
-const CREATE_EVENT_DRAFT_STORAGE_KEY = 'admin_create_event_draft_v1'
+const CREATE_EVENT_DRAFT_STORAGE_KEY = 'admin_create_event_draft_v2'
 const CREATE_EVENT_SIGNATURE_STORAGE_KEY = 'admin_create_event_signature_flow_v1'
 const TITLE_CATEGORY_MIN_LENGTH = 4
 const CONTENT_CHECK_PROGRESS_INTERVAL_MS = 1400
@@ -210,7 +219,10 @@ interface PreparePayloadBody {
   options?: PreparePayloadOption[]
   resolutionSource: string
   resolutionRules: string
+  sports?: AdminSportsPreparePayload
 }
+
+type TeamLogoFileMap = Record<AdminSportsTeamHostStatus, File | null>
 
 interface PrepareTxPlanItem {
   id: string
@@ -596,7 +608,9 @@ function buildStepErrors(
   step: number,
   args: {
     form: FormState
+    sportsForm: AdminSportsFormState
     eventImageFile: File | null
+    teamLogoFiles: TeamLogoFileMap
     slugValidationState: SlugValidationState
     fundingCheckState: FundingCheckState
     nativeGasCheckState: NativeGasCheckState
@@ -608,6 +622,7 @@ function buildStepErrors(
   },
 ): string[] {
   const errors: string[] = []
+  const sportsEventSelected = isSportsMainCategory(args.form.mainCategorySlug)
 
   if (step === 1) {
     if (!args.form.title.trim()) {
@@ -639,12 +654,35 @@ function buildStepErrors(
       errors.push('Main category is required.')
     }
 
-    if (args.form.categories.length < MIN_SUB_CATEGORIES) {
+    if (!sportsEventSelected && args.form.categories.length < MIN_SUB_CATEGORIES) {
       errors.push(`Select at least ${MIN_SUB_CATEGORIES} sub categories.`)
+    }
+
+    if (sportsEventSelected) {
+      errors.push(...buildAdminSportsStepErrors({
+        step,
+        sports: args.sportsForm,
+        hasTeamLogoByHostStatus: {
+          home: Boolean(args.teamLogoFiles.home),
+          away: Boolean(args.teamLogoFiles.away),
+        },
+      }))
     }
   }
 
   if (step === 2) {
+    if (sportsEventSelected) {
+      errors.push(...buildAdminSportsStepErrors({
+        step,
+        sports: args.sportsForm,
+        hasTeamLogoByHostStatus: {
+          home: Boolean(args.teamLogoFiles.home),
+          away: Boolean(args.teamLogoFiles.away),
+        },
+      }))
+      return errors
+    }
+
     if (!args.form.marketMode) {
       errors.push('Select a market type.')
       return errors
@@ -910,10 +948,15 @@ export default function AdminCreateEventForm() {
   const [currentStep, setCurrentStep] = useState(1)
   const [maxVisitedStep, setMaxVisitedStep] = useState(1)
   const [form, setForm] = useState<FormState>(() => createInitialForm())
+  const [sportsForm, setSportsForm] = useState<AdminSportsFormState>(() => createInitialAdminSportsForm())
   const [mainCategories, setMainCategories] = useState<MainCategory[]>([])
   const [globalCategories, setGlobalCategories] = useState<CategorySuggestion[]>([])
   const [categoryQuery, setCategoryQuery] = useState('')
   const [eventImageFile, setEventImageFile] = useState<File | null>(null)
+  const [teamLogoFiles, setTeamLogoFiles] = useState<TeamLogoFileMap>({
+    home: null,
+    away: null,
+  })
   const [optionImageFiles, setOptionImageFiles] = useState<Record<string, File | null>>({})
   const [slugValidationState, setSlugValidationState] = useState<SlugValidationState>('idle')
   const [slugCheckError, setSlugCheckError] = useState('')
@@ -988,14 +1031,40 @@ export default function AdminCreateEventForm() {
     })
     return previewUrls
   }, [optionImageFiles])
+  const teamLogoPreviewUrls = useMemo(() => ({
+    home: teamLogoFiles.home ? URL.createObjectURL(teamLogoFiles.home) : null,
+    away: teamLogoFiles.away ? URL.createObjectURL(teamLogoFiles.away) : null,
+  }), [teamLogoFiles])
 
   const selectedMainCategory = useMemo(
     () => mainCategories.find(category => category.slug === form.mainCategorySlug) ?? null,
     [form.mainCategorySlug, mainCategories],
   )
+  const isSportsEvent = useMemo(
+    () => isSportsMainCategory(form.mainCategorySlug),
+    [form.mainCategorySlug],
+  )
   const creatorSlugTail = useMemo(
     () => (eoaAddress ? eoaAddress.replace(/^0x/, '').slice(-3).toLowerCase() : '000'),
     [eoaAddress],
+  )
+  const slugSuffix = useMemo(
+    () => `${slugSeed}${creatorSlugTail}`,
+    [creatorSlugTail, slugSeed],
+  )
+  const baseEventSlug = useMemo(
+    () => {
+      const base = slugify(form.title)
+      return base ? `${base}-${slugSuffix}` : ''
+    },
+    [form.title, slugSuffix],
+  )
+  const sportsDerivedContent = useMemo(
+    () => buildAdminSportsDerivedContent({
+      baseSlug: baseEventSlug,
+      sports: sportsForm,
+    }),
+    [baseEventSlug, sportsForm],
   )
   const marketCount = useMemo(() => {
     if (form.marketMode === 'binary') {
@@ -1038,14 +1107,11 @@ export default function AdminCreateEventForm() {
         outcomeYes: option.outcomeYes.trim(),
         outcomeNo: option.outcomeNo.trim(),
       })),
+      sports: sportsDerivedContent.payload,
       resolutionSource: form.resolutionSource.trim(),
       resolutionRules: form.resolutionRules.trim(),
     },
-  }), [eoaAddress, form, marketCount, targetChainId])
-  const slugSuffix = useMemo(
-    () => `${slugSeed}${creatorSlugTail}`,
-    [creatorSlugTail, slugSeed],
-  )
+  }), [eoaAddress, form, marketCount, sportsDerivedContent.payload, targetChainId])
   const optionQuestionPlaceholder = useMemo(
     () => form.marketMode === 'multi_unique'
       ? 'Example: Will Gavin Newsom win the 2028 U.S. presidential election?'
@@ -1254,7 +1320,9 @@ export default function AdminCreateEventForm() {
   const isStepValid = useCallback((step: number) => {
     return buildStepErrors(step, {
       form,
+      sportsForm,
       eventImageFile,
+      teamLogoFiles,
       slugValidationState,
       fundingCheckState,
       nativeGasCheckState,
@@ -1271,10 +1339,12 @@ export default function AdminCreateEventForm() {
     form,
     fundingCheckState,
     nativeGasCheckState,
+    sportsForm,
     contentCheckError,
     openRouterCheckState,
     pendingAiIssues.length,
     slugValidationState,
+    teamLogoFiles,
   ])
 
   const clickableStepMap = useMemo(() => {
@@ -1503,6 +1573,7 @@ export default function AdminCreateEventForm() {
     try {
       const parsed = JSON.parse(raw) as {
         form?: Partial<FormState>
+        sportsForm?: Partial<AdminSportsFormState>
         currentStep?: number
         maxVisitedStep?: number
         slugSeed?: string
@@ -1580,6 +1651,72 @@ export default function AdminCreateEventForm() {
           options: parsedOptions.length > 0 ? parsedOptions : fallback.options,
           resolutionSource: typeof parsed.form.resolutionSource === 'string' ? parsed.form.resolutionSource : fallback.resolutionSource,
           resolutionRules: typeof parsed.form.resolutionRules === 'string' ? parsed.form.resolutionRules : fallback.resolutionRules,
+        })
+      }
+
+      if (parsed.sportsForm && typeof parsed.sportsForm === 'object') {
+        const fallbackSports = createInitialAdminSportsForm()
+        const candidateTeams = Array.isArray(parsed.sportsForm.teams)
+          ? parsed.sportsForm.teams
+              .map((team, index) => {
+                if (!team || typeof team !== 'object') {
+                  return null
+                }
+
+                const item = team as Partial<AdminSportsFormState['teams'][number]>
+                const hostStatus = index === 0 ? 'home' : 'away'
+                return {
+                  hostStatus,
+                  name: typeof item.name === 'string' ? item.name : '',
+                  abbreviation: typeof item.abbreviation === 'string' ? item.abbreviation : '',
+                }
+              })
+              .filter((item): item is AdminSportsFormState['teams'][number] => Boolean(item))
+          : []
+        const candidateProps = Array.isArray(parsed.sportsForm.props)
+          ? parsed.sportsForm.props
+              .map((prop, index) => {
+                if (!prop || typeof prop !== 'object') {
+                  return null
+                }
+
+                const item = prop as Partial<AdminSportsPropState>
+                return {
+                  id: typeof item.id === 'string' && item.id.trim() ? item.id : `prop-loaded-${index + 1}`,
+                  playerName: typeof item.playerName === 'string' ? item.playerName : '',
+                  statType: item.statType === 'points' || item.statType === 'rebounds' || item.statType === 'assists'
+                    ? item.statType
+                    : '',
+                  line: typeof item.line === 'string' ? item.line : '',
+                  teamHostStatus: item.teamHostStatus === 'home' || item.teamHostStatus === 'away'
+                    ? item.teamHostStatus
+                    : '',
+                } satisfies AdminSportsPropState
+              })
+              .filter((item): item is AdminSportsPropState => Boolean(item))
+          : []
+
+        setSportsForm({
+          section: parsed.sportsForm.section === 'games' || parsed.sportsForm.section === 'props'
+            ? parsed.sportsForm.section
+            : fallbackSports.section,
+          eventVariant: parsed.sportsForm.eventVariant === 'standard'
+            || parsed.sportsForm.eventVariant === 'more_markets'
+            || parsed.sportsForm.eventVariant === 'exact_score'
+            || parsed.sportsForm.eventVariant === 'halftime_result'
+            ? parsed.sportsForm.eventVariant
+            : fallbackSports.eventVariant,
+          sportSlug: typeof parsed.sportsForm.sportSlug === 'string' ? parsed.sportsForm.sportSlug : fallbackSports.sportSlug,
+          leagueSlug: typeof parsed.sportsForm.leagueSlug === 'string' ? parsed.sportsForm.leagueSlug : fallbackSports.leagueSlug,
+          startTime: typeof parsed.sportsForm.startTime === 'string' ? parsed.sportsForm.startTime : fallbackSports.startTime,
+          includeDraw: Boolean(parsed.sportsForm.includeDraw),
+          includeBothTeamsToScore: parsed.sportsForm.includeBothTeamsToScore !== false,
+          includeSpreads: parsed.sportsForm.includeSpreads !== false,
+          includeTotals: parsed.sportsForm.includeTotals !== false,
+          teams: candidateTeams.length === 2
+            ? [candidateTeams[0], candidateTeams[1]]
+            : fallbackSports.teams,
+          props: candidateProps.length > 0 ? candidateProps : fallbackSports.props,
         })
       }
 
@@ -1663,6 +1800,7 @@ export default function AdminCreateEventForm() {
 
     const payload = {
       form,
+      sportsForm,
       currentStep,
       maxVisitedStep,
       slugSeed,
@@ -1671,7 +1809,7 @@ export default function AdminCreateEventForm() {
     }
 
     window.localStorage.setItem(CREATE_EVENT_DRAFT_STORAGE_KEY, JSON.stringify(payload))
-  }, [areMultiOutcomesEditable, currentStep, form, isBinaryOutcomesEditable, maxVisitedStep, slugSeed])
+  }, [areMultiOutcomesEditable, currentStep, form, isBinaryOutcomesEditable, maxVisitedStep, slugSeed, sportsForm])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -1695,6 +1833,25 @@ export default function AdminCreateEventForm() {
   }, [authChallengeExpiresAtMs, preparedSignaturePlan, signatureFlowDone, signatureFlowError, signatureTxs])
 
   useEffect(() => {
+    if (!isSportsEvent) {
+      return
+    }
+
+    setForm(prev => ({
+      ...prev,
+      slug: sportsDerivedContent.eventSlug,
+      marketMode: 'multi_multiple',
+      categories: sportsDerivedContent.categories,
+      options: sportsDerivedContent.options,
+      binaryQuestion: '',
+      binaryOutcomeYes: 'Yes',
+      binaryOutcomeNo: 'No',
+    }))
+
+    setOptionImageFiles(prev => (Object.keys(prev).length > 0 ? {} : prev))
+  }, [isSportsEvent, sportsDerivedContent.categories, sportsDerivedContent.eventSlug, sportsDerivedContent.options])
+
+  useEffect(() => {
     if (titleTimeoutRef.current !== null) {
       window.clearTimeout(titleTimeoutRef.current)
       titleTimeoutRef.current = null
@@ -1708,10 +1865,12 @@ export default function AdminCreateEventForm() {
 
       setForm(prev => ({
         ...prev,
-        slug: (() => {
-          const base = slugify(prev.title)
-          return base ? `${base}-${slugSuffix}` : ''
-        })(),
+        slug: isSportsEvent
+          ? sportsDerivedContent.eventSlug
+          : (() => {
+              const base = slugify(prev.title)
+              return base ? `${base}-${slugSuffix}` : ''
+            })(),
       }))
     }, 250)
 
@@ -1721,7 +1880,7 @@ export default function AdminCreateEventForm() {
         titleTimeoutRef.current = null
       }
     }
-  }, [form.title, slugSuffix])
+  }, [form.title, isSportsEvent, slugSuffix, sportsDerivedContent.eventSlug])
 
   useEffect(() => {
     if (!form.slug.trim()) {
@@ -1767,8 +1926,144 @@ export default function AdminCreateEventForm() {
     }
   }, [])
 
+  const handleSportsFieldChange = useCallback(
+    <K extends keyof AdminSportsFormState>(field: K, value: AdminSportsFormState[K]) => {
+      setSportsForm((prev) => {
+        if (field === 'section') {
+          if (value === 'props') {
+            return {
+              ...prev,
+              section: value,
+              eventVariant: 'standard',
+            }
+          }
+
+          if (value === 'games') {
+            return {
+              ...prev,
+              section: value,
+              eventVariant: '',
+            }
+          }
+        }
+
+        return {
+          ...prev,
+          [field]: value,
+        }
+      })
+    },
+    [],
+  )
+
+  const handleSportsTeamChange = useCallback((
+    hostStatus: AdminSportsTeamHostStatus,
+    field: 'name' | 'abbreviation',
+    value: string,
+  ) => {
+    setSportsForm(prev => ({
+      ...prev,
+      teams: prev.teams.map(team => team.hostStatus === hostStatus
+        ? {
+            ...team,
+            [field]: value,
+          }
+        : team) as AdminSportsFormState['teams'],
+    }))
+  }, [])
+
+  const handleSportsTeamLogoUpload = useCallback((hostStatus: AdminSportsTeamHostStatus, event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null
+    setTeamLogoFiles(prev => ({
+      ...prev,
+      [hostStatus]: file,
+    }))
+  }, [])
+
+  const handleSportsPropChange = useCallback((
+    propId: string,
+    field: keyof AdminSportsPropState,
+    value: string,
+  ) => {
+    setSportsForm(prev => ({
+      ...prev,
+      props: prev.props.map(prop => prop.id === propId
+        ? {
+            ...prop,
+            [field]: value,
+          }
+        : prop),
+    }))
+  }, [])
+
+  const addSportsProp = useCallback(() => {
+    setSportsForm((prev) => {
+      const existingIds = new Set(prev.props.map(prop => prop.id))
+      let nextIndex = prev.props.length + 1
+      let nextId = `prop-${nextIndex}`
+      while (existingIds.has(nextId)) {
+        nextIndex += 1
+        nextId = `prop-${nextIndex}`
+      }
+
+      return {
+        ...prev,
+        props: [...prev.props, createAdminSportsProp(nextId)],
+      }
+    })
+  }, [])
+
+  const removeSportsProp = useCallback((propId: string) => {
+    setSportsForm((prev) => {
+      if (prev.props.length <= 1) {
+        toast.error('At least 1 prop is required.')
+        return prev
+      }
+
+      return {
+        ...prev,
+        props: prev.props.filter(prop => prop.id !== propId),
+      }
+    })
+  }, [])
+
   const handleFieldChange = useCallback(
     <K extends keyof FormState>(field: K, value: FormState[K]) => {
+      if (field === 'mainCategorySlug') {
+        const nextMainCategorySlug = typeof value === 'string' ? value : ''
+        setForm((prev) => {
+          if (isSportsMainCategory(nextMainCategorySlug)) {
+            return {
+              ...prev,
+              mainCategorySlug: nextMainCategorySlug,
+              marketMode: 'multi_multiple',
+              categories: [],
+              options: [],
+            }
+          }
+
+          if (isSportsMainCategory(prev.mainCategorySlug)) {
+            const fallback = createInitialForm()
+            return {
+              ...prev,
+              mainCategorySlug: nextMainCategorySlug,
+              categories: [],
+              marketMode: null,
+              options: fallback.options,
+              binaryQuestion: fallback.binaryQuestion,
+              binaryOutcomeYes: fallback.binaryOutcomeYes,
+              binaryOutcomeNo: fallback.binaryOutcomeNo,
+            }
+          }
+
+          return {
+            ...prev,
+            mainCategorySlug: nextMainCategorySlug,
+          }
+        })
+        return
+      }
+
       setForm(prev => ({ ...prev, [field]: value }))
     },
     [],
@@ -1926,7 +2221,7 @@ export default function AdminCreateEventForm() {
   }, [])
 
   const buildAiPayload = useCallback(() => {
-    const normalizedMarketMode = form.marketMode
+    const normalizedMarketMode = isSportsEvent ? 'multi_multiple' : form.marketMode
     const normalizedBinaryQuestion = normalizedMarketMode === 'binary'
       ? form.title
       : form.binaryQuestion
@@ -1952,16 +2247,17 @@ export default function AdminCreateEventForm() {
       binaryOutcomeYes: form.binaryOutcomeYes,
       binaryOutcomeNo: form.binaryOutcomeNo,
       options: normalizedOptions,
+      sports: isSportsEvent ? sportsDerivedContent.payload : undefined,
       resolutionSource: form.resolutionSource,
       resolutionRules: form.resolutionRules,
     }
-  }, [form])
+  }, [form, isSportsEvent, sportsDerivedContent.payload])
 
   const buildPreparePayload = useCallback((): PreparePayloadBody => {
     if (!eoaAddress) {
       throw new Error('Connect wallet first.')
     }
-    if (!form.marketMode) {
+    if (!form.marketMode && !isSportsEvent) {
       throw new Error('Select a market type.')
     }
 
@@ -1971,7 +2267,7 @@ export default function AdminCreateEventForm() {
           label: selectedMainCategory?.name || form.mainCategorySlug,
           slug: form.mainCategorySlug,
         },
-        ...form.categories,
+        ...(isSportsEvent ? sportsDerivedContent.categories : form.categories),
       ]
       return Array.from(new Map(
         base
@@ -1987,6 +2283,10 @@ export default function AdminCreateEventForm() {
       throw new Error('Select at least 4 sub categories in addition to the main category.')
     }
 
+    if (isSportsEvent && !sportsDerivedContent.payload) {
+      throw new Error('Sports event fields are incomplete.')
+    }
+
     const payload: PreparePayloadBody = {
       chainId: targetChainId,
       creator: eoaAddress,
@@ -1995,9 +2295,21 @@ export default function AdminCreateEventForm() {
       endDateIso: form.endDateIso,
       mainCategorySlug: form.mainCategorySlug.trim(),
       categories: mergedCategories,
-      marketMode: form.marketMode,
+      marketMode: isSportsEvent ? 'multi_multiple' : (form.marketMode as MarketMode),
       resolutionSource: form.resolutionSource.trim(),
       resolutionRules: form.resolutionRules.trim(),
+    }
+
+    if (isSportsEvent && sportsDerivedContent.payload) {
+      payload.options = sportsDerivedContent.options.map(option => ({
+        id: option.id,
+        question: option.question.trim(),
+        title: option.title.trim(),
+        shortName: option.shortName.trim(),
+        slug: option.slug.trim(),
+      }))
+      payload.sports = sportsDerivedContent.payload
+      return payload
     }
 
     if (form.marketMode === 'binary') {
@@ -2015,7 +2327,7 @@ export default function AdminCreateEventForm() {
       slug: option.slug.trim(),
     }))
     return payload
-  }, [eoaAddress, form, selectedMainCategory, targetChainId])
+  }, [eoaAddress, form, isSportsEvent, selectedMainCategory, sportsDerivedContent.categories, sportsDerivedContent.options, sportsDerivedContent.payload, targetChainId])
 
   const runOpenRouterCheck = useCallback(async () => {
     setOpenRouterCheckState('checking')
@@ -2722,6 +3034,15 @@ export default function AdminCreateEventForm() {
         }
       })
 
+      if (isSportsEvent) {
+        ;(['home', 'away'] as const).forEach((hostStatus) => {
+          const teamLogo = teamLogoFiles[hostStatus]
+          if (teamLogo) {
+            body.append(`teamLogo:${hostStatus}`, teamLogo, teamLogo.name)
+          }
+        })
+      }
+
       const response = await fetch(`${process.env.CREATE_MARKET_URL}/prepare`, {
         method: 'POST',
         body,
@@ -2783,8 +3104,10 @@ export default function AdminCreateEventForm() {
     eoaAddress,
     eventImageFile,
     form.options,
+    isSportsEvent,
     loadPendingSignaturePlan,
     optionImageFiles,
+    teamLogoFiles,
     walletClient,
   ])
 
@@ -3146,7 +3469,9 @@ export default function AdminCreateEventForm() {
   const validateStep = useCallback((step: number, withToast = true) => {
     const errors = buildStepErrors(step, {
       form,
+      sportsForm,
       eventImageFile,
+      teamLogoFiles,
       slugValidationState,
       fundingCheckState,
       nativeGasCheckState,
@@ -3177,6 +3502,8 @@ export default function AdminCreateEventForm() {
     pendingAiIssues.length,
     showFirstError,
     slugValidationState,
+    sportsForm,
+    teamLogoFiles,
   ])
 
   const resetCreateEventFlow = useCallback(() => {
@@ -3191,9 +3518,11 @@ export default function AdminCreateEventForm() {
     setCurrentStep(1)
     setMaxVisitedStep(1)
     setForm(createInitialForm())
+    setSportsForm(createInitialAdminSportsForm())
     setSlugSeed(nextSlugSeed)
     setCategoryQuery('')
     setEventImageFile(null)
+    setTeamLogoFiles({ home: null, away: null })
     setOptionImageFiles({})
     setFinalPreviewDialogOpen(false)
     setRulesGeneratorDialogOpen(false)
@@ -3255,9 +3584,11 @@ export default function AdminCreateEventForm() {
     setCurrentStep(1)
     setMaxVisitedStep(1)
     setForm(createInitialForm())
+    setSportsForm(createInitialAdminSportsForm())
     setSlugSeed(nextSlugSeed)
     setCategoryQuery('')
     setEventImageFile(null)
+    setTeamLogoFiles({ home: null, away: null })
     setOptionImageFiles({})
     setFinalPreviewDialogOpen(false)
     setRulesGeneratorDialogOpen(false)
@@ -3637,73 +3968,239 @@ export default function AdminCreateEventForm() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category-input">Sub categories</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="category-input"
-                    value={categoryQuery}
-                    onChange={event => setCategoryQuery(event.target.value)}
-                    placeholder="Add at least 4 additional sub categories."
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault()
-                        addCategoryFromInput()
-                      }
-                    }}
-                  />
-                  <Button type="button" variant="outline" onClick={addCategoryFromInput}>Add</Button>
-                </div>
-              </div>
-
-              {filteredCategorySuggestions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {filteredCategorySuggestions.map(item => (
-                    <Button key={item.slug} type="button" size="sm" variant="outline" onClick={() => addCategory(item)}>
-                      {item.name}
-                    </Button>
-                  ))}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label>
-                  Selected categories (
-                  {selectedCategoryChips.length}
-                  )
-                </Label>
-                {selectedCategoryChips.length === 0
-                  ? (
-                      <p className="text-sm text-muted-foreground">No categories selected.</p>
-                    )
-                  : (
-                      <div className="flex flex-wrap gap-2">
-                        {selectedCategoryChips.map(item => (
-                          <div
-                            key={item.slug}
-                            className={cn(
-                              'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs',
-                              item.slug === selectedMainCategory?.slug && 'border-primary/40 bg-primary/10',
-                            )}
+              {isSportsEvent
+                ? (
+                    <>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="sports-section">Sports sub category</Label>
+                          <Select
+                            value={sportsForm.section || undefined}
+                            onValueChange={value => handleSportsFieldChange('section', value as AdminSportsFormState['section'])}
                           >
-                            <span>{item.label}</span>
-                            {item.slug === selectedMainCategory?.slug && (
-                              <span className="text-2xs text-primary">Main</span>
-                            )}
-                            <button
-                              type="button"
-                              className="text-muted-foreground hover:text-foreground"
-                              onClick={() => removeCategory(item.slug)}
-                              disabled={item.slug === selectedMainCategory?.slug}
-                              aria-label={`Remove ${item.label}`}
-                            >
-                              ×
-                            </button>
+                            <SelectTrigger id="sports-section" className="w-full">
+                              <SelectValue placeholder="Select Games or Props" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="games">Games</SelectItem>
+                              <SelectItem value="props">Props</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="sports-start-time">Game start time</Label>
+                          <Input
+                            id="sports-start-time"
+                            type="datetime-local"
+                            value={sportsForm.startTime}
+                            onChange={event => handleSportsFieldChange('startTime', event.target.value)}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="sports-sport-slug">Sport slug</Label>
+                          <Input
+                            id="sports-sport-slug"
+                            value={sportsForm.sportSlug}
+                            onChange={event => handleSportsFieldChange('sportSlug', event.target.value)}
+                            placeholder="Example: soccer"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="sports-league-slug">League slug</Label>
+                          <Input
+                            id="sports-league-slug"
+                            value={sportsForm.leagueSlug}
+                            onChange={event => handleSportsFieldChange('leagueSlug', event.target.value)}
+                            placeholder="Example: premier-league"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        {sportsForm.teams.map(team => (
+                          <div key={team.hostStatus} className="space-y-4 rounded-md border p-4">
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">
+                                {team.hostStatus === 'home' ? 'Home team' : 'Away team'}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Team logos are uploaded as market icons for sports markets.
+                              </p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`sports-team-name-${team.hostStatus}`}>Team name</Label>
+                              <Input
+                                id={`sports-team-name-${team.hostStatus}`}
+                                value={team.name}
+                                onChange={event => handleSportsTeamChange(team.hostStatus, 'name', event.target.value)}
+                                placeholder={team.hostStatus === 'home' ? 'Example: Barcelona' : 'Example: Real Madrid'}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`sports-team-abbreviation-${team.hostStatus}`}>Abbreviation (optional)</Label>
+                              <Input
+                                id={`sports-team-abbreviation-${team.hostStatus}`}
+                                value={team.abbreviation}
+                                onChange={event => handleSportsTeamChange(team.hostStatus, 'abbreviation', event.target.value)}
+                                placeholder={team.hostStatus === 'home' ? 'BAR' : 'RMA'}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Team logo</Label>
+                              <Input
+                                id={`sports-team-logo-${team.hostStatus}`}
+                                type="file"
+                                accept="image/*"
+                                onChange={event => handleSportsTeamLogoUpload(team.hostStatus, event)}
+                                className="sr-only"
+                              />
+                              <label
+                                htmlFor={`sports-team-logo-${team.hostStatus}`}
+                                className={`
+                                  group relative flex size-28 cursor-pointer items-center justify-center overflow-hidden
+                                  rounded-xl border border-dashed border-border bg-muted/20 text-muted-foreground
+                                  transition
+                                  hover:border-primary/60
+                                `}
+                              >
+                                <span className={`
+                                  pointer-events-none absolute inset-0 bg-foreground/0 transition
+                                  group-hover:bg-foreground/5
+                                `}
+                                />
+                                {teamLogoPreviewUrls[team.hostStatus]
+                                  ? (
+                                      <EventIconImage
+                                        src={teamLogoPreviewUrls[team.hostStatus] ?? ''}
+                                        alt={`${team.name || team.hostStatus} logo preview`}
+                                        sizes="256px"
+                                        unoptimized
+                                        containerClassName="size-full"
+                                      />
+                                    )
+                                  : (
+                                      <div className="text-sm text-muted-foreground">Upload logo</div>
+                                    )}
+                                <ImageUp
+                                  className={`
+                                    pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2
+                                    text-foreground/70 opacity-0 transition
+                                    group-hover:opacity-100
+                                  `}
+                                />
+                              </label>
+                            </div>
                           </div>
                         ))}
                       </div>
-                    )}
-              </div>
+
+                      <div className="space-y-2">
+                        <Label>
+                          Generated categories (
+                          {sportsDerivedContent.categories.length}
+                          )
+                        </Label>
+                        {sportsDerivedContent.categories.length === 0
+                          ? (
+                              <p className="text-sm text-muted-foreground">
+                                Sports categories are generated automatically from section, sport, league, and pack.
+                              </p>
+                            )
+                          : (
+                              <div className="flex flex-wrap gap-2">
+                                {sportsDerivedContent.categories.map(item => (
+                                  <div
+                                    key={item.slug}
+                                    className={cn(
+                                      'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm',
+                                      item.slug === selectedMainCategory?.slug && 'border-primary/40 bg-primary/10',
+                                    )}
+                                  >
+                                    <span>{item.label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                      </div>
+                    </>
+                  )
+                : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="category-input">Sub categories</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="category-input"
+                            value={categoryQuery}
+                            onChange={event => setCategoryQuery(event.target.value)}
+                            placeholder="Add at least 4 additional sub categories."
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault()
+                                addCategoryFromInput()
+                              }
+                            }}
+                          />
+                          <Button type="button" variant="outline" onClick={addCategoryFromInput}>Add</Button>
+                        </div>
+                      </div>
+
+                      {filteredCategorySuggestions.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {filteredCategorySuggestions.map(item => (
+                            <Button key={item.slug} type="button" size="sm" variant="outline" onClick={() => addCategory(item)}>
+                              {item.name}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label>
+                          Selected categories (
+                          {selectedCategoryChips.length}
+                          )
+                        </Label>
+                        {selectedCategoryChips.length === 0
+                          ? (
+                              <p className="text-sm text-muted-foreground">No categories selected.</p>
+                            )
+                          : (
+                              <div className="flex flex-wrap gap-2">
+                                {selectedCategoryChips.map(item => (
+                                  <div
+                                    key={item.slug}
+                                    className={cn(
+                                      'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm',
+                                      item.slug === selectedMainCategory?.slug && 'border-primary/40 bg-primary/10',
+                                    )}
+                                  >
+                                    <span>{item.label}</span>
+                                    {item.slug === selectedMainCategory?.slug && (
+                                      <span className="text-sm text-primary">Main</span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      className="text-muted-foreground hover:text-foreground"
+                                      onClick={() => removeCategory(item.slug)}
+                                      disabled={item.slug === selectedMainCategory?.slug}
+                                      aria-label={`Remove ${item.label}`}
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                      </div>
+                    </>
+                  )}
             </CardContent>
           </Card>
         </div>
@@ -3718,238 +4215,364 @@ export default function AdminCreateEventForm() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 pb-8">
-            <div className="space-y-3">
-              <Label>Select Event type</Label>
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-                <label
-                  className={cn(
-                    'cursor-pointer rounded-md border p-3 transition',
-                    form.marketMode === 'binary'
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : `hover:border-primary/40`,
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="market-mode"
-                    className="sr-only"
-                    checked={form.marketMode === 'binary'}
-                    onChange={() => handleFieldChange('marketMode', 'binary')}
-                  />
-                  <p className="flex items-center gap-2 text-sm font-medium">
-                    <span className={cn(
-                      'inline-flex size-4 items-center justify-center rounded-full border',
-                      form.marketMode === 'binary' ? 'border-primary bg-primary' : 'border-muted-foreground/50',
+            {isSportsEvent
+              ? (
+                  <>
+                    {sportsForm.section === 'games' && (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="sports-event-variant">Sports event variant</Label>
+                          <Select
+                            value={sportsForm.eventVariant || undefined}
+                            onValueChange={value => handleSportsFieldChange('eventVariant', value as AdminSportsFormState['eventVariant'])}
+                          >
+                            <SelectTrigger id="sports-event-variant" className="w-full md:max-w-md">
+                              <SelectValue placeholder="Select a sports event variant" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="standard">Standard game lines</SelectItem>
+                              <SelectItem value="more_markets">More Markets</SelectItem>
+                              <SelectItem value="exact_score">Exact Score</SelectItem>
+                              <SelectItem value="halftime_result">Halftime Result</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {sportsForm.eventVariant === 'standard' && (
+                          <div className="space-y-3 rounded-md border p-4">
+                            <p className="text-sm font-medium">Standard game lines</p>
+                            <label className="flex items-center gap-3 text-sm text-muted-foreground">
+                              <input
+                                type="checkbox"
+                                className="size-4 rounded-sm border"
+                                checked={sportsForm.includeDraw}
+                                onChange={event => handleSportsFieldChange('includeDraw', event.target.checked)}
+                              />
+                              Include draw market in addition to home and away.
+                            </label>
+                          </div>
+                        )}
+
+                        {sportsForm.eventVariant === 'more_markets' && (
+                          <div className="space-y-3 rounded-md border p-4">
+                            <p className="text-sm font-medium">More Markets packs</p>
+                            <label className="flex items-center gap-3 text-sm text-muted-foreground">
+                              <input
+                                type="checkbox"
+                                className="size-4 rounded-sm border"
+                                checked={sportsForm.includeBothTeamsToScore}
+                                onChange={event => handleSportsFieldChange('includeBothTeamsToScore', event.target.checked)}
+                              />
+                              Both Teams to Score
+                            </label>
+                            <label className="flex items-center gap-3 text-sm text-muted-foreground">
+                              <input
+                                type="checkbox"
+                                className="size-4 rounded-sm border"
+                                checked={sportsForm.includeTotals}
+                                onChange={event => handleSportsFieldChange('includeTotals', event.target.checked)}
+                              />
+                              Totals pack with fixed ladder 1.5 / 2.5 / 3.5 / 4.5
+                            </label>
+                            <label className="flex items-center gap-3 text-sm text-muted-foreground">
+                              <input
+                                type="checkbox"
+                                className="size-4 rounded-sm border"
+                                checked={sportsForm.includeSpreads}
+                                onChange={event => handleSportsFieldChange('includeSpreads', event.target.checked)}
+                              />
+                              Spreads pack with fixed ladder -1.5 for home and away
+                            </label>
+                          </div>
+                        )}
+
+                        {(sportsForm.eventVariant === 'exact_score' || sportsForm.eventVariant === 'halftime_result') && (
+                          <div className="rounded-md border p-4">
+                            <p className="text-sm text-muted-foreground">
+                              This pack is generated automatically from the selected teams and start time.
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
-                    >
-                      {form.marketMode === 'binary' && <span className="size-1.5 rounded-full bg-background" />}
-                    </span>
-                    Binary market
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Eg. Will BTC close above $110k on Mar 31, 2028?
-                  </p>
-                  <div className="mt-3 space-y-2 text-xs">
-                    <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
-                      <span>Yes</span>
-                      <OutcomeStateDot value />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
-                      <span>No</span>
-                      <OutcomeStateDot value={false} />
-                    </div>
-                  </div>
-                </label>
 
-                <label
-                  className={cn(
-                    'cursor-pointer rounded-md border p-3 transition',
-                    form.marketMode === 'multi_multiple'
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : `hover:border-primary/40`,
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="market-mode"
-                    className="sr-only"
-                    checked={form.marketMode === 'multi_multiple'}
-                    onChange={() => handleFieldChange('marketMode', 'multi_multiple')}
-                  />
-                  <p className="flex items-center gap-2 text-sm font-medium">
-                    <span className={cn(
-                      'inline-flex size-4 items-center justify-center rounded-full border',
-                      form.marketMode === 'multi_multiple' ? 'border-primary bg-primary' : 'border-muted-foreground/50',
-                    )}
-                    >
-                      {form.marketMode === 'multi_multiple' && <span className="size-1.5 rounded-full bg-background" />}
-                    </span>
-                    Multi-market (multiple true outcomes)
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Eg. Which BTC milestones will be reached by Dec 31, 2028?
-                  </p>
-                  <div className="mt-3 space-y-2 text-xs">
-                    <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
-                      <span>BTC above $100k (short: 100k)</span>
-                      <OutcomeStateDot value />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
-                      <span>BTC above $110k (short: 110k)</span>
-                      <OutcomeStateDot value />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
-                      <span>BTC above $120k (short: 120k)</span>
-                      <OutcomeStateDot value={false} />
-                    </div>
-                  </div>
-                </label>
+                    {sportsForm.section === 'props' && (
+                      <div className="space-y-4 rounded-md border p-4">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Player props</p>
+                          <p className="text-sm text-muted-foreground">
+                            Each row becomes one generated market with Over and Under outcomes.
+                          </p>
+                        </div>
 
-                <label
-                  className={cn(
-                    'cursor-pointer rounded-md border p-3 transition',
-                    form.marketMode === 'multi_unique'
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : `hover:border-primary/40`,
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="market-mode"
-                    className="sr-only"
-                    checked={form.marketMode === 'multi_unique'}
-                    onChange={() => handleFieldChange('marketMode', 'multi_unique')}
-                  />
-                  <p className="flex items-center gap-2 text-sm font-medium">
-                    <span className={cn(
-                      'inline-flex size-4 items-center justify-center rounded-full border',
-                      form.marketMode === 'multi_unique' ? 'border-primary bg-primary' : 'border-muted-foreground/50',
-                    )}
-                    >
-                      {form.marketMode === 'multi_unique' && <span className="size-1.5 rounded-full bg-background" />}
-                    </span>
-                    Multi-market (single true outcome)
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Eg. Who will win the 2028 U.S. presidential election?
-                  </p>
-                  <div className="mt-3 space-y-2 text-xs">
-                    <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
-                      <span>Gavin Newsom (short: Newsom)</span>
-                      <OutcomeStateDot value />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
-                      <span>Nikki Haley (short: Haley)</span>
-                      <OutcomeStateDot value={false} />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
-                      <span>Donald Trump (short: Trump)</span>
-                      <OutcomeStateDot value={false} />
-                    </div>
-                  </div>
-                </label>
-              </div>
-            </div>
+                        {sportsForm.props.map((prop, index) => (
+                          <div key={prop.id} className="grid grid-cols-1 gap-4 rounded-md border p-4 md:grid-cols-2">
+                            <div className="space-y-2 md:col-span-2">
+                              <div className="flex items-center justify-between gap-3">
+                                <Label htmlFor={`sports-prop-player-${prop.id}`}>
+                                  Prop
+                                  {' '}
+                                  {index + 1}
+                                </Label>
+                                <Button type="button" variant="outline" size="sm" onClick={() => removeSportsProp(prop.id)}>
+                                  <Trash2Icon className="mr-2 size-4" />
+                                  Remove
+                                </Button>
+                              </div>
+                              <Input
+                                id={`sports-prop-player-${prop.id}`}
+                                value={prop.playerName}
+                                onChange={event => handleSportsPropChange(prop.id, 'playerName', event.target.value)}
+                                placeholder="Example: Jamal Murray"
+                              />
+                            </div>
 
-            {form.marketMode === 'binary' && (
-              <div className="space-y-4 rounded-md border p-4">
-                <div className="space-y-2">
-                  <Label htmlFor="binary-question">Question</Label>
-                  <Input
-                    id="binary-question"
-                    value={form.title}
-                    disabled
-                    readOnly
-                  />
-                </div>
+                            <div className="space-y-2">
+                              <Label>Stat type</Label>
+                              <Select
+                                value={prop.statType || undefined}
+                                onValueChange={value => handleSportsPropChange(prop.id, 'statType', value)}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Select stat type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="points">Points</SelectItem>
+                                  <SelectItem value="rebounds">Rebounds</SelectItem>
+                                  <SelectItem value="assists">Assists</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                <div className="space-y-2">
-                  <Label>Outcomes</Label>
-                  <div className="grid grid-cols-1 items-center gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem]">
-                    <Input
-                      id="binary-outcome-yes"
-                      value={form.binaryOutcomeYes}
-                      onChange={event => handleFieldChange('binaryOutcomeYes', event.target.value)}
-                      placeholder="Yes"
-                      disabled={!isBinaryOutcomesEditable}
-                    />
-                    <Input
-                      id="binary-outcome-no"
-                      value={form.binaryOutcomeNo}
-                      onChange={event => handleFieldChange('binaryOutcomeNo', event.target.value)}
-                      placeholder="No"
-                      disabled={!isBinaryOutcomesEditable}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="size-10 rounded-md"
-                      onClick={() => setIsBinaryOutcomesEditable(previous => !previous)}
-                      aria-label={isBinaryOutcomesEditable ? 'Lock outcomes' : 'Edit outcomes'}
-                    >
-                      <SquarePenIcon className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
+                            <div className="space-y-2">
+                              <Label>Line</Label>
+                              <Input
+                                value={prop.line}
+                                onChange={event => handleSportsPropChange(prop.id, 'line', event.target.value)}
+                                placeholder="Example: 29.5"
+                              />
+                            </div>
 
-            {(form.marketMode === 'multi_multiple' || form.marketMode === 'multi_unique') && (
-              <div className="space-y-4 rounded-md border p-4">
-                <p className="text-sm text-muted-foreground">Each option creates one child market.</p>
+                            <div className="space-y-2 md:col-span-2">
+                              <Label>Team</Label>
+                              <Select
+                                value={prop.teamHostStatus || undefined}
+                                onValueChange={value => handleSportsPropChange(prop.id, 'teamHostStatus', value)}
+                              >
+                                <SelectTrigger className="w-full md:max-w-xs">
+                                  <SelectValue placeholder="Select home or away team" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="home">{sportsForm.teams[0]?.name || 'Home team'}</SelectItem>
+                                  <SelectItem value="away">{sportsForm.teams[1]?.name || 'Away team'}</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        ))}
 
-                <div className="space-y-4">
-                  {form.options.map((option, index) => (
-                    <div key={option.id} className="space-y-3 rounded-md border p-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">
-                          Option
-                          {' '}
-                          {index + 1}
-                        </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeOption(option.id)}
-                          disabled={form.options.length <= 2}
-                        >
-                          <Trash2Icon className="mr-2 size-4" />
-                          Remove
+                        <Button type="button" variant="outline" onClick={addSportsProp}>
+                          <PlusIcon className="mr-2 size-4" />
+                          Add prop
                         </Button>
                       </div>
+                    )}
 
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div className="space-y-2 md:col-span-2">
-                          <Label>Market question</Label>
+                    <div className="space-y-3 rounded-md border p-4">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Generated markets</p>
+                        <p className="text-sm text-muted-foreground">
+                          Sports markets are generated from the selected template and sent to the worker automatically.
+                        </p>
+                      </div>
+
+                      {sportsDerivedContent.options.length === 0
+                        ? (
+                            <p className="text-sm text-muted-foreground">
+                              Fill the sports fields above to generate the market pack preview.
+                            </p>
+                          )
+                        : (
+                            <div className="space-y-3">
+                              {sportsDerivedContent.options.map((option, index) => (
+                                <div key={option.id} className="rounded-md border p-3">
+                                  <p className="text-sm font-medium">
+                                    {index + 1}
+                                    .
+                                    {' '}
+                                    {option.title}
+                                  </p>
+                                  <p className="mt-1 text-sm text-muted-foreground">{option.question}</p>
+                                  <p className="mt-2 text-sm text-muted-foreground">
+                                    Outcomes:
+                                    {' '}
+                                    {option.outcomeYes}
+                                    {' / '}
+                                    {option.outcomeNo}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                    </div>
+                  </>
+                )
+              : (
+                  <>
+                    <div className="space-y-3">
+                      <Label>Select Event type</Label>
+                      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                        <label
+                          className={cn(
+                            'cursor-pointer rounded-md border p-3 transition',
+                            form.marketMode === 'binary'
+                              ? 'border-primary bg-primary/5 text-primary'
+                              : `hover:border-primary/40`,
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="market-mode"
+                            className="sr-only"
+                            checked={form.marketMode === 'binary'}
+                            onChange={() => handleFieldChange('marketMode', 'binary')}
+                          />
+                          <p className="flex items-center gap-2 text-sm font-medium">
+                            <span className={cn(
+                              'inline-flex size-4 items-center justify-center rounded-full border',
+                              form.marketMode === 'binary' ? 'border-primary bg-primary' : 'border-muted-foreground/50',
+                            )}
+                            >
+                              {form.marketMode === 'binary' && <span className="size-1.5 rounded-full bg-background" />}
+                            </span>
+                            Binary market
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Eg. Will BTC close above $110k on Mar 31, 2028?
+                          </p>
+                          <div className="mt-3 space-y-2 text-xs">
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
+                              <span>Yes</span>
+                              <OutcomeStateDot value />
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
+                              <span>No</span>
+                              <OutcomeStateDot value={false} />
+                            </div>
+                          </div>
+                        </label>
+
+                        <label
+                          className={cn(
+                            'cursor-pointer rounded-md border p-3 transition',
+                            form.marketMode === 'multi_multiple'
+                              ? 'border-primary bg-primary/5 text-primary'
+                              : `hover:border-primary/40`,
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="market-mode"
+                            className="sr-only"
+                            checked={form.marketMode === 'multi_multiple'}
+                            onChange={() => handleFieldChange('marketMode', 'multi_multiple')}
+                          />
+                          <p className="flex items-center gap-2 text-sm font-medium">
+                            <span className={cn(
+                              'inline-flex size-4 items-center justify-center rounded-full border',
+                              form.marketMode === 'multi_multiple'
+                                ? 'border-primary bg-primary'
+                                : `border-muted-foreground/50`,
+                            )}
+                            >
+                              {form.marketMode === 'multi_multiple' && (
+                                <span className="size-1.5 rounded-full bg-background" />
+                              )}
+                            </span>
+                            Multi-market (multiple true outcomes)
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Eg. Which BTC milestones will be reached by Dec 31, 2028?
+                          </p>
+                          <div className="mt-3 space-y-2 text-xs">
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
+                              <span>BTC above $100k (short: 100k)</span>
+                              <OutcomeStateDot value />
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
+                              <span>BTC above $110k (short: 110k)</span>
+                              <OutcomeStateDot value />
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
+                              <span>BTC above $120k (short: 120k)</span>
+                              <OutcomeStateDot value={false} />
+                            </div>
+                          </div>
+                        </label>
+
+                        <label
+                          className={cn(
+                            'cursor-pointer rounded-md border p-3 transition',
+                            form.marketMode === 'multi_unique'
+                              ? 'border-primary bg-primary/5 text-primary'
+                              : `hover:border-primary/40`,
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="market-mode"
+                            className="sr-only"
+                            checked={form.marketMode === 'multi_unique'}
+                            onChange={() => handleFieldChange('marketMode', 'multi_unique')}
+                          />
+                          <p className="flex items-center gap-2 text-sm font-medium">
+                            <span className={cn(
+                              'inline-flex size-4 items-center justify-center rounded-full border',
+                              form.marketMode === 'multi_unique'
+                                ? 'border-primary bg-primary'
+                                : `border-muted-foreground/50`,
+                            )}
+                            >
+                              {form.marketMode === 'multi_unique' && (
+                                <span className="size-1.5 rounded-full bg-background" />
+                              )}
+                            </span>
+                            Multi-market (single true outcome)
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Eg. Who will win the 2028 U.S. presidential election?
+                          </p>
+                          <div className="mt-3 space-y-2 text-xs">
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
+                              <span>Gavin Newsom (short: Newsom)</span>
+                              <OutcomeStateDot value />
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
+                              <span>Nikki Haley (short: Haley)</span>
+                              <OutcomeStateDot value={false} />
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-2 py-1">
+                              <span>Donald Trump (short: Trump)</span>
+                              <OutcomeStateDot value={false} />
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    {form.marketMode === 'binary' && (
+                      <div className="space-y-4 rounded-md border p-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="binary-question">Question</Label>
                           <Input
-                            value={option.question}
-                            onChange={event => handleOptionChange(option.id, 'question', event.target.value)}
-                            placeholder={optionQuestionPlaceholder}
+                            id="binary-question"
+                            value={form.title}
+                            disabled
+                            readOnly
                           />
                         </div>
+
                         <div className="space-y-2">
-                          <Label>Option name</Label>
-                          <Input
-                            value={option.title}
-                            onChange={event => handleOptionChange(option.id, 'title', event.target.value)}
-                            placeholder={optionNamePlaceholder}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Short name</Label>
-                          <Input
-                            value={option.shortName}
-                            onChange={event => handleOptionChange(option.id, 'shortName', event.target.value)}
-                            placeholder={optionShortNamePlaceholder}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Slug</Label>
-                          <Input value={option.slug} readOnly />
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
                           <Label>Outcomes</Label>
                           <div className="
                             grid grid-cols-1 items-center gap-2
@@ -3957,85 +4580,178 @@ export default function AdminCreateEventForm() {
                           "
                           >
                             <Input
-                              value={option.outcomeYes}
-                              onChange={event => handleOptionChange(option.id, 'outcomeYes', event.target.value)}
+                              id="binary-outcome-yes"
+                              value={form.binaryOutcomeYes}
+                              onChange={event => handleFieldChange('binaryOutcomeYes', event.target.value)}
                               placeholder="Yes"
-                              disabled={!areMultiOutcomesEditable}
+                              disabled={!isBinaryOutcomesEditable}
                             />
                             <Input
-                              value={option.outcomeNo}
-                              onChange={event => handleOptionChange(option.id, 'outcomeNo', event.target.value)}
+                              id="binary-outcome-no"
+                              value={form.binaryOutcomeNo}
+                              onChange={event => handleFieldChange('binaryOutcomeNo', event.target.value)}
                               placeholder="No"
-                              disabled={!areMultiOutcomesEditable}
+                              disabled={!isBinaryOutcomesEditable}
                             />
                             <Button
                               type="button"
                               variant="outline"
                               size="icon"
                               className="size-10 rounded-md"
-                              onClick={() => setAreMultiOutcomesEditable(previous => !previous)}
-                              aria-label={areMultiOutcomesEditable ? 'Lock outcomes' : 'Edit outcomes'}
+                              onClick={() => setIsBinaryOutcomesEditable(previous => !previous)}
+                              aria-label={isBinaryOutcomesEditable ? 'Lock outcomes' : 'Edit outcomes'}
                             >
                               <SquarePenIcon className="size-4" />
                             </Button>
                           </div>
                         </div>
                       </div>
+                    )}
 
-                      <div className="space-y-2">
-                        <Label>Option image (optional)</Label>
-                        <Input
-                          id={`option-image-${option.id}`}
-                          type="file"
-                          accept="image/*"
-                          onChange={event => handleOptionImageUpload(option.id, event)}
-                          className="sr-only"
-                        />
-                        <label
-                          htmlFor={`option-image-${option.id}`}
-                          className={`
-                            group relative flex size-28 cursor-pointer items-center justify-center overflow-hidden
-                            rounded-xl border border-dashed border-border bg-muted/20 text-muted-foreground transition
-                            hover:border-primary/60
-                          `}
-                        >
-                          <span className={`
-                            pointer-events-none absolute inset-0 bg-foreground/0 transition
-                            group-hover:bg-foreground/5
-                          `}
-                          />
-                          {optionImagePreviewUrls[option.id]
-                            ? (
-                                <EventIconImage
-                                  src={optionImagePreviewUrls[option.id]}
-                                  alt={`Option ${index + 1} image preview`}
-                                  sizes="256px"
-                                  unoptimized
-                                  containerClassName="size-full"
+                    {(form.marketMode === 'multi_multiple' || form.marketMode === 'multi_unique') && (
+                      <div className="space-y-4 rounded-md border p-4">
+                        <p className="text-sm text-muted-foreground">Each option creates one child market.</p>
+
+                        <div className="space-y-4">
+                          {form.options.map((option, index) => (
+                            <div key={option.id} className="space-y-3 rounded-md border p-4">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium">
+                                  Option
+                                  {' '}
+                                  {index + 1}
+                                </p>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => removeOption(option.id)}
+                                  disabled={form.options.length <= 2}
+                                >
+                                  <Trash2Icon className="mr-2 size-4" />
+                                  Remove
+                                </Button>
+                              </div>
+
+                              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="space-y-2 md:col-span-2">
+                                  <Label>Market question</Label>
+                                  <Input
+                                    value={option.question}
+                                    onChange={event => handleOptionChange(option.id, 'question', event.target.value)}
+                                    placeholder={optionQuestionPlaceholder}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Option name</Label>
+                                  <Input
+                                    value={option.title}
+                                    onChange={event => handleOptionChange(option.id, 'title', event.target.value)}
+                                    placeholder={optionNamePlaceholder}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Short name</Label>
+                                  <Input
+                                    value={option.shortName}
+                                    onChange={event => handleOptionChange(option.id, 'shortName', event.target.value)}
+                                    placeholder={optionShortNamePlaceholder}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Slug</Label>
+                                  <Input value={option.slug} readOnly />
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                  <Label>Outcomes</Label>
+                                  <div className="
+                                    grid grid-cols-1 items-center gap-2
+                                    md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem]
+                                  "
+                                  >
+                                    <Input
+                                      value={option.outcomeYes}
+                                      onChange={event => handleOptionChange(option.id, 'outcomeYes', event.target.value)}
+                                      placeholder="Yes"
+                                      disabled={!areMultiOutcomesEditable}
+                                    />
+                                    <Input
+                                      value={option.outcomeNo}
+                                      onChange={event => handleOptionChange(option.id, 'outcomeNo', event.target.value)}
+                                      placeholder="No"
+                                      disabled={!areMultiOutcomesEditable}
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      className="size-10 rounded-md"
+                                      onClick={() => setAreMultiOutcomesEditable(previous => !previous)}
+                                      aria-label={areMultiOutcomesEditable ? 'Lock outcomes' : 'Edit outcomes'}
+                                    >
+                                      <SquarePenIcon className="size-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Option image (optional)</Label>
+                                <Input
+                                  id={`option-image-${option.id}`}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={event => handleOptionImageUpload(option.id, event)}
+                                  className="sr-only"
                                 />
-                              )
-                            : (
-                                <div className="text-xs text-muted-foreground">No image</div>
-                              )}
-                          <ImageUp
-                            className={`
-                              pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2
-                              text-foreground/70 opacity-0 transition
-                              group-hover:opacity-100
-                            `}
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                                <label
+                                  htmlFor={`option-image-${option.id}`}
+                                  className={`
+                                    group relative flex size-28 cursor-pointer items-center justify-center
+                                    overflow-hidden rounded-xl border border-dashed border-border bg-muted/20
+                                    text-muted-foreground transition
+                                    hover:border-primary/60
+                                  `}
+                                >
+                                  <span className={`
+                                    pointer-events-none absolute inset-0 bg-foreground/0 transition
+                                    group-hover:bg-foreground/5
+                                  `}
+                                  />
+                                  {optionImagePreviewUrls[option.id]
+                                    ? (
+                                        <EventIconImage
+                                          src={optionImagePreviewUrls[option.id]}
+                                          alt={`Option ${index + 1} image preview`}
+                                          sizes="256px"
+                                          unoptimized
+                                          containerClassName="size-full"
+                                        />
+                                      )
+                                    : (
+                                        <div className="text-xs text-muted-foreground">No image</div>
+                                      )}
+                                  <ImageUp
+                                    className={`
+                                      pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2
+                                      text-foreground/70 opacity-0 transition
+                                      group-hover:opacity-100
+                                    `}
+                                  />
+                                </label>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
 
-                <Button type="button" variant="outline" onClick={addOption}>
-                  <PlusIcon className="mr-2 size-4" />
-                  Add option
-                </Button>
-              </div>
-            )}
+                        <Button type="button" variant="outline" onClick={addOption}>
+                          <PlusIcon className="mr-2 size-4" />
+                          Add option
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
           </CardContent>
         </Card>
       )}
