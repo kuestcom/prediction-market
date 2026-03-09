@@ -1854,29 +1854,14 @@ export default function SportsEventCenter({
                                       isUnderButton && 'bg-no text-white hover:bg-no-foreground',
                                     )}
                                   >
-                                    {section.key === 'moneyline'
-                                      ? (
-                                          <>
-                                            <span className="mr-1 uppercase opacity-80">{button.label}</span>
-                                            <span className={cn(
-                                              'text-sm leading-none tabular-nums transition-opacity',
-                                              isActive ? 'text-foreground opacity-100' : 'opacity-45',
-                                            )}
-                                            >
-                                              {formatButtonOdds(button.cents)}
-                                            </span>
-                                          </>
-                                        )
-                                      : (
-                                          <span className="flex w-full items-center justify-between gap-1 px-1">
-                                            <span className="min-w-0 truncate text-left uppercase opacity-80">
-                                              {button.label}
-                                            </span>
-                                            <span className="shrink-0 text-sm leading-none tabular-nums">
-                                              {formatButtonOdds(button.cents)}
-                                            </span>
-                                          </span>
-                                        )}
+                                    <span className="flex w-full items-center justify-between gap-1 px-1">
+                                      <span className="min-w-0 truncate text-left uppercase opacity-80">
+                                        {button.label}
+                                      </span>
+                                      <span className="shrink-0 text-sm leading-none tabular-nums">
+                                        {formatButtonOdds(button.cents)}
+                                      </span>
+                                    </span>
                                   </button>
                                 </div>
                               )

@@ -134,13 +134,14 @@ const getCachedActiveSportsCountRows = unstable_cache(
         sql`LOWER(TRIM(COALESCE(${events.slug}, ''))) !~ ${SPORTS_AUXILIARY_SLUG_SQL_REGEX}`,
         or(
           sql`TRIM(COALESCE(${event_sports.sports_sport_slug}, '')) <> ''`,
+          sql`TRIM(COALESCE(${event_sports.sports_series_slug}, '')) <> ''`,
           sql`jsonb_array_length(COALESCE(${event_sports.sports_tags}, '[]'::jsonb)) > 0`,
         ),
       ))
 
     return rows
   },
-  ['sports-menu-active-count-rows-v2'],
+  ['sports-menu-active-count-rows-v3'],
   {
     revalidate: 300,
     tags: [cacheTags.eventsGlobal],

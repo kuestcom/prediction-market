@@ -474,19 +474,22 @@ export function buildAdminSportsDerivedContent(args: {
   baseSlug: string
   sports: AdminSportsFormState
 }): AdminSportsDerivedContent {
-  const eventSlug = buildSportsEventSlug(args.baseSlug, args.sports.eventVariant)
+  const effectiveEventVariant = args.sports.section === 'props'
+    ? 'standard'
+    : args.sports.eventVariant
+  const eventSlug = buildSportsEventSlug(args.baseSlug, effectiveEventVariant)
   const eventDate = buildEventDateFromStartTime(args.sports.startTime)
   const startTimeIso = buildStartTimeIso(args.sports.startTime)
   const options = buildSportsOptions(args.sports, eventDate)
-  const variantSlug = args.sports.section && args.sports.eventVariant
-    ? buildSportVariantSlug(args.sports.section, args.sports.eventVariant, options)
+  const variantSlug = args.sports.section && effectiveEventVariant
+    ? buildSportVariantSlug(args.sports.section, effectiveEventVariant, options)
     : ''
   const categories = buildSportsCategories(args.sports, variantSlug)
 
   const payload = (() => {
     if (
       !args.sports.section
-      || !args.sports.eventVariant
+      || !effectiveEventVariant
       || !args.sports.sportSlug.trim()
       || !args.sports.leagueSlug.trim()
       || !eventDate
@@ -529,7 +532,7 @@ export function buildAdminSportsDerivedContent(args: {
 
     return {
       section: args.sports.section,
-      eventVariant: args.sports.section === 'props' ? 'standard' : args.sports.eventVariant,
+      eventVariant: effectiveEventVariant,
       sportSlug: slugify(args.sports.sportSlug),
       leagueSlug: slugify(args.sports.leagueSlug),
       eventDate,

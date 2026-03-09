@@ -1395,6 +1395,16 @@ export default function AdminCreateEventForm() {
 
   useEffect(() => {
     return () => {
+      Object.values(teamLogoPreviewUrls).forEach((url) => {
+        if (url) {
+          URL.revokeObjectURL(url)
+        }
+      })
+    }
+  }, [teamLogoPreviewUrls])
+
+  useEffect(() => {
+    return () => {
       if (titleTimeoutRef.current !== null) {
         window.clearTimeout(titleTimeoutRef.current)
       }

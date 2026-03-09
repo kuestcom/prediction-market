@@ -556,7 +556,12 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
 
     const teams = input.sports?.teams ?? []
     const validTeams = teams.filter(team => normalizeText(team.name))
-    if (validTeams.length < 2) {
+    const hostStatuses = new Set(
+      validTeams
+        .map(team => team.host_status)
+        .filter((hostStatus): hostStatus is 'home' | 'away' => hostStatus === 'home' || hostStatus === 'away'),
+    )
+    if (validTeams.length < 2 || !hostStatuses.has('home') || !hostStatuses.has('away')) {
       errors.push({
         code: 'mandatory',
         reason: 'Sports events require both home and away teams.',
