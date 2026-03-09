@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import EventCard from '@/app/[locale]/(platform)/(home)/_components/EventCard'
 import EventCardSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventCardSkeleton'
 import EventsGridSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventsGridSkeleton'
+import EventsStaticGrid from '@/app/[locale]/(platform)/(home)/_components/EventsStaticGrid'
 import EventsEmptyState from '@/app/[locale]/(platform)/event/[slug]/_components/EventsEmptyState'
 import { useEventLastTrades } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventLastTrades'
 import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
@@ -179,6 +180,7 @@ export default function EventsGrid({
   const parentRef = useRef<HTMLDivElement | null>(null)
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
+  const [hasHydrated, setHasHydrated] = useState(false)
   const [hasInitialized, setHasInitialized] = useState(false)
   const [scrollMargin, setScrollMargin] = useState(0)
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
@@ -351,6 +353,10 @@ export default function EventsGrid({
   const columns = useColumns(maxColumns)
 
   useEffect(() => {
+    setHasHydrated(true)
+  }, [])
+
+  useEffect(() => {
     queueMicrotask(() => {
       if (parentRef.current) {
         setScrollMargin(parentRef.current.offsetTop)
@@ -412,6 +418,20 @@ export default function EventsGrid({
         className="flex min-h-50 min-w-0 items-center justify-center text-sm text-muted-foreground"
       >
         No events match your filters.
+      </div>
+    )
+  }
+
+  if (!hasHydrated) {
+    return (
+      <div ref={parentRef} className="w-full">
+        <EventsStaticGrid
+          events={visibleEvents}
+          priceOverridesByMarket={priceOverridesByMarket}
+          maxColumns={maxColumns}
+          isFetching={isFetching}
+          currentTimestamp={currentTimestamp}
+        />
       </div>
     )
   }
