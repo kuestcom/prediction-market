@@ -26,6 +26,7 @@ import {
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { HIDE_FROM_NEW_TAG_SLUG, setEventHiddenFromNew } from '@/lib/event-visibility'
+import { resolveSportsSection } from '@/lib/events-routing'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { isSportsAuxiliaryEventSlug, stripSportsAuxiliaryEventSuffix } from '@/lib/sports-event-slugs'
 import {
@@ -882,7 +883,7 @@ function eventResource(
       sportsSeriesSlug: event.sports?.sports_series_slug ?? null,
       sportsTags: normalizedSportsTags,
     }),
-    sports_section: getEventSportsSection(tagRecords),
+    sports_section: resolveSportsSection({ tags: tagRecords }),
     sports_start_time: event.sports?.sports_start_time?.toISOString() ?? null,
     sports_event_week: toOptionalNumber(event.sports?.sports_event_week),
     sports_score: event.sports?.sports_score ?? null,
@@ -957,28 +958,6 @@ function getEventMainTag(tags: any[] | undefined): string {
 
   const mainTag = tags.find(tag => tag.is_main_category)
   return mainTag?.name || tags[0].name
-}
-
-function getEventSportsSection(tags: Array<{ slug?: string | null }> | undefined): 'games' | 'props' | null {
-  if (!tags?.length) {
-    return null
-  }
-
-  const tagSlugs = new Set(
-    tags
-      .map(tag => tag.slug?.trim().toLowerCase() ?? '')
-      .filter(Boolean),
-  )
-
-  if (tagSlugs.has('props') || tagSlugs.has('prop')) {
-    return 'props'
-  }
-
-  if (tagSlugs.has('games') || tagSlugs.has('game')) {
-    return 'games'
-  }
-
-  return null
 }
 
 export const EventRepository = {
@@ -2071,7 +2050,7 @@ export const EventRepository = {
             sportsTags: normalizedSportsTags,
           }),
           sports_event_slug: result.sports?.sports_event_slug ?? null,
-          sports_section: getEventSportsSection(result.eventTags.map(eventTag => eventTag.tag)),
+          sports_section: resolveSportsSection({ tags: result.eventTags.map(eventTag => eventTag.tag) }),
         },
         error: null,
       }
@@ -2632,7 +2611,7 @@ export const EventRepository = {
               sportsSeriesSlug: event.sports?.sports_series_slug ?? null,
               sportsTags: toOptionalStringArray(event.sports?.sports_tags),
             }),
-            sports_section: getEventSportsSection(event.eventTags.map(eventTag => eventTag.tag)),
+            sports_section: resolveSportsSection({ tags: event.eventTags.map(eventTag => eventTag.tag) }),
             common_tags_count: commonTagsCount,
             yes_token_id: yesTokenId,
           }

@@ -1,11 +1,13 @@
+interface EventRouteTagInput {
+  slug?: string | null
+}
+
 interface EventRouteInput {
   slug: string
   sports_sport_slug?: string | null
   sports_event_slug?: string | null
   sports_section?: 'games' | 'props' | '' | null
-  tags?: Array<{
-    slug?: string | null
-  }> | null
+  tags?: EventRouteTagInput[] | null
 }
 
 function normalizePathSegment(value: string | null | undefined) {
@@ -13,14 +15,17 @@ function normalizePathSegment(value: string | null | undefined) {
   return normalized || null
 }
 
-function resolveSportsSection(event: EventRouteInput) {
-  const explicitSection = normalizePathSegment(event.sports_section)
+export function resolveSportsSection(input: {
+  sports_section?: 'games' | 'props' | '' | null
+  tags?: EventRouteTagInput[] | null
+}): 'games' | 'props' | null {
+  const explicitSection = normalizePathSegment(input.sports_section)
   if (explicitSection === 'games' || explicitSection === 'props') {
     return explicitSection
   }
 
   const tagSlugs = new Set(
-    (event.tags ?? [])
+    (input.tags ?? [])
       .map(tag => normalizePathSegment(tag.slug))
       .filter((slug): slug is string => Boolean(slug)),
   )
