@@ -51,6 +51,34 @@ const dataSchema = z.object({
   options: z.array(optionSchema).optional().default([]),
   resolutionSource: z.string().optional().default(''),
   resolutionRules: z.string().optional().default(''),
+  sports: z.object({
+    section: z.enum(['games', 'props']).optional(),
+    eventVariant: z.enum(['standard', 'more_markets', 'exact_score', 'halftime_result']).optional(),
+    sportSlug: z.string().optional().default(''),
+    leagueSlug: z.string().optional().default(''),
+    eventDate: z.string().optional().default(''),
+    startTime: z.string().optional().default(''),
+    teams: z.array(z.object({
+      name: z.string().optional().default(''),
+      abbreviation: z.string().optional().default(''),
+      host_status: z.enum(['home', 'away']).optional(),
+    })).optional().default([]),
+    template: z.object({
+      includeDraw: z.boolean().optional(),
+      includeBothTeamsToScore: z.boolean().optional(),
+      includeSpreads: z.boolean().optional(),
+      includeTotals: z.boolean().optional(),
+      spreadLines: z.array(z.number()).optional().default([]),
+      totalLines: z.array(z.number()).optional().default([]),
+    }).optional(),
+    props: z.array(z.object({
+      id: z.string().optional().default(''),
+      playerName: z.string().optional().default(''),
+      statType: z.enum(['points', 'rebounds', 'assists']).optional(),
+      line: z.number().optional(),
+      teamHostStatus: z.enum(['home', 'away']).optional(),
+    })).optional().default([]),
+  }).optional(),
 })
 
 const requestSchema = z.object({
@@ -104,6 +132,53 @@ function normalizeCategoryValues(input: z.infer<typeof dataSchema>) {
       return normalizeText(category.slug || category.label || category.name)
     })
     .filter(Boolean)
+}
+
+function normalizeSportsContext(input: z.infer<typeof dataSchema>) {
+  if (normalizeText(input.mainCategorySlug).toLowerCase() !== 'sports' || !input.sports) {
+    return null
+  }
+
+  const teams = input.sports.teams
+    .map(team => ({
+      name: normalizeText(team.name),
+      abbreviation: normalizeText(team.abbreviation),
+      hostStatus: team.host_status ?? null,
+    }))
+    .filter(team => team.name)
+
+  const props = input.sports.props
+    .map(prop => ({
+      playerName: normalizeText(prop.playerName),
+      statType: prop.statType ?? null,
+      line: typeof prop.line === 'number' && Number.isFinite(prop.line) ? prop.line : null,
+      teamHostStatus: prop.teamHostStatus ?? null,
+    }))
+    .filter(prop => prop.playerName || prop.statType || prop.line !== null || prop.teamHostStatus)
+
+  const spreadLines = input.sports.template?.spreadLines?.filter(line => Number.isFinite(line)) ?? []
+  const totalLines = input.sports.template?.totalLines?.filter(line => Number.isFinite(line)) ?? []
+
+  return {
+    section: input.sports.section ?? null,
+    eventVariant: input.sports.eventVariant ?? null,
+    sportSlug: normalizeText(input.sports.sportSlug),
+    leagueSlug: normalizeText(input.sports.leagueSlug),
+    eventDate: normalizeText(input.sports.eventDate),
+    startTime: normalizeText(input.sports.startTime),
+    teams,
+    template: input.sports.template
+      ? {
+          includeDraw: Boolean(input.sports.template.includeDraw),
+          includeBothTeamsToScore: Boolean(input.sports.template.includeBothTeamsToScore),
+          includeSpreads: Boolean(input.sports.template.includeSpreads),
+          includeTotals: Boolean(input.sports.template.includeTotals),
+          spreadLines,
+          totalLines,
+        }
+      : null,
+    props,
+  }
 }
 
 function parseJsonObject<T>(raw: string, schema: z.ZodSchema<T>): T {
@@ -355,6 +430,8 @@ async function fetchGammaRuleSamples(input: {
 function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
   const errors: AiError[] = []
   const categories = normalizeCategoryValues(input)
+  const isSportsEvent = normalizeText(input.mainCategorySlug).toLowerCase() === 'sports'
+  const sportsSection = input.sports?.section
 
   if (!normalizeText(input.title)) {
     errors.push({
@@ -414,10 +491,13 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
   }
   else {
     const validOptions = input.options.filter(option => normalizeText(option.title))
-    if (validOptions.length < 2) {
+    const minimumOptions = isSportsEvent && sportsSection === 'props' ? 1 : 2
+    if (validOptions.length < minimumOptions) {
       errors.push({
         code: 'mandatory',
-        reason: 'At least 2 options are required for multi-market.',
+        reason: minimumOptions === 1
+          ? 'At least 1 generated option is required for sports props.'
+          : 'At least 2 options are required for multi-market.',
         step: 2,
       })
     }
@@ -436,6 +516,58 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
       errors.push({
         code: 'mandatory',
         reason: 'Each option must include a market question.',
+        step: 2,
+      })
+    }
+  }
+
+  if (isSportsEvent) {
+    if (!sportsSection) {
+      errors.push({
+        code: 'mandatory',
+        reason: 'Sports events require exactly one sports sub category: games or props.',
+        step: 1,
+      })
+    }
+
+    if (!normalizeText(input.sports?.sportSlug)) {
+      errors.push({
+        code: 'mandatory',
+        reason: 'Sports events require a sport slug.',
+        step: 1,
+      })
+    }
+
+    if (!normalizeText(input.sports?.leagueSlug)) {
+      errors.push({
+        code: 'mandatory',
+        reason: 'Sports events require a league slug.',
+        step: 1,
+      })
+    }
+
+    if (!normalizeText(input.sports?.startTime)) {
+      errors.push({
+        code: 'mandatory',
+        reason: 'Sports events require a game start time.',
+        step: 1,
+      })
+    }
+
+    const teams = input.sports?.teams ?? []
+    const validTeams = teams.filter(team => normalizeText(team.name))
+    if (validTeams.length < 2) {
+      errors.push({
+        code: 'mandatory',
+        reason: 'Sports events require both home and away teams.',
+        step: 1,
+      })
+    }
+
+    if (sportsSection === 'games' && !input.sports?.eventVariant) {
+      errors.push({
+        code: 'mandatory',
+        reason: 'Sports games require an event variant.',
         step: 2,
       })
     }
@@ -574,6 +706,7 @@ export async function POST(request: Request) {
     const { mode, data } = parsed.data
     const apiKey = openRouterSettings.apiKey
     const model = openRouterSettings.model
+    const sportsContext = normalizeSportsContext(data)
 
     if (mode === 'generate_rules') {
       let samples: RulesSample[] = []
@@ -598,6 +731,7 @@ export async function POST(request: Request) {
           marketMode: data.marketMode,
           mainCategorySlug: normalizeText(data.mainCategorySlug),
           categories: normalizeCategoryValues(data),
+          sports: sportsContext,
           binaryQuestion: normalizeText(data.binaryQuestion),
           binaryOutcomeYes: normalizeText(data.binaryOutcomeYes),
           binaryOutcomeNo: normalizeText(data.binaryOutcomeNo),
@@ -620,6 +754,7 @@ export async function POST(request: Request) {
               'Paragraph 1: exact Yes/No resolution condition and UTC cutoff based on End date.',
               'Paragraph 2: resolution source and source precedence.',
               'Paragraph 3: objective edge-case handling (delays/revisions/cancellations) without arbitrary fallback to No.',
+              'When sports context is provided, use it only to keep the rules consistent with the sport, teams, variant, and line structure.',
               'Do not invent random timestamps unrelated to End date.',
               'Do not mention form/backend/internal field names.',
               'Never include terms like marketMode, binaryQuestion, multi_multiple, options array, endDateIso.',
@@ -702,6 +837,7 @@ export async function POST(request: Request) {
       endDate: normalizeText(data.endDateIso),
       mainCategory: normalizeText(data.mainCategorySlug),
       subCategories: normalizeCategoryValues(data),
+      sports: sportsContext,
       eventType: data.marketMode,
       binaryQuestion: normalizeText(data.binaryQuestion),
       binaryOutcomes: {
@@ -726,6 +862,7 @@ export async function POST(request: Request) {
           'Return a date error only when day/month/year clearly conflicts with a reliable public date.',
           'If the public date is unknown or uncertain, do not guess and do not flag date.',
           'Flag only real language errors or deterministic logic issues.',
+          'When sports context is provided, use it only as consistency context; do not require extra sports metadata beyond the provided user-facing fields.',
           'Reject content that could encourage, normalize, or financially incentivize real-world harm (violence, death, war, terrorism, or self-harm); return a "rules" error with a brief safety reason.',
           'Use user-facing field names in reasons (for example "End date", "Event title", "Resolution source URL"), never backend field keys.',
           'Output format: {"ok":boolean,"errors":[{"code":"english|url|rules|mandatory|date","reason":"...","step":1|2|3}]}',
