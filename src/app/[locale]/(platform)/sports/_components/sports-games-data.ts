@@ -440,6 +440,41 @@ function buildMoneylineButtons(
     return []
   }
 
+  const compositeMarket = candidates.length === 1 ? candidates[0] : null
+  if (compositeMarket && compositeMarket.outcomes.length >= 2) {
+    const orderedOutcomes = [...compositeMarket.outcomes].sort((a, b) => a.outcome_index - b.outcome_index)
+    const buttons: SportsGamesButton[] = []
+
+    orderedOutcomes.forEach((outcome, index) => {
+      const outcomeText = outcome.outcome_text?.trim() ?? ''
+      const matchedTeam = teams.find(team => doesTextMatchTeam(outcomeText, team)) ?? null
+      const normalizedOutcomeText = normalizeText(outcomeText)
+      const isDrawOutcome = normalizedOutcomeText.includes('draw')
+      const fallbackTeam = index === 0 ? team1 : index === orderedOutcomes.length - 1 ? team2 : null
+      const resolvedTeam = matchedTeam ?? fallbackTeam
+      const fallbackLabel = resolvedTeam
+        ? toTeamButtonLabel(resolvedTeam, outcomeText || 'TEAM')
+        : outcomeText.toUpperCase() || 'MARKET'
+
+      appendButton(buttons, usedButtonKeys, compositeMarket, outcome.outcome_index, {
+        label: isDrawOutcome ? 'DRAW' : fallbackLabel,
+        color: resolvedTeam?.color ?? null,
+        marketType: 'moneyline',
+        tone: isDrawOutcome
+          ? 'draw'
+          : resolvedTeam === team1
+            ? 'team1'
+            : resolvedTeam === team2
+              ? 'team2'
+              : 'neutral',
+      })
+    })
+
+    if (buttons.length > 0) {
+      return buttons
+    }
+  }
+
   const nonDrawMarkets = candidates.filter(market => !isDrawMarket(market))
   const team1Market = team1 ? nonDrawMarkets.find(market => doesMarketMatchTeam(market, team1)) : undefined
   const team2Market = team2 ? nonDrawMarkets.find(market => doesMarketMatchTeam(market, team2)) : undefined
@@ -946,7 +981,7 @@ function buildSportsGamesCard(
   options?: { teamSourceEvent?: Event | null },
 ): SportsGamesCard | null {
   const primaryEvent = eventsGroup.find(event => !isSportsMoreMarketsSlug(event.slug)) ?? eventsGroup[0]
-  if (!primaryEvent || !primaryEvent.neg_risk) {
+  if (!primaryEvent) {
     return null
   }
   const teamSourceEvent = options?.teamSourceEvent

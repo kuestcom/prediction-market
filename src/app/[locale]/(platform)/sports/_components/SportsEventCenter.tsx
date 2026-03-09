@@ -1230,8 +1230,8 @@ export default function SportsEventCenter({
   const activeTradeContext = useMemo(() => {
     const candidateKeys = usesSectionLayout
       ? [
-          activeTradeButtonKey,
           fallbackButtonFromOrderState,
+          activeTradeButtonKey,
           openSectionKey ? selectedButtonBySection[openSectionKey] : null,
           moneylineButtonKey,
           selectedButtonBySection.spread,
@@ -1240,8 +1240,8 @@ export default function SportsEventCenter({
           resolveDefaultConditionId(activeCard),
         ]
       : [
-          activeTradeButtonKey,
           fallbackButtonFromOrderState,
+          activeTradeButtonKey,
           openAuxiliaryConditionId ? selectedAuxiliaryButtonByConditionId[openAuxiliaryConditionId] : null,
           marketSlugToButtonKey,
           auxiliaryMarketCards[0]?.buttons[0]?.key ?? null,
@@ -1287,6 +1287,52 @@ export default function SportsEventCenter({
     selectedAuxiliaryButtonByConditionId,
     selectedButtonBySection,
   ])
+
+  useEffect(() => {
+    if (!fallbackButtonFromOrderState) {
+      return
+    }
+
+    const matchedButton = activeCard.buttons.find(
+      button => button.key === fallbackButtonFromOrderState,
+    )
+    if (!matchedButton) {
+      return
+    }
+
+    setActiveTradeButtonKey((current) => {
+      if (current === matchedButton.key) {
+        return current
+      }
+      return matchedButton.key
+    })
+
+    if (usesSectionLayout) {
+      const sectionKey = matchedButton.marketType as EventSectionKey
+      setSelectedButtonBySection((current) => {
+        if (current[sectionKey] === matchedButton.key) {
+          return current
+        }
+
+        return {
+          ...current,
+          [sectionKey]: matchedButton.key,
+        }
+      })
+      return
+    }
+
+    setSelectedAuxiliaryButtonByConditionId((current) => {
+      if (current[matchedButton.conditionId] === matchedButton.key) {
+        return current
+      }
+
+      return {
+        ...current,
+        [matchedButton.conditionId]: matchedButton.key,
+      }
+    })
+  }, [activeCard.buttons, fallbackButtonFromOrderState, usesSectionLayout])
 
   const activeTradeHeaderContext = useMemo(() => {
     if (!activeTradeContext) {
@@ -1700,56 +1746,57 @@ export default function SportsEventCenter({
                           'grid w-full min-w-0 items-stretch gap-2',
                           'sm:ml-auto sm:flex-none',
                           section.key === 'moneyline'
-                            ? 'grid-cols-3 sm:w-[372px] sm:grid-cols-3'
+                            ? 'sm:w-[372px]'
                             : 'grid-cols-2 sm:w-[248px] sm:grid-cols-2',
                         )}
                       >
-                        {sectionButtons.map((button) => {
-                          const isActive = activeTradeButtonKey === button.key
-                          const hasTeamColor = isActive
-                            && (button.tone === 'team1' || button.tone === 'team2')
-                            && Boolean(button.color)
-                          const isOverButton = isActive && button.tone === 'over'
-                          const isUnderButton = isActive && button.tone === 'under'
+                        {section.key === 'moneyline'
+                          ? (
+                              <div className="flex flex-wrap justify-end gap-2">
+                                {sectionButtons.map((button) => {
+                                  const isActive = activeTradeButtonKey === button.key
+                                  const hasTeamColor = isActive
+                                    && (button.tone === 'team1' || button.tone === 'team2')
+                                    && Boolean(button.color)
+                                  const isOverButton = isActive && button.tone === 'over'
+                                  const isUnderButton = isActive && button.tone === 'under'
 
-                          return (
-                            <div
-                              key={`${section.key}-${button.key}`}
-                              className="relative min-w-0 overflow-hidden rounded-lg pb-1.25"
-                            >
-                              <div
-                                className={cn(
-                                  'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
-                                  !hasTeamColor && !isOverButton && !isUnderButton && 'bg-border/70',
-                                  isOverButton && 'bg-yes/70',
-                                  isUnderButton && 'bg-no/70',
-                                )}
-                                style={hasTeamColor ? resolveButtonDepthStyle(button.color) : undefined}
-                              />
-                              <button
-                                type="button"
-                                data-sports-card-control="true"
-                                onClick={(event) => {
-                                  event.stopPropagation()
-                                  updateSectionSelection(section.key, button.key, { panelMode: 'full' })
-                                }}
-                                style={hasTeamColor ? resolveButtonStyle(button.color) : undefined}
-                                className={cn(
-                                  `
-                                    relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg px-2
-                                    text-xs font-semibold shadow-sm transition-transform duration-150 ease-out
-                                    hover:translate-y-px
-                                    active:translate-y-0.5
-                                  `,
-                                  !hasTeamColor && !isOverButton && !isUnderButton
-                                  && 'bg-secondary text-secondary-foreground hover:bg-accent',
-                                  isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
-                                  isUnderButton && 'bg-no text-white hover:bg-no-foreground',
-                                )}
-                              >
-                                {section.key === 'moneyline'
-                                  ? (
-                                      <>
+                                  return (
+                                    <div
+                                      key={`${section.key}-${button.key}`}
+                                      className="relative w-[118px] shrink-0 overflow-hidden rounded-lg pb-1.25"
+                                    >
+                                      <div
+                                        className={cn(
+                                          'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
+                                          !hasTeamColor && !isOverButton && !isUnderButton && 'bg-border/70',
+                                          isOverButton && 'bg-yes/70',
+                                          isUnderButton && 'bg-no/70',
+                                        )}
+                                        style={hasTeamColor ? resolveButtonDepthStyle(button.color) : undefined}
+                                      />
+                                      <button
+                                        type="button"
+                                        data-sports-card-control="true"
+                                        onClick={(event) => {
+                                          event.stopPropagation()
+                                          updateSectionSelection(section.key, button.key, { panelMode: 'full' })
+                                        }}
+                                        style={hasTeamColor ? resolveButtonStyle(button.color) : undefined}
+                                        className={cn(
+                                          `
+                                            relative flex h-9 w-full translate-y-0 items-center justify-center
+                                            rounded-lg px-2 text-xs font-semibold shadow-sm transition-transform
+                                            duration-150 ease-out
+                                            hover:translate-y-px
+                                            active:translate-y-0.5
+                                          `,
+                                          !hasTeamColor && !isOverButton && !isUnderButton
+                                          && 'bg-secondary text-secondary-foreground hover:bg-accent',
+                                          isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
+                                          isUnderButton && 'bg-no text-white hover:bg-no-foreground',
+                                        )}
+                                      >
                                         <span className="mr-1 uppercase opacity-80">{button.label}</span>
                                         <span className={cn(
                                           'text-sm leading-none tabular-nums transition-opacity',
@@ -1758,22 +1805,82 @@ export default function SportsEventCenter({
                                         >
                                           {formatButtonOdds(button.cents)}
                                         </span>
-                                      </>
-                                    )
-                                  : (
-                                      <span className="flex w-full items-center justify-between gap-1 px-1">
-                                        <span className="min-w-0 truncate text-left uppercase opacity-80">
-                                          {button.label}
-                                        </span>
-                                        <span className="shrink-0 text-sm leading-none tabular-nums">
-                                          {formatButtonOdds(button.cents)}
-                                        </span>
-                                      </span>
+                                      </button>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )
+                          : sectionButtons.map((button) => {
+                              const isActive = activeTradeButtonKey === button.key
+                              const hasTeamColor = isActive
+                                && (button.tone === 'team1' || button.tone === 'team2')
+                                && Boolean(button.color)
+                              const isOverButton = isActive && button.tone === 'over'
+                              const isUnderButton = isActive && button.tone === 'under'
+
+                              return (
+                                <div
+                                  key={`${section.key}-${button.key}`}
+                                  className="relative min-w-0 overflow-hidden rounded-lg pb-1.25"
+                                >
+                                  <div
+                                    className={cn(
+                                      'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
+                                      !hasTeamColor && !isOverButton && !isUnderButton && 'bg-border/70',
+                                      isOverButton && 'bg-yes/70',
+                                      isUnderButton && 'bg-no/70',
                                     )}
-                              </button>
-                            </div>
-                          )
-                        })}
+                                    style={hasTeamColor ? resolveButtonDepthStyle(button.color) : undefined}
+                                  />
+                                  <button
+                                    type="button"
+                                    data-sports-card-control="true"
+                                    onClick={(event) => {
+                                      event.stopPropagation()
+                                      updateSectionSelection(section.key, button.key, { panelMode: 'full' })
+                                    }}
+                                    style={hasTeamColor ? resolveButtonStyle(button.color) : undefined}
+                                    className={cn(
+                                      `
+                                        relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg
+                                        px-2 text-xs font-semibold shadow-sm transition-transform duration-150 ease-out
+                                        hover:translate-y-px
+                                        active:translate-y-0.5
+                                      `,
+                                      !hasTeamColor && !isOverButton && !isUnderButton
+                                      && 'bg-secondary text-secondary-foreground hover:bg-accent',
+                                      isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
+                                      isUnderButton && 'bg-no text-white hover:bg-no-foreground',
+                                    )}
+                                  >
+                                    {section.key === 'moneyline'
+                                      ? (
+                                          <>
+                                            <span className="mr-1 uppercase opacity-80">{button.label}</span>
+                                            <span className={cn(
+                                              'text-sm leading-none tabular-nums transition-opacity',
+                                              isActive ? 'text-foreground opacity-100' : 'opacity-45',
+                                            )}
+                                            >
+                                              {formatButtonOdds(button.cents)}
+                                            </span>
+                                          </>
+                                        )
+                                      : (
+                                          <span className="flex w-full items-center justify-between gap-1 px-1">
+                                            <span className="min-w-0 truncate text-left uppercase opacity-80">
+                                              {button.label}
+                                            </span>
+                                            <span className="shrink-0 text-sm leading-none tabular-nums">
+                                              {formatButtonOdds(button.cents)}
+                                            </span>
+                                          </span>
+                                        )}
+                                  </button>
+                                </div>
+                              )
+                            })}
                       </div>
                     )}
 

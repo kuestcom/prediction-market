@@ -657,12 +657,20 @@ function resolveGraphSeriesName(card: SportsGamesCard, button: SportsGamesButton
 }
 
 function resolveGraphSeriesColor(
+  card: SportsGamesCard,
   button: SportsGamesButton | undefined,
   fallbackColor: string,
 ) {
   const relatedColor = normalizeHexColor(button?.color)
   if (relatedColor) {
     return relatedColor
+  }
+
+  const relatedTeamColor = normalizeHexColor(
+    button ? resolveTeamByTone(card, button.tone)?.color : null,
+  )
+  if (relatedTeamColor) {
+    return relatedTeamColor
   }
 
   if (button?.tone === 'over') {
@@ -676,6 +684,61 @@ function resolveGraphSeriesColor(
   }
 
   return fallbackColor
+}
+
+function buildCompositeMoneylineGraphTargets(card: SportsGamesCard) {
+  const moneylineButtons = card.buttons.filter(button => button.marketType === 'moneyline')
+  if (moneylineButtons.length < 2) {
+    return [] as SportsGraphSeriesTarget[]
+  }
+
+  const moneylineConditionIds = Array.from(new Set(moneylineButtons.map(button => button.conditionId)))
+  if (moneylineConditionIds.length !== 1) {
+    return [] as SportsGraphSeriesTarget[]
+  }
+
+  const market = card.detailMarkets.find(
+    detailMarket => detailMarket.condition_id === moneylineConditionIds[0],
+  ) ?? null
+  if (!market) {
+    return [] as SportsGraphSeriesTarget[]
+  }
+
+  const orderedButtons = [...moneylineButtons].sort((left, right) => {
+    const toneOrder: Record<SportsGamesButton['tone'], number> = {
+      team1: 0,
+      draw: 1,
+      team2: 2,
+      over: 3,
+      under: 4,
+      neutral: 5,
+    }
+
+    return (toneOrder[left.tone] ?? 99) - (toneOrder[right.tone] ?? 99)
+  })
+
+  const fallbackColors = ['var(--yes)', 'var(--secondary-foreground)', 'var(--no)']
+
+  return orderedButtons.reduce<SportsGraphSeriesTarget[]>((targets, button, index) => {
+    const outcome = market.outcomes.find(
+      candidate => candidate.outcome_index === button.outcomeIndex,
+    ) ?? null
+
+    if (!outcome?.token_id) {
+      return targets
+    }
+
+    targets.push({
+      key: `${market.condition_id}:${button.outcomeIndex}`,
+      tokenId: outcome.token_id,
+      market,
+      outcomeIndex: button.outcomeIndex,
+      name: resolveGraphSeriesName(card, button, market),
+      color: resolveGraphSeriesColor(card, button, fallbackColors[index % fallbackColors.length]!),
+    })
+
+    return targets
+  }, [])
 }
 
 function resolveTotalButtonLabel(button: SportsGamesButton, selectedOutcome: Outcome | null) {
@@ -1046,7 +1109,7 @@ export function SportsGameGraph({
                 market: selectedMarket,
                 outcomeIndex: outcome.outcome_index,
                 name: relatedButton?.label ?? fallbackLabel,
-                color: resolveGraphSeriesColor(relatedButton, fallbackColors[index % fallbackColors.length]!),
+                color: resolveGraphSeriesColor(card, relatedButton, fallbackColors[index % fallbackColors.length]!),
               }
             })
 
@@ -1057,6 +1120,11 @@ export function SportsGameGraph({
       }
 
       const fallbackColors = ['var(--yes)', 'var(--primary)', 'var(--no)']
+
+      const compositeMoneylineTargets = buildCompositeMoneylineGraphTargets(card)
+      if (compositeMoneylineTargets.length > 0) {
+        return compositeMoneylineTargets
+      }
 
       const moneylineConditionIds = Array.from(new Set(
         card.buttons
@@ -1090,7 +1158,7 @@ export function SportsGameGraph({
               market,
               outcomeIndex: yesOutcome.outcome_index,
               name: resolveGraphSeriesName(card, relatedButton, market),
-              color: resolveGraphSeriesColor(relatedButton, fallbackColors[index % fallbackColors.length]!),
+              color: resolveGraphSeriesColor(card, relatedButton, fallbackColors[index % fallbackColors.length]!),
             }
           })
           .filter((target): target is SportsGraphSeriesTarget => target !== null)
@@ -1121,7 +1189,7 @@ export function SportsGameGraph({
           market,
           outcomeIndex: yesOutcome.outcome_index,
           name: resolveGraphSeriesName(card, relatedButton, market),
-          color: resolveGraphSeriesColor(relatedButton, fallbackColors[fallbackTargets.length % fallbackColors.length]!),
+          color: resolveGraphSeriesColor(card, relatedButton, fallbackColors[fallbackTargets.length % fallbackColors.length]!),
         })
       }
 
@@ -2572,6 +2640,17 @@ export function SportsGameDetailsPanel({
     ) ?? null
   }, [selectedMarket, selectedOutcome])
 
+  const nextButton = useMemo(() => {
+    if (!selectedMarket || !nextOutcome) {
+      return null
+    }
+
+    return card.buttons.find(
+      button => button.conditionId === selectedMarket.condition_id
+        && button.outcomeIndex === nextOutcome.outcome_index,
+    ) ?? null
+  }, [card.buttons, nextOutcome, selectedMarket])
+
   const tradeSelectionLabel = useMemo(
     () => resolveSelectedTradeLabel(selectedButton, selectedOutcome),
     [selectedButton, selectedOutcome],
@@ -2582,12 +2661,16 @@ export function SportsGameDetailsPanel({
   }, [nextOutcome, selectedMarket])
 
   const handleToggleOutcome = useCallback(() => {
-    if (!nextOutcome) {
+    if (!selectedMarket || !nextOutcome) {
       return
     }
 
+    setOrderMarket(selectedMarket)
     setOrderOutcome(nextOutcome)
-  }, [nextOutcome, setOrderOutcome])
+    if (nextButton) {
+      onSelectButton(nextButton.key, { panelMode: 'preserve' })
+    }
+  }, [nextButton, nextOutcome, onSelectButton, selectedMarket, setOrderMarket, setOrderOutcome])
 
   const handleCashOutTag = useCallback(async (
     tag: SportsPositionTag,
@@ -4396,10 +4479,10 @@ export default function SportsGamesCenter({
               <div
                 data-sports-card-control="true"
                 className={cn(
-                  'grid w-full grid-cols-1 gap-2',
+                  'grid grid-cols-1 gap-2',
                   showSpreadsAndTotals
                     ? 'min-[1200px]:w-[372px] sm:grid-cols-3'
-                    : 'min-[1200px]:w-[372px] sm:grid-cols-1',
+                    : 'w-full sm:ml-auto sm:w-auto sm:justify-items-end',
                 )}
               >
                 {visibleMarketColumns.map((column) => {
@@ -4461,7 +4544,7 @@ export default function SportsGamesCenter({
                       key={`${card.id}-${column.key}`}
                       className={cn(
                         'w-full gap-2',
-                        isMoneylineOnlyLayout ? 'grid grid-cols-3' : 'flex flex-col',
+                        isMoneylineOnlyLayout ? 'flex flex-wrap justify-end' : 'flex flex-col',
                       )}
                     >
                       {renderedButtons.map((button) => {
@@ -4474,7 +4557,13 @@ export default function SportsGamesCenter({
                         const isUnderButton = isActiveColumn && button.tone === 'under'
 
                         return (
-                          <div key={button.key} className="relative overflow-hidden rounded-lg pb-1.25">
+                          <div
+                            key={button.key}
+                            className={cn(
+                              'relative overflow-hidden rounded-lg pb-1.25',
+                              isMoneylineOnlyLayout ? 'min-w-[88px] shrink-0 sm:min-w-[104px]' : 'w-full',
+                            )}
+                          >
                             <div
                               className={cn(
                                 'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
