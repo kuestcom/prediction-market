@@ -24,9 +24,6 @@ export interface EventPageContentData {
 }
 
 export async function resolveCanonicalEventSlugFromSportsPath(sportSlug: string, eventSlug: string) {
-  'use cache'
-  cacheTag(cacheTags.eventsGlobal)
-
   const { data, error } = await EventRepository.getCanonicalEventSlugBySportsPath(sportSlug, eventSlug)
   if (error || !data?.slug) {
     return null
