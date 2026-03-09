@@ -157,7 +157,7 @@ export default function EventContent({
       return
     }
 
-    const appliedKey = `${event.id}:${paramsKey}`
+    const appliedKey = `${event.id}:${marketSlug ?? ''}:${paramsKey}`
     if (appliedOrderParamsRef.current === appliedKey) {
       return
     }
