@@ -3,6 +3,7 @@
 import type { AppKit } from '@reown/appkit'
 import type { SIWECreateMessageArgs, SIWESession, SIWEVerifyMessageArgs } from '@reown/appkit-siwe'
 import type { ReactNode } from 'react'
+import type { AppKitValue } from '@/hooks/useAppKit'
 import type { User } from '@/types'
 import { createSIWEConfig, formatMessage, getAddressFromMessage } from '@reown/appkit-siwe'
 import { createAppKit, useAppKitTheme } from '@reown/appkit/react'
@@ -10,7 +11,7 @@ import { generateRandomString } from 'better-auth/crypto'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { WagmiProvider } from 'wagmi'
-import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
+import { AppKitContext } from '@/hooks/useAppKit'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { defaultNetwork, networks, projectId, wagmiAdapter, wagmiConfig } from '@/lib/appkit'
 import { authClient } from '@/lib/auth-client'
@@ -88,7 +89,7 @@ function initializeAppKitSingleton(
       networks,
       featuredWalletIds: ['c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96'],
       features: {
-        analytics: process.env.NODE_ENV === 'production',
+        analytics: false,
       },
       siweConfig: createSIWEConfig({
         signOutOnAccountChange: true,
@@ -210,11 +211,11 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
   const { resolvedTheme } = useTheme()
   const [appKitThemeMode, setAppKitThemeMode] = useState<'light' | 'dark'>('light')
   const [canSyncTheme, setCanSyncTheme] = useState(false)
-  const [AppKitValue, setAppKitValue] = useState(defaultAppKitValue)
+  const [appKitReady, setAppKitReady] = useState(false)
 
-  useEffect(() => {
+  async function ensureAppKitInstance() {
     if (!IS_BROWSER) {
-      return
+      return null
     }
 
     const nextThemeMode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light'
@@ -224,25 +225,50 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
       logoUrl: site.logoUrl,
     })
 
-    if (instance) {
-      setAppKitThemeMode(nextThemeMode)
-      setCanSyncTheme(true)
-      setAppKitValue({
-        open: async (options) => {
-          setSiweTwoFactorIntentCookie()
-          await instance.open(options)
-        },
-        close: async () => {
-          await instance.close()
-        },
-        isReady: true,
-      })
+    if (!instance) {
+      return null
     }
-  }, [resolvedTheme, site.description, site.logoUrl, site.name])
+
+    setAppKitThemeMode(nextThemeMode)
+    setCanSyncTheme(true)
+    setAppKitReady(true)
+    return instance
+  }
+
+  useEffect(() => {
+    if (!IS_BROWSER || !appKitInstance) {
+      return
+    }
+
+    const nextThemeMode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light'
+    setAppKitThemeMode(nextThemeMode)
+    setCanSyncTheme(true)
+    setAppKitReady(true)
+  }, [resolvedTheme])
+
+  const appKitValue: AppKitValue = {
+    open: async (options) => {
+      const instance = await ensureAppKitInstance()
+      if (!instance) {
+        return
+      }
+
+      setSiweTwoFactorIntentCookie()
+      await instance.open(options)
+    },
+    close: async () => {
+      if (!appKitInstance) {
+        return
+      }
+
+      await appKitInstance.close()
+    },
+    isReady: appKitReady,
+  }
 
   return (
     <WagmiProvider config={wagmiConfig}>
-      <AppKitContext value={AppKitValue}>
+      <AppKitContext value={appKitValue}>
         {children}
         {canSyncTheme && <AppKitThemeSynchronizer themeMode={appKitThemeMode} />}
       </AppKitContext>

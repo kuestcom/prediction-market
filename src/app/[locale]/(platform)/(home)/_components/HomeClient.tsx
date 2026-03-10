@@ -211,7 +211,6 @@ export default function HomeClient({
           />
 
           <EventsGrid
-            key={`${pathname}:${targetMainTag}:${targetTag}`}
             filters={effectiveFilters}
             initialEvents={canUseServerInitialEvents ? initialEvents : []}
             onClearFilters={handleClearFilters}

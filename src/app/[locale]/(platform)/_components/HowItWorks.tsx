@@ -1,6 +1,5 @@
 'use client'
 
-import { useAppKitAccount } from '@reown/appkit/react'
 import { InfoIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
@@ -23,20 +22,17 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { useAppKit } from '@/hooks/useAppKit'
-import { useClientMounted } from '@/hooks/useClientMounted'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePathname } from '@/i18n/navigation'
 import { cn, triggerConfetti } from '@/lib/utils'
 import { useIsSingleMarket } from '@/stores/useOrder'
 
 export default function HowItWorks() {
-  const isMounted = useClientMounted()
   const t = useExtracted()
   const pathname = usePathname()
   const isMobile = useIsMobile()
   const isSingleMarket = useIsSingleMarket()
   const { open } = useAppKit()
-  const { isConnected, status } = useAppKitAccount()
   const [isOpen, setIsOpen] = useState(false)
   const [activeStep, setActiveStep] = useState(0)
   const [isMobileBannerDismissed, setIsMobileBannerDismissed] = useState(false)
@@ -106,10 +102,6 @@ export default function HowItWorks() {
     }
 
     setActiveStep(step => Math.min(step + 1, steps.length - 1))
-  }
-
-  if (!isMounted || status === 'connecting' || isConnected) {
-    return <></>
   }
 
   const showMobileBanner = !isMobileBannerDismissed

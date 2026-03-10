@@ -6,6 +6,7 @@ import { cacheTag } from 'next/cache'
 import HomeClient from '@/app/[locale]/(platform)/(home)/_components/HomeClient'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
+import { filterHomeEvents } from '@/lib/home-events'
 
 interface HomeContentProps {
   locale: string
@@ -38,7 +39,7 @@ export default async function HomeContent({
       console.warn('Failed to fetch initial events for static generation:', error)
     }
     else {
-      initialEvents = events ?? []
+      initialEvents = filterHomeEvents(events ?? [], { currentTimestamp: Date.now() })
     }
   }
   catch {
