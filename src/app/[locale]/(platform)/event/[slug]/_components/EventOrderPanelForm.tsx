@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
-import type { Event } from '@/types'
+import type { Event, Market, Outcome } from '@/types'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { CheckIcon, TriangleAlertIcon } from 'lucide-react'
@@ -57,12 +57,14 @@ import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { useNotifications } from '@/stores/useNotifications'
-import { useAmountAsNumber, useIsLimitOrder, useIsSingleMarket, useNoPrice, useOrder, useYesPrice } from '@/stores/useOrder'
+import { useAmountAsNumber, useIsLimitOrder, useNoPrice, useOrder, useYesPrice } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
 
 interface EventOrderPanelFormProps {
   isMobile: boolean
   event: Event
+  initialMarket?: Market | null
+  initialOutcome?: Outcome | null
   desktopMarketInfo?: ReactNode
   mobileMarketInfo?: ReactNode
   primaryOutcomeIndex?: number | null
@@ -135,9 +137,60 @@ function resolveEndOfDayTimestamp() {
   return Math.floor(now.getTime() / 1000)
 }
 
+function normalizeMarketPrice(market: Market | null | undefined) {
+  if (!market) {
+    return null
+  }
+
+  const value = Number.isFinite(market.price)
+    ? market.price
+    : Number.isFinite(market.probability)
+      ? Number(market.probability) / 100
+      : null
+
+  if (value == null) {
+    return null
+  }
+
+  return Math.max(0, Math.min(1, value))
+}
+
+function resolveMarketOutcome(
+  market: Market | null | undefined,
+  outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
+) {
+  if (!market) {
+    return null
+  }
+
+  return market.outcomes.find(outcome => outcome.outcome_index === outcomeIndex)
+    ?? market.outcomes[outcomeIndex]
+    ?? null
+}
+
+function resolveFallbackOutcomePrice(
+  market: Market | null | undefined,
+  outcome: Outcome | null | undefined,
+) {
+  if (outcome && Number.isFinite(outcome.buy_price)) {
+    return Math.max(0, Math.min(1, Number(outcome.buy_price)))
+  }
+
+  const marketPrice = normalizeMarketPrice(market)
+  if (marketPrice == null) {
+    return null
+  }
+
+  return outcome?.outcome_index === OUTCOME_INDEX.NO
+    ? Math.max(0, Math.min(1, 1 - marketPrice))
+    : marketPrice
+}
+
 export default function EventOrderPanelForm({
   event,
   isMobile,
+  initialMarket = null,
+  initialOutcome = null,
   desktopMarketInfo,
   mobileMarketInfo,
   primaryOutcomeIndex = null,
@@ -158,9 +211,28 @@ export default function EventOrderPanelForm({
   const state = useOrder()
   const setUserShares = useOrder(store => store.setUserShares)
   const queryClient = useQueryClient()
-  const yesPrice = useYesPrice()
-  const noPrice = useNoPrice()
-  const isSingleMarket = useIsSingleMarket()
+  const liveYesPrice = useYesPrice()
+  const liveNoPrice = useNoPrice()
+  const hasMatchingStoreEvent = state.event?.id === event.id
+  const hasMatchingStoreMarket = Boolean(
+    state.market
+    && event.markets.some(market => market.condition_id === state.market?.condition_id),
+  )
+  const activeEvent: Event = hasMatchingStoreEvent && state.event ? state.event : event
+  const activeMarket = hasMatchingStoreMarket ? state.market : initialMarket
+  const fallbackOutcome = useMemo(() => {
+    if (initialOutcome) {
+      return initialOutcome
+    }
+    return activeMarket?.outcomes[0] ?? null
+  }, [activeMarket, initialOutcome])
+  const hasMatchingStoreOutcome = Boolean(
+    state.outcome
+    && activeMarket
+    && state.outcome.condition_id === activeMarket.condition_id,
+  )
+  const activeOutcome = hasMatchingStoreOutcome ? state.outcome : fallbackOutcome
+  const isSingleMarket = activeEvent.total_markets_count === 1
   const amountNumber = useAmountAsNumber()
   const isLimitOrder = useIsLimitOrder()
   const shouldShowEarnings = amountNumber > 0
@@ -176,7 +248,17 @@ export default function EventOrderPanelForm({
   const limitSharesInputRef = useRef<HTMLInputElement | null>(null)
   const limitSharesNumber = Number.parseFloat(state.limitShares) || 0
   const { balance, isLoadingBalance } = useBalance()
-  const outcomeTokenId = state.outcome?.token_id ? String(state.outcome.token_id) : null
+  const yesOutcome = useMemo(
+    () => resolveMarketOutcome(activeMarket, OUTCOME_INDEX.YES),
+    [activeMarket],
+  )
+  const noOutcome = useMemo(
+    () => resolveMarketOutcome(activeMarket, OUTCOME_INDEX.NO),
+    [activeMarket],
+  )
+  const yesPrice = liveYesPrice ?? resolveFallbackOutcomePrice(activeMarket, yesOutcome)
+  const noPrice = liveNoPrice ?? resolveFallbackOutcomePrice(activeMarket, noOutcome)
+  const outcomeTokenId = activeOutcome?.token_id ? String(activeOutcome.token_id) : null
   const shouldLoadOrderBookSummary = Boolean(
     outcomeTokenId
     && (state.type === ORDER_TYPE.MARKET
@@ -197,23 +279,23 @@ export default function EventOrderPanelForm({
   const { openOrdersQueryKey, openSellSharesByCondition } = useEventOrderPanelOpenOrders({
     userId: user?.id,
     eventSlug: event.slug,
-    conditionId: state.market?.condition_id,
+    conditionId: activeMarket?.condition_id,
   })
   const eventOpenOrdersQueryKey = useMemo(
     () => buildUserOpenOrdersQueryKey(user?.id, event.slug),
     [event.slug, user?.id],
   )
   const isNegRiskEnabled = Boolean(event.enable_neg_risk)
-  const isNegRiskMarket = typeof state.market?.neg_risk === 'boolean'
-    ? state.market.neg_risk
+  const isNegRiskMarket = typeof activeMarket?.neg_risk === 'boolean'
+    ? activeMarket.neg_risk
     : Boolean(event.enable_neg_risk || event.neg_risk)
-  const isResolvedMarket = Boolean(state.market?.is_resolved || state.market?.condition?.resolved)
+  const isResolvedMarket = Boolean(activeMarket?.is_resolved || activeMarket?.condition?.resolved)
   const resolvedDisplay = useMemo(
     () => resolveResolvedOrderPanelDisplay({
       event,
-      selectedMarket: state.market,
+      selectedMarket: activeMarket,
     }),
-    [event, state.market],
+    [activeMarket, event],
   )
   const resolvedOutcomeIndex = resolvedDisplay.resolvedOutcomeIndex
   const resolvedOutcomeLabel = resolvedDisplay.outcomeLabel
@@ -224,7 +306,7 @@ export default function EventOrderPanelForm({
         ? t('No')
         : null
   const shouldShowResolvedSportsSubtitle = Boolean(
-    state.market?.sports_market_type
+    activeMarket?.sports_market_type
     || resolvedDisplay.market?.sports_market_type
     || resolvedDisplay.marketTitle,
   )
@@ -240,11 +322,11 @@ export default function EventOrderPanelForm({
   const resolvedYesOutcomeText = resolvedDisplay.market?.outcomes.find(
     outcome => outcome.outcome_index === OUTCOME_INDEX.YES,
   )?.outcome_text
-  ?? state.market?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_text
+  ?? activeMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_text
   const resolvedNoOutcomeText = resolvedDisplay.market?.outcomes.find(
     outcome => outcome.outcome_index === OUTCOME_INDEX.NO,
   )?.outcome_text
-  ?? state.market?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)?.outcome_text
+  ?? activeMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)?.outcome_text
   const resolvedYesOutcomeLabel = (resolvedYesOutcomeText ? normalizeOutcomeLabel(resolvedYesOutcomeText) : '')
     || resolvedYesOutcomeText
     || t('Yes')
@@ -255,7 +337,7 @@ export default function EventOrderPanelForm({
   const [showLimitMinimumWarning, setShowLimitMinimumWarning] = useState(false)
   const { positionsQuery, aggregatedPositionShares } = useEventOrderPanelPositions({
     makerAddress,
-    conditionId: state.market?.condition_id,
+    conditionId: activeMarket?.condition_id,
   })
 
   const normalizedOrderBook = useMemo(() => {
@@ -341,14 +423,14 @@ export default function EventOrderPanelForm({
     setUserShares(mergedSharesByCondition, { replace: true })
   }, [makerAddress, mergedSharesByCondition, setUserShares])
 
-  const conditionTokenShares = state.market ? state.userShares[state.market.condition_id] : undefined
-  const conditionPositionShares = state.market ? aggregatedPositionShares?.[state.market.condition_id] : undefined
+  const conditionTokenShares = activeMarket ? state.userShares[activeMarket.condition_id] : undefined
+  const conditionPositionShares = activeMarket ? aggregatedPositionShares?.[activeMarket.condition_id] : undefined
   const yesTokenShares = conditionTokenShares?.[OUTCOME_INDEX.YES] ?? 0
   const noTokenShares = conditionTokenShares?.[OUTCOME_INDEX.NO] ?? 0
   const yesPositionShares = conditionPositionShares?.[OUTCOME_INDEX.YES] ?? 0
   const noPositionShares = conditionPositionShares?.[OUTCOME_INDEX.NO] ?? 0
-  const lockedYesShares = state.market ? openSellSharesByCondition[state.market.condition_id]?.[OUTCOME_INDEX.YES] ?? 0 : 0
-  const lockedNoShares = state.market ? openSellSharesByCondition[state.market.condition_id]?.[OUTCOME_INDEX.NO] ?? 0 : 0
+  const lockedYesShares = activeMarket ? openSellSharesByCondition[activeMarket.condition_id]?.[OUTCOME_INDEX.YES] ?? 0 : 0
+  const lockedNoShares = activeMarket ? openSellSharesByCondition[activeMarket.condition_id]?.[OUTCOME_INDEX.NO] ?? 0 : 0
   const availableYesTokenShares = Math.max(0, yesTokenShares - lockedYesShares)
   const availableNoTokenShares = Math.max(0, noTokenShares - lockedNoShares)
   const availableYesPositionShares = Math.max(0, yesPositionShares - lockedYesShares)
@@ -357,7 +439,7 @@ export default function EventOrderPanelForm({
   const mergeableNoShares = Math.max(availableNoTokenShares, availableNoPositionShares)
   const availableMergeShares = Math.max(0, Math.min(mergeableYesShares, mergeableNoShares))
   const availableSplitBalance = Math.max(0, balance.raw)
-  const outcomeIndex = state.outcome?.outcome_index as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO | undefined
+  const outcomeIndex = activeOutcome?.outcome_index as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO | undefined
   const selectedTokenShares = outcomeIndex === undefined
     ? 0
     : outcomeIndex === OUTCOME_INDEX.YES
@@ -371,26 +453,26 @@ export default function EventOrderPanelForm({
   const selectedShares = state.side === ORDER_SIDE.SELL
     ? (isLimitOrder ? selectedTokenShares : selectedPositionShares)
     : selectedTokenShares
-  const selectedShareLabel = normalizeOutcomeLabel(state.outcome?.outcome_text)
+  const selectedShareLabel = normalizeOutcomeLabel(activeOutcome?.outcome_text)
     ?? (outcomeIndex === OUTCOME_INDEX.NO
       ? t('No')
       : outcomeIndex === OUTCOME_INDEX.YES
         ? t('Yes')
         : undefined)
   const claimablePositionsForMarket = useMemo(() => {
-    if (!isResolvedMarket || !state.market?.condition_id) {
+    if (!isResolvedMarket || !activeMarket?.condition_id) {
       return []
     }
 
     const positions = positionsQuery.data ?? []
     return positions.filter((position) => {
-      if (!position.redeemable || position.market?.condition_id !== state.market?.condition_id) {
+      if (!position.redeemable || position.market?.condition_id !== activeMarket?.condition_id) {
         return false
       }
       const shares = typeof position.total_shares === 'number' ? position.total_shares : 0
       return shares > 0
     })
-  }, [isResolvedMarket, positionsQuery.data, state.market?.condition_id])
+  }, [activeMarket?.condition_id, isResolvedMarket, positionsQuery.data])
   const claimableShares = useMemo(
     () =>
       claimablePositionsForMarket.reduce((sum, position) => {
@@ -418,13 +500,13 @@ export default function EventOrderPanelForm({
     return Array.from(indexSetCollection).sort((a, b) => a - b)
   }, [claimablePositionsForMarket, resolvedOutcomeIndex])
   const hasSubmittedClaimForMarket = Boolean(
-    state.market?.condition_id
+    activeMarket?.condition_id
     && (
-      claimedConditionIds[state.market.condition_id]
-      || optimisticallyClaimedConditionIds[state.market.condition_id]
+      claimedConditionIds[activeMarket.condition_id]
+      || optimisticallyClaimedConditionIds[activeMarket.condition_id]
     ),
   )
-  const hasClaimableWinnings = Boolean(state.market?.condition_id)
+  const hasClaimableWinnings = Boolean(activeMarket?.condition_id)
     && claimableShares > 0
     && claimIndexSets.length > 0
     && !hasSubmittedClaimForMarket
@@ -566,8 +648,8 @@ export default function EventOrderPanelForm({
     ? sellOrderSnapshot.priceCents / 100
     : null
   const avgSellPriceLabel = formatCentsLabel(avgSellPriceDollars, { fallback: '—' })
-  const outcomeFallbackBuyPriceCents = typeof state.outcome?.buy_price === 'number'
-    ? Number((state.outcome.buy_price * 100).toFixed(1))
+  const outcomeFallbackBuyPriceCents = typeof activeOutcome?.buy_price === 'number'
+    ? Number((activeOutcome.buy_price * 100).toFixed(1))
     : null
   const currentBuyPriceCents = (() => {
     if (isLimitOrder && state.side === ORDER_SIDE.BUY) {
@@ -731,8 +813,8 @@ export default function EventOrderPanelForm({
       isLoading: state.isLoading,
       isConnected,
       user,
-      market: state.market,
-      outcome: state.outcome,
+      market: activeMarket,
+      outcome: activeOutcome,
       amountNumber,
       side: state.side,
       isLimitOrder,
@@ -810,7 +892,7 @@ export default function EventOrderPanelForm({
     setShouldShakeInput(false)
     setShouldShakeLimitShares(false)
 
-    if (!state.market || !state.outcome || !user || !userAddress || !makerAddress) {
+    if (!activeMarket || !activeOutcome || !user || !userAddress || !makerAddress) {
       return
     }
 
@@ -852,7 +934,7 @@ export default function EventOrderPanelForm({
       userAddress,
       makerAddress,
       signatureType,
-      outcome: state.outcome,
+      outcome: activeOutcome,
       side: state.side,
       orderType: state.type,
       amount: effectiveAmountForOrder,
@@ -897,11 +979,11 @@ export default function EventOrderPanelForm({
       : 0
     const submittedSellAmountValue = submittedSide === ORDER_SIDE.SELL ? sellAmountValue : 0
     const submittedAvgSellPriceLabel = avgSellPriceLabel
-    const submittedOutcomeText = normalizeOutcomeLabel(state.outcome.outcome_text) ?? state.outcome.outcome_text
+    const submittedOutcomeText = normalizeOutcomeLabel(activeOutcome.outcome_text) ?? activeOutcome.outcome_text
     const submittedEventTitle = event.title
-    const submittedMarketImage = state.market?.icon_url
-    const submittedMarketTitle = state.market?.short_title || state.market?.title
-    const submittedOutcomeIndex = state.outcome.outcome_index
+    const submittedMarketImage = activeMarket.icon_url
+    const submittedMarketTitle = activeMarket.short_title || activeMarket.title
+    const submittedOutcomeIndex = activeOutcome.outcome_index
     const submittedLastMouseEvent = state.lastMouseEvent
 
     let signature: string
@@ -931,7 +1013,7 @@ export default function EventOrderPanelForm({
         clobOrderType: state.type === ORDER_TYPE.LIMIT && state.limitExpirationEnabled
           ? CLOB_ORDER_TYPE.GTD
           : undefined,
-        conditionId: state.market.condition_id,
+        conditionId: activeMarket.condition_id,
         slug: event.slug,
       })
 
@@ -990,7 +1072,7 @@ export default function EventOrderPanelForm({
         lastMouseEvent: submittedLastMouseEvent,
       })
 
-      if (state.market?.condition_id && user?.id) {
+      if (activeMarket.condition_id && user?.id) {
         void queryClient.invalidateQueries({ queryKey: openOrdersQueryKey })
         void queryClient.invalidateQueries({ queryKey: eventOpenOrdersQueryKey })
         void queryClient.invalidateQueries({ queryKey: ['orderbook-summary'] })
@@ -1022,7 +1104,7 @@ export default function EventOrderPanelForm({
       return
     }
 
-    const conditionId = state.market?.condition_id
+    const conditionId = activeMarket?.condition_id
 
     if (!conditionId || claimIndexSets.length === 0 || claimableShares <= 0) {
       toast.info(t('No claimable winnings available for this market.'))
@@ -1150,12 +1232,12 @@ export default function EventOrderPanelForm({
     = normalizedPrimaryOutcomeIndex === OUTCOME_INDEX.YES
       ? OUTCOME_INDEX.NO
       : OUTCOME_INDEX.YES
-  const primaryOutcome = state.market?.outcomes.find(
+  const primaryOutcome = activeMarket?.outcomes.find(
     outcome => outcome.outcome_index === normalizedPrimaryOutcomeIndex,
-  ) ?? state.market?.outcomes[normalizedPrimaryOutcomeIndex]
-  const secondaryOutcome = state.market?.outcomes.find(
+  ) ?? activeMarket?.outcomes[normalizedPrimaryOutcomeIndex]
+  const secondaryOutcome = activeMarket?.outcomes.find(
     outcome => outcome.outcome_index === normalizedSecondaryOutcomeIndex,
-  ) ?? state.market?.outcomes[normalizedSecondaryOutcomeIndex]
+  ) ?? activeMarket?.outcomes[normalizedSecondaryOutcomeIndex]
   const primaryPrice = normalizedPrimaryOutcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
   const secondaryPrice = normalizedSecondaryOutcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
   function handleTypeChange(nextType: typeof state.type) {
@@ -1163,7 +1245,7 @@ export default function EventOrderPanelForm({
     if (nextType !== ORDER_TYPE.LIMIT) {
       return
     }
-    const outcomeIndex = state.outcome?.outcome_index
+    const outcomeIndex = activeOutcome?.outcome_index
     const nextPrice = outcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
     if (nextPrice === null || nextPrice === undefined) {
       return
@@ -1184,14 +1266,14 @@ export default function EventOrderPanelForm({
       }, 'w-full p-4 lg:shadow-xl/5')}
     >
       {!isResolvedMarket && !isMobile && (
-        desktopMarketInfo ?? (!isSingleMarket ? <EventOrderPanelMarketInfo market={state.market} /> : null)
+        desktopMarketInfo ?? (!isSingleMarket ? <EventOrderPanelMarketInfo market={activeMarket} /> : null)
       )}
       {!isResolvedMarket && isMobile && (
         mobileMarketInfo
         ?? (
           <EventOrderPanelMobileMarketInfo
             event={event}
-            market={state.market}
+            market={activeMarket}
             isSingleMarket={isSingleMarket}
             balanceText={formattedBalanceText}
             isBalanceLoading={isLoadingBalance}
@@ -1250,9 +1332,9 @@ export default function EventOrderPanelForm({
                 availableMergeShares={availableMergeShares}
                 availableSplitBalance={availableSplitBalance}
                 isNegRiskMarket={isNegRiskMarket}
-                conditionId={state.market?.condition_id}
-                marketTitle={state.market?.title || state.market?.short_title}
-                marketIconUrl={state.market?.icon_url}
+                conditionId={activeMarket?.condition_id}
+                marketTitle={activeMarket?.title || activeMarket?.short_title}
+                marketIconUrl={activeMarket?.icon_url}
                 onSideChange={state.setSide}
                 onTypeChange={handleTypeChange}
                 onAmountReset={() => state.setAmount('')}
@@ -1264,12 +1346,15 @@ export default function EventOrderPanelForm({
                   variant="yes"
                   price={primaryPrice}
                   label={normalizeOutcomeLabel(primaryOutcome?.outcome_text) ?? t('Yes')}
-                  isSelected={state.outcome?.outcome_index === normalizedPrimaryOutcomeIndex}
+                  isSelected={activeOutcome?.outcome_index === normalizedPrimaryOutcomeIndex}
                   oddsFormat={oddsFormat}
                   styleVariant={outcomeButtonStyleVariant}
                   onSelect={() => {
-                    if (!state.market || !primaryOutcome) {
+                    if (!activeMarket || !primaryOutcome) {
                       return
+                    }
+                    if (!state.market) {
+                      state.setMarket(activeMarket)
                     }
                     state.setOutcome(primaryOutcome)
                     focusInput()
@@ -1279,12 +1364,15 @@ export default function EventOrderPanelForm({
                   variant="no"
                   price={secondaryPrice}
                   label={normalizeOutcomeLabel(secondaryOutcome?.outcome_text) ?? t('No')}
-                  isSelected={state.outcome?.outcome_index === normalizedSecondaryOutcomeIndex}
+                  isSelected={activeOutcome?.outcome_index === normalizedSecondaryOutcomeIndex}
                   oddsFormat={oddsFormat}
                   styleVariant={outcomeButtonStyleVariant}
                   onSelect={() => {
-                    if (!state.market || !secondaryOutcome) {
+                    if (!activeMarket || !secondaryOutcome) {
                       return
+                    }
+                    if (!state.market) {
+                      state.setMarket(activeMarket)
                     }
                     state.setOutcome(secondaryOutcome)
                     focusInput()
