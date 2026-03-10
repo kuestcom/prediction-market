@@ -161,6 +161,7 @@ export default function HowItWorks() {
               alt={currentStep.imageAlt}
               width={448}
               height={252}
+              unoptimized
               className="size-full object-cover"
             />
           </div>
@@ -218,6 +219,7 @@ export default function HowItWorks() {
             alt={currentStep.imageAlt}
             width={448}
             height={252}
+            unoptimized
             className="size-full object-cover"
           />
         </div>
