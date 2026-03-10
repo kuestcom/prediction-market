@@ -417,7 +417,7 @@ export default function SportsEventsGrid({
   const isLoadingNewData = isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0))
 
   useEffect(() => {
-    if (!loadMoreRef.current || !hasNextPage) {
+    if (!loadMoreRef.current || !hasNextPage || infiniteScrollError) {
       return
     }
 
@@ -437,7 +437,7 @@ export default function SportsEventsGrid({
 
     observer.observe(loadMoreRef.current)
     return () => observer.disconnect()
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
+  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage])
 
   if (isLoadingNewData) {
     return (

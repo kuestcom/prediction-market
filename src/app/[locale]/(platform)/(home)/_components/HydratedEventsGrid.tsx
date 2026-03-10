@@ -29,6 +29,44 @@ interface HydratedEventsGridProps {
 
 const EMPTY_EVENTS: Event[] = []
 const hydratedEventsSnapshotCache = new Map<string, Event[]>()
+const HYDRATED_EVENTS_SNAPSHOT_CACHE_LIMIT = 24
+
+function peekHydratedEventsSnapshot(key: string) {
+  return hydratedEventsSnapshotCache.get(key) ?? null
+}
+
+function touchHydratedEventsSnapshot(key: string) {
+  const snapshot = hydratedEventsSnapshotCache.get(key) ?? null
+  if (!snapshot) {
+    return null
+  }
+
+  hydratedEventsSnapshotCache.delete(key)
+  hydratedEventsSnapshotCache.set(key, snapshot)
+  return snapshot
+}
+
+function setHydratedEventsSnapshot(key: string, events: Event[]) {
+  if (events.length === 0) {
+    hydratedEventsSnapshotCache.delete(key)
+    return
+  }
+
+  if (hydratedEventsSnapshotCache.has(key)) {
+    hydratedEventsSnapshotCache.delete(key)
+  }
+
+  hydratedEventsSnapshotCache.set(key, events)
+
+  while (hydratedEventsSnapshotCache.size > HYDRATED_EVENTS_SNAPSHOT_CACHE_LIMIT) {
+    const oldestKey = hydratedEventsSnapshotCache.keys().next().value
+    if (!oldestKey) {
+      break
+    }
+
+    hydratedEventsSnapshotCache.delete(oldestKey)
+  }
+}
 
 async function fetchEvents({
   pageParam = 0,
@@ -97,7 +135,7 @@ export default function HydratedEventsGrid({
     filters.hideEarnings ? 'hide-earnings' : 'show-earnings',
   ].join(':')
   const [lastStableVisibleEvents, setLastStableVisibleEvents] = useState<Event[]>(
-    () => hydratedEventsSnapshotCache.get(snapshotKey) ?? initialEvents,
+    () => peekHydratedEventsSnapshot(snapshotKey) ?? initialEvents,
   )
   const PAGE_SIZE = 40
   const isRouteInitialState = filters.tag === routeTag
@@ -192,7 +230,7 @@ export default function HydratedEventsGrid({
   }, [allEvents, currentTimestamp, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status])
 
   useEffect(() => {
-    setLastStableVisibleEvents(hydratedEventsSnapshotCache.get(snapshotKey) ?? initialEvents)
+    setLastStableVisibleEvents(touchHydratedEventsSnapshot(snapshotKey) ?? initialEvents)
   }, [initialEvents, snapshotKey])
 
   useEffect(() => {
@@ -208,10 +246,19 @@ export default function HydratedEventsGrid({
         return previous
       }
 
-      hydratedEventsSnapshotCache.set(snapshotKey, visibleEvents)
+      setHydratedEventsSnapshot(snapshotKey, visibleEvents)
       return visibleEvents
     })
   }, [snapshotKey, visibleEvents])
+
+  useEffect(() => {
+    if (status !== 'success' || visibleEvents.length > 0) {
+      return
+    }
+
+    hydratedEventsSnapshotCache.delete(snapshotKey)
+    setLastStableVisibleEvents(current => (current.length === 0 ? current : EMPTY_EVENTS))
+  }, [snapshotKey, status, visibleEvents.length])
 
   const marketTargets = useMemo(
     () => visibleEvents.flatMap(event => buildMarketTargets(event.markets)),
@@ -245,13 +292,16 @@ export default function HydratedEventsGrid({
 
   const columns = useColumns(maxColumns)
   const loadingMoreColumns = Math.max(1, columns)
-  const eventsToRender = visibleEvents.length > 0 ? visibleEvents : lastStableVisibleEvents
+  const shouldShowSnapshotFallback = visibleEvents.length === 0
+    && lastStableVisibleEvents.length > 0
+    && status !== 'success'
+  const eventsToRender = shouldShowSnapshotFallback ? lastStableVisibleEvents : visibleEvents
 
   const isLoadingNewData = eventsToRender.length === 0
     && (isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0)))
 
   useEffect(() => {
-    if (!loadMoreRef.current || !hasNextPage) {
+    if (!loadMoreRef.current || !hasNextPage || infiniteScrollError) {
       return
     }
 
@@ -271,7 +321,7 @@ export default function HydratedEventsGrid({
 
     observer.observe(loadMoreRef.current)
     return () => observer.disconnect()
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
+  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage])
 
   if (isLoadingNewData) {
     return (

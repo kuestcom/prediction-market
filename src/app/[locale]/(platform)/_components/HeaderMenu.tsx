@@ -25,12 +25,16 @@ function HeaderMenuClient() {
   const t = useExtracted()
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
-  const { data: session } = useSession()
+  const { data: session, isPending: isSessionPending } = useSession()
   const isMobile = useIsMobile()
   const { startDepositFlow } = useTradingOnboarding()
   const user = useUser()
 
   useEffect(() => {
+    if (isSessionPending) {
+      return
+    }
+
     if (session?.user) {
       const sessionSettings = (session.user as Partial<User>).settings
       useUser.setState((previous) => {
@@ -52,10 +56,10 @@ function HeaderMenuClient() {
     else {
       useUser.setState(null)
     }
-  }, [session?.user])
+  }, [isSessionPending, session?.user])
 
-  const isAuthenticated = Boolean(user) || isConnected
-  const shouldShowGuestActions = !isAuthenticated
+  const isAuthenticated = Boolean(session?.user) || Boolean(user) || isConnected
+  const shouldShowGuestActions = !isAuthenticated && !isSessionPending
 
   return (
     <>
