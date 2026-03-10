@@ -4,7 +4,6 @@ import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterPro
 import type { SportsSidebarMode } from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 import type { Event } from '@/types'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { useLocale } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import EventCard from '@/app/[locale]/(platform)/(home)/_components/EventCard'
@@ -200,10 +199,10 @@ export default function SportsEventsGrid({
 }: SportsEventsGridProps) {
   const locale = useLocale()
   const parentRef = useRef<HTMLDivElement | null>(null)
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
-  const [hasInitialized, setHasInitialized] = useState(false)
-  const [scrollMargin, setScrollMargin] = useState(0)
+  const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const [sportsMode, setSportsMode] = useState<SportsSidebarMode>(initialMode)
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const PAGE_SIZE = 40
@@ -272,6 +271,23 @@ export default function SportsEventsGrid({
   useEffect(() => {
     setSportsMode(initialMode)
   }, [initialMode])
+
+  useEffect(() => {
+    setInfiniteScrollError(null)
+  }, [
+    filters.bookmarked,
+    filters.frequency,
+    filters.hideCrypto,
+    filters.hideEarnings,
+    filters.hideSports,
+    filters.search,
+    filters.status,
+    locale,
+    normalizedSportsSportSlug,
+    sportsMode,
+    sportsSection,
+    userCacheKey,
+  ])
 
   const allEvents = useMemo(() => (data ? data.pages.flat() : []), [data])
 
@@ -396,41 +412,32 @@ export default function SportsEventsGrid({
   }, [lastTradesByMarket, marketQuotesByMarket])
   const columns = useColumns()
   const activeColumns = columns >= 3 ? columns - 1 : columns
+  const loadingMoreColumns = Math.max(1, activeColumns)
+
+  const isLoadingNewData = isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0))
 
   useEffect(() => {
-    queueMicrotask(() => {
-      if (parentRef.current) {
-        setScrollMargin(parentRef.current.offsetTop)
-      }
-    })
-  }, [])
+    if (!loadMoreRef.current || !hasNextPage) {
+      return
+    }
 
-  const rowsCount = Math.ceil(visibleEvents.length / Math.max(1, activeColumns))
-
-  const virtualizer = useWindowVirtualizer({
-    count: rowsCount,
-    estimateSize: () => 194,
-    scrollMargin,
-    onChange: (instance) => {
-      if (!hasInitialized) {
-        setHasInitialized(true)
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting || isFetchingNextPage) {
         return
       }
 
-      const items = instance.getVirtualItems()
-      const last = items[items.length - 1]
-      if (
-        last
-        && last.index >= rowsCount - 1
-        && hasNextPage
-        && !isFetchingNextPage
-      ) {
-        queueMicrotask(() => fetchNextPage())
-      }
-    },
-  })
+      fetchNextPage().catch((error: any) => {
+        if (error?.name === 'CanceledError' || error?.name === 'AbortError') {
+          return
+        }
 
-  const isLoadingNewData = isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0))
+        setInfiniteScrollError(error?.message || 'Failed to load more events.')
+      })
+    }, { rootMargin: '200px 0px' })
+
+    observer.observe(loadMoreRef.current)
+    return () => observer.disconnect()
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   if (isLoadingNewData) {
     return (
@@ -460,56 +467,44 @@ export default function SportsEventsGrid({
   }
 
   return (
-    <div ref={parentRef} className="relative min-w-0 flex-1">
+    <div ref={parentRef} className="min-w-0 flex-1 space-y-3">
       <div
+        className={cn('grid gap-3', { 'opacity-80': isFetching })}
         style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          position: 'relative',
-          width: '100%',
+          gridTemplateColumns: `repeat(${Math.max(1, activeColumns)}, minmax(0, 1fr))`,
         }}
       >
-        {virtualizer.getVirtualItems().map((virtualRow) => {
-          const start = virtualRow.index * activeColumns
-          const end = Math.min(start + activeColumns, visibleEvents.length)
-          const rowEvents = visibleEvents.slice(start, end)
-          const isLastVirtualRow = virtualRow.index === rowsCount - 1
-
-          return (
-            <div
-              key={virtualRow.key}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: `${virtualRow.size}px`,
-                transform: `translateY(${
-                  virtualRow.start
-                  - (virtualizer.options.scrollMargin ?? 0)
-                }px)`,
-              }}
-            >
-              <div
-                className={cn('grid gap-3', { 'opacity-80': isFetching })}
-                style={{
-                  gridTemplateColumns: `repeat(${Math.max(1, activeColumns)}, minmax(0, 1fr))`,
-                }}
-              >
-                {rowEvents.map(event => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    priceOverridesByMarket={priceOverridesByMarket}
-                    enableHomeSportsMoneylineLayout={false}
-                    currentTimestamp={currentTimestamp}
-                  />
-                ))}
-                {isFetchingNextPage && isLastVirtualRow && <EventCardSkeleton />}
-              </div>
-            </div>
-          )
-        })}
+        {visibleEvents.map(event => (
+          <EventCard
+            key={event.id}
+            event={event}
+            priceOverridesByMarket={priceOverridesByMarket}
+            enableHomeSportsMoneylineLayout={false}
+            currentTimestamp={currentTimestamp}
+          />
+        ))}
       </div>
+
+      {isFetchingNextPage && (
+        <div
+          className="grid gap-3"
+          style={{
+            gridTemplateColumns: `repeat(${loadingMoreColumns}, minmax(0, 1fr))`,
+          }}
+        >
+          {Array.from({ length: loadingMoreColumns }).map((_, index) => (
+            <EventCardSkeleton key={`loading-more-${index}`} />
+          ))}
+        </div>
+      )}
+
+      {infiniteScrollError && (
+        <p className="text-center text-sm text-muted-foreground">
+          {infiniteScrollError}
+        </p>
+      )}
+
+      {hasNextPage && <div ref={loadMoreRef} className="h-1 w-full" aria-hidden="true" />}
     </div>
   )
 }
