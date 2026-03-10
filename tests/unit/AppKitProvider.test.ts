@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import * as React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -101,15 +101,24 @@ describe('appKitProvider SSR guard', () => {
       ),
     )
 
+    expect(mocks.createAppKit).not.toHaveBeenCalled()
+    expect(mocks.setThemeMode).not.toHaveBeenCalled()
+    expect(screen.getByTestId('ready')).toHaveTextContent('no')
+
+    await act(async () => {
+      await latestValue.open()
+    })
+
     await waitFor(() => {
       expect(mocks.createAppKit).toHaveBeenCalledTimes(1)
       expect(mocks.setThemeMode).toHaveBeenCalledWith('dark')
       expect(screen.getByTestId('ready')).toHaveTextContent('yes')
+      expect(appKitInstance.open).toHaveBeenCalled()
     })
 
-    await latestValue.open()
-    await latestValue.close()
-    expect(appKitInstance.open).toHaveBeenCalled()
+    await act(async () => {
+      await latestValue.close()
+    })
     expect(appKitInstance.close).toHaveBeenCalled()
 
     view.rerender(
@@ -132,14 +141,22 @@ describe('appKitProvider SSR guard', () => {
 
       const { AppKitContext } = await import('@/hooks/useAppKit')
       const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+      let latestValue: any = null
+      function handleValue(value: any) {
+        latestValue = value
+      }
 
       render(
         React.createElement(
           AppKitProvider,
           null,
-          React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+          React.createElement(ReadyConsumer, { ctx: AppKitContext, onValue: handleValue }),
         ),
       )
+
+      await act(async () => {
+        await latestValue.open()
+      })
 
       await waitFor(() => {
         expect(mocks.createAppKit).toHaveBeenCalled()

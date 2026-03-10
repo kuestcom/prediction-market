@@ -116,6 +116,7 @@ export default function HydratedEventsGrid({
   const locale = useLocale()
   const parentRef = useRef<HTMLDivElement | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const canRetryLoadMoreAfterErrorRef = useRef(true)
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
   const queryUserScope = filters.bookmarked ? userCacheKey : 'public'
@@ -200,6 +201,7 @@ export default function HydratedEventsGrid({
 
   useEffect(() => {
     setInfiniteScrollError(null)
+    canRetryLoadMoreAfterErrorRef.current = true
   }, [
     filters.bookmarked,
     filters.frequency,
@@ -301,13 +303,30 @@ export default function HydratedEventsGrid({
     && (isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0)))
 
   useEffect(() => {
-    if (!loadMoreRef.current || !hasNextPage || infiniteScrollError) {
+    if (!loadMoreRef.current || !hasNextPage) {
       return
     }
 
     const observer = new IntersectionObserver(([entry]) => {
-      if (!entry?.isIntersecting || isFetchingNextPage) {
+      if (!entry) {
         return
+      }
+
+      if (!entry.isIntersecting) {
+        canRetryLoadMoreAfterErrorRef.current = true
+        return
+      }
+
+      if (isFetchingNextPage) {
+        return
+      }
+
+      if (infiniteScrollError) {
+        if (!canRetryLoadMoreAfterErrorRef.current) {
+          return
+        }
+
+        setInfiniteScrollError(null)
       }
 
       fetchNextPage().catch((error: any) => {
@@ -315,6 +334,7 @@ export default function HydratedEventsGrid({
           return
         }
 
+        canRetryLoadMoreAfterErrorRef.current = false
         setInfiniteScrollError(error?.message || 'Failed to load more events.')
       })
     }, { rootMargin: '200px 0px' })

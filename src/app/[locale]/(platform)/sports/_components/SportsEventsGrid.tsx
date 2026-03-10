@@ -200,6 +200,7 @@ export default function SportsEventsGrid({
   const locale = useLocale()
   const parentRef = useRef<HTMLDivElement | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const canRetryLoadMoreAfterErrorRef = useRef(true)
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
@@ -274,6 +275,7 @@ export default function SportsEventsGrid({
 
   useEffect(() => {
     setInfiniteScrollError(null)
+    canRetryLoadMoreAfterErrorRef.current = true
   }, [
     filters.bookmarked,
     filters.frequency,
@@ -417,13 +419,30 @@ export default function SportsEventsGrid({
   const isLoadingNewData = isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0))
 
   useEffect(() => {
-    if (!loadMoreRef.current || !hasNextPage || infiniteScrollError) {
+    if (!loadMoreRef.current || !hasNextPage) {
       return
     }
 
     const observer = new IntersectionObserver(([entry]) => {
-      if (!entry?.isIntersecting || isFetchingNextPage) {
+      if (!entry) {
         return
+      }
+
+      if (!entry.isIntersecting) {
+        canRetryLoadMoreAfterErrorRef.current = true
+        return
+      }
+
+      if (isFetchingNextPage) {
+        return
+      }
+
+      if (infiniteScrollError) {
+        if (!canRetryLoadMoreAfterErrorRef.current) {
+          return
+        }
+
+        setInfiniteScrollError(null)
       }
 
       fetchNextPage().catch((error: any) => {
@@ -431,6 +450,7 @@ export default function SportsEventsGrid({
           return
         }
 
+        canRetryLoadMoreAfterErrorRef.current = false
         setInfiniteScrollError(error?.message || 'Failed to load more events.')
       })
     }, { rootMargin: '200px 0px' })
