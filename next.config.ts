@@ -2,11 +2,13 @@ import type { NextConfig } from 'next'
 import { withSentryConfig } from '@sentry/nextjs'
 import { createMDX } from 'fumadocs-mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
+import { getOptimizedImageHostPatterns } from '@/lib/image-optimization'
 import siteUrlUtils from './src/lib/site-url'
 
 const { isVercelEnv, resolveSiteUrl } = siteUrlUtils
 const siteUrl = resolveSiteUrl(process.env)
 const isVercel = isVercelEnv(process.env)
+const optimizedImageHostPatterns = getOptimizedImageHostPatterns(process.env)
 
 const config: NextConfig = {
   ...(isVercel ? {} : { output: 'standalone' }),
@@ -14,21 +16,17 @@ const config: NextConfig = {
   typedRoutes: true,
   reactStrictMode: false,
   images: {
-    unoptimized: !(process.env.IMAGE_OPTIMIZATION === 'true'),
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'gateway.irys.xyz',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.supabase.co',
-        port: '',
-        pathname: '/**',
-      },
-    ],
+    unoptimized: process.env.DISABLE_IMAGE_OPTIMIZATION === 'true',
+    loader: 'custom',
+    loaderFile: './src/lib/wsrv-image-loader.ts',
+    deviceSizes: [256, 448, 640, 896],
+    imageSizes: [16, 20, 24, 32, 36, 40, 42, 44, 48, 56, 64, 96, 128],
+    remotePatterns: optimizedImageHostPatterns.map(hostname => ({
+      protocol: 'https',
+      hostname,
+      port: '',
+      pathname: '/**',
+    })),
   },
   async headers() {
     return [
