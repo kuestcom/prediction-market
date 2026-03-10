@@ -29,7 +29,7 @@ import {
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
 import EventChartControls, { defaultChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
@@ -127,6 +127,7 @@ const HERO_LEGEND_VERTICAL_GAP_PX = 10
 const TRADE_FLOW_MAX_ITEMS = 6
 const TRADE_FLOW_TTL_MS = 8000
 const TRADE_FLOW_CLEANUP_INTERVAL_MS = 500
+const useBrowserLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 const tradeFlowTextStrokeStyle = {
   textShadow: `
     1px 0 0 var(--background),
@@ -3587,7 +3588,7 @@ export default function SportsGamesCenter({
     )
   }, [hasLoadedOddsFormat, oddsFormat, showSpreadsAndTotals])
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     if (!isLivePage || typeof document === 'undefined') {
       setTitleRowActionsTarget(null)
       return

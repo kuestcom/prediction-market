@@ -305,7 +305,7 @@ export default function SportsLayoutShell({
                   </h1>
                   <div
                     id="sports-title-row-actions"
-                    className="ml-auto flex min-h-9 min-w-0 items-center justify-end gap-2 lg:mr-2"
+                    className="ml-auto flex min-h-11 min-w-22 items-center justify-end gap-2 lg:mr-2"
                   />
                 </div>
               )}
