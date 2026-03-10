@@ -8,7 +8,7 @@ import { notFound } from 'next/navigation'
 import PwaInstallPrompt from '@/components/PwaInstallPrompt'
 import PwaServiceWorker from '@/components/PwaServiceWorker'
 import SiteStructuredData from '@/components/seo/SiteStructuredData'
-import TestModeBanner from '@/components/TestModeBanner'
+import TestModeBannerDeferred from '@/components/TestModeBannerDeferred'
 import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { routing } from '@/i18n/routing'
 import { cacheTags } from '@/lib/cache-tags'
@@ -86,7 +86,7 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
       {runtimeTheme.theme.cssText && <style id="theme-vars" dangerouslySetInnerHTML={{ __html: runtimeTheme.theme.cssText }} />}
       <SiteIdentityProvider site={runtimeTheme.site}>
         <NextIntlClientProvider locale={locale}>
-          {IS_TEST_MODE && <TestModeBanner />}
+          {IS_TEST_MODE && <TestModeBannerDeferred />}
           <PwaInstallPrompt />
           {children}
         </NextIntlClientProvider>
