@@ -352,8 +352,10 @@ export function shouldDisplayResolutionTimeline(market: TimelineMarket | null | 
   return Boolean(
     market.is_resolved
     || condition?.resolved
-    || status !== 'unknown'
-    || parseTimestampToMs(condition?.resolution_last_update) != null
-    || resolveResolutionDeadlineMs(market) != null,
+    || status === 'proposed'
+    || status === 'reproposed'
+    || status === 'challenged'
+    || status === 'disputed'
+    || status === 'resolved',
   )
 }
