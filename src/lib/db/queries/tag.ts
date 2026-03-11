@@ -280,7 +280,6 @@ export const TagRepository = {
     }
 
     const grouped = new Map<string, { name: string, slug: string, count: number }[]>()
-    const bestMainBySubSlug = new Map<string, { mainSlug: string, count: number }>()
     const globalCounts = new Map<string, { name: string, slug: string, count: number }>()
 
     const mainSlugSet = new Set(mainSlugs)
@@ -318,18 +317,6 @@ export const TagRepository = {
 
       grouped.set(subtag.main_tag_slug!, current)
 
-      const best = bestMainBySubSlug.get(subtag.sub_tag_slug)
-      if (
-        !best
-        || nextCount > best.count
-        || (nextCount === best.count && subtag.main_tag_slug!.localeCompare(best.mainSlug) < 0)
-      ) {
-        bestMainBySubSlug.set(subtag.sub_tag_slug, {
-          mainSlug: subtag.main_tag_slug!,
-          count: nextCount,
-        })
-      }
-
       const globalExisting = globalCounts.get(subtag.sub_tag_slug)
       globalCounts.set(subtag.sub_tag_slug, {
         name: localizedSubTagName,
@@ -342,7 +329,6 @@ export const TagRepository = {
       ...tag,
       name: localizedNamesByTagId.get(tag.id) ?? tag.name,
       childs: (grouped.get(tag.slug) ?? [])
-        .filter(child => bestMainBySubSlug.get(child.slug)?.mainSlug === tag.slug)
         .sort((a, b) => {
           if (b.count === a.count) {
             return a.name.localeCompare(b.name)

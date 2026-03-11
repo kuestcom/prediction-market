@@ -348,6 +348,7 @@ async function fetchOutcomePrices(tokenIds: string[]): Promise<Map<string, Outco
 
 interface ListEventsProps {
   tag: string
+  mainTag?: string
   search?: string
   userId?: string | undefined
   bookmarked?: boolean
@@ -973,6 +974,7 @@ export const EventRepository = {
 
   async listEvents({
     tag = 'trending',
+    mainTag = '',
     search = '',
     userId = '',
     bookmarked = false,
@@ -1094,6 +1096,28 @@ export const EventRepository = {
               .where(and(
                 eq(event_tags.event_id, events.id),
                 eq(tags.slug, tag),
+              )),
+          ),
+        )
+      }
+
+      if (
+        mainTag
+        && mainTag !== 'trending'
+        && mainTag !== 'new'
+        && tag
+        && tag !== 'trending'
+        && tag !== 'new'
+        && tag !== mainTag
+      ) {
+        whereConditions.push(
+          exists(
+            db.select()
+              .from(event_tags)
+              .innerJoin(tags, eq(event_tags.tag_id, tags.id))
+              .where(and(
+                eq(event_tags.event_id, events.id),
+                eq(tags.slug, mainTag),
               )),
           ),
         )

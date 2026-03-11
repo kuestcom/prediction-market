@@ -79,6 +79,7 @@ async function fetchEvents({
 }): Promise<Event[]> {
   const params = new URLSearchParams({
     tag: filters.tag,
+    mainTag: filters.mainTag,
     search: filters.search,
     bookmarked: filters.bookmarked.toString(),
     frequency: filters.frequency,
@@ -127,6 +128,7 @@ export default function HydratedEventsGrid({
     routeMainTag,
     routeTag,
     filters.tag,
+    filters.mainTag,
     filters.search,
     filters.bookmarked ? queryUserScope : 'public',
     filters.frequency,
@@ -163,6 +165,7 @@ export default function HydratedEventsGrid({
     queryKey: [
       'events',
       filters.tag,
+      filters.mainTag,
       filters.search,
       filters.bookmarked,
       filters.frequency,
@@ -208,6 +211,7 @@ export default function HydratedEventsGrid({
     filters.hideCrypto,
     filters.hideEarnings,
     filters.hideSports,
+    filters.mainTag,
     filters.search,
     filters.status,
     filters.tag,

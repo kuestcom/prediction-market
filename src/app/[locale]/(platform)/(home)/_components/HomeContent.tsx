@@ -29,6 +29,7 @@ export default async function HomeContent({
   try {
     const { data: events, error } = await EventRepository.listEvents({
       tag: initialTagSlug,
+      mainTag: initialMainTagSlug,
       search: '',
       userId: '',
       bookmarked: false,

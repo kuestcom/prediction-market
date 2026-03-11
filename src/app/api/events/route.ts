@@ -7,6 +7,7 @@ import { UserRepository } from '@/lib/db/queries/user'
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const tag = searchParams.get('tag') || 'trending'
+  const mainTag = searchParams.get('mainTag') || ''
   const search = searchParams.get('search') || ''
   const bookmarked = searchParams.get('bookmarked') === 'true'
   const frequency = searchParams.get('frequency') || 'all'
@@ -39,6 +40,7 @@ export async function GET(request: Request) {
   try {
     const { data: events, error } = await EventRepository.listEvents({
       tag,
+      mainTag,
       search,
       userId,
       bookmarked,

@@ -1,0 +1,48 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mocks = vi.hoisted(() => ({
+  cacheTag: vi.fn(),
+  listEvents: vi.fn(),
+}))
+
+vi.mock('next/cache', () => ({
+  cacheTag: (...args: any[]) => mocks.cacheTag(...args),
+}))
+
+vi.mock('@/lib/db/queries/event', () => ({
+  EventRepository: {
+    listEvents: (...args: any[]) => mocks.listEvents(...args),
+  },
+}))
+
+vi.mock('@/lib/home-events', () => ({
+  filterHomeEvents: (events: any[]) => events,
+}))
+
+vi.mock('@/app/[locale]/(platform)/(home)/_components/HomeClient', () => ({
+  default: () => null,
+}))
+
+describe('homeContent', () => {
+  beforeEach(() => {
+    mocks.cacheTag.mockReset()
+    mocks.listEvents.mockReset()
+  })
+
+  it('uses the route main tag when fetching initial subcategory events', async () => {
+    mocks.listEvents.mockResolvedValueOnce({ data: [], error: null })
+
+    const HomeContent = (await import('@/app/[locale]/(platform)/(home)/_components/HomeContent')).default
+    await HomeContent({
+      locale: 'en',
+      initialTag: 'ai',
+      initialMainTag: 'tech',
+    })
+
+    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
+      tag: 'ai',
+      mainTag: 'tech',
+      locale: 'en',
+    }))
+  })
+})
