@@ -348,7 +348,7 @@ export default function EventOrderBook({
     <div
       ref={orderBookScrollRef}
       className={cn(
-        'relative max-h-90 overflow-y-auto',
+        'relative isolate max-h-90 overflow-y-auto',
         surfaceClass,
       )}
     >
@@ -357,8 +357,7 @@ export default function EventOrderBook({
           className={cn(
             tableHeaderClass,
             'grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b',
-            'sticky top-0',
-            isSportsCardSurface && 'z-10',
+            'sticky top-0 z-10',
             surfaceClass,
           )}
         >
