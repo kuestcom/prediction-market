@@ -14,6 +14,10 @@ import { resolveEventBasePath, resolveEventPagePath } from '@/lib/events-routing
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
+export async function generateStaticParams() {
+  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
+}
+
 export async function generateMetadata({ params }: PageProps<'/[locale]/event/[slug]'>): Promise<Metadata> {
   const { locale, slug } = await params
   setRequestLocale(locale)

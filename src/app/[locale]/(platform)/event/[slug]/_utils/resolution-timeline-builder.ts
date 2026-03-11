@@ -186,7 +186,7 @@ export function buildResolutionTimeline(
   market: TimelineMarket,
   options: BuildResolutionTimelineOptions = {},
 ): ResolutionTimelineModel {
-  const nowMs = options.nowMs ?? Date.now()
+  const nowMs = options.nowMs ?? 0
   const condition = market.condition
   const status = normalizeResolutionStatus(condition?.resolution_status)
   const outcome = resolveOutcomeFromMarket(market)
@@ -341,10 +341,13 @@ export function isResolutionReviewActive(market: TimelineMarket, options: BuildR
   return buildResolutionTimeline(market, options).isReviewActive
 }
 
-export function shouldDisplayResolutionTimeline(market: TimelineMarket | null | undefined): boolean {
+export function shouldDisplayResolutionTimeline(
+  market: TimelineMarket | null | undefined,
+  options: BuildResolutionTimelineOptions = {},
+): boolean {
   if (!market) {
     return false
   }
 
-  return buildResolutionTimeline(market).items.length > 0
+  return buildResolutionTimeline(market, options).items.length > 0
 }

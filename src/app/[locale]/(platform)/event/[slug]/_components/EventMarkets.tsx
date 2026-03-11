@@ -174,12 +174,12 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   const reviewConditionIds = useMemo(() => {
     const ids = new Set<string>()
     event.markets.forEach((market) => {
-      if (isResolutionReviewActive(market)) {
+      if (isResolutionReviewActive(market, { nowMs: currentTimestamp ?? 0 })) {
         ids.add(market.condition_id)
       }
     })
     return ids
-  }, [event.markets])
+  }, [currentTimestamp, event.markets])
   const chanceRefreshQueryKeys = useMemo(
     () => [
       ['event-price-history', event.id] as const,
