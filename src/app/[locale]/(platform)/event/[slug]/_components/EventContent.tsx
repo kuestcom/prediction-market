@@ -20,7 +20,6 @@ import EventSingleMarketOrderBook from '@/app/[locale]/(platform)/event/[slug]/_
 import EventTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabs'
 import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
 import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
-import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { formatAmountInputValue } from '@/lib/formatters'
@@ -183,7 +182,6 @@ export default function EventContent({
   const currentEventId = useOrder(state => state.event?.id)
   const currentMarketId = useOrder(state => state.market?.condition_id)
   const isMobile = useIsMobile()
-  const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const clientUser = useUser()
   const prevUserIdRef = useRef<string | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
@@ -374,7 +372,7 @@ export default function EventContent({
               <EventRules event={event} />
               {event.total_markets_count === 1
                 && selectedMarket
-                && shouldDisplayResolutionTimeline(selectedMarket, { nowMs: currentTimestamp ?? 0 }) && (
+                && shouldDisplayResolutionTimeline(selectedMarket) && (
                 <div className="rounded-xl border bg-background p-4">
                   <ResolutionTimelinePanel market={selectedMarket} settledUrl={null} showLink={false} />
                 </div>
@@ -391,24 +389,26 @@ export default function EventContent({
           </div>
         </div>
 
-        <aside
-          className={`
-            hidden gap-4
-            lg:sticky lg:top-38 lg:grid lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto
-          `}
-        >
-          <div className="grid gap-6">
-            <EventOrderPanelForm
-              event={event}
-              isMobile={false}
-              initialMarket={initialMarket}
-              initialOutcome={initialOutcome}
-            />
-            <EventOrderPanelTermsDisclaimer />
-            <span className="border border-dashed"></span>
-            <EventRelated event={event} />
-          </div>
-        </aside>
+        {!isMobile && (
+          <aside
+            className={`
+              hidden gap-4
+              lg:sticky lg:top-38 lg:grid lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto
+            `}
+          >
+            <div className="grid gap-6">
+              <EventOrderPanelForm
+                event={event}
+                isMobile={false}
+                initialMarket={initialMarket}
+                initialOutcome={initialOutcome}
+              />
+              <EventOrderPanelTermsDisclaimer />
+              <span className="border border-dashed"></span>
+              <EventRelated event={event} />
+            </div>
+          </aside>
+        )}
 
         {!isMobile && showBackToTop && backToTopBounds && (
           <div

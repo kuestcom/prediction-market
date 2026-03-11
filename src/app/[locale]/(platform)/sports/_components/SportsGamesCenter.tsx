@@ -2224,7 +2224,7 @@ function SportsEventAboutPanel({
     }
   }, [event, market])
   const shouldShowResolution = useMemo(
-    () => Boolean(market && shouldDisplayResolutionTimeline(market, { nowMs: 0 })),
+    () => Boolean(market && shouldDisplayResolutionTimeline(market)),
     [market],
   )
   const resolutionDetailsUrl = useMemo(

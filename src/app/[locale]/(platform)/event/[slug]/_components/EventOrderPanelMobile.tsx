@@ -58,6 +58,8 @@ export default function EventOrderPanelMobile({
   const isSingleMarket = useIsSingleMarket() || activeEvent.total_markets_count === 1
   const liveYesPrice = useOutcomeTopOfBookPrice(OUTCOME_INDEX.YES, ORDER_SIDE.BUY)
   const liveNoPrice = useOutcomeTopOfBookPrice(OUTCOME_INDEX.NO, ORDER_SIDE.BUY)
+  const activeLiveYesPrice = hasMatchingStoreMarket ? liveYesPrice : null
+  const activeLiveNoPrice = hasMatchingStoreMarket ? liveNoPrice : null
   const yesOutcome = activeMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
     ?? activeMarket?.outcomes[OUTCOME_INDEX.YES]
   const noOutcome = activeMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
@@ -67,18 +69,20 @@ export default function EventOrderPanelMobile({
     : typeof activeMarket?.probability === 'number' && Number.isFinite(activeMarket.probability)
       ? activeMarket.probability / 100
       : null
-  const yesPrice = liveYesPrice ?? (
+  const yesPrice = activeLiveYesPrice ?? (
     typeof yesOutcome?.buy_price === 'number'
       ? yesOutcome.buy_price
       : marketPrice
   )
-  const noPrice = liveNoPrice ?? (
+  const noPrice = activeLiveNoPrice ?? (
     typeof noOutcome?.buy_price === 'number'
       ? noOutcome.buy_price
       : typeof marketPrice === 'number'
         ? Math.max(0, Math.min(1, 1 - marketPrice))
         : null
   )
+  const buyYesOutcome = yesOutcome ?? activeMarket?.outcomes[0] ?? null
+  const buyNoOutcome = noOutcome ?? activeMarket?.outcomes[1] ?? null
   const shouldShowDefaultTrigger = showDefaultTrigger && isSingleMarket
   const yesPriceLabel = oddsFormat === 'price'
     ? formatCentsLabel(yesPrice)
@@ -101,14 +105,12 @@ export default function EventOrderPanelMobile({
                 variant="yes"
                 size="outcomeLg"
                 onClick={() => {
-                  if (!activeMarket) {
+                  if (!activeMarket || !buyYesOutcome) {
                     return
                   }
 
-                  if (!state.market) {
-                    state.setMarket(activeMarket)
-                  }
-                  state.setOutcome(activeMarket.outcomes[0])
+                  state.setMarket(activeMarket)
+                  state.setOutcome(buyYesOutcome)
                   state.setIsMobileOrderPanelOpen(true)
                 }}
               >
@@ -126,14 +128,12 @@ export default function EventOrderPanelMobile({
                 variant="no"
                 size="outcomeLg"
                 onClick={() => {
-                  if (!activeMarket) {
+                  if (!activeMarket || !buyNoOutcome) {
                     return
                   }
 
-                  if (!state.market) {
-                    state.setMarket(activeMarket)
-                  }
-                  state.setOutcome(activeMarket.outcomes[1])
+                  state.setMarket(activeMarket)
+                  state.setOutcome(buyNoOutcome)
                   state.setIsMobileOrderPanelOpen(true)
                 }}
               >
