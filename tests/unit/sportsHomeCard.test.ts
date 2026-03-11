@@ -156,6 +156,81 @@ describe('sportsHomeCard', () => {
     expect(model?.drawButton?.conditionId).toBe('draw-market')
   })
 
+  it('does not map non-neg-risk separated yes/no moneylines as a binary market', () => {
+    const event = {
+      sports_sport_slug: 'soccer',
+      main_tag: 'games',
+      tags: [
+        {
+          id: 1,
+          name: 'Games',
+          slug: 'games',
+          isMainCategory: true,
+        },
+      ],
+      sports_teams: [
+        {
+          name: 'Arsenal',
+          abbreviation: 'ARS',
+          color: '#ef4444',
+          host_status: 'home',
+        },
+        {
+          name: 'Chelsea',
+          abbreviation: 'CHE',
+          color: '#2563eb',
+          host_status: 'away',
+        },
+      ],
+      sports_team_logo_urls: null,
+      markets: [
+        {
+          condition_id: 'arsenal-market',
+          sports_market_type: 'moneyline',
+          sports_group_item_title: null,
+          short_title: 'Arsenal',
+          title: 'Arsenal',
+          outcomes: [
+            {
+              outcome_index: 0,
+              outcome_text: 'Yes',
+            },
+            {
+              outcome_index: 1,
+              outcome_text: 'No',
+            },
+          ],
+        },
+        {
+          condition_id: 'chelsea-market',
+          sports_market_type: 'moneyline',
+          sports_group_item_title: null,
+          short_title: 'Chelsea',
+          title: 'Chelsea',
+          outcomes: [
+            {
+              outcome_index: 0,
+              outcome_text: 'Yes',
+            },
+            {
+              outcome_index: 1,
+              outcome_text: 'No',
+            },
+          ],
+        },
+      ],
+    } as any
+
+    const model = buildHomeSportsMoneylineModel(event)
+
+    expect(model).not.toBeNull()
+    expect(model?.team1Button.conditionId).toBe('arsenal-market')
+    expect(model?.team1Button.outcomeIndex).toBe(0)
+    expect(model?.team2Button.conditionId).toBe('chelsea-market')
+    expect(model?.team2Button.outcomeIndex).toBe(0)
+    expect(model?.drawButton).toBeUndefined()
+  })
+
   it('resolves display chance by outcome index', () => {
     expect(resolveHomeSportsButtonChance(63, 0)).toBe(63)
     expect(resolveHomeSportsButtonChance(63, 1)).toBe(37)

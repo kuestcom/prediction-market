@@ -218,7 +218,7 @@ function findMoneylineMarkets(event: Event) {
   })
 }
 
-function resolveOutcomeForTeam(
+function resolveExplicitOutcomeForTeam(
   market: Market,
   team: HomeSportsTeam | null,
   excludedOutcomeIndex?: number | null,
@@ -234,10 +234,7 @@ function resolveOutcomeForTeam(
   if (matchingOutcome) {
     return matchingOutcome
   }
-
-  return market.outcomes.find((outcome) => {
-    return excludedOutcomeIndex == null || outcome.outcome_index !== excludedOutcomeIndex
-  }) ?? null
+  return null
 }
 
 export interface HomeSportsTeam {
@@ -331,39 +328,42 @@ function buildBinaryMoneylineModel(
   team1: HomeSportsTeam,
   team2: HomeSportsTeam,
 ): HomeSportsMoneylineModel | null {
-  const binaryMarket = moneylineMarkets.find((market) => {
-    return !isDrawMarket(market) && (market.outcomes?.length ?? 0) >= 2
-  })
+  for (const market of moneylineMarkets) {
+    if (isDrawMarket(market) || (market.outcomes?.length ?? 0) < 2) {
+      continue
+    }
 
-  if (!binaryMarket) {
-    return null
+    const team1Outcome = resolveExplicitOutcomeForTeam(market, team1)
+    if (!team1Outcome) {
+      continue
+    }
+
+    const team2Outcome = resolveExplicitOutcomeForTeam(market, team2, team1Outcome.outcome_index)
+    if (!team2Outcome) {
+      continue
+    }
+
+    return {
+      team1,
+      team2,
+      team1Button: toHomeButton({
+        market,
+        outcome: team1Outcome,
+        label: team1.abbreviation,
+        tone: 'team1',
+        color: team1.color,
+      }),
+      team2Button: toHomeButton({
+        market,
+        outcome: team2Outcome,
+        label: team2.abbreviation,
+        tone: 'team2',
+        color: team2.color,
+      }),
+    }
   }
 
-  const team1Outcome = resolveOutcomeForTeam(binaryMarket, team1)
-  const team2Outcome = resolveOutcomeForTeam(binaryMarket, team2, team1Outcome?.outcome_index ?? null)
-
-  if (!team1Outcome || !team2Outcome) {
-    return null
-  }
-
-  return {
-    team1,
-    team2,
-    team1Button: toHomeButton({
-      market: binaryMarket,
-      outcome: team1Outcome,
-      label: team1.abbreviation,
-      tone: 'team1',
-      color: team1.color,
-    }),
-    team2Button: toHomeButton({
-      market: binaryMarket,
-      outcome: team2Outcome,
-      label: team2.abbreviation,
-      tone: 'team2',
-      color: team2.color,
-    }),
-  }
+  return null
 }
 
 export function buildHomeSportsMoneylineModel(event: Event): HomeSportsMoneylineModel | null {
