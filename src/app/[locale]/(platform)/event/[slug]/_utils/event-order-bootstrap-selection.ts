@@ -10,14 +10,16 @@ interface EventOrderBootstrapSelectionOptions {
   event: Event
   targetMarket: Market
   snapshot: EventOrderStoreSnapshot
+  preserveSnapshotMarket: boolean
 }
 
 export function resolveEventOrderBootstrapSelection({
   event,
   targetMarket,
   snapshot,
+  preserveSnapshotMarket,
 }: EventOrderBootstrapSelectionOptions) {
-  const storeMarket = snapshot.eventId === event.id && snapshot.market
+  const storeMarket = preserveSnapshotMarket && snapshot.eventId === event.id && snapshot.market
     ? event.markets.find(market => market.condition_id === snapshot.market?.condition_id) ?? null
     : null
   const market = storeMarket ?? targetMarket

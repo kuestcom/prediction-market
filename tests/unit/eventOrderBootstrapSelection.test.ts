@@ -42,6 +42,7 @@ describe('resolveEventOrderBootstrapSelection', () => {
     const selection = resolveEventOrderBootstrapSelection({
       event,
       targetMarket: market,
+      preserveSnapshotMarket: true,
       snapshot: {
         eventId: event.id,
         market,
@@ -65,6 +66,7 @@ describe('resolveEventOrderBootstrapSelection', () => {
     const selection = resolveEventOrderBootstrapSelection({
       event,
       targetMarket: defaultMarket,
+      preserveSnapshotMarket: true,
       snapshot: {
         eventId: event.id,
         market: selectedMarket,
@@ -86,6 +88,7 @@ describe('resolveEventOrderBootstrapSelection', () => {
     const selection = resolveEventOrderBootstrapSelection({
       event,
       targetMarket: market,
+      preserveSnapshotMarket: true,
       snapshot: {
         eventId: event.id,
         market,
@@ -95,5 +98,29 @@ describe('resolveEventOrderBootstrapSelection', () => {
 
     expect(selection.market).toBe(market)
     expect(selection.outcome).toBe(yesOutcome)
+  })
+
+  it('keeps the route-selected market when snapshot market preservation is disabled', () => {
+    const marketOneYes = createOutcome('cond-1', OUTCOME_INDEX.YES, 'token-1-yes', 'Yes')
+    const marketOneNo = createOutcome('cond-1', OUTCOME_INDEX.NO, 'token-1-no', 'No')
+    const marketTwoYes = createOutcome('cond-2', OUTCOME_INDEX.YES, 'token-2-yes', 'Over')
+    const marketTwoNo = createOutcome('cond-2', OUTCOME_INDEX.NO, 'token-2-no', 'Under')
+    const targetMarket = createMarket('cond-1', 'winner', [marketOneYes, marketOneNo])
+    const snapshotMarket = createMarket('cond-2', 'total', [marketTwoYes, marketTwoNo])
+    const event = createEvent([targetMarket, snapshotMarket])
+
+    const selection = resolveEventOrderBootstrapSelection({
+      event,
+      targetMarket,
+      preserveSnapshotMarket: false,
+      snapshot: {
+        eventId: event.id,
+        market: snapshotMarket,
+        outcome: marketTwoNo,
+      },
+    })
+
+    expect(selection.market).toBe(targetMarket)
+    expect(selection.outcome).toBe(marketOneYes)
   })
 })

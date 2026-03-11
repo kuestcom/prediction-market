@@ -255,6 +255,7 @@ export default function EventContent({
     const nextSelection = resolveEventOrderBootstrapSelection({
       event,
       targetMarket,
+      preserveSnapshotMarket: !marketSlug,
       snapshot: {
         eventId: currentOrderState.event?.id,
         market: currentOrderState.market,
