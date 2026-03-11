@@ -11,14 +11,14 @@ import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_
 import EventMarkets from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarkets'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
 import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
-import EventOrderPanelTermsDisclaimer
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
+import EventOrderPanelTermsDisclaimer from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
 import { EventOutcomeChanceProvider } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOutcomeChanceProvider'
 import EventRelated from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelated'
 import EventRules from '@/app/[locale]/(platform)/event/[slug]/_components/EventRules'
 import EventSingleMarketOrderBook from '@/app/[locale]/(platform)/event/[slug]/_components/EventSingleMarketOrderBook'
 import EventTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabs'
 import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
+import { resolveEventOrderBootstrapSelection } from '@/app/[locale]/(platform)/event/[slug]/_utils/event-order-bootstrap-selection'
 import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
@@ -251,10 +251,20 @@ export default function EventContent({
       return
     }
 
-    setMarket(targetMarket)
-    const defaultOutcome = targetMarket.outcomes[0]
-    if (defaultOutcome) {
-      setOutcome(defaultOutcome)
+    const currentOrderState = useOrder.getState()
+    const nextSelection = resolveEventOrderBootstrapSelection({
+      event,
+      targetMarket,
+      snapshot: {
+        eventId: currentOrderState.event?.id,
+        market: currentOrderState.market,
+        outcome: currentOrderState.outcome,
+      },
+    })
+
+    setMarket(nextSelection.market)
+    if (nextSelection.outcome) {
+      setOutcome(nextSelection.outcome)
     }
     appliedMarketSlugRef.current = marketSlug ?? null
     appliedEventIdRef.current = event.id
