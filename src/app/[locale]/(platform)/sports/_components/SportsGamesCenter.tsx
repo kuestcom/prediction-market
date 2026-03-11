@@ -1996,6 +1996,7 @@ function TeamLogoBadge({
   card: SportsGamesCard
   button: SportsGamesButton
 }) {
+  const useCroppedTeamLogo = shouldUseCroppedSportsTeamLogo(card.event.sports_sport_slug)
   const team = button.marketType === 'spread'
     ? resolveLeadingSpreadTeam(card, button)
     : resolveTeamByTone(card, button.tone)
@@ -2004,20 +2005,42 @@ function TeamLogoBadge({
     || '?'
 
   return (
-    <div className="flex size-11 items-center justify-center">
+    <div
+      className={cn(
+        'flex items-center justify-center',
+        useCroppedTeamLogo ? 'relative size-11 overflow-hidden rounded-lg' : 'size-11',
+      )}
+    >
       {team?.logoUrl
         ? (
-            <Image
-              src={team.logoUrl}
-              alt={`${team.name} logo`}
-              width={44}
-              height={44}
-              sizes="44px"
-              className="h-[92%] w-[92%] object-contain object-center"
-            />
+            useCroppedTeamLogo
+              ? (
+                  <Image
+                    src={team.logoUrl}
+                    alt={`${team.name} logo`}
+                    fill
+                    sizes="44px"
+                    className="scale-[1.12] object-cover object-center"
+                  />
+                )
+              : (
+                  <Image
+                    src={team.logoUrl}
+                    alt={`${team.name} logo`}
+                    width={44}
+                    height={44}
+                    sizes="44px"
+                    className="h-[92%] w-[92%] object-contain object-center"
+                  />
+                )
           )
         : (
-            <div className="flex size-full items-center justify-center text-sm font-semibold text-muted-foreground">
+            <div
+              className={cn(
+                'flex size-full items-center justify-center text-sm font-semibold text-muted-foreground',
+                useCroppedTeamLogo && 'rounded-lg border border-border/40 bg-secondary',
+              )}
+            >
               {fallbackInitial}
             </div>
           )}
@@ -4295,7 +4318,7 @@ export default function SportsGamesCenter({
           className={cn(
             `-mx-2.5 -mt-2.5 bg-card px-2.5 pt-2.5 transition-colors hover:bg-secondary/30`,
             shouldRenderDetailsPanel ? 'rounded-t-xl' : 'rounded-xl',
-            isFinalizedCard ? 'pb-3' : 'pb-2',
+            isFinalizedCard ? 'pb-3' : 'pb-2.5',
           )}
           role="button"
           tabIndex={0}
@@ -4443,22 +4466,42 @@ export default function SportsGamesCenter({
                         {teamScore ?? '—'}
                       </span>
 
-                      <div className={cn('flex size-6 shrink-0 items-center justify-center', isLoser && 'opacity-55')}>
+                      <div
+                        className={cn(
+                          useCroppedTeamLogo
+                            ? 'relative h-7 w-12 shrink-0 overflow-hidden rounded-sm'
+                            : 'flex size-6 shrink-0 items-center justify-center',
+                          isLoser && 'opacity-55',
+                        )}
+                      >
                         {team.logoUrl
                           ? (
-                              <Image
-                                src={team.logoUrl}
-                                alt={`${team.name} logo`}
-                                width={24}
-                                height={24}
-                                sizes="20px"
-                                className="h-[92%] w-[92%] object-contain object-center"
-                              />
+                              useCroppedTeamLogo
+                                ? (
+                                    <Image
+                                      src={team.logoUrl}
+                                      alt={`${team.name} logo`}
+                                      fill
+                                      sizes="48px"
+                                      className="scale-[1.08] object-cover object-center"
+                                    />
+                                  )
+                                : (
+                                    <Image
+                                      src={team.logoUrl}
+                                      alt={`${team.name} logo`}
+                                      width={24}
+                                      height={24}
+                                      sizes="20px"
+                                      className="h-[92%] w-[92%] object-contain object-center"
+                                    />
+                                  )
                             )
                           : (
                               <div
                                 className={cn(
-                                  'flex size-full items-center justify-center rounded-sm border text-2xs font-semibold',
+                                  'flex size-full items-center justify-center border text-2xs font-semibold',
+                                  useCroppedTeamLogo ? 'rounded-sm bg-secondary' : 'rounded-sm',
                                   'border-border/40 text-muted-foreground',
                                 )}
                               >
