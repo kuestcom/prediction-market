@@ -47,6 +47,11 @@ export interface SportsGamesCard {
   buttons: SportsGamesButton[]
 }
 
+export function hasSportsGamesCardPrimaryMarketTrio(card: Pick<SportsGamesCard, 'buttons'>) {
+  const marketTypes = new Set(card.buttons.map(button => button.marketType))
+  return marketTypes.has('moneyline') && marketTypes.has('spread') && marketTypes.has('total')
+}
+
 export interface SportsGamesCardMarketView {
   key: SportsEventMarketViewKey
   label: string

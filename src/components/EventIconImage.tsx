@@ -28,7 +28,7 @@ export default function EventIconImage({
         alt={alt}
         fill
         sizes={sizes}
-        className={cn('scale-[1.35] object-cover object-center', imageClassName)}
+        className={cn('object-cover object-center', imageClassName)}
       />
     </div>
   )

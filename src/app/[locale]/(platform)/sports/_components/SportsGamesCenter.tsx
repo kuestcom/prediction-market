@@ -48,6 +48,7 @@ import { TIME_RANGES, useEventPriceHistory } from '@/app/[locale]/(platform)/eve
 import { loadStoredChartSettings, storeChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
 import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
 import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
+import { hasSportsGamesCardPrimaryMarketTrio } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import SportsLivestreamFloatingPlayer
   from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
@@ -81,6 +82,7 @@ import {
 import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { calculateYAxisBounds } from '@/lib/prediction-chart'
+import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
 import { buildUmaProposeUrl, buildUmaSettledUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
@@ -1994,6 +1996,7 @@ function TeamLogoBadge({
   card: SportsGamesCard
   button: SportsGamesButton
 }) {
+  const useCroppedTeamLogo = shouldUseCroppedSportsTeamLogo(card.event.sports_sport_slug)
   const team = button.marketType === 'spread'
     ? resolveLeadingSpreadTeam(card, button)
     : resolveTeamByTone(card, button.tone)
@@ -2002,20 +2005,42 @@ function TeamLogoBadge({
     || '?'
 
   return (
-    <div className="flex size-11 items-center justify-center">
+    <div
+      className={cn(
+        'flex items-center justify-center',
+        useCroppedTeamLogo ? 'relative size-11 overflow-hidden rounded-lg' : 'size-11',
+      )}
+    >
       {team?.logoUrl
         ? (
-            <Image
-              src={team.logoUrl}
-              alt={`${team.name} logo`}
-              width={44}
-              height={44}
-              sizes="44px"
-              className="h-[92%] w-[92%] object-contain object-center"
-            />
+            useCroppedTeamLogo
+              ? (
+                  <Image
+                    src={team.logoUrl}
+                    alt={`${team.name} logo`}
+                    fill
+                    sizes="44px"
+                    className="scale-[1.12] object-cover object-center"
+                  />
+                )
+              : (
+                  <Image
+                    src={team.logoUrl}
+                    alt={`${team.name} logo`}
+                    width={44}
+                    height={44}
+                    sizes="44px"
+                    className="h-[92%] w-[92%] object-contain object-center"
+                  />
+                )
           )
         : (
-            <div className="flex size-full items-center justify-center text-sm font-semibold text-muted-foreground">
+            <div
+              className={cn(
+                'flex size-full items-center justify-center text-sm font-semibold text-muted-foreground',
+                useCroppedTeamLogo && 'rounded-lg border border-border/40 bg-secondary',
+              )}
+            >
               {fallbackInitial}
             </div>
           )}
@@ -4121,7 +4146,49 @@ export default function SportsGamesCenter({
       return
     }
 
-    router.push(card.eventHref as Route)
+    const defaultConditionId = resolveDefaultConditionId(card)
+    const selectedButtonKey = resolveDisplayButtonKey(
+      card,
+      selectedConditionByCardId[card.id] ?? defaultConditionId,
+    )
+    const selectedButton = resolveSelectedButton(card, selectedButtonKey)
+    const isSpreadOrTotalSelected = selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
+
+    setTradeSelection({
+      cardId: card.id,
+      buttonKey: selectedButton?.key ?? defaultConditionId,
+    })
+
+    setSelectedConditionByCardId((current) => {
+      if (!defaultConditionId || current[card.id]) {
+        return current
+      }
+
+      return {
+        ...current,
+        [card.id]: defaultConditionId,
+      }
+    })
+
+    if (openCardId !== card.id) {
+      setOpenCardId(card.id)
+      setIsDetailsContentVisible(true)
+      setActiveDetailsTab('orderBook')
+      return
+    }
+
+    if (isDetailsContentVisible) {
+      if (isSpreadOrTotalSelected) {
+        setIsDetailsContentVisible(false)
+        return
+      }
+
+      setOpenCardId(null)
+      setIsDetailsContentVisible(true)
+      return
+    }
+
+    setIsDetailsContentVisible(true)
   }
 
   function selectCardButton(
@@ -4164,7 +4231,9 @@ export default function SportsGamesCenter({
       return null
     }
 
-    const hasVisibleButtonColumns = cardsInGroup.some(card => card.event.sports_ended !== true)
+    const hasVisibleButtonColumns = cardsInGroup.some(card =>
+      card.event.sports_ended !== true && hasSportsGamesCardPrimaryMarketTrio(card),
+    )
     if (!hasVisibleButtonColumns) {
       return null
     }
@@ -4223,6 +4292,11 @@ export default function SportsGamesCenter({
     const shouldRenderDetailsPanel = isExpanded && (isDetailsContentVisible || isSpreadOrTotalSelected)
     const activeMarketType = resolveActiveMarketType(card, selectedButtonKey)
     const buttonGroups = groupButtonsByMarketType(card.buttons)
+    const hasPrimaryMarketTrio = hasSportsGamesCardPrimaryMarketTrio(card)
+    const shouldCollapseCardControlsToMoneylineOnly = !showSpreadsAndTotals || !hasPrimaryMarketTrio
+    const cardVisibleMarketColumns = shouldCollapseCardControlsToMoneylineOnly
+      ? MARKET_COLUMNS.filter(column => column.key === 'moneyline')
+      : MARKET_COLUMNS
     const hasLivestreamUrl = Boolean(card.event.livestream_url?.trim())
     const canWatchLivestream = (
       options.topBadgeMode === 'live'
@@ -4244,7 +4318,7 @@ export default function SportsGamesCenter({
           className={cn(
             `-mx-2.5 -mt-2.5 bg-card px-2.5 pt-2.5 transition-colors hover:bg-secondary/30`,
             shouldRenderDetailsPanel ? 'rounded-t-xl' : 'rounded-xl',
-            isFinalizedCard ? 'pb-3' : 'pb-2',
+            isFinalizedCard ? 'pb-3' : 'pb-2.5',
           )}
           role="button"
           tabIndex={0}
@@ -4368,6 +4442,7 @@ export default function SportsGamesCenter({
           >
             <div className={cn('min-w-0 flex-1', isFinalizedCard ? 'space-y-3 pt-0.5' : 'space-y-2')}>
               {card.teams.map((team, teamIndex) => {
+                const useCroppedTeamLogo = shouldUseCroppedSportsTeamLogo(card.event.sports_sport_slug)
                 const isWinner = winningTeamIndex === teamIndex
                 const isLoser = winningTeamIndex != null && winningTeamIndex !== teamIndex
                 const teamScore = teamScores[teamIndex]
@@ -4391,22 +4466,42 @@ export default function SportsGamesCenter({
                         {teamScore ?? '—'}
                       </span>
 
-                      <div className={cn('flex size-6 shrink-0 items-center justify-center', isLoser && 'opacity-55')}>
+                      <div
+                        className={cn(
+                          useCroppedTeamLogo
+                            ? 'relative h-7 w-12 shrink-0 overflow-hidden rounded-sm'
+                            : 'flex size-6 shrink-0 items-center justify-center',
+                          isLoser && 'opacity-55',
+                        )}
+                      >
                         {team.logoUrl
                           ? (
-                              <Image
-                                src={team.logoUrl}
-                                alt={`${team.name} logo`}
-                                width={24}
-                                height={24}
-                                sizes="20px"
-                                className="h-[92%] w-[92%] object-contain object-center"
-                              />
+                              useCroppedTeamLogo
+                                ? (
+                                    <Image
+                                      src={team.logoUrl}
+                                      alt={`${team.name} logo`}
+                                      fill
+                                      sizes="48px"
+                                      className="scale-[1.08] object-cover object-center"
+                                    />
+                                  )
+                                : (
+                                    <Image
+                                      src={team.logoUrl}
+                                      alt={`${team.name} logo`}
+                                      width={24}
+                                      height={24}
+                                      sizes="20px"
+                                      className="h-[92%] w-[92%] object-contain object-center"
+                                    />
+                                  )
                             )
                           : (
                               <div
                                 className={cn(
-                                  'flex size-full items-center justify-center rounded-sm border text-2xs font-semibold',
+                                  'flex size-full items-center justify-center border text-2xs font-semibold',
+                                  useCroppedTeamLogo ? 'rounded-sm bg-secondary' : 'rounded-sm',
                                   'border-border/40 text-muted-foreground',
                                 )}
                               >
@@ -4438,24 +4533,45 @@ export default function SportsGamesCenter({
                     key={`${card.id}-${team.abbreviation}-${team.name}`}
                     className="flex items-center gap-2"
                   >
-                    <div className="flex size-6 shrink-0 items-center justify-center">
+                    <div
+                      className={cn(
+                        useCroppedTeamLogo
+                          ? 'relative h-7 w-12 shrink-0 overflow-hidden rounded-sm'
+                          : 'flex size-6 shrink-0 items-center justify-center',
+                      )}
+                    >
                       {team.logoUrl
                         ? (
-                            <Image
-                              src={team.logoUrl}
-                              alt={`${team.name} logo`}
-                              width={24}
-                              height={24}
-                              sizes="20px"
-                              className="h-[92%] w-[92%] object-contain object-center"
-                            />
+                            useCroppedTeamLogo
+                              ? (
+                                  <Image
+                                    src={team.logoUrl}
+                                    alt={`${team.name} logo`}
+                                    fill
+                                    sizes="48px"
+                                    className="scale-[1.08] object-cover object-center"
+                                  />
+                                )
+                              : (
+                                  <Image
+                                    src={team.logoUrl}
+                                    alt={`${team.name} logo`}
+                                    width={24}
+                                    height={24}
+                                    sizes="20px"
+                                    className="h-[92%] w-[92%] object-contain object-center"
+                                  />
+                                )
                           )
                         : (
                             <div
-                              className={`
-                                flex size-full items-center justify-center rounded-sm border border-border/40 text-2xs
-                                font-semibold text-muted-foreground
-                              `}
+                              className={cn(
+                                `
+                                  flex size-full items-center justify-center border border-border/40 text-2xs
+                                  font-semibold text-muted-foreground
+                                `,
+                                useCroppedTeamLogo ? 'rounded-sm bg-secondary' : 'rounded-sm',
+                              )}
                             >
                               {team.abbreviation.slice(0, 1).toUpperCase()}
                             </div>
@@ -4481,18 +4597,22 @@ export default function SportsGamesCenter({
                 data-sports-card-control="true"
                 className={cn(
                   'grid grid-cols-1 gap-2',
-                  showSpreadsAndTotals
-                    ? 'min-[1200px]:w-[372px] sm:grid-cols-3'
-                    : 'w-full sm:ml-auto sm:w-auto sm:justify-items-end',
+                  shouldCollapseCardControlsToMoneylineOnly
+                    ? (
+                        showSpreadsAndTotals
+                          ? 'w-full min-[1200px]:w-[372px] sm:ml-auto'
+                          : 'w-full sm:ml-auto sm:w-auto sm:justify-items-end'
+                      )
+                    : 'min-[1200px]:w-[372px] sm:grid-cols-3',
                 )}
               >
-                {visibleMarketColumns.map((column) => {
+                {cardVisibleMarketColumns.map((column) => {
                   const columnButtons = buttonGroups[column.key]
                   if (columnButtons.length === 0) {
                     return null
                   }
 
-                  const isMoneylineOnlyLayout = !showSpreadsAndTotals && column.key === 'moneyline'
+                  const isMoneylineOnlyLayout = shouldCollapseCardControlsToMoneylineOnly && column.key === 'moneyline'
 
                   const renderedButtons = (() => {
                     if (column.key === 'moneyline') {
@@ -4959,11 +5079,7 @@ export default function SportsGamesCenter({
                       </h2>
                       {!hasCardsStartingWithinSoonWindow && (
                         <p className="text-sm text-muted-foreground">
-                          No games within 24 hours. Showing the next
-                          {' '}
-                          {LIVE_FALLBACK_LIMIT}
-                          {' '}
-                          upcoming games.
+                          No games within 24 hours.
                         </p>
                       )}
 

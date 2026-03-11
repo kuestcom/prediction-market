@@ -8,6 +8,7 @@ import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveEventOutcomePath } from '@/lib/events-routing'
 import { formatVolume } from '@/lib/formatters'
+import { resolveHomeSportsButtonChance } from '@/lib/sports-home-card'
 import { cn } from '@/lib/utils'
 
 interface EventCardSportsMoneylineProps {
@@ -114,8 +115,14 @@ export default function EventCardSportsMoneyline({
   const isResolvedEvent = event.status === 'resolved'
   const sportsTagLabel = event.sports_sport_slug?.trim()?.toUpperCase() || null
   const startTimeLabel = formatSportsStartTime(event.sports_start_time ?? event.start_date, currentTimestamp)
-  const team1Chance = Math.round(getDisplayChance(model.team1Button.conditionId))
-  const team2Chance = Math.round(getDisplayChance(model.team2Button.conditionId))
+  const team1Chance = Math.round(resolveHomeSportsButtonChance(
+    getDisplayChance(model.team1Button.conditionId),
+    model.team1Button.outcomeIndex,
+  ))
+  const team2Chance = Math.round(resolveHomeSportsButtonChance(
+    getDisplayChance(model.team2Button.conditionId),
+    model.team2Button.outcomeIndex,
+  ))
 
   return (
     <div

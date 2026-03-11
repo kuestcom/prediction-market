@@ -49,6 +49,7 @@ import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatVolume } from '@/lib/formatters'
 import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
+import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
 import { useSportsLivestream } from '@/stores/useSportsLivestream'
@@ -1521,6 +1522,7 @@ export default function SportsEventCenter({
 
   const team1 = heroCard.teams[0] ?? null
   const team2 = heroCard.teams[1] ?? null
+  const useCroppedHeroTeamLogo = shouldUseCroppedSportsTeamLogo(heroCard.event.sports_sport_slug ?? sportSlug)
   const shortTeam1Label = resolveTeamShortLabel(team1)
   const shortTeam2Label = resolveTeamShortLabel(team2)
   const eventShortLabel = `${shortTeam1Label} vs. ${shortTeam2Label}`
@@ -2214,21 +2216,47 @@ export default function SportsEventCenter({
 
           <div className="mb-4 flex items-center justify-center gap-12 md:gap-14">
             <div className="flex w-20 flex-col items-center gap-2">
-              <div className="pointer-events-none flex size-12 items-center justify-center select-none">
+              <div
+                className={cn(
+                  'pointer-events-none flex items-center justify-center select-none',
+                  useCroppedHeroTeamLogo ? 'relative size-12 overflow-hidden rounded-lg' : 'size-12',
+                )}
+              >
                 {team1?.logoUrl
                   ? (
-                      <Image
-                        src={team1.logoUrl}
-                        alt={`${team1.name} logo`}
-                        width={48}
-                        height={48}
-                        sizes="48px"
-                        draggable={false}
-                        className="size-full object-contain object-center select-none"
-                      />
+                      useCroppedHeroTeamLogo
+                        ? (
+                            <Image
+                              src={team1.logoUrl}
+                              alt={`${team1.name} logo`}
+                              fill
+                              sizes="48px"
+                              draggable={false}
+                              className="scale-[1.12] object-cover object-center select-none"
+                            />
+                          )
+                        : (
+                            <Image
+                              src={team1.logoUrl}
+                              alt={`${team1.name} logo`}
+                              width={48}
+                              height={48}
+                              sizes="48px"
+                              draggable={false}
+                              className="size-full object-contain object-center select-none"
+                            />
+                          )
                     )
                   : (
-                      <div className="text-sm font-semibold text-muted-foreground">
+                      <div
+                        className={cn(
+                          'text-sm font-semibold text-muted-foreground',
+                          useCroppedHeroTeamLogo
+                          && `
+                            flex size-full items-center justify-center rounded-lg border border-border/40 bg-secondary
+                          `,
+                        )}
+                      >
                         {team1?.abbreviation ?? '—'}
                       </div>
                     )}
@@ -2281,21 +2309,47 @@ export default function SportsEventCenter({
                 )}
 
             <div className="flex w-20 flex-col items-center gap-2">
-              <div className="pointer-events-none flex size-12 items-center justify-center select-none">
+              <div
+                className={cn(
+                  'pointer-events-none flex items-center justify-center select-none',
+                  useCroppedHeroTeamLogo ? 'relative size-12 overflow-hidden rounded-lg' : 'size-12',
+                )}
+              >
                 {team2?.logoUrl
                   ? (
-                      <Image
-                        src={team2.logoUrl}
-                        alt={`${team2.name} logo`}
-                        width={48}
-                        height={48}
-                        sizes="48px"
-                        draggable={false}
-                        className="size-full object-contain object-center select-none"
-                      />
+                      useCroppedHeroTeamLogo
+                        ? (
+                            <Image
+                              src={team2.logoUrl}
+                              alt={`${team2.name} logo`}
+                              fill
+                              sizes="48px"
+                              draggable={false}
+                              className="scale-[1.12] object-cover object-center select-none"
+                            />
+                          )
+                        : (
+                            <Image
+                              src={team2.logoUrl}
+                              alt={`${team2.name} logo`}
+                              width={48}
+                              height={48}
+                              sizes="48px"
+                              draggable={false}
+                              className="size-full object-contain object-center select-none"
+                            />
+                          )
                     )
                   : (
-                      <div className="text-sm font-semibold text-muted-foreground">
+                      <div
+                        className={cn(
+                          'text-sm font-semibold text-muted-foreground',
+                          useCroppedHeroTeamLogo
+                          && `
+                            flex size-full items-center justify-center rounded-lg border border-border/40 bg-secondary
+                          `,
+                        )}
+                      >
                         {team2?.abbreviation ?? '—'}
                       </div>
                     )}

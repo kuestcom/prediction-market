@@ -52,6 +52,12 @@ function isMarketResolved(market: Event['markets'][number] | null | undefined) {
   return Boolean(market?.is_resolved || market?.condition?.resolved)
 }
 
+function resolveDefaultMarket(markets: Event['markets']) {
+  return markets.find(market => market.is_active && !isMarketResolved(market))
+    ?? markets.find(market => !isMarketResolved(market))
+    ?? markets[0]
+}
+
 interface EventOrderQuerySyncProps {
   event: Event
   marketSlug?: string
@@ -95,7 +101,7 @@ function EventOrderQuerySync({ event, marketSlug, isMobile }: EventOrderQuerySyn
       ? event.markets.find(item => item.condition_id === conditionIdParam)
       : marketSlug
         ? event.markets.find(item => item.slug === marketSlug)
-        : event.markets[0]
+        : resolveDefaultMarket(event.markets)
     if (!market) {
       return
     }
@@ -189,9 +195,9 @@ export default function EventContent({
   const shouldHideChart = event.total_markets_count > 1 && !isNegRiskEnabled
   const initialMarket = useMemo(() => {
     if (marketSlug) {
-      return event.markets.find(market => market.slug === marketSlug) ?? event.markets[0] ?? null
+      return event.markets.find(market => market.slug === marketSlug) ?? resolveDefaultMarket(event.markets) ?? null
     }
-    return event.markets[0] ?? null
+    return resolveDefaultMarket(event.markets) ?? null
   }, [event.markets, marketSlug])
   const initialOutcome = useMemo(() => {
     if (!initialMarket) {
@@ -231,7 +237,7 @@ export default function EventContent({
   useEffect(() => {
     const targetMarket = marketSlug
       ? event.markets.find(market => market.slug === marketSlug)
-      : event.markets[0]
+      : resolveDefaultMarket(event.markets)
     if (!targetMarket) {
       return
     }
