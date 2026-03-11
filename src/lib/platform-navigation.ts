@@ -4,10 +4,44 @@ export interface PlatformNavigationChild {
   count?: number
 }
 
+export type PlatformCategorySidebarIconKey
+  = | 'all-grid'
+    | 'five-minute'
+    | 'fifteen-minute'
+    | 'hourly'
+    | 'four-hour'
+    | 'daily'
+    | 'weekly'
+    | 'monthly'
+    | 'yearly'
+    | 'pre-market'
+    | 'etf'
+    | 'bitcoin'
+    | 'ethereum'
+    | 'solana'
+    | 'xrp'
+    | 'dogecoin'
+    | 'microstrategy'
+
+export type PlatformCategorySidebarItem
+  = | {
+    type: 'link'
+    slug: string
+    label: string
+    count: number
+    icon?: PlatformCategorySidebarIconKey
+    isAll?: boolean
+  }
+  | {
+    type: 'divider'
+    key: string
+  }
+
 export interface PlatformNavigationTag {
   slug: string
   name: string
   childs: PlatformNavigationChild[]
+  sidebarItems?: PlatformCategorySidebarItem[]
 }
 
 export interface PlatformNavigationFilters {

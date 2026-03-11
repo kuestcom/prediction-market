@@ -87,6 +87,13 @@ describe('tagRepository.getMainTags', () => {
       })
       .mockResolvedValueOnce({
         data: [
+          { main_tag_slug: 'tech', count: 2 },
+          { main_tag_slug: 'world', count: 2 },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
           { main_tag_slug: 'tech', sub_tag_slug: 'shared', count: 1 },
           { main_tag_slug: 'world', sub_tag_slug: 'shared', count: 1 },
         ],

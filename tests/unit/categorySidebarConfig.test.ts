@@ -1,0 +1,53 @@
+import { describe, expect, it } from 'vitest'
+import { resolveCategorySidebarData } from '@/lib/category-sidebar-config'
+
+describe('category sidebar config', () => {
+  it('builds the full predefined crypto sidebar with zero-count fallbacks', () => {
+    const result = resolveCategorySidebarData({
+      categorySlug: 'crypto',
+      categoryCount: 3,
+      childs: [
+        { slug: 'bitcoin', name: 'Bitcoin', count: 1 },
+        { slug: 'daily', name: 'Daily', count: 3 },
+        { slug: 'solana', name: 'Solana', count: 2 },
+        { slug: 'crypto-prices', name: 'Crypto Prices', count: 3 },
+      ],
+    })
+
+    expect(result.childs.slice(0, 5)).toEqual([
+      { slug: '5M', name: '5 Min', count: 0 },
+      { slug: '15M', name: '15 Min', count: 0 },
+      { slug: 'hourly', name: '1 Hour', count: 0 },
+      { slug: '4hour', name: '4 Hours', count: 0 },
+      { slug: 'daily', name: 'Daily', count: 3 },
+    ])
+    expect(result.childs).toContainEqual({ slug: 'ethereum', name: 'Ethereum', count: 0 })
+    expect(result.childs).toContainEqual({ slug: 'crypto-prices', name: 'Crypto Prices', count: 3 })
+    expect(result.sidebarItems?.slice(0, 4)).toMatchObject([
+      { type: 'link', slug: 'crypto', count: 3, isAll: true, icon: 'all-grid' },
+      { type: 'link', slug: '5M', label: '5 Min', count: 0, icon: 'five-minute' },
+      { type: 'link', slug: '15M', label: '15 Min', count: 0, icon: 'fifteen-minute' },
+      { type: 'link', slug: 'hourly', label: '1 Hour', count: 0, icon: 'hourly' },
+    ])
+    expect(result.sidebarItems).toContainEqual({ type: 'divider', key: 'crypto-assets' })
+    expect(result.sidebarItems).toContainEqual({
+      type: 'link',
+      slug: 'ethereum',
+      label: 'Ethereum',
+      count: 0,
+      icon: 'ethereum',
+    })
+  })
+
+  it('leaves non-configured categories untouched', () => {
+    const result = resolveCategorySidebarData({
+      categorySlug: 'economy',
+      categoryCount: 4,
+      childs: [{ slug: 'fed-rates', name: 'Fed Rates', count: 4 }],
+    })
+
+    expect(result).toEqual({
+      childs: [{ slug: 'fed-rates', name: 'Fed Rates', count: 4 }],
+    })
+  })
+})

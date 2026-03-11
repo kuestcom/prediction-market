@@ -11,7 +11,7 @@ interface HomeSecondaryNavigationProps {
   hideOnDesktop?: boolean
   onSelectTag: (targetTag: string) => void
   showCategoryTitle?: boolean
-  tag: Pick<PlatformNavigationTag, 'childs' | 'name' | 'slug'>
+  tag: Pick<PlatformNavigationTag, 'childs' | 'name' | 'sidebarItems' | 'slug'>
 }
 
 export default function HomeSecondaryNavigation({
@@ -31,11 +31,20 @@ export default function HomeSecondaryNavigation({
   const indicatorRetryRef = useRef<number | null>(null)
 
   const tagItems = useMemo(() => {
+    if (tag.sidebarItems) {
+      return tag.sidebarItems
+        .filter(item => item.type === 'link')
+        .map(item => ({
+          slug: item.slug,
+          label: item.isAll ? t('All') : item.label,
+        }))
+    }
+
     return [
       { slug: tag.slug, label: t('All') },
       ...tag.childs.map(child => ({ slug: child.slug, label: child.name })),
     ]
-  }, [tag.childs, tag.slug, t])
+  }, [tag.childs, tag.sidebarItems, tag.slug, t])
 
   const resolvedActiveSubtagSlug = useMemo(
     () => (tagItems.some(item => item.slug === activeSubtagSlug) ? activeSubtagSlug : tag.slug),

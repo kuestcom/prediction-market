@@ -132,6 +132,7 @@ export default function HomeClient({
 
     return {
       slug: activeNavigationTag.slug,
+      sidebarItems: activeNavigationTag.sidebarItems,
       title: activeNavigationTag.name,
       childs: activeNavigationTag.childs,
     }
@@ -197,6 +198,7 @@ export default function HomeClient({
             categoryTitle={categorySidebar.title}
             activeSubcategorySlug={activeSidebarSubcategorySlug}
             onNavigate={handleSecondaryNavigation}
+            sidebarItems={categorySidebar.sidebarItems}
             subcategories={categorySidebar.childs}
           />
         )}

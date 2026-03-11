@@ -1,10 +1,12 @@
 import type { NonDefaultLocale, SupportedLocale } from '@/i18n/locales'
+import type { PlatformCategorySidebarItem, PlatformNavigationChild } from '@/lib/platform-navigation'
 import { createHash } from 'node:crypto'
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { cacheTag, revalidatePath } from 'next/cache'
 import { DEFAULT_LOCALE, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
+import { resolveCategorySidebarData } from '@/lib/category-sidebar-config'
 import { event_tags, markets, tag_translations, tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
@@ -45,13 +47,14 @@ interface TagWithChilds {
   active_markets_count: number | null
   created_at: Date
   updated_at: Date
-  childs: { name: string, slug: string, count: number }[]
+  childs: PlatformNavigationChild[]
+  sidebarItems?: PlatformCategorySidebarItem[]
 }
 
 interface MainTagsResult {
   data: TagWithChilds[] | null
   error: string | null
-  globalChilds: { name: string, slug: string, count: number }[]
+  globalChilds: PlatformNavigationChild[]
 }
 
 interface TagTranslationRecord {
@@ -223,6 +226,27 @@ export const TagRepository = {
     const mainEventTags = alias(event_tags, 'main_event_tags')
     const subEventTags = alias(event_tags, 'sub_event_tags')
 
+    const { data: mainCategoryEventCountsResult } = await runQuery(async () => {
+      const result = await db
+        .select({
+          main_tag_slug: mainTagReferences.slug,
+          count: sql<number>`COUNT(DISTINCT ${markets.event_id})::int`,
+        })
+        .from(mainEventTags)
+        .innerJoin(mainTagReferences, eq(mainEventTags.tag_id, mainTagReferences.id))
+        .innerJoin(markets, eq(markets.event_id, mainEventTags.event_id))
+        .where(and(
+          inArray(mainTagReferences.slug, mainSlugs),
+          eq(mainTagReferences.is_main_category, true),
+          eq(mainTagReferences.is_hidden, false),
+          eq(markets.is_active, true),
+          eq(markets.is_resolved, false),
+        ))
+        .groupBy(mainTagReferences.slug)
+
+      return { data: result, error: null }
+    })
+
     const { data: subcategoryEventCountsResult } = await runQuery(async () => {
       const result = await db
         .select({
@@ -255,6 +279,9 @@ export const TagRepository = {
         `${row.main_tag_slug}::${row.sub_tag_slug}`,
         row.count,
       ]),
+    )
+    const mainCategoryEventCounts = new Map<string, number>(
+      (mainCategoryEventCountsResult ?? []).map(row => [row.main_tag_slug, row.count]),
     )
 
     const translationTagIds = new Set<number>()
@@ -325,18 +352,29 @@ export const TagRepository = {
       })
     }
 
-    const enhanced = mainVisibleTags.map(tag => ({
-      ...tag,
-      name: localizedNamesByTagId.get(tag.id) ?? tag.name,
-      childs: (grouped.get(tag.slug) ?? [])
+    const enhanced = mainVisibleTags.map((tag) => {
+      const localizedTagName = localizedNamesByTagId.get(tag.id) ?? tag.name
+      const sortedChilds = (grouped.get(tag.slug) ?? [])
         .sort((a, b) => {
           if (b.count === a.count) {
             return a.name.localeCompare(b.name)
           }
           return b.count - a.count
         })
-        .map(({ name, slug, count }) => ({ name, slug, count })),
-    }))
+        .map(({ name, slug, count }) => ({ name, slug, count }))
+      const { childs: resolvedChilds, sidebarItems } = resolveCategorySidebarData({
+        categorySlug: tag.slug,
+        categoryCount: mainCategoryEventCounts.get(tag.slug) ?? 0,
+        childs: sortedChilds,
+      })
+
+      return {
+        ...tag,
+        name: localizedTagName,
+        childs: resolvedChilds,
+        sidebarItems,
+      }
+    })
 
     const globalChilds = Array.from(globalCounts.values())
       .filter(child => child.count > 0)
