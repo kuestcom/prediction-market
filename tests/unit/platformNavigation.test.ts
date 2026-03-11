@@ -13,14 +13,14 @@ describe('platform navigation helpers', () => {
     const tags = buildPlatformNavigationTags({
       trendingLabel: 'Trending',
       newLabel: 'New',
-      globalChilds: [{ slug: 'ukraine', name: 'Ukraine' }],
-      mainTags: [{ slug: 'geopolitics', name: 'Geopolitics', childs: [{ slug: 'ukraine', name: 'Ukraine' }] }],
+      globalChilds: [{ slug: 'ukraine', name: 'Ukraine', count: 9 }],
+      mainTags: [{ slug: 'geopolitics', name: 'Geopolitics', childs: [{ slug: 'ukraine', name: 'Ukraine', count: 9 }] }],
     })
 
     expect(tags.map(tag => tag.slug)).toEqual(['trending', 'new', 'geopolitics'])
-    expect(tags[0].childs).toEqual([{ slug: 'ukraine', name: 'Ukraine' }])
-    expect(tags[1].childs).toEqual([{ slug: 'ukraine', name: 'Ukraine' }])
-    expect(tags[2].childs).toEqual([{ slug: 'ukraine', name: 'Ukraine' }])
+    expect(tags[0].childs).toEqual([{ slug: 'ukraine', name: 'Ukraine', count: 9 }])
+    expect(tags[1].childs).toEqual([{ slug: 'ukraine', name: 'Ukraine', count: 9 }])
+    expect(tags[2].childs).toEqual([{ slug: 'ukraine', name: 'Ukraine', count: 9 }])
   })
 
   it('creates a child-parent map from main tags', () => {

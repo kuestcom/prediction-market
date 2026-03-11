@@ -1,6 +1,7 @@
 export interface PlatformNavigationChild {
   name: string
   slug: string
+  count?: number
 }
 
 export interface PlatformNavigationTag {
