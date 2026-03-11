@@ -83,6 +83,12 @@ export default function EventOrderPanelMobile({
   )
   const buyYesOutcome = yesOutcome ?? activeMarket?.outcomes[0] ?? null
   const buyNoOutcome = noOutcome ?? activeMarket?.outcomes[1] ?? null
+  const buyYesOutcomeLabel = buyYesOutcome?.outcome_text
+    ? (normalizeOutcomeLabel(buyYesOutcome.outcome_text) ?? buyYesOutcome.outcome_text)
+    : t('Yes')
+  const buyNoOutcomeLabel = buyNoOutcome?.outcome_text
+    ? (normalizeOutcomeLabel(buyNoOutcome.outcome_text) ?? buyNoOutcome.outcome_text)
+    : t('No')
   const shouldShowDefaultTrigger = showDefaultTrigger && isSingleMarket
   const yesPriceLabel = oddsFormat === 'price'
     ? formatCentsLabel(yesPrice)
@@ -117,8 +123,7 @@ export default function EventOrderPanelMobile({
                 <span className="truncate opacity-70">
                   {t('Buy')}
                   {' '}
-                  {normalizeOutcomeLabel((activeMarket ?? state.market)!.outcomes[0].outcome_text)
-                    ?? (activeMarket ?? state.market)!.outcomes[0].outcome_text}
+                  {buyYesOutcomeLabel}
                 </span>
                 <span className="shrink-0 font-bold">
                   {yesPriceLabel}
@@ -140,8 +145,7 @@ export default function EventOrderPanelMobile({
                 <span className="truncate opacity-70">
                   {t('Buy')}
                   {' '}
-                  {normalizeOutcomeLabel((activeMarket ?? state.market)!.outcomes[1].outcome_text)
-                    ?? (activeMarket ?? state.market)!.outcomes[1].outcome_text}
+                  {buyNoOutcomeLabel}
                 </span>
                 <span className="shrink-0 font-bold">
                   {noPriceLabel}
