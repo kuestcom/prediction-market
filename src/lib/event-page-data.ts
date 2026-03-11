@@ -4,19 +4,15 @@ import type {
   Event,
   EventLiveChartConfig,
   EventSeriesEntry,
-  User,
 } from '@/types'
 import { cacheTag } from 'next/cache'
-import { connection } from 'next/server'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
-import { UserRepository } from '@/lib/db/queries/user'
 import 'server-only'
 
 export interface EventPageContentData {
   event: Event
-  user: User | null
   marketContextEnabled: boolean
   changeLogEntries: ConditionChangeLogEntry[]
   seriesEvents: EventSeriesEntry[]
@@ -54,21 +50,20 @@ export async function getEventRouteBySlug(eventSlug: string) {
   return data
 }
 
-export async function loadEventPageContentData(
+export async function loadEventPagePublicContentData(
   eventSlug: string,
   locale: SupportedLocale,
 ): Promise<EventPageContentData | null> {
-  await connection()
+  'use cache'
+  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.event(eventSlug))
 
-  const [user, marketContextSettings] = await Promise.all([
-    UserRepository.getCurrentUser(),
-    loadMarketContextSettings(),
-  ])
+  const marketContextSettings = await loadMarketContextSettings()
 
   const marketContextEnabled = marketContextSettings.enabled && Boolean(marketContextSettings.apiKey)
 
   const [eventResult, changeLogResult] = await Promise.all([
-    EventRepository.getEventBySlug(eventSlug, user?.id ?? '', locale),
+    EventRepository.getEventBySlug(eventSlug, '', locale),
     EventRepository.getEventConditionChangeLogBySlug(eventSlug),
   ])
 
@@ -122,7 +117,6 @@ export async function loadEventPageContentData(
 
   return {
     event,
-    user,
     marketContextEnabled,
     changeLogEntries: changeLogResult.data ?? [],
     seriesEvents,

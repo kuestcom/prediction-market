@@ -1,12 +1,15 @@
+'use cache'
+
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
+import EventViewerState from '@/app/[locale]/(platform)/event/[slug]/_components/EventViewerState'
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
-import { getEventRouteBySlug, loadEventPageContentData } from '@/lib/event-page-data'
+import { getEventRouteBySlug, loadEventPagePublicContentData } from '@/lib/event-page-data'
 import { resolveEventBasePath, resolveEventPagePath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
@@ -46,7 +49,7 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
   }
 
   const [eventPageData, runtimeTheme] = await Promise.all([
-    loadEventPageContentData(slug, resolvedLocale),
+    loadEventPagePublicContentData(slug, resolvedLocale),
     loadRuntimeThemeState(),
   ])
   if (!eventPageData) {
@@ -64,12 +67,13 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
       <EventContent
         event={eventPageData.event}
         changeLogEntries={eventPageData.changeLogEntries}
-        user={eventPageData.user}
+        user={null}
         marketContextEnabled={eventPageData.marketContextEnabled}
         seriesEvents={eventPageData.seriesEvents}
         liveChartConfig={eventPageData.liveChartConfig}
         key={`is-bookmarked-${eventPageData.event.is_bookmarked}`}
       />
+      <EventViewerState />
     </>
   )
 }
