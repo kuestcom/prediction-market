@@ -12,6 +12,7 @@ import TestModeBannerDeferred from '@/components/TestModeBannerDeferred'
 import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { routing } from '@/i18n/routing'
 import { cacheTags } from '@/lib/cache-tags'
+import { openSauceOne } from '@/lib/fonts'
 import { IS_TEST_MODE } from '@/lib/network'
 import { resolvePwaThemeColors } from '@/lib/pwa-colors'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
@@ -80,17 +81,24 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
   setRequestLocale(locale)
 
   return (
-    <>
-      <SiteStructuredData locale={locale} site={runtimeTheme.site} />
-      <PwaServiceWorker />
-      {runtimeTheme.theme.cssText && <style id="theme-vars" dangerouslySetInnerHTML={{ __html: runtimeTheme.theme.cssText }} />}
-      <SiteIdentityProvider site={runtimeTheme.site}>
-        <NextIntlClientProvider locale={locale}>
-          {IS_TEST_MODE && <TestModeBannerDeferred />}
-          <PwaInstallPrompt />
-          {children}
-        </NextIntlClientProvider>
-      </SiteIdentityProvider>
-    </>
+    <html
+      lang={locale}
+      className={openSauceOne.variable}
+      data-theme-preset={runtimeTheme.theme.presetId}
+      suppressHydrationWarning
+    >
+      <body className="flex min-h-screen flex-col font-sans">
+        <SiteStructuredData locale={locale} site={runtimeTheme.site} />
+        <PwaServiceWorker />
+        {runtimeTheme.theme.cssText && <style id="theme-vars" dangerouslySetInnerHTML={{ __html: runtimeTheme.theme.cssText }} />}
+        <SiteIdentityProvider site={runtimeTheme.site}>
+          <NextIntlClientProvider locale={locale}>
+            {IS_TEST_MODE && <TestModeBannerDeferred />}
+            <PwaInstallPrompt />
+            {children}
+          </NextIntlClientProvider>
+        </SiteIdentityProvider>
+      </body>
+    </html>
   )
 }
