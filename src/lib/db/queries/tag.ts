@@ -77,6 +77,29 @@ interface SidebarCountEventCandidate {
   }>
 }
 
+function createSidebarCountEventCandidate(row: {
+  event_id: string
+  event_slug: string
+  event_status: SidebarCountEventCandidate['status']
+  series_slug: string | null
+  end_date: Date | null
+  created_at: Date
+  updated_at: Date
+}): SidebarCountEventCandidate {
+  return {
+    id: row.event_id,
+    slug: row.event_slug,
+    status: row.event_status,
+    series_slug: row.series_slug,
+    end_date: row.end_date?.toISOString() ?? null,
+    created_at: row.created_at.toISOString(),
+    updated_at: row.updated_at.toISOString(),
+    main_tag: null,
+    tags: [],
+    markets: [],
+  }
+}
+
 interface TagTranslationRecord {
   tag_id: number
   locale: string
@@ -291,18 +314,16 @@ export const TagRepository = {
 
     for (const row of visibleEventTagRows ?? []) {
       const eventId = row.event_id
-      const existing = sidebarCountEventsById.get(eventId) ?? {
-        id: eventId,
-        slug: row.event_slug,
-        status: row.event_status,
-        series_slug: row.series_slug,
-        end_date: row.end_date?.toISOString() ?? null,
-        created_at: row.created_at.toISOString(),
-        updated_at: row.updated_at.toISOString(),
-        main_tag: null,
-        tags: [],
-        markets: [],
-      }
+      const existing: SidebarCountEventCandidate = sidebarCountEventsById.get(eventId)
+        ?? createSidebarCountEventCandidate({
+          event_id: row.event_id,
+          event_slug: row.event_slug,
+          event_status: row.event_status as SidebarCountEventCandidate['status'],
+          series_slug: row.series_slug,
+          end_date: row.end_date,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+        })
 
       existing.tags.push({
         slug: row.tag_slug,

@@ -27,6 +27,7 @@ interface FilterToolbarProps {
   hideDesktopSecondaryNavigation?: boolean
   desktopTitle?: string
   secondaryNavigation?: ReactNode
+  showFilterCheckboxes?: boolean
 }
 
 interface BookmarkToggleProps {
@@ -79,6 +80,7 @@ export default function FilterToolbar({
   hideDesktopSecondaryNavigation = false,
   desktopTitle,
   secondaryNavigation,
+  showFilterCheckboxes = true,
 }: FilterToolbarProps) {
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
@@ -235,6 +237,7 @@ export default function FilterToolbar({
             onChange={handleFilterChange}
             onClear={handleClearFilters}
             hasActiveFilters={hasActiveFilters}
+            showFilterCheckboxes={showFilterCheckboxes}
           />
         )}
 
@@ -264,6 +267,7 @@ export default function FilterToolbar({
           onChange={handleFilterChange}
           onClear={handleClearFilters}
           hasActiveFilters={hasActiveFilters}
+          showFilterCheckboxes={showFilterCheckboxes}
         />
       )}
     </div>
@@ -316,9 +320,17 @@ interface FilterSettingsRowProps {
   onClear: () => void
   hasActiveFilters: boolean
   className?: string
+  showFilterCheckboxes?: boolean
 }
 
-function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, className }: FilterSettingsRowProps) {
+function FilterSettingsRow({
+  filters,
+  onChange,
+  onClear,
+  hasActiveFilters,
+  className,
+  showFilterCheckboxes = true,
+}: FilterSettingsRowProps) {
   const t = useExtracted()
 
   const SORT_OPTIONS: ReadonlyArray<{ value: SortOption, label: string, icon: LucideIcon }> = useMemo(() => [
@@ -383,7 +395,7 @@ function FilterSettingsRow({ filters, onChange, onClear, hasActiveFilters, class
         onChange={value => onChange({ status: value as StatusOption })}
       />
 
-      {FILTER_CHECKBOXES.map(({ key, label }) => (
+      {showFilterCheckboxes && FILTER_CHECKBOXES.map(({ key, label }) => (
         <Label
           key={key}
           htmlFor={`filter-${key}`}

@@ -215,6 +215,7 @@ export default function HomeClient({
             hideDesktopSecondaryNavigation={hasCategorySidebar}
             desktopTitle={categorySidebar?.title}
             secondaryNavigation={secondaryNavigation}
+            showFilterCheckboxes={pathState.isHomePage}
           />
 
           <EventsGrid
