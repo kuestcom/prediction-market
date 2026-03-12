@@ -51,4 +51,28 @@ describe('categorySidebar', () => {
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('1')).toBeInTheDocument()
   })
+
+  it('uses custom href overrides for configured items', () => {
+    render(
+      <CategorySidebar
+        categorySlug="finance"
+        categoryTitle="Finance"
+        activeSubcategorySlug={null}
+        onNavigate={() => {}}
+        sidebarItems={[
+          { type: 'link', slug: 'finance', label: 'All', count: 3, icon: 'all-grid', isAll: true },
+          {
+            type: 'link',
+            slug: 'earnings-calendar',
+            label: 'Earnings Calendar',
+            href: '/earnings',
+            icon: 'earnings-calendar',
+          },
+        ]}
+        subcategories={[]}
+      />,
+    )
+
+    expect(screen.getByRole('link', { name: 'Earnings Calendar' })).toHaveAttribute('href', '/earnings')
+  })
 })

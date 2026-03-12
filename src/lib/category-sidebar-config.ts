@@ -1,15 +1,12 @@
 import type {
-  PlatformCategorySidebarIconKey,
   PlatformCategorySidebarItem,
+  PlatformCategorySidebarLinkItem,
   PlatformNavigationChild,
 } from '@/lib/platform-navigation'
 
-interface CategorySidebarTemplateLinkItem {
-  type: 'link'
-  slug: string
-  label: string
-  icon?: PlatformCategorySidebarIconKey
-  isAll?: boolean
+interface CategorySidebarTemplateLinkItem extends Omit<PlatformCategorySidebarLinkItem, 'count'> {
+  includeInChilds?: boolean
+  showCount?: boolean
 }
 
 interface CategorySidebarTemplateDividerItem {
@@ -51,6 +48,34 @@ const categorySidebarTemplates: Partial<Record<string, CategorySidebarTemplateIt
     { type: 'link', slug: 'dogecoin', label: 'Dogecoin', icon: 'dogecoin' },
     { type: 'link', slug: 'microstrategy', label: 'Microstrategy', icon: 'microstrategy' },
   ],
+  finance: [
+    { type: 'link', slug: 'finance', label: 'All', icon: 'all-grid', isAll: true },
+    { type: 'link', slug: 'daily', label: 'Daily', icon: 'daily' },
+    { type: 'link', slug: 'weekly', label: 'Weekly', icon: 'weekly' },
+    { type: 'link', slug: 'monthly', label: 'Monthly', icon: 'monthly' },
+    { type: 'divider', key: 'finance-assets' },
+    { type: 'link', slug: 'stocks', label: 'Stocks', icon: 'stocks' },
+    { type: 'link', slug: 'earnings', label: 'Earnings', icon: 'earnings' },
+    { type: 'link', slug: 'indicies', label: 'Indices', icon: 'indicies' },
+    { type: 'link', slug: 'commodities', label: 'Commodities', icon: 'commodities' },
+    { type: 'link', slug: 'forex', label: 'Forex', icon: 'forex' },
+    { type: 'link', slug: 'collectibles', label: 'Collectibles', icon: 'collectibles', showCount: false },
+    { type: 'link', slug: 'acquisitions', label: 'Acquisitions', icon: 'acquisitions' },
+    {
+      type: 'link',
+      slug: 'earnings-calendar',
+      label: 'Earnings Calendar',
+      href: '/earnings',
+      icon: 'earnings-calendar',
+      includeInChilds: false,
+      showCount: false,
+    },
+    { type: 'link', slug: 'earnings-calls', label: 'Earnings Calls', icon: 'earnings-calls', showCount: false },
+    { type: 'link', slug: 'ipo', label: 'IPOs', icon: 'ipo' },
+    { type: 'link', slug: 'fed-rates', label: 'Fed Rates', icon: 'fed-rates' },
+    { type: 'link', slug: 'prediction-markets', label: 'Prediction Markets', icon: 'prediction-markets' },
+    { type: 'link', slug: 'treasuries', label: 'Treasuries', icon: 'treasuries' },
+  ],
 }
 
 function isLinkItem(item: CategorySidebarTemplateItem): item is CategorySidebarTemplateLinkItem {
@@ -78,6 +103,7 @@ export function resolveCategorySidebarData({
   const configuredChilds = template
     .filter(isLinkItem)
     .filter(item => !item.isAll)
+    .filter(item => item.includeInChilds !== false)
     .map(item => ({
       slug: item.slug,
       name: item.label,
@@ -97,7 +123,12 @@ export function resolveCategorySidebarData({
         type: 'link',
         slug: item.slug,
         label: item.label,
-        count: item.isAll ? categoryCount : (childsBySlug.get(item.slug)?.count ?? 0),
+        count: item.showCount === false
+          ? undefined
+          : item.isAll
+            ? categoryCount
+            : (childsBySlug.get(item.slug)?.count ?? 0),
+        href: item.href,
         icon: item.icon,
         isAll: item.isAll,
       }

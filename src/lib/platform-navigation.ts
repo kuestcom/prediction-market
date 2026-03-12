@@ -22,20 +22,36 @@ export type PlatformCategorySidebarIconKey
     | 'xrp'
     | 'dogecoin'
     | 'microstrategy'
+    | 'stocks'
+    | 'earnings'
+    | 'indicies'
+    | 'commodities'
+    | 'forex'
+    | 'collectibles'
+    | 'acquisitions'
+    | 'earnings-calendar'
+    | 'earnings-calls'
+    | 'ipo'
+    | 'fed-rates'
+    | 'prediction-markets'
+    | 'treasuries'
+
+export interface PlatformCategorySidebarLinkItem {
+  type: 'link'
+  slug: string
+  label: string
+  count?: number
+  href?: string
+  icon?: PlatformCategorySidebarIconKey
+  isAll?: boolean
+}
 
 export type PlatformCategorySidebarItem
-  = | {
-    type: 'link'
-    slug: string
-    label: string
-    count: number
-    icon?: PlatformCategorySidebarIconKey
-    isAll?: boolean
-  }
-  | {
-    type: 'divider'
-    key: string
-  }
+  = | PlatformCategorySidebarLinkItem
+    | {
+      type: 'divider'
+      key: string
+    }
 
 export interface PlatformNavigationTag {
   slug: string

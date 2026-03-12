@@ -1,10 +1,10 @@
 'use client'
 
-import type { Route } from 'next'
 import type { ReactNode } from 'react'
 import type {
   PlatformCategorySidebarIconKey,
   PlatformCategorySidebarItem,
+  PlatformCategorySidebarLinkItem,
   PlatformNavigationChild,
 } from '@/lib/platform-navigation'
 import { useExtracted } from 'next-intl'
@@ -16,7 +16,7 @@ interface CategorySidebarProps {
   activeSubcategorySlug: string | null
   categorySlug: string
   categoryTitle: string
-  onNavigate: (targetTag: string) => void
+  onNavigate: (target: Pick<PlatformCategorySidebarLinkItem, 'href' | 'slug'>) => void
   sidebarItems?: PlatformCategorySidebarItem[]
   subcategories: PlatformNavigationChild[]
 }
@@ -24,7 +24,7 @@ interface CategorySidebarProps {
 interface CategorySidebarLinkProps {
   children: ReactNode
   count?: number
-  href: Route
+  href: string
   icon?: PlatformCategorySidebarIconKey
   isActive: boolean
   onClick: () => void
@@ -37,14 +37,7 @@ interface SidebarIconAsset {
   src: string
 }
 
-interface CategorySidebarRenderLinkItem {
-  type: 'link'
-  count?: number
-  icon?: PlatformCategorySidebarIconKey
-  isAll?: boolean
-  label: string
-  slug: string
-}
+interface CategorySidebarRenderLinkItem extends PlatformCategorySidebarLinkItem {}
 
 type CategorySidebarRenderItem
   = | CategorySidebarRenderLinkItem
@@ -135,6 +128,65 @@ const sidebarIconAssets: Record<PlatformCategorySidebarIconKey, SidebarIconAsset
     alt: 'Microstrategy logo',
     rounded: true,
     src: '/images/logos/microstrategy.jpg',
+  },
+  'stocks': {
+    alt: 'Stocks',
+    src: '/images/category-sidebar/finance/stocks.png',
+  },
+  'earnings': {
+    alt: 'Earnings',
+    src: '/images/category-sidebar/finance/earnings.png',
+  },
+  'indicies': {
+    alt: 'Indices',
+    src: '/images/category-sidebar/finance/indices.png',
+  },
+  'commodities': {
+    alt: 'Commodities',
+    src: '/images/category-sidebar/finance/commodities.png',
+  },
+  'forex': {
+    alt: 'Forex',
+    src: '/images/category-sidebar/finance/forex.png',
+  },
+  'collectibles': {
+    alt: 'Collectibles',
+    src: '/images/category-sidebar/finance/collectibles.png',
+  },
+  'acquisitions': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/finance/acquisitions.svg',
+  },
+  'earnings-calendar': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/finance/earnings-calendar.svg',
+  },
+  'earnings-calls': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/finance/earnings-calls.svg',
+  },
+  'ipo': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/finance/ipo.svg',
+  },
+  'fed-rates': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/finance/fed-rates.svg',
+  },
+  'prediction-markets': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/finance/prediction-markets.svg',
+  },
+  'treasuries': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/finance/treasuries.svg',
   },
 }
 
@@ -227,18 +279,18 @@ export default function CategorySidebar({
         }
 
         const isAllItem = item.isAll ?? item.slug === categorySlug
-        const href = isAllItem
+        const href = item.href ?? (isAllItem
           ? `/${categorySlug}`
-          : `/${categorySlug}/${item.slug}`
+          : `/${categorySlug}/${item.slug}`)
 
         return (
           <CategorySidebarLink
             key={item.slug}
             count={item.count}
-            href={href as Route}
+            href={href}
             icon={item.icon}
             isActive={isAllItem ? activeSubcategorySlug === null : activeSubcategorySlug === item.slug}
-            onClick={() => onNavigate(item.slug)}
+            onClick={() => onNavigate({ slug: item.slug, href: item.href })}
           >
             {isAllItem ? t('All') : item.label}
           </CategorySidebarLink>

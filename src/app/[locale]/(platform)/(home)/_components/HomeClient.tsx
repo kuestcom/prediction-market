@@ -161,8 +161,13 @@ export default function HomeClient({
     ? activeSecondaryTagSlug
     : null
 
-  const handleSecondaryNavigation = useCallback((targetTag: string) => {
+  const handleSecondaryNavigation = useCallback(({ slug: targetTag, href }: { href?: string, slug: string }) => {
     if (!activeNavigationTag) {
+      return
+    }
+
+    if (href) {
+      router.push(href as Route)
       return
     }
 

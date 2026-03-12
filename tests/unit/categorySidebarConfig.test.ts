@@ -50,4 +50,41 @@ describe('category sidebar config', () => {
       childs: [{ slug: 'fed-rates', name: 'Fed Rates', count: 4 }],
     })
   })
+
+  it('builds the finance sidebar with href overrides and hidden-count items', () => {
+    const result = resolveCategorySidebarData({
+      categorySlug: 'finance',
+      categoryCount: 9,
+      childs: [
+        { slug: 'daily', name: 'Daily', count: 2 },
+        { slug: 'earnings', name: 'Earnings', count: 5 },
+        { slug: 'collectibles', name: 'Collectibles', count: 1 },
+        { slug: 'fed-rates', name: 'Fed Rates', count: 4 },
+      ],
+    })
+
+    expect(result.childs.slice(0, 5)).toEqual([
+      { slug: 'daily', name: 'Daily', count: 2 },
+      { slug: 'weekly', name: 'Weekly', count: 0 },
+      { slug: 'monthly', name: 'Monthly', count: 0 },
+      { slug: 'stocks', name: 'Stocks', count: 0 },
+      { slug: 'earnings', name: 'Earnings', count: 5 },
+    ])
+    expect(result.childs).not.toContainEqual({ slug: 'earnings-calendar', name: 'Earnings Calendar', count: 0 })
+    expect(result.sidebarItems).toContainEqual({
+      type: 'link',
+      slug: 'earnings-calendar',
+      label: 'Earnings Calendar',
+      href: '/earnings',
+      icon: 'earnings-calendar',
+      count: undefined,
+    })
+    expect(result.sidebarItems).toContainEqual({
+      type: 'link',
+      slug: 'collectibles',
+      label: 'Collectibles',
+      icon: 'collectibles',
+      count: undefined,
+    })
+  })
 })
