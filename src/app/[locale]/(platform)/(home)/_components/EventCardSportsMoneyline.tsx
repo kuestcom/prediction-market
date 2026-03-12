@@ -84,11 +84,23 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
     }
   }
 
+  if (!button.color) {
+    return {
+      className: cn(
+        `${HOME_OUTCOME_BUTTON_HEIGHT_CLASS} flex-1 rounded-sm px-2 text-sm font-semibold text-foreground`,
+      ),
+      style: undefined,
+      backgroundClassName: button.tone === 'team1' ? 'bg-primary' : 'bg-primary/60',
+      backgroundStyle: undefined,
+    }
+  }
+
   const textColor = ensureReadableTextColorOnDark(button.color)
 
   return {
     className: `${HOME_OUTCOME_BUTTON_HEIGHT_CLASS} flex-1 rounded-sm px-2 text-sm font-semibold`,
     style: textColor ? { color: textColor } : undefined,
+    backgroundClassName: undefined,
     backgroundStyle: button.color ? { backgroundColor: button.color } : undefined,
   }
 }
@@ -221,15 +233,18 @@ export default function EventCardSportsMoneyline({
                           <span className="hidden text-foreground group-hover/team-button:inline">{button.label}</span>
                         </span>
                       )}
-                  {toneStyles.backgroundStyle
+                  {(toneStyles.backgroundClassName || toneStyles.backgroundStyle)
                     ? (
                         <span
-                          className={`
-                            absolute inset-0 z-0 rounded-sm opacity-20 transition-opacity
-                            group-hover/team-button:opacity-40
-                            dark:opacity-30
-                            dark:group-hover/team-button:opacity-50
-                          `}
+                          className={cn(
+                            `
+                              absolute inset-0 z-0 rounded-sm opacity-20 transition-opacity
+                              group-hover/team-button:opacity-40
+                              dark:opacity-30
+                              dark:group-hover/team-button:opacity-50
+                            `,
+                            toneStyles.backgroundClassName,
+                          )}
                           style={toneStyles.backgroundStyle}
                         />
                       )
