@@ -1,4 +1,3 @@
-import type { Event } from '@/types'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 
 interface HomeEventVisibilityOptions {
@@ -7,6 +6,27 @@ interface HomeEventVisibilityOptions {
   hideEarnings?: boolean
   hideSports?: boolean
   status?: 'active' | 'resolved'
+}
+
+interface HomeVisibleEventTagCandidate {
+  slug?: string | null
+}
+
+interface HomeVisibleEventMarketCandidate {
+  is_resolved: boolean
+}
+
+interface HomeVisibleEventCandidate {
+  id: number | string
+  slug: string
+  status: 'draft' | 'active' | 'resolved' | 'archived'
+  series_slug?: string | null
+  end_date?: string | null
+  created_at: string
+  updated_at: string
+  main_tag?: string | null
+  tags?: HomeVisibleEventTagCandidate[]
+  markets?: HomeVisibleEventMarketCandidate[]
 }
 
 function normalizeSeriesSlug(value: string | null | undefined) {
@@ -23,7 +43,7 @@ function toTimestamp(value: string | null | undefined) {
   return Number.isFinite(timestamp) ? timestamp : Number.NEGATIVE_INFINITY
 }
 
-function isMoreRecentEvent(candidate: Event, current: Event) {
+function isMoreRecentEvent<T extends HomeVisibleEventCandidate>(candidate: T, current: T) {
   const candidateCreatedAt = toTimestamp(candidate.created_at)
   const currentCreatedAt = toTimestamp(current.created_at)
 
@@ -41,7 +61,7 @@ function isMoreRecentEvent(candidate: Event, current: Event) {
   return candidate.id > current.id
 }
 
-function isResolvedLike(event: Event) {
+function isResolvedLike<T extends HomeVisibleEventCandidate>(event: T) {
   if (event.status === 'resolved') {
     return true
   }
@@ -53,12 +73,12 @@ function isResolvedLike(event: Event) {
   return event.markets.every(market => market.is_resolved)
 }
 
-function isOverdueUnresolved(event: Event, nowMs: number) {
+function isOverdueUnresolved<T extends HomeVisibleEventCandidate>(event: T, nowMs: number) {
   const endTimestamp = toTimestamp(event.end_date)
   return !isResolvedLike(event) && Number.isFinite(endTimestamp) && endTimestamp < nowMs
 }
 
-function isPreferredSeriesEvent(candidate: Event, current: Event, nowMs: number) {
+function isPreferredSeriesEvent<T extends HomeVisibleEventCandidate>(candidate: T, current: T, nowMs: number) {
   const candidateEnd = toTimestamp(candidate.end_date)
   const currentEnd = toTimestamp(current.end_date)
   const candidateHasFutureEnd = candidateEnd >= nowMs
@@ -107,7 +127,10 @@ function isPreferredSeriesEvent(candidate: Event, current: Event, nowMs: number)
   return isMoreRecentEvent(candidate, current)
 }
 
-export function filterHomeEvents(events: Event[], options: HomeEventVisibilityOptions = {}) {
+export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
+  events: T[],
+  options: HomeEventVisibilityOptions = {},
+) {
   if (events.length === 0) {
     return events
   }
@@ -157,7 +180,7 @@ export function filterHomeEvents(events: Event[], options: HomeEventVisibilityOp
     return eventsMatchingTagFilters
   }
 
-  const newestBySeriesSlug = new Map<string, Event>()
+  const newestBySeriesSlug = new Map<string, T>()
 
   for (const event of eventsMatchingTagFilters) {
     const seriesSlug = normalizeSeriesSlug(event.series_slug)

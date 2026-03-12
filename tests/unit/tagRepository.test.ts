@@ -87,15 +87,50 @@ describe('tagRepository.getMainTags', () => {
       })
       .mockResolvedValueOnce({
         data: [
-          { main_tag_slug: 'tech', count: 2 },
-          { main_tag_slug: 'world', count: 2 },
-        ],
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: [
-          { main_tag_slug: 'tech', sub_tag_slug: 'shared', count: 1 },
-          { main_tag_slug: 'world', sub_tag_slug: 'shared', count: 1 },
+          {
+            event_id: 'event-tech',
+            event_slug: 'event-tech',
+            event_status: 'active',
+            series_slug: null,
+            end_date: now,
+            created_at: now,
+            updated_at: now,
+            tag_slug: 'tech',
+            tag_is_main_category: true,
+          },
+          {
+            event_id: 'event-tech',
+            event_slug: 'event-tech',
+            event_status: 'active',
+            series_slug: null,
+            end_date: now,
+            created_at: now,
+            updated_at: now,
+            tag_slug: 'shared',
+            tag_is_main_category: false,
+          },
+          {
+            event_id: 'event-world',
+            event_slug: 'event-world',
+            event_status: 'active',
+            series_slug: null,
+            end_date: now,
+            created_at: now,
+            updated_at: now,
+            tag_slug: 'world',
+            tag_is_main_category: true,
+          },
+          {
+            event_id: 'event-world',
+            event_slug: 'event-world',
+            event_status: 'active',
+            series_slug: null,
+            end_date: now,
+            created_at: now,
+            updated_at: now,
+            tag_slug: 'shared',
+            tag_is_main_category: false,
+          },
         ],
         error: null,
       })
@@ -115,5 +150,115 @@ describe('tagRepository.getMainTags', () => {
       },
     ])
     expect(result.globalChilds).toEqual([{ slug: 'shared', name: 'Shared', count: 2 }])
+  })
+
+  it('counts only the visible series winner for sidebar totals', async () => {
+    const now = new Date('2026-03-12T12:00:00.000Z')
+    const earlier = new Date('2026-03-11T12:00:00.000Z')
+
+    mocks.runQuery
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: 1,
+            name: 'Finance',
+            slug: 'finance',
+            is_main_category: true,
+            is_hidden: false,
+            display_order: 1,
+            active_markets_count: 5,
+            created_at: now,
+            updated_at: now,
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            main_tag_id: 1,
+            main_tag_slug: 'finance',
+            main_tag_name: 'Finance',
+            main_tag_is_hidden: false,
+            sub_tag_id: 101,
+            sub_tag_name: 'Stocks',
+            sub_tag_slug: 'stocks',
+            sub_tag_is_main_category: false,
+            sub_tag_is_hidden: false,
+            active_markets_count: 2,
+            last_market_activity_at: now,
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            event_id: 'finance-older',
+            event_slug: 'finance-older',
+            event_status: 'active',
+            series_slug: 'stocks-series',
+            end_date: now,
+            created_at: earlier,
+            updated_at: earlier,
+            tag_slug: 'finance',
+            tag_is_main_category: true,
+          },
+          {
+            event_id: 'finance-older',
+            event_slug: 'finance-older',
+            event_status: 'active',
+            series_slug: 'stocks-series',
+            end_date: now,
+            created_at: earlier,
+            updated_at: earlier,
+            tag_slug: 'stocks',
+            tag_is_main_category: false,
+          },
+          {
+            event_id: 'finance-newer',
+            event_slug: 'finance-newer',
+            event_status: 'active',
+            series_slug: 'stocks-series',
+            end_date: now,
+            created_at: now,
+            updated_at: now,
+            tag_slug: 'finance',
+            tag_is_main_category: true,
+          },
+          {
+            event_id: 'finance-newer',
+            event_slug: 'finance-newer',
+            event_status: 'active',
+            series_slug: 'stocks-series',
+            end_date: now,
+            created_at: now,
+            updated_at: now,
+            tag_slug: 'stocks',
+            tag_is_main_category: false,
+          },
+        ],
+        error: null,
+      })
+
+    const { TagRepository } = await import('@/lib/db/queries/tag')
+    const result = await TagRepository.getMainTags('en')
+
+    expect(result.error).toBeNull()
+    expect(result.data).toHaveLength(1)
+    expect(result.data?.[0]?.childs.find(child => child.slug === 'stocks')).toEqual({
+      slug: 'stocks',
+      name: 'Stocks',
+      count: 1,
+    })
+    expect(result.data?.[0]?.sidebarItems?.find(item => item.type === 'link' && item.slug === 'finance')).toMatchObject({
+      slug: 'finance',
+      count: 1,
+      isAll: true,
+    })
+    expect(result.data?.[0]?.sidebarItems?.find(item => item.type === 'link' && item.slug === 'stocks')).toMatchObject({
+      slug: 'stocks',
+      count: 1,
+    })
   })
 })
