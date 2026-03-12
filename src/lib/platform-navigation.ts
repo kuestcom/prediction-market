@@ -35,6 +35,15 @@ export type PlatformCategorySidebarIconKey
     | 'fed-rates'
     | 'prediction-markets'
     | 'treasuries'
+    | 'temperature'
+    | 'precipitation'
+    | 'global'
+    | 'tornadoes'
+    | 'hurricanes'
+    | 'earthquakes'
+    | 'volcanoes'
+    | 'pandemics'
+    | 'space'
 
 export interface PlatformCategorySidebarLinkItem {
   type: 'link'

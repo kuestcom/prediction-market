@@ -87,4 +87,34 @@ describe('category sidebar config', () => {
       count: undefined,
     })
   })
+
+  it('builds the climate-science sidebar with the predefined weather categories', () => {
+    const result = resolveCategorySidebarData({
+      categorySlug: 'climate-science',
+      categoryCount: 6,
+      childs: [
+        { slug: 'temperature', name: 'Temperature', count: 3 },
+        { slug: 'earthquakes', name: 'Earthquakes', count: 2 },
+      ],
+    })
+
+    expect(result.childs.slice(0, 4)).toEqual([
+      { slug: 'temperature', name: 'Temperature', count: 3 },
+      { slug: 'precipitation', name: 'Precipitation', count: 0 },
+      { slug: 'global', name: 'Global', count: 0 },
+      { slug: 'tornadoes', name: 'Tornadoes', count: 0 },
+    ])
+    expect(result.sidebarItems?.slice(0, 3)).toMatchObject([
+      { type: 'link', slug: 'climate-science', count: 6, isAll: true, icon: 'all-grid' },
+      { type: 'link', slug: 'temperature', label: 'Temperature', count: 3, icon: 'temperature' },
+      { type: 'link', slug: 'precipitation', label: 'Precipitation', count: 0, icon: 'precipitation' },
+    ])
+    expect(result.sidebarItems).toContainEqual({
+      type: 'link',
+      slug: 'earthquakes',
+      label: 'Earthquakes',
+      count: 2,
+      icon: 'earthquakes',
+    })
+  })
 })

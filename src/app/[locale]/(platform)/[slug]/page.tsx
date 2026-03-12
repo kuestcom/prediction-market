@@ -10,10 +10,7 @@ import {
   generateDynamicHomeCategoryStaticParams,
 } from '@/app/[locale]/(platform)/_lib/dynamic-home-category-page'
 import { buildPublicProfileMetadata, PublicProfilePageContent } from '@/app/[locale]/(platform)/_lib/public-profile-page'
-import {
-  isPlatformReservedRootSlug,
-  normalizePublicProfileSlug,
-} from '@/lib/platform-routing'
+import { isPlatformReservedRootSlug, normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export const generateStaticParams = generateDynamicHomeCategoryStaticParams

@@ -188,6 +188,51 @@ const sidebarIconAssets: Record<PlatformCategorySidebarIconKey, SidebarIconAsset
     decorative: true,
     src: '/images/category-sidebar/finance/treasuries.svg',
   },
+  'temperature': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/climate-science/temperature.svg',
+  },
+  'precipitation': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/climate-science/precipitation.svg',
+  },
+  'global': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/climate-science/global.svg',
+  },
+  'tornadoes': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/climate-science/tornadoes.svg',
+  },
+  'hurricanes': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/climate-science/hurricanes.svg',
+  },
+  'earthquakes': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/climate-science/earthquakes.svg',
+  },
+  'volcanoes': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/climate-science/volcanoes.svg',
+  },
+  'pandemics': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/climate-science/pandemics.svg',
+  },
+  'space': {
+    alt: '',
+    decorative: true,
+    src: '/images/category-sidebar/climate-science/space.svg',
+  },
 }
 
 function SidebarLinkIcon({ icon }: { icon?: PlatformCategorySidebarIconKey }) {
