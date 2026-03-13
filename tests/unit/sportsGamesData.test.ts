@@ -219,13 +219,17 @@ describe('sportsGamesData', () => {
     ))
     expect(binaryConditionIds).toHaveLength(5)
 
-    expect(card?.detailMarkets.map(market => market.slug)).toEqual(expect.arrayContaining([
+    expect(
+      card?.detailMarkets
+        .filter(market => binaryConditionIds.includes(market.condition_id))
+        .map(market => market.slug),
+    ).toEqual([
       'ufc-man15-bol-2026-03-14-go-the-distance',
       'ufc-man15-bol-2026-03-14-win-by-ko-tko',
       'ufc-man15-bol-2026-03-14-sousa-win-by-ko-tko',
       'ufc-man15-bol-2026-03-14-oki-win-by-ko-tko',
       'ufc-man15-bol-2026-03-14-win-by-submission',
-    ]))
+    ])
   })
 
   it('classifies yes/no props with totals-style metadata as binary markets', () => {
@@ -472,5 +476,126 @@ describe('sportsGamesData', () => {
     ])
     expect(moneylineButtons.map(button => button.cents)).toEqual([61, 19, 27])
     expect(card?.buttons.filter(button => button.marketType === 'binary')).toHaveLength(0)
+  })
+
+  it('keeps separated moneyline yes buttons correct when yes is stored at outcome index 1', () => {
+    const event = {
+      id: 'event-4',
+      slug: 'ars-che-split-reversed',
+      title: 'Arsenal vs. Chelsea',
+      creator: '',
+      icon_url: '',
+      show_market_icons: true,
+      status: 'active',
+      sports_event_slug: 'ars-che-split-reversed',
+      sports_sport_slug: 'soccer',
+      sports_section: 'games',
+      sports_start_time: '2026-03-14T00:00:00.000Z',
+      sports_teams: [
+        { name: 'Arsenal', abbreviation: 'ARS', host_status: 'home' },
+        { name: 'Chelsea', abbreviation: 'CHE', host_status: 'away' },
+      ],
+      active_markets_count: 2,
+      total_markets_count: 2,
+      volume: 0,
+      start_date: '2026-03-14T00:00:00.000Z',
+      end_date: null,
+      created_at: '2026-03-13T00:00:00.000Z',
+      updated_at: '2026-03-13T00:00:00.000Z',
+      markets: [
+        {
+          condition_id: 'arsenal-market',
+          question_id: 'arsenal-market-question',
+          event_id: 'event-4',
+          title: 'Arsenal',
+          slug: 'ars-che-home',
+          short_title: 'Arsenal',
+          icon_url: '',
+          is_active: true,
+          is_resolved: false,
+          block_number: 0,
+          block_timestamp: '2026-03-13T00:00:00.000Z',
+          sports_market_type: null,
+          sports_group_item_title: 'Arsenal',
+          sports_group_item_threshold: '0',
+          volume: 10,
+          volume_24h: 0,
+          created_at: '2026-03-13T00:00:00.000Z',
+          updated_at: '2026-03-13T00:00:00.000Z',
+          price: 0.61,
+          probability: 61,
+          outcomes: [
+            buildOutcome('arsenal-market', 0, 'No'),
+            buildOutcome('arsenal-market', 1, 'Yes'),
+          ],
+          condition: {
+            id: 'arsenal-market',
+            oracle: '',
+            question_id: 'arsenal-market-question',
+            outcome_slot_count: 2,
+            resolved: false,
+            volume: 0,
+            open_interest: 0,
+            active_positions_count: 0,
+            created_at: '2026-03-13T00:00:00.000Z',
+            updated_at: '2026-03-13T00:00:00.000Z',
+          },
+        },
+        {
+          condition_id: 'chelsea-market',
+          question_id: 'chelsea-market-question',
+          event_id: 'event-4',
+          title: 'Chelsea',
+          slug: 'ars-che-away',
+          short_title: 'Chelsea',
+          icon_url: '',
+          is_active: true,
+          is_resolved: false,
+          block_number: 0,
+          block_timestamp: '2026-03-13T00:00:00.000Z',
+          sports_market_type: null,
+          sports_group_item_title: 'Chelsea',
+          sports_group_item_threshold: '1',
+          volume: 10,
+          volume_24h: 0,
+          created_at: '2026-03-13T00:00:00.000Z',
+          updated_at: '2026-03-13T00:00:00.000Z',
+          price: 0.27,
+          probability: 27,
+          outcomes: [
+            buildOutcome('chelsea-market', 0, 'No'),
+            buildOutcome('chelsea-market', 1, 'Yes'),
+          ],
+          condition: {
+            id: 'chelsea-market',
+            oracle: '',
+            question_id: 'chelsea-market-question',
+            outcome_slot_count: 2,
+            resolved: false,
+            volume: 0,
+            open_interest: 0,
+            active_positions_count: 0,
+            created_at: '2026-03-13T00:00:00.000Z',
+            updated_at: '2026-03-13T00:00:00.000Z',
+          },
+        },
+      ],
+      tags: [],
+      main_tag: 'sports',
+      is_bookmarked: false,
+      is_trending: false,
+    } as any
+
+    const groups = buildSportsGamesCardGroups([event])
+    const card = groups[0]?.primaryCard
+    const moneylineButtons = card?.buttons.filter(button => button.marketType === 'moneyline') ?? []
+
+    expect(moneylineButtons).toHaveLength(2)
+    expect(moneylineButtons.map(button => `${button.conditionId}:${button.outcomeIndex}`)).toEqual([
+      'arsenal-market:1',
+      'chelsea-market:1',
+    ])
+    expect(moneylineButtons.map(button => button.label)).toEqual(['ARS', 'CHE'])
+    expect(moneylineButtons.map(button => button.cents)).toEqual([61, 27])
   })
 })

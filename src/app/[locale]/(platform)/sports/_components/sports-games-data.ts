@@ -280,6 +280,20 @@ function resolvePreferredYesOutcomeIndex(market: Market | null | undefined) {
     ?? 0
 }
 
+function hasUsedButtonForConditionId(usedButtonKeys: Set<string>, conditionId: string | null | undefined) {
+  if (!conditionId) {
+    return false
+  }
+
+  for (const buttonKey of usedButtonKeys) {
+    if (buttonKey.startsWith(`${conditionId}:`)) {
+      return true
+    }
+  }
+
+  return false
+}
+
 function buildFallbackAbbreviation(teamName: string) {
   return teamName
     .replace(/[^a-z0-9]/gi, '')
@@ -513,6 +527,9 @@ function appendButton(
   market: Market | undefined,
   outcomeIndex: number,
   payload: Pick<SportsGamesButton, 'label' | 'color' | 'marketType' | 'tone'>,
+  options?: {
+    fallbackIsNoOutcome?: boolean
+  },
 ) {
   if (!market || !market.condition_id) {
     return
@@ -527,7 +544,7 @@ function appendButton(
     ?? market.outcomes[outcomeIndex]
     ?? null
 
-  const isNoOutcome = outcomeIndex === 1
+  const isNoOutcome = options?.fallbackIsNoOutcome ?? outcomeIndex === 1
   usedButtonKeys.add(buttonKey)
   buttons.push({
     key: buttonKey,
@@ -622,6 +639,8 @@ function buildMoneylineButtons(
           color: null,
           marketType: 'moneyline',
           tone: 'draw',
+        }, {
+          fallbackIsNoOutcome: false,
         })
       }
 
@@ -643,18 +662,24 @@ function buildMoneylineButtons(
     color: team1?.color ?? null,
     marketType: 'moneyline',
     tone: 'team1',
+  }, {
+    fallbackIsNoOutcome: false,
   })
   appendButton(buttons, usedButtonKeys, drawMarket, resolvePreferredYesOutcomeIndex(drawMarket), {
     label: 'DRAW',
     color: null,
     marketType: 'moneyline',
     tone: 'draw',
+  }, {
+    fallbackIsNoOutcome: false,
   })
   appendButton(buttons, usedButtonKeys, team2Market, resolvePreferredYesOutcomeIndex(team2Market), {
     label: toTeamButtonLabel(team2, 'TEAM 2'),
     color: team2?.color ?? null,
     marketType: 'moneyline',
     tone: 'team2',
+  }, {
+    fallbackIsNoOutcome: false,
   })
 
   for (const market of candidates) {
@@ -662,7 +687,7 @@ function buildMoneylineButtons(
       break
     }
 
-    if (usedButtonKeys.has(`${market.condition_id}:0`)) {
+    if (hasUsedButtonForConditionId(usedButtonKeys, market.condition_id)) {
       continue
     }
 
@@ -680,11 +705,17 @@ function buildMoneylineButtons(
           ? 'team2'
           : 'neutral'
 
-    appendButton(buttons, usedButtonKeys, market, 0, {
+    const fallbackOutcomeIndex = isBinaryYesNoMarket(market)
+      ? resolvePreferredYesOutcomeIndex(market)
+      : 0
+
+    appendButton(buttons, usedButtonKeys, market, fallbackOutcomeIndex, {
       label: fallbackLabel,
       color: matchedTeam?.color ?? null,
       marketType: 'moneyline',
       tone,
+    }, {
+      fallbackIsNoOutcome: !isBinaryYesNoMarket(market) && fallbackOutcomeIndex === 1,
     })
   }
 

@@ -30,7 +30,7 @@ export function resolveSportsTeamFallbackButtonStyle(tone: SportsTeamTone): CSSP
   if (tone === 'team2') {
     return {
       backgroundColor: 'var(--card)',
-      color: resolveSportsTeamFallbackForegroundColor(),
+      color: 'var(--card-foreground)',
     }
   }
 
