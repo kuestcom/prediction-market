@@ -117,9 +117,14 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
   }
 
   async function handleAbort() {
-    await signOutAndRedirect({
-      currentPathname: window.location.pathname,
-    })
+    try {
+      await signOutAndRedirect({
+        currentPathname: window.location.pathname,
+      })
+    }
+    catch {
+      toast.error(t('Could not log out. Please try again.'))
+    }
   }
 
   return (

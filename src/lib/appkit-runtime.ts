@@ -229,6 +229,8 @@ export async function initializeAppKitSingleton(
             if (IS_BROWSER) {
               void signOutAndRedirect({
                 currentPathname: window.location.pathname,
+              }).catch((error) => {
+                console.error('Failed to complete logout after AppKit sign out.', error)
               })
             }
           },

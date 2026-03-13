@@ -36,7 +36,7 @@ export async function signOutAndRedirect({
   }
 
   if (!signOutSucceeded && !clearSucceeded) {
-    return false
+    throw new Error('Failed to clear auth state during logout.')
   }
 
   useUser.setState(null)
@@ -44,5 +44,4 @@ export async function signOutAndRedirect({
   clearNonHttpOnlyCookies()
 
   window.location.href = localizePathname(redirectPath, currentPathname)
-  return true
 }

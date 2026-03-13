@@ -5,6 +5,7 @@ import { BadgePercentIcon, ChevronDownIcon, SettingsIcon, ShieldIcon, TrophyIcon
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
@@ -98,9 +99,14 @@ export default function HeaderDropdownUserMenuAuth() {
     handleMenuClose()
 
     if (!hasAppKitInstance()) {
-      await signOutAndRedirect({
-        currentPathname: window.location.pathname,
-      })
+      try {
+        await signOutAndRedirect({
+          currentPathname: window.location.pathname,
+        })
+      }
+      catch {
+        toast.error(t('Could not log out. Please try again.'))
+      }
       return
     }
 
@@ -112,9 +118,14 @@ export default function HeaderDropdownUserMenuAuth() {
       //
     }
 
-    await signOutAndRedirect({
-      currentPathname: window.location.pathname,
-    })
+    try {
+      await signOutAndRedirect({
+        currentPathname: window.location.pathname,
+      })
+    }
+    catch {
+      toast.error(t('Could not log out. Please try again.'))
+    }
   }
 
   if (!user) {
