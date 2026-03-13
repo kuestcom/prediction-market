@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 
 const DISMISS_STORAGE_KEY = 'pwa_install_prompt_dismissed'
+const PROMPT_DELAY_MS = 20_000
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -33,6 +34,7 @@ export default function PwaInstallPrompt() {
   const [isStandalone, setIsStandalone] = useState(false)
   const [isDismissed, setIsDismissed] = useState(false)
   const [isPrompting, setIsPrompting] = useState(false)
+  const [canRenderPrompt, setCanRenderPrompt] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
@@ -81,6 +83,36 @@ export default function PwaInstallPrompt() {
     }
   }, [])
 
+  useEffect(() => {
+    let timeoutId: number | null = null
+
+    function schedulePromptRendering() {
+      if (timeoutId !== null) {
+        return
+      }
+
+      timeoutId = window.setTimeout(() => {
+        setCanRenderPrompt(true)
+      }, PROMPT_DELAY_MS)
+    }
+
+    const passiveOnceOptions = { once: true, passive: true } satisfies AddEventListenerOptions
+
+    window.addEventListener('scroll', schedulePromptRendering, passiveOnceOptions)
+    window.addEventListener('pointerdown', schedulePromptRendering, passiveOnceOptions)
+    window.addEventListener('keydown', schedulePromptRendering, { once: true })
+
+    return () => {
+      window.removeEventListener('scroll', schedulePromptRendering)
+      window.removeEventListener('pointerdown', schedulePromptRendering)
+      window.removeEventListener('keydown', schedulePromptRendering)
+
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId)
+      }
+    }
+  }, [])
+
   function dismissPrompt() {
     setIsDismissed(true)
 
@@ -117,7 +149,7 @@ export default function PwaInstallPrompt() {
   }
 
   const canShowInstallCta = Boolean(deferredPrompt)
-  const shouldShowPrompt = !isStandalone && !isDismissed && (isIos || canShowInstallCta)
+  const shouldShowPrompt = canRenderPrompt && !isStandalone && !isDismissed && (isIos || canShowInstallCta)
 
   if (!shouldShowPrompt) {
     return null
