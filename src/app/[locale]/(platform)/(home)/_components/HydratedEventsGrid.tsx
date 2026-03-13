@@ -21,6 +21,7 @@ import { useUser } from '@/stores/useUser'
 interface HydratedEventsGridProps {
   filters: FilterState
   initialEvents: Event[]
+  initialCurrentTimestamp: number
   maxColumns?: number
   onClearFilters?: () => void
   routeMainTag: string
@@ -109,6 +110,7 @@ async function fetchEvents({
 export default function HydratedEventsGrid({
   filters,
   initialEvents = EMPTY_EVENTS,
+  initialCurrentTimestamp,
   maxColumns,
   onClearFilters,
   routeMainTag,
@@ -121,7 +123,10 @@ export default function HydratedEventsGrid({
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
   const queryUserScope = filters.bookmarked ? userCacheKey : 'public'
-  const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
+  const currentTimestamp = useCurrentTimestamp({
+    initialTimestamp: initialCurrentTimestamp,
+    intervalMs: 60_000,
+  })
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const snapshotKey = [
     locale,
