@@ -140,7 +140,7 @@ export default function HydratedEventsGrid({
   const [lastStableVisibleEvents, setLastStableVisibleEvents] = useState<Event[]>(
     () => peekHydratedEventsSnapshot(snapshotKey) ?? initialEvents,
   )
-  const PAGE_SIZE = 40
+  const PAGE_SIZE = 32
   const isRouteInitialState = filters.tag === routeTag
     && filters.mainTag === routeMainTag
     && filters.search === ''
