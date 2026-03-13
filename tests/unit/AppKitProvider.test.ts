@@ -40,6 +40,20 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
 }))
 
+vi.mock('next/dynamic', () => ({
+  __esModule: true,
+  default: (loader: () => Promise<{ default: React.ComponentType<any> }>) => {
+    const LazyComponent = React.lazy(loader)
+    return function MockDynamicComponent(props: Record<string, unknown>) {
+      return React.createElement(
+        React.Suspense,
+        { fallback: null },
+        React.createElement(LazyComponent, props),
+      )
+    }
+  },
+}))
+
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     getSession: vi.fn().mockResolvedValue({ data: { user: null } }),
