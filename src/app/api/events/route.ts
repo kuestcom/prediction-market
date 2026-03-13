@@ -3,6 +3,7 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
+import { filterHomeEvents } from '@/lib/home-events'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -15,6 +16,9 @@ export async function GET(request: Request) {
   const sportsSportSlug = searchParams.get('sportsSportSlug') || ''
   const sportsSectionParam = searchParams.get('sportsSection') || ''
   const sportsSection = sportsSectionParam.trim().toLowerCase()
+  const hideSports = searchParams.get('hideSports') === 'true'
+  const hideCrypto = searchParams.get('hideCrypto') === 'true'
+  const hideEarnings = searchParams.get('hideEarnings') === 'true'
   const localeParam = searchParams.get('locale') ?? DEFAULT_LOCALE
   const locale = SUPPORTED_LOCALES.includes(localeParam as typeof SUPPORTED_LOCALES[number])
     ? localeParam as typeof SUPPORTED_LOCALES[number]
@@ -56,7 +60,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
     }
 
-    return NextResponse.json(events)
+    return NextResponse.json(filterHomeEvents(events ?? [], {
+      currentTimestamp: status === 'active' ? Date.now() : null,
+      hideSports,
+      hideCrypto,
+      hideEarnings,
+      status,
+    }))
   }
   catch (error) {
     console.error('API Error:', error)

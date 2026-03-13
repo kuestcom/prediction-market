@@ -7,7 +7,6 @@ import HydratedEventsGrid from '@/app/[locale]/(platform)/(home)/_components/Hyd
 interface EventsGridProps {
   filters: FilterState
   initialEvents: Event[]
-  initialCurrentTimestamp: number
   maxColumns?: number
   onClearFilters?: () => void
   routeMainTag: string
@@ -17,7 +16,6 @@ interface EventsGridProps {
 export default function EventsGrid({
   filters,
   initialEvents,
-  initialCurrentTimestamp,
   maxColumns,
   onClearFilters,
   routeMainTag,
@@ -27,7 +25,6 @@ export default function EventsGrid({
     <HydratedEventsGrid
       filters={filters}
       initialEvents={initialEvents}
-      initialCurrentTimestamp={initialCurrentTimestamp}
       maxColumns={maxColumns}
       onClearFilters={onClearFilters}
       routeMainTag={routeMainTag}

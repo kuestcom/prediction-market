@@ -176,7 +176,7 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
     return !(hideEarnings && hasEarningsTag)
   })
 
-  if (status === 'resolved' || currentTimestamp == null) {
+  if (status === 'resolved') {
     return eventsMatchingTagFilters
   }
 
@@ -189,7 +189,11 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
     }
 
     const currentNewest = newestBySeriesSlug.get(seriesSlug)
-    if (!currentNewest || isPreferredSeriesEvent(event, currentNewest, currentTimestamp)) {
+    const shouldReplaceCurrentNewest = currentTimestamp == null
+      ? !currentNewest || isMoreRecentEvent(event, currentNewest)
+      : !currentNewest || isPreferredSeriesEvent(event, currentNewest, currentTimestamp)
+
+    if (shouldReplaceCurrentNewest) {
       newestBySeriesSlug.set(seriesSlug, event)
     }
   }

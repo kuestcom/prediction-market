@@ -3,24 +3,14 @@
 import { useEffect, useState } from 'react'
 
 interface UseCurrentTimestampOptions {
-  initialTimestamp?: number | null
   intervalMs?: number | false
 }
 
-export function useCurrentTimestamp({
-  initialTimestamp = null,
-  intervalMs = false,
-}: UseCurrentTimestampOptions = {}) {
-  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(initialTimestamp)
+export function useCurrentTimestamp({ intervalMs = false }: UseCurrentTimestampOptions = {}) {
+  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null)
 
   useEffect(() => {
-    setCurrentTimestamp((current) => {
-      if (current != null) {
-        return current
-      }
-
-      return Date.now()
-    })
+    setCurrentTimestamp(Date.now())
 
     if (!intervalMs || intervalMs <= 0) {
       return

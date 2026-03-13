@@ -21,7 +21,6 @@ import { useUser } from '@/stores/useUser'
 interface HydratedEventsGridProps {
   filters: FilterState
   initialEvents: Event[]
-  initialCurrentTimestamp: number
   maxColumns?: number
   onClearFilters?: () => void
   routeMainTag: string
@@ -110,7 +109,6 @@ async function fetchEvents({
 export default function HydratedEventsGrid({
   filters,
   initialEvents = EMPTY_EVENTS,
-  initialCurrentTimestamp,
   maxColumns,
   onClearFilters,
   routeMainTag,
@@ -123,10 +121,7 @@ export default function HydratedEventsGrid({
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
   const queryUserScope = filters.bookmarked ? userCacheKey : 'public'
-  const currentTimestamp = useCurrentTimestamp({
-    initialTimestamp: initialCurrentTimestamp,
-    intervalMs: 60_000,
-  })
+  const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const snapshotKey = [
     locale,
@@ -160,6 +155,7 @@ export default function HydratedEventsGrid({
   const {
     status,
     data,
+    dataUpdatedAt,
     isFetching,
     isFetchingNextPage,
     fetchNextPage,
@@ -189,7 +185,7 @@ export default function HydratedEventsGrid({
     getNextPageParam: (lastPage, allPages) => lastPage.length === PAGE_SIZE ? allPages.length * PAGE_SIZE : undefined,
     initialPageParam: 0,
     initialData: shouldUseInitialData ? { pages: [initialEvents], pageParams: [0] } : undefined,
-    refetchOnMount: false,
+    refetchOnMount: shouldUseInitialData ? 'always' : false,
     refetchOnWindowFocus: false,
     staleTime: 'static',
     initialDataUpdatedAt: 0,
@@ -225,6 +221,7 @@ export default function HydratedEventsGrid({
   ])
 
   const allEvents = useMemo(() => (data ? data.pages.flat() : []), [data])
+  const hasFreshQueryData = !shouldUseInitialData || dataUpdatedAt > 0
 
   const visibleEvents = useMemo(() => {
     if (allEvents.length === 0) {
@@ -232,13 +229,13 @@ export default function HydratedEventsGrid({
     }
 
     return filterHomeEvents(allEvents, {
-      currentTimestamp,
+      currentTimestamp: hasFreshQueryData ? currentTimestamp : null,
       hideSports: filters.hideSports,
       hideCrypto: filters.hideCrypto,
       hideEarnings: filters.hideEarnings,
       status: filters.status,
     })
-  }, [allEvents, currentTimestamp, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status])
+  }, [allEvents, currentTimestamp, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status, hasFreshQueryData])
 
   useEffect(() => {
     setLastStableVisibleEvents(touchHydratedEventsSnapshot(snapshotKey) ?? initialEvents)
@@ -389,7 +386,7 @@ export default function HydratedEventsGrid({
         events={eventsToRender}
         priceOverridesByMarket={priceOverridesByMarket}
         maxColumns={maxColumns}
-        isFetching={isFetching || visibleEvents.length === 0}
+        isFetching={(visibleEvents.length === 0) || (isFetching && hasFreshQueryData)}
         currentTimestamp={currentTimestamp}
       />
 
