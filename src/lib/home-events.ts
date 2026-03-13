@@ -8,6 +8,8 @@ interface HomeEventVisibilityOptions {
   status?: 'active' | 'resolved'
 }
 
+export const HOME_EVENTS_PAGE_SIZE = 32
+
 interface HomeVisibleEventTagCandidate {
   slug?: string | null
 }

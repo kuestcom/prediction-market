@@ -16,6 +16,7 @@ import { buildDynamicHomeCategorySlugSet } from '@/lib/platform-routing'
 
 interface HomeClientProps {
   initialEvents: Event[]
+  initialCurrentTimestamp: number
   initialTag?: string
   initialMainTag?: string
 }
@@ -30,6 +31,7 @@ function createHomeRouteFilters(targetTag: string, targetMainTag: string): Filte
 
 export default function HomeClient({
   initialEvents,
+  initialCurrentTimestamp,
   initialTag,
   initialMainTag,
 }: HomeClientProps) {
@@ -221,6 +223,7 @@ export default function HomeClient({
           <EventsGrid
             filters={effectiveFilters}
             initialEvents={canUseServerInitialEvents ? initialEvents : []}
+            initialCurrentTimestamp={initialCurrentTimestamp}
             onClearFilters={handleClearFilters}
             routeMainTag={targetMainTag}
             routeTag={targetTag}

@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
-import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
-import { filterHomeEvents } from '@/lib/home-events'
+import { listHomeEventsPage } from '@/lib/home-events-page'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -42,7 +41,7 @@ export async function GET(request: Request) {
   const userId = user?.id
 
   try {
-    const { data: events, error } = await EventRepository.listEvents({
+    const { data: events, error } = await listHomeEventsPage({
       tag,
       mainTag,
       search,
@@ -51,7 +50,11 @@ export async function GET(request: Request) {
       frequency,
       status,
       offset: clampedOffset,
+      currentTimestamp: status === 'active' ? Date.now() : null,
       locale,
+      hideSports,
+      hideCrypto,
+      hideEarnings,
       sportsSportSlug,
       sportsSection: (sportsSection === 'games' || sportsSection === 'props') ? sportsSection : '',
     })
@@ -60,13 +63,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
     }
 
-    return NextResponse.json(filterHomeEvents(events ?? [], {
-      currentTimestamp: status === 'active' ? Date.now() : null,
-      hideSports,
-      hideCrypto,
-      hideEarnings,
-      status,
-    }))
+    return NextResponse.json(events)
   }
   catch (error) {
     console.error('API Error:', error)
