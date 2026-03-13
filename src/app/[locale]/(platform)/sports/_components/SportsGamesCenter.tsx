@@ -48,7 +48,10 @@ import { TIME_RANGES, useEventPriceHistory } from '@/app/[locale]/(platform)/eve
 import { loadStoredChartSettings, storeChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
 import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
 import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
-import { hasSportsGamesCardPrimaryMarketTrio } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
+import {
+  hasSportsGamesCardPrimaryMarketTrio,
+  resolveSportsGamesCardCollapsedMarketType,
+} from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import SportsLivestreamFloatingPlayer
   from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
@@ -112,6 +115,13 @@ type LinePickerMarketType = Extract<SportsGamesMarketType, 'spread' | 'total'>
 
 const MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: string }> = [
   { key: 'moneyline', label: 'Moneyline' },
+  { key: 'spread', label: 'Spread' },
+  { key: 'total', label: 'Total' },
+]
+const COLLAPSED_MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: string }> = [
+  { key: 'moneyline', label: 'Moneyline' },
+  { key: 'binary', label: 'Market' },
+  { key: 'btts', label: 'Both Teams to Score' },
   { key: 'spread', label: 'Spread' },
   { key: 'total', label: 'Total' },
 ]
@@ -3687,16 +3697,26 @@ export default function SportsGamesCenter({
     const preferredButton = preferredKey
       ? card.buttons.find(button => button.key === preferredKey) ?? null
       : null
+    const visibleMarketTypes = new Set(
+      (
+        showSpreadsAndTotals && hasSportsGamesCardPrimaryMarketTrio(card)
+          ? MARKET_COLUMNS
+          : (() => {
+              const collapsedMarketType = resolveSportsGamesCardCollapsedMarketType(card)
+              if (!collapsedMarketType) {
+                return []
+              }
 
-    if (showSpreadsAndTotals) {
-      return preferredButton?.key ?? resolveDefaultConditionId(card)
-    }
+              return COLLAPSED_MARKET_COLUMNS.filter(column => column.key === collapsedMarketType)
+            })()
+      ).map(column => column.key),
+    )
 
-    if (preferredButton?.marketType === 'moneyline') {
+    if (preferredButton && visibleMarketTypes.has(preferredButton.marketType)) {
       return preferredButton.key
     }
 
-    return card.buttons.find(button => button.marketType === 'moneyline')?.key
+    return card.buttons.find(button => visibleMarketTypes.has(button.marketType))?.key
       ?? preferredButton?.key
       ?? resolveDefaultConditionId(card)
   }, [showSpreadsAndTotals])
@@ -4336,8 +4356,9 @@ export default function SportsGamesCenter({
     const buttonGroups = groupButtonsByMarketType(card.buttons)
     const hasPrimaryMarketTrio = hasSportsGamesCardPrimaryMarketTrio(card)
     const shouldCollapseCardControlsToMoneylineOnly = !showSpreadsAndTotals || !hasPrimaryMarketTrio
+    const collapsedMarketType = resolveSportsGamesCardCollapsedMarketType(card)
     const cardVisibleMarketColumns = shouldCollapseCardControlsToMoneylineOnly
-      ? MARKET_COLUMNS.filter(column => column.key === 'moneyline')
+      ? COLLAPSED_MARKET_COLUMNS.filter(column => column.key === collapsedMarketType)
       : MARKET_COLUMNS
     const hasLivestreamUrl = Boolean(card.event.livestream_url?.trim())
     const canWatchLivestream = (
