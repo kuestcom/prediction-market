@@ -4,7 +4,8 @@ import type { User } from '@/types'
 import { defaultNetwork, networks, projectId, wagmiAdapter } from '@/lib/appkit'
 import { authClient } from '@/lib/auth-client'
 import { IS_BROWSER } from '@/lib/constants'
-import { buildTwoFactorRedirectPath, localizePathname, stripLocalePrefix } from '@/lib/locale-path'
+import { buildTwoFactorRedirectPath, stripLocalePrefix } from '@/lib/locale-path'
+import { signOutAndRedirect } from '@/lib/logout'
 import { clearBrowserStorage, clearNonHttpOnlyCookies } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
@@ -203,7 +204,9 @@ export async function initializeAppKitSingleton(
         onSignOut: () => {
           clearAppKitLocalStorage()
           if (IS_BROWSER) {
-            window.location.href = localizePathname('/auth/reset', window.location.pathname)
+            void signOutAndRedirect({
+              currentPathname: window.location.pathname,
+            })
           }
         },
       }),

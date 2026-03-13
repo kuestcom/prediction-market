@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { authClient } from '@/lib/auth-client'
+import { signOutAndRedirect } from '@/lib/logout'
 import { useUser } from '@/stores/useUser'
 
 const CODE_LENGTH = 6
@@ -42,7 +43,6 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
   const [code, setCode] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
   const redirectTo = useMemo(() => getSafeRedirect(next), [next])
-  const abortHref = '/auth/reset' as Route
 
   useEffect(() => {
     let isActive = true
@@ -116,6 +116,12 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
     }
   }
 
+  async function handleAbort() {
+    await signOutAndRedirect({
+      currentPathname: window.location.pathname,
+    })
+  }
+
   return (
     <Card className="py-6">
       <CardHeader className="space-y-2">
@@ -148,7 +154,13 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
             {isVerifying ? t('Verifying...') : t('Verify')}
           </Button>
           <Button variant="link" className="text-muted-foreground" asChild>
-            <Link href={abortHref}>
+            <Link
+              href={'/' as Route}
+              onClick={(event) => {
+                event.preventDefault()
+                void handleAbort()
+              }}
+            >
               {t('or go to home')}
             </Link>
           </Button>

@@ -21,6 +21,7 @@ import UserInfoSection from '@/components/UserInfoSection'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePathname } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
+import { signOutAndRedirect } from '@/lib/logout'
 import { useUser } from '@/stores/useUser'
 
 export default function HeaderDropdownUserMenuAuth() {
@@ -90,6 +91,21 @@ export default function HeaderDropdownUserMenuAuth() {
 
   function handleMenuClose() {
     setMenuOpen(false)
+  }
+
+  async function handleLogout() {
+    handleMenuClose()
+
+    try {
+      await disconnect()
+    }
+    catch {
+      //
+    }
+
+    await signOutAndRedirect({
+      currentPathname: window.location.pathname,
+    })
   }
 
   if (!user) {
@@ -233,7 +249,7 @@ export default function HeaderDropdownUserMenuAuth() {
           <LocaleSwitcherMenuItem />
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
-            <button type="button" className="w-full text-destructive" onClick={() => disconnect()}>
+            <button type="button" className="w-full text-destructive" onClick={() => void handleLogout()}>
               {t('Logout')}
             </button>
           </DropdownMenuItem>
