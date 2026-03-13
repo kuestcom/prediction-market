@@ -9,6 +9,7 @@ import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveEventOutcomePath } from '@/lib/events-routing'
 import { formatVolume } from '@/lib/formatters'
 import { resolveHomeSportsButtonChance } from '@/lib/sports-home-card'
+import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
 import { cn } from '@/lib/utils'
 
 interface EventCardSportsMoneylineProps {
@@ -90,7 +91,7 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
         `${HOME_OUTCOME_BUTTON_HEIGHT_CLASS} flex-1 rounded-sm px-2 text-sm font-semibold text-foreground`,
       ),
       style: undefined,
-      backgroundClassName: button.tone === 'team1' ? 'bg-primary' : 'bg-primary/60',
+      backgroundClassName: resolveSportsTeamFallbackClassName(button.tone),
       backgroundStyle: undefined,
     }
   }

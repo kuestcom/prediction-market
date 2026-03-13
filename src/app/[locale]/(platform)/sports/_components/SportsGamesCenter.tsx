@@ -82,6 +82,13 @@ import {
 import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { calculateYAxisBounds } from '@/lib/prediction-chart'
+import {
+  isSportsTeamTone,
+  resolveSportsTeamFallbackButtonStyle,
+  resolveSportsTeamFallbackColor,
+  resolveSportsTeamFallbackDepthStyle,
+  resolveSportsTeamFallbackOverlayStyle,
+} from '@/lib/sports-team-colors'
 import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
 import { buildUmaProposeUrl, buildUmaSettledUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
@@ -197,7 +204,7 @@ interface SportsPositionTag {
   key: string
   conditionId: string
   outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
-  marketTypeLabel: 'Moneyline' | 'Spread' | 'Total' | 'Both Teams to Score'
+  marketTypeLabel: 'Moneyline' | 'Spread' | 'Total' | 'Both Teams to Score' | 'Market'
   marketLabel: string
   outcomeLabel: string
   summaryLabel: string
@@ -328,7 +335,7 @@ function trimTradeFlowItems(items: SportsTradeFlowLabelItem[]) {
 function resolveMarketTypeLabel(
   button: SportsGamesButton | null,
   market: Market,
-): 'Moneyline' | 'Spread' | 'Total' | 'Both Teams to Score' {
+): 'Moneyline' | 'Spread' | 'Total' | 'Both Teams to Score' | 'Market' {
   if (button?.marketType === 'moneyline') {
     return 'Moneyline'
   }
@@ -340,6 +347,9 @@ function resolveMarketTypeLabel(
   }
   if (button?.marketType === 'btts') {
     return 'Both Teams to Score'
+  }
+  if (button?.marketType === 'binary') {
+    return 'Market'
   }
 
   const normalizedType = normalizeComparableText(market.sports_market_type)
@@ -353,7 +363,7 @@ function resolveMarketTypeLabel(
     return 'Total'
   }
 
-  return 'Moneyline'
+  return 'Market'
 }
 
 function formatCompactCentsLabel(cents: number | null) {
@@ -387,10 +397,17 @@ function normalizeMarketPriceCents(market: Market) {
   return Math.max(0, Math.min(100, Math.round(value)))
 }
 
-export function resolveButtonStyle(color: string | null): CSSProperties | undefined {
+export function resolveButtonStyle(
+  color: string | null,
+  tone?: SportsGamesButton['tone'],
+): CSSProperties | undefined {
   const normalized = normalizeHexColor(color)
   if (!normalized) {
-    return undefined
+    if (!isSportsTeamTone(tone)) {
+      return undefined
+    }
+
+    return resolveSportsTeamFallbackButtonStyle(tone)
   }
 
   return {
@@ -399,10 +416,17 @@ export function resolveButtonStyle(color: string | null): CSSProperties | undefi
   }
 }
 
-export function resolveButtonDepthStyle(color: string | null): CSSProperties | undefined {
+export function resolveButtonDepthStyle(
+  color: string | null,
+  tone?: SportsGamesButton['tone'],
+): CSSProperties | undefined {
   const normalized = normalizeHexColor(color)
   if (!normalized) {
-    return undefined
+    if (!isSportsTeamTone(tone)) {
+      return undefined
+    }
+
+    return resolveSportsTeamFallbackDepthStyle(tone)
   }
 
   const hex = normalized.replace('#', '')
@@ -423,6 +447,18 @@ export function resolveButtonDepthStyle(color: string | null): CSSProperties | u
   }
 }
 
+export function resolveButtonOverlayStyle(
+  color: string | null,
+  tone?: SportsGamesButton['tone'],
+): CSSProperties | undefined {
+  const normalized = normalizeHexColor(color)
+  if (normalized || !isSportsTeamTone(tone)) {
+    return undefined
+  }
+
+  return resolveSportsTeamFallbackOverlayStyle(tone)
+}
+
 function normalizeOutcomePriceCents(outcome: Outcome | null | undefined, market: Market) {
   if (outcome && Number.isFinite(outcome.buy_price)) {
     const value = Number(outcome.buy_price) * 100
@@ -439,6 +475,7 @@ export function groupButtonsByMarketType(buttons: SportsGamesButton[]) {
     spread: [],
     total: [],
     btts: [],
+    binary: [],
   }
 
   for (const button of buttons) {
@@ -674,6 +711,9 @@ function resolveGraphSeriesColor(
   )
   if (relatedTeamColor) {
     return relatedTeamColor
+  }
+  if (button && isSportsTeamTone(button.tone)) {
+    return resolveSportsTeamFallbackColor(button.tone)
   }
 
   if (button?.tone === 'over') {
@@ -2395,7 +2435,7 @@ export function SportsGameDetailsPanel({
       market: Market
       outcome: Outcome
       button: SportsGamesButton | null
-      marketTypeLabel: 'Moneyline' | 'Spread' | 'Total' | 'Both Teams to Score'
+      marketTypeLabel: 'Moneyline' | 'Spread' | 'Total' | 'Both Teams to Score' | 'Market'
       marketLabel: string
       outcomeLabel: string
       shares: number
@@ -2450,9 +2490,11 @@ export function SportsGameDetailsPanel({
       const fallbackMarketLabel = market.sports_group_item_title?.trim()
         || market.short_title?.trim()
         || market.title
-      const rawMarketLabel = button?.label?.trim()
-        || outcome.outcome_text?.trim()
-        || fallbackMarketLabel
+      const rawMarketLabel = button?.marketType === 'binary'
+        ? fallbackMarketLabel
+        : button?.label?.trim()
+          || outcome.outcome_text?.trim()
+          || fallbackMarketLabel
       const marketLabel = abbreviatePositionMarketLabel(rawMarketLabel, card.teams)
         || abbreviatePositionMarketLabel(fallbackMarketLabel, card.teams)
       const outcomeLabel = resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'NO' : 'YES'
@@ -2504,7 +2546,7 @@ export function SportsGameDetailsPanel({
         const avgPriceCents = item.shares > 0 && typeof item.totalCost === 'number'
           ? (item.totalCost / item.shares) * 100
           : null
-        const summaryLabel = item.marketTypeLabel === 'Moneyline'
+        const summaryLabel = item.marketTypeLabel === 'Moneyline' || item.marketTypeLabel === 'Market'
           ? `${item.marketLabel} ${item.outcomeLabel}`.trim()
           : item.marketLabel.trim()
 
@@ -4673,9 +4715,11 @@ export default function SportsGamesCenter({
                         const isMoneylineColumn = button.marketType === 'moneyline'
                         const hasTeamColor = isActiveColumn
                           && (button.tone === 'team1' || button.tone === 'team2')
-                          && Boolean(button.color)
                         const isOverButton = isActiveColumn && button.tone === 'over'
                         const isUnderButton = isActiveColumn && button.tone === 'under'
+                        const buttonOverlayStyle = hasTeamColor
+                          ? resolveButtonOverlayStyle(button.color, button.tone)
+                          : undefined
 
                         return (
                           <div
@@ -4692,7 +4736,7 @@ export default function SportsGamesCenter({
                                 isOverButton && 'bg-yes/70',
                                 isUnderButton && 'bg-no/70',
                               )}
-                              style={hasTeamColor ? resolveButtonDepthStyle(button.color) : undefined}
+                              style={hasTeamColor ? resolveButtonDepthStyle(button.color, button.tone) : undefined}
                             />
                             <button
                               type="button"
@@ -4707,7 +4751,7 @@ export default function SportsGamesCenter({
                                   panelMode,
                                 })
                               }}
-                              style={hasTeamColor ? resolveButtonStyle(button.color) : undefined}
+                              style={hasTeamColor ? resolveButtonStyle(button.color, button.tone) : undefined}
                               className={cn(
                                 `
                                   relative flex w-full translate-y-0 items-center justify-center rounded-lg px-2
@@ -4724,10 +4768,13 @@ export default function SportsGamesCenter({
                                 isUnderButton && 'bg-no text-white hover:bg-no-foreground',
                               )}
                             >
-                              <span className={cn('opacity-80', isMoneylineColumn ? 'mr-1' : 'mr-2')}>
+                              {buttonOverlayStyle
+                                ? <span className="pointer-events-none absolute inset-0 rounded-lg" style={buttonOverlayStyle} />
+                                : null}
+                              <span className={cn('relative z-1 opacity-80', isMoneylineColumn ? 'mr-1' : 'mr-2')}>
                                 {button.label}
                               </span>
-                              <span className="text-sm leading-none tabular-nums">
+                              <span className="relative z-1 text-sm leading-none tabular-nums">
                                 {formatButtonOdds(button.cents)}
                               </span>
                             </button>

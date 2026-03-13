@@ -107,6 +107,7 @@ export interface Market {
   metadata?: any
   sports_market_type?: string | null
   sports_group_item_title?: string | null
+  sports_group_item_threshold?: string | null
   volume_24h: number
   volume: number
   end_time?: string | null

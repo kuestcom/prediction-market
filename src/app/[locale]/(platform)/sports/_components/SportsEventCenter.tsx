@@ -24,6 +24,7 @@ import EventTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventT
 import {
   groupButtonsByMarketType,
   resolveButtonDepthStyle,
+  resolveButtonOverlayStyle,
   resolveButtonStyle,
   resolveDefaultConditionId,
   resolveSelectedButton,
@@ -517,6 +518,23 @@ function sortSectionButtons(sectionKey: EventSectionKey, buttons: SportsGamesBut
   return buttons
 }
 
+function sortAuxiliaryButtons(buttons: SportsGamesButton[]) {
+  const order: Record<SportsGamesButton['tone'], number> = {
+    team1: 0,
+    draw: 1,
+    team2: 2,
+    over: 3,
+    under: 4,
+    neutral: 5,
+  }
+
+  return [...buttons].sort((a, b) => (order[a.tone] ?? 99) - (order[b.tone] ?? 99))
+}
+
+function isEventSectionKey(value: SportsGamesButton['marketType']): value is EventSectionKey {
+  return value === 'moneyline' || value === 'spread' || value === 'total' || value === 'btts'
+}
+
 function resolveMarketViewCardBySlug(
   marketViewCards: SportsGamesCardMarketView[],
   marketSlug: string | null,
@@ -874,8 +892,10 @@ export default function SportsEventCenter({
         return
       }
 
-      const sectionKey = firstButton.marketType as EventSectionKey
-      if (!SECTION_ORDER.some(section => section.key === sectionKey)) {
+      const sectionKey = firstButton.marketType === 'binary'
+        ? 'moneyline'
+        : firstButton.marketType
+      if (!isEventSectionKey(sectionKey)) {
         return
       }
 
@@ -1027,69 +1047,74 @@ export default function SportsEventCenter({
 
     return activeCard.detailMarkets
       .map((market) => {
-        const buttons = sortSectionButtons(
-          'moneyline',
-          buttonsByConditionId.get(market.condition_id) ?? [],
-        )
+        const buttons = sortAuxiliaryButtons(buttonsByConditionId.get(market.condition_id) ?? [])
 
         if (buttons.length === 0) {
+          return null
+        }
+
+        if (usesSectionLayout && buttons[0]?.marketType !== 'binary') {
           return null
         }
 
         return { market, buttons }
       })
       .filter((entry): entry is { market: SportsGamesCard['detailMarkets'][number], buttons: SportsGamesButton[] } => Boolean(entry))
-  }, [activeCard.buttons, activeCard.detailMarkets])
+  }, [activeCard.buttons, activeCard.detailMarkets, usesSectionLayout])
 
   useEffect(() => {
     const isNewCard = previousCardIdRef.current !== activeCard.id
     previousCardIdRef.current = activeCard.id
 
-    if (!usesSectionLayout) {
-      const defaultSelectedByCondition = auxiliaryMarketCards.reduce<Record<string, string | null>>((acc, entry) => {
-        const marketMatchedButton = marketSlugToButtonKey
-          && entry.buttons.some(button => button.key === marketSlugToButtonKey)
-          ? marketSlugToButtonKey
-          : null
+    const defaultSelectedByCondition = auxiliaryMarketCards.reduce<Record<string, string | null>>((acc, entry) => {
+      const marketMatchedButton = marketSlugToButtonKey
+        && entry.buttons.some(button => button.key === marketSlugToButtonKey)
+        ? marketSlugToButtonKey
+        : null
 
-        acc[entry.market.condition_id] = marketMatchedButton ?? entry.buttons[0]?.key ?? null
-        return acc
-      }, {})
+      acc[entry.market.condition_id] = marketMatchedButton ?? entry.buttons[0]?.key ?? null
+      return acc
+    }, {})
 
-      setSelectedAuxiliaryButtonByConditionId((current) => {
-        if (isNewCard) {
-          return defaultSelectedByCondition
+    setSelectedAuxiliaryButtonByConditionId((current) => {
+      if (isNewCard) {
+        return defaultSelectedByCondition
+      }
+
+      const next = { ...defaultSelectedByCondition }
+      Object.entries(current).forEach(([conditionId, buttonKey]) => {
+        if (!buttonKey) {
+          return
         }
 
-        const next = { ...defaultSelectedByCondition }
-        Object.entries(current).forEach(([conditionId, buttonKey]) => {
-          if (!buttonKey) {
-            return
-          }
+        const matchedEntry = auxiliaryMarketCards.find(entry => entry.market.condition_id === conditionId)
+        if (!matchedEntry) {
+          return
+        }
 
-          const matchedEntry = auxiliaryMarketCards.find(entry => entry.market.condition_id === conditionId)
-          if (!matchedEntry) {
-            return
-          }
-
-          if (matchedEntry.buttons.some(button => button.key === buttonKey)) {
-            next[conditionId] = buttonKey
-          }
-        })
-
-        return next
+        if (matchedEntry.buttons.some(button => button.key === buttonKey)) {
+          next[conditionId] = buttonKey
+        }
       })
 
-      setTabByAuxiliaryConditionId((current) => {
-        const next = { ...current }
-        auxiliaryMarketCards.forEach(({ market }) => {
-          if (!next[market.condition_id]) {
-            next[market.condition_id] = 'orderBook'
-          }
-        })
-        return next
-      })
+      return next
+    })
 
+    setTabByAuxiliaryConditionId((current) => {
+      const next = { ...current }
+      auxiliaryMarketCards.forEach(({ market }) => {
+        if (!next[market.condition_id]) {
+          next[market.condition_id] = 'orderBook'
+        }
+      })
+      return next
+    })
+
+    const marketMatchedAuxiliaryConditionId = marketSlugToButtonKey
+      ? auxiliaryMarketCards.find(entry => entry.buttons.some(button => button.key === marketSlugToButtonKey))?.market.condition_id ?? null
+      : null
+
+    if (!usesSectionLayout) {
       const defaultTradeButton = marketSlugToButtonKey
         ?? auxiliaryMarketCards[0]?.buttons[0]?.key
         ?? resolveDefaultConditionId(activeCard)
@@ -1108,6 +1133,10 @@ export default function SportsEventCenter({
 
       setOpenSectionKey(null)
       setOpenAuxiliaryConditionId((current) => {
+        if (marketMatchedAuxiliaryConditionId) {
+          return marketMatchedAuxiliaryConditionId
+        }
+
         if (isNewCard) {
           return null
         }
@@ -1135,8 +1164,8 @@ export default function SportsEventCenter({
 
     if (marketSlugToButtonKey) {
       const marketButton = activeCard.buttons.find(button => button.key === marketSlugToButtonKey)
-      if (marketButton) {
-        defaultSelectedBySection[marketButton.marketType as EventSectionKey] = marketButton.key
+      if (marketButton && isEventSectionKey(marketButton.marketType)) {
+        defaultSelectedBySection[marketButton.marketType] = marketButton.key
       }
     }
 
@@ -1198,7 +1227,17 @@ export default function SportsEventCenter({
       }
       return null
     })
-    setOpenAuxiliaryConditionId(null)
+    setOpenAuxiliaryConditionId((current) => {
+      if (marketMatchedAuxiliaryConditionId) {
+        return marketMatchedAuxiliaryConditionId
+      }
+
+      if (!isNewCard && current && auxiliaryMarketCards.some(entry => entry.market.condition_id === current)) {
+        return current
+      }
+
+      return null
+    })
   }, [
     activeCard,
     activeCard.id,
@@ -1234,6 +1273,9 @@ export default function SportsEventCenter({
           fallbackButtonFromOrderState,
           activeTradeButtonKey,
           openSectionKey ? selectedButtonBySection[openSectionKey] : null,
+          openAuxiliaryConditionId ? selectedAuxiliaryButtonByConditionId[openAuxiliaryConditionId] : null,
+          marketSlugToButtonKey,
+          auxiliaryMarketCards[0]?.buttons[0]?.key ?? null,
           moneylineButtonKey,
           selectedButtonBySection.spread,
           selectedButtonBySection.total,
@@ -1309,18 +1351,20 @@ export default function SportsEventCenter({
     })
 
     if (usesSectionLayout) {
-      const sectionKey = matchedButton.marketType as EventSectionKey
-      setSelectedButtonBySection((current) => {
-        if (current[sectionKey] === matchedButton.key) {
-          return current
-        }
+      if (isEventSectionKey(matchedButton.marketType)) {
+        const sectionKey = matchedButton.marketType
+        setSelectedButtonBySection((current) => {
+          if (current[sectionKey] === matchedButton.key) {
+            return current
+          }
 
-        return {
-          ...current,
-          [sectionKey]: matchedButton.key,
-        }
-      })
-      return
+          return {
+            ...current,
+            [sectionKey]: matchedButton.key,
+          }
+        })
+        return
+      }
     }
 
     setSelectedAuxiliaryButtonByConditionId((current) => {
@@ -1470,6 +1514,7 @@ export default function SportsEventCenter({
     }
 
     if (panelMode === 'full' && !shouldOpenMobileSheetOnly) {
+      setOpenAuxiliaryConditionId(null)
       setOpenSectionKey(sectionKey)
     }
   }
@@ -1500,6 +1545,7 @@ export default function SportsEventCenter({
     }
 
     if (panelMode === 'full' && !shouldOpenMobileSheetOnly) {
+      setOpenSectionKey(null)
       setOpenAuxiliaryConditionId(conditionId)
     }
   }
@@ -1637,6 +1683,184 @@ export default function SportsEventCenter({
         </div>
       )
     : null
+  const auxiliaryMarketPanels = auxiliaryMarketCards.map(({ market, buttons }) => {
+    const conditionId = market.condition_id
+    const selectedButtonKey = selectedAuxiliaryButtonByConditionId[conditionId] ?? buttons[0]?.key ?? null
+    const isOpen = openAuxiliaryConditionId === conditionId
+    const activeTab = tabByAuxiliaryConditionId[conditionId] ?? 'orderBook'
+    const isResolved = auxiliaryResolvedByConditionId.get(conditionId) === true
+    const claimGroup = auxiliaryClaimGroupsByConditionId.get(conditionId) ?? null
+    const shouldShowRedeemButton = isResolved && Boolean(claimGroup)
+    const marketTitle = resolveAuxiliaryMarketTitle(market)
+    const firstButtonKey = buttons[0]?.key ?? null
+
+    function toggleCondition() {
+      setOpenAuxiliaryConditionId(current => current === conditionId ? null : conditionId)
+    }
+
+    function handleCardClick(event: React.MouseEvent<HTMLElement>) {
+      const target = event.target as HTMLElement
+      if (target.closest('[data-sports-card-control="true"]')) {
+        return
+      }
+      if (firstButtonKey) {
+        updateAuxiliarySelection(conditionId, firstButtonKey, { panelMode: 'preserve' })
+      }
+      toggleCondition()
+    }
+
+    function handleCardKeyDown(event: React.KeyboardEvent<HTMLElement>) {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return
+      }
+      const target = event.target as HTMLElement
+      if (target.closest('[data-sports-card-control="true"]')) {
+        return
+      }
+      event.preventDefault()
+      if (firstButtonKey) {
+        updateAuxiliarySelection(conditionId, firstButtonKey, { panelMode: 'preserve' })
+      }
+      toggleCondition()
+    }
+
+    return (
+      <article
+        key={`${activeCard.id}-${conditionId}`}
+        className="overflow-hidden rounded-xl border bg-card"
+      >
+        <div
+          className={cn(
+            `
+              flex w-full cursor-pointer flex-col items-stretch gap-3 px-4 py-[18px] transition-colors
+              sm:flex-row sm:items-center
+            `,
+            'hover:bg-secondary/30',
+          )}
+          role="button"
+          tabIndex={0}
+          onClick={handleCardClick}
+          onKeyDown={handleCardKeyDown}
+        >
+          <div className="min-w-0 text-left transition-colors hover:text-foreground/90">
+            <h3 className="text-sm font-semibold text-foreground">{marketTitle}</h3>
+            <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+              {formatVolume(Number(market.volume ?? 0))}
+              {' '}
+              Vol.
+            </p>
+          </div>
+
+          {!isResolved && (
+            <div
+              className={cn(
+                'grid min-w-0 flex-1 items-stretch gap-2',
+                'min-[1200px]:ml-auto min-[1200px]:w-[248px] min-[1200px]:flex-none',
+                'grid-cols-2',
+              )}
+            >
+              {buttons.map((button) => {
+                const isActive = activeTradeButtonKey === button.key
+                const isOverButton = isActive && button.tone === 'over'
+                const isUnderButton = isActive && button.tone === 'under'
+
+                return (
+                  <div
+                    key={`${conditionId}-${button.key}`}
+                    className="relative min-w-0 overflow-hidden rounded-lg pb-1.25"
+                  >
+                    <div
+                      className={cn(
+                        'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
+                        !isOverButton && !isUnderButton && 'bg-border/70',
+                        isOverButton && 'bg-yes/70',
+                        isUnderButton && 'bg-no/70',
+                      )}
+                    />
+                    <button
+                      type="button"
+                      data-sports-card-control="true"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        updateAuxiliarySelection(conditionId, button.key, { panelMode: 'full' })
+                      }}
+                      className={cn(
+                        `
+                          relative flex h-9 w-full translate-y-0 items-center justify-between rounded-lg px-3 text-xs
+                          font-semibold shadow-sm transition-transform duration-150 ease-out
+                          hover:translate-y-px
+                          active:translate-y-0.5
+                        `,
+                        !isOverButton && !isUnderButton
+                        && 'bg-secondary text-secondary-foreground hover:bg-accent',
+                        isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
+                        isUnderButton && 'bg-no text-white hover:bg-no-foreground',
+                      )}
+                    >
+                      <span className="uppercase opacity-80">{button.label}</span>
+                      <span className="text-sm leading-none tabular-nums">
+                        {formatButtonOdds(button.cents)}
+                      </span>
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {shouldShowRedeemButton && (
+            <div
+              className="
+                min-w-0 flex-1
+                min-[1200px]:ml-auto min-[1200px]:w-[calc((248px-0.5rem)/2)] min-[1200px]:flex-none
+              "
+            >
+              <div className="relative min-w-0 overflow-hidden rounded-lg pb-1.25">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg bg-primary" />
+                <button
+                  type="button"
+                  data-sports-card-control="true"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setRedeemDefaultConditionId(conditionId)
+                    setRedeemSectionKey('moneyline')
+                  }}
+                  className={`
+                    relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg bg-primary px-3
+                    text-xs font-semibold text-primary-foreground shadow-sm transition-transform duration-150 ease-out
+                    hover:translate-y-px hover:bg-primary
+                    active:translate-y-0.5
+                  `}
+                >
+                  Redeem
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className={cn('bg-card px-2.5', isOpen ? 'border-t pt-3' : 'pt-0')}>
+          <SportsGameDetailsPanel
+            card={activeCard}
+            activeDetailsTab={activeTab}
+            selectedButtonKey={selectedButtonKey}
+            showBottomContent={isOpen}
+            defaultGraphTimeRange="ALL"
+            allowedConditionIds={new Set([conditionId])}
+            showAboutTab
+            aboutEvent={activeCard.event}
+            showRedeemInPositions={activeCard.event.sports_ended === true}
+            onOpenRedeemForCondition={handleOpenRedeemForCondition}
+            oddsFormat={oddsFormat}
+            onChangeTab={tab => setTabByAuxiliaryConditionId(current => ({ ...current, [conditionId]: tab }))}
+            onSelectButton={(buttonKey, options) => {
+              updateAuxiliarySelection(conditionId, buttonKey, options)
+            }}
+          />
+        </div>
+      </article>
+    )
+  })
   const marketPanelsContent = usesSectionLayout
     ? (
         <div key={activeMarketView?.key ?? 'gameLines'}>
@@ -1759,9 +1983,11 @@ export default function SportsEventCenter({
                                   const isActive = activeTradeButtonKey === button.key
                                   const hasTeamColor = isActive
                                     && (button.tone === 'team1' || button.tone === 'team2')
-                                    && Boolean(button.color)
                                   const isOverButton = isActive && button.tone === 'over'
                                   const isUnderButton = isActive && button.tone === 'under'
+                                  const buttonOverlayStyle = hasTeamColor
+                                    ? resolveButtonOverlayStyle(button.color, button.tone)
+                                    : undefined
 
                                   return (
                                     <div
@@ -1775,7 +2001,7 @@ export default function SportsEventCenter({
                                           isOverButton && 'bg-yes/70',
                                           isUnderButton && 'bg-no/70',
                                         )}
-                                        style={hasTeamColor ? resolveButtonDepthStyle(button.color) : undefined}
+                                        style={hasTeamColor ? resolveButtonDepthStyle(button.color, button.tone) : undefined}
                                       />
                                       <button
                                         type="button"
@@ -1784,7 +2010,7 @@ export default function SportsEventCenter({
                                           event.stopPropagation()
                                           updateSectionSelection(section.key, button.key, { panelMode: 'full' })
                                         }}
-                                        style={hasTeamColor ? resolveButtonStyle(button.color) : undefined}
+                                        style={hasTeamColor ? resolveButtonStyle(button.color, button.tone) : undefined}
                                         className={cn(
                                           `
                                             relative flex h-9 w-full translate-y-0 items-center justify-center
@@ -1799,9 +2025,12 @@ export default function SportsEventCenter({
                                           isUnderButton && 'bg-no text-white hover:bg-no-foreground',
                                         )}
                                       >
-                                        <span className="mr-1 uppercase opacity-80">{button.label}</span>
+                                        {buttonOverlayStyle
+                                          ? <span className="pointer-events-none absolute inset-0 rounded-lg" style={buttonOverlayStyle} />
+                                          : null}
+                                        <span className="relative z-1 mr-1 uppercase opacity-80">{button.label}</span>
                                         <span className={cn(
-                                          'text-sm leading-none tabular-nums transition-opacity',
+                                          'relative z-1 text-sm leading-none tabular-nums transition-opacity',
                                           isActive ? 'text-foreground opacity-100' : 'opacity-45',
                                         )}
                                         >
@@ -1817,9 +2046,11 @@ export default function SportsEventCenter({
                               const isActive = activeTradeButtonKey === button.key
                               const hasTeamColor = isActive
                                 && (button.tone === 'team1' || button.tone === 'team2')
-                                && Boolean(button.color)
                               const isOverButton = isActive && button.tone === 'over'
                               const isUnderButton = isActive && button.tone === 'under'
+                              const buttonOverlayStyle = hasTeamColor
+                                ? resolveButtonOverlayStyle(button.color, button.tone)
+                                : undefined
 
                               return (
                                 <div
@@ -1833,7 +2064,7 @@ export default function SportsEventCenter({
                                       isOverButton && 'bg-yes/70',
                                       isUnderButton && 'bg-no/70',
                                     )}
-                                    style={hasTeamColor ? resolveButtonDepthStyle(button.color) : undefined}
+                                    style={hasTeamColor ? resolveButtonDepthStyle(button.color, button.tone) : undefined}
                                   />
                                   <button
                                     type="button"
@@ -1842,7 +2073,7 @@ export default function SportsEventCenter({
                                       event.stopPropagation()
                                       updateSectionSelection(section.key, button.key, { panelMode: 'full' })
                                     }}
-                                    style={hasTeamColor ? resolveButtonStyle(button.color) : undefined}
+                                    style={hasTeamColor ? resolveButtonStyle(button.color, button.tone) : undefined}
                                     className={cn(
                                       `
                                         relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg
@@ -1856,7 +2087,10 @@ export default function SportsEventCenter({
                                       isUnderButton && 'bg-no text-white hover:bg-no-foreground',
                                     )}
                                   >
-                                    <span className="flex w-full items-center justify-between gap-1 px-1">
+                                    {buttonOverlayStyle
+                                      ? <span className="pointer-events-none absolute inset-0 rounded-lg" style={buttonOverlayStyle} />
+                                      : null}
+                                    <span className="relative z-1 flex w-full items-center justify-between gap-1 px-1">
                                       <span className="min-w-0 truncate text-left uppercase opacity-80">
                                         {button.label}
                                       </span>
@@ -1936,189 +2170,17 @@ export default function SportsEventCenter({
               )
             })}
           </div>
+
+          {auxiliaryMarketPanels.length > 0 && (
+            <div className="mt-4 space-y-4">
+              {auxiliaryMarketPanels}
+            </div>
+          )}
         </div>
       )
     : (
         <div key={activeMarketView?.key ?? 'gameLines'} className="space-y-4">
-          {auxiliaryMarketCards.map(({ market, buttons }) => {
-            const conditionId = market.condition_id
-            const selectedButtonKey = selectedAuxiliaryButtonByConditionId[conditionId] ?? buttons[0]?.key ?? null
-            const isOpen = openAuxiliaryConditionId === conditionId
-            const activeTab = tabByAuxiliaryConditionId[conditionId] ?? 'orderBook'
-            const isResolved = auxiliaryResolvedByConditionId.get(conditionId) === true
-            const claimGroup = auxiliaryClaimGroupsByConditionId.get(conditionId) ?? null
-            const shouldShowRedeemButton = isResolved && Boolean(claimGroup)
-            const marketTitle = resolveAuxiliaryMarketTitle(market)
-            const firstButtonKey = buttons[0]?.key ?? null
-
-            function toggleCondition() {
-              setOpenAuxiliaryConditionId(current => current === conditionId ? null : conditionId)
-            }
-
-            function handleCardClick(event: React.MouseEvent<HTMLElement>) {
-              const target = event.target as HTMLElement
-              if (target.closest('[data-sports-card-control="true"]')) {
-                return
-              }
-              if (firstButtonKey) {
-                updateAuxiliarySelection(conditionId, firstButtonKey, { panelMode: 'preserve' })
-              }
-              toggleCondition()
-            }
-
-            function handleCardKeyDown(event: React.KeyboardEvent<HTMLElement>) {
-              if (event.key !== 'Enter' && event.key !== ' ') {
-                return
-              }
-              const target = event.target as HTMLElement
-              if (target.closest('[data-sports-card-control="true"]')) {
-                return
-              }
-              event.preventDefault()
-              if (firstButtonKey) {
-                updateAuxiliarySelection(conditionId, firstButtonKey, { panelMode: 'preserve' })
-              }
-              toggleCondition()
-            }
-
-            return (
-              <article
-                key={`${activeCard.id}-${conditionId}`}
-                className="overflow-hidden rounded-xl border bg-card"
-              >
-                <div
-                  className={cn(
-                    `
-                      flex w-full cursor-pointer flex-col items-stretch gap-3 px-4 py-[18px] transition-colors
-                      sm:flex-row sm:items-center
-                    `,
-                    'hover:bg-secondary/30',
-                  )}
-                  role="button"
-                  tabIndex={0}
-                  onClick={handleCardClick}
-                  onKeyDown={handleCardKeyDown}
-                >
-                  <div className="min-w-0 text-left transition-colors hover:text-foreground/90">
-                    <h3 className="text-sm font-semibold text-foreground">{marketTitle}</h3>
-                    <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
-                      {formatVolume(Number(market.volume ?? 0))}
-                      {' '}
-                      Vol.
-                    </p>
-                  </div>
-
-                  {!isResolved && (
-                    <div
-                      className={cn(
-                        'grid min-w-0 flex-1 items-stretch gap-2',
-                        'min-[1200px]:ml-auto min-[1200px]:w-[248px] min-[1200px]:flex-none',
-                        'grid-cols-2',
-                      )}
-                    >
-                      {buttons.map((button) => {
-                        const isActive = activeTradeButtonKey === button.key
-                        const isOverButton = isActive && button.tone === 'over'
-                        const isUnderButton = isActive && button.tone === 'under'
-
-                        return (
-                          <div
-                            key={`${conditionId}-${button.key}`}
-                            className="relative min-w-0 overflow-hidden rounded-lg pb-1.25"
-                          >
-                            <div
-                              className={cn(
-                                'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
-                                !isOverButton && !isUnderButton && 'bg-border/70',
-                                isOverButton && 'bg-yes/70',
-                                isUnderButton && 'bg-no/70',
-                              )}
-                            />
-                            <button
-                              type="button"
-                              data-sports-card-control="true"
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                updateAuxiliarySelection(conditionId, button.key, { panelMode: 'full' })
-                              }}
-                              className={cn(
-                                `
-                                  relative flex h-9 w-full translate-y-0 items-center justify-between rounded-lg px-3
-                                  text-xs font-semibold shadow-sm transition-transform duration-150 ease-out
-                                  hover:translate-y-px
-                                  active:translate-y-0.5
-                                `,
-                                !isOverButton && !isUnderButton
-                                && 'bg-secondary text-secondary-foreground hover:bg-accent',
-                                isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
-                                isUnderButton && 'bg-no text-white hover:bg-no-foreground',
-                              )}
-                            >
-                              <span className="uppercase opacity-80">{button.label}</span>
-                              <span className="text-sm leading-none tabular-nums">
-                                {formatButtonOdds(button.cents)}
-                              </span>
-                            </button>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {shouldShowRedeemButton && (
-                    <div
-                      className="
-                        min-w-0 flex-1
-                        min-[1200px]:ml-auto min-[1200px]:w-[calc((248px-0.5rem)/2)] min-[1200px]:flex-none
-                      "
-                    >
-                      <div className="relative min-w-0 overflow-hidden rounded-lg pb-1.25">
-                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg bg-primary" />
-                        <button
-                          type="button"
-                          data-sports-card-control="true"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            setRedeemDefaultConditionId(conditionId)
-                            setRedeemSectionKey('moneyline')
-                          }}
-                          className={`
-                            relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg bg-primary
-                            px-3 text-xs font-semibold text-primary-foreground shadow-sm transition-transform
-                            duration-150 ease-out
-                            hover:translate-y-px hover:bg-primary
-                            active:translate-y-0.5
-                          `}
-                        >
-                          Redeem
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className={cn('bg-card px-2.5', isOpen ? 'border-t pt-3' : 'pt-0')}>
-                  <SportsGameDetailsPanel
-                    card={activeCard}
-                    activeDetailsTab={activeTab}
-                    selectedButtonKey={selectedButtonKey}
-                    showBottomContent={isOpen}
-                    defaultGraphTimeRange="ALL"
-                    allowedConditionIds={new Set([conditionId])}
-                    showAboutTab
-                    aboutEvent={activeCard.event}
-                    showRedeemInPositions={activeCard.event.sports_ended === true}
-                    onOpenRedeemForCondition={handleOpenRedeemForCondition}
-                    oddsFormat={oddsFormat}
-                    onChangeTab={tab => setTabByAuxiliaryConditionId(current => ({ ...current, [conditionId]: tab }))}
-                    onSelectButton={(buttonKey, options) => {
-                      updateAuxiliarySelection(conditionId, buttonKey, options)
-                    }}
-                  />
-                </div>
-              </article>
-            )
-          })}
+          {auxiliaryMarketPanels}
         </div>
       )
 
