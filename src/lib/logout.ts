@@ -12,21 +12,31 @@ export async function signOutAndRedirect({
   currentPathname,
   redirectPath = '/',
 }: SignOutAndRedirectOptions) {
+  let signOutSucceeded = false
+
   try {
     await authClient.signOut()
+    signOutSucceeded = true
   }
   catch {
     //
   }
 
+  let clearSucceeded = false
+
   try {
-    await fetch('/auth/clear', {
+    const response = await fetch('/auth/clear', {
       method: 'POST',
       credentials: 'include',
     })
+    clearSucceeded = response.ok
   }
   catch {
     //
+  }
+
+  if (!signOutSucceeded && !clearSucceeded) {
+    return false
   }
 
   useUser.setState(null)
@@ -34,4 +44,5 @@ export async function signOutAndRedirect({
   clearNonHttpOnlyCookies()
 
   window.location.href = localizePathname(redirectPath, currentPathname)
+  return true
 }

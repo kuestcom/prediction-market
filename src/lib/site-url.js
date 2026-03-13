@@ -52,6 +52,10 @@ function resolveSiteUrl(env = process.env) {
     return normalizeSiteUrl(vercelProductionUrl)
   }
 
+  if (isVercelEnv(env)) {
+    throw new Error('SITE_URL must be set in production environments')
+  }
+
   return 'http://localhost:3000'
 }
 

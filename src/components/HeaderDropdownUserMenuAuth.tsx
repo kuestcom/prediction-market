@@ -20,6 +20,7 @@ import {
 import UserInfoSection from '@/components/UserInfoSection'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePathname } from '@/i18n/navigation'
+import { hasAppKitInstance } from '@/lib/appkit-runtime'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { signOutAndRedirect } from '@/lib/logout'
 import { useUser } from '@/stores/useUser'
@@ -96,8 +97,16 @@ export default function HeaderDropdownUserMenuAuth() {
   async function handleLogout() {
     handleMenuClose()
 
+    if (!hasAppKitInstance()) {
+      await signOutAndRedirect({
+        currentPathname: window.location.pathname,
+      })
+      return
+    }
+
     try {
       await disconnect()
+      return
     }
     catch {
       //

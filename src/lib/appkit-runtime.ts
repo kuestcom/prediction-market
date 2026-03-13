@@ -11,6 +11,7 @@ import { useUser } from '@/stores/useUser'
 
 let hasInitializedAppKit = false
 let appKitInstance: AppKit | null = null
+let appKitInitializationPromise: Promise<AppKit | null> | null = null
 let runtimeModulesPromise: Promise<{
   createAppKit: typeof import('@reown/appkit/react').createAppKit
   createSIWEConfig: typeof import('@reown/appkit-siwe').createSIWEConfig
@@ -20,6 +21,19 @@ let runtimeModulesPromise: Promise<{
 }> | null = null
 
 const SIWE_TWO_FACTOR_INTENT_COOKIE = 'siwe_2fa_intent'
+
+function getBrowserOrigin() {
+  if (!IS_BROWSER) {
+    return null
+  }
+
+  try {
+    return window.location.origin
+  }
+  catch {
+    return null
+  }
+}
 
 function setSiweTwoFactorIntentCookie() {
   if (!IS_BROWSER) {
@@ -84,141 +98,157 @@ export async function initializeAppKitSingleton(
     return appKitInstance
   }
 
-  try {
-    const {
-      createAppKit,
-      createSIWEConfig,
-      formatMessage,
-      generateRandomString,
-      getAddressFromMessage,
-    } = await loadRuntimeModules()
+  if (appKitInitializationPromise) {
+    return appKitInitializationPromise
+  }
 
-    appKitInstance = createAppKit({
-      projectId: projectId!,
-      adapters: [wagmiAdapter],
-      themeMode,
-      defaultAccountTypes: { eip155: 'eoa' },
-      metadata: {
-        name: site.name,
-        description: site.description,
-        url: process.env.SITE_URL!,
-        icons: [site.logoUrl],
-      },
-      themeVariables: {
-        '--w3m-font-family': 'var(--font-sans)',
-        '--w3m-border-radius-master': '2px',
-        '--w3m-accent': 'var(--primary)',
-      },
-      networks,
-      featuredWalletIds: ['c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96'],
-      features: {
-        analytics: false,
-      },
-      siweConfig: createSIWEConfig({
-        signOutOnAccountChange: true,
-        getMessageParams: async () => ({
-          domain: new URL(process.env.SITE_URL!).host,
-          uri: typeof window !== 'undefined' ? window.location.origin : '',
-          chains: [defaultNetwork.id],
-          statement: 'Please sign with your account',
-        }),
-        createMessage: ({ address, ...args }: SIWECreateMessageArgs) => formatMessage(args, address),
-        getNonce: async () => generateRandomString(32),
-        getSession: async () => {
-          try {
-            const session = await authClient.getSession()
-            if (!session.data?.user) {
+  appKitInitializationPromise = (async () => {
+    try {
+      const {
+        createAppKit,
+        createSIWEConfig,
+        formatMessage,
+        generateRandomString,
+        getAddressFromMessage,
+      } = await loadRuntimeModules()
+      const origin = getBrowserOrigin()
+      const metadataUrl = origin ?? 'http://localhost:3000'
+      const siweDomain = origin ? new URL(origin).host : 'localhost:3000'
+
+      appKitInstance = createAppKit({
+        projectId: projectId!,
+        adapters: [wagmiAdapter],
+        enableAuthLogger: process.env.NODE_ENV !== 'production',
+        themeMode,
+        defaultAccountTypes: { eip155: 'eoa' },
+        metadata: {
+          name: site.name,
+          description: site.description,
+          url: metadataUrl,
+          icons: [site.logoUrl],
+        },
+        themeVariables: {
+          '--w3m-font-family': 'var(--font-sans)',
+          '--w3m-border-radius-master': '2px',
+          '--w3m-accent': 'var(--primary)',
+        },
+        networks,
+        featuredWalletIds: ['c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96'],
+        features: {
+          analytics: false,
+        },
+        siweConfig: createSIWEConfig({
+          signOutOnAccountChange: true,
+          getMessageParams: async () => ({
+            domain: siweDomain,
+            uri: origin ?? '',
+            chains: [defaultNetwork.id],
+            statement: 'Please sign with your account',
+          }),
+          createMessage: ({ address, ...args }: SIWECreateMessageArgs) => formatMessage(args, address),
+          getNonce: async () => generateRandomString(32),
+          getSession: async () => {
+            try {
+              const session = await authClient.getSession()
+              if (!session.data?.user) {
+                return null
+              }
+
+              return {
+                // @ts-expect-error address not defined in session type
+                address: session.data?.user.address,
+                chainId: defaultNetwork.id,
+              } satisfies SIWESession
+            }
+            catch {
               return null
             }
-
-            return {
-              // @ts-expect-error address not defined in session type
-              address: session.data?.user.address,
-              chainId: defaultNetwork.id,
-            } satisfies SIWESession
-          }
-          catch {
-            return null
-          }
-        },
-        verifyMessage: async ({ message, signature }: SIWEVerifyMessageArgs) => {
-          try {
-            const address = getAddressFromMessage(message)
-            await authClient.siwe.nonce({
-              walletAddress: address,
-              chainId: defaultNetwork.id,
-            })
-            const { data } = await authClient.siwe.verify({
-              message,
-              signature,
-              walletAddress: address,
-              chainId: defaultNetwork.id,
-            })
-            // @ts-expect-error does not recognize twoFactorRedirect
-            if (data?.twoFactorRedirect && typeof window !== 'undefined') {
-              if (stripLocalePrefix(window.location.pathname) !== '/2fa' && hasSiweTwoFactorIntentCookie()) {
-                clearSiweTwoFactorIntentCookie()
-                window.location.href = buildTwoFactorRedirectPath(window.location.pathname, window.location.search)
+          },
+          verifyMessage: async ({ message, signature }: SIWEVerifyMessageArgs) => {
+            try {
+              const address = getAddressFromMessage(message)
+              await authClient.siwe.nonce({
+                walletAddress: address,
+                chainId: defaultNetwork.id,
+              })
+              const { data } = await authClient.siwe.verify({
+                message,
+                signature,
+                walletAddress: address,
+                chainId: defaultNetwork.id,
+              })
+              // @ts-expect-error does not recognize twoFactorRedirect
+              if (data?.twoFactorRedirect && typeof window !== 'undefined') {
+                if (stripLocalePrefix(window.location.pathname) !== '/2fa' && hasSiweTwoFactorIntentCookie()) {
+                  clearSiweTwoFactorIntentCookie()
+                  window.location.href = buildTwoFactorRedirectPath(window.location.pathname, window.location.search)
+                }
+                return false
               }
+              return Boolean(data?.success)
+            }
+            catch {
               return false
             }
-            return Boolean(data?.success)
-          }
-          catch {
-            return false
-          }
-        },
-        signOut: async () => {
-          try {
-            await authClient.signOut()
-            useUser.setState(null)
-            return true
-          }
-          catch {
-            return false
-          }
-        },
-        onSignIn: () => {
-          authClient.getSession().then((session) => {
-            const user = session?.data?.user
-            if (user) {
-              const sessionSettings = (user as Partial<User>).settings
-              useUser.setState((previous) => {
-                if (!previous) {
-                  return { ...user, image: user.image ?? '' }
-                }
+          },
+          signOut: async () => {
+            try {
+              await authClient.signOut()
+              useUser.setState(null)
+              return true
+            }
+            catch {
+              return false
+            }
+          },
+          onSignIn: () => {
+            authClient.getSession().then((session) => {
+              const user = session?.data?.user
+              if (user) {
+                const sessionSettings = (user as Partial<User>).settings
+                useUser.setState((previous) => {
+                  if (!previous) {
+                    return { ...user, image: user.image ?? '' }
+                  }
 
-                return {
-                  ...previous,
-                  ...user,
-                  image: user.image ?? previous.image ?? '',
-                  settings: {
-                    ...(previous.settings ?? {}),
-                    ...(sessionSettings ?? {}),
-                  },
-                }
+                  return {
+                    ...previous,
+                    ...user,
+                    image: user.image ?? previous.image ?? '',
+                    settings: {
+                      ...(previous.settings ?? {}),
+                      ...(sessionSettings ?? {}),
+                    },
+                  }
+                })
+              }
+            }).catch(() => {})
+          },
+          onSignOut: () => {
+            clearAppKitLocalStorage()
+            if (IS_BROWSER) {
+              void signOutAndRedirect({
+                currentPathname: window.location.pathname,
               })
             }
-          }).catch(() => {})
-        },
-        onSignOut: () => {
-          clearAppKitLocalStorage()
-          if (IS_BROWSER) {
-            void signOutAndRedirect({
-              currentPathname: window.location.pathname,
-            })
-          }
-        },
-      }),
-    })
+          },
+        }),
+      })
 
-    hasInitializedAppKit = true
-    return appKitInstance
-  }
-  catch (error) {
-    console.warn('Wallet initialization failed. Using local/default values.', error)
-    return null
-  }
+      hasInitializedAppKit = true
+      return appKitInstance
+    }
+    catch (error) {
+      console.warn('Wallet initialization failed. Using local/default values.', error)
+      appKitInstance = null
+      return null
+    }
+    finally {
+      appKitInitializationPromise = null
+    }
+  })()
+
+  return appKitInitializationPromise
 }
 
 export function getAppKitInstance() {
