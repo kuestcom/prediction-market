@@ -68,21 +68,6 @@ export async function listHomeEventsPage({
 
     accumulatedEvents.push(...batch)
 
-    const visibleEvents = filterHomeEvents(accumulatedEvents, {
-      currentTimestamp,
-      hideSports,
-      hideCrypto,
-      hideEarnings,
-      status,
-    })
-
-    if (visibleEvents.length >= targetOffset + HOME_EVENTS_PAGE_SIZE) {
-      return {
-        data: visibleEvents.slice(targetOffset, targetOffset + HOME_EVENTS_PAGE_SIZE),
-        error: null,
-      }
-    }
-
     if (batch.length < HOME_EVENTS_PAGE_SIZE) {
       break
     }

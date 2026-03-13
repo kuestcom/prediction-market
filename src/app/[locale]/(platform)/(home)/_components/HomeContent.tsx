@@ -22,7 +22,6 @@ export default async function HomeContent({
   const resolvedLocale = locale as SupportedLocale
   const initialTagSlug = initialTag ?? 'trending'
   const initialMainTagSlug = initialMainTag ?? initialTagSlug
-  const initialCurrentTimestamp = Date.now()
 
   let initialEvents: Event[] = []
 
@@ -33,7 +32,6 @@ export default async function HomeContent({
       search: '',
       userId: '',
       bookmarked: false,
-      currentTimestamp: initialCurrentTimestamp,
       locale: resolvedLocale,
     })
 
@@ -52,7 +50,6 @@ export default async function HomeContent({
     <main className="container grid gap-4 py-4">
       <HomeClient
         initialEvents={initialEvents}
-        initialCurrentTimestamp={initialCurrentTimestamp}
         initialTag={initialTagSlug}
         initialMainTag={initialMainTagSlug}
       />

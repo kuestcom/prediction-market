@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
+import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
-import { listHomeEventsPage } from '@/lib/home-events-page'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -15,9 +15,6 @@ export async function GET(request: Request) {
   const sportsSportSlug = searchParams.get('sportsSportSlug') || ''
   const sportsSectionParam = searchParams.get('sportsSection') || ''
   const sportsSection = sportsSectionParam.trim().toLowerCase()
-  const hideSports = searchParams.get('hideSports') === 'true'
-  const hideCrypto = searchParams.get('hideCrypto') === 'true'
-  const hideEarnings = searchParams.get('hideEarnings') === 'true'
   const localeParam = searchParams.get('locale') ?? DEFAULT_LOCALE
   const locale = SUPPORTED_LOCALES.includes(localeParam as typeof SUPPORTED_LOCALES[number])
     ? localeParam as typeof SUPPORTED_LOCALES[number]
@@ -41,7 +38,7 @@ export async function GET(request: Request) {
   const userId = user?.id
 
   try {
-    const { data: events, error } = await listHomeEventsPage({
+    const { data: events, error } = await EventRepository.listEvents({
       tag,
       mainTag,
       search,
@@ -50,11 +47,7 @@ export async function GET(request: Request) {
       frequency,
       status,
       offset: clampedOffset,
-      currentTimestamp: status === 'active' ? Date.now() : null,
       locale,
-      hideSports,
-      hideCrypto,
-      hideEarnings,
       sportsSportSlug,
       sportsSection: (sportsSection === 'games' || sportsSection === 'props') ? sportsSection : '',
     })
