@@ -1,4 +1,7 @@
-import { hasSportsGamesCardPrimaryMarketTrio } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
+import {
+  hasSportsGamesCardPrimaryMarketTrio,
+  resolveSportsGamesCardCollapsedMarketType,
+} from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 
 describe('sportsGamesCardLayout', () => {
   it('returns true only when moneyline, spread, and total are all present', () => {
@@ -26,5 +29,21 @@ describe('sportsGamesCardLayout', () => {
         { marketType: 'btts' },
       ] as any,
     })).toBe(false)
+  })
+
+  it('falls back to the first available collapsed market type when the trio is missing', () => {
+    expect(resolveSportsGamesCardCollapsedMarketType({
+      buttons: [
+        { marketType: 'binary' },
+        { marketType: 'spread' },
+      ] as any,
+    })).toBe('binary')
+
+    expect(resolveSportsGamesCardCollapsedMarketType({
+      buttons: [
+        { marketType: 'moneyline' },
+        { marketType: 'binary' },
+      ] as any,
+    })).toBe('moneyline')
   })
 })

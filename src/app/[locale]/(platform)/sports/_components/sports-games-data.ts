@@ -25,7 +25,7 @@ export interface SportsGamesButton {
   label: string
   cents: number
   color: string | null
-  marketType: 'moneyline' | 'spread' | 'total' | 'btts'
+  marketType: 'moneyline' | 'spread' | 'total' | 'btts' | 'binary'
   tone: 'team1' | 'team2' | 'draw' | 'over' | 'under' | 'neutral'
 }
 
@@ -50,6 +50,21 @@ export interface SportsGamesCard {
 export function hasSportsGamesCardPrimaryMarketTrio(card: Pick<SportsGamesCard, 'buttons'>) {
   const marketTypes = new Set(card.buttons.map(button => button.marketType))
   return marketTypes.has('moneyline') && marketTypes.has('spread') && marketTypes.has('total')
+}
+
+const COLLAPSED_CARD_MARKET_PRIORITY: SportsGamesButton['marketType'][] = [
+  'moneyline',
+  'binary',
+  'btts',
+  'spread',
+  'total',
+]
+
+export function resolveSportsGamesCardCollapsedMarketType(
+  card: Pick<SportsGamesCard, 'buttons'>,
+): SportsGamesButton['marketType'] | null {
+  const marketTypes = new Set(card.buttons.map(button => button.marketType))
+  return COLLAPSED_CARD_MARKET_PRIORITY.find(marketType => marketTypes.has(marketType)) ?? null
 }
 
 export interface SportsGamesCardMarketView {
@@ -129,12 +144,41 @@ function marketDisplayText(market: Market) {
   ].join(' ')
 }
 
+function marketTitleTexts(market: Market) {
+  return [
+    market.sports_group_item_title,
+    market.short_title,
+    market.title,
+  ]
+    .map(value => value?.trim() ?? '')
+    .filter(Boolean)
+}
+
 function isDrawMarket(market: Market) {
   return normalizeText(marketDisplayText(market)).includes('draw')
 }
 
+function isYesNoOutcomeText(value: string | null | undefined) {
+  const normalized = normalizeText(value)
+  return normalized === 'yes' || normalized === 'no'
+}
+
+function isBinaryYesNoMarket(market: Market) {
+  if ((market.outcomes?.length ?? 0) !== 2) {
+    return false
+  }
+
+  const outcomeTexts = market.outcomes.map(outcome => outcome.outcome_text)
+  return outcomeTexts.every(isYesNoOutcomeText)
+}
+
 function hasMarketSlugSuffix(market: Market, suffix: string) {
   return market.slug?.trim().toLowerCase().endsWith(suffix) ?? false
+}
+
+function isStandaloneDrawMarket(market: Market) {
+  return hasMarketSlugSuffix(market, '-draw')
+    || marketTitleTexts(market).some(value => normalizeText(value) === 'draw')
 }
 
 function toTeamButtonLabel(team: SportsGamesTeam | null, fallback: string) {
@@ -176,6 +220,78 @@ function doesMarketMatchTeam(market: Market, team: SportsGamesTeam) {
 
   const haystackTokens = new Set(haystack.split(' ').filter(Boolean))
   return haystackTokens.has(normalizedAbbreviation)
+}
+
+function doesTextExactlyMatchTeam(value: string | null | undefined, team: SportsGamesTeam | null) {
+  if (!value || !team) {
+    return false
+  }
+
+  const normalizedValue = normalizeText(value)
+  if (!normalizedValue) {
+    return false
+  }
+
+  const normalizedName = normalizeText(team.name)
+  if (normalizedName && normalizedValue === normalizedName) {
+    return true
+  }
+
+  const normalizedAbbreviation = normalizeText(team.abbreviation)
+  return Boolean(normalizedAbbreviation && normalizedValue === normalizedAbbreviation)
+}
+
+function doesMarketExactlyMatchTeam(market: Market, team: SportsGamesTeam | null) {
+  return marketTitleTexts(market).some(value => doesTextExactlyMatchTeam(value, team))
+}
+
+function isSeparatedMoneylineCandidate(market: Market, teams: SportsGamesTeam[]) {
+  if ((market.outcomes?.length ?? 0) < 2) {
+    return false
+  }
+
+  if (isStandaloneDrawMarket(market)) {
+    return true
+  }
+
+  return teams.some(team => doesMarketExactlyMatchTeam(market, team))
+}
+
+function dedupeMarketsByConditionId(markets: Market[]) {
+  const seenConditionIds = new Set<string>()
+  return markets.filter((market) => {
+    if (!market.condition_id || seenConditionIds.has(market.condition_id)) {
+      return false
+    }
+
+    seenConditionIds.add(market.condition_id)
+    return true
+  })
+}
+
+function resolvePreferredYesOutcomeIndex(market: Market | null | undefined) {
+  if (!market) {
+    return 0
+  }
+
+  return market.outcomes.find(outcome => /^yes$/i.test(outcome.outcome_text?.trim() ?? ''))?.outcome_index
+    ?? market.outcomes.find(outcome => outcome.outcome_index === 0)?.outcome_index
+    ?? market.outcomes[0]?.outcome_index
+    ?? 0
+}
+
+function hasUsedButtonForConditionId(usedButtonKeys: Set<string>, conditionId: string | null | undefined) {
+  if (!conditionId) {
+    return false
+  }
+
+  for (const buttonKey of usedButtonKeys) {
+    if (buttonKey.startsWith(`${conditionId}:`)) {
+      return true
+    }
+  }
+
+  return false
 }
 
 function buildFallbackAbbreviation(teamName: string) {
@@ -242,6 +358,17 @@ function toSportsMarketType(market: Market) {
     return 'moneyline' as const
   }
 
+  const marketText = ` ${normalizeText(marketDisplayText(market))} `
+  if (marketText.includes(' both teams to score ') || marketText.includes(' btts ')) {
+    return 'btts' as const
+  }
+  if (isStandaloneDrawMarket(market)) {
+    return 'moneyline' as const
+  }
+  if (isBinaryYesNoMarket(market)) {
+    return 'binary' as const
+  }
+
   if (
     normalizedType.includes('spread')
     || normalizedType.includes('handicap')
@@ -256,13 +383,6 @@ function toSportsMarketType(market: Market) {
     return 'total' as const
   }
 
-  const marketText = ` ${normalizeText(marketDisplayText(market))} `
-  if (marketText.includes(' both teams to score ') || marketText.includes(' btts ')) {
-    return 'btts' as const
-  }
-  if (isDrawMarket(market)) {
-    return 'moneyline' as const
-  }
   if (/\bover\b/.test(marketText) || /\bunder\b/.test(marketText)) {
     return 'total' as const
   }
@@ -279,6 +399,7 @@ function groupMarketsByType(markets: Market[]) {
     spread: [] as Market[],
     total: [] as Market[],
     btts: [] as Market[],
+    binary: [] as Market[],
     untyped: [] as Market[],
   }
 
@@ -298,6 +419,10 @@ function groupMarketsByType(markets: Market[]) {
     }
     if (marketType === 'btts') {
       grouped.btts.push(market)
+      continue
+    }
+    if (marketType === 'binary') {
+      grouped.binary.push(market)
       continue
     }
 
@@ -402,6 +527,9 @@ function appendButton(
   market: Market | undefined,
   outcomeIndex: number,
   payload: Pick<SportsGamesButton, 'label' | 'color' | 'marketType' | 'tone'>,
+  options?: {
+    fallbackIsNoOutcome?: boolean
+  },
 ) {
   if (!market || !market.condition_id) {
     return
@@ -416,7 +544,7 @@ function appendButton(
     ?? market.outcomes[outcomeIndex]
     ?? null
 
-  const isNoOutcome = outcomeIndex === 1
+  const isNoOutcome = options?.fallbackIsNoOutcome ?? outcomeIndex === 1
   usedButtonKeys.add(buttonKey)
   buttons.push({
     key: buttonKey,
@@ -437,15 +565,40 @@ function buildMoneylineButtons(
   team2: SportsGamesTeam | null,
   usedButtonKeys: Set<string>,
 ) {
-  const candidates = marketsByType.moneyline.length >= 2
-    ? marketsByType.moneyline
-    : [...marketsByType.moneyline, ...marketsByType.untyped]
+  const untypedMoneylineCandidates = marketsByType.untyped.filter(market => !isBinaryYesNoMarket(market))
+  const separatedMoneylineCandidates = dedupeMarketsByConditionId([
+    ...marketsByType.untyped,
+    ...marketsByType.binary,
+  ].filter(market => isSeparatedMoneylineCandidate(market, teams)))
+  const candidates = dedupeMarketsByConditionId(
+    marketsByType.moneyline.length > 0
+      ? (
+          marketsByType.moneyline.length >= 2
+            ? marketsByType.moneyline
+            : [...marketsByType.moneyline, ...untypedMoneylineCandidates, ...separatedMoneylineCandidates]
+        )
+      : [...untypedMoneylineCandidates, ...separatedMoneylineCandidates],
+  )
 
   if (candidates.length === 0) {
     return []
   }
 
-  const compositeMarket = candidates.length === 1 ? candidates[0] : null
+  const compositeMarket = candidates.find((market) => {
+    if (isBinaryYesNoMarket(market) || (market.outcomes?.length ?? 0) < 2) {
+      return false
+    }
+
+    const hasTeam1Outcome = team1
+      ? market.outcomes.some(outcome => doesTextMatchTeam(outcome.outcome_text, team1))
+      : false
+    const hasTeam2Outcome = team2
+      ? market.outcomes.some(outcome => doesTextMatchTeam(outcome.outcome_text, team2))
+      : false
+
+    return hasTeam1Outcome && hasTeam2Outcome
+  }) ?? null
+
   if (compositeMarket && compositeMarket.outcomes.length >= 2) {
     const orderedOutcomes = [...compositeMarket.outcomes].sort((a, b) => a.outcome_index - b.outcome_index)
     const buttons: SportsGamesButton[] = []
@@ -476,34 +629,57 @@ function buildMoneylineButtons(
     })
 
     if (buttons.length > 0) {
+      const separatedDrawMarket = candidates.find(market =>
+        market.condition_id !== compositeMarket.condition_id
+        && isStandaloneDrawMarket(market),
+      )
+      if (separatedDrawMarket && !buttons.some(button => button.tone === 'draw')) {
+        appendButton(buttons, usedButtonKeys, separatedDrawMarket, resolvePreferredYesOutcomeIndex(separatedDrawMarket), {
+          label: 'DRAW',
+          color: null,
+          marketType: 'moneyline',
+          tone: 'draw',
+        }, {
+          fallbackIsNoOutcome: false,
+        })
+      }
+
       return buttons
     }
   }
 
-  const nonDrawMarkets = candidates.filter(market => !isDrawMarket(market))
+  const nonDrawMarkets = candidates.filter(market => !isStandaloneDrawMarket(market))
   const team1Market = team1 ? nonDrawMarkets.find(market => doesMarketMatchTeam(market, team1)) : undefined
-  const team2Market = team2 ? nonDrawMarkets.find(market => doesMarketMatchTeam(market, team2)) : undefined
-  const drawMarket = candidates.find(market => isDrawMarket(market))
+  const team2Market = team2
+    ? nonDrawMarkets.find(market => market !== team1Market && doesMarketMatchTeam(market, team2))
+    : undefined
+  const drawMarket = candidates.find(market => isStandaloneDrawMarket(market))
 
   const buttons: SportsGamesButton[] = []
 
-  appendButton(buttons, usedButtonKeys, team1Market, 0, {
+  appendButton(buttons, usedButtonKeys, team1Market, resolvePreferredYesOutcomeIndex(team1Market), {
     label: toTeamButtonLabel(team1, 'TEAM 1'),
     color: team1?.color ?? null,
     marketType: 'moneyline',
     tone: 'team1',
+  }, {
+    fallbackIsNoOutcome: false,
   })
-  appendButton(buttons, usedButtonKeys, drawMarket, 0, {
+  appendButton(buttons, usedButtonKeys, drawMarket, resolvePreferredYesOutcomeIndex(drawMarket), {
     label: 'DRAW',
     color: null,
     marketType: 'moneyline',
     tone: 'draw',
+  }, {
+    fallbackIsNoOutcome: false,
   })
-  appendButton(buttons, usedButtonKeys, team2Market, 0, {
+  appendButton(buttons, usedButtonKeys, team2Market, resolvePreferredYesOutcomeIndex(team2Market), {
     label: toTeamButtonLabel(team2, 'TEAM 2'),
     color: team2?.color ?? null,
     marketType: 'moneyline',
     tone: 'team2',
+  }, {
+    fallbackIsNoOutcome: false,
   })
 
   for (const market of candidates) {
@@ -511,7 +687,7 @@ function buildMoneylineButtons(
       break
     }
 
-    if (usedButtonKeys.has(`${market.condition_id}:0`)) {
+    if (hasUsedButtonForConditionId(usedButtonKeys, market.condition_id)) {
       continue
     }
 
@@ -529,11 +705,17 @@ function buildMoneylineButtons(
           ? 'team2'
           : 'neutral'
 
-    appendButton(buttons, usedButtonKeys, market, 0, {
+    const fallbackOutcomeIndex = isBinaryYesNoMarket(market)
+      ? resolvePreferredYesOutcomeIndex(market)
+      : 0
+
+    appendButton(buttons, usedButtonKeys, market, fallbackOutcomeIndex, {
       label: fallbackLabel,
       color: matchedTeam?.color ?? null,
       marketType: 'moneyline',
       tone,
+    }, {
+      fallbackIsNoOutcome: !isBinaryYesNoMarket(market) && fallbackOutcomeIndex === 1,
     })
   }
 
@@ -692,6 +874,73 @@ function buildBttsButtons(
   return buttons
 }
 
+function toSortableThreshold(value: string | null | undefined) {
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) ? numericValue : Number.POSITIVE_INFINITY
+}
+
+function buildBinaryButtons(
+  marketsByType: ReturnType<typeof groupMarketsByType>,
+  usedButtonKeys: Set<string>,
+  excludedConditionIds: Set<string>,
+) {
+  if (marketsByType.binary.length === 0) {
+    return []
+  }
+
+  const binaryMarkets = marketsByType.binary
+    .filter(market => !excludedConditionIds.has(market.condition_id))
+    .sort((left, right) => {
+      const thresholdComparison = toSortableThreshold(left.sports_group_item_threshold)
+        - toSortableThreshold(right.sports_group_item_threshold)
+      if (thresholdComparison !== 0) {
+        return thresholdComparison
+      }
+
+      const leftTitle = resolveAuxiliaryBinaryMarketTitle(left)
+      const rightTitle = resolveAuxiliaryBinaryMarketTitle(right)
+      const titleComparison = leftTitle.localeCompare(rightTitle)
+      if (titleComparison !== 0) {
+        return titleComparison
+      }
+
+      return left.condition_id.localeCompare(right.condition_id)
+    })
+
+  const buttons: SportsGamesButton[] = []
+
+  for (const market of binaryMarkets) {
+    const yesOutcome = market.outcomes.find(outcome => /^yes$/i.test(outcome.outcome_text?.trim() ?? ''))
+      ?? market.outcomes.find(outcome => outcome.outcome_index === 0)
+      ?? market.outcomes[0]
+      ?? null
+    const noOutcome = market.outcomes.find(outcome => /^no$/i.test(outcome.outcome_text?.trim() ?? ''))
+      ?? market.outcomes.find(outcome => outcome.outcome_index !== yesOutcome?.outcome_index)
+      ?? null
+
+    appendButton(buttons, usedButtonKeys, market, yesOutcome?.outcome_index ?? 0, {
+      label: 'YES',
+      color: null,
+      marketType: 'binary',
+      tone: 'over',
+    })
+    appendButton(buttons, usedButtonKeys, market, noOutcome?.outcome_index ?? 1, {
+      label: 'NO',
+      color: null,
+      marketType: 'binary',
+      tone: 'under',
+    })
+  }
+
+  return buttons
+}
+
+function resolveAuxiliaryBinaryMarketTitle(market: Market) {
+  return market.sports_group_item_title?.trim()
+    || market.short_title?.trim()
+    || market.title
+}
+
 function resolveAuxiliaryMarketKind(market: Market) {
   const normalizedType = normalizeText(market.sports_market_type)
 
@@ -845,8 +1094,13 @@ function buildButtons(markets: Market[], teams: SportsGamesTeam[]) {
   )
   const totalButtons = buildTotalButtons(marketsByType, usedButtonKeys)
   const bttsButtons = buildBttsButtons(marketsByType, usedButtonKeys)
+  const binaryButtons = buildBinaryButtons(
+    marketsByType,
+    usedButtonKeys,
+    new Set(moneylineButtons.map(button => button.conditionId)),
+  )
 
-  return [...moneylineButtons, ...spreadButtons, ...totalButtons, ...bttsButtons]
+  return [...moneylineButtons, ...spreadButtons, ...totalButtons, ...bttsButtons, ...binaryButtons]
 }
 
 function toDetailMarkets(markets: Market[], buttons: SportsGamesButton[]) {
