@@ -39,8 +39,10 @@ export async function listHomeEventsPage({
   userId,
 }: ListHomeEventsPageOptions) {
   const targetOffset = Math.max(0, offset)
+  const targetVisibleCount = targetOffset + HOME_EVENTS_PAGE_SIZE
   let rawOffset = 0
   const accumulatedEvents: Event[] = []
+  let visibleEvents: Event[] = []
 
   while (true) {
     const { data: rawEvents, error } = await EventRepository.listEvents({
@@ -68,20 +70,24 @@ export async function listHomeEventsPage({
 
     accumulatedEvents.push(...batch)
 
+    visibleEvents = filterHomeEvents(accumulatedEvents, {
+      currentTimestamp,
+      hideSports,
+      hideCrypto,
+      hideEarnings,
+      status,
+    })
+
+    if (visibleEvents.length >= targetVisibleCount) {
+      break
+    }
+
     if (batch.length < HOME_EVENTS_PAGE_SIZE) {
       break
     }
 
     rawOffset += HOME_EVENTS_PAGE_SIZE
   }
-
-  const visibleEvents = filterHomeEvents(accumulatedEvents, {
-    currentTimestamp,
-    hideSports,
-    hideCrypto,
-    hideEarnings,
-    status,
-  })
 
   return {
     data: visibleEvents.slice(targetOffset, targetOffset + HOME_EVENTS_PAGE_SIZE),

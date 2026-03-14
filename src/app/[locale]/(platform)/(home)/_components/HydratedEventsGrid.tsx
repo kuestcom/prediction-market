@@ -200,14 +200,6 @@ export default function HydratedEventsGrid({
   const previousUserKeyRef = useRef(queryUserScope)
 
   useEffect(() => {
-    if (!shouldUseInitialData) {
-      return
-    }
-
-    void refetch()
-  }, [refetch, shouldUseInitialData])
-
-  useEffect(() => {
     if (!filters.bookmarked || previousUserKeyRef.current === queryUserScope) {
       return
     }
