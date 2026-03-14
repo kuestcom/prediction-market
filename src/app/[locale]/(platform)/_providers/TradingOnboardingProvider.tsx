@@ -680,3 +680,7 @@ export function useTradingOnboarding() {
   }
   return context
 }
+
+export function useOptionalTradingOnboarding() {
+  return use(TradingOnboardingContext)
+}

@@ -6,7 +6,7 @@ import { useExtracted } from 'next-intl'
 import { useEffect } from 'react'
 import HeaderDropdownUserMenuGuest from '@/app/[locale]/(platform)/_components/HeaderDropdownUserMenuGuest'
 import HeaderNotifications from '@/app/[locale]/(platform)/_components/HeaderNotifications'
-import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
+import { useOptionalTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import HeaderDropdownUserMenuAuth from '@/components/HeaderDropdownUserMenuAuth'
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import { Button } from '@/components/ui/button'
@@ -27,7 +27,7 @@ function HeaderMenuClient() {
   const { isConnected } = useAppKitAccount()
   const { data: session, isPending: isSessionPending } = useSession()
   const isMobile = useIsMobile()
-  const { startDepositFlow } = useTradingOnboarding()
+  const tradingOnboarding = useOptionalTradingOnboarding()
   const user = useUser()
 
   useEffect(() => {
@@ -60,13 +60,14 @@ function HeaderMenuClient() {
 
   const isAuthenticated = Boolean(session?.user) || Boolean(user) || isConnected
   const shouldShowGuestActions = !isAuthenticated && !isSessionPending
+  const startDepositFlow = tradingOnboarding?.startDepositFlow
 
   return (
     <>
       {isAuthenticated && (
         <>
           {!isMobile && <HeaderPortfolio />}
-          {!isMobile && (
+          {!isMobile && startDepositFlow && (
             <Button size="headerCompact" onClick={startDepositFlow}>
               {t('Deposit')}
             </Button>
