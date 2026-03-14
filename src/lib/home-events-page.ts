@@ -78,7 +78,7 @@ export async function listHomeEventsPage({
       status,
     })
 
-    if (visibleEvents.length >= targetVisibleCount) {
+    if (status === 'resolved' && visibleEvents.length >= targetVisibleCount) {
       break
     }
 
