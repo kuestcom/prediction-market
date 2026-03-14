@@ -31,6 +31,7 @@ interface HydratedEventsGridProps {
 const EMPTY_EVENTS: Event[] = []
 const hydratedEventsSnapshotCache = new Map<string, Event[]>()
 const HYDRATED_EVENTS_SNAPSHOT_CACHE_LIMIT = 24
+const HOME_LIVE_PRICE_OBSERVER_ROOT_MARGIN = '200px 0px'
 
 function peekHydratedEventsSnapshot(key: string) {
   return hydratedEventsSnapshotCache.get(key) ?? null
@@ -198,6 +199,7 @@ export default function HydratedEventsGrid({
   })
 
   const previousUserKeyRef = useRef(queryUserScope)
+  const [livePriceEventIds, setLivePriceEventIds] = useState<string[]>([])
 
   useEffect(() => {
     if (!filters.bookmarked || previousUserKeyRef.current === queryUserScope) {
@@ -274,9 +276,26 @@ export default function HydratedEventsGrid({
     setLastStableVisibleEvents(current => (current.length === 0 ? current : EMPTY_EVENTS))
   }, [snapshotKey, status, visibleEvents.length])
 
+  const columns = useColumns(maxColumns)
+  const loadingMoreColumns = Math.max(1, columns)
+  const shouldShowSnapshotFallback = visibleEvents.length === 0
+    && lastStableVisibleEvents.length > 0
+    && status !== 'success'
+  const eventsToRender = shouldShowSnapshotFallback ? lastStableVisibleEvents : visibleEvents
+  const fallbackLiveEventIds = useMemo(
+    () => eventsToRender.slice(0, Math.max(columns * 2, 4)).map(event => String(event.id)),
+    [columns, eventsToRender],
+  )
+  const activeLiveEventIds = livePriceEventIds.length > 0
+    ? livePriceEventIds
+    : fallbackLiveEventIds
+  const livePriceEvents = useMemo(
+    () => eventsToRender.filter(event => activeLiveEventIds.includes(String(event.id))),
+    [activeLiveEventIds, eventsToRender],
+  )
   const marketTargets = useMemo(
-    () => visibleEvents.flatMap(event => buildMarketTargets(event.markets)),
-    [visibleEvents],
+    () => livePriceEvents.flatMap(event => buildMarketTargets(event.markets)),
+    [livePriceEvents],
   )
   const marketQuotesByMarket = useEventMarketQuotes(marketTargets)
   const lastTradesByMarket = useEventLastTrades(marketTargets)
@@ -304,15 +323,54 @@ export default function HydratedEventsGrid({
     return Object.fromEntries(entries)
   }, [lastTradesByMarket, marketQuotesByMarket])
 
-  const columns = useColumns(maxColumns)
-  const loadingMoreColumns = Math.max(1, columns)
-  const shouldShowSnapshotFallback = visibleEvents.length === 0
-    && lastStableVisibleEvents.length > 0
-    && status !== 'success'
-  const eventsToRender = shouldShowSnapshotFallback ? lastStableVisibleEvents : visibleEvents
-
   const isLoadingNewData = eventsToRender.length === 0
     && (isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0)))
+
+  useEffect(() => {
+    if (!parentRef.current || eventsToRender.length === 0) {
+      setLivePriceEventIds([])
+      return
+    }
+
+    const observedIds = new Set<string>()
+    const cardElements = Array.from(parentRef.current.querySelectorAll<HTMLElement>('[data-home-event-id]'))
+
+    if (cardElements.length === 0) {
+      setLivePriceEventIds([])
+      return
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      let hasChanges = false
+
+      entries.forEach((entry) => {
+        const eventId = entry.target.getAttribute('data-home-event-id')
+        if (!eventId) {
+          return
+        }
+
+        if (entry.isIntersecting) {
+          if (!observedIds.has(eventId)) {
+            observedIds.add(eventId)
+            hasChanges = true
+          }
+          return
+        }
+
+        if (observedIds.delete(eventId)) {
+          hasChanges = true
+        }
+      })
+
+      if (hasChanges) {
+        setLivePriceEventIds(Array.from(observedIds))
+      }
+    }, { rootMargin: HOME_LIVE_PRICE_OBSERVER_ROOT_MARGIN })
+
+    cardElements.forEach(element => observer.observe(element))
+
+    return () => observer.disconnect()
+  }, [eventsToRender])
 
   useEffect(() => {
     if (!loadMoreRef.current || !hasNextPage) {

@@ -40,13 +40,14 @@ export default function EventsStaticGrid({
   return (
     <div className={cn('grid gap-3', getStaticGridColumnsClassName(maxColumns), { 'opacity-80': isFetching })}>
       {events.map(event => (
-        <EventCard
-          key={event.id}
-          event={event}
-          priceOverridesByMarket={priceOverridesByMarket}
-          enableHomeSportsMoneylineLayout
-          currentTimestamp={currentTimestamp}
-        />
+        <div key={event.id} data-home-event-id={String(event.id)}>
+          <EventCard
+            event={event}
+            priceOverridesByMarket={priceOverridesByMarket}
+            enableHomeSportsMoneylineLayout
+            currentTimestamp={currentTimestamp}
+          />
+        </div>
       ))}
     </div>
   )
