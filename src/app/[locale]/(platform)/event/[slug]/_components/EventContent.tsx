@@ -411,7 +411,10 @@ export default function EventContent({
                 </EventDeferredSection>
               )}
               {marketContextEnabled && (
-                <EventDeferredSection>
+                <EventDeferredSection
+                  fallback={<EventSectionSkeleton className="min-h-32" />}
+                  minHeightClassName="min-h-32"
+                >
                   <EventMarketContext event={event} />
                 </EventDeferredSection>
               )}
@@ -456,7 +459,11 @@ export default function EventContent({
               />
               <EventOrderPanelTermsDisclaimer />
               <span className="border border-dashed"></span>
-              <EventDeferredSection rootMargin="480px 0px">
+              <EventDeferredSection
+                fallback={<EventSectionSkeleton className="min-h-32" />}
+                minHeightClassName="min-h-32"
+                rootMargin="480px 0px"
+              >
                 <EventRelated event={event} />
               </EventDeferredSection>
             </div>

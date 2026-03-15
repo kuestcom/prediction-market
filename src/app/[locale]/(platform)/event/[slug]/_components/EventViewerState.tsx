@@ -5,12 +5,31 @@ import { useEffect } from 'react'
 import { authClient } from '@/lib/auth-client'
 import { useUser } from '@/stores/useUser'
 
+const AUTH_SESSION_COOKIE_NAMES = [
+  'better-auth.session_token',
+  '__Secure-better-auth.session_token',
+]
+
+function hasAuthSessionCookie() {
+  if (typeof document === 'undefined') {
+    return false
+  }
+
+  return document.cookie
+    .split(';')
+    .some((cookie) => {
+      const cookieName = cookie.split('=')[0]?.trim()
+      return cookieName != null && AUTH_SESSION_COOKIE_NAMES.includes(cookieName)
+    })
+}
+
 export default function EventViewerState() {
   const user = useUser()
   const userId = user?.id
+  const shouldHydrateSession = Boolean(userId) || hasAuthSessionCookie()
 
   useEffect(() => {
-    if (!userId) {
+    if (!shouldHydrateSession) {
       return
     }
 
@@ -54,7 +73,7 @@ export default function EventViewerState() {
     return () => {
       isActive = false
     }
-  }, [userId])
+  }, [shouldHydrateSession])
 
   return null
 }

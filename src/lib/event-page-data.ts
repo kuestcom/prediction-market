@@ -6,10 +6,10 @@ import type {
   EventLiveChartConfig,
   EventSeriesEntry,
 } from '@/types'
+import { cacheTag } from 'next/cache'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
-import { applyCacheTag } from '@/lib/safe-cache'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 import 'server-only'
 
@@ -25,7 +25,6 @@ export interface EventPageShellData {
   route: Awaited<ReturnType<typeof getEventRouteBySlug>>
   title: string | null
   site: ThemeSiteIdentity
-  pageData: EventPageContentData | null
 }
 
 export async function resolveCanonicalEventSlugFromSportsPath(sportSlug: string, eventSlug: string) {
@@ -39,8 +38,8 @@ export async function resolveCanonicalEventSlugFromSportsPath(sportSlug: string,
 
 export async function getEventTitleBySlug(eventSlug: string, locale: SupportedLocale) {
   'use cache'
-  applyCacheTag(cacheTags.eventsGlobal)
-  applyCacheTag(cacheTags.event(eventSlug))
+  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.event(eventSlug))
 
   const { data } = await EventRepository.getEventTitleBySlug(eventSlug, locale)
   return data?.title ?? null
@@ -48,8 +47,8 @@ export async function getEventTitleBySlug(eventSlug: string, locale: SupportedLo
 
 export async function getEventRouteBySlug(eventSlug: string) {
   'use cache'
-  applyCacheTag(cacheTags.eventsGlobal)
-  applyCacheTag(cacheTags.event(eventSlug))
+  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.event(eventSlug))
 
   const { data, error } = await EventRepository.getEventRouteBySlug(eventSlug)
   if (error || !data) {
@@ -64,8 +63,8 @@ export async function loadEventPagePublicContentData(
   locale: SupportedLocale,
 ): Promise<EventPageContentData | null> {
   'use cache'
-  applyCacheTag(cacheTags.eventsGlobal)
-  applyCacheTag(cacheTags.event(eventSlug))
+  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.event(eventSlug))
 
   const marketContextSettings = await loadMarketContextSettings()
 
@@ -138,21 +137,19 @@ export async function loadEventPageShellData(
   locale: SupportedLocale,
 ): Promise<EventPageShellData> {
   'use cache'
-  applyCacheTag(cacheTags.eventsGlobal)
-  applyCacheTag(cacheTags.event(eventSlug))
-  applyCacheTag(cacheTags.settings)
+  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.event(eventSlug))
+  cacheTag(cacheTags.settings)
 
-  const [route, title, runtimeTheme, pageData] = await Promise.all([
+  const [route, title, runtimeTheme] = await Promise.all([
     getEventRouteBySlug(eventSlug),
     getEventTitleBySlug(eventSlug, locale),
     loadRuntimeThemeState(),
-    loadEventPagePublicContentData(eventSlug, locale),
   ])
 
   return {
     route,
     title,
     site: runtimeTheme.site,
-    pageData,
   }
 }

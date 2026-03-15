@@ -9,7 +9,7 @@ import EventViewerState from '@/app/[locale]/(platform)/event/[slug]/_components
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
-import { loadEventPageShellData } from '@/lib/event-page-data'
+import { getEventRouteBySlug, loadEventPagePublicContentData, loadEventPageShellData } from '@/lib/event-page-data'
 import { resolveEventMarketPath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
@@ -39,13 +39,13 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
     notFound()
   }
 
-  const shellData = await loadEventPageShellData(slug, resolvedLocale)
-  if (!shellData.route) {
+  const eventRoute = await getEventRouteBySlug(slug)
+  if (!eventRoute) {
     notFound()
   }
 
-  const canonicalPath = resolveEventMarketPath(shellData.route, market)
-  const legacyPath = `/event/${shellData.route.slug}/${market}`
+  const canonicalPath = resolveEventMarketPath(eventRoute, market)
+  const legacyPath = `/event/${eventRoute.slug}/${market}`
   if (canonicalPath !== legacyPath) {
     redirect({
       href: canonicalPath,
@@ -53,7 +53,10 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
     })
   }
 
-  const eventPageData = shellData.pageData
+  const [shellData, eventPageData] = await Promise.all([
+    loadEventPageShellData(slug, resolvedLocale),
+    loadEventPagePublicContentData(slug, resolvedLocale),
+  ])
   if (!eventPageData) {
     notFound()
   }

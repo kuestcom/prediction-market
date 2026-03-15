@@ -9,7 +9,7 @@ import EventViewerState from '@/app/[locale]/(platform)/event/[slug]/_components
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
-import { loadEventPageShellData } from '@/lib/event-page-data'
+import { getEventRouteBySlug, loadEventPagePublicContentData, loadEventPageShellData } from '@/lib/event-page-data'
 import { resolveEventBasePath, resolveEventPagePath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
@@ -38,12 +38,12 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
     notFound()
   }
 
-  const shellData = await loadEventPageShellData(slug, resolvedLocale)
-  if (!shellData.route) {
+  const eventRoute = await getEventRouteBySlug(slug)
+  if (!eventRoute) {
     notFound()
   }
 
-  const sportsPath = resolveEventBasePath(shellData.route)
+  const sportsPath = resolveEventBasePath(eventRoute)
   if (sportsPath) {
     redirect({
       href: sportsPath,
@@ -51,7 +51,10 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
     })
   }
 
-  const eventPageData = shellData.pageData
+  const [shellData, eventPageData] = await Promise.all([
+    loadEventPageShellData(slug, resolvedLocale),
+    loadEventPagePublicContentData(slug, resolvedLocale),
+  ])
   if (!eventPageData) {
     notFound()
   }
