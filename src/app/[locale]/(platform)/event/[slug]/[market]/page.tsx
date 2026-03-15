@@ -9,9 +9,10 @@ import EventViewerState from '@/app/[locale]/(platform)/event/[slug]/_components
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
-import { getEventRouteBySlug, loadEventPagePublicContentData, loadEventPageShellData } from '@/lib/event-page-data'
+import { getEventRouteBySlug, loadEventPagePublicContentData } from '@/lib/event-page-data'
 import { resolveEventMarketPath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateStaticParams() {
   return [{ market: STATIC_PARAMS_PLACEHOLDER }]
@@ -53,9 +54,9 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
     })
   }
 
-  const [shellData, eventPageData] = await Promise.all([
-    loadEventPageShellData(slug, resolvedLocale),
+  const [eventPageData, runtimeTheme] = await Promise.all([
     loadEventPagePublicContentData(slug, resolvedLocale),
+    loadRuntimeThemeState(),
   ])
   if (!eventPageData) {
     notFound()
@@ -68,7 +69,7 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
         locale={resolvedLocale}
         pagePath={resolveEventMarketPath(eventPageData.event, market)}
         marketSlug={market}
-        site={shellData.site}
+        site={runtimeTheme.site}
       />
       <EventContent
         event={eventPageData.event}

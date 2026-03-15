@@ -9,9 +9,10 @@ import EventViewerState from '@/app/[locale]/(platform)/event/[slug]/_components
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
-import { getEventRouteBySlug, loadEventPagePublicContentData, loadEventPageShellData } from '@/lib/event-page-data'
+import { getEventRouteBySlug, loadEventPagePublicContentData } from '@/lib/event-page-data'
 import { resolveEventBasePath, resolveEventPagePath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateStaticParams() {
   return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
@@ -51,9 +52,9 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
     })
   }
 
-  const [shellData, eventPageData] = await Promise.all([
-    loadEventPageShellData(slug, resolvedLocale),
+  const [eventPageData, runtimeTheme] = await Promise.all([
     loadEventPagePublicContentData(slug, resolvedLocale),
+    loadRuntimeThemeState(),
   ])
   if (!eventPageData) {
     notFound()
@@ -65,7 +66,7 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
         event={eventPageData.event}
         locale={resolvedLocale}
         pagePath={resolveEventPagePath(eventPageData.event)}
-        site={shellData.site}
+        site={runtimeTheme.site}
       />
       <EventContent
         event={eventPageData.event}
