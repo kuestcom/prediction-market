@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS allowed_market_creators (
   source_type TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT allowed_market_creators_wallet_address_check CHECK (wallet_address ~ '^0x[0-9A-Fa-f]{40}$'),
+  CONSTRAINT allowed_market_creators_wallet_address_check CHECK (wallet_address ~ '^0x[0-9a-f]{40}$'),
   CONSTRAINT allowed_market_creators_source_type_check CHECK (source_type IN ('site', 'wallet')),
   CONSTRAINT allowed_market_creators_source_url_check CHECK (
     (source_type = 'site' AND source_url IS NOT NULL)
@@ -49,7 +49,7 @@ INSERT INTO allowed_market_creators (
   source_type
 )
 VALUES (
-  '0x1FD81E09dA67D84f02DB0c0eBabd5a217D1B928d',
+  '0x1fd81e09da67d84f02db0c0ebabd5a217d1b928d',
   'demo.kuest.com',
   'https://demo.kuest.com',
   'site'
@@ -59,3 +59,25 @@ ON CONFLICT (wallet_address) DO UPDATE SET
   source_url = EXCLUDED.source_url,
   source_type = EXCLUDED.source_type,
   updated_at = NOW();
+
+WITH legacy_wallets AS (
+  SELECT DISTINCT lower(trim(wallet.value)) AS wallet_address
+  FROM settings
+  CROSS JOIN LATERAL regexp_split_to_table(settings.value, E'[\\n,]+') AS wallet(value)
+  WHERE settings.group = 'general'
+    AND settings.key = 'market_creators'
+)
+INSERT INTO allowed_market_creators (
+  wallet_address,
+  display_name,
+  source_url,
+  source_type
+)
+SELECT
+  wallet_address,
+  wallet_address,
+  NULL,
+  'wallet'
+FROM legacy_wallets
+WHERE wallet_address ~ '^0x[0-9a-f]{40}$'
+ON CONFLICT (wallet_address) DO NOTHING;

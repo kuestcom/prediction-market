@@ -57,14 +57,26 @@ function SettingsAccordionSection({
   className,
 }: SettingsAccordionSectionProps) {
   return (
-    <AccordionItem value={value} className={cn('overflow-hidden rounded-xl border', className)}>
-      <AccordionTrigger className="p-4 hover:no-underline">
+    <AccordionItem
+      value={value}
+      className={cn(
+        `overflow-hidden rounded-xl border bg-background transition-all duration-500 ease-in-out last:border-b`,
+        className,
+      )}
+    >
+      <AccordionTrigger
+        className="
+          h-18 px-4 py-0 text-left transition-colors
+          hover:bg-muted/50 hover:no-underline
+          focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
+          focus-visible:outline-none
+          [&>svg]:size-6 [&>svg]:text-muted-foreground
+        "
+      >
         {header}
       </AccordionTrigger>
-      <AccordionContent className="data-[state=open]:border-t">
-        <div className="p-4">
-          {children}
-        </div>
+      <AccordionContent className="data-[state=open]:border-t data-[state=open]:border-border/30 [&>div]:p-4">
+        {children}
       </AccordionContent>
     </AccordionItem>
   )
@@ -329,7 +341,6 @@ export default function AdminGeneralSettingsForm({
       <input type="hidden" name="logo_svg" value={logoSvg} />
       <input type="hidden" name="pwa_icon_192_path" value={pwaIcon192Path} />
       <input type="hidden" name="pwa_icon_512_path" value={pwaIcon512Path} />
-      <input type="hidden" name="market_creators" value="" />
       <input type="hidden" name="openrouter_model" value={openRouterModel} />
 
       <Accordion type="multiple" className="grid gap-6">
@@ -782,8 +793,7 @@ export default function AdminGeneralSettingsForm({
 
         <SettingsAccordionSection
           value="pwa-icon"
-          className="border-border/70"
-          header={<h3 className="text-sm font-medium">{t('App install icon (PWA)')}</h3>}
+          header={<h3 className="text-base font-medium">{t('App install icon (PWA)')}</h3>}
         >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">

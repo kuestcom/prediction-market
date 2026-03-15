@@ -118,6 +118,7 @@ export async function updateGeneralSettingsAction(
   const youtubeLinkRaw = formData.get('youtube_link')
   const supportUrlRaw = formData.get('support_url')
   const feeRecipientWalletRaw = formData.get('fee_recipient_wallet')
+  const hasMarketCreatorsField = formData.has('market_creators')
   const marketCreatorsRaw = formData.get('market_creators')
   const lifiIntegratorRaw = formData.get('lifi_integrator')
   const lifiApiKeyRaw = formData.get('lifi_api_key')
@@ -237,7 +238,7 @@ export async function updateGeneralSettingsAction(
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 
-  const { error } = await SettingsRepository.updateSettings([
+  const settingsToUpdate = [
     { group: 'general', key: 'site_name', value: validated.data.siteNameValue },
     { group: 'general', key: 'site_description', value: validated.data.siteDescriptionValue },
     { group: 'general', key: 'site_logo_mode', value: validated.data.logoModeValue },
@@ -255,12 +256,16 @@ export async function updateGeneralSettingsAction(
     { group: 'general', key: 'site_youtube_link', value: validated.data.youtubeLinkValue },
     { group: 'general', key: 'site_support_url', value: validated.data.supportUrlValue },
     { group: 'general', key: 'fee_recipient_wallet', value: validated.data.feeRecipientWalletValue },
-    { group: 'general', key: 'market_creators', value: validated.data.marketCreatorsValue },
+    ...(hasMarketCreatorsField
+      ? [{ group: 'general', key: 'market_creators', value: validated.data.marketCreatorsValue }]
+      : []),
     { group: 'general', key: 'lifi_integrator', value: validated.data.lifiIntegratorValue },
     { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
     { group: 'ai', key: 'openrouter_model', value: openRouterModel },
     { group: 'ai', key: 'openrouter_api_key', value: encryptedOpenRouterApiKey },
-  ])
+  ]
+
+  const { error } = await SettingsRepository.updateSettings(settingsToUpdate)
 
   if (error) {
     return { error: DEFAULT_ERROR_MESSAGE }

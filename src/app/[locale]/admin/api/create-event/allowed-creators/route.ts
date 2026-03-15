@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getAddress, isAddress } from 'viem'
 import { z } from 'zod'
 import {
+  groupAllowedMarketCreatorItems,
   isPublicAllowedMarketCreatorsResponse,
   normalizeAllowedMarketCreatorSiteInput,
 } from '@/lib/allowed-market-creators'
@@ -46,26 +47,26 @@ async function requireAdmin() {
 }
 
 async function buildAdminResponse(addressParam?: string | null) {
-  const { data: items, error } = await AllowedMarketCreatorRepository.list()
-  if (error || !items) {
+  const { data: records, error } = await AllowedMarketCreatorRepository.list()
+  if (error || !records) {
     return {
       response: NextResponse.json({ error: error ?? DEFAULT_ERROR_MESSAGE }, { status: 500 }),
       items: null,
     }
   }
 
-  const wallets = items.map(item => item.walletAddress)
+  const wallets = [...new Set(records.map(record => record.walletAddress.toLowerCase()))]
   const normalizedAddress = typeof addressParam === 'string' && isAddress(addressParam)
     ? getAddress(addressParam)
     : null
 
   return {
     response: NextResponse.json({
-      items,
+      items: groupAllowedMarketCreatorItems(records),
       wallets,
       allowed: normalizedAddress ? wallets.some(wallet => wallet.toLowerCase() === normalizedAddress.toLowerCase()) : false,
     }),
-    items,
+    items: records,
   }
 }
 
@@ -125,6 +126,7 @@ export async function POST(request: Request) {
     const upstreamResponse = await fetch(normalizedSite.endpointUrl, {
       method: 'GET',
       cache: 'no-store',
+      redirect: 'error',
       headers: {
         Accept: 'application/json',
       },
@@ -152,14 +154,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Site endpoint did not return any valid wallets.' }, { status: 400 })
     }
 
-    const { error } = await AllowedMarketCreatorRepository.upsertMany(
-      normalizedWallets.map(walletAddress => ({
-        walletAddress,
-        displayName: normalizedSite.displayName,
-        sourceUrl: normalizedSite.origin,
-        sourceType: 'site' as const,
-      })),
-    )
+    const { error } = await AllowedMarketCreatorRepository.replaceSiteSource({
+      sourceUrl: normalizedSite.origin,
+      displayName: normalizedSite.displayName,
+      walletAddresses: normalizedWallets,
+    })
 
     if (error) {
       return NextResponse.json({ error }, { status: 500 })
@@ -182,7 +181,24 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
     }
 
-    const walletAddress = new URL(request.url).searchParams.get('wallet')?.trim() ?? ''
+    const searchParams = new URL(request.url).searchParams
+    const sourceUrl = searchParams.get('sourceUrl')?.trim() ?? ''
+    if (sourceUrl) {
+      const normalizedSource = normalizeAllowedMarketCreatorSiteInput(sourceUrl)
+      if ('error' in normalizedSource) {
+        return NextResponse.json({ error: normalizedSource.error }, { status: 400 })
+      }
+
+      const { error } = await AllowedMarketCreatorRepository.deleteBySourceUrl(normalizedSource.origin)
+      if (error) {
+        return NextResponse.json({ error }, { status: 500 })
+      }
+
+      const { response } = await buildAdminResponse()
+      return response
+    }
+
+    const walletAddress = searchParams.get('wallet')?.trim() ?? ''
     if (!isAddress(walletAddress)) {
       return NextResponse.json({ error: 'Invalid wallet address.' }, { status: 400 })
     }

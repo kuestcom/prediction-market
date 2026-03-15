@@ -44,7 +44,14 @@ function sortItems(items: AllowedMarketCreatorItem[]) {
       return displayNameSort
     }
 
-    return left.walletAddress.localeCompare(right.walletAddress)
+    const leftKey = left.sourceType === 'site'
+      ? (left.sourceUrl ?? '')
+      : (left.walletAddress ?? '')
+    const rightKey = right.sourceType === 'site'
+      ? (right.sourceUrl ?? '')
+      : (right.walletAddress ?? '')
+
+    return leftKey.localeCompare(rightKey)
   })
 }
 
@@ -154,7 +161,18 @@ export default function AllowedMarketCreatorsManager({
     setIsRemoving(true)
 
     try {
-      const response = await fetch(`/admin/api/create-event/allowed-creators?wallet=${encodeURIComponent(item.walletAddress)}`, {
+      const searchParams = new URLSearchParams()
+      if (item.sourceType === 'site' && item.sourceUrl) {
+        searchParams.set('sourceUrl', item.sourceUrl)
+      }
+      else if (item.walletAddress) {
+        searchParams.set('wallet', item.walletAddress)
+      }
+      else {
+        throw new Error('Invalid source.')
+      }
+
+      const response = await fetch(`/admin/api/create-event/allowed-creators?${searchParams.toString()}`, {
         method: 'DELETE',
         cache: 'no-store',
       })
@@ -199,9 +217,6 @@ export default function AllowedMarketCreatorsManager({
             </p>
             <p className="text-xs text-muted-foreground">
               {t('Sources are saved immediately. Public sites must expose')}
-              {' '}
-              <code>/api/allowed-market-creators</code>
-              .
             </p>
           </div>
 
@@ -235,14 +250,21 @@ export default function AllowedMarketCreatorsManager({
               )
             : (
                 <div className="flex flex-wrap gap-2">
-                  {items.map(item => (
+                  {items.map((item, index) => (
                     <Badge
-                      key={item.walletAddress}
+                      key={item.sourceType === 'site'
+                        ? (item.sourceUrl ?? `${item.displayName}-${index}`)
+                        : (item.walletAddress ?? `${item.displayName}-${index}`)}
                       variant="outline"
                       className="gap-1.5 pr-1"
-                      title={`${item.displayName} • ${item.walletAddress}`}
+                      title={item.walletAddress ? `${item.displayName} • ${item.walletAddress}` : item.displayName}
                     >
                       <span>{item.displayName}</span>
+                      {item.sourceType === 'site' && item.walletCount > 1
+                        ? (
+                            <span className="text-muted-foreground">{`(${item.walletCount})`}</span>
+                          )
+                        : null}
                       <button
                         type="button"
                         className="

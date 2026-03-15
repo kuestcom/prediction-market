@@ -212,6 +212,34 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_api_key')?.value).toBe('enc.v1.existing-openrouter')
   })
 
+  it('does not overwrite legacy market creators when the field is omitted', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.getSettings.mockResolvedValueOnce({
+      data: {
+        general: {
+          market_creators: { value: '0x2222222222222222222222222222222222222222', updated_at: '2026-01-01T00:00:00.000Z' },
+        },
+      },
+      error: null,
+    })
+    mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
+
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const formData = new FormData()
+    formData.set('site_name', 'Kuest')
+    formData.set('site_description', 'Prediction market')
+    formData.set('logo_mode', 'svg')
+    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+    formData.set('logo_image_path', '')
+    formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
+
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
+    expect(result).toEqual({ error: null })
+
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
+    expect(savedPayload.some(entry => entry.key === 'market_creators')).toBe(false)
+  })
+
   it('rejects unsupported logo upload types', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
 

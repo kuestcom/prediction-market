@@ -1,7 +1,7 @@
 import { and, eq, inArray, lt, ne, or } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
+import { loadAllowedMarketCreatorWallets } from '@/lib/allowed-market-creators-server'
 import { isCronAuthorized } from '@/lib/auth-cron'
-import { AllowedMarketCreatorRepository } from '@/lib/db/queries/allowed-market-creators'
 import {
   conditions as conditionsTable,
   event_sports as eventSportsTable,
@@ -103,12 +103,12 @@ interface SyncOptions {
 }
 
 async function getAllowedCreators(): Promise<string[]> {
-  const { data, error } = await AllowedMarketCreatorRepository.listWallets()
+  const { data, error } = await loadAllowedMarketCreatorWallets()
   if (error || !data) {
-    return []
+    throw new Error(error ?? 'Failed to load allowed market creators.')
   }
 
-  return [...new Set(data.map(walletAddress => walletAddress.toLowerCase()))]
+  return data
 }
 /**
  * 🔄 Market Synchronization Script for Vercel Functions

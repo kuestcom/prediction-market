@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
+import { loadAllowedMarketCreatorWallets } from '@/lib/allowed-market-creators-server'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
-import { AllowedMarketCreatorRepository } from '@/lib/db/queries/allowed-market-creators'
 
 export async function GET() {
   try {
-    const { data, error } = await AllowedMarketCreatorRepository.listWallets()
+    const { data, error } = await loadAllowedMarketCreatorWallets()
     if (error || !data) {
       return NextResponse.json({ error: error ?? DEFAULT_ERROR_MESSAGE }, { status: 500 })
     }
