@@ -5,12 +5,20 @@ import { useEffect, useRef } from 'react'
 import { authClient } from '@/lib/auth-client'
 import { useUser } from '@/stores/useUser'
 
-export default function EventViewerState() {
+interface EventViewerStateProps {
+  shouldHydrateSession: boolean
+}
+
+export default function EventViewerState({ shouldHydrateSession }: EventViewerStateProps) {
   const user = useUser()
   const userId = user?.id ?? null
-  const lastHydratedUserIdRef = useRef<string | null>('__initial__')
+  const lastHydratedUserIdRef = useRef<string | null>(shouldHydrateSession ? '__initial__' : null)
 
   useEffect(() => {
+    if (!shouldHydrateSession && userId === null) {
+      return
+    }
+
     if (lastHydratedUserIdRef.current === userId) {
       return
     }
@@ -57,7 +65,7 @@ export default function EventViewerState() {
     return () => {
       isActive = false
     }
-  }, [userId])
+  }, [shouldHydrateSession, userId])
 
   return null
 }
