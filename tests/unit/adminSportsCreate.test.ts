@@ -113,4 +113,48 @@ describe('admin sports create', () => {
       }),
     ])
   })
+
+  it('skips custom market rows that require a line when the line is missing', () => {
+    const sports = createInitialAdminSportsForm()
+    sports.section = 'games'
+    sports.eventVariant = 'custom'
+    sports.sportSlug = 'Basketball'
+    sports.leagueSlug = 'NBA'
+    sports.startTime = '2026-03-10T19:00:00Z'
+    sports.teams[0].name = 'Lakers'
+    sports.teams[1].name = 'Celtics'
+    sports.customMarkets = [
+      {
+        ...createAdminSportsCustomMarket('market-1'),
+        sportsMarketType: 'first_half_totals',
+        question: '1H O/U',
+        title: '1H O/U',
+        shortName: '1H O/U',
+        outcomeOne: 'Over',
+        outcomeTwo: 'Under',
+        line: '',
+      },
+      {
+        ...createAdminSportsCustomMarket('market-2'),
+        sportsMarketType: 'first_half_moneyline',
+        question: '1H Moneyline',
+        title: '1H Moneyline',
+        shortName: '1H ML',
+        outcomeOne: 'Lakers',
+        outcomeTwo: 'Celtics',
+      },
+    ]
+
+    const derived = buildAdminSportsDerivedContent({
+      baseSlug: 'lakers-vs-celtics-abc',
+      sports,
+    })
+
+    expect(derived.options).toHaveLength(1)
+    expect(derived.payload?.markets).toEqual([
+      expect.objectContaining({
+        sportsMarketType: 'first_half_moneyline',
+      }),
+    ])
+  })
 })

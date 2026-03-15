@@ -510,45 +510,86 @@ function buildPropOptions(form: AdminSportsFormState) {
   })
 }
 
+function normalizeCustomMarketEntry(
+  market: AdminSportsCustomMarketState,
+  options: {
+    homeTeamName: string
+    awayTeamName: string
+  },
+) {
+  const sportsMarketType = normalizeSportsMarketType(market.sportsMarketType)
+  if (!sportsMarketType) {
+    return null
+  }
+
+  const typeOption = resolveAdminSportsMarketTypeOption(sportsMarketType)
+  const line = normalizeSignedLineInput(market.line)
+  if (typeOption?.requiresLine && line === null) {
+    return null
+  }
+
+  const defaultOutcomes = getAdminSportsMarketTypeDefaultOutcomes(sportsMarketType, {
+    homeTeamName: options.homeTeamName,
+    awayTeamName: options.awayTeamName,
+  })
+  const question = normalizeText(market.question)
+  const title = normalizeText(market.title) || question
+  const shortName = normalizeText(market.shortName) || title
+  const outcomeOne = normalizeText(market.outcomeOne) || defaultOutcomes?.[0] || ''
+  const outcomeTwo = normalizeText(market.outcomeTwo) || defaultOutcomes?.[1] || ''
+
+  if (!question || !title || !shortName || !outcomeOne || !outcomeTwo) {
+    return null
+  }
+
+  return {
+    sportsMarketType,
+    line,
+    question,
+    title,
+    shortName,
+    outcomeOne,
+    outcomeTwo,
+  }
+}
+
 function buildCustomMarketOptions(form: AdminSportsFormState) {
   const { homeTeam, awayTeam } = buildTeamPair(form.teams)
   const homeName = normalizeText(homeTeam?.name ?? '')
   const awayName = normalizeText(awayTeam?.name ?? '')
 
   return form.customMarkets.flatMap((market, index) => {
-    const sportsMarketType = normalizeSportsMarketType(market.sportsMarketType)
-    if (!sportsMarketType) {
-      return []
-    }
-
-    const line = normalizeSignedLineInput(market.line)
-    const defaultOutcomes = getAdminSportsMarketTypeDefaultOutcomes(sportsMarketType, {
+    const normalizedMarket = normalizeCustomMarketEntry(market, {
       homeTeamName: homeName,
       awayTeamName: awayName,
     })
-    const question = normalizeText(market.question)
-    const title = normalizeText(market.title) || question
-    const shortName = normalizeText(market.shortName) || title
-    const fallbackSlugBase = line === null
-      ? slugifySportsMarketType(sportsMarketType)
-      : `${slugifySportsMarketType(sportsMarketType)}-${formatLineSlug(line)}`
-    const slug = slugify(normalizeText(market.slug) || title || question || fallbackSlugBase || `market-${index + 1}`)
-    const outcomeYes = normalizeText(market.outcomeOne) || defaultOutcomes?.[0] || ''
-    const outcomeNo = normalizeText(market.outcomeTwo) || defaultOutcomes?.[1] || ''
+    if (!normalizedMarket) {
+      return []
+    }
 
-    if (!question || !title || !shortName || !slug || !outcomeYes || !outcomeNo) {
+    const fallbackSlugBase = normalizedMarket.line === null
+      ? slugifySportsMarketType(normalizedMarket.sportsMarketType)
+      : `${slugifySportsMarketType(normalizedMarket.sportsMarketType)}-${formatLineSlug(normalizedMarket.line)}`
+    const slug = slugify(
+      normalizeText(market.slug)
+      || normalizedMarket.title
+      || normalizedMarket.question
+      || fallbackSlugBase
+      || `market-${index + 1}`,
+    )
+    if (!slug) {
       return []
     }
 
     return [
       createOption({
         id: market.id,
-        question,
-        title,
-        shortName,
+        question: normalizedMarket.question,
+        title: normalizedMarket.title,
+        shortName: normalizedMarket.shortName,
         slug,
-        outcomeYes,
-        outcomeNo,
+        outcomeYes: normalizedMarket.outcomeOne,
+        outcomeNo: normalizedMarket.outcomeTwo,
       }),
     ]
   })
@@ -572,6 +613,9 @@ function buildSportsOptions(form: AdminSportsFormState, eventDate: string) {
 
 function buildSportsCategories(form: AdminSportsFormState, eventVariantSlug: string) {
   const out: SportsDerivedCategory[] = []
+  const { homeTeam, awayTeam } = buildTeamPair(form.teams)
+  const homeTeamName = normalizeText(homeTeam?.name ?? '')
+  const awayTeamName = normalizeText(awayTeam?.name ?? '')
 
   function push(label: string, slug = label) {
     const normalizedLabel = normalizeText(label)
@@ -607,14 +651,17 @@ function buildSportsCategories(form: AdminSportsFormState, eventVariantSlug: str
 
     if (form.eventVariant === 'custom') {
       form.customMarkets.forEach((market) => {
-        const sportsMarketType = normalizeSportsMarketType(market.sportsMarketType)
-        if (!sportsMarketType) {
+        const normalizedMarket = normalizeCustomMarketEntry(market, {
+          homeTeamName,
+          awayTeamName,
+        })
+        if (!normalizedMarket) {
           return
         }
 
-        const marketTypeLabel = resolveAdminSportsMarketTypeOption(sportsMarketType)?.label
-          || sportsMarketType.replace(/_/g, ' ')
-        push(marketTypeLabel, sportsMarketType)
+        const marketTypeLabel = resolveAdminSportsMarketTypeOption(normalizedMarket.sportsMarketType)?.label
+          || normalizedMarket.sportsMarketType.replace(/_/g, ' ')
+        push(marketTypeLabel, normalizedMarket.sportsMarketType)
       })
     }
     else {
@@ -810,32 +857,10 @@ export function buildAdminSportsStepErrors(args: {
     }
 
     const validCustomMarkets = args.sports.customMarkets.filter((market) => {
-      const sportsMarketType = normalizeSportsMarketType(market.sportsMarketType)
-      if (!sportsMarketType) {
-        return false
-      }
-
-      const typeOption = resolveAdminSportsMarketTypeOption(sportsMarketType)
-      const defaultOutcomes = getAdminSportsMarketTypeDefaultOutcomes(sportsMarketType, {
+      return Boolean(normalizeCustomMarketEntry(market, {
         homeTeamName: homeName,
         awayTeamName: awayName,
-      })
-      const question = normalizeText(market.question)
-      const title = normalizeText(market.title) || question
-      const shortName = normalizeText(market.shortName) || title
-      const outcomeOne = normalizeText(market.outcomeOne) || defaultOutcomes?.[0] || ''
-      const outcomeTwo = normalizeText(market.outcomeTwo) || defaultOutcomes?.[1] || ''
-      const line = normalizeSignedLineInput(market.line)
-
-      if (!question || !title || !shortName || !outcomeOne || !outcomeTwo) {
-        return false
-      }
-
-      if (typeOption?.requiresLine && line === null) {
-        return false
-      }
-
-      return true
+      }))
     })
 
     if (args.sports.section === 'games') {
