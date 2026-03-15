@@ -1,7 +1,13 @@
+import {
+  getAdminSportsMarketTypeDefaultOutcomes,
+  resolveAdminSportsMarketTypeOption,
+} from './admin-sports-market-types'
+
 export type AdminSportsSection = 'games' | 'props'
-export type AdminSportsEventVariant = 'standard' | 'more_markets' | 'exact_score' | 'halftime_result'
+export type AdminSportsEventVariant = 'standard' | 'more_markets' | 'exact_score' | 'halftime_result' | 'custom'
 export type AdminSportsTeamHostStatus = 'home' | 'away'
-export type AdminSportsPropStatType = 'points' | 'rebounds' | 'assists'
+export type AdminSportsPropStatType = 'points' | 'rebounds' | 'assists' | 'receiving_yards' | 'rushing_yards'
+export type AdminSportsIconAssetKey = '' | AdminSportsTeamHostStatus
 
 export interface AdminSportsTeamState {
   hostStatus: AdminSportsTeamHostStatus
@@ -17,6 +23,20 @@ export interface AdminSportsPropState {
   teamHostStatus: '' | AdminSportsTeamHostStatus
 }
 
+export interface AdminSportsCustomMarketState {
+  id: string
+  sportsMarketType: string
+  question: string
+  title: string
+  shortName: string
+  slug: string
+  outcomeOne: string
+  outcomeTwo: string
+  line: string
+  groupItemTitle: string
+  iconAssetKey: AdminSportsIconAssetKey
+}
+
 export interface AdminSportsFormState {
   section: '' | AdminSportsSection
   eventVariant: '' | AdminSportsEventVariant
@@ -29,16 +49,17 @@ export interface AdminSportsFormState {
   includeTotals: boolean
   teams: [AdminSportsTeamState, AdminSportsTeamState]
   props: AdminSportsPropState[]
+  customMarkets: AdminSportsCustomMarketState[]
 }
 
 export interface AdminSportsPreparePayload {
   section: AdminSportsSection
   eventVariant: AdminSportsEventVariant
-  sportSlug: string
-  leagueSlug: string
-  eventDate: string
-  startTime: string
-  teams: Array<{
+  sportSlug?: string
+  leagueSlug?: string
+  eventDate?: string
+  startTime?: string
+  teams?: Array<{
     name: string
     abbreviation?: string
     host_status: AdminSportsTeamHostStatus
@@ -56,7 +77,20 @@ export interface AdminSportsPreparePayload {
     playerName: string
     statType: AdminSportsPropStatType
     line: number
-    teamHostStatus: AdminSportsTeamHostStatus
+    teamHostStatus?: AdminSportsTeamHostStatus
+  }>
+  markets: Array<{
+    id: string
+    question: string
+    title: string
+    shortName: string
+    slug: string
+    outcomes: [string, string]
+    sportsMarketType: string
+    line?: number
+    groupItemTitle?: string
+    groupItemThreshold?: string
+    iconAssetKey?: AdminSportsTeamHostStatus
   }>
 }
 
@@ -92,6 +126,7 @@ const SPORTS_VARIANT_SUFFIX_BY_KEY: Record<Exclude<AdminSportsEventVariant, 'sta
   more_markets: 'more-markets',
   exact_score: 'exact-score',
   halftime_result: 'halftime-result',
+  custom: 'custom-markets',
 }
 
 export function createAdminSportsProp(id: string): AdminSportsPropState {
@@ -101,6 +136,22 @@ export function createAdminSportsProp(id: string): AdminSportsPropState {
     statType: '',
     line: '',
     teamHostStatus: '',
+  }
+}
+
+export function createAdminSportsCustomMarket(id: string): AdminSportsCustomMarketState {
+  return {
+    id,
+    sportsMarketType: '',
+    question: '',
+    title: '',
+    shortName: '',
+    slug: '',
+    outcomeOne: '',
+    outcomeTwo: '',
+    line: '',
+    groupItemTitle: '',
+    iconAssetKey: '',
   }
 }
 
@@ -128,6 +179,7 @@ export function createInitialAdminSportsForm(): AdminSportsFormState {
       },
     ],
     props: [createAdminSportsProp('prop-1')],
+    customMarkets: [createAdminSportsCustomMarket('market-1')],
   }
 }
 
@@ -190,6 +242,33 @@ function normalizeLineInput(value: string) {
   return Number.parseFloat(parsed.toFixed(4))
 }
 
+function normalizeSignedLineInput(value: string) {
+  const normalized = value.trim().replace(',', '.')
+  if (!normalized) {
+    return null
+  }
+
+  const parsed = Number(normalized)
+  if (!Number.isFinite(parsed)) {
+    return null
+  }
+
+  return Number.parseFloat(parsed.toFixed(4))
+}
+
+function normalizeSportsMarketType(value: string) {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+    .replace(/[^a-z0-9_]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
+function slugifySportsMarketType(value: string) {
+  return slugify(value.replace(/_/g, ' '))
+}
+
 function buildEventDateFromStartTime(startTime: string) {
   const parsed = parseStartTime(startTime)
   return parsed ? parsed.toISOString().slice(0, 10) : ''
@@ -201,6 +280,10 @@ function buildStartTimeIso(startTime: string) {
 }
 
 function buildSportVariantSlug(section: AdminSportsSection, eventVariant: AdminSportsEventVariant, options: SportsDerivedOption[]) {
+  if (eventVariant === 'custom') {
+    return 'custom-markets'
+  }
+
   if (section === 'props') {
     return options.some(option => option.slug.startsWith('points-'))
       ? 'player-props'
@@ -395,6 +478,10 @@ function buildPropLabel(statType: AdminSportsPropStatType) {
       return 'Rebounds'
     case 'assists':
       return 'Assists'
+    case 'receiving_yards':
+      return 'Receiving Yards'
+    case 'rushing_yards':
+      return 'Rushing Yards'
   }
 }
 
@@ -402,7 +489,7 @@ function buildPropOptions(form: AdminSportsFormState) {
   return form.props.flatMap((prop) => {
     const playerName = normalizeText(prop.playerName)
     const line = normalizeLineInput(prop.line)
-    if (!playerName || !prop.statType || line === null || !prop.teamHostStatus) {
+    if (!playerName || !prop.statType || line === null) {
       return []
     }
 
@@ -423,7 +510,55 @@ function buildPropOptions(form: AdminSportsFormState) {
   })
 }
 
+function buildCustomMarketOptions(form: AdminSportsFormState) {
+  const { homeTeam, awayTeam } = buildTeamPair(form.teams)
+  const homeName = normalizeText(homeTeam?.name ?? '')
+  const awayName = normalizeText(awayTeam?.name ?? '')
+
+  return form.customMarkets.flatMap((market, index) => {
+    const sportsMarketType = normalizeSportsMarketType(market.sportsMarketType)
+    if (!sportsMarketType) {
+      return []
+    }
+
+    const line = normalizeSignedLineInput(market.line)
+    const defaultOutcomes = getAdminSportsMarketTypeDefaultOutcomes(sportsMarketType, {
+      homeTeamName: homeName,
+      awayTeamName: awayName,
+    })
+    const question = normalizeText(market.question)
+    const title = normalizeText(market.title) || question
+    const shortName = normalizeText(market.shortName) || title
+    const fallbackSlugBase = line === null
+      ? slugifySportsMarketType(sportsMarketType)
+      : `${slugifySportsMarketType(sportsMarketType)}-${formatLineSlug(line)}`
+    const slug = slugify(normalizeText(market.slug) || title || question || fallbackSlugBase || `market-${index + 1}`)
+    const outcomeYes = normalizeText(market.outcomeOne) || defaultOutcomes?.[0] || ''
+    const outcomeNo = normalizeText(market.outcomeTwo) || defaultOutcomes?.[1] || ''
+
+    if (!question || !title || !shortName || !slug || !outcomeYes || !outcomeNo) {
+      return []
+    }
+
+    return [
+      createOption({
+        id: market.id,
+        question,
+        title,
+        shortName,
+        slug,
+        outcomeYes,
+        outcomeNo,
+      }),
+    ]
+  })
+}
+
 function buildSportsOptions(form: AdminSportsFormState, eventDate: string) {
+  if (form.eventVariant === 'custom') {
+    return buildCustomMarketOptions(form)
+  }
+
   if (form.section === 'games' && form.eventVariant) {
     return buildGameOptions(form, eventDate)
   }
@@ -457,12 +592,42 @@ function buildSportsCategories(form: AdminSportsFormState, eventVariantSlug: str
   if (form.section) {
     push(form.section === 'games' ? 'Games' : 'Props', form.section)
   }
-  if (form.sportSlug.trim()) {
-    push(form.sportSlug, form.sportSlug)
+
+  if (form.section === 'games') {
+    if (form.sportSlug.trim()) {
+      push(form.sportSlug, form.sportSlug)
+    }
+    if (form.leagueSlug.trim()) {
+      push(form.leagueSlug, form.leagueSlug)
+    }
   }
-  if (form.leagueSlug.trim()) {
-    push(form.leagueSlug, form.leagueSlug)
+
+  if (form.section === 'props') {
+    push('Sports Props', 'sports-props')
+
+    if (form.eventVariant === 'custom') {
+      form.customMarkets.forEach((market) => {
+        const sportsMarketType = normalizeSportsMarketType(market.sportsMarketType)
+        if (!sportsMarketType) {
+          return
+        }
+
+        const marketTypeLabel = resolveAdminSportsMarketTypeOption(sportsMarketType)?.label
+          || sportsMarketType.replace(/_/g, ' ')
+        push(marketTypeLabel, sportsMarketType)
+      })
+    }
+    else {
+      form.props.forEach((prop) => {
+        if (!prop.statType) {
+          return
+        }
+
+        push(buildPropLabel(prop.statType), prop.statType)
+      })
+    }
   }
+
   if (eventVariantSlug) {
     push(eventVariantSlug, eventVariantSlug)
   }
@@ -474,12 +639,13 @@ export function buildAdminSportsDerivedContent(args: {
   baseSlug: string
   sports: AdminSportsFormState
 }): AdminSportsDerivedContent {
+  const isGamesSection = args.sports.section === 'games'
   const effectiveEventVariant = args.sports.section === 'props'
-    ? 'standard'
+    ? (args.sports.eventVariant === 'custom' ? 'custom' : 'standard')
     : args.sports.eventVariant
   const eventSlug = buildSportsEventSlug(args.baseSlug, effectiveEventVariant)
-  const eventDate = buildEventDateFromStartTime(args.sports.startTime)
-  const startTimeIso = buildStartTimeIso(args.sports.startTime)
+  const eventDate = isGamesSection ? buildEventDateFromStartTime(args.sports.startTime) : ''
+  const startTimeIso = isGamesSection ? buildStartTimeIso(args.sports.startTime) : ''
   const options = buildSportsOptions(args.sports, eventDate)
   const variantSlug = args.sports.section && effectiveEventVariant
     ? buildSportVariantSlug(args.sports.section, effectiveEventVariant, options)
@@ -487,14 +653,7 @@ export function buildAdminSportsDerivedContent(args: {
   const categories = buildSportsCategories(args.sports, variantSlug)
 
   const payload = (() => {
-    if (
-      !args.sports.section
-      || !effectiveEventVariant
-      || !args.sports.sportSlug.trim()
-      || !args.sports.leagueSlug.trim()
-      || !eventDate
-      || !startTimeIso
-    ) {
+    if (!args.sports.section || !effectiveEventVariant) {
       return null
     }
 
@@ -504,40 +663,77 @@ export function buildAdminSportsDerivedContent(args: {
       host_status: team.hostStatus,
     }))
 
-    if (teams.some(team => !team.name)) {
+    if (isGamesSection && teams.some(team => !team.name)) {
       return null
     }
 
-    const props = args.sports.section === 'props'
+    const props = args.sports.section === 'props' && effectiveEventVariant !== 'custom'
       ? args.sports.props.flatMap((prop) => {
           const playerName = normalizeText(prop.playerName)
           const line = normalizeLineInput(prop.line)
-          if (!playerName || !prop.statType || line === null || !prop.teamHostStatus) {
+          if (!playerName || !prop.statType || line === null) {
             return []
           }
 
-          return [{
+          const payloadItem: AdminSportsPreparePayload['props'][number] = {
             id: prop.id,
             playerName,
             statType: prop.statType,
             line,
-            teamHostStatus: prop.teamHostStatus,
+          }
+
+          if (prop.teamHostStatus === 'home' || prop.teamHostStatus === 'away') {
+            payloadItem.teamHostStatus = prop.teamHostStatus
+          }
+
+          return [payloadItem]
+        })
+      : []
+
+    const optionsById = new Map(options.map(option => [option.id, option]))
+    const markets = effectiveEventVariant === 'custom'
+      ? args.sports.customMarkets.flatMap((market, index) => {
+          const option = optionsById.get(market.id)
+          const sportsMarketType = normalizeSportsMarketType(market.sportsMarketType)
+          if (!option || !sportsMarketType) {
+            return []
+          }
+
+          const line = normalizeSignedLineInput(market.line)
+          return [{
+            id: market.id,
+            question: option.question,
+            title: option.title,
+            shortName: option.shortName,
+            slug: option.slug,
+            outcomes: [option.outcomeYes, option.outcomeNo] as [string, string],
+            sportsMarketType,
+            line: line ?? undefined,
+            groupItemTitle: normalizeText(market.groupItemTitle) || option.title,
+            groupItemThreshold: String(index),
+            iconAssetKey: args.sports.section === 'games'
+              && (market.iconAssetKey === 'home' || market.iconAssetKey === 'away')
+              ? market.iconAssetKey
+              : undefined,
           }]
         })
       : []
 
-    if (args.sports.section === 'props' && props.length === 0) {
+    if (effectiveEventVariant === 'custom' && markets.length === 0) {
       return null
     }
 
-    return {
+    if (args.sports.section === 'props' && effectiveEventVariant !== 'custom' && props.length === 0) {
+      return null
+    }
+
+    if (isGamesSection && (!args.sports.sportSlug.trim() || !args.sports.leagueSlug.trim() || !eventDate || !startTimeIso)) {
+      return null
+    }
+
+    const payloadBase: AdminSportsPreparePayload = {
       section: args.sports.section,
       eventVariant: effectiveEventVariant,
-      sportSlug: slugify(args.sports.sportSlug),
-      leagueSlug: slugify(args.sports.leagueSlug),
-      eventDate,
-      startTime: startTimeIso,
-      teams,
       template: {
         includeDraw: args.sports.includeDraw,
         includeBothTeamsToScore: args.sports.includeBothTeamsToScore,
@@ -547,7 +743,18 @@ export function buildAdminSportsDerivedContent(args: {
         totalLines: SOCCER_MORE_MARKETS_TOTAL_LINES,
       },
       props,
+      markets,
     }
+
+    if (isGamesSection) {
+      payloadBase.sportSlug = slugify(args.sports.sportSlug)
+      payloadBase.leagueSlug = slugify(args.sports.leagueSlug)
+      payloadBase.eventDate = eventDate
+      payloadBase.startTime = startTimeIso
+      payloadBase.teams = teams
+    }
+
+    return payloadBase
   })()
 
   return {
@@ -573,23 +780,26 @@ export function buildAdminSportsStepErrors(args: {
     if (!args.sports.section) {
       errors.push('Sports events must choose exactly one sub category: Games or Props.')
     }
-    if (!args.sports.sportSlug.trim()) {
-      errors.push('Sport slug is required for sports events.')
-    }
-    if (!args.sports.leagueSlug.trim()) {
-      errors.push('League slug is required for sports events.')
-    }
-    if (!args.sports.startTime.trim()) {
-      errors.push('Game start time is required for sports events.')
-    }
-    else if (!eventDate) {
-      errors.push('Game start time is invalid.')
-    }
-    if (!homeName || !awayName) {
-      errors.push('Sports events require both home and away teams.')
-    }
-    if (!args.hasTeamLogoByHostStatus.home || !args.hasTeamLogoByHostStatus.away) {
-      errors.push('Sports events require a logo for both home and away teams.')
+
+    if (args.sports.section === 'games') {
+      if (!args.sports.sportSlug.trim()) {
+        errors.push('Sport slug is required for sports games.')
+      }
+      if (!args.sports.leagueSlug.trim()) {
+        errors.push('League slug is required for sports games.')
+      }
+      if (!args.sports.startTime.trim()) {
+        errors.push('Game start time is required for sports games.')
+      }
+      else if (!eventDate) {
+        errors.push('Game start time is invalid.')
+      }
+      if (!homeName || !awayName) {
+        errors.push('Sports games require both home and away teams.')
+      }
+      if (!args.hasTeamLogoByHostStatus.home || !args.hasTeamLogoByHostStatus.away) {
+        errors.push('Sports games require a logo for both home and away teams.')
+      }
     }
   }
 
@@ -599,9 +809,38 @@ export function buildAdminSportsStepErrors(args: {
       return errors
     }
 
+    const validCustomMarkets = args.sports.customMarkets.filter((market) => {
+      const sportsMarketType = normalizeSportsMarketType(market.sportsMarketType)
+      if (!sportsMarketType) {
+        return false
+      }
+
+      const typeOption = resolveAdminSportsMarketTypeOption(sportsMarketType)
+      const defaultOutcomes = getAdminSportsMarketTypeDefaultOutcomes(sportsMarketType, {
+        homeTeamName: homeName,
+        awayTeamName: awayName,
+      })
+      const question = normalizeText(market.question)
+      const title = normalizeText(market.title) || question
+      const shortName = normalizeText(market.shortName) || title
+      const outcomeOne = normalizeText(market.outcomeOne) || defaultOutcomes?.[0] || ''
+      const outcomeTwo = normalizeText(market.outcomeTwo) || defaultOutcomes?.[1] || ''
+      const line = normalizeSignedLineInput(market.line)
+
+      if (!question || !title || !shortName || !outcomeOne || !outcomeTwo) {
+        return false
+      }
+
+      if (typeOption?.requiresLine && line === null) {
+        return false
+      }
+
+      return true
+    })
+
     if (args.sports.section === 'games') {
       if (!args.sports.eventVariant) {
-        errors.push('Select a sports event variant.')
+        errors.push('Select a sports template.')
         return errors
       }
 
@@ -622,15 +861,25 @@ export function buildAdminSportsStepErrors(args: {
       ) {
         errors.push('Select at least one pack inside More Markets.')
       }
+
+      if (args.sports.eventVariant === 'custom' && validCustomMarkets.length === 0) {
+        errors.push('Add at least 1 fully configured custom sports market.')
+      }
     }
 
     if (args.sports.section === 'props') {
+      if (args.sports.eventVariant === 'custom') {
+        if (validCustomMarkets.length === 0) {
+          errors.push('Add at least 1 fully configured custom sports market.')
+        }
+        return errors
+      }
+
       const validProps = args.sports.props.filter((prop) => {
         return Boolean(
           normalizeText(prop.playerName)
           && prop.statType
-          && normalizeLineInput(prop.line) !== null
-          && prop.teamHostStatus,
+          && normalizeLineInput(prop.line) !== null,
         )
       })
 
