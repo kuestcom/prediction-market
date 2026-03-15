@@ -123,6 +123,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: normalizedSite.error }, { status: 400 })
     }
 
+    if (!normalizedSite.origin.startsWith('https://')) {
+      return NextResponse.json({ error: 'Site URL must use https.' }, { status: 400 })
+    }
+
     const upstreamResponse = await fetch(normalizedSite.endpointUrl, {
       method: 'GET',
       cache: 'no-store',

@@ -6,9 +6,9 @@ import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 export default async function AdminCreateEventPage({ params }: PageProps<'/[locale]/admin/create-event'>) {
   const { locale } = await params
   setRequestLocale(locale)
-  const sportsMenuResult = await SportsMenuRepository.getLayoutData()
+  const sportsMenuResult = await SportsMenuRepository.getMenuEntries()
   const sportsSlugCatalog = sportsMenuResult.data
-    ? buildAdminSportsSlugCatalog(sportsMenuResult.data.menuEntries)
+    ? buildAdminSportsSlugCatalog(sportsMenuResult.data)
     : EMPTY_ADMIN_SPORTS_SLUG_CATALOG
 
   return (

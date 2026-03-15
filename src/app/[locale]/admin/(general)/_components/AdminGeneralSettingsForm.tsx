@@ -75,7 +75,7 @@ function SettingsAccordionSection({
       >
         {header}
       </AccordionTrigger>
-      <AccordionContent className="data-[state=open]:border-t data-[state=open]:border-border/30 [&>div]:p-4">
+      <AccordionContent forceMount className="data-[state=open]:border-t data-[state=open]:border-border/30 [&>div]:p-4">
         {children}
       </AccordionContent>
     </AccordionItem>

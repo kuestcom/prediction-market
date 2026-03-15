@@ -55,6 +55,20 @@ function sortItems(items: AllowedMarketCreatorItem[]) {
   })
 }
 
+async function fetchAllowedCreatorsApi(pathname: string, init?: RequestInit) {
+  const primaryResponse = await fetch(`/admin/api/create-event/allowed-creators${pathname}`, init)
+  if (primaryResponse.status !== 404 || typeof window === 'undefined') {
+    return primaryResponse
+  }
+
+  const [maybeLocale] = window.location.pathname.split('/').filter(Boolean)
+  if (!maybeLocale) {
+    return primaryResponse
+  }
+
+  return fetch(`/${maybeLocale}/admin/api/create-event/allowed-creators${pathname}`, init)
+}
+
 export default function AllowedMarketCreatorsManager({
   disabled = false,
 }: AllowedMarketCreatorsManagerProps) {
@@ -74,7 +88,7 @@ export default function AllowedMarketCreatorsManager({
     setIsLoading(true)
 
     try {
-      const response = await fetch('/admin/api/create-event/allowed-creators', {
+      const response = await fetchAllowedCreatorsApi('', {
         method: 'GET',
         cache: 'no-store',
       })
@@ -125,7 +139,7 @@ export default function AllowedMarketCreatorsManager({
             name: walletName.trim(),
           }
 
-      const response = await fetch('/admin/api/create-event/allowed-creators', {
+      const response = await fetchAllowedCreatorsApi('', {
         method: 'POST',
         cache: 'no-store',
         headers: {
@@ -172,7 +186,7 @@ export default function AllowedMarketCreatorsManager({
         throw new Error('Invalid source.')
       }
 
-      const response = await fetch(`/admin/api/create-event/allowed-creators?${searchParams.toString()}`, {
+      const response = await fetchAllowedCreatorsApi(`?${searchParams.toString()}`, {
         method: 'DELETE',
         cache: 'no-store',
       })
