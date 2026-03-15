@@ -1,71 +1,83 @@
 import { NextResponse } from 'next/server'
 import { getAddress, isAddress } from 'viem'
 import { z } from 'zod'
+import {
+  isPublicAllowedMarketCreatorsResponse,
+  normalizeAllowedMarketCreatorSiteInput,
+} from '@/lib/allowed-market-creators'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
-import { SettingsRepository } from '@/lib/db/queries/settings'
+import { AllowedMarketCreatorRepository } from '@/lib/db/queries/allowed-market-creators'
 import { UserRepository } from '@/lib/db/queries/user'
 
-const GENERAL_SETTINGS_GROUP = 'general'
-const GENERAL_MARKET_CREATORS_KEY = 'market_creators'
-
-const addCreatorSchema = z.object({
-  address: z.string().trim().min(1, 'Address is required.'),
+const addSiteCreatorSchema = z.object({
+  sourceType: z.literal('site'),
+  url: z.string().trim().min(1, 'Site URL is required.'),
 })
 
-function parseWalletList(value: string | null | undefined) {
-  const text = value ?? ''
-  const rows = text
-    .split(/[\n,]+/)
-    .map(item => item.trim())
-    .filter(Boolean)
+const addWalletCreatorSchema = z.object({
+  sourceType: z.literal('wallet'),
+  walletAddress: z.string().trim().min(1, 'Wallet address is required.'),
+  name: z.string().trim().min(1, 'Wallet name is required.').max(80, 'Wallet name is too long.'),
+})
 
-  const deduped: string[] = []
-  const seen = new Set<string>()
+const addCreatorSchema = z.discriminatedUnion('sourceType', [
+  addSiteCreatorSchema,
+  addWalletCreatorSchema,
+])
 
-  rows.forEach((row) => {
-    if (!isAddress(row)) {
-      return
+function toNormalizedWalletList(wallets: string[]) {
+  const dedupedWallets = new Map<string, string>()
+
+  for (const wallet of wallets) {
+    if (!isAddress(wallet)) {
+      continue
     }
-    const normalized = getAddress(row)
-    const key = normalized.toLowerCase()
-    if (seen.has(key)) {
-      return
-    }
-    seen.add(key)
-    deduped.push(normalized)
-  })
 
-  return deduped
+    const normalizedWallet = getAddress(wallet)
+    dedupedWallets.set(normalizedWallet.toLowerCase(), normalizedWallet)
+  }
+
+  return [...dedupedWallets.values()]
 }
 
-function toWalletMap(wallets: string[]) {
-  return new Set(wallets.map(wallet => wallet.toLowerCase()))
+async function requireAdmin() {
+  const currentUser = await UserRepository.getCurrentUser()
+  return Boolean(currentUser?.is_admin)
+}
+
+async function buildAdminResponse(addressParam?: string | null) {
+  const { data: items, error } = await AllowedMarketCreatorRepository.list()
+  if (error || !items) {
+    return {
+      response: NextResponse.json({ error: error ?? DEFAULT_ERROR_MESSAGE }, { status: 500 }),
+      items: null,
+    }
+  }
+
+  const wallets = items.map(item => item.walletAddress)
+  const normalizedAddress = typeof addressParam === 'string' && isAddress(addressParam)
+    ? getAddress(addressParam)
+    : null
+
+  return {
+    response: NextResponse.json({
+      items,
+      wallets,
+      allowed: normalizedAddress ? wallets.some(wallet => wallet.toLowerCase() === normalizedAddress.toLowerCase()) : false,
+    }),
+    items,
+  }
 }
 
 export async function GET(request: Request) {
   try {
-    const currentUser = await UserRepository.getCurrentUser()
-    if (!currentUser || !currentUser.is_admin) {
+    if (!(await requireAdmin())) {
       return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
     }
 
-    const { data, error } = await SettingsRepository.getSettings()
-    if (error) {
-      return NextResponse.json({ error }, { status: 500 })
-    }
-
-    const wallets = parseWalletList(
-      data?.[GENERAL_SETTINGS_GROUP]?.[GENERAL_MARKET_CREATORS_KEY]?.value,
-    )
-    const walletSet = toWalletMap(wallets)
-
-    const addressParam = new URL(request.url).searchParams.get('address')?.trim() ?? ''
-    const normalizedAddress = isAddress(addressParam) ? getAddress(addressParam) : null
-
-    return NextResponse.json({
-      wallets,
-      allowed: normalizedAddress ? walletSet.has(normalizedAddress.toLowerCase()) : false,
-    })
+    const addressParam = new URL(request.url).searchParams.get('address')
+    const { response } = await buildAdminResponse(addressParam)
+    return response
   }
   catch (error) {
     console.error('API Error:', error)
@@ -75,8 +87,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const currentUser = await UserRepository.getCurrentUser()
-    if (!currentUser || !currentUser.is_admin) {
+    if (!(await requireAdmin())) {
       return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
     }
 
@@ -86,47 +97,106 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid request.' }, { status: 400 })
     }
 
-    if (!isAddress(parsed.data.address)) {
-      return NextResponse.json({ error: 'Invalid wallet address.' }, { status: 400 })
+    if (parsed.data.sourceType === 'wallet') {
+      if (!isAddress(parsed.data.walletAddress)) {
+        return NextResponse.json({ error: 'Invalid wallet address.' }, { status: 400 })
+      }
+
+      const normalizedWalletAddress = getAddress(parsed.data.walletAddress)
+      const { error } = await AllowedMarketCreatorRepository.upsertMany([{
+        walletAddress: normalizedWalletAddress,
+        displayName: parsed.data.name.trim(),
+        sourceType: 'wallet',
+      }])
+
+      if (error) {
+        return NextResponse.json({ error }, { status: 500 })
+      }
+
+      const { response } = await buildAdminResponse(normalizedWalletAddress)
+      return response
     }
 
-    const nextAddress = getAddress(parsed.data.address)
+    const normalizedSite = normalizeAllowedMarketCreatorSiteInput(parsed.data.url)
+    if ('error' in normalizedSite) {
+      return NextResponse.json({ error: normalizedSite.error }, { status: 400 })
+    }
 
-    const { data, error } = await SettingsRepository.getSettings()
+    const upstreamResponse = await fetch(normalizedSite.endpointUrl, {
+      method: 'GET',
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+      },
+      signal: AbortSignal.timeout(12_000),
+    }).catch((error) => {
+      console.error('Failed to fetch remote allowed market creators:', error)
+      return null
+    })
+
+    if (!upstreamResponse) {
+      return NextResponse.json({ error: 'Could not reach the site endpoint.' }, { status: 400 })
+    }
+
+    if (!upstreamResponse.ok) {
+      return NextResponse.json({ error: `Site endpoint failed (${upstreamResponse.status}).` }, { status: 400 })
+    }
+
+    const upstreamPayload = await upstreamResponse.json().catch(() => null)
+    if (!isPublicAllowedMarketCreatorsResponse(upstreamPayload)) {
+      return NextResponse.json({ error: 'Site endpoint returned an invalid payload.' }, { status: 400 })
+    }
+
+    const normalizedWallets = toNormalizedWalletList(upstreamPayload.wallets)
+    if (normalizedWallets.length === 0) {
+      return NextResponse.json({ error: 'Site endpoint did not return any valid wallets.' }, { status: 400 })
+    }
+
+    const { error } = await AllowedMarketCreatorRepository.upsertMany(
+      normalizedWallets.map(walletAddress => ({
+        walletAddress,
+        displayName: normalizedSite.displayName,
+        sourceUrl: normalizedSite.origin,
+        sourceType: 'site' as const,
+      })),
+    )
+
     if (error) {
       return NextResponse.json({ error }, { status: 500 })
     }
 
-    const wallets = parseWalletList(
-      data?.[GENERAL_SETTINGS_GROUP]?.[GENERAL_MARKET_CREATORS_KEY]?.value,
-    )
-
-    const byLower = new Set(wallets.map(item => item.toLowerCase()))
-    if (!byLower.has(nextAddress.toLowerCase())) {
-      wallets.push(nextAddress)
-    }
-
-    const { error: updateError } = await SettingsRepository.updateSettings([
-      {
-        group: GENERAL_SETTINGS_GROUP,
-        key: GENERAL_MARKET_CREATORS_KEY,
-        value: wallets.join('\n'),
-      },
-    ])
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError }, { status: 500 })
-    }
-
-    return NextResponse.json({
-      wallets,
-      allowed: true,
-    })
+    const { response } = await buildAdminResponse()
+    return response
   }
   catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({
       error: error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE,
     }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    if (!(await requireAdmin())) {
+      return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
+    }
+
+    const walletAddress = new URL(request.url).searchParams.get('wallet')?.trim() ?? ''
+    if (!isAddress(walletAddress)) {
+      return NextResponse.json({ error: 'Invalid wallet address.' }, { status: 400 })
+    }
+
+    const { error } = await AllowedMarketCreatorRepository.deleteByWallet(walletAddress)
+    if (error) {
+      return NextResponse.json({ error }, { status: 500 })
+    }
+
+    const { response } = await buildAdminResponse()
+    return response
+  }
+  catch (error) {
+    console.error('API Error:', error)
+    return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }
 }

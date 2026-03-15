@@ -1,7 +1,7 @@
 import { and, eq, inArray, lt, ne, or } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { isCronAuthorized } from '@/lib/auth-cron'
-import { SettingsRepository } from '@/lib/db/queries/settings'
+import { AllowedMarketCreatorRepository } from '@/lib/db/queries/allowed-market-creators'
 import {
   conditions as conditionsTable,
   event_sports as eventSportsTable,
@@ -25,9 +25,6 @@ const IRYS_GATEWAY = process.env.IRYS_GATEWAY || 'https://gateway.irys.xyz'
 const SYNC_TIME_LIMIT_MS = 250_000
 const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000
 const PNL_PAGE_SIZE = 200
-const GENERAL_SETTINGS_GROUP = 'general'
-const GENERAL_MARKET_CREATORS_KEY = 'market_creators'
-const WALLET_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/
 const SPORTS_LOGO_STORAGE_PREFIX = 'sports/team-logos'
 const sportsLogoStorageCache = new Map<string, string>()
 
@@ -106,41 +103,12 @@ interface SyncOptions {
 }
 
 async function getAllowedCreators(): Promise<string[]> {
-  const fixedCreators = [
-    '0x1FD81E09dA67D84f02DB0c0eBabd5a217D1B928d', // Polymarket cloned markets on Amoy
-  ]
-  const fixedCreatorsNormalized = fixedCreators.map(addr => addr.toLowerCase())
-
-  const { data: allSettings, error } = await SettingsRepository.getSettings()
-  if (error) {
-    return [...new Set(fixedCreatorsNormalized)]
+  const { data, error } = await AllowedMarketCreatorRepository.listWallets()
+  if (error || !data) {
+    return []
   }
 
-  const rawCreators = allSettings?.[GENERAL_SETTINGS_GROUP]?.[GENERAL_MARKET_CREATORS_KEY]?.value ?? ''
-  const parsedCreators = rawCreators
-    .split(/[\n,]+/)
-    .map(addr => addr.trim())
-    .filter(addr => addr.length > 0)
-
-  const validCreators: string[] = []
-  const invalidCreators: string[] = []
-
-  for (const creator of parsedCreators) {
-    if (WALLET_ADDRESS_PATTERN.test(creator)) {
-      validCreators.push(creator.toLowerCase())
-    }
-    else {
-      invalidCreators.push(creator)
-    }
-  }
-
-  if (invalidCreators.length > 0) {
-    console.error(
-      `Invalid market creator addresses in settings: ${invalidCreators.join(', ')}`,
-    )
-  }
-
-  return [...new Set([...fixedCreatorsNormalized, ...validCreators])]
+  return [...new Set(data.map(walletAddress => walletAddress.toLowerCase()))]
 }
 /**
  * 🔄 Market Synchronization Script for Vercel Functions
