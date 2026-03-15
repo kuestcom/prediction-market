@@ -1,4 +1,5 @@
 import type { SupportedLocale } from '@/i18n/locales'
+import type { ThemeSiteIdentity } from '@/lib/theme-site-identity'
 import type {
   ConditionChangeLogEntry,
   Event,
@@ -9,6 +10,7 @@ import { cacheTag } from 'next/cache'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 import 'server-only'
 
 export interface EventPageContentData {
@@ -17,6 +19,12 @@ export interface EventPageContentData {
   changeLogEntries: ConditionChangeLogEntry[]
   seriesEvents: EventSeriesEntry[]
   liveChartConfig: EventLiveChartConfig | null
+}
+
+export interface EventPageShellData {
+  route: Awaited<ReturnType<typeof getEventRouteBySlug>>
+  title: string | null
+  site: ThemeSiteIdentity
 }
 
 export async function resolveCanonicalEventSlugFromSportsPath(sportSlug: string, eventSlug: string) {
@@ -34,7 +42,7 @@ export async function getEventTitleBySlug(eventSlug: string, locale: SupportedLo
   cacheTag(cacheTags.event(eventSlug))
 
   const { data } = await EventRepository.getEventTitleBySlug(eventSlug, locale)
-  return data?.title
+  return data?.title ?? null
 }
 
 export async function getEventRouteBySlug(eventSlug: string) {
@@ -121,5 +129,27 @@ export async function loadEventPagePublicContentData(
     changeLogEntries: changeLogResult.data ?? [],
     seriesEvents,
     liveChartConfig,
+  }
+}
+
+export async function loadEventPageShellData(
+  eventSlug: string,
+  locale: SupportedLocale,
+): Promise<EventPageShellData> {
+  'use cache'
+  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.event(eventSlug))
+  cacheTag(cacheTags.settings)
+
+  const [route, title, runtimeTheme] = await Promise.all([
+    getEventRouteBySlug(eventSlug),
+    getEventTitleBySlug(eventSlug, locale),
+    loadRuntimeThemeState(),
+  ])
+
+  return {
+    route,
+    title,
+    site: runtimeTheme.site,
   }
 }

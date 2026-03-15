@@ -4,8 +4,9 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+import { Suspense } from 'react'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
-import EventViewerState from '@/app/[locale]/(platform)/event/[slug]/_components/EventViewerState'
+import EventViewerStateBoundary from '@/app/[locale]/(platform)/event/[slug]/_components/EventViewerStateBoundary'
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
@@ -77,7 +78,9 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
         liveChartConfig={eventPageData.liveChartConfig}
         key={`is-bookmarked-${eventPageData.event.is_bookmarked}`}
       />
-      <EventViewerState />
+      <Suspense fallback={null}>
+        <EventViewerStateBoundary />
+      </Suspense>
     </>
   )
 }

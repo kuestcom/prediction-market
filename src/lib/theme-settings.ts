@@ -1,5 +1,7 @@
 import type { ResolvedThemeConfig, ThemeOverrides, ThemePresetId, ThemeRadius } from '@/lib/theme'
 import type { ThemeSiteIdentity, ThemeSiteLogoMode } from '@/lib/theme-site-identity'
+import { cacheTag } from 'next/cache'
+import { cacheTags } from '@/lib/cache-tags'
 import { ZERO_ADDRESS } from '@/lib/contracts'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getPublicAssetUrl } from '@/lib/storage'
@@ -813,6 +815,9 @@ export function validateThemeSiteSettingsInput(params: {
 }
 
 export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
+  'use cache'
+  cacheTag(cacheTags.settings)
+
   const defaults = buildDefaultThemeState()
   const { data: allSettings, error } = await SettingsRepository.getSettings()
 

@@ -1,12 +1,32 @@
 'use client'
 
 import type { User } from '@/types'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { authClient } from '@/lib/auth-client'
 import { useUser } from '@/stores/useUser'
 
-export default function EventViewerState() {
+interface EventViewerStateProps {
+  shouldHydrateSession: boolean
+}
+
+export default function EventViewerState({ shouldHydrateSession }: EventViewerStateProps) {
+  const user = useUser()
+  const userId = user?.id ?? null
+  const lastHydratedUserIdRef = useRef<string | null>(shouldHydrateSession ? '__initial__' : null)
+
   useEffect(() => {
+    if (!shouldHydrateSession && userId === null) {
+      return
+    }
+
+    if (shouldHydrateSession && lastHydratedUserIdRef.current === null) {
+      lastHydratedUserIdRef.current = '__initial__'
+    }
+
+    if (lastHydratedUserIdRef.current === userId) {
+      return
+    }
+
     let isActive = true
 
     void authClient.getSession({
@@ -20,10 +40,12 @@ export default function EventViewerState() {
 
       const sessionUser = session?.data?.user as User | undefined
       if (!sessionUser) {
+        lastHydratedUserIdRef.current = null
         useUser.setState(null)
         return
       }
 
+      lastHydratedUserIdRef.current = sessionUser.id
       useUser.setState((previous) => {
         if (!previous) {
           return {
@@ -47,7 +69,7 @@ export default function EventViewerState() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [shouldHydrateSession, userId])
 
   return null
 }

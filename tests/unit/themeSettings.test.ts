@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
+  cacheTag: vi.fn(),
   getSettings: vi.fn(),
+}))
+
+vi.mock('next/cache', () => ({
+  cacheTag: (...args: any[]) => mocks.cacheTag(...args),
 }))
 
 vi.mock('@/lib/db/queries/settings', () => ({
@@ -11,6 +16,7 @@ vi.mock('@/lib/db/queries/settings', () => ({
 describe('theme settings runtime resolver', () => {
   beforeEach(() => {
     vi.resetModules()
+    mocks.cacheTag.mockReset()
     mocks.getSettings.mockReset()
   })
 
