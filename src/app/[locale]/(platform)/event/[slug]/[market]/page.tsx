@@ -9,10 +9,9 @@ import EventViewerState from '@/app/[locale]/(platform)/event/[slug]/_components
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
-import { getEventRouteBySlug, loadEventPagePublicContentData } from '@/lib/event-page-data'
+import { loadEventPageShellData } from '@/lib/event-page-data'
 import { resolveEventMarketPath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
-import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateStaticParams() {
   return [{ market: STATIC_PARAMS_PLACEHOLDER }]
@@ -40,13 +39,13 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
     notFound()
   }
 
-  const eventRoute = await getEventRouteBySlug(slug)
-  if (!eventRoute) {
+  const shellData = await loadEventPageShellData(slug, resolvedLocale)
+  if (!shellData.route) {
     notFound()
   }
 
-  const canonicalPath = resolveEventMarketPath(eventRoute, market)
-  const legacyPath = `/event/${eventRoute.slug}/${market}`
+  const canonicalPath = resolveEventMarketPath(shellData.route, market)
+  const legacyPath = `/event/${shellData.route.slug}/${market}`
   if (canonicalPath !== legacyPath) {
     redirect({
       href: canonicalPath,
@@ -54,10 +53,7 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
     })
   }
 
-  const [eventPageData, runtimeTheme] = await Promise.all([
-    loadEventPagePublicContentData(slug, resolvedLocale),
-    loadRuntimeThemeState(),
-  ])
+  const eventPageData = shellData.pageData
   if (!eventPageData) {
     notFound()
   }
@@ -69,7 +65,7 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
         locale={resolvedLocale}
         pagePath={resolveEventMarketPath(eventPageData.event, market)}
         marketSlug={market}
-        site={runtimeTheme.site}
+        site={shellData.site}
       />
       <EventContent
         event={eventPageData.event}

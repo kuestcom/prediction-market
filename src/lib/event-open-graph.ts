@@ -1,9 +1,8 @@
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { notFound } from 'next/navigation'
-import { getEventTitleBySlug } from '@/lib/event-page-data'
+import { loadEventPageShellData } from '@/lib/event-page-data'
 import siteUrlUtils from '@/lib/site-url'
-import { loadRuntimeThemeState } from '@/lib/theme-settings'
 import 'server-only'
 
 const { resolveSiteUrl } = siteUrlUtils
@@ -42,17 +41,15 @@ export async function buildEventPageMetadata({
   locale,
   marketSlug,
 }: BuildEventPageMetadataOptions): Promise<Metadata> {
-  const [runtimeTheme, title] = await Promise.all([
-    loadRuntimeThemeState(),
-    getEventTitleBySlug(eventSlug, locale),
-  ])
+  const shellData = await loadEventPageShellData(eventSlug, locale)
+  const title = shellData.title
 
   if (!title) {
     notFound()
   }
 
   const resolvedTitle = title.trim()
-  const siteName = runtimeTheme.site.name
+  const siteName = shellData.site.name
   const description = buildEventMetaDescription(resolvedTitle, siteName)
   const imageUrl = buildEventOgImageUrl({ eventSlug, locale, marketSlug })
 

@@ -6,7 +6,14 @@ import { authClient } from '@/lib/auth-client'
 import { useUser } from '@/stores/useUser'
 
 export default function EventViewerState() {
+  const user = useUser()
+  const userId = user?.id
+
   useEffect(() => {
+    if (!userId) {
+      return
+    }
+
     let isActive = true
 
     void authClient.getSession({
@@ -47,7 +54,7 @@ export default function EventViewerState() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [userId])
 
   return null
 }

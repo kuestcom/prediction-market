@@ -6,14 +6,14 @@ import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import EventDeferredSection from '@/app/[locale]/(platform)/event/[slug]/_components/EventDeferredSection'
 import EventHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventHeader'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventMarkets from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarkets'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
-import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
 import EventOrderPanelTermsDisclaimer from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
 import { EventOutcomeChanceProvider } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOutcomeChanceProvider'
-import EventRelated from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelated'
+import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSkeleton'
 import EventRules from '@/app/[locale]/(platform)/event/[slug]/_components/EventRules'
 import EventSingleMarketOrderBook from '@/app/[locale]/(platform)/event/[slug]/_components/EventSingleMarketOrderBook'
 import EventTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabs'
@@ -28,13 +28,35 @@ import { useOrder, useSyncLimitPriceWithOutcome } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
 import EventChart from './EventChart'
 import EventLiveSeriesChart, { shouldUseLiveSeriesChart } from './EventLiveSeriesChart'
-import EventMarketHistory from './EventMarketHistory'
-import EventMarketOpenOrders from './EventMarketOpenOrders'
-import EventMarketPositions from './EventMarketPositions'
 
 const EventMarketContext = dynamic(
   () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventMarketContext'),
   { ssr: false, loading: () => null },
+)
+
+const EventOrderPanelMobile = dynamic(
+  () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'),
+  { loading: () => null },
+)
+
+const EventRelated = dynamic(
+  () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventRelated'),
+  { loading: () => <EventRelatedSkeleton /> },
+)
+
+const EventMarketPositions = dynamic(
+  () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventMarketPositions'),
+  { loading: () => <EventSectionSkeleton className="min-h-52" /> },
+)
+
+const EventMarketOpenOrders = dynamic(
+  () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventMarketOpenOrders'),
+  { loading: () => <EventSectionSkeleton className="min-h-52" /> },
+)
+
+const EventMarketHistory = dynamic(
+  () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventMarketHistory'),
+  { loading: () => <EventSectionSkeleton className="min-h-52" /> },
 )
 
 interface EventContentProps {
@@ -55,6 +77,10 @@ function resolveDefaultMarket(markets: Event['markets']) {
   return markets.find(market => market.is_active && !isMarketResolved(market))
     ?? markets.find(market => !isMarketResolved(market))
     ?? markets[0]
+}
+
+function EventSectionSkeleton({ className = 'min-h-32' }: { className?: string }) {
+  return <div className={cn('rounded-xl border bg-muted/20', className)} aria-hidden="true" />
 }
 
 interface EventOrderQuerySyncProps {
@@ -353,33 +379,42 @@ export default function EventContent({
                 {event.total_markets_count > 1 && <EventMarkets event={event} isMobile={isMobile} />}
               </div>
               {event.total_markets_count === 1 && singleMarket && (
-                <>
-                  {currentUser && (
-                    <EventMarketPositions
-                      market={singleMarket}
-                      isNegRiskEnabled={isNegRiskEnabled}
-                      isNegRiskAugmented={Boolean(event.neg_risk_augmented)}
-                      eventOutcomes={event.markets.map(market => ({
-                        conditionId: market.condition_id,
-                        questionId: market.question_id,
-                        label: market.short_title || market.title,
-                        iconUrl: market.icon_url,
-                      }))}
-                      negRiskMarketId={event.neg_risk_market_id}
-                    />
-                  )}
-                  {!isSingleMarketResolved && (
-                    <EventSingleMarketOrderBook
-                      market={singleMarket}
-                      eventSlug={event.slug}
-                      showCompactVolume={usesLiveSeriesChart}
-                    />
-                  )}
-                  { currentUser && <EventMarketOpenOrders market={singleMarket} eventSlug={event.slug} />}
-                  { currentUser && <EventMarketHistory market={singleMarket} /> }
-                </>
+                <EventDeferredSection
+                  fallback={<EventSectionSkeleton className="min-h-52" />}
+                  minHeightClassName="grid gap-6"
+                >
+                  <>
+                    {currentUser && (
+                      <EventMarketPositions
+                        market={singleMarket}
+                        isNegRiskEnabled={isNegRiskEnabled}
+                        isNegRiskAugmented={Boolean(event.neg_risk_augmented)}
+                        eventOutcomes={event.markets.map(market => ({
+                          conditionId: market.condition_id,
+                          questionId: market.question_id,
+                          label: market.short_title || market.title,
+                          iconUrl: market.icon_url,
+                        }))}
+                        negRiskMarketId={event.neg_risk_market_id}
+                      />
+                    )}
+                    {!isSingleMarketResolved && (
+                      <EventSingleMarketOrderBook
+                        market={singleMarket}
+                        eventSlug={event.slug}
+                        showCompactVolume={usesLiveSeriesChart}
+                      />
+                    )}
+                    {currentUser && <EventMarketOpenOrders market={singleMarket} eventSlug={event.slug} />}
+                    {currentUser && <EventMarketHistory market={singleMarket} />}
+                  </>
+                </EventDeferredSection>
               )}
-              {marketContextEnabled && <EventMarketContext event={event} />}
+              {marketContextEnabled && (
+                <EventDeferredSection>
+                  <EventMarketContext event={event} />
+                </EventDeferredSection>
+              )}
               <EventRules event={event} />
               {event.total_markets_count === 1
                 && selectedMarket
@@ -391,10 +426,15 @@ export default function EventContent({
             </div>
 
             {isMobile && (
-              <div className="grid gap-4 lg:hidden">
-                <h3 className="text-base font-medium">{t('Related')}</h3>
-                <EventRelated event={event} />
-              </div>
+              <EventDeferredSection
+                fallback={<EventSectionSkeleton className="min-h-32" />}
+                minHeightClassName="lg:hidden"
+              >
+                <div className="grid gap-4">
+                  <h3 className="text-base font-medium">{t('Related')}</h3>
+                  <EventRelated event={event} />
+                </div>
+              </EventDeferredSection>
             )}
             <EventTabs event={event} user={currentUser} />
           </div>
@@ -416,7 +456,9 @@ export default function EventContent({
               />
               <EventOrderPanelTermsDisclaimer />
               <span className="border border-dashed"></span>
-              <EventRelated event={event} />
+              <EventDeferredSection rootMargin="480px 0px">
+                <EventRelated event={event} />
+              </EventDeferredSection>
             </div>
           </aside>
         )}

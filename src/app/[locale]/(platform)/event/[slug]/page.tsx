@@ -9,10 +9,9 @@ import EventViewerState from '@/app/[locale]/(platform)/event/[slug]/_components
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
-import { getEventRouteBySlug, loadEventPagePublicContentData } from '@/lib/event-page-data'
+import { loadEventPageShellData } from '@/lib/event-page-data'
 import { resolveEventBasePath, resolveEventPagePath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
-import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateStaticParams() {
   return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
@@ -39,12 +38,12 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
     notFound()
   }
 
-  const eventRoute = await getEventRouteBySlug(slug)
-  if (!eventRoute) {
+  const shellData = await loadEventPageShellData(slug, resolvedLocale)
+  if (!shellData.route) {
     notFound()
   }
 
-  const sportsPath = resolveEventBasePath(eventRoute)
+  const sportsPath = resolveEventBasePath(shellData.route)
   if (sportsPath) {
     redirect({
       href: sportsPath,
@@ -52,10 +51,7 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
     })
   }
 
-  const [eventPageData, runtimeTheme] = await Promise.all([
-    loadEventPagePublicContentData(slug, resolvedLocale),
-    loadRuntimeThemeState(),
-  ])
+  const eventPageData = shellData.pageData
   if (!eventPageData) {
     notFound()
   }
@@ -66,7 +62,7 @@ export default async function EventPage({ params }: PageProps<'/[locale]/event/[
         event={eventPageData.event}
         locale={resolvedLocale}
         pagePath={resolveEventPagePath(eventPageData.event)}
-        site={runtimeTheme.site}
+        site={shellData.site}
       />
       <EventContent
         event={eventPageData.event}
