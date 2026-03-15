@@ -991,7 +991,7 @@ export const EventRepository = {
     cacheTag(cacheTags.eventsGlobal)
 
     return await runQuery(async () => {
-      const limit = 40
+      const limit = 32
       const validOffset = Number.isNaN(offset) || offset < 0 ? 0 : offset
       const sportsSlugResolver = await getSportsSlugResolverFromDb()
       const normalizedRequestedSportsSportSlug = sportsSportSlug.trim().toLowerCase()

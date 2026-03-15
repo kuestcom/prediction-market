@@ -5,6 +5,7 @@ import type { Event } from '@/types'
 import Image from 'next/image'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
+import { Card, CardContent } from '@/components/ui/card'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveEventOutcomePath } from '@/lib/events-routing'
 import { formatVolume } from '@/lib/formatters'
@@ -138,155 +139,157 @@ export default function EventCardSportsMoneyline({
   ))
 
   return (
-    <div
+    <Card
       className={`
-        group relative flex h-45 cursor-pointer flex-col justify-between overflow-hidden rounded-xl border bg-card px-3
-        pt-3 shadow-md shadow-black/4 transition-all
+        group relative flex h-45 cursor-pointer flex-col overflow-hidden rounded-xl shadow-md shadow-black/4
+        transition-all
         hover:-translate-y-0.5 hover:shadow-black/8
         dark:hover:bg-secondary
       `}
     >
-      <div className="flex w-full flex-col gap-1">
-        <IntentPrefetchLink
-          href={resolveButtonHref(model.team1Button)}
-          className="group/team-row-1 flex h-9 items-center justify-between gap-2"
-        >
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="relative size-7 overflow-hidden rounded-sm">
-              {model.team1.logoUrl
+      <CardContent className="flex h-full flex-col p-3 md:pb-1">
+        <div className="flex w-full flex-col gap-1">
+          <IntentPrefetchLink
+            href={resolveButtonHref(model.team1Button)}
+            className="group/team-row-1 flex h-9 items-center justify-between gap-2"
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="relative size-7 overflow-hidden rounded-sm">
+                {model.team1.logoUrl
+                  ? (
+                      <Image
+                        alt={model.team1.name}
+                        src={model.team1.logoUrl}
+                        fill
+                        className="object-contain"
+                        sizes="28px"
+                      />
+                    )
+                  : null}
+              </div>
+              <p className="truncate text-sm font-medium decoration-2 group-hover/team-row-1:underline">
+                {model.team1.name}
+              </p>
+            </div>
+            <p className="shrink-0 text-lg font-semibold">
+              {team1Chance}
+              %
+            </p>
+          </IntentPrefetchLink>
+          <IntentPrefetchLink
+            href={resolveButtonHref(model.team2Button)}
+            className="group/team-row-2 flex h-9 items-center justify-between gap-2"
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="relative size-7 overflow-hidden rounded-sm">
+                {model.team2.logoUrl
+                  ? (
+                      <Image
+                        alt={model.team2.name}
+                        src={model.team2.logoUrl}
+                        fill
+                        className="object-contain"
+                        sizes="28px"
+                      />
+                    )
+                  : null}
+              </div>
+              <p className="truncate text-sm font-medium decoration-2 group-hover/team-row-2:underline">
+                {model.team2.name}
+              </p>
+            </div>
+            <p className="shrink-0 text-lg font-semibold">
+              {team2Chance}
+              %
+            </p>
+          </IntentPrefetchLink>
+        </div>
+
+        <div className="mt-auto flex flex-col justify-end gap-1.5">
+          <div className="flex h-fit items-center justify-center gap-2">
+            {[model.team1Button, model.drawButton, model.team2Button]
+              .filter((button): button is HomeSportsMoneylineButton => Boolean(button))
+              .map((button) => {
+                const toneStyles = getButtonToneStyles(button)
+
+                return (
+                  <IntentPrefetchLink
+                    key={`${button.conditionId}:${button.outcomeIndex}`}
+                    href={resolveButtonHref(button)}
+                    className={cn(
+                      `
+                        relative inline-flex items-center justify-center overflow-hidden transition duration-150
+                        active:scale-[97%]
+                      `,
+                      button.tone === 'draw'
+                        ? 'hover:bg-secondary/80 hover:text-foreground'
+                        : 'group/team-button hover:bg-transparent',
+                      toneStyles.className,
+                    )}
+                    style={toneStyles.style}
+                  >
+                    {button.tone === 'draw'
+                      ? <span className="relative z-1">{button.label}</span>
+                      : (
+                          <span className="relative z-1 truncate">
+                            <span className="group-hover/team-button:hidden">{button.label}</span>
+                            <span className="hidden text-foreground group-hover/team-button:inline">{button.label}</span>
+                          </span>
+                        )}
+                    {(toneStyles.backgroundClassName || toneStyles.backgroundStyle)
+                      ? (
+                          <span
+                            className={cn(
+                              `
+                                absolute inset-0 z-0 rounded-sm opacity-20 transition-opacity
+                                group-hover/team-button:opacity-40
+                                dark:opacity-30
+                                dark:group-hover/team-button:opacity-50
+                              `,
+                              toneStyles.backgroundClassName,
+                            )}
+                            style={toneStyles.backgroundStyle}
+                          />
+                        )
+                      : null}
+                  </IntentPrefetchLink>
+                )
+              })}
+          </div>
+
+          <div className="relative flex w-full items-center justify-between text-xs text-muted-foreground">
+            <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap">
+              <span>
+                {formatVolume(event.volume)}
+                {' '}
+                Vol.
+              </span>
+              {sportsTagLabel
                 ? (
-                    <Image
-                      alt={model.team1.name}
-                      src={model.team1.logoUrl}
-                      fill
-                      className="object-contain"
-                      sizes="28px"
-                    />
+                    <>
+                      <span className="opacity-50">·</span>
+                      <span>{sportsTagLabel}</span>
+                    </>
+                  )
+                : null}
+              {startTimeLabel
+                ? (
+                    <>
+                      <span className="opacity-50">·</span>
+                      <span>{startTimeLabel}</span>
+                    </>
                   )
                 : null}
             </div>
-            <p className="truncate text-sm font-medium decoration-2 group-hover/team-row-1:underline">
-              {model.team1.name}
-            </p>
-          </div>
-          <p className="shrink-0 text-lg font-semibold">
-            {team1Chance}
-            %
-          </p>
-        </IntentPrefetchLink>
-        <IntentPrefetchLink
-          href={resolveButtonHref(model.team2Button)}
-          className="group/team-row-2 flex h-9 items-center justify-between gap-2"
-        >
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="relative size-7 overflow-hidden rounded-sm">
-              {model.team2.logoUrl
-                ? (
-                    <Image
-                      alt={model.team2.name}
-                      src={model.team2.logoUrl}
-                      fill
-                      className="object-contain"
-                      sizes="28px"
-                    />
-                  )
-                : null}
-            </div>
-            <p className="truncate text-sm font-medium decoration-2 group-hover/team-row-2:underline">
-              {model.team2.name}
-            </p>
-          </div>
-          <p className="shrink-0 text-lg font-semibold">
-            {team2Chance}
-            %
-          </p>
-        </IntentPrefetchLink>
-      </div>
 
-      <div className="mt-2 flex flex-col justify-end gap-1.5 pb-2">
-        <div className="flex h-fit items-center justify-center gap-2">
-          {[model.team1Button, model.drawButton, model.team2Button]
-            .filter((button): button is HomeSportsMoneylineButton => Boolean(button))
-            .map((button) => {
-              const toneStyles = getButtonToneStyles(button)
-
-              return (
-                <IntentPrefetchLink
-                  key={`${button.conditionId}:${button.outcomeIndex}`}
-                  href={resolveButtonHref(button)}
-                  className={cn(
-                    `
-                      relative inline-flex items-center justify-center overflow-hidden transition duration-150
-                      active:scale-[97%]
-                    `,
-                    button.tone === 'draw'
-                      ? 'hover:bg-secondary/80 hover:text-foreground'
-                      : 'group/team-button hover:bg-transparent',
-                    toneStyles.className,
-                  )}
-                  style={toneStyles.style}
-                >
-                  {button.tone === 'draw'
-                    ? <span className="relative z-1">{button.label}</span>
-                    : (
-                        <span className="relative z-1 truncate">
-                          <span className="group-hover/team-button:hidden">{button.label}</span>
-                          <span className="hidden text-foreground group-hover/team-button:inline">{button.label}</span>
-                        </span>
-                      )}
-                  {(toneStyles.backgroundClassName || toneStyles.backgroundStyle)
-                    ? (
-                        <span
-                          className={cn(
-                            `
-                              absolute inset-0 z-0 rounded-sm opacity-20 transition-opacity
-                              group-hover/team-button:opacity-40
-                              dark:opacity-30
-                              dark:group-hover/team-button:opacity-50
-                            `,
-                            toneStyles.backgroundClassName,
-                          )}
-                          style={toneStyles.backgroundStyle}
-                        />
-                      )
-                    : null}
-                </IntentPrefetchLink>
-              )
-            })}
+            {!isResolvedEvent && (
+              <div className="shrink-0">
+                <EventBookmark event={event} />
+              </div>
+            )}
+          </div>
         </div>
-
-        <div className="relative flex w-full items-center justify-between text-xs text-muted-foreground">
-          <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap">
-            <span>
-              {formatVolume(event.volume)}
-              {' '}
-              Vol.
-            </span>
-            {sportsTagLabel
-              ? (
-                  <>
-                    <span className="opacity-50">·</span>
-                    <span>{sportsTagLabel}</span>
-                  </>
-                )
-              : null}
-            {startTimeLabel
-              ? (
-                  <>
-                    <span className="opacity-50">·</span>
-                    <span>{startTimeLabel}</span>
-                  </>
-                )
-              : null}
-          </div>
-
-          {!isResolvedEvent && (
-            <div className="shrink-0">
-              <EventBookmark event={event} />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

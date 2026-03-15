@@ -5,7 +5,6 @@ import { GoogleAnalytics } from '@next/third-parties/google'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from 'next-themes'
 import dynamic from 'next/dynamic'
-import { SignaturePrompt } from '@/components/SignaturePrompt'
 import { Toaster } from '@/components/ui/sonner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import AppKitProvider from '@/providers/AppKitProvider'
@@ -17,6 +16,11 @@ const SpeedInsights = process.env.IS_VERCEL === 'true'
       { ssr: false },
     )
   : () => null
+
+const SignaturePrompt = dynamic(
+  () => import('@/components/SignaturePrompt').then(mod => mod.SignaturePrompt),
+  { ssr: false },
+)
 
 const queryClient = new QueryClient()
 

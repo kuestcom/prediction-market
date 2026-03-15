@@ -3,10 +3,11 @@
 import type { User } from '@/types'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
+import dynamic from 'next/dynamic'
 import { useEffect } from 'react'
 import HeaderDropdownUserMenuGuest from '@/app/[locale]/(platform)/_components/HeaderDropdownUserMenuGuest'
 import HeaderNotifications from '@/app/[locale]/(platform)/_components/HeaderNotifications'
-import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
+import { useOptionalTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import HeaderDropdownUserMenuAuth from '@/components/HeaderDropdownUserMenuAuth'
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import { Button } from '@/components/ui/button'
@@ -16,6 +17,11 @@ import { authClient } from '@/lib/auth-client'
 import { useUser } from '@/stores/useUser'
 
 const { useSession } = authClient
+
+const HeaderDepositButton = dynamic(
+  () => import('@/app/[locale]/(platform)/_components/HeaderDepositButton'),
+  { ssr: false },
+)
 
 export default function HeaderMenu() {
   return <HeaderMenuClient />
@@ -27,7 +33,7 @@ function HeaderMenuClient() {
   const { isConnected } = useAppKitAccount()
   const { data: session, isPending: isSessionPending } = useSession()
   const isMobile = useIsMobile()
-  const { startDepositFlow } = useTradingOnboarding()
+  const tradingOnboarding = useOptionalTradingOnboarding()
   const user = useUser()
 
   useEffect(() => {
@@ -60,6 +66,7 @@ function HeaderMenuClient() {
 
   const isAuthenticated = Boolean(session?.user) || Boolean(user) || isConnected
   const shouldShowGuestActions = !isAuthenticated && !isSessionPending
+  const startDepositFlow = tradingOnboarding?.startDepositFlow
 
   return (
     <>
@@ -67,9 +74,15 @@ function HeaderMenuClient() {
         <>
           {!isMobile && <HeaderPortfolio />}
           {!isMobile && (
-            <Button size="headerCompact" onClick={startDepositFlow}>
-              {t('Deposit')}
-            </Button>
+            startDepositFlow
+              ? (
+                  <Button size="headerCompact" onClick={startDepositFlow}>
+                    {t('Deposit')}
+                  </Button>
+                )
+              : (
+                  <HeaderDepositButton />
+                )
           )}
           <HeaderNotifications />
           <div className="-ml-1 hidden h-5 w-px bg-border md:block" aria-hidden="true" />

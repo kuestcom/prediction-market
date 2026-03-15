@@ -3702,7 +3702,6 @@ export default function SportsGamesCenter({
       ? card.buttons.find(button => button.key === preferredKey) ?? null
       : null
     const visibleMarketTypes = new Set(resolveSportsGamesCardVisibleMarketTypes(card, showSpreadsAndTotals))
-
     if (preferredButton && visibleMarketTypes.has(preferredButton.marketType)) {
       return preferredButton.key
     }

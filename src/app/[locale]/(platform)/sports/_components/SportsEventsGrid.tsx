@@ -206,7 +206,7 @@ export default function SportsEventsGrid({
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const [sportsMode, setSportsMode] = useState<SportsSidebarMode>(initialMode)
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
-  const PAGE_SIZE = 40
+  const PAGE_SIZE = 32
   const normalizedSportsSportSlug = sportsSportSlug?.trim().toLowerCase() || null
   const isDefaultState = filters.search === ''
     && !filters.bookmarked

@@ -66,7 +66,6 @@ export function resolveSportsGamesCardCollapsedMarketType(
   const marketTypes = new Set(card.buttons.map(button => button.marketType))
   return COLLAPSED_CARD_MARKET_PRIORITY.find(marketType => marketTypes.has(marketType)) ?? null
 }
-
 export function resolveSportsGamesCardVisibleMarketTypes(
   card: Pick<SportsGamesCard, 'buttons'>,
   showSpreadsAndTotals: boolean,
@@ -103,7 +102,6 @@ export function resolveSportsGamesHeaderMarketTypes(
     ? firstColumns
     : []
 }
-
 export interface SportsGamesCardMarketView {
   key: SportsEventMarketViewKey
   label: string

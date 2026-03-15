@@ -8,7 +8,6 @@ import Header from '@/app/[locale]/(platform)/_components/Header'
 import NavigationTabs from '@/app/[locale]/(platform)/_components/NavigationTabs'
 import { FilterProvider } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import PlatformNavigationProvider from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
-import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { cacheTags } from '@/lib/cache-tags'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { buildChildParentMap, buildPlatformNavigationTags } from '@/lib/platform-navigation'
@@ -31,16 +30,14 @@ export default async function PlatformLayout({ params, children }: LayoutProps<'
 
   return (
     <AppProviders>
-      <TradingOnboardingProvider>
-        <FilterProvider>
-          <PlatformNavigationProvider tags={tags} childParentMap={childParentMap}>
-            <Header />
-            <NavigationTabs />
-            {children}
-            <AffiliateQueryHandler />
-          </PlatformNavigationProvider>
-        </FilterProvider>
-      </TradingOnboardingProvider>
+      <FilterProvider>
+        <PlatformNavigationProvider tags={tags} childParentMap={childParentMap}>
+          <Header />
+          <NavigationTabs />
+          {children}
+          <AffiliateQueryHandler />
+        </PlatformNavigationProvider>
+      </FilterProvider>
     </AppProviders>
   )
 }

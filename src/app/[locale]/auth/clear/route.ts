@@ -32,7 +32,7 @@ function expireCookie(response: NextResponse, name: string) {
   })
 }
 
-export async function GET(_: NextRequest) {
+export async function POST(_: NextRequest) {
   const response = NextResponse.json({ success: true }, { status: 200 })
 
   COOKIE_NAMES.forEach((name) => {

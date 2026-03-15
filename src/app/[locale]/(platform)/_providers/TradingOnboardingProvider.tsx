@@ -1,15 +1,22 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import type { TradingOnboardingContextValue } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { User } from '@/types'
-import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { hashTypedData, UserRejectedRequestError } from 'viem'
 import { useSignMessage, useSignTypedData } from 'wagmi'
 import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
 import { saveProxyWalletSignature } from '@/app/[locale]/(platform)/_actions/proxy-wallet'
 import { generateTradingAuthAction } from '@/app/[locale]/(platform)/_actions/trading-auth'
 import TradingOnboardingDialogs from '@/app/[locale]/(platform)/_components/TradingOnboardingDialogs'
+import {
+  TradingOnboardingContext,
+
+  useOptionalTradingOnboarding,
+  useTradingOnboarding,
+} from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useProxyWalletPolling } from '@/hooks/useProxyWalletPolling'
@@ -45,17 +52,6 @@ import {
 } from '@/lib/trading-auth/client'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { useUser } from '@/stores/useUser'
-
-interface TradingOnboardingContextValue {
-  startDepositFlow: () => void
-  startWithdrawFlow: () => void
-  ensureTradingReady: () => boolean
-  openTradeRequirements: (options?: { forceTradingAuth?: boolean }) => void
-  hasProxyWallet: boolean
-  openWalletModal: () => void
-}
-
-const TradingOnboardingContext = createContext<TradingOnboardingContextValue | null>(null)
 
 export function TradingOnboardingProvider({ children }: { children: ReactNode }) {
   const user = useUser()
@@ -673,10 +669,4 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
   )
 }
 
-export function useTradingOnboarding() {
-  const context = use(TradingOnboardingContext)
-  if (!context) {
-    throw new Error('useTradingOnboarding must be used within TradingOnboardingProvider')
-  }
-  return context
-}
+export { useOptionalTradingOnboarding, useTradingOnboarding }
