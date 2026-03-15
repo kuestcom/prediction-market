@@ -23,7 +23,6 @@ function createValidationInput() {
     youtubeLink: '',
     supportUrl: '',
     feeRecipientWallet: '',
-    marketCreators: '',
     lifiIntegrator: '',
     lifiApiKey: '',
   }

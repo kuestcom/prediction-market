@@ -1,7 +1,14 @@
 'use client'
 
 import type { ChangeEvent } from 'react'
-import type { AdminSportsFormState, AdminSportsPreparePayload, AdminSportsPropState, AdminSportsTeamHostStatus } from '@/lib/admin-sports-create'
+import type {
+  AdminSportsCustomMarketState,
+  AdminSportsFormState,
+  AdminSportsPreparePayload,
+  AdminSportsPropState,
+  AdminSportsTeamHostStatus,
+} from '@/lib/admin-sports-create'
+import type { AdminSportsSlugCatalog } from '@/lib/admin-sports-slugs'
 import { useAppKitAccount } from '@reown/appkit/react'
 import {
   ArrowLeftIcon,
@@ -38,17 +45,30 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import {
-
   buildAdminSportsDerivedContent,
   buildAdminSportsStepErrors,
+  createAdminSportsCustomMarket,
   createAdminSportsProp,
   createInitialAdminSportsForm,
   isSportsMainCategory,
 } from '@/lib/admin-sports-create'
+import {
+  getAdminSportsMarketTypeDefaultOutcomes,
+  getAdminSportsMarketTypeGroups,
+  resolveAdminSportsMarketTypeOption,
+} from '@/lib/admin-sports-market-types'
 import { defaultNetwork } from '@/lib/appkit'
 import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID, POLYGON_SCAN_BASE } from '@/lib/network'
 import { cn } from '@/lib/utils'
@@ -85,6 +105,7 @@ const INITIALIZE_GAS_UNITS_ESTIMATE = 700_000n
 const GAS_ESTIMATE_BUFFER_NUMERATOR = 13n
 const GAS_ESTIMATE_BUFFER_DENOMINATOR = 10n
 const DEFAULT_CREATE_EVENT_CHAIN_ID = IS_TEST_MODE ? AMOY_CHAIN_ID : POLYGON_MAINNET_CHAIN_ID
+const CUSTOM_SPORTS_SLUG_SELECT_VALUE = '__custom__'
 const EOA_BALANCE_ABI = [
   {
     type: 'function',
@@ -220,6 +241,10 @@ interface PreparePayloadBody {
   resolutionSource: string
   resolutionRules: string
   sports?: AdminSportsPreparePayload
+}
+
+interface AdminCreateEventFormProps {
+  sportsSlugCatalog: AdminSportsSlugCatalog
 }
 
 type TeamLogoFileMap = Record<AdminSportsTeamHostStatus, File | null>
@@ -932,7 +957,7 @@ function SignatureTxIndicator({ status }: { status: SignatureTxStatus }) {
   )
 }
 
-export default function AdminCreateEventForm() {
+export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateEventFormProps) {
   const { address: connectedAddress } = useAppKitAccount()
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient()
@@ -979,6 +1004,8 @@ export default function AdminCreateEventForm() {
   const [contentCheckProgressLine, setContentCheckProgressLine] = useState('')
   const [contentCheckError, setContentCheckError] = useState('')
   const [isAddingCreatorWallet, setIsAddingCreatorWallet] = useState(false)
+  const [creatorWalletDialogOpen, setCreatorWalletDialogOpen] = useState(false)
+  const [creatorWalletName, setCreatorWalletName] = useState('')
   const [isGeneratingRules, setIsGeneratingRules] = useState(false)
   const [isSigningAuth, setIsSigningAuth] = useState(false)
   const [isPreparingSignaturePlan, setIsPreparingSignaturePlan] = useState(false)
@@ -1007,6 +1034,8 @@ export default function AdminCreateEventForm() {
   const [areMultiOutcomesEditable, setAreMultiOutcomesEditable] = useState(false)
   const [slugSeed, setSlugSeed] = useState('0')
   const [previewSiteOrigin, setPreviewSiteOrigin] = useState('https://your-site.com')
+  const [isCustomSportSlug, setIsCustomSportSlug] = useState(false)
+  const [isCustomLeagueSlug, setIsCustomLeagueSlug] = useState(false)
 
   const titleTimeoutRef = useRef<number | null>(null)
   const copyTimeoutRef = useRef<number | null>(null)
@@ -1044,6 +1073,50 @@ export default function AdminCreateEventForm() {
     () => isSportsMainCategory(form.mainCategorySlug),
     [form.mainCategorySlug],
   )
+  const sportsMarketTypeGroups = useMemo(
+    () => getAdminSportsMarketTypeGroups(sportsForm.section === 'props' ? 'props' : 'games'),
+    [sportsForm.section],
+  )
+  const normalizedSportSlug = useMemo(
+    () => slugify(sportsForm.sportSlug),
+    [sportsForm.sportSlug],
+  )
+  const availableLeagueOptions = useMemo(() => {
+    if (normalizedSportSlug) {
+      const matchingOptions = sportsSlugCatalog.leagueOptionsBySport[normalizedSportSlug]
+      if (Array.isArray(matchingOptions) && matchingOptions.length > 0) {
+        return matchingOptions
+      }
+    }
+
+    return sportsSlugCatalog.allLeagueOptions
+  }, [normalizedSportSlug, sportsSlugCatalog.allLeagueOptions, sportsSlugCatalog.leagueOptionsBySport])
+  const normalizedLeagueSlug = useMemo(
+    () => slugify(sportsForm.leagueSlug),
+    [sportsForm.leagueSlug],
+  )
+  const isKnownSportSlug = useMemo(
+    () => sportsSlugCatalog.sportOptions.some(option => option.value === normalizedSportSlug),
+    [normalizedSportSlug, sportsSlugCatalog.sportOptions],
+  )
+  const isKnownLeagueSlug = useMemo(
+    () => availableLeagueOptions.some(option => option.value === normalizedLeagueSlug),
+    [availableLeagueOptions, normalizedLeagueSlug],
+  )
+  const sportSlugSelectValue = useMemo(() => {
+    if (isCustomSportSlug) {
+      return CUSTOM_SPORTS_SLUG_SELECT_VALUE
+    }
+
+    return isKnownSportSlug ? normalizedSportSlug : undefined
+  }, [isCustomSportSlug, isKnownSportSlug, normalizedSportSlug])
+  const leagueSlugSelectValue = useMemo(() => {
+    if (isCustomLeagueSlug) {
+      return CUSTOM_SPORTS_SLUG_SELECT_VALUE
+    }
+
+    return isKnownLeagueSlug ? normalizedLeagueSlug : undefined
+  }, [isCustomLeagueSlug, isKnownLeagueSlug, normalizedLeagueSlug])
   const creatorSlugTail = useMemo(
     () => (eoaAddress ? eoaAddress.replace(/^0x/, '').slice(-3).toLowerCase() : '000'),
     [eoaAddress],
@@ -1066,6 +1139,36 @@ export default function AdminCreateEventForm() {
     }),
     [baseEventSlug, sportsForm],
   )
+
+  useEffect(() => {
+    if (!sportsForm.sportSlug.trim()) {
+      return
+    }
+
+    if (!isKnownSportSlug) {
+      setIsCustomSportSlug(true)
+      return
+    }
+
+    if (isCustomSportSlug) {
+      setIsCustomSportSlug(false)
+    }
+  }, [isCustomSportSlug, isKnownSportSlug, sportsForm.sportSlug])
+
+  useEffect(() => {
+    if (!sportsForm.leagueSlug.trim()) {
+      return
+    }
+
+    if (!isKnownLeagueSlug) {
+      setIsCustomLeagueSlug(true)
+      return
+    }
+
+    if (isCustomLeagueSlug) {
+      setIsCustomLeagueSlug(false)
+    }
+  }, [isCustomLeagueSlug, isKnownLeagueSlug, sportsForm.leagueSlug])
   const marketCount = useMemo(() => {
     if (form.marketMode === 'binary') {
       return 1
@@ -1694,7 +1797,11 @@ export default function AdminCreateEventForm() {
                 return {
                   id: typeof item.id === 'string' && item.id.trim() ? item.id : `prop-loaded-${index + 1}`,
                   playerName: typeof item.playerName === 'string' ? item.playerName : '',
-                  statType: item.statType === 'points' || item.statType === 'rebounds' || item.statType === 'assists'
+                  statType: item.statType === 'points'
+                    || item.statType === 'rebounds'
+                    || item.statType === 'assists'
+                    || item.statType === 'receiving_yards'
+                    || item.statType === 'rushing_yards'
                     ? item.statType
                     : '',
                   line: typeof item.line === 'string' ? item.line : '',
@@ -1705,6 +1812,32 @@ export default function AdminCreateEventForm() {
               })
               .filter((item): item is AdminSportsPropState => Boolean(item))
           : []
+        const candidateCustomMarkets = Array.isArray(parsed.sportsForm.customMarkets)
+          ? parsed.sportsForm.customMarkets
+              .map((market, index) => {
+                if (!market || typeof market !== 'object') {
+                  return null
+                }
+
+                const item = market as Partial<AdminSportsCustomMarketState>
+                return {
+                  id: typeof item.id === 'string' && item.id.trim() ? item.id : `market-loaded-${index + 1}`,
+                  sportsMarketType: typeof item.sportsMarketType === 'string' ? item.sportsMarketType : '',
+                  question: typeof item.question === 'string' ? item.question : '',
+                  title: typeof item.title === 'string' ? item.title : '',
+                  shortName: typeof item.shortName === 'string' ? item.shortName : '',
+                  slug: typeof item.slug === 'string' ? item.slug : '',
+                  outcomeOne: typeof item.outcomeOne === 'string' ? item.outcomeOne : '',
+                  outcomeTwo: typeof item.outcomeTwo === 'string' ? item.outcomeTwo : '',
+                  line: typeof item.line === 'string' ? item.line : '',
+                  groupItemTitle: typeof item.groupItemTitle === 'string' ? item.groupItemTitle : '',
+                  iconAssetKey: item.iconAssetKey === 'home' || item.iconAssetKey === 'away'
+                    ? item.iconAssetKey
+                    : '',
+                } satisfies AdminSportsCustomMarketState
+              })
+              .filter((item): item is AdminSportsCustomMarketState => Boolean(item))
+          : []
 
         setSportsForm({
           section: parsed.sportsForm.section === 'games' || parsed.sportsForm.section === 'props'
@@ -1714,6 +1847,7 @@ export default function AdminCreateEventForm() {
             || parsed.sportsForm.eventVariant === 'more_markets'
             || parsed.sportsForm.eventVariant === 'exact_score'
             || parsed.sportsForm.eventVariant === 'halftime_result'
+            || parsed.sportsForm.eventVariant === 'custom'
             ? parsed.sportsForm.eventVariant
             : fallbackSports.eventVariant,
           sportSlug: typeof parsed.sportsForm.sportSlug === 'string' ? parsed.sportsForm.sportSlug : fallbackSports.sportSlug,
@@ -1727,6 +1861,7 @@ export default function AdminCreateEventForm() {
             ? [candidateTeams[0], candidateTeams[1]]
             : fallbackSports.teams,
           props: candidateProps.length > 0 ? candidateProps : fallbackSports.props,
+          customMarkets: candidateCustomMarkets.length > 0 ? candidateCustomMarkets : fallbackSports.customMarkets,
         })
       }
 
@@ -2006,6 +2141,38 @@ export default function AdminCreateEventForm() {
     }))
   }, [])
 
+  const handleSportSlugSelectChange = useCallback((value: string) => {
+    if (value === CUSTOM_SPORTS_SLUG_SELECT_VALUE) {
+      setIsCustomSportSlug(true)
+      handleSportsFieldChange('sportSlug', '')
+      return
+    }
+
+    const nextLeagueOptions = sportsSlugCatalog.leagueOptionsBySport[value] ?? []
+    setIsCustomSportSlug(false)
+    handleSportsFieldChange('sportSlug', value)
+
+    if (
+      nextLeagueOptions.length > 0
+      && normalizedLeagueSlug
+      && !nextLeagueOptions.some(option => option.value === normalizedLeagueSlug)
+    ) {
+      setIsCustomLeagueSlug(false)
+      handleSportsFieldChange('leagueSlug', '')
+    }
+  }, [handleSportsFieldChange, normalizedLeagueSlug, sportsSlugCatalog.leagueOptionsBySport])
+
+  const handleLeagueSlugSelectChange = useCallback((value: string) => {
+    if (value === CUSTOM_SPORTS_SLUG_SELECT_VALUE) {
+      setIsCustomLeagueSlug(true)
+      handleSportsFieldChange('leagueSlug', '')
+      return
+    }
+
+    setIsCustomLeagueSlug(false)
+    handleSportsFieldChange('leagueSlug', value)
+  }, [handleSportsFieldChange])
+
   const addSportsProp = useCallback(() => {
     setSportsForm((prev) => {
       const existingIds = new Set(prev.props.map(prop => prop.id))
@@ -2033,6 +2200,81 @@ export default function AdminCreateEventForm() {
       return {
         ...prev,
         props: prev.props.filter(prop => prop.id !== propId),
+      }
+    })
+  }, [])
+
+  const handleSportsCustomMarketChange = useCallback((
+    marketId: string,
+    field: keyof AdminSportsCustomMarketState,
+    value: string,
+  ) => {
+    setSportsForm((prev) => {
+      const homeTeamName = prev.teams.find(team => team.hostStatus === 'home')?.name ?? ''
+      const awayTeamName = prev.teams.find(team => team.hostStatus === 'away')?.name ?? ''
+
+      return {
+        ...prev,
+        customMarkets: prev.customMarkets.map((market) => {
+          if (market.id !== marketId) {
+            return market
+          }
+
+          if (field !== 'sportsMarketType') {
+            return {
+              ...market,
+              [field]: field === 'iconAssetKey' && value === 'none' ? '' : value,
+            }
+          }
+
+          const typeOption = resolveAdminSportsMarketTypeOption(value)
+          const defaultOutcomes = getAdminSportsMarketTypeDefaultOutcomes(value, {
+            homeTeamName,
+            awayTeamName,
+          })
+
+          return {
+            ...market,
+            sportsMarketType: value,
+            title: market.title || typeOption?.label || '',
+            shortName: market.shortName || typeOption?.label || '',
+            groupItemTitle: market.groupItemTitle || typeOption?.label || '',
+            outcomeOne: market.outcomeOne || defaultOutcomes?.[0] || '',
+            outcomeTwo: market.outcomeTwo || defaultOutcomes?.[1] || '',
+            iconAssetKey: market.iconAssetKey,
+          }
+        }),
+      }
+    })
+  }, [])
+
+  const addSportsCustomMarket = useCallback(() => {
+    setSportsForm((prev) => {
+      const existingIds = new Set(prev.customMarkets.map(market => market.id))
+      let nextIndex = prev.customMarkets.length + 1
+      let nextId = `market-${nextIndex}`
+      while (existingIds.has(nextId)) {
+        nextIndex += 1
+        nextId = `market-${nextIndex}`
+      }
+
+      return {
+        ...prev,
+        customMarkets: [...prev.customMarkets, createAdminSportsCustomMarket(nextId)],
+      }
+    })
+  }, [])
+
+  const removeSportsCustomMarket = useCallback((marketId: string) => {
+    setSportsForm((prev) => {
+      if (prev.customMarkets.length <= 1) {
+        toast.error('At least 1 custom sports market row is required.')
+        return prev
+      }
+
+      return {
+        ...prev,
+        customMarkets: prev.customMarkets.filter(market => market.id !== marketId),
       }
     })
   }, [])
@@ -2518,6 +2760,12 @@ export default function AdminCreateEventForm() {
       return
     }
 
+    const trimmedCreatorWalletName = creatorWalletName.trim()
+    if (!trimmedCreatorWalletName) {
+      toast.error('Wallet name is required.')
+      return
+    }
+
     setIsAddingCreatorWallet(true)
     try {
       const response = await fetchAdminApi('/create-event/allowed-creators', {
@@ -2525,7 +2773,11 @@ export default function AdminCreateEventForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ address: eoaAddress }),
+        body: JSON.stringify({
+          sourceType: 'wallet',
+          walletAddress: eoaAddress,
+          name: trimmedCreatorWalletName,
+        }),
       })
 
       const payload = await response.json().catch(() => null) as unknown
@@ -2536,6 +2788,8 @@ export default function AdminCreateEventForm() {
       }
 
       toast.success('Wallet added to allowed market creator wallets.')
+      setCreatorWalletDialogOpen(false)
+      setCreatorWalletName('')
       await runAllowedCreatorCheck()
     }
     catch (error) {
@@ -2545,7 +2799,7 @@ export default function AdminCreateEventForm() {
     finally {
       setIsAddingCreatorWallet(false)
     }
-  }, [eoaAddress, runAllowedCreatorCheck])
+  }, [creatorWalletName, eoaAddress, runAllowedCreatorCheck])
 
   const runFundingCheck = useCallback(async () => {
     setFundingCheckState('checking')
@@ -3997,118 +4251,149 @@ export default function AdminCreateEventForm() {
                             </SelectContent>
                           </Select>
                         </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="sports-start-time">Game start time</Label>
-                          <Input
-                            id="sports-start-time"
-                            type="datetime-local"
-                            value={sportsForm.startTime}
-                            onChange={event => handleSportsFieldChange('startTime', event.target.value)}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="sports-sport-slug">Sport slug</Label>
-                          <Input
-                            id="sports-sport-slug"
-                            value={sportsForm.sportSlug}
-                            onChange={event => handleSportsFieldChange('sportSlug', event.target.value)}
-                            placeholder="Example: soccer"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="sports-league-slug">League slug</Label>
-                          <Input
-                            id="sports-league-slug"
-                            value={sportsForm.leagueSlug}
-                            onChange={event => handleSportsFieldChange('leagueSlug', event.target.value)}
-                            placeholder="Example: premier-league"
-                          />
-                        </div>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        {sportsForm.teams.map(team => (
-                          <div key={team.hostStatus} className="space-y-4 rounded-md border p-4">
-                            <div className="space-y-1">
-                              <p className="text-sm font-medium">
-                                {team.hostStatus === 'home' ? 'Home team' : 'Away team'}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Team logos are uploaded as market icons for sports markets.
-                              </p>
-                            </div>
-
+                      {sportsForm.section === 'games' && (
+                        <>
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div className="space-y-2">
-                              <Label htmlFor={`sports-team-name-${team.hostStatus}`}>Team name</Label>
+                              <Label htmlFor="sports-start-time">Game start time</Label>
                               <Input
-                                id={`sports-team-name-${team.hostStatus}`}
-                                value={team.name}
-                                onChange={event => handleSportsTeamChange(team.hostStatus, 'name', event.target.value)}
-                                placeholder={team.hostStatus === 'home' ? 'Example: Barcelona' : 'Example: Real Madrid'}
+                                id="sports-start-time"
+                                type="datetime-local"
+                                value={sportsForm.startTime}
+                                onChange={event => handleSportsFieldChange('startTime', event.target.value)}
                               />
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor={`sports-team-abbreviation-${team.hostStatus}`}>Abbreviation (optional)</Label>
-                              <Input
-                                id={`sports-team-abbreviation-${team.hostStatus}`}
-                                value={team.abbreviation}
-                                onChange={event => handleSportsTeamChange(team.hostStatus, 'abbreviation', event.target.value)}
-                                placeholder={team.hostStatus === 'home' ? 'BAR' : 'RMA'}
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Team logo</Label>
-                              <Input
-                                id={`sports-team-logo-${team.hostStatus}`}
-                                type="file"
-                                accept="image/*"
-                                onChange={event => handleSportsTeamLogoUpload(team.hostStatus, event)}
-                                className="sr-only"
-                              />
-                              <label
-                                htmlFor={`sports-team-logo-${team.hostStatus}`}
-                                className={`
-                                  group relative flex size-28 cursor-pointer items-center justify-center overflow-hidden
-                                  rounded-xl border border-dashed border-border bg-muted/20 text-muted-foreground
-                                  transition
-                                  hover:border-primary/60
-                                `}
-                              >
-                                <span className={`
-                                  pointer-events-none absolute inset-0 bg-foreground/0 transition
-                                  group-hover:bg-foreground/5
-                                `}
+                              <Label htmlFor="sports-sport-slug">Sport slug</Label>
+                              <Select value={sportSlugSelectValue} onValueChange={handleSportSlugSelectChange}>
+                                <SelectTrigger id="sports-sport-slug" className="w-full">
+                                  <SelectValue placeholder="Select sport slug" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {sportsSlugCatalog.sportOptions.map(option => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                  <SelectItem value={CUSTOM_SPORTS_SLUG_SELECT_VALUE}>Custom</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {isCustomSportSlug && (
+                                <Input
+                                  value={sportsForm.sportSlug}
+                                  onChange={event => handleSportsFieldChange('sportSlug', event.target.value)}
+                                  placeholder="Example: soccer"
                                 />
-                                {teamLogoPreviewUrls[team.hostStatus]
-                                  ? (
-                                      <EventIconImage
-                                        src={teamLogoPreviewUrls[team.hostStatus] ?? ''}
-                                        alt={`${team.name || team.hostStatus} logo preview`}
-                                        sizes="256px"
-                                        unoptimized
-                                        containerClassName="size-full"
-                                      />
-                                    )
-                                  : (
-                                      <div className="text-sm text-muted-foreground">Upload logo</div>
-                                    )}
-                                <ImageUp
-                                  className={`
-                                    pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2
-                                    text-foreground/70 opacity-0 transition
-                                    group-hover:opacity-100
-                                  `}
+                              )}
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="sports-league-slug">League slug</Label>
+                              <Select value={leagueSlugSelectValue} onValueChange={handleLeagueSlugSelectChange}>
+                                <SelectTrigger id="sports-league-slug" className="w-full">
+                                  <SelectValue placeholder="Select league slug" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableLeagueOptions.map(option => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                  <SelectItem value={CUSTOM_SPORTS_SLUG_SELECT_VALUE}>Custom</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {isCustomLeagueSlug && (
+                                <Input
+                                  value={sportsForm.leagueSlug}
+                                  onChange={event => handleSportsFieldChange('leagueSlug', event.target.value)}
+                                  placeholder="Example: premier-league"
                                 />
-                              </label>
+                              )}
                             </div>
                           </div>
-                        ))}
-                      </div>
+
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            {sportsForm.teams.map(team => (
+                              <div key={team.hostStatus} className="space-y-4 rounded-md border p-4">
+                                <div className="space-y-1">
+                                  <p className="text-sm font-medium">
+                                    {team.hostStatus === 'home' ? 'Home team' : 'Away team'}
+                                  </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor={`sports-team-name-${team.hostStatus}`}>Team name</Label>
+                                  <Input
+                                    id={`sports-team-name-${team.hostStatus}`}
+                                    value={team.name}
+                                    onChange={event => handleSportsTeamChange(team.hostStatus, 'name', event.target.value)}
+                                    placeholder={team.hostStatus === 'home' ? 'Example: Barcelona' : 'Example: Real Madrid'}
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor={`sports-team-abbreviation-${team.hostStatus}`}>Abbreviation (optional)</Label>
+                                  <Input
+                                    id={`sports-team-abbreviation-${team.hostStatus}`}
+                                    value={team.abbreviation}
+                                    onChange={event => handleSportsTeamChange(team.hostStatus, 'abbreviation', event.target.value)}
+                                    placeholder={team.hostStatus === 'home' ? 'BAR' : 'RMA'}
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label>Team logo</Label>
+                                  <Input
+                                    id={`sports-team-logo-${team.hostStatus}`}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={event => handleSportsTeamLogoUpload(team.hostStatus, event)}
+                                    className="sr-only"
+                                  />
+                                  <label
+                                    htmlFor={`sports-team-logo-${team.hostStatus}`}
+                                    className={`
+                                      group relative flex size-28 cursor-pointer items-center justify-center
+                                      overflow-hidden rounded-xl border border-dashed border-border bg-muted/20
+                                      text-muted-foreground transition
+                                      hover:border-primary/60
+                                    `}
+                                  >
+                                    <span className={`
+                                      pointer-events-none absolute inset-0 bg-foreground/0 transition
+                                      group-hover:bg-foreground/5
+                                    `}
+                                    />
+                                    {teamLogoPreviewUrls[team.hostStatus]
+                                      ? (
+                                          <EventIconImage
+                                            src={teamLogoPreviewUrls[team.hostStatus] ?? ''}
+                                            alt={`${team.name || team.hostStatus} logo preview`}
+                                            sizes="256px"
+                                            unoptimized
+                                            containerClassName="size-full"
+                                          />
+                                        )
+                                      : (
+                                          <div className="text-sm text-muted-foreground">Upload logo</div>
+                                        )}
+                                    <ImageUp
+                                      className={`
+                                        pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2
+                                        text-foreground/70 opacity-0 transition
+                                        group-hover:opacity-100
+                                      `}
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
 
                       <div className="space-y-2">
                         <Label>
@@ -4119,7 +4404,7 @@ export default function AdminCreateEventForm() {
                         {sportsDerivedContent.categories.length === 0
                           ? (
                               <p className="text-sm text-muted-foreground">
-                                Sports categories are generated automatically from section, sport, league, and pack.
+                                Sports categories are generated automatically from the selected sports settings.
                               </p>
                             )
                           : (
@@ -4228,85 +4513,261 @@ export default function AdminCreateEventForm() {
             {isSportsEvent
               ? (
                   <>
-                    {sportsForm.section === 'games' && (
-                      <>
-                        <div className="space-y-2">
-                          <Label htmlFor="sports-event-variant">Sports event variant</Label>
-                          <Select
-                            value={sportsForm.eventVariant || undefined}
-                            onValueChange={value => handleSportsFieldChange('eventVariant', value as AdminSportsFormState['eventVariant'])}
-                          >
-                            <SelectTrigger id="sports-event-variant" className="w-full md:max-w-md">
-                              <SelectValue placeholder="Select a sports event variant" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="standard">Standard game lines</SelectItem>
-                              <SelectItem value="more_markets">More Markets</SelectItem>
-                              <SelectItem value="exact_score">Exact Score</SelectItem>
-                              <SelectItem value="halftime_result">Halftime Result</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {sportsForm.eventVariant === 'standard' && (
-                          <div className="space-y-3 rounded-md border p-4">
-                            <p className="text-sm font-medium">Standard game lines</p>
-                            <label className="flex items-center gap-3 text-sm text-muted-foreground">
-                              <input
-                                type="checkbox"
-                                className="size-4 rounded-sm border"
-                                checked={sportsForm.includeDraw}
-                                onChange={event => handleSportsFieldChange('includeDraw', event.target.checked)}
-                              />
-                              Include draw market in addition to home and away.
-                            </label>
-                          </div>
-                        )}
-
-                        {sportsForm.eventVariant === 'more_markets' && (
-                          <div className="space-y-3 rounded-md border p-4">
-                            <p className="text-sm font-medium">More Markets packs</p>
-                            <label className="flex items-center gap-3 text-sm text-muted-foreground">
-                              <input
-                                type="checkbox"
-                                className="size-4 rounded-sm border"
-                                checked={sportsForm.includeBothTeamsToScore}
-                                onChange={event => handleSportsFieldChange('includeBothTeamsToScore', event.target.checked)}
-                              />
-                              Both Teams to Score
-                            </label>
-                            <label className="flex items-center gap-3 text-sm text-muted-foreground">
-                              <input
-                                type="checkbox"
-                                className="size-4 rounded-sm border"
-                                checked={sportsForm.includeTotals}
-                                onChange={event => handleSportsFieldChange('includeTotals', event.target.checked)}
-                              />
-                              Totals pack with fixed ladder 1.5 / 2.5 / 3.5 / 4.5
-                            </label>
-                            <label className="flex items-center gap-3 text-sm text-muted-foreground">
-                              <input
-                                type="checkbox"
-                                className="size-4 rounded-sm border"
-                                checked={sportsForm.includeSpreads}
-                                onChange={event => handleSportsFieldChange('includeSpreads', event.target.checked)}
-                              />
-                              Spreads pack with fixed ladder -1.5 for home and away
-                            </label>
-                          </div>
-                        )}
-
-                        {(sportsForm.eventVariant === 'exact_score' || sportsForm.eventVariant === 'halftime_result') && (
-                          <div className="rounded-md border p-4">
-                            <p className="text-sm text-muted-foreground">
-                              This pack is generated automatically from the selected teams and start time.
-                            </p>
-                          </div>
-                        )}
-                      </>
+                    {sportsForm.section && (
+                      <div className="space-y-2">
+                        <Label htmlFor="sports-event-variant">Sports template</Label>
+                        <Select
+                          value={sportsForm.eventVariant || undefined}
+                          onValueChange={value => handleSportsFieldChange('eventVariant', value as AdminSportsFormState['eventVariant'])}
+                        >
+                          <SelectTrigger id="sports-event-variant" className="w-full md:max-w-md">
+                            <SelectValue placeholder="Select a sports template" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {sportsForm.section === 'games'
+                              ? (
+                                  <>
+                                    <SelectItem value="standard">Standard game lines</SelectItem>
+                                    <SelectItem value="more_markets">Soccer More Markets</SelectItem>
+                                    <SelectItem value="exact_score">Exact Score</SelectItem>
+                                    <SelectItem value="halftime_result">Halftime Result</SelectItem>
+                                    <SelectItem value="custom">Custom sports market types</SelectItem>
+                                  </>
+                                )
+                              : (
+                                  <>
+                                    <SelectItem value="standard">Player props</SelectItem>
+                                    <SelectItem value="custom">Custom sports market types</SelectItem>
+                                  </>
+                                )}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     )}
 
-                    {sportsForm.section === 'props' && (
+                    {sportsForm.section === 'games' && sportsForm.eventVariant === 'standard' && (
+                      <div className="space-y-3 rounded-md border p-4">
+                        <p className="text-sm font-medium">Standard game lines</p>
+                        <label className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            className="size-4 rounded-sm border"
+                            checked={sportsForm.includeDraw}
+                            onChange={event => handleSportsFieldChange('includeDraw', event.target.checked)}
+                          />
+                          Include draw market in addition to home and away.
+                        </label>
+                      </div>
+                    )}
+
+                    {sportsForm.section === 'games' && sportsForm.eventVariant === 'more_markets' && (
+                      <div className="space-y-3 rounded-md border p-4">
+                        <p className="text-sm font-medium">More Markets packs</p>
+                        <label className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            className="size-4 rounded-sm border"
+                            checked={sportsForm.includeBothTeamsToScore}
+                            onChange={event => handleSportsFieldChange('includeBothTeamsToScore', event.target.checked)}
+                          />
+                          Both Teams to Score
+                        </label>
+                        <label className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            className="size-4 rounded-sm border"
+                            checked={sportsForm.includeTotals}
+                            onChange={event => handleSportsFieldChange('includeTotals', event.target.checked)}
+                          />
+                          Totals pack with fixed ladder 1.5 / 2.5 / 3.5 / 4.5
+                        </label>
+                        <label className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            className="size-4 rounded-sm border"
+                            checked={sportsForm.includeSpreads}
+                            onChange={event => handleSportsFieldChange('includeSpreads', event.target.checked)}
+                          />
+                          Spreads pack with fixed ladder -1.5 for home and away
+                        </label>
+                      </div>
+                    )}
+
+                    {sportsForm.section === 'games' && (sportsForm.eventVariant === 'exact_score' || sportsForm.eventVariant === 'halftime_result') && (
+                      <div className="rounded-md border p-4">
+                        <p className="text-sm text-muted-foreground">
+                          This pack is generated automatically from the selected teams and start time.
+                        </p>
+                      </div>
+                    )}
+
+                    {sportsForm.eventVariant === 'custom' && (
+                      <div className="space-y-4 rounded-md border p-4">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Custom sports markets</p>
+                          <p className="text-sm text-muted-foreground">
+                            Choose any observed Polymarket market type. Row order is sent as the market group threshold automatically.
+                          </p>
+                        </div>
+
+                        {sportsForm.customMarkets.map((market, index) => {
+                          const marketTypeOption = resolveAdminSportsMarketTypeOption(market.sportsMarketType)
+                          const defaultOutcomes = getAdminSportsMarketTypeDefaultOutcomes(market.sportsMarketType, {
+                            homeTeamName: sportsForm.teams[0]?.name ?? '',
+                            awayTeamName: sportsForm.teams[1]?.name ?? '',
+                          })
+
+                          return (
+                            <div key={market.id} className="grid grid-cols-1 gap-4 rounded-md border p-4 md:grid-cols-2">
+                              <div className="space-y-2 md:col-span-2">
+                                <div className="flex items-center justify-between gap-3">
+                                  <Label htmlFor={`sports-custom-market-type-${market.id}`}>
+                                    Market
+                                    {' '}
+                                    {index + 1}
+                                  </Label>
+                                  <Button type="button" variant="outline" size="sm" onClick={() => removeSportsCustomMarket(market.id)}>
+                                    <Trash2Icon className="mr-2 size-4" />
+                                    Remove
+                                  </Button>
+                                </div>
+                                <Select
+                                  value={market.sportsMarketType || undefined}
+                                  onValueChange={value => handleSportsCustomMarketChange(market.id, 'sportsMarketType', value)}
+                                >
+                                  <SelectTrigger id={`sports-custom-market-type-${market.id}`} className="w-full">
+                                    <SelectValue placeholder="Select a Polymarket sports market type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {sportsMarketTypeGroups.map(group => (
+                                      <SelectGroup key={group.label}>
+                                        <SelectLabel>{group.label}</SelectLabel>
+                                        {group.options.map(option => (
+                                          <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectGroup>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Question</Label>
+                                <Input
+                                  value={market.question}
+                                  onChange={event => handleSportsCustomMarketChange(market.id, 'question', event.target.value)}
+                                  placeholder={marketTypeOption?.label
+                                    ? `Example: ${marketTypeOption.label}`
+                                    : 'Example: 1H Moneyline'}
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Title</Label>
+                                <Input
+                                  value={market.title}
+                                  onChange={event => handleSportsCustomMarketChange(market.id, 'title', event.target.value)}
+                                  placeholder={marketTypeOption?.label || 'Example: 1H Moneyline'}
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Short name</Label>
+                                <Input
+                                  value={market.shortName}
+                                  onChange={event => handleSportsCustomMarketChange(market.id, 'shortName', event.target.value)}
+                                  placeholder={marketTypeOption?.label || 'Example: 1H ML'}
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Slug override (optional)</Label>
+                                <Input
+                                  value={market.slug}
+                                  onChange={event => handleSportsCustomMarketChange(market.id, 'slug', event.target.value)}
+                                  placeholder="Leave blank to generate automatically"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Outcome 1</Label>
+                                <Input
+                                  value={market.outcomeOne}
+                                  onChange={event => handleSportsCustomMarketChange(market.id, 'outcomeOne', event.target.value)}
+                                  placeholder={defaultOutcomes?.[0] || 'Example: Over'}
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Outcome 2</Label>
+                                <Input
+                                  value={market.outcomeTwo}
+                                  onChange={event => handleSportsCustomMarketChange(market.id, 'outcomeTwo', event.target.value)}
+                                  placeholder={defaultOutcomes?.[1] || 'Example: Under'}
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>
+                                  Line
+                                  {marketTypeOption?.requiresLine ? '' : ' (optional)'}
+                                </Label>
+                                <Input
+                                  value={market.line}
+                                  onChange={event => handleSportsCustomMarketChange(market.id, 'line', event.target.value)}
+                                  placeholder={marketTypeOption?.requiresLine ? 'Example: 110.5 or -1.5' : 'Optional'}
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Group title (optional)</Label>
+                                <Input
+                                  value={market.groupItemTitle}
+                                  onChange={event => handleSportsCustomMarketChange(market.id, 'groupItemTitle', event.target.value)}
+                                  placeholder="Defaults to the title sent to metadata"
+                                />
+                              </div>
+
+                              {sportsForm.section === 'games' && (
+                                <div className="space-y-2 md:col-span-2">
+                                  <Label>Icon</Label>
+                                  <Select
+                                    value={market.iconAssetKey || undefined}
+                                    onValueChange={value => handleSportsCustomMarketChange(market.id, 'iconAssetKey', value)}
+                                  >
+                                    <SelectTrigger className="w-full md:max-w-xs">
+                                      <SelectValue placeholder="No team icon" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">No team icon</SelectItem>
+                                      <SelectItem value="home">
+                                        {sportsForm.teams[0]?.name || 'Home team'}
+                                        {' '}
+                                        icon
+                                      </SelectItem>
+                                      <SelectItem value="away">
+                                        {sportsForm.teams[1]?.name || 'Away team'}
+                                        {' '}
+                                        icon
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+
+                        <Button type="button" variant="outline" onClick={addSportsCustomMarket}>
+                          <PlusIcon className="mr-2 size-4" />
+                          Add custom market
+                        </Button>
+                      </div>
+                    )}
+
+                    {sportsForm.section === 'props' && sportsForm.eventVariant !== 'custom' && (
                       <div className="space-y-4 rounded-md border p-4">
                         <div className="space-y-1">
                           <p className="text-sm font-medium">Player props</p>
@@ -4350,6 +4811,8 @@ export default function AdminCreateEventForm() {
                                   <SelectItem value="points">Points</SelectItem>
                                   <SelectItem value="rebounds">Rebounds</SelectItem>
                                   <SelectItem value="assists">Assists</SelectItem>
+                                  <SelectItem value="receiving_yards">Receiving Yards</SelectItem>
+                                  <SelectItem value="rushing_yards">Rushing Yards</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -4363,21 +4826,6 @@ export default function AdminCreateEventForm() {
                               />
                             </div>
 
-                            <div className="space-y-2 md:col-span-2">
-                              <Label>Team</Label>
-                              <Select
-                                value={prop.teamHostStatus || undefined}
-                                onValueChange={value => handleSportsPropChange(prop.id, 'teamHostStatus', value)}
-                              >
-                                <SelectTrigger className="w-full md:max-w-xs">
-                                  <SelectValue placeholder="Select home or away team" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="home">{sportsForm.teams[0]?.name || 'Home team'}</SelectItem>
-                                  <SelectItem value="away">{sportsForm.teams[1]?.name || 'Away team'}</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
                           </div>
                         ))}
 
@@ -4387,44 +4835,6 @@ export default function AdminCreateEventForm() {
                         </Button>
                       </div>
                     )}
-
-                    <div className="space-y-3 rounded-md border p-4">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">Generated markets</p>
-                        <p className="text-sm text-muted-foreground">
-                          Sports markets are generated from the selected template and sent to the worker automatically.
-                        </p>
-                      </div>
-
-                      {sportsDerivedContent.options.length === 0
-                        ? (
-                            <p className="text-sm text-muted-foreground">
-                              Fill the sports fields above to generate the market pack preview.
-                            </p>
-                          )
-                        : (
-                            <div className="space-y-3">
-                              {sportsDerivedContent.options.map((option, index) => (
-                                <div key={option.id} className="rounded-md border p-3">
-                                  <p className="text-sm font-medium">
-                                    {index + 1}
-                                    .
-                                    {' '}
-                                    {option.title}
-                                  </p>
-                                  <p className="mt-1 text-sm text-muted-foreground">{option.question}</p>
-                                  <p className="mt-2 text-sm text-muted-foreground">
-                                    Outcomes:
-                                    {' '}
-                                    {option.outcomeYes}
-                                    {' / '}
-                                    {option.outcomeNo}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                    </div>
                   </>
                 )
               : (
@@ -4811,6 +5221,62 @@ export default function AdminCreateEventForm() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog
+        open={creatorWalletDialogOpen}
+        onOpenChange={(nextOpen) => {
+          if (!isAddingCreatorWallet) {
+            setCreatorWalletDialogOpen(nextOpen)
+            if (!nextOpen) {
+              setCreatorWalletName('')
+            }
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Name this wallet</DialogTitle>
+            <DialogDescription>
+              Add a display name so this wallet can be recognized in mirrored market sources.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="creator-wallet-name">Wallet name</Label>
+            <Input
+              id="creator-wallet-name"
+              value={creatorWalletName}
+              onChange={event => setCreatorWalletName(event.target.value)}
+              maxLength={80}
+              placeholder="My creator wallet"
+              disabled={isAddingCreatorWallet}
+            />
+            <p className="text-xs text-muted-foreground">
+              {eoaAddress ?? 'Wallet not connected'}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setCreatorWalletDialogOpen(false)
+                setCreatorWalletName('')
+              }}
+              disabled={isAddingCreatorWallet}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void addCurrentWalletToAllowedCreators()}
+              disabled={isAddingCreatorWallet || !creatorWalletName.trim() || !eoaAddress}
+            >
+              {isAddingCreatorWallet && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+              Add wallet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={rulesGeneratorDialogOpen} onOpenChange={setRulesGeneratorDialogOpen}>
         <DialogContent>
@@ -5292,7 +5758,7 @@ export default function AdminCreateEventForm() {
                   variant="outline"
                   size="sm"
                   className="mt-2 h-7"
-                  onClick={() => void addCurrentWalletToAllowedCreators()}
+                  onClick={() => setCreatorWalletDialogOpen(true)}
                   disabled={isAddingCreatorWallet || !eoaAddress}
                 >
                   {isAddingCreatorWallet && <Loader2Icon className="mr-2 size-3.5 animate-spin" />}

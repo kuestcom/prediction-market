@@ -48,7 +48,6 @@ const THEME_SITE_SUPPORT_URL_KEY = 'site_support_url'
 const GENERAL_PWA_ICON_192_PATH_KEY = 'pwa_icon_192_path'
 const GENERAL_PWA_ICON_512_PATH_KEY = 'pwa_icon_512_path'
 const GENERAL_FEE_RECIPIENT_WALLET_KEY = 'fee_recipient_wallet'
-const GENERAL_MARKET_CREATORS_KEY = 'market_creators'
 const GENERAL_LIFI_INTEGRATOR_KEY = 'lifi_integrator'
 const GENERAL_LIFI_API_KEY = 'lifi_api_key'
 const WALLET_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/
@@ -103,8 +102,6 @@ interface NormalizedThemeSiteConfig {
   supportUrlValue: string
   feeRecipientWallet: `0x${string}`
   feeRecipientWalletValue: string
-  marketCreators: Array<`0x${string}`>
-  marketCreatorsValue: string
   lifiIntegrator: string | null
   lifiIntegratorValue: string
   lifiApiKey: string | null
@@ -144,7 +141,6 @@ export interface ThemeSiteSettingsFormState {
   youtubeLink: string
   supportUrl: string
   feeRecipientWallet: string
-  marketCreators: string
   lifiIntegrator: string
   lifiApiKey: string
   lifiApiKeyConfigured: boolean
@@ -235,40 +231,6 @@ function isZeroAddress(value: string | null | undefined) {
   return (value ?? '').toLowerCase() === ZERO_ADDRESS.toLowerCase()
 }
 
-function normalizeWalletAddressList(value: string | null | undefined, sourceLabel: string) {
-  const normalized = typeof value === 'string' ? value : ''
-  const rawItems = normalized
-    .split(/[\n,]+/)
-    .map(item => item.trim())
-    .filter(item => item.length > 0)
-
-  const deduped: Array<`0x${string}`> = []
-  const seen = new Set<string>()
-
-  for (const item of rawItems) {
-    if (!WALLET_ADDRESS_PATTERN.test(item)) {
-      return {
-        value: null as Array<`0x${string}`> | null,
-        error: `${sourceLabel} contains an invalid wallet address: ${item}.`,
-      }
-    }
-
-    const lower = item.toLowerCase()
-    if (seen.has(lower)) {
-      continue
-    }
-
-    seen.add(lower)
-    deduped.push(item as `0x${string}`)
-  }
-
-  return { value: deduped, error: null as string | null }
-}
-
-function formatWalletAddressList(value: Array<`0x${string}`>) {
-  return value.join('\n')
-}
-
 function normalizeOptionalLiFiIntegrator(value: string | null | undefined, sourceLabel: string) {
   const normalized = typeof value === 'string' ? value.trim() : ''
   if (!normalized) {
@@ -321,7 +283,6 @@ function normalizeThemeSiteConfig(params: {
   youtubeLinkValue: string | null | undefined
   supportUrlValue: string | null | undefined
   feeRecipientWalletValue: string | null | undefined
-  marketCreatorsValue: string | null | undefined
   lifiIntegratorValue?: string | null | undefined
   lifiApiKeyValue?: string | null | undefined
   siteNameErrorLabel: string
@@ -341,7 +302,6 @@ function normalizeThemeSiteConfig(params: {
   youtubeLinkErrorLabel: string
   supportUrlErrorLabel: string
   feeRecipientWalletErrorLabel: string
-  marketCreatorsErrorLabel: string
   lifiIntegratorErrorLabel?: string
   lifiApiKeyErrorLabel?: string
 }): ThemeSiteSettingsValidationResult {
@@ -431,14 +391,6 @@ function normalizeThemeSiteConfig(params: {
     return { data: null, error: feeRecipientWalletValidated.error }
   }
 
-  const marketCreatorsValidated = normalizeWalletAddressList(
-    params.marketCreatorsValue,
-    params.marketCreatorsErrorLabel,
-  )
-  if (marketCreatorsValidated.error) {
-    return { data: null, error: marketCreatorsValidated.error }
-  }
-
   const lifiIntegratorValidated = normalizeOptionalLiFiIntegrator(
     params.lifiIntegratorValue,
     params.lifiIntegratorErrorLabel ?? 'LI.FI integrator',
@@ -503,8 +455,6 @@ function normalizeThemeSiteConfig(params: {
       supportUrlValue: supportUrlValidated.value ?? '',
       feeRecipientWallet: feeRecipientWalletValidated.value!,
       feeRecipientWalletValue: feeRecipientWalletValidated.value!,
-      marketCreators: marketCreatorsValidated.value ?? [],
-      marketCreatorsValue: formatWalletAddressList(marketCreatorsValidated.value ?? []),
       lifiIntegrator: lifiIntegratorValidated.value,
       lifiIntegratorValue: lifiIntegratorValidated.value ?? '',
       lifiApiKey: lifiApiKeyValidated.value,
@@ -600,7 +550,6 @@ function hasStoredThemeSiteSettings(generalSettings?: SettingsGroup) {
     || generalSettings[GENERAL_PWA_ICON_192_PATH_KEY]?.value?.trim()
     || generalSettings[GENERAL_PWA_ICON_512_PATH_KEY]?.value?.trim()
     || generalSettings[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value?.trim()
-    || generalSettings[GENERAL_MARKET_CREATORS_KEY]?.value?.trim()
     || generalSettings[GENERAL_LIFI_INTEGRATOR_KEY]?.value?.trim()
     || generalSettings[GENERAL_LIFI_API_KEY]?.value?.trim(),
   )
@@ -654,7 +603,6 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     youtubeLinkValue: generalSettings?.[THEME_SITE_YOUTUBE_LINK_KEY]?.value ?? defaultSite.youtubeLink,
     supportUrlValue: generalSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value ?? defaultSite.supportUrl,
     feeRecipientWalletValue: generalSettings?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value ?? ZERO_ADDRESS,
-    marketCreatorsValue: generalSettings?.[GENERAL_MARKET_CREATORS_KEY]?.value ?? '',
     siteNameErrorLabel: 'Site name',
     siteDescriptionErrorLabel: 'Site description',
     logoModeErrorLabel: 'Logo mode',
@@ -672,7 +620,6 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     youtubeLinkErrorLabel: 'YouTube link',
     supportUrlErrorLabel: 'Support URL',
     feeRecipientWalletErrorLabel: 'Fee recipient wallet',
-    marketCreatorsErrorLabel: 'Market creators',
   })
 
   if (normalized.data) {
@@ -696,7 +643,6 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
       feeRecipientWallet: isZeroAddress(normalized.data.feeRecipientWalletValue)
         ? ''
         : normalized.data.feeRecipientWalletValue,
-      marketCreators: normalized.data.marketCreatorsValue,
       lifiIntegrator,
       lifiApiKey: '',
       lifiApiKeyConfigured,
@@ -721,7 +667,6 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     youtubeLink: defaultSite.youtubeLink ?? '',
     supportUrl: defaultSite.supportUrl ?? '',
     feeRecipientWallet: '',
-    marketCreators: '',
     lifiIntegrator,
     lifiApiKey: '',
     lifiApiKeyConfigured,
@@ -764,7 +709,6 @@ export function validateThemeSiteSettingsInput(params: {
   youtubeLink: string | null | undefined
   supportUrl: string | null | undefined
   feeRecipientWallet: string | null | undefined
-  marketCreators: string | null | undefined
   lifiIntegrator: string | null | undefined
   lifiApiKey: string | null | undefined
 }): ThemeSiteSettingsValidationResult {
@@ -786,7 +730,6 @@ export function validateThemeSiteSettingsInput(params: {
     youtubeLinkValue: params.youtubeLink,
     supportUrlValue: params.supportUrl,
     feeRecipientWalletValue: params.feeRecipientWallet,
-    marketCreatorsValue: params.marketCreators,
     lifiIntegratorValue: params.lifiIntegrator,
     lifiApiKeyValue: params.lifiApiKey,
     siteNameErrorLabel: 'Site name',
@@ -806,7 +749,6 @@ export function validateThemeSiteSettingsInput(params: {
     youtubeLinkErrorLabel: 'YouTube link',
     supportUrlErrorLabel: 'Support URL',
     feeRecipientWalletErrorLabel: 'Fee recipient wallet',
-    marketCreatorsErrorLabel: 'Market creators',
     lifiIntegratorErrorLabel: 'LI.FI integrator',
     lifiApiKeyErrorLabel: 'LI.FI API key',
   })
@@ -857,7 +799,6 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
         youtubeLinkValue: generalSettings?.[THEME_SITE_YOUTUBE_LINK_KEY]?.value,
         supportUrlValue: generalSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value,
         feeRecipientWalletValue: generalSettings?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value ?? ZERO_ADDRESS,
-        marketCreatorsValue: generalSettings?.[GENERAL_MARKET_CREATORS_KEY]?.value ?? '',
         siteNameErrorLabel: 'Site name in settings',
         siteDescriptionErrorLabel: 'Site description in settings',
         logoModeErrorLabel: 'Logo mode in settings',
@@ -875,7 +816,6 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
         youtubeLinkErrorLabel: 'YouTube link in settings',
         supportUrlErrorLabel: 'Support URL in settings',
         feeRecipientWalletErrorLabel: 'Fee recipient wallet in settings',
-        marketCreatorsErrorLabel: 'Market creators in settings',
       })
     : null
 

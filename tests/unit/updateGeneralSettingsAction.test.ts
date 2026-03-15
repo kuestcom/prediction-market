@@ -88,7 +88,6 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg"></svg>')
     formData.set('logo_image_path', '')
     formData.set('fee_recipient_wallet', 'not-a-wallet')
-    formData.set('market_creators', '0x3333333333333333333333333333333333333333')
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result.error).toContain('Fee recipient wallet')
@@ -110,7 +109,6 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('discord_link', 'https://discord.gg/kuest')
     formData.set('support_url', 'https://kuest.com/support')
     formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
-    formData.set('market_creators', '0x2222222222222222222222222222222222222222\n0x3333333333333333333333333333333333333333')
     formData.set('lifi_integrator', 'kuest-fork')
     formData.set('lifi_api_key', 'lifi-123')
     formData.set('openrouter_api_key', 'openrouter-123')
@@ -123,7 +121,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.encryptSecret).toHaveBeenCalledWith('openrouter-123')
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload).toHaveLength(22)
+    expect(savedPayload).toHaveLength(21)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
@@ -140,7 +138,6 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.find(entry => entry.key === 'site_youtube_link')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'site_support_url')?.value).toBe('https://kuest.com/support')
     expect(savedPayload.find(entry => entry.key === 'fee_recipient_wallet')?.value).toBe('0x1111111111111111111111111111111111111111')
-    expect(savedPayload.find(entry => entry.key === 'market_creators')?.value).toBe('0x2222222222222222222222222222222222222222\n0x3333333333333333333333333333333333333333')
     expect(savedPayload.find(entry => entry.key === 'lifi_integrator')?.value).toBe('kuest-fork')
     expect(savedPayload.find(entry => entry.key === 'lifi_api_key')?.value).toBe('enc.v1.lifi-123')
     expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_model')?.value).toBe('openai/gpt-4o-mini')
@@ -164,7 +161,6 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
     formData.set('logo_image_path', 'theme/site-logo.png')
     formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
-    formData.set('market_creators', '')
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
@@ -197,7 +193,6 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
     formData.set('logo_image_path', '')
     formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
-    formData.set('market_creators', '')
     formData.set('lifi_integrator', 'kuest-fork')
     formData.set('lifi_api_key', '')
     formData.set('openrouter_api_key', '')
@@ -210,6 +205,27 @@ describe('updateGeneralSettingsAction', () => {
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
     expect(savedPayload.find(entry => entry.key === 'lifi_api_key')?.value).toBe('enc.v1.existing')
     expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_api_key')?.value).toBe('enc.v1.existing-openrouter')
+  })
+
+  it('ignores unrelated extra form fields', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
+
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const formData = new FormData()
+    formData.set('site_name', 'Kuest')
+    formData.set('site_description', 'Prediction market')
+    formData.set('logo_mode', 'svg')
+    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+    formData.set('logo_image_path', '')
+    formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
+    formData.set('unknown_field', 'ignored')
+
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
+    expect(result).toEqual({ error: null })
+
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
+    expect(savedPayload.some(entry => entry.key === 'unknown_field')).toBe(false)
   })
 
   it('rejects unsupported logo upload types', async () => {

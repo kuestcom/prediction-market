@@ -53,7 +53,7 @@ const dataSchema = z.object({
   resolutionRules: z.string().optional().default(''),
   sports: z.object({
     section: z.enum(['games', 'props']).optional(),
-    eventVariant: z.enum(['standard', 'more_markets', 'exact_score', 'halftime_result']).optional(),
+    eventVariant: z.enum(['standard', 'more_markets', 'exact_score', 'halftime_result', 'custom']).optional(),
     sportSlug: z.string().optional().default(''),
     leagueSlug: z.string().optional().default(''),
     eventDate: z.string().optional().default(''),
@@ -74,7 +74,7 @@ const dataSchema = z.object({
     props: z.array(z.object({
       id: z.string().optional().default(''),
       playerName: z.string().optional().default(''),
-      statType: z.enum(['points', 'rebounds', 'assists']).optional(),
+      statType: z.enum(['points', 'rebounds', 'assists', 'receiving_yards', 'rushing_yards']).optional(),
       line: z.number().optional(),
       teamHostStatus: z.enum(['home', 'away']).optional(),
     })).optional().default([]),
@@ -530,43 +530,45 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
       })
     }
 
-    if (!normalizeText(input.sports?.sportSlug)) {
-      errors.push({
-        code: 'mandatory',
-        reason: 'Sports events require a sport slug.',
-        step: 1,
-      })
-    }
+    if (sportsSection === 'games') {
+      if (!normalizeText(input.sports?.sportSlug)) {
+        errors.push({
+          code: 'mandatory',
+          reason: 'Sports games require a sport slug.',
+          step: 1,
+        })
+      }
 
-    if (!normalizeText(input.sports?.leagueSlug)) {
-      errors.push({
-        code: 'mandatory',
-        reason: 'Sports events require a league slug.',
-        step: 1,
-      })
-    }
+      if (!normalizeText(input.sports?.leagueSlug)) {
+        errors.push({
+          code: 'mandatory',
+          reason: 'Sports games require a league slug.',
+          step: 1,
+        })
+      }
 
-    if (!normalizeText(input.sports?.startTime)) {
-      errors.push({
-        code: 'mandatory',
-        reason: 'Sports events require a game start time.',
-        step: 1,
-      })
-    }
+      if (!normalizeText(input.sports?.startTime)) {
+        errors.push({
+          code: 'mandatory',
+          reason: 'Sports games require a game start time.',
+          step: 1,
+        })
+      }
 
-    const teams = input.sports?.teams ?? []
-    const validTeams = teams.filter(team => normalizeText(team.name))
-    const hostStatuses = new Set(
-      validTeams
-        .map(team => team.host_status)
-        .filter((hostStatus): hostStatus is 'home' | 'away' => hostStatus === 'home' || hostStatus === 'away'),
-    )
-    if (validTeams.length < 2 || !hostStatuses.has('home') || !hostStatuses.has('away')) {
-      errors.push({
-        code: 'mandatory',
-        reason: 'Sports events require both home and away teams.',
-        step: 1,
-      })
+      const teams = input.sports?.teams ?? []
+      const validTeams = teams.filter(team => normalizeText(team.name))
+      const hostStatuses = new Set(
+        validTeams
+          .map(team => team.host_status)
+          .filter((hostStatus): hostStatus is 'home' | 'away' => hostStatus === 'home' || hostStatus === 'away'),
+      )
+      if (validTeams.length < 2 || !hostStatuses.has('home') || !hostStatuses.has('away')) {
+        errors.push({
+          code: 'mandatory',
+          reason: 'Sports games require both home and away teams.',
+          step: 1,
+        })
+      }
     }
 
     if (sportsSection === 'games' && !input.sports?.eventVariant) {

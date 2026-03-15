@@ -66,7 +66,42 @@ export function resolveSportsGamesCardCollapsedMarketType(
   const marketTypes = new Set(card.buttons.map(button => button.marketType))
   return COLLAPSED_CARD_MARKET_PRIORITY.find(marketType => marketTypes.has(marketType)) ?? null
 }
+export function resolveSportsGamesCardVisibleMarketTypes(
+  card: Pick<SportsGamesCard, 'buttons'>,
+  showSpreadsAndTotals: boolean,
+): SportsGamesButton['marketType'][] {
+  if (showSpreadsAndTotals && hasSportsGamesCardPrimaryMarketTrio(card)) {
+    return ['moneyline', 'spread', 'total']
+  }
 
+  const collapsedMarketType = resolveSportsGamesCardCollapsedMarketType(card)
+  return collapsedMarketType ? [collapsedMarketType] : []
+}
+
+export function resolveSportsGamesHeaderMarketTypes(
+  cards: Array<Pick<SportsGamesCard, 'buttons' | 'event'>>,
+  showSpreadsAndTotals: boolean,
+): SportsGamesButton['marketType'][] {
+  if (!showSpreadsAndTotals) {
+    return []
+  }
+
+  const candidateColumns = cards
+    .filter(card => card.event.sports_ended !== true)
+    .map(card => resolveSportsGamesCardVisibleMarketTypes(card, showSpreadsAndTotals))
+    .filter(columns => columns.length > 0)
+
+  const [firstColumns, ...remainingColumns] = candidateColumns
+  if (!firstColumns) {
+    return []
+  }
+
+  return remainingColumns.every(columns =>
+    columns.length === firstColumns.length
+    && columns.every((column, index) => column === firstColumns[index]))
+    ? firstColumns
+    : []
+}
 export interface SportsGamesCardMarketView {
   key: SportsEventMarketViewKey
   label: string

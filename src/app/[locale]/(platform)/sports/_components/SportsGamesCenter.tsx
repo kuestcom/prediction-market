@@ -50,7 +50,8 @@ import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/
 import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import {
   hasSportsGamesCardPrimaryMarketTrio,
-  resolveSportsGamesCardCollapsedMarketType,
+  resolveSportsGamesCardVisibleMarketTypes,
+  resolveSportsGamesHeaderMarketTypes,
 } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import SportsLivestreamFloatingPlayer
   from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
@@ -125,6 +126,9 @@ const COLLAPSED_MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: strin
   { key: 'spread', label: 'Spread' },
   { key: 'total', label: 'Total' },
 ]
+const MARKET_COLUMN_BY_KEY = new Map(
+  [...MARKET_COLUMNS, ...COLLAPSED_MARKET_COLUMNS].map(column => [column.key, column]),
+)
 const headerIconButtonClass = `
   flex size-10 items-center justify-center rounded-sm border border-transparent bg-transparent text-foreground
   transition-colors
@@ -3697,21 +3701,7 @@ export default function SportsGamesCenter({
     const preferredButton = preferredKey
       ? card.buttons.find(button => button.key === preferredKey) ?? null
       : null
-    const visibleMarketTypes = new Set(
-      (
-        showSpreadsAndTotals && hasSportsGamesCardPrimaryMarketTrio(card)
-          ? MARKET_COLUMNS
-          : (() => {
-              const collapsedMarketType = resolveSportsGamesCardCollapsedMarketType(card)
-              if (!collapsedMarketType) {
-                return []
-              }
-
-              return COLLAPSED_MARKET_COLUMNS.filter(column => column.key === collapsedMarketType)
-            })()
-      ).map(column => column.key),
-    )
-
+    const visibleMarketTypes = new Set(resolveSportsGamesCardVisibleMarketTypes(card, showSpreadsAndTotals))
     if (preferredButton && visibleMarketTypes.has(preferredButton.marketType)) {
       return preferredButton.key
     }
@@ -3720,13 +3710,6 @@ export default function SportsGamesCenter({
       ?? preferredButton?.key
       ?? resolveDefaultConditionId(card)
   }, [showSpreadsAndTotals])
-
-  const visibleMarketColumns = useMemo(
-    () => showSpreadsAndTotals
-      ? MARKET_COLUMNS
-      : MARKET_COLUMNS.filter(column => column.key === 'moneyline'),
-    [showSpreadsAndTotals],
-  )
 
   const weekOptions = useMemo(() => {
     if (isLivePage) {
@@ -4289,14 +4272,10 @@ export default function SportsGamesCenter({
   }
 
   function renderMarketColumnsHeader(headerKeyPrefix: string, cardsInGroup: SportsGamesCard[]) {
-    if (!showSpreadsAndTotals) {
-      return null
-    }
-
-    const hasVisibleButtonColumns = cardsInGroup.some(card =>
-      card.event.sports_ended !== true && hasSportsGamesCardPrimaryMarketTrio(card),
-    )
-    if (!hasVisibleButtonColumns) {
+    const headerColumns = resolveSportsGamesHeaderMarketTypes(cardsInGroup, showSpreadsAndTotals)
+      .map(marketType => MARKET_COLUMN_BY_KEY.get(marketType))
+      .filter((column): column is { key: SportsGamesMarketType, label: string } => Boolean(column))
+    if (headerColumns.length === 0) {
       return null
     }
 
@@ -4304,10 +4283,11 @@ export default function SportsGamesCenter({
       <div
         className={cn(
           'hidden gap-2 min-[1200px]:mr-2 min-[1200px]:ml-auto min-[1200px]:grid',
-          'w-[372px] grid-cols-3',
+          'w-[372px]',
+          headerColumns.length === 1 ? 'grid-cols-1' : 'grid-cols-3',
         )}
       >
-        {visibleMarketColumns.map(column => (
+        {headerColumns.map(column => (
           <div
             key={`${headerKeyPrefix}-${column.key}-header`}
             className="flex w-full items-center justify-center"
@@ -4356,10 +4336,9 @@ export default function SportsGamesCenter({
     const buttonGroups = groupButtonsByMarketType(card.buttons)
     const hasPrimaryMarketTrio = hasSportsGamesCardPrimaryMarketTrio(card)
     const shouldCollapseCardControlsToMoneylineOnly = !showSpreadsAndTotals || !hasPrimaryMarketTrio
-    const collapsedMarketType = resolveSportsGamesCardCollapsedMarketType(card)
-    const cardVisibleMarketColumns = shouldCollapseCardControlsToMoneylineOnly
-      ? COLLAPSED_MARKET_COLUMNS.filter(column => column.key === collapsedMarketType)
-      : MARKET_COLUMNS
+    const cardVisibleMarketColumns = resolveSportsGamesCardVisibleMarketTypes(card, showSpreadsAndTotals)
+      .map(marketType => MARKET_COLUMN_BY_KEY.get(marketType))
+      .filter((column): column is { key: SportsGamesMarketType, label: string } => Boolean(column))
     const hasLivestreamUrl = Boolean(card.event.livestream_url?.trim())
     const canWatchLivestream = (
       options.topBadgeMode === 'live'

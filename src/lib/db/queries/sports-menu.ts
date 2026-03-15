@@ -330,6 +330,20 @@ export async function getSportsCountsBySlugFromDb() {
 }
 
 export const SportsMenuRepository = {
+  async getMenuEntries(): Promise<QueryResult<SportsMenuEntry[]>> {
+    'use cache'
+    cacheTag(cacheTags.eventsGlobal)
+
+    return runQuery(async () => {
+      const rows = await getCachedSportsMenuRows()
+
+      return {
+        data: toSidebarMenuEntries(rows),
+        error: null,
+      }
+    })
+  },
+
   async getLayoutData(): Promise<QueryResult<SportsMenuLayoutData>> {
     'use cache'
     cacheTag(cacheTags.eventsGlobal)
