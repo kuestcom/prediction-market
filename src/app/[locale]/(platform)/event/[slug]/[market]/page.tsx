@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+import { Suspense } from 'react'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
 import EventViewerStateBoundary from '@/app/[locale]/(platform)/event/[slug]/_components/EventViewerStateBoundary'
 import EventStructuredData from '@/components/seo/EventStructuredData'
@@ -81,7 +82,9 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
         liveChartConfig={eventPageData.liveChartConfig}
         key={`is-bookmarked-${eventPageData.event.is_bookmarked}`}
       />
-      <EventViewerStateBoundary />
+      <Suspense fallback={null}>
+        <EventViewerStateBoundary />
+      </Suspense>
     </>
   )
 }

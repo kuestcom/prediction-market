@@ -19,6 +19,10 @@ export default function EventViewerState({ shouldHydrateSession }: EventViewerSt
       return
     }
 
+    if (shouldHydrateSession && lastHydratedUserIdRef.current === null) {
+      lastHydratedUserIdRef.current = '__initial__'
+    }
+
     if (lastHydratedUserIdRef.current === userId) {
       return
     }
