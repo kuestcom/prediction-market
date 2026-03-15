@@ -1,20 +1,21 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
-import { CircleHelp, ImageUp, RefreshCwIcon } from 'lucide-react'
+import { ImageUp, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { updateGeneralSettingsAction } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
+import AllowedMarketCreatorsManager from '@/app/[locale]/admin/(general)/_components/AllowedMarketCreatorsManager'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn, sanitizeSvg } from '@/lib/utils'
 
 const initialState = {
@@ -42,6 +43,33 @@ interface AdminGeneralSettingsFormProps {
   openRouterSettings: OpenRouterGeneralSettings
 }
 
+interface SettingsAccordionSectionProps {
+  value: string
+  header: ReactNode
+  children: ReactNode
+  className?: string
+}
+
+function SettingsAccordionSection({
+  value,
+  header,
+  children,
+  className,
+}: SettingsAccordionSectionProps) {
+  return (
+    <AccordionItem value={value} className={cn('overflow-hidden rounded-xl border', className)}>
+      <AccordionTrigger className="p-4 hover:no-underline">
+        {header}
+      </AccordionTrigger>
+      <AccordionContent className="data-[state=open]:border-t">
+        <div className="p-4">
+          {children}
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  )
+}
+
 export default function AdminGeneralSettingsForm({
   initialThemeSiteSettings,
   openRouterSettings,
@@ -67,7 +95,6 @@ export default function AdminGeneralSettingsForm({
   const initialYoutubeLink = initialThemeSiteSettings.youtubeLink
   const initialSupportUrl = initialThemeSiteSettings.supportUrl
   const initialFeeRecipientWallet = initialThemeSiteSettings.feeRecipientWallet
-  const initialMarketCreators = initialThemeSiteSettings.marketCreators
   const initialLiFiIntegrator = initialThemeSiteSettings.lifiIntegrator
   const initialLiFiApiKey = initialThemeSiteSettings.lifiApiKey
   const initialLiFiApiKeyConfigured = initialThemeSiteSettings.lifiApiKeyConfigured
@@ -95,7 +122,6 @@ export default function AdminGeneralSettingsForm({
   const [youtubeLink, setYoutubeLink] = useState(initialYoutubeLink)
   const [supportUrl, setSupportUrl] = useState(initialSupportUrl)
   const [feeRecipientWallet, setFeeRecipientWallet] = useState(initialFeeRecipientWallet)
-  const [marketCreators, setMarketCreators] = useState(initialMarketCreators)
   const [lifiIntegrator, setLifiIntegrator] = useState(initialLiFiIntegrator)
   const [lifiApiKey, setLifiApiKey] = useState(initialLiFiApiKey)
   const [openRouterApiKey, setOpenRouterApiKey] = useState('')
@@ -178,10 +204,6 @@ export default function AdminGeneralSettingsForm({
   useEffect(() => {
     setFeeRecipientWallet(initialFeeRecipientWallet)
   }, [initialFeeRecipientWallet])
-
-  useEffect(() => {
-    setMarketCreators(initialMarketCreators)
-  }, [initialMarketCreators])
 
   useEffect(() => {
     setLifiIntegrator(initialLiFiIntegrator)
@@ -307,14 +329,14 @@ export default function AdminGeneralSettingsForm({
       <input type="hidden" name="logo_svg" value={logoSvg} />
       <input type="hidden" name="pwa_icon_192_path" value={pwaIcon192Path} />
       <input type="hidden" name="pwa_icon_512_path" value={pwaIcon512Path} />
+      <input type="hidden" name="market_creators" value="" />
       <input type="hidden" name="openrouter_model" value={openRouterModel} />
 
-      <section className="overflow-hidden rounded-xl border">
-        <div className="p-4">
-          <h3 className="text-base font-medium">{t('Brand identity')}</h3>
-        </div>
-
-        <div className="border-t p-4">
+      <Accordion type="multiple" className="grid gap-6">
+        <SettingsAccordionSection
+          value="brand-identity"
+          header={<h3 className="text-base font-medium">{t('Brand identity')}</h3>}
+        >
           <div className="grid gap-6 md:grid-cols-[11rem_1fr]">
             <div className="grid gap-3">
               <Label>{t('Logo icon')}</Label>
@@ -447,15 +469,12 @@ export default function AdminGeneralSettingsForm({
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </SettingsAccordionSection>
 
-      <section className="overflow-hidden rounded-xl border">
-        <div className="p-4">
-          <h3 className="text-base font-medium">{t('Community and analytics')}</h3>
-        </div>
-
-        <div className="border-t p-4">
+        <SettingsAccordionSection
+          value="community-analytics"
+          header={<h3 className="text-base font-medium">{t('Community and analytics')}</h3>}
+        >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="theme-google-analytics-id">{t('Google Analytics ID')}</Label>
@@ -574,156 +593,120 @@ export default function AdminGeneralSettingsForm({
               />
             </div>
           </div>
-        </div>
-      </section>
+        </SettingsAccordionSection>
 
-      <section className="overflow-hidden rounded-xl border">
-        <div className="p-4">
-          <div className="flex items-center gap-1">
-            <h3 className="text-base font-medium">{t('OpenRouter integration')}</h3>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex size-4 items-center justify-center text-muted-foreground hover:text-foreground"
-                  aria-label={t('OpenRouter integration help')}
+        <SettingsAccordionSection
+          value="openrouter"
+          header={<h3 className="text-base font-medium">{t('OpenRouter integration')}</h3>}
+        >
+          <div className="grid gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="openrouter_key">{t('API key')}</Label>
+              <Input
+                id="openrouter_key"
+                name="openrouter_api_key"
+                type="password"
+                autoComplete="off"
+                maxLength={256}
+                value={openRouterApiKey}
+                onChange={event => setOpenRouterApiKey(event.target.value)}
+                disabled={isPending}
+                placeholder={
+                  initialOpenRouterApiKeyConfigured && !trimmedOpenRouterApiKey
+                    ? '••••••••••••••••'
+                    : t('Enter OpenRouter API key')
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('Generate an API key at')}
+                {' '}
+                <a
+                  href="https://openrouter.ai/settings/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2"
                 >
-                  <CircleHelp className="size-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs text-left text-pretty">
-                {t('OpenRouter powers AI requests used in market context generation and automatic translations (events and tags).')}
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
-
-        <div className="grid gap-6 border-t p-4">
-          <div className="grid gap-2">
-            <Label htmlFor="openrouter_key">{t('API key')}</Label>
-            <Input
-              id="openrouter_key"
-              name="openrouter_api_key"
-              type="password"
-              autoComplete="off"
-              maxLength={256}
-              value={openRouterApiKey}
-              onChange={event => setOpenRouterApiKey(event.target.value)}
-              disabled={isPending}
-              placeholder={
-                initialOpenRouterApiKeyConfigured && !trimmedOpenRouterApiKey
-                  ? '••••••••••••••••'
-                  : t('Enter OpenRouter API key')
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              {t('Generate an API key at')}
-              {' '}
-              <a
-                href="https://openrouter.ai/settings/keys"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-2"
-              >
-                openrouter.ai/settings/keys
-              </a>
-              .
-            </p>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="openrouter_model">{t('Preferred OpenRouter model')}</Label>
-            <div className="flex items-center gap-2">
-              <Select
-                value={openRouterSelectValue}
-                onValueChange={handleOpenRouterModelChange}
-                disabled={!openRouterModelSelectEnabled || isPending}
-              >
-                <SelectTrigger id="openrouter_model" className="h-12! w-full max-w-md justify-between text-left">
-                  <SelectValue placeholder={t('Select a model')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={AUTOMATIC_MODEL_VALUE}>
-                    {t('Let OpenRouter decide')}
-                  </SelectItem>
-                  {openRouterModelOptions.map(model => (
-                    <SelectItem key={model.id} value={model.id}>
-                      <div className="flex flex-col gap-0.5">
-                        <span>{model.label}</span>
-                        {model.contextWindow
-                          ? (
-                              <span className="text-xs text-muted-foreground">
-                                {t('Context window:')}
-                                {' '}
-                                {model.contextWindow.toLocaleString()}
-                              </span>
-                            )
-                          : null}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                variant="secondary"
-                size="icon"
-                className="size-12 shrink-0"
-                disabled={!trimmedOpenRouterApiKey || isPending || isRefreshingOpenRouterModels}
-                onClick={handleRefreshOpenRouterModels}
-                title={t('Refresh models')}
-                aria-label={t('Refresh models')}
-              >
-                <RefreshCwIcon className={cn('size-4', { 'animate-spin': isRefreshingOpenRouterModels })} />
-              </Button>
+                  openrouter.ai/settings/keys
+                </a>
+                .
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {t('Models with live browsing (for example')}
-              {' '}
-              <code>perplexity/sonar</code>
-              {t(') perform best. Explore available models at')}
-              {' '}
-              <a
-                href="https://openrouter.ai/models"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-2"
-              >
-                openrouter.ai/models
-              </a>
-              .
-            </p>
-            {openRouterModelsError
-              ? (
-                  <p className="text-xs text-destructive">{openRouterModelsError}</p>
-                )
-              : null}
-          </div>
-        </div>
-      </section>
 
-      <section className="overflow-hidden rounded-xl border">
-        <div className="p-4">
-          <div className="flex items-center gap-1">
-            <h3 className="text-base font-medium">{t('LI.FI integration')}</h3>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex size-4 items-center justify-center text-muted-foreground hover:text-foreground"
-                  aria-label={t('LI.FI integration help')}
+            <div className="grid gap-2">
+              <Label htmlFor="openrouter_model">{t('Preferred OpenRouter model')}</Label>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={openRouterSelectValue}
+                  onValueChange={handleOpenRouterModelChange}
+                  disabled={!openRouterModelSelectEnabled || isPending}
                 >
-                  <CircleHelp className="size-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs text-left text-pretty">
-                {t('LI.FI powers swap routes and token balances used in trading and deposits. It works without an API key (default: 200 requests per 2 hours). With an API key, the default limit is 200 requests per minute (enforced on a 2-hour rolling window).')}
-              </TooltipContent>
-            </Tooltip>
+                  <SelectTrigger id="openrouter_model" className="h-12! w-full max-w-md justify-between text-left">
+                    <SelectValue placeholder={t('Select a model')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={AUTOMATIC_MODEL_VALUE}>
+                      {t('Let OpenRouter decide')}
+                    </SelectItem>
+                    {openRouterModelOptions.map(model => (
+                      <SelectItem key={model.id} value={model.id}>
+                        <div className="flex flex-col gap-0.5">
+                          <span>{model.label}</span>
+                          {model.contextWindow
+                            ? (
+                                <span className="text-xs text-muted-foreground">
+                                  {t('Context window:')}
+                                  {' '}
+                                  {model.contextWindow.toLocaleString()}
+                                </span>
+                              )
+                            : null}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon"
+                  className="size-12 shrink-0"
+                  disabled={!trimmedOpenRouterApiKey || isPending || isRefreshingOpenRouterModels}
+                  onClick={handleRefreshOpenRouterModels}
+                  title={t('Refresh models')}
+                  aria-label={t('Refresh models')}
+                >
+                  <RefreshCwIcon className={cn('size-4', { 'animate-spin': isRefreshingOpenRouterModels })} />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t('Models with live browsing (for example')}
+                {' '}
+                <code>perplexity/sonar</code>
+                {t(') perform best. Explore available models at')}
+                {' '}
+                <a
+                  href="https://openrouter.ai/models"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2"
+                >
+                  openrouter.ai/models
+                </a>
+                .
+              </p>
+              {openRouterModelsError
+                ? (
+                    <p className="text-xs text-destructive">{openRouterModelsError}</p>
+                  )
+                : null}
+            </div>
           </div>
-        </div>
+        </SettingsAccordionSection>
 
-        <div className="border-t p-4">
+        <SettingsAccordionSection
+          value="lifi"
+          header={<h3 className="text-base font-medium">{t('LI.FI integration')}</h3>}
+        >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="theme-lifi-integrator">{t('Integrator name')}</Label>
@@ -773,15 +756,12 @@ export default function AdminGeneralSettingsForm({
               </p>
             </div>
           </div>
-        </div>
-      </section>
+        </SettingsAccordionSection>
 
-      <section className="overflow-hidden rounded-xl border">
-        <div className="p-4">
-          <h3 className="text-base font-medium">{t('Market and fee settings')}</h3>
-        </div>
-
-        <div className="border-t p-4">
+        <SettingsAccordionSection
+          value="market-fees"
+          header={<h3 className="text-base font-medium">{t('Market and fee settings')}</h3>}
+        >
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="theme-fee-recipient-wallet">{t('Your Polygon wallet address to receive transaction fees')}</Label>
@@ -796,64 +776,15 @@ export default function AdminGeneralSettingsForm({
               />
             </div>
 
-            <div className="grid gap-2">
-              <div className="flex items-center gap-1">
-                <Label htmlFor="theme-market-creators">{t('Allowed market creator wallets (one per line)')}</Label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="
-                        inline-flex size-4 items-center justify-center text-muted-foreground
-                        hover:text-foreground
-                      "
-                      aria-label={t('Market creator wallets help')}
-                    >
-                      <CircleHelp className="size-3.5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs text-left text-pretty">
-                    {t('Markets from these addresses will only appear on this fork\'s site. Leave empty to only show main Kuest markets.')}
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Textarea
-                id="theme-market-creators"
-                name="market_creators"
-                rows={4}
-                maxLength={8000}
-                value={marketCreators}
-                onChange={event => setMarketCreators(event.target.value)}
-                disabled={isPending}
-                placeholder={t('0xabc...\n0xdef...')}
-              />
-            </div>
+            <AllowedMarketCreatorsManager disabled={isPending} />
           </div>
-        </div>
-      </section>
+        </SettingsAccordionSection>
 
-      <section className="overflow-hidden rounded-xl border border-border/70">
-        <div className="p-4">
-          <div className="flex items-center gap-1">
-            <h3 className="text-sm font-medium">{t('App install icon (PWA)')}</h3>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex size-4 items-center justify-center text-muted-foreground hover:text-foreground"
-                  aria-label={t('App install icon (PWA)')}
-                >
-                  <CircleHelp className="size-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="text-left">
-                {t('Used by browser install prompts and home screen shortcuts.')}
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
-
-        <div className="border-t p-4">
+        <SettingsAccordionSection
+          value="pwa-icon"
+          className="border-border/70"
+          header={<h3 className="text-sm font-medium">{t('App install icon (PWA)')}</h3>}
+        >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
               <Label>{t('Icon 192x192')}</Label>
@@ -981,8 +912,8 @@ export default function AdminGeneralSettingsForm({
               </label>
             </div>
           </div>
-        </div>
-      </section>
+        </SettingsAccordionSection>
+      </Accordion>
 
       {state.error && <InputError message={state.error} />}
 
