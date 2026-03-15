@@ -227,7 +227,7 @@ export default function AllowedMarketCreatorsManager({
           <div className="space-y-1">
             <Label>{t('Allowed mirrored market sources')}</Label>
             <p className="text-xs text-muted-foreground">
-              {t('Add a site URL to import its mirrored wallets automatically, or add a wallet with a display name.')}
+              {t('Add the URL of another prediction market running on Kuest to import its wallets automatically, or add a wallet with a display name.')}
             </p>
           </div>
 
@@ -306,7 +306,7 @@ export default function AllowedMarketCreatorsManager({
           <DialogHeader>
             <DialogTitle>{t('Add mirrored market source')}</DialogTitle>
             <DialogDescription>
-              {t('Choose whether you want to add a site URL or a wallet with a display name.')}
+              {t('Choose whether you want to add a Kuest site URL or a wallet with a display name.')}
             </DialogDescription>
           </DialogHeader>
 
@@ -335,7 +335,7 @@ export default function AllowedMarketCreatorsManager({
             {dialogMode === 'site'
               ? (
                   <div className="grid gap-2">
-                    <Label htmlFor="allowed-market-source-url">{t('Site URL or domain')}</Label>
+                    <Label htmlFor="allowed-market-source-url">{t('Kuest site URL or domain')}</Label>
                     <Input
                       id="allowed-market-source-url"
                       value={siteUrl}

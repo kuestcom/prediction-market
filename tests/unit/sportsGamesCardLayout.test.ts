@@ -3,7 +3,7 @@ import {
   resolveSportsGamesCardCollapsedMarketType,
   resolveSportsGamesCardVisibleMarketTypes,
   resolveSportsGamesHeaderMarketTypes,
-} from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
+} from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 
 describe('sportsGamesCardLayout', () => {
   it('returns true only when moneyline, spread, and total are all present', () => {

@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
@@ -33,7 +34,8 @@ vi.mock('@/app/[locale]/admin/(general)/_components/AllowedMarketCreatorsManager
 }))
 
 describe('adminGeneralSettingsForm', () => {
-  it('keeps form inputs mounted while accordion sections are collapsed', () => {
+  it('starts with sections collapsed and keeps inputs mounted while toggling', async () => {
+    const user = userEvent.setup()
     const { container } = render(
       <AdminGeneralSettingsForm
         initialThemeSiteSettings={{
@@ -70,8 +72,15 @@ describe('adminGeneralSettingsForm', () => {
       />,
     )
 
+    expect(screen.getByRole('button', { name: /Brand identity/i })).toHaveAttribute('aria-expanded', 'false')
     expect(container.querySelector('input[name="site_name"]')).toBeTruthy()
     expect(container.querySelector('input[name="google_analytics_id"]')).toBeTruthy()
     expect(container.querySelector('input[name="fee_recipient_wallet"]')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: /Brand identity/i }))
+    expect(screen.getByRole('button', { name: /Brand identity/i })).toHaveAttribute('aria-expanded', 'true')
+
+    await user.click(screen.getByRole('button', { name: /Brand identity/i }))
+    expect(screen.getByRole('button', { name: /Brand identity/i })).toHaveAttribute('aria-expanded', 'false')
   })
 })

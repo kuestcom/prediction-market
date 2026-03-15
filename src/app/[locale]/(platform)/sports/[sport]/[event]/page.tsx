@@ -5,11 +5,11 @@ import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
+import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
 import {
   buildSportsGamesCardGroups,
   mergeSportsGamesCardMarkets,
-} from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
-import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
+} from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
 import { EventRepository } from '@/lib/db/queries/event'

@@ -7,7 +7,7 @@ import type {
   MouseEvent as ReactMouseEvent,
   MouseEvent as ReactMouseEventType,
 } from 'react'
-import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
+import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 import type { Market, Outcome, UserPosition } from '@/types'
@@ -48,13 +48,13 @@ import { TIME_RANGES, useEventPriceHistory } from '@/app/[locale]/(platform)/eve
 import { loadStoredChartSettings, storeChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
 import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
 import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
+import SportsLivestreamFloatingPlayer
+  from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import {
   hasSportsGamesCardPrimaryMarketTrio,
   resolveSportsGamesCardVisibleMarketTypes,
   resolveSportsGamesHeaderMarketTypes,
-} from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
-import SportsLivestreamFloatingPlayer
-  from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
+} from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
 import {

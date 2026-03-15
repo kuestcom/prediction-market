@@ -2,15 +2,14 @@
 
 import type { ReactNode } from 'react'
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
-import { ImageUp, RefreshCwIcon } from 'lucide-react'
+import { ChevronDownIcon, ImageUp, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
+import { useActionState, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { updateGeneralSettingsAction } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
 import AllowedMarketCreatorsManager from '@/app/[locale]/admin/(general)/_components/AllowedMarketCreatorsManager'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
@@ -48,6 +47,8 @@ interface SettingsAccordionSectionProps {
   header: ReactNode
   children: ReactNode
   className?: string
+  isOpen: boolean
+  onToggle: (value: string) => void
 }
 
 function SettingsAccordionSection({
@@ -55,30 +56,59 @@ function SettingsAccordionSection({
   header,
   children,
   className,
+  isOpen,
+  onToggle,
 }: SettingsAccordionSectionProps) {
+  const contentId = useId()
+
   return (
-    <AccordionItem
-      value={value}
+    <section
+      data-settings-section={value}
+      data-state={isOpen ? 'open' : 'closed'}
       className={cn(
         `overflow-hidden rounded-xl border bg-background transition-all duration-500 ease-in-out last:border-b`,
         className,
       )}
     >
-      <AccordionTrigger
+      <button
+        type="button"
+        aria-controls={contentId}
+        aria-expanded={isOpen}
+        onClick={() => onToggle(value)}
         className="
-          h-18 px-4 py-0 text-left transition-colors
+          flex h-18 w-full items-center justify-between gap-4 px-4 py-0 text-left transition-colors
           hover:bg-muted/50 hover:no-underline
           focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
           focus-visible:outline-none
-          [&>svg]:size-6 [&>svg]:text-muted-foreground
         "
       >
         {header}
-      </AccordionTrigger>
-      <AccordionContent forceMount className="data-[state=open]:border-t data-[state=open]:border-border/30 [&>div]:p-4">
-        {children}
-      </AccordionContent>
-    </AccordionItem>
+        <ChevronDownIcon
+          className={cn(
+            'size-6 shrink-0 text-muted-foreground transition-transform duration-200',
+            isOpen && 'rotate-180',
+          )}
+        />
+      </button>
+      <div
+        className={cn(
+          'grid min-h-0 transition-[grid-template-rows] duration-200 ease-out',
+          isOpen
+            ? 'grid-rows-[1fr]'
+            : 'grid-rows-[0fr]',
+        )}
+      >
+        <div
+          id={contentId}
+          aria-hidden={!isOpen}
+          className={cn('min-h-0 overflow-hidden', isOpen && 'border-t border-border/30')}
+        >
+          <div className="p-4">
+            {children}
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -148,6 +178,7 @@ export default function AdminGeneralSettingsForm({
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
   const [pwaIcon192PreviewUrl, setPwaIcon192PreviewUrl] = useState<string | null>(null)
   const [pwaIcon512PreviewUrl, setPwaIcon512PreviewUrl] = useState<string | null>(null)
+  const [openSections, setOpenSections] = useState<string[]>([])
 
   useEffect(() => {
     setSiteName(initialSiteName)
@@ -294,6 +325,16 @@ export default function AdminGeneralSettingsForm({
     setOpenRouterModel(nextValue === AUTOMATIC_MODEL_VALUE ? '' : nextValue)
   }
 
+  function toggleSection(value: string) {
+    setOpenSections((previous) => {
+      if (previous.includes(value)) {
+        return previous.filter(section => section !== value)
+      }
+
+      return [...previous, value]
+    })
+  }
+
   async function handleRefreshOpenRouterModels() {
     if (!trimmedOpenRouterApiKey) {
       return
@@ -343,9 +384,11 @@ export default function AdminGeneralSettingsForm({
       <input type="hidden" name="pwa_icon_512_path" value={pwaIcon512Path} />
       <input type="hidden" name="openrouter_model" value={openRouterModel} />
 
-      <Accordion type="multiple" className="grid gap-6">
+      <div className="grid gap-6">
         <SettingsAccordionSection
           value="brand-identity"
+          isOpen={openSections.includes('brand-identity')}
+          onToggle={toggleSection}
           header={<h3 className="text-base font-medium">{t('Brand identity')}</h3>}
         >
           <div className="grid gap-6 md:grid-cols-[11rem_1fr]">
@@ -484,6 +527,8 @@ export default function AdminGeneralSettingsForm({
 
         <SettingsAccordionSection
           value="community-analytics"
+          isOpen={openSections.includes('community-analytics')}
+          onToggle={toggleSection}
           header={<h3 className="text-base font-medium">{t('Community and analytics')}</h3>}
         >
           <div className="grid gap-4 md:grid-cols-2">
@@ -608,6 +653,8 @@ export default function AdminGeneralSettingsForm({
 
         <SettingsAccordionSection
           value="openrouter"
+          isOpen={openSections.includes('openrouter')}
+          onToggle={toggleSection}
           header={<h3 className="text-base font-medium">{t('OpenRouter integration')}</h3>}
         >
           <div className="grid gap-6">
@@ -716,6 +763,8 @@ export default function AdminGeneralSettingsForm({
 
         <SettingsAccordionSection
           value="lifi"
+          isOpen={openSections.includes('lifi')}
+          onToggle={toggleSection}
           header={<h3 className="text-base font-medium">{t('LI.FI integration')}</h3>}
         >
           <div className="grid gap-4 md:grid-cols-2">
@@ -771,6 +820,8 @@ export default function AdminGeneralSettingsForm({
 
         <SettingsAccordionSection
           value="market-fees"
+          isOpen={openSections.includes('market-fees')}
+          onToggle={toggleSection}
           header={<h3 className="text-base font-medium">{t('Market and fee settings')}</h3>}
         >
           <div className="grid gap-4">
@@ -793,6 +844,8 @@ export default function AdminGeneralSettingsForm({
 
         <SettingsAccordionSection
           value="pwa-icon"
+          isOpen={openSections.includes('pwa-icon')}
+          onToggle={toggleSection}
           header={<h3 className="text-base font-medium">{t('App install icon (PWA)')}</h3>}
         >
           <div className="grid gap-4 md:grid-cols-2">
@@ -923,7 +976,7 @@ export default function AdminGeneralSettingsForm({
             </div>
           </div>
         </SettingsAccordionSection>
-      </Accordion>
+      </div>
 
       {state.error && <InputError message={state.error} />}
 

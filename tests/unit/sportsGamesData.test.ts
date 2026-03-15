@@ -1,4 +1,4 @@
-import { buildSportsGamesCardGroups } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
+import { buildSportsGamesCardGroups } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 
 function buildOutcome(conditionId: string, outcomeIndex: number, outcomeText: string) {
   return {

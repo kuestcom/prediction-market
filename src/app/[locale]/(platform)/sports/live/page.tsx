@@ -3,8 +3,8 @@
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
-import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
+import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 

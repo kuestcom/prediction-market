@@ -1,12 +1,12 @@
 'use client'
 
+import type { SportsGamesMarketType } from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
+import type { SportsRedeemModalGroup, SportsRedeemModalSection } from '@/app/[locale]/(platform)/sports/_components/SportsRedeemModal'
 import type {
   SportsGamesButton,
   SportsGamesCard,
   SportsGamesCardMarketView,
-} from '@/app/[locale]/(platform)/sports/_components/sports-games-data'
-import type { SportsGamesMarketType } from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
-import type { SportsRedeemModalGroup, SportsRedeemModalSection } from '@/app/[locale]/(platform)/sports/_components/SportsRedeemModal'
+} from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { SportsEventMarketViewKey } from '@/lib/sports-event-slugs'
 import type { UserPosition } from '@/types'
