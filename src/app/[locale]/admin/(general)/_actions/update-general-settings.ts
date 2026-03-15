@@ -118,8 +118,6 @@ export async function updateGeneralSettingsAction(
   const youtubeLinkRaw = formData.get('youtube_link')
   const supportUrlRaw = formData.get('support_url')
   const feeRecipientWalletRaw = formData.get('fee_recipient_wallet')
-  const hasMarketCreatorsField = formData.has('market_creators')
-  const marketCreatorsRaw = formData.get('market_creators')
   const lifiIntegratorRaw = formData.get('lifi_integrator')
   const lifiApiKeyRaw = formData.get('lifi_api_key')
   const openRouterModelRaw = formData.get('openrouter_model')
@@ -142,7 +140,6 @@ export async function updateGeneralSettingsAction(
   const youtubeLink = typeof youtubeLinkRaw === 'string' ? youtubeLinkRaw : ''
   const supportUrl = typeof supportUrlRaw === 'string' ? supportUrlRaw : ''
   const feeRecipientWallet = typeof feeRecipientWalletRaw === 'string' ? feeRecipientWalletRaw : ''
-  const marketCreators = typeof marketCreatorsRaw === 'string' ? marketCreatorsRaw : ''
   const lifiIntegrator = typeof lifiIntegratorRaw === 'string' ? lifiIntegratorRaw : ''
   const lifiApiKey = typeof lifiApiKeyRaw === 'string' ? lifiApiKeyRaw : ''
   const openRouterModel = typeof openRouterModelRaw === 'string' ? openRouterModelRaw.trim() : ''
@@ -207,7 +204,6 @@ export async function updateGeneralSettingsAction(
     youtubeLink,
     supportUrl,
     feeRecipientWallet,
-    marketCreators,
     lifiIntegrator,
     lifiApiKey,
   })
@@ -256,9 +252,6 @@ export async function updateGeneralSettingsAction(
     { group: 'general', key: 'site_youtube_link', value: validated.data.youtubeLinkValue },
     { group: 'general', key: 'site_support_url', value: validated.data.supportUrlValue },
     { group: 'general', key: 'fee_recipient_wallet', value: validated.data.feeRecipientWalletValue },
-    ...(hasMarketCreatorsField
-      ? [{ group: 'general', key: 'market_creators', value: validated.data.marketCreatorsValue }]
-      : []),
     { group: 'general', key: 'lifi_integrator', value: validated.data.lifiIntegratorValue },
     { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
     { group: 'ai', key: 'openrouter_model', value: openRouterModel },

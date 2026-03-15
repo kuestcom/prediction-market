@@ -76,7 +76,14 @@ function isPrivateIpv6Hostname(hostname: string) {
     return isPrivateIpv4Hostname(normalized.slice(7))
   }
 
-  const firstHextet = normalized.split(':').find(Boolean) ?? ''
+  const firstHextet = (() => {
+    const [head] = normalized.split('::', 2)
+    if (!head) {
+      return '0'
+    }
+
+    return head.split(':')[0] || '0'
+  })()
   return /^fc/i.test(firstHextet)
     || /^fd/i.test(firstHextet)
     || /^fe[89ab]/i.test(firstHextet)

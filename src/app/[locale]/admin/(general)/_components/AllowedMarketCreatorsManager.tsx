@@ -215,9 +215,6 @@ export default function AllowedMarketCreatorsManager({
             <p className="text-xs text-muted-foreground">
               {t('Add a site URL to import its mirrored wallets automatically, or add a wallet with a display name.')}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {t('Sources are saved immediately. Public sites must expose')}
-            </p>
           </div>
 
           <Button

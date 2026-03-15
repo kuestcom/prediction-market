@@ -60,7 +60,7 @@ ON CONFLICT (wallet_address) DO UPDATE SET
   source_type = EXCLUDED.source_type,
   updated_at = NOW();
 
-WITH legacy_wallets AS (
+WITH imported_wallets AS (
   SELECT DISTINCT lower(trim(wallet.value)) AS wallet_address
   FROM settings
   CROSS JOIN LATERAL regexp_split_to_table(settings.value, E'[\\n,]+') AS wallet(value)
@@ -78,6 +78,10 @@ SELECT
   wallet_address,
   NULL,
   'wallet'
-FROM legacy_wallets
+FROM imported_wallets
 WHERE wallet_address ~ '^0x[0-9a-f]{40}$'
 ON CONFLICT (wallet_address) DO NOTHING;
+
+DELETE FROM settings
+WHERE settings.group = 'general'
+  AND settings.key = 'market_creators';

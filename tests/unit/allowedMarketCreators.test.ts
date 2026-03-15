@@ -36,6 +36,19 @@ describe('allowed market creators helpers', () => {
     })
   })
 
+  it('allows public IPv6 hosts that only compress leading zero hextets', () => {
+    const result = normalizeAllowedMarketCreatorSiteInput('https://[::fe80:1]')
+
+    expect('error' in result).toBe(false)
+    if ('error' in result) {
+      return
+    }
+
+    expect(result.origin).toBe('https://[::fe80:1]')
+    expect(result.displayName).toBe('[::fe80:1]')
+    expect(result.endpointUrl).toBe('https://[::fe80:1]/api/allowed-market-creators')
+  })
+
   it('groups site-backed rows into one removable source item', () => {
     expect(groupAllowedMarketCreatorItems([
       {

@@ -1,29 +1,45 @@
-import { describe, expect, it } from 'vitest'
-import {
-  mergeAllowedMarketCreatorWallets,
-  parseLegacyAllowedMarketCreatorWallets,
-} from '@/lib/allowed-market-creators-server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mocks = vi.hoisted(() => ({
+  listWallets: vi.fn(),
+}))
+
+vi.mock('@/lib/db/queries/allowed-market-creators', () => ({
+  AllowedMarketCreatorRepository: {
+    listWallets: (...args: any[]) => mocks.listWallets(...args),
+  },
+}))
 
 describe('allowed market creators server helpers', () => {
-  it('parses legacy market creators setting into normalized wallets', () => {
-    expect(parseLegacyAllowedMarketCreatorWallets(`
-      0x1111111111111111111111111111111111111111
-      not-a-wallet
-      0x2222222222222222222222222222222222222222
-    `)).toEqual([
-      '0x1111111111111111111111111111111111111111',
-      '0x2222222222222222222222222222222222222222',
-    ])
+  beforeEach(() => {
+    vi.resetModules()
+    mocks.listWallets.mockReset()
   })
 
-  it('merges persisted and legacy wallets without casing duplicates', () => {
-    expect(mergeAllowedMarketCreatorWallets(
-      ['0x1111111111111111111111111111111111111111'],
-      ['0x1111111111111111111111111111111111111111', '0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'],
-      ['0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa'],
-    )).toEqual([
+  it('normalizes wallet lists without casing duplicates', async () => {
+    const { normalizeAllowedMarketCreatorWallets } = await import('@/lib/allowed-market-creators-server')
+
+    expect(normalizeAllowedMarketCreatorWallets([
+      '0x1111111111111111111111111111111111111111',
+      '0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa',
+      'not-a-wallet',
+    ])).toEqual([
       '0x1111111111111111111111111111111111111111',
       '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     ])
+  })
+
+  it('loads only persisted allowed creator wallets', async () => {
+    mocks.listWallets.mockResolvedValueOnce({
+      data: ['0x1111111111111111111111111111111111111111'],
+      error: null,
+    })
+
+    const { loadAllowedMarketCreatorWallets } = await import('@/lib/allowed-market-creators-server')
+    await expect(loadAllowedMarketCreatorWallets()).resolves.toEqual({
+      data: ['0x1111111111111111111111111111111111111111'],
+      error: null,
+    })
   })
 })
