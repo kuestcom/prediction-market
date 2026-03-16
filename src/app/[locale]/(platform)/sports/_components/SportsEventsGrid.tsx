@@ -426,15 +426,11 @@ export default function SportsEventsGrid({
         return
       }
 
-      const hasCompleteOverrideSet = displayMarkets.every(
-        market => strictPriceByMarket[market.condition_id] != null,
-      )
-      if (!hasCompleteOverrideSet) {
-        return
-      }
-
       displayMarkets.forEach((market) => {
-        nextOverrides[market.condition_id] = strictPriceByMarket[market.condition_id]!
+        const displayPrice = strictPriceByMarket[market.condition_id]
+        if (displayPrice != null) {
+          nextOverrides[market.condition_id] = displayPrice
+        }
       })
     })
 

@@ -8,6 +8,11 @@ describe('market chance normalization', () => {
     expect(normalizeMarketPrice('64')).toBe(0.64)
   })
 
+  it('ignores malformed prices instead of treating them as zero', () => {
+    expect(normalizeMarketPrice('oops')).toBeNull()
+    expect(normalizeMarketPrice(Number.NaN)).toBeNull()
+  })
+
   it('keeps live quote display prices stable when feeds return cents', () => {
     expect(resolveDisplayPrice({
       bid: 63,

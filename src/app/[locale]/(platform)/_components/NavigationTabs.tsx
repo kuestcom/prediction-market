@@ -16,6 +16,10 @@ function getMainTagHref(slug: string, dynamicHomeCategorySlugSet: ReadonlySet<st
     return '/' as Route
   }
 
+  if (slug === 'sports') {
+    return '/sports/live' as Route
+  }
+
   if (slug === 'new' || isPlatformReservedRootSlug(slug) || dynamicHomeCategorySlugSet.has(slug)) {
     return `/${slug}` as Route
   }

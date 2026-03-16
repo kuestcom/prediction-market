@@ -16,6 +16,7 @@ import { useColumns } from '@/hooks/useColumns'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { filterHomeEvents, HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
 import { resolveDisplayPrice } from '@/lib/market-chance'
+import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import { useUser } from '@/stores/useUser'
 
 interface HydratedEventsGridProps {
@@ -35,12 +36,28 @@ const HYDRATED_EVENTS_SNAPSHOT_CACHE_LIMIT = 24
 const HOME_LIVE_PRICE_OBSERVER_ROOT_MARGIN = '200px 0px'
 const HOME_LIVE_OVERRIDE_SETTLE_DELAY_MS = 2_000
 
-function resolveHomeCardMarkets(event: Event) {
+function resolveCardMarkets(event: Event) {
   const activeMarkets = event.status === 'resolved'
     ? event.markets
     : event.markets.filter(market => !market.is_resolved && !market.condition?.resolved)
 
   return activeMarkets.length > 0 ? activeMarkets : event.markets
+}
+
+function resolveHomeCardMarkets(event: Event) {
+  const sportsMoneylineModel = buildHomeSportsMoneylineModel(event)
+  if (!sportsMoneylineModel) {
+    return resolveCardMarkets(event)
+  }
+
+  const marketIds = new Set([
+    sportsMoneylineModel.team1Button.conditionId,
+    sportsMoneylineModel.team2Button.conditionId,
+    sportsMoneylineModel.drawButton?.conditionId,
+  ].filter(Boolean))
+
+  const matchingMarkets = event.markets.filter(market => marketIds.has(market.condition_id))
+  return matchingMarkets.length > 0 ? matchingMarkets : resolveCardMarkets(event)
 }
 
 function peekHydratedEventsSnapshot(key: string) {
@@ -333,15 +350,11 @@ export default function HydratedEventsGrid({
         return
       }
 
-      const hasCompleteOverrideSet = displayMarkets.every(
-        market => strictPriceByMarket[market.condition_id] != null,
-      )
-      if (!hasCompleteOverrideSet) {
-        return
-      }
-
       displayMarkets.forEach((market) => {
-        nextOverrides[market.condition_id] = strictPriceByMarket[market.condition_id]!
+        const displayPrice = strictPriceByMarket[market.condition_id]
+        if (displayPrice != null) {
+          nextOverrides[market.condition_id] = displayPrice
+        }
       })
     })
 

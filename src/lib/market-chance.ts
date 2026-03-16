@@ -9,7 +9,7 @@ export function normalizeMarketPrice(value: number | string | null | undefined) 
 
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) {
-    return 0
+    return null
   }
 
   const normalized = parsed > 1 && parsed <= 100
