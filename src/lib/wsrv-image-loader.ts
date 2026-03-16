@@ -23,7 +23,11 @@ export default function wsrvImageLoader({
     return src
   }
 
-  if (src.startsWith('data:') || src.startsWith('blob:') || src.startsWith('/')) {
+  if (src.startsWith('data:') || src.startsWith('blob:')) {
+    return src
+  }
+
+  if (src.startsWith('/') && process.env.NODE_ENV !== 'production') {
     return src
   }
 
@@ -36,6 +40,7 @@ export default function wsrvImageLoader({
   const url = new URL('https://wsrv.nl/')
 
   url.searchParams.set('url', normalizedSrc)
+  url.searchParams.set('width', width.toString())
   url.searchParams.set('w', width.toString())
   url.searchParams.set('q', (quality ?? 75).toString())
   url.searchParams.set('output', 'webp')
