@@ -23,11 +23,7 @@ export default function wsrvImageLoader({
     return src
   }
 
-  if (src.startsWith('data:') || src.startsWith('blob:')) {
-    return src
-  }
-
-  if (src.startsWith('/') && process.env.NODE_ENV !== 'production') {
+  if (src.startsWith('data:') || src.startsWith('blob:') || src.startsWith('/')) {
     return src
   }
 
