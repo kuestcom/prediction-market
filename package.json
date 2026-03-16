@@ -25,7 +25,7 @@
     "@aws-sdk/client-s3": "^3.1004.0",
     "@better-auth/drizzle-adapter": "^1.5.3",
     "@bprogress/next": "^3.2.12",
-    "@lifi/sdk": "^3.16.1",
+    "@lifi/sdk": "^3.16.2",
     "@next/third-parties": "^16.1.6",
     "@reown/appkit": "1.8.19",
     "@reown/appkit-adapter-wagmi": "1.8.19",
