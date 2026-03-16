@@ -2,25 +2,13 @@ import type { MarketTokenTarget } from '@/app/[locale]/(platform)/event/[slug]/_
 import type { LastTradePriceEntry } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import { normalizeMarketPrice } from '@/lib/market-chance'
 
 const CLOB_BASE_URL = process.env.CLOB_URL
 const LAST_TRADE_REFRESH_INTERVAL_MS = 60_000
 
 function normalizePrice(value: string | undefined) {
-  if (!value) {
-    return null
-  }
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) {
-    return null
-  }
-  if (parsed < 0) {
-    return 0
-  }
-  if (parsed > 1) {
-    return 1
-  }
-  return parsed
+  return normalizeMarketPrice(value)
 }
 
 async function fetchLastTradesByMarket(targets: MarketTokenTarget[]) {

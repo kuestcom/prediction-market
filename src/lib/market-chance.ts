@@ -2,17 +2,28 @@ import type { Market } from '@/types'
 
 const MAX_DISPLAY_SPREAD = 0.1
 
-function clampPrice(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) {
+export function normalizeMarketPrice(value: number | string | null | undefined) {
+  if (value == null) {
+    return null
+  }
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
     return 0
   }
-  if (value < 0) {
+
+  const normalized = parsed > 1 && parsed <= 100
+    ? parsed / 100
+    : parsed
+
+  if (normalized < 0) {
     return 0
   }
-  if (value > 1) {
+  if (normalized > 1) {
     return 1
   }
-  return value
+
+  return normalized
 }
 
 export function resolveDisplayPrice({
@@ -21,39 +32,43 @@ export function resolveDisplayPrice({
   midpoint,
   lastTrade,
   maxSpread = MAX_DISPLAY_SPREAD,
+  strictFallbacks = false,
 }: {
   bid: number | null | undefined
   ask: number | null | undefined
   midpoint?: number | null | undefined
   lastTrade: number | null | undefined
   maxSpread?: number
+  strictFallbacks?: boolean
 }) {
   const hasBid = typeof bid === 'number' && Number.isFinite(bid)
   const hasAsk = typeof ask === 'number' && Number.isFinite(ask)
   const hasMidpoint = typeof midpoint === 'number' && Number.isFinite(midpoint)
   const hasLastTrade = typeof lastTrade === 'number' && Number.isFinite(lastTrade)
+  const normalizedBid = hasBid ? normalizeMarketPrice(bid as number) : null
+  const normalizedAsk = hasAsk ? normalizeMarketPrice(ask as number) : null
+  const normalizedMidpoint = hasMidpoint ? normalizeMarketPrice(midpoint as number) : null
+  const normalizedLastTrade = hasLastTrade ? normalizeMarketPrice(lastTrade as number) : null
 
   if (hasBid && hasAsk) {
-    const mid = hasMidpoint
-      ? (midpoint as number)
-      : ((ask as number) + (bid as number)) / 2
-    const spread = Math.max(0, (ask as number) - (bid as number))
+    const mid = normalizedMidpoint
+      ?? ((normalizedAsk ?? 0) + (normalizedBid ?? 0)) / 2
+    const spread = Math.max(0, (normalizedAsk ?? 0) - (normalizedBid ?? 0))
     if (spread <= maxSpread) {
-      return clampPrice(mid)
+      return mid
     }
-    return hasLastTrade ? clampPrice(lastTrade as number) : clampPrice(mid)
+    return normalizedLastTrade ?? (strictFallbacks ? null : mid)
   }
 
   if (hasMidpoint) {
-    return clampPrice(midpoint as number)
+    return normalizedMidpoint
   }
 
   if (hasAsk || hasBid) {
-    const fallback = hasAsk ? (ask as number) : (bid as number)
-    return clampPrice(fallback)
+    return normalizedLastTrade ?? (strictFallbacks ? null : (normalizedAsk ?? normalizedBid))
   }
 
-  return hasLastTrade ? clampPrice(lastTrade as number) : null
+  return normalizedLastTrade
 }
 
 export function buildChanceByMarket(
@@ -62,7 +77,7 @@ export function buildChanceByMarket(
 ) {
   function getPrice(market: Market) {
     const override = priceOverrides[market.condition_id]
-    return clampPrice(override ?? market.price)
+    return normalizeMarketPrice(override ?? market.price) ?? 0
   }
 
   return markets.reduce<Record<string, number>>((acc, market) => {

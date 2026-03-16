@@ -29,9 +29,19 @@ interface HydratedEventsGridProps {
 }
 
 const EMPTY_EVENTS: Event[] = []
+const EMPTY_PRICE_OVERRIDES: Record<string, number> = {}
 const hydratedEventsSnapshotCache = new Map<string, Event[]>()
 const HYDRATED_EVENTS_SNAPSHOT_CACHE_LIMIT = 24
 const HOME_LIVE_PRICE_OBSERVER_ROOT_MARGIN = '200px 0px'
+const HOME_LIVE_OVERRIDE_SETTLE_DELAY_MS = 2_000
+
+function resolveHomeCardMarkets(event: Event) {
+  const activeMarkets = event.status === 'resolved'
+    ? event.markets
+    : event.markets.filter(market => !market.is_resolved && !market.condition?.resolved)
+
+  return activeMarkets.length > 0 ? activeMarkets : event.markets
+}
 
 function peekHydratedEventsSnapshot(key: string) {
   return hydratedEventsSnapshotCache.get(key) ?? null
@@ -200,7 +210,9 @@ export default function HydratedEventsGrid({
 
   const previousUserKeyRef = useRef(queryUserScope)
   const [livePriceEventIds, setLivePriceEventIds] = useState<string[]>([])
-
+  const [stablePriceOverridesByMarket, setStablePriceOverridesByMarket] = useState<Record<string, number>>(EMPTY_PRICE_OVERRIDES)
+  const pendingPriceOverrideSignatureRef = useRef<string>('')
+  const priceOverrideCommitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (!filters.bookmarked || previousUserKeyRef.current === queryUserScope) {
       return
@@ -282,31 +294,23 @@ export default function HydratedEventsGrid({
     && lastStableVisibleEvents.length > 0
     && status !== 'success'
   const eventsToRender = shouldShowSnapshotFallback ? lastStableVisibleEvents : visibleEvents
-  const fallbackLiveEventIds = useMemo(
-    () => eventsToRender.slice(0, Math.max(columns * 2, 4)).map(event => String(event.id)),
-    [columns, eventsToRender],
-  )
-  const activeLiveEventIds = livePriceEventIds.length > 0
-    ? livePriceEventIds
-    : fallbackLiveEventIds
   const livePriceEvents = useMemo(
-    () => eventsToRender.filter(event => activeLiveEventIds.includes(String(event.id))),
-    [activeLiveEventIds, eventsToRender],
+    () => eventsToRender.filter(event => livePriceEventIds.includes(String(event.id))),
+    [eventsToRender, livePriceEventIds],
   )
   const marketTargets = useMemo(
-    () => livePriceEvents.flatMap(event => buildMarketTargets(event.markets)),
+    () => livePriceEvents.flatMap(event => buildMarketTargets(resolveHomeCardMarkets(event))),
     [livePriceEvents],
   )
   const marketQuotesByMarket = useEventMarketQuotes(marketTargets)
   const lastTradesByMarket = useEventLastTrades(marketTargets)
   const priceOverridesByMarket = useMemo(() => {
-    const marketIds = new Set([
-      ...Object.keys(marketQuotesByMarket),
-      ...Object.keys(lastTradesByMarket),
-    ])
+    if (livePriceEvents.length === 0) {
+      return EMPTY_PRICE_OVERRIDES
+    }
 
-    const entries: Array<[string, number]> = []
-    marketIds.forEach((conditionId) => {
+    const strictPriceByMarket: Record<string, number> = {}
+    Object.keys({ ...marketQuotesByMarket, ...lastTradesByMarket }).forEach((conditionId) => {
       const quote = marketQuotesByMarket[conditionId]
       const lastTrade = lastTradesByMarket[conditionId]
       const displayPrice = resolveDisplayPrice({
@@ -314,17 +318,81 @@ export default function HydratedEventsGrid({
         ask: quote?.ask ?? null,
         midpoint: quote?.mid ?? null,
         lastTrade,
+        strictFallbacks: true,
       })
+
       if (displayPrice != null) {
-        entries.push([conditionId, displayPrice])
+        strictPriceByMarket[conditionId] = displayPrice
       }
     })
 
-    return Object.fromEntries(entries)
-  }, [lastTradesByMarket, marketQuotesByMarket])
+    const nextOverrides: Record<string, number> = {}
+    livePriceEvents.forEach((event) => {
+      const displayMarkets = resolveHomeCardMarkets(event)
+      if (displayMarkets.length === 0) {
+        return
+      }
 
+      const hasCompleteOverrideSet = displayMarkets.every(
+        market => strictPriceByMarket[market.condition_id] != null,
+      )
+      if (!hasCompleteOverrideSet) {
+        return
+      }
+
+      displayMarkets.forEach((market) => {
+        nextOverrides[market.condition_id] = strictPriceByMarket[market.condition_id]!
+      })
+    })
+
+    return nextOverrides
+  }, [lastTradesByMarket, livePriceEvents, marketQuotesByMarket])
+  const priceOverrideSignature = useMemo(
+    () => Object.entries(priceOverridesByMarket)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([marketId, price]) => `${marketId}:${price}`)
+      .join('|'),
+    [priceOverridesByMarket],
+  )
   const isLoadingNewData = eventsToRender.length === 0
     && (isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0)))
+
+  useEffect(() => {
+    if (priceOverrideCommitTimeoutRef.current) {
+      clearTimeout(priceOverrideCommitTimeoutRef.current)
+      priceOverrideCommitTimeoutRef.current = null
+    }
+
+    if (!priceOverrideSignature) {
+      pendingPriceOverrideSignatureRef.current = ''
+      setStablePriceOverridesByMarket(current => (Object.keys(current).length === 0 ? current : EMPTY_PRICE_OVERRIDES))
+      return
+    }
+
+    pendingPriceOverrideSignatureRef.current = priceOverrideSignature
+    const nextOverrides = priceOverridesByMarket
+    priceOverrideCommitTimeoutRef.current = setTimeout(() => {
+      if (pendingPriceOverrideSignatureRef.current !== priceOverrideSignature) {
+        return
+      }
+
+      setStablePriceOverridesByMarket((current) => {
+        const currentSignature = Object.entries(current)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([marketId, price]) => `${marketId}:${price}`)
+          .join('|')
+
+        return currentSignature === priceOverrideSignature ? current : nextOverrides
+      })
+    }, HOME_LIVE_OVERRIDE_SETTLE_DELAY_MS)
+
+    return () => {
+      if (priceOverrideCommitTimeoutRef.current) {
+        clearTimeout(priceOverrideCommitTimeoutRef.current)
+        priceOverrideCommitTimeoutRef.current = null
+      }
+    }
+  }, [priceOverrideSignature, priceOverridesByMarket])
 
   useEffect(() => {
     if (!parentRef.current || eventsToRender.length === 0) {
@@ -448,7 +516,7 @@ export default function HydratedEventsGrid({
     <div ref={parentRef} className="w-full space-y-3 transition-opacity duration-200">
       <EventsStaticGrid
         events={eventsToRender}
-        priceOverridesByMarket={priceOverridesByMarket}
+        priceOverridesByMarket={stablePriceOverridesByMarket}
         maxColumns={maxColumns}
         isFetching={(visibleEvents.length === 0) || (isFetching && hasFreshQueryData)}
         currentTimestamp={currentTimestamp}

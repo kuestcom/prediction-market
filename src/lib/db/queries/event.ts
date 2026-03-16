@@ -166,17 +166,17 @@ function invertPrice(value: number | null) {
 }
 
 function resolveOutcomeDisplayPrice(
-  outcome: { buy_price?: number, sell_price?: number } | null | undefined,
+  outcome: { buy_price?: number, last_trade_price?: number, sell_price?: number } | null | undefined,
 ) {
   return resolveDisplayPrice({
     bid: outcome?.sell_price ?? null,
     ask: outcome?.buy_price ?? null,
-    lastTrade: null,
+    lastTrade: outcome?.last_trade_price ?? null,
   })
 }
 
 function resolveMarketDisplayPrice(
-  outcomes: Array<{ outcome_index: number, buy_price?: number, sell_price?: number }>,
+  outcomes: Array<{ outcome_index: number, buy_price?: number, last_trade_price?: number, sell_price?: number }>,
 ) {
   const yesOutcome = outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
   const noOutcome = outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
@@ -321,11 +321,15 @@ async function fetchOutcomePrices(tokenIds: string[]): Promise<Map<string, Outco
 
     if (batchResult.data) {
       applyPriceBatch(batchResult.data, priceMap, missingTokenIds)
+    }
+
+    const batchMissingTokenIds = batch.filter(tokenId => missingTokenIds.has(tokenId))
+    if (batchMissingTokenIds.length === 0) {
       continue
     }
 
     const tokenResults = await Promise.allSettled(
-      batch.map(tokenId => fetchPriceBatch(endpoint, [tokenId])),
+      batchMissingTokenIds.map(tokenId => fetchPriceBatch(endpoint, [tokenId])),
     )
 
     for (const result of tokenResults) {
@@ -772,6 +776,7 @@ function eventResource(
   userId: string,
   sportsSlugResolver: SportsSlugResolver,
   priceMap: Map<string, OutcomePrices>,
+  lastTradeMap: Map<string, number> = new Map(),
   localizedTagNamesById: Map<number, string> = new Map(),
   localizedEventTitlesById: Map<string, string> = new Map(),
   liveChartSeriesSlugs: Set<string> = new Set(),
@@ -794,6 +799,7 @@ function eventResource(
         outcome_index: Number(outcome.outcome_index || 0),
         payout_value: outcome.payout_value != null ? Number(outcome.payout_value) : undefined,
         buy_price: outcomePrice?.buy,
+        last_trade_price: outcome.token_id ? lastTradeMap.get(outcome.token_id) : undefined,
         sell_price: outcomePrice?.sell,
       }
     })
@@ -936,8 +942,9 @@ async function buildEventResource(
       .map(eventTag => eventTag.tag?.id)
       .filter((tagId): tagId is number => typeof tagId === 'number'),
   ))
-  const [priceMap, localizedTagNamesById, localizedEventTitlesById, liveChartSeriesSlugs] = await Promise.all([
+  const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, liveChartSeriesSlugs] = await Promise.all([
     fetchOutcomePrices(outcomeTokenIds),
+    fetchLastTradePrices(outcomeTokenIds),
     getLocalizedTagNamesById(tagIds, locale),
     getLocalizedEventTitlesById([eventResult.id], locale),
     getEnabledLiveChartSeriesSlugs(),
@@ -947,6 +954,7 @@ async function buildEventResource(
     userId,
     sportsSlugResolver,
     priceMap,
+    lastTradeMap,
     localizedTagNamesById,
     localizedEventTitlesById,
     liveChartSeriesSlugs,
@@ -1282,8 +1290,9 @@ export const EventRepository = {
       const sportsVolumeGroupKeysForAggregation = Array.from(new Set(
         sportsVolumeGroupKeyByEventId.values(),
       ))
-      const [priceMap, localizedTagNamesById, localizedEventTitlesById, groupedSportsVolumesByGroupKey] = await Promise.all([
+      const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, groupedSportsVolumesByGroupKey] = await Promise.all([
         fetchOutcomePrices(tokensForPricing),
+        fetchLastTradePrices(tokensForPricing),
         getLocalizedTagNamesById(tagIds, locale),
         getLocalizedEventTitlesById(eventIds, locale),
         getSportsAggregatedVolumesByGroupKey(sportsVolumeGroupKeysForAggregation),
@@ -1297,6 +1306,7 @@ export const EventRepository = {
           userId,
           sportsSlugResolver,
           priceMap,
+          lastTradeMap,
           localizedTagNamesById,
           localizedEventTitlesById,
           liveChartSeriesSlugs,
@@ -2338,8 +2348,9 @@ export const EventRepository = {
         ),
       ))
       const eventIds = hydratedGroupedEventsData.map(event => event.id)
-      const [priceMap, localizedTagNamesById, localizedEventTitlesById, groupedVolumesByGroupKey] = await Promise.all([
+      const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, groupedVolumesByGroupKey] = await Promise.all([
         fetchOutcomePrices(tokensForPricing),
+        fetchLastTradePrices(tokensForPricing),
         getLocalizedTagNamesById(tagIds, locale),
         getLocalizedEventTitlesById(eventIds, locale),
         getSportsAggregatedVolumesByGroupKey([baseGroupKey]),
@@ -2354,6 +2365,7 @@ export const EventRepository = {
           userId,
           sportsSlugResolver,
           priceMap,
+          lastTradeMap,
           localizedTagNamesById,
           localizedEventTitlesById,
           liveChartSeriesSlugs,

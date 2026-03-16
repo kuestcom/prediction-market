@@ -28,6 +28,16 @@ interface SportsEventsGridProps {
 }
 
 const EMPTY_EVENTS: Event[] = []
+const EMPTY_PRICE_OVERRIDES: Record<string, number> = {}
+const SPORTS_LIVE_OVERRIDE_SETTLE_DELAY_MS = 2_000
+
+function resolveSportsCardMarkets(event: Event) {
+  const activeMarkets = event.status === 'resolved'
+    ? event.markets
+    : event.markets.filter(market => !market.is_resolved && !market.condition?.resolved)
+
+  return activeMarkets.length > 0 ? activeMarkets : event.markets
+}
 
 function normalizeSeriesSlug(value: string | null | undefined) {
   const normalized = value?.trim().toLowerCase()
@@ -259,6 +269,9 @@ export default function SportsEventsGrid({
   })
 
   const previousUserKeyRef = useRef(userCacheKey)
+  const [stablePriceOverridesByMarket, setStablePriceOverridesByMarket] = useState<Record<string, number>>(EMPTY_PRICE_OVERRIDES)
+  const pendingPriceOverrideSignatureRef = useRef<string>('')
+  const priceOverrideCommitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (previousUserKeyRef.current === userCacheKey) {
@@ -382,21 +395,15 @@ export default function SportsEventsGrid({
     return sportsBaseEvents.filter(event => isEventFuture(event, currentTimestamp))
   }, [currentTimestamp, sportsBaseEvents, sportsMode])
   const visibleEvents = sportsModeEvents
-
   const marketTargets = useMemo(
-    () => visibleEvents.flatMap(event => buildMarketTargets(event.markets)),
+    () => visibleEvents.flatMap(event => buildMarketTargets(resolveSportsCardMarkets(event))),
     [visibleEvents],
   )
   const marketQuotesByMarket = useEventMarketQuotes(marketTargets)
   const lastTradesByMarket = useEventLastTrades(marketTargets)
   const priceOverridesByMarket = useMemo(() => {
-    const marketIds = new Set([
-      ...Object.keys(marketQuotesByMarket),
-      ...Object.keys(lastTradesByMarket),
-    ])
-
-    const entries: Array<[string, number]> = []
-    marketIds.forEach((conditionId) => {
+    const strictPriceByMarket: Record<string, number> = {}
+    Object.keys({ ...marketQuotesByMarket, ...lastTradesByMarket }).forEach((conditionId) => {
       const quote = marketQuotesByMarket[conditionId]
       const lastTrade = lastTradesByMarket[conditionId]
       const displayPrice = resolveDisplayPrice({
@@ -404,19 +411,85 @@ export default function SportsEventsGrid({
         ask: quote?.ask ?? null,
         midpoint: quote?.mid ?? null,
         lastTrade,
+        strictFallbacks: true,
       })
+
       if (displayPrice != null) {
-        entries.push([conditionId, displayPrice])
+        strictPriceByMarket[conditionId] = displayPrice
       }
     })
 
-    return Object.fromEntries(entries)
-  }, [lastTradesByMarket, marketQuotesByMarket])
+    const nextOverrides: Record<string, number> = {}
+    visibleEvents.forEach((event) => {
+      const displayMarkets = resolveSportsCardMarkets(event)
+      if (displayMarkets.length === 0) {
+        return
+      }
+
+      const hasCompleteOverrideSet = displayMarkets.every(
+        market => strictPriceByMarket[market.condition_id] != null,
+      )
+      if (!hasCompleteOverrideSet) {
+        return
+      }
+
+      displayMarkets.forEach((market) => {
+        nextOverrides[market.condition_id] = strictPriceByMarket[market.condition_id]!
+      })
+    })
+
+    return nextOverrides
+  }, [lastTradesByMarket, marketQuotesByMarket, visibleEvents])
+  const priceOverrideSignature = useMemo(
+    () => Object.entries(priceOverridesByMarket)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([marketId, price]) => `${marketId}:${price}`)
+      .join('|'),
+    [priceOverridesByMarket],
+  )
+
   const columns = useColumns()
   const activeColumns = columns >= 3 ? columns - 1 : columns
   const loadingMoreColumns = Math.max(1, activeColumns)
 
   const isLoadingNewData = isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0))
+
+  useEffect(() => {
+    if (priceOverrideCommitTimeoutRef.current) {
+      clearTimeout(priceOverrideCommitTimeoutRef.current)
+      priceOverrideCommitTimeoutRef.current = null
+    }
+
+    if (!priceOverrideSignature) {
+      pendingPriceOverrideSignatureRef.current = ''
+      setStablePriceOverridesByMarket(current => (Object.keys(current).length === 0 ? current : EMPTY_PRICE_OVERRIDES))
+      return
+    }
+
+    pendingPriceOverrideSignatureRef.current = priceOverrideSignature
+    const nextOverrides = priceOverridesByMarket
+    priceOverrideCommitTimeoutRef.current = setTimeout(() => {
+      if (pendingPriceOverrideSignatureRef.current !== priceOverrideSignature) {
+        return
+      }
+
+      setStablePriceOverridesByMarket((current) => {
+        const currentSignature = Object.entries(current)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([marketId, price]) => `${marketId}:${price}`)
+          .join('|')
+
+        return currentSignature === priceOverrideSignature ? current : nextOverrides
+      })
+    }, SPORTS_LIVE_OVERRIDE_SETTLE_DELAY_MS)
+
+    return () => {
+      if (priceOverrideCommitTimeoutRef.current) {
+        clearTimeout(priceOverrideCommitTimeoutRef.current)
+        priceOverrideCommitTimeoutRef.current = null
+      }
+    }
+  }, [priceOverrideSignature, priceOverridesByMarket])
 
   useEffect(() => {
     if (!loadMoreRef.current || !hasNextPage) {
@@ -498,7 +571,7 @@ export default function SportsEventsGrid({
           <EventCard
             key={event.id}
             event={event}
-            priceOverridesByMarket={priceOverridesByMarket}
+            priceOverridesByMarket={stablePriceOverridesByMarket}
             enableHomeSportsMoneylineLayout={false}
             currentTimestamp={currentTimestamp}
           />
