@@ -1,10 +1,8 @@
 'use client'
 
-import type { User } from '@/types'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
-import { useEffect } from 'react'
 import HeaderDropdownUserMenuGuest from '@/app/[locale]/(platform)/_components/HeaderDropdownUserMenuGuest'
 import HeaderNotifications from '@/app/[locale]/(platform)/_components/HeaderNotifications'
 import { useOptionalTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
@@ -35,34 +33,6 @@ function HeaderMenuClient() {
   const isMobile = useIsMobile()
   const tradingOnboarding = useOptionalTradingOnboarding()
   const user = useUser()
-
-  useEffect(() => {
-    if (isSessionPending) {
-      return
-    }
-
-    if (session?.user) {
-      const sessionSettings = (session.user as Partial<User>).settings
-      useUser.setState((previous) => {
-        if (!previous) {
-          return { ...session.user, image: session.user.image ?? '' }
-        }
-
-        return {
-          ...previous,
-          ...session.user,
-          image: session.user.image ?? previous.image ?? '',
-          settings: {
-            ...(previous.settings ?? {}),
-            ...(sessionSettings ?? {}),
-          },
-        }
-      })
-    }
-    else {
-      useUser.setState(null)
-    }
-  }, [isSessionPending, session?.user])
 
   const isAuthenticated = Boolean(session?.user) || Boolean(user) || isConnected
   const shouldShowGuestActions = !isAuthenticated && !isSessionPending

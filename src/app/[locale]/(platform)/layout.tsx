@@ -6,6 +6,7 @@ import { cacheTag } from 'next/cache'
 import AffiliateQueryHandler from '@/app/[locale]/(platform)/_components/AffiliateQueryHandler'
 import Header from '@/app/[locale]/(platform)/_components/Header'
 import NavigationTabs from '@/app/[locale]/(platform)/_components/NavigationTabs'
+import PlatformViewerState from '@/app/[locale]/(platform)/_components/PlatformViewerState'
 import { FilterProvider } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import PlatformNavigationProvider from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import { cacheTags } from '@/lib/cache-tags'
@@ -30,6 +31,7 @@ export default async function PlatformLayout({ params, children }: LayoutProps<'
 
   return (
     <AppProviders>
+      <PlatformViewerState />
       <FilterProvider>
         <PlatformNavigationProvider tags={tags} childParentMap={childParentMap}>
           <Header />

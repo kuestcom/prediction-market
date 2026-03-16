@@ -2,6 +2,10 @@ import type { AnchorHTMLAttributes } from 'react'
 import { render } from '@testing-library/react'
 import EventCardSportsMoneyline from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
 
+const mocks = vi.hoisted(() => ({
+  eventBookmark: vi.fn(),
+}))
+
 vi.mock('next/image', () => ({
   default: function MockImage({ fill: _fill, ...props }: any) {
     return <img {...props} />
@@ -23,7 +27,8 @@ vi.mock('@/components/IntentPrefetchLink', () => ({
 }))
 
 vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark', () => ({
-  default: function MockEventBookmark() {
+  default: function MockEventBookmark(props: any) {
+    mocks.eventBookmark(props)
     return <span data-testid="event-bookmark" />
   },
 }))
@@ -34,6 +39,10 @@ vi.mock('@/lib/events-routing', () => ({
 }))
 
 describe('eventCardSportsMoneyline', () => {
+  beforeEach(() => {
+    mocks.eventBookmark.mockReset()
+  })
+
   it('uses primary fallback colors when team metadata does not include colors', () => {
     const event = {
       status: 'open',
@@ -90,5 +99,8 @@ describe('eventCardSportsMoneyline', () => {
 
     expect(container.querySelectorAll('[class~=\"bg-primary\"]')).toHaveLength(1)
     expect(container.querySelectorAll('[class~=\"bg-primary/60\"]')).toHaveLength(1)
+    expect(mocks.eventBookmark).toHaveBeenCalledWith(expect.objectContaining({
+      refreshStatusOnMount: false,
+    }))
   })
 })

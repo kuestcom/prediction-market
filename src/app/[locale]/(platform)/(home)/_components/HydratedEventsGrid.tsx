@@ -150,7 +150,7 @@ export default function HydratedEventsGrid({
   const canRetryLoadMoreAfterErrorRef = useRef(true)
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
-  const queryUserScope = filters.bookmarked ? userCacheKey : 'public'
+  const queryUserScope = userCacheKey
   const currentTimestamp = useCurrentTimestamp({
     initialTimestamp: initialCurrentTimestamp,
     intervalMs: 60_000,
@@ -163,7 +163,7 @@ export default function HydratedEventsGrid({
     filters.tag,
     filters.mainTag,
     filters.search,
-    filters.bookmarked ? queryUserScope : 'public',
+    queryUserScope,
     filters.frequency,
     filters.status,
     filters.hideSports ? 'hide-sports' : 'show-sports',
@@ -183,7 +183,9 @@ export default function HydratedEventsGrid({
     && !filters.hideSports
     && !filters.hideCrypto
     && !filters.hideEarnings
-  const shouldUseInitialData = isRouteInitialState && initialEvents.length > 0
+  const shouldUseInitialData = isRouteInitialState
+    && initialEvents.length > 0
+    && queryUserScope === 'guest'
 
   const {
     status,
@@ -231,13 +233,13 @@ export default function HydratedEventsGrid({
   const pendingPriceOverrideSignatureRef = useRef<string>('')
   const priceOverrideCommitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
-    if (!filters.bookmarked || previousUserKeyRef.current === queryUserScope) {
+    if (previousUserKeyRef.current === queryUserScope) {
       return
     }
 
     previousUserKeyRef.current = queryUserScope
     void refetch()
-  }, [filters.bookmarked, queryUserScope, refetch])
+  }, [queryUserScope, refetch])
 
   useEffect(() => {
     setInfiniteScrollError(null)

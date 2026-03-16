@@ -284,7 +284,7 @@ export default function EventCardSportsMoneyline({
 
             {!isResolvedEvent && (
               <div className="shrink-0">
-                <EventBookmark event={event} />
+                <EventBookmark event={event} refreshStatusOnMount={false} />
               </div>
             )}
           </div>

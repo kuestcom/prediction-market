@@ -57,7 +57,7 @@ export default function EventCardFooter({
         ? (endedLabel
             ? <span>{endedLabel}</span>
             : null)
-        : <EventBookmark event={event} />}
+        : <EventBookmark event={event} refreshStatusOnMount={false} />}
     </div>
   )
 }

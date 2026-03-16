@@ -1,11 +1,9 @@
 'use client'
 
-import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { BookmarkIcon } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { getBookmarkStatusAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/get-bookmark-status'
-import { toggleBookmarkAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/toggle-bookmark'
+import { getBookmarkStatusAction, toggleBookmarkAction } from '@/app/[locale]/(platform)/_actions/bookmark'
 import { Button } from '@/components/ui/button'
 import { useAppKit } from '@/hooks/useAppKit'
 import { cn } from '@/lib/utils'
@@ -18,17 +16,20 @@ interface EventBookmarkProps {
     id: string
     is_bookmarked: boolean
   }
+  refreshStatusOnMount?: boolean
 }
 
-export default function EventBookmark({ event }: EventBookmarkProps) {
+export default function EventBookmark({
+  event,
+  refreshStatusOnMount = true,
+}: EventBookmarkProps) {
   const { open } = useAppKit()
-  const { isConnected } = useAppKitAccount()
   const user = useUser()
   const queryClient = useQueryClient()
   const [isBookmarked, setIsBookmarked] = useState(event.is_bookmarked)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleBookmark = useCallback(() => {
+  const handleBookmark = useCallback(async () => {
     if (isSubmitting) {
       return
     }
@@ -37,32 +38,33 @@ export default function EventBookmark({ event }: EventBookmarkProps) {
     setIsBookmarked(!isBookmarked)
     setIsSubmitting(true)
 
-    void (async () => {
-      try {
-        const response = await toggleBookmarkAction(event.id)
-        if (response.error) {
-          setIsBookmarked(previousState)
-          return
-        }
-
-        // Keep global event lists stale without forcing immediate refetch in-page.
-        void queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' })
-      }
-      catch {
+    try {
+      const response = await toggleBookmarkAction(event.id)
+      if (response.error) {
         setIsBookmarked(previousState)
+        if (response.error === 'Unauthenticated.') {
+          queueMicrotask(() => open())
+        }
+        return
       }
-      finally {
-        setIsSubmitting(false)
-      }
-    })
-  }, [event.id, isBookmarked, isSubmitting, queryClient])
+
+      // Keep global event lists stale without forcing immediate refetch in-page.
+      void queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' })
+    }
+    catch {
+      setIsBookmarked(previousState)
+    }
+    finally {
+      setIsSubmitting(false)
+    }
+  }, [event.id, isBookmarked, isSubmitting, open, queryClient])
 
   useEffect(() => {
     setIsBookmarked(event.is_bookmarked)
   }, [event.is_bookmarked])
 
   useEffect(() => {
-    if (!user?.id) {
+    if (!refreshStatusOnMount || !user?.id) {
       return
     }
 
@@ -79,20 +81,17 @@ export default function EventBookmark({ event }: EventBookmarkProps) {
     return () => {
       isActive = false
     }
-  }, [event.id, user?.id])
+  }, [event.id, refreshStatusOnMount, user?.id])
 
   return (
     <Button
       type="button"
       size="icon"
       variant="ghost"
-      onClick={() => {
-        if (isConnected) {
-          handleBookmark()
-        }
-        else {
-          queueMicrotask(() => open())
-        }
+      onClick={(clickEvent) => {
+        clickEvent.preventDefault()
+        clickEvent.stopPropagation()
+        void handleBookmark()
       }}
       disabled={isSubmitting}
       aria-pressed={isBookmarked}
