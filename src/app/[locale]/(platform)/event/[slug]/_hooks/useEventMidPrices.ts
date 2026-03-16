@@ -1,7 +1,7 @@
 import type { MarketTokenTarget } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
-import { normalizeMarketPrice } from '@/lib/market-chance'
+import { normalizeClobMarketPrice } from '@/lib/clob-price'
 
 interface PriceApiResponse {
   [tokenId: string]: { BUY?: string, SELL?: string } | undefined
@@ -23,7 +23,7 @@ const PRICE_REFRESH_INTERVAL_MS = 60_000
 const CLOB_BASE_URL = process.env.CLOB_URL
 
 function normalizePrice(value: string | number | undefined | null) {
-  return normalizeMarketPrice(value)
+  return normalizeClobMarketPrice(value)
 }
 
 function resolveQuote(
