@@ -22,6 +22,7 @@ export function buildPublicProfileMetadata(slug: string): Metadata {
 }
 
 export async function PublicProfilePageContent({ slug }: { slug: string }) {
+  const fallbackChartEndDate = new Date().toISOString()
   const normalized = normalizePublicProfileSlug(slug)
   if (normalized.type === 'invalid') {
     notFound()
@@ -46,6 +47,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
             portfolioAddress: normalized.value,
           }}
           snapshot={snapshot}
+          fallbackChartEndDate={fallbackChartEndDate}
         />
         <PublicProfileTabs userAddress={normalized.value} />
       </>
@@ -65,6 +67,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
           portfolioAddress: userAddress,
         }}
         snapshot={snapshot}
+        fallbackChartEndDate={fallbackChartEndDate}
       />
       <PublicProfileTabs userAddress={userAddress} />
     </>

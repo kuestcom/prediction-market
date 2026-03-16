@@ -31,14 +31,17 @@ interface PublicProfileHeroCardsProps {
   snapshot: PortfolioSnapshot
   actions?: ReactNode
   variant?: 'public' | 'portfolio'
+  fallbackChartEndDate?: string
 }
 
 function ProfitLossCard({
   snapshot: _snapshot,
   portfolioAddress,
+  fallbackChartEndDate,
 }: {
   snapshot: PortfolioSnapshot
   portfolioAddress?: string | null
+  fallbackChartEndDate?: string
 }) {
   const site = useSiteIdentity()
   const platformName = site.name ?? ''
@@ -161,7 +164,10 @@ function ProfitLossCard({
     }
     return ranges[activeTimeframe] ?? ranges.ALL
   }, [activeTimeframe])
-  const fallbackEndDate = useMemo(() => new Date(), [])
+  const fallbackEndDate = useMemo(
+    () => new Date(fallbackChartEndDate ?? '1970-01-01T00:00:00.000Z'),
+    [fallbackChartEndDate],
+  )
   const fallbackStartDate = useMemo(
     () => new Date(fallbackEndDate.getTime() - fallbackDurationMs),
     [fallbackDurationMs, fallbackEndDate],
@@ -627,6 +633,7 @@ export default function PublicProfileHeroCards({
   snapshot,
   actions,
   variant = 'public',
+  fallbackChartEndDate,
 }: PublicProfileHeroCardsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -634,6 +641,7 @@ export default function PublicProfileHeroCards({
       <ProfitLossCard
         snapshot={snapshot}
         portfolioAddress={profile.portfolioAddress}
+        fallbackChartEndDate={fallbackChartEndDate}
       />
     </div>
   )

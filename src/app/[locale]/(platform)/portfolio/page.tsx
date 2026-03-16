@@ -18,6 +18,7 @@ export default async function PortfolioPage({ params }: PageProps<'/[locale]/por
   setRequestLocale(locale)
 
   await connection()
+  const fallbackChartEndDate = new Date().toISOString()
 
   const user = await UserRepository.getCurrentUser()
   const userAddress = user?.proxy_wallet_address ?? ''
@@ -38,6 +39,7 @@ export default async function PortfolioPage({ params }: PageProps<'/[locale]/por
         snapshot={snapshot}
         actions={<PortfolioWalletActions />}
         variant="portfolio"
+        fallbackChartEndDate={fallbackChartEndDate}
       />
 
       <PortfolioMarketsWonCard proxyWalletAddress={publicAddress} />

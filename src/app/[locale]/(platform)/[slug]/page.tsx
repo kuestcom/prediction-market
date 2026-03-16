@@ -10,6 +10,7 @@ import {
   generateDynamicHomeCategoryStaticParams,
 } from '@/app/[locale]/(platform)/_lib/dynamic-home-category-page'
 import { buildPublicProfileMetadata, PublicProfilePageContent } from '@/app/[locale]/(platform)/_lib/public-profile-page'
+import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { isPlatformReservedRootSlug, normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
@@ -48,11 +49,13 @@ export default async function PlatformSlugPage({ params }: PageProps<'/[locale]/
   const profileSlug = normalizePublicProfileSlug(slug)
   if (profileSlug.type !== 'invalid') {
     return (
-      <main className="container py-8">
-        <div className="mx-auto grid max-w-6xl gap-12">
-          <PublicProfilePageContent slug={slug} />
-        </div>
-      </main>
+      <TradingOnboardingProvider>
+        <main className="container py-8">
+          <div className="mx-auto grid max-w-6xl gap-12">
+            <PublicProfilePageContent slug={slug} />
+          </div>
+        </main>
+      </TradingOnboardingProvider>
     )
   }
 
