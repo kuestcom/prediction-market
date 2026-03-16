@@ -23,7 +23,9 @@ export default function wsrvImageLoader({
     return src
   }
 
-  if (src.startsWith('data:') || src.startsWith('blob:') || src.startsWith('/')) {
+  const isRootRelativeSrc = src.startsWith('/') && !src.startsWith('//')
+
+  if (src.startsWith('data:') || src.startsWith('blob:') || isRootRelativeSrc) {
     return src
   }
 

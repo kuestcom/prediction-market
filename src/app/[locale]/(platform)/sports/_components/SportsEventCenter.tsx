@@ -40,6 +40,7 @@ import {
 import SportsLivestreamFloatingPlayer
   from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import SportsRedeemModal from '@/app/[locale]/(platform)/sports/_components/SportsRedeemModal'
+import { buildMarketSlugSelectionSignature } from '@/app/[locale]/(platform)/sports/_utils/sports-event-selection'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
@@ -1138,9 +1139,11 @@ export default function SportsEventCenter({
   useEffect(() => {
     const isNewCard = previousCardIdRef.current !== activeCard.id
     previousCardIdRef.current = activeCard.id
-    const marketSlugSelectionSignature = marketSlugToButtonKey
-      ? `${activeCard.id}:${marketSlugToButtonKey}`
-      : null
+    const marketSlugSelectionSignature = buildMarketSlugSelectionSignature({
+      activeCardId: activeCard.id,
+      marketSlugToButtonKey,
+      usesSectionLayout,
+    })
     const shouldApplyMarketSlugSelection = marketSlugSelectionSignature !== null
       && appliedMarketSlugSelectionRef.current !== marketSlugSelectionSignature
 
