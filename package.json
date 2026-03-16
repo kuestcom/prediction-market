@@ -49,7 +49,7 @@
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.45.1",
     "fumadocs-core": "^16.6.7",
-    "fumadocs-mdx": "^14.2.9",
+    "fumadocs-mdx": "^14.2.10",
     "fumadocs-openapi": "^10.3.14",
     "fumadocs-ui": "^16.6.8",
     "input-otp": "^1.4.2",
