@@ -1169,6 +1169,15 @@ export default function SportsEventCenter({
         }
       })
 
+      if (marketSlugToButtonKey) {
+        const matchedEntry = auxiliaryMarketCards.find(entry =>
+          entry.buttons.some(button => button.key === marketSlugToButtonKey),
+        )
+        if (matchedEntry) {
+          next[matchedEntry.market.condition_id] = marketSlugToButtonKey
+        }
+      }
+
       return next
     })
 
@@ -1259,6 +1268,13 @@ export default function SportsEventCenter({
         const stillExists = groupedButtons[section.key].some(button => button.key === currentButtonKey)
         if (stillExists) {
           next[section.key] = currentButtonKey
+        }
+      }
+
+      if (marketSlugToButtonKey) {
+        const marketButton = activeCard.buttons.find(button => button.key === marketSlugToButtonKey)
+        if (marketButton && isEventSectionKey(marketButton.marketType)) {
+          next[marketButton.marketType] = marketButton.key
         }
       }
 
