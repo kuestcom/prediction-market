@@ -22,7 +22,7 @@ export const BookmarkRepository = {
     })
   },
 
-  async toggleBookmark(user_id: string, event_id: string): Promise<QueryResult<null>> {
+  async toggleBookmark(user_id: string, event_id: string): Promise<QueryResult<boolean>> {
     return runQuery(async () => {
       const existing = await db
         .select({ eventId: bookmarks.event_id })
@@ -44,14 +44,15 @@ export const BookmarkRepository = {
               eq(bookmarks.event_id, event_id),
             ),
           )
-      }
-      else {
-        await db
-          .insert(bookmarks)
-          .values({ user_id, event_id })
+
+        return { data: false, error: null }
       }
 
-      return { data: null, error: null }
+      await db
+        .insert(bookmarks)
+        .values({ user_id, event_id })
+
+      return { data: true, error: null }
     })
   },
 }

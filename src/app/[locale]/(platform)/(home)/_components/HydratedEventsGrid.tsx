@@ -193,6 +193,37 @@ export default function HydratedEventsGrid({
     && initialEvents.length > 0
     && queryUserScope === 'guest'
   const shouldAutoRefreshEvents = filters.status === 'active'
+  const resolvedCurrentTimestamp = currentTimestamp ?? initialCurrentTimestamp
+  const queryRunKey = [
+    locale,
+    routeMainTag,
+    routeTag,
+    filters.tag,
+    filters.mainTag,
+    filters.search,
+    filters.bookmarked ? 'bookmarked' : 'all-events',
+    queryUserScope,
+    filters.frequency,
+    filters.status,
+    filters.hideSports ? 'hide-sports' : 'show-sports',
+    filters.hideCrypto ? 'hide-crypto' : 'show-crypto',
+    filters.hideEarnings ? 'hide-earnings' : 'show-earnings',
+  ].join(':')
+  const queryTimestampRef = useRef<{
+    key: string
+    timestamp: number
+  }>({
+    key: queryRunKey,
+    timestamp: resolvedCurrentTimestamp,
+  })
+
+  if (queryTimestampRef.current.key !== queryRunKey) {
+    queryTimestampRef.current = {
+      key: queryRunKey,
+      timestamp: resolvedCurrentTimestamp,
+    }
+  }
+
   const eventsQueryKey = [
     'events',
     filters.tag,
@@ -217,11 +248,12 @@ export default function HydratedEventsGrid({
     fetchNextPage,
     hasNextPage,
     isPending,
+    refetch,
   } = useInfiniteQuery({
     queryKey: eventsQueryKey,
     queryFn: ({ pageParam }) => fetchEvents({
       pageParam,
-      currentTimestamp: currentTimestamp ?? initialCurrentTimestamp,
+      currentTimestamp: queryTimestampRef.current.timestamp,
       filters,
       locale,
     }),
@@ -231,8 +263,6 @@ export default function HydratedEventsGrid({
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     staleTime: 'static',
-    refetchInterval: shouldAutoRefreshEvents ? 60_000 : false,
-    refetchIntervalInBackground: true,
     initialDataUpdatedAt: 0,
     placeholderData: keepPreviousData,
   })
@@ -257,6 +287,35 @@ export default function HydratedEventsGrid({
     filters.tag,
     locale,
     queryUserScope,
+  ])
+
+  useEffect(() => {
+    if (!shouldAutoRefreshEvents || status !== 'success') {
+      return
+    }
+
+    if (resolvedCurrentTimestamp <= queryTimestampRef.current.timestamp) {
+      return
+    }
+
+    if (isFetching || isFetchingNextPage) {
+      return
+    }
+
+    queryTimestampRef.current = {
+      key: queryRunKey,
+      timestamp: resolvedCurrentTimestamp,
+    }
+
+    void refetch()
+  }, [
+    isFetching,
+    isFetchingNextPage,
+    queryRunKey,
+    refetch,
+    resolvedCurrentTimestamp,
+    shouldAutoRefreshEvents,
+    status,
   ])
 
   const allEvents = useMemo(() => (data ? data.pages.flat() : []), [data])
@@ -467,7 +526,7 @@ export default function HydratedEventsGrid({
         return
       }
 
-      if (isFetchingNextPage) {
+      if (isFetching || isFetchingNextPage) {
         return
       }
 
@@ -491,7 +550,7 @@ export default function HydratedEventsGrid({
 
     observer.observe(loadMoreRef.current)
     return () => observer.disconnect()
-  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage])
+  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetching, isFetchingNextPage])
 
   if (isLoadingNewData) {
     return (

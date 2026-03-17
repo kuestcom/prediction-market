@@ -32,6 +32,7 @@ export async function toggleBookmarkAction(eventId: string) {
 
     return {
       data: {
+        isBookmarked: result.data,
         userId: user.id,
       },
       error: null,

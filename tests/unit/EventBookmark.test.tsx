@@ -76,7 +76,13 @@ describe('eventBookmark', () => {
     mocks.toggleBookmarkAction.mockReset()
     mocks.useUser.mockReset()
     mocks.getQueriesData.mockReturnValue([])
-    mocks.toggleBookmarkAction.mockResolvedValue({ data: { userId: 'user-1' }, error: null })
+    mocks.toggleBookmarkAction.mockResolvedValue({
+      data: {
+        isBookmarked: true,
+        userId: 'user-1',
+      },
+      error: null,
+    })
     mocks.useUser.mockReturnValue({ id: 'user-1' })
   })
 
@@ -128,10 +134,35 @@ describe('eventBookmark', () => {
     })
 
     expect(mocks.toggleBookmarkAction).toHaveBeenCalledWith('event-1')
-    expect(mocks.removeQueries).toHaveBeenCalledWith(expect.objectContaining({ type: 'inactive' }))
+    await waitFor(() => {
+      expect(mocks.removeQueries).toHaveBeenCalledWith(expect.objectContaining({ type: 'inactive' }))
+    })
 
     await waitFor(() => {
       expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
+    })
+  })
+
+  it('reconciles to the persisted bookmark state from the server action', async () => {
+    mocks.toggleBookmarkAction.mockResolvedValueOnce({
+      data: {
+        isBookmarked: false,
+        userId: 'user-1',
+      },
+      error: null,
+    })
+
+    render(
+      <EventBookmark
+        event={createEvent()}
+        refreshStatusOnMount={false}
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false')
     })
   })
 

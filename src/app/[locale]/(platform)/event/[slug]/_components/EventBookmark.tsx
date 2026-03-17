@@ -131,11 +131,14 @@ export default function EventBookmark({
         return
       }
 
-      const nextBookmarkedState = !previousState
+      const persistedBookmarkState = response.data?.isBookmarked
       const actingUserId = response.data?.userId ?? user?.id ?? null
-      if (!actingUserId) {
+      if (typeof persistedBookmarkState !== 'boolean' || !actingUserId) {
+        setIsBookmarked(previousState)
         return
       }
+
+      setIsBookmarked(persistedBookmarkState)
 
       const matchingEventQueries = queryClient.getQueriesData({
         predicate: query => (
@@ -150,13 +153,13 @@ export default function EventBookmark({
           updateEventsQueryData(
             currentData,
             event,
-            nextBookmarkedState,
+            persistedBookmarkState,
             isBookmarkedEventsQuery(queryKey),
           ),
         )
       })
 
-      if (nextBookmarkedState) {
+      if (persistedBookmarkState) {
         queryClient.removeQueries({
           type: 'inactive',
           predicate: query => (
