@@ -1464,7 +1464,9 @@ export function PredictionChart({
                 const surgeDashLength = typeof surgeLength === 'number' && Number.isFinite(surgeLength)
                   ? Math.max(18, surgeLength * SURGE_DASH_RATIO)
                   : 0
-                const surgeDashGap = surgeLength ?? 0
+                const surgeDashGap = typeof surgeLength === 'number' && Number.isFinite(surgeLength)
+                  ? surgeLength + surgeDashLength
+                  : 0
                 const shouldRenderSurge = Boolean(
                   surgeActive
                   && isSeriesRevealing

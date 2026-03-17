@@ -84,6 +84,7 @@ const tradeFlowTtlMs = 8000
 const tradeFlowCleanupIntervalMs = 500
 const CHART_MARKER_ACTIVITY_PAGE_SIZE = 50
 const CHART_MARKER_MAX_PAGES_PER_MARKET = 10
+const EVENT_PLOT_CLIP_RIGHT_PADDING = 18
 const TWEET_MARKETS_TAG_SLUGS = new Set(['tweet-markets', 'tweet-market'])
 const TWEET_COUNT_METADATA_KEYS = [
   'tweet_count',
@@ -1262,6 +1263,7 @@ function EventChartComponent({
               showLegend={!isSingleMarket}
               watermark={isSingleMarket ? undefined : watermark}
               lineCurve="monotoneX"
+              plotClipPadding={{ right: EVENT_PLOT_CLIP_RIGHT_PADDING }}
             />
             {hasTradeFlowLabels
               ? (
