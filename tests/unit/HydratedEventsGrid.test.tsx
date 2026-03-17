@@ -1,9 +1,10 @@
-import { render } from '@testing-library/react'
+import { act, render } from '@testing-library/react'
 import HydratedEventsGrid from '@/app/[locale]/(platform)/(home)/_components/HydratedEventsGrid'
 
 const mocks = vi.hoisted(() => ({
   filterHomeEvents: vi.fn((events: any[]) => events),
   refetch: vi.fn().mockResolvedValue(undefined),
+  useCurrentTimestamp: vi.fn(),
   useInfiniteQuery: vi.fn(),
   useUser: vi.fn(),
 }))
@@ -50,7 +51,7 @@ vi.mock('@/hooks/useColumns', () => ({
 }))
 
 vi.mock('@/hooks/useCurrentTimestamp', () => ({
-  useCurrentTimestamp: () => Date.parse('2026-03-16T12:00:00.000Z'),
+  useCurrentTimestamp: (...args: any[]) => mocks.useCurrentTimestamp(...args),
 }))
 
 vi.mock('@/lib/home-events', async () => {
@@ -79,8 +80,10 @@ describe('hydratedEventsGrid', () => {
   beforeEach(() => {
     mocks.filterHomeEvents.mockClear()
     mocks.refetch.mockClear()
+    mocks.useCurrentTimestamp.mockReset()
     mocks.useInfiniteQuery.mockReset()
     mocks.useUser.mockReset()
+    mocks.useCurrentTimestamp.mockReturnValue(Date.parse('2026-03-16T12:00:00.000Z'))
     mocks.useUser.mockReturnValue(null)
     mocks.useInfiniteQuery.mockImplementation(() => ({
       status: 'success',
@@ -161,5 +164,46 @@ describe('hydratedEventsGrid', () => {
     )
 
     expect(mocks.useInfiniteQuery.mock.calls.at(-1)?.[0].initialData).toBeUndefined()
+  })
+
+  it('does not refetch active feeds when hydration only advances the clock by a small amount', async () => {
+    const initialCurrentTimestamp = Date.parse('2026-03-16T12:00:00.000Z')
+    const filters = {
+      tag: 'trending',
+      mainTag: 'trending',
+      search: '',
+      bookmarked: false,
+      frequency: 'all',
+      status: 'active',
+      hideSports: false,
+      hideCrypto: false,
+      hideEarnings: false,
+    } as const
+
+    const { rerender } = render(
+      <HydratedEventsGrid
+        filters={filters}
+        initialEvents={[]}
+        initialCurrentTimestamp={initialCurrentTimestamp}
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    mocks.useCurrentTimestamp.mockReturnValue(initialCurrentTimestamp + 500)
+
+    await act(async () => {
+      rerender(
+        <HydratedEventsGrid
+          filters={filters}
+          initialEvents={[]}
+          initialCurrentTimestamp={initialCurrentTimestamp}
+          routeMainTag="trending"
+          routeTag="trending"
+        />,
+      )
+    })
+
+    expect(mocks.refetch).not.toHaveBeenCalled()
   })
 })

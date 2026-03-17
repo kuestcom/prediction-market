@@ -35,6 +35,7 @@ const hydratedEventsSnapshotCache = new Map<string, Event[]>()
 const HYDRATED_EVENTS_SNAPSHOT_CACHE_LIMIT = 24
 const HOME_LIVE_PRICE_OBSERVER_ROOT_MARGIN = '200px 0px'
 const HOME_LIVE_OVERRIDE_SETTLE_DELAY_MS = 2_000
+const HOME_FEED_REFRESH_INTERVAL_MS = 60_000
 
 function resolveCardMarkets(event: Event) {
   const activeMarkets = event.status === 'resolved'
@@ -157,7 +158,7 @@ export default function HydratedEventsGrid({
   const queryUserScope = userCacheKey
   const currentTimestamp = useCurrentTimestamp({
     initialTimestamp: initialCurrentTimestamp,
-    intervalMs: 60_000,
+    intervalMs: HOME_FEED_REFRESH_INTERVAL_MS,
   })
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const snapshotKey = [
@@ -295,6 +296,10 @@ export default function HydratedEventsGrid({
     }
 
     if (resolvedCurrentTimestamp <= queryTimestampRef.current.timestamp) {
+      return
+    }
+
+    if ((resolvedCurrentTimestamp - queryTimestampRef.current.timestamp) < HOME_FEED_REFRESH_INTERVAL_MS) {
       return
     }
 

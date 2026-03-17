@@ -66,6 +66,18 @@ function createEvent(overrides: Partial<Event> = {}): Event {
   }
 }
 
+function createDeferredPromise<T>() {
+  let resolvePromise!: (value: T | PromiseLike<T>) => void
+  const promise = new Promise<T>((resolve) => {
+    resolvePromise = resolve
+  })
+
+  return {
+    promise,
+    resolve: resolvePromise,
+  }
+}
+
 describe('eventBookmark', () => {
   beforeEach(() => {
     mocks.getBookmarkStatusAction.mockReset()
@@ -144,13 +156,15 @@ describe('eventBookmark', () => {
   })
 
   it('reconciles to the persisted bookmark state from the server action', async () => {
-    mocks.toggleBookmarkAction.mockResolvedValueOnce({
+    const deferredToggle = createDeferredPromise<{
       data: {
-        isBookmarked: false,
-        userId: 'user-1',
-      },
-      error: null,
-    })
+        isBookmarked: boolean
+        userId: string
+      }
+      error: null
+    }>()
+
+    mocks.toggleBookmarkAction.mockReturnValueOnce(deferredToggle.promise)
 
     render(
       <EventBookmark
@@ -160,6 +174,19 @@ describe('eventBookmark', () => {
     )
 
     await userEvent.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(mocks.toggleBookmarkAction).toHaveBeenCalledWith('event-1')
+      expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    deferredToggle.resolve({
+      data: {
+        isBookmarked: false,
+        userId: 'user-1',
+      },
+      error: null,
+    })
 
     await waitFor(() => {
       expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false')
