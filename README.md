@@ -1,191 +1,141 @@
-<h1 align="center">Open-source Prediction Market</h1>
+<h1 align="center">
+  <img src="https://github.com/user-attachments/assets/0cc687fb-89c4-43fa-a056-d89c307215ad" alt="Kuest" height="96" /><br/>
+  Kuest — Open-Source Prediction Market
+</h1>
 
 <p align="center">
-  Have your own on-chain Web3 prediction market stack inspired by Polymarket.
-  Transparent, open source, and early-stage.
+  White-label prediction market infrastructure built on Polygon.<br/>
+  Fork it, brand it, and earn trading fees — in under 15 minutes.
 </p>
 
 <p align="center">
-  <a href="https://kuest.com">
-    <img src="https://github.com/user-attachments/assets/49e860b0-8b12-460a-aa1d-e76c9c08be9b" alt="Kuest Prediction Market Open Source" />
+  <a href="https://kuest.com">kuest.com</a> ·
+  <a href="https://demo.kuest.com">Live Demo</a> ·
+  <a href="#launch">Launch</a> ·
+  <a href="#roadmap">Roadmap</a>
+</p>
+
+<p align="center"> 👉
+  <a href="https://github.com/kuestcom/prediction-market">
+    <img src="https://img.shields.io/github/stars/kuestcom/prediction-market?style=social" alt="GitHub Stars" />
   </a>
-</p>
-
-<p align="center"> [
-  <a href="https://kuest.com">Demo</a>
-  • <a href="#why-kuest">About</a>
-  • <a href="#quick-start-15-minutes">Installation</a>
-  • <a href="#roadmap">Roadmap</a> ]
-</p>
-
-## Why Kuest
-
-- Launch your own on-chain prediction market in minutes.
-- Polygon-native for low fees and fast settlement.
-- Same USDC on Polygon — plug-and-play for Polymarket users.
-- Earn trading fees from your fork.
-- Amplify volume via on-chain affiliate attribution.
-- UMA-powered outcome resolution with public, verifiable oracles.
-- Full web UI plus bot-ready APIs and SDKs (Python/Rust). No backend infrastructure to manage.
-
-<p>
-
-</p>
-
-> [!TIP]
-> <img src="https://github.com/user-attachments/assets/295d3cbe-d361-4205-991e-a9f855fa8c0e" height="52" alt="Polymarket" />
-> <img src="https://github.com/user-attachments/assets/49e860b0-8b12-460a-aa1d-e76c9c08be9b" height="52" alt="Kuest" />
-> <img src="https://github.com/user-attachments/assets/ec0dbc79-33aa-4367-b292-aae7fbfc4490" height="52" alt="Kalshi (soon)" />
->
-> ### Want your own Polymarket-style prediction market?
-> Launch quickly with your own brand, rules, and fee configuration.
->
-> Automated test trading is already available on Polygon Amoy via our [bot SDKs](https://github.com/kuestcom), and the Kalshi arbitrage connector is coming soon.
-
-## Core Stack
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/364a3525-7102-4a20-b096-12eb5337a62b" height="38" alt="Next.js" />
-  <img src="https://github.com/user-attachments/assets/88cc61ff-e068-46a4-b197-0c7b7d421bb3" height="38" alt="TypeScript" />
-</p>
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/dd1c533d-001f-4732-87d9-2b76f4280b58" height="42" alt="Polygon" />
-  <img src="https://github.com/user-attachments/assets/a403c566-08cc-4bfc-82f2-d1e2e77d1809" height="42" alt="USDC" />
-  <img src="https://github.com/user-attachments/assets/c644944a-ce74-464c-9036-e0a63326fd35" height="42" alt="UMA" />
-</p>
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/9bed7d91-57ba-4652-90d4-e7c83873b24b" height="42" alt="Safe (Gnosis)" />
-  <img src="https://github.com/user-attachments/assets/23dbcdb4-ce31-40b9-a1c5-bedd3ce55a6c" height="42" alt="Reown" />
-  <img src="https://github.com/user-attachments/assets/af482998-d80c-4156-8eed-84c2681d0a30" height="42" alt="Better Auth" />
-  <img src="https://github.com/user-attachments/assets/5f2935d3-ee8d-43d3-8362-873003e92f03" height="42" alt="wevm (wagmi/viem)" />
 </p>
 
 ---
 
-## Quick Start (15 minutes)
+## Why this exists
 
-> [!NOTE]
-> **Get Started Now!**
-> Follow these simple steps to launch your own prediction market:
->
-> ### 1. Fork the Repository
-> 1. In the top right corner, click the **[⭐ Star]** button
-> 2. [Fork it here](https://github.com/kuestcom/prediction-market/fork)
->
-> ### 2. Configure Environment Variables before Deploy
-> 1. Download [`.env.example`](./.env.example) from this repository
-> 2. **Edit** it with your configuration:
->    | ENV key | What it is |
->    | --- | --- |
->    | `KUEST_ADDRESS`<br/>`KUEST_API_KEY`<br/>`KUEST_API_SECRET`<br/>`KUEST_PASSPHRASE` | Kuest CLOB Auth credentials (generate at [auth.kuest.com](https://auth.kuest.com) by connecting your Polygon EVM 0x wallet) |
->    | `ADMIN_WALLETS` | Wallets that should be admins (comma-separated 0x addresses) |
->    | `REOWN_APPKIT_PROJECT_ID` | Reown AppKit Project ID (from [dashboard.reown.com](https://dashboard.reown.com)) |
->    | `BETTER_AUTH_SECRET` | Better Auth secret (32 chars, generate at [better-auth.com](https://www.better-auth.com/docs/installation#set-environment-variables)) |
->    | `CRON_SECRET` | Create a random secret (16+ chars) |
->
-> ### 3. Create a New Project on Vercel
-> <img src="https://github.com/user-attachments/assets/5386379f-7b96-4826-9d4e-1b7883bedf8e" height="38" alt="Vercel" />
->
-> 1. Go to [Vercel](https://vercel.com) dashboard
-> 2. Select **Add New** → **Project**
-> 3. Connect your **GitHub account**
-> 4. Click **Import** on your forked repository
-> 5. In the import modal, open **Environment Variables**
-> 6. Click **Import .env**
-> 7. Select your edited `.env.example`
-> 8. Click **Deploy**
-> 9. After deployment finishes, click **Continue to Dashboard**
->
-> ### 4. Create Supabase Database on Vercel
-> <img src="https://github.com/user-attachments/assets/d1c1f2a5-d6f8-44cb-ae47-262b1ecb195f" height="38" alt="Supabase" />
->
-> 1. Open your Vercel project
-> 2. Go to **Storage**
-> 3. Create **Supabase** with default settings (create Supabase account if prompted)
-> 4. After clicking **Done**, click **Connect Project** on the next screen
->
-> ### 5. Redeploy your project
-> 1. Open **Deployments**
-> 2. Click the three dots (**...**) and select **Redeploy** on the latest deployment
-> 3. Optional: wait 15 minutes, then add your custom domain in **Settings** → **Domains**
->
-> ### 6. Sync Your Fork (via GitHub Actions)
-> In your forked Kuest repository:
-> 1. Go to **Settings** → **Actions** → **General**
-> 2. Select **"Allow all actions and reusable workflows"**
-> 3. Click **Save**
->
-> ### 7. Finish Setup in Admin
-> 1. Log in with a wallet listed in `ADMIN_WALLETS`
-> 2. Open **Admin → General** to finish setup (Company name, branding, fees...).
+Prediction markets are processing **$18B+ in monthly trading volume** — and 66% of that demand comes from outside the US, without a single local operator to capture it.
 
-**Ready! 🎉** Your prediction market is live.
+Kalshi (CFTC-regulated, 200x annual volume growth) just signed its **first international brokerage deal** with XP Inc. — Brazil's largest investment platform with 4.7M clients. Their co-founder put it plainly:
 
-> [!TIP]
-> If you want to self-host outside Vercel, [see here](infra/README.md).
+> *"It makes sense for us to go through these international partners. They already have the customers and the brand."*
+> — Luana Lopes Lara, co-founder & COO, Kalshi · [Bloomberg, March 2026](https://www.bloomberg.com/news/articles/2026-03-09/kalshi-teams-up-with-brazil-s-xp-for-first-international-push)
+
+Kalshi can do that one deal at a time. Kuest makes the same capability available to any operator — without a bilateral negotiation.
+
+**Kuest is the infrastructure layer.** You bring the brand and audience. We handle the rest.
+
+---
+
+## What you get
+
+- **Your own branded prediction market** — custom domain, logo, categories, fee rate
+- **Shared liquidity from day one** — mirrored Polymarket markets with live order flow
+- **Trading fees go directly to you** — no revenue share, no intermediary
+- **Full Web3 stack, zero backend work** — Polygon, USDC, UMA resolution, Vercel deploy
+- **Bot-ready APIs and SDKs** — Python / Rust, compatible with existing Polymarket tooling
+- **Multi-language UI** — built-in i18n, theme customization, mobile-ready
+
+---
+
+## Stack
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/364a3525-7102-4a20-b096-12eb5337a62b" height="28" alt="Next.js" />
+  <img src="https://github.com/user-attachments/assets/88cc61ff-e068-46a4-b197-0c7b7d421bb3" height="28" alt="TypeScript" />
+  <img src="https://github.com/user-attachments/assets/dd1c533d-001f-4732-87d9-2b76f4280b58" height="28" alt="Polygon" />
+  <img src="https://github.com/user-attachments/assets/a403c566-08cc-4bfc-82f2-d1e2e77d1809" height="28" alt="USDC" />
+  <img src="https://github.com/user-attachments/assets/c644944a-ce74-464c-9036-e0a63326fd35" height="28" alt="UMA" />
+  <img src="https://github.com/user-attachments/assets/9bed7d91-57ba-4652-90d4-e7c83873b24b" height="28" alt="Safe" />
+  <img src="https://github.com/user-attachments/assets/23dbcdb4-ce31-40b9-a1c5-bedd3ce55a6c" height="28" alt="Reown" />
+  <img src="https://github.com/user-attachments/assets/5f2935d3-ee8d-43d3-8362-873003e92f03" height="28" alt="wagmi/viem" />
+</p>
+
+> **Why Polygon + Polymarket-derived contracts?**
+> Most prediction market liquidity already lives here. Existing bots, market makers, and USDC balances are already in this environment. Smart contracts are derived from Polymarket's audited CLOB architecture and adapted to support shared liquidity across multiple operator frontends.
+
+---
+
+## Launch
+
+### Option 1 — No-code, no fork (recommended)
+
+Go to **[kuest.com](https://kuest.com)** and fill out the launch form. Your market deploys to Vercel automatically. Takes about 15 minutes.
+
+### Option 2 — Self-hosted via Vercel + Supabase
+
+[**→ Full deployment guide**](infra/vercel/README.md)
+
+Star and fork the repo first, then follow the guide to deploy with your own Vercel account and Supabase database. Gives you full control over the codebase.
+
+### Option 3 — Custom infrastructure
+
+[**→ Self-hosting guide**](https://github.com/kuestcom/prediction-market/blob/main/infra/README.md)
+
+For deployments outside Vercel — Docker, bare metal, or your own cloud.
+
+---
+
+## Who is this for
+
+| Operator type | Why prediction markets |
+|---|---|
+| **Brokerages & investment platforms** | Add a new asset class for clients — event contracts on rates, elections, macro indicators. XP just did this with Kalshi. You can do it without the bilateral deal. |
+| **Financial media & news groups** | Turn your audience's market conviction into a tradeable product. Embed live markets. Earn fees instead of running ads. |
+| **Fintech & neobrokers** | Differentiate with an instrument your competitors don't offer. First mover in your market. |
+| **Crypto projects & DAOs** | Launch community prediction markets with on-chain fee distribution and shared liquidity. |
+| **Creators & communities** | Sports, politics, entertainment — any niche with a passionate audience. |
 
 ---
 
 ## Roadmap
 
-- [x] Polymarket-inspired UI and market pages
-- [x] Polygon network support
-- [x] On-chain configurable fees per fork
-- [x] On-chain affiliate mode (trustless fee sharing)
-- [x] Shared liquidity across multiple forks
-- [x] Wallet onboarding via Reown AppKit
-- [x] Safe-compatible proxy wallet flows
-- [x] Relayer server
+**Completed**
+- [x] Polymarket-compatible UI and market pages
+- [x] Polygon mainnet support
+- [x] Shared liquidity across forks
+- [x] Configurable fees per operator
+- [x] On-chain affiliate / trustless fee sharing
+- [x] CLOB engine + relayer
 - [x] Matching engine
-- [x] Split and merge functions
-- [x] PnL system
-- [x] Negative risk position conversion
-- [x] Public bot SDK (Python/Rust)
-- [x] Activity page
-- [x] Trader leaderboard
-- [x] Multi-language UI
-- [x] Theme customization
-- [x] Recurring Crypto and Nasdaq markets with live charts
-- [x] Recurring X counter markets
-- [x] Recurring temperature markets (soon)
-- [x] Sports markets
+- [x] UMA oracle resolution
+- [x] Safe-compatible proxy wallet flows
+- [x] Public bot SDK (Python / Rust)
+- [x] PnL system + trader leaderboard
+- [x] Multi-language UI + theme customization
+- [x] Crypto, Nasdaq, sports, and community markets
 - [x] Fork-created markets with opt-in cross-fork sharing
-- [x] UMA Oracle implementation
-- [ ] 🏆 MVP Ready (stress tests, security, and financial consistency checks)
+
+**In progress**
+- [ ] 🏆 MVP — stress tests, security, and financial consistency checks
 - [ ] Move matching engine to mainnet
-- [ ] Kalshi arbitrage connector (soon)
-- [ ] Layout redesign (soon)
+- [ ] Kalshi arbitrage connector
 
 ---
 
-## Follow Us
+## Follow
 
 <p>
-  <a href="https://x.com/kuest">
-    <img alt="X" src="https://img.shields.io/badge/X-@kuest-000?logo=x&style=social" />
-  </a>
-</p>
-<p>
-  <a href="https://discord.gg/kuest">
-    <img alt="Discord" src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&style=social" />
-  </a>
-</p>
-<p>
-  <a href="https://kuest.com">
-    <img alt="Website" src="https://img.shields.io/badge/Website-kuest.com-111?logo=website&style=social" />
-  </a>
-</p>
-<p>
-  <a href="mailto:hello@kuest.com">
-    <img alt="Email" src="https://img.shields.io/badge/Email-hello%40kuest.com-444?logo=gmail&style=social" />
-  </a>
+  <a href="https://x.com/kuest"><img alt="X" src="https://img.shields.io/badge/X-@kuest-000?logo=x&style=social" /></a>
+  &nbsp;
+  <a href="https://discord.gg/kuest"><img alt="Discord" src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&style=social" /></a>
+  &nbsp;
+  <a href="https://kuest.com"><img alt="Website" src="https://img.shields.io/badge/Website-kuest.com-111?style=social" /></a>
+  &nbsp;
+  <a href="mailto:hello@kuest.com"><img alt="Email" src="https://img.shields.io/badge/Email-hello%40kuest.com-444?logo=gmail&style=social" /></a>
 </p>
 
 ---
 
-License: [Kuest MIT+Commons](LICENSE).
-
-> [!IMPORTANT]
-> Forks are welcome for branding, frontend changes, and custom UX.
-> Production deployments must use Kuest infrastructure.
-> Running an independent trading stack or hosted fork requires a separate [commercial agreement](mailto:hello@kuest.com).
+**License:** [Kuest MIT+Commons](LICENSE) — forks for branding, frontend changes, and custom UX are welcome. Production deployments must use Kuest infrastructure. Running an independent trading stack or white-glove institutional deployment requires a [commercial agreement](mailto:hello@kuest.com).
