@@ -5,7 +5,7 @@
 
 <p align="center">
   White-label prediction market infrastructure built on Polygon.<br/>
-  Fork it, brand it, and earn trading fees — in under 15 minutes.
+  Deploy it, brand it, and earn trading fees — in under 15 minutes.
 </p>
 
 <p align="center">
@@ -69,21 +69,11 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 
 ## Launch
 
-### Option 1 — No-code, no fork (recommended)
-
-Go to **[kuest.com](https://kuest.com)** and fill out the launch form. Your market deploys to Vercel automatically. Takes about 15 minutes.
-
-### Option 2 — Self-hosted via Vercel + Supabase
-
-[**→ Full deployment guide**](infra/vercel/README.md)
-
-Star and fork the repo first, then follow the guide to deploy with your own Vercel account and Supabase database. Gives you full control over the codebase.
-
-### Option 3 — Custom infrastructure
-
-[**→ Self-hosting guide**](https://github.com/kuestcom/prediction-market/blob/main/infra/README.md)
-
-For deployments outside Vercel — Docker, bare metal, or your own cloud.
+| | Option | Best for |
+|---|---|---|
+| ⚡ | **[No-code at kuest.com/launch](https://kuest.com/launch)** — fill out a form, market live in 15 min | Most operators |
+| 🔧 | **[Vercel + Supabase](infra/vercel/README.md)** — fork and deploy with full codebase control | Developers |
+| 🏗️ | **[Custom infrastructure](infra/README.md)** — Docker, bare metal, your own cloud | Advanced / enterprise |
 
 ---
 
