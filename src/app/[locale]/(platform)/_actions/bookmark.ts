@@ -25,7 +25,17 @@ export async function toggleBookmarkAction(eventId: string) {
       return { data: null, error: 'Unauthenticated.' }
     }
 
-    return await BookmarkRepository.toggleBookmark(user.id, eventId)
+    const result = await BookmarkRepository.toggleBookmark(user.id, eventId)
+    if (result.error) {
+      return result
+    }
+
+    return {
+      data: {
+        userId: user.id,
+      },
+      error: null,
+    }
   }
   catch {
     return { data: null, error: DEFAULT_ERROR_MESSAGE }

@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
+  listHomeEventsPage: vi.fn(),
   listEvents: vi.fn(),
 }))
 
@@ -17,9 +18,30 @@ vi.mock('@/lib/db/queries/event', () => ({
   },
 }))
 
+vi.mock('@/lib/home-events-page', () => ({
+  listHomeEventsPage: (...args: any[]) => mocks.listHomeEventsPage(...args),
+}))
+
 const { GET } = await import('@/app/api/events/route')
 
 describe('events route', () => {
+  beforeEach(() => {
+    mocks.getCurrentUser.mockReset()
+    mocks.listHomeEventsPage.mockReset()
+    mocks.listEvents.mockReset()
+  })
+
+  it('returns an empty payload for anonymous bookmarked requests', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce(null)
+
+    const response = await GET(new Request('https://example.com/api/events?bookmarked=true&locale=en'))
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual([])
+    expect(mocks.listEvents).not.toHaveBeenCalled()
+    expect(mocks.listHomeEventsPage).not.toHaveBeenCalled()
+  })
+
   it('forwards mainTag to the events repository', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
     mocks.listEvents.mockResolvedValueOnce({ data: [], error: null })

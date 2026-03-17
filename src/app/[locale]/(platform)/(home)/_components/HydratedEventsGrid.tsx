@@ -152,7 +152,6 @@ export default function HydratedEventsGrid({
   const parentRef = useRef<HTMLDivElement | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const canRetryLoadMoreAfterErrorRef = useRef(true)
-  const homeFeedTimestampRef = useRef(initialCurrentTimestamp)
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
   const queryUserScope = userCacheKey
@@ -193,6 +192,7 @@ export default function HydratedEventsGrid({
   const shouldUseInitialData = isRouteInitialState
     && initialEvents.length > 0
     && queryUserScope === 'guest'
+  const shouldAutoRefreshEvents = filters.status === 'active'
   const eventsQueryKey = [
     'events',
     filters.tag,
@@ -217,12 +217,11 @@ export default function HydratedEventsGrid({
     fetchNextPage,
     hasNextPage,
     isPending,
-    refetch,
   } = useInfiniteQuery({
     queryKey: eventsQueryKey,
     queryFn: ({ pageParam }) => fetchEvents({
       pageParam,
-      currentTimestamp: homeFeedTimestampRef.current,
+      currentTimestamp: currentTimestamp ?? initialCurrentTimestamp,
       filters,
       locale,
     }),
@@ -232,23 +231,16 @@ export default function HydratedEventsGrid({
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     staleTime: 'static',
+    refetchInterval: shouldAutoRefreshEvents ? 60_000 : false,
+    refetchIntervalInBackground: true,
     initialDataUpdatedAt: 0,
     placeholderData: keepPreviousData,
   })
 
-  const previousUserKeyRef = useRef(queryUserScope)
   const [livePriceEventIds, setLivePriceEventIds] = useState<string[]>([])
   const [stablePriceOverridesByMarket, setStablePriceOverridesByMarket] = useState<Record<string, number>>(EMPTY_PRICE_OVERRIDES)
   const pendingPriceOverrideSignatureRef = useRef<string>('')
   const priceOverrideCommitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => {
-    if (previousUserKeyRef.current === queryUserScope) {
-      return
-    }
-
-    previousUserKeyRef.current = queryUserScope
-    void refetch()
-  }, [queryUserScope, refetch])
 
   useEffect(() => {
     setInfiniteScrollError(null)

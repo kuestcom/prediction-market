@@ -45,6 +45,10 @@ export async function GET(request: Request) {
   const userId = user?.id
 
   try {
+    if (bookmarked && !userId) {
+      return NextResponse.json([])
+    }
+
     if (homeFeed) {
       const { data: events, error } = await listHomeEventsPage({
         tag,

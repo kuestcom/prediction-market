@@ -2,9 +2,7 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import { Suspense } from 'react'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
-import EventViewerStateBoundary from '@/app/[locale]/(platform)/event/[slug]/_components/EventViewerStateBoundary'
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
@@ -98,9 +96,6 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
   return (
     <>
       <CachedEventMarketPageContent locale={resolvedLocale} slug={slug} market={market} />
-      <Suspense fallback={null}>
-        <EventViewerStateBoundary />
-      </Suspense>
     </>
   )
 }

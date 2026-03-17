@@ -164,7 +164,8 @@ export default function HomeSecondaryNavigation({
     const timeoutId = setTimeout(() => {
       const containerRect = container.getBoundingClientRect()
       const buttonRect = activeButton.getBoundingClientRect()
-      const targetLeft = activeButton.offsetLeft - (containerRect.width / 2) + (buttonRect.width / 2)
+      const currentLeft = buttonRect.left - containerRect.left + container.scrollLeft
+      const targetLeft = currentLeft - (containerRect.width / 2) + (buttonRect.width / 2)
       const maxLeft = Math.max(0, container.scrollWidth - container.clientWidth)
       const clampedLeft = Math.min(Math.max(0, targetLeft), maxLeft)
 

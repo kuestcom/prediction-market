@@ -13,10 +13,7 @@ import { useUser } from '@/stores/useUser'
 const headerIconButtonClass = 'size-10 rounded-sm border border-transparent bg-transparent text-foreground transition-colors hover:bg-muted/80 focus-visible:ring-1 focus-visible:ring-ring md:size-9'
 
 interface EventBookmarkProps {
-  event: {
-    id: string
-    is_bookmarked: boolean
-  }
+  event: Event
   refreshStatusOnMount?: boolean
 }
 
@@ -50,9 +47,25 @@ function isBookmarkedEventsQuery(queryKey: readonly unknown[]) {
   return false
 }
 
+function getEventsQueryScope(queryKey: readonly unknown[]) {
+  if (queryKey[0] !== 'events') {
+    return null
+  }
+
+  if (typeof queryKey[4] === 'boolean') {
+    return typeof queryKey[11] === 'string' ? queryKey[11] : null
+  }
+
+  if (typeof queryKey[2] === 'boolean') {
+    return typeof queryKey[9] === 'string' ? queryKey[9] : null
+  }
+
+  return null
+}
+
 function updateEventsQueryData(
   currentData: unknown,
-  eventId: string,
+  event: Event,
   nextBookmarkedState: boolean,
   bookmarkedOnly: boolean,
 ) {
@@ -63,7 +76,7 @@ function updateEventsQueryData(
   let hasChanges = false
   const nextPages = currentData.pages.map((page) => {
     const nextPage = page.flatMap((entry) => {
-      if (entry.id !== eventId) {
+      if (entry.id !== event.id) {
         return [entry]
       }
 
@@ -119,8 +132,16 @@ export default function EventBookmark({
       }
 
       const nextBookmarkedState = !previousState
+      const actingUserId = response.data?.userId ?? user?.id ?? null
+      if (!actingUserId) {
+        return
+      }
+
       const matchingEventQueries = queryClient.getQueriesData({
-        predicate: query => query.queryKey[0] === 'events',
+        predicate: query => (
+          query.queryKey[0] === 'events'
+          && getEventsQueryScope(query.queryKey) === actingUserId
+        ),
       })
 
       matchingEventQueries.forEach(([queryKey, currentData]) => {
@@ -128,12 +149,22 @@ export default function EventBookmark({
           queryKey,
           updateEventsQueryData(
             currentData,
-            event.id,
+            event,
             nextBookmarkedState,
             isBookmarkedEventsQuery(queryKey),
           ),
         )
       })
+
+      if (nextBookmarkedState) {
+        queryClient.removeQueries({
+          type: 'inactive',
+          predicate: query => (
+            isBookmarkedEventsQuery(query.queryKey)
+            && getEventsQueryScope(query.queryKey) === actingUserId
+          ),
+        })
+      }
     }
     catch {
       setIsBookmarked(previousState)
@@ -141,7 +172,7 @@ export default function EventBookmark({
     finally {
       setIsSubmitting(false)
     }
-  }, [event.id, isBookmarked, isSubmitting, open, queryClient])
+  }, [event, isBookmarked, isSubmitting, open, queryClient, user?.id])
 
   useEffect(() => {
     setIsBookmarked(event.is_bookmarked)

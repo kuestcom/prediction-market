@@ -1,3 +1,4 @@
+import type { Event } from '@/types'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
@@ -6,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getBookmarkStatusAction: vi.fn(),
   getQueriesData: vi.fn(),
   open: vi.fn(),
+  removeQueries: vi.fn(),
   setQueryData: vi.fn(),
   toggleBookmarkAction: vi.fn(),
   useUser: vi.fn(),
@@ -14,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({
     getQueriesData: mocks.getQueriesData,
+    removeQueries: mocks.removeQueries,
     setQueryData: mocks.setQueryData,
   }),
 }))
@@ -39,16 +42,41 @@ vi.mock('@/stores/useUser', () => ({
   useUser: () => mocks.useUser(),
 }))
 
+function createEvent(overrides: Partial<Event> = {}): Event {
+  return {
+    id: 'event-1',
+    slug: 'event-1',
+    title: 'Event 1',
+    creator: 'Creator',
+    icon_url: '',
+    show_market_icons: false,
+    status: 'active',
+    active_markets_count: 1,
+    total_markets_count: 1,
+    volume: 0,
+    end_date: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    markets: [],
+    tags: [],
+    main_tag: 'trending',
+    is_bookmarked: false,
+    is_trending: false,
+    ...overrides,
+  }
+}
+
 describe('eventBookmark', () => {
   beforeEach(() => {
     mocks.getBookmarkStatusAction.mockReset()
     mocks.getQueriesData.mockReset()
     mocks.open.mockReset()
+    mocks.removeQueries.mockReset()
     mocks.setQueryData.mockReset()
     mocks.toggleBookmarkAction.mockReset()
     mocks.useUser.mockReset()
     mocks.getQueriesData.mockReturnValue([])
-    mocks.toggleBookmarkAction.mockResolvedValue({ data: null, error: null })
+    mocks.toggleBookmarkAction.mockResolvedValue({ data: { userId: 'user-1' }, error: null })
     mocks.useUser.mockReturnValue({ id: 'user-1' })
   })
 
@@ -57,10 +85,7 @@ describe('eventBookmark', () => {
 
     render(
       <EventBookmark
-        event={{
-          id: 'event-1',
-          is_bookmarked: false,
-        }}
+        event={createEvent()}
       />,
     )
 
@@ -76,10 +101,7 @@ describe('eventBookmark', () => {
   it('skips the mount refresh when disabled by list cards', async () => {
     render(
       <EventBookmark
-        event={{
-          id: 'event-1',
-          is_bookmarked: false,
-        }}
+        event={createEvent()}
         refreshStatusOnMount={false}
       />,
     )
@@ -94,10 +116,7 @@ describe('eventBookmark', () => {
   it('toggles for an authenticated user without relying on wallet connection state', async () => {
     render(
       <EventBookmark
-        event={{
-          id: 'event-1',
-          is_bookmarked: false,
-        }}
+        event={createEvent()}
         refreshStatusOnMount={false}
       />,
     )
@@ -108,8 +127,36 @@ describe('eventBookmark', () => {
       expect(mocks.open).not.toHaveBeenCalled()
     })
 
+    expect(mocks.toggleBookmarkAction).toHaveBeenCalledWith('event-1')
+    expect(mocks.removeQueries).toHaveBeenCalledWith(expect.objectContaining({ type: 'inactive' }))
+
     await waitFor(() => {
       expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
+    })
+  })
+
+  it('only rewrites the acting user event caches', async () => {
+    const cachedQueries = [
+      [['events', 'trending', 'trending', '', false, 'all', 'active', false, false, false, 'en', 'user-1'], { pages: [[{ id: 'event-1', is_bookmarked: false }]], pageParams: [0] }],
+      [['events', 'trending', 'trending', '', false, 'all', 'active', false, false, false, 'en', 'guest'], { pages: [[{ id: 'event-1', is_bookmarked: false }]], pageParams: [0] }],
+      [['events', '', true, 'all', 'active', false, false, false, 'en', 'user-2', null, null], { pages: [[{ id: 'event-1', is_bookmarked: false }]], pageParams: [0] }],
+    ] as const
+
+    mocks.getQueriesData.mockImplementation(({ predicate }: { predicate?: (query: { queryKey: readonly unknown[] }) => boolean }) => (
+      cachedQueries.filter(([queryKey]) => predicate?.({ queryKey }) ?? true)
+    ))
+
+    render(
+      <EventBookmark
+        event={createEvent()}
+        refreshStatusOnMount={false}
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(mocks.setQueryData).toHaveBeenCalledTimes(1)
     })
   })
 })

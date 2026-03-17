@@ -127,7 +127,8 @@ export default function NavigationTabs() {
     const timeoutId = setTimeout(() => {
       const containerRect = container.getBoundingClientRect()
       const tabRect = activeTab.getBoundingClientRect()
-      const targetLeft = activeTab.offsetLeft - (containerRect.width / 2) + (tabRect.width / 2)
+      const currentLeft = tabRect.left - containerRect.left + container.scrollLeft
+      const targetLeft = currentLeft - (containerRect.width / 2) + (tabRect.width / 2)
       const maxLeft = Math.max(0, container.scrollWidth - container.clientWidth)
       const clampedLeft = Math.min(Math.max(0, targetLeft), maxLeft)
 

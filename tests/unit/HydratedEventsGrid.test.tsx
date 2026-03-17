@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import HydratedEventsGrid from '@/app/[locale]/(platform)/(home)/_components/HydratedEventsGrid'
 
 const mocks = vi.hoisted(() => ({
@@ -95,7 +95,7 @@ describe('hydratedEventsGrid', () => {
     }))
   })
 
-  it('uses a user-scoped query key and refetches once auth hydrates', async () => {
+  it('uses a user-scoped query key without forcing an extra refetch when auth hydrates', async () => {
     const filters = {
       tag: 'trending',
       mainTag: 'trending',
@@ -134,10 +134,7 @@ describe('hydratedEventsGrid', () => {
     )
 
     expect(mocks.useInfiniteQuery.mock.calls.at(-1)?.[0].queryKey).toContain('user-1')
-
-    await waitFor(() => {
-      expect(mocks.refetch).toHaveBeenCalledTimes(1)
-    })
+    expect(mocks.refetch).not.toHaveBeenCalled()
   })
 
   it('does not hydrate a user-scoped query with guest initial data', () => {
