@@ -110,6 +110,18 @@ function createEvent(overrides: Partial<Event> = {}): Event {
   }
 }
 
+function createDeferredPromise<T>() {
+  let resolvePromise!: (value: T | PromiseLike<T>) => void
+  const promise = new Promise<T>((resolve) => {
+    resolvePromise = resolve
+  })
+
+  return {
+    promise,
+    resolve: resolvePromise,
+  }
+}
+
 describe('eventShare', () => {
   const writeText = vi.fn()
 
@@ -193,13 +205,15 @@ describe('eventShare', () => {
   })
 
   it('retries affiliate settings after a failed response', async () => {
+    const firstResponse = createDeferredPromise<{
+      success: false
+      error: {
+        error: string
+      }
+    }>()
+
     mocks.fetchAffiliateSettingsFromAPI
-      .mockResolvedValueOnce({
-        success: false,
-        error: {
-          error: 'Internal server error',
-        },
-      })
+      .mockReturnValueOnce(firstResponse.promise)
       .mockResolvedValueOnce({
         success: true,
         data: {
@@ -217,6 +231,22 @@ describe('eventShare', () => {
     const shareButton = screen.getByRole('button', { name: 'Copy event link' })
 
     await userEvent.click(shareButton)
+
+    await waitFor(() => {
+      expect(mocks.fetchAffiliateSettingsFromAPI).toHaveBeenCalledTimes(1)
+    })
+
+    firstResponse.resolve({
+      success: false,
+      error: {
+        error: 'Internal server error',
+      },
+    })
+
+    await waitFor(() => {
+      expect(mocks.maybeShowAffiliateToast).toHaveBeenCalledTimes(1)
+    })
+
     await userEvent.click(shareButton)
 
     await waitFor(() => {
