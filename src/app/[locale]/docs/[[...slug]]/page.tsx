@@ -36,8 +36,8 @@ function getMDXComponents(components?: MDXComponents): MDXComponents {
   }
 }
 
-function isOwnerGuideEnabled() {
-  return process.env.FORK_OWNER_GUIDE === 'true'
+function isLaunchGuideEnabled() {
+  return process.env.ENABLE_LAUNCH_GUIDE === 'true'
 }
 
 export async function generateStaticParams() {
@@ -50,7 +50,7 @@ export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slu
   const runtimeTheme = await loadRuntimeThemeState()
   const siteDocumentationTitle = `${runtimeTheme.site.name} Documentation`
 
-  if (params.slug?.[0] === 'owners' && !isOwnerGuideEnabled()) {
+  if (params.slug?.[0] === 'launch' && !isLaunchGuideEnabled()) {
     notFound()
   }
 
@@ -72,7 +72,7 @@ export default async function Page(props: PageProps<'/[locale]/docs/[[...slug]]'
   const params = await props.params
   setRequestLocale(params.locale)
 
-  if (params.slug?.[0] === 'owners' && !isOwnerGuideEnabled()) {
+  if (params.slug?.[0] === 'launch' && !isLaunchGuideEnabled()) {
     redirect('/docs/users')
   }
 
