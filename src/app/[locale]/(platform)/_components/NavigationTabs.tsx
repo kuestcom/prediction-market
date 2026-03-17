@@ -114,13 +114,24 @@ export default function NavigationTabs() {
       return
     }
 
+    const container = containerRef.current
+    if (!container) {
+      return
+    }
+
     const activeTab = tabItemRef.current[activeIndex]
     if (!activeTab) {
       return
     }
 
     const timeoutId = setTimeout(() => {
-      activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+      const containerRect = container.getBoundingClientRect()
+      const tabRect = activeTab.getBoundingClientRect()
+      const targetLeft = activeTab.offsetLeft - (containerRect.width / 2) + (tabRect.width / 2)
+      const maxLeft = Math.max(0, container.scrollWidth - container.clientWidth)
+      const clampedLeft = Math.min(Math.max(0, targetLeft), maxLeft)
+
+      container.scrollTo({ left: clampedLeft, behavior: 'smooth' })
     }, 100)
 
     return () => clearTimeout(timeoutId)

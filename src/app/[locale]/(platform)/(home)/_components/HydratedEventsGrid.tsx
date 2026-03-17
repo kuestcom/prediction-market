@@ -14,7 +14,7 @@ import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_ho
 import { buildMarketTargets } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { useColumns } from '@/hooks/useColumns'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
-import { filterHomeEvents, HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
+import { HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import { useUser } from '@/stores/useUser'
@@ -99,9 +99,11 @@ function setHydratedEventsSnapshot(key: string, events: Event[]) {
 
 async function fetchEvents({
   pageParam = 0,
+  currentTimestamp,
   filters,
   locale,
 }: {
+  currentTimestamp: number
   pageParam: number
   filters: FilterState
   locale: string
@@ -112,9 +114,11 @@ async function fetchEvents({
     search: filters.search,
     bookmarked: filters.bookmarked.toString(),
     frequency: filters.frequency,
+    homeFeed: 'true',
     status: filters.status,
     offset: pageParam.toString(),
     locale,
+    currentTimestamp: currentTimestamp.toString(),
   })
 
   if (filters.hideSports) {
@@ -148,6 +152,7 @@ export default function HydratedEventsGrid({
   const parentRef = useRef<HTMLDivElement | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const canRetryLoadMoreAfterErrorRef = useRef(true)
+  const homeFeedTimestampRef = useRef(initialCurrentTimestamp)
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
   const queryUserScope = userCacheKey
@@ -163,6 +168,7 @@ export default function HydratedEventsGrid({
     filters.tag,
     filters.mainTag,
     filters.search,
+    filters.bookmarked ? 'bookmarked' : 'all-events',
     queryUserScope,
     filters.frequency,
     filters.status,
@@ -170,8 +176,9 @@ export default function HydratedEventsGrid({
     filters.hideCrypto ? 'hide-crypto' : 'show-crypto',
     filters.hideEarnings ? 'hide-earnings' : 'show-earnings',
   ].join(':')
+  const initialSnapshotEvents = queryUserScope === 'guest' ? initialEvents : EMPTY_EVENTS
   const [lastStableVisibleEvents, setLastStableVisibleEvents] = useState<Event[]>(
-    () => peekHydratedEventsSnapshot(snapshotKey) ?? initialEvents,
+    () => peekHydratedEventsSnapshot(snapshotKey) ?? initialSnapshotEvents,
   )
   const PAGE_SIZE = HOME_EVENTS_PAGE_SIZE
   const isRouteInitialState = filters.tag === routeTag
@@ -186,6 +193,20 @@ export default function HydratedEventsGrid({
   const shouldUseInitialData = isRouteInitialState
     && initialEvents.length > 0
     && queryUserScope === 'guest'
+  const eventsQueryKey = [
+    'events',
+    filters.tag,
+    filters.mainTag,
+    filters.search,
+    filters.bookmarked,
+    filters.frequency,
+    filters.status,
+    filters.hideSports,
+    filters.hideCrypto,
+    filters.hideEarnings,
+    locale,
+    queryUserScope,
+  ]
 
   const {
     status,
@@ -198,22 +219,10 @@ export default function HydratedEventsGrid({
     isPending,
     refetch,
   } = useInfiniteQuery({
-    queryKey: [
-      'events',
-      filters.tag,
-      filters.mainTag,
-      filters.search,
-      filters.bookmarked,
-      filters.frequency,
-      filters.status,
-      filters.hideSports,
-      filters.hideCrypto,
-      filters.hideEarnings,
-      locale,
-      queryUserScope,
-    ],
+    queryKey: eventsQueryKey,
     queryFn: ({ pageParam }) => fetchEvents({
       pageParam,
+      currentTimestamp: homeFeedTimestampRef.current,
       filters,
       locale,
     }),
@@ -260,25 +269,15 @@ export default function HydratedEventsGrid({
 
   const allEvents = useMemo(() => (data ? data.pages.flat() : []), [data])
   const hasFreshQueryData = !shouldUseInitialData || dataUpdatedAt > 0
-  const effectiveCurrentTimestamp = hasFreshQueryData ? currentTimestamp : initialCurrentTimestamp
 
-  const visibleEvents = useMemo(() => {
-    if (allEvents.length === 0) {
-      return EMPTY_EVENTS
-    }
-
-    return filterHomeEvents(allEvents, {
-      currentTimestamp: effectiveCurrentTimestamp,
-      hideSports: filters.hideSports,
-      hideCrypto: filters.hideCrypto,
-      hideEarnings: filters.hideEarnings,
-      status: filters.status,
-    })
-  }, [allEvents, effectiveCurrentTimestamp, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status])
+  const visibleEvents = useMemo(
+    () => (allEvents.length === 0 ? EMPTY_EVENTS : allEvents),
+    [allEvents],
+  )
 
   useEffect(() => {
-    setLastStableVisibleEvents(touchHydratedEventsSnapshot(snapshotKey) ?? initialEvents)
-  }, [initialEvents, snapshotKey])
+    setLastStableVisibleEvents(touchHydratedEventsSnapshot(snapshotKey) ?? initialSnapshotEvents)
+  }, [initialSnapshotEvents, snapshotKey])
 
   useEffect(() => {
     if (visibleEvents.length === 0) {
@@ -288,7 +287,13 @@ export default function HydratedEventsGrid({
     setLastStableVisibleEvents((previous) => {
       if (
         previous.length === visibleEvents.length
-        && previous.every((event, index) => event.id === visibleEvents[index]?.id)
+        && previous.every((event, index) => {
+          const nextEvent = visibleEvents[index]
+          return (
+            event.id === nextEvent?.id
+            && event.is_bookmarked === nextEvent?.is_bookmarked
+          )
+        })
       ) {
         return previous
       }

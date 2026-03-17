@@ -4,15 +4,17 @@ import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/Ev
 
 const mocks = vi.hoisted(() => ({
   getBookmarkStatusAction: vi.fn(),
-  invalidateQueries: vi.fn(),
+  getQueriesData: vi.fn(),
   open: vi.fn(),
+  setQueryData: vi.fn(),
   toggleBookmarkAction: vi.fn(),
   useUser: vi.fn(),
 }))
 
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({
-    invalidateQueries: mocks.invalidateQueries,
+    getQueriesData: mocks.getQueriesData,
+    setQueryData: mocks.setQueryData,
   }),
 }))
 
@@ -40,10 +42,13 @@ vi.mock('@/stores/useUser', () => ({
 describe('eventBookmark', () => {
   beforeEach(() => {
     mocks.getBookmarkStatusAction.mockReset()
-    mocks.invalidateQueries.mockReset()
+    mocks.getQueriesData.mockReset()
     mocks.open.mockReset()
+    mocks.setQueryData.mockReset()
     mocks.toggleBookmarkAction.mockReset()
     mocks.useUser.mockReset()
+    mocks.getQueriesData.mockReturnValue([])
+    mocks.toggleBookmarkAction.mockResolvedValue({ data: null, error: null })
     mocks.useUser.mockReturnValue({ id: 'user-1' })
   })
 

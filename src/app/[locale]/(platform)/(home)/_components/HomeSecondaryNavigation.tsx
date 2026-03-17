@@ -151,13 +151,24 @@ export default function HomeSecondaryNavigation({
       return
     }
 
+    const container = scrollContainerRef.current
+    if (!container) {
+      return
+    }
+
     const activeButton = buttonRef.current[activeIndex]
     if (!activeButton) {
       return
     }
 
     const timeoutId = setTimeout(() => {
-      activeButton.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+      const containerRect = container.getBoundingClientRect()
+      const buttonRect = activeButton.getBoundingClientRect()
+      const targetLeft = activeButton.offsetLeft - (containerRect.width / 2) + (buttonRect.width / 2)
+      const maxLeft = Math.max(0, container.scrollWidth - container.clientWidth)
+      const clampedLeft = Math.min(Math.max(0, targetLeft), maxLeft)
+
+      container.scrollTo({ left: clampedLeft, behavior: 'smooth' })
     }, 100)
 
     return () => clearTimeout(timeoutId)

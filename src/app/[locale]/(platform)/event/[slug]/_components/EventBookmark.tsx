@@ -1,5 +1,6 @@
 'use client'
 
+import type { Event } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { BookmarkIcon } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
@@ -17,6 +18,75 @@ interface EventBookmarkProps {
     is_bookmarked: boolean
   }
   refreshStatusOnMount?: boolean
+}
+
+interface InfiniteEventsQueryData {
+  pageParams: unknown[]
+  pages: Event[][]
+}
+
+function isInfiniteEventsQueryData(value: unknown): value is InfiniteEventsQueryData {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as Partial<InfiniteEventsQueryData>
+  return Array.isArray(candidate.pages) && Array.isArray(candidate.pageParams)
+}
+
+function isBookmarkedEventsQuery(queryKey: readonly unknown[]) {
+  if (queryKey[0] !== 'events') {
+    return false
+  }
+
+  if (typeof queryKey[2] === 'boolean') {
+    return queryKey[2]
+  }
+
+  if (typeof queryKey[4] === 'boolean') {
+    return queryKey[4]
+  }
+
+  return false
+}
+
+function updateEventsQueryData(
+  currentData: unknown,
+  eventId: string,
+  nextBookmarkedState: boolean,
+  bookmarkedOnly: boolean,
+) {
+  if (!isInfiniteEventsQueryData(currentData)) {
+    return currentData
+  }
+
+  let hasChanges = false
+  const nextPages = currentData.pages.map((page) => {
+    const nextPage = page.flatMap((entry) => {
+      if (entry.id !== eventId) {
+        return [entry]
+      }
+
+      hasChanges = true
+
+      if (bookmarkedOnly && !nextBookmarkedState) {
+        return []
+      }
+
+      return [{ ...entry, is_bookmarked: nextBookmarkedState }]
+    })
+
+    return nextPage
+  })
+
+  if (!hasChanges) {
+    return currentData
+  }
+
+  return {
+    ...currentData,
+    pages: nextPages,
+  }
 }
 
 export default function EventBookmark({
@@ -48,8 +118,22 @@ export default function EventBookmark({
         return
       }
 
-      // Keep global event lists stale without forcing immediate refetch in-page.
-      void queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' })
+      const nextBookmarkedState = !previousState
+      const matchingEventQueries = queryClient.getQueriesData({
+        predicate: query => query.queryKey[0] === 'events',
+      })
+
+      matchingEventQueries.forEach(([queryKey, currentData]) => {
+        queryClient.setQueryData(
+          queryKey,
+          updateEventsQueryData(
+            currentData,
+            event.id,
+            nextBookmarkedState,
+            isBookmarkedEventsQuery(queryKey),
+          ),
+        )
+      })
     }
     catch {
       setIsBookmarked(previousState)
@@ -88,12 +172,15 @@ export default function EventBookmark({
       type="button"
       size="icon"
       variant="ghost"
+      onMouseDown={(mouseEvent) => {
+        mouseEvent.preventDefault()
+      }}
       onClick={(clickEvent) => {
         clickEvent.preventDefault()
         clickEvent.stopPropagation()
         void handleBookmark()
       }}
-      disabled={isSubmitting}
+      aria-disabled={isSubmitting}
       aria-pressed={isBookmarked}
       title={isBookmarked ? 'Remove Bookmark' : 'Bookmark'}
       className={cn(
