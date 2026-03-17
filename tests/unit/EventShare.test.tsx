@@ -166,4 +166,29 @@ describe('eventShare', () => {
       })
     })
   })
+
+  it('does not refetch affiliate settings after a resolved 0% response', async () => {
+    mocks.fetchAffiliateSettingsFromAPI.mockResolvedValue({
+      success: true,
+      data: {
+        tradeFeePercent: '0.00',
+        affiliateSharePercent: '0.00',
+        platformSharePercent: '100.00',
+        tradeFeeDecimal: 0,
+        affiliateShareDecimal: 0,
+        platformShareDecimal: 1,
+      },
+    })
+
+    render(<EventShare event={createEvent()} />)
+
+    const shareButton = screen.getByRole('button', { name: 'Copy event link' })
+
+    await userEvent.click(shareButton)
+    await userEvent.click(shareButton)
+
+    await waitFor(() => {
+      expect(mocks.fetchAffiliateSettingsFromAPI).toHaveBeenCalledTimes(1)
+    })
+  })
 })

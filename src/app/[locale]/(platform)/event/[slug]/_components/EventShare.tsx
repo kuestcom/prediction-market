@@ -52,6 +52,7 @@ export default function EventShare({ event }: EventShareProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [affiliateSharePercent, setAffiliateSharePercent] = useState<number | null>(null)
   const [tradeFeePercent, setTradeFeePercent] = useState<number | null>(null)
+  const [hasResolvedAffiliateToastData, setHasResolvedAffiliateToastData] = useState(false)
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const copyTimeoutRef = useRef<number | null>(null)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
@@ -109,11 +110,10 @@ export default function EventShare({ event }: EventShareProps) {
   }, [])
 
   useEffect(() => {
-    if (!affiliateCode) {
-      setAffiliateSharePercent(null)
-      setTradeFeePercent(null)
-      affiliateToastDataRequestRef.current = null
-    }
+    setAffiliateSharePercent(null)
+    setTradeFeePercent(null)
+    setHasResolvedAffiliateToastData(false)
+    affiliateToastDataRequestRef.current = null
   }, [affiliateCode])
 
   const ensureAffiliateToastData = useCallback(async (): Promise<AffiliateToastData> => {
@@ -124,7 +124,7 @@ export default function EventShare({ event }: EventShareProps) {
       }
     }
 
-    if (affiliateSharePercent !== null && tradeFeePercent !== null) {
+    if (hasResolvedAffiliateToastData) {
       return {
         affiliateSharePercent,
         tradeFeePercent,
@@ -140,6 +140,7 @@ export default function EventShare({ event }: EventShareProps) {
         const nextData = parseAffiliateToastData(result)
         setAffiliateSharePercent(nextData.affiliateSharePercent)
         setTradeFeePercent(nextData.tradeFeePercent)
+        setHasResolvedAffiliateToastData(true)
         return nextData
       })
       .catch(() => {
@@ -149,6 +150,7 @@ export default function EventShare({ event }: EventShareProps) {
         }
         setAffiliateSharePercent(nextData.affiliateSharePercent)
         setTradeFeePercent(nextData.tradeFeePercent)
+        setHasResolvedAffiliateToastData(true)
         return nextData
       })
       .finally(() => {
@@ -157,7 +159,7 @@ export default function EventShare({ event }: EventShareProps) {
 
     affiliateToastDataRequestRef.current = request
     return request
-  }, [affiliateCode, affiliateSharePercent, tradeFeePercent])
+  }, [affiliateCode, affiliateSharePercent, hasResolvedAffiliateToastData, tradeFeePercent])
 
   useEffect(() => {
     if (!affiliateCode || !shareMenuOpen) {
