@@ -19,6 +19,7 @@ import EventTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventT
 import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
 import { resolveEventOrderBootstrapSelection } from '@/app/[locale]/(platform)/event/[slug]/_utils/event-order-bootstrap-selection'
 import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { formatAmountInputValue } from '@/lib/formatters'
@@ -30,7 +31,7 @@ import EventLiveSeriesChart, { shouldUseLiveSeriesChart } from './EventLiveSerie
 
 const EventMarketContext = dynamic(
   () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventMarketContext'),
-  { ssr: false, loading: () => <EventSectionSkeleton className="min-h-18" /> },
+  { ssr: false, loading: () => <Skeleton className="h-18" /> },
 )
 
 const EventOrderPanelMobile = dynamic(
@@ -45,17 +46,17 @@ const EventRelated = dynamic(
 
 const EventMarketPositions = dynamic(
   () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventMarketPositions'),
-  { ssr: false, loading: () => <EventSectionSkeleton className="min-h-52" /> },
+  { ssr: false, loading: () => <Skeleton className="h-52" /> },
 )
 
 const EventMarketOpenOrders = dynamic(
   () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventMarketOpenOrders'),
-  { ssr: false, loading: () => <EventSectionSkeleton className="min-h-52" /> },
+  { ssr: false, loading: () => <Skeleton className="h-52" /> },
 )
 
 const EventMarketHistory = dynamic(
   () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventMarketHistory'),
-  { ssr: false, loading: () => <EventSectionSkeleton className="min-h-52" /> },
+  { ssr: false, loading: () => <Skeleton className="h-52" /> },
 )
 
 interface EventContentProps {
@@ -76,10 +77,6 @@ function resolveDefaultMarket(markets: Event['markets']) {
   return markets.find(market => market.is_active && !isMarketResolved(market))
     ?? markets.find(market => !isMarketResolved(market))
     ?? markets[0]
-}
-
-function EventSectionSkeleton({ className = 'min-h-32' }: { className?: string }) {
-  return <div className={cn('rounded-xl border bg-muted/20', className)} aria-hidden="true" />
 }
 
 interface EventOrderQuerySyncProps {
