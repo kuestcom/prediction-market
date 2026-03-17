@@ -14,7 +14,7 @@ Self-hosted deployment using your own Vercel account and Supabase database.
 
 ## 2. Configure environment variables
 
-Download [`.env.example`](./../.env.example) from the root of the repository and fill in:
+Download [`.env.example`](../../.env.example) from the root of the repository and fill in:
 
 | Variable | Description |
 |---|---|
