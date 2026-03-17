@@ -6,7 +6,7 @@ Deploy target for DigitalOcean (Droplet or App Platform).
 
 1. DigitalOcean account with billing enabled.
 2. Access to this repository.
-3. [Configure Environment Variables](../../README.md#quick-start-15-minutes).
+3. Configure the shared [required environment variables](../README.md#required-environment-variables).
 4. Choose between Supabase vs Postgres+S3 and [set the required env variables](../README.md#storage-options)
 
 ## Deployment options
@@ -51,7 +51,7 @@ Set component as:
 
 Set environment variables in App Platform from:
 
-- [Configure Environment Variables](../../README.md#quick-start-15-minutes)
+- [Required environment variables](../README.md#required-environment-variables)
 - [Storage options](../README.md#storage-options)
 
 In DigitalOcean App Platform, mark secrets as encrypted.

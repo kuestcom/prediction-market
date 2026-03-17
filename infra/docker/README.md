@@ -6,7 +6,7 @@ Deploy target for Docker Compose (local and production).
 
 1. Docker Engine + Docker Compose plugin installed.
 2. Access to this repository.
-3. [Configure Environment Variables](../../README.md#quick-start-15-minutes).
+3. Configure the shared [required environment variables](../README.md#required-environment-variables).
 4. Choose between Supabase vs Postgres+S3 and [set the required env variables](../README.md#storage-options)
 
 ## Local compose

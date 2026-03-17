@@ -14,15 +14,8 @@ Self-hosted deployment using your own Vercel account and Supabase database.
 
 ## 2. Configure environment variables
 
-Download [`.env.example`](../../.env.example) from the root of the repository and fill in:
-
-| Variable | Description |
-|---|---|
-| `KUEST_ADDRESS` / `KUEST_API_KEY` / `KUEST_API_SECRET` / `KUEST_PASSPHRASE` | CLOB auth credentials — generate at [auth.kuest.com](https://auth.kuest.com) by connecting your Polygon EVM wallet |
-| `ADMIN_WALLETS` | Comma-separated 0x addresses that should have admin access |
-| `REOWN_APPKIT_PROJECT_ID` | From [dashboard.reown.com](https://dashboard.reown.com) |
-| `BETTER_AUTH_SECRET` | 32-char secret — [generator](https://www.better-auth.com/docs/installation#set-environment-variables) |
-| `CRON_SECRET` | Any random 16+ char string |
+Start from [`.env.example`](../../.env.example) and fill in the shared
+[required environment variables](../README.md#required-environment-variables).
 
 ---
 
@@ -52,17 +45,7 @@ Optionally add your custom domain under **Settings → Domains** after this step
 
 ---
 
-## 6. Enable GitHub Actions sync
-
-In your forked repository:
-
-**Settings → Actions → General → Allow all actions and reusable workflows → Save**
-
-This keeps your fork in sync with upstream Kuest releases.
-
----
-
-## 7. Finish setup in Admin
+## 6. Finish setup in Admin
 
 1. Log in with a wallet listed in `ADMIN_WALLETS`
 2. Go to **Admin → General**
@@ -72,4 +55,4 @@ This keeps your fork in sync with upstream Kuest releases.
 
 ---
 
-> For deployments outside Vercel, see the [infrastructure guide](https://github.com/kuestcom/prediction-market/blob/main/infra/README.md).
+> For deployments outside Vercel, see the [infrastructure guide](../README.md).

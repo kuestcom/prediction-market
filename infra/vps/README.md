@@ -7,7 +7,7 @@ Deploy target for generic Linux VPS hosts (DigitalOcean Droplets, Vultr, Hetzner
 1. Ubuntu 22.04+ VPS with public IPv4.
 2. Domain pointing to the VPS IP (A record).
 3. SSH user with `sudo` access.
-4. [Configure Environment Variables](../../README.md#quick-start-15-minutes).
+4. Configure the shared [required environment variables](../README.md#required-environment-variables).
 5. Choose storage mode and [set the required env variables](../README.md#storage-options).
 
 ## Shared server baseline
@@ -50,7 +50,7 @@ cp .env.example .env
 
 Edit `.env` with keys from:
 
-- [Configure Environment Variables](../../README.md#quick-start-15-minutes)
+- [Required environment variables](../README.md#required-environment-variables)
 - [Storage options](../README.md#storage-options)
 
 Storage reminder:
@@ -205,7 +205,7 @@ cp .env.example .env
 
 Edit `.env` with:
 
-- [Configure Environment Variables](../../README.md#quick-start-15-minutes)
+- [Required environment variables](../README.md#required-environment-variables)
 - [Storage options](../README.md#storage-options)
 
 ### 3) Optional: local Postgres in Docker Compose (only if not using Supabase)

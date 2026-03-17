@@ -7,7 +7,7 @@ Deploy target for Fly.io.
 1. Fly.io account and organization.
 2. Existing Fly app (`fly apps create <app-name>`).
 3. Access to this repository.
-4. [Configure Environment Variables](../../README.md#quick-start-15-minutes).
+4. Configure the shared [required environment variables](../README.md#required-environment-variables).
 5. Choose between Supabase vs Postgres+S3 and [set the required env variables](../README.md#storage-options)
 6. `flyctl` installed and authenticated.
 
@@ -17,7 +17,7 @@ Deploy target for Fly.io.
 
 Configure app variables/secrets directly in Fly.io (dashboard or `flyctl secrets set`) using:
 
-- [Configure Environment Variables](../../README.md#quick-start-15-minutes)
+- [Required environment variables](../README.md#required-environment-variables)
 - [Storage options](../README.md#storage-options)
 
 ### 2) Deploy immutable image

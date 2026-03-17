@@ -2,7 +2,7 @@
 
 Read first:
 
-- `infra/README.md` (storage options)
+- `infra/README.md` (required environment variables and storage options)
 - `infra/scheduler-contract.md` (HTTP scheduler contract)
 
 Terraform environments available:
@@ -66,7 +66,7 @@ terraform apply
 This target runs `flyctl deploy` through Terraform `local-exec`.
 Environment variables and secrets are managed manually in Fly.io (dashboard or `flyctl secrets set`), following:
 
-- [Configure Environment Variables](../../README.md#quick-start-15-minutes)
+- [Required environment variables](../README.md#required-environment-variables)
 - [Storage options](../README.md#storage-options)
 
 Prerequisites:

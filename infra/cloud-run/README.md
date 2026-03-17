@@ -6,7 +6,7 @@ Deploy target for Google Cloud Run.
 
 1. GCP project with billing enabled.
 2. Access to this repository.
-3. [Configure Environment Variables](../../README.md#quick-start-15-minutes).
+3. Configure the shared [required environment variables](../README.md#required-environment-variables).
 4. `gcloud` installed and authenticated.
 5. Required APIs enabled:
    - Cloud Build API
