@@ -109,8 +109,10 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 
 **In progress**
 - [ ] 🏆 MVP — stress tests, security, and financial consistency checks
+- [ ] MOOV2 integration (whitelist)
+- [ ] Gamma metadata API (fork-isolated)
 - [ ] Move matching engine to mainnet
-- [ ] Kalshi arbitrage connector
+- [ ] Kalshi market mirroring + arbitrage connector
 
 ---
 
