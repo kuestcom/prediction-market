@@ -40,6 +40,7 @@ const UMA_RESOLVER_ADDRESS_SET = new Set(
 const RULES_URL_REGEX = /((?:https?:\/\/|www\.)[^\s<>"']+)/g
 const RULES_URL_TRAILING_PUNCTUATION_REGEX = /([)\].,!?;:]+)$/
 const RULES_LABEL_WHITESPACE_REGEX = /\s+/gu
+const EVENT_RULES_TIMESTAMP_LOCALE = 'en-US'
 
 function getResolverGradient(address?: string) {
   if (!address) {
@@ -89,21 +90,24 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
       return t('—')
     }
 
-    const dateLabel = normalizeRulesLabelWhitespace(new Intl.DateTimeFormat(locale, {
+    const parts = new Intl.DateTimeFormat(EVENT_RULES_TIMESTAMP_LOCALE, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-      timeZone: 'America/New_York',
-    }).format(date))
-
-    const timeLabel = normalizeRulesLabelWhitespace(new Intl.DateTimeFormat(locale, {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
       timeZone: 'America/New_York',
-    }).format(date))
+    }).formatToParts(date)
 
-    return `${dateLabel}, ${timeLabel}`
+    const month = parts.find(part => part.type === 'month')?.value ?? ''
+    const day = parts.find(part => part.type === 'day')?.value ?? ''
+    const year = parts.find(part => part.type === 'year')?.value ?? ''
+    const hour = parts.find(part => part.type === 'hour')?.value ?? ''
+    const minute = parts.find(part => part.type === 'minute')?.value ?? ''
+    const dayPeriod = parts.find(part => part.type === 'dayPeriod')?.value ?? ''
+
+    return normalizeRulesLabelWhitespace(`${month} ${day}, ${year}, ${hour}:${minute} ${dayPeriod}`)
   }
 
   function formatEndDate(value: string | null | undefined): string {

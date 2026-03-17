@@ -225,6 +225,7 @@ export default function EventContent({
     }
     return initialMarket.outcomes[0] ?? null
   }, [initialMarket])
+  const [hasResolvedMobileBreakpoint, setHasResolvedMobileBreakpoint] = useState(false)
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [backToTopBounds, setBackToTopBounds] = useState<{ left: number, width: number } | null>(null)
   const selectedMarket = useMemo(() => {
@@ -236,6 +237,22 @@ export default function EventContent({
   const singleMarket = event.markets[0]
   const isSingleMarketResolved = isMarketResolved(singleMarket)
   const usesLiveSeriesChart = Boolean(liveChartConfig && shouldUseLiveSeriesChart(event, liveChartConfig))
+  const shouldRenderMobileRelated = hasResolvedMobileBreakpoint && isMobile
+  const shouldRenderDesktopRelated = hasResolvedMobileBreakpoint && !isMobile
+
+  useEffect(() => {
+    let isActive = true
+
+    queueMicrotask(() => {
+      if (isActive) {
+        setHasResolvedMobileBreakpoint(true)
+      }
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   useEffect(() => {
     if (user?.id) {
@@ -412,7 +429,7 @@ export default function EventContent({
               )}
             </div>
 
-            {isMobile && (
+            {shouldRenderMobileRelated && (
               <div className="grid gap-4 lg:hidden">
                 <h3 className="text-base font-medium">{t('Related')}</h3>
                 <EventRelated event={event} />
@@ -438,7 +455,7 @@ export default function EventContent({
               />
               <EventOrderPanelTermsDisclaimer />
               <span className="border border-dashed"></span>
-              <EventRelated event={event} />
+              {shouldRenderDesktopRelated ? <EventRelated event={event} /> : <EventRelatedSkeleton />}
             </div>
           </aside>
         )}

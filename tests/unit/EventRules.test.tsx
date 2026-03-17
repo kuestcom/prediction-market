@@ -1,10 +1,14 @@
 import type { Event } from '@/types'
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mocks = vi.hoisted(() => ({
+  useLocale: vi.fn(),
+}))
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
-  useLocale: () => 'en',
+  useLocale: () => mocks.useLocale(),
 }))
 
 vi.mock('@/components/ui/button', () => ({
@@ -54,7 +58,22 @@ function createEvent(overrides: Partial<Event> = {}): Event {
 }
 
 describe('eventRules', () => {
-  it('renders a stable created-at label without locale-dependent date-time literals', () => {
+  beforeEach(() => {
+    mocks.useLocale.mockReset()
+    mocks.useLocale.mockReturnValue('en')
+  })
+
+  it('renders the created-at label for english with the full localized timestamp', () => {
+    render(<EventRules event={createEvent()} mode="inline" />)
+
+    expect(screen.getByText((_, node) => (
+      node?.tagName === 'P' && node.textContent === 'Created At: Feb 5, 2026, 2:25 PM ET'
+    ))).toBeInTheDocument()
+  })
+
+  it('renders the same english timestamp format for non-english locales', () => {
+    mocks.useLocale.mockReturnValue('zh')
+
     render(<EventRules event={createEvent()} mode="inline" />)
 
     expect(screen.getByText((_, node) => (
