@@ -191,4 +191,43 @@ describe('eventShare', () => {
       expect(mocks.fetchAffiliateSettingsFromAPI).toHaveBeenCalledTimes(1)
     })
   })
+
+  it('retries affiliate settings after a failed response', async () => {
+    mocks.fetchAffiliateSettingsFromAPI
+      .mockResolvedValueOnce({
+        success: false,
+        error: {
+          error: 'Internal server error',
+        },
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          tradeFeePercent: '1.00',
+          affiliateSharePercent: '40.00',
+          platformSharePercent: '60.00',
+          tradeFeeDecimal: 0.01,
+          affiliateShareDecimal: 0.4,
+          platformShareDecimal: 0.6,
+        },
+      })
+
+    render(<EventShare event={createEvent()} />)
+
+    const shareButton = screen.getByRole('button', { name: 'Copy event link' })
+
+    await userEvent.click(shareButton)
+    await userEvent.click(shareButton)
+
+    await waitFor(() => {
+      expect(mocks.fetchAffiliateSettingsFromAPI).toHaveBeenCalledTimes(2)
+      expect(mocks.maybeShowAffiliateToast).toHaveBeenCalledWith({
+        affiliateCode: 'abc123',
+        affiliateSharePercent: 40,
+        tradeFeePercent: 1,
+        siteName: 'Kuest',
+        context: 'link',
+      })
+    })
+  })
 })

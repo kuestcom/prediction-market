@@ -140,7 +140,7 @@ export default function EventShare({ event }: EventShareProps) {
         const nextData = parseAffiliateToastData(result)
         setAffiliateSharePercent(nextData.affiliateSharePercent)
         setTradeFeePercent(nextData.tradeFeePercent)
-        setHasResolvedAffiliateToastData(true)
+        setHasResolvedAffiliateToastData(result.success)
         return nextData
       })
       .catch(() => {
@@ -150,7 +150,6 @@ export default function EventShare({ event }: EventShareProps) {
         }
         setAffiliateSharePercent(nextData.affiliateSharePercent)
         setTradeFeePercent(nextData.tradeFeePercent)
-        setHasResolvedAffiliateToastData(true)
         return nextData
       })
       .finally(() => {
