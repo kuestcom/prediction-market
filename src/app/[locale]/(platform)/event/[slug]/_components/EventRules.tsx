@@ -39,6 +39,7 @@ const UMA_RESOLVER_ADDRESS_SET = new Set(
 )
 const RULES_URL_REGEX = /((?:https?:\/\/|www\.)[^\s<>"']+)/g
 const RULES_URL_TRAILING_PUNCTUATION_REGEX = /([)\].,!?;:]+)$/
+const RULES_LABEL_WHITESPACE_REGEX = /\s+/gu
 
 function getResolverGradient(address?: string) {
   if (!address) {
@@ -47,6 +48,10 @@ function getResolverGradient(address?: string) {
 
   const checksum = [...address.toLowerCase()].reduce((acc, char) => acc + char.charCodeAt(0), 0)
   return RESOLVER_GRADIENTS[checksum % RESOLVER_GRADIENTS.length]
+}
+
+function normalizeRulesLabelWhitespace(value: string) {
+  return value.replace(RULES_LABEL_WHITESPACE_REGEX, ' ').trim()
 }
 
 export default function EventRules({ event, mode = 'accordion', showEndDate = false }: EventRulesProps) {
@@ -84,15 +89,21 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
       return t('—')
     }
 
-    return new Intl.DateTimeFormat(locale, {
+    const dateLabel = normalizeRulesLabelWhitespace(new Intl.DateTimeFormat(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+      timeZone: 'America/New_York',
+    }).format(date))
+
+    const timeLabel = normalizeRulesLabelWhitespace(new Intl.DateTimeFormat(locale, {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
       timeZone: 'America/New_York',
-    }).format(date)
+    }).format(date))
+
+    return `${dateLabel}, ${timeLabel}`
   }
 
   function formatEndDate(value: string | null | undefined): string {
