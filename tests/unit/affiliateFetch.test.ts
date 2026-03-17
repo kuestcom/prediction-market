@@ -14,6 +14,7 @@ describe('fetchAffiliateSettingsFromAPI', () => {
     globalThis.fetch = fetchMock as any
 
     const result = await fetchAffiliateSettingsFromAPI()
+    expect(fetchMock).toHaveBeenCalledWith('/api/affiliate-settings', expect.any(Object))
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.tradeFeePercent).toBe('1.00')

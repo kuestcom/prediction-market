@@ -209,7 +209,7 @@ export default function EventChartEmbedDialog({
   }, [showChart])
 
   useEffect(() => {
-    if (!affiliateCode) {
+    if (!affiliateCode || !open) {
       setAffiliateSharePercent(null)
       setTradeFeePercent(null)
       return
@@ -243,7 +243,7 @@ export default function EventChartEmbedDialog({
     return () => {
       isActive = false
     }
-  }, [affiliateCode])
+  }, [affiliateCode, open])
 
   useEffect(() => {
     if (!open) {

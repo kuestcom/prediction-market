@@ -86,7 +86,7 @@ export default function EventShare({ event }: EventShareProps) {
   }, [])
 
   useEffect(() => {
-    if (!affiliateCode) {
+    if (!affiliateCode || !shareMenuOpen) {
       setAffiliateSharePercent(null)
       setTradeFeePercent(null)
       return
@@ -120,7 +120,7 @@ export default function EventShare({ event }: EventShareProps) {
     return () => {
       isActive = false
     }
-  }, [affiliateCode])
+  }, [affiliateCode, shareMenuOpen])
 
   const showAffiliateToast = useCallback(() => {
     maybeShowAffiliateToast({

@@ -26,7 +26,7 @@ export type AffiliateDataResult
 
 export async function fetchAffiliateSettingsFromAPI(): Promise<AffiliateDataResult> {
   try {
-    const response = await fetch('/docs/api/affiliate-settings', {
+    const response = await fetch('/api/affiliate-settings', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
