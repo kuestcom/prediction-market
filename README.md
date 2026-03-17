@@ -15,7 +15,7 @@
   <a href="#roadmap">Roadmap</a>
 </p>
 
-<p align="center"> 👉
+<p align="center">
   <a href="https://github.com/kuestcom/prediction-market">
     <img src="https://img.shields.io/github/stars/kuestcom/prediction-market?style=social" alt="GitHub Stars" />
   </a>
