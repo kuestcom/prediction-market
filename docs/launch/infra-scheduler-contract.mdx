@@ -49,5 +49,5 @@ Use UTC unless your team has a strict local-time requirement.
 - `500`: runtime failure (investigate logs)
 
 <Callout type="warning">
-  Do not run duplicate schedulers simultaneously (`pg_cron` + external scheduler), unless you intentionally accept duplicate calls.
+  Do not run duplicate schedulers simultaneously (`supabase pg_cron` + external scheduler).
 </Callout>

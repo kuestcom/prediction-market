@@ -1,0 +1,37 @@
+---
+title: Infra Overview
+description: Decide between the default Vercel path and self-hosted infra runbooks, then choose the right storage mode
+---
+
+<Callout type="info">
+  The default launch path is Vercel + Supabase. Use this section to compare that default path with the self-hosted deployment targets under `infra/`.
+</Callout>
+
+## Decision tree
+
+1. **Vercel + Supabase:** use the default hosted path and the `infra/vercel/README.md` runbook.
+2. **Self-hosted + Supabase:** choose a target under `infra/` and keep Supabase mode.
+3. **Self-hosted + Postgres+S3:** choose a target under `infra/`, use S3 mode, and add an external scheduler.
+
+---
+
+## Storage modes
+
+| Mode | Required variables | Storage backend | Scheduler |
+| --- | --- | --- | --- |
+| **Supabase mode** | `POSTGRES_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Supabase Storage (`kuest-assets`) | Built-in (`pg_cron` via `npm run db:push`) |
+| **Postgres + S3 mode** | `POSTGRES_URL`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (+ optional `S3_*`) | S3-compatible object storage | External/platform scheduler required |
+
+---
+
+## Operating principles
+
+- Always start from base secrets in [Environment Variables](/docs/launch/environment-variables).
+- For target-specific setup, start with [Deployment Targets](/docs/launch/infra-deployment-targets).
+- Use immutable image references in production (`@sha256:digest` preferred).
+- Set `SITE_URL` to your canonical public URL for self-hosted deployments.
+- Choose one scheduler backend only (avoid duplicate schedulers).
+
+<Callout type="warning">
+  External scheduler jobs are required only for Postgres + S3 deployments. Supabase mode uses `pg_cron` after `npm run db:push`, and you should avoid layering a second scheduler on top.
+</Callout>

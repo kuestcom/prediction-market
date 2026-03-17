@@ -87,6 +87,6 @@ All non-Supabase targets should implement the same [HTTP scheduler contract](./s
 - [Cloud Run runbook](./cloud-run/README.md)
 - [Fly.io runbook](./fly/README.md)
 - [DigitalOcean runbook](./digital-ocean/README.md)
-- [VPS (DigitalOcean Droplets, Vultr, Hetzner, EC2, etc. runbook](./vps/README.md)
+- [VPS (DigitalOcean Droplets, Vultr, Hetzner, EC2, etc.) runbook](./vps/README.md)
 - [Kubernetes runbook](./kubernetes/README.md)
 - [Terraform runbook](./terraform/README.md)

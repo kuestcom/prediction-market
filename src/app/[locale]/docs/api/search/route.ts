@@ -3,7 +3,7 @@ import { source } from '@/lib/source'
 
 const pages = JSON.parse(process.env.FORK_OWNER_GUIDE || 'false')
   ? source.getPages()
-  : source.getPages().filter(page => !page.url.includes('/owners'))
+  : source.getPages().filter(page => !page.url.includes('/launch'))
 
 export const { GET } = createSearchAPI('advanced', {
   language: 'english',

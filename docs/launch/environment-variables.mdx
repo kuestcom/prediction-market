@@ -15,10 +15,6 @@ import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
 | `BETTER_AUTH_SECRET` | Master secret for Better Auth sessions and encrypted trading credentials. | Generate a 32-character value in the [Better Auth docs](https://www.better-auth.com/docs/installation#set-environment-variables). |
 | `CRON_SECRET` | Secures scheduled Vercel cron jobs. | Create any random string with at least 16 characters. |
 
-<Callout type="info">
-  Market syncs now use the Kuest-managed Goldsky subgraph at `https://api.goldsky.com/api/public/project_cmfbr456t4gud01w483uu2d9d/subgraphs/pnl-subgraph/1.0.0/gn`. Override it only if you're running custom infrastructure.
-</Callout>
-
 <Callout type="warning">
   If `KUEST_*` credentials are missing or invalid, users can browse markets but will fail when creating trading auth/proxy wallet credentials.
 </Callout>
@@ -29,7 +25,6 @@ import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
 
 - Branding, support links, analytics ID, fee recipient wallet, allowed market creators, LI.FI, and OpenRouter model/key are managed in **Admin > General Settings**.
 - Market Context prompt/toggle is managed in **Admin > Market Context**.
-- Endpoint overrides (`CLOB_URL`, `RELAYER_URL`, `DATA_URL`, `USER_PNL_URL`, `COMMUNITY_URL`, `WS_CLOB_URL`, `WS_LIVE_DATA_URL`) are only needed when you proxy infrastructure (see Cloudflare guide).
 
 ---
 
