@@ -637,7 +637,13 @@ export default function PublicProfileHeroCards({
 }: PublicProfileHeroCardsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <ProfileOverviewCard profile={profile} snapshot={snapshot} actions={actions} variant={variant} />
+      <ProfileOverviewCard
+        profile={profile}
+        snapshot={snapshot}
+        actions={actions}
+        variant={variant}
+        enableLiveValue={variant === 'portfolio'}
+      />
       <ProfitLossCard
         snapshot={snapshot}
         portfolioAddress={profile.portfolioAddress}
