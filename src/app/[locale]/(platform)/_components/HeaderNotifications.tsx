@@ -1,5 +1,6 @@
 'use client'
 
+import type { Route } from 'next'
 import type { Notification } from '@/types'
 import { BellIcon, ExternalLinkIcon } from 'lucide-react'
 import Image from 'next/image'
@@ -97,7 +98,7 @@ export default function HeaderNotifications() {
     const eventPath = notification.link_target?.trim()
 
     if (eventPath) {
-      router.push(eventPath)
+      router.push(eventPath as Route)
     }
     else if (notification.link_url) {
       window.open(notification.link_url, '_blank', 'noopener,noreferrer')
