@@ -39,6 +39,7 @@ import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { defaultNetwork } from '@/lib/appkit'
 import { CLOB_ORDER_TYPE, DEFAULT_ERROR_MESSAGE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
+import { resolveEventPagePath } from '@/lib/events-routing'
 import { formatCentsLabel, formatCurrency, formatSharesLabel, toCents } from '@/lib/formatters'
 import {
   calculateMarketFill,
@@ -1049,6 +1050,7 @@ export default function EventOrderPanelForm({
           description: isSell
             ? `${eventContextLabel} • ${amountPrefix} ${formatCurrency(submittedSellAmountValue)} @ ${submittedAvgSellPriceLabel}`
             : `${eventContextLabel} • Total ${buyAmountLabel} @ ${priceLabel}`,
+          eventPath: resolveEventPagePath(event),
           marketIconUrl: submittedMarketImage,
         })
       }
@@ -1333,6 +1335,7 @@ export default function EventOrderPanelForm({
                 availableSplitBalance={availableSplitBalance}
                 isNegRiskMarket={isNegRiskMarket}
                 conditionId={activeMarket?.condition_id}
+                eventPath={resolveEventPagePath(event)}
                 marketTitle={activeMarket?.title || activeMarket?.short_title}
                 marketIconUrl={activeMarket?.icon_url}
                 onSideChange={state.setSide}

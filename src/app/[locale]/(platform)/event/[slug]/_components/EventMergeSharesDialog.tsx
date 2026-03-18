@@ -47,6 +47,7 @@ interface EventMergeSharesDialogProps {
   open: boolean
   availableShares: number
   conditionId?: string
+  eventPath?: string | null
   marketTitle?: string
   marketIconUrl?: string | null
   isNegRiskMarket?: boolean
@@ -57,6 +58,7 @@ export default function EventMergeSharesDialog({
   open,
   availableShares,
   conditionId,
+  eventPath,
   marketTitle,
   marketIconUrl,
   isNegRiskMarket = false,
@@ -239,6 +241,7 @@ export default function EventMergeSharesDialog({
           txHash: response.txHash,
           title: t('Merge shares'),
           description: marketTitle ?? t('Request submitted.'),
+          eventPath,
           marketIconUrl,
         })
       }

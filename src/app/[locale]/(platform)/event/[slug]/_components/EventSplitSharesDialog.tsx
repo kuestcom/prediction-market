@@ -47,6 +47,7 @@ interface EventSplitSharesDialogProps {
   open: boolean
   availableUsdc: number
   conditionId?: string
+  eventPath?: string | null
   marketTitle?: string
   marketIconUrl?: string | null
   isNegRiskMarket?: boolean
@@ -57,6 +58,7 @@ export default function EventSplitSharesDialog({
   open,
   availableUsdc,
   conditionId,
+  eventPath,
   marketTitle,
   marketIconUrl,
   isNegRiskMarket = false,
@@ -241,6 +243,7 @@ export default function EventSplitSharesDialog({
           txHash: response.txHash,
           title: t('Split shares'),
           description: marketTitle ?? t('Request submitted.'),
+          eventPath,
           marketIconUrl,
         })
       }

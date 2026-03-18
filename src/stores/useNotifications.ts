@@ -13,6 +13,7 @@ interface LocalOrderFillMetadata {
   source: typeof LOCAL_ORDER_FILL_NOTIFICATION_SOURCE
   txHash?: string
   action: LocalOrderFillAction
+  eventPath?: string
 }
 
 interface LocalOrderFillNotificationInput {
@@ -21,6 +22,7 @@ interface LocalOrderFillNotificationInput {
   title: string
   description: string
   marketIconUrl?: string | null
+  eventPath?: string | null
 }
 
 interface NotificationsState {
@@ -45,6 +47,11 @@ function isAllowedAvatarUrl(value: string) {
   return value.startsWith('http://')
     || value.startsWith('https://')
     || value.startsWith('/')
+}
+
+function normalizeInternalPath(value: string | null | undefined) {
+  const normalized = value?.trim()
+  return normalized?.startsWith('/') ? normalized : null
 }
 
 function sortNotificationsByCreatedAtDesc(notifications: Notification[]) {
@@ -153,10 +160,12 @@ function buildLocalOrderFillNotification({
   title,
   description,
   marketIconUrl,
+  eventPath,
 }: LocalOrderFillNotificationInput): Notification {
   const createdAt = new Date().toISOString()
   const normalizedTxHash = isLikelyTxHash(txHash) ? txHash : null
   const normalizedMarketIcon = typeof marketIconUrl === 'string' ? marketIconUrl.trim() : ''
+  const normalizedEventPath = normalizeInternalPath(eventPath)
   const avatarUrl = normalizedMarketIcon && isAllowedAvatarUrl(normalizedMarketIcon)
     ? normalizedMarketIcon
     : LOCAL_ORDER_FILL_AVATAR
@@ -168,7 +177,8 @@ function buildLocalOrderFillNotification({
     description,
     created_at: createdAt,
     user_avatar: avatarUrl,
-    link_type: normalizedTxHash ? 'external' : 'none',
+    link_type: normalizedEventPath ? 'event' : normalizedTxHash ? 'external' : 'none',
+    link_target: normalizedEventPath,
     link_label: normalizedTxHash ? 'View on Polygonscan' : undefined,
     link_url: normalizedTxHash ? `${POLYGON_SCAN_BASE}/tx/${normalizedTxHash}` : null,
     extra_info: normalizedTxHash ? normalizedTxHash.slice(0, 10) : undefined,
@@ -176,6 +186,7 @@ function buildLocalOrderFillNotification({
       source: LOCAL_ORDER_FILL_NOTIFICATION_SOURCE,
       txHash: normalizedTxHash ?? undefined,
       action,
+      eventPath: normalizedEventPath ?? undefined,
     },
   }
 }

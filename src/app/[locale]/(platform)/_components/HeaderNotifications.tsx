@@ -3,6 +3,7 @@
 import type { Notification } from '@/types'
 import { BellIcon, ExternalLinkIcon } from 'lucide-react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import EventIconImage, { isEventMarketIconUrl } from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
@@ -74,6 +75,7 @@ function getNotificationTimeLabel(notification: Notification, currentTimestamp: 
 }
 
 export default function HeaderNotifications() {
+  const router = useRouter()
   const notifications = useNotificationList()
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const unreadCount = useUnreadNotificationCount()
@@ -92,7 +94,12 @@ export default function HeaderNotifications() {
       return
     }
 
-    if (notification.link_url) {
+    const eventPath = notification.link_target?.trim()
+
+    if (eventPath) {
+      router.push(eventPath)
+    }
+    else if (notification.link_url) {
       window.open(notification.link_url, '_blank', 'noopener,noreferrer')
     }
 
@@ -154,8 +161,8 @@ export default function HeaderNotifications() {
               {notifications.map((notification) => {
                 const timeLabel = getNotificationTimeLabel(notification, currentTimestamp)
                 const hasLink = Boolean(notification.link_url)
-                const linkIsExternal = notification.link_type === 'external'
                 const isLocalOrderFill = isLocalOrderFillNotification(notification)
+                const linkIsExternal = notification.link_type === 'external' || isLocalOrderFill
                 const linkIcon = (
                   <ExternalLinkIcon
                     className={cn('size-3 text-muted-foreground', { 'opacity-0': !(hasLink) })}
@@ -231,7 +238,7 @@ export default function HeaderNotifications() {
                           <span className="text-xs text-muted-foreground">
                             {timeLabel}
                           </span>
-                          {hasLink && !isLocalOrderFill
+                          {hasLink
                             ? (
                                 <a
                                   href={notification.link_url ?? undefined}
