@@ -62,6 +62,82 @@ function buildBinaryMarket(params: {
 }
 
 describe('sportsGamesData', () => {
+  it('uses the market game start time when the event start time is missing', () => {
+    const event = {
+      id: 'event-start-fallback',
+      slug: 'euroleague-barcelon-efes-2026-03-24',
+      title: 'Barcelona vs. Anadolu Efes',
+      creator: '',
+      icon_url: '',
+      show_market_icons: true,
+      status: 'active',
+      sports_event_slug: 'euroleague-barcelon-efes-2026-03-24',
+      sports_sport_slug: 'euroleague',
+      sports_section: 'games',
+      sports_start_time: null,
+      sports_teams: [
+        { name: 'Barcelona', abbreviation: 'BAR', host_status: 'home' },
+        { name: 'Anadolu Efes', abbreviation: 'EFS', host_status: 'away' },
+      ],
+      active_markets_count: 1,
+      total_markets_count: 1,
+      volume: 0,
+      start_date: null,
+      end_date: null,
+      created_at: '2026-03-18T14:02:52.748Z',
+      updated_at: '2026-03-18T14:02:52.748Z',
+      markets: [
+        {
+          condition_id: 'moneyline',
+          question_id: 'moneyline-question',
+          event_id: 'event-start-fallback',
+          title: 'Barcelona vs. Anadolu Efes',
+          slug: 'euroleague-barcelon-efes-2026-03-24',
+          short_title: 'Barcelona vs. Anadolu Efes',
+          icon_url: '',
+          is_active: true,
+          is_resolved: false,
+          block_number: 0,
+          block_timestamp: '2026-03-18T14:02:52.748Z',
+          sports_market_type: 'moneyline',
+          sports_game_start_time: '2026-03-24T19:30:00.000Z',
+          sports_group_item_title: 'Barcelona vs. Anadolu Efes',
+          sports_group_item_threshold: '0',
+          volume: 5,
+          volume_24h: 0,
+          created_at: '2026-03-18T14:02:52.748Z',
+          updated_at: '2026-03-18T14:02:52.748Z',
+          price: 0.5,
+          probability: 50,
+          outcomes: [
+            buildOutcome('moneyline', 0, 'Barcelona'),
+            buildOutcome('moneyline', 1, 'Anadolu Efes'),
+          ],
+          condition: {
+            id: 'moneyline',
+            oracle: '',
+            question_id: 'moneyline-question',
+            outcome_slot_count: 2,
+            resolved: false,
+            volume: 0,
+            open_interest: 0,
+            active_positions_count: 0,
+            created_at: '2026-03-18T14:02:52.748Z',
+            updated_at: '2026-03-18T14:02:52.748Z',
+          },
+        },
+      ],
+      tags: [],
+      main_tag: 'sports',
+      is_bookmarked: false,
+      is_trending: false,
+    } as any
+
+    const groups = buildSportsGamesCardGroups([event])
+
+    expect(groups[0]?.primaryCard.startTime).toBe('2026-03-24T19:30:00.000Z')
+  })
+
   it('keeps UFC binary proposition markets out of the moneyline buttons and preserves them as detail markets', () => {
     const event = {
       id: 'event-1',

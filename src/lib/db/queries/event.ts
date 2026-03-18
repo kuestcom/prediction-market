@@ -814,6 +814,8 @@ function eventResource(
       neg_risk: Boolean(market.neg_risk),
       neg_risk_other: Boolean(market.neg_risk_other),
       sports_market_type: market.sports?.sports_market_type ?? null,
+      sports_game_start_time: market.sports?.sports_game_start_time?.toISOString?.() ?? null,
+      sports_start_time: market.sports?.sports_start_time?.toISOString?.() ?? null,
       sports_group_item_title: market.sports?.sports_group_item_title ?? null,
       sports_group_item_threshold: market.sports?.sports_group_item_threshold ?? null,
       end_time: market.end_time?.toISOString?.() ?? null,

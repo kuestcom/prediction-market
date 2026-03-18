@@ -1,5 +1,6 @@
 const CROPPED_TEAM_LOGO_SPORTS = new Set([
   'mlb',
+  'nba',
   'nhl',
 ])
 

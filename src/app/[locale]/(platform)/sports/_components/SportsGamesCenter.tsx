@@ -863,8 +863,7 @@ function resolveCardStartTimestamp(card: SportsGamesCard) {
   return toFiniteTimestamp(
     card.startTime
     ?? card.event.sports_start_time
-    ?? card.event.start_date
-    ?? card.event.created_at,
+    ?? card.event.start_date,
   )
 }
 

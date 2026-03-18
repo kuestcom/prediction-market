@@ -106,6 +106,8 @@ export interface Market {
   block_timestamp: string
   metadata?: any
   sports_market_type?: string | null
+  sports_game_start_time?: string | null
+  sports_start_time?: string | null
   sports_group_item_title?: string | null
   sports_group_item_threshold?: string | null
   volume_24h: number

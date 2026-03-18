@@ -443,6 +443,7 @@ async function processMarket(market: SubgraphCondition, options: SyncOptions) {
   const eventId = await processEvent(
     metadata.event,
     metadata.sports?.event,
+    metadata.sports?.market,
     market.creator!,
     timestamps.createdAtIso,
     options.autoDeployNewEvents,
@@ -535,9 +536,19 @@ function normalizeTimestamp(rawValue: unknown): string | null {
   return null
 }
 
+function resolveEventStartTimestamp(
+  sportsEventData: any,
+  sportsMarketData: any,
+): string | null {
+  return normalizeTimestamp(sportsEventData?.start_time)
+    ?? normalizeTimestamp(sportsMarketData?.game_start_time)
+    ?? normalizeTimestamp(sportsMarketData?.start_time)
+}
+
 async function processEvent(
   eventData: any,
   sportsEventData: any,
+  sportsMarketData: any,
   creatorAddress: string,
   createdAtIso: string,
   autoDeployNewEvents: boolean,
@@ -570,7 +581,7 @@ async function processEvent(
   const sportsParentEventId = normalizeIntegerField(sportsEventData?.parent_event_id)
   const sportsGameId = normalizeIntegerField(sportsEventData?.game_id)
   const sportsEventDate = normalizeDateField(sportsEventData?.event_date)
-  const sportsStartTime = normalizeTimestamp(sportsEventData?.start_time)
+  const sportsStartTime = resolveEventStartTimestamp(sportsEventData, sportsMarketData)
   const sportsSeriesSlug = normalizeStringField(sportsEventData?.series_slug)
   const sportsSeriesId = normalizeStringField(sportsEventData?.series_id)
   const sportsSeriesRecurrence = normalizeStringField(sportsEventData?.series_recurrence)
@@ -591,6 +602,7 @@ async function processEvent(
     .select({
       id: eventsTable.id,
       title: eventsTable.title,
+      start_date: eventsTable.start_date,
       end_date: eventsTable.end_date,
       created_at: eventsTable.created_at,
     })
@@ -628,6 +640,11 @@ async function processEvent(
     const existingEndDateIso = existingEvent.end_date?.toISOString() ?? null
     if (normalizedEndDate && normalizedEndDate !== existingEndDateIso) {
       updatePayload.end_date = new Date(normalizedEndDate)
+    }
+
+    const existingStartDateIso = existingEvent.start_date?.toISOString() ?? null
+    if (sportsStartTime && sportsStartTime !== existingStartDateIso) {
+      updatePayload.start_date = new Date(sportsStartTime)
     }
 
     try {
@@ -692,6 +709,7 @@ async function processEvent(
     series_id: eventSeriesId ?? null,
     series_recurrence: eventSeriesRecurrence ?? null,
     rules: eventData.rules || null,
+    start_date: sportsStartTime ? new Date(sportsStartTime) : null,
     end_date: normalizedEndDate ? new Date(normalizedEndDate) : null,
     created_at: new Date(createdAtIso),
   }

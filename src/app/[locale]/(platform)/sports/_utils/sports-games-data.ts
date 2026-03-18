@@ -1218,6 +1218,28 @@ function resolveWeek(events: Event[], fallback: number | null) {
   return null
 }
 
+function resolveMarketStartTime(markets: Market[]) {
+  let earliestTimestamp = Number.POSITIVE_INFINITY
+  let earliestValue: string | null = null
+
+  for (const market of markets) {
+    const value = market.sports_game_start_time ?? market.sports_start_time ?? null
+    if (!value) {
+      continue
+    }
+
+    const timestamp = Date.parse(value)
+    if (!Number.isFinite(timestamp) || timestamp >= earliestTimestamp) {
+      continue
+    }
+
+    earliestTimestamp = timestamp
+    earliestValue = value
+  }
+
+  return earliestValue
+}
+
 function resolveStartTime(events: Event[], fallback: string | null) {
   if (fallback) {
     return fallback
@@ -1301,7 +1323,7 @@ function buildSportsGamesCard(
   const week = resolveWeek(eventsGroup, baseWeek)
   const startTime = resolveStartTime(
     eventsGroup,
-    primaryEvent.sports_start_time ?? primaryEvent.start_date ?? null,
+    resolveMarketStartTime(mergedMarkets) ?? primaryEvent.sports_start_time ?? primaryEvent.start_date ?? null,
   )
 
   const mergedMarketsCount = sumFiniteValues(eventsGroup.map(event => event.total_markets_count))
