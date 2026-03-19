@@ -286,6 +286,66 @@ describe('sportsHomeCard', () => {
     expect(model?.team2.logoUrl).toBe(zimbabweLogoUrl)
   })
 
+  it('keeps indexed logo fallback aligned when unnamed teams are filtered out', () => {
+    const nigeriaLogoUrl = 'https://example.com/nigeria.png'
+    const zimbabweLogoUrl = 'https://example.com/zimbabwe.png'
+    const event = {
+      sports_sport_slug: 'cricket',
+      main_tag: 'games',
+      tags: [
+        {
+          id: 1,
+          name: 'Games',
+          slug: 'games',
+          isMainCategory: true,
+        },
+      ],
+      sports_teams: [
+        {
+          name: '',
+          abbreviation: '',
+          host_status: null,
+        },
+        {
+          name: 'Nigeria',
+          abbreviation: 'NGA',
+          host_status: 'home',
+        },
+        {
+          name: 'Zimbabwe',
+          abbreviation: 'ZWE',
+          host_status: 'away',
+        },
+      ],
+      sports_team_logo_urls: [nigeriaLogoUrl, zimbabweLogoUrl],
+      markets: [
+        {
+          condition_id: 'match-winner-condition',
+          sports_market_type: null,
+          sports_group_item_title: null,
+          short_title: 'Match Winner',
+          title: 'Match Winner',
+          outcomes: [
+            {
+              outcome_index: 0,
+              outcome_text: 'Nigeria',
+            },
+            {
+              outcome_index: 1,
+              outcome_text: 'Zimbabwe',
+            },
+          ],
+        },
+      ],
+    } as any
+
+    const model = buildHomeSportsMoneylineModel(event)
+
+    expect(model).not.toBeNull()
+    expect(model?.team1.logoUrl).toBe(nigeriaLogoUrl)
+    expect(model?.team2.logoUrl).toBe(zimbabweLogoUrl)
+  })
+
   it('resolves display chance by outcome index', () => {
     expect(resolveHomeSportsButtonChance(63, 0)).toBe(63)
     expect(resolveHomeSportsButtonChance(63, 1)).toBe(37)

@@ -344,6 +344,47 @@ describe('sportsGamesData', () => {
     expect(binaryButtons.map(button => button.label)).toEqual(['NGA', 'DRAW', 'ZWE'])
   })
 
+  it('keeps indexed team logos aligned when unnamed sports teams are filtered out', () => {
+    const nigeriaLogoUrl = 'https://example.com/nigeria.png'
+    const zimbabweLogoUrl = 'https://example.com/zimbabwe.png'
+    const event = buildSportsEvent({
+      id: 'cricket-logo-alignment',
+      slug: 'crint-nga-zwe-2026-03-21',
+      title: 'Nigeria vs Zimbabwe',
+      sportsTeams: [
+        {
+          name: '',
+          abbreviation: '',
+          host_status: null,
+        },
+        {
+          name: 'Nigeria',
+          abbreviation: 'NGA',
+          host_status: 'home',
+        },
+        {
+          name: 'Zimbabwe',
+          abbreviation: 'ZWE',
+          host_status: 'away',
+        },
+      ],
+      sportsTeamLogoUrls: [nigeriaLogoUrl, zimbabweLogoUrl],
+      markets: [
+        buildMoneylineMarket({
+          eventId: 'cricket-logo-alignment',
+          slug: 'crint-nga-zwe-2026-03-21',
+          title: 'Nigeria vs Zimbabwe',
+          outcomes: ['Nigeria', 'Zimbabwe'],
+        }),
+      ],
+    })
+
+    const groups = buildSportsGamesCardGroups([event])
+    const card = groups[0]?.primaryCard
+
+    expect(card?.teams.map(team => team.logoUrl)).toEqual([nigeriaLogoUrl, zimbabweLogoUrl])
+  })
+
   it('keeps UFC binary proposition markets out of the moneyline buttons and preserves them as detail markets', () => {
     const event = {
       id: 'event-1',

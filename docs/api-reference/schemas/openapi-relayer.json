@@ -434,6 +434,7 @@
                     "nonce": "7",
                     "value": "0",
                     "state": "STATE_MINED",
+                    "failureReason": null,
                     "type": "SAFE",
                     "metadata": "first USDC approve",
                     "createdAt": "2025-02-15T18:29:12.417Z",
@@ -501,6 +502,7 @@
                     "nonce": "7",
                     "value": "0",
                     "state": "STATE_MINED",
+                    "failureReason": null,
                     "type": "SAFE",
                     "metadata": "first USDC approve",
                     "createdAt": "2025-02-15T18:29:12.417Z",
@@ -573,7 +575,7 @@
                 },
                 "example": {
                   "transactionID": "01JAA0Y2Q9M5T8M6P5HAX7F1RM",
-                  "state": "STATE_MINED",
+                  "state": "STATE_EXECUTED",
                   "transactionHash": "0xaabc8230e2bf9c5f5d514b8a9be4739fce8c17b1d0a4b8d9ae8ea7e7da65e021",
                   "hash": "0xaabc8230e2bf9c5f5d514b8a9be4739fce8c17b1d0a4b8d9ae8ea7e7da65e021"
                 }
@@ -1411,7 +1413,19 @@
           },
           "state": {
             "type": "string",
-            "description": "Current lifecycle state tracked by the relayer."
+            "description": "Current lifecycle state tracked by the relayer.",
+            "enum": [
+              "STATE_NEW",
+              "STATE_EXECUTED",
+              "STATE_MINED",
+              "STATE_CONFIRMED",
+              "STATE_FAILED",
+              "STATE_INVALID"
+            ]
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
           },
           "type": {
             "type": "string",
@@ -1704,7 +1718,15 @@
             "type": "string"
           },
           "state": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "STATE_NEW",
+              "STATE_EXECUTED",
+              "STATE_MINED",
+              "STATE_CONFIRMED",
+              "STATE_FAILED",
+              "STATE_INVALID"
+            ]
           },
           "transactionHash": {
             "type": "string",
