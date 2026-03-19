@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
+import { extractTwoFactorErrorMessage, isPasswordAlreadySetError } from './two-factor-errors'
 
 export async function enableTwoFactorAction() {
   try {
@@ -26,7 +27,7 @@ export async function enableTwoFactorAction() {
   }
   catch (error) {
     console.error('Failed to enable two-factor:', error)
-    return { error: DEFAULT_ERROR_MESSAGE }
+    return { error: extractTwoFactorErrorMessage(error) ?? DEFAULT_ERROR_MESSAGE }
   }
 }
 
@@ -38,7 +39,7 @@ async function prepareAccount(newPassword: string, h: ReadonlyHeaders) {
     })
   }
   catch (error: any) {
-    if (!error.toString().includes('user already has a password')) {
+    if (!isPasswordAlreadySetError(error)) {
       throw error
     }
   }

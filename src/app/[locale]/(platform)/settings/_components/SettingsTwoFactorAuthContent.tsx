@@ -32,6 +32,11 @@ interface ComponentState {
   isDisabling: boolean
 }
 
+const AUTHENTICATOR_APP_LINKS = {
+  'Authy': 'https://www.authy.com/download/',
+  'Google Authenticator': 'https://support.google.com/accounts/answer/1066447',
+} as const
+
 export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
   const t = useExtracted()
   const { copied, copy } = useClipboard()
@@ -57,6 +62,37 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
 
   function handleCopySecret() {
     copy(extractTotpSecret())
+  }
+
+  function renderAuthenticatorAppLinks(text: string) {
+    const parts = text
+      .split(/(Google Authenticator|Authy)/)
+      .map(part => part.trim())
+      .filter(Boolean)
+
+    return (
+      <span className="flex flex-wrap items-baseline gap-1">
+        {parts.map((part, index) => {
+          const href = AUTHENTICATOR_APP_LINKS[part as keyof typeof AUTHENTICATOR_APP_LINKS]
+
+          if (!href) {
+            return <span key={`text-${index}`}>{part}</span>
+          }
+
+          return (
+            <a
+              key={`${part}-${index}`}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium whitespace-nowrap text-foreground underline underline-offset-2 hover:text-primary"
+            >
+              {part}
+            </a>
+          )
+        })}
+      </span>
+    )
   }
 
   function handleTrustDeviceChange(checked: boolean) {
@@ -270,9 +306,9 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
           <div className="space-y-4">
             <h4 className="text-lg font-medium">{t('Setup Instructions')}</h4>
             <ol className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex">
+              <li className="flex items-start">
                 <span className="mr-2 font-medium">1.</span>
-                {t('Download an authenticator app like Google Authenticator or Authy')}
+                {renderAuthenticatorAppLinks(t('Download an authenticator app like Google Authenticator or Authy'))}
               </li>
               <li className="flex">
                 <span className="mr-2 font-medium">2.</span>
@@ -286,8 +322,25 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
           </div>
 
           <div className="mt-6 grid gap-6">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <p className="text-sm font-medium text-muted-foreground">
+                {t('On mobile?')}
+              </p>
+              <Button
+                asChild
+                variant="outline"
+                className="h-auto rounded-sm px-4 py-3 text-center whitespace-normal"
+              >
+                <a href={state.setupData.totpURI}>
+                  {t('Open authenticator app')}
+                </a>
+              </Button>
+            </div>
+
             <div className="flex justify-center">
-              <QRCode value={state.setupData.totpURI} />
+              <div className="rounded-2xl border border-border/60 bg-white p-3 shadow-sm">
+                <QRCode value={state.setupData.totpURI} size={116} />
+              </div>
             </div>
 
             <div className="mx-auto">
@@ -305,10 +358,6 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
                   : <CopyIcon className="size-3.5" data-testid="copy-icon" />}
               </Button>
             </div>
-
-            <a href={state.setupData.totpURI} className="text-center text-sm text-primary">
-              {t('Or click here if you are on mobile and have an authenticator app installed.')}
-            </a>
 
             <div className="flex flex-col items-center justify-center gap-2">
               <InputOTP
