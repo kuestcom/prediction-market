@@ -344,7 +344,7 @@ describe('sportsGamesData', () => {
     expect(binaryButtons.map(button => button.label)).toEqual(['NGA', 'DRAW', 'ZWE'])
   })
 
-  it('keeps indexed team logos aligned when unnamed sports teams are filtered out', () => {
+  it('does not use indexed team logo fallback when unnamed teams make the logo array ambiguous', () => {
     const nigeriaLogoUrl = 'https://example.com/nigeria.png'
     const zimbabweLogoUrl = 'https://example.com/zimbabwe.png'
     const event = buildSportsEvent({
@@ -372,6 +372,42 @@ describe('sportsGamesData', () => {
       markets: [
         buildMoneylineMarket({
           eventId: 'cricket-logo-alignment',
+          slug: 'crint-nga-zwe-2026-03-21',
+          title: 'Nigeria vs Zimbabwe',
+          outcomes: ['Nigeria', 'Zimbabwe'],
+        }),
+      ],
+    })
+
+    const groups = buildSportsGamesCardGroups([event])
+    const card = groups[0]?.primaryCard
+
+    expect(card?.teams.map(team => team.logoUrl)).toEqual([null, null])
+  })
+
+  it('uses indexed team logo fallback when the raw sports team list is fully named and positional', () => {
+    const nigeriaLogoUrl = 'https://example.com/nigeria.png'
+    const zimbabweLogoUrl = 'https://example.com/zimbabwe.png'
+    const event = buildSportsEvent({
+      id: 'cricket-logo-positional-fallback',
+      slug: 'crint-nga-zwe-2026-03-21',
+      title: 'Nigeria vs Zimbabwe',
+      sportsTeams: [
+        {
+          name: 'Nigeria',
+          abbreviation: 'NGA',
+          host_status: 'home',
+        },
+        {
+          name: 'Zimbabwe',
+          abbreviation: 'ZWE',
+          host_status: 'away',
+        },
+      ],
+      sportsTeamLogoUrls: [nigeriaLogoUrl, zimbabweLogoUrl],
+      markets: [
+        buildMoneylineMarket({
+          eventId: 'cricket-logo-positional-fallback',
           slug: 'crint-nga-zwe-2026-03-21',
           title: 'Nigeria vs Zimbabwe',
           outcomes: ['Nigeria', 'Zimbabwe'],

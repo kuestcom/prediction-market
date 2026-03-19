@@ -1389,8 +1389,10 @@
             "type": "string"
           },
           "transactionHash": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "from": {
             "type": "string"
@@ -1399,8 +1401,10 @@
             "type": "string"
           },
           "proxyAddress": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "data": {
             "type": "string"
@@ -1424,16 +1428,20 @@
             ]
           },
           "failureReason": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "type": {
             "type": "string",
             "description": "Operation type such as SAFE, SAFE-CREATE, or PROXY."
           },
           "metadata": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "createdAt": {
             "type": "string",
@@ -1531,9 +1539,11 @@
             "description": "Contract to execute."
           },
           "proxyWallet": {
-            "type": "string",
             "description": "Proxy address tied to the request (required for SAFE and PROXY).",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "data": {
             "type": "string"
@@ -1553,8 +1563,10 @@
             "$ref": "#/components/schemas/RelayerSignatureParams"
           },
           "metadata": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1605,8 +1617,10 @@
             "$ref": "#/components/schemas/RelayerSignatureParams"
           },
           "metadata": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1729,12 +1743,16 @@
             ]
           },
           "transactionHash": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "hash": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [

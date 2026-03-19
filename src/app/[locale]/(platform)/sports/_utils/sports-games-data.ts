@@ -434,22 +434,31 @@ function buildFallbackAbbreviation(teamName: string) {
 function toSportsTeams(event: Event) {
   const logoUrls = event.sports_team_logo_urls ?? []
   const rawTeams = (event.sports_teams ?? []) as SportsTeam[]
-  const namedTeams = rawTeams.filter(team => Boolean(team.name?.trim()))
-  const canUseIndexedLogoFallback = logoUrls.length >= namedTeams.length && namedTeams.length > 0
-  const teams = namedTeams.map((team, index): SportsGamesTeam => {
-    const name = team.name?.trim() ?? ''
-    const abbreviation = team.abbreviation?.trim() || buildFallbackAbbreviation(name)
-    const logoUrl = team.logo_url?.trim() || (canUseIndexedLogoFallback ? logoUrls[index] : null) || null
+  const canUseIndexedLogoFallback = (
+    rawTeams.length > 0
+    && logoUrls.length >= rawTeams.length
+    && rawTeams.every(team => Boolean(team.name?.trim()))
+  )
+  const teams = rawTeams
+    .map((team, index): SportsGamesTeam | null => {
+      const name = team.name?.trim() ?? ''
+      if (!name) {
+        return null
+      }
 
-    return {
-      name,
-      abbreviation,
-      record: normalizeTeamRecord(team.record),
-      color: normalizeHexColor(team.color),
-      logoUrl,
-      hostStatus: team.host_status?.trim() ?? null,
-    }
-  })
+      const abbreviation = team.abbreviation?.trim() || buildFallbackAbbreviation(name)
+      const logoUrl = team.logo_url?.trim() || (canUseIndexedLogoFallback ? logoUrls[index] : null) || null
+
+      return {
+        name,
+        abbreviation,
+        record: normalizeTeamRecord(team.record),
+        color: normalizeHexColor(team.color),
+        logoUrl,
+        hostStatus: team.host_status?.trim() ?? null,
+      }
+    })
+    .filter((team): team is SportsGamesTeam => Boolean(team))
 
   return teams.sort((a, b) => {
     if (a.hostStatus === 'home' && b.hostStatus !== 'home') {
