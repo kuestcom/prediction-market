@@ -14,17 +14,29 @@ function buildOutcome(conditionId: string, outcomeIndex: number, outcomeText: st
 
 function buildBinaryMarket(params: {
   conditionId: string
+  eventId?: string
   slug: string
   title: string
   marketType: string
   threshold?: string
+  createdAt?: string
+  volume?: number
 }) {
-  const { conditionId, slug, title, marketType, threshold = null } = params
+  const {
+    conditionId,
+    eventId = 'event-1',
+    slug,
+    title,
+    marketType,
+    threshold = null,
+    createdAt = '2026-03-13T00:00:00.000Z',
+    volume = 10,
+  } = params
 
   return {
     condition_id: conditionId,
     question_id: `${conditionId}-question`,
-    event_id: 'event-1',
+    event_id: eventId,
     title,
     slug,
     short_title: title,
@@ -32,14 +44,14 @@ function buildBinaryMarket(params: {
     is_active: true,
     is_resolved: false,
     block_number: 0,
-    block_timestamp: '2026-03-13T00:00:00.000Z',
+    block_timestamp: createdAt,
     sports_market_type: marketType,
     sports_group_item_title: title,
     sports_group_item_threshold: threshold,
-    volume: 10,
+    volume,
     volume_24h: 0,
-    created_at: '2026-03-13T00:00:00.000Z',
-    updated_at: '2026-03-13T00:00:00.000Z',
+    created_at: createdAt,
+    updated_at: createdAt,
     price: 0.5,
     probability: 50,
     outcomes: [
@@ -55,10 +67,122 @@ function buildBinaryMarket(params: {
       volume: 0,
       open_interest: 0,
       active_positions_count: 0,
-      created_at: '2026-03-13T00:00:00.000Z',
-      updated_at: '2026-03-13T00:00:00.000Z',
+      created_at: createdAt,
+      updated_at: createdAt,
     },
   }
+}
+
+function buildMoneylineMarket(params: {
+  eventId: string
+  slug: string
+  title: string
+  outcomes: string[]
+  createdAt?: string
+  volume?: number
+}) {
+  const {
+    eventId,
+    slug,
+    title,
+    outcomes,
+    createdAt = '2026-03-13T00:00:00.000Z',
+    volume = 10,
+  } = params
+
+  return {
+    condition_id: `${eventId}-moneyline`,
+    question_id: `${eventId}-moneyline-question`,
+    event_id: eventId,
+    title,
+    slug,
+    short_title: title,
+    icon_url: '',
+    is_active: true,
+    is_resolved: false,
+    block_number: 0,
+    block_timestamp: createdAt,
+    sports_market_type: 'moneyline',
+    sports_group_item_title: title,
+    sports_group_item_threshold: '0',
+    volume,
+    volume_24h: 0,
+    created_at: createdAt,
+    updated_at: createdAt,
+    price: 0.5,
+    probability: 50,
+    outcomes: outcomes.map((outcome, outcomeIndex) =>
+      buildOutcome(`${eventId}-moneyline`, outcomeIndex, outcome),
+    ),
+    condition: {
+      id: `${eventId}-moneyline`,
+      oracle: '',
+      question_id: `${eventId}-moneyline-question`,
+      outcome_slot_count: outcomes.length,
+      resolved: false,
+      volume: 0,
+      open_interest: 0,
+      active_positions_count: 0,
+      created_at: createdAt,
+      updated_at: createdAt,
+    },
+  }
+}
+
+function buildSportsEvent(params: {
+  id: string
+  slug: string
+  title: string
+  markets: Array<Record<string, unknown>>
+  createdAt?: string
+  sportsStartTime?: string | null
+  sportsTeams?: Array<Record<string, unknown>>
+  sportsTeamLogoUrls?: string[]
+  sportsEventId?: string | null
+  sportsParentEventId?: number | null
+}) {
+  const {
+    id,
+    slug,
+    title,
+    markets,
+    createdAt = '2026-03-13T00:00:00.000Z',
+    sportsStartTime = '2026-03-21T09:00:00.000Z',
+    sportsTeams = [],
+    sportsTeamLogoUrls = [],
+    sportsEventId = null,
+    sportsParentEventId = null,
+  } = params
+
+  return {
+    id,
+    slug,
+    title,
+    creator: '',
+    icon_url: '',
+    show_market_icons: true,
+    status: 'active',
+    sports_event_slug: slug,
+    sports_sport_slug: 'international',
+    sports_section: 'games',
+    sports_start_time: sportsStartTime,
+    sports_teams: sportsTeams,
+    sports_team_logo_urls: sportsTeamLogoUrls,
+    sports_event_id: sportsEventId,
+    sports_parent_event_id: sportsParentEventId,
+    active_markets_count: markets.length,
+    total_markets_count: markets.length,
+    volume: 0,
+    start_date: sportsStartTime,
+    end_date: null,
+    created_at: createdAt,
+    updated_at: createdAt,
+    markets,
+    tags: [],
+    main_tag: 'sports',
+    is_bookmarked: false,
+    is_trending: false,
+  } as any
 }
 
 describe('sportsGamesData', () => {
@@ -136,6 +260,88 @@ describe('sportsGamesData', () => {
     const groups = buildSportsGamesCardGroups([event])
 
     expect(groups[0]?.primaryCard.startTime).toBe('2026-03-24T19:30:00.000Z')
+  })
+
+  it('groups cricket auxiliary events under the base event and keeps draw out of moneyline', () => {
+    const baseSlug = 'crint-nga-zwe-2026-03-21'
+    const baseEventId = 'cricket-base-event'
+    const auxiliaryEventId = 'cricket-team-top-batter-event'
+    const zimbabweLogoUrl = 'https://example.com/zwe.png'
+
+    const groupedEvents = buildSportsGamesCardGroups([
+      buildSportsEvent({
+        id: auxiliaryEventId,
+        slug: `${baseSlug}-team-top-batter`,
+        title: 'T20 Nigeria Invitational Tournament, Women: Nigeria vs Zimbabwe - Team Top Batter',
+        createdAt: '2026-03-13T00:00:00.000Z',
+        sportsParentEventId: 283440,
+        markets: [
+          buildBinaryMarket({
+            eventId: auxiliaryEventId,
+            conditionId: 'team-top-batter-nga',
+            slug: `${baseSlug}-team-top-batter-nga`,
+            title: 'NGA',
+            marketType: 'cricket_team_top_batter',
+            threshold: '0',
+          }),
+          buildBinaryMarket({
+            eventId: auxiliaryEventId,
+            conditionId: 'team-top-batter-draw',
+            slug: `${baseSlug}-team-top-batter-draw`,
+            title: 'Draw',
+            marketType: 'cricket_team_top_batter',
+            threshold: '1',
+          }),
+          buildBinaryMarket({
+            eventId: auxiliaryEventId,
+            conditionId: 'team-top-batter-zwe',
+            slug: `${baseSlug}-team-top-batter-zwe`,
+            title: 'ZWE',
+            marketType: 'cricket_team_top_batter',
+            threshold: '2',
+          }),
+        ],
+      }),
+      buildSportsEvent({
+        id: baseEventId,
+        slug: baseSlug,
+        title: 'T20 Nigeria Invitational Tournament, Women: Nigeria vs Zimbabwe',
+        createdAt: '2026-03-18T00:00:00.000Z',
+        sportsEventId: '283440',
+        sportsTeams: [
+          { name: 'Nigeria', abbreviation: 'NGA', host_status: 'home' },
+          {
+            name: 'Zimbabwe',
+            abbreviation: 'ZWE',
+            host_status: 'away',
+            color: '#c5291c',
+            logo_url: zimbabweLogoUrl,
+          },
+        ],
+        sportsTeamLogoUrls: [zimbabweLogoUrl],
+        markets: [
+          buildMoneylineMarket({
+            eventId: baseEventId,
+            slug: baseSlug,
+            title: 'Nigeria vs Zimbabwe',
+            outcomes: ['Nigeria', 'Zimbabwe'],
+          }),
+        ],
+      }),
+    ])
+
+    expect(groupedEvents).toHaveLength(1)
+
+    const card = groupedEvents[0]?.primaryCard
+    const moneylineButtons = card?.buttons.filter(button => button.marketType === 'moneyline') ?? []
+    const binaryButtons = card?.buttons.filter(button => button.marketType === 'binary') ?? []
+
+    expect(card?.slug).toBe(baseSlug)
+    expect(card?.teams.map(team => team.name)).toEqual(['Nigeria', 'Zimbabwe'])
+    expect(card?.teams.map(team => team.logoUrl)).toEqual([null, zimbabweLogoUrl])
+    expect(moneylineButtons.map(button => button.label)).toEqual(['NGA', 'ZWE'])
+    expect(moneylineButtons.some(button => button.label === 'DRAW')).toBe(false)
+    expect(binaryButtons.map(button => button.label)).toEqual(['NGA', 'DRAW', 'ZWE'])
   })
 
   it('keeps UFC binary proposition markets out of the moneyline buttons and preserves them as detail markets', () => {
@@ -298,14 +504,15 @@ describe('sportsGamesData', () => {
     expect(
       card?.detailMarkets
         .filter(market => binaryConditionIds.includes(market.condition_id))
-        .map(market => market.slug),
+        .map(market => market.slug)
+        .sort(),
     ).toEqual([
       'ufc-man15-bol-2026-03-14-go-the-distance',
       'ufc-man15-bol-2026-03-14-win-by-ko-tko',
       'ufc-man15-bol-2026-03-14-sousa-win-by-ko-tko',
       'ufc-man15-bol-2026-03-14-oki-win-by-ko-tko',
       'ufc-man15-bol-2026-03-14-win-by-submission',
-    ])
+    ].sort())
   })
 
   it('classifies yes/no props with totals-style metadata as binary markets', () => {

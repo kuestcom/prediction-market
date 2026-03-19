@@ -231,6 +231,61 @@ describe('sportsHomeCard', () => {
     expect(model?.drawButton).toBeUndefined()
   })
 
+  it('does not reuse the other team logo when home card logo data is incomplete', () => {
+    const zimbabweLogoUrl = 'https://example.com/zimbabwe.png'
+    const event = {
+      sports_sport_slug: 'cricket',
+      main_tag: 'games',
+      tags: [
+        {
+          id: 1,
+          name: 'Games',
+          slug: 'games',
+          isMainCategory: true,
+        },
+      ],
+      sports_teams: [
+        {
+          name: 'Nigeria',
+          abbreviation: 'NGA',
+          host_status: 'home',
+        },
+        {
+          name: 'Zimbabwe',
+          abbreviation: 'ZWE',
+          host_status: 'away',
+          logo_url: zimbabweLogoUrl,
+        },
+      ],
+      sports_team_logo_urls: [zimbabweLogoUrl],
+      markets: [
+        {
+          condition_id: 'match-winner-condition',
+          sports_market_type: null,
+          sports_group_item_title: null,
+          short_title: 'Match Winner',
+          title: 'Match Winner',
+          outcomes: [
+            {
+              outcome_index: 0,
+              outcome_text: 'Nigeria',
+            },
+            {
+              outcome_index: 1,
+              outcome_text: 'Zimbabwe',
+            },
+          ],
+        },
+      ],
+    } as any
+
+    const model = buildHomeSportsMoneylineModel(event)
+
+    expect(model).not.toBeNull()
+    expect(model?.team1.logoUrl).toBeNull()
+    expect(model?.team2.logoUrl).toBe(zimbabweLogoUrl)
+  })
+
   it('resolves display chance by outcome index', () => {
     expect(resolveHomeSportsButtonChance(63, 0)).toBe(63)
     expect(resolveHomeSportsButtonChance(63, 1)).toBe(37)

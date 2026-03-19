@@ -41,6 +41,10 @@ import SportsLivestreamFloatingPlayer
   from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import SportsRedeemModal from '@/app/[locale]/(platform)/sports/_components/SportsRedeemModal'
 import { buildMarketSlugSelectionSignature } from '@/app/[locale]/(platform)/sports/_utils/sports-event-selection'
+import {
+  resolveSportsAuxiliaryMarketGroupKey,
+  resolveSportsAuxiliaryMarketTitle,
+} from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
@@ -74,6 +78,14 @@ interface SportsEventCenterProps {
 interface SportsEventQuerySelection {
   conditionId: string | null
   outcomeIndex: number | null
+}
+
+interface AuxiliaryMarketPanel {
+  key: string
+  title: string
+  markets: SportsGamesCard['detailMarkets']
+  buttons: SportsGamesButton[]
+  volume: number
 }
 
 const SECTION_ORDER: Array<{ key: EventSectionKey, label: string }> = [
@@ -582,10 +594,23 @@ function resolveMarketViewCardBySlug(
   ) ?? null
 }
 
-function resolveAuxiliaryMarketTitle(market: SportsGamesCard['detailMarkets'][number]) {
-  return market.sports_group_item_title?.trim()
-    || market.short_title?.trim()
-    || market.title
+function dedupeAuxiliaryButtons(buttons: SportsGamesButton[]) {
+  const byKey = new Map<string, SportsGamesButton>()
+  buttons.forEach((button) => {
+    byKey.set(button.key, button)
+  })
+  return Array.from(byKey.values())
+}
+
+function resolveAuxiliaryPanelCreatedAt(markets: SportsGamesCard['detailMarkets']) {
+  return markets.reduce<number>((earliestTimestamp, market) => {
+    const timestamp = Date.parse(market.created_at)
+    if (!Number.isFinite(timestamp)) {
+      return earliestTimestamp
+    }
+
+    return Math.min(earliestTimestamp, timestamp)
+  }, Number.POSITIVE_INFINITY)
 }
 
 function SportsEventRelatedGames({
@@ -1110,7 +1135,7 @@ export default function SportsEventCenter({
   const [tabByAuxiliaryConditionId, setTabByAuxiliaryConditionId] = useState<Record<string, DetailsTab>>({})
   const previousCardIdRef = useRef<string | null>(null)
   const appliedMarketSlugSelectionRef = useRef<string | null>(null)
-  const auxiliaryMarketCards = useMemo(() => {
+  const auxiliaryMarketCards = useMemo<AuxiliaryMarketPanel[]>(() => {
     const buttonsByConditionId = new Map<string, SportsGamesButton[]>()
 
     activeCard.buttons.forEach((button) => {
@@ -1119,22 +1144,63 @@ export default function SportsEventCenter({
       buttonsByConditionId.set(button.conditionId, currentButtons)
     })
 
-    return activeCard.detailMarkets
-      .map((market) => {
-        const buttons = sortAuxiliaryButtons(buttonsByConditionId.get(market.condition_id) ?? [])
+    const panelsByKey = new Map<string, AuxiliaryMarketPanel>()
 
-        if (buttons.length === 0) {
-          return null
-        }
+    activeCard.detailMarkets.forEach((market) => {
+      const buttons = sortAuxiliaryButtons(buttonsByConditionId.get(market.condition_id) ?? [])
 
-        if (usesSectionLayout && buttons[0]?.marketType !== 'binary') {
-          return null
-        }
+      if (buttons.length === 0) {
+        return
+      }
 
-        return { market, buttons }
+      if (usesSectionLayout && buttons[0]?.marketType !== 'binary') {
+        return
+      }
+
+      const panelKey = resolveSportsAuxiliaryMarketGroupKey(market)
+      const existingPanel = panelsByKey.get(panelKey)
+      if (existingPanel) {
+        existingPanel.markets.push(market)
+        existingPanel.buttons.push(...buttons)
+        existingPanel.volume += Number(market.volume ?? 0)
+        return
+      }
+
+      panelsByKey.set(panelKey, {
+        key: panelKey,
+        title: '',
+        markets: [market],
+        buttons: [...buttons],
+        volume: Number(market.volume ?? 0),
       })
-      .filter((entry): entry is { market: SportsGamesCard['detailMarkets'][number], buttons: SportsGamesButton[] } => Boolean(entry))
+    })
+
+    return Array.from(panelsByKey.values())
+      .map(panel => ({
+        ...panel,
+        title: resolveSportsAuxiliaryMarketTitle(panel.markets),
+        buttons: sortAuxiliaryButtons(dedupeAuxiliaryButtons(panel.buttons)),
+      }))
+      .sort((left, right) => {
+        const timestampComparison = resolveAuxiliaryPanelCreatedAt(left.markets) - resolveAuxiliaryPanelCreatedAt(right.markets)
+        if (timestampComparison !== 0) {
+          return timestampComparison
+        }
+
+        return left.title.localeCompare(right.title)
+      })
   }, [activeCard.buttons, activeCard.detailMarkets, usesSectionLayout])
+  const auxiliaryPanelKeyByButtonKey = useMemo(() => {
+    const map = new Map<string, string>()
+
+    auxiliaryMarketCards.forEach((entry) => {
+      entry.buttons.forEach((button) => {
+        map.set(button.key, entry.key)
+      })
+    })
+
+    return map
+  }, [auxiliaryMarketCards])
 
   useEffect(() => {
     const isNewCard = previousCardIdRef.current !== activeCard.id
@@ -1158,7 +1224,7 @@ export default function SportsEventCenter({
         ? marketSlugToButtonKey
         : null
 
-      acc[entry.market.condition_id] = marketMatchedButton ?? entry.buttons[0]?.key ?? null
+      acc[entry.key] = marketMatchedButton ?? entry.buttons[0]?.key ?? null
       return acc
     }, {})
 
@@ -1173,7 +1239,7 @@ export default function SportsEventCenter({
           return
         }
 
-        const matchedEntry = auxiliaryMarketCards.find(entry => entry.market.condition_id === conditionId)
+        const matchedEntry = auxiliaryMarketCards.find(entry => entry.key === conditionId)
         if (!matchedEntry) {
           return
         }
@@ -1188,7 +1254,7 @@ export default function SportsEventCenter({
           entry.buttons.some(button => button.key === marketSlugToButtonKey),
         )
         if (matchedEntry) {
-          next[matchedEntry.market.condition_id] = marketSlugToButtonKey
+          next[matchedEntry.key] = marketSlugToButtonKey
         }
       }
 
@@ -1197,16 +1263,16 @@ export default function SportsEventCenter({
 
     setTabByAuxiliaryConditionId((current) => {
       const next = { ...current }
-      auxiliaryMarketCards.forEach(({ market }) => {
-        if (!next[market.condition_id]) {
-          next[market.condition_id] = 'orderBook'
+      auxiliaryMarketCards.forEach(({ key }) => {
+        if (!next[key]) {
+          next[key] = 'orderBook'
         }
       })
       return next
     })
 
     const marketMatchedAuxiliaryConditionId = shouldApplyMarketSlugSelection && marketSlugToButtonKey
-      ? auxiliaryMarketCards.find(entry => entry.buttons.some(button => button.key === marketSlugToButtonKey))?.market.condition_id ?? null
+      ? auxiliaryMarketCards.find(entry => entry.buttons.some(button => button.key === marketSlugToButtonKey))?.key ?? null
       : null
 
     if (!usesSectionLayout) {
@@ -1240,7 +1306,7 @@ export default function SportsEventCenter({
           return null
         }
 
-        if (current && auxiliaryMarketCards.some(entry => entry.market.condition_id === current)) {
+        if (current && auxiliaryMarketCards.some(entry => entry.key === current)) {
           return current
         }
 
@@ -1341,7 +1407,7 @@ export default function SportsEventCenter({
         return marketMatchedAuxiliaryConditionId
       }
 
-      if (!isNewCard && current && auxiliaryMarketCards.some(entry => entry.market.condition_id === current)) {
+      if (!isNewCard && current && auxiliaryMarketCards.some(entry => entry.key === current)) {
         return current
       }
 
@@ -1484,16 +1550,18 @@ export default function SportsEventCenter({
     }
 
     setSelectedAuxiliaryButtonByConditionId((current) => {
-      if (current[matchedButton.conditionId] === matchedButton.key) {
+      const auxiliaryPanelKey = auxiliaryPanelKeyByButtonKey.get(matchedButton.key) ?? matchedButton.conditionId
+
+      if (current[auxiliaryPanelKey] === matchedButton.key) {
         return current
       }
 
       return {
         ...current,
-        [matchedButton.conditionId]: matchedButton.key,
+        [auxiliaryPanelKey]: matchedButton.key,
       }
     })
-  }, [activeCard.buttons, fallbackButtonFromOrderState, marketSlugToButtonKey, usesSectionLayout])
+  }, [activeCard.buttons, auxiliaryPanelKeyByButtonKey, fallbackButtonFromOrderState, marketSlugToButtonKey, usesSectionLayout])
 
   const activeTradeHeaderContext = useMemo(() => {
     if (!activeTradeContext) {
@@ -1759,12 +1827,10 @@ export default function SportsEventCenter({
     [claimGroupsBySection],
   )
   const auxiliaryResolvedByConditionId = useMemo(
-    () => new Map(
-      auxiliaryMarketCards.map(({ market }) => [
-        market.condition_id,
-        Boolean(market.is_resolved || market.condition?.resolved),
-      ] as const),
-    ),
+    () => new Map(auxiliaryMarketCards.map(entry => [
+      entry.key,
+      entry.markets.every(market => Boolean(market.is_resolved || market.condition?.resolved)),
+    ] as const)),
     [auxiliaryMarketCards],
   )
   const auxiliaryClaimGroupsByConditionId = useMemo(
@@ -1815,19 +1881,20 @@ export default function SportsEventCenter({
         </div>
       )
     : null
-  const auxiliaryMarketPanels = auxiliaryMarketCards.map(({ market, buttons }) => {
-    const conditionId = market.condition_id
-    const selectedButtonKey = selectedAuxiliaryButtonByConditionId[conditionId] ?? buttons[0]?.key ?? null
-    const isOpen = openAuxiliaryConditionId === conditionId
-    const activeTab = tabByAuxiliaryConditionId[conditionId] ?? 'orderBook'
-    const isResolved = auxiliaryResolvedByConditionId.get(conditionId) === true
-    const claimGroup = auxiliaryClaimGroupsByConditionId.get(conditionId) ?? null
-    const shouldShowRedeemButton = isResolved && Boolean(claimGroup)
-    const marketTitle = resolveAuxiliaryMarketTitle(market)
-    const firstButtonKey = buttons[0]?.key ?? null
+  const auxiliaryMarketPanels = auxiliaryMarketCards.map((entry) => {
+    const panelKey = entry.key
+    const selectedButtonKey = selectedAuxiliaryButtonByConditionId[panelKey] ?? entry.buttons[0]?.key ?? null
+    const isOpen = openAuxiliaryConditionId === panelKey
+    const activeTab = tabByAuxiliaryConditionId[panelKey] ?? 'orderBook'
+    const isResolved = auxiliaryResolvedByConditionId.get(panelKey) === true
+    const singleConditionId = entry.markets.length === 1 ? entry.markets[0]?.condition_id ?? null : null
+    const claimGroup = singleConditionId ? (auxiliaryClaimGroupsByConditionId.get(singleConditionId) ?? null) : null
+    const shouldShowRedeemButton = Boolean(singleConditionId && isResolved && claimGroup)
+    const marketTitle = entry.title
+    const firstButtonKey = entry.buttons[0]?.key ?? null
 
     function toggleCondition() {
-      setOpenAuxiliaryConditionId(current => current === conditionId ? null : conditionId)
+      setOpenAuxiliaryConditionId(current => current === panelKey ? null : panelKey)
     }
 
     function handleCardClick(event: React.MouseEvent<HTMLElement>) {
@@ -1836,7 +1903,7 @@ export default function SportsEventCenter({
         return
       }
       if (firstButtonKey) {
-        updateAuxiliarySelection(conditionId, firstButtonKey, { panelMode: 'preserve' })
+        updateAuxiliarySelection(panelKey, firstButtonKey, { panelMode: 'preserve' })
       }
       toggleCondition()
     }
@@ -1851,14 +1918,14 @@ export default function SportsEventCenter({
       }
       event.preventDefault()
       if (firstButtonKey) {
-        updateAuxiliarySelection(conditionId, firstButtonKey, { panelMode: 'preserve' })
+        updateAuxiliarySelection(panelKey, firstButtonKey, { panelMode: 'preserve' })
       }
       toggleCondition()
     }
 
     return (
       <article
-        key={`${activeCard.id}-${conditionId}`}
+        key={`${activeCard.id}-${panelKey}`}
         className="overflow-hidden rounded-xl border bg-card"
       >
         <div
@@ -1877,7 +1944,7 @@ export default function SportsEventCenter({
           <div className="min-w-0 text-left transition-colors hover:text-foreground/90">
             <h3 className="text-sm font-semibold text-foreground">{marketTitle}</h3>
             <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
-              {formatVolume(Number(market.volume ?? 0))}
+              {formatVolume(entry.volume)}
               {' '}
               Vol.
             </p>
@@ -1887,18 +1954,20 @@ export default function SportsEventCenter({
             <div
               className={cn(
                 'grid min-w-0 flex-1 items-stretch gap-2',
-                'min-[1200px]:ml-auto min-[1200px]:w-[248px] min-[1200px]:flex-none',
-                'grid-cols-2',
+                entry.buttons.length >= 3
+                  ? 'min-[1200px]:ml-auto min-[1200px]:w-[380px] min-[1200px]:flex-none'
+                  : 'min-[1200px]:ml-auto min-[1200px]:w-[248px] min-[1200px]:flex-none',
+                entry.buttons.length >= 3 ? 'grid-cols-3' : 'grid-cols-2',
               )}
             >
-              {buttons.map((button) => {
+              {entry.buttons.map((button) => {
                 const isActive = activeTradeButtonKey === button.key
                 const isOverButton = isActive && button.tone === 'over'
                 const isUnderButton = isActive && button.tone === 'under'
 
                 return (
                   <div
-                    key={`${conditionId}-${button.key}`}
+                    key={`${panelKey}-${button.key}`}
                     className="relative min-w-0 overflow-hidden rounded-lg pb-1.25"
                   >
                     <div
@@ -1914,7 +1983,7 @@ export default function SportsEventCenter({
                       data-sports-card-control="true"
                       onClick={(event) => {
                         event.stopPropagation()
-                        updateAuxiliarySelection(conditionId, button.key, { panelMode: 'full' })
+                        updateAuxiliarySelection(panelKey, button.key, { panelMode: 'full' })
                       }}
                       className={cn(
                         `
@@ -1954,7 +2023,7 @@ export default function SportsEventCenter({
                   data-sports-card-control="true"
                   onClick={(event) => {
                     event.stopPropagation()
-                    setRedeemDefaultConditionId(conditionId)
+                    setRedeemDefaultConditionId(singleConditionId)
                     setRedeemSectionKey('moneyline')
                   }}
                   className={`
@@ -1978,15 +2047,15 @@ export default function SportsEventCenter({
             selectedButtonKey={selectedButtonKey}
             showBottomContent={isOpen}
             defaultGraphTimeRange="ALL"
-            allowedConditionIds={new Set([conditionId])}
+            allowedConditionIds={new Set(entry.markets.map(market => market.condition_id))}
             showAboutTab
             aboutEvent={activeCard.event}
             showRedeemInPositions={activeCard.event.sports_ended === true}
             onOpenRedeemForCondition={handleOpenRedeemForCondition}
             oddsFormat={oddsFormat}
-            onChangeTab={tab => setTabByAuxiliaryConditionId(current => ({ ...current, [conditionId]: tab }))}
+            onChangeTab={tab => setTabByAuxiliaryConditionId(current => ({ ...current, [panelKey]: tab }))}
             onSelectButton={(buttonKey, options) => {
-              updateAuxiliarySelection(conditionId, buttonKey, options)
+              updateAuxiliarySelection(panelKey, buttonKey, options)
             }}
           />
         </div>

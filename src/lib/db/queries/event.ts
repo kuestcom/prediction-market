@@ -887,6 +887,8 @@ function eventResource(
     rules: event.rules || undefined,
     series_slug: event.series_slug ?? null,
     series_recurrence: event.series_recurrence ?? null,
+    sports_event_id: event.sports?.sports_event_id ?? null,
+    sports_parent_event_id: toOptionalNumber(event.sports?.sports_parent_event_id),
     sports_event_slug: event.sports?.sports_event_slug ?? null,
     sports_sport_slug: resolveCanonicalSportsSportSlug(sportsSlugResolver, {
       sportsSportSlug: event.sports?.sports_sport_slug ?? null,

@@ -143,6 +143,7 @@ function buildFallbackAbbreviation(teamName: string) {
 function toHomeSportsTeams(event: Event): HomeSportsTeam[] {
   const logoUrls = event.sports_team_logo_urls ?? []
   const rawTeams = (event.sports_teams ?? []) as SportsTeam[]
+  const canUseIndexedLogoFallback = logoUrls.length >= rawTeams.length && rawTeams.length > 0
   const teams = rawTeams
     .map((team, index): HomeSportsTeam | null => {
       const name = team.name?.trim() ?? ''
@@ -151,7 +152,7 @@ function toHomeSportsTeams(event: Event): HomeSportsTeam[] {
       }
 
       const abbreviation = team.abbreviation?.trim() || buildFallbackAbbreviation(name)
-      const logoUrl = team.logo_url?.trim() || logoUrls[index] || null
+      const logoUrl = team.logo_url?.trim() || (canUseIndexedLogoFallback ? logoUrls[index] : null) || null
 
       return {
         name,

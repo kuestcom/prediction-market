@@ -114,6 +114,38 @@ export interface SportsGamesCardGroup {
   marketViewCards: SportsGamesCardMarketView[]
 }
 
+const AUXILIARY_BUTTON_TONE_ORDER: Record<SportsGamesButton['tone'], number> = {
+  team1: 0,
+  draw: 1,
+  team2: 2,
+  over: 3,
+  under: 4,
+  neutral: 5,
+}
+
+const SPORTS_MARKET_TYPE_PREFIXES = new Set([
+  'americanfootball',
+  'baseball',
+  'basketball',
+  'boxing',
+  'cricket',
+  'cs2',
+  'dota2',
+  'football',
+  'golf',
+  'hockey',
+  'lol',
+  'mma',
+  'nba',
+  'nfl',
+  'nhl',
+  'rugby',
+  'soccer',
+  'tennis',
+  'ufc',
+  'valorant',
+])
+
 function normalizeText(value: string | null | undefined) {
   return value
     ?.normalize('NFKD')
@@ -122,6 +154,41 @@ function normalizeText(value: string | null | undefined) {
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
     ?? ''
+}
+
+function toTitleCaseWords(value: string) {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => {
+      if (word.length <= 2) {
+        return word.toUpperCase()
+      }
+
+      return `${word[0]?.toUpperCase() ?? ''}${word.slice(1)}`
+    })
+    .join(' ')
+}
+
+export function resolveSportsMarketTypeLabel(value: string | null | undefined) {
+  const normalized = value?.trim().toLowerCase()
+  if (!normalized) {
+    return null
+  }
+
+  const tokens = normalized.split('_').filter(Boolean)
+  if (tokens.length === 0) {
+    return null
+  }
+
+  const normalizedTokens = SPORTS_MARKET_TYPE_PREFIXES.has(tokens[0] ?? '')
+    ? tokens.slice(1)
+    : tokens
+  if (normalizedTokens.length === 0) {
+    return null
+  }
+
+  return toTitleCaseWords(normalizedTokens.join(' '))
 }
 
 function normalizeHexColor(value: string | null | undefined) {
@@ -187,6 +254,31 @@ function marketTitleTexts(market: Market) {
   ]
     .map(value => value?.trim() ?? '')
     .filter(Boolean)
+}
+
+function isExplicitMoneylineMarket(market: Market) {
+  const normalizedType = normalizeText(market.sports_market_type)
+  if (
+    normalizedType.includes('moneyline')
+    || normalizedType.includes('match winner')
+    || normalizedType === '1x2'
+  ) {
+    return true
+  }
+
+  if (normalizedType) {
+    return false
+  }
+
+  const marketText = ` ${normalizeText(`${market.short_title ?? ''} ${market.title ?? ''}`)} `
+  return marketText.includes(' moneyline ')
+    || marketText.includes(' match winner ')
+    || marketText.includes(' 1x2 ')
+}
+
+function hasExplicitNonMoneylineMarketType(market: Market) {
+  const normalizedType = normalizeText(market.sports_market_type)
+  return Boolean(normalizedType) && !isExplicitMoneylineMarket(market)
 }
 
 function isDrawMarket(market: Market) {
@@ -281,6 +373,10 @@ function doesMarketExactlyMatchTeam(market: Market, team: SportsGamesTeam | null
 }
 
 function isSeparatedMoneylineCandidate(market: Market, teams: SportsGamesTeam[]) {
+  if (hasExplicitNonMoneylineMarketType(market)) {
+    return false
+  }
+
   if ((market.outcomes?.length ?? 0) < 2) {
     return false
   }
@@ -338,6 +434,7 @@ function buildFallbackAbbreviation(teamName: string) {
 function toSportsTeams(event: Event) {
   const logoUrls = event.sports_team_logo_urls ?? []
   const rawTeams = (event.sports_teams ?? []) as SportsTeam[]
+  const canUseIndexedLogoFallback = logoUrls.length >= rawTeams.length && rawTeams.length > 0
   const teams = rawTeams
     .map((team, index): SportsGamesTeam | null => {
       const name = team.name?.trim() ?? ''
@@ -346,7 +443,7 @@ function toSportsTeams(event: Event) {
       }
 
       const abbreviation = team.abbreviation?.trim() || buildFallbackAbbreviation(name)
-      const logoUrl = team.logo_url?.trim() || logoUrls[index] || null
+      const logoUrl = team.logo_url?.trim() || (canUseIndexedLogoFallback ? logoUrls[index] : null) || null
 
       return {
         name,
@@ -397,7 +494,7 @@ function toSportsMarketType(market: Market) {
   if (marketText.includes(' both teams to score ') || marketText.includes(' btts ')) {
     return 'btts' as const
   }
-  if (isStandaloneDrawMarket(market)) {
+  if (isStandaloneDrawMarket(market) && isExplicitMoneylineMarket(market)) {
     return 'moneyline' as const
   }
   if (isBinaryYesNoMarket(market)) {
@@ -426,6 +523,271 @@ function toSportsMarketType(market: Market) {
   }
 
   return null
+}
+
+function sortAuxiliaryButtons(buttons: SportsGamesButton[]) {
+  return [...buttons].sort((left, right) => {
+    const toneComparison = (AUXILIARY_BUTTON_TONE_ORDER[left.tone] ?? 99) - (AUXILIARY_BUTTON_TONE_ORDER[right.tone] ?? 99)
+    if (toneComparison !== 0) {
+      return toneComparison
+    }
+
+    return left.label.localeCompare(right.label)
+  })
+}
+
+export function resolveSportsAuxiliaryMarketGroupKey(market: Market) {
+  const normalizedType = normalizeText(market.sports_market_type)
+  if (!normalizedType) {
+    return market.condition_id
+  }
+
+  return `${market.event_id}:${normalizedType}`
+}
+
+export function resolveSportsAuxiliaryMarketTitle(markets: Market[]) {
+  const primaryMarket = markets[0]
+  if (!primaryMarket) {
+    return 'Market'
+  }
+
+  return resolveSportsMarketTypeLabel(primaryMarket.sports_market_type)
+    ?? primaryMarket.sports_group_item_title?.trim()
+    ?? primaryMarket.short_title?.trim()
+    ?? primaryMarket.title
+}
+
+function resolveAuxiliaryMarketLabel(market: Market) {
+  return market.sports_group_item_title?.trim()
+    || market.short_title?.trim()
+    || market.title?.trim()
+    || 'MARKET'
+}
+
+function resolveAuxiliaryMarketTone(
+  label: string,
+  team1: SportsGamesTeam | null,
+  team2: SportsGamesTeam | null,
+): SportsGamesButton['tone'] {
+  const normalizedLabel = normalizeText(label)
+  if (normalizedLabel.includes('draw')) {
+    return 'draw'
+  }
+
+  if (doesTextMatchTeam(label, team1)) {
+    return 'team1'
+  }
+
+  if (doesTextMatchTeam(label, team2)) {
+    return 'team2'
+  }
+
+  return 'neutral'
+}
+
+function resolveAuxiliaryButtonLabel(
+  market: Market,
+  team1: SportsGamesTeam | null,
+  team2: SportsGamesTeam | null,
+) {
+  const rawLabel = resolveAuxiliaryMarketLabel(market)
+  const tone = resolveAuxiliaryMarketTone(rawLabel, team1, team2)
+
+  if (tone === 'team1') {
+    return {
+      label: toTeamButtonLabel(team1, rawLabel.toUpperCase()),
+      color: team1?.color ?? null,
+      tone,
+    }
+  }
+
+  if (tone === 'team2') {
+    return {
+      label: toTeamButtonLabel(team2, rawLabel.toUpperCase()),
+      color: team2?.color ?? null,
+      tone,
+    }
+  }
+
+  if (tone === 'draw') {
+    return {
+      label: 'DRAW',
+      color: null,
+      tone,
+    }
+  }
+
+  return {
+    label: rawLabel.trim().toUpperCase() || 'MARKET',
+    color: null,
+    tone,
+  }
+}
+
+function buildCompositeAuxiliaryButtons(
+  markets: Market[],
+  teams: SportsGamesTeam[],
+  usedButtonKeys: Set<string>,
+) {
+  const { team1, team2 } = resolvePrimaryTeams(teams)
+  const groupedMarkets = new Map<string, Market[]>()
+
+  markets.forEach((market) => {
+    const key = resolveSportsAuxiliaryMarketGroupKey(market)
+    const existing = groupedMarkets.get(key)
+    if (existing) {
+      existing.push(market)
+      return
+    }
+
+    groupedMarkets.set(key, [market])
+  })
+
+  const groupedConditionIds = new Set<string>()
+  const buttons: SportsGamesButton[] = []
+
+  Array.from(groupedMarkets.values())
+    .filter(group => group.length > 1)
+    .sort((left, right) => {
+      const leftTimestamp = toSortableTimestamp(left[0]?.created_at ?? null)
+      const rightTimestamp = toSortableTimestamp(right[0]?.created_at ?? null)
+      if (leftTimestamp !== rightTimestamp) {
+        return leftTimestamp - rightTimestamp
+      }
+
+      return resolveSportsAuxiliaryMarketTitle(left).localeCompare(resolveSportsAuxiliaryMarketTitle(right))
+    })
+    .forEach((group) => {
+      const groupedButtons: SportsGamesButton[] = []
+
+      group.forEach((market) => {
+        groupedConditionIds.add(market.condition_id)
+        const { label, color, tone } = resolveAuxiliaryButtonLabel(market, team1, team2)
+
+        appendButton(groupedButtons, usedButtonKeys, market, resolvePreferredYesOutcomeIndex(market), {
+          label,
+          color,
+          marketType: 'binary',
+          tone,
+        }, {
+          fallbackIsNoOutcome: false,
+        })
+      })
+
+      buttons.push(...sortAuxiliaryButtons(groupedButtons))
+    })
+
+  return {
+    buttons,
+    groupedConditionIds,
+  }
+}
+
+function buildStandaloneAuxiliaryButtons(
+  markets: Market[],
+  teams: SportsGamesTeam[],
+  usedButtonKeys: Set<string>,
+) {
+  const { team1, team2 } = resolvePrimaryTeams(teams)
+  const buttons: SportsGamesButton[] = []
+
+  const sortedMarkets = [...markets].sort((left, right) => {
+    const thresholdComparison = toSortableThreshold(left.sports_group_item_threshold)
+      - toSortableThreshold(right.sports_group_item_threshold)
+    if (thresholdComparison !== 0) {
+      return thresholdComparison
+    }
+
+    const timestampComparison = toSortableTimestamp(left.created_at) - toSortableTimestamp(right.created_at)
+    if (timestampComparison !== 0) {
+      return timestampComparison
+    }
+
+    return resolveSportsAuxiliaryMarketTitle([left]).localeCompare(resolveSportsAuxiliaryMarketTitle([right]))
+  })
+
+  for (const market of sortedMarkets) {
+    if (isBinaryYesNoMarket(market)) {
+      const yesOutcome = market.outcomes.find(outcome => /^yes$/i.test(outcome.outcome_text?.trim() ?? ''))
+        ?? market.outcomes.find(outcome => outcome.outcome_index === 0)
+        ?? market.outcomes[0]
+        ?? null
+      const noOutcome = market.outcomes.find(outcome => /^no$/i.test(outcome.outcome_text?.trim() ?? ''))
+        ?? market.outcomes.find(outcome => outcome.outcome_index !== yesOutcome?.outcome_index)
+        ?? null
+
+      appendButton(buttons, usedButtonKeys, market, yesOutcome?.outcome_index ?? 0, {
+        label: 'YES',
+        color: null,
+        marketType: 'binary',
+        tone: 'over',
+      })
+      appendButton(buttons, usedButtonKeys, market, noOutcome?.outcome_index ?? 1, {
+        label: 'NO',
+        color: null,
+        marketType: 'binary',
+        tone: 'under',
+      })
+      continue
+    }
+
+    const orderedOutcomes = [...market.outcomes].sort((left, right) => left.outcome_index - right.outcome_index)
+    orderedOutcomes.forEach((outcome, index) => {
+      const outcomeText = outcome.outcome_text?.trim() ?? ''
+      const normalizedOutcomeText = normalizeText(outcomeText)
+      const matchedTeam = teams.find(team => doesTextMatchTeam(outcomeText, team)) ?? null
+      const fallbackTeam = index === 0 ? team1 : index === orderedOutcomes.length - 1 ? team2 : null
+      const resolvedTeam = matchedTeam ?? fallbackTeam
+      const isDrawOutcome = normalizedOutcomeText.includes('draw')
+      const label = isDrawOutcome
+        ? 'DRAW'
+        : resolvedTeam
+          ? toTeamButtonLabel(resolvedTeam, outcomeText || 'TEAM')
+          : outcomeText.toUpperCase() || 'MARKET'
+
+      appendButton(buttons, usedButtonKeys, market, outcome.outcome_index, {
+        label,
+        color: resolvedTeam?.color ?? null,
+        marketType: 'binary',
+        tone: isDrawOutcome
+          ? 'draw'
+          : resolvedTeam === team1
+            ? 'team1'
+            : resolvedTeam === team2
+              ? 'team2'
+              : 'neutral',
+      }, {
+        fallbackIsNoOutcome: false,
+      })
+    })
+  }
+
+  return buttons
+}
+
+function buildAuxiliaryButtons(
+  marketsByType: ReturnType<typeof groupMarketsByType>,
+  teams: SportsGamesTeam[],
+  usedButtonKeys: Set<string>,
+) {
+  const auxiliaryCandidates = dedupeMarketsByConditionId([
+    ...marketsByType.binary,
+    ...marketsByType.untyped.filter(market => !isExplicitMoneylineMarket(market)),
+  ]).filter(market => !hasUsedButtonForConditionId(usedButtonKeys, market.condition_id))
+
+  if (auxiliaryCandidates.length === 0) {
+    return []
+  }
+
+  const { buttons: compositeButtons, groupedConditionIds } = buildCompositeAuxiliaryButtons(
+    auxiliaryCandidates,
+    teams,
+    usedButtonKeys,
+  )
+  const standaloneMarkets = auxiliaryCandidates.filter(market => !groupedConditionIds.has(market.condition_id))
+  const standaloneButtons = buildStandaloneAuxiliaryButtons(standaloneMarkets, teams, usedButtonKeys)
+
+  return [...compositeButtons, ...standaloneButtons]
 }
 
 function groupMarketsByType(markets: Market[]) {
@@ -600,7 +962,9 @@ function buildMoneylineButtons(
   team2: SportsGamesTeam | null,
   usedButtonKeys: Set<string>,
 ) {
-  const untypedMoneylineCandidates = marketsByType.untyped.filter(market => !isBinaryYesNoMarket(market))
+  const untypedMoneylineCandidates = marketsByType.untyped.filter(market =>
+    !isBinaryYesNoMarket(market) && isExplicitMoneylineMarket(market),
+  )
   const separatedMoneylineCandidates = dedupeMarketsByConditionId([
     ...marketsByType.untyped,
     ...marketsByType.binary,
@@ -914,68 +1278,6 @@ function toSortableThreshold(value: string | null | undefined) {
   return Number.isFinite(numericValue) ? numericValue : Number.POSITIVE_INFINITY
 }
 
-function buildBinaryButtons(
-  marketsByType: ReturnType<typeof groupMarketsByType>,
-  usedButtonKeys: Set<string>,
-  excludedConditionIds: Set<string>,
-) {
-  if (marketsByType.binary.length === 0) {
-    return []
-  }
-
-  const binaryMarkets = marketsByType.binary
-    .filter(market => !excludedConditionIds.has(market.condition_id))
-    .sort((left, right) => {
-      const thresholdComparison = toSortableThreshold(left.sports_group_item_threshold)
-        - toSortableThreshold(right.sports_group_item_threshold)
-      if (thresholdComparison !== 0) {
-        return thresholdComparison
-      }
-
-      const leftTitle = resolveAuxiliaryBinaryMarketTitle(left)
-      const rightTitle = resolveAuxiliaryBinaryMarketTitle(right)
-      const titleComparison = leftTitle.localeCompare(rightTitle)
-      if (titleComparison !== 0) {
-        return titleComparison
-      }
-
-      return left.condition_id.localeCompare(right.condition_id)
-    })
-
-  const buttons: SportsGamesButton[] = []
-
-  for (const market of binaryMarkets) {
-    const yesOutcome = market.outcomes.find(outcome => /^yes$/i.test(outcome.outcome_text?.trim() ?? ''))
-      ?? market.outcomes.find(outcome => outcome.outcome_index === 0)
-      ?? market.outcomes[0]
-      ?? null
-    const noOutcome = market.outcomes.find(outcome => /^no$/i.test(outcome.outcome_text?.trim() ?? ''))
-      ?? market.outcomes.find(outcome => outcome.outcome_index !== yesOutcome?.outcome_index)
-      ?? null
-
-    appendButton(buttons, usedButtonKeys, market, yesOutcome?.outcome_index ?? 0, {
-      label: 'YES',
-      color: null,
-      marketType: 'binary',
-      tone: 'over',
-    })
-    appendButton(buttons, usedButtonKeys, market, noOutcome?.outcome_index ?? 1, {
-      label: 'NO',
-      color: null,
-      marketType: 'binary',
-      tone: 'under',
-    })
-  }
-
-  return buttons
-}
-
-function resolveAuxiliaryBinaryMarketTitle(market: Market) {
-  return market.sports_group_item_title?.trim()
-    || market.short_title?.trim()
-    || market.title
-}
-
 function resolveAuxiliaryMarketKind(market: Market) {
   const normalizedType = normalizeText(market.sports_market_type)
 
@@ -1129,13 +1431,13 @@ function buildButtons(markets: Market[], teams: SportsGamesTeam[]) {
   )
   const totalButtons = buildTotalButtons(marketsByType, usedButtonKeys)
   const bttsButtons = buildBttsButtons(marketsByType, usedButtonKeys)
-  const binaryButtons = buildBinaryButtons(
+  const auxiliaryButtons = buildAuxiliaryButtons(
     marketsByType,
+    teams,
     usedButtonKeys,
-    new Set(moneylineButtons.map(button => button.conditionId)),
   )
 
-  return [...moneylineButtons, ...spreadButtons, ...totalButtons, ...bttsButtons, ...binaryButtons]
+  return [...moneylineButtons, ...spreadButtons, ...totalButtons, ...bttsButtons, ...auxiliaryButtons]
 }
 
 function toDetailMarkets(markets: Market[], buttons: SportsGamesButton[]) {
@@ -1168,6 +1470,15 @@ function toSortableTimestamp(value: string | null | undefined) {
 }
 
 function resolveEventGroupKey(event: Event) {
+  if (typeof event.sports_parent_event_id === 'number' && Number.isFinite(event.sports_parent_event_id)) {
+    return String(event.sports_parent_event_id)
+  }
+
+  const sportsEventId = event.sports_event_id?.trim()
+  if (sportsEventId) {
+    return sportsEventId
+  }
+
   return stripSportsAuxiliaryEventSuffix(event.sports_event_slug?.trim() || event.slug)
 }
 
@@ -1296,7 +1607,9 @@ function buildSportsGamesCard(
   eventsGroup: Event[],
   options?: { teamSourceEvent?: Event | null },
 ): SportsGamesCard | null {
-  const primaryEvent = eventsGroup.find(event => !isSportsMoreMarketsSlug(event.slug)) ?? eventsGroup[0]
+  const primaryEvent = eventsGroup.find(event => event.sports_parent_event_id == null)
+    ?? eventsGroup.find(event => !isSportsMoreMarketsSlug(event.slug))
+    ?? eventsGroup[0]
   if (!primaryEvent) {
     return null
   }
