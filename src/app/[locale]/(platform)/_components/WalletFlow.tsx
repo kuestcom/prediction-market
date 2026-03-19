@@ -157,6 +157,9 @@ export function WalletFlow({
         return
       }
 
+      toast.success('Withdrawal submitted', {
+        description: 'We sent your withdrawal transaction.',
+      })
       setWalletSendTo('')
       setWalletSendAmount('')
       handleWithdrawModalChange(false)
