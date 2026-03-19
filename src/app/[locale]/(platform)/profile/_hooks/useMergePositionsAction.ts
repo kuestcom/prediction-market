@@ -1,5 +1,7 @@
-import type { QueryClient } from '@tanstack/react-query'
+import type { InfiniteData, QueryClient } from '@tanstack/react-query'
+import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import type { MergeableMarket } from '@/app/[locale]/(platform)/profile/_components/MergePositionsDialog'
+import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 import type { ConditionShares } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { User } from '@/types'
@@ -14,8 +16,10 @@ import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_CONDITION_PARTITION, DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { ZERO_COLLECTION_ID } from '@/lib/contracts'
 import { toMicro } from '@/lib/formatters'
+import { applyConditionReductionsToPublicPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { aggregateSafeTransactions, buildMergePositionTransaction, getSafeTxTypedData, packSafeSignature } from '@/lib/safe/transactions'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
+import { normalizeAddress } from '@/lib/wallet'
 import { useNotifications } from '@/stores/useNotifications'
 
 interface UseMergePositionsActionOptions {
@@ -194,16 +198,64 @@ export function useMergePositionsAction({
 
       onSuccess?.()
 
-      void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
-      void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
-      void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
-      void queryClient.refetchQueries({ queryKey: ['user-conditional-shares'], type: 'active' })
+      const normalizedProxyWallet = normalizeAddress(user.proxy_wallet_address)
+      const publicPositionReductions = preparedMerges.map(entry => ({
+        conditionId: entry.conditionId,
+        sharesDelta: -entry.mergeAmount,
+      }))
+      const shareDeltas = preparedMerges.flatMap(entry => ([
+        {
+          conditionId: entry.conditionId,
+          outcomeIndex: 0 as const,
+          sharesDelta: -entry.mergeAmount,
+        },
+        {
+          conditionId: entry.conditionId,
+          outcomeIndex: 1 as const,
+          sharesDelta: -entry.mergeAmount,
+        },
+      ]))
+
+      updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
+        queryClient,
+        ['user-positions'],
+        (currentQueryKey) => {
+          if (currentQueryKey[2] !== 'active') {
+            return false
+          }
+
+          return !normalizedProxyWallet || !currentQueryKey[1]
+            ? false
+            : String(currentQueryKey[1]).toLowerCase() === normalizedProxyWallet.toLowerCase()
+        },
+        current => current
+          ? {
+              ...current,
+              pages: current.pages.map(page =>
+                applyConditionReductionsToPublicPositions(page, publicPositionReductions) ?? page,
+              ),
+            }
+          : current,
+      )
+
+      updateQueryDataWhere<SharesByCondition>(
+        queryClient,
+        ['user-conditional-shares'],
+        () => true,
+        current => applyShareDeltas(current, shareDeltas),
+      )
 
       setTimeout(() => {
         void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
         void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
         void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
-      }, 3000)
+      }, 4_000)
+
+      setTimeout(() => {
+        void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
+        void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+        void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
+      }, 12_000)
     }
     catch (error) {
       console.error('Failed to submit merge operation.', error)

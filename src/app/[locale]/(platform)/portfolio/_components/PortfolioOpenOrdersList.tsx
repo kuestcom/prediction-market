@@ -2,6 +2,7 @@
 
 import type { InfiniteData } from '@tanstack/react-query'
 import type { PortfolioOpenOrdersSort, PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+import type { UserOpenOrder } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -11,6 +12,7 @@ import { usePortfolioOpenOrdersQuery } from '@/app/[locale]/(platform)/portfolio
 import { matchesOpenOrdersSearchQuery, resolveOpenOrdersSearchParams, sortOpenOrders } from '@/app/[locale]/(platform)/portfolio/_utils/PortfolioOpenOrdersUtils'
 import { Button } from '@/components/ui/button'
 import { useDebounce } from '@/hooks/useDebounce'
+import { removeOpenOrdersFromInfiniteData, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { useUser } from '@/stores/useUser'
 import PortfolioOpenOrdersFilters from './PortfolioOpenOrdersFilters'
@@ -69,17 +71,15 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
       return
     }
 
-    queryClient.setQueryData<InfiniteData<{ data: PortfolioUserOpenOrder[], next_cursor: string }>>(openOrdersQueryKey, (current) => {
-      if (!current) {
-        return current
-      }
+    queryClient.setQueryData<InfiniteData<{ data: PortfolioUserOpenOrder[], next_cursor: string }>>(openOrdersQueryKey, current =>
+      removeOpenOrdersFromInfiniteData(current, orderIds))
 
-      const updatedPages = current.pages.map(page => ({
-        ...page,
-        data: page.data.filter(item => !orderIds.includes(item.id)),
-      }))
-      return { ...current, pages: updatedPages }
-    })
+    updateQueryDataWhere<InfiniteData<{ data: UserOpenOrder[], next_cursor: string }>>(
+      queryClient,
+      ['user-open-orders'],
+      () => true,
+      current => removeOpenOrdersFromInfiniteData(current, orderIds),
+    )
   }, [openOrdersQueryKey, queryClient])
 
   const handleCancelAll = useCallback(async () => {

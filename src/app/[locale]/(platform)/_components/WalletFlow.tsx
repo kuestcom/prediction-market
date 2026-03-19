@@ -2,7 +2,7 @@
 
 import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { ProxyWalletStatus } from '@/types'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { hashTypedData, isAddress } from 'viem'
 import { useSignMessage } from 'wagmi'
@@ -51,6 +51,12 @@ export function WalletFlow({
   const [walletSendTo, setWalletSendTo] = useState('')
   const [walletSendAmount, setWalletSendAmount] = useState('')
   const [isWalletSending, setIsWalletSending] = useState(false)
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<Array<{
+    id: string
+    amount: string
+    to: string
+    createdAt: number
+  }>>([])
   const { balance, isLoadingBalance } = useBalance()
   const {
     formattedUsdBalance,
@@ -59,6 +65,25 @@ export function WalletFlow({
   const site = useSiteIdentity()
   const connectedWalletAddress = user?.address ?? null
   const { openTradeRequirements } = useTradingOnboarding()
+
+  const visiblePendingWithdrawals = useMemo(
+    () => pendingWithdrawals.filter(withdrawal => Date.now() - withdrawal.createdAt < 2 * 60 * 1000),
+    [pendingWithdrawals],
+  )
+
+  useEffect(() => {
+    if (pendingWithdrawals.length === 0) {
+      return undefined
+    }
+
+    const intervalId = window.setInterval(() => {
+      setPendingWithdrawals(current =>
+        current.filter(withdrawal => Date.now() - withdrawal.createdAt < 2 * 60 * 1000),
+      )
+    }, 15_000)
+
+    return () => window.clearInterval(intervalId)
+  }, [pendingWithdrawals.length])
 
   const hasDeployedProxyWallet = useMemo(() => (
     Boolean(user?.proxy_wallet_address && user?.proxy_wallet_status === 'deployed')
@@ -160,6 +185,19 @@ export function WalletFlow({
       toast.success('Withdrawal submitted', {
         description: 'We sent your withdrawal transaction.',
       })
+      setPendingWithdrawals((current) => {
+        const next = [
+          {
+            id: result.txHash ?? `${walletSendTo}:${walletSendAmount}:${Date.now()}`,
+            amount: walletSendAmount,
+            to: walletSendTo,
+            createdAt: Date.now(),
+          },
+          ...current,
+        ]
+
+        return next.slice(0, 5)
+      })
       setWalletSendTo('')
       setWalletSendAmount('')
       handleWithdrawModalChange(false)
@@ -248,6 +286,7 @@ export function WalletFlow({
         availableBalance={balance.raw}
         onMax={handleSetMaxAmount}
         isBalanceLoading={isLoadingBalance}
+        pendingWithdrawals={visiblePendingWithdrawals}
       />
     </>
   )

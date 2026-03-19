@@ -169,7 +169,7 @@ export default function PredictionChartTooltipOverlay({
           className={
             `
               absolute inline-flex h-5 w-fit items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px]/5 font-semibold
-              text-white
+              text-background
             `
           }
           style={{

@@ -1,5 +1,6 @@
 'use client'
 
+import type { InfiniteData } from '@tanstack/react-query'
 import type { MergeableMarket } from './MergePositionsDialog'
 import type { PublicPosition } from './PublicPositionItem'
 import type { SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
@@ -31,6 +32,7 @@ import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchOrderBookSummary } from '@/lib/event-card-orderbook'
 import { formatAmountInputValue, formatCentsLabel } from '@/lib/formatters'
+import { applyPositionDeltasToPublicPositions, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { buildOrderPayload, submitOrder } from '@/lib/orders'
 import { signOrderPayload } from '@/lib/orders/signing'
@@ -649,8 +651,36 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
         lastMouseEvent: null,
       })
 
-      void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
-      void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
+      updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
+        queryClient,
+        ['user-positions', userAddress, 'active'],
+        currentQueryKey => currentQueryKey[1] === userAddress && currentQueryKey[2] === 'active',
+        current => current
+          ? {
+              ...current,
+              pages: current.pages.map(page =>
+                applyPositionDeltasToPublicPositions(page, [
+                  {
+                    conditionId,
+                    outcomeIndex: outcomeIndex as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
+                    sharesDelta: -normalizedSharesToSell,
+                    currentPrice: marketPriceCents / 100,
+                  },
+                ]) ?? page,
+              ),
+            }
+          : current,
+      )
+
+      setTimeout(() => {
+        void queryClient.invalidateQueries({ queryKey: ['user-positions', userAddress, 'active'] })
+        void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
+      }, 4_000)
+      setTimeout(() => {
+        void queryClient.invalidateQueries({ queryKey: ['user-positions', userAddress, 'active'] })
+        void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
+      }, 12_000)
+
       setSellModalPayload(null)
     }
     catch {
@@ -675,6 +705,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     signatureType,
     signTypedDataAsync,
     user,
+    userAddress,
     userAddressNormalized,
   ])
 

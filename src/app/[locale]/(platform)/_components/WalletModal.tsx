@@ -87,6 +87,13 @@ const WITHDRAW_CHAIN_OPTIONS = [
 
 type WalletDepositView = 'fund' | 'receive' | 'wallets' | 'amount' | 'confirm' | 'success'
 
+interface PendingWithdrawalItem {
+  id: string
+  amount: string
+  to: string
+  createdAt: number
+}
+
 interface WalletDepositModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -119,6 +126,7 @@ interface WalletWithdrawModalProps {
   availableBalance?: number | null
   onMax?: () => void
   isBalanceLoading?: boolean
+  pendingWithdrawals?: PendingWithdrawalItem[]
 }
 
 function WalletAddressCard({
@@ -243,6 +251,7 @@ function WalletSendForm({
   availableBalance,
   onMax,
   isBalanceLoading = false,
+  pendingWithdrawals = [],
 }: {
   sendTo: string
   onChangeSendTo: ChangeEventHandler<HTMLInputElement>
@@ -256,6 +265,7 @@ function WalletSendForm({
   availableBalance?: number | null
   onMax?: () => void
   isBalanceLoading?: boolean
+  pendingWithdrawals?: PendingWithdrawalItem[]
 }) {
   const trimmedRecipient = sendTo.trim()
   const isRecipientAddress = /^0x[a-fA-F0-9]{40}$/.test(trimmedRecipient)
@@ -296,6 +306,7 @@ function WalletSendForm({
   const selectedToken = WITHDRAW_TOKEN_OPTIONS.find(option => option.value === receiveToken)
   const selectedChain = WITHDRAW_CHAIN_OPTIONS.find(option => option.value === receiveChain)
   const isUsdcESelected = receiveToken === 'USDC.e'
+  const visiblePendingWithdrawals = pendingWithdrawals.slice(0, 2)
 
   function handleAmountChange(rawValue: string) {
     const cleaned = sanitizeNumericInput(rawValue)
@@ -582,6 +593,39 @@ function WalletSendForm({
                   Sending USDCe to an unsupported platform may result in a permanent loss of funds. Always double-check token compatibility before transferring.
                 </p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {visiblePendingWithdrawals.length > 0 && (
+          <div className="rounded-lg border bg-muted/50 p-4">
+            <div className="space-y-2 text-xs text-foreground">
+              <p className="font-semibold">Pending withdrawal</p>
+              {visiblePendingWithdrawals.map((pendingWithdrawal) => {
+                const amount = Number(pendingWithdrawal.amount)
+                const formattedAmount = Number.isFinite(amount)
+                  ? amount.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })
+                  : pendingWithdrawal.amount
+                const shortAddress = pendingWithdrawal.to.length > 12
+                  ? `${pendingWithdrawal.to.slice(0, 6)}...${pendingWithdrawal.to.slice(-4)}`
+                  : pendingWithdrawal.to
+
+                return (
+                  <div key={pendingWithdrawal.id} className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">{shortAddress}</span>
+                    <span className="font-semibold tabular-nums">
+                      $
+                      {formattedAmount}
+                    </span>
+                  </div>
+                )
+              })}
+              <p className="text-muted-foreground">
+                Shown locally until wallet sync catches up.
+              </p>
             </div>
           </div>
         )}
@@ -2009,6 +2053,7 @@ export function WalletWithdrawModal(props: WalletWithdrawModalProps) {
     availableBalance,
     onMax,
     isBalanceLoading,
+    pendingWithdrawals = [],
   } = props
   const site = useSiteIdentity()
   const siteLabel = siteName ?? site.name
@@ -2026,6 +2071,7 @@ export function WalletWithdrawModal(props: WalletWithdrawModalProps) {
       availableBalance={availableBalance}
       onMax={onMax}
       isBalanceLoading={isBalanceLoading}
+      pendingWithdrawals={pendingWithdrawals}
     />
   )
 

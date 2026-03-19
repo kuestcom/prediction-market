@@ -1,6 +1,8 @@
 'use client'
 
+import type { InfiniteData } from '@tanstack/react-query'
 import type { Route } from 'next'
+import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 import { DialogTitle } from '@radix-ui/react-dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useQueryClient } from '@tanstack/react-query'
@@ -25,6 +27,7 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
+import { removeClaimedPublicPositions, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import {
   aggregateSafeTransactions,
@@ -238,13 +241,38 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           : 'We sent your claim transaction.',
       })
 
+      const claimedConditionIds = claimTargets.map(market => market.conditionId)
+
       setHiddenClaimSignature(claimableSignature)
       setIsDialogOpen(false)
-      queryClient.invalidateQueries({ queryKey: ['user-positions'] })
-      queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
-      queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
-      queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
-      queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
+
+      updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
+        queryClient,
+        ['user-positions'],
+        currentQueryKey => currentQueryKey[2] === 'active',
+        current => current
+          ? {
+              ...current,
+              pages: current.pages.map(page => removeClaimedPublicPositions(page, claimedConditionIds) ?? page),
+            }
+          : current,
+      )
+
+      setTimeout(() => {
+        void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
+        void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
+        void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
+        void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+        void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
+      }, 4_000)
+      setTimeout(() => {
+        void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
+        void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
+        void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
+        void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+        void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
+      }, 12_000)
+
       router.refresh()
     }
     catch (error) {

@@ -373,6 +373,11 @@ export async function storeOrderAction(payload: StoreOrderInput) {
 
     updateTag(cacheTags.activity(validated.data.slug))
     updateTag(cacheTags.holders(validated.data.condition_id))
+
+    return {
+      error: null,
+      orderId: clobOrderId,
+    }
   }
   catch (error) {
     console.error('Failed to create order.', error)

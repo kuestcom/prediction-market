@@ -14,6 +14,42 @@ type ConditionShares = Record<typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
 
 export type LimitExpirationOption = 'end-of-day' | 'custom'
 
+function normalizeConditionShareValue(value: number | undefined) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 0
+  }
+
+  return Math.round(value * 1_000_000) / 1_000_000
+}
+
+function areUserSharesEqual(
+  left: Record<string, ConditionShares>,
+  right: Record<string, ConditionShares>,
+) {
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+
+  if (leftKeys.length !== rightKeys.length) {
+    return false
+  }
+
+  return leftKeys.every((conditionId) => {
+    const leftCondition = left[conditionId]
+    const rightCondition = right[conditionId]
+
+    if (!rightCondition) {
+      return false
+    }
+
+    return (
+      normalizeConditionShareValue(leftCondition?.[OUTCOME_INDEX.YES])
+      === normalizeConditionShareValue(rightCondition?.[OUTCOME_INDEX.YES])
+      && normalizeConditionShareValue(leftCondition?.[OUTCOME_INDEX.NO])
+      === normalizeConditionShareValue(rightCondition?.[OUTCOME_INDEX.NO])
+    )
+  })
+}
+
 interface OrderState {
   // Order state
   event: Event | null
@@ -95,9 +131,15 @@ export const useOrder = create<OrderState>()((set, _, store) => ({
   setIsLoading: (loading: boolean) => set({ isLoading: loading }),
   setIsMobileOrderPanelOpen: (open: boolean) => set({ isMobileOrderPanelOpen: open }),
   setLastMouseEvent: (lastMouseEvent: any) => set({ lastMouseEvent }),
-  setUserShares: (shares: Record<string, ConditionShares>, options?: { replace?: boolean }) => set(state => ({
-    userShares: options?.replace ? shares : { ...state.userShares, ...shares },
-  })),
+  setUserShares: (shares: Record<string, ConditionShares>, options?: { replace?: boolean }) => set((state) => {
+    const nextUserShares = options?.replace ? shares : { ...state.userShares, ...shares }
+
+    if (areUserSharesEqual(state.userShares, nextUserShares)) {
+      return state
+    }
+
+    return { userShares: nextUserShares }
+  }),
 }))
 
 function getTopOfBookPrice(

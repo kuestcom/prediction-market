@@ -396,6 +396,8 @@ export default function EventContent({
                   {currentUser && (
                     <EventMarketPositions
                       market={singleMarket}
+                      eventId={event.id}
+                      eventSlug={event.slug}
                       isNegRiskEnabled={isNegRiskEnabled}
                       isNegRiskAugmented={Boolean(event.neg_risk_augmented)}
                       eventOutcomes={event.markets.map(market => ({

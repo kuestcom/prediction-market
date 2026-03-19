@@ -34,6 +34,7 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData, fetchUserOtherBalance, fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatAmountInputValue, formatSharesLabel, fromMicro } from '@/lib/formatters'
+import { applyPositionDeltasToUserPositions } from '@/lib/optimistic-trading'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { buildUmaProposeUrl, buildUmaSettledUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
@@ -44,6 +45,8 @@ interface EventMarketsProps {
   event: Event
   isMobile: boolean
 }
+
+const POSITION_VISIBILITY_THRESHOLD = 0.01
 
 function toNumber(value: unknown) {
   if (value === null || value === undefined) {
@@ -63,6 +66,27 @@ function getMarketEndTime(market: Event['markets'][number]) {
   }
   const parsed = Date.parse(market.end_time)
   return Number.isNaN(parsed) ? null : parsed
+}
+
+function resolveOutcomeUnitPrice(
+  market: Event['markets'][number],
+  outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
+) {
+  const outcome = market.outcomes.find(currentOutcome => currentOutcome.outcome_index === outcomeIndex)
+    ?? market.outcomes[outcomeIndex]
+  const explicitPrice = toNumber(outcome?.buy_price)
+  if (explicitPrice != null && explicitPrice > 0 && explicitPrice <= 1) {
+    return explicitPrice
+  }
+
+  const marketPrice = toNumber(market.price)
+  if (marketPrice != null && marketPrice > 0 && marketPrice <= 1) {
+    return outcomeIndex === OUTCOME_INDEX.NO
+      ? Math.max(0, Math.min(1, 1 - marketPrice))
+      : marketPrice
+  }
+
+  return 0.5
 }
 
 export function resolveWinningOutcomeIndex(market: Event['markets'][number]) {
@@ -117,7 +141,6 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   const setSide = useOrder(state => state.setSide)
   const setType = useOrder(state => state.setType)
   const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
-  const setUserShares = useOrder(state => state.setUserShares)
   const setAmount = useOrder(state => state.setAmount)
   const inputRef = useOrder(state => state.inputRef)
   const user = useUser()
@@ -265,6 +288,65 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     eventSlug: event.slug,
     enabled: Boolean(user?.id),
   })
+  const mergedEventUserPositions = useMemo(() => {
+    const basePositions = userPositions ?? []
+    const deltas = event.markets.flatMap((market) => {
+      const tokenShares = sharesByCondition[market.condition_id]
+      if (!tokenShares) {
+        return []
+      }
+
+      return [OUTCOME_INDEX.YES, OUTCOME_INDEX.NO].flatMap((outcomeIndex) => {
+        const tokenBalance = tokenShares[outcomeIndex] ?? 0
+        const existingShares = basePositions.reduce((sum, position) => {
+          if (position.market?.condition_id !== market.condition_id) {
+            return sum
+          }
+
+          const normalizedOutcome = position.outcome_text?.toLowerCase()
+          const explicitOutcomeIndex = typeof position.outcome_index === 'number' ? position.outcome_index : undefined
+          const resolvedOutcomeIndex = explicitOutcomeIndex != null
+            ? explicitOutcomeIndex
+            : normalizedOutcome === 'no'
+              ? OUTCOME_INDEX.NO
+              : OUTCOME_INDEX.YES
+
+          if (resolvedOutcomeIndex !== outcomeIndex) {
+            return sum
+          }
+
+          const quantity = typeof position.total_shares === 'number'
+            ? position.total_shares
+            : (typeof position.size === 'number' ? position.size : 0)
+
+          return sum + (quantity > 0 ? quantity : 0)
+        }, 0)
+
+        const missingShares = Number((tokenBalance - existingShares).toFixed(6))
+        if (!(missingShares >= POSITION_VISIBILITY_THRESHOLD)) {
+          return []
+        }
+
+        return [{
+          conditionId: market.condition_id,
+          outcomeIndex,
+          sharesDelta: missingShares,
+          avgPrice: 0.5,
+          currentPrice: resolveOutcomeUnitPrice(market, outcomeIndex),
+          title: market.short_title || market.title,
+          slug: market.slug,
+          eventSlug: event.slug,
+          iconUrl: market.icon_url,
+          outcomeText: outcomeIndex === OUTCOME_INDEX.NO ? 'No' : 'Yes',
+          isActive: !market.is_resolved,
+          isResolved: market.is_resolved,
+        }]
+      })
+    })
+
+    return applyPositionDeltasToUserPositions(basePositions, deltas) ?? basePositions
+  }, [event.markets, event.slug, sharesByCondition, userPositions])
+
   const openOrdersCountByCondition = useMemo(() => {
     const pages = eventOpenOrdersData?.pages ?? []
     return pages.reduce<Record<string, number>>((acc, page) => {
@@ -279,7 +361,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     }, {})
   }, [eventOpenOrdersData?.pages])
   const positionTagsByCondition = useMemo(() => {
-    if (!userPositions?.length) {
+    if (!mergedEventUserPositions.length) {
       return {}
     }
 
@@ -294,7 +376,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
       }>
     > = {}
 
-    userPositions.forEach((position) => {
+    mergedEventUserPositions.forEach((position) => {
       const conditionId = position.market?.condition_id
       if (!conditionId || !validConditionIds.has(conditionId)) {
         return
@@ -356,10 +438,10 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
       }
       return acc
     }, {})
-  }, [event.markets, normalizeOutcomeLabel, t, userPositions])
+  }, [event.markets, mergedEventUserPositions, normalizeOutcomeLabel, t])
 
   const convertOptions = useMemo(() => {
-    if (!isNegRiskEnabled || !userPositions?.length) {
+    if (!isNegRiskEnabled || !mergedEventUserPositions.length) {
       return []
     }
 
@@ -367,7 +449,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
       event.markets.map(market => [market.condition_id, market]),
     )
 
-    return userPositions.reduce<Array<{ id: string, label: string, shares: number, conditionId: string }>>(
+    return mergedEventUserPositions.reduce<Array<{ id: string, label: string, shares: number, conditionId: string }>>(
       (options, position, index) => {
         const conditionId = position.market?.condition_id
         if (!conditionId) {
@@ -405,7 +487,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
       },
       [],
     )
-  }, [event.markets, isNegRiskEnabled, userPositions])
+  }, [event.markets, isNegRiskEnabled, mergedEventUserPositions])
 
   const eventOutcomes = useMemo(() => {
     return event.markets.map(market => ({
@@ -474,12 +556,6 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     const form = document.getElementById('event-order-form') as HTMLFormElement | null
     form?.requestSubmit()
   }, [setAmount])
-
-  useEffect(() => {
-    if (ownerAddress && Object.keys(sharesByCondition).length > 0) {
-      setUserShares(sharesByCondition)
-    }
-  }, [ownerAddress, setUserShares, sharesByCondition])
 
   useEffect(() => {
     setChancePulseToken(0)
@@ -933,7 +1009,7 @@ function MarketDetailTabs({
   const user = useUser()
   const marketChannelStatus = useMarketChannelStatus()
   const { selected: controlledTab, select } = tabController
-  const positionSizeThreshold = 0.01
+  const positionSizeThreshold = POSITION_VISIBILITY_THRESHOLD
   const isResolvedView = variant === 'resolved'
   const isResolvedMarket = isMarketResolved(market)
   const shouldHideOrderBook = isResolvedView || isResolvedMarket
@@ -1124,6 +1200,8 @@ function MarketDetailTabs({
         {selectedTab === 'positions' && (
           <EventMarketPositions
             market={market}
+            eventId={event.id}
+            eventSlug={event.slug}
             isNegRiskEnabled={isNegRiskEnabled}
             isNegRiskAugmented={isNegRiskAugmented}
             convertOptions={convertOptions}

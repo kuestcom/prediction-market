@@ -1,6 +1,8 @@
 'use client'
 
+import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
+import type { UserPosition } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { BadgeCheckIcon, Loader2Icon, LockKeyholeIcon, MoveDownIcon, MoveLeftIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -33,6 +35,7 @@ import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_ERROR_MESSAGE, MICRO_UNIT } from '@/lib/constants'
 import { formatAmountInputValue, formatCurrency, formatSharesLabel } from '@/lib/formatters'
+import { applyPositionDeltasToUserPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import {
   aggregateSafeTransactions,
   buildConvertPositionsTransaction,
@@ -60,6 +63,8 @@ interface EventConvertPositionsDialogProps {
   open: boolean
   options: ConvertPositionOption[]
   outcomes: ConvertOutcomeOption[]
+  eventId?: string
+  eventSlug?: string
   negRiskMarketId?: string
   isNegRiskAugmented?: boolean
   onOpenChange: (open: boolean) => void
@@ -69,6 +74,8 @@ export default function EventConvertPositionsDialog({
   open,
   options,
   outcomes,
+  eventId,
+  eventSlug,
   negRiskMarketId,
   isNegRiskAugmented = false,
   onOpenChange,
@@ -369,20 +376,80 @@ export default function EventConvertPositionsDialog({
         icon: <ConvertSuccessIcon />,
       })
 
-      void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
+      const optimisticDeltas = [
+        ...selectedOptions.map(option => ({
+          conditionId: option.conditionId,
+          outcomeIndex: 1 as const,
+          sharesDelta: -normalizedAmount,
+          currentPrice: 0.5,
+          title: option.label,
+          slug: option.conditionId,
+          eventSlug,
+          outcomeText: 'No',
+          isActive: true,
+          isResolved: false,
+        })),
+        ...conversionOutcomes.map(outcome => ({
+          conditionId: outcome.conditionId,
+          outcomeIndex: 0 as const,
+          sharesDelta: normalizedAmount,
+          avgPrice: 0.5,
+          currentPrice: 0.5,
+          title: outcome.label,
+          slug: outcome.conditionId,
+          eventSlug,
+          outcomeText: 'Yes',
+          isActive: true,
+          isResolved: false,
+        })),
+      ]
+      const affectedConditionIds = new Set(optimisticDeltas.map(delta => delta.conditionId))
+
+      updateQueryDataWhere<UserPosition[]>(
+        queryClient,
+        ['order-panel-user-positions'],
+        currentQueryKey => affectedConditionIds.has(String(currentQueryKey[2] ?? '')),
+        current => applyPositionDeltasToUserPositions(current, optimisticDeltas),
+      )
+      updateQueryDataWhere<UserPosition[]>(
+        queryClient,
+        ['user-market-positions'],
+        currentQueryKey =>
+          affectedConditionIds.has(String(currentQueryKey[2] ?? ''))
+          && currentQueryKey[3] === 'active',
+        current => applyPositionDeltasToUserPositions(current, optimisticDeltas),
+      )
+      updateQueryDataWhere<UserPosition[]>(
+        queryClient,
+        ['event-user-positions'],
+        currentQueryKey => currentQueryKey[2] === eventId,
+        current => applyPositionDeltasToUserPositions(current, optimisticDeltas),
+      )
+      updateQueryDataWhere<UserPosition[]>(
+        queryClient,
+        ['user-event-positions'],
+        currentQueryKey =>
+          currentQueryKey[2] === 'active'
+          && Array.from(affectedConditionIds).some(conditionId =>
+            String(currentQueryKey[3] ?? '').includes(conditionId),
+          ),
+        current => applyPositionDeltasToUserPositions(current, optimisticDeltas),
+      )
+      updateQueryDataWhere<SharesByCondition>(
+        queryClient,
+        ['user-conditional-shares'],
+        () => true,
+        current => applyShareDeltas(
+          current,
+          optimisticDeltas.map(delta => ({
+            conditionId: delta.conditionId,
+            outcomeIndex: delta.outcomeIndex,
+            sharesDelta: delta.sharesDelta,
+          })),
+        ),
+      )
+
       void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
-      void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
-      setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
-        void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
-      }, 3000)
-      setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
-      }, 3000)
-      setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
-        void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
-      }, 12_000)
 
       onOpenChange(false)
     }

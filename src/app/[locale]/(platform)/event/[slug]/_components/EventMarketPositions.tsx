@@ -4,7 +4,7 @@ import type { Event, UserPosition } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { ShareIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { PositionShareDialog } from '@/app/[locale]/(platform)/_components/PositionShareDialog'
 import EventConvertPositionsDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventConvertPositionsDialog'
 import AlertBanner from '@/components/AlertBanner'
@@ -25,6 +25,7 @@ import {
   formatSharesLabel,
   fromMicro,
 } from '@/lib/formatters'
+import { applyPositionDeltasToUserPositions } from '@/lib/optimistic-trading'
 import { buildShareCardPayload } from '@/lib/share-card'
 import { getUserPublicAddress } from '@/lib/user-address'
 import { cn } from '@/lib/utils'
@@ -33,12 +34,16 @@ import { useUser } from '@/stores/useUser'
 
 interface EventMarketPositionsProps {
   market: Event['markets'][number]
+  eventId: string
+  eventSlug: string
   isNegRiskEnabled?: boolean
   convertOptions?: Array<{ id: string, label: string, shares: number, conditionId: string }>
   eventOutcomes?: Array<{ conditionId: string, questionId?: string, label: string, iconUrl?: string | null }>
   negRiskMarketId?: string
   isNegRiskAugmented?: boolean
 }
+
+const POSITION_VISIBILITY_THRESHOLD = 0.01
 
 function toNumber(value: unknown) {
   if (value === null || value === undefined) {
@@ -115,6 +120,28 @@ function resolvePositionOutcomeIndex(position: UserPosition) {
       ? OUTCOME_INDEX.NO
       : OUTCOME_INDEX.YES
   return resolvedOutcomeIndex === OUTCOME_INDEX.NO ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES
+}
+
+function resolveMarketOutcomePrice(
+  market: Event['markets'][number],
+  outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
+) {
+  const outcome = market.outcomes.find(currentOutcome => currentOutcome.outcome_index === outcomeIndex)
+    ?? market.outcomes[outcomeIndex]
+  const explicitPrice = normalizePositionPrice(outcome?.buy_price)
+
+  if (typeof explicitPrice === 'number' && explicitPrice > 0) {
+    return explicitPrice
+  }
+
+  const marketPrice = normalizePositionPrice(market.price)
+  if (typeof marketPrice === 'number' && marketPrice > 0) {
+    return outcomeIndex === OUTCOME_INDEX.NO
+      ? Math.max(0, Math.min(1, 1 - marketPrice))
+      : marketPrice
+  }
+
+  return 0.5
 }
 
 function normalizePnlValue(value: number | null, baseCostValue: number | null) {
@@ -508,6 +535,8 @@ function NetPositionsDialog({
 
 export default function EventMarketPositions({
   market,
+  eventId,
+  eventSlug,
   isNegRiskEnabled,
   convertOptions: eventConvertOptions,
   eventOutcomes,
@@ -525,7 +554,7 @@ export default function EventMarketPositions({
   const setOrderAmount = useOrder(state => state.setAmount)
   const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
   const orderInputRef = useOrder(state => state.inputRef)
-  const setOrderUserShares = useOrder(state => state.setUserShares)
+  const orderUserShares = useOrder(state => state.userShares)
 
   const positionStatus = market.is_active && !market.is_resolved ? 'active' : 'closed'
 
@@ -550,44 +579,55 @@ export default function EventMarketPositions({
     gcTime: 1000 * 60 * 10,
   })
 
-  const positions = useMemo(() => data ?? [], [data])
+  const rawPositions = useMemo(() => data ?? [], [data])
+  const positions = useMemo(() => {
+    const tokenShares = orderUserShares[market.condition_id]
+    if (!tokenShares) {
+      return rawPositions
+    }
+
+    const deltas = [OUTCOME_INDEX.YES, OUTCOME_INDEX.NO].flatMap((outcomeIndex) => {
+      const tokenBalance = tokenShares[outcomeIndex] ?? 0
+      const currentPositionShares = rawPositions.reduce((sum, positionItem) => {
+        if (resolvePositionOutcomeIndex(positionItem) !== outcomeIndex) {
+          return sum
+        }
+        return sum + resolvePositionShares(positionItem)
+      }, 0)
+      const missingShares = Number((tokenBalance - currentPositionShares).toFixed(6))
+
+      if (!(missingShares >= POSITION_VISIBILITY_THRESHOLD)) {
+        return []
+      }
+
+      return [{
+        conditionId: market.condition_id,
+        outcomeIndex,
+        sharesDelta: missingShares,
+        avgPrice: 0.5,
+        currentPrice: resolveMarketOutcomePrice(market, outcomeIndex),
+        title: market.short_title || market.title,
+        slug: market.slug,
+        eventSlug,
+        iconUrl: market.icon_url,
+        outcomeText: outcomeIndex === OUTCOME_INDEX.NO ? 'No' : 'Yes',
+        isActive: !market.is_resolved,
+        isResolved: market.is_resolved,
+      }]
+    })
+
+    return applyPositionDeltasToUserPositions(rawPositions, deltas) ?? rawPositions
+  }, [eventSlug, market, orderUserShares, rawPositions])
+  const visiblePositions = useMemo(
+    () => positions.filter(position => resolvePositionShares(position) >= POSITION_VISIBILITY_THRESHOLD),
+    [positions],
+  )
   const loading = status === 'pending' && Boolean(user?.proxy_wallet_address)
   const hasInitialError = status === 'error' && Boolean(user?.proxy_wallet_address)
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
   const [sharePosition, setSharePosition] = useState<UserPosition | null>(null)
   const [isConvertDialogOpen, setIsConvertDialogOpen] = useState(false)
   const [isNetPositionsOpen, setIsNetPositionsOpen] = useState(false)
-
-  const aggregatedShares = useMemo(() => {
-    const map: Record<string, Record<typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO, number>> = {}
-
-    positions.forEach((positionItem) => {
-      const quantity = typeof positionItem.total_shares === 'number'
-        ? positionItem.total_shares
-        : resolvePositionShares(positionItem)
-      if (!quantity || quantity <= 0) {
-        return
-      }
-      const conditionId = positionItem.market?.condition_id || market.condition_id
-      if (!conditionId) {
-        return
-      }
-
-      const resolvedOutcomeIndex = resolvePositionOutcomeIndex(positionItem)
-
-      if (!map[conditionId]) {
-        map[conditionId] = {
-          [OUTCOME_INDEX.YES]: 0,
-          [OUTCOME_INDEX.NO]: 0,
-        }
-      }
-
-      const bucket = resolvedOutcomeIndex === OUTCOME_INDEX.NO ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES
-      map[conditionId][bucket] += quantity
-    })
-
-    return map
-  }, [market.condition_id, positions])
 
   const resolvedConvertOptions = useMemo(() => {
     if (!isNegRiskEnabled) {
@@ -599,7 +639,7 @@ export default function EventMarketPositions({
 
     const label = market.short_title || market.title
 
-    return positions
+    return visiblePositions
       .map((positionItem, index) => {
         const explicitOutcomeIndex = typeof positionItem.outcome_index === 'number'
           ? positionItem.outcome_index
@@ -620,7 +660,7 @@ export default function EventMarketPositions({
         }
       })
       .filter((option): option is { id: string, label: string, shares: number, conditionId: string } => Boolean(option))
-  }, [eventConvertOptions, isNegRiskEnabled, market.condition_id, market.short_title, market.title, positions])
+  }, [eventConvertOptions, isNegRiskEnabled, market.condition_id, market.short_title, market.title, visiblePositions])
 
   const resolvedEventOutcomes = useMemo(() => {
     if (eventOutcomes && eventOutcomes.length > 0) {
@@ -632,10 +672,6 @@ export default function EventMarketPositions({
       label: market.short_title || market.title,
     }]
   }, [eventOutcomes, market.condition_id, market.question_id, market.short_title, market.title])
-
-  useEffect(() => {
-    setOrderUserShares(aggregatedShares, { replace: true })
-  }, [aggregatedShares, setOrderUserShares])
 
   const eventOutcomeIds = useMemo(() => {
     return resolvedEventOutcomes
@@ -671,7 +707,7 @@ export default function EventMarketPositions({
     }
 
     const outcomeIdSet = new Set(eventOutcomeIds)
-    const sourcePositions = hasMultipleMarkets ? eventPositionsQuery.data ?? [] : positions
+    const sourcePositions = hasMultipleMarkets ? eventPositionsQuery.data ?? [] : visiblePositions
     const scopedPositions = hasMultipleMarkets
       ? sourcePositions.filter(positionItem => outcomeIdSet.has(positionItem.market.condition_id))
       : sourcePositions
@@ -752,7 +788,7 @@ export default function EventMarketPositions({
     market.outcomes,
     market.short_title,
     market.title,
-    positions,
+    visiblePositions,
     resolvedEventOutcomes,
   ])
 
@@ -777,7 +813,7 @@ export default function EventMarketPositions({
     }
     setOrderSide(ORDER_SIDE.SELL)
 
-    const shares = typeof positionItem.total_shares === 'number' ? positionItem.total_shares : 0
+    const shares = resolvePositionShares(positionItem)
     if (shares > 0) {
       setOrderAmount(formatAmountInputValue(shares, { roundingMode: 'floor' }))
     }
@@ -845,7 +881,7 @@ export default function EventMarketPositions({
     )
   }
 
-  if (loading || positions.length === 0) {
+  if (loading || visiblePositions.length === 0) {
     return null
   }
 
@@ -877,7 +913,7 @@ export default function EventMarketPositions({
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {positions.map(position => (
+            {visiblePositions.map(position => (
               <MarketPositionRow
                 key={`${position.outcome_text}-${position.last_activity_at}`}
                 position={position}
@@ -905,6 +941,8 @@ export default function EventMarketPositions({
         onOpenChange={setIsConvertDialogOpen}
         options={resolvedConvertOptions}
         outcomes={resolvedEventOutcomes}
+        eventId={eventId}
+        eventSlug={eventSlug}
         negRiskMarketId={negRiskMarketId}
         isNegRiskAugmented={isNegRiskAugmented}
       />
