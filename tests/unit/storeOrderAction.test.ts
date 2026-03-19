@@ -197,7 +197,10 @@ describe('storeOrderAction', () => {
       type: 'MARKET',
     }))
 
-    expect(result).toBeUndefined()
+    expect(result).toEqual({
+      error: null,
+      orderId: 'clob-123',
+    })
     expect(fetchMock).toHaveBeenCalled()
     expect(mocks.updateTag).toHaveBeenCalledTimes(2)
 
