@@ -34,6 +34,7 @@ function AccordionTrigger({
     <AccordionPrimitive.Header className="flex">
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
+        suppressHydrationWarning
         className={cn(
           `
             flex flex-1 items-center justify-between gap-4 py-4 text-left transition-all
@@ -58,6 +59,7 @@ function AccordionContent({
   return (
     <AccordionPrimitive.Content
       data-slot="accordion-content"
+      suppressHydrationWarning
       className={cn(
         `overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down`,
         className,

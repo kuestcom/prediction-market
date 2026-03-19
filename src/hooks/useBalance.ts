@@ -72,7 +72,7 @@ export function useBalance(options: UseBalanceOptions = {}) {
     : null
 
   const isOptionsEnabled = options.enabled ?? true
-  const isAwaitingConnection = Boolean(user && isOptionsEnabled && !isConnected)
+  const isAwaitingConnection = Boolean(hasMounted && user && isOptionsEnabled && !isConnected)
   const isQueryEnabled = Boolean(hasMounted && client && isConnected && proxyWalletAddress && isOptionsEnabled)
 
   const {
@@ -109,8 +109,11 @@ export function useBalance(options: UseBalanceOptions = {}) {
   })
 
   const balance = isQueryEnabled && data ? data : INITIAL_STATE
-  const isWaitingForProxy = Boolean(isConnected && isOptionsEnabled && !proxyWalletAddress)
-  const isLoadingBalance = isAwaitingConnection || isWaitingForProxy || (isQueryEnabled ? (isLoading || (!data && isFetching)) : false)
+  const isWaitingForProxy = Boolean(hasMounted && isConnected && isOptionsEnabled && !proxyWalletAddress)
+  const isLoadingBalance = !hasMounted
+    || isAwaitingConnection
+    || isWaitingForProxy
+    || (isQueryEnabled ? (isLoading || (!data && isFetching)) : false)
   return {
     balance,
     isLoadingBalance,

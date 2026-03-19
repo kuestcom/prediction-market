@@ -2697,8 +2697,19 @@ export function SportsGameDetailsPanel({
   }, [selectedButton])
 
   const linePickerOptions = useMemo(
-    () => (selectedLinePickerMarketType ? buildLinePickerOptions(card, selectedLinePickerMarketType) : []),
-    [card, selectedLinePickerMarketType],
+    () => {
+      if (!selectedLinePickerMarketType) {
+        return []
+      }
+
+      const options = buildLinePickerOptions(card, selectedLinePickerMarketType)
+      if (!allowedConditionIds) {
+        return options
+      }
+
+      return options.filter(option => allowedConditionIds.has(option.conditionId))
+    },
+    [allowedConditionIds, card, selectedLinePickerMarketType],
   )
 
   const activeLineOptionIndex = useMemo(() => {
@@ -2709,7 +2720,7 @@ export function SportsGameDetailsPanel({
     return linePickerOptions.findIndex(option => option.conditionId === selectedButton.conditionId)
   }, [linePickerOptions, selectedButton])
 
-  const hasLinePicker = selectedLinePickerMarketType !== null && linePickerOptions.length > 0
+  const hasLinePicker = selectedLinePickerMarketType !== null && linePickerOptions.length > 1
 
   const nextOutcome = useMemo(() => {
     if (!selectedMarket || !selectedOutcome) {
@@ -4333,6 +4344,11 @@ export default function SportsGamesCenter({
     const shouldRenderDetailsPanel = isExpanded && (isDetailsContentVisible || isSpreadOrTotalSelected)
     const activeMarketType = resolveActiveMarketType(card, selectedButtonKey)
     const buttonGroups = groupButtonsByMarketType(card.buttons)
+    const shouldUseClosedDetailsSpacing = Boolean(
+      selectedButton
+      && (selectedButton.marketType === 'spread' || selectedButton.marketType === 'total')
+      && new Set(buttonGroups[selectedButton.marketType].map(button => button.conditionId)).size > 1,
+    )
     const hasPrimaryMarketTrio = hasSportsGamesCardPrimaryMarketTrio(card)
     const shouldCollapseCardControlsToMoneylineOnly = !showSpreadsAndTotals || !hasPrimaryMarketTrio
     const cardVisibleMarketColumns = resolveSportsGamesCardVisibleMarketTypes(card, showSpreadsAndTotals)
@@ -4794,7 +4810,7 @@ export default function SportsGamesCenter({
               '-mx-2.5 bg-card px-2.5 empty:hidden',
               shouldRenderDetailsPanel
                 ? 'border-t pt-3'
-                : (isSpreadOrTotalSelected ? 'pt-3' : 'pt-0'),
+                : (shouldUseClosedDetailsSpacing ? 'pt-3' : 'pt-0'),
             )}
             onClick={event => event.stopPropagation()}
           >

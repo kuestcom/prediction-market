@@ -276,6 +276,10 @@ function isExplicitMoneylineMarket(market: Market) {
     || marketText.includes(' 1x2 ')
 }
 
+function isChildMoneylineMarket(market: Market) {
+  return normalizeText(market.sports_market_type) === 'child moneyline'
+}
+
 function hasExplicitNonMoneylineMarketType(market: Market) {
   const normalizedType = normalizeText(market.sports_market_type)
   return Boolean(normalizedType) && !isExplicitMoneylineMarket(market)
@@ -966,6 +970,10 @@ function buildMoneylineButtons(
   team2: SportsGamesTeam | null,
   usedButtonKeys: Set<string>,
 ) {
+  const primaryMoneylineMarkets = marketsByType.moneyline.filter(market => !isChildMoneylineMarket(market))
+  const preferredMoneylineMarkets = primaryMoneylineMarkets.length > 0
+    ? primaryMoneylineMarkets
+    : marketsByType.moneyline
   const untypedMoneylineCandidates = marketsByType.untyped.filter(market =>
     !isBinaryYesNoMarket(market) && isExplicitMoneylineMarket(market),
   )
@@ -974,11 +982,11 @@ function buildMoneylineButtons(
     ...marketsByType.binary,
   ].filter(market => isSeparatedMoneylineCandidate(market, teams)))
   const candidates = dedupeMarketsByConditionId(
-    marketsByType.moneyline.length > 0
+    preferredMoneylineMarkets.length > 0
       ? (
-          marketsByType.moneyline.length >= 2
-            ? marketsByType.moneyline
-            : [...marketsByType.moneyline, ...untypedMoneylineCandidates, ...separatedMoneylineCandidates]
+          preferredMoneylineMarkets.length >= 2
+            ? preferredMoneylineMarkets
+            : [...preferredMoneylineMarkets, ...untypedMoneylineCandidates, ...separatedMoneylineCandidates]
         )
       : [...untypedMoneylineCandidates, ...separatedMoneylineCandidates],
   )
@@ -1123,6 +1131,22 @@ function buildMoneylineButtons(
   }
 
   return buttons
+}
+
+function buildChildMoneylineButtons(
+  marketsByType: ReturnType<typeof groupMarketsByType>,
+  teams: SportsGamesTeam[],
+  usedButtonKeys: Set<string>,
+) {
+  const childMoneylineMarkets = dedupeMarketsByConditionId(
+    marketsByType.moneyline.filter(isChildMoneylineMarket),
+  )
+
+  if (childMoneylineMarkets.length === 0) {
+    return []
+  }
+
+  return buildStandaloneAuxiliaryButtons(childMoneylineMarkets, teams, usedButtonKeys)
 }
 
 function buildSpreadButtons(
@@ -1427,6 +1451,11 @@ function buildButtons(markets: Market[], teams: SportsGamesTeam[]) {
     team2,
     usedButtonKeys,
   )
+  const childMoneylineButtons = buildChildMoneylineButtons(
+    marketsByType,
+    teams,
+    usedButtonKeys,
+  )
   const spreadButtons = buildSpreadButtons(
     marketsByType,
     team1,
@@ -1441,7 +1470,14 @@ function buildButtons(markets: Market[], teams: SportsGamesTeam[]) {
     usedButtonKeys,
   )
 
-  return [...moneylineButtons, ...spreadButtons, ...totalButtons, ...bttsButtons, ...auxiliaryButtons]
+  return [
+    ...moneylineButtons,
+    ...spreadButtons,
+    ...totalButtons,
+    ...bttsButtons,
+    ...childMoneylineButtons,
+    ...auxiliaryButtons,
+  ]
 }
 
 function toDetailMarkets(markets: Market[], buttons: SportsGamesButton[]) {

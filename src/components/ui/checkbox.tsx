@@ -13,6 +13,7 @@ function Checkbox({
   return (
     <CheckboxPrimitive.Root
       data-slot="checkbox"
+      suppressHydrationWarning
       className={cn(
         `
           peer relative flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input

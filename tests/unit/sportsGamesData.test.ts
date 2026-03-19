@@ -186,6 +186,94 @@ function buildSportsEvent(params: {
 }
 
 describe('sportsGamesData', () => {
+  it('keeps CS2 child moneyline markets out of the primary moneyline buttons', () => {
+    const event = buildSportsEvent({
+      id: 'cs2-event',
+      slug: 'cs2-vit-9z-2026-03-19',
+      title: 'Counter-Strike: Vitality vs 9z (BO3)',
+      sportsTeams: [
+        { name: 'Vitality', abbreviation: 'VIT', host_status: 'home' },
+        { name: '9z', abbreviation: '9Z', host_status: 'away' },
+      ],
+      markets: [
+        {
+          ...buildMoneylineMarket({
+            eventId: 'cs2-event',
+            slug: 'cs2-vit-9z-2026-03-19',
+            title: 'Match Winner',
+            outcomes: ['Vitality', '9z'],
+          }),
+          condition_id: 'match-winner',
+          question_id: 'match-winner-question',
+          outcomes: [
+            buildOutcome('match-winner', 0, 'Vitality'),
+            buildOutcome('match-winner', 1, '9z'),
+          ],
+        },
+        {
+          ...buildBinaryMarket({
+            conditionId: 'map-1-winner',
+            eventId: 'cs2-event',
+            slug: 'cs2-vit-9z-2026-03-19-game1',
+            title: 'Map 1 Winner',
+            marketType: 'child_moneyline',
+          }),
+          outcomes: [
+            buildOutcome('map-1-winner', 0, 'Vitality'),
+            buildOutcome('map-1-winner', 1, '9z'),
+          ],
+        },
+        {
+          ...buildBinaryMarket({
+            conditionId: 'map-2-winner',
+            eventId: 'cs2-event',
+            slug: 'cs2-vit-9z-2026-03-19-game2',
+            title: 'Map 2 Winner',
+            marketType: 'child_moneyline',
+          }),
+          outcomes: [
+            buildOutcome('map-2-winner', 0, 'Vitality'),
+            buildOutcome('map-2-winner', 1, '9z'),
+          ],
+        },
+        buildBinaryMarket({
+          conditionId: 'map-handicap',
+          eventId: 'cs2-event',
+          slug: 'cs2-vit-9z-2026-03-19-map-handicap-away-1pt5',
+          title: 'Map Handicap: VIT (-1.5) vs 9z (+1.5)',
+          marketType: 'map_handicap',
+        }),
+        buildBinaryMarket({
+          conditionId: 'total-maps',
+          eventId: 'cs2-event',
+          slug: 'cs2-vit-9z-2026-03-19-total-games-2pt5',
+          title: 'O/U 2.5 Games',
+          marketType: 'totals',
+        }),
+        buildBinaryMarket({
+          conditionId: 'map-1-kills',
+          eventId: 'cs2-event',
+          slug: 'cs2-vit-9z-2026-03-19-game1-odd-even-total-kills',
+          title: 'Odd/Even Total Kills',
+          marketType: 'cs2_odd_even_total_kills',
+        }),
+      ],
+    })
+
+    const group = buildSportsGamesCardGroups([event])[0]
+    expect(group).toBeDefined()
+
+    const moneylineButtons = group!.primaryCard.buttons.filter(button => button.marketType === 'moneyline')
+    expect(moneylineButtons).toHaveLength(2)
+    expect(new Set(moneylineButtons.map(button => button.conditionId))).toEqual(new Set(['match-winner']))
+
+    const childMoneylineButtons = group!.primaryCard.buttons.filter(button =>
+      button.conditionId === 'map-1-winner' || button.conditionId === 'map-2-winner',
+    )
+    expect(childMoneylineButtons).toHaveLength(4)
+    expect(childMoneylineButtons.every(button => button.marketType === 'binary')).toBe(true)
+  })
+
   it('uses the market game start time when the event start time is missing', () => {
     const event = {
       id: 'event-start-fallback',

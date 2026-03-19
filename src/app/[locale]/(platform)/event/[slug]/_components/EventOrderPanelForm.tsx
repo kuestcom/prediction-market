@@ -254,6 +254,7 @@ export default function EventOrderPanelForm({
   const [shouldShakeLimitShares, setShouldShakeLimitShares] = useState(false)
   const [isClaimSubmitting, setIsClaimSubmitting] = useState(false)
   const [claimedConditionIds, setClaimedConditionIds] = useState<Record<string, true>>({})
+  const [hasMounted, setHasMounted] = useState(false)
   const limitSharesInputRef = useRef<HTMLInputElement | null>(null)
   const limitSharesNumber = Number.parseFloat(state.limitShares) || 0
   const { balance, isLoadingBalance } = useBalance()
@@ -348,6 +349,10 @@ export default function EventOrderPanelForm({
     makerAddress,
     conditionId: activeMarket?.condition_id,
   })
+
+  useEffect(() => {
+    setHasMounted(true)
+  }, [])
 
   const normalizedOrderBook = useMemo(() => {
     const summary = outcomeTokenId ? orderBookSummaryQuery.data?.[outcomeTokenId] : undefined
@@ -675,7 +680,8 @@ export default function EventOrderPanelForm({
   const effectiveMarketBuyCost = state.side === ORDER_SIDE.BUY && state.type === ORDER_TYPE.MARKET
     ? (marketBuyFill?.totalCost ?? amountNumber)
     : 0
-  const shouldShowDepositCta = isConnected
+  const isInteractiveWalletReady = hasMounted && isConnected
+  const shouldShowDepositCta = isInteractiveWalletReady
     && state.side === ORDER_SIDE.BUY
     && state.type === ORDER_TYPE.MARKET
     && Math.max(effectiveMarketBuyCost, amountNumber) > balance.raw
@@ -1624,11 +1630,11 @@ export default function EventOrderPanelForm({
               )}
 
               <EventOrderPanelSubmitButton
-                type={!isConnected || shouldShowDepositCta ? 'button' : 'submit'}
+                type={!isInteractiveWalletReady || shouldShowDepositCta ? 'button' : 'submit'}
                 isLoading={state.isLoading}
                 isDisabled={state.isLoading}
                 onClick={(event) => {
-                  if (!isConnected) {
+                  if (!isInteractiveWalletReady) {
                     void open()
                     return
                   }
@@ -1640,7 +1646,7 @@ export default function EventOrderPanelForm({
                   state.setLastMouseEvent(event)
                 }}
                 label={(() => {
-                  if (!isConnected) {
+                  if (!isInteractiveWalletReady) {
                     return t('Trade')
                   }
                   if (shouldShowDepositCta) {

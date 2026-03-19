@@ -42,7 +42,7 @@ export default function EventFaq({ event, commentsCount }: EventFaqProps) {
   }
 
   return (
-    <section className="w-full pt-8">
+    <section className="w-full pt-14 sm:pt-16">
       <h2 className="mb-2 text-[16px] font-semibold text-foreground">
         {t('Frequently Asked Questions')}
       </h2>

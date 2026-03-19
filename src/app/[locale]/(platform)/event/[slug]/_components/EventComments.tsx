@@ -182,6 +182,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
         </Select>
         <label
           htmlFor={holdersCheckboxId}
+          suppressHydrationWarning
           className="ml-2 inline-flex items-center gap-2 text-sm font-medium text-foreground"
         >
           <Checkbox
