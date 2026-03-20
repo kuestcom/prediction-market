@@ -3,7 +3,7 @@
 import type { User } from '@/types'
 import { useEffect } from 'react'
 import { authClient } from '@/lib/auth-client'
-import { useUser } from '@/stores/useUser'
+import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
 const { useSession } = authClient
 
@@ -20,21 +20,8 @@ export default function PlatformViewerState() {
       return
     }
 
-    const sessionSettings = (session.user as Partial<User>).settings
     useUser.setState((previous) => {
-      if (!previous) {
-        return { ...session.user, image: session.user.image ?? '' }
-      }
-
-      return {
-        ...previous,
-        ...session.user,
-        image: session.user.image ?? previous.image ?? '',
-        settings: {
-          ...(previous.settings ?? {}),
-          ...(sessionSettings ?? {}),
-        },
-      }
+      return mergeSessionUserState(previous, session.user as unknown as User)
     })
   }, [isPending, session?.user])
 

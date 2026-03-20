@@ -103,10 +103,26 @@ export default function EventComments({ event, user }: EventCommentsProps) {
   }, [loadMoreReplies])
 
   useEffect(() => {
-    comments.forEach((comment) => {
-      if (comment.recent_replies && comment.recent_replies.length > 3) {
-        setExpandedComments(prev => new Set([...prev, comment.id]))
-      }
+    const autoExpandedIds = comments
+      .filter(comment => (comment.recent_replies?.length ?? 0) > 3)
+      .map(comment => comment.id)
+
+    if (autoExpandedIds.length === 0) {
+      return
+    }
+
+    setExpandedComments((previous) => {
+      let changed = false
+      const next = new Set(previous)
+
+      autoExpandedIds.forEach((commentId) => {
+        if (!next.has(commentId)) {
+          next.add(commentId)
+          changed = true
+        }
+      })
+
+      return changed ? next : previous
     })
   }, [comments])
 

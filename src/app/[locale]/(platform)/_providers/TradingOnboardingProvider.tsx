@@ -51,7 +51,7 @@ import {
   TRADING_AUTH_TYPES,
 } from '@/lib/trading-auth/client'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
-import { useUser } from '@/stores/useUser'
+import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
 export function TradingOnboardingProvider({ children }: { children: ReactNode }) {
   const user = useUser()
@@ -159,22 +159,7 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
       const sessionUser = session?.data?.user as User | undefined
       if (sessionUser) {
         useUser.setState((previous) => {
-          if (!previous) {
-            return {
-              ...sessionUser,
-              image: sessionUser.image ?? '',
-            }
-          }
-
-          return {
-            ...previous,
-            ...sessionUser,
-            image: sessionUser.image ?? previous.image ?? '',
-            settings: {
-              ...(previous.settings ?? {}),
-              ...(sessionUser.settings ?? {}),
-            },
-          }
+          return mergeSessionUserState(previous, sessionUser)
         })
       }
     }

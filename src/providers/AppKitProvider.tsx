@@ -17,7 +17,7 @@ import { authClient } from '@/lib/auth-client'
 import { IS_BROWSER } from '@/lib/constants'
 import { buildTwoFactorRedirectPath, stripLocalePrefix } from '@/lib/locale-path'
 import { clearBrowserStorage, clearNonHttpOnlyCookies } from '@/lib/utils'
-import { useUser } from '@/stores/useUser'
+import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
 let hasInitializedAppKit = false
 let appKitInstance: AppKit | null = null
@@ -158,21 +158,8 @@ function initializeAppKitSingleton(
           authClient.getSession().then((session) => {
             const user = session?.data?.user
             if (user) {
-              const sessionSettings = (user as Partial<User>).settings
               useUser.setState((previous) => {
-                if (!previous) {
-                  return { ...user, image: user.image ?? '' }
-                }
-
-                return {
-                  ...previous,
-                  ...user,
-                  image: user.image ?? previous.image ?? '',
-                  settings: {
-                    ...(previous.settings ?? {}),
-                    ...(sessionSettings ?? {}),
-                  },
-                }
+                return mergeSessionUserState(previous, user as unknown as User)
               })
             }
           }).catch(() => {})
