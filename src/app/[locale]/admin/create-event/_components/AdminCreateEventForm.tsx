@@ -56,6 +56,7 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import {
   buildAdminSportsDerivedContent,
   buildAdminSportsStepErrors,
@@ -961,6 +962,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
   const { address: connectedAddress } = useAppKitAccount()
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const user = useUser()
   const eoaAddress = useMemo(() => {
     const candidate = connectedAddress ?? user?.address ?? ''
@@ -3249,7 +3251,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
       }
       setAuthChallengeExpiresAtMs(authPayload.expiresAt)
 
-      const authSignature = await activeWalletClient.signTypedData({
+      const authSignature = await runWithSignaturePrompt(() => activeWalletClient.signTypedData({
         account: eoaAddress,
         domain: {
           name: authPayload.domain.name,
@@ -3276,6 +3278,9 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
           expiresAt: BigInt(authPayload.expiresAt),
           chainId: BigInt(authPayload.chainId),
         },
+      }), {
+        title: 'Sign auth challenge',
+        description: 'Open your wallet and approve the signature to continue.',
       })
 
       setIsSigningAuth(false)
@@ -3371,6 +3376,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
     isSportsEvent,
     loadPendingSignaturePlan,
     optionImageFiles,
+    runWithSignaturePrompt,
     teamLogoFiles,
     walletClient,
   ])
@@ -3546,7 +3552,10 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
           maxPriorityFeePerGas?: bigint
         }) {
           try {
-            return await send(overrides)
+            return await runWithSignaturePrompt(() => send(overrides), {
+              title: 'Confirm transaction',
+              description: 'Open your wallet and approve the transaction to continue.',
+            })
           }
           catch (sendError) {
             const message = sendError instanceof Error ? sendError.message : String(sendError)
@@ -3560,10 +3569,16 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
               data: tx.data as `0x${string}`,
               value: toHex(BigInt(tx.value || '0')),
             }
-            const rpcHash = await activeWalletClient.request({
-              method: 'eth_sendTransaction',
-              params: [txRequest],
-            }) as unknown
+            const rpcHash = await runWithSignaturePrompt(
+              () => activeWalletClient.request({
+                method: 'eth_sendTransaction',
+                params: [txRequest],
+              }) as Promise<unknown>,
+              {
+                title: 'Confirm transaction',
+                description: 'Open your wallet and approve the transaction to continue.',
+              },
+            )
             if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
               throw new Error('Wallet provider returned an invalid transaction hash.')
             }
@@ -3694,6 +3709,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
     persistConfirmedTxs,
     preparedSignaturePlan,
     publicClient,
+    runWithSignaturePrompt,
     signatureTxs,
     walletClient,
   ])
