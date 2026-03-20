@@ -50,6 +50,21 @@ function areUserSharesEqual(
   })
 }
 
+function areEventsEqual(left: Event | null | undefined, right: Event | null | undefined) {
+  return left?.id === right?.id
+}
+
+function areMarketsEqual(left: Market | null | undefined, right: Market | null | undefined) {
+  return left?.condition_id === right?.condition_id
+}
+
+function areOutcomesEqual(left: Outcome | null | undefined, right: Outcome | null | undefined) {
+  return (
+    left?.condition_id === right?.condition_id
+    && left?.outcome_index === right?.outcome_index
+  )
+}
+
 interface OrderState {
   // Order state
   event: Event | null
@@ -107,11 +122,35 @@ export const useOrder = create<OrderState>()((set, _, store) => ({
   lastMouseEvent: null,
   userShares: {},
 
-  setEvent: (event: Event) => set({ event }),
-  setMarket: (market: Market) => set({ market }),
-  setOutcome: (outcome: Outcome) => set({ outcome }),
+  setEvent: (event: Event) => set((state) => {
+    if (areEventsEqual(state.event, event)) {
+      return state
+    }
+
+    return { event }
+  }),
+  setMarket: (market: Market) => set((state) => {
+    if (areMarketsEqual(state.market, market)) {
+      return state
+    }
+
+    return { market }
+  }),
+  setOutcome: (outcome: Outcome) => set((state) => {
+    if (areOutcomesEqual(state.outcome, outcome)) {
+      return state
+    }
+
+    return { outcome }
+  }),
   reset: () => set(store.getInitialState()),
-  setSide: (side: OrderSide) => set({ side }),
+  setSide: (side: OrderSide) => set((state) => {
+    if (state.side === side) {
+      return state
+    }
+
+    return { side }
+  }),
   setType: (type: OrderType) => set(state => ({
     type,
     amount: '',

@@ -1398,6 +1398,7 @@ export default function SportsEventCenter({
   const [tabByAuxiliaryConditionId, setTabByAuxiliaryConditionId] = useState<Record<string, DetailsTab>>({})
   const previousCardIdRef = useRef<string | null>(null)
   const appliedMarketSlugSelectionRef = useRef<string | null>(null)
+  const pushedOrderSelectionRef = useRef<string | null>(null)
   const auxiliaryMarketCards = useMemo<AuxiliaryMarketPanel[]>(() => {
     const buttonsByConditionId = new Map<string, SportsGamesButton[]>()
 
@@ -1863,8 +1864,15 @@ export default function SportsEventCenter({
   }, [activeCard.buttons, detailMarketByConditionId, hasCs2SeparatedLayout, marketSlugToButtonKey])
 
   const moneylineButtonKey = selectedButtonBySection.moneyline ?? groupedButtons.moneyline[0]?.key ?? null
+  const orderSelectionSyncKey = useMemo(() => {
+    if (!orderEventId || !orderMarketConditionId || orderOutcomeIndex == null) {
+      return null
+    }
+
+    return `${orderEventId}:${orderMarketConditionId}:${orderOutcomeIndex}:${orderSide}`
+  }, [orderEventId, orderMarketConditionId, orderOutcomeIndex, orderSide])
   const fallbackButtonFromOrderState = useMemo(() => {
-    if (!orderMarketConditionId) {
+    if (orderEventId !== activeCard.event.id || !orderMarketConditionId) {
       return null
     }
 
@@ -1879,7 +1887,7 @@ export default function SportsEventCenter({
 
     const conditionButton = activeCard.buttons.find(button => button.conditionId === orderMarketConditionId)
     return conditionButton?.key ?? null
-  }, [activeCard.buttons, orderMarketConditionId, orderOutcomeIndex])
+  }, [activeCard.buttons, activeCard.event.id, orderEventId, orderMarketConditionId, orderOutcomeIndex])
 
   const activeTradeContext = useMemo(() => {
     const candidateKeys = usesSectionLayout
@@ -1950,6 +1958,10 @@ export default function SportsEventCenter({
       return
     }
 
+    if (orderSelectionSyncKey && orderSelectionSyncKey === pushedOrderSelectionRef.current) {
+      return
+    }
+
     if (!fallbackButtonFromOrderState) {
       return
     }
@@ -2004,6 +2016,7 @@ export default function SportsEventCenter({
     detailMarketByConditionId,
     fallbackButtonFromOrderState,
     marketSlugToButtonKey,
+    orderSelectionSyncKey,
     usesSectionLayout,
   ])
 
@@ -2050,6 +2063,7 @@ export default function SportsEventCenter({
 
   useEffect(() => {
     if (!activeTradeContextButtonKey) {
+      pushedOrderSelectionRef.current = null
       return
     }
 
@@ -2057,8 +2071,11 @@ export default function SportsEventCenter({
     const market = resolveSelectedMarket(activeCard, activeTradeContextButtonKey)
     const outcome = resolveSelectedOutcome(market, button)
     if (!button || !market || !outcome) {
+      pushedOrderSelectionRef.current = null
       return
     }
+
+    const nextOrderSelectionSyncKey = `${activeCard.event.id}:${market.condition_id}:${outcome.outcome_index}:${ORDER_SIDE.BUY}`
 
     if (
       orderEventId === activeCard.event.id
@@ -2066,9 +2083,11 @@ export default function SportsEventCenter({
       && orderOutcomeIndex === outcome.outcome_index
       && orderSide === ORDER_SIDE.BUY
     ) {
+      pushedOrderSelectionRef.current = nextOrderSelectionSyncKey
       return
     }
 
+    pushedOrderSelectionRef.current = nextOrderSelectionSyncKey
     setOrderEvent(activeCard.event)
     setOrderMarket(market)
     setOrderOutcome(outcome)
@@ -3431,7 +3450,7 @@ export default function SportsEventCenter({
           {marketPanelsContent}
 
           <div className="mt-8">
-            <EventTabs event={heroCard.event} user={user ?? null} />
+            <EventTabs event={heroCard.event} user={user ?? null} initialTab="activity" />
           </div>
         </section>
 

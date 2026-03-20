@@ -12,10 +12,15 @@ import { useLiveCommentsChannel } from '@/app/[locale]/(platform)/event/[slug]/_
 interface EventTabsProps {
   event: Event
   user: User | null
+  initialTab?: 'comments' | 'holders' | 'activity'
 }
 
-export default function EventTabs({ event, user }: EventTabsProps) {
-  const [activeTab, setActiveTab] = useState('comments')
+export default function EventTabs({
+  event,
+  user,
+  initialTab = 'comments',
+}: EventTabsProps) {
+  const [activeTab, setActiveTab] = useState(initialTab)
   const { data: commentMetrics } = useCommentMetrics(event.slug)
   const { status: liveCommentsStatus } = useLiveCommentsChannel({
     eventSlug: event.slug,
