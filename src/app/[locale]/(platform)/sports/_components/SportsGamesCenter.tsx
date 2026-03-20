@@ -136,8 +136,6 @@ const headerIconButtonClass = `
 `
 const SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY = 'sports:event:odds-format'
 const SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY = 'sports:games:show-spreads-totals'
-const LIVE_SOON_WINDOW_MS = 24 * 60 * 60 * 1000
-const LIVE_FALLBACK_LIMIT = 10
 const SPORTS_LIVE_FALLBACK_WINDOW_MS = 2 * 60 * 60 * 1000
 const HERO_LEGEND_LABEL_GAP_PX = 8
 const HERO_LEGEND_RIGHT_INSET_PX = 4
@@ -3998,27 +3996,6 @@ export default function SportsGamesCenter({
     })
   }, [currentTimestampMs, filteredCards])
 
-  const hasCardsStartingWithinSoonWindow = useMemo(
-    () => sortedFutureCards.some((card) => {
-      const startMs = resolveCardStartTimestamp(card)
-      return Number.isFinite(startMs) && startMs - currentTimestampMs <= LIVE_SOON_WINDOW_MS
-    }),
-    [currentTimestampMs, sortedFutureCards],
-  )
-
-  const startingSoonCards = useMemo(() => {
-    const cardsWithinWindow = sortedFutureCards.filter((card) => {
-      const startMs = resolveCardStartTimestamp(card)
-      return Number.isFinite(startMs) && startMs - currentTimestampMs <= LIVE_SOON_WINDOW_MS
-    })
-
-    if (cardsWithinWindow.length > 0) {
-      return cardsWithinWindow
-    }
-
-    return sortedFutureCards.slice(0, LIVE_FALLBACK_LIMIT)
-  }, [currentTimestampMs, sortedFutureCards])
-
   const startingSoonGroupsByDate = useMemo(() => {
     const groupedByDate = new Map<
       string,
@@ -4030,7 +4007,7 @@ export default function SportsGamesCenter({
       }
     >()
 
-    for (const card of startingSoonCards) {
+    for (const card of sortedFutureCards) {
       const startMs = resolveCardStartTimestamp(card)
       const date = Number.isFinite(startMs) ? new Date(startMs) : null
       const isValidDate = Boolean(date && !Number.isNaN(date.getTime()))
@@ -4080,7 +4057,7 @@ export default function SportsGamesCenter({
         categories: Array.from(group.categories.values())
           .sort((left, right) => left.label.localeCompare(right.label)),
       }))
-  }, [dateLabelFormatter, resolveCardCategory, startingSoonCards])
+  }, [dateLabelFormatter, resolveCardCategory, sortedFutureCards])
 
   const activeTradeContext = useMemo<SportsActiveTradeContext | null>(() => {
     if (filteredCards.length === 0) {
@@ -5137,13 +5114,8 @@ export default function SportsGamesCenter({
                   {startingSoonGroupsByDate.length > 0 && (
                     <div className="space-y-3">
                       <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                        Starting Soon
+                        Upcoming Games
                       </h2>
-                      {!hasCardsStartingWithinSoonWindow && (
-                        <p className="text-sm text-muted-foreground">
-                          No games within 24 hours.
-                        </p>
-                      )}
 
                       {startingSoonGroupsByDate.map(dateGroup => (
                         <div key={`soon-${dateGroup.key}`} className="space-y-2.5">
