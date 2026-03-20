@@ -26,7 +26,7 @@ export default function EventTabSelector({
     () => (commentsCount == null ? null : Number(commentsCount).toLocaleString(locale)),
     [commentsCount, locale],
   )
-  const eventTabs = useMemo(() => ([
+  const eventTabs = useMemo<Array<{ key: EventTabKey, label: string }>>(() => ([
     {
       key: 'comments',
       label: formattedCommentsCount == null
