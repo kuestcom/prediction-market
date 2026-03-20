@@ -51,18 +51,15 @@ function areUserSharesEqual(
 }
 
 function areEventsEqual(left: Event | null | undefined, right: Event | null | undefined) {
-  return left?.id === right?.id
+  return left === right
 }
 
 function areMarketsEqual(left: Market | null | undefined, right: Market | null | undefined) {
-  return left?.condition_id === right?.condition_id
+  return left === right
 }
 
 function areOutcomesEqual(left: Outcome | null | undefined, right: Outcome | null | undefined) {
-  return (
-    left?.condition_id === right?.condition_id
-    && left?.outcome_index === right?.outcome_index
-  )
+  return left === right
 }
 
 interface OrderState {
