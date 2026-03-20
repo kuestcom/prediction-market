@@ -6,6 +6,11 @@ import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets, markTokenApprovalsCompleted } from '@/lib/trading-auth/server'
+import {
+  getTradingFlowErrorPreview,
+  mapApproveTokensError,
+  readTradingFlowErrorResponse,
+} from '@/lib/trading-flow-errors'
 
 interface SafeNonceResult {
   error: string | null
@@ -59,11 +64,17 @@ export async function getSafeNonceAction(): Promise<SafeNonceResult> {
       signal: AbortSignal.timeout(10_000),
     })
 
-    const payload = await response.json().catch(() => null)
+    const { payload, rawError, contentType } = await readTradingFlowErrorResponse(response)
     if (!response.ok || typeof payload?.nonce !== 'string') {
-      const message = typeof payload?.error === 'string'
-        ? payload.error
-        : DEFAULT_ERROR_MESSAGE
+      console.error('Failed to fetch safe nonce response.', {
+        status: response.status,
+        contentType,
+        rawError: getTradingFlowErrorPreview(rawError),
+      })
+      const message = mapApproveTokensError(rawError, {
+        status: response.status,
+        contentType,
+      })
       return { error: message }
     }
 
@@ -128,13 +139,17 @@ export async function submitSafeTransactionAction(request: SafeTransactionReques
       signal: AbortSignal.timeout(15000),
     })
 
-    const payload = await response.json().catch(() => null)
-    if (!response.ok) {
-      const message = typeof payload?.error === 'string'
-        ? payload.error
-        : typeof payload?.message === 'string'
-          ? payload.message
-          : DEFAULT_ERROR_MESSAGE
+    const { payload, rawError, contentType } = await readTradingFlowErrorResponse(response)
+    if (!response.ok || !payload) {
+      console.error('Failed to submit safe transaction response.', {
+        status: response.status,
+        contentType,
+        rawError: getTradingFlowErrorPreview(rawError),
+      })
+      const message = mapApproveTokensError(rawError, {
+        status: response.status,
+        contentType,
+      })
       return { error: message }
     }
 

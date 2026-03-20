@@ -99,6 +99,7 @@ function normalizeStoredLocalNotifications(raw: unknown): Notification[] {
       {
         ...notification,
         user_avatar: notification.user_avatar?.trim() || LOCAL_ORDER_FILL_AVATAR,
+        extra_info: undefined,
       },
     ]
   })
@@ -181,7 +182,6 @@ function buildLocalOrderFillNotification({
     link_target: normalizedEventPath,
     link_label: normalizedTxHash ? 'View on Polygonscan' : undefined,
     link_url: normalizedTxHash ? `${POLYGON_SCAN_BASE}/tx/${normalizedTxHash}` : null,
-    extra_info: normalizedTxHash ? normalizedTxHash.slice(0, 10) : undefined,
     metadata: {
       source: LOCAL_ORDER_FILL_NOTIFICATION_SOURCE,
       txHash: normalizedTxHash ?? undefined,

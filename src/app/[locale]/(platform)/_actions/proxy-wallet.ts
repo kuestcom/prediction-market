@@ -14,6 +14,11 @@ import {
 } from '@/lib/safe-proxy'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
+import {
+  getTradingFlowErrorPreview,
+  mapProxyWalletDeployError,
+  readTradingFlowErrorResponse,
+} from '@/lib/trading-flow-errors'
 
 interface SaveProxyWalletSignatureArgs {
   signature: string
@@ -176,37 +181,37 @@ async function triggerSafeProxyDeployment({
     signal: AbortSignal.timeout(15_000),
   })
 
-  const responseForText = response.clone()
-
-  let json: any
-  try {
-    json = await response.json()
-  }
-  catch {
-    json = null
-  }
+  const {
+    payload: responsePayload,
+    rawError,
+    contentType,
+  } = await readTradingFlowErrorResponse(response)
 
   if (!response.ok) {
-    const messageFromJson = json && typeof json?.error === 'string'
-      ? json.error
-      : json && typeof json?.message === 'string'
-        ? json.message
-        : null
+    console.error('Safe proxy deployment request failed.', {
+      status: response.status,
+      contentType,
+      rawError: getTradingFlowErrorPreview(rawError),
+    })
 
-    let messageFromText: string | null = null
-    if (!messageFromJson) {
-      try {
-        const text = await responseForText.text()
-        messageFromText = text.trim().slice(0, 300) || null
-      }
-      catch {
-        messageFromText = null
-      }
-    }
-
-    const message = messageFromJson ?? messageFromText ?? DEFAULT_ERROR_MESSAGE
+    const message = mapProxyWalletDeployError(rawError, {
+      status: response.status,
+      contentType,
+    })
     throw new Error(message)
   }
 
-  return json && typeof json?.txHash === 'string' ? json.txHash : null
+  if (!responsePayload) {
+    console.error('Safe proxy deployment returned an invalid response payload.', {
+      status: response.status,
+      contentType,
+      rawError: getTradingFlowErrorPreview(rawError),
+    })
+    throw new Error(mapProxyWalletDeployError(rawError, {
+      status: response.status,
+      contentType,
+    }))
+  }
+
+  return typeof responsePayload?.txHash === 'string' ? responsePayload.txHash : null
 }

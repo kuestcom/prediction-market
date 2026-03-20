@@ -10,6 +10,11 @@ import {
   L2_AUTH_CONTEXT_TTL_SECONDS,
 } from '@/lib/l2-auth-context'
 import { saveUserTradingAuthCredentials } from '@/lib/trading-auth/server'
+import {
+  getTradingFlowErrorPreview,
+  mapTradingAuthError,
+  readTradingFlowErrorResponse,
+} from '@/lib/trading-flow-errors'
 
 interface TradingAuthActionResult {
   error: string | null
@@ -33,13 +38,18 @@ async function requestApiKey(baseUrl: string, headers: Record<string, string>) {
     signal: AbortSignal.timeout(10_000),
   })
 
-  const payload = await response.json().catch(() => null)
+  const { payload, rawError, contentType } = await readTradingFlowErrorResponse(response)
   if (!response.ok || !payload) {
-    const message = typeof payload?.error === 'string'
-      ? payload.error
-      : typeof payload?.message === 'string'
-        ? payload.message
-        : DEFAULT_ERROR_MESSAGE
+    console.error('Trading auth API key request failed.', {
+      baseUrl,
+      status: response.status,
+      contentType,
+      rawError: getTradingFlowErrorPreview(rawError),
+    })
+    const message = mapTradingAuthError(rawError, {
+      status: response.status,
+      contentType,
+    })
     throw new Error(message)
   }
 

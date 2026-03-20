@@ -75,6 +75,14 @@ function getNotificationTimeLabel(notification: Notification, currentTimestamp: 
   return `${diffYears}y`
 }
 
+function isLikelyTransactionHashSnippet(value: string | null | undefined) {
+  if (!value) {
+    return false
+  }
+
+  return /^0x[a-fA-F0-9]{8,}$/.test(value.trim())
+}
+
 export default function HeaderNotifications() {
   const router = useRouter()
   const notifications = useNotificationList()
@@ -164,6 +172,8 @@ export default function HeaderNotifications() {
                 const hasLink = Boolean(notification.link_url)
                 const isLocalOrderFill = isLocalOrderFillNotification(notification)
                 const linkIsExternal = notification.link_type === 'external' || isLocalOrderFill
+                const extraInfo = notification.extra_info?.trim()
+                const shouldShowExtraInfo = Boolean(extraInfo) && !isLikelyTransactionHashSnippet(extraInfo)
                 const linkIcon = (
                   <ExternalLinkIcon
                     className={cn('size-3 text-muted-foreground', { 'opacity-0': !(hasLink) })}
@@ -258,10 +268,10 @@ export default function HeaderNotifications() {
                         </div>
                       </div>
 
-                      {notification.extra_info && (
+                      {shouldShowExtraInfo && extraInfo && (
                         <div className="mt-1">
                           <p className="text-xs text-foreground">
-                            {notification.extra_info}
+                            {extraInfo}
                           </p>
                         </div>
                       )}
