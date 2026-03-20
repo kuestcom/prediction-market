@@ -74,6 +74,7 @@ export async function getSafeNonceAction(): Promise<SafeNonceResult> {
       const message = mapApproveTokensError(rawError, {
         status: response.status,
         contentType,
+        forceFallback: response.ok,
       })
       return { error: message }
     }
@@ -149,6 +150,7 @@ export async function submitSafeTransactionAction(request: SafeTransactionReques
       const message = mapApproveTokensError(rawError, {
         status: response.status,
         contentType,
+        forceFallback: response.ok,
       })
       return { error: message }
     }

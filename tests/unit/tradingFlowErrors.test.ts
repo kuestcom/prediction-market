@@ -52,4 +52,14 @@ describe('trading flow errors', () => {
       contentType: 'application/json',
     })).toBe(DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE)
   })
+
+  it('uses the generic fallback for malformed success responses', () => {
+    const rawText = 'unexpected upstream body that should not be shown to users'
+
+    expect(mapApproveTokensError(rawText, {
+      status: 200,
+      contentType: 'text/plain',
+      forceFallback: true,
+    })).toBe(DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE)
+  })
 })

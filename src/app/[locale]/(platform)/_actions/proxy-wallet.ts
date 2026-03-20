@@ -210,6 +210,7 @@ async function triggerSafeProxyDeployment({
     throw new Error(mapProxyWalletDeployError(rawError, {
       status: response.status,
       contentType,
+      forceFallback: true,
     }))
   }
 

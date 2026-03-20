@@ -49,6 +49,7 @@ async function requestApiKey(baseUrl: string, headers: Record<string, string>) {
     const message = mapTradingAuthError(rawError, {
       status: response.status,
       contentType,
+      forceFallback: response.ok,
     })
     throw new Error(message)
   }

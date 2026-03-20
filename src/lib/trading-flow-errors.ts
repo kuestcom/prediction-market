@@ -85,8 +85,13 @@ function mapTradingFlowError(
     contentType?: string | null
     fallbackMessage: string
     exactMessages?: Record<string, string>
+    forceFallback?: boolean
   },
 ) {
+  if (options.forceFallback) {
+    return options.fallbackMessage
+  }
+
   const normalized = getTradingFlowErrorPreview(rawError)
   if (normalized) {
     const lowered = normalized.toLowerCase()
@@ -120,7 +125,7 @@ function mapTradingFlowError(
 
 export function mapProxyWalletDeployError(
   rawError: string | null | undefined,
-  options: { status?: number | null, contentType?: string | null } = {},
+  options: { status?: number | null, contentType?: string | null, forceFallback?: boolean } = {},
 ) {
   return mapTradingFlowError(rawError, {
     ...options,
@@ -133,7 +138,7 @@ export function mapProxyWalletDeployError(
 
 export function mapTradingAuthError(
   rawError: string | null | undefined,
-  options: { status?: number | null, contentType?: string | null } = {},
+  options: { status?: number | null, contentType?: string | null, forceFallback?: boolean } = {},
 ) {
   return mapTradingFlowError(rawError, {
     ...options,
@@ -146,7 +151,7 @@ export function mapTradingAuthError(
 
 export function mapApproveTokensError(
   rawError: string | null | undefined,
-  options: { status?: number | null, contentType?: string | null } = {},
+  options: { status?: number | null, contentType?: string | null, forceFallback?: boolean } = {},
 ) {
   return mapTradingFlowError(rawError, {
     ...options,
