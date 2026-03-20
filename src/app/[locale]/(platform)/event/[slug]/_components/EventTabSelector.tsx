@@ -3,9 +3,11 @@ import { useMemo } from 'react'
 import ConnectionStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/ConnectionStatusIndicator'
 import { cn } from '@/lib/utils'
 
+export type EventTabKey = 'comments' | 'holders' | 'activity'
+
 interface EventTabSelectorProps {
-  activeTab: string
-  setActiveTab: (activeTab: string) => void
+  activeTab: EventTabKey
+  setActiveTab: (activeTab: EventTabKey) => void
   commentsCount: number | null
   liveCommentsStatus: 'connecting' | 'live' | 'offline'
   marketChannelStatus: 'connecting' | 'live' | 'offline'
