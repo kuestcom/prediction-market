@@ -1,4 +1,4 @@
-import { SUPPORTED_LOCALES } from '@/i18n/locales'
+import { getEnglishDocsLlmStaticParams } from '@/lib/docs-static-params'
 import { getLLMText } from '@/lib/get-llm-text'
 import { source } from '@/lib/source'
 
@@ -22,9 +22,5 @@ export async function GET(_request: Request, { params }: RouteProps) {
 }
 
 export function generateStaticParams() {
-  const pageSlugs = source.getPages().map(page => page.slugs)
-
-  return SUPPORTED_LOCALES.flatMap(locale =>
-    pageSlugs.map(slug => ({ locale, slug })),
-  )
+  return getEnglishDocsLlmStaticParams()
 }

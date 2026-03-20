@@ -2,7 +2,7 @@ import { act, render } from '@testing-library/react'
 import HydratedEventsGrid from '@/app/[locale]/(platform)/(home)/_components/HydratedEventsGrid'
 
 const mocks = vi.hoisted(() => ({
-  filterHomeEvents: vi.fn((events: any[]) => events),
+  filterHomeEvents: vi.fn((events: any[], _options?: any) => events),
   refetch: vi.fn().mockResolvedValue(undefined),
   useCurrentTimestamp: vi.fn(),
   useInfiniteQuery: vi.fn(),
@@ -59,7 +59,7 @@ vi.mock('@/lib/home-events', async () => {
 
   return {
     ...actual,
-    filterHomeEvents: (...args: any[]) => mocks.filterHomeEvents(...args),
+    filterHomeEvents: (events: any[], options?: any) => mocks.filterHomeEvents(events, options),
   }
 })
 

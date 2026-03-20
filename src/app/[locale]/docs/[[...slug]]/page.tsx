@@ -16,6 +16,7 @@ import { PlatformShareDisplay } from '@/app/[locale]/docs/_components/PlatformSh
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
 import { TradingFeeDisplay } from '@/app/[locale]/docs/_components/TradingFeeDisplay'
 import { WebSocketPlayground } from '@/app/[locale]/docs/_components/WebSocketPlayground'
+import { getEnglishDocsStaticParams, isLaunchGuideEnabled } from '@/lib/docs-static-params'
 import { withLocalePrefix } from '@/lib/locale-path'
 import { source } from '@/lib/source'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
@@ -36,12 +37,8 @@ function getMDXComponents(components?: MDXComponents): MDXComponents {
   }
 }
 
-function isLaunchGuideEnabled() {
-  return process.env.ENABLE_LAUNCH_GUIDE === 'true'
-}
-
 export async function generateStaticParams() {
-  return source.generateParams()
+  return getEnglishDocsStaticParams()
 }
 
 export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slug]]'>): Promise<Metadata> {
