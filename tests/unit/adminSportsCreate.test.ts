@@ -4,6 +4,7 @@ import {
   createAdminSportsCustomMarket,
   createInitialAdminSportsForm,
 } from '@/lib/admin-sports-create'
+import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 
 describe('admin sports create', () => {
   it('normalizes props variants to standard for slug and payload', () => {
@@ -156,5 +157,25 @@ describe('admin sports create', () => {
         sportsMarketType: 'first_half_moneyline',
       }),
     ])
+  })
+
+  it('preserves the selected local game date for sports previews and AI payloads', () => {
+    const sports = createInitialAdminSportsForm()
+    sports.section = 'games'
+    sports.eventVariant = 'standard'
+    sports.sportSlug = 'Soccer'
+    sports.leagueSlug = 'MLS'
+    sports.startTime = '2026-04-01T21:00'
+    sports.teams[0].name = 'LA Galaxy'
+    sports.teams[1].name = 'Inter Miami'
+
+    const derived = buildAdminSportsDerivedContent({
+      baseSlug: 'la-galaxy-vs-inter-miami-abc',
+      sports,
+    })
+
+    expect(derived.options[0]?.question).toContain('2026-04-01')
+    expect(derived.payload?.eventDate).toBe('2026-04-01')
+    expect(normalizeDateTimeLocalValue(derived.payload?.startTime ?? '')).toBe('2026-04-01T21:00')
   })
 })

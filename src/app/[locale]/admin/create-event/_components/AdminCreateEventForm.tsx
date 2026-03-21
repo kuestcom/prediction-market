@@ -661,7 +661,7 @@ function buildStepErrors(
     }
 
     if (!args.form.endDateIso) {
-      errors.push('Event end date is required.')
+      errors.push('Event end date and time is required.')
     }
     else {
       const parsedEndDate = new Date(args.form.endDateIso)
@@ -4318,11 +4318,6 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
                         required
                         className="w-full md:max-w-xs"
                       />
-                      {!form.endDateIso && (
-                        <p id="event-end-date-hint" className="text-xs text-destructive">
-                          Select the date and time when the event should end.
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>

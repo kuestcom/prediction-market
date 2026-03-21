@@ -2,6 +2,7 @@ import {
   getAdminSportsMarketTypeDefaultOutcomes,
   resolveAdminSportsMarketTypeOption,
 } from './admin-sports-market-types'
+import { normalizeDateTimeLocalValue } from './datetime-local'
 
 export type AdminSportsSection = 'games' | 'props'
 export type AdminSportsEventVariant = 'standard' | 'more_markets' | 'exact_score' | 'halftime_result' | 'custom'
@@ -215,17 +216,38 @@ function formatLineLabel(value: number) {
 }
 
 function parseStartTime(value: string) {
-  const normalized = value.trim()
+  const normalized = normalizeDateTimeLocalValue(value)
   if (!normalized) {
     return null
   }
 
-  const parsed = new Date(normalized)
-  if (Number.isNaN(parsed.getTime())) {
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/)
+  if (!match) {
     return null
   }
 
-  return parsed
+  const year = Number.parseInt(match[1], 10)
+  const month = Number.parseInt(match[2], 10)
+  const day = Number.parseInt(match[3], 10)
+  const hours = Number.parseInt(match[4], 10)
+  const minutes = Number.parseInt(match[5], 10)
+
+  const parsed = new Date(year, month - 1, day, hours, minutes, 0, 0)
+  if (
+    Number.isNaN(parsed.getTime())
+    || parsed.getFullYear() !== year
+    || parsed.getMonth() !== month - 1
+    || parsed.getDate() !== day
+    || parsed.getHours() !== hours
+    || parsed.getMinutes() !== minutes
+  ) {
+    return null
+  }
+
+  return {
+    date: parsed,
+    normalized,
+  }
 }
 
 function normalizeLineInput(value: string) {
@@ -271,12 +293,12 @@ function slugifySportsMarketType(value: string) {
 
 function buildEventDateFromStartTime(startTime: string) {
   const parsed = parseStartTime(startTime)
-  return parsed ? parsed.toISOString().slice(0, 10) : ''
+  return parsed ? parsed.normalized.slice(0, 10) : ''
 }
 
 function buildStartTimeIso(startTime: string) {
   const parsed = parseStartTime(startTime)
-  return parsed ? parsed.toISOString() : ''
+  return parsed ? parsed.date.toISOString() : ''
 }
 
 function buildSportVariantSlug(section: AdminSportsSection, eventVariant: AdminSportsEventVariant, options: SportsDerivedOption[]) {
