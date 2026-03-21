@@ -5,6 +5,9 @@ const path = require('node:path')
 const postgres = require('postgres')
 const { resolveSiteUrl } = require('../src/lib/site-url')
 
+const MIGRATION_LOCK_NAMESPACE = 20817
+const MIGRATION_LOCK_KEY = 1
+
 function escapeSqlLiteral(value) {
   return String(value).replace(/'/g, '\'\'')
 }
@@ -302,6 +305,14 @@ function resolveMigrationConnectionString() {
   return migrationUrl.replace('require', 'disable')
 }
 
+async function acquireMigrationLock(sql) {
+  await sql`SELECT pg_advisory_lock(${MIGRATION_LOCK_NAMESPACE}, ${MIGRATION_LOCK_KEY})`
+}
+
+async function releaseMigrationLock(sql) {
+  await sql`SELECT pg_advisory_unlock(${MIGRATION_LOCK_NAMESPACE}, ${MIGRATION_LOCK_KEY})`
+}
+
 async function run() {
   const connectionString = resolveMigrationConnectionString()
   if (!connectionString) {
@@ -314,6 +325,8 @@ async function run() {
     connect_timeout: 30,
     idle_timeout: 5,
   })
+  let reserved = null
+  let lockAcquired = false
 
   try {
     const isSupabaseMode = resolveSupabaseMode(process.env)
@@ -321,14 +334,20 @@ async function run() {
     const cronSecret = process.env.CRON_SECRET?.trim() || ''
 
     console.log('Connecting to database...')
-    await sql`SELECT 1`
+    reserved = await sql.reserve()
+    await reserved`SELECT 1`
     console.log('Connected to database successfully')
 
+    console.log('Acquiring migration lock...')
+    await acquireMigrationLock(reserved)
+    lockAcquired = true
+    console.log('Migration lock acquired')
+
     console.log(`Migration mode: ${isSupabaseMode ? 'Supabase' : 'Postgres+S3'}`)
-    await applyMigrations(sql, isSupabaseMode)
+    await applyMigrations(reserved, isSupabaseMode)
 
     if (isSupabaseMode) {
-      await configureSupabaseScheduler(sql, siteUrl, cronSecret)
+      await configureSupabaseScheduler(reserved, siteUrl, cronSecret)
     }
     else {
       console.log('Skipping database scheduler setup because Supabase mode is not configured. Use external scheduler contract from infra/scheduler-contract.md.')
@@ -339,6 +358,26 @@ async function run() {
     process.exitCode = 1
   }
   finally {
+    if (reserved) {
+      if (lockAcquired) {
+        try {
+          console.log('Releasing migration lock...')
+          await releaseMigrationLock(reserved)
+          console.log('Migration lock released')
+        }
+        catch (error) {
+          console.error('Failed to release migration lock:', error)
+        }
+      }
+
+      try {
+        await reserved.release()
+      }
+      catch (error) {
+        console.error('Failed to release reserved connection:', error)
+      }
+    }
+
     console.log('Closing database connection...')
     await sql.end()
     console.log('Connection closed.')
