@@ -151,7 +151,7 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
       return false
     }
 
-    if (hasHiddenFromPublicListsTag(event.tags)) {
+    if (hasHiddenFromPublicListsTag([event.main_tag, ...(event.tags ?? [])])) {
       return false
     }
 
