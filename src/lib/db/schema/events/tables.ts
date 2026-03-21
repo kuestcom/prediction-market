@@ -73,6 +73,9 @@ export const events = pgTable(
       .notNull(),
     creator: char({ length: 42 }),
     icon_url: text(),
+    is_hidden: boolean()
+      .notNull()
+      .default(false),
     livestream_url: text(),
     show_market_icons: boolean()
       .default(true),

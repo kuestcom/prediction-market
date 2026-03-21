@@ -218,6 +218,7 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
       .leftJoin(event_sports, eq(event_sports.event_id, events.id))
       .where(and(
         inArray(events.status, ['active', 'resolved', 'archived']),
+        eq(events.is_hidden, false),
         sql`TRIM(COALESCE(${markets.slug}, '')) <> ''`,
         buildPublicEventListVisibilityCondition(events.id),
       ))
@@ -293,6 +294,7 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
       .leftJoin(event_sports, eq(event_sports.event_id, events.id))
       .where(and(
         inArray(events.status, ['active', 'resolved', 'archived']),
+        eq(events.is_hidden, false),
         hasAnyMarkets,
         buildPublicEventListVisibilityCondition(events.id),
       ))

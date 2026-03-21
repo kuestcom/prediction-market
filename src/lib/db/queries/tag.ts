@@ -285,6 +285,7 @@ export const TagRepository = {
         .innerJoin(tags, eq(event_tags.tag_id, tags.id))
         .where(and(
           eq(events.status, 'active'),
+          eq(events.is_hidden, false),
           eq(tags.is_hidden, false),
           buildPublicEventListVisibilityCondition(events.id),
           exists(

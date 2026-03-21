@@ -27,8 +27,6 @@ import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import {
   buildPublicEventListVisibilityCondition,
-  HIDE_FROM_NEW_TAG_SLUG,
-  setEventHiddenFromNew,
 } from '@/lib/event-visibility'
 import { resolveSportsSection } from '@/lib/events-routing'
 import { resolveDisplayPrice } from '@/lib/market-chance'
@@ -1039,6 +1037,7 @@ export const EventRepository = {
 
       whereConditions.push(statusFilterCondition)
       whereConditions.push(buildPublicEventListVisibilityCondition(events.id))
+      whereConditions.push(eq(events.is_hidden, false))
 
       if (search) {
         const normalizedSearch = search.trim().toLowerCase()
@@ -1445,6 +1444,7 @@ export const EventRepository = {
         title: events.title,
         status: events.status,
         icon_url: events.icon_url,
+        is_hidden: events.is_hidden,
         livestream_url: events.livestream_url,
         series_slug: events.series_slug,
         series_recurrence: events.series_recurrence,
@@ -1564,7 +1564,6 @@ export const EventRepository = {
     const rows = data ?? []
     const eventIds = rows.map(row => row.id)
     const volumeByEventId = new Map<string, { volume: number, volume_24h: number }>()
-    const hiddenEventIds = new Set<string>()
     const sportsByEventId = new Map<string, {
       sports_score: string | null
       sports_live: boolean | null
@@ -1589,21 +1588,6 @@ export const EventRepository = {
           volume: Number(row.volume ?? 0),
           volume_24h: Number(row.volume_24h ?? 0),
         })
-      }
-
-      const hiddenRows = await db
-        .select({
-          event_id: event_tags.event_id,
-        })
-        .from(event_tags)
-        .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-        .where(and(
-          inArray(event_tags.event_id, eventIds),
-          eq(tags.slug, HIDE_FROM_NEW_TAG_SLUG),
-        ))
-
-      for (const row of hiddenRows) {
-        hiddenEventIds.add(row.event_id)
       }
 
       const sportsRows = await db
@@ -1691,7 +1675,7 @@ export const EventRepository = {
         series_recurrence: row.series_recurrence ?? null,
         volume: volumeData?.volume ?? 0,
         volume_24h: volumeData?.volume_24h ?? 0,
-        is_hidden: hiddenEventIds.has(row.id),
+        is_hidden: Boolean(row.is_hidden),
         sports_score: sportsData?.sports_score ?? null,
         sports_live: sportsData?.sports_live ?? null,
         sports_ended: sportsData?.sports_ended ?? null,
@@ -1725,28 +1709,26 @@ export const EventRepository = {
     is_hidden: boolean
   }>> {
     return runQuery(async () => {
-      const row = await db
-        .select({
+      const updatedRows = await db
+        .update(events)
+        .set({
+          is_hidden: isHidden,
+          updated_at: new Date(),
+        })
+        .where(eq(events.id, eventId))
+        .returning({
           id: events.id,
           slug: events.slug,
+          is_hidden: events.is_hidden,
         })
-        .from(events)
-        .where(eq(events.id, eventId))
-        .limit(1)
 
-      const eventRow = row[0]
-      if (!eventRow) {
+      const updatedRow = updatedRows[0]
+      if (!updatedRow) {
         return { data: null, error: 'Event not found.' }
       }
 
-      await setEventHiddenFromNew(eventId, isHidden)
-
       return {
-        data: {
-          id: eventRow.id,
-          slug: eventRow.slug,
-          is_hidden: isHidden,
-        },
+        data: updatedRow,
         error: null,
       }
     })
@@ -1917,7 +1899,10 @@ export const EventRepository = {
         })
         .from(event_sports)
         .innerJoin(events, eq(event_sports.event_id, events.id))
-        .where(eq(normalizedSportsEventSlugColumn, normalizedSportsEventSlug))
+        .where(and(
+          eq(normalizedSportsEventSlugColumn, normalizedSportsEventSlug),
+          eq(events.is_hidden, false),
+        ))
         .orderBy(desc(events.created_at))
 
       const matchingRow = result
@@ -1975,7 +1960,10 @@ export const EventRepository = {
       const result = await db
         .select({ id: events.id, title: events.title })
         .from(events)
-        .where(eq(events.slug, slug))
+        .where(and(
+          eq(events.slug, slug),
+          eq(events.is_hidden, false),
+        ))
         .limit(1)
 
       if (result.length === 0) {
@@ -2029,7 +2017,10 @@ export const EventRepository = {
       }
 
       const result = await db.query.events.findFirst({
-        where: eq(events.slug, slug),
+        where: and(
+          eq(events.slug, slug),
+          eq(events.is_hidden, false),
+        ),
         columns: { slug: true },
         with: {
           eventTags: {
@@ -2080,7 +2071,10 @@ export const EventRepository = {
       const eventResult = await db
         .select({ id: events.id })
         .from(events)
-        .where(eq(events.slug, slug))
+        .where(and(
+          eq(events.slug, slug),
+          eq(events.is_hidden, false),
+        ))
         .limit(1)
 
       if (!eventResult.length) {
@@ -2150,7 +2144,10 @@ export const EventRepository = {
       }
 
       const eventResult = await db.query.events.findFirst({
-        where: eq(events.slug, slug),
+        where: and(
+          eq(events.slug, slug),
+          eq(events.is_hidden, false),
+        ),
         columns: {
           id: true,
           enable_neg_risk: true,
@@ -2215,7 +2212,10 @@ export const EventRepository = {
   ): Promise<QueryResult<Event>> {
     return runQuery(async () => {
       const eventResult = await db.query.events.findFirst({
-        where: eq(events.slug, slug),
+        where: and(
+          eq(events.slug, slug),
+          eq(events.is_hidden, false),
+        ),
         with: {
           markets: {
             with: {
@@ -2272,6 +2272,7 @@ export const EventRepository = {
         .innerJoin(event_sports, eq(event_sports.event_id, events.id))
         .where(and(
           eq(events.slug, slug),
+          eq(events.is_hidden, false),
           sql`${sportsVolumeGroupKeySql} IS NOT NULL`,
         ))
         .limit(1)
@@ -2282,13 +2283,16 @@ export const EventRepository = {
       }
 
       const groupedEventsData = await db.query.events.findMany({
-        where: exists(
-          db.select({ event_id: event_sports.event_id })
-            .from(event_sports)
-            .where(and(
-              eq(event_sports.event_id, events.id),
-              sql`${sportsVolumeGroupKeySql} = ${baseGroupKey}`,
-            )),
+        where: and(
+          eq(events.is_hidden, false),
+          exists(
+            db.select({ event_id: event_sports.event_id })
+              .from(event_sports)
+              .where(and(
+                eq(event_sports.event_id, events.id),
+                sql`${sportsVolumeGroupKeySql} = ${baseGroupKey}`,
+              )),
+          ),
         ),
         with: {
           markets: {
@@ -2394,6 +2398,7 @@ export const EventRepository = {
         .leftJoin(event_sports, eq(event_sports.event_id, events.id))
         .where(and(
           eq(events.series_slug, normalizedSeriesSlug),
+          eq(events.is_hidden, false),
           inArray(events.status, ['active', 'resolved', 'archived']),
           buildPublicEventListVisibilityCondition(events.id),
         ))
@@ -2526,7 +2531,10 @@ export const EventRepository = {
       const locale = options.locale ?? DEFAULT_LOCALE
 
       const currentEvent = await db.query.events.findFirst({
-        where: eq(events.slug, slug),
+        where: and(
+          eq(events.slug, slug),
+          eq(events.is_hidden, false),
+        ),
         with: {
           eventTags: {
             with: { tag: true },
@@ -2559,6 +2567,7 @@ export const EventRepository = {
         where: and(
           sql`${events.slug} != ${slug}`,
           buildPublicEventListVisibilityCondition(events.id),
+          eq(events.is_hidden, false),
         ),
         with: {
           eventTags: {
