@@ -74,9 +74,7 @@ export function buildPublicEventListVisibilityCondition(eventIdColumn: SQLWrappe
     FROM ${event_tags} et
     JOIN ${tags} t ON t.id = et.tag_id
     WHERE et.event_id = ${eventIdColumn}
-      AND (
-        t.slug = ${HIDE_FROM_NEW_TAG_SLUG}
-        OR (t.hide_events = TRUE AND t.slug <> ${HIDE_FROM_NEW_TAG_SLUG})
-      )
+      AND t.hide_events = TRUE
+      AND t.slug <> ${HIDE_FROM_NEW_TAG_SLUG}
   )`
 }

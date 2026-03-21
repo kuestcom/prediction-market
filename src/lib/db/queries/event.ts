@@ -27,6 +27,7 @@ import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import {
   buildPublicEventListVisibilityCondition,
+  HIDE_FROM_NEW_TAG_SLUG,
 } from '@/lib/event-visibility'
 import { resolveSportsSection } from '@/lib/events-routing'
 import { resolveDisplayPrice } from '@/lib/market-chance'
@@ -1137,6 +1138,20 @@ export const EventRepository = {
                 eq(tags.slug, mainTag),
               )),
           ),
+        )
+      }
+
+      if (tag === 'new') {
+        whereConditions.push(
+          sql`NOT ${exists(
+            db.select()
+              .from(event_tags)
+              .innerJoin(tags, eq(event_tags.tag_id, tags.id))
+              .where(and(
+                eq(event_tags.event_id, events.id),
+                eq(tags.slug, HIDE_FROM_NEW_TAG_SLUG),
+              )),
+          )}`,
         )
       }
 

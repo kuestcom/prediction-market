@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { filterHomeEvents } from '@/lib/home-events'
 
 describe('filterHomeEvents', () => {
-  it('excludes events hidden from public lists', () => {
+  it('keeps hide-from-new events visible in the general home filters', () => {
     const visibleEvent = {
       id: 'visible-event',
       slug: 'visible-event',
@@ -28,10 +28,10 @@ describe('filterHomeEvents', () => {
       markets: [{ is_resolved: false }],
     }
 
-    expect(filterHomeEvents([visibleEvent, hiddenEvent])).toEqual([visibleEvent])
+    expect(filterHomeEvents([visibleEvent, hiddenEvent])).toEqual([visibleEvent, hiddenEvent])
   })
 
-  it('excludes events when the hide slug is only present in main_tag', () => {
+  it('does not hide events when hide-from-new appears in main_tag data', () => {
     const visibleEvent = {
       id: 'visible-event',
       slug: 'visible-event',
@@ -51,6 +51,6 @@ describe('filterHomeEvents', () => {
       markets: [{ is_resolved: false }],
     }
 
-    expect(filterHomeEvents([visibleEvent, hiddenEvent])).toEqual([visibleEvent])
+    expect(filterHomeEvents([visibleEvent, hiddenEvent])).toEqual([visibleEvent, hiddenEvent])
   })
 })
