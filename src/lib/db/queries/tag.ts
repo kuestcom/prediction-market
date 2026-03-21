@@ -21,6 +21,7 @@ interface ListTagsParams {
   search?: string
   sortBy?: 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_markets_count'
   sortOrder?: 'asc' | 'desc'
+  mainOnly?: boolean
 }
 
 export type TagTranslationsMap = Partial<Record<NonDefaultLocale, string>>
@@ -472,6 +473,7 @@ export const TagRepository = {
     search,
     sortBy = 'display_order',
     sortOrder = 'asc',
+    mainOnly = false,
   }: ListTagsParams = {}): Promise<{
     data: AdminTagRow[]
     error: string | null
@@ -494,12 +496,14 @@ export const TagRepository = {
     const orderField = validSortFields.includes(sortBy) ? sortBy : 'display_order'
     const ascending = (sortOrder ?? 'asc') === 'asc'
 
-    const whereCondition = search && search.trim()
+    const searchCondition = search && search.trim()
       ? or(
           ilike(tags.name, `%${search.trim()}%`),
           ilike(tags.slug, `%${search.trim()}%`),
         )
       : undefined
+    const mainOnlyCondition = mainOnly ? eq(tags.is_main_category, true) : undefined
+    const whereCondition = and(searchCondition, mainOnlyCondition)
 
     let orderByClause
     switch (orderField) {

@@ -4,6 +4,17 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { UserRepository } from '@/lib/db/queries/user'
 
+type AdminCategoriesSortBy = 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_markets_count'
+
+const VALID_SORT_FIELDS: AdminCategoriesSortBy[] = [
+  'name',
+  'slug',
+  'display_order',
+  'created_at',
+  'updated_at',
+  'active_markets_count',
+]
+
 export async function GET(request: NextRequest) {
   try {
     const currentUser = await UserRepository.getCurrentUser()
@@ -13,18 +24,31 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
 
-    const limit = Number.parseInt(searchParams.get('limit') ?? '50', 10)
-    const offset = Number.parseInt(searchParams.get('offset') ?? '0', 10)
-    const search = searchParams.get('search') ?? undefined
-    const sortByParam = searchParams.get('sortBy') as 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | null
-    const sortOrderParam = searchParams.get('sortOrder') as 'asc' | 'desc' | null
+    const limitParam = Number.parseInt(searchParams.get('limit') ?? '50', 10)
+    const limit = Number.isNaN(limitParam) ? 50 : Math.min(Math.max(limitParam, 1), 100)
+
+    const offsetParam = Number.parseInt(searchParams.get('offset') ?? '0', 10)
+    const offset = Number.isNaN(offsetParam) ? 0 : Math.max(offsetParam, 0)
+
+    const search = searchParams.get('search')?.trim() || undefined
+    const sortByParam = searchParams.get('sortBy')
+    const sortOrderParam = searchParams.get('sortOrder')
+    const mainOnly = searchParams.get('mainOnly') === '1'
+
+    const sortBy = VALID_SORT_FIELDS.includes(sortByParam as AdminCategoriesSortBy)
+      ? sortByParam as AdminCategoriesSortBy
+      : 'display_order'
+    const sortOrder = sortOrderParam === 'asc' || sortOrderParam === 'desc'
+      ? sortOrderParam
+      : 'asc'
 
     const { data, error, totalCount } = await TagRepository.listTags({
-      limit: Number.isNaN(limit) ? 50 : limit,
-      offset: Number.isNaN(offset) ? 0 : offset,
+      limit,
+      offset,
       search,
-      sortBy: sortByParam ?? undefined,
-      sortOrder: sortOrderParam ?? undefined,
+      sortBy,
+      sortOrder,
+      mainOnly,
     })
 
     if (error) {

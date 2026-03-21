@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { LOCALE_LABELS, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 
 export default function AdminCategoriesTable() {
@@ -39,7 +40,9 @@ export default function AdminCategoriesTable() {
     handleSearchChange,
     sortBy,
     sortOrder,
+    mainOnly,
     handleSortChange,
+    handleMainOnlyChange,
     pageIndex,
     pageSize,
     handlePageChange,
@@ -207,6 +210,19 @@ export default function AdminCategoriesTable() {
     handleSortChange(dbFieldName, order)
   }
 
+  const onlyMainControl = (
+    <div className="flex items-center gap-2">
+      <Switch
+        id="admin-categories-main-only"
+        checked={mainOnly}
+        onCheckedChange={handleMainOnlyChange}
+      />
+      <Label htmlFor="admin-categories-main-only" className="text-sm font-normal text-muted-foreground">
+        {t('Only main')}
+      </Label>
+    </div>
+  )
+
   return (
     <>
       <DataTable
@@ -231,6 +247,7 @@ export default function AdminCategoriesTable() {
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        toolbarLeftContent={onlyMainControl}
       />
 
       <Dialog

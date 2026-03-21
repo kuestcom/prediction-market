@@ -22,6 +22,7 @@ interface UseAdminCategoriesParams {
   sortBy?: 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_markets_count'
   sortOrder?: 'asc' | 'desc'
   pageIndex?: number
+  mainOnly?: boolean
 }
 
 interface AdminCategoriesResponse {
@@ -36,6 +37,7 @@ async function fetchAdminCategories(params: UseAdminCategoriesParams): Promise<A
     sortBy = 'display_order',
     sortOrder = 'asc',
     pageIndex = 0,
+    mainOnly = false,
   } = params
 
   const offset = pageIndex * limit
@@ -49,6 +51,9 @@ async function fetchAdminCategories(params: UseAdminCategoriesParams): Promise<A
 
   if (search && search.trim()) {
     searchParams.set('search', search.trim())
+  }
+  if (mainOnly) {
+    searchParams.set('mainOnly', '1')
   }
 
   const response = await fetch(`/admin/api/categories?${searchParams.toString()}`)
@@ -69,12 +74,13 @@ export function useAdminCategories(params: UseAdminCategoriesParams = {}) {
     sortBy = 'display_order',
     sortOrder = 'asc',
     pageIndex = 0,
+    mainOnly = false,
   } = params
 
   const queryKey = useMemo(() => [
     'admin-categories',
-    { limit, search, sortBy, sortOrder, pageIndex },
-  ], [limit, search, sortBy, sortOrder, pageIndex])
+    { limit, search, sortBy, sortOrder, pageIndex, mainOnly },
+  ], [limit, search, sortBy, sortOrder, pageIndex, mainOnly])
 
   const query = useQuery({
     queryKey,
@@ -84,6 +90,7 @@ export function useAdminCategories(params: UseAdminCategoriesParams = {}) {
       sortBy,
       sortOrder,
       pageIndex,
+      mainOnly,
     }),
     staleTime: 30_000,
     gcTime: 300_000,
@@ -105,6 +112,7 @@ export function useAdminCategoriesTable() {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_markets_count'>('display_order')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [mainOnly, setMainOnly] = useState(false)
 
   const { data, isLoading, error, retry } = useAdminCategories({
     limit: pageSize,
@@ -112,6 +120,7 @@ export function useAdminCategoriesTable() {
     sortBy,
     sortOrder,
     pageIndex,
+    mainOnly,
   })
 
   const handleSearchChange = useCallback((newSearch: string) => {
@@ -128,6 +137,11 @@ export function useAdminCategoriesTable() {
       setSortBy(column as typeof sortBy)
       setSortOrder(order)
     }
+    setPageIndex(0)
+  }, [])
+
+  const handleMainOnlyChange = useCallback((nextMainOnly: boolean) => {
+    setMainOnly(nextMainOnly)
     setPageIndex(0)
   }, [])
 
@@ -151,8 +165,10 @@ export function useAdminCategoriesTable() {
     search,
     sortBy,
     sortOrder,
+    mainOnly,
     handleSearchChange,
     handleSortChange,
+    handleMainOnlyChange,
     handlePageChange,
     handlePageSizeChange,
   }
