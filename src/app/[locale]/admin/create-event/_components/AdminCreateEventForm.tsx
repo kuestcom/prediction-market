@@ -87,8 +87,12 @@ const CREATE_EVENT_SIGNATURE_STORAGE_KEY = 'admin_create_event_signature_flow_v1
 const TITLE_CATEGORY_MIN_LENGTH = 4
 const CONTENT_CHECK_PROGRESS_INTERVAL_MS = 1400
 const SIGNATURE_COUNTDOWN_INTERVAL_MS = 1000
+const PREPARE_POLL_DELAY_MS = 1500
+const PREPARE_POLL_MAX_ATTEMPTS = 240
 const FINALIZE_RETRY_DELAY_MS = 1000
 const FINALIZE_MAX_ATTEMPTS = 8
+const FINALIZE_POLL_DELAY_MS = 1500
+const FINALIZE_POLL_MAX_ATTEMPTS = 240
 const SLUG_CHECK_TIMEOUT_MS = 12000
 const OPENROUTER_CHECK_TIMEOUT_MS = 12000
 const CONTENT_CHECK_TIMEOUT_MS = 45000
@@ -269,6 +273,13 @@ interface PrepareResponse {
   txPlan: PrepareTxPlanItem[]
 }
 
+interface PrepareAcceptedResponse {
+  requestId: string
+  chainId: number
+  creator: string
+  status: string
+}
+
 interface PrepareAuthChallengeResponse {
   requestId: string
   nonce: string
@@ -309,7 +320,7 @@ interface PendingRequestItem {
   expiresAt: number
   updatedAt: number
   errorMessage: string | null
-  prepared: PrepareResponse
+  prepared: PrepareResponse | null
   txs: PrepareFinalizeRequestTx[]
 }
 
@@ -458,6 +469,18 @@ function isPrepareResponse(payload: unknown): payload is PrepareResponse {
     && candidate.txPlan.every(item => isPrepareTxPlanItem(item))
 }
 
+function isPrepareAcceptedResponse(payload: unknown): payload is PrepareAcceptedResponse {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  const candidate = payload as Partial<PrepareAcceptedResponse>
+  return typeof candidate.requestId === 'string'
+    && typeof candidate.chainId === 'number'
+    && typeof candidate.creator === 'string'
+    && typeof candidate.status === 'string'
+}
+
 function isSignatureTxStatus(value: unknown): value is SignatureTxStatus {
   return value === 'idle'
     || value === 'awaiting_wallet'
@@ -545,7 +568,7 @@ function isPendingRequestResponse(payload: unknown): payload is PendingRequestRe
     && typeof request.expiresAt === 'number'
     && typeof request.updatedAt === 'number'
     && (typeof request.errorMessage === 'string' || request.errorMessage === null)
-    && isPrepareResponse(request.prepared)
+    && (request.prepared === null || isPrepareResponse(request.prepared))
     && Array.isArray(request.txs)
     && request.txs.every(item => isPrepareFinalizeRequestTx(item))
 }
@@ -1072,6 +1095,8 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
   const [signatureNowMs, setSignatureNowMs] = useState(0)
   const [signatureFlowDone, setSignatureFlowDone] = useState(false)
   const [signatureFlowError, setSignatureFlowError] = useState('')
+  const [pendingWorkflowRequestId, setPendingWorkflowRequestId] = useState<string | null>(null)
+  const [pendingWorkflowStatus, setPendingWorkflowStatus] = useState<string | null>(null)
   const [preparedSignaturePlan, setPreparedSignaturePlan] = useState<PrepareResponse | null>(null)
   const [signatureTxs, setSignatureTxs] = useState<SignatureExecutionTx[]>([])
   const [expandedPreSignChecks, setExpandedPreSignChecks] = useState<Record<PreSignCheckKey, boolean>>({
@@ -3205,10 +3230,140 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
     setAuthChallengeExpiresAtMs(null)
   }, [])
 
+  const fetchPendingSignatureRequest = useCallback(async (options?: {
+    chainId?: number
+    requestId?: string
+  }) => {
+    if (!eoaAddress) {
+      return null
+    }
+
+    const query = new URLSearchParams({
+      creator: eoaAddress,
+    })
+    if (typeof options?.chainId === 'number' && options.chainId > 0) {
+      query.set('chainId', String(options.chainId))
+    }
+    if (options?.requestId) {
+      query.set('requestId', options.requestId)
+    }
+
+    const response = await fetch(`${process.env.CREATE_MARKET_URL}/pending?${query.toString()}`, {
+      method: 'GET',
+      cache: 'no-store',
+    })
+
+    const payload = await response.json().catch(() => null) as unknown
+    const apiError = readApiError(payload)
+    if (!response.ok || apiError || !isPendingRequestResponse(payload)) {
+      throw new Error(apiError || `Pending request lookup failed (${response.status})`)
+    }
+
+    return payload.request
+  }, [eoaAddress])
+
+  const pollPendingPreparation = useCallback(async (input: {
+    requestId: string
+    chainId: number
+    expectedPayloadHash?: string
+  }) => {
+    for (let attempt = 1; attempt <= PREPARE_POLL_MAX_ATTEMPTS; attempt += 1) {
+      const pending = await fetchPendingSignatureRequest({
+        chainId: input.chainId,
+        requestId: input.requestId,
+      })
+
+      if (pending) {
+        if (input.expectedPayloadHash && pending.payloadHash.toLowerCase() !== input.expectedPayloadHash.toLowerCase()) {
+          throw new Error('Pending request payload hash mismatch.')
+        }
+
+        setPendingWorkflowRequestId(pending.requestId)
+        setPendingWorkflowStatus(pending.status)
+
+        if (pending.prepared) {
+          applyPreparedSignatureState({
+            prepared: pending.prepared,
+            confirmedTxs: pending.txs,
+            errorMessage: pending.errorMessage,
+          })
+          setPendingWorkflowRequestId(null)
+          setPendingWorkflowStatus(null)
+          return pending
+        }
+
+        if (pending.status === 'failed') {
+          setPendingWorkflowRequestId(null)
+          setPendingWorkflowStatus(null)
+          throw new Error(mapSignatureFlowErrorForUser(pending.errorMessage || 'Could not prepare signatures.'))
+        }
+      }
+
+      if (attempt < PREPARE_POLL_MAX_ATTEMPTS) {
+        await new Promise(resolve => window.setTimeout(resolve, PREPARE_POLL_DELAY_MS))
+      }
+    }
+
+    setPendingWorkflowRequestId(null)
+    setPendingWorkflowStatus(null)
+    throw new Error('Timed out while preparing signatures. Please retry the pending plan.')
+  }, [applyPreparedSignatureState, fetchPendingSignatureRequest])
+
+  const pollPendingFinalization = useCallback(async (input: {
+    requestId: string
+    chainId: number
+  }) => {
+    for (let attempt = 1; attempt <= FINALIZE_POLL_MAX_ATTEMPTS; attempt += 1) {
+      const pending = await fetchPendingSignatureRequest({
+        chainId: input.chainId,
+        requestId: input.requestId,
+      })
+
+      if (pending) {
+        setPendingWorkflowRequestId(pending.requestId)
+        setPendingWorkflowStatus(pending.status)
+
+        if (pending.prepared) {
+          applyPreparedSignatureState({
+            prepared: pending.prepared,
+            confirmedTxs: pending.txs,
+            errorMessage: pending.errorMessage,
+          })
+        }
+
+        if (pending.status === 'finalized') {
+          setSignatureFlowDone(true)
+          setSignatureFlowError('')
+          setPendingWorkflowRequestId(null)
+          setPendingWorkflowStatus(null)
+          toast.success('All signatures completed. Your created event will be available on your site shortly.', {
+            duration: 10000,
+          })
+          return pending
+        }
+
+        if (pending.status === 'failed') {
+          setPendingWorkflowRequestId(null)
+          setPendingWorkflowStatus(null)
+          throw new Error(mapSignatureFlowErrorForUser(pending.errorMessage || 'Could not finalize the market.'))
+        }
+      }
+
+      if (attempt < FINALIZE_POLL_MAX_ATTEMPTS) {
+        await new Promise(resolve => window.setTimeout(resolve, FINALIZE_POLL_DELAY_MS))
+      }
+    }
+
+    setPendingWorkflowRequestId(null)
+    setPendingWorkflowStatus(null)
+    throw new Error('Timed out while finalizing the market. Please retry the pending plan.')
+  }, [applyPreparedSignatureState, fetchPendingSignatureRequest])
+
   const loadPendingSignaturePlan = useCallback(async (options?: {
     silent?: boolean
     chainId?: number
     expectedPayloadHash?: string
+    requestId?: string
   }) => {
     if (!eoaAddress) {
       return false
@@ -3218,41 +3373,62 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
     setIsLoadingPendingRequest(true)
 
     try {
-      const query = new URLSearchParams({
-        creator: eoaAddress,
-      })
-      if (typeof options?.chainId === 'number' && options.chainId > 0) {
-        query.set('chainId', String(options.chainId))
-      }
-
-      const response = await fetch(`${process.env.CREATE_MARKET_URL}/pending?${query.toString()}`, {
-        method: 'GET',
-        cache: 'no-store',
+      const pending = await fetchPendingSignatureRequest({
+        chainId: options?.chainId,
+        requestId: options?.requestId,
       })
 
-      const payload = await response.json().catch(() => null) as unknown
-      const apiError = readApiError(payload)
-      if (!response.ok || apiError || !isPendingRequestResponse(payload)) {
-        throw new Error(apiError || `Pending request lookup failed (${response.status})`)
-      }
-
-      if (!payload.request) {
+      if (!pending) {
         return false
       }
 
-      const pending = payload.request
-      if (!isAddress(pending.prepared.creator) || getAddress(pending.prepared.creator) !== eoaAddress) {
-        return false
-      }
       if (options?.expectedPayloadHash && pending.payloadHash.toLowerCase() !== options.expectedPayloadHash.toLowerCase()) {
         return false
       }
 
-      applyPreparedSignatureState({
-        prepared: pending.prepared,
-        confirmedTxs: pending.txs,
-        errorMessage: pending.errorMessage,
-      })
+      setPendingWorkflowRequestId(pending.requestId)
+      setPendingWorkflowStatus(pending.status)
+
+      if (pending.prepared) {
+        if (!isAddress(pending.prepared.creator) || getAddress(pending.prepared.creator) !== eoaAddress) {
+          return false
+        }
+
+        applyPreparedSignatureState({
+          prepared: pending.prepared,
+          confirmedTxs: pending.txs,
+          errorMessage: pending.errorMessage,
+        })
+        if (pending.status === 'finalized') {
+          setSignatureFlowDone(true)
+        }
+        else {
+          setSignatureFlowDone(false)
+        }
+      }
+
+      if (pending.status === 'prepare_running') {
+        await pollPendingPreparation({
+          requestId: pending.requestId,
+          chainId: pending.chainId,
+          expectedPayloadHash: options?.expectedPayloadHash,
+        })
+      }
+      else if (pending.status === 'finalize_running') {
+        await pollPendingFinalization({
+          requestId: pending.requestId,
+          chainId: pending.chainId,
+        })
+      }
+      else if (!pending.prepared) {
+        setPendingWorkflowRequestId(null)
+        setPendingWorkflowStatus(null)
+        return false
+      }
+      else if (pending.status !== 'finalized') {
+        setPendingWorkflowRequestId(null)
+        setPendingWorkflowStatus(null)
+      }
 
       if (!silent) {
         toast.success('Recovered pending signature progress from server.')
@@ -3261,6 +3437,8 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
     }
     catch (error) {
       console.error('Error loading pending signature plan:', error)
+      setPendingWorkflowRequestId(null)
+      setPendingWorkflowStatus(null)
       if (!silent) {
         const message = error instanceof Error ? error.message : 'Could not recover pending signature progress.'
         toast.error(message)
@@ -3270,7 +3448,13 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
     finally {
       setIsLoadingPendingRequest(false)
     }
-  }, [applyPreparedSignatureState, eoaAddress])
+  }, [
+    applyPreparedSignatureState,
+    eoaAddress,
+    fetchPendingSignatureRequest,
+    pollPendingFinalization,
+    pollPendingPreparation,
+  ])
 
   const persistConfirmedTxs = useCallback(async (requestId: string, txs: PrepareFinalizeRequestTx[]) => {
     if (!eoaAddress || txs.length === 0) {
@@ -3468,7 +3652,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
       const responsePayload = await response.json().catch(() => null) as unknown
       const apiError = readApiError(responsePayload)
 
-      if (!response.ok || apiError || !isPrepareResponse(responsePayload)) {
+      if (!response.ok || apiError || !isPrepareAcceptedResponse(responsePayload)) {
         throw new Error(apiError || `Prepare failed (${response.status})`)
       }
 
@@ -3476,16 +3660,18 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
         throw new Error('Creator address mismatch between wallet and prepare response.')
       }
 
-      applyPreparedSignatureState({
-        prepared: responsePayload,
-        confirmedTxs: [],
+      setPendingWorkflowRequestId(responsePayload.requestId)
+      setPendingWorkflowStatus(responsePayload.status)
+      const preparedPending = await pollPendingPreparation({
+        requestId: responsePayload.requestId,
+        chainId: responsePayload.chainId,
+        expectedPayloadHash: payloadHash,
       })
-
-      if (responsePayload.txPlan.length === 0) {
+      const txCount = preparedPending.prepared?.txPlan.length ?? 0
+      if (txCount === 0) {
         toast.success('Auth completed. No creator transactions were returned.')
       }
       else {
-        const txCount = responsePayload.txPlan.length
         toast.success(`Auth completed. Prepared ${txCount} signature request${txCount > 1 ? 's' : ''}.`)
       }
     }
@@ -3505,6 +3691,8 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
         }
       }
 
+      setPendingWorkflowRequestId(null)
+      setPendingWorkflowStatus(null)
       setPreparedSignaturePlan(null)
       setSignatureTxs([])
       setSignatureFlowDone(false)
@@ -3524,6 +3712,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
     isSportsEvent,
     loadPendingSignaturePlan,
     optionImageFiles,
+    pollPendingPreparation,
     runWithSignaturePrompt,
     teamLogoFiles,
     walletClient,
@@ -3569,12 +3758,28 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
             throw new Error('Finalize response requestId mismatch.')
           }
 
-          setSignatureFlowDone(true)
-          setSignatureFlowError('')
-          toast.success('All signatures completed. Your created event will be available on your site shortly.', {
-            duration: 10000,
-          })
-          return
+          if (responsePayload.status === 'finalized') {
+            setSignatureFlowDone(true)
+            setSignatureFlowError('')
+            setPendingWorkflowRequestId(null)
+            setPendingWorkflowStatus(null)
+            toast.success('All signatures completed. Your created event will be available on your site shortly.', {
+              duration: 10000,
+            })
+            return
+          }
+
+          if (responsePayload.status === 'finalize_in_progress') {
+            setPendingWorkflowRequestId(responsePayload.requestId)
+            setPendingWorkflowStatus(responsePayload.status)
+            await pollPendingFinalization({
+              requestId: responsePayload.requestId,
+              chainId: preparedSignaturePlan.chainId,
+            })
+            return
+          }
+
+          throw new Error(`Unexpected finalize status: ${responsePayload.status}`)
         }
 
         const failureMessage = errorMessage || `Finalize failed (${response.status})`
@@ -3589,7 +3794,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
     finally {
       setIsFinalizingSignatureFlow(false)
     }
-  }, [eoaAddress, preparedSignaturePlan, signatureTxs])
+  }, [eoaAddress, pollPendingFinalization, preparedSignaturePlan, signatureTxs])
 
   const executeSignatureFlow = useCallback(async () => {
     if (!preparedSignaturePlan) {
@@ -3990,6 +4195,8 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
     setIsLoadingPendingRequest(false)
     setAuthChallengeExpiresAtMs(null)
     setSignatureNowMs(0)
+    setPendingWorkflowRequestId(null)
+    setPendingWorkflowStatus(null)
     setPreparedSignaturePlan(null)
     setSignatureTxs([])
     setSignatureFlowDone(false)
@@ -4004,6 +4211,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
   const resetFormDraft = useCallback(() => {
     const nextSlugSeed = Math.floor(Date.now() / 1000).toString()
     const preserveSignatureState = Boolean(preparedSignaturePlan)
+      || Boolean(pendingWorkflowRequestId)
       || signatureTxs.length > 0
       || signatureFlowDone
       || Boolean(signatureFlowError)
@@ -4057,6 +4265,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
     }
   }, [
     authChallengeExpiresAtMs,
+    pendingWorkflowRequestId,
     preparedSignaturePlan,
     signatureFlowDone,
     signatureFlowError,
@@ -6176,7 +6385,18 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
                   )
                 : (
                     <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">Sign auth to load tx plan.</p>
+                      <p className="text-sm text-muted-foreground">
+                        {pendingWorkflowRequestId
+                          ? 'Server workflow is preparing your tx plan.'
+                          : 'Sign auth to load tx plan.'}
+                      </p>
+                      {pendingWorkflowRequestId && (
+                        <p className="font-mono text-xs text-muted-foreground">
+                          request:
+                          {' '}
+                          {pendingWorkflowRequestId}
+                        </p>
+                      )}
                       <Button
                         type="button"
                         variant="outline"
@@ -6215,11 +6435,13 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
                       ? authChallengeRemainingSeconds !== null
                         ? `Verified (auth time remaining: ${authChallengeCountdownLabel})`
                         : 'Verified'
-                      : isSigningAuth || isPreparingSignaturePlan
+                      : isSigningAuth
                         ? 'Awaiting wallet'
-                        : signatureFlowError
-                          ? 'Failed'
-                          : 'Pending'}
+                        : isPreparingSignaturePlan || pendingWorkflowStatus === 'prepare_running'
+                          ? 'Signed. Preparing tx plan on server'
+                          : signatureFlowError
+                            ? 'Failed'
+                            : 'Pending'}
                   </p>
                   {authChallengeRemainingSeconds !== null && (
                     <p className={cn(
@@ -6238,11 +6460,13 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
                 <SignatureTxIndicator
                   status={preparedSignaturePlan
                     ? 'success'
-                    : isSigningAuth || isPreparingSignaturePlan
+                    : isSigningAuth
                       ? 'awaiting_wallet'
-                      : signatureFlowError
-                        ? 'error'
-                        : 'idle'}
+                      : isPreparingSignaturePlan || pendingWorkflowStatus === 'prepare_running'
+                        ? 'confirming'
+                        : signatureFlowError
+                          ? 'error'
+                          : 'idle'}
                 />
               </div>
             </div>
@@ -6311,8 +6535,8 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
                     <p className="text-xs text-muted-foreground">
                       {signatureFlowDone
                         ? 'Completed'
-                        : isFinalizingSignatureFlow
-                          ? 'Validating tx hashes and registering'
+                        : isFinalizingSignatureFlow || pendingWorkflowStatus === 'finalize_running'
+                          ? 'Registering markets on server'
                           : signatureFlowError && completedSignatureCount === signatureTxs.length && signatureTxs.length > 0
                             ? 'Failed'
                             : 'Pending'}
@@ -6321,7 +6545,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
                   <SignatureTxIndicator
                     status={signatureFlowDone
                       ? 'success'
-                      : isFinalizingSignatureFlow
+                      : isFinalizingSignatureFlow || pendingWorkflowStatus === 'finalize_running'
                         ? 'confirming'
                         : signatureFlowError && completedSignatureCount === signatureTxs.length && signatureTxs.length > 0
                           ? 'error'
