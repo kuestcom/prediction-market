@@ -1,3 +1,4 @@
+import { hasHiddenFromPublicListsTag } from '@/lib/public-event-visibility'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 
 interface HomeEventVisibilityOptions {
@@ -147,6 +148,10 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
 
   const eventsMatchingTagFilters = events.filter((event) => {
     if (isSportsAuxiliaryEventSlug(event.slug)) {
+      return false
+    }
+
+    if (hasHiddenFromPublicListsTag(event.tags)) {
       return false
     }
 

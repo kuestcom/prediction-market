@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath, updateTag } from 'next/cache'
+import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -39,6 +40,9 @@ export async function updateEventVisibilityAction(
     revalidatePath('/[locale]/admin/events', 'page')
     updateTag(cacheTags.eventsGlobal)
     updateTag(cacheTags.event(data.slug))
+    for (const locale of SUPPORTED_LOCALES) {
+      updateTag(cacheTags.mainTags(locale))
+    }
 
     return {
       success: true,

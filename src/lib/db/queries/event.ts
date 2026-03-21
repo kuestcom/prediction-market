@@ -25,7 +25,11 @@ import {
 } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
-import { HIDE_FROM_NEW_TAG_SLUG, setEventHiddenFromNew } from '@/lib/event-visibility'
+import {
+  buildPublicEventListVisibilityCondition,
+  HIDE_FROM_NEW_TAG_SLUG,
+  setEventHiddenFromNew,
+} from '@/lib/event-visibility'
 import { resolveSportsSection } from '@/lib/events-routing'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { isSportsAuxiliaryEventSlug, stripSportsAuxiliaryEventSuffix } from '@/lib/sports-event-slugs'
@@ -1034,6 +1038,7 @@ export const EventRepository = {
         : eq(events.status, status)
 
       whereConditions.push(statusFilterCondition)
+      whereConditions.push(buildPublicEventListVisibilityCondition(events.id))
 
       if (search) {
         const normalizedSearch = search.trim().toLowerCase()
@@ -1136,20 +1141,6 @@ export const EventRepository = {
         )
       }
 
-      if (tag === 'new') {
-        whereConditions.push(
-          sql`NOT ${exists(
-            db.select()
-              .from(event_tags)
-              .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-              .where(and(
-                eq(event_tags.event_id, events.id),
-                eq(tags.slug, HIDE_FROM_NEW_TAG_SLUG),
-              )),
-          )}`,
-        )
-      }
-
       if (bookmarked && userId) {
         whereConditions.push(
           exists(
@@ -1162,18 +1153,6 @@ export const EventRepository = {
           ),
         )
       }
-
-      whereConditions[0] = and(
-        statusFilterCondition,
-        sql`NOT EXISTS (
-          SELECT 1
-          FROM ${event_tags} et
-          JOIN ${tags} t ON t.id = et.tag_id
-          WHERE et.event_id = ${events.id}
-            AND t.hide_events = TRUE
-            AND t.slug <> ${HIDE_FROM_NEW_TAG_SLUG}
-        )`,
-      )
 
       const baseWhere = and(...whereConditions)
 
@@ -2416,6 +2395,7 @@ export const EventRepository = {
         .where(and(
           eq(events.series_slug, normalizedSeriesSlug),
           inArray(events.status, ['active', 'resolved', 'archived']),
+          buildPublicEventListVisibilityCondition(events.id),
         ))
         .orderBy(desc(events.end_date), desc(events.created_at))
 
@@ -2576,7 +2556,10 @@ export const EventRepository = {
       const sportsSlugResolver = await getSportsSlugResolverFromDb()
 
       const relatedEvents = await db.query.events.findMany({
-        where: sql`${events.slug} != ${slug}`,
+        where: and(
+          sql`${events.slug} != ${slug}`,
+          buildPublicEventListVisibilityCondition(events.id),
+        ),
         with: {
           eventTags: {
             with: {

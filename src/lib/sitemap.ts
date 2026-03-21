@@ -4,8 +4,9 @@ import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { getSportsSlugResolverFromDb } from '@/lib/db/queries/sports-menu'
 import { TagRepository } from '@/lib/db/queries/tag'
-import { event_sports, event_tags, events, markets, tags } from '@/lib/db/schema/events/tables'
+import { event_sports, events, markets } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
+import { buildPublicEventListVisibilityCondition } from '@/lib/event-visibility'
 import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
 import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
@@ -218,12 +219,7 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
       .where(and(
         inArray(events.status, ['active', 'resolved', 'archived']),
         sql`TRIM(COALESCE(${markets.slug}, '')) <> ''`,
-        sql`NOT EXISTS (
-          SELECT 1
-          FROM ${event_tags} et
-          JOIN ${tags} t ON t.id = et.tag_id
-          WHERE et.event_id = ${events.id} AND t.hide_events = TRUE
-        )`,
+        buildPublicEventListVisibilityCondition(events.id),
       ))
       .orderBy(desc(markets.updated_at))
 
@@ -298,12 +294,7 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
       .where(and(
         inArray(events.status, ['active', 'resolved', 'archived']),
         hasAnyMarkets,
-        sql`NOT EXISTS (
-          SELECT 1
-          FROM ${event_tags} et
-          JOIN ${tags} t ON t.id = et.tag_id
-          WHERE et.event_id = ${events.id} AND t.hide_events = TRUE
-        )`,
+        buildPublicEventListVisibilityCondition(events.id),
       ))
       .orderBy(desc(events.updated_at))
 

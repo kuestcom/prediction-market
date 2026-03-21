@@ -1,9 +1,12 @@
-import { and, eq } from 'drizzle-orm'
+import type { SQLWrapper } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { event_tags, tags } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
+import { HIDE_FROM_NEW_TAG_SLUG } from '@/lib/public-event-visibility'
 
-export const HIDE_FROM_NEW_TAG_SLUG = 'hide-from-new'
 const HIDE_FROM_NEW_TAG_NAME = 'Hide From New'
+
+export { HIDE_FROM_NEW_TAG_SLUG } from '@/lib/public-event-visibility'
 
 let cachedHideFromNewTagId: number | null = null
 
@@ -63,4 +66,17 @@ export async function setEventHiddenFromNew(eventId: string, hidden: boolean): P
       eq(event_tags.event_id, eventId),
       eq(event_tags.tag_id, hideFromNewTagId),
     ))
+}
+
+export function buildPublicEventListVisibilityCondition(eventIdColumn: SQLWrapper) {
+  return sql`NOT EXISTS (
+    SELECT 1
+    FROM ${event_tags} et
+    JOIN ${tags} t ON t.id = et.tag_id
+    WHERE et.event_id = ${eventIdColumn}
+      AND (
+        t.slug = ${HIDE_FROM_NEW_TAG_SLUG}
+        OR (t.hide_events = TRUE AND t.slug <> ${HIDE_FROM_NEW_TAG_SLUG})
+      )
+  )`
 }

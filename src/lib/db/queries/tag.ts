@@ -10,10 +10,10 @@ import { resolveCategorySidebarData } from '@/lib/category-sidebar-config'
 import { event_tags, events, tag_translations, tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
-import { HIDE_FROM_NEW_TAG_SLUG } from '@/lib/event-visibility'
+import { buildPublicEventListVisibilityCondition, HIDE_FROM_NEW_TAG_SLUG } from '@/lib/event-visibility'
 import { filterHomeEvents } from '@/lib/home-events'
 
-const EXCLUDED_SUB_SLUGS = new Set(['hide-from-new'])
+const EXCLUDED_SUB_SLUGS = new Set([HIDE_FROM_NEW_TAG_SLUG])
 
 interface ListTagsParams {
   limit?: number
@@ -286,6 +286,7 @@ export const TagRepository = {
         .where(and(
           eq(events.status, 'active'),
           eq(tags.is_hidden, false),
+          buildPublicEventListVisibilityCondition(events.id),
           exists(
             db.select()
               .from(visibleMainEventTags)
@@ -297,14 +298,6 @@ export const TagRepository = {
                 eq(visibleMainTags.is_hidden, false),
               )),
           ),
-          sql`NOT EXISTS (
-            SELECT 1
-            FROM ${event_tags} et
-            JOIN ${tags} t ON t.id = et.tag_id
-            WHERE et.event_id = ${events.id}
-              AND t.hide_events = TRUE
-              AND t.slug <> ${HIDE_FROM_NEW_TAG_SLUG}
-          )`,
         ))
 
       return { data: result, error: null }
