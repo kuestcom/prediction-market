@@ -4306,15 +4306,24 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
 
                   <div className="space-y-2">
                     <Label htmlFor="event-end-date">End date</Label>
-                    <Input
-                      ref={eventEndDateInputRef}
-                      id="event-end-date"
-                      type="datetime-local"
-                      value={form.endDateIso}
-                      onChange={event => handleEndDateInputValueChange(event.currentTarget.value)}
-                      onInput={event => handleEndDateInputValueChange(event.currentTarget.value)}
-                      className="w-full md:max-w-xs"
-                    />
+                    <div className="space-y-1">
+                      <Input
+                        ref={eventEndDateInputRef}
+                        id="event-end-date"
+                        type="datetime-local"
+                        value={form.endDateIso}
+                        onChange={event => handleEndDateInputValueChange(event.currentTarget.value)}
+                        onInput={event => handleEndDateInputValueChange(event.currentTarget.value)}
+                        aria-describedby={!form.endDateIso ? 'event-end-date-hint' : undefined}
+                        required
+                        className="w-full md:max-w-xs"
+                      />
+                      {!form.endDateIso && (
+                        <p id="event-end-date-hint" className="text-xs text-destructive">
+                          Select the date and time when the event should end.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
