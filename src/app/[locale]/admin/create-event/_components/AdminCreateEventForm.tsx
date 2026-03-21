@@ -3391,6 +3391,8 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
 
       if (pending.prepared) {
         if (!isAddress(pending.prepared.creator) || getAddress(pending.prepared.creator) !== eoaAddress) {
+          setPendingWorkflowRequestId(null)
+          setPendingWorkflowStatus(null)
           return false
         }
 
