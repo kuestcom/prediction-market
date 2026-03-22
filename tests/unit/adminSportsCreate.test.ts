@@ -99,9 +99,24 @@ describe('admin sports create', () => {
     })
 
     expect(derived.eventSlug).toBe('lakers-vs-celtics-abc-custom-markets')
-    expect(derived.options).toHaveLength(2)
+    expect(derived.options.map(option => option.id)).toEqual([
+      'moneyline-home',
+      'moneyline-away',
+      'market-1',
+      'market-2',
+    ])
     expect(derived.payload?.eventVariant).toBe('custom')
     expect(derived.payload?.markets).toEqual([
+      expect.objectContaining({
+        id: 'moneyline-home',
+        sportsMarketType: 'moneyline',
+        iconAssetKey: 'home',
+      }),
+      expect.objectContaining({
+        id: 'moneyline-away',
+        sportsMarketType: 'moneyline',
+        iconAssetKey: 'away',
+      }),
       expect.objectContaining({
         sportsMarketType: 'first_half_moneyline',
         outcomes: ['Lakers', 'Celtics'],
@@ -151,8 +166,20 @@ describe('admin sports create', () => {
       sports,
     })
 
-    expect(derived.options).toHaveLength(1)
+    expect(derived.options.map(option => option.id)).toEqual([
+      'moneyline-home',
+      'moneyline-away',
+      'market-2',
+    ])
     expect(derived.payload?.markets).toEqual([
+      expect.objectContaining({
+        id: 'moneyline-home',
+        sportsMarketType: 'moneyline',
+      }),
+      expect.objectContaining({
+        id: 'moneyline-away',
+        sportsMarketType: 'moneyline',
+      }),
       expect.objectContaining({
         sportsMarketType: 'first_half_moneyline',
       }),
@@ -177,5 +204,28 @@ describe('admin sports create', () => {
     expect(derived.options[0]?.question).toContain('2026-04-01')
     expect(derived.payload?.eventDate).toBe('2026-04-01')
     expect(normalizeDateTimeLocalValue(derived.payload?.startTime ?? '')).toBe('2026-04-01T21:00')
+  })
+
+  it('keeps moneyline markets mandatory inside exact score sports packs', () => {
+    const sports = createInitialAdminSportsForm()
+    sports.section = 'games'
+    sports.eventVariant = 'exact_score'
+    sports.sportSlug = 'Soccer'
+    sports.leagueSlug = 'MLS'
+    sports.startTime = '2026-04-01T21:00'
+    sports.teams[0].name = 'LA Galaxy'
+    sports.teams[1].name = 'Inter Miami'
+
+    const derived = buildAdminSportsDerivedContent({
+      baseSlug: 'la-galaxy-vs-inter-miami-abc',
+      sports,
+    })
+
+    expect(derived.options.map(option => option.id).slice(0, 2)).toEqual([
+      'moneyline-home',
+      'moneyline-away',
+    ])
+    expect(derived.options.some(option => option.id === 'exact-score-0-0')).toBe(true)
+    expect(derived.options.some(option => option.id === 'exact-score-any-other')).toBe(true)
   })
 })

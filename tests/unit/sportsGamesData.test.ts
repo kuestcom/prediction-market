@@ -1046,4 +1046,59 @@ describe('sportsGamesData', () => {
     expect(moneylineButtons.map(button => button.label)).toEqual(['ARS', 'CHE'])
     expect(moneylineButtons.map(button => button.cents)).toEqual([61, 27])
   })
+
+  it('builds a dedicated goalscorers market view and keeps goal scorer cards separated', () => {
+    const event = buildSportsEvent({
+      id: 'soccer-goalscorers',
+      slug: 'la-inter-2026-04-01-custom-markets',
+      title: 'LA Galaxy vs Inter Miami',
+      sportsTeams: [
+        { name: 'LA Galaxy', abbreviation: 'LAG', host_status: 'home' },
+        { name: 'Inter Miami', abbreviation: 'MIA', host_status: 'away' },
+      ],
+      markets: [
+        buildMoneylineMarket({
+          eventId: 'soccer-goalscorers',
+          slug: 'la-inter-2026-04-01',
+          title: 'LA Galaxy vs Inter Miami',
+          outcomes: ['LA Galaxy', 'Inter Miami'],
+        }),
+        buildBinaryMarket({
+          conditionId: 'goalscorer-messi',
+          eventId: 'soccer-goalscorers',
+          slug: 'messi-anytime-goalscorer',
+          title: 'Lionel Messi Anytime Goalscorer',
+          marketType: 'soccer_anytime_goalscorer',
+        }),
+        buildBinaryMarket({
+          conditionId: 'goalscorer-suarez',
+          eventId: 'soccer-goalscorers',
+          slug: 'suarez-anytime-goalscorer',
+          title: 'Luis Suarez Anytime Goalscorer',
+          marketType: 'soccer_anytime_goalscorer',
+        }),
+      ],
+    })
+
+    const group = buildSportsGamesCardGroups([event])[0]
+    expect(group).toBeDefined()
+
+    expect(group?.marketViewCards.map(view => view.key)).toEqual(['gameLines', 'goalscorers'])
+    expect(group?.marketViewCards.find(view => view.key === 'gameLines')?.card.buttons.map(button => button.marketType)).toEqual([
+      'moneyline',
+      'moneyline',
+    ])
+
+    const goalscorersView = group?.marketViewCards.find(view => view.key === 'goalscorers')?.card ?? null
+    expect(goalscorersView?.detailMarkets.map(market => market.condition_id)).toEqual([
+      'goalscorer-messi',
+      'goalscorer-suarez',
+    ])
+    expect(goalscorersView?.buttons.map(button => `${button.conditionId}:${button.label}`)).toEqual([
+      'goalscorer-messi:YES',
+      'goalscorer-messi:NO',
+      'goalscorer-suarez:YES',
+      'goalscorer-suarez:NO',
+    ])
+  })
 })

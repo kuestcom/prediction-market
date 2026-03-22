@@ -1192,7 +1192,6 @@ export function SportsGameGraph({
 
       if (moneylineMarkets.length > 0) {
         return moneylineMarkets
-          .slice(0, 3)
           .map<SportsGraphSeriesTarget | null>((market, index) => {
             const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
               ?? market.outcomes[0]
@@ -1247,7 +1246,7 @@ export function SportsGameGraph({
         })
       }
 
-      return fallbackTargets.slice(0, 3)
+      return fallbackTargets
     },
     [card, isSecondaryMarketGraph, selectedConditionId],
   )
@@ -1759,8 +1758,9 @@ export function SportsGameGraph({
             showTooltipSeriesLabels={!usesPositionedSeriesLegend}
             disableCursorSplit={false}
             clampCursorToDataExtent={usesPositionedSeriesLegend}
-            markerOuterRadius={usesPositionedSeriesLegend ? 0 : undefined}
-            markerInnerRadius={usesPositionedSeriesLegend ? 4 : undefined}
+            markerOuterRadius={usesPositionedSeriesLegend ? 10 : undefined}
+            markerInnerRadius={usesPositionedSeriesLegend ? 4.2 : undefined}
+            markerPulseStyle={usesPositionedSeriesLegend ? 'ring' : undefined}
             lineCurve="monotoneX"
             tooltipValueFormatter={value => `${Math.round(value)}%`}
             autoscale={chartSettings.autoscale}

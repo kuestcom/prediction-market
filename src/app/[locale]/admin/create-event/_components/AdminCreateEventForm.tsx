@@ -4988,7 +4988,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
                     {sportsForm.section === 'games' && (sportsForm.eventVariant === 'exact_score' || sportsForm.eventVariant === 'halftime_result') && (
                       <div className="rounded-md border p-4">
                         <p className="text-sm text-muted-foreground">
-                          This pack is generated automatically from the selected teams and start time.
+                          This pack is generated automatically from the selected teams and start time, and always includes the mandatory moneyline base markets.
                         </p>
                       </div>
                     )}
@@ -4998,7 +4998,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
                         <div className="space-y-1">
                           <p className="text-sm font-medium">Custom sports markets</p>
                           <p className="text-sm text-muted-foreground">
-                            Choose any observed Polymarket market type. Row order is sent as the market group threshold automatically.
+                            Choose any observed Polymarket market type. Moneyline base markets are added automatically, and row order is sent as the market group threshold automatically.
                           </p>
                         </div>
 

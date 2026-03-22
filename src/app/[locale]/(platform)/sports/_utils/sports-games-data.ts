@@ -3,7 +3,6 @@ import type { Event, Market, Outcome, SportsTeam } from '@/types'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import {
   isSportsMoreMarketsSlug,
-  resolveSportsEventMarketViewKey,
   SPORTS_EVENT_MARKET_VIEW_LABELS,
   SPORTS_EVENT_MARKET_VIEW_ORDER,
   stripSportsAuxiliaryEventSuffix,
@@ -168,6 +167,47 @@ function toTitleCaseWords(value: string) {
       return `${word[0]?.toUpperCase() ?? ''}${word.slice(1)}`
     })
     .join(' ')
+}
+
+function resolveAuxiliaryMarketText(market: Market) {
+  return normalizeText([
+    market.sports_market_type,
+    market.sports_group_item_title,
+    market.short_title,
+    market.title,
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join(' '))
+}
+
+function isGoalscorerAuxiliaryMarketText(value: string) {
+  return value.includes('goalscorer')
+    || value.includes('goal scorer')
+    || value.includes('anytime scorer')
+    || value.includes('first scorer')
+    || value.includes('last scorer')
+}
+
+function resolveAuxiliaryMarketKind(market: Market) {
+  const normalizedText = resolveAuxiliaryMarketText(market)
+
+  if (normalizedText.includes('exact score')) {
+    return 'exactScore' as const
+  }
+
+  if (isGoalscorerAuxiliaryMarketText(normalizedText)) {
+    return 'goalscorers' as const
+  }
+
+  if (normalizedText.includes('halftime result')) {
+    return 'halftimeResult' as const
+  }
+
+  return null
+}
+
+function resolveMarketViewKeyForMarket(market: Market): SportsEventMarketViewKey {
+  return resolveAuxiliaryMarketKind(market) ?? 'gameLines'
 }
 
 export function resolveSportsMarketTypeLabel(value: string | null | undefined) {
@@ -545,6 +585,11 @@ function sortAuxiliaryButtons(buttons: SportsGamesButton[]) {
 }
 
 export function resolveSportsAuxiliaryMarketGroupKey(market: Market) {
+  const marketKind = resolveAuxiliaryMarketKind(market)
+  if (marketKind === 'exactScore' || marketKind === 'goalscorers') {
+    return `${market.event_id}:${market.condition_id}`
+  }
+
   const normalizedType = normalizeText(market.sports_market_type)
   if (!normalizedType) {
     return market.condition_id
@@ -557,6 +602,14 @@ export function resolveSportsAuxiliaryMarketTitle(markets: Market[]) {
   const primaryMarket = markets[0]
   if (!primaryMarket) {
     return 'Market'
+  }
+
+  const marketKind = resolveAuxiliaryMarketKind(primaryMarket)
+  if (marketKind === 'exactScore' || marketKind === 'goalscorers') {
+    return primaryMarket.sports_group_item_title?.trim()
+      ?? primaryMarket.short_title?.trim()
+      ?? primaryMarket.title
+      ?? 'Market'
   }
 
   return resolveSportsMarketTypeLabel(primaryMarket.sports_market_type)
@@ -1306,20 +1359,6 @@ function toSortableThreshold(value: string | null | undefined) {
   return Number.isFinite(numericValue) ? numericValue : Number.POSITIVE_INFINITY
 }
 
-function resolveAuxiliaryMarketKind(market: Market) {
-  const normalizedType = normalizeText(market.sports_market_type)
-
-  if (normalizedType.includes('exact score')) {
-    return 'exactScore' as const
-  }
-
-  if (normalizedType.includes('halftime result')) {
-    return 'halftimeResult' as const
-  }
-
-  return null
-}
-
 function buildExactScoreButtons(markets: Market[], usedButtonKeys: Set<string>) {
   if (markets.length === 0) {
     return []
@@ -1522,10 +1561,6 @@ function resolveEventGroupKey(event: Event) {
   return stripSportsAuxiliaryEventSuffix(event.sports_event_slug?.trim() || event.slug)
 }
 
-function resolveMarketViewKeyForEvent(event: Event): SportsEventMarketViewKey {
-  return resolveSportsEventMarketViewKey(event.sports_event_slug?.trim() || event.slug)
-}
-
 function mergeMarkets(events: Event[]) {
   const byConditionId = new Map<string, Market>()
 
@@ -1645,11 +1680,18 @@ function resolveLatestResolvedAt(events: Event[]) {
 
 function buildSportsGamesCard(
   eventsGroup: Event[],
-  options?: { teamSourceEvent?: Event | null },
+  options?: {
+    teamSourceEvent?: Event | null
+    marketFilter?: (market: Market) => boolean
+  },
 ): SportsGamesCard | null {
-  const primaryEvent = eventsGroup.find(event => event.sports_parent_event_id == null)
-    ?? eventsGroup.find(event => !isSportsMoreMarketsSlug(event.slug))
-    ?? eventsGroup[0]
+  const matchingEvents = options?.marketFilter
+    ? eventsGroup.filter(event => (event.markets ?? []).some(market => options.marketFilter?.(market) === true))
+    : eventsGroup
+  const candidateEvents = matchingEvents.length > 0 ? matchingEvents : eventsGroup
+  const primaryEvent = candidateEvents.find(event => event.sports_parent_event_id == null)
+    ?? candidateEvents.find(event => !isSportsMoreMarketsSlug(event.slug))
+    ?? candidateEvents[0]
   if (!primaryEvent) {
     return null
   }
@@ -1658,6 +1700,7 @@ function buildSportsGamesCard(
     ?? primaryEvent
 
   const mergedMarkets = mergeMarkets(eventsGroup)
+    .filter(market => options?.marketFilter ? options.marketFilter(market) : true)
   const eventForDisplay: Event = {
     ...primaryEvent,
     markets: mergedMarkets,
@@ -1679,7 +1722,7 @@ function buildSportsGamesCard(
     resolveMarketStartTime(mergedMarkets) ?? primaryEvent.sports_start_time ?? primaryEvent.start_date ?? null,
   )
 
-  const mergedMarketsCount = sumFiniteValues(eventsGroup.map(event => event.total_markets_count))
+  const mergedMarketsCount = mergedMarkets.length
   const marketsCount = mergedMarketsCount > 0 ? mergedMarketsCount : mergedMarkets.length
 
   const volume = resolveMarketsVolume(mergedMarkets)
@@ -1708,33 +1751,29 @@ function buildSportsGamesCard(
 }
 
 export function buildSportsGamesCardGroups(events: Event[]): SportsGamesCardGroup[] {
-  const groupedEvents = new Map<string, Map<SportsEventMarketViewKey, Event[]>>()
+  const groupedEvents = new Map<string, Event[]>()
 
   for (const event of events) {
     const key = resolveEventGroupKey(event)
-    const currentGroup = groupedEvents.get(key) ?? new Map<SportsEventMarketViewKey, Event[]>()
-    const marketViewKey = resolveMarketViewKeyForEvent(event)
-    const currentView = currentGroup.get(marketViewKey) ?? []
-
-    currentView.push(event)
-    currentGroup.set(marketViewKey, currentView)
-    if (!groupedEvents.has(key)) {
-      groupedEvents.set(key, currentGroup)
-    }
+    const currentGroup = groupedEvents.get(key) ?? []
+    currentGroup.push(event)
+    groupedEvents.set(key, currentGroup)
   }
 
   return Array.from(groupedEvents.entries())
-    .map(([key, marketViewEvents]): SportsGamesCardGroup | null => {
-      const allGroupEvents = Array.from(marketViewEvents.values()).flat()
+    .map(([key, allGroupEvents]): SportsGamesCardGroup | null => {
       const teamSourceEvent = allGroupEvents.find(event => (event.sports_teams?.length ?? 0) > 0) ?? null
       const marketViewCards = SPORTS_EVENT_MARKET_VIEW_ORDER
         .map((marketViewKey): SportsGamesCardMarketView | null => {
-          const eventsForView = marketViewEvents.get(marketViewKey) ?? []
-          if (eventsForView.length === 0) {
-            return null
-          }
-
-          const card = buildSportsGamesCard(eventsForView, { teamSourceEvent })
+          const card = buildSportsGamesCard(allGroupEvents, {
+            teamSourceEvent,
+            marketFilter: (market) => {
+              const resolvedViewKey = resolveMarketViewKeyForMarket(market)
+              return marketViewKey === 'gameLines'
+                ? resolvedViewKey === 'gameLines'
+                : resolvedViewKey === marketViewKey
+            },
+          })
           if (!card) {
             return null
           }
