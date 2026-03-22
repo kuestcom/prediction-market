@@ -1,6 +1,7 @@
 import { ArrowLeftIcon } from 'lucide-react'
 import { setRequestLocale } from 'next-intl/server'
 import { connection } from 'next/server'
+import { Suspense } from 'react'
 import AdminCreateEventForm from '@/app/[locale]/admin/create-event/_components/AdminCreateEventForm'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
@@ -9,6 +10,7 @@ import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import { EventCreationRepository } from '@/lib/db/queries/event-creations'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { UserRepository } from '@/lib/db/queries/user'
+import AppKitProvider from '@/providers/AppKitProvider'
 
 type CreationMode = 'single' | 'recurring'
 
@@ -84,18 +86,22 @@ export default async function AdminCreateEventNewPage({
       </div>
 
       <div className="min-w-0">
-        <AdminCreateEventForm
-          sportsSlugCatalog={sportsSlugCatalog}
-          creationMode={mode}
-          initialDraftRecord={draftResult.data ?? null}
-          draftId={draftId || null}
-          initialTitle={initialTitle}
-          initialSlug={initialSlug ?? ''}
-          initialEndDateIso={initialEndDateIso}
-          shouldLoadSavedDraft={shouldLoadSavedDraft}
-          serverDraftPayload={draftResult.data?.draftPayload ?? null}
-          serverAssetPayload={draftResult.data?.assetPayload ?? null}
-        />
+        <Suspense fallback={<div className="min-h-40 rounded-xl border bg-background" />}>
+          <AppKitProvider>
+            <AdminCreateEventForm
+              sportsSlugCatalog={sportsSlugCatalog}
+              creationMode={mode}
+              initialDraftRecord={draftResult.data ?? null}
+              draftId={draftId || null}
+              initialTitle={initialTitle}
+              initialSlug={initialSlug ?? ''}
+              initialEndDateIso={initialEndDateIso}
+              shouldLoadSavedDraft={shouldLoadSavedDraft}
+              serverDraftPayload={draftResult.data?.draftPayload ?? null}
+              serverAssetPayload={draftResult.data?.assetPayload ?? null}
+            />
+          </AppKitProvider>
+        </Suspense>
       </div>
     </section>
   )

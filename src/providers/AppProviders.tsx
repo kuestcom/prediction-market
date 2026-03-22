@@ -27,9 +27,10 @@ const queryClient = new QueryClient()
 interface AppProvidersProps {
   children: ReactNode
   disableAppKit?: boolean
+  disableProgressIndicator?: boolean
 }
 
-export function AppProviders({ children, disableAppKit }: AppProvidersProps) {
+export function AppProviders({ children, disableAppKit, disableProgressIndicator }: AppProvidersProps) {
   const site = useSiteIdentity()
   const gaId = site.googleAnalyticsId
   const shouldLoadAppKit = !disableAppKit
@@ -44,21 +45,29 @@ export function AppProviders({ children, disableAppKit }: AppProvidersProps) {
     </div>
   )
 
+  const providersContent = (
+    <ThemeProvider attribute="class">
+      <QueryClientProvider client={queryClient}>
+        {shouldLoadAppKit
+          ? (
+              <AppKitProvider>
+                {content}
+              </AppKitProvider>
+            )
+          : (
+              content
+            )}
+      </QueryClientProvider>
+    </ThemeProvider>
+  )
+
+  if (disableProgressIndicator) {
+    return providersContent
+  }
+
   return (
     <ProgressIndicatorProvider>
-      <ThemeProvider attribute="class">
-        <QueryClientProvider client={queryClient}>
-          {shouldLoadAppKit
-            ? (
-                <AppKitProvider>
-                  {content}
-                </AppKitProvider>
-              )
-            : (
-                content
-              )}
-        </QueryClientProvider>
-      </ThemeProvider>
+      {providersContent}
     </ProgressIndicatorProvider>
   )
 }

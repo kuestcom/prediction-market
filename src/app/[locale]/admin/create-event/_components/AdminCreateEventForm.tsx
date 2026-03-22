@@ -3954,7 +3954,7 @@ export default function AdminCreateEventForm({
         resolutionRules: payload.rules,
       }))
       setRulesGeneratorDialogOpen(false)
-      toast.success(`Rules generated from ${payload.samplesUsed} Polymarket samples.`)
+      toast.success(`Rules generated from ${payload.samplesUsed} samples.`)
     }
     catch (error) {
       console.error('Error generating rules:', error)
@@ -5614,7 +5614,7 @@ export default function AdminCreateEventForm({
                         <div className="space-y-1">
                           <p className="text-sm font-medium">Custom sports markets</p>
                           <p className="text-sm text-muted-foreground">
-                            Choose any observed Polymarket market type. Moneyline base markets are added automatically using the draw selection above, and row order is sent as the market group threshold automatically.
+                            Choose any market type. Moneyline base markets are added automatically using the draw selection above, and row order is sent as the market group threshold automatically.
                           </p>
                         </div>
 
@@ -5644,7 +5644,7 @@ export default function AdminCreateEventForm({
                                   onValueChange={value => handleSportsCustomMarketChange(market.id, 'sportsMarketType', value)}
                                 >
                                   <SelectTrigger id={`sports-custom-market-type-${market.id}`} className="w-full">
-                                    <SelectValue placeholder="Select a Polymarket sports market type" />
+                                    <SelectValue placeholder="Select a sports market type" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {sportsMarketTypeGroups.map(group => (
