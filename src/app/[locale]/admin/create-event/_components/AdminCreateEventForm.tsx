@@ -4937,9 +4937,18 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
                       </div>
                     )}
 
-                    {sportsForm.section === 'games' && sportsForm.eventVariant === 'standard' && (
+                    {sportsForm.section === 'games' && sportsForm.eventVariant && (
                       <div className="space-y-3 rounded-md border p-4">
-                        <p className="text-sm font-medium">Standard game lines</p>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">
+                            {sportsForm.eventVariant === 'standard' ? 'Standard game lines' : 'Moneyline base markets'}
+                          </p>
+                          {sportsForm.eventVariant !== 'standard' && (
+                            <p className="text-sm text-muted-foreground">
+                              The base game market is always created for sports games. Use this toggle to decide whether the base moneyline should include home / draw / away or only home / away.
+                            </p>
+                          )}
+                        </div>
                         <label className="flex items-center gap-3 text-sm text-muted-foreground">
                           <input
                             type="checkbox"
@@ -4988,7 +4997,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
                     {sportsForm.section === 'games' && (sportsForm.eventVariant === 'exact_score' || sportsForm.eventVariant === 'halftime_result') && (
                       <div className="rounded-md border p-4">
                         <p className="text-sm text-muted-foreground">
-                          This pack is generated automatically from the selected teams and start time, and always includes the mandatory moneyline base markets.
+                          This pack is generated automatically from the selected teams and start time, and always includes the mandatory moneyline base markets using the draw selection above.
                         </p>
                       </div>
                     )}
@@ -4998,7 +5007,7 @@ export default function AdminCreateEventForm({ sportsSlugCatalog }: AdminCreateE
                         <div className="space-y-1">
                           <p className="text-sm font-medium">Custom sports markets</p>
                           <p className="text-sm text-muted-foreground">
-                            Choose any observed Polymarket market type. Moneyline base markets are added automatically, and row order is sent as the market group threshold automatically.
+                            Choose any observed Polymarket market type. Moneyline base markets are added automatically using the draw selection above, and row order is sent as the market group threshold automatically.
                           </p>
                         </div>
 
