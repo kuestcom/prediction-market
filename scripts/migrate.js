@@ -75,6 +75,26 @@ function rewriteMigrationSqlForMode(migrationSql, isSupabase) {
     .replace(/\bTO\s+service_role\b/gi, 'TO CURRENT_USER')
 }
 
+async function withReservedTransaction(sql, fn) {
+  await sql`BEGIN`
+
+  try {
+    const result = await fn(sql)
+    await sql`COMMIT`
+    return result
+  }
+  catch (error) {
+    try {
+      await sql`ROLLBACK`
+    }
+    catch (rollbackError) {
+      console.error('Failed to roll back migration transaction:', rollbackError)
+    }
+
+    throw error
+  }
+}
+
 async function applyMigrations(sql, isSupabase) {
   console.log('Applying migrations...')
 
@@ -129,7 +149,7 @@ async function applyMigrations(sql, isSupabase) {
       console.log(`ℹ️ Applied compatibility rewrite for ${file} (service_role -> CURRENT_USER)`)
     }
 
-    await sql.begin(async (tx) => {
+    await withReservedTransaction(sql, async (tx) => {
       await tx.unsafe(migrationSql, [], { simple: true })
       await tx`INSERT INTO migrations (version) VALUES (${version})`
     })
