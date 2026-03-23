@@ -51,7 +51,7 @@
     "fumadocs-core": "^16.6.7",
     "fumadocs-mdx": "^14.2.10",
     "fumadocs-openapi": "^10.3.14",
-    "fumadocs-ui": "^16.6.8",
+    "fumadocs-ui": "^16.7.4",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.576.0",
     "next": "^16.1.7",
