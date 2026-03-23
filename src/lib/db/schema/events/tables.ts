@@ -15,6 +15,7 @@ import {
   timestamp,
   unique,
 } from 'drizzle-orm/pg-core'
+import { users } from '../auth/tables'
 
 export const conditions = pgTable(
   'conditions',
@@ -168,6 +169,55 @@ export const event_translations = pgTable(
   table => ({
     pk: primaryKey({ columns: [table.event_id, table.locale] }),
   }),
+)
+
+export const event_creations = pgTable(
+  'event_creations',
+  {
+    id: char({ length: 26 })
+      .primaryKey()
+      .default(sql`generate_ulid()`),
+    created_by_user_id: text()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    updated_by_user_id: text()
+      .references(() => users.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    source_event_id: char({ length: 26 })
+      .references(() => events.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    deployed_event_id: char({ length: 26 })
+      .references(() => events.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    title: text().notNull().default('Untitled draft'),
+    slug: text(),
+    title_template: text(),
+    slug_template: text(),
+    creation_mode: text().notNull().default('single'),
+    status: text().notNull().default('draft'),
+    start_at: timestamp({ withTimezone: true }),
+    deploy_at: timestamp({ withTimezone: true }),
+    end_date: timestamp({ withTimezone: true }),
+    wallet_address: char({ length: 42 }),
+    draft_payload: jsonb().$type<Record<string, unknown> | null>(),
+    asset_payload: jsonb().$type<Record<string, unknown> | null>(),
+    main_category_slug: text(),
+    category_slugs: text().array().notNull().default(sql`'{}'::text[]`),
+    market_mode: text(),
+    binary_question: text(),
+    binary_outcome_yes: text(),
+    binary_outcome_no: text(),
+    resolution_source: text(),
+    resolution_rules: text(),
+    recurrence_unit: text(),
+    recurrence_interval: integer(),
+    recurrence_until: timestamp({ withTimezone: true }),
+    pending_request_id: text(),
+    pending_payload_hash: char({ length: 66 }),
+    pending_chain_id: integer(),
+    pending_confirmed_txs: jsonb().$type<Record<string, unknown>[] | null>(),
+    last_run_at: timestamp({ withTimezone: true }),
+    last_error: text(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
 )
 
 export const jobs = pgTable(

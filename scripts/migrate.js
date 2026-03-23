@@ -275,6 +275,16 @@ async function createSyncResolutionCron(sql, siteUrl, cronSecret) {
   })
 }
 
+async function createSyncEventCreationsCron(sql, siteUrl, cronSecret) {
+  await createSyncCron(sql, {
+    jobName: 'sync-event-creations',
+    schedule: '0,30 * * * *',
+    endpointPath: '/api/sync/event-creations',
+    siteUrl,
+    cronSecret,
+  })
+}
+
 async function resolveCronExtensionCapabilities(sql) {
   const result = await sql`
     SELECT
@@ -310,6 +320,7 @@ async function configureSupabaseScheduler(sql, siteUrl, cronSecret) {
   }
 
   await createSyncEventsCron(sql, siteUrl, cronSecret)
+  await createSyncEventCreationsCron(sql, siteUrl, cronSecret)
   await createSyncTranslationsCron(sql, siteUrl, cronSecret)
   await createSyncResolutionCron(sql, siteUrl, cronSecret)
   await createSyncVolumeCron(sql, siteUrl, cronSecret)
