@@ -374,7 +374,7 @@ interface ListEventsProps {
   sportsSection?: 'games' | 'props' | ''
 }
 
-interface ListHomeFeedEventsProps extends ListEventsProps {
+interface ListHomeFeedEventsProps extends Omit<ListEventsProps, 'limit'> {
   currentTimestamp?: number | null
   hideCrypto?: boolean
   hideEarnings?: boolean

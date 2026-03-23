@@ -82,10 +82,6 @@ export async function listHomeEventsPage({
       break
     }
 
-    if (status === 'active' && visibleEvents.length >= targetVisibleCount) {
-      break
-    }
-
     if (batch.length < HOME_EVENTS_PAGE_SIZE) {
       break
     }
