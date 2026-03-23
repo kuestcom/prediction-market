@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1004.0",
-    "@better-auth/drizzle-adapter": "^1.5.3",
+    "@better-auth/drizzle-adapter": "^1.5.6",
     "@bprogress/next": "^3.2.12",
     "@lifi/sdk": "^3.16.2",
     "@next/third-parties": "^16.1.6",
