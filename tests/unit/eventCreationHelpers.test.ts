@@ -67,7 +67,7 @@ function buildDraft(overrides: Partial<EventCreationDraftRecord> = {}): EventCre
     binaryOutcomeYes: 'Yes',
     binaryOutcomeNo: 'No',
     resolutionSource: 'https://example.com',
-    resolutionRules: 'Resolve YES if BTC closes above the opening price.',
+    resolutionRules: 'Resolve YES if BTC closes above the opening price on {{date}} {{year}}.',
     draftPayload: {
       form: {
         title: 'BTC will rise?',
@@ -84,7 +84,7 @@ function buildDraft(overrides: Partial<EventCreationDraftRecord> = {}): EventCre
         binaryOutcomeYes: 'Yes',
         binaryOutcomeNo: 'No',
         resolutionSource: 'https://example.com',
-        resolutionRules: 'Resolve YES if BTC closes above the opening price.',
+        resolutionRules: 'Resolve YES if BTC closes above the opening price on {{date}} {{year}}.',
       },
     },
     assetPayload: {
@@ -144,6 +144,7 @@ describe('event creation helpers', () => {
 
     expect(result.payload.title).toBe('BTC will rise on 22 March?')
     expect(result.payload.slug).toBe(`btc-will-rise-22-march-${expectedSuffix}`)
+    expect(result.payload.resolutionRules).toBe('Resolve YES if BTC closes above the opening price on 22 March 2026.')
     expectLocalDateTimeParts(result.payload.endDateIso, { year: 2026, monthIndex: 2, day: 22, hour: 12 })
     expect(result.payload.binaryOutcomeYes).toBe('Yes')
   })

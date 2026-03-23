@@ -250,7 +250,10 @@ export function buildEventCreationPreparePayload(input: {
   const isSports = isSportsMainCategory(mainCategorySlug)
   const marketMode = readString(snapshotForm.marketMode, record.marketMode ?? '') as MarketMode
   const resolutionSource = readString(snapshotForm.resolutionSource, record.resolutionSource ?? '')
-  const resolutionRules = readString(snapshotForm.resolutionRules, record.resolutionRules ?? '')
+  const rawResolutionRules = readString(snapshotForm.resolutionRules, record.resolutionRules ?? '')
+  const resolutionRules = record.creationMode === 'recurring'
+    ? applyEventCreationTemplate(rawResolutionRules, occurrenceDate, rawResolutionRules)
+    : rawResolutionRules
 
   const payload: EventCreationPreparePayload = {
     chainId: input.chainId,

@@ -64,6 +64,9 @@ export async function POST(request: NextRequest) {
     if (startAt && Number.isNaN(startAt.getTime())) {
       return NextResponse.json({ error: 'Invalid start date.' }, { status: 400 })
     }
+    if (startAt && !parsed.data.sourceEventId && startAt.getTime() <= Date.now()) {
+      return NextResponse.json({ error: 'Resolution date must be in the future for new drafts.' }, { status: 400 })
+    }
 
     let sourceTitle: string | undefined
     let sourceSlug: string | undefined

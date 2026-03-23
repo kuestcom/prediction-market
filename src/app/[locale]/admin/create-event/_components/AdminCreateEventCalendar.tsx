@@ -84,6 +84,21 @@ function normalizeCalendarSelection(date: Date, allDay: boolean) {
   return formatDateTimeLocalValue(next)
 }
 
+function isPastCreationResolutionDate(value: string | null | undefined) {
+  const normalized = normalizeDateTimeLocalValue(value ?? '')
+  if (!normalized) {
+    return false
+  }
+
+  const parsed = new Date(normalized)
+  if (Number.isNaN(parsed.getTime())) {
+    return false
+  }
+
+  const now = readCurrentTimeMs() || Date.now()
+  return parsed.getTime() <= now
+}
+
 function formatStartAtLabel(value: string) {
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) {
@@ -319,7 +334,13 @@ export default function AdminCreateEventCalendar() {
   })
 
   function openNewEventDialog(startAt?: string) {
-    setSelectedStartAt(startAt || buildDefaultStartAt(readCurrentTimeMs()))
+    const nextStartAt = startAt || buildDefaultStartAt(readCurrentTimeMs())
+    if (startAt && isPastCreationResolutionDate(nextStartAt)) {
+      toast.error('Select a future resolution date to create a new event.')
+      return
+    }
+
+    setSelectedStartAt(nextStartAt)
     setNewEventDialogOpen(true)
   }
 
@@ -346,6 +367,7 @@ export default function AdminCreateEventCalendar() {
     const params = new URLSearchParams({
       draftId,
       mode,
+      edit: '1',
     })
     if (startAt) {
       params.set('startAt', normalizeDateTimeLocalValue(startAt))
@@ -359,9 +381,14 @@ export default function AdminCreateEventCalendar() {
       return
     }
 
+    const normalizedStartAt = normalizeDateTimeLocalValue(startAt || selectedStartAt)
+    if (!sourceEventId && isPastCreationResolutionDate(normalizedStartAt)) {
+      toast.error('Select a future resolution date to create a new event.')
+      return
+    }
+
     try {
       setIsCreatingDraft(true)
-      const normalizedStartAt = normalizeDateTimeLocalValue(startAt || selectedStartAt)
       const parsedStartAt = normalizedStartAt ? new Date(normalizedStartAt) : null
       const startAtIso = parsedStartAt && !Number.isNaN(parsedStartAt.getTime())
         ? parsedStartAt.toISOString()
@@ -721,7 +748,10 @@ export default function AdminCreateEventCalendar() {
                                 />
                               )
                             : (
-                                <div className="flex size-12 items-center justify-center rounded-lg border text-muted-foreground">
+                                <div className="
+                                  flex size-12 items-center justify-center rounded-lg border text-muted-foreground
+                                "
+                                >
                                   <ImageIcon className="size-5" />
                                 </div>
                               )}

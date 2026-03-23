@@ -30,6 +30,11 @@ function resolveSearchParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
 }
 
+function resolveBooleanSearchParam(value: string | string[] | undefined) {
+  const normalized = resolveSearchParam(value)?.trim().toLowerCase()
+  return normalized === '1' || normalized === 'true'
+}
+
 async function AdminCreateEventNewContent({
   searchParams,
 }: Pick<AdminCreateEventNewPageProps, 'searchParams'>) {
@@ -38,6 +43,7 @@ async function AdminCreateEventNewContent({
   const mode = resolveCreationMode(resolvedSearchParams?.mode)
   const draftId = resolveSearchParam(resolvedSearchParams?.draftId) ?? ''
   const startAtValue = resolveSearchParam(resolvedSearchParams?.startAt) ?? ''
+  const isEditingExistingDraft = resolveBooleanSearchParam(resolvedSearchParams?.edit)
 
   const sportsMenuResult = await SportsMenuRepository.getMenuEntries()
   const sportsSlugCatalog = sportsMenuResult.data
@@ -97,6 +103,7 @@ async function AdminCreateEventNewContent({
           initialTitle={initialTitle}
           initialSlug={initialSlug ?? ''}
           initialEndDateIso={initialEndDateIso}
+          allowPastResolutionDate={effectiveMode === 'recurring' && isEditingExistingDraft}
           serverDraftPayload={draftResult.data?.draftPayload ?? null}
           serverAssetPayload={draftResult.data?.assetPayload ?? null}
         />

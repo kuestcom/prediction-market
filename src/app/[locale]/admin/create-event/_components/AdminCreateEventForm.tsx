@@ -282,6 +282,7 @@ interface AdminCreateEventFormProps {
   initialTitle?: string
   initialSlug?: string
   initialEndDateIso?: string
+  allowPastResolutionDate?: boolean
   hasConfiguredServerSigners?: boolean
   serverDraftPayload?: Record<string, unknown> | null
   serverAssetPayload?: EventCreationAssetPayload | null
@@ -849,6 +850,7 @@ function buildStepErrors(
     contentCheckState: ContentCheckState
     hasPendingAiErrors: boolean
     hasContentCheckFatalError: boolean
+    allowPastResolutionDate: boolean
   },
 ): string[] {
   const errors: string[] = []
@@ -871,7 +873,7 @@ function buildStepErrors(
       if (Number.isNaN(parsedEndDate.getTime())) {
         errors.push('Event end date is invalid.')
       }
-      else if (parsedEndDate.getTime() <= Date.now()) {
+      else if (!args.allowPastResolutionDate && parsedEndDate.getTime() <= Date.now()) {
         errors.push('Event end date must be in the future.')
       }
     }
@@ -1171,6 +1173,7 @@ export default function AdminCreateEventForm({
   initialTitle = '',
   initialSlug = '',
   initialEndDateIso = '',
+  allowPastResolutionDate = false,
   hasConfiguredServerSigners = true,
   serverDraftPayload = null,
   serverAssetPayload = null,
@@ -1683,6 +1686,28 @@ export default function AdminCreateEventForm({
 
     return appendEventCreationSlugSuffix(slugify(rawSlug || baseTemplate), recurringSlugSuffix)
   }, [creationMode, effectiveRecurringSlugTemplate, recurringResolvedTitle, recurringSlugSuffix, scheduleOccurrenceDate])
+  const recurringResolvedRules = useMemo(() => {
+    if (creationMode !== 'recurring') {
+      return ''
+    }
+
+    const baseTemplate = form.resolutionRules.trim()
+    if (!baseTemplate) {
+      return ''
+    }
+
+    if (!scheduleOccurrenceDate) {
+      return baseTemplate
+    }
+
+    return applyEventCreationTemplate(baseTemplate, scheduleOccurrenceDate, baseTemplate).trim() || baseTemplate
+  }, [creationMode, form.resolutionRules, scheduleOccurrenceDate])
+  const effectiveResolutionRules = useMemo(
+    () => creationMode === 'recurring'
+      ? (recurringResolvedRules || form.resolutionRules.trim())
+      : form.resolutionRules.trim(),
+    [creationMode, form.resolutionRules, recurringResolvedRules],
+  )
   const recurringRequiresServerWalletSetup = creationMode === 'recurring' && !hasConfiguredServerSigners
 
   const stepLabels = useMemo(
@@ -1904,9 +1929,11 @@ export default function AdminCreateEventForm({
       contentCheckState,
       hasPendingAiErrors: pendingAiIssues.length > 0,
       hasContentCheckFatalError: Boolean(contentCheckError),
+      allowPastResolutionDate,
     }).length === 0
   }, [
     allowedCreatorCheckState,
+    allowPastResolutionDate,
     contentCheckState,
     getResolvedDateForms,
     fundingCheckState,
@@ -3185,9 +3212,11 @@ export default function AdminCreateEventForm({
       options: normalizedOptions,
       sports: isSportsEvent ? sportsDerivedContent.payload : undefined,
       resolutionSource: resolvedForm.resolutionSource,
-      resolutionRules: resolvedForm.resolutionRules,
+      resolutionRules: creationMode === 'recurring'
+        ? (recurringResolvedRules || resolvedForm.resolutionRules)
+        : resolvedForm.resolutionRules,
     }
-  }, [getResolvedDateForms, isSportsEvent, sportsDerivedContent.payload])
+  }, [creationMode, getResolvedDateForms, isSportsEvent, recurringResolvedRules, sportsDerivedContent.payload])
 
   const buildPreparePayload = useCallback((): PreparePayloadBody => {
     const { resolvedForm } = getResolvedDateForms()
@@ -3235,7 +3264,9 @@ export default function AdminCreateEventForm({
       categories: mergedCategories,
       marketMode: isSportsEvent ? 'multi_multiple' : (resolvedForm.marketMode as MarketMode),
       resolutionSource: resolvedForm.resolutionSource.trim(),
-      resolutionRules: resolvedForm.resolutionRules.trim(),
+      resolutionRules: creationMode === 'recurring'
+        ? (recurringResolvedRules || resolvedForm.resolutionRules.trim())
+        : resolvedForm.resolutionRules.trim(),
     }
 
     if (isSportsEvent && sportsDerivedContent.payload) {
@@ -3265,7 +3296,7 @@ export default function AdminCreateEventForm({
       slug: option.slug.trim(),
     }))
     return payload
-  }, [eoaAddress, getResolvedDateForms, isSportsEvent, selectedMainCategory, sportsDerivedContent.categories, sportsDerivedContent.options, sportsDerivedContent.payload, targetChainId])
+  }, [creationMode, eoaAddress, getResolvedDateForms, isSportsEvent, recurringResolvedRules, selectedMainCategory, sportsDerivedContent.categories, sportsDerivedContent.options, sportsDerivedContent.payload, targetChainId])
 
   const runOpenRouterCheck = useCallback(async () => {
     setOpenRouterCheckState('checking')
@@ -4647,6 +4678,7 @@ export default function AdminCreateEventForm({
       contentCheckState,
       hasPendingAiErrors: pendingAiIssues.length > 0,
       hasContentCheckFatalError: Boolean(contentCheckError),
+      allowPastResolutionDate,
     })
 
     if (errors.length > 0) {
@@ -4659,6 +4691,7 @@ export default function AdminCreateEventForm({
     return true
   }, [
     allowedCreatorCheckState,
+    allowPastResolutionDate,
     contentCheckState,
     fundingCheckState,
     hasEventImage,
@@ -6338,7 +6371,25 @@ export default function AdminCreateEventForm({
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor="resolution-rules">Resolution rules</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="resolution-rules">Resolution rules</Label>
+                    {creationMode === 'recurring' && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className="text-muted-foreground transition hover:text-foreground">
+                            <CircleHelpIcon className="size-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-left">
+                          <div className="grid gap-1">
+                            {TEMPLATE_TOKEN_EXAMPLES.map(item => (
+                              <p key={`rules-token-${item}`}>{item}</p>
+                            ))}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
@@ -6359,6 +6410,13 @@ export default function AdminCreateEventForm({
                   placeholder="Define official source, UTC cutoff, tie/cancellation handling, and fallback source."
                   className="min-h-36"
                 />
+                {creationMode === 'recurring' && recurringResolvedRules && recurringResolvedRules !== form.resolutionRules.trim() && (
+                  <p className="text-xs whitespace-pre-wrap text-muted-foreground">
+                    Preview:
+                    {' '}
+                    {recurringResolvedRules}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -6610,7 +6668,7 @@ export default function AdminCreateEventForm({
                 <div className="space-y-3 rounded-md border p-4">
                   <p className="text-sm font-semibold text-foreground">Resolution rules</p>
                   <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                    {form.resolutionRules || 'Rules not set.'}
+                    {effectiveResolutionRules || 'Rules not set.'}
                   </p>
                   {form.resolutionSource
                     ? (
