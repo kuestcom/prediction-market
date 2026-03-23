@@ -2,6 +2,8 @@ import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import { describe, expect, it } from 'vitest'
 import {
   buildDefaultDeployAt,
+  buildEventCreationTimestampSeed,
+  buildEventCreationWalletTail,
   buildScheduledRecurringDeployAt,
   expandEventCreationOccurrences,
   normalizeEventCreationAssetPayload,
@@ -132,6 +134,8 @@ describe('event creation helpers', () => {
   })
 
   it('builds recurring prepare payloads using the scheduled occurrence date', () => {
+    const occurrenceDate = new Date(buildLocalDateTimeValue(2026, 2, 22, 12))
+    const expectedSuffix = `${buildEventCreationTimestampSeed(occurrenceDate)}${buildEventCreationWalletTail('0x1111111111111111111111111111111111111111')}`
     const result = buildEventCreationPreparePayload({
       record: buildDraft(),
       creator: '0x1111111111111111111111111111111111111111',
@@ -139,7 +143,7 @@ describe('event creation helpers', () => {
     })
 
     expect(result.payload.title).toBe('BTC will rise on 22 March?')
-    expect(result.payload.slug).toBe('btc-will-rise-22-march-1774191600111')
+    expect(result.payload.slug).toBe(`btc-will-rise-22-march-${expectedSuffix}`)
     expectLocalDateTimeParts(result.payload.endDateIso, { year: 2026, monthIndex: 2, day: 22, hour: 12 })
     expect(result.payload.binaryOutcomeYes).toBe('Yes')
   })
