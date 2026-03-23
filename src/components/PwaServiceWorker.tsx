@@ -12,20 +12,23 @@ function isLocalhostHost(hostname: string) {
 
 export default function PwaServiceWorker() {
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production') {
-      return
-    }
-
     if (!('serviceWorker' in navigator)) {
       return
     }
 
-    if (isLocalhostHost(window.location.hostname)) {
+    if (process.env.NODE_ENV !== 'production' || isLocalhostHost(window.location.hostname)) {
       void navigator.serviceWorker.getRegistrations()
         .then(registrations => Promise.all(registrations.map(registration => registration.unregister())))
         .catch((error) => {
-          console.error('Failed to unregister local service workers', error)
+          console.error('Failed to unregister service workers', error)
         })
+      if ('caches' in window) {
+        void window.caches.keys()
+          .then(cacheKeys => Promise.all(cacheKeys.map(cacheKey => window.caches.delete(cacheKey))))
+          .catch((error) => {
+            console.error('Failed to clear cache storage', error)
+          })
+      }
       return
     }
 

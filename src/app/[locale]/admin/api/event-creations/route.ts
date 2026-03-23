@@ -1,10 +1,11 @@
 import type { NextRequest } from 'next/server'
+import type { EventCreationAssetPayload } from '@/lib/event-creation'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventCreationRepository } from '@/lib/db/queries/event-creations'
 import { UserRepository } from '@/lib/db/queries/user'
-import { buildDefaultDeployAt } from '@/lib/event-creation'
+import { buildDefaultDeployAt, buildImmediateDeployAt } from '@/lib/event-creation'
 
 const createDraftSchema = z.object({
   mode: z.enum(['single', 'recurring']),
@@ -67,6 +68,10 @@ export async function POST(request: NextRequest) {
     let sourceTitle: string | undefined
     let sourceSlug: string | undefined
     let sourceEndDate: Date | null = null
+    let sourceDraftPayload: Record<string, unknown> | null = null
+    let sourceAssetPayload: EventCreationAssetPayload | null = null
+    let sourceMainCategorySlug: string | null = null
+    let sourceCategorySlugs: string[] = []
     if (parsed.data.sourceEventId) {
       const sourceResult = await EventCreationRepository.getCopySourceEvent({
         eventId: parsed.data.sourceEventId,
@@ -78,6 +83,19 @@ export async function POST(request: NextRequest) {
       sourceTitle = sourceResult.data.title
       sourceSlug = `${sourceResult.data.slug}-copy`
       sourceEndDate = sourceResult.data.endDate
+      sourceMainCategorySlug = sourceResult.data.mainCategorySlug
+      sourceCategorySlugs = sourceResult.data.categories.map(item => item.slug)
+      sourceAssetPayload = sourceResult.data.assetPayload
+      sourceDraftPayload = {
+        form: {
+          title: sourceResult.data.title,
+          slug: sourceSlug,
+          endDateIso: sourceResult.data.endDate?.toISOString() ?? '',
+          mainCategorySlug: sourceResult.data.mainCategorySlug ?? '',
+          categories: sourceResult.data.categories,
+          resolutionRules: sourceResult.data.rules ?? '',
+        },
+      }
     }
 
     const resolvedStartAt = startAt ?? sourceEndDate
@@ -88,9 +106,15 @@ export async function POST(request: NextRequest) {
       title: sourceTitle,
       slug: sourceSlug,
       startAt: resolvedStartAt,
-      deployAt: buildDefaultDeployAt(resolvedStartAt),
+      deployAt: parsed.data.mode === 'recurring'
+        ? buildImmediateDeployAt(Date.now())
+        : buildDefaultDeployAt(resolvedStartAt),
       endDate: sourceEndDate,
       sourceEventId: parsed.data.sourceEventId ?? null,
+      draftPayload: sourceDraftPayload,
+      assetPayload: sourceAssetPayload,
+      mainCategorySlug: sourceMainCategorySlug,
+      categorySlugs: sourceCategorySlugs,
     })
 
     if (error) {

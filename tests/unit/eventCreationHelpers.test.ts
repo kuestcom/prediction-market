@@ -1,6 +1,11 @@
 import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import { describe, expect, it } from 'vitest'
-import { buildDefaultDeployAt, expandEventCreationOccurrences, normalizeEventCreationAssetPayload } from '@/lib/event-creation'
+import {
+  buildDefaultDeployAt,
+  buildScheduledRecurringDeployAt,
+  expandEventCreationOccurrences,
+  normalizeEventCreationAssetPayload,
+} from '@/lib/event-creation'
 import { parseEventCreationSignerPrivateKeys } from '@/lib/event-creation-signers'
 import {
   assertSuccessfulTransactionReceipt,
@@ -134,7 +139,7 @@ describe('event creation helpers', () => {
     })
 
     expect(result.payload.title).toBe('BTC will rise on 22 March?')
-    expect(result.payload.slug).toBe('btc-will-rise-22-march')
+    expect(result.payload.slug).toBe('btc-will-rise-22-march-1774191600111')
     expectLocalDateTimeParts(result.payload.endDateIso, { year: 2026, monthIndex: 2, day: 22, hour: 12 })
     expect(result.payload.binaryOutcomeYes).toBe('Yes')
   })
@@ -144,7 +149,18 @@ describe('event creation helpers', () => {
 
     expect(next).not.toBeNull()
     expectLocalDateTimeParts(next!.nextStartAt, { year: 2026, monthIndex: 3, day: 22, hour: 12 })
-    expectLocalDateTimeParts(next!.nextDeployAt!, { year: 2026, monthIndex: 3, day: 21, hour: 12 })
+    expectLocalDateTimeParts(next!.nextDeployAt!, { year: 2026, monthIndex: 2, day: 21, hour: 12 })
+  })
+
+  it('derives future recurring deploy windows from the resolution date and cadence', () => {
+    const deployAt = buildScheduledRecurringDeployAt(
+      new Date(buildLocalDateTimeValue(2026, 4, 10, 12)),
+      'month',
+      1,
+    )
+
+    expect(deployAt).not.toBeNull()
+    expectLocalDateTimeParts(deployAt!, { year: 2026, monthIndex: 3, day: 9, hour: 12 })
   })
 
   it('subtracts an exact 24 hours for default deploy timestamps', () => {

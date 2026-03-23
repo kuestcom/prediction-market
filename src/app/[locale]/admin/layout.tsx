@@ -2,6 +2,7 @@
 
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
+import PlatformViewerState from '@/app/[locale]/(platform)/_components/PlatformViewerState'
 import AdminHeader from '@/app/[locale]/admin/_components/AdminHeader'
 import AdminSidebar from '@/app/[locale]/admin/_components/AdminSidebar'
 import { AppProviders } from '@/providers/AppProviders'
@@ -16,6 +17,7 @@ export default async function AdminLayout({ params, children }: LayoutProps<'/[l
 
   return (
     <AppProviders>
+      <PlatformViewerState />
       <AdminHeader />
       <main className="container py-4 lg:py-8">
         <div className="grid gap-8 lg:grid-cols-[200px_1fr] lg:gap-16">

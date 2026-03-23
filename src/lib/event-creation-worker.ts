@@ -2,7 +2,14 @@ import type { TransactionReceipt } from 'viem'
 import type { AdminSportsCustomMarketState, AdminSportsFormState, AdminSportsPropState } from '@/lib/admin-sports-create'
 import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import { buildAdminSportsDerivedContent, createInitialAdminSportsForm, isSportsMainCategory } from '@/lib/admin-sports-create'
-import { addRecurrenceInterval, applyEventCreationTemplate, buildDefaultDeployAt } from '@/lib/event-creation'
+import {
+  addRecurrenceInterval,
+  appendEventCreationSlugSuffix,
+  applyEventCreationTemplate,
+  buildEventCreationTimestampSeed,
+  buildEventCreationWalletTail,
+  buildScheduledRecurringDeployAt,
+} from '@/lib/event-creation'
 
 type MarketMode = 'binary' | 'multi_multiple' | 'multi_unique'
 
@@ -200,7 +207,11 @@ function buildOccurrenceContent(record: EventCreationDraftRecord, date: Date) {
 
   const title = applyEventCreationTemplate(record.titleTemplate ?? '', date, baseTitle) || baseTitle
   const slugTemplateResult = applyEventCreationTemplate(record.slugTemplate ?? '', date, baseSlug)
-  const slug = slugify(slugTemplateResult || baseSlug || title)
+  const baseResolvedSlug = slugify(slugTemplateResult || baseSlug || title)
+  const recurringSuffix = `${buildEventCreationTimestampSeed(date)}${buildEventCreationWalletTail(record.walletAddress)}`
+  const slug = record.creationMode === 'recurring'
+    ? appendEventCreationSlugSuffix(baseResolvedSlug, recurringSuffix)
+    : baseResolvedSlug
 
   if (!title || !slug) {
     throw new Error('Draft does not have a valid title/slug.')
@@ -338,7 +349,7 @@ export function computeNextRecurringSchedule(record: Pick<EventCreationDraftReco
 
   return {
     nextStartAt,
-    nextDeployAt: buildDefaultDeployAt(nextStartAt),
+    nextDeployAt: buildScheduledRecurringDeployAt(nextStartAt, record.recurrenceUnit, record.recurrenceInterval),
   }
 }
 

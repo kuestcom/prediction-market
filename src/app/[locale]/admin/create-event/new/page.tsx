@@ -37,9 +37,7 @@ async function AdminCreateEventNewContent({
   const resolvedSearchParams = searchParams ? await searchParams : undefined
   const mode = resolveCreationMode(resolvedSearchParams?.mode)
   const draftId = resolveSearchParam(resolvedSearchParams?.draftId) ?? ''
-  const resumeValue = resolveSearchParam(resolvedSearchParams?.resume)
-  const shouldLoadSavedDraft = resumeValue === 'local-draft'
-  const startAtValue = shouldLoadSavedDraft ? '' : resolveSearchParam(resolvedSearchParams?.startAt) ?? ''
+  const startAtValue = resolveSearchParam(resolvedSearchParams?.startAt) ?? ''
 
   const sportsMenuResult = await SportsMenuRepository.getMenuEntries()
   const sportsSlugCatalog = sportsMenuResult.data
@@ -47,7 +45,7 @@ async function AdminCreateEventNewContent({
     : EMPTY_ADMIN_SPORTS_SLUG_CATALOG
 
   const currentUser = await UserRepository.getCurrentUser()
-  const draftResult = (!shouldLoadSavedDraft && draftId && currentUser?.is_admin)
+  const draftResult = (draftId && currentUser?.is_admin)
     ? await EventCreationRepository.getDraftByIdForUser({
         draftId,
         userId: currentUser.id,
@@ -58,15 +56,20 @@ async function AdminCreateEventNewContent({
   const initialTitle = draftResult.data?.title ?? ''
   const initialSlug = draftResult.data?.slug ?? ''
   const initialEndDateIso = normalizeDateTimeLocalValue(
-    draftResult.data?.endDate ?? startAtValue,
+    effectiveMode === 'recurring'
+      ? (draftResult.data?.startAt ?? draftResult.data?.endDate ?? startAtValue)
+      : (draftResult.data?.endDate ?? startAtValue),
   )
+  const formKey = [
+    draftId || 'new',
+    effectiveMode,
+    startAtValue || 'no-start-at',
+  ].join(':')
 
   const title = effectiveMode === 'recurring' ? 'Create Recurring Event' : 'Create Event'
-  const description = shouldLoadSavedDraft
-    ? 'Resuming the current browser draft.'
-    : effectiveMode === 'recurring'
-      ? 'Build the base market draft that will power a recurring schedule.'
-      : 'Create a one-off event with the existing guided form.'
+  const description = effectiveMode === 'recurring'
+    ? 'Build the base market draft for a recurring schedule. The selected date is always the resolution date.'
+    : 'Create a one-off event with the existing guided form. The selected date is always the resolution date.'
 
   return (
     <>
@@ -85,6 +88,7 @@ async function AdminCreateEventNewContent({
 
       <div className="min-w-0">
         <AdminCreateEventForm
+          key={formKey}
           sportsSlugCatalog={sportsSlugCatalog}
           creationMode={effectiveMode}
           hasConfiguredServerSigners={hasConfiguredServerSigners}
@@ -93,7 +97,6 @@ async function AdminCreateEventNewContent({
           initialTitle={initialTitle}
           initialSlug={initialSlug ?? ''}
           initialEndDateIso={initialEndDateIso}
-          shouldLoadSavedDraft={shouldLoadSavedDraft}
           serverDraftPayload={draftResult.data?.draftPayload ?? null}
           serverAssetPayload={draftResult.data?.assetPayload ?? null}
         />

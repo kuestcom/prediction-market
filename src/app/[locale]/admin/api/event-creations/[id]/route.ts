@@ -157,3 +157,36 @@ export async function PATCH(request: NextRequest, { params }: EventCreationDraft
     )
   }
 }
+
+export async function DELETE(_request: NextRequest, { params }: EventCreationDraftRouteProps) {
+  try {
+    const currentUser = await UserRepository.getCurrentUser()
+    if (!currentUser || !currentUser.is_admin) {
+      return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
+    }
+
+    const { id } = await params
+    const { data, error } = await EventCreationRepository.deleteDraft({
+      draftId: id,
+      userId: currentUser.id,
+    })
+
+    if (error) {
+      return NextResponse.json({ error }, { status: error === 'Draft not found.' ? 404 : 500 })
+    }
+
+    return NextResponse.json({ data })
+  }
+  catch (error) {
+    console.error('API Error:', error)
+    return NextResponse.json(
+      {
+        error: DEFAULT_ERROR_MESSAGE,
+        ...(process.env.NODE_ENV !== 'production'
+          ? { detail: error instanceof Error ? error.message : String(error) }
+          : {}),
+      },
+      { status: 500 },
+    )
+  }
+}

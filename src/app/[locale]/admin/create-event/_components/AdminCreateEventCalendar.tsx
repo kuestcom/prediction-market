@@ -8,12 +8,12 @@ import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
-import { CalendarPlusIcon, ClipboardListIcon, CopyIcon, ImageIcon } from 'lucide-react'
+import { CalendarPlusIcon, ClipboardListIcon, CopyIcon, ImageIcon, SquarePenIcon, Trash2Icon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -27,17 +27,9 @@ import { useRouter } from '@/i18n/navigation'
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import { expandEventCreationOccurrences } from '@/lib/event-creation'
 
-const CREATE_EVENT_DRAFT_STORAGE_KEY = 'admin_create_event_draft_v2'
 const COPY_EVENT_FALLBACK_ICON_CLASS_NAME = 'flex size-14 items-center justify-center rounded-lg border text-muted-foreground'
 
 type CreationMode = 'single' | 'recurring'
-
-interface LocalDraftSummary {
-  id: string
-  title: string
-  endDateIso: string
-  currentStep: number
-}
 
 interface BackendDraftSummary {
   id: string
@@ -53,6 +45,7 @@ interface BackendDraftSummary {
   recurrenceInterval: number | null
   recurrenceUntil: string | null
   walletAddress: string | null
+  imageUrl: string | null
   updatedAt: string
 }
 
@@ -112,44 +105,16 @@ function formatDraftDateLabel(value: string) {
   return formatStartAtLabel(normalized)
 }
 
-function parseLocalDraft(raw: string | null): LocalDraftSummary | null {
-  if (!raw) {
-    return null
-  }
+function getDraftDisplayTitle(draft: Pick<BackendDraftSummary, 'title' | 'titleTemplate'>) {
+  return draft.title.trim() || draft.titleTemplate?.trim() || 'Draft without title'
+}
 
-  try {
-    const parsed = JSON.parse(raw) as {
-      form?: {
-        title?: unknown
-        endDateIso?: unknown
-      }
-      currentStep?: unknown
-    }
-
-    const title = typeof parsed.form?.title === 'string' && parsed.form.title.trim()
-      ? parsed.form.title.trim()
-      : 'Untitled draft'
-
-    const endDateIso = typeof parsed.form?.endDateIso === 'string'
-      ? normalizeDateTimeLocalValue(parsed.form.endDateIso)
-      : ''
-
-    const currentStepValue = Number(parsed.currentStep ?? 1)
-    return {
-      id: 'local-browser-draft',
-      title,
-      endDateIso,
-      currentStep: Number.isFinite(currentStepValue) ? Math.max(1, Math.floor(currentStepValue)) : 1,
-    }
-  }
-  catch {
-    return null
-  }
+function getDraftModeLabel(mode: CreationMode) {
+  return mode === 'recurring' ? 'Recurring' : 'Single'
 }
 
 export default function AdminCreateEventCalendar() {
   const router = useRouter()
-  const [localDraft, setLocalDraft] = useState<LocalDraftSummary | null>(null)
   const [backendDrafts, setBackendDrafts] = useState<BackendDraftSummary[]>([])
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(true)
   const [isCreatingDraft, setIsCreatingDraft] = useState(false)
@@ -158,6 +123,7 @@ export default function AdminCreateEventCalendar() {
   const [copySearch, setCopySearch] = useState('')
   const [copyResults, setCopyResults] = useState<AdminEventSearchResult[]>([])
   const [isSearchingCopy, setIsSearchingCopy] = useState(false)
+  const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null)
   const latestCopySearchRequestIdRef = useRef(0)
   const [newEventDialogOpen, setNewEventDialogOpen] = useState(false)
   const [recurringWalletSetupDialogOpen, setRecurringWalletSetupDialogOpen] = useState(false)
@@ -166,21 +132,6 @@ export default function AdminCreateEventCalendar() {
 
   useEffect(() => {
     setSelectedStartAt(buildDefaultStartAt(readCurrentTimeMs()))
-  }, [])
-
-  useEffect(() => {
-    function syncDraft() {
-      if (typeof window === 'undefined') {
-        return
-      }
-
-      setLocalDraft(parseLocalDraft(window.localStorage.getItem(CREATE_EVENT_DRAFT_STORAGE_KEY)))
-    }
-
-    syncDraft()
-    window.addEventListener('storage', syncDraft)
-
-    return () => window.removeEventListener('storage', syncDraft)
   }, [])
 
   useEffect(() => {
@@ -315,71 +266,57 @@ export default function AdminCreateEventCalendar() {
     }
   }, [copyDialogOpen, copySearch])
 
-  const events: EventInput[] = [
-    ...backendDrafts.flatMap((draft) => {
-      const occurrences = expandEventCreationOccurrences({
-        id: draft.id,
-        title: draft.title,
-        slug: draft.slug,
-        titleTemplate: draft.titleTemplate,
-        slugTemplate: draft.slugTemplate,
-        startAt: draft.startAt || draft.updatedAt,
-        status: draft.status,
-        creationMode: draft.creationMode,
-        recurrenceUnit: draft.recurrenceUnit,
-        recurrenceInterval: draft.recurrenceInterval,
-        recurrenceUntil: draft.recurrenceUntil,
-        maxOccurrences: draft.creationMode === 'recurring' ? 10 : 1,
-      })
+  const events: EventInput[] = backendDrafts.flatMap((draft) => {
+    const displayTitle = getDraftDisplayTitle(draft)
+    const occurrences = expandEventCreationOccurrences({
+      id: draft.id,
+      title: draft.title || displayTitle,
+      slug: draft.slug,
+      titleTemplate: draft.titleTemplate,
+      slugTemplate: draft.slugTemplate,
+      startAt: draft.startAt || draft.updatedAt,
+      status: draft.status,
+      creationMode: draft.creationMode,
+      recurrenceUnit: draft.recurrenceUnit,
+      recurrenceInterval: draft.recurrenceInterval,
+      recurrenceUntil: draft.recurrenceUntil,
+      maxOccurrences: draft.creationMode === 'recurring' ? 10 : 1,
+    })
 
-      return occurrences.map((occurrence) => {
-        const palette = occurrence.status === 'scheduled'
+    return occurrences.map((occurrence) => {
+      const palette = occurrence.status === 'scheduled'
+        ? {
+            backgroundColor: 'hsl(var(--primary))',
+            borderColor: 'hsl(var(--primary))',
+            textColor: 'hsl(var(--primary-foreground))',
+          }
+        : occurrence.status === 'failed'
           ? {
-              backgroundColor: 'hsl(var(--primary))',
-              borderColor: 'hsl(var(--primary))',
-              textColor: 'hsl(var(--primary-foreground))',
+              backgroundColor: 'hsl(var(--destructive))',
+              borderColor: 'hsl(var(--destructive))',
+              textColor: 'hsl(var(--destructive-foreground))',
             }
-          : occurrence.status === 'failed'
-            ? {
-                backgroundColor: 'hsl(var(--destructive))',
-                borderColor: 'hsl(var(--destructive))',
-                textColor: 'hsl(var(--destructive-foreground))',
-              }
-            : {
-                backgroundColor: 'hsl(var(--secondary))',
-                borderColor: 'hsl(var(--border))',
-                textColor: 'hsl(var(--secondary-foreground))',
-              }
+          : {
+              backgroundColor: 'hsl(var(--secondary))',
+              borderColor: 'hsl(var(--border))',
+              textColor: 'hsl(var(--secondary-foreground))',
+            }
 
-        return {
-          id: occurrence.id,
-          title: occurrence.isRecurringInstance ? `${occurrence.title} · recurrence` : occurrence.title,
-          start: occurrence.startAt,
-          allDay: false,
-          ...palette,
-          extendedProps: {
-            kind: 'backend-draft',
-            draftId: draft.id,
-          },
-        } satisfies EventInput
-      })
-    }),
-    ...(localDraft
-      ? [
-          {
-            id: localDraft.id,
-            title: localDraft.title,
-            start: localDraft.endDateIso || selectedStartAt || undefined,
-            allDay: !localDraft.endDateIso && !selectedStartAt,
-            backgroundColor: 'hsl(var(--muted-foreground))',
-            borderColor: 'hsl(var(--muted-foreground))',
-            extendedProps: {
-              kind: 'local-draft',
-            },
-          } satisfies EventInput,
-        ]
-      : []),
-  ]
+      return {
+        id: occurrence.id,
+        title: occurrence.isRecurringInstance
+          ? `${occurrence.title || displayTitle} · recurrence`
+          : (occurrence.title || displayTitle),
+        start: occurrence.startAt,
+        allDay: false,
+        ...palette,
+        extendedProps: {
+          kind: 'backend-draft',
+          draftId: draft.id,
+        },
+      } satisfies EventInput
+    })
+  })
 
   function openNewEventDialog(startAt?: string) {
     setSelectedStartAt(startAt || buildDefaultStartAt(readCurrentTimeMs()))
@@ -461,8 +398,32 @@ export default function AdminCreateEventCalendar() {
     }
   }
 
-  function handleResumeLocalDraft() {
-    router.push('/admin/create-event/new?resume=local-draft' as Route)
+  async function handleDeleteBackendDraft(draftId: string) {
+    // eslint-disable-next-line no-alert
+    if (typeof window !== 'undefined' && !window.confirm('Delete this draft?')) {
+      return
+    }
+
+    try {
+      setDeletingDraftId(draftId)
+      const response = await fetch(`/admin/api/event-creations/${draftId}`, {
+        method: 'DELETE',
+      })
+      const payload = await response.json().catch(() => null) as { error?: string } | null
+      if (!response.ok) {
+        throw new Error(payload?.error || `Could not delete draft (${response.status})`)
+      }
+
+      setBackendDrafts(previous => previous.filter(item => item.id !== draftId))
+      toast.success('Draft deleted.')
+    }
+    catch (error) {
+      console.error('Failed to delete event creation draft', error)
+      toast.error(error instanceof Error ? error.message : 'Could not delete draft.')
+    }
+    finally {
+      setDeletingDraftId(null)
+    }
   }
 
   function handleDateClick(info: DateClickArg) {
@@ -471,11 +432,6 @@ export default function AdminCreateEventCalendar() {
 
   function handleEventClick(info: EventClickArg) {
     const eventKind = info.event.extendedProps.kind
-
-    if (eventKind === 'local-draft') {
-      handleResumeLocalDraft()
-      return
-    }
 
     if (eventKind === 'backend-draft') {
       const draftId = typeof info.event.extendedProps.draftId === 'string'
@@ -491,100 +447,65 @@ export default function AdminCreateEventCalendar() {
   return (
     <>
       <section className="grid gap-4">
-        <div className="grid gap-2">
-          <h1 className="text-2xl font-semibold">Event Calendar</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage creation drafts from the calendar, then jump into the existing form for unique or recurring flows.
-          </p>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="grid gap-2">
+            <h1 className="text-2xl font-semibold">Event Calendar</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage, schedule, and create your own events.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+            <Button type="button" className="justify-center" onClick={() => openNewEventDialog()}>
+              <CalendarPlusIcon className="size-4" />
+              New
+            </Button>
+            <Button type="button" variant="outline" className="justify-center" onClick={() => setDraftsDialogOpen(true)}>
+              <ClipboardListIcon className="size-4" />
+              Drafts
+            </Button>
+            <Button type="button" variant="outline" className="justify-center" onClick={() => setCopyDialogOpen(true)}>
+              <CopyIcon className="size-4" />
+              Clone
+            </Button>
+          </div>
         </div>
 
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="min-w-0 rounded-sm border bg-transparent p-4 shadow-none">
-            <div data-create-event-calendar className="overflow-hidden">
-              <FullCalendar
-                plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
-                initialView="dayGridMonth"
-                height="auto"
-                selectable
-                weekends
-                headerToolbar={{
-                  left: 'prev,next today',
-                  center: 'title',
-                  right: 'dayGridMonth,timeGridWeek,listMonth',
-                }}
-                buttonText={{
-                  today: 'Today',
-                  month: 'Month',
-                  week: 'Week',
-                  list: 'Agenda',
-                }}
-                events={events}
-                dateClick={handleDateClick}
-                select={selection => openNewEventDialog(normalizeCalendarSelection(selection.start, selection.allDay))}
-                eventClick={handleEventClick}
-                dayMaxEventRows={3}
-                eventTimeFormat={{
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  meridiem: 'short',
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="grid content-start gap-4">
-            <Card className="border bg-transparent shadow-none">
-              <CardHeader className="pt-8 text-center">
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col justify-center gap-3 pb-8">
-                <Button type="button" className="w-full justify-center" onClick={() => openNewEventDialog()}>
-                  <CalendarPlusIcon className="size-4" />
-                  Create from scratch
-                </Button>
-                <Button type="button" variant="outline" className="w-full justify-center" onClick={() => setDraftsDialogOpen(true)}>
-                  <ClipboardListIcon className="size-4" />
-                  Open drafts
-                </Button>
-                <Button type="button" variant="outline" className="w-full justify-center" onClick={() => setCopyDialogOpen(true)}>
-                  <CopyIcon className="size-4" />
-                  Copy existing event
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="border bg-transparent shadow-none">
-              <CardHeader className="pt-8 text-center">
-                <CardTitle>Current Draft</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col justify-center gap-3 pb-8 text-center">
-                {localDraft
-                  ? (
-                      <>
-                        <div className="grid gap-1">
-                          <p className="font-medium text-foreground">{localDraft.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatDraftDateLabel(localDraft.endDateIso)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Resumes at step
-                            {' '}
-                            {localDraft.currentStep}
-                            .
-                          </p>
-                        </div>
-                        <Button type="button" variant="outline" className="mx-auto" onClick={handleResumeLocalDraft}>
-                          Resume Draft
-                        </Button>
-                      </>
-                    )
-                  : (
-                      <p className="text-sm text-muted-foreground">
-                        No browser draft found yet. Create a new event to start one.
-                      </p>
-                    )}
-              </CardContent>
-            </Card>
+        <div className="min-w-0 rounded-sm border bg-transparent p-4 shadow-none">
+          <div data-create-event-calendar className="overflow-hidden">
+            <FullCalendar
+              plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              height="auto"
+              selectable
+              weekends
+              headerToolbar={{
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,listMonth',
+              }}
+              buttonText={{
+                today: 'Today',
+                month: 'Month',
+                week: 'Week',
+                list: 'Agenda',
+              }}
+              events={events}
+              dateClick={handleDateClick}
+              select={selection => openNewEventDialog(normalizeCalendarSelection(selection.start, selection.allDay))}
+              eventClick={handleEventClick}
+              eventDidMount={(info) => {
+                const fullLabel = info.timeText
+                  ? `${info.timeText} ${info.event.title}`
+                  : info.event.title
+                info.el.setAttribute('title', fullLabel)
+              }}
+              dayMaxEventRows={3}
+              eventTimeFormat={{
+                hour: 'numeric',
+                minute: '2-digit',
+                meridiem: 'short',
+              }}
+            />
           </div>
         </div>
       </section>
@@ -594,7 +515,7 @@ export default function AdminCreateEventCalendar() {
           <DialogHeader>
             <DialogTitle>Create Event</DialogTitle>
             <DialogDescription>
-              Selected slot:
+              Selected resolution date:
               {' '}
               {formatStartAtLabel(selectedStartAt)}
             </DialogDescription>
@@ -609,7 +530,7 @@ export default function AdminCreateEventCalendar() {
               <span className="text-left">
                 <span className="block font-medium">Unique event</span>
                 <span className="block text-xs text-primary-foreground/80">
-                  Start with the current form for a one-off event.
+                  Use this date as the resolution date for a one-off event.
                 </span>
               </span>
             </Button>
@@ -630,7 +551,7 @@ export default function AdminCreateEventCalendar() {
               <span className="text-left">
                 <span className="block font-medium">Recurring event</span>
                 <span className="block text-xs text-muted-foreground">
-                  Open the form as the base draft for a recurring schedule.
+                  Use this date as the first resolution date for the recurring schedule.
                 </span>
               </span>
             </Button>
@@ -668,11 +589,11 @@ export default function AdminCreateEventCalendar() {
       </Dialog>
 
       <Dialog open={draftsDialogOpen} onOpenChange={setDraftsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Drafts</DialogTitle>
             <DialogDescription>
-              Resume a server draft or keep using the browser draft while autosave evolves.
+              Resume or delete saved drafts.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
@@ -682,41 +603,70 @@ export default function AdminCreateEventCalendar() {
               </p>
             )}
 
-            {!isLoadingDrafts && backendDrafts.map(draft => (
-              <Card key={draft.id}>
-                <CardHeader className="px-4">
-                  <CardTitle className="text-base">{draft.title}</CardTitle>
-                  <CardDescription>
-                    {draft.startAt ? formatDraftDateLabel(draft.startAt) : 'No calendar slot yet'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => openServerDraft(draft.id, draft.creationMode, draft.startAt)}
-                  >
-                    Resume Draft
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+            {!isLoadingDrafts && (
+              <div className="grid max-h-[420px] gap-3 overflow-y-auto pr-1">
+                {backendDrafts.map((draft) => {
+                  const displayTitle = getDraftDisplayTitle(draft)
 
-            {localDraft && (
-              <Card>
-                <CardHeader className="px-4">
-                  <CardTitle className="text-base">{localDraft.title}</CardTitle>
-                  <CardDescription>{formatDraftDateLabel(localDraft.endDateIso)}</CardDescription>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <Button type="button" variant="outline" onClick={handleResumeLocalDraft}>
-                    Resume Browser Draft
-                  </Button>
-                </CardContent>
-              </Card>
+                  return (
+                    <Card key={draft.id} className="border bg-transparent shadow-none">
+                      <CardContent className="flex items-center gap-3 p-3">
+                        {draft.imageUrl
+                          ? (
+                              <EventIconImage
+                                src={draft.imageUrl}
+                                alt={displayTitle}
+                                sizes="56px"
+                                containerClassName="size-14 shrink-0 rounded-lg border"
+                              />
+                            )
+                          : (
+                              <div className={COPY_EVENT_FALLBACK_ICON_CLASS_NAME}>
+                                <ImageIcon className="size-5" />
+                              </div>
+                            )}
+
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p className="truncate font-medium text-foreground">{displayTitle}</p>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            <span>{draft.startAt ? formatDraftDateLabel(draft.startAt) : 'No calendar slot yet'}</span>
+                            <span className="rounded-sm border border-border/70 px-1.5 py-0.5">
+                              {getDraftModeLabel(draft.creationMode)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-md"
+                            aria-label="Edit draft"
+                            onClick={() => openServerDraft(draft.id, draft.creationMode, draft.startAt)}
+                          >
+                            <SquarePenIcon className="size-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-md text-destructive hover:text-destructive"
+                            aria-label="Delete draft"
+                            disabled={deletingDraftId === draft.id}
+                            onClick={() => void handleDeleteBackendDraft(draft.id)}
+                          >
+                            <Trash2Icon className="size-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
             )}
 
-            {!isLoadingDrafts && backendDrafts.length === 0 && !localDraft && (
+            {!isLoadingDrafts && backendDrafts.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 No drafts available yet.
               </p>
@@ -728,7 +678,7 @@ export default function AdminCreateEventCalendar() {
       <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Copy Existing Event</DialogTitle>
+            <DialogTitle>Clone Existing Event</DialogTitle>
             <DialogDescription>
               Search an existing event and generate a new draft from it.
             </DialogDescription>
@@ -753,44 +703,52 @@ export default function AdminCreateEventCalendar() {
             )}
 
             {!isSearchingCopy && copyResults.length > 0 && (
-              <div className="grid max-h-[320px] gap-3 overflow-y-auto pr-1">
+              <div className="grid max-h-[280px] gap-2 overflow-y-auto pr-1">
                 {copyResults.map((result) => {
                   const eventIconUrl = result.icon_url?.trim() || ''
 
                   return (
-                    <Card key={result.id}>
-                      <CardHeader className="px-4">
-                        <div className="flex items-center gap-3">
+                    <Card key={result.id} className="border bg-transparent shadow-none">
+                      <CardContent className="flex items-center gap-3 p-3">
+                        <div className="shrink-0">
                           {eventIconUrl
                             ? (
                                 <EventIconImage
                                   src={eventIconUrl}
                                   alt={result.title}
-                                  sizes="56px"
-                                  containerClassName="size-14 rounded-lg border"
+                                  sizes="48px"
+                                  containerClassName="size-12 rounded-lg border"
                                 />
                               )
                             : (
-                                <div className={COPY_EVENT_FALLBACK_ICON_CLASS_NAME}>
+                                <div className="
+                                  flex size-12 items-center justify-center rounded-lg border text-muted-foreground
+                                "
+                                >
                                   <ImageIcon className="size-5" />
                                 </div>
                               )}
-                          <div className="min-w-0">
-                            <CardTitle className="truncate text-base">{result.title}</CardTitle>
-                            <CardDescription>
-                              {result.end_date ? formatDraftDateLabel(result.end_date) : result.slug}
-                            </CardDescription>
-                          </div>
                         </div>
-                      </CardHeader>
-                      <CardContent className="px-4 pb-4">
+
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p className="truncate text-sm font-medium text-foreground" title={result.title}>
+                            {result.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {result.end_date ? formatDraftDateLabel(result.end_date) : result.slug}
+                          </p>
+                        </div>
+
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="ghost"
+                          size="icon"
+                          className="rounded-md"
+                          aria-label="Clone event into draft"
                           disabled={isCreatingDraft}
                           onClick={() => void createDraftAndOpen('single', result.end_date ?? undefined, result.id)}
                         >
-                          Copy to Draft
+                          <CopyIcon className="size-4" />
                         </Button>
                       </CardContent>
                     </Card>
@@ -850,6 +808,20 @@ export default function AdminCreateEventCalendar() {
         [data-create-event-calendar] .fc .fc-event {
           border-radius: 0.35rem;
           padding: 0.1rem 0.2rem;
+        }
+
+        [data-create-event-calendar] .fc .fc-daygrid-event {
+          font-size: 0.625rem;
+        }
+
+        [data-create-event-calendar] .fc .fc-daygrid-event .fc-event-time {
+          display: none;
+        }
+
+        [data-create-event-calendar] .fc .fc-daygrid-event .fc-event-title {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         [data-create-event-calendar] .fc .fc-col-header-cell-cushion,

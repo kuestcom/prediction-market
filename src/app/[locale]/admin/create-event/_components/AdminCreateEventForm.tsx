@@ -1,5 +1,6 @@
 'use client'
 
+import type { Route } from 'next'
 import type { ChangeEvent } from 'react'
 import type {
   AdminSportsCustomMarketState,
@@ -61,7 +62,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { Link } from '@/i18n/navigation'
+import { Link, useRouter } from '@/i18n/navigation'
 import {
   buildAdminSportsDerivedContent,
   buildAdminSportsStepErrors,
@@ -77,7 +78,17 @@ import {
 } from '@/lib/admin-sports-market-types'
 import { defaultNetwork } from '@/lib/appkit'
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
-import { applyEventCreationTemplate, buildDefaultDeployAt, normalizeEventCreationAssetPayload } from '@/lib/event-creation'
+import {
+  addRecurrenceInterval,
+  appendEventCreationSlugSuffix,
+  applyEventCreationTemplate,
+  buildDefaultDeployAt,
+  buildEventCreationTimestampSeed,
+  buildEventCreationWalletTail,
+  buildImmediateDeployAt,
+  buildScheduledRecurringDeployAt,
+  normalizeEventCreationAssetPayload,
+} from '@/lib/event-creation'
 import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID, POLYGON_SCAN_BASE } from '@/lib/network'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
@@ -89,7 +100,6 @@ const TOTAL_STEPS = 5
 const MIN_SUB_CATEGORIES = 4
 const USDC_DECIMALS = 6
 const FALLBACK_REQUIRED_USDC = 5
-const CREATE_EVENT_DRAFT_STORAGE_KEY = 'admin_create_event_draft_v2'
 const CREATE_EVENT_SIGNATURE_STORAGE_KEY = 'admin_create_event_signature_flow_v1'
 const TITLE_CATEGORY_MIN_LENGTH = 4
 const CONTENT_CHECK_PROGRESS_INTERVAL_MS = 1400
@@ -272,7 +282,6 @@ interface AdminCreateEventFormProps {
   initialTitle?: string
   initialSlug?: string
   initialEndDateIso?: string
-  shouldLoadSavedDraft?: boolean
   hasConfiguredServerSigners?: boolean
   serverDraftPayload?: Record<string, unknown> | null
   serverAssetPayload?: EventCreationAssetPayload | null
@@ -281,12 +290,12 @@ interface AdminCreateEventFormProps {
 const RECURRENCE_OPTIONS: Array<{ value: EventCreationRecurrenceUnit, label: string }> = [
   { value: 'minute', label: 'Minutes' },
   { value: 'hour', label: 'Hours' },
-  { value: 'day', label: 'Daily' },
-  { value: 'week', label: 'Weekly' },
-  { value: 'month', label: 'Monthly' },
-  { value: 'quarter', label: 'Quarterly' },
+  { value: 'day', label: 'Days' },
+  { value: 'week', label: 'Weeks' },
+  { value: 'month', label: 'Months' },
+  { value: 'quarter', label: 'Quarters' },
   { value: 'semiannual', label: '6 months' },
-  { value: 'year', label: 'Yearly' },
+  { value: 'year', label: 'Years' },
 ]
 
 const TEMPLATE_TOKEN_EXAMPLES = [
@@ -398,6 +407,31 @@ function readApiError(payload: unknown): string | null {
   }
 
   return null
+}
+
+function formatEventScheduleLabel(value: Date | null) {
+  if (!value || Number.isNaN(value.getTime())) {
+    return ''
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(value)
+}
+
+function hasRecurringDeploymentHistory(record: EventCreationDraftRecord | null | undefined) {
+  if (!record || record.creationMode !== 'recurring' || !record.startAt || !record.endDate) {
+    return false
+  }
+
+  const startAt = new Date(record.startAt)
+  const endDate = new Date(record.endDate)
+  if (Number.isNaN(startAt.getTime()) || Number.isNaN(endDate.getTime())) {
+    return false
+  }
+
+  return startAt.getTime() !== endDate.getTime()
 }
 
 async function readResponseBody(response: Response): Promise<{
@@ -523,25 +557,6 @@ function isPrepareAcceptedResponse(payload: unknown): payload is PrepareAccepted
     && typeof candidate.chainId === 'number'
     && typeof candidate.creator === 'string'
     && typeof candidate.status === 'string'
-}
-
-function isSignatureTxStatus(value: unknown): value is SignatureTxStatus {
-  return value === 'idle'
-    || value === 'awaiting_wallet'
-    || value === 'confirming'
-    || value === 'success'
-    || value === 'error'
-}
-
-function isSignatureExecutionTx(payload: unknown): payload is SignatureExecutionTx {
-  if (!isPrepareTxPlanItem(payload)) {
-    return false
-  }
-
-  const candidate = payload as Partial<SignatureExecutionTx>
-  return isSignatureTxStatus(candidate.status)
-    && (candidate.hash === undefined || typeof candidate.hash === 'string')
-    && (candidate.error === undefined || typeof candidate.error === 'string')
 }
 
 function formatSignatureCountdown(totalSeconds: number): string {
@@ -696,6 +711,43 @@ function slugify(text: string) {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '')
+}
+
+function normalizeTemplateToken(token: string) {
+  const match = token.match(/\{\{\s*([a-z_]+)\s*\}\}/i)
+  return match?.[1] ? `{{${match[1].toLowerCase()}}}` : token.trim()
+}
+
+function slugifyTemplate(text: string) {
+  const trimmed = text.trim()
+  if (!trimmed) {
+    return ''
+  }
+
+  const tokens = trimmed.match(/\{\{\s*[a-z_]+\s*\}\}/gi) ?? []
+  const parts = trimmed.split(/\{\{\s*[a-z_]+\s*\}\}/gi)
+  const segments: string[] = []
+
+  parts.forEach((part, index) => {
+    const slugPart = slugify(part)
+    if (slugPart) {
+      segments.push(slugPart)
+    }
+
+    const token = tokens[index]
+    if (token) {
+      segments.push(normalizeTemplateToken(token))
+    }
+  })
+
+  return segments
+    .join('-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function shortenAddress(address: string) {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
 function isValidUrl(value: string) {
@@ -1119,11 +1171,11 @@ export default function AdminCreateEventForm({
   initialTitle = '',
   initialSlug = '',
   initialEndDateIso = '',
-  shouldLoadSavedDraft = true,
   hasConfiguredServerSigners = true,
   serverDraftPayload = null,
   serverAssetPayload = null,
 }: AdminCreateEventFormProps) {
+  const router = useRouter()
   const { address: connectedAddress } = useAppKitAccount()
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient()
@@ -1148,6 +1200,10 @@ export default function AdminCreateEventForm({
     }
     return getAddress(candidate)
   }, [connectedAddress, user?.address])
+  const eoaShortAddress = useMemo(
+    () => (eoaAddress ? shortenAddress(eoaAddress) : ''),
+    [eoaAddress],
+  )
 
   const [currentStep, setCurrentStep] = useState(1)
   const [maxVisitedStep, setMaxVisitedStep] = useState(1)
@@ -1226,6 +1282,7 @@ export default function AdminCreateEventForm({
   const [isBinaryOutcomesEditable, setIsBinaryOutcomesEditable] = useState(false)
   const [areMultiOutcomesEditable, setAreMultiOutcomesEditable] = useState(false)
   const [slugSeed, setSlugSeed] = useState('0')
+  const [clientNowMs, setClientNowMs] = useState(0)
   const [previewSiteOrigin, setPreviewSiteOrigin] = useState('https://your-site.com')
   const [isCustomSportSlug, setIsCustomSportSlug] = useState(false)
   const [isCustomLeagueSlug, setIsCustomLeagueSlug] = useState(false)
@@ -1321,9 +1378,15 @@ export default function AdminCreateEventForm({
 
     return isKnownLeagueSlug ? normalizedLeagueSlug : undefined
   }, [isCustomLeagueSlug, isKnownLeagueSlug, normalizedLeagueSlug])
+  const slugWalletAddress = useMemo(
+    () => creationMode === 'recurring'
+      ? automaticWalletAddress.trim()
+      : (eoaAddress || ''),
+    [automaticWalletAddress, creationMode, eoaAddress],
+  )
   const creatorSlugTail = useMemo(
-    () => (eoaAddress ? eoaAddress.replace(/^0x/, '').slice(-3).toLowerCase() : '000'),
-    [eoaAddress],
+    () => buildEventCreationWalletTail(slugWalletAddress),
+    [slugWalletAddress],
   )
   const slugSuffix = useMemo(
     () => `${slugSeed}${creatorSlugTail}`,
@@ -1332,7 +1395,7 @@ export default function AdminCreateEventForm({
   const baseEventSlug = useMemo(
     () => {
       const base = slugify(form.title)
-      return base ? `${base}-${slugSuffix}` : ''
+      return appendEventCreationSlugSuffix(base, slugSuffix)
     },
     [form.title, slugSuffix],
   )
@@ -1343,6 +1406,10 @@ export default function AdminCreateEventForm({
     }),
     [baseEventSlug, sportsForm],
   )
+
+  useEffect(() => {
+    setClientNowMs(Date.now())
+  }, [])
 
   useEffect(() => {
     if (!sportsForm.sportSlug.trim()) {
@@ -1505,13 +1572,55 @@ export default function AdminCreateEventForm({
     const parsed = new Date(scheduleDateValue)
     return Number.isNaN(parsed.getTime()) ? null : parsed
   }, [scheduleDateValue])
+  const recurrenceIntervalNumber = useMemo(
+    () => Math.max(1, Number.parseInt(recurrenceInterval || '1', 10) || 1),
+    [recurrenceInterval],
+  )
+  const hasRecurringDeployHistory = useMemo(
+    () => creationMode === 'recurring' && hasRecurringDeploymentHistory(initialDraftRecord),
+    [creationMode, initialDraftRecord],
+  )
   const automaticDeployAtIso = useMemo(() => {
     if (!scheduleOccurrenceDate) {
       return null
     }
 
-    return buildDefaultDeployAt(scheduleOccurrenceDate)?.toISOString() ?? null
-  }, [scheduleOccurrenceDate])
+    if (creationMode !== 'recurring') {
+      return buildDefaultDeployAt(scheduleOccurrenceDate)?.toISOString() ?? null
+    }
+
+    if (!hasRecurringDeployHistory) {
+      return buildImmediateDeployAt(clientNowMs)?.toISOString() ?? null
+    }
+
+    return buildScheduledRecurringDeployAt(
+      scheduleOccurrenceDate,
+      recurrenceUnit || null,
+      recurrenceIntervalNumber,
+    )?.toISOString() ?? null
+  }, [clientNowMs, creationMode, hasRecurringDeployHistory, recurrenceIntervalNumber, recurrenceUnit, scheduleOccurrenceDate])
+  const automaticDeployAtDate = useMemo(() => {
+    if (!automaticDeployAtIso) {
+      return null
+    }
+
+    const parsed = new Date(automaticDeployAtIso)
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+  }, [automaticDeployAtIso])
+  const nextRecurringResolutionDate = useMemo(() => {
+    if (creationMode !== 'recurring' || !scheduleOccurrenceDate || !recurrenceUnit) {
+      return null
+    }
+
+    return addRecurrenceInterval(scheduleOccurrenceDate, recurrenceUnit, recurrenceIntervalNumber)
+  }, [creationMode, recurrenceIntervalNumber, recurrenceUnit, scheduleOccurrenceDate])
+  const nextRecurringDeployDate = useMemo(() => {
+    if (!nextRecurringResolutionDate || !recurrenceUnit) {
+      return null
+    }
+
+    return buildScheduledRecurringDeployAt(nextRecurringResolutionDate, recurrenceUnit, recurrenceIntervalNumber)
+  }, [nextRecurringResolutionDate, recurrenceIntervalNumber, recurrenceUnit])
   const recurringResolvedTitle = useMemo(() => {
     if (creationMode !== 'recurring') {
       return ''
@@ -1528,13 +1637,37 @@ export default function AdminCreateEventForm({
 
     return applyEventCreationTemplate(baseTemplate, scheduleOccurrenceDate, baseTemplate).trim() || baseTemplate
   }, [creationMode, scheduleOccurrenceDate, titleTemplate])
+  const derivedRecurringSlugTemplate = useMemo(() => {
+    if (creationMode !== 'recurring') {
+      return ''
+    }
+
+    return slugifyTemplate(titleTemplate)
+  }, [creationMode, titleTemplate])
+  const recurringSlugSuffix = useMemo(() => {
+    if (creationMode !== 'recurring') {
+      return ''
+    }
+
+    const timestampSeed = scheduleOccurrenceDate
+      ? buildEventCreationTimestampSeed(scheduleOccurrenceDate)
+      : slugSeed
+
+    return `${timestampSeed}${creatorSlugTail}`
+  }, [creationMode, creatorSlugTail, scheduleOccurrenceDate, slugSeed])
+  const effectiveRecurringSlugTemplate = useMemo(() => {
+    if (creationMode !== 'recurring') {
+      return ''
+    }
+
+    return slugTemplate.trim() || derivedRecurringSlugTemplate
+  }, [creationMode, derivedRecurringSlugTemplate, slugTemplate])
   const recurringResolvedSlug = useMemo(() => {
     if (creationMode !== 'recurring') {
       return ''
     }
 
-    const baseTemplate = slugTemplate.trim()
-      || slugify(titleTemplate)
+    const baseTemplate = effectiveRecurringSlugTemplate
       || slugify(recurringResolvedTitle)
     if (!baseTemplate) {
       return ''
@@ -1544,8 +1677,12 @@ export default function AdminCreateEventForm({
       ? applyEventCreationTemplate(baseTemplate, scheduleOccurrenceDate, baseTemplate)
       : baseTemplate
 
-    return slugify(rawSlug || baseTemplate)
-  }, [creationMode, recurringResolvedTitle, scheduleOccurrenceDate, slugTemplate, titleTemplate])
+    if (!scheduleOccurrenceDate) {
+      return appendEventCreationSlugSuffix(baseTemplate, recurringSlugSuffix)
+    }
+
+    return appendEventCreationSlugSuffix(slugify(rawSlug || baseTemplate), recurringSlugSuffix)
+  }, [creationMode, effectiveRecurringSlugTemplate, recurringResolvedTitle, recurringSlugSuffix, scheduleOccurrenceDate])
   const recurringRequiresServerWalletSetup = creationMode === 'recurring' && !hasConfiguredServerSigners
 
   const stepLabels = useMemo(
@@ -1555,7 +1692,7 @@ export default function AdminCreateEventForm({
   const previewEndDate = useMemo(() => {
     const normalizedEndDate = normalizeDateTimeLocalValue(form.endDateIso)
     if (!normalizedEndDate) {
-      return 'End date not set'
+      return 'Resolution date not set'
     }
     const parsed = new Date(normalizedEndDate)
     if (Number.isNaN(parsed.getTime())) {
@@ -1563,13 +1700,25 @@ export default function AdminCreateEventForm({
     }
     return parsed.toLocaleString()
   }, [form.endDateIso])
+  const previewTitle = useMemo(
+    () => creationMode === 'recurring'
+      ? (recurringResolvedTitle || titleTemplate.trim() || 'Untitled event')
+      : (form.title || 'Untitled event'),
+    [creationMode, form.title, recurringResolvedTitle, titleTemplate],
+  )
+  const previewSlug = useMemo(
+    () => creationMode === 'recurring'
+      ? (recurringResolvedSlug || effectiveRecurringSlugTemplate || 'event-slug')
+      : (form.slug || 'event-slug'),
+    [creationMode, effectiveRecurringSlugTemplate, form.slug, recurringResolvedSlug],
+  )
   const previewMarkets = useMemo(() => {
     if (form.marketMode === 'binary') {
       return [
         {
           key: 'binary',
-          title: form.title.trim(),
-          question: (form.title || form.binaryQuestion).trim(),
+          title: previewTitle.trim(),
+          question: (previewTitle || form.binaryQuestion).trim(),
           shortName: '',
           outcomeYes: form.binaryOutcomeYes.trim() || 'Yes',
           outcomeNo: form.binaryOutcomeNo.trim() || 'No',
@@ -1598,16 +1747,16 @@ export default function AdminCreateEventForm({
     form.binaryQuestion,
     form.marketMode,
     form.options,
-    form.title,
     optionImagePreviewUrls,
+    previewTitle,
   ])
   const tradePreviewMarket = useMemo(
     () => previewMarkets[0] ?? null,
     [previewMarkets],
   )
   const previewEventUrl = useMemo(
-    () => `${previewSiteOrigin}/event/${form.slug || 'event-slug'}`,
-    [form.slug, previewSiteOrigin],
+    () => `${previewSiteOrigin}/event/${previewSlug}`,
+    [previewSiteOrigin, previewSlug],
   )
   const isMultiMarketPreview = form.marketMode === 'multi_multiple' || form.marketMode === 'multi_unique'
 
@@ -2021,13 +2170,24 @@ export default function AdminCreateEventForm({
   }, [])
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (automaticWalletAddress) {
       return
     }
 
-    const source = shouldLoadSavedDraft
-      ? window.localStorage.getItem(CREATE_EVENT_DRAFT_STORAGE_KEY)
-      : serverDraftPayload
+    if (creationMode === 'recurring') {
+      if (signers.length === 1) {
+        setAutomaticWalletAddress(signers[0]!.address)
+      }
+      return
+    }
+
+    if (!eoaAddress && signers.length === 1) {
+      setAutomaticWalletAddress(signers[0]!.address)
+    }
+  }, [automaticWalletAddress, creationMode, eoaAddress, signers])
+
+  useEffect(() => {
+    const source = serverDraftPayload
 
     if (!source) {
       setSlugSeed(Math.floor(Date.now() / 1000).toString())
@@ -2104,9 +2264,11 @@ export default function AdminCreateEventForm({
         setForm({
           title: typeof parsed.form.title === 'string' ? parsed.form.title : fallback.title,
           slug: typeof parsed.form.slug === 'string' ? parsed.form.slug : fallback.slug,
-          endDateIso: typeof parsed.form.endDateIso === 'string'
-            ? normalizeDateTimeLocalValue(parsed.form.endDateIso)
-            : fallback.endDateIso,
+          endDateIso: creationMode === 'recurring' && normalizedInitialEndDateIso
+            ? normalizedInitialEndDateIso
+            : typeof parsed.form.endDateIso === 'string'
+              ? normalizeDateTimeLocalValue(parsed.form.endDateIso)
+              : fallback.endDateIso,
           mainCategorySlug: typeof parsed.form.mainCategorySlug === 'string' ? parsed.form.mainCategorySlug : fallback.mainCategorySlug,
           categories: Array.isArray(parsed.form.categories)
             ? parsed.form.categories
@@ -2261,6 +2423,7 @@ export default function AdminCreateEventForm({
       setSlugSeed(Math.floor(Date.now() / 1000).toString())
     }
   }, [
+    creationMode,
     initialRecurrenceInterval,
     initialRecurrenceUnit,
     initialSlugTemplate,
@@ -2271,100 +2434,6 @@ export default function AdminCreateEventForm({
     normalizedInitialTitle,
     serverAssetPayload,
     serverDraftPayload,
-    shouldLoadSavedDraft,
-  ])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    if (!shouldLoadSavedDraft) {
-      return
-    }
-
-    const raw = window.localStorage.getItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY)
-    if (!raw) {
-      return
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as {
-        preparedSignaturePlan?: unknown
-        signatureTxs?: unknown
-        signatureFlowDone?: unknown
-        signatureFlowError?: unknown
-        authChallengeExpiresAtMs?: unknown
-      }
-
-      if (!isPrepareResponse(parsed.preparedSignaturePlan) || !Array.isArray(parsed.signatureTxs)) {
-        return
-      }
-
-      const savedSignatureTxs = parsed.signatureTxs.filter(item => isSignatureExecutionTx(item))
-      if (savedSignatureTxs.length !== parsed.preparedSignaturePlan.txPlan.length) {
-        return
-      }
-
-      const normalizedSignatureTxs = parsed.preparedSignaturePlan.txPlan.map((planned, index) => {
-        const saved = savedSignatureTxs[index]
-        if (!saved || saved.id !== planned.id) {
-          return {
-            ...planned,
-            status: 'idle' as const,
-          }
-        }
-        return saved
-      })
-
-      skipNextSignatureResetRef.current = true
-      setPreparedSignaturePlan(parsed.preparedSignaturePlan)
-      setSignatureTxs(normalizedSignatureTxs)
-      setSignatureFlowDone(Boolean(parsed.signatureFlowDone))
-      setSignatureFlowError(typeof parsed.signatureFlowError === 'string' ? parsed.signatureFlowError : '')
-      setAuthChallengeExpiresAtMs(
-        typeof parsed.authChallengeExpiresAtMs === 'number' ? parsed.authChallengeExpiresAtMs : null,
-      )
-    }
-    catch (error) {
-      console.error('Error loading create-event signature flow draft:', error)
-    }
-  }, [shouldLoadSavedDraft])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    const payload = {
-      form,
-      sportsForm,
-      titleTemplate,
-      slugTemplate,
-      walletAddress: automaticWalletAddress,
-      recurrenceUnit,
-      recurrenceInterval,
-      currentStep,
-      maxVisitedStep,
-      slugSeed,
-      isBinaryOutcomesEditable,
-      areMultiOutcomesEditable,
-    }
-
-    window.localStorage.setItem(CREATE_EVENT_DRAFT_STORAGE_KEY, JSON.stringify(payload))
-  }, [
-    areMultiOutcomesEditable,
-    automaticWalletAddress,
-    currentStep,
-    form,
-    isBinaryOutcomesEditable,
-    maxVisitedStep,
-    recurrenceInterval,
-    recurrenceUnit,
-    slugSeed,
-    slugTemplate,
-    sportsForm,
-    titleTemplate,
   ])
 
   useEffect(() => {
@@ -2392,12 +2461,12 @@ export default function AdminCreateEventForm({
       && isStepValid(1)
       && isStepValid(2)
       && isStepValid(3)
-      && (creationMode !== 'recurring' || (Boolean(recurrenceUnit) && Boolean(slugTemplate.trim())))
+      && (creationMode !== 'recurring' || Boolean(recurrenceUnit))
     const payload = {
-      title: form.title.trim() || 'Untitled draft',
+      title: form.title.trim(),
       slug: form.slug.trim() || null,
       titleTemplate: creationMode === 'recurring' ? titleTemplate.trim() || null : null,
-      slugTemplate: creationMode === 'recurring' ? slugTemplate.trim() || null : null,
+      slugTemplate: creationMode === 'recurring' ? effectiveRecurringSlugTemplate || null : null,
       startAt: endDateValue ? new Date(endDateValue).toISOString() : null,
       deployAt: automaticDeployAtIso,
       walletAddress: automaticWalletAddress.trim() || null,
@@ -2471,6 +2540,7 @@ export default function AdminCreateEventForm({
     slugSeed,
     slugTemplate,
     sportsForm,
+    effectiveRecurringSlugTemplate,
     titleTemplate,
   ])
 
@@ -2555,10 +2625,7 @@ export default function AdminCreateEventForm({
         ...prev,
         slug: isSportsEvent
           ? sportsDerivedContent.eventSlug
-          : (() => {
-              const base = slugify(prev.title)
-              return base ? `${base}-${slugSuffix}` : ''
-            })(),
+          : appendEventCreationSlugSuffix(slugify(prev.title), slugSuffix),
       }))
     }, 250)
 
@@ -4669,7 +4736,6 @@ export default function AdminCreateEventForm({
     setSignatureFlowError('')
 
     if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(CREATE_EVENT_DRAFT_STORAGE_KEY)
       window.localStorage.removeItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY)
     }
   }, [
@@ -4741,11 +4807,8 @@ export default function AdminCreateEventForm({
     setContentCheckProgressLine('')
     setContentCheckError('')
 
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(CREATE_EVENT_DRAFT_STORAGE_KEY)
-      if (!preserveSignatureState) {
-        window.localStorage.removeItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY)
-      }
+    if (typeof window !== 'undefined' && !preserveSignatureState) {
+      window.localStorage.removeItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY)
     }
   }, [
     authChallengeExpiresAtMs,
@@ -5119,7 +5182,7 @@ export default function AdminCreateEventForm({
                     </div>
                     <Input
                       id="event-slug"
-                      value={creationMode === 'recurring' ? slugTemplate : form.slug}
+                      value={creationMode === 'recurring' ? effectiveRecurringSlugTemplate : form.slug}
                       readOnly={creationMode !== 'recurring'}
                       onChange={event => setSlugTemplate(event.target.value)}
                       placeholder={creationMode === 'recurring' ? 'Example: btc-above-120k-{{day}}-{{month_name_lower}}' : ''}
@@ -5135,10 +5198,43 @@ export default function AdminCreateEventForm({
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="event-end-date">
-                        {creationMode === 'recurring' ? 'First occurrence' : 'Event date'}
-                      </Label>
-                      <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="event-end-date">
+                          {creationMode === 'recurring'
+                            ? (hasRecurringDeployHistory ? 'Next resolution date' : 'First resolution date')
+                            : 'Resolution date'}
+                        </Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="text-muted-foreground transition hover:text-foreground">
+                              <CircleHelpIcon className="size-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-left">
+                            <div className="grid gap-1">
+                              {creationMode === 'recurring'
+                                ? (
+                                    <>
+                                      <p>This date is always the resolution date for the occurrence shown here.</p>
+                                      <p>
+                                        {hasRecurringDeployHistory
+                                          ? (
+                                              automaticDeployAtDate
+                                                ? `This occurrence becomes deployable on ${formatEventScheduleLabel(automaticDeployAtDate)}.`
+                                                : 'Set the recurrence cadence to calculate the automatic deploy time.'
+                                            )
+                                          : 'The first recurring event becomes deployable immediately after saving.'}
+                                      </p>
+                                    </>
+                                  )
+                                : (
+                                    <p>This date is the resolution date. Unique events go live when you sign and deploy them manually.</p>
+                                  )}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div className="space-y-1.5">
                         <Input
                           ref={eventEndDateInputRef}
                           id="event-end-date"
@@ -5150,23 +5246,51 @@ export default function AdminCreateEventForm({
                           required
                           className="w-full md:max-w-[240px]"
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Automatic deploy runs 24h before this date.
-                        </p>
+                        {creationMode === 'recurring'
+                          ? (
+                              <>
+                                {nextRecurringResolutionDate && nextRecurringDeployDate && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Next cycle preview:
+                                    {' '}
+                                    resolves on
+                                    {' '}
+                                    {formatEventScheduleLabel(nextRecurringResolutionDate)}
+                                    {' '}
+                                    and becomes deployable on
+                                    {' '}
+                                    {formatEventScheduleLabel(nextRecurringDeployDate)}
+                                    .
+                                  </p>
+                                )}
+                              </>
+                            )
+                          : null}
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Automatic wallet</Label>
+                      <Label>Creator</Label>
                       <Select
-                        value={automaticWalletAddress || '__none__'}
-                        onValueChange={value => setAutomaticWalletAddress(value === '__none__' ? '' : value)}
+                        value={creationMode === 'recurring'
+                          ? (automaticWalletAddress || undefined)
+                          : (automaticWalletAddress || (eoaAddress ? '__eoa__' : undefined))}
+                        onValueChange={value => setAutomaticWalletAddress(value === '__eoa__' ? '' : value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={isLoadingSigners ? 'Loading wallets...' : 'Select wallet'} />
+                          <SelectValue placeholder={creationMode === 'recurring'
+                            ? (isLoadingSigners ? 'Loading creators...' : 'Select creator')
+                            : (eoaAddress ? 'EOA wallet' : 'Connect EOA wallet')}
+                          />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="__none__">Manual only</SelectItem>
+                          {creationMode !== 'recurring' && eoaAddress && (
+                            <SelectItem value="__eoa__">
+                              EOA wallet
+                              {' · '}
+                              {eoaShortAddress}
+                            </SelectItem>
+                          )}
                           {signers.map(signer => (
                             <SelectItem key={signer.address} value={signer.address}>
                               {signer.displayName}
@@ -6416,7 +6540,7 @@ export default function AdminCreateEventForm({
                         )}
                   </div>
                   <div className="min-w-0 space-y-1">
-                    <p className="text-lg font-semibold text-foreground">{form.title || 'Untitled event'}</p>
+                    <p className="text-lg font-semibold text-foreground">{previewTitle}</p>
                     <p className="text-xs text-muted-foreground">{previewEndDate}</p>
                   </div>
                 </div>
@@ -7253,10 +7377,16 @@ export default function AdminCreateEventForm({
             <Button
               type="button"
               variant="outline"
-              onClick={goBack}
+              onClick={() => {
+                if (currentStep === 1) {
+                  router.push('/admin/create-event' as Route)
+                  return
+                }
+
+                goBack()
+              }}
               disabled={
-                currentStep === 1
-                || isLoadingPendingRequest
+                isLoadingPendingRequest
                 || isSigningAuth
                 || isPreparingSignaturePlan
                 || isExecutingSignatures

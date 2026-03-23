@@ -52,6 +52,43 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, '')
 }
 
+export function buildEventCreationWalletTail(walletAddress: string | null | undefined) {
+  const normalized = walletAddress?.trim() || ''
+  if (!normalized) {
+    return ''
+  }
+
+  return normalized.replace(/^0x/i, '').slice(-3).toLowerCase()
+}
+
+export function buildEventCreationTimestampSeed(value: Date | string | null | undefined) {
+  if (!value) {
+    return ''
+  }
+
+  const parsed = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return ''
+  }
+
+  return Math.floor(parsed.getTime() / 1000).toString()
+}
+
+export function appendEventCreationSlugSuffix(base: string, suffix: string) {
+  const trimmedBase = base.trim().replace(/-+$/g, '')
+  const trimmedSuffix = suffix.trim().replace(/^-+/g, '')
+  if (!trimmedBase) {
+    return ''
+  }
+  if (!trimmedSuffix) {
+    return trimmedBase
+  }
+  if (trimmedBase.endsWith(`-${trimmedSuffix}`) || trimmedBase.endsWith(trimmedSuffix)) {
+    return trimmedBase
+  }
+  return `${trimmedBase}-${trimmedSuffix}`
+}
+
 function pad(value: number) {
   return value.toString().padStart(2, '0')
 }
@@ -80,47 +117,78 @@ export function buildDefaultDeployAt(startAt: Date | null) {
   return new Date(startAt.getTime() - (24 * 60 * 60 * 1000))
 }
 
-export function addRecurrenceInterval(date: Date, unit: EventCreationRecurrenceUnit, interval: number) {
+export function buildImmediateDeployAt(referenceTimeMs: number | null | undefined) {
+  if (typeof referenceTimeMs !== 'number' || !Number.isFinite(referenceTimeMs) || referenceTimeMs <= 0) {
+    return null
+  }
+
+  return new Date(referenceTimeMs)
+}
+
+function shiftRecurrenceInterval(date: Date, unit: EventCreationRecurrenceUnit, intervalDelta: number) {
   const next = new Date(date)
-  const safeInterval = Math.max(1, Math.floor(interval || 1))
+  const safeDelta = Math.trunc(intervalDelta) || 0
 
   if (unit === 'minute') {
-    next.setMinutes(next.getMinutes() + safeInterval)
+    next.setMinutes(next.getMinutes() + safeDelta)
     return next
   }
 
   if (unit === 'hour') {
-    next.setHours(next.getHours() + safeInterval)
+    next.setHours(next.getHours() + safeDelta)
     return next
   }
 
   if (unit === 'day') {
-    next.setDate(next.getDate() + safeInterval)
+    next.setDate(next.getDate() + safeDelta)
     return next
   }
 
   if (unit === 'week') {
-    next.setDate(next.getDate() + (safeInterval * 7))
+    next.setDate(next.getDate() + (safeDelta * 7))
     return next
   }
 
   if (unit === 'month') {
-    next.setMonth(next.getMonth() + safeInterval)
+    next.setMonth(next.getMonth() + safeDelta)
     return next
   }
 
   if (unit === 'quarter') {
-    next.setMonth(next.getMonth() + (safeInterval * 3))
+    next.setMonth(next.getMonth() + (safeDelta * 3))
     return next
   }
 
   if (unit === 'semiannual') {
-    next.setMonth(next.getMonth() + (safeInterval * 6))
+    next.setMonth(next.getMonth() + (safeDelta * 6))
     return next
   }
 
-  next.setFullYear(next.getFullYear() + safeInterval)
+  next.setFullYear(next.getFullYear() + safeDelta)
   return next
+}
+
+export function addRecurrenceInterval(date: Date, unit: EventCreationRecurrenceUnit, interval: number) {
+  const safeInterval = Math.max(1, Math.floor(interval || 1))
+  return shiftRecurrenceInterval(date, unit, safeInterval)
+}
+
+export function subtractRecurrenceInterval(date: Date, unit: EventCreationRecurrenceUnit, interval: number) {
+  const safeInterval = Math.max(1, Math.floor(interval || 1))
+  return shiftRecurrenceInterval(date, unit, safeInterval * -1)
+}
+
+export function buildScheduledRecurringDeployAt(
+  resolutionAt: Date | null,
+  unit: EventCreationRecurrenceUnit | null | undefined,
+  interval: number | null | undefined,
+) {
+  if (!resolutionAt || !unit || !interval) {
+    return null
+  }
+
+  const previousOccurrenceResolutionAt = subtractRecurrenceInterval(resolutionAt, unit, interval)
+  return buildDefaultDeployAt(previousOccurrenceResolutionAt)
 }
 
 export function applyEventCreationTemplate(template: string, date: Date, fallbackValue?: string) {

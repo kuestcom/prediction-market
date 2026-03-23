@@ -1,9 +1,10 @@
 import type { EventCreationAssetPayload, EventCreationMode, EventCreationRecurrenceUnit, EventCreationStatus } from '@/lib/event-creation'
 import type { QueryResult } from '@/types'
 import { and, asc, desc, eq, ilike, inArray, lte, or } from 'drizzle-orm'
-import { event_creations, events, jobs } from '@/lib/db/schema'
+import { event_creations, event_tags, events, jobs, tags } from '@/lib/db/schema'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
+import { getPublicAssetUrl } from '@/lib/storage'
 
 export interface EventCreationDraftSummary {
   id: string
@@ -19,6 +20,7 @@ export interface EventCreationDraftSummary {
   recurrenceInterval: number | null
   recurrenceUntil: string | null
   walletAddress: string | null
+  imageUrl: string | null
   updatedAt: string
 }
 
@@ -40,7 +42,44 @@ export interface EventCreationDraftRecord extends EventCreationDraftSummary {
   pendingConfirmedTxs: Array<Record<string, unknown>>
 }
 
-function mapDraftSummary(row: typeof event_creations.$inferSelect): EventCreationDraftSummary {
+function resolveDraftImageUrl(
+  row: typeof event_creations.$inferSelect,
+  sourceEventIconUrl?: string | null,
+) {
+  const assetPayload = row.asset_payload as EventCreationAssetPayload | null
+  const eventImagePublicUrl = assetPayload?.eventImage?.publicUrl?.trim() || ''
+  if (eventImagePublicUrl) {
+    return eventImagePublicUrl
+  }
+
+  const eventImageStoragePath = assetPayload?.eventImage?.storagePath?.trim() || ''
+  const fallbackAssetPath = eventImageStoragePath || sourceEventIconUrl?.trim() || null
+  return getPublicAssetUrl(fallbackAssetPath) || null
+}
+
+function buildCopySourceAssetPayload(iconUrl: string | null | undefined): EventCreationAssetPayload | null {
+  const normalizedIconUrl = iconUrl?.trim() || ''
+  const publicUrl = getPublicAssetUrl(normalizedIconUrl)
+  if (!normalizedIconUrl || !publicUrl) {
+    return null
+  }
+
+  return {
+    eventImage: {
+      storagePath: normalizedIconUrl,
+      publicUrl,
+      fileName: normalizedIconUrl.split('/').pop() || 'event-image',
+      contentType: '',
+    },
+    optionImages: {},
+    teamLogos: {},
+  }
+}
+
+function mapDraftSummary(
+  row: typeof event_creations.$inferSelect,
+  sourceEventIconUrl?: string | null,
+): EventCreationDraftSummary {
   return {
     id: row.id,
     title: row.title,
@@ -55,6 +94,7 @@ function mapDraftSummary(row: typeof event_creations.$inferSelect): EventCreatio
     recurrenceInterval: row.recurrence_interval ?? null,
     recurrenceUntil: row.recurrence_until ? row.recurrence_until.toISOString() : null,
     walletAddress: row.wallet_address ?? null,
+    imageUrl: resolveDraftImageUrl(row, sourceEventIconUrl),
     updatedAt: row.updated_at.toISOString(),
   }
 }
@@ -143,6 +183,10 @@ export const EventCreationRepository = {
     deployAt?: Date | null
     endDate?: Date | null
     sourceEventId?: string | null
+    draftPayload?: Record<string, unknown> | null
+    assetPayload?: EventCreationAssetPayload | null
+    mainCategorySlug?: string | null
+    categorySlugs?: string[]
   }): Promise<QueryResult<EventCreationDraftSummary>> {
     return runQuery(async () => {
       const insertedRows = await db
@@ -150,7 +194,7 @@ export const EventCreationRepository = {
         .values({
           created_by_user_id: input.createdByUserId,
           updated_by_user_id: input.createdByUserId,
-          title: input.title?.trim() || 'Untitled draft',
+          title: input.title?.trim() || '',
           slug: input.slug?.trim() || null,
           creation_mode: input.creationMode,
           status: 'draft',
@@ -158,6 +202,10 @@ export const EventCreationRepository = {
           deploy_at: input.deployAt ?? null,
           end_date: input.endDate ?? null,
           source_event_id: input.sourceEventId ?? null,
+          draft_payload: input.draftPayload ?? null,
+          asset_payload: (input.assetPayload as Record<string, unknown> | null) ?? null,
+          main_category_slug: input.mainCategorySlug?.trim().toLowerCase() || null,
+          category_slugs: input.categorySlugs ?? [],
         })
         .returning()
 
@@ -218,8 +266,12 @@ export const EventCreationRepository = {
         : undefined
 
       const rows = await db
-        .select()
+        .select({
+          draft: event_creations,
+          sourceEventIconUrl: events.icon_url,
+        })
         .from(event_creations)
+        .leftJoin(events, eq(event_creations.source_event_id, events.id))
         .where(and(
           eq(event_creations.created_by_user_id, input.userId),
           searchCondition,
@@ -229,7 +281,7 @@ export const EventCreationRepository = {
         .limit(50)
 
       return {
-        data: rows.map(mapDraftSummary),
+        data: rows.map(({ draft, sourceEventIconUrl }) => mapDraftSummary(draft, sourceEventIconUrl)),
         error: null,
       }
     })
@@ -290,6 +342,10 @@ export const EventCreationRepository = {
     title: string
     slug: string
     endDate: Date | null
+    rules: string | null
+    assetPayload: EventCreationAssetPayload | null
+    mainCategorySlug: string | null
+    categories: Array<{ label: string, slug: string }>
   }>> {
     return runQuery(async () => {
       const rows = await db
@@ -298,6 +354,8 @@ export const EventCreationRepository = {
           title: events.title,
           slug: events.slug,
           endDate: events.end_date,
+          iconUrl: events.icon_url,
+          rules: events.rules,
         })
         .from(events)
         .where(eq(events.id, input.eventId))
@@ -308,12 +366,34 @@ export const EventCreationRepository = {
         return { data: null, error: 'Event not found.' }
       }
 
+      const tagRows = await db
+        .select({
+          slug: tags.slug,
+          name: tags.name,
+          isMainCategory: tags.is_main_category,
+        })
+        .from(event_tags)
+        .innerJoin(tags, eq(event_tags.tag_id, tags.id))
+        .where(eq(event_tags.event_id, input.eventId))
+
+      const mainCategory = tagRows.find(item => item.isMainCategory) ?? tagRows[0] ?? null
+      const categories = tagRows
+        .filter(item => item.slug !== mainCategory?.slug)
+        .map(item => ({
+          label: item.name,
+          slug: item.slug,
+        }))
+
       return {
         data: {
           id: row.id,
           title: row.title,
           slug: row.slug,
           endDate: row.endDate ?? null,
+          rules: row.rules ?? null,
+          assetPayload: buildCopySourceAssetPayload(row.iconUrl),
+          mainCategorySlug: mainCategory?.slug ?? null,
+          categories,
         },
         error: null,
       }
@@ -354,7 +434,7 @@ export const EventCreationRepository = {
       }
 
       if (typeof input.title !== 'undefined') {
-        nextValues.title = input.title.trim() || 'Untitled draft'
+        nextValues.title = input.title.trim()
       }
       if (typeof input.slug !== 'undefined') {
         nextValues.slug = input.slug?.trim() || null
@@ -436,6 +516,30 @@ export const EventCreationRepository = {
 
       return {
         data: mapDraftSummary(row),
+        error: null,
+      }
+    })
+  },
+
+  async deleteDraft(input: {
+    draftId: string
+    userId: string
+  }): Promise<QueryResult<boolean>> {
+    return runQuery(async () => {
+      const deletedRows = await db
+        .delete(event_creations)
+        .where(and(
+          eq(event_creations.id, input.draftId),
+          eq(event_creations.created_by_user_id, input.userId),
+        ))
+        .returning({ id: event_creations.id })
+
+      if (!deletedRows[0]) {
+        return { data: null, error: 'Draft not found.' }
+      }
+
+      return {
+        data: true,
         error: null,
       }
     })
