@@ -70,7 +70,7 @@
     "viem": "^2.47.4",
     "wagmi": "2.19.5",
     "zod": "^4.3.5",
-    "zustand": "^5.0.11"
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^7.3.0",
