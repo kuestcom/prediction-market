@@ -28,6 +28,7 @@ import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/dat
 import { expandEventCreationOccurrences } from '@/lib/event-creation'
 
 const CREATE_EVENT_DRAFT_STORAGE_KEY = 'admin_create_event_draft_v2'
+const COPY_EVENT_FALLBACK_ICON_CLASS_NAME = 'flex size-14 items-center justify-center rounded-lg border text-muted-foreground'
 
 type CreationMode = 'single' | 'recurring'
 
@@ -770,10 +771,7 @@ export default function AdminCreateEventCalendar() {
                                 />
                               )
                             : (
-                                <div className="
-                                  flex size-14 items-center justify-center rounded-lg border text-muted-foreground
-                                "
-                                >
+                                <div className={COPY_EVENT_FALLBACK_ICON_CLASS_NAME}>
                                   <ImageIcon className="size-5" />
                                 </div>
                               )}
