@@ -179,6 +179,7 @@ export const auth = betterAuth({
     provider: 'pg',
     schema,
   }),
+  experimental: { joins: true },
   appName: DEFAULT_THEME_SITE_NAME,
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: SITE_URL,
