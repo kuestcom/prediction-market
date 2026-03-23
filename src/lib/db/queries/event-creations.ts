@@ -82,6 +82,57 @@ function mapDraftRecord(row: typeof event_creations.$inferSelect): EventCreation
   }
 }
 
+interface SetExecutionStateInput {
+  draftId: string
+  status: EventCreationStatus
+  lastError?: string | null
+  deployedEventId?: string | null
+  nextStartAt?: Date | null
+  nextDeployAt?: Date | null
+  lastRunAt?: Date | null
+  pendingRequestId?: string | null
+  pendingPayloadHash?: string | null
+  pendingChainId?: number | null
+  pendingConfirmedTxs?: Array<Record<string, unknown>>
+}
+
+function buildExecutionStateUpdateValues(input: SetExecutionStateInput): Partial<typeof event_creations.$inferInsert> {
+  const nextValues: Partial<typeof event_creations.$inferInsert> = {
+    status: input.status,
+    updated_at: new Date(),
+  }
+
+  if (Object.prototype.hasOwnProperty.call(input, 'lastError')) {
+    nextValues.last_error = input.lastError ?? null
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'deployedEventId')) {
+    nextValues.deployed_event_id = input.deployedEventId
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'nextStartAt')) {
+    nextValues.start_at = input.nextStartAt
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'nextDeployAt')) {
+    nextValues.deploy_at = input.nextDeployAt
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'lastRunAt')) {
+    nextValues.last_run_at = input.lastRunAt
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'pendingRequestId')) {
+    nextValues.pending_request_id = input.pendingRequestId
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'pendingPayloadHash')) {
+    nextValues.pending_payload_hash = input.pendingPayloadHash
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'pendingChainId')) {
+    nextValues.pending_chain_id = input.pendingChainId
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'pendingConfirmedTxs')) {
+    nextValues.pending_confirmed_txs = input.pendingConfirmedTxs
+  }
+
+  return nextValues
+}
+
 export const EventCreationRepository = {
   async createDraft(input: {
     createdByUserId: string
@@ -409,35 +460,11 @@ export const EventCreationRepository = {
     })
   },
 
-  async setExecutionState(input: {
-    draftId: string
-    status: EventCreationStatus
-    lastError?: string | null
-    deployedEventId?: string | null
-    nextStartAt?: Date | null
-    nextDeployAt?: Date | null
-    lastRunAt?: Date | null
-    pendingRequestId?: string | null
-    pendingPayloadHash?: string | null
-    pendingChainId?: number | null
-    pendingConfirmedTxs?: Array<Record<string, unknown>>
-  }): Promise<QueryResult<boolean>> {
+  async setExecutionState(input: SetExecutionStateInput): Promise<QueryResult<boolean>> {
     return runQuery(async () => {
       const rows = await db
         .update(event_creations)
-        .set({
-          status: input.status,
-          last_error: input.lastError ?? null,
-          deployed_event_id: input.deployedEventId ?? undefined,
-          start_at: input.nextStartAt ?? undefined,
-          deploy_at: input.nextDeployAt ?? undefined,
-          last_run_at: input.lastRunAt ?? undefined,
-          pending_request_id: input.pendingRequestId ?? undefined,
-          pending_payload_hash: input.pendingPayloadHash ?? undefined,
-          pending_chain_id: input.pendingChainId ?? undefined,
-          pending_confirmed_txs: input.pendingConfirmedTxs ?? undefined,
-          updated_at: new Date(),
-        })
+        .set(buildExecutionStateUpdateValues(input))
         .where(eq(event_creations.id, input.draftId))
         .returning({ id: event_creations.id })
 

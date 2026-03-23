@@ -4,22 +4,13 @@ import { z } from 'zod'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventCreationRepository } from '@/lib/db/queries/event-creations'
 import { UserRepository } from '@/lib/db/queries/user'
+import { buildDefaultDeployAt } from '@/lib/event-creation'
 
 const createDraftSchema = z.object({
   mode: z.enum(['single', 'recurring']),
   startAt: z.string().datetime({ offset: true }).optional().nullable(),
   sourceEventId: z.string().trim().length(26).optional().nullable(),
 })
-
-function buildDeployAt(startAt: Date | null) {
-  if (!startAt) {
-    return null
-  }
-
-  const deployAt = new Date(startAt)
-  deployAt.setHours(deployAt.getHours() - 24)
-  return deployAt
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -97,7 +88,7 @@ export async function POST(request: NextRequest) {
       title: sourceTitle,
       slug: sourceSlug,
       startAt: resolvedStartAt,
-      deployAt: buildDeployAt(resolvedStartAt),
+      deployAt: buildDefaultDeployAt(resolvedStartAt),
       endDate: sourceEndDate,
       sourceEventId: parsed.data.sourceEventId ?? null,
     })

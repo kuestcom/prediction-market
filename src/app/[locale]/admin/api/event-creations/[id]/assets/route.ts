@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventCreationRepository } from '@/lib/db/queries/event-creations'
 import { UserRepository } from '@/lib/db/queries/user'
-import { normalizeEventCreationAssetPayload } from '@/lib/event-creation'
+import { isSafeEventCreationAssetRecordKey, normalizeEventCreationAssetPayload } from '@/lib/event-creation'
 import { getPublicAssetUrl, uploadPublicAsset } from '@/lib/storage'
 
 interface EventCreationAssetRouteProps {
@@ -57,6 +57,14 @@ export async function POST(request: NextRequest, { params }: EventCreationAssetR
       return NextResponse.json({ error: 'Invalid asset kind.' }, { status: 400 })
     }
 
+    if (kind === 'optionImage' && !isSafeEventCreationAssetRecordKey(targetKey)) {
+      return NextResponse.json({ error: 'Invalid option image target.' }, { status: 400 })
+    }
+
+    if (kind === 'teamLogo' && targetKey !== 'home' && targetKey !== 'away') {
+      return NextResponse.json({ error: 'Invalid team logo target.' }, { status: 400 })
+    }
+
     const extension = resolveAssetExtension(file)
     const fileName = kind === 'eventImage'
       ? `event-image-${Date.now()}.${extension}`
@@ -83,11 +91,11 @@ export async function POST(request: NextRequest, { params }: EventCreationAssetR
     if (kind === 'eventImage') {
       assetPayload.eventImage = assetRef
     }
-    else if (kind === 'optionImage' && targetKey) {
+    else if (kind === 'optionImage') {
       assetPayload.optionImages[targetKey] = assetRef
     }
-    else if (kind === 'teamLogo' && (targetKey === 'home' || targetKey === 'away')) {
-      assetPayload.teamLogos[targetKey] = assetRef
+    else if (kind === 'teamLogo') {
+      assetPayload.teamLogos[targetKey as 'home' | 'away'] = assetRef
     }
 
     const updateResult = await EventCreationRepository.updateDraftCoreFields({

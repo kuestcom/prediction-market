@@ -1,3 +1,4 @@
+import type { TransactionReceipt } from 'viem'
 import type { AdminSportsCustomMarketState, AdminSportsFormState, AdminSportsPropState } from '@/lib/admin-sports-create'
 import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import { buildAdminSportsDerivedContent, createInitialAdminSportsForm, isSportsMainCategory } from '@/lib/admin-sports-create'
@@ -339,6 +340,17 @@ export function computeNextRecurringSchedule(record: Pick<EventCreationDraftReco
     nextStartAt,
     nextDeployAt: buildDefaultDeployAt(nextStartAt),
   }
+}
+
+export function assertSuccessfulTransactionReceipt(
+  receipt: Pick<TransactionReceipt, 'status' | 'transactionHash'>,
+  hash: `0x${string}`,
+) {
+  if (receipt.status === 'success') {
+    return receipt
+  }
+
+  throw new Error(`Transaction reverted: ${receipt.transactionHash ?? hash}`)
 }
 
 export function truncateEventCreationError(error: unknown) {

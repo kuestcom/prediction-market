@@ -41,6 +41,8 @@ const MONTH_NAMES = [
   'December',
 ] as const
 
+const BLOCKED_ASSET_RECORD_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+
 function slugify(value: string) {
   return value
     .normalize('NFKD')
@@ -75,9 +77,7 @@ export function buildDefaultDeployAt(startAt: Date | null) {
     return null
   }
 
-  const deployAt = new Date(startAt)
-  deployAt.setHours(deployAt.getHours() - 24)
-  return deployAt
+  return new Date(startAt.getTime() - (24 * 60 * 60 * 1000))
 }
 
 export function addRecurrenceInterval(date: Date, unit: EventCreationRecurrenceUnit, interval: number) {
@@ -260,6 +260,15 @@ export function normalizeEventCreationAssetPayload(payload: unknown): EventCreat
   }
 }
 
+export function isSafeEventCreationAssetRecordKey(key: string) {
+  const trimmedKey = key.trim()
+  if (!trimmedKey) {
+    return false
+  }
+
+  return !BLOCKED_ASSET_RECORD_KEYS.has(trimmedKey.toLowerCase())
+}
+
 function normalizeAssetRecord(value: unknown) {
   if (!value || typeof value !== 'object') {
     return {}
@@ -267,10 +276,11 @@ function normalizeAssetRecord(value: unknown) {
 
   const normalized: Record<string, EventCreationAssetRef> = {}
   for (const [key, entry] of Object.entries(value)) {
-    if (!key.trim() || !entry || typeof entry !== 'object') {
+    const trimmedKey = key.trim()
+    if (!isSafeEventCreationAssetRecordKey(trimmedKey) || !entry || typeof entry !== 'object') {
       continue
     }
-    normalized[key] = normalizeAssetRef(entry)
+    normalized[trimmedKey] = normalizeAssetRef(entry)
   }
   return normalized
 }

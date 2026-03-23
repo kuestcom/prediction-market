@@ -10,6 +10,7 @@ import { db } from '@/lib/drizzle'
 import { normalizeEventCreationAssetPayload } from '@/lib/event-creation'
 import { loadEventCreationSignersFromEnv } from '@/lib/event-creation-signers'
 import {
+  assertSuccessfulTransactionReceipt,
   buildEventCreationJobDedupeKey,
   buildEventCreationPreparePayload,
   computeNextRecurringSchedule,
@@ -596,9 +597,10 @@ async function processClaimedJob(job: JobRow, defaultChainId: number) {
         value: BigInt(tx.value),
       }) as `0x${string}`
 
-      await publicClient.waitForTransactionReceipt({
+      const receipt = await publicClient.waitForTransactionReceipt({
         hash,
       })
+      assertSuccessfulTransactionReceipt(receipt, hash)
 
       confirmedTxs = [...confirmedTxs.filter(item => item.id !== tx.id), {
         id: tx.id,
@@ -618,9 +620,10 @@ async function processClaimedJob(job: JobRow, defaultChainId: number) {
       continue
     }
 
-    await publicClient.waitForTransactionReceipt({
+    const receipt = await publicClient.waitForTransactionReceipt({
       hash: hash as `0x${string}`,
     })
+    assertSuccessfulTransactionReceipt(receipt, hash as `0x${string}`)
   }
 
   const finalizeResponse = await fetch(`${process.env.CREATE_MARKET_URL}/finalize`, {

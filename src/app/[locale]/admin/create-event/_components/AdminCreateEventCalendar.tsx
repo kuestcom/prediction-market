@@ -9,7 +9,7 @@ import listPlugin from '@fullcalendar/list'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import { CalendarPlusIcon, ClipboardListIcon, CopyIcon, ImageIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
@@ -157,6 +157,7 @@ export default function AdminCreateEventCalendar() {
   const [copySearch, setCopySearch] = useState('')
   const [copyResults, setCopyResults] = useState<AdminEventSearchResult[]>([])
   const [isSearchingCopy, setIsSearchingCopy] = useState(false)
+  const latestCopySearchRequestIdRef = useRef(0)
   const [newEventDialogOpen, setNewEventDialogOpen] = useState(false)
   const [selectedStartAt, setSelectedStartAt] = useState('')
 
@@ -208,7 +209,12 @@ export default function AdminCreateEventCalendar() {
   }, [])
 
   useEffect(() => {
+    latestCopySearchRequestIdRef.current += 1
+    const requestId = latestCopySearchRequestIdRef.current
+    const controller = new AbortController()
+
     if (!copyDialogOpen) {
+      setIsSearchingCopy(false)
       return
     }
 
@@ -232,6 +238,7 @@ export default function AdminCreateEventCalendar() {
           const response = await fetch(`/admin/api/events?${query.toString()}`, {
             method: 'GET',
             cache: 'no-store',
+            signal: controller.signal,
           })
           if (!response.ok) {
             const payload = await response.json().catch(() => ({}))
@@ -241,19 +248,30 @@ export default function AdminCreateEventCalendar() {
           const payload = await response.json().catch(() => null) as {
             data?: AdminEventSearchResult[]
           } | null
+          if (controller.signal.aborted || requestId !== latestCopySearchRequestIdRef.current) {
+            return
+          }
           setCopyResults(Array.isArray(payload?.data) ? payload.data : [])
         }
         catch (error) {
+          if (controller.signal.aborted || requestId !== latestCopySearchRequestIdRef.current) {
+            return
+          }
           console.error('Failed to search events for copy', error)
           toast.error(error instanceof Error ? error.message : 'Could not search events.')
         }
         finally {
-          setIsSearchingCopy(false)
+          if (requestId === latestCopySearchRequestIdRef.current) {
+            setIsSearchingCopy(false)
+          }
         }
       })()
     }, 250)
 
-    return () => window.clearTimeout(timeoutId)
+    return () => {
+      controller.abort()
+      window.clearTimeout(timeoutId)
+    }
   }, [copyDialogOpen, copySearch])
 
   const events: EventInput[] = [
@@ -657,7 +675,10 @@ export default function AdminCreateEventCalendar() {
                                 />
                               )
                             : (
-                                <div className="flex size-14 items-center justify-center rounded-lg border text-muted-foreground">
+                                <div className="
+                                  flex size-14 items-center justify-center rounded-lg border text-muted-foreground
+                                "
+                                >
                                   <ImageIcon className="size-5" />
                                 </div>
                               )}
