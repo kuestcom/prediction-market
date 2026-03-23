@@ -10,7 +10,6 @@ import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import { EventCreationRepository } from '@/lib/db/queries/event-creations'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { UserRepository } from '@/lib/db/queries/user'
-import AppKitProvider from '@/providers/AppKitProvider'
 
 type CreationMode = 'single' | 'recurring'
 
@@ -30,14 +29,10 @@ function resolveSearchParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
 }
 
-export default async function AdminCreateEventNewPage({
-  params,
+async function AdminCreateEventNewContent({
   searchParams,
-}: AdminCreateEventNewPageProps) {
+}: Pick<AdminCreateEventNewPageProps, 'searchParams'>) {
   await connection()
-  const { locale } = await params
-  setRequestLocale(locale)
-
   const resolvedSearchParams = searchParams ? await searchParams : undefined
   const mode = resolveCreationMode(resolvedSearchParams?.mode)
   const draftId = resolveSearchParam(resolvedSearchParams?.draftId) ?? ''
@@ -71,7 +66,7 @@ export default async function AdminCreateEventNewPage({
       : 'Create a one-off event with the existing guided form.'
 
   return (
-    <section className="grid gap-4">
+    <>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="grid gap-2">
           <h1 className="text-2xl font-semibold">{title}</h1>
@@ -86,23 +81,54 @@ export default async function AdminCreateEventNewPage({
       </div>
 
       <div className="min-w-0">
-        <Suspense fallback={<div className="min-h-40 rounded-xl border bg-background" />}>
-          <AppKitProvider>
-            <AdminCreateEventForm
-              sportsSlugCatalog={sportsSlugCatalog}
-              creationMode={mode}
-              initialDraftRecord={draftResult.data ?? null}
-              draftId={draftId || null}
-              initialTitle={initialTitle}
-              initialSlug={initialSlug ?? ''}
-              initialEndDateIso={initialEndDateIso}
-              shouldLoadSavedDraft={shouldLoadSavedDraft}
-              serverDraftPayload={draftResult.data?.draftPayload ?? null}
-              serverAssetPayload={draftResult.data?.assetPayload ?? null}
-            />
-          </AppKitProvider>
-        </Suspense>
+        <AdminCreateEventForm
+          sportsSlugCatalog={sportsSlugCatalog}
+          creationMode={mode}
+          initialDraftRecord={draftResult.data ?? null}
+          draftId={draftId || null}
+          initialTitle={initialTitle}
+          initialSlug={initialSlug ?? ''}
+          initialEndDateIso={initialEndDateIso}
+          shouldLoadSavedDraft={shouldLoadSavedDraft}
+          serverDraftPayload={draftResult.data?.draftPayload ?? null}
+          serverAssetPayload={draftResult.data?.assetPayload ?? null}
+        />
       </div>
+    </>
+  )
+}
+
+export default async function AdminCreateEventNewPage({
+  params,
+  searchParams,
+}: AdminCreateEventNewPageProps) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
+  return (
+    <section className="grid gap-4">
+      <Suspense
+        fallback={(
+          <>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="grid gap-2">
+                <h1 className="text-2xl font-semibold">Create Event</h1>
+                <p className="text-sm text-muted-foreground">Loading event form...</p>
+              </div>
+              <Button type="button" variant="outline" asChild>
+                <Link href="/admin/create-event">
+                  <ArrowLeftIcon className="size-4" />
+                  Back to calendar
+                </Link>
+              </Button>
+            </div>
+
+            <div className="min-h-40 rounded-xl border bg-background" />
+          </>
+        )}
+      >
+        <AdminCreateEventNewContent searchParams={searchParams} />
+      </Suspense>
     </section>
   )
 }

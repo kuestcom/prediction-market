@@ -27,10 +27,9 @@ const queryClient = new QueryClient()
 interface AppProvidersProps {
   children: ReactNode
   disableAppKit?: boolean
-  disableProgressIndicator?: boolean
 }
 
-export function AppProviders({ children, disableAppKit, disableProgressIndicator }: AppProvidersProps) {
+export function AppProviders({ children, disableAppKit }: AppProvidersProps) {
   const site = useSiteIdentity()
   const gaId = site.googleAnalyticsId
   const shouldLoadAppKit = !disableAppKit
@@ -60,10 +59,6 @@ export function AppProviders({ children, disableAppKit, disableProgressIndicator
       </QueryClientProvider>
     </ThemeProvider>
   )
-
-  if (disableProgressIndicator) {
-    return providersContent
-  }
 
   return (
     <ProgressIndicatorProvider>

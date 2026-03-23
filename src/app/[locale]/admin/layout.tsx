@@ -15,7 +15,7 @@ export default async function AdminLayout({ params, children }: LayoutProps<'/[l
   setRequestLocale(locale)
 
   return (
-    <AppProviders disableAppKit disableProgressIndicator>
+    <AppProviders>
       <AdminHeader />
       <main className="container py-4 lg:py-8">
         <div className="grid gap-8 lg:grid-cols-[200px_1fr] lg:gap-16">
