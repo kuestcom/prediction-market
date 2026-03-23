@@ -748,10 +748,7 @@ export default function AdminCreateEventCalendar() {
                                 />
                               )
                             : (
-                                <div className="
-                                  flex size-12 items-center justify-center rounded-lg border text-muted-foreground
-                                "
-                                >
+                                <div className="flex size-12 items-center justify-center rounded-lg border text-muted-foreground">
                                   <ImageIcon className="size-5" />
                                 </div>
                               )}
