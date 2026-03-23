@@ -5,6 +5,7 @@ import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
+import { hasEventCreationDateTemplateVariable } from '@/lib/event-creation'
 
 const GAMMA_MARKETS_ENDPOINT = 'https://gamma-api.polymarket.com/markets?limit=200&offset=0&active=true&closed=false'
 const RULES_SAMPLE_LIMIT = 8
@@ -29,6 +30,13 @@ const optionSchema = z.object({
   slug: z.string().optional().default(''),
 })
 
+const recurringOccurrencePreviewSchema = z.object({
+  endDateIso: z.string().optional().default(''),
+  title: z.string().optional().default(''),
+  slug: z.string().optional().default(''),
+  resolutionRules: z.string().optional().default(''),
+})
+
 const categorySchema = z.union([
   z.string(),
   z.object({
@@ -39,6 +47,13 @@ const categorySchema = z.union([
 ])
 
 const dataSchema = z.object({
+  creationMode: z.enum(['single', 'recurring']).optional().default('single'),
+  recurrenceUnit: z.enum(['minute', 'hour', 'day', 'week', 'month', 'quarter', 'semiannual', 'year']).nullable().optional().default(null),
+  recurrenceInterval: z.number().int().positive().nullable().optional().default(null),
+  titleTemplate: z.string().optional().default(''),
+  slugTemplate: z.string().optional().default(''),
+  resolutionRulesTemplate: z.string().optional().default(''),
+  resolvedOccurrences: z.array(recurringOccurrencePreviewSchema).max(2).optional().default([]),
   title: z.string().optional().default(''),
   slug: z.string().optional().default(''),
   endDateIso: z.string().optional().default(''),
@@ -95,6 +110,7 @@ const aiErrorSchema = z.object({
 const aiContentCheckSchema = z.object({
   ok: z.boolean(),
   errors: z.array(aiErrorSchema).optional().default([]),
+  warnings: z.array(aiErrorSchema).optional().default([]),
 })
 
 interface GammaMarket {
@@ -116,6 +132,17 @@ interface AiError {
   code: 'english' | 'url' | 'rules' | 'mandatory' | 'date'
   reason: string
   step: 1 | 2 | 3
+}
+
+function normalizeRecurringOccurrences(input: z.infer<typeof dataSchema>) {
+  return input.resolvedOccurrences
+    .map(occurrence => ({
+      endDateIso: normalizeText(occurrence.endDateIso),
+      title: normalizeText(occurrence.title),
+      slug: normalizeText(occurrence.slug),
+      resolutionRules: normalizeText(occurrence.resolutionRules),
+    }))
+    .filter(occurrence => occurrence.endDateIso || occurrence.title || occurrence.slug || occurrence.resolutionRules)
 }
 
 function normalizeText(input: unknown) {
@@ -432,6 +459,7 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
   const categories = normalizeCategoryValues(input)
   const isSportsEvent = normalizeText(input.mainCategorySlug).toLowerCase() === 'sports'
   const sportsSection = input.sports?.section
+  const recurringOccurrences = normalizeRecurringOccurrences(input)
 
   if (!normalizeText(input.title)) {
     errors.push({
@@ -455,6 +483,24 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
       reason: 'Event end date is required.',
       step: 1,
     })
+  }
+
+  if (input.creationMode === 'recurring') {
+    if (!input.recurrenceUnit) {
+      errors.push({
+        code: 'mandatory',
+        reason: 'Recurring events require a recurrence unit.',
+        step: 1,
+      })
+    }
+
+    if (!input.recurrenceInterval || input.recurrenceInterval < 1) {
+      errors.push({
+        code: 'mandatory',
+        reason: 'Recurring events require a valid recurrence interval.',
+        step: 1,
+      })
+    }
   }
 
   if (categories.length < 4) {
@@ -603,7 +649,73 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
     })
   }
 
+  if (input.creationMode === 'recurring' && recurringOccurrences.length > 0) {
+    const [firstOccurrence, nextOccurrence] = recurringOccurrences
+
+    if (!firstOccurrence?.title || !firstOccurrence.slug || !firstOccurrence.resolutionRules) {
+      errors.push({
+        code: 'mandatory',
+        reason: 'Recurring preview for the first occurrence is incomplete.',
+        step: 3,
+      })
+    }
+
+    if (nextOccurrence && firstOccurrence?.slug && nextOccurrence.slug && firstOccurrence.slug === nextOccurrence.slug) {
+      errors.push({
+        code: 'rules',
+        reason: 'Recurring slug preview must change between occurrences.',
+        step: 3,
+      })
+    }
+  }
+
   return errors
+}
+
+function buildRecurringWarnings(input: z.infer<typeof dataSchema>): AiError[] {
+  if (input.creationMode !== 'recurring') {
+    return []
+  }
+
+  const warnings: AiError[] = []
+  const recurringOccurrences = normalizeRecurringOccurrences(input)
+  const [firstOccurrence, nextOccurrence] = recurringOccurrences
+
+  if (normalizeText(input.titleTemplate) && !hasEventCreationDateTemplateVariable(input.titleTemplate)) {
+    warnings.push({
+      code: 'date',
+      reason: 'Title template has no date variable, so recurring titles may look identical between occurrences.',
+      step: 1,
+    })
+  }
+
+  if (normalizeText(input.resolutionRulesTemplate) && !hasEventCreationDateTemplateVariable(input.resolutionRulesTemplate)) {
+    warnings.push({
+      code: 'date',
+      reason: 'Resolution rules template has no date variable, so recurring rules may look identical between occurrences.',
+      step: 3,
+    })
+  }
+
+  if (firstOccurrence && nextOccurrence) {
+    if (firstOccurrence.title.toLowerCase() === nextOccurrence.title.toLowerCase()) {
+      warnings.push({
+        code: 'date',
+        reason: 'First and next recurring title previews are identical.',
+        step: 1,
+      })
+    }
+
+    if (firstOccurrence.resolutionRules.toLowerCase() === nextOccurrence.resolutionRules.toLowerCase()) {
+      warnings.push({
+        code: 'date',
+        reason: 'First and next recurring resolution rules previews are identical.',
+        step: 3,
+      })
+    }
+  }
+
+  return warnings
 }
 
 function sanitizeAiErrors(errors: AiError[]): AiError[] {
@@ -817,6 +929,7 @@ export async function POST(request: Request) {
     }
 
     const localErrors = sanitizeAiErrors(buildMandatoryErrors(data))
+    const localWarnings = sanitizeAiErrors(buildRecurringWarnings(data))
     const mandatoryOk = localErrors.length === 0
 
     if (!mandatoryOk) {
@@ -828,6 +941,7 @@ export async function POST(request: Request) {
           deterministic: false,
         },
         errors: localErrors,
+        warnings: localWarnings,
       })
     }
 
@@ -840,6 +954,13 @@ export async function POST(request: Request) {
         }))
 
     const aiInput = {
+      creationMode: data.creationMode,
+      recurrenceUnit: data.recurrenceUnit,
+      recurrenceInterval: data.recurrenceInterval,
+      titleTemplate: normalizeText(data.titleTemplate),
+      slugTemplate: normalizeText(data.slugTemplate),
+      resolutionRulesTemplate: normalizeText(data.resolutionRulesTemplate),
+      resolvedOccurrences: normalizeRecurringOccurrences(data),
       eventTitle: normalizeText(data.title),
       endDate: normalizeText(data.endDateIso),
       mainCategory: normalizeText(data.mainCategorySlug),
@@ -868,11 +989,14 @@ export async function POST(request: Request) {
           'Ignore timezone-only differences (for example UTC vs ET) and small intra-day offsets.',
           'Return a date error only when day/month/year clearly conflicts with a reliable public date.',
           'If the public date is unknown or uncertain, do not guess and do not flag date.',
+          'For recurring events, raw template fields may intentionally contain tokens like {{date}}, {{date-7}}, {{day}}, {{month}}, {{year}}. Do not flag those raw tokens as errors.',
+          'For recurring events, validate the resolvedOccurrences samples for wording, date coherence, and clarity across occurrences.',
+          'Use warnings, not errors, when recurring content is technically valid but editorially repetitive or lacks date variables.',
           'Flag only real language errors or deterministic logic issues.',
           'When sports context is provided, use it only as consistency context; do not require extra sports metadata beyond the provided user-facing fields.',
           'Reject content that could encourage, normalize, or financially incentivize real-world harm (violence, death, war, terrorism, or self-harm); return a "rules" error with a brief safety reason.',
           'Use user-facing field names in reasons (for example "End date", "Event title", "Resolution source URL"), never backend field keys.',
-          'Output format: {"ok":boolean,"errors":[{"code":"english|url|rules|mandatory|date","reason":"...","step":1|2|3}]}',
+          'Output format: {"ok":boolean,"errors":[{"code":"english|url|rules|mandatory|date","reason":"...","step":1|2|3}],"warnings":[{"code":"english|url|rules|mandatory|date","reason":"...","step":1|2|3}]}',
         ].join(' '),
       },
       {
@@ -916,8 +1040,14 @@ export async function POST(request: Request) {
         }
         return !isTimezoneOnlyDateReason(error.reason)
       })
+    const aiWarnings = sanitizeAiErrors((aiResult.warnings ?? []).map(warning => ({
+      code: warning.code,
+      reason: humanizeAiReason(warning.reason),
+      step: warning.step as 1 | 2 | 3,
+    })))
 
     const errors = sanitizeAiErrors([...localErrors, ...aiErrors])
+    const warnings = sanitizeAiErrors([...localWarnings, ...aiWarnings])
 
     return NextResponse.json({
       ok: errors.length === 0,
@@ -927,6 +1057,7 @@ export async function POST(request: Request) {
         deterministic: !errors.some(error => error.code === 'rules' || error.code === 'url'),
       },
       errors,
+      warnings,
     })
   }
   catch (error) {

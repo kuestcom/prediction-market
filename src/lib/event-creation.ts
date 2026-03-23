@@ -42,6 +42,9 @@ const MONTH_NAMES = [
 ] as const
 
 const BLOCKED_ASSET_RECORD_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+const EVENT_CREATION_TEMPLATE_TOKEN_TEST_PATTERN = /\{\{\s*[a-z_]+(?:[+-]\d+)?\s*\}\}/i
+const EVENT_CREATION_TEMPLATE_TOKEN_REPLACE_PATTERN = /\{\{\s*([a-z_]+(?:[+-]\d+)?)\s*\}\}/gi
+const EVENT_CREATION_DATE_TEMPLATE_TOKEN_PATTERN = /\{\{\s*(?:day|day_padded|month|month_padded|month_name|month_name_lower|date|date_short|year)(?:[+-]\d+)?\s*\}\}/i
 
 function slugify(value: string) {
   return value
@@ -191,15 +194,29 @@ export function buildScheduledRecurringDeployAt(
   return buildDefaultDeployAt(previousOccurrenceResolutionAt)
 }
 
-export function applyEventCreationTemplate(template: string, date: Date, fallbackValue?: string) {
-  const normalizedTemplate = template.trim() || fallbackValue?.trim() || ''
-  if (!normalizedTemplate) {
-    return ''
+export function hasEventCreationTemplateVariable(value: string | null | undefined) {
+  const normalized = value?.trim() || ''
+  if (!normalized) {
+    return false
   }
 
+  return EVENT_CREATION_TEMPLATE_TOKEN_TEST_PATTERN.test(normalized)
+}
+
+export function hasEventCreationDateTemplateVariable(value: string | null | undefined) {
+  const normalized = value?.trim() || ''
+  if (!normalized) {
+    return false
+  }
+
+  return EVENT_CREATION_DATE_TEMPLATE_TOKEN_PATTERN.test(normalized)
+}
+
+function buildEventCreationTemplateTokens(date: Date) {
   const month = date.getMonth() + 1
   const day = date.getDate()
   const year = date.getFullYear()
+
   const tokens: Record<string, string> = {
     date: `${pad(day)} ${MONTH_NAMES[month - 1]}`,
     date_short: `${pad(day)}/${pad(month)}/${year}`,
@@ -212,7 +229,35 @@ export function applyEventCreationTemplate(template: string, date: Date, fallbac
     year: String(year),
   }
 
-  return normalizedTemplate.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_match, token) => tokens[token] ?? '')
+  return tokens
+}
+
+function resolveEventCreationTemplateToken(rawToken: string, baseDate: Date) {
+  const normalizedToken = rawToken.trim().toLowerCase()
+  const match = /^([a-z_]+)([+-]\d+)?$/.exec(normalizedToken)
+  if (!match) {
+    return ''
+  }
+
+  const [, baseToken, dayOffsetToken] = match
+  const dayOffset = dayOffsetToken ? Number.parseInt(dayOffsetToken, 10) : 0
+  const targetDate = new Date(baseDate)
+  if (Number.isFinite(dayOffset) && dayOffset !== 0) {
+    targetDate.setDate(targetDate.getDate() + dayOffset)
+  }
+
+  return buildEventCreationTemplateTokens(targetDate)[baseToken] ?? ''
+}
+
+export function applyEventCreationTemplate(template: string, date: Date, fallbackValue?: string) {
+  const normalizedTemplate = template.trim() || fallbackValue?.trim() || ''
+  if (!normalizedTemplate) {
+    return ''
+  }
+
+  return normalizedTemplate.replace(EVENT_CREATION_TEMPLATE_TOKEN_REPLACE_PATTERN, (_match, token) => {
+    return resolveEventCreationTemplateToken(token, date)
+  })
 }
 
 export function buildOccurrenceTitle(input: {

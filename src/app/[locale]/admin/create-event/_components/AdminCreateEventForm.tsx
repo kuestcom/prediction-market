@@ -87,6 +87,7 @@ import {
   buildEventCreationWalletTail,
   buildImmediateDeployAt,
   buildScheduledRecurringDeployAt,
+  hasEventCreationDateTemplateVariable,
   normalizeEventCreationAssetPayload,
 } from '@/lib/event-creation'
 import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID, POLYGON_SCAN_BASE } from '@/lib/network'
@@ -237,6 +238,14 @@ interface AiValidationResponse {
     deterministic: boolean
   }
   errors: AiValidationIssue[]
+  warnings?: AiValidationIssue[]
+}
+
+interface RecurringOccurrencePreview {
+  endDateIso: string
+  title: string
+  slug: string
+  resolutionRules: string
 }
 
 interface AiRulesResponse {
@@ -305,9 +314,12 @@ const TEMPLATE_TOKEN_EXAMPLES = [
   '{{month}} -> 3',
   '{{month_name_lower}} -> march',
   '{{date}} -> 22 March',
+  '{{date-7}} -> 15 March',
   '{{date_short}} -> 22/03/2026',
   '{{year}} -> 2026',
 ] as const
+
+const TEMPLATE_TOKEN_HELP_TEXT = 'All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.'
 
 type TeamLogoFileMap = Record<AdminSportsTeamHostStatus, File | null>
 
@@ -503,6 +515,7 @@ function isAiValidationResponse(payload: unknown): payload is AiValidationRespon
     && typeof checks.language === 'boolean'
     && typeof checks.deterministic === 'boolean'
     && Array.isArray(candidate.errors)
+    && (typeof candidate.warnings === 'undefined' || Array.isArray(candidate.warnings))
 }
 
 function isAiRulesResponse(payload: unknown): payload is AiRulesResponse {
@@ -839,6 +852,7 @@ function buildStepErrors(
   step: number,
   args: {
     form: FormState
+    creationMode: EventCreationMode
     sportsForm: AdminSportsFormState
     hasEventImage: boolean
     hasTeamLogoByHostStatus: Record<AdminSportsTeamHostStatus, boolean>
@@ -851,6 +865,9 @@ function buildStepErrors(
     hasPendingAiErrors: boolean
     hasContentCheckFatalError: boolean
     allowPastResolutionDate: boolean
+    hasCreatorSelection: boolean
+    hasRecurringCadence: boolean
+    recurringPreviewErrors: string[]
   },
 ): string[] {
   const errors: string[] = []
@@ -888,6 +905,16 @@ function buildStepErrors(
 
     if (!sportsEventSelected && args.form.categories.length < MIN_SUB_CATEGORIES) {
       errors.push(`Select at least ${MIN_SUB_CATEGORIES} sub categories.`)
+    }
+
+    if (args.creationMode === 'recurring') {
+      if (!args.hasCreatorSelection) {
+        errors.push('Select a creator for recurring deployments.')
+      }
+
+      if (!args.hasRecurringCadence) {
+        errors.push('Select a valid recurrence cadence.')
+      }
     }
 
     if (sportsEventSelected) {
@@ -957,6 +984,10 @@ function buildStepErrors(
     }
     else if (args.form.resolutionRules.trim().length < 60) {
       errors.push('Resolution rules are too short.')
+    }
+
+    if (args.creationMode === 'recurring') {
+      errors.push(...args.recurringPreviewErrors)
     }
   }
 
@@ -1250,6 +1281,7 @@ export default function AdminCreateEventForm({
   const [openRouterCheckError, setOpenRouterCheckError] = useState('')
   const [contentCheckState, setContentCheckState] = useState<ContentCheckState>('idle')
   const [contentCheckIssues, setContentCheckIssues] = useState<AiValidationIssue[]>([])
+  const [contentCheckWarnings, setContentCheckWarnings] = useState<AiValidationIssue[]>([])
   const [bypassedIssueKeys, setBypassedIssueKeys] = useState<string[]>([])
   const [contentCheckProgressLine, setContentCheckProgressLine] = useState('')
   const [contentCheckError, setContentCheckError] = useState('')
@@ -1460,6 +1492,10 @@ export default function AdminCreateEventForm({
   )
   const preSignChecksFingerprint = useMemo(() => JSON.stringify({
     eoaAddress: eoaAddress?.toLowerCase() ?? '',
+    creationMode,
+    creator: automaticWalletAddress.trim().toLowerCase(),
+    recurrenceUnit,
+    recurrenceInterval,
     targetChainId,
     marketCount,
     form: {
@@ -1488,7 +1524,17 @@ export default function AdminCreateEventForm({
       resolutionSource: form.resolutionSource.trim(),
       resolutionRules: form.resolutionRules.trim(),
     },
-  }), [eoaAddress, form, marketCount, sportsDerivedContent.payload, targetChainId])
+  }), [
+    automaticWalletAddress,
+    creationMode,
+    eoaAddress,
+    form,
+    marketCount,
+    recurrenceInterval,
+    recurrenceUnit,
+    sportsDerivedContent.payload,
+    targetChainId,
+  ])
   const optionQuestionPlaceholder = useMemo(
     () => form.marketMode === 'multi_unique'
       ? 'Example: Will Gavin Newsom win the 2028 U.S. presidential election?'
@@ -1708,6 +1754,88 @@ export default function AdminCreateEventForm({
       : form.resolutionRules.trim(),
     [creationMode, form.resolutionRules, recurringResolvedRules],
   )
+  const buildRecurringOccurrencePreview = useCallback((date: Date | null): RecurringOccurrencePreview | null => {
+    if (creationMode !== 'recurring' || !date) {
+      return null
+    }
+
+    const rawTitleTemplate = titleTemplate.trim()
+    const resolvedTitle = applyEventCreationTemplate(rawTitleTemplate, date, rawTitleTemplate).trim()
+      || rawTitleTemplate
+      || form.title.trim()
+
+    const rawSlugTemplate = (effectiveRecurringSlugTemplate || slugify(resolvedTitle)).trim()
+    const resolvedBaseSlug = slugify(applyEventCreationTemplate(rawSlugTemplate, date, rawSlugTemplate) || rawSlugTemplate)
+    const suffix = `${buildEventCreationTimestampSeed(date)}${creatorSlugTail}`
+    const resolvedSlug = appendEventCreationSlugSuffix(resolvedBaseSlug, suffix)
+    const rawRulesTemplate = form.resolutionRules.trim()
+    const resolvedRules = applyEventCreationTemplate(rawRulesTemplate, date, rawRulesTemplate).trim() || rawRulesTemplate
+
+    return {
+      endDateIso: date.toISOString(),
+      title: resolvedTitle,
+      slug: resolvedSlug,
+      resolutionRules: resolvedRules,
+    }
+  }, [creationMode, creatorSlugTail, effectiveRecurringSlugTemplate, form.resolutionRules, form.title, titleTemplate])
+  const recurringOccurrencePreviews = useMemo(
+    () => creationMode === 'recurring'
+      ? [buildRecurringOccurrencePreview(scheduleOccurrenceDate), buildRecurringOccurrencePreview(nextRecurringResolutionDate)].filter(Boolean) as RecurringOccurrencePreview[]
+      : [],
+    [buildRecurringOccurrencePreview, creationMode, nextRecurringResolutionDate, scheduleOccurrenceDate],
+  )
+  const recurringPreviewErrors = useMemo(() => {
+    if (creationMode !== 'recurring') {
+      return [] as string[]
+    }
+
+    const errors: string[] = []
+    const [currentPreview, nextPreview] = recurringOccurrencePreviews
+
+    if (scheduleOccurrenceDate && !currentPreview?.slug) {
+      errors.push('Recurring slug preview is invalid.')
+    }
+
+    if (scheduleOccurrenceDate && !currentPreview?.title) {
+      errors.push('Recurring title preview is invalid.')
+    }
+
+    if (scheduleOccurrenceDate && !currentPreview?.resolutionRules) {
+      errors.push('Recurring resolution rules preview is invalid.')
+    }
+
+    if (currentPreview && nextPreview && currentPreview.slug === nextPreview.slug) {
+      errors.push('Recurring slug preview must change between occurrences.')
+    }
+
+    return errors
+  }, [creationMode, recurringOccurrencePreviews, scheduleOccurrenceDate])
+  const recurringEditorialWarnings = useMemo(() => {
+    if (creationMode !== 'recurring') {
+      return [] as string[]
+    }
+
+    const warnings = new Set<string>()
+    const [currentPreview, nextPreview] = recurringOccurrencePreviews
+
+    if (titleTemplate.trim() && !hasEventCreationDateTemplateVariable(titleTemplate)) {
+      warnings.add('Title template has no date variable, so recurring event titles may look identical between occurrences.')
+    }
+
+    if (form.resolutionRules.trim() && !hasEventCreationDateTemplateVariable(form.resolutionRules)) {
+      warnings.add('Resolution rules have no date variable, so recurring rules may look identical between occurrences.')
+    }
+
+    if (currentPreview && nextPreview && currentPreview.title.trim().toLowerCase() === nextPreview.title.trim().toLowerCase()) {
+      warnings.add('First and next recurring title previews are identical.')
+    }
+
+    if (currentPreview && nextPreview && currentPreview.resolutionRules.trim().toLowerCase() === nextPreview.resolutionRules.trim().toLowerCase()) {
+      warnings.add('First and next recurring resolution rules previews are identical.')
+    }
+
+    return Array.from(warnings)
+  }, [creationMode, form.resolutionRules, recurringOccurrencePreviews, titleTemplate])
   const recurringRequiresServerWalletSetup = creationMode === 'recurring' && !hasConfiguredServerSigners
 
   const stepLabels = useMemo(
@@ -1918,6 +2046,7 @@ export default function AdminCreateEventForm({
 
     return buildStepErrors(step, {
       form: resolvedForm,
+      creationMode,
       sportsForm: resolvedSportsForm,
       hasEventImage,
       hasTeamLogoByHostStatus,
@@ -1930,8 +2059,13 @@ export default function AdminCreateEventForm({
       hasPendingAiErrors: pendingAiIssues.length > 0,
       hasContentCheckFatalError: Boolean(contentCheckError),
       allowPastResolutionDate,
+      hasCreatorSelection: creationMode !== 'recurring' || Boolean(automaticWalletAddress.trim()),
+      hasRecurringCadence: creationMode !== 'recurring' || Boolean(recurrenceUnit),
+      recurringPreviewErrors,
     }).length === 0
   }, [
+    automaticWalletAddress,
+    creationMode,
     allowedCreatorCheckState,
     allowPastResolutionDate,
     contentCheckState,
@@ -1943,6 +2077,8 @@ export default function AdminCreateEventForm({
     contentCheckError,
     openRouterCheckState,
     pendingAiIssues.length,
+    recurrenceUnit,
+    recurringPreviewErrors,
     slugValidationState,
   ])
 
@@ -2055,11 +2191,16 @@ export default function AdminCreateEventForm({
   useEffect(() => {
     setContentCheckState('idle')
     setContentCheckIssues([])
+    setContentCheckWarnings([])
     setBypassedIssueKeys([])
     setContentCheckError('')
     setContentCheckProgressLine('')
   }, [
+    automaticWalletAddress,
+    creationMode,
     form.title,
+    form.slug,
+    form.endDateIso,
     form.mainCategorySlug,
     form.categories,
     form.marketMode,
@@ -2069,6 +2210,10 @@ export default function AdminCreateEventForm({
     form.options,
     form.resolutionSource,
     form.resolutionRules,
+    recurrenceInterval,
+    recurrenceUnit,
+    slugTemplate,
+    titleTemplate,
   ])
 
   useEffect(() => {
@@ -3200,6 +3345,13 @@ export default function AdminCreateEventForm({
         }))
 
     return {
+      creationMode,
+      recurrenceUnit: creationMode === 'recurring' ? (recurrenceUnit || null) : null,
+      recurrenceInterval: creationMode === 'recurring' ? recurrenceIntervalNumber : null,
+      titleTemplate: creationMode === 'recurring' ? titleTemplate.trim() : '',
+      slugTemplate: creationMode === 'recurring' ? effectiveRecurringSlugTemplate.trim() : '',
+      resolutionRulesTemplate: creationMode === 'recurring' ? form.resolutionRules.trim() : '',
+      resolvedOccurrences: creationMode === 'recurring' ? recurringOccurrencePreviews : [],
       title: resolvedForm.title,
       slug: resolvedForm.slug,
       endDateIso: resolvedForm.endDateIso,
@@ -3216,7 +3368,19 @@ export default function AdminCreateEventForm({
         ? (recurringResolvedRules || resolvedForm.resolutionRules)
         : resolvedForm.resolutionRules,
     }
-  }, [creationMode, getResolvedDateForms, isSportsEvent, recurringResolvedRules, sportsDerivedContent.payload])
+  }, [
+    creationMode,
+    effectiveRecurringSlugTemplate,
+    form.resolutionRules,
+    getResolvedDateForms,
+    isSportsEvent,
+    recurrenceIntervalNumber,
+    recurrenceUnit,
+    recurringOccurrencePreviews,
+    recurringResolvedRules,
+    sportsDerivedContent.payload,
+    titleTemplate,
+  ])
 
   const buildPreparePayload = useCallback((): PreparePayloadBody => {
     const { resolvedForm } = getResolvedDateForms()
@@ -3331,6 +3495,7 @@ export default function AdminCreateEventForm({
   const runContentCheck = useCallback(async () => {
     setContentCheckState('checking')
     setContentCheckError('')
+    setContentCheckWarnings([])
     setContentCheckProgressLine(CONTENT_CHECK_PROGRESS[0])
 
     if (contentCheckProgressRef.current !== null) {
@@ -3368,7 +3533,9 @@ export default function AdminCreateEventForm({
       }
 
       const nextIssues = Array.isArray(payload.errors) ? payload.errors : []
+      const nextWarnings = Array.isArray(payload.warnings) ? payload.warnings : []
       setContentCheckIssues(nextIssues)
+      setContentCheckWarnings(nextWarnings)
       setContentCheckState(nextIssues.length === 0 ? 'ok' : 'error')
 
       if (nextIssues.length === 0) {
@@ -3387,6 +3554,7 @@ export default function AdminCreateEventForm({
     catch (error) {
       console.error('Error checking content:', error)
       setContentCheckIssues([])
+      setContentCheckWarnings([])
       setContentCheckState('error')
       setContentCheckError('Could not run content AI checker right now.')
       setContentCheckProgressLine('finished')
@@ -3404,31 +3572,46 @@ export default function AdminCreateEventForm({
   }, [buildAiPayload])
 
   const runSlugCheck = useCallback(async () => {
-    const slug = form.slug.trim().toLowerCase()
+    const slugSamples = creationMode === 'recurring'
+      ? recurringOccurrencePreviews
+          .map((preview, index) => ({
+            slug: preview.slug.trim().toLowerCase(),
+            label: index === 0 ? 'first recurring occurrence' : 'next recurring occurrence',
+          }))
+          .filter((sample, index, collection) => sample.slug && collection.findIndex(entry => entry.slug === sample.slug) === index)
+      : [{ slug: form.slug.trim().toLowerCase(), label: 'event' }]
+
     setSlugValidationState('checking')
     setSlugCheckError('')
 
-    if (!slug) {
+    if (slugSamples.length === 0 || slugSamples.some(sample => !sample.slug)) {
       setSlugValidationState('error')
       setSlugCheckError('Slug is required.')
       return false
     }
 
     try {
-      const response = await fetchAdminApiWithTimeout(`/events/check-slug?slug=${encodeURIComponent(slug)}`, SLUG_CHECK_TIMEOUT_MS, {
-        method: 'GET',
-        cache: 'no-store',
-      })
-      const payload = await response.json().catch(() => null) as unknown
-      const apiError = readApiError(payload)
+      for (const sample of slugSamples) {
+        const response = await fetchAdminApiWithTimeout(`/events/check-slug?slug=${encodeURIComponent(sample.slug)}`, SLUG_CHECK_TIMEOUT_MS, {
+          method: 'GET',
+          cache: 'no-store',
+        })
+        const payload = await response.json().catch(() => null) as unknown
+        const apiError = readApiError(payload)
 
-      if (!response.ok || apiError || !isSlugCheckResponse(payload)) {
-        throw new Error(apiError || `Slug check failed (${response.status})`)
+        if (!response.ok || apiError || !isSlugCheckResponse(payload)) {
+          throw new Error(apiError || `Slug check failed (${response.status})`)
+        }
+
+        if (payload.exists) {
+          setSlugValidationState('duplicate')
+          setSlugCheckError(`Slug already exists for the ${sample.label}.`)
+          return false
+        }
       }
 
-      const exists = payload.exists
-      setSlugValidationState(exists ? 'duplicate' : 'unique')
-      return !exists
+      setSlugValidationState('unique')
+      return true
     }
     catch (error) {
       console.error('Error checking slug:', error)
@@ -3436,7 +3619,7 @@ export default function AdminCreateEventForm({
       setSlugCheckError('Could not validate slug right now.')
       return false
     }
-  }, [form.slug])
+  }, [creationMode, form.slug, recurringOccurrencePreviews])
 
   const runAllowedCreatorCheck = useCallback(async () => {
     setAllowedCreatorCheckState('checking')
@@ -3663,6 +3846,7 @@ export default function AdminCreateEventForm({
     else {
       setContentCheckState('idle')
       setContentCheckIssues([])
+      setContentCheckWarnings([])
       setBypassedIssueKeys([])
       setContentCheckError('')
       setContentCheckProgressLine('')
@@ -4667,6 +4851,7 @@ export default function AdminCreateEventForm({
     const { resolvedForm, resolvedSportsForm } = syncResolvedDateInputs()
     const errors = buildStepErrors(step, {
       form: resolvedForm,
+      creationMode,
       sportsForm: resolvedSportsForm,
       hasEventImage,
       hasTeamLogoByHostStatus,
@@ -4679,6 +4864,9 @@ export default function AdminCreateEventForm({
       hasPendingAiErrors: pendingAiIssues.length > 0,
       hasContentCheckFatalError: Boolean(contentCheckError),
       allowPastResolutionDate,
+      hasCreatorSelection: creationMode !== 'recurring' || Boolean(automaticWalletAddress.trim()),
+      hasRecurringCadence: creationMode !== 'recurring' || Boolean(recurrenceUnit),
+      recurringPreviewErrors,
     })
 
     if (errors.length > 0) {
@@ -4690,6 +4878,8 @@ export default function AdminCreateEventForm({
 
     return true
   }, [
+    automaticWalletAddress,
+    creationMode,
     allowedCreatorCheckState,
     allowPastResolutionDate,
     contentCheckState,
@@ -4700,6 +4890,8 @@ export default function AdminCreateEventForm({
     contentCheckError,
     openRouterCheckState,
     pendingAiIssues.length,
+    recurrenceUnit,
+    recurringPreviewErrors,
     showFirstError,
     slugValidationState,
     syncResolvedDateInputs,
@@ -4750,6 +4942,7 @@ export default function AdminCreateEventForm({
     setOpenRouterCheckError('')
     setContentCheckState('idle')
     setContentCheckIssues([])
+    setContentCheckWarnings([])
     setBypassedIssueKeys([])
     setContentCheckProgressLine('')
     setContentCheckError('')
@@ -4836,6 +5029,7 @@ export default function AdminCreateEventForm({
     setOpenRouterCheckError('')
     setContentCheckState('idle')
     setContentCheckIssues([])
+    setContentCheckWarnings([])
     setBypassedIssueKeys([])
     setContentCheckProgressLine('')
     setContentCheckError('')
@@ -5161,7 +5355,8 @@ export default function AdminCreateEventForm({
                             </button>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs text-left">
-                            <div className="grid gap-1">
+                            <div className="grid gap-2">
+                              <p>{TEMPLATE_TOKEN_HELP_TEXT}</p>
                               {TEMPLATE_TOKEN_EXAMPLES.map(item => (
                                 <p key={`title-token-${item}`}>{item}</p>
                               ))}
@@ -5204,7 +5399,8 @@ export default function AdminCreateEventForm({
                             </button>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs text-left">
-                            <div className="grid gap-1">
+                            <div className="grid gap-2">
+                              <p>{TEMPLATE_TOKEN_HELP_TEXT}</p>
                               {TEMPLATE_TOKEN_EXAMPLES.map(item => (
                                 <p key={`slug-token-${item}`}>{item}</p>
                               ))}
@@ -6381,7 +6577,8 @@ export default function AdminCreateEventForm({
                           </button>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs text-left">
-                          <div className="grid gap-1">
+                          <div className="grid gap-2">
+                            <p>{TEMPLATE_TOKEN_HELP_TEXT}</p>
                             {TEMPLATE_TOKEN_EXAMPLES.map(item => (
                               <p key={`rules-token-${item}`}>{item}</p>
                             ))}
@@ -6416,6 +6613,45 @@ export default function AdminCreateEventForm({
                     {' '}
                     {recurringResolvedRules}
                   </p>
+                )}
+                {creationMode === 'recurring' && recurringOccurrencePreviews.length > 1 && (
+                  <div className="rounded-md border border-border/60 bg-muted/20 p-3">
+                    <p className="text-xs font-medium text-foreground">Recurring preview samples</p>
+                    <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+                      {recurringOccurrencePreviews.map((preview, index) => (
+                        <div key={`${preview.slug}-${index}`} className="space-y-1">
+                          <p className="font-medium text-foreground">{index === 0 ? 'First occurrence' : 'Next occurrence'}</p>
+                          <p>
+                            <span className="font-medium text-foreground">Title:</span>
+                            {' '}
+                            {preview.title}
+                          </p>
+                          <p>
+                            <span className="font-medium text-foreground">Slug:</span>
+                            {' '}
+                            {preview.slug}
+                          </p>
+                          <p className="whitespace-pre-wrap">
+                            <span className="font-medium text-foreground">Rules:</span>
+                            {' '}
+                            {preview.resolutionRules}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {creationMode === 'recurring' && recurringEditorialWarnings.length > 0 && (
+                  <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Recurring warnings</p>
+                    <div className="mt-2 space-y-1">
+                      {recurringEditorialWarnings.map(warning => (
+                        <p key={warning} className="text-sm text-amber-700 dark:text-amber-400">
+                          {warning}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -7031,15 +7267,37 @@ export default function AdminCreateEventForm({
               {expandedPreSignChecks.slug && (
                 <div className="mt-2 space-y-1">
                   <p className="text-sm text-muted-foreground">Final uniqueness check against your database.</p>
-                  <p className="font-mono text-sm break-all text-muted-foreground">
-                    {form.slug || 'Slug not generated'}
-                  </p>
+                  {creationMode === 'recurring' && recurringOccurrencePreviews.length > 0
+                    ? (
+                        <div className="space-y-1">
+                          {recurringOccurrencePreviews.map((preview, index) => (
+                            <p
+                              key={`${preview.slug}-${index}`}
+                              className="font-mono text-sm break-all text-muted-foreground"
+                            >
+                              {index === 0 ? 'First' : 'Next'}
+                              :
+                              {' '}
+                              {preview.slug}
+                            </p>
+                          ))}
+                        </div>
+                      )
+                    : (
+                        <p className="font-mono text-sm break-all text-muted-foreground">
+                          {form.slug || 'Slug not generated'}
+                        </p>
+                      )}
                 </div>
               )}
               {slugValidationState === 'duplicate' && (
-                <p className="mt-2 text-sm text-destructive">Slug already exists in your database.</p>
+                <p className="mt-2 text-sm text-destructive">
+                  {slugCheckError || 'Slug already exists in your database.'}
+                </p>
               )}
-              {slugCheckError && <p className="mt-2 text-sm text-destructive">{slugCheckError}</p>}
+              {slugCheckError && slugValidationState !== 'duplicate' && (
+                <p className="mt-2 text-sm text-destructive">{slugCheckError}</p>
+              )}
             </div>
 
             <div className="rounded-md border px-4 py-3">
@@ -7156,6 +7414,21 @@ export default function AdminCreateEventForm({
                               Ignore
                             </Button>
                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {contentCheckWarnings.length > 0 && (
+                    <div className="space-y-2">
+                      {contentCheckWarnings.map(warning => (
+                        <div
+                          key={`warning-${getAiIssueKey(warning)}`}
+                          className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2"
+                        >
+                          <p className="text-sm text-amber-700 dark:text-amber-400">
+                            {warning.reason}
+                          </p>
                         </div>
                       ))}
                     </div>

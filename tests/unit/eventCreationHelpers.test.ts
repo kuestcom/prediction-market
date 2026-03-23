@@ -1,11 +1,13 @@
 import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import { describe, expect, it } from 'vitest'
 import {
+  applyEventCreationTemplate,
   buildDefaultDeployAt,
   buildEventCreationTimestampSeed,
   buildEventCreationWalletTail,
   buildScheduledRecurringDeployAt,
   expandEventCreationOccurrences,
+  hasEventCreationDateTemplateVariable,
   normalizeEventCreationAssetPayload,
 } from '@/lib/event-creation'
 import { parseEventCreationSignerPrivateKeys } from '@/lib/event-creation-signers'
@@ -147,6 +149,22 @@ describe('event creation helpers', () => {
     expect(result.payload.resolutionRules).toBe('Resolve YES if BTC closes above the opening price on 22 March 2026.')
     expectLocalDateTimeParts(result.payload.endDateIso, { year: 2026, monthIndex: 2, day: 22, hour: 12 })
     expect(result.payload.binaryOutcomeYes).toBe('Yes')
+  })
+
+  it('supports day offsets in recurring template variables', () => {
+    const occurrenceDate = new Date(buildLocalDateTimeValue(2026, 2, 22, 12))
+    const result = applyEventCreationTemplate(
+      'From {{date-7}} 12:00 PM ET to {{date}} {{year}} 12:00 PM ET.',
+      occurrenceDate,
+    )
+
+    expect(result).toBe('From 15 March 12:00 PM ET to 22 March 2026 12:00 PM ET.')
+  })
+
+  it('detects date-based recurring template variables including offsets', () => {
+    expect(hasEventCreationDateTemplateVariable('BTC on {{date}}')).toBe(true)
+    expect(hasEventCreationDateTemplateVariable('BTC from {{date-7}} to {{date}}')).toBe(true)
+    expect(hasEventCreationDateTemplateVariable('Static recurring title')).toBe(false)
   })
 
   it('computes the next recurring schedule and deploy window', () => {
