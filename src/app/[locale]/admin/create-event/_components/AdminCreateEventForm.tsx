@@ -5504,7 +5504,7 @@ export default function AdminCreateEventForm({
                       </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="min-w-0 space-y-2">
                       <Label>Creator</Label>
                       <Select
                         value={creationMode === 'recurring'
@@ -5512,7 +5512,7 @@ export default function AdminCreateEventForm({
                           : (automaticWalletAddress || (eoaAddress ? '__eoa__' : undefined))}
                         onValueChange={value => setAutomaticWalletAddress(value === '__eoa__' ? '' : value)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full min-w-0">
                           <SelectValue placeholder={creationMode === 'recurring'
                             ? (isLoadingSigners ? 'Loading creators...' : 'Select creator')
                             : (eoaAddress ? 'EOA wallet' : 'Connect EOA wallet')}
