@@ -1946,6 +1946,13 @@ export default function AdminCreateEventForm({
     () => signatureTxs.filter(item => item.status === 'success').length,
     [signatureTxs],
   )
+  const finalizeInProgressAccepted = pendingWorkflowStatus === 'finalize_in_progress'
+  const finalizeStepSucceeded = signatureFlowDone || finalizeInProgressAccepted
+  const finalizeStepIsRunning = isFinalizingSignatureFlow || pendingWorkflowStatus === 'finalize_running'
+  const finalizeStepHasError = !finalizeStepSucceeded
+    && Boolean(signatureFlowError)
+    && completedSignatureCount === signatureTxs.length
+    && signatureTxs.length > 0
   const authPhaseCompleted = Boolean(preparedSignaturePlan)
   const totalSignatureUnits = useMemo(
     () => (preparedSignaturePlan ? signatureTxs.length + 2 : 2),
@@ -1955,12 +1962,12 @@ export default function AdminCreateEventForm({
     () => {
       let completed = authPhaseCompleted ? 1 : 0
       completed += completedSignatureCount
-      if (signatureFlowDone) {
+      if (finalizeStepSucceeded) {
         completed += 1
       }
       return completed
     },
-    [authPhaseCompleted, completedSignatureCount, signatureFlowDone],
+    [authPhaseCompleted, completedSignatureCount, finalizeStepSucceeded],
   )
   const signatureProgressPercent = useMemo(() => {
     if (totalSignatureUnits <= 0) {
@@ -4153,7 +4160,7 @@ export default function AdminCreateEventForm({
         setPendingWorkflowStatus(null)
         return false
       }
-      else if (pending.status !== 'finalized') {
+      else if (pending.status !== 'finalized' && pending.status !== 'finalize_in_progress') {
         setPendingWorkflowRequestId(null)
         setPendingWorkflowStatus(null)
       }
@@ -4491,8 +4498,7 @@ export default function AdminCreateEventForm({
         })
 
         const { payload: responsePayload, text: responseText } = await readResponseBody(response)
-        const errorMessage = readResponseErrorMessage(responsePayload, responseText)
-        if (response.ok && !errorMessage && isFinalizeResponse(responsePayload)) {
+        if (response.ok && isFinalizeResponse(responsePayload)) {
           if (responsePayload.requestId !== preparedSignaturePlan.requestId) {
             throw new Error('Finalize response requestId mismatch.')
           }
@@ -4521,7 +4527,7 @@ export default function AdminCreateEventForm({
           throw new Error(`Unexpected finalize status: ${responsePayload.status}`)
         }
 
-        const failureMessage = errorMessage || `Finalize failed (${response.status})`
+        const failureMessage = readResponseErrorMessage(responsePayload, responseText) || `Finalize failed (${response.status})`
         const canRetry = attempt < FINALIZE_MAX_ATTEMPTS && shouldRetryFinalizeRequest(failureMessage)
         if (!canRetry) {
           throw new Error(failureMessage)
@@ -7650,19 +7656,21 @@ export default function AdminCreateEventForm({
                     <p className="text-xs text-muted-foreground">
                       {signatureFlowDone
                         ? 'Completed'
-                        : isFinalizingSignatureFlow || pendingWorkflowStatus === 'finalize_running'
-                          ? 'Registering markets on server'
-                          : signatureFlowError && completedSignatureCount === signatureTxs.length && signatureTxs.length > 0
-                            ? 'Failed'
-                            : 'Pending'}
+                        : finalizeInProgressAccepted
+                          ? 'Accepted by server'
+                          : finalizeStepIsRunning
+                            ? 'Registering markets on server'
+                            : finalizeStepHasError
+                              ? 'Failed'
+                              : 'Pending'}
                     </p>
                   </div>
                   <SignatureTxIndicator
-                    status={signatureFlowDone
+                    status={finalizeStepSucceeded
                       ? 'success'
-                      : isFinalizingSignatureFlow || pendingWorkflowStatus === 'finalize_running'
+                      : finalizeStepIsRunning
                         ? 'confirming'
-                        : signatureFlowError && completedSignatureCount === signatureTxs.length && signatureTxs.length > 0
+                        : finalizeStepHasError
                           ? 'error'
                           : 'idle'}
                   />

@@ -75,7 +75,7 @@ async function AdminCreateEventNewContent({
   const title = effectiveMode === 'recurring' ? 'Create Recurring Event' : 'Create Event'
   const description = effectiveMode === 'recurring'
     ? 'Build the base market draft for a recurring schedule. The selected date is always the resolution date.'
-    : 'Create a one-off event with the existing guided form. The selected date is always the resolution date.'
+    : 'Create a one-off event. The selected date is always the resolution date.'
 
   return (
     <>
