@@ -2,7 +2,7 @@ import { ArrowLeftIcon } from 'lucide-react'
 import { setRequestLocale } from 'next-intl/server'
 import { connection } from 'next/server'
 import { Suspense } from 'react'
-import AdminCreateEventForm from '@/app/[locale]/admin/create-event/_components/AdminCreateEventForm'
+import AdminCreateEventForm from '@/app/[locale]/admin/events/calendar/_components/AdminCreateEventForm'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
 import { buildAdminSportsSlugCatalog, EMPTY_ADMIN_SPORTS_SLUG_CATALOG } from '@/lib/admin-sports-slugs'
@@ -85,7 +85,7 @@ async function AdminCreateEventNewContent({
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
         <Button type="button" variant="outline" asChild>
-          <Link href="/admin/create-event">
+          <Link href="/admin/events/calendar">
             <ArrowLeftIcon className="size-4" />
             Back to calendar
           </Link>
@@ -130,7 +130,7 @@ export default async function AdminCreateEventNewPage({
                 <p className="text-sm text-muted-foreground">Loading event form...</p>
               </div>
               <Button type="button" variant="outline" asChild>
-                <Link href="/admin/create-event">
+                <Link href="/admin/events/calendar">
                   <ArrowLeftIcon className="size-4" />
                   Back to calendar
                 </Link>

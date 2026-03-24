@@ -3474,7 +3474,7 @@ export default function AdminCreateEventForm({
     setOpenRouterCheckError('')
 
     try {
-      const response = await fetchAdminApiWithTimeout('/create-event/ai', OPENROUTER_CHECK_TIMEOUT_MS, {
+      const response = await fetchAdminApiWithTimeout('/event-creations/ai', OPENROUTER_CHECK_TIMEOUT_MS, {
         method: 'GET',
         cache: 'no-store',
       })
@@ -3521,7 +3521,7 @@ export default function AdminCreateEventForm({
     }, CONTENT_CHECK_PROGRESS_INTERVAL_MS)
 
     try {
-      const response = await fetchAdminApiWithTimeout('/create-event/ai', CONTENT_CHECK_TIMEOUT_MS, {
+      const response = await fetchAdminApiWithTimeout('/event-creations/ai', CONTENT_CHECK_TIMEOUT_MS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3638,7 +3638,7 @@ export default function AdminCreateEventForm({
     }
 
     try {
-      const response = await fetchAdminApi(`/create-event/allowed-creators?address=${encodeURIComponent(eoaAddress)}`, {
+      const response = await fetchAdminApi(`/event-creations/allowed-creators?address=${encodeURIComponent(eoaAddress)}`, {
         method: 'GET',
         cache: 'no-store',
       })
@@ -3675,7 +3675,7 @@ export default function AdminCreateEventForm({
 
     setIsAddingCreatorWallet(true)
     try {
-      const response = await fetchAdminApi('/create-event/allowed-creators', {
+      const response = await fetchAdminApi('/event-creations/allowed-creators', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -4225,7 +4225,7 @@ export default function AdminCreateEventForm({
   const generateRulesWithAi = useCallback(async () => {
     setIsGeneratingRules(true)
     try {
-      const response = await fetchAdminApi('/create-event/ai', {
+      const response = await fetchAdminApi('/event-creations/ai', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -6743,7 +6743,7 @@ export default function AdminCreateEventForm({
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="outline" asChild>
-              <Link href="/admin/create-event">
+              <Link href="/admin/events/calendar">
                 <ArrowLeftIcon className="size-4" />
                 Back to calendar
               </Link>
@@ -7718,7 +7718,7 @@ export default function AdminCreateEventForm({
               variant="outline"
               onClick={() => {
                 if (currentStep === 1) {
-                  router.push('/admin/create-event' as Route)
+                  router.push('/admin/events/calendar' as Route)
                   return
                 }
 

@@ -372,7 +372,7 @@ export default function AdminCreateEventCalendar() {
     if (startAt) {
       params.set('startAt', normalizeDateTimeLocalValue(startAt))
     }
-    router.push(`/admin/create-event/new?${params.toString()}` as Route)
+    router.push(`/admin/events/calendar/new?${params.toString()}` as Route)
   }
 
   async function createDraftAndOpen(mode: CreationMode, startAt?: string, sourceEventId?: string) {
@@ -748,7 +748,10 @@ export default function AdminCreateEventCalendar() {
                                 />
                               )
                             : (
-                                <div className="flex size-12 items-center justify-center rounded-lg border text-muted-foreground">
+                                <div className="
+                                  flex size-12 items-center justify-center rounded-lg border text-muted-foreground
+                                "
+                                >
                                   <ImageIcon className="size-5" />
                                 </div>
                               )}

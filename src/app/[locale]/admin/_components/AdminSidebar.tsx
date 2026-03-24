@@ -34,7 +34,7 @@ export default function AdminSidebar() {
     }
     return pathname === item.href || pathname.startsWith(`${item.href}/`)
   })
-  const active = pathname.startsWith('/admin/create-event')
+  const active = pathname.startsWith('/admin/events/calendar')
     ? 'events'
     : (activeItem?.id ?? 'general')
 

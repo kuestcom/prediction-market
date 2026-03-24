@@ -20,7 +20,7 @@ vi.mock('@/lib/db/queries/allowed-market-creators', () => ({
   },
 }))
 
-const { POST } = await import('@/app/[locale]/admin/api/create-event/allowed-creators/route')
+const { POST } = await import('@/app/[locale]/admin/api/event-creations/allowed-creators/route')
 
 describe('allowed market creators route', () => {
   beforeEach(() => {
@@ -32,7 +32,7 @@ describe('allowed market creators route', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
 
-    const response = await POST(new Request('https://example.com/admin/api/create-event/allowed-creators', {
+    const response = await POST(new Request('https://example.com/admin/api/event-creations/allowed-creators', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
