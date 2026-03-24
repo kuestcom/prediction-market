@@ -283,10 +283,10 @@ crontab -e
 Add jobs (replace domain/token):
 
 ```cron
-1-59/5 * * * * curl -fsS -H "Authorization: Bearer replace-me" "https://markets.example.com/api/sync/events" >/dev/null 2>&1
-3-59/5 * * * * curl -fsS -H "Authorization: Bearer replace-me" "https://markets.example.com/api/sync/resolution" >/dev/null 2>&1
-*/10 * * * * curl -fsS -H "Authorization: Bearer replace-me" "https://markets.example.com/api/sync/translations" >/dev/null 2>&1
-14,44 * * * * curl -fsS -H "Authorization: Bearer replace-me" "https://markets.example.com/api/sync/volume" >/dev/null 2>&1
+1-59/3 * * * * curl -fsS -H "Authorization: Bearer replace-me" "https://markets.example.com/api/sync/events" >/dev/null 2>&1
+2-56/6 * * * * curl -fsS -H "Authorization: Bearer replace-me" "https://markets.example.com/api/sync/resolution" >/dev/null 2>&1
+16,46 * * * * curl -fsS -H "Authorization: Bearer replace-me" "https://markets.example.com/api/sync/volume" >/dev/null 2>&1
+13,37 * * * * curl -fsS -H "Authorization: Bearer replace-me" "https://markets.example.com/api/sync/translations" >/dev/null 2>&1
 ```
 
 ## Operations

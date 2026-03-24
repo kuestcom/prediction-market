@@ -30,6 +30,7 @@ import {
   TIME_RANGES,
   useEventPriceHistory,
 } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+import { useXTrackerTweetCount } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useXTrackerTweetCount'
 import {
   areNumberMapsEqual,
   areQuoteMapsEqual,
@@ -41,6 +42,7 @@ import {
   getOutcomeLabelForMarket,
   getTopMarketIds,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
+import { isTweetMarketsEvent } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
 import EventIconImage from '@/components/EventIconImage'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
@@ -69,23 +71,12 @@ interface TradeFlowLabelItem {
   createdAt: number
 }
 
-interface TweetCountResponsePayload {
-  data?: {
-    totalCount?: number | null
-    handles?: string[]
-    trackingEndMs?: number | null
-    trackingStartMs?: number | null
-  } | null
-  error?: string
-}
-
 const tradeFlowMaxItems = 6
 const tradeFlowTtlMs = 8000
 const tradeFlowCleanupIntervalMs = 500
 const CHART_MARKER_ACTIVITY_PAGE_SIZE = 50
 const CHART_MARKER_MAX_PAGES_PER_MARKET = 10
 const EVENT_PLOT_CLIP_RIGHT_PADDING = 18
-const TWEET_MARKETS_TAG_SLUGS = new Set(['tweet-markets', 'tweet-market'])
 const TWEET_COUNT_METADATA_KEYS = [
   'tweet_count',
   'tweetCount',
@@ -321,16 +312,6 @@ function resolveTweetCountdownTargetMs(event: Event): number | null {
   return Math.min(...marketEndTimes)
 }
 
-function isTweetMarketsEvent(event: Event) {
-  return event.tags.some((tag) => {
-    const normalizedName = tag.name?.trim().toLowerCase()
-    const normalizedSlug = tag.slug?.trim().toLowerCase()
-
-    return normalizedName === 'tweet markets'
-      || (normalizedSlug ? TWEET_MARKETS_TAG_SLUGS.has(normalizedSlug) : false)
-  })
-}
-
 function buildCombinedOutcomeHistory(
   yesHistory: DataPoint[],
   noHistory: DataPoint[],
@@ -488,43 +469,7 @@ function EventChartComponent({
     () => resolveTweetCountdownTargetMs(event),
     [event],
   )
-  const xtrackerTweetCountQuery = useQuery({
-    queryKey: ['xtracker-tweet-count', event.slug, event.series_slug, event.end_date, event.title],
-    enabled: shouldShowTweetMarketsPanel,
-    staleTime: 120_000,
-    refetchInterval: 120_000,
-    queryFn: async () => {
-      const params = new URLSearchParams()
-      if (event.slug) {
-        params.set('eventSlug', event.slug)
-      }
-      if (event.series_slug) {
-        params.set('seriesSlug', event.series_slug)
-      }
-      if (event.title) {
-        params.set('eventTitle', event.title)
-      }
-      if (event.end_date) {
-        const parsedEndMs = Date.parse(event.end_date)
-        if (Number.isFinite(parsedEndMs)) {
-          params.set('eventEndMs', String(parsedEndMs))
-        }
-      }
-
-      const response = await fetch(`/api/xtracker/tweet-count?${params.toString()}`, {
-        cache: 'no-store',
-      })
-      const payload = await response.json() as TweetCountResponsePayload
-      if (!response.ok) {
-        if (response.status === 404) {
-          return null
-        }
-        throw new Error(payload.error || 'Failed to fetch XTracker tweet count.')
-      }
-
-      return payload.data ?? null
-    },
-  })
+  const xtrackerTweetCountQuery = useXTrackerTweetCount(event, shouldShowTweetMarketsPanel)
   const resolvedTweetCount = xtrackerTweetCountQuery.data?.totalCount ?? tweetCount
   const resolvedTweetCountdownTargetMs = useMemo(() => {
     const trackingEndMs = xtrackerTweetCountQuery.data?.trackingEndMs

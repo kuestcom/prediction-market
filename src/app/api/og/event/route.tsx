@@ -100,6 +100,25 @@ function sanitizeImageUrl(rawUrl: string | null | undefined, siteUrl: string) {
   }
 }
 
+function optimizeOgImageUrl(url: string) {
+  try {
+    const parsed = new URL(url)
+    if (!parsed.hostname.endsWith('.supabase.co')) {
+      return url
+    }
+
+    const wsrvUrl = new URL('https://wsrv.nl/')
+    wsrvUrl.searchParams.set('url', parsed.toString())
+    wsrvUrl.searchParams.set('w', '494')
+    wsrvUrl.searchParams.set('q', '80')
+    wsrvUrl.searchParams.set('output', 'webp')
+    return wsrvUrl.toString()
+  }
+  catch {
+    return url
+  }
+}
+
 function resolveFocusedMarket(event: Event, marketSlug: string) {
   const normalizedMarketSlug = marketSlug.trim().toLowerCase()
   if (normalizedMarketSlug) {
@@ -130,7 +149,7 @@ function resolveEventImage(event: Event, focusedMarket: EventMarket | null, site
   for (const candidate of imageCandidates) {
     const sanitized = sanitizeImageUrl(candidate, siteUrl)
     if (sanitized) {
-      return sanitized
+      return optimizeOgImageUrl(sanitized)
     }
   }
 

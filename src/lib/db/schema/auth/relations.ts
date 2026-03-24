@@ -23,28 +23,28 @@ export const usersRelations = relations(users, ({ many, one }) => ({
 }))
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
-  user: one(users, {
+  users: one(users, {
     fields: [sessions.user_id],
     references: [users.id],
   }),
 }))
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
-  user: one(users, {
+  users: one(users, {
     fields: [accounts.user_id],
     references: [users.id],
   }),
 }))
 
 export const walletsRelations = relations(wallets, ({ one }) => ({
-  user: one(users, {
+  users: one(users, {
     fields: [wallets.user_id],
     references: [users.id],
   }),
 }))
 
 export const twoFactorsRelations = relations(two_factors, ({ one }) => ({
-  user: one(users, {
+  users: one(users, {
     fields: [two_factors.user_id],
     references: [users.id],
   }),

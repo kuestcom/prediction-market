@@ -42,27 +42,17 @@ async function resolveInitialCategoryMarketSlug(categorySlug: string, locale: Su
   }
 
   try {
-    const { data: events, error } = await EventRepository.listEvents({
+    const { data: marketSlugs, error } = await EventRepository.listEventMarketSlugs({
       tag: categorySlug,
-      search: '',
-      userId: '',
-      bookmarked: false,
-      frequency: 'all',
-      status: 'active',
-      offset: 0,
       locale,
+      limit: 1,
     })
 
-    if (error || !events?.length) {
+    if (error || !marketSlugs?.length) {
       return ''
     }
 
-    for (const event of events) {
-      const market = event.markets.find(item => Boolean(item.slug))
-      if (market?.slug) {
-        return market.slug
-      }
-    }
+    return marketSlugs[0] ?? ''
   }
   catch (error) {
     console.error('Failed to resolve initial category market slug', error)
@@ -278,7 +268,7 @@ export async function GET(request: NextRequest) {
             locale,
           });
 
-          const response = await fetch('/api/events?' + params.toString(), {
+          const response = await fetch('/api/events/market-slugs?' + params.toString(), {
             method: 'GET',
             cache: 'no-store',
           });
@@ -287,18 +277,7 @@ export async function GET(request: NextRequest) {
           }
 
           const payload = await response.json();
-          const events = Array.isArray(payload) ? payload : [];
-          const slugs = [];
-          for (const event of events) {
-            const eventMarkets = Array.isArray(event?.markets) ? event.markets : [];
-            for (const market of eventMarkets) {
-              if (typeof market?.slug === 'string' && market.slug.trim()) {
-                slugs.push(market.slug.trim());
-              }
-            }
-          }
-
-          markets = Array.from(new Set(slugs)).slice(0, 80);
+          markets = Array.isArray(payload) ? payload.filter(slug => typeof slug === 'string' && slug.trim()) : [];
           const currentMarket = widget?.getAttribute('market') ?? '';
           const initialIndex = markets.indexOf(currentMarket);
           setButtonsVisibility(markets.length > 1);
