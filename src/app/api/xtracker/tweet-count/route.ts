@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 
 const XTRACKER_API_BASE_URL = 'https://xtracker.polymarket.com/api'
-const XTRACKER_PLATFORM = 'X'
+const DEFAULT_XTRACKER_PLATFORM = 'X'
+
+type XTrackerPlatform = 'X' | 'TRUTH_SOCIAL'
 
 const SERIES_SLUG_TO_HANDLES: Record<string, string[]> = {
   'elon-tweets-48h': ['elonmusk'],
@@ -31,14 +33,21 @@ interface XTrackerTrackingsPayload {
   error?: string
 }
 
-interface XTrackerStatsUser {
-  handle?: string | null
-  startDate?: string | null
-  endDate?: string | null
-  tweetData?: XTrackerTweetData | null
+interface XTrackerTrackingStats {
+  total?: number | string | null
+  cumulative?: number | string | null
+}
+
+interface XTrackerTrackingDetailsPayload {
+  success?: boolean
+  data?: {
+    stats?: XTrackerTrackingStats | null
+  } | null
+  error?: string
 }
 
 interface CandidateTracking {
+  id: string | null
   handle: string
   title: string | null
   startMs: number
@@ -66,6 +75,19 @@ function toNonNegativeNumber(value: unknown): number | null {
 
 function toNormalizedString(value: string | null | undefined): string {
   return value?.trim().toLowerCase() ?? ''
+}
+
+function normalizeHandleCandidate(value: string | null | undefined): string | null {
+  const trimmed = value?.trim().replace(/^@+/, '')
+  return trimmed || null
+}
+
+function parsePlatform(value: string | null): XTrackerPlatform {
+  if (value === 'TRUTH_SOCIAL') {
+    return 'TRUTH_SOCIAL'
+  }
+
+  return DEFAULT_XTRACKER_PLATFORM
 }
 
 function parseSeriesDurationMs(seriesSlug: string | null): number | null {
@@ -99,16 +121,23 @@ function parseSeriesDurationMs(seriesSlug: string | null): number | null {
 }
 
 function resolveCandidateHandles({
+  explicitHandle,
   seriesSlug,
   eventSlug,
   eventTitle,
 }: {
+  explicitHandle: string | null
   seriesSlug: string | null
   eventSlug: string | null
   eventTitle: string | null
 }) {
   const normalizedSeriesSlug = toNormalizedString(seriesSlug)
   const matches = new Set<string>()
+  const normalizedExplicitHandle = normalizeHandleCandidate(explicitHandle)
+
+  if (normalizedExplicitHandle) {
+    matches.add(normalizedExplicitHandle)
+  }
 
   if (normalizedSeriesSlug && SERIES_SLUG_TO_HANDLES[normalizedSeriesSlug]) {
     SERIES_SLUG_TO_HANDLES[normalizedSeriesSlug].forEach(handle => matches.add(handle))
@@ -142,6 +171,7 @@ function normalizeTracking(
   }
 
   return {
+    id: tracking.id?.trim() || null,
     handle,
     title: tracking.title?.trim() || null,
     startMs,
@@ -153,10 +183,15 @@ function normalizeTracking(
 
 function scoreTrackingCandidate(
   candidate: CandidateTracking,
+  targetStartMs: number | null,
   targetEndMs: number | null,
   expectedDurationMs: number | null,
 ) {
   let score = 0
+
+  if (targetStartMs != null) {
+    score += Math.abs(candidate.startMs - targetStartMs) * 2
+  }
 
   if (targetEndMs != null) {
     score += Math.abs(candidate.endMs - targetEndMs)
@@ -176,6 +211,7 @@ function scoreTrackingCandidate(
 
 function selectBestTracking(
   candidates: CandidateTracking[],
+  targetStartMs: number | null,
   targetEndMs: number | null,
   expectedDurationMs: number | null,
 ): CandidateTracking | null {
@@ -183,11 +219,17 @@ function selectBestTracking(
     return null
   }
 
-  return candidates
+  const exactStartMatches = targetStartMs == null
+    ? []
+    : candidates.filter(candidate => candidate.startMs === targetStartMs)
+
+  const pool = exactStartMatches.length > 0 ? exactStartMatches : candidates
+
+  return pool
     .slice()
     .sort((left, right) => {
-      const leftScore = scoreTrackingCandidate(left, targetEndMs, expectedDurationMs)
-      const rightScore = scoreTrackingCandidate(right, targetEndMs, expectedDurationMs)
+      const leftScore = scoreTrackingCandidate(left, targetStartMs, targetEndMs, expectedDurationMs)
+      const rightScore = scoreTrackingCandidate(right, targetStartMs, targetEndMs, expectedDurationMs)
       if (leftScore !== rightScore) {
         return leftScore - rightScore
       }
@@ -195,8 +237,11 @@ function selectBestTracking(
     })[0] ?? null
 }
 
-async function fetchTrackingsForHandle(handle: string): Promise<XTrackerTracking[]> {
-  const endpoint = `${XTRACKER_API_BASE_URL}/users/${encodeURIComponent(handle)}/trackings?activeOnly=true&platform=${XTRACKER_PLATFORM}`
+async function fetchTrackingsForHandle(
+  handle: string,
+  platform: XTrackerPlatform,
+): Promise<XTrackerTracking[]> {
+  const endpoint = `${XTRACKER_API_BASE_URL}/users/${encodeURIComponent(handle)}/trackings?platform=${platform}`
   const response = await fetch(endpoint, {
     cache: 'no-store',
     headers: {
@@ -216,8 +261,8 @@ async function fetchTrackingsForHandle(handle: string): Promise<XTrackerTracking
   return payload.data
 }
 
-async function fetchStatsUsers(): Promise<XTrackerStatsUser[]> {
-  const endpoint = `${XTRACKER_API_BASE_URL}/users?stats=true&platform=${XTRACKER_PLATFORM}`
+async function fetchTrackingTotalCount(trackingId: string): Promise<number | null> {
+  const endpoint = `${XTRACKER_API_BASE_URL}/trackings/${encodeURIComponent(trackingId)}?includeStats=true`
   const response = await fetch(endpoint, {
     cache: 'no-store',
     headers: {
@@ -226,42 +271,15 @@ async function fetchStatsUsers(): Promise<XTrackerStatsUser[]> {
   })
 
   if (!response.ok) {
-    throw new Error(`xtracker stats request failed: ${response.status}`)
+    throw new Error(`xtracker tracking details request failed: ${response.status}`)
   }
 
-  const payload = await response.json() as unknown
-  if (Array.isArray(payload)) {
-    return payload as XTrackerStatsUser[]
+  const payload = await response.json() as XTrackerTrackingDetailsPayload
+  if (!payload.success || !payload.data?.stats) {
+    return null
   }
 
-  if (
-    payload
-    && typeof payload === 'object'
-    && 'data' in payload
-    && Array.isArray((payload as { data?: unknown }).data)
-  ) {
-    return (payload as { data: XTrackerStatsUser[] }).data
-  }
-
-  return []
-}
-
-function resolveCountFromStatsUsers(
-  statsUsers: XTrackerStatsUser[],
-  target: CandidateTracking,
-): number | null {
-  const matched = statsUsers.find((entry) => {
-    const sameHandle = toNormalizedString(entry.handle) === toNormalizedString(target.handle)
-    if (!sameHandle) {
-      return false
-    }
-
-    const startMs = parseTimestampToMs(entry.startDate)
-    const endMs = parseTimestampToMs(entry.endDate)
-    return startMs === target.startMs && endMs === target.endMs
-  })
-
-  return toNonNegativeNumber(matched?.tweetData?.totalBetweenStartAndEnd)
+  return toNonNegativeNumber(payload.data.stats.total ?? payload.data.stats.cumulative)
 }
 
 export async function GET(request: Request) {
@@ -269,10 +287,15 @@ export async function GET(request: Request) {
   const seriesSlug = searchParams.get('seriesSlug')?.trim() ?? null
   const eventSlug = searchParams.get('eventSlug')?.trim() ?? null
   const eventTitle = searchParams.get('eventTitle')?.trim() ?? null
+  const explicitHandle = searchParams.get('handle')?.trim() ?? null
+  const platform = parsePlatform(searchParams.get('platform')?.trim() ?? null)
+  const eventStartMsParam = searchParams.get('eventStartMs')?.trim() ?? null
   const eventEndMsParam = searchParams.get('eventEndMs')?.trim() ?? null
+  const eventStartMs = eventStartMsParam ? toNonNegativeNumber(eventStartMsParam) : null
   const eventEndMs = eventEndMsParam ? toNonNegativeNumber(eventEndMsParam) : null
 
   const handles = resolveCandidateHandles({
+    explicitHandle,
     seriesSlug,
     eventSlug,
     eventTitle,
@@ -287,14 +310,13 @@ export async function GET(request: Request) {
 
   try {
     const expectedDurationMs = parseSeriesDurationMs(seriesSlug)
-    const statsUsers = await fetchStatsUsers()
     const perHandle = await Promise.all(handles.map(async (handle) => {
-      const trackings = await fetchTrackingsForHandle(handle)
+      const trackings = await fetchTrackingsForHandle(handle, platform)
       const normalized = trackings
         .map(tracking => normalizeTracking(handle, tracking))
         .filter((entry): entry is CandidateTracking => entry != null)
 
-      return selectBestTracking(normalized, eventEndMs, expectedDurationMs)
+      return selectBestTracking(normalized, eventStartMs, eventEndMs, expectedDurationMs)
     }))
 
     const selectedTrackings = perHandle.filter((entry): entry is CandidateTracking => entry != null)
@@ -305,10 +327,26 @@ export async function GET(request: Request) {
       }, { status: 404 })
     }
 
-    const totalCount = selectedTrackings.reduce((sum, entry) => {
-      const resolvedCount = entry.totalCount ?? resolveCountFromStatsUsers(statsUsers, entry) ?? 0
-      return sum + resolvedCount
-    }, 0)
+    const resolvedCounts = await Promise.all(selectedTrackings.map(async (entry) => {
+      if (entry.id) {
+        try {
+          const detailedCount = await fetchTrackingTotalCount(entry.id)
+          if (detailedCount != null) {
+            return detailedCount
+          }
+        }
+        catch (error) {
+          console.warn(`Failed to fetch XTracker tracking stats for ${entry.id}.`, error)
+        }
+      }
+
+      return entry.totalCount
+    }))
+
+    const availableCounts = resolvedCounts.filter((count): count is number => count != null)
+    const totalCount = availableCounts.length > 0
+      ? availableCounts.reduce((sum, count) => sum + count, 0)
+      : null
 
     const countdownEndMs = selectedTrackings.reduce<number | null>((current, entry) => {
       if (current == null) {
