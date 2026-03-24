@@ -191,47 +191,47 @@ const sidebarIconAssets: Record<PlatformCategorySidebarIconKey, SidebarIconAsset
   'temperature': {
     alt: '',
     decorative: true,
-    src: '/images/category-sidebar/climate-science/temperature.svg',
+    src: '/images/category-sidebar/weather/temperature.svg',
   },
   'precipitation': {
     alt: '',
     decorative: true,
-    src: '/images/category-sidebar/climate-science/precipitation.svg',
+    src: '/images/category-sidebar/weather/precipitation.svg',
   },
   'global': {
     alt: '',
     decorative: true,
-    src: '/images/category-sidebar/climate-science/global.svg',
+    src: '/images/category-sidebar/weather/global.svg',
   },
   'tornadoes': {
     alt: '',
     decorative: true,
-    src: '/images/category-sidebar/climate-science/tornadoes.svg',
+    src: '/images/category-sidebar/weather/tornadoes.svg',
   },
   'hurricanes': {
     alt: '',
     decorative: true,
-    src: '/images/category-sidebar/climate-science/hurricanes.svg',
+    src: '/images/category-sidebar/weather/hurricanes.svg',
   },
   'earthquakes': {
     alt: '',
     decorative: true,
-    src: '/images/category-sidebar/climate-science/earthquakes.svg',
+    src: '/images/category-sidebar/weather/earthquakes.svg',
   },
   'volcanoes': {
     alt: '',
     decorative: true,
-    src: '/images/category-sidebar/climate-science/volcanoes.svg',
+    src: '/images/category-sidebar/weather/volcanoes.svg',
   },
   'pandemics': {
     alt: '',
     decorative: true,
-    src: '/images/category-sidebar/climate-science/pandemics.svg',
+    src: '/images/category-sidebar/weather/pandemics.svg',
   },
   'space': {
     alt: '',
     decorative: true,
-    src: '/images/category-sidebar/climate-science/space.svg',
+    src: '/images/category-sidebar/weather/space.svg',
   },
 }
 

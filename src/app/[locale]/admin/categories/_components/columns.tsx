@@ -75,8 +75,8 @@ export function useAdminCategoryColumns({
       enableHiding: false,
     },
     {
-      accessorKey: 'active_markets_count',
-      id: 'active_markets_count',
+      accessorKey: 'active_events_count',
+      id: 'active_events_count',
       header: ({ column }) => (
         <Button
           type="button"
@@ -84,13 +84,13 @@ export function useAdminCategoryColumns({
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase hover:text-foreground"
         >
-          {t('Active Markets')}
+          {t('Active Events')}
           <ArrowUpDownIcon className="ml-2 size-4" />
         </Button>
       ),
       cell: ({ row }) => (
         <div className="text-xs text-muted-foreground">
-          {row.original.active_markets_count}
+          {row.original.active_events_count}
         </div>
       ),
       enableHiding: false,

@@ -262,3 +262,126 @@ describe('tagRepository.getMainTags', () => {
     })
   })
 })
+
+describe('tagRepository.listTags', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    mocks.cacheTag.mockReset()
+    mocks.revalidatePath.mockReset()
+    mocks.runQuery.mockReset()
+  })
+
+  it('derives visible active event counts and sorts by them', async () => {
+    const now = new Date('2026-03-12T12:00:00.000Z')
+    const earlier = new Date('2026-03-11T12:00:00.000Z')
+
+    mocks.runQuery
+      .mockResolvedValueOnce({
+        data: [{ count: 2 }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: 11,
+            name: 'Weather',
+            slug: 'weather',
+            is_main_category: true,
+            is_hidden: false,
+            hide_events: false,
+            display_order: 1,
+            active_markets_count: 57,
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 12,
+            name: 'Sports',
+            slug: 'sports',
+            is_main_category: true,
+            is_hidden: false,
+            hide_events: false,
+            display_order: 2,
+            active_markets_count: 4,
+            created_at: now,
+            updated_at: now,
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            event_id: 'weather-older',
+            event_slug: 'weather-older',
+            event_status: 'active',
+            series_slug: 'weather-series',
+            end_date: now,
+            created_at: earlier,
+            updated_at: earlier,
+            tag_slug: 'weather',
+          },
+          {
+            event_id: 'weather-newer',
+            event_slug: 'weather-newer',
+            event_status: 'active',
+            series_slug: 'weather-series',
+            end_date: now,
+            created_at: now,
+            updated_at: now,
+            tag_slug: 'weather',
+          },
+          {
+            event_id: 'weather-extra',
+            event_slug: 'weather-extra',
+            event_status: 'active',
+            series_slug: null,
+            end_date: now,
+            created_at: now,
+            updated_at: now,
+            tag_slug: 'weather',
+          },
+          {
+            event_id: 'sports-one',
+            event_slug: 'sports-one',
+            event_status: 'active',
+            series_slug: null,
+            end_date: now,
+            created_at: now,
+            updated_at: now,
+            tag_slug: 'sports',
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [],
+        error: null,
+      })
+
+    const { TagRepository } = await import('@/lib/db/queries/tag')
+    const result = await TagRepository.listTags({
+      sortBy: 'active_events_count',
+      sortOrder: 'desc',
+    })
+
+    expect(result.error).toBeNull()
+    expect(result.totalCount).toBe(2)
+    expect(result.data.map(tag => ({
+      slug: tag.slug,
+      active_events_count: tag.active_events_count,
+      active_markets_count: tag.active_markets_count,
+    }))).toEqual([
+      {
+        slug: 'weather',
+        active_events_count: 2,
+        active_markets_count: 57,
+      },
+      {
+        slug: 'sports',
+        active_events_count: 1,
+        active_markets_count: 4,
+      },
+    ])
+  })
+})

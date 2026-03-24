@@ -201,9 +201,9 @@ export default function AdminCategoriesTable() {
       return
     }
 
-    const columnMapping: Record<string, 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_markets_count'> = {
+    const columnMapping: Record<string, 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_events_count'> = {
       name: 'name',
-      active_markets_count: 'active_markets_count',
+      active_events_count: 'active_events_count',
     }
 
     const dbFieldName = columnMapping[column] || column

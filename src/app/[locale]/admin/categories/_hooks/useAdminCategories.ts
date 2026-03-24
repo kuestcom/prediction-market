@@ -11,6 +11,7 @@ export interface AdminCategoryRow {
   hide_events: boolean
   display_order: number
   active_markets_count: number
+  active_events_count: number
   created_at: string
   updated_at: string
   translations: Partial<Record<NonDefaultLocale, string>>
@@ -19,7 +20,7 @@ export interface AdminCategoryRow {
 interface UseAdminCategoriesParams {
   limit?: number
   search?: string
-  sortBy?: 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_markets_count'
+  sortBy?: 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_events_count'
   sortOrder?: 'asc' | 'desc'
   pageIndex?: number
   mainOnly?: boolean
@@ -110,7 +111,7 @@ export function useAdminCategoriesTable() {
   const [pageIndex, setPageIndex] = useState(0)
   const [pageSize, setPageSize] = useState(50)
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_markets_count'>('display_order')
+  const [sortBy, setSortBy] = useState<'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_events_count'>('display_order')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [mainOnly, setMainOnly] = useState(false)
 

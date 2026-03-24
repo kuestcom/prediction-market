@@ -28,7 +28,7 @@ interface ResolveCategorySidebarDataParams {
 }
 
 const categorySidebarTemplates: Partial<Record<string, CategorySidebarTemplateItem[]>> = {
-  'crypto': [
+  crypto: [
     { type: 'link', slug: 'crypto', label: 'All', icon: 'all-grid', isAll: true },
     { type: 'link', slug: '5M', label: '5 Min', icon: 'five-minute' },
     { type: 'link', slug: '15M', label: '15 Min', icon: 'fifteen-minute' },
@@ -48,7 +48,7 @@ const categorySidebarTemplates: Partial<Record<string, CategorySidebarTemplateIt
     { type: 'link', slug: 'dogecoin', label: 'Dogecoin', icon: 'dogecoin' },
     { type: 'link', slug: 'microstrategy', label: 'Microstrategy', icon: 'microstrategy' },
   ],
-  'finance': [
+  finance: [
     { type: 'link', slug: 'finance', label: 'All', icon: 'all-grid', isAll: true },
     { type: 'link', slug: 'daily', label: 'Daily', icon: 'daily' },
     { type: 'link', slug: 'weekly', label: 'Weekly', icon: 'weekly' },
@@ -76,8 +76,8 @@ const categorySidebarTemplates: Partial<Record<string, CategorySidebarTemplateIt
     { type: 'link', slug: 'prediction-markets', label: 'Prediction Markets', icon: 'prediction-markets' },
     { type: 'link', slug: 'treasuries', label: 'Treasuries', icon: 'treasuries' },
   ],
-  'climate-science': [
-    { type: 'link', slug: 'climate-science', label: 'All', icon: 'all-grid', isAll: true },
+  weather: [
+    { type: 'link', slug: 'weather', label: 'All', icon: 'all-grid', isAll: true },
     { type: 'link', slug: 'temperature', label: 'Temperature', icon: 'temperature' },
     { type: 'link', slug: 'precipitation', label: 'Precipitation', icon: 'precipitation' },
     { type: 'link', slug: 'global', label: 'Global', icon: 'global' },

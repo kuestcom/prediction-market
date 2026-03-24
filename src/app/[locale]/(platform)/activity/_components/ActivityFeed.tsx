@@ -85,7 +85,7 @@ function normalizeCategoryValue(value: string | null | undefined, categoryValues
     .replace(/\s+/g, ' ')
 
   if (normalized === 'climate and science' || normalized === 'climate science') {
-    return 'climate-science'
+    return 'weather'
   }
 
   if (normalized === 'geo politics' || normalized === 'geopolitics') {

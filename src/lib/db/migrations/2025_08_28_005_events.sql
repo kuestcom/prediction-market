@@ -380,7 +380,7 @@ WITH desired(name, slug, display_order) AS (
     ('Culture', 'culture', 8),
     ('World', 'world', 9),
     ('Economy', 'economy', 10),
-    ('Climate & Science', 'climate-science', 11),
+    ('Weather', 'weather', 11),
     ('Elections', 'elections', 12),
     ('Mentions', 'mentions', 13)
 ),

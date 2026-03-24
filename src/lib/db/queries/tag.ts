@@ -19,7 +19,7 @@ interface ListTagsParams {
   limit?: number
   offset?: number
   search?: string
-  sortBy?: 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_markets_count'
+  sortBy?: 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_events_count'
   sortOrder?: 'asc' | 'desc'
   mainOnly?: boolean
 }
@@ -35,6 +35,7 @@ interface AdminTagRow {
   hide_events: boolean
   display_order: number
   active_markets_count: number
+  active_events_count: number
   created_at: string
   updated_at: string
   translations: TagTranslationsMap
@@ -201,6 +202,90 @@ async function getLocalizedNamesByTagId(tagIds: number[], locale: SupportedLocal
   }
 
   return { data: localized, error: null }
+}
+
+async function getVisibleActiveEventCountsByTagSlugs(tagSlugs: string[]): Promise<{
+  data: Map<string, number>
+  error: string | null
+}> {
+  const normalizedTagSlugs = Array.from(new Set(
+    tagSlugs
+      .map(tagSlug => tagSlug.trim())
+      .filter(Boolean),
+  ))
+
+  if (normalizedTagSlugs.length === 0) {
+    return { data: new Map(), error: null }
+  }
+
+  const { data, error } = await runQuery(async () => {
+    const result = await db
+      .select({
+        event_id: events.id,
+        event_slug: events.slug,
+        event_status: events.status,
+        series_slug: events.series_slug,
+        end_date: events.end_date,
+        created_at: events.created_at,
+        updated_at: events.updated_at,
+        tag_slug: tags.slug,
+      })
+      .from(events)
+      .innerJoin(event_tags, eq(event_tags.event_id, events.id))
+      .innerJoin(tags, eq(event_tags.tag_id, tags.id))
+      .where(and(
+        eq(events.status, 'active'),
+        eq(events.is_hidden, false),
+        inArray(tags.slug, normalizedTagSlugs),
+        buildPublicEventListVisibilityCondition(events.id),
+      ))
+
+    return { data: result, error: null }
+  })
+
+  if (error || !data) {
+    return {
+      data: new Map(),
+      error: typeof error === 'string' ? error : 'Unknown error',
+    }
+  }
+
+  const eventsByTagSlug = new Map<string, Map<string, SidebarCountEventCandidate>>()
+
+  for (const row of data) {
+    const bucket = eventsByTagSlug.get(row.tag_slug) ?? new Map<string, SidebarCountEventCandidate>()
+
+    if (!bucket.has(row.event_id)) {
+      bucket.set(row.event_id, createSidebarCountEventCandidate({
+        event_id: row.event_id,
+        event_slug: row.event_slug,
+        event_status: row.event_status as SidebarCountEventCandidate['status'],
+        series_slug: row.series_slug,
+        end_date: row.end_date,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }))
+    }
+
+    eventsByTagSlug.set(row.tag_slug, bucket)
+  }
+
+  const currentTimestamp = Date.now()
+  const countsByTagSlug = new Map<string, number>()
+
+  for (const tagSlug of normalizedTagSlugs) {
+    const visibleEvents = filterHomeEvents(
+      Array.from(eventsByTagSlug.get(tagSlug)?.values() ?? []),
+      { currentTimestamp },
+    )
+
+    countsByTagSlug.set(tagSlug, visibleEvents.length)
+  }
+
+  return {
+    data: countsByTagSlug,
+    error: null,
+  }
 }
 
 export const TagRepository = {
@@ -485,13 +570,13 @@ export const TagRepository = {
     const cappedLimit = Math.min(Math.max(limit, 1), 100)
     const safeOffset = Math.max(offset, 0)
 
-    const validSortFields: ListTagsParams['sortBy'][] = [
+    const validSortFields: NonNullable<ListTagsParams['sortBy']>[] = [
       'name',
       'slug',
       'display_order',
       'created_at',
       'updated_at',
-      'active_markets_count',
+      'active_events_count',
     ]
     const orderField = validSortFields.includes(sortBy) ? sortBy : 'display_order'
     const ascending = (sortOrder ?? 'asc') === 'asc'
@@ -519,62 +604,166 @@ export const TagRepository = {
       case 'updated_at':
         orderByClause = ascending ? asc(tags.updated_at) : desc(tags.updated_at)
         break
-      case 'active_markets_count':
-        orderByClause = ascending ? asc(tags.active_markets_count) : desc(tags.active_markets_count)
-        break
       case 'display_order':
       default:
         orderByClause = ascending ? asc(tags.display_order) : desc(tags.display_order)
         break
     }
 
-    const baseQuery = db
-      .select({
-        id: tags.id,
-        name: tags.name,
-        slug: tags.slug,
-        is_main_category: tags.is_main_category,
-        is_hidden: tags.is_hidden,
-        hide_events: tags.hide_events,
-        display_order: tags.display_order,
-        active_markets_count: tags.active_markets_count,
-        created_at: tags.created_at,
-        updated_at: tags.updated_at,
-      })
-      .from(tags)
-
-    const finalQuery = whereCondition
-      ? baseQuery.where(whereCondition).orderBy(orderByClause).limit(cappedLimit).offset(safeOffset)
-      : baseQuery.orderBy(orderByClause).limit(cappedLimit).offset(safeOffset)
-
-    const baseCountQuery = db
-      .select({ count: count() })
-      .from(tags)
-
-    const countQuery = whereCondition
-      ? baseCountQuery.where(whereCondition)
-      : baseCountQuery
-
-    const { data, error } = await runQuery(async () => {
-      const result = await finalQuery
-      return { data: result, error: null }
-    })
-
     const { data: countResult, error: countError } = await runQuery(async () => {
+      const countQuery = whereCondition
+        ? db.select({ count: count() }).from(tags).where(whereCondition)
+        : db.select({ count: count() }).from(tags)
       const result = await countQuery
       return { data: result, error: null }
     })
 
-    if (error || countError) {
-      const errorMessage = error || countError
+    if (countError) {
       return {
         data: [],
-        error: errorMessage,
+        error: countError,
         totalCount: 0,
       }
     }
 
-    const rawRows = data || []
+    let rawRows: Array<{
+      id: number
+      name: string
+      slug: string
+      is_main_category: boolean | null
+      is_hidden: boolean
+      hide_events: boolean
+      display_order: number | null
+      active_markets_count: number | null
+      created_at: Date
+      updated_at: Date
+    }> = []
+    let visibleCountsByTagSlug = new Map<string, number>()
+
+    if (orderField === 'active_events_count') {
+      const { data, error } = await runQuery(async () => {
+        const fullQuery = whereCondition
+          ? db
+              .select({
+                id: tags.id,
+                name: tags.name,
+                slug: tags.slug,
+                is_main_category: tags.is_main_category,
+                is_hidden: tags.is_hidden,
+                hide_events: tags.hide_events,
+                display_order: tags.display_order,
+                active_markets_count: tags.active_markets_count,
+                created_at: tags.created_at,
+                updated_at: tags.updated_at,
+              })
+              .from(tags)
+              .where(whereCondition)
+          : db
+              .select({
+                id: tags.id,
+                name: tags.name,
+                slug: tags.slug,
+                is_main_category: tags.is_main_category,
+                is_hidden: tags.is_hidden,
+                hide_events: tags.hide_events,
+                display_order: tags.display_order,
+                active_markets_count: tags.active_markets_count,
+                created_at: tags.created_at,
+                updated_at: tags.updated_at,
+              })
+              .from(tags)
+        const result = await fullQuery
+        return { data: result, error: null }
+      })
+
+      if (error) {
+        return {
+          data: [],
+          error,
+          totalCount: 0,
+        }
+      }
+
+      const allRows = data || []
+      const { data: allVisibleCountsByTagSlug, error: visibleCountsError } = await getVisibleActiveEventCountsByTagSlugs(
+        allRows.map(row => row.slug),
+      )
+
+      if (visibleCountsError) {
+        return {
+          data: [],
+          error: visibleCountsError,
+          totalCount: 0,
+        }
+      }
+
+      visibleCountsByTagSlug = allVisibleCountsByTagSlug
+      rawRows = allRows
+        .toSorted((left, right) => {
+          const leftCount = visibleCountsByTagSlug.get(left.slug) ?? 0
+          const rightCount = visibleCountsByTagSlug.get(right.slug) ?? 0
+
+          if (leftCount !== rightCount) {
+            return ascending ? leftCount - rightCount : rightCount - leftCount
+          }
+
+          return left.name.localeCompare(right.name)
+        })
+        .slice(safeOffset, safeOffset + cappedLimit)
+    }
+    else {
+      const { data, error } = await runQuery(async () => {
+        const finalQuery = whereCondition
+          ? db
+              .select({
+                id: tags.id,
+                name: tags.name,
+                slug: tags.slug,
+                is_main_category: tags.is_main_category,
+                is_hidden: tags.is_hidden,
+                hide_events: tags.hide_events,
+                display_order: tags.display_order,
+                active_markets_count: tags.active_markets_count,
+                created_at: tags.created_at,
+                updated_at: tags.updated_at,
+              })
+              .from(tags)
+              .where(whereCondition)
+              .orderBy(orderByClause)
+              .limit(cappedLimit)
+              .offset(safeOffset)
+          : db
+              .select({
+                id: tags.id,
+                name: tags.name,
+                slug: tags.slug,
+                is_main_category: tags.is_main_category,
+                is_hidden: tags.is_hidden,
+                hide_events: tags.hide_events,
+                display_order: tags.display_order,
+                active_markets_count: tags.active_markets_count,
+                created_at: tags.created_at,
+                updated_at: tags.updated_at,
+              })
+              .from(tags)
+              .orderBy(orderByClause)
+              .limit(cappedLimit)
+              .offset(safeOffset)
+        const result = await finalQuery
+        return { data: result, error: null }
+      })
+
+      if (error) {
+        return {
+          data: [],
+          error,
+          totalCount: 0,
+        }
+      }
+
+      rawRows = data || []
+    }
+
     const tagIds = rawRows.map((row: any) => row.id)
     const { data: translationsByTagId, error: translationError } = await getTranslationsByTagIds(tagIds)
 
@@ -586,6 +775,22 @@ export const TagRepository = {
       }
     }
 
+    if (orderField !== 'active_events_count') {
+      const { data: pageVisibleCountsByTagSlug, error: visibleCountsError } = await getVisibleActiveEventCountsByTagSlugs(
+        rawRows.map(row => row.slug),
+      )
+
+      if (visibleCountsError) {
+        return {
+          data: [],
+          error: visibleCountsError,
+          totalCount: 0,
+        }
+      }
+
+      visibleCountsByTagSlug = pageVisibleCountsByTagSlug
+    }
+
     const formattedData: AdminTagRow[] = rawRows.map((row: any) => ({
       id: row.id,
       name: row.name,
@@ -594,7 +799,8 @@ export const TagRepository = {
       is_hidden: row.is_hidden,
       hide_events: row.hide_events,
       display_order: row.display_order,
-      active_markets_count: row.active_markets_count,
+      active_markets_count: row.active_markets_count ?? 0,
+      active_events_count: visibleCountsByTagSlug.get(row.slug) ?? 0,
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
       translations: translationsByTagId.get(row.id) ?? {},
@@ -657,6 +863,12 @@ export const TagRepository = {
       return { data: null, error: translationError }
     }
 
+    const { data: visibleCountsByTagSlug, error: visibleCountsError } = await getVisibleActiveEventCountsByTagSlugs([selectResult[0].slug])
+
+    if (visibleCountsError) {
+      return { data: null, error: visibleCountsError }
+    }
+
     revalidatePath('/')
 
     const row = selectResult[0]
@@ -669,6 +881,7 @@ export const TagRepository = {
       hide_events: row.hide_events,
       display_order: row.display_order ?? 0,
       active_markets_count: row.active_markets_count ?? 0,
+      active_events_count: visibleCountsByTagSlug.get(row.slug) ?? 0,
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
       translations: translationsByTagId.get(row.id) ?? {},

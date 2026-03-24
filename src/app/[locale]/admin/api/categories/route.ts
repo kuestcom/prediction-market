@@ -4,7 +4,7 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { UserRepository } from '@/lib/db/queries/user'
 
-type AdminCategoriesSortBy = 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_markets_count'
+type AdminCategoriesSortBy = 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_events_count'
 
 const VALID_SORT_FIELDS: AdminCategoriesSortBy[] = [
   'name',
@@ -12,7 +12,7 @@ const VALID_SORT_FIELDS: AdminCategoriesSortBy[] = [
   'display_order',
   'created_at',
   'updated_at',
-  'active_markets_count',
+  'active_events_count',
 ]
 
 export async function GET(request: NextRequest) {
