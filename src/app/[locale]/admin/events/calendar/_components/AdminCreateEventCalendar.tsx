@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input'
 import { useRouter } from '@/i18n/navigation'
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import { expandEventCreationOccurrences } from '@/lib/event-creation'
+import { cn } from '@/lib/utils'
 
 const COPY_EVENT_FALLBACK_ICON_CLASS_NAME = 'flex size-14 items-center justify-center rounded-lg border text-muted-foreground'
 
@@ -748,9 +749,9 @@ export default function AdminCreateEventCalendar() {
                                 />
                               )
                             : (
-                                <div className="
+                                <div className={cn(`
                                   flex size-12 items-center justify-center rounded-lg border text-muted-foreground
-                                "
+                                `)}
                                 >
                                   <ImageIcon className="size-5" />
                                 </div>

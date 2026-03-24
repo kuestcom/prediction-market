@@ -1,4 +1,4 @@
-import { OPENAPI_SERVER_URLS } from '@/lib/openapi'
+import { OPENAPI_SERVER_URLS } from '@/lib/openapi-servers'
 
 function toUrlOrigin(url: string): string | null {
   try {

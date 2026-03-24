@@ -1,25 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { createOpenAPI } from 'fumadocs-openapi/server'
-
-function resolveServerUrl(envValue: string | undefined): string | undefined {
-  const value = envValue?.trim()
-
-  if (!value) {
-    return undefined
-  }
-
-  return value
-}
-
-export const OPENAPI_SERVER_URLS = {
-  clob: resolveServerUrl(process.env.CLOB_URL),
-  createMarket: resolveServerUrl(process.env.CREATE_MARKET_URL),
-  community: resolveServerUrl(process.env.COMMUNITY_URL),
-  dataApi: resolveServerUrl(process.env.DATA_URL),
-  priceReference: resolveServerUrl(process.env.PRICE_REFERENCE_URL),
-  relayer: resolveServerUrl(process.env.RELAYER_URL),
-} as const
+import { OPENAPI_SERVER_URLS } from '@/lib/openapi-servers'
 
 type SchemaServer = Record<string, unknown> & {
   url?: string
@@ -58,8 +40,8 @@ function applyServerUrl(schema: OpenApiSchema, serverUrl?: string): OpenApiSchem
   }
 }
 
-async function readSchema(schemaPath: string): Promise<OpenApiSchema> {
-  const schemaFilePath = path.resolve(process.cwd(), schemaPath)
+async function readSchema(schemaFileName: string): Promise<OpenApiSchema> {
+  const schemaFilePath = path.join(process.cwd(), 'docs', 'api-reference', 'schemas', schemaFileName)
   const schemaContents = await readFile(schemaFilePath, 'utf8')
   return JSON.parse(schemaContents) as OpenApiSchema
 }
@@ -73,11 +55,11 @@ export const openapi = createOpenAPI({
       priceReferenceSchema,
       relayerSchema,
     ] = await Promise.all([
-      readSchema('./docs/api-reference/schemas/openapi-clob.json'),
-      readSchema('./docs/api-reference/schemas/openapi-create-market.json'),
-      readSchema('./docs/api-reference/schemas/openapi-data-api.json'),
-      readSchema('./docs/api-reference/schemas/openapi-price-reference.json'),
-      readSchema('./docs/api-reference/schemas/openapi-relayer.json'),
+      readSchema('openapi-clob.json'),
+      readSchema('openapi-create-market.json'),
+      readSchema('openapi-data-api.json'),
+      readSchema('openapi-price-reference.json'),
+      readSchema('openapi-relayer.json'),
     ])
 
     return {
