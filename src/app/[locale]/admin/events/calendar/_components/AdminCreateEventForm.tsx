@@ -5380,7 +5380,7 @@ export default function AdminCreateEventForm({
                           : handleFieldChange('title', event.target.value)
                       )}
                       placeholder={creationMode === 'recurring'
-                        ? 'Example: BTC above $120k on {{date}}?'
+                        ? 'Example: BTC UP or DOWN on {{date}}?'
                         : 'Example: Will the U.S. Senate pass the budget by March 31, 2026?'}
                     />
                     {creationMode === 'recurring' && recurringResolvedTitle && (
