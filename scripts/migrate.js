@@ -19,7 +19,7 @@ function buildSyncCronSql({
   siteUrl,
   cronSecret,
 }) {
-  const endpointUrl = new URL(endpointPath, `${siteUrl}/`).toString()
+  const endpointUrl = `${siteUrl}/${endpointPath}`
   const escapedJobName = escapeSqlLiteral(jobName)
   const escapedSchedule = escapeSqlLiteral(schedule)
   const escapedEndpointUrl = escapeSqlLiteral(endpointUrl)
@@ -221,7 +221,7 @@ async function createCleanJobsCron(sql) {
       PERFORM cron.unschedule(job_id);
     END IF;
 
-    PERFORM cron.schedule('clean-jobs', '12 * * * *', cmd);
+    PERFORM cron.schedule('clean-jobs', '15 * * * *', cmd);
   END $$;`
 
   await sql.unsafe(sqlQuery, [], { simple: true })
@@ -238,7 +238,7 @@ async function createSyncCron(sql, options) {
 async function createSyncEventsCron(sql, siteUrl, cronSecret) {
   await createSyncCron(sql, {
     jobName: 'sync-events',
-    schedule: '1-59/3 * * * *',
+    schedule: '1-59/5 * * * *',
     endpointPath: '/api/sync/events',
     siteUrl,
     cronSecret,
@@ -248,7 +248,7 @@ async function createSyncEventsCron(sql, siteUrl, cronSecret) {
 async function createSyncVolumeCron(sql, siteUrl, cronSecret) {
   await createSyncCron(sql, {
     jobName: 'sync-volume',
-    schedule: '16,46 * * * *',
+    schedule: '14,44 * * * *',
     endpointPath: '/api/sync/volume',
     siteUrl,
     cronSecret,
@@ -258,7 +258,7 @@ async function createSyncVolumeCron(sql, siteUrl, cronSecret) {
 async function createSyncTranslationsCron(sql, siteUrl, cronSecret) {
   await createSyncCron(sql, {
     jobName: 'sync-translations',
-    schedule: '13,37 * * * *',
+    schedule: '*/10 * * * *',
     endpointPath: '/api/sync/translations',
     siteUrl,
     cronSecret,
@@ -268,8 +268,18 @@ async function createSyncTranslationsCron(sql, siteUrl, cronSecret) {
 async function createSyncResolutionCron(sql, siteUrl, cronSecret) {
   await createSyncCron(sql, {
     jobName: 'sync-resolution',
-    schedule: '2-56/6 * * * *',
+    schedule: '3-59/5 * * * *',
     endpointPath: '/api/sync/resolution',
+    siteUrl,
+    cronSecret,
+  })
+}
+
+async function createSyncEventCreationsCron(sql, siteUrl, cronSecret) {
+  await createSyncCron(sql, {
+    jobName: 'sync-event-creations',
+    schedule: '0,30 * * * *',
+    endpointPath: '/api/sync/event-creations',
     siteUrl,
     cronSecret,
   })
@@ -310,9 +320,10 @@ async function configureSupabaseScheduler(sql, siteUrl, cronSecret) {
   }
 
   await createSyncEventsCron(sql, siteUrl, cronSecret)
+  await createSyncEventCreationsCron(sql, siteUrl, cronSecret)
+  await createSyncTranslationsCron(sql, siteUrl, cronSecret)
   await createSyncResolutionCron(sql, siteUrl, cronSecret)
   await createSyncVolumeCron(sql, siteUrl, cronSecret)
-  await createSyncTranslationsCron(sql, siteUrl, cronSecret)
 }
 
 function resolveMigrationConnectionString() {

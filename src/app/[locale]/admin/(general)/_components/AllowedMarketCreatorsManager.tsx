@@ -56,7 +56,7 @@ function sortItems(items: AllowedMarketCreatorItem[]) {
 }
 
 async function fetchAllowedCreatorsApi(pathname: string, init?: RequestInit) {
-  const primaryResponse = await fetch(`/admin/api/create-event/allowed-creators${pathname}`, init)
+  const primaryResponse = await fetch(`/admin/api/event-creations/allowed-creators${pathname}`, init)
   if (primaryResponse.status !== 404 || typeof window === 'undefined') {
     return primaryResponse
   }
@@ -66,7 +66,7 @@ async function fetchAllowedCreatorsApi(pathname: string, init?: RequestInit) {
     return primaryResponse
   }
 
-  return fetch(`/${maybeLocale}/admin/api/create-event/allowed-creators${pathname}`, init)
+  return fetch(`/${maybeLocale}/admin/api/event-creations/allowed-creators${pathname}`, init)
 }
 
 export default function AllowedMarketCreatorsManager({

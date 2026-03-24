@@ -382,7 +382,7 @@ export default function AdminEventsTable({
 
   const createEventButton = (
     <Button asChild type="button" className="h-9">
-      <Link href="/admin/create-event">{t('Create Event')}</Link>
+      <Link href="/admin/events/calendar">{t('Create Event')}</Link>
     </Button>
   )
 
