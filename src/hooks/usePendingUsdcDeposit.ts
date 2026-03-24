@@ -1,9 +1,9 @@
 import type { Address } from 'viem'
-import { useAppKitAccount } from '@reown/appkit/react'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { createPublicClient, formatUnits, getContract, http } from 'viem'
 import { defaultNetwork } from '@/lib/appkit'
+import { authClient } from '@/lib/auth-client'
 import { NATIVE_USDC_TOKEN_ADDRESS } from '@/lib/contracts'
 import { IS_TEST_MODE } from '@/lib/network'
 import { normalizeAddress } from '@/lib/wallet'
@@ -30,13 +30,14 @@ const INITIAL_STATE: Balance = {
   symbol: 'USDC',
 }
 export const PENDING_USDC_QUERY_KEY = 'safe-native-usdc-balance'
+const { useSession } = authClient
 
 interface UsePendingUsdcDepositOptions {
   enabled?: boolean
 }
 
 export function usePendingUsdcDeposit(options: UsePendingUsdcDepositOptions = {}) {
-  const { isConnected } = useAppKitAccount()
+  const { data: session, isPending: isSessionPending } = useSession()
   const user = useUser()
 
   const rpcUrl = useMemo(
@@ -70,8 +71,11 @@ export function usePendingUsdcDeposit(options: UsePendingUsdcDepositOptions = {}
     : null
 
   const isOptionsEnabled = (options.enabled ?? true) && !IS_TEST_MODE
-  const isAwaitingConnection = Boolean(user && isOptionsEnabled && !isConnected)
-  const isQueryEnabled = Boolean(isConnected && proxyWalletAddress && isOptionsEnabled)
+  const hasAuthenticatedSession = Boolean(session?.user)
+  const isWaitingForSession = Boolean(
+    isOptionsEnabled && (isSessionPending || (user && !hasAuthenticatedSession)),
+  )
+  const isQueryEnabled = Boolean(proxyWalletAddress && isOptionsEnabled && hasAuthenticatedSession)
 
   const {
     data,
@@ -110,8 +114,8 @@ export function usePendingUsdcDeposit(options: UsePendingUsdcDepositOptions = {}
   })
 
   const pendingBalance = isQueryEnabled && data ? data : INITIAL_STATE
-  const isWaitingForProxy = Boolean(isConnected && isOptionsEnabled && !proxyWalletAddress)
-  const isLoadingPendingDeposit = isAwaitingConnection || isWaitingForProxy || (isQueryEnabled ? (isLoading || (!data && isFetching)) : false)
+  const isWaitingForProxy = Boolean(hasAuthenticatedSession && isOptionsEnabled && !proxyWalletAddress)
+  const isLoadingPendingDeposit = isWaitingForSession || isWaitingForProxy || (isQueryEnabled ? (isLoading || (!data && isFetching)) : false)
   const hasPendingDeposit = pendingBalance.rawBase !== '0'
 
   return {

@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
+import { authClient } from '@/lib/auth-client'
 import { normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
 
 const DATA_API_URL = process.env.DATA_URL!
+const { useSession } = authClient
 
 interface PortfolioValueResult {
   value: number
@@ -19,14 +21,21 @@ export function usePortfolioValue(
   walletAddress?: string | null,
   options: PortfolioValueOptions = {},
 ): PortfolioValueResult {
+  const { data: session, isPending: isSessionPending } = useSession()
   const user = useUser()
-  const userProxyWallet = user?.proxy_wallet_status === 'deployed' && user?.proxy_wallet_address
+  const hasAuthenticatedSession = Boolean(session?.user)
+  const useDefaultUser = options.useDefaultUser ?? true
+  const isUsingSessionWallet = !walletAddress && useDefaultUser
+  const userProxyWallet = hasAuthenticatedSession && user?.proxy_wallet_status === 'deployed' && user?.proxy_wallet_address
     ? normalizeAddress(user.proxy_wallet_address)
     : null
-  const useDefaultUser = options.useDefaultUser ?? true
   const targetWallet = walletAddress
     ? normalizeAddress(walletAddress)
-    : (useDefaultUser ? userProxyWallet : null)
+    : (isUsingSessionWallet ? userProxyWallet : null)
+  const isWaitingForSession = Boolean(
+    isUsingSessionWallet && (isSessionPending || (user && !hasAuthenticatedSession)),
+  )
+  const isWaitingForProxy = Boolean(isUsingSessionWallet && hasAuthenticatedSession && !userProxyWallet)
 
   const {
     data,
@@ -34,7 +43,7 @@ export function usePortfolioValue(
     isFetching,
   } = useQuery({
     queryKey: ['portfolio-value', targetWallet],
-    enabled: Boolean(targetWallet),
+    enabled: Boolean(targetWallet) && (!isUsingSessionWallet || hasAuthenticatedSession),
     staleTime: 'static',
     gcTime: 5 * 60 * 1000,
     refetchInterval: 10_000,
@@ -58,7 +67,7 @@ export function usePortfolioValue(
   const value = data ?? 0
   const text = value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-  const isInitialLoading = isLoading && !data
+  const isInitialLoading = isWaitingForSession || isWaitingForProxy || (isLoading && !data)
 
   return {
     value,

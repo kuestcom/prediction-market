@@ -1,9 +1,9 @@
 import type { Address, PublicClient } from 'viem'
-import { useAppKitAccount } from '@reown/appkit/react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { createPublicClient, getContract, http } from 'viem'
 import { defaultNetwork } from '@/lib/appkit'
+import { authClient } from '@/lib/auth-client'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
@@ -28,6 +28,7 @@ const INITIAL_STATE: Balance = {
   text: '0.00',
   symbol: 'USDC',
 }
+const { useSession } = authClient
 
 interface UseBalanceOptions {
   enabled?: boolean
@@ -36,7 +37,7 @@ interface UseBalanceOptions {
 const RPC_URL = defaultNetwork.rpcUrls.default.http[0]
 
 export function useBalance(options: UseBalanceOptions = {}) {
-  const { isConnected } = useAppKitAccount()
+  const { data: session, isPending: isSessionPending } = useSession()
   const user = useUser()
   const [hasMounted, setHasMounted] = useState(false)
 
@@ -72,8 +73,13 @@ export function useBalance(options: UseBalanceOptions = {}) {
     : null
 
   const isOptionsEnabled = options.enabled ?? true
-  const isAwaitingConnection = Boolean(hasMounted && user && isOptionsEnabled && !isConnected)
-  const isQueryEnabled = Boolean(hasMounted && client && isConnected && proxyWalletAddress && isOptionsEnabled)
+  const hasAuthenticatedSession = Boolean(session?.user)
+  const isWaitingForSession = Boolean(
+    hasMounted && isOptionsEnabled && (isSessionPending || (user && !hasAuthenticatedSession)),
+  )
+  const isQueryEnabled = Boolean(
+    hasMounted && client && proxyWalletAddress && isOptionsEnabled && hasAuthenticatedSession,
+  )
 
   const {
     data,
@@ -109,9 +115,9 @@ export function useBalance(options: UseBalanceOptions = {}) {
   })
 
   const balance = isQueryEnabled && data ? data : INITIAL_STATE
-  const isWaitingForProxy = Boolean(hasMounted && isConnected && isOptionsEnabled && !proxyWalletAddress)
+  const isWaitingForProxy = Boolean(hasMounted && hasAuthenticatedSession && isOptionsEnabled && !proxyWalletAddress)
   const isLoadingBalance = !hasMounted
-    || isAwaitingConnection
+    || isWaitingForSession
     || isWaitingForProxy
     || (isQueryEnabled ? (isLoading || (!data && isFetching)) : false)
   return {
