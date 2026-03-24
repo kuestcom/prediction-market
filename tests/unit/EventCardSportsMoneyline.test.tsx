@@ -1,5 +1,7 @@
+/* eslint-disable next/no-img-element */
+
 import type { AnchorHTMLAttributes } from 'react'
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import EventCardSportsMoneyline from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
 
 const mocks = vi.hoisted(() => ({
@@ -102,5 +104,82 @@ describe('eventCardSportsMoneyline', () => {
     expect(mocks.eventBookmark).toHaveBeenCalledWith(expect.objectContaining({
       refreshStatusOnMount: false,
     }))
+  })
+
+  it('renders the resolved winner and ended footer for sports cards', () => {
+    const event = {
+      status: 'resolved',
+      resolved_at: '2026-03-22T00:00:00.000Z',
+      volume: 0,
+      sports_sport_slug: 'soccer',
+      sports_tags: ['brazil-serie-a'],
+      markets: [
+        {
+          condition_id: 'match-winner-condition',
+          slug: 'arsenal-vs-chelsea-match-winner',
+          outcomes: [
+            {
+              outcome_index: 0,
+              outcome_text: 'Arsenal',
+              is_winning_outcome: true,
+            },
+            {
+              outcome_index: 1,
+              outcome_text: 'Chelsea',
+              is_winning_outcome: false,
+            },
+          ],
+          condition: {
+            payout_numerators: [1, 0],
+          },
+        },
+      ],
+    } as any
+
+    const model = {
+      team1: {
+        name: 'Arsenal',
+        abbreviation: 'ARS',
+        color: '#ef4444',
+        logoUrl: null,
+        hostStatus: 'home',
+      },
+      team2: {
+        name: 'Chelsea',
+        abbreviation: 'CHE',
+        color: '#2563eb',
+        logoUrl: null,
+        hostStatus: 'away',
+      },
+      team1Button: {
+        conditionId: 'match-winner-condition',
+        outcomeIndex: 0,
+        label: 'ARS',
+        tone: 'team1',
+        color: '#ef4444',
+      },
+      team2Button: {
+        conditionId: 'match-winner-condition',
+        outcomeIndex: 1,
+        label: 'CHE',
+        tone: 'team2',
+        color: '#2563eb',
+      },
+    } as any
+
+    render(
+      <EventCardSportsMoneyline
+        event={event}
+        model={model}
+        getDisplayChance={() => 61}
+      />,
+    )
+
+    expect(screen.getByText('Brazil Serie A')).toBeInTheDocument()
+    expect(screen.getByText('Ended Mar 22, 2026')).toBeInTheDocument()
+    expect(screen.getAllByText('Arsenal')).toHaveLength(2)
+    expect(screen.queryByText('ARS')).not.toBeInTheDocument()
+    expect(screen.queryByText('CHE')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('event-bookmark')).not.toBeInTheDocument()
   })
 })

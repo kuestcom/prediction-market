@@ -30,6 +30,8 @@ import { useEventOrderPanelOpenOrders } from '@/app/[locale]/(platform)/event/[s
 import { useEventOrderPanelPositions } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventOrderPanelPositions'
 import { buildUserOpenOrdersQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
+import { useXTrackerTweetCount } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useXTrackerTweetCount'
+import { inferResolvedTweetMarketOutcome, isTweetMarketsEvent } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
 import {
   resolveResolvedOrderPanelDisplay,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
@@ -37,6 +39,7 @@ import { Button } from '@/components/ui/button'
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { SAFE_BALANCE_QUERY_KEY, useBalance } from '@/hooks/useBalance'
+import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { defaultNetwork } from '@/lib/appkit'
@@ -214,6 +217,7 @@ export default function EventOrderPanelForm({
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const t = useExtracted()
   const locale = useLocale()
+  const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const normalizeOutcomeLabel = useOutcomeLabel()
   const user = useUser()
   const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
@@ -300,6 +304,11 @@ export default function EventOrderPanelForm({
     ? activeMarket.neg_risk
     : Boolean(event.enable_neg_risk || event.neg_risk)
   const isResolvedMarket = Boolean(activeMarket?.is_resolved || activeMarket?.condition?.resolved)
+  const isTweetMarketEvent = useMemo(
+    () => isTweetMarketsEvent(event),
+    [event],
+  )
+  const xtrackerTweetCountQuery = useXTrackerTweetCount(event, isTweetMarketEvent)
   const resolvedDisplay = useMemo(
     () => resolveResolvedOrderPanelDisplay({
       event,
@@ -307,28 +316,101 @@ export default function EventOrderPanelForm({
     }),
     [activeMarket, event],
   )
-  const resolvedOutcomeIndex = resolvedDisplay.resolvedOutcomeIndex
-  const resolvedOutcomeLabel = resolvedDisplay.outcomeLabel
-    ? (normalizeOutcomeLabel(resolvedDisplay.outcomeLabel) || resolvedDisplay.outcomeLabel)
-    : resolvedOutcomeIndex === OUTCOME_INDEX.YES
-      ? t('Yes')
-      : resolvedOutcomeIndex === OUTCOME_INDEX.NO
-        ? t('No')
-        : null
+  const isTweetMarketFinal = useMemo(() => {
+    if (currentTimestamp == null) {
+      return false
+    }
+
+    const trackingEndMs = xtrackerTweetCountQuery.data?.trackingEndMs
+    if (typeof trackingEndMs === 'number' && Number.isFinite(trackingEndMs)) {
+      return currentTimestamp >= trackingEndMs
+    }
+
+    if (!event.end_date) {
+      return false
+    }
+
+    const parsedEndMs = Date.parse(event.end_date)
+    return Number.isFinite(parsedEndMs) && currentTimestamp >= parsedEndMs
+  }, [currentTimestamp, event.end_date, xtrackerTweetCountQuery.data?.trackingEndMs])
+  const inferredTweetResolvedOutcomeIndex = useMemo(() => {
+    if (!isTweetMarketEvent || !activeMarket || !isResolvedMarket) {
+      return null
+    }
+
+    return inferResolvedTweetMarketOutcome(
+      activeMarket,
+      xtrackerTweetCountQuery.data?.totalCount ?? null,
+      isTweetMarketFinal,
+    )
+  }, [
+    activeMarket,
+    isResolvedMarket,
+    isTweetMarketEvent,
+    isTweetMarketFinal,
+    xtrackerTweetCountQuery.data?.totalCount,
+  ])
+  const resolvedOutcomeIndex = inferredTweetResolvedOutcomeIndex ?? resolvedDisplay.resolvedOutcomeIndex
+  const resolvedOutcomeLabel = useMemo(() => {
+    if (inferredTweetResolvedOutcomeIndex != null) {
+      return inferredTweetResolvedOutcomeIndex === OUTCOME_INDEX.YES ? t('Yes') : t('No')
+    }
+
+    if (resolvedDisplay.outcomeLabel) {
+      return normalizeOutcomeLabel(resolvedDisplay.outcomeLabel) || resolvedDisplay.outcomeLabel
+    }
+
+    if (resolvedOutcomeIndex === OUTCOME_INDEX.YES) {
+      return t('Yes')
+    }
+
+    if (resolvedOutcomeIndex === OUTCOME_INDEX.NO) {
+      return t('No')
+    }
+
+    return null
+  }, [
+    inferredTweetResolvedOutcomeIndex,
+    normalizeOutcomeLabel,
+    resolvedDisplay.outcomeLabel,
+    resolvedOutcomeIndex,
+    t,
+  ])
   const shouldShowResolvedSportsSubtitle = Boolean(
     activeMarket?.sports_market_type
     || resolvedDisplay.market?.sports_market_type
     || resolvedDisplay.marketTitle,
   )
-  const resolvedMarketTitle = resolvedDisplay.marketTitle
-    ?? (
-      shouldShowResolvedSportsSubtitle
-        ? resolvedDisplay.market?.sports_group_item_title?.trim()
-        || resolvedDisplay.market?.short_title?.trim()
-        || resolvedDisplay.market?.title?.trim()
+  const resolvedMarketTitle = useMemo(() => {
+    if (isTweetMarketEvent) {
+      return activeMarket?.short_title?.trim()
+        || activeMarket?.title?.trim()
+        || resolvedDisplay.marketTitle
         || null
-        : null
-    )
+    }
+
+    if (resolvedDisplay.marketTitle) {
+      return resolvedDisplay.marketTitle
+    }
+
+    if (!shouldShowResolvedSportsSubtitle) {
+      return null
+    }
+
+    return resolvedDisplay.market?.sports_group_item_title?.trim()
+      || resolvedDisplay.market?.short_title?.trim()
+      || resolvedDisplay.market?.title?.trim()
+      || null
+  }, [
+    activeMarket?.short_title,
+    activeMarket?.title,
+    isTweetMarketEvent,
+    resolvedDisplay.market?.short_title,
+    resolvedDisplay.market?.sports_group_item_title,
+    resolvedDisplay.market?.title,
+    resolvedDisplay.marketTitle,
+    shouldShowResolvedSportsSubtitle,
+  ])
   const resolvedYesOutcomeText = resolvedDisplay.market?.outcomes.find(
     outcome => outcome.outcome_index === OUTCOME_INDEX.YES,
   )?.outcome_text

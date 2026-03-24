@@ -16,6 +16,9 @@ interface HomeVisibleEventTagCandidate {
 
 interface HomeVisibleEventMarketCandidate {
   is_resolved: boolean
+  condition?: {
+    resolved?: boolean | null
+  } | null
 }
 
 interface HomeVisibleEventCandidate {
@@ -63,7 +66,7 @@ function isMoreRecentEvent<T extends HomeVisibleEventCandidate>(candidate: T, cu
   return candidate.id > current.id
 }
 
-function isResolvedLike<T extends HomeVisibleEventCandidate>(event: T) {
+export function isHomeEventResolvedLike<T extends HomeVisibleEventCandidate>(event: T) {
   if (event.status === 'resolved') {
     return true
   }
@@ -72,12 +75,12 @@ function isResolvedLike<T extends HomeVisibleEventCandidate>(event: T) {
     return false
   }
 
-  return event.markets.every(market => market.is_resolved)
+  return event.markets.every(market => market.is_resolved || market.condition?.resolved === true)
 }
 
 function isOverdueUnresolved<T extends HomeVisibleEventCandidate>(event: T, nowMs: number) {
   const endTimestamp = toTimestamp(event.end_date)
-  return !isResolvedLike(event) && Number.isFinite(endTimestamp) && endTimestamp < nowMs
+  return !isHomeEventResolvedLike(event) && Number.isFinite(endTimestamp) && endTimestamp < nowMs
 }
 
 function isPreferredSeriesEvent<T extends HomeVisibleEventCandidate>(candidate: T, current: T, nowMs: number) {
@@ -85,8 +88,8 @@ function isPreferredSeriesEvent<T extends HomeVisibleEventCandidate>(candidate: 
   const currentEnd = toTimestamp(current.end_date)
   const candidateHasFutureEnd = candidateEnd >= nowMs
   const currentHasFutureEnd = currentEnd >= nowMs
-  const candidateResolved = isResolvedLike(candidate)
-  const currentResolved = isResolvedLike(current)
+  const candidateResolved = isHomeEventResolvedLike(candidate)
+  const currentResolved = isHomeEventResolvedLike(current)
   const candidateOverdueUnresolved = isOverdueUnresolved(candidate, nowMs)
   const currentOverdueUnresolved = isOverdueUnresolved(current, nowMs)
 
@@ -179,7 +182,7 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
   })
 
   if (status === 'resolved') {
-    return eventsMatchingTagFilters
+    return eventsMatchingTagFilters.filter(event => isHomeEventResolvedLike(event))
   }
 
   const newestBySeriesSlug = new Map<string, T>()

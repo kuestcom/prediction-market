@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 interface ResolutionTimelinePanelProps {
   market: Event['markets'][number]
   settledUrl: string | null
+  outcomeOverride?: ResolutionTimelineOutcome | null
   showLink?: boolean
   className?: string
 }
@@ -52,11 +53,13 @@ function TimelineLabel({
   disputeUrl,
   yesOutcomeLabel,
   noOutcomeLabel,
+  outcomeOverride,
 }: {
   item: ResolutionTimelineItem
   disputeUrl: string | null
   yesOutcomeLabel: string
   noOutcomeLabel: string
+  outcomeOverride: ResolutionTimelineOutcome | null
 }) {
   const t = useExtracted()
 
@@ -78,7 +81,7 @@ function TimelineLabel({
       <span className="text-sm font-medium text-foreground">
         {t('Outcome proposed:')}
         {' '}
-        {outcomeLabel(item.outcome)}
+        {outcomeLabel(item.outcome ?? outcomeOverride)}
       </span>
     )
   }
@@ -155,7 +158,7 @@ function TimelineLabel({
     <span className="text-sm font-medium text-foreground">
       {t('Final outcome:')}
       {' '}
-      {outcomeLabel(item.outcome)}
+      {outcomeLabel(item.outcome ?? outcomeOverride)}
     </span>
   )
 }
@@ -163,6 +166,7 @@ function TimelineLabel({
 export default function ResolutionTimelinePanel({
   market,
   settledUrl,
+  outcomeOverride = null,
   showLink = true,
   className,
 }: ResolutionTimelinePanelProps) {
@@ -229,6 +233,7 @@ export default function ResolutionTimelinePanel({
               disputeUrl={disputeUrl}
               yesOutcomeLabel={yesOutcomeLabel}
               noOutcomeLabel={noOutcomeLabel}
+              outcomeOverride={outcomeOverride}
             />
           </div>
         ))}

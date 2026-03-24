@@ -14,7 +14,7 @@ import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_ho
 import { buildMarketTargets } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { useColumns } from '@/hooks/useColumns'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
-import { HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
+import { HOME_EVENTS_PAGE_SIZE, isHomeEventResolvedLike } from '@/lib/home-events'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import { useUser } from '@/stores/useUser'
@@ -38,7 +38,7 @@ const HOME_LIVE_OVERRIDE_SETTLE_DELAY_MS = 2_000
 const HOME_FEED_REFRESH_INTERVAL_MS = 60_000
 
 function resolveCardMarkets(event: Event) {
-  const activeMarkets = event.status === 'resolved'
+  const activeMarkets = isHomeEventResolvedLike(event)
     ? event.markets
     : event.markets.filter(market => !market.is_resolved && !market.condition?.resolved)
 

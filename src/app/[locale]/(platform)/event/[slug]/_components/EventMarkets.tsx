@@ -25,6 +25,12 @@ import { useEventMarketRows } from '@/app/[locale]/(platform)/event/[slug]/_hook
 import { useMarketDetailController } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useMarketDetailController'
 import { useUserOpenOrdersQuery } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
+import { useXTrackerTweetCount } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useXTrackerTweetCount'
+import {
+  resolveEventResolvedOutcomeIndex,
+  toResolutionTimelineOutcome,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/eventResolvedOutcome'
+import { isTweetMarketsEvent } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
 import { isResolutionReviewActive } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
@@ -147,12 +153,13 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   const isSingleMarket = useIsSingleMarket()
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const isNegRiskAugmented = Boolean(event.neg_risk_augmented)
+  const isTweetMarketEvent = useMemo(
+    () => isTweetMarketsEvent(event),
+    [event],
+  )
   const { rows: marketRows, hasChanceData } = useEventMarketRows(event)
+  const xtrackerTweetCountQuery = useXTrackerTweetCount(event, isTweetMarketEvent)
   const { activeMarketRows, resolvedMarketRows } = useMemo(() => {
-    if (isNegRiskEnabled) {
-      return { activeMarketRows: marketRows, resolvedMarketRows: [] }
-    }
-
     const activeRows: typeof marketRows = []
     const resolvedRows: typeof marketRows = []
 
@@ -166,7 +173,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     })
 
     return { activeMarketRows: activeRows, resolvedMarketRows: resolvedRows }
-  }, [isNegRiskEnabled, marketRows])
+  }, [marketRows])
   const sortedResolvedMarketRows = useMemo(() => {
     if (!resolvedMarketRows.length) {
       return resolvedMarketRows
@@ -207,6 +214,35 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     })
     return ids
   }, [currentTimestamp, event.markets])
+  const xtrackerTotalCount = xtrackerTweetCountQuery.data?.totalCount ?? null
+  const isTweetMarketFinal = useMemo(() => {
+    if (currentTimestamp == null) {
+      return false
+    }
+
+    const trackingEndMs = xtrackerTweetCountQuery.data?.trackingEndMs
+    if (typeof trackingEndMs === 'number' && Number.isFinite(trackingEndMs)) {
+      return currentTimestamp >= trackingEndMs
+    }
+
+    if (!event.end_date) {
+      return false
+    }
+
+    const parsedEndMs = Date.parse(event.end_date)
+    return Number.isFinite(parsedEndMs) && currentTimestamp >= parsedEndMs
+  }, [currentTimestamp, event.end_date, xtrackerTweetCountQuery.data?.trackingEndMs])
+  const resolveResolvedOutcomeIndex = useCallback((market: Event['markets'][number]) => {
+    if (!isMarketResolved(market)) {
+      return null
+    }
+
+    return resolveEventResolvedOutcomeIndex(event, market, {
+      isTweetMarketEvent,
+      isTweetMarketFinal,
+      totalCount: xtrackerTotalCount,
+    })
+  }, [event, isTweetMarketEvent, isTweetMarketFinal, xtrackerTotalCount])
   const chanceRefreshQueryKeys = useMemo(
     () => [
       ['event-price-history', event.id] as const,
@@ -601,13 +637,12 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     }
   }, [expandMarket, inputRef, setIsMobileOrderPanelOpen, setMarket, setOutcome, setSide])
 
-  const allMarketsResolved = !isNegRiskEnabled
-    && marketRows.length > 0
+  const allMarketsResolved = marketRows.length > 0
     && marketRows.every(row => isMarketResolved(row.market))
   const showResolvedInline = allMarketsResolved
   const primaryMarketRows = showResolvedInline ? sortedResolvedMarketRows : activeMarketRows
   const shouldShowActiveSection = primaryMarketRows.length > 0 || shouldShowOtherRow
-  const shouldShowResolvedSection = !showResolvedInline && !isNegRiskEnabled && sortedResolvedMarketRows.length > 0
+  const shouldShowResolvedSection = !showResolvedInline && sortedResolvedMarketRows.length > 0
 
   if (isSingleMarket) {
     return <></>
@@ -632,6 +667,9 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
             const shouldShowSeparator = index !== orderedMarkets.length - 1 || shouldShowOtherRow
             const isResolvedInlineRow = showResolvedInline || isMarketResolved(market)
             const showInReviewTag = reviewConditionIds.has(market.condition_id)
+            const resolvedOutcomeIndexOverride = isResolvedInlineRow
+              ? resolveResolvedOutcomeIndex(market)
+              : null
 
             return (
               <div key={market.condition_id} className="transition-colors">
@@ -641,6 +679,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                         row={row}
                         showMarketIcon={Boolean(event.show_market_icons)}
                         isExpanded={isExpanded}
+                        resolvedOutcomeIndexOverride={resolvedOutcomeIndexOverride}
                         onToggle={() => handleToggle(market)}
                       />
                     )
@@ -678,6 +717,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                     isNegRiskEnabled={isNegRiskEnabled}
                     isNegRiskAugmented={isNegRiskAugmented}
                     variant={isResolvedInlineRow ? 'resolved' : undefined}
+                    resolvedOutcomeIndexOverride={resolvedOutcomeIndexOverride}
                     convertOptions={convertOptions}
                     eventOutcomes={eventOutcomes}
                     activeOutcomeForMarket={activeOutcomeForMarket}
@@ -735,6 +775,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                     ? selectedOutcome
                     : market.outcomes[0]
                   const shouldShowSeparator = index !== orderedMarkets.length - 1
+                  const resolvedOutcomeIndexOverride = resolveResolvedOutcomeIndex(market)
 
                   return (
                     <div key={market.condition_id} className="transition-colors">
@@ -742,6 +783,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                         row={row}
                         showMarketIcon={Boolean(event.show_market_icons)}
                         isExpanded={isExpanded}
+                        resolvedOutcomeIndexOverride={resolvedOutcomeIndexOverride}
                         onToggle={() => handleToggle(market)}
                       />
 
@@ -762,6 +804,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                           isNegRiskEnabled={isNegRiskEnabled}
                           isNegRiskAugmented={isNegRiskAugmented}
                           variant="resolved"
+                          resolvedOutcomeIndexOverride={resolvedOutcomeIndexOverride}
                           convertOptions={convertOptions}
                           eventOutcomes={eventOutcomes}
                           activeOutcomeForMarket={activeOutcomeForMarket}
@@ -821,20 +864,22 @@ function ResolvedMarketRow({
   row,
   showMarketIcon,
   isExpanded,
+  resolvedOutcomeIndexOverride = null,
   onToggle,
 }: {
   row: EventMarketRow
   showMarketIcon: boolean
   isExpanded: boolean
+  resolvedOutcomeIndexOverride?: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO | null
   onToggle: () => void
 }) {
   const t = useExtracted()
   const locale = useLocale()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const { market } = row
-  const resolvedOutcomeIndex = resolveWinningOutcomeIndex(market)
+  const resolvedOutcomeIndex = resolvedOutcomeIndexOverride ?? resolveWinningOutcomeIndex(market)
   const hasResolvedOutcome = resolvedOutcomeIndex === OUTCOME_INDEX.YES || resolvedOutcomeIndex === OUTCOME_INDEX.NO
-  const isYesOutcome = resolvedOutcomeIndex !== OUTCOME_INDEX.NO
+  const isYesOutcome = resolvedOutcomeIndex === OUTCOME_INDEX.YES
   const resolvedOutcomeText = market.outcomes.find(
     outcome => outcome.outcome_index === resolvedOutcomeIndex,
   )?.outcome_text
@@ -973,6 +1018,7 @@ interface MarketDetailTabsProps {
   isNegRiskEnabled: boolean
   isNegRiskAugmented: boolean
   variant?: 'default' | 'resolved'
+  resolvedOutcomeIndexOverride?: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO | null
   convertOptions: Array<{ id: string, label: string, shares: number, conditionId: string }>
   eventOutcomes: Array<{ conditionId: string, questionId?: string, label: string, iconUrl?: string | null }>
   activeOutcomeForMarket: Event['markets'][number]['outcomes'][number] | undefined
@@ -997,6 +1043,7 @@ function MarketDetailTabs({
   isNegRiskEnabled,
   isNegRiskAugmented,
   variant = 'default',
+  resolvedOutcomeIndexOverride = null,
   convertOptions,
   eventOutcomes,
   activeOutcomeForMarket,
@@ -1216,7 +1263,14 @@ function MarketDetailTabs({
 
         {selectedTab === 'resolution' && (
           <div className="flex items-center justify-between gap-3">
-            <ResolutionTimelinePanel market={market} settledUrl={settledUrl} className="min-w-0 flex-1" />
+            <ResolutionTimelinePanel
+              market={market}
+              settledUrl={settledUrl}
+              outcomeOverride={toResolutionTimelineOutcome(
+                resolvedOutcomeIndexOverride ?? resolveWinningOutcomeIndex(market),
+              )}
+              className="min-w-0 flex-1"
+            />
             {!isMarketResolved(market) && (
               proposeUrl
                 ? (

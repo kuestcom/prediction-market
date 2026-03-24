@@ -1,56 +1,87 @@
 import { describe, expect, it } from 'vitest'
-import { filterHomeEvents } from '@/lib/home-events'
+import { filterHomeEvents, isHomeEventResolvedLike } from '@/lib/home-events'
 
-describe('filterHomeEvents', () => {
-  it('keeps hide-from-new events visible in the general home filters', () => {
-    const visibleEvent = {
-      id: 'visible-event',
-      slug: 'visible-event',
-      status: 'active' as const,
-      created_at: '2026-03-20T12:00:00.000Z',
-      updated_at: '2026-03-20T12:00:00.000Z',
-      tags: [
-        { slug: 'finance' },
-        { slug: 'acquisitions' },
+describe('home-events', () => {
+  it('treats active events with unresolved markets as not resolved-like', () => {
+    const event = {
+      id: 'event-1',
+      slug: 'highest-temperature-in-sao-paulo-on-march-24-2026',
+      status: 'active',
+      created_at: '2026-03-24T00:00:00.000Z',
+      updated_at: '2026-03-24T00:00:00.000Z',
+      markets: [
+        {
+          is_resolved: true,
+          condition: { resolved: true },
+        },
+        {
+          is_resolved: false,
+          condition: { resolved: false },
+        },
       ],
-      markets: [{ is_resolved: false }],
-    }
-    const hiddenEvent = {
-      id: 'hidden-event',
-      slug: 'hidden-event',
-      status: 'active' as const,
-      created_at: '2026-03-20T12:05:00.000Z',
-      updated_at: '2026-03-20T12:05:00.000Z',
-      tags: [
-        { slug: 'finance' },
-        { slug: 'hide-from-new' },
-      ],
-      markets: [{ is_resolved: false }],
-    }
+      tags: [],
+    } as any
 
-    expect(filterHomeEvents([visibleEvent, hiddenEvent])).toEqual([visibleEvent, hiddenEvent])
+    expect(isHomeEventResolvedLike(event)).toBe(false)
   })
 
-  it('does not hide events when hide-from-new appears in main_tag data', () => {
-    const visibleEvent = {
-      id: 'visible-event',
-      slug: 'visible-event',
-      status: 'active' as const,
-      created_at: '2026-03-20T12:00:00.000Z',
-      updated_at: '2026-03-20T12:00:00.000Z',
-      main_tag: 'finance',
-      markets: [{ is_resolved: false }],
-    }
-    const hiddenEvent = {
-      id: 'hidden-event',
-      slug: 'hidden-event',
-      status: 'active' as const,
-      created_at: '2026-03-20T12:05:00.000Z',
-      updated_at: '2026-03-20T12:05:00.000Z',
-      main_tag: 'hide-from-new',
-      markets: [{ is_resolved: false }],
-    }
+  it('keeps only fully resolved events in the resolved home filter', () => {
+    const partiallyResolvedEvent = {
+      id: 'event-1',
+      slug: 'highest-temperature-in-sao-paulo-on-march-24-2026',
+      status: 'active',
+      created_at: '2026-03-24T00:00:00.000Z',
+      updated_at: '2026-03-24T00:00:00.000Z',
+      markets: [
+        {
+          is_resolved: true,
+          condition: { resolved: true },
+        },
+        {
+          is_resolved: false,
+          condition: { resolved: false },
+        },
+      ],
+      tags: [],
+    } as any
 
-    expect(filterHomeEvents([visibleEvent, hiddenEvent])).toEqual([visibleEvent, hiddenEvent])
+    const fullyResolvedEvent = {
+      id: 'event-2',
+      slug: 'bra-san-vas-2026-02-26',
+      status: 'active',
+      created_at: '2026-03-24T00:00:00.000Z',
+      updated_at: '2026-03-24T00:00:00.000Z',
+      markets: [
+        {
+          is_resolved: true,
+          condition: { resolved: true },
+        },
+        {
+          is_resolved: true,
+          condition: { resolved: true },
+        },
+      ],
+      tags: [],
+    } as any
+
+    const resolvedStatusEvent = {
+      id: 'event-3',
+      slug: 'resolved-event',
+      status: 'resolved',
+      created_at: '2026-03-24T00:00:00.000Z',
+      updated_at: '2026-03-24T00:00:00.000Z',
+      markets: [
+        {
+          is_resolved: true,
+          condition: { resolved: true },
+        },
+      ],
+      tags: [],
+    } as any
+
+    expect(filterHomeEvents(
+      [partiallyResolvedEvent, fullyResolvedEvent, resolvedStatusEvent],
+      { status: 'resolved' },
+    )).toEqual([fullyResolvedEvent, resolvedStatusEvent])
   })
 })

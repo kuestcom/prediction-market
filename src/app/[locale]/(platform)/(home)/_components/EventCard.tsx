@@ -2,15 +2,22 @@
 
 import type { Market } from '@/types'
 import type { EventCardProps } from '@/types/EventCardTypes'
+import { useMemo } from 'react'
 import EventCardFooter from '@/app/[locale]/(platform)/(home)/_components/EventCardFooter'
 import EventCardHeader from '@/app/[locale]/(platform)/(home)/_components/EventCardHeader'
 import EventCardMarketsList from '@/app/[locale]/(platform)/(home)/_components/EventCardMarketsList'
 import EventCardSingleMarketActions from '@/app/[locale]/(platform)/(home)/_components/EventCardSingleMarketActions'
 import EventCardSportsMoneyline from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
+import {
+  resolveEventCardResolvedOutcomeIndex,
+  shouldUseResolvedXTracker,
+} from '@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome'
+import { useXTrackerTweetCount } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useXTrackerTweetCount'
 import { Card, CardContent } from '@/components/ui/card'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
 import { formatDate } from '@/lib/formatters'
+import { isHomeEventResolvedLike } from '@/lib/home-events'
 import { buildChanceByMarket } from '@/lib/market-chance'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import { cn } from '@/lib/utils'
@@ -37,7 +44,12 @@ export default function EventCard({
   enableHomeSportsMoneylineLayout = false,
   currentTimestamp = null,
 }: EventCardProps) {
-  const isResolvedEvent = event.status === 'resolved'
+  const isResolvedEvent = isHomeEventResolvedLike(event)
+  const canUseXTrackerResolvedOutcomes = useMemo(
+    () => shouldUseResolvedXTracker(event),
+    [event],
+  )
+  const xtrackerTweetCountQuery = useXTrackerTweetCount(event, isResolvedEvent && canUseXTrackerResolvedOutcomes)
   const marketsToDisplay = isResolvedEvent
     ? event.markets
     : (() => {
@@ -59,6 +71,28 @@ export default function EventCard({
   const homeSportsMoneylineModel = enableHomeSportsMoneylineLayout
     ? buildHomeSportsMoneylineModel(event)
     : null
+  const resolvedOutcomeIndexByConditionId = useMemo<Partial<Record<string, typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO>>>(() => {
+    if (!isResolvedEvent) {
+      return {}
+    }
+
+    const totalCount = xtrackerTweetCountQuery.data?.totalCount ?? null
+    return Object.fromEntries(
+      event.markets
+        .map((market) => {
+          const resolvedOutcomeIndex = resolveEventCardResolvedOutcomeIndex(market, {
+            isTweetMarketEvent: canUseXTrackerResolvedOutcomes,
+            isTweetMarketFinal: true,
+            totalCount,
+          })
+
+          return resolvedOutcomeIndex == null
+            ? null
+            : [market.condition_id, resolvedOutcomeIndex] as const
+        })
+        .filter((entry): entry is readonly [string, 0 | 1] => entry != null),
+    )
+  }, [canUseXTrackerResolvedOutcomes, event.markets, isResolvedEvent, xtrackerTweetCountQuery.data?.totalCount])
 
   function getDisplayChance(marketId: string) {
     return chanceByMarket[marketId] ?? 0
@@ -128,6 +162,7 @@ export default function EventCard({
                 markets={marketsToDisplay}
                 isResolvedEvent={isResolvedEvent}
                 getDisplayChance={getDisplayChance}
+                resolvedOutcomeIndexByConditionId={resolvedOutcomeIndexByConditionId}
               />
             )}
 
@@ -138,6 +173,7 @@ export default function EventCard({
                 noOutcome={noOutcome}
                 primaryMarket={primaryMarket}
                 isResolvedEvent={isResolvedEvent}
+                resolvedOutcomeIndexByConditionId={resolvedOutcomeIndexByConditionId}
               />
             )}
           </div>

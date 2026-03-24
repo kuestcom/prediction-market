@@ -55,6 +55,15 @@ function resolveMarketDescriptor(market: Market | null | undefined) {
     || ''
 }
 
+function hasSportsContext(market: Market | null | undefined) {
+  return Boolean(
+    market?.sports_market_type?.trim()
+    || market?.sports_group_item_title?.trim()
+    || market?.sports_game_start_time
+    || market?.sports_start_time,
+  )
+}
+
 export function isExactScoreSportsMarket(market: Market | null | undefined) {
   const normalizedType = normalizeComparableText(market?.sports_market_type)
   if (normalizedType.includes('exact score')) {
@@ -137,7 +146,7 @@ function resolveSportsResolvedDisplayKind(market: Market | null | undefined): Sp
   if (/\bover\b/.test(descriptorText) || /\bunder\b/.test(descriptorText)) {
     return 'total'
   }
-  if (/[+-]\s*\d/.test(rawDescriptorText)) {
+  if (hasSportsContext(market) && /[+-]\s*\d/.test(rawDescriptorText)) {
     return 'spread'
   }
 

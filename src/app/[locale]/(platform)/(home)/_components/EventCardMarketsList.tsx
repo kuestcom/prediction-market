@@ -1,5 +1,6 @@
 import type { Event, Market } from '@/types'
 import { CheckIcon, XIcon } from 'lucide-react'
+import { resolveBinaryOutcomeByIndex } from '@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
@@ -12,6 +13,7 @@ interface EventCardMarketsListProps {
   markets: Market[]
   isResolvedEvent: boolean
   getDisplayChance: (marketId: string) => number
+  resolvedOutcomeIndexByConditionId: Partial<Record<string, typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO>>
 }
 
 export default function EventCardMarketsList({
@@ -19,13 +21,13 @@ export default function EventCardMarketsList({
   markets,
   isResolvedEvent,
   getDisplayChance,
+  resolvedOutcomeIndexByConditionId,
 }: EventCardMarketsListProps) {
   const normalizeOutcomeLabel = useOutcomeLabel()
   const marketsToRender = isResolvedEvent
     ? markets
         .map((market, index) => {
-          const resolvedOutcome = market.outcomes.find(outcome => outcome.is_winning_outcome)
-          const resolvedOutcomeIndex = resolvedOutcome?.outcome_index ?? null
+          const resolvedOutcomeIndex = resolvedOutcomeIndexByConditionId[market.condition_id] ?? null
           const rank = resolvedOutcomeIndex === OUTCOME_INDEX.YES
             ? 0
             : resolvedOutcomeIndex === OUTCOME_INDEX.NO
@@ -50,13 +52,16 @@ export default function EventCardMarketsList({
       )}
     >
       {marketsToRender.map((market) => {
+        const resolvedOutcomeIndex = isResolvedEvent
+          ? resolvedOutcomeIndexByConditionId[market.condition_id] ?? null
+          : null
         const resolvedOutcome = isResolvedEvent
-          ? market.outcomes.find(outcome => outcome.is_winning_outcome)
+          ? resolveBinaryOutcomeByIndex(market, resolvedOutcomeIndex)
           : null
         const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES) ?? market.outcomes[0]
         const noOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO) ?? market.outcomes[1]
         const resolvedLabel = resolvedOutcome?.outcome_text
-        const isYesOutcome = resolvedOutcome?.outcome_index === OUTCOME_INDEX.YES
+        const isYesOutcome = resolvedOutcomeIndex === OUTCOME_INDEX.YES
         const displayResolvedLabel = normalizeOutcomeLabel(resolvedLabel) ?? resolvedLabel
 
         return (

@@ -2,14 +2,16 @@
 
 import type { HomeSportsMoneylineButton, HomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import type { Event } from '@/types'
+import { CheckIcon } from 'lucide-react'
 import Image from 'next/image'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Card, CardContent } from '@/components/ui/card'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveEventOutcomePath } from '@/lib/events-routing'
-import { formatVolume } from '@/lib/formatters'
-import { resolveHomeSportsButtonChance } from '@/lib/sports-home-card'
+import { formatDate, formatVolume } from '@/lib/formatters'
+import { isHomeEventResolvedLike } from '@/lib/home-events'
+import { resolveHomeSportsButtonChance, resolveResolvedHomeSportsMoneylineWinner } from '@/lib/sports-home-card'
 import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
 import { cn } from '@/lib/utils'
 
@@ -21,6 +23,51 @@ interface EventCardSportsMoneylineProps {
 }
 
 const HOME_OUTCOME_BUTTON_HEIGHT_CLASS = 'h-[40px]'
+
+function normalizeComparableText(value: string | null | undefined) {
+  return value
+    ?.trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    ?? ''
+}
+
+function formatSportsDisplayLabel(value: string | null | undefined) {
+  const normalized = value?.trim()
+  if (!normalized) {
+    return null
+  }
+
+  return normalized
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((token) => {
+      const lowerToken = token.toLowerCase()
+      if (/^[a-z0-9]{1,3}$/i.test(lowerToken)) {
+        return lowerToken.toUpperCase()
+      }
+
+      return lowerToken.charAt(0).toUpperCase() + lowerToken.slice(1)
+    })
+    .join(' ')
+}
+
+function resolveSportsCompetitionLabel(event: Event) {
+  const normalizedSportSlug = normalizeComparableText(event.sports_sport_slug)
+  const preferredCompetitionTag = (event.sports_tags ?? []).find((tag) => {
+    const normalizedTag = normalizeComparableText(tag)
+    return normalizedTag
+      && normalizedTag !== normalizedSportSlug
+      && normalizedTag !== 'games'
+      && normalizedTag !== 'game'
+      && normalizedTag !== 'props'
+      && normalizedTag !== 'prop'
+  })
+
+  return formatSportsDisplayLabel(preferredCompetitionTag)
+    ?? formatSportsDisplayLabel(event.sports_sport_slug)
+}
 
 function formatSportsStartTime(value: string | null | undefined, currentTimestamp?: number | null) {
   if (!value) {
@@ -126,9 +173,18 @@ export default function EventCardSportsMoneyline({
       outcomeIndex: button.outcomeIndex,
     })
   }
-  const isResolvedEvent = event.status === 'resolved'
-  const sportsTagLabel = event.sports_sport_slug?.trim()?.toUpperCase() || null
+  const isResolvedEvent = isHomeEventResolvedLike(event)
+  const sportsCompetitionLabel = resolveSportsCompetitionLabel(event)
   const startTimeLabel = formatSportsStartTime(event.sports_start_time ?? event.start_date, currentTimestamp)
+  const endedLabel = isResolvedEvent && event.resolved_at
+    ? (() => {
+        const resolvedDate = new Date(event.resolved_at)
+        if (Number.isNaN(resolvedDate.getTime())) {
+          return null
+        }
+        return `Ended ${formatDate(resolvedDate)}`
+      })()
+    : null
   const team1Chance = Math.round(resolveHomeSportsButtonChance(
     getDisplayChance(model.team1Button.conditionId),
     model.team1Button.outcomeIndex,
@@ -137,6 +193,9 @@ export default function EventCardSportsMoneyline({
     getDisplayChance(model.team2Button.conditionId),
     model.team2Button.outcomeIndex,
   ))
+  const resolvedWinner = isResolvedEvent
+    ? resolveResolvedHomeSportsMoneylineWinner(event, model)
+    : null
 
   return (
     <Card
@@ -205,88 +264,126 @@ export default function EventCardSportsMoneyline({
           </IntentPrefetchLink>
         </div>
 
-        <div className="mt-auto flex flex-col justify-end gap-1.5">
-          <div className="flex h-fit items-center justify-center gap-2">
-            {[model.team1Button, model.drawButton, model.team2Button]
-              .filter((button): button is HomeSportsMoneylineButton => Boolean(button))
-              .map((button) => {
-                const toneStyles = getButtonToneStyles(button)
-
-                return (
-                  <IntentPrefetchLink
-                    key={`${button.conditionId}:${button.outcomeIndex}`}
-                    href={resolveButtonHref(button)}
-                    className={cn(
-                      `
-                        relative inline-flex items-center justify-center overflow-hidden transition duration-150
-                        active:scale-[97%]
-                      `,
-                      button.tone === 'draw'
-                        ? 'hover:bg-secondary/80 hover:text-foreground'
-                        : 'group/team-button hover:bg-transparent',
-                      toneStyles.className,
-                    )}
-                    style={toneStyles.style}
+        <div className="flex flex-1 flex-col">
+          <div className={cn(isResolvedEvent ? 'mt-6 mb-0' : 'mt-auto mb-2')}>
+            {isResolvedEvent && resolvedWinner
+              ? (
+                  <div className={`
+                    flex h-12 w-full cursor-default items-center justify-center gap-2 rounded-md border px-3 text-sm
+                    font-semibold text-foreground transition-colors
+                    dark:border-none dark:bg-secondary
+                    dark:group-hover:bg-card
+                  `}
                   >
-                    {button.tone === 'draw'
-                      ? <span className="relative z-1">{button.label}</span>
-                      : (
-                          <span className="relative z-1 truncate">
-                            <span className="group-hover/team-button:hidden">{button.label}</span>
-                            <span className="hidden text-foreground group-hover/team-button:inline">{button.label}</span>
-                          </span>
-                        )}
-                    {(toneStyles.backgroundClassName || toneStyles.backgroundStyle)
-                      ? (
-                          <span
+                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-yes">
+                      <CheckIcon className="size-3 text-background" strokeWidth={2.5} />
+                    </span>
+                    <span className="min-w-8 truncate text-left">{resolvedWinner.label}</span>
+                  </div>
+                )
+              : (
+                  <div className="flex h-fit items-center justify-center gap-2">
+                    {[model.team1Button, model.drawButton, model.team2Button]
+                      .filter((button): button is HomeSportsMoneylineButton => Boolean(button))
+                      .map((button) => {
+                        const toneStyles = getButtonToneStyles(button)
+
+                        return (
+                          <IntentPrefetchLink
+                            key={`${button.conditionId}:${button.outcomeIndex}`}
+                            href={resolveButtonHref(button)}
                             className={cn(
                               `
-                                absolute inset-0 z-0 rounded-sm opacity-20 transition-opacity
-                                group-hover/team-button:opacity-40
-                                dark:opacity-30
-                                dark:group-hover/team-button:opacity-50
+                                relative inline-flex items-center justify-center overflow-hidden transition duration-150
+                                active:scale-[97%]
                               `,
-                              toneStyles.backgroundClassName,
+                              button.tone === 'draw'
+                                ? 'hover:bg-secondary/80 hover:text-foreground'
+                                : 'group/team-button hover:bg-transparent',
+                              toneStyles.className,
                             )}
-                            style={toneStyles.backgroundStyle}
-                          />
+                            style={toneStyles.style}
+                          >
+                            {button.tone === 'draw'
+                              ? <span className="relative z-1">{button.label}</span>
+                              : (
+                                  <span className="relative z-1 truncate">
+                                    <span className="group-hover/team-button:hidden">{button.label}</span>
+                                    <span className="hidden text-foreground group-hover/team-button:inline">{button.label}</span>
+                                  </span>
+                                )}
+                            {(toneStyles.backgroundClassName || toneStyles.backgroundStyle)
+                              ? (
+                                  <span
+                                    className={cn(
+                                      `
+                                        absolute inset-0 z-0 rounded-sm opacity-20 transition-opacity
+                                        group-hover/team-button:opacity-40
+                                        dark:opacity-30
+                                        dark:group-hover/team-button:opacity-50
+                                      `,
+                                      toneStyles.backgroundClassName,
+                                    )}
+                                    style={toneStyles.backgroundStyle}
+                                  />
+                                )
+                              : null}
+                          </IntentPrefetchLink>
                         )
-                      : null}
-                  </IntentPrefetchLink>
-                )
-              })}
+                      })}
+                  </div>
+                )}
           </div>
 
-          <div className="relative flex w-full items-center justify-between text-xs text-muted-foreground">
+          <div className="relative flex w-full items-center justify-between gap-2 text-xs text-muted-foreground">
             <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap">
               <span>
                 {formatVolume(event.volume)}
                 {' '}
                 Vol.
               </span>
-              {sportsTagLabel
+              {isResolvedEvent
                 ? (
-                    <>
-                      <span className="opacity-50">·</span>
-                      <span>{sportsTagLabel}</span>
-                    </>
+                    sportsCompetitionLabel
+                      ? (
+                          <>
+                            <span className="opacity-50">·</span>
+                            <span>{sportsCompetitionLabel}</span>
+                          </>
+                        )
+                      : null
                   )
-                : null}
-              {startTimeLabel
-                ? (
+                : (
                     <>
-                      <span className="opacity-50">·</span>
-                      <span>{startTimeLabel}</span>
+                      {sportsCompetitionLabel
+                        ? (
+                            <>
+                              <span className="opacity-50">·</span>
+                              <span>{sportsCompetitionLabel}</span>
+                            </>
+                          )
+                        : null}
+                      {startTimeLabel
+                        ? (
+                            <>
+                              <span className="opacity-50">·</span>
+                              <span>{startTimeLabel}</span>
+                            </>
+                          )
+                        : null}
                     </>
-                  )
-                : null}
+                  )}
             </div>
 
-            {!isResolvedEvent && (
-              <div className="shrink-0">
-                <EventBookmark event={event} refreshStatusOnMount={false} />
-              </div>
-            )}
+            {isResolvedEvent
+              ? (endedLabel
+                  ? <span className="shrink-0">{endedLabel}</span>
+                  : null)
+              : (
+                  <div className="shrink-0">
+                    <EventBookmark event={event} refreshStatusOnMount={false} />
+                  </div>
+                )}
           </div>
         </div>
       </CardContent>

@@ -1,5 +1,6 @@
 import type { Market, Outcome } from '@/types'
 import { CheckIcon, XIcon } from 'lucide-react'
+import { resolveBinaryOutcomeByIndex } from '@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
@@ -17,6 +18,7 @@ interface EventCardSingleMarketActionsProps {
   noOutcome: Outcome
   primaryMarket: Market | undefined
   isResolvedEvent: boolean
+  resolvedOutcomeIndexByConditionId: Partial<Record<string, typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO>>
 }
 
 export default function EventCardSingleMarketActions({
@@ -25,6 +27,7 @@ export default function EventCardSingleMarketActions({
   noOutcome,
   primaryMarket,
   isResolvedEvent,
+  resolvedOutcomeIndexByConditionId,
 }: EventCardSingleMarketActionsProps) {
   const normalizeOutcomeLabel = useOutcomeLabel()
   if (!primaryMarket) {
@@ -32,9 +35,10 @@ export default function EventCardSingleMarketActions({
   }
 
   if (isResolvedEvent) {
-    const resolvedOutcome = primaryMarket.outcomes.find(outcome => outcome.is_winning_outcome)
+    const resolvedOutcomeIndex = resolvedOutcomeIndexByConditionId[primaryMarket.condition_id] ?? null
+    const resolvedOutcome = resolveBinaryOutcomeByIndex(primaryMarket, resolvedOutcomeIndex)
     const resolvedLabel = normalizeOutcomeLabel(resolvedOutcome?.outcome_text) ?? resolvedOutcome?.outcome_text
-    const isYesOutcome = resolvedOutcome?.outcome_index === OUTCOME_INDEX.YES
+    const isYesOutcome = resolvedOutcomeIndex === OUTCOME_INDEX.YES
 
     return (
       <div className="mt-auto mb-0">
@@ -47,7 +51,6 @@ export default function EventCardSingleMarketActions({
                 dark:group-hover:bg-card
               `}
               >
-                <span className="min-w-8 text-right">{resolvedLabel}</span>
                 <span className={cn(`flex size-4 items-center justify-center rounded-full ${isYesOutcome
                   ? 'bg-yes'
                   : `bg-no`}`)}
@@ -56,6 +59,7 @@ export default function EventCardSingleMarketActions({
                     ? <CheckIcon className="size-3 text-background" strokeWidth={2.5} />
                     : <XIcon className="size-3 text-background" strokeWidth={2.5} />}
                 </span>
+                <span className="min-w-8 text-left">{resolvedLabel}</span>
               </div>
             )
           : (

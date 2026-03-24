@@ -193,6 +193,29 @@ function resolvePrimaryTeams(teams: HomeSportsTeam[]) {
   return { team1, team2 }
 }
 
+function parseSportsScore(value: string | null | undefined) {
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  const match = trimmed.match(/(\d+)\D+(\d+)/)
+  if (!match) {
+    return null
+  }
+
+  const team1Score = Number.parseInt(match[1] ?? '', 10)
+  const team2Score = Number.parseInt(match[2] ?? '', 10)
+  if (!Number.isFinite(team1Score) || !Number.isFinite(team2Score)) {
+    return null
+  }
+
+  return {
+    team1Score,
+    team2Score,
+  }
+}
+
 function toHomeButton(payload: {
   market: Market
   outcome: Outcome
@@ -266,6 +289,13 @@ export interface HomeSportsMoneylineModel {
   drawButton?: HomeSportsMoneylineButton
 }
 
+export interface ResolvedHomeSportsMoneylineWinner {
+  conditionId: string
+  label: string
+  outcomeIndex: number
+  tone: HomeSportsMoneylineButton['tone']
+}
+
 export function resolveHomeSportsButtonChance(baseChance: number | null | undefined, outcomeIndex: number) {
   const normalizedBaseChance = typeof baseChance === 'number' && Number.isFinite(baseChance)
     ? Math.max(0, Math.min(100, baseChance))
@@ -276,6 +306,104 @@ export function resolveHomeSportsButtonChance(baseChance: number | null | undefi
   }
 
   return normalizedBaseChance
+}
+
+function resolveBinaryWinningOutcomeIndex(market: Pick<Market, 'outcomes' | 'condition'>) {
+  const explicitWinner = market.outcomes.find(outcome => outcome.is_winning_outcome)
+  if (explicitWinner && Number.isFinite(explicitWinner.outcome_index)) {
+    return explicitWinner.outcome_index
+  }
+
+  const payoutNumerators = market.condition?.payout_numerators
+  if (!Array.isArray(payoutNumerators) || payoutNumerators.length === 0) {
+    return null
+  }
+
+  const numericNumerators = payoutNumerators.map(value => Number(value))
+  const finiteNumerators = numericNumerators.filter(value => Number.isFinite(value))
+  if (finiteNumerators.length === 0) {
+    return null
+  }
+
+  const maxValue = Math.max(...finiteNumerators)
+  if (!(maxValue > 0)) {
+    return null
+  }
+
+  const winnerIndex = numericNumerators.findIndex(value => value === maxValue)
+  return winnerIndex >= 0 ? winnerIndex : null
+}
+
+function resolveResolvedWinnerLabel(
+  model: HomeSportsMoneylineModel,
+  tone: HomeSportsMoneylineButton['tone'],
+) {
+  if (tone === 'team1') {
+    return model.team1.name
+  }
+  if (tone === 'team2') {
+    return model.team2.name
+  }
+  return 'Draw'
+}
+
+export function resolveResolvedHomeSportsMoneylineWinner(
+  event: Pick<Event, 'markets' | 'sports_score'>,
+  model: HomeSportsMoneylineModel,
+): ResolvedHomeSportsMoneylineWinner | null {
+  const buttons = [
+    model.team1Button,
+    model.drawButton,
+    model.team2Button,
+  ].filter((button): button is HomeSportsMoneylineButton => Boolean(button))
+
+  for (const button of buttons) {
+    const market = event.markets.find(candidate => candidate.condition_id === button.conditionId)
+    if (!market) {
+      continue
+    }
+
+    const winnerIndex = resolveBinaryWinningOutcomeIndex(market)
+    if (winnerIndex !== button.outcomeIndex) {
+      continue
+    }
+
+    return {
+      conditionId: button.conditionId,
+      label: resolveResolvedWinnerLabel(model, button.tone),
+      outcomeIndex: button.outcomeIndex,
+      tone: button.tone,
+    }
+  }
+
+  const finalScore = parseSportsScore(event.sports_score)
+  if (!finalScore) {
+    return null
+  }
+
+  if (finalScore.team1Score === finalScore.team2Score) {
+    if (!model.drawButton) {
+      return null
+    }
+
+    return {
+      conditionId: model.drawButton.conditionId,
+      label: resolveResolvedWinnerLabel(model, model.drawButton.tone),
+      outcomeIndex: model.drawButton.outcomeIndex,
+      tone: model.drawButton.tone,
+    }
+  }
+
+  const winningButton = finalScore.team1Score > finalScore.team2Score
+    ? model.team1Button
+    : model.team2Button
+
+  return {
+    conditionId: winningButton.conditionId,
+    label: resolveResolvedWinnerLabel(model, winningButton.tone),
+    outcomeIndex: winningButton.outcomeIndex,
+    tone: winningButton.tone,
+  }
 }
 
 function buildSeparatedMoneylineModel(

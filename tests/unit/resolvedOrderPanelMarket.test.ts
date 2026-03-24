@@ -520,4 +520,26 @@ describe('resolveResolvedOrderPanelDisplay', () => {
     expect(result.outcomeLabel).toBe('Yes')
     expect(result.marketTitle).toBe('Exact Score: Any Other Score')
   })
+
+  it('does not treat tweet market ranges as sports spread labels', () => {
+    const selectedMarket = createMarket({
+      condition_id: 'tweet-range-180-199',
+      title: '180-199',
+      short_title: '180-199',
+      slug: 'elon-musk-of-tweets-march-17-march-24-180-199',
+      sports_market_type: null,
+      sports_group_item_title: null,
+      condition: {
+        resolved: true,
+      },
+    })
+
+    const result = resolveResolvedOrderPanelDisplay({
+      event: createEvent([selectedMarket]),
+      selectedMarket,
+    })
+
+    expect(result.outcomeLabel).toBeNull()
+    expect(result.marketTitle).toBe('180-199')
+  })
 })

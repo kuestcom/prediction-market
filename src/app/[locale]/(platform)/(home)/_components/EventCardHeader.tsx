@@ -5,6 +5,7 @@ import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventPagePath } from '@/lib/events-routing'
+import { isHomeEventResolvedLike } from '@/lib/home-events'
 import { cn } from '@/lib/utils'
 
 function normalizeOutcomeText(value: string | null | undefined) {
@@ -28,7 +29,7 @@ export default function EventCardHeader({
 }: EventCardHeaderProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
-  const isResolvedEvent = event.status === 'resolved'
+  const isResolvedEvent = isHomeEventResolvedLike(event)
   const yesOutcome = primaryMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES) ?? primaryMarket?.outcomes[0]
   const noOutcome = primaryMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO) ?? primaryMarket?.outcomes[1]
   const outcomeLabels = new Set([

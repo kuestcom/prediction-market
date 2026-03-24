@@ -18,6 +18,10 @@ import EventSingleMarketOrderBook from '@/app/[locale]/(platform)/event/[slug]/_
 import EventTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabs'
 import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
 import { resolveEventOrderBootstrapSelection } from '@/app/[locale]/(platform)/event/[slug]/_utils/event-order-bootstrap-selection'
+import {
+  resolveEventResolvedOutcomeIndex,
+  toResolutionTimelineOutcome,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/eventResolvedOutcome'
 import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -234,6 +238,12 @@ export default function EventContent({
     }
     return event.markets.find(market => market.condition_id === currentMarketId) ?? initialMarket
   }, [currentMarketId, event.markets, initialMarket])
+  const selectedMarketTimelineOutcome = useMemo(
+    () => selectedMarket
+      ? toResolutionTimelineOutcome(resolveEventResolvedOutcomeIndex(event, selectedMarket))
+      : null,
+    [event, selectedMarket],
+  )
   const singleMarket = event.markets[0]
   const isSingleMarketResolved = isMarketResolved(singleMarket)
   const usesLiveSeriesChart = Boolean(liveChartConfig && shouldUseLiveSeriesChart(event, liveChartConfig))
@@ -426,7 +436,12 @@ export default function EventContent({
                 && selectedMarket
                 && shouldDisplayResolutionTimeline(selectedMarket) && (
                 <div className="rounded-xl border bg-background p-4">
-                  <ResolutionTimelinePanel market={selectedMarket} settledUrl={null} showLink={false} />
+                  <ResolutionTimelinePanel
+                    market={selectedMarket}
+                    settledUrl={null}
+                    outcomeOverride={selectedMarketTimelineOutcome}
+                    showLink={false}
+                  />
                 </div>
               )}
             </div>

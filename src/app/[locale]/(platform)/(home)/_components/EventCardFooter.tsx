@@ -3,6 +3,7 @@ import { Repeat } from 'lucide-react'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import { NewBadge } from '@/components/ui/new-badge'
 import { formatVolume } from '@/lib/formatters'
+import { isHomeEventResolvedLike } from '@/lib/home-events'
 
 interface EventCardFooterProps {
   event: Event
@@ -19,7 +20,7 @@ export default function EventCardFooter({
   resolvedVolume,
   endedLabel,
 }: EventCardFooterProps) {
-  const isResolvedEvent = event.status === 'resolved'
+  const isResolvedEvent = isHomeEventResolvedLike(event)
   const recurrenceLabel = event.series_recurrence?.trim() || null
   const recurrenceDisplayLabel = recurrenceLabel
     ? `${recurrenceLabel.charAt(0).toUpperCase()}${recurrenceLabel.slice(1)}`
