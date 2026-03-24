@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Invalid sports section filter.' }, { status: 400 })
   }
 
-  const user = await UserRepository.getCurrentUser()
+  const user = await UserRepository.getCurrentUser({ minimal: true })
   const userId = user?.id
 
   try {

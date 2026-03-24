@@ -77,29 +77,29 @@ CRON_SECRET=replace-me
 
 gcloud scheduler jobs create http kuest-sync-events \
   --location=us-central1 \
-  --schedule="1-59/5 * * * *" \
+  --schedule="1-59/3 * * * *" \
   --uri="${SITE_URL}/api/sync/events" \
   --http-method=GET \
   --headers="Authorization=Bearer ${CRON_SECRET}"
 
 gcloud scheduler jobs create http kuest-sync-resolution \
   --location=us-central1 \
-  --schedule="3-59/5 * * * *" \
+  --schedule="2-56/6 * * * *" \
   --uri="${SITE_URL}/api/sync/resolution" \
-  --http-method=GET \
-  --headers="Authorization=Bearer ${CRON_SECRET}"
-
-gcloud scheduler jobs create http kuest-sync-translations \
-  --location=us-central1 \
-  --schedule="*/10 * * * *" \
-  --uri="${SITE_URL}/api/sync/translations" \
   --http-method=GET \
   --headers="Authorization=Bearer ${CRON_SECRET}"
 
 gcloud scheduler jobs create http kuest-sync-volume \
   --location=us-central1 \
-  --schedule="14,44 * * * *" \
+  --schedule="16,46 * * * *" \
   --uri="${SITE_URL}/api/sync/volume" \
+  --http-method=GET \
+  --headers="Authorization=Bearer ${CRON_SECRET}"
+
+gcloud scheduler jobs create http kuest-sync-translations \
+  --location=us-central1 \
+  --schedule="13,37 * * * *" \
+  --uri="${SITE_URL}/api/sync/translations" \
   --http-method=GET \
   --headers="Authorization=Bearer ${CRON_SECRET}"
 ```

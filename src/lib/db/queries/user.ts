@@ -156,7 +156,10 @@ export const UserRepository = {
     })
   },
 
-  async getCurrentUser({ disableCookieCache = false }: { disableCookieCache?: boolean } = {}) {
+  async getCurrentUser({
+    disableCookieCache = false,
+    minimal = false,
+  }: { disableCookieCache?: boolean, minimal?: boolean } = {}) {
     try {
       const session = await auth.api.getSession({
         query: {
@@ -174,6 +177,13 @@ export const UserRepository = {
       const shouldRedactEmail = Boolean(rawEmail && rawEmail.startsWith('0x') && rawEmail.split('@')[0].length === 42)
 
       user.email = shouldRedactEmail ? '' : rawEmail
+      if (user.settings) {
+        user.settings = sanitizeTradingAuthSettings(user.settings)
+      }
+
+      if (minimal) {
+        return user
+      }
 
       if (!user.affiliate_code) {
         try {
@@ -188,10 +198,6 @@ export const UserRepository = {
       }
 
       const proxyAddress = await ensureUserProxyWallet(user)
-
-      if (user.settings) {
-        user.settings = sanitizeTradingAuthSettings(user.settings)
-      }
 
       if (proxyAddress && !user.username) {
         const generatedUsername = generateUsername(proxyAddress)

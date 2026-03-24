@@ -35,10 +35,10 @@ These schedules mirror what `scripts/migrate.js` configures with `pg_cron` in Su
 
 | Endpoint | Cron schedule | Notes |
 | --- | --- | --- |
-| `/api/sync/events` | `1-59/5 * * * *` | Every 5 min (offset by 1 min) |
-| `/api/sync/resolution` | `3-59/5 * * * *` | Every 5 min (offset by 3 min) |
-| `/api/sync/translations` | `*/10 * * * *` | Every 10 min |
-| `/api/sync/volume` | `14,44 * * * *` | Every 30 min (minute 14 and 44) |
+| `/api/sync/events` | `1-59/3 * * * *` | Every 3 min (offset by 1 min) |
+| `/api/sync/resolution` | `2-56/6 * * * *` | Every 6 min (offset by 2 min) |
+| `/api/sync/volume` | `16,46 * * * *` | Twice per hour (minute 16 and 46) |
+| `/api/sync/translations` | `13,37 * * * *` | Twice per hour (minute 13 and 37) |
 
 Use UTC unless your operations team has a strict local-time requirement.
 
