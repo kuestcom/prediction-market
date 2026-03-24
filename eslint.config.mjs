@@ -14,6 +14,7 @@ export default antfu({
     'node/prefer-global/process': 'off',
     'no-console': 'off',
     'curly': ['error', 'all'],
+    'e18e/prefer-static-regex': 'off',
     'react/no-array-index-key': 'off',
     'react-dom/no-dangerously-set-innerhtml': 'off',
     'react-refresh/only-export-components': 'off',
