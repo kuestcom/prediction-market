@@ -175,6 +175,60 @@ describe('predictionResultsClient', () => {
     expect(mocks.replace).not.toHaveBeenCalled()
   })
 
+  it('keeps direct visits on the clean default predictions url until the user changes a filter', () => {
+    mocks.useSearchParams.mockReturnValue(new URLSearchParams(''))
+
+    render(
+      <PredictionResultsClient
+        displayLabel="Test"
+        initialCurrentTimestamp={Date.parse('2026-03-25T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="test"
+        initialQuery="test"
+        initialSort="trending"
+        initialStatus="active"
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    expect(mocks.replace).not.toHaveBeenCalled()
+  })
+
+  it('renders the all status filter last and only appends it after the user selects it', () => {
+    mocks.useSearchParams.mockReturnValue(new URLSearchParams(''))
+
+    render(
+      <PredictionResultsClient
+        displayLabel="Test"
+        initialCurrentTimestamp={Date.parse('2026-03-25T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="test"
+        initialQuery="test"
+        initialSort="trending"
+        initialStatus="active"
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    const statusButtons = Array.from(
+      screen.getByTestId('prediction-status-active').parentElement?.children ?? [],
+    ).map(button => button.getAttribute('data-testid'))
+
+    expect(statusButtons).toEqual([
+      'prediction-status-active',
+      'prediction-status-resolved',
+      'prediction-status-all',
+    ])
+
+    fireEvent.click(screen.getByTestId('prediction-status-all'))
+
+    const [href, options] = mocks.replace.mock.calls.at(-1) ?? []
+    expect(href).toBe('/predictions/test?_status=all')
+    expect(options).toEqual({ scroll: false })
+  })
+
   it('renders the desktop aside shell and the mobile drawer trigger', () => {
     render(
       <PredictionResultsClient

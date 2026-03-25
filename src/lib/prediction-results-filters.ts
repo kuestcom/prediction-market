@@ -14,6 +14,7 @@ export const PREDICTION_RESULTS_SORT_OPTIONS = [
 export const PREDICTION_RESULTS_STATUS_OPTIONS = [
   'active',
   'resolved',
+  'all',
 ] as const
 
 export type PredictionResultsSortOption = typeof PREDICTION_RESULTS_SORT_OPTIONS[number]
@@ -59,6 +60,10 @@ export function parsePredictionResultsStatus(value: string | null | undefined): 
 
   if (normalized === 'resolved') {
     return 'resolved'
+  }
+
+  if (normalized === 'all') {
+    return 'all'
   }
 
   return DEFAULT_PREDICTION_RESULTS_STATUS
@@ -146,7 +151,20 @@ export function buildPredictionResultsUrlSearchParams(
   },
 ) {
   const params = new URLSearchParams(typeof source === 'string' ? source : source.toString())
-  params.set(PREDICTION_RESULTS_SORT_PARAM, filters.sort)
-  params.set(PREDICTION_RESULTS_STATUS_PARAM, filters.status)
+
+  if (filters.sort === DEFAULT_PREDICTION_RESULTS_SORT) {
+    params.delete(PREDICTION_RESULTS_SORT_PARAM)
+  }
+  else {
+    params.set(PREDICTION_RESULTS_SORT_PARAM, filters.sort)
+  }
+
+  if (filters.status === DEFAULT_PREDICTION_RESULTS_STATUS) {
+    params.delete(PREDICTION_RESULTS_STATUS_PARAM)
+  }
+  else {
+    params.set(PREDICTION_RESULTS_STATUS_PARAM, filters.status)
+  }
+
   return params
 }

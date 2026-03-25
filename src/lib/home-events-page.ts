@@ -1,5 +1,5 @@
 import type { SupportedLocale } from '@/i18n/locales'
-import type { EventListSortBy } from '@/lib/event-list-filters'
+import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-filters'
 import type { Event } from '@/types'
 import { EventRepository } from '@/lib/db/queries/event'
 import { filterHomeEvents, HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
@@ -18,7 +18,7 @@ interface ListHomeEventsPageOptions {
   sortBy?: EventListSortBy
   sportsSection?: 'games' | 'props' | ''
   sportsSportSlug?: string
-  status?: 'active' | 'resolved'
+  status?: EventListStatusFilter
   tag: string
   userId: string
 }

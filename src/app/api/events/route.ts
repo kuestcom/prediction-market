@@ -56,10 +56,6 @@ export async function GET(request: Request) {
     }
 
     if (homeFeed) {
-      if (status === 'all') {
-        return NextResponse.json({ error: 'Combined status filter is not supported for home feed.' }, { status: 400 })
-      }
-
       const { data: events, error } = await listHomeEventsPage({
         tag,
         mainTag,

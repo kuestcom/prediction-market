@@ -66,6 +66,7 @@ describe('prediction search helpers', () => {
   it('parses supported sort and status params while defaulting invalid values', () => {
     expect(parsePredictionResultsSort('competitive')).toBe('competitive')
     expect(parsePredictionResultsSort('random')).toBe('trending')
+    expect(parsePredictionResultsStatus('all')).toBe('all')
     expect(parsePredictionResultsStatus('resolved')).toBe('resolved')
     expect(parsePredictionResultsStatus('archived')).toBe('active')
   })
@@ -77,6 +78,15 @@ describe('prediction search helpers', () => {
     )
 
     expect(params.toString()).toBe('foo=bar&_sort=volume&_status=resolved')
+  })
+
+  it('omits default prediction filters from the url', () => {
+    const params = buildPredictionResultsUrlSearchParams(
+      new URLSearchParams('foo=bar&_sort=trending&_status=active'),
+      { sort: 'trending', status: 'active' },
+    )
+
+    expect(params.toString()).toBe('foo=bar')
   })
 
   it('resolves prediction result filters from route search params', () => {

@@ -51,6 +51,7 @@ export default function PredictionResultsFilters({
   }> = [
     { value: 'active', label: t('Active') },
     { value: 'resolved', label: t('Resolved') },
+    { value: 'all', label: t('All') },
   ]
 
   return (

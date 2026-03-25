@@ -1,3 +1,4 @@
+import type { EventListStatusFilter } from '@/lib/event-list-filters'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 
 interface HomeEventVisibilityOptions {
@@ -5,7 +6,7 @@ interface HomeEventVisibilityOptions {
   hideCrypto?: boolean
   hideEarnings?: boolean
   hideSports?: boolean
-  status?: 'active' | 'resolved'
+  status?: EventListStatusFilter
 }
 
 export const HOME_EVENTS_PAGE_SIZE = 32
@@ -182,9 +183,13 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
     return eventsMatchingTagFilters
   }
 
+  const activeSeriesCandidates = status === 'all'
+    ? eventsMatchingTagFilters.filter(event => !isResolvedLike(event))
+    : eventsMatchingTagFilters
+
   const newestBySeriesSlug = new Map<string, T>()
 
-  for (const event of eventsMatchingTagFilters) {
+  for (const event of activeSeriesCandidates) {
     const seriesSlug = normalizeSeriesSlug(event.series_slug)
     if (!seriesSlug) {
       continue
@@ -205,6 +210,10 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
   }
 
   return eventsMatchingTagFilters.filter((event) => {
+    if (status === 'all' && isResolvedLike(event)) {
+      return true
+    }
+
     const seriesSlug = normalizeSeriesSlug(event.series_slug)
     if (!seriesSlug) {
       return true
