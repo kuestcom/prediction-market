@@ -7,7 +7,7 @@ import type {
 } from '@/lib/prediction-results-filters'
 import type { Event, Market } from '@/types'
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
-import { SearchIcon, Settings2Icon } from 'lucide-react'
+import { ChevronRightIcon, SearchIcon, Settings2Icon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
@@ -27,10 +27,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { resolveEventPagePath } from '@/lib/events-routing'
-import { formatCompactCurrency, formatDate } from '@/lib/formatters'
+import { formatDate, formatVolume } from '@/lib/formatters'
 import { HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
 import {
   buildPredictionResultsUrlSearchParams,
+  DEFAULT_PREDICTION_RESULTS_SORT,
+  DEFAULT_PREDICTION_RESULTS_STATUS,
   PREDICTION_RESULTS_SORT_PARAM,
   PREDICTION_RESULTS_STATUS_PARAM,
   resolvePredictionResultsApiSort,
@@ -289,6 +291,14 @@ export default function PredictionResultsClient({
     })
   }
 
+  function handleClearFilters() {
+    setSearchValue(initialInputValue)
+    replaceRoute({
+      nextSort: DEFAULT_PREDICTION_RESULTS_SORT,
+      nextStatus: DEFAULT_PREDICTION_RESULTS_STATUS,
+    })
+  }
+
   const filtersContent = (
     <PredictionResultsFilters
       searchValue={searchValue}
@@ -297,50 +307,54 @@ export default function PredictionResultsClient({
       onSearchValueChange={setSearchValue}
       onSortChange={value => replaceRoute({ nextSort: value })}
       onStatusChange={value => replaceRoute({ nextStatus: value })}
+      onClearFilters={handleClearFilters}
     />
   )
 
   return (
-    <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-8">
-      <div className="min-w-0 flex-1 space-y-4">
-        <header className="space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+    <div className="mx-auto flex w-full min-w-0 flex-col gap-6 lg:flex-row lg:items-start lg:gap-12">
+      <div className="min-w-0 flex-1">
+        <header className="mb-4 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
                 {displayLabel}
+                {' '}
+                predictions & odds
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <span className="text-xl text-muted-foreground">·</span>
+              <p className="text-base text-muted-foreground md:text-xl">
                 {visibleEvents.length}
                 {' '}
                 {visibleEvents.length === 1 ? t('result loaded') : t('results loaded')}
               </p>
             </div>
+          </div>
 
-            <div className="lg:hidden">
-              <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-                <DrawerTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    data-testid="prediction-filters-drawer-trigger"
-                    className="rounded-full"
-                  >
-                    <Settings2Icon className="size-4" />
-                    {t('Search & filters')}
-                  </Button>
-                </DrawerTrigger>
-                <DrawerContent className="max-h-[85vh]">
-                  <DrawerHeader>
-                    <DrawerTitle>{t('Search & filters')}</DrawerTitle>
-                    <DrawerDescription>{t('Refine the current prediction results page')}</DrawerDescription>
-                  </DrawerHeader>
-                  <div className="overflow-y-auto px-4 pb-6">
-                    {filtersContent}
-                  </div>
-                </DrawerContent>
-              </Drawer>
-            </div>
+          <div className="shrink-0 lg:hidden">
+            <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+              <DrawerTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  data-testid="prediction-filters-drawer-trigger"
+                  className="rounded-full border-border/70 bg-background px-3"
+                >
+                  <Settings2Icon className="size-4" />
+                  {t('Search & filters')}
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent className="max-h-[85vh] rounded-t-[28px]">
+                <DrawerHeader>
+                  <DrawerTitle>{t('Search & filters')}</DrawerTitle>
+                  <DrawerDescription>{t('Refine the current prediction results page')}</DrawerDescription>
+                </DrawerHeader>
+                <div className="overflow-y-auto px-4 pb-6">
+                  {filtersContent}
+                </div>
+              </DrawerContent>
+            </Drawer>
           </div>
         </header>
 
@@ -349,13 +363,13 @@ export default function PredictionResultsClient({
         )}
 
         {!showInitialSkeleton && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {isEmptyState
               ? (
                   <PredictionResultsEmptyState query={initialQuery} />
                 )
               : (
-                  <div className="space-y-3">
+                  <div className="divide-y divide-border/70">
                     {visibleEvents.map(event => (
                       <PredictionResultRow key={event.id} event={event} />
                     ))}
@@ -390,10 +404,14 @@ export default function PredictionResultsClient({
 
       <aside
         data-testid="prediction-filters-aside"
-        className="hidden w-full max-w-xs lg:sticky lg:top-24 lg:block"
+        className="hidden w-full lg:block lg:w-[350px]"
       >
-        <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
-          {filtersContent}
+        <div className="lg:sticky lg:top-24">
+          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+            <div className="p-4">
+              {filtersContent}
+            </div>
+          </div>
         </div>
       </aside>
     </div>
@@ -406,78 +424,98 @@ function PredictionResultRow({ event }: { event: Event }) {
   const supportingTags = event.tags.slice(0, 2)
 
   return (
-    <div className="
-      group relative overflow-hidden rounded-2xl border border-border/70 bg-card p-4 shadow-sm transition-colors
-      hover:bg-accent/20
-    "
-    >
+    <div className="group relative py-4">
       <IntentPrefetchLink
         href={resolveEventPagePath(event) as Route}
         aria-label={event.title}
         className="absolute inset-0 z-0 rounded-2xl"
       />
 
+      <div className="
+        pointer-events-none absolute -inset-x-4 inset-y-1 rounded-2xl bg-accent/35 opacity-0 transition-opacity
+        duration-150
+        group-hover:opacity-100
+      "
+      />
+
       <div className="relative z-10 flex items-start gap-4">
-        <div className="relative size-14 shrink-0 overflow-hidden rounded-xl border border-border/70 bg-accent">
+        <div className="
+          relative size-12 shrink-0 overflow-hidden rounded-md border border-border/70 bg-muted
+          md:size-13
+        "
+        >
           <EventIconImage
             src={event.icon_url}
             alt={event.title}
-            sizes="56px"
+            sizes="52px"
             containerClassName="size-full"
           />
         </div>
 
-        <div className="min-w-0 flex-1 space-y-2">
+        <div className="min-w-0 flex-1">
           {supportingTags.length > 0 && (
-            <div className="pointer-events-auto flex flex-wrap items-center gap-2">
-              {supportingTags.map((tag) => {
+            <div className="
+              pointer-events-auto mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground
+            "
+            >
+              {supportingTags.map((tag, index) => {
                 const tagPath = buildPredictionResultsPath(tag.slug)
 
                 return tagPath
                   ? (
-                      <IntentPrefetchLink
-                        key={`${event.id}-${tag.slug}`}
-                        href={tagPath as Route}
-                        className={`
-                          inline-flex items-center rounded-full border border-border/70 bg-background px-2.5 py-1
-                          text-xs font-medium text-muted-foreground transition-colors
-                          hover:bg-accent hover:text-foreground
-                        `}
-                      >
-                        {tag.name}
-                      </IntentPrefetchLink>
+                      <div key={`${event.id}-${tag.slug}`} className="flex items-center gap-2">
+                        {index > 0 && <span className="text-muted-foreground/80">·</span>}
+                        <IntentPrefetchLink
+                          href={tagPath as Route}
+                          className="font-medium text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          {tag.name}
+                        </IntentPrefetchLink>
+                      </div>
                     )
                   : null
               })}
             </div>
           )}
 
-          <div className="space-y-1">
-            <h2 className="line-clamp-2 text-lg font-semibold text-foreground group-hover:underline">
-              {event.title}
-            </h2>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-              <span>
-                {formatCompactCurrency(event.volume)}
-                {' '}
-                vol.
-              </span>
-              <span>{buildDateLabel(event)}</span>
-              {primaryMarket?.question && (
-                <span className="truncate">{primaryMarket.question}</span>
-              )}
+          <div className="flex items-start gap-4">
+            <div className="min-w-0 flex-1">
+              <h2 className="line-clamp-3 text-lg/snug font-medium text-foreground group-hover:underline">
+                {event.title}
+              </h2>
+              <div className="
+                mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-muted-foreground
+              "
+              >
+                <span>
+                  {formatVolume(event.volume ?? 0)}
+                  {' '}
+                  Vol.
+                </span>
+                <span>{buildDateLabel(event)}</span>
+                {primaryMarket?.question && (
+                  <span className="max-w-full truncate font-normal">{primaryMarket.question}</span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex max-w-[42%] min-w-[112px] shrink-0 items-center gap-3 self-center">
+              <div className="min-w-0 flex-1 text-right">
+                <p className="truncate text-2xl font-semibold tracking-tight text-foreground md:text-[32px]">
+                  {Math.round(primaryProbability)}
+                  %
+                </p>
+                <p className="truncate text-sm text-muted-foreground">
+                  {primaryMarket?.short_title ?? primaryMarket?.title ?? (event.status === 'resolved' ? 'Resolved' : 'Market')}
+                </p>
+              </div>
+              <ChevronRightIcon className="
+                size-4 shrink-0 text-muted-foreground transition-transform duration-150
+                group-hover:translate-x-0.5
+              "
+              />
             </div>
           </div>
-        </div>
-
-        <div className="min-w-0 shrink-0 text-right">
-          <p className="text-2xl font-semibold tracking-tight text-foreground">
-            {Math.round(primaryProbability)}
-            %
-          </p>
-          <p className="max-w-28 truncate text-xs text-muted-foreground">
-            {primaryMarket?.short_title ?? primaryMarket?.title ?? (event.status === 'resolved' ? 'Resolved' : 'Market')}
-          </p>
         </div>
       </div>
     </div>
@@ -486,21 +524,21 @@ function PredictionResultRow({ event }: { event: Event }) {
 
 function PredictionResultsListSkeleton({ compact = false }: { compact?: boolean }) {
   return (
-    <div className={cn('space-y-3', compact && 'opacity-80')} data-testid="prediction-results-skeleton">
+    <div className={cn('divide-y divide-border/70', compact && 'opacity-80')} data-testid="prediction-results-skeleton">
       {Array.from({ length: compact ? 2 : 4 }).map((_, index) => (
-        <div key={index} className="flex items-start gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
-          <Skeleton className="size-14 rounded-xl" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex gap-2">
-              <Skeleton className="h-5 w-18 rounded-full" />
-              <Skeleton className="h-5 w-20 rounded-full" />
+        <div key={index} className="flex items-start gap-4 py-4">
+          <Skeleton className="size-12 rounded-md md:size-13" />
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex gap-2">
+              <Skeleton className="h-4 w-16 rounded-full" />
+              <Skeleton className="h-4 w-14 rounded-full" />
             </div>
-            <Skeleton className="h-5 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-5 w-4/5" />
+            <Skeleton className="mt-2 h-4 w-3/5" />
           </div>
-          <div className="space-y-2">
-            <Skeleton className="ml-auto h-7 w-12" />
-            <Skeleton className="ml-auto h-4 w-20" />
+          <div className="ml-auto space-y-2 text-right">
+            <Skeleton className="ml-auto h-8 w-14" />
+            <Skeleton className="ml-auto h-4 w-24" />
           </div>
         </div>
       ))}

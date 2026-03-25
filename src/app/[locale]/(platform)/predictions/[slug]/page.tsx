@@ -86,7 +86,7 @@ export default async function PredictionResultsPage({
   }
 
   return (
-    <main className="container py-4 md:py-6">
+    <main className="container py-6 lg:py-8">
       <PredictionResultsClient
         key={`${slug}:${initialSort}:${initialStatus}`}
         displayLabel={context.label}

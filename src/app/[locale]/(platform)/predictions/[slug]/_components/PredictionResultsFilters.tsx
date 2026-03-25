@@ -1,16 +1,18 @@
 'use client'
 
+import type { LucideIcon } from 'lucide-react'
 import type { PredictionResultsSortOption, PredictionResultsStatusOption } from '@/lib/prediction-results-filters'
-import { ClockIcon, FlameIcon, HandFistIcon, SearchIcon, Settings2Icon, TrendingUpIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
-import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Clock3Icon,
+  FlameIcon,
+  HandFistIcon,
+  SearchIcon,
+  SparklesIcon,
+  TrendingUpIcon,
+} from 'lucide-react'
+import { useExtracted } from 'next-intl'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
 interface PredictionResultsFiltersProps {
@@ -21,15 +23,8 @@ interface PredictionResultsFiltersProps {
   onSearchValueChange: (value: string) => void
   onSortChange: (value: PredictionResultsSortOption) => void
   onStatusChange: (value: PredictionResultsStatusOption) => void
+  onClearFilters: () => void
 }
-
-const SORT_ICONS = {
-  'trending': TrendingUpIcon,
-  'volume': FlameIcon,
-  'ending-soon': ClockIcon,
-  'competitive': HandFistIcon,
-  'newest': TrendingUpIcon,
-} as const
 
 export default function PredictionResultsFilters({
   className,
@@ -39,26 +34,34 @@ export default function PredictionResultsFilters({
   onSearchValueChange,
   onSortChange,
   onStatusChange,
+  onClearFilters,
 }: PredictionResultsFiltersProps) {
   const t = useExtracted()
-  const sortOptions: Array<{ value: PredictionResultsSortOption, label: string }> = [
-    { value: 'trending', label: t('Trending') },
-    { value: 'volume', label: t('Volume') },
-    { value: 'newest', label: t('Newest') },
-    { value: 'ending-soon', label: t('Ending Soon') },
-    { value: 'competitive', label: t('Competitive') },
+  const sortOptions: Array<{
+    value: PredictionResultsSortOption
+    icon: LucideIcon
+    label: string
+  }> = [
+    { value: 'trending', icon: TrendingUpIcon, label: t('Trending') },
+    { value: 'volume', icon: FlameIcon, label: t('Volume') },
+    { value: 'newest', icon: SparklesIcon, label: t('Newest') },
+    { value: 'ending-soon', icon: Clock3Icon, label: t('Ending Soon') },
+    { value: 'competitive', icon: HandFistIcon, label: t('Competitive') },
   ]
-  const ActiveSortIcon = SORT_ICONS[sort] ?? Settings2Icon
+  const statusOptions: Array<{
+    value: PredictionResultsStatusOption
+    label: string
+  }> = [
+    { value: 'active', label: t('Active') },
+    { value: 'resolved', label: t('Resolved') },
+  ]
 
   return (
-    <div className={cn('flex flex-col gap-5', className)}>
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-          {t('Search')}
-        </p>
+    <div className={cn('flex flex-col gap-4', className)}>
+      <div className="space-y-3">
         <div className="relative">
           <SearchIcon className="
-            pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground
+            pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground
           "
           />
           <Input
@@ -67,67 +70,86 @@ export default function PredictionResultsFilters({
             onChange={event => onSearchValueChange(event.target.value)}
             placeholder={t('Search predictions')}
             data-testid="prediction-search-input"
-            className="h-11 rounded-xl border-border/70 bg-background pl-10 shadow-none"
+            className="h-12 rounded-xl border-0 bg-background pr-3 pl-10 shadow-none ring-1 ring-border/70"
           />
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+      <div className="space-y-3 border-t border-border/70 pt-4">
+        <p className="text-[13px] font-medium tracking-[-0.08px] text-muted-foreground">
           {t('Sort by')}
         </p>
-        <Select value={sort} onValueChange={value => onSortChange(value as PredictionResultsSortOption)}>
-          <SelectTrigger
-            data-testid="prediction-sort-select"
-            className="h-11 w-full rounded-xl border-border/70 bg-background px-3 shadow-none"
-          >
-            <SelectValue>
-              <span className="flex items-center gap-2">
-                <ActiveSortIcon className="size-4 text-muted-foreground" />
-                <span>{sortOptions.find(option => option.value === sort)?.label ?? t('Trending')}</span>
-              </span>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent align="start" position="popper" sideOffset={8}>
-            {sortOptions.map(option => (
-              <SelectItem key={option.value} value={option.value}>
+        <div data-testid="prediction-sort-select" className="flex flex-wrap gap-2">
+          {sortOptions.map((option) => {
+            const Icon = option.icon
+            const isActive = option.value === sort
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => onSortChange(option.value)}
+                className={cn(
+                  `
+                    inline-flex h-8 items-center gap-2 rounded-md px-3 text-[13px] font-medium tracking-[-0.08px]
+                    transition-colors
+                    focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none
+                  `,
+                  isActive
+                    ? 'bg-foreground text-background'
+                    : 'bg-muted/70 text-foreground hover:bg-muted',
+                )}
+              >
+                <Icon className="size-4" />
                 {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+      <div className="space-y-3 border-t border-border/70 pt-4">
+        <p className="text-[13px] font-medium tracking-[-0.08px] text-muted-foreground">
           {t('Event status')}
         </p>
         <div className="flex flex-wrap gap-2">
-          {([
-            { value: 'active', label: t('Active') },
-            { value: 'resolved', label: t('Resolved') },
-          ] as const).map(option => (
-            <button
-              key={option.value}
-              type="button"
-              data-testid={`prediction-status-${option.value}`}
-              onClick={() => onStatusChange(option.value)}
-              className={cn(
-                `
-                  inline-flex h-9 items-center rounded-full border px-3 text-sm font-medium transition-colors
-                  focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50
-                  focus-visible:outline-none
-                `,
-                status === option.value
-                  ? 'border-transparent bg-foreground text-background'
-                  : 'border-border/70 bg-background text-foreground hover:bg-accent',
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
+          {statusOptions.map((option) => {
+            const isActive = option.value === status
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={isActive}
+                data-testid={`prediction-status-${option.value}`}
+                onClick={() => onStatusChange(option.value)}
+                className={cn(
+                  `
+                    inline-flex h-8 items-center rounded-md px-3 text-[13px] font-medium tracking-[-0.08px]
+                    transition-colors
+                    focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none
+                  `,
+                  isActive
+                    ? 'bg-foreground text-background'
+                    : 'bg-muted/70 text-foreground hover:bg-muted',
+                )}
+              >
+                {option.label}
+              </button>
+            )
+          })}
         </div>
       </div>
+
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={onClearFilters}
+        className="mt-2 h-9 justify-center px-0 text-[13px] font-medium tracking-[-0.08px] text-muted-foreground"
+      >
+        {t('Clear filters')}
+      </Button>
     </div>
   )
 }
