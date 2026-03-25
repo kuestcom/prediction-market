@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { connection } from 'next/server'
-import SettingsProfileContent from '@/app/[locale]/(platform)/settings/_components/SettingsProfileContent'
+import SettingsProfilePanel from '@/app/[locale]/(platform)/settings/_components/SettingsProfilePanel'
 import { UserRepository } from '@/lib/db/queries/user'
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/settings'>): Promise<Metadata> {
@@ -37,9 +37,7 @@ export default async function SettingsPage({ params }: PageProps<'/[locale]/sett
         </p>
       </div>
 
-      <div className="mx-auto w-full max-w-2xl lg:mx-0">
-        <SettingsProfileContent user={user} />
-      </div>
+      <SettingsProfilePanel user={user} />
     </section>
   )
 }

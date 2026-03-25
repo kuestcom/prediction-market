@@ -5,7 +5,7 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
 import { notFound } from 'next/navigation'
-import PwaInstallPrompt from '@/components/PwaInstallPrompt'
+import PwaInstallStateSync from '@/components/PwaInstallStateSync'
 import PwaServiceWorker from '@/components/PwaServiceWorker'
 import SiteStructuredData from '@/components/seo/SiteStructuredData'
 import TestModeBannerDeferred from '@/components/TestModeBannerDeferred'
@@ -94,7 +94,7 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
         <SiteIdentityProvider site={runtimeTheme.site}>
           <NextIntlClientProvider locale={locale}>
             {IS_TEST_MODE && <TestModeBannerDeferred />}
-            <PwaInstallPrompt />
+            <PwaInstallStateSync />
             {children}
           </NextIntlClientProvider>
         </SiteIdentityProvider>
