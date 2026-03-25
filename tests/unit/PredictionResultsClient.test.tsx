@@ -194,6 +194,26 @@ describe('predictionResultsClient', () => {
     expect(screen.getByTestId('prediction-filters-drawer-trigger')).toBeInTheDocument()
   })
 
+  it('renders the event title inside a link to the event page', () => {
+    render(
+      <PredictionResultsClient
+        displayLabel="Test"
+        initialCurrentTimestamp={Date.parse('2026-03-25T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="test"
+        initialQuery="test"
+        initialSort="competitive"
+        initialStatus="resolved"
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    const titleLink = screen.getByRole('heading', { name: 'Future president?' }).closest('a')
+    expect(titleLink).not.toBeNull()
+    expect(titleLink).toHaveAttribute('href', expect.stringContaining('/event/future-president'))
+  })
+
   it('fetches the next page when the infinite-scroll sentinel intersects', async () => {
     render(
       <PredictionResultsClient

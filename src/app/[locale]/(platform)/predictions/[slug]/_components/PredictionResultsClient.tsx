@@ -652,9 +652,14 @@ function PredictionResultRow({
 
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
-              <h2 className="line-clamp-3 text-lg/snug font-medium text-foreground group-hover:underline">
-                {event.title}
-              </h2>
+              <IntentPrefetchLink
+                href={eventPath as Route}
+                className="pointer-events-auto relative z-20 block rounded-sm focus-visible:outline-none"
+              >
+                <h2 className="line-clamp-3 text-lg/snug font-medium text-foreground group-hover:underline">
+                  {event.title}
+                </h2>
+              </IntentPrefetchLink>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1 whitespace-nowrap">
                   <span>
