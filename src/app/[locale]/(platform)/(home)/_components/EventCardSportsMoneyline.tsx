@@ -206,11 +206,16 @@ export default function EventCardSportsMoneyline({
         dark:hover:bg-secondary
       `}
     >
-      <CardContent className="flex h-full flex-col p-3 md:pb-1">
-        <div className="flex w-full flex-col gap-1">
+      <CardContent
+        className={cn(`
+          flex h-full flex-col px-3 pt-3
+          ${isResolvedEvent ? 'pb-3' : 'pb-3 md:pb-1'}
+        `)}
+      >
+        <div className="flex w-full flex-col gap-0.5">
           <IntentPrefetchLink
             href={resolveButtonHref(model.team1Button)}
-            className="group/team-row-1 flex h-9 items-center justify-between gap-2"
+            className="group/team-row-1 flex h-8 items-center justify-between gap-2"
           >
             <div className="flex min-w-0 items-center gap-2">
               <div className="relative size-7 overflow-hidden rounded-sm">
@@ -237,7 +242,7 @@ export default function EventCardSportsMoneyline({
           </IntentPrefetchLink>
           <IntentPrefetchLink
             href={resolveButtonHref(model.team2Button)}
-            className="group/team-row-2 flex h-9 items-center justify-between gap-2"
+            className="group/team-row-2 flex h-8 items-center justify-between gap-2"
           >
             <div className="flex min-w-0 items-center gap-2">
               <div className="relative size-7 overflow-hidden rounded-sm">
@@ -265,7 +270,7 @@ export default function EventCardSportsMoneyline({
         </div>
 
         <div className="flex flex-1 flex-col">
-          <div className={cn(isResolvedEvent ? 'mt-6 mb-0' : 'mt-auto mb-2')}>
+          <div className={cn(isResolvedEvent ? 'mt-auto' : 'mt-auto mb-2')}>
             {isResolvedEvent && resolvedWinner
               ? (
                   <div className={`
@@ -334,57 +339,57 @@ export default function EventCardSportsMoneyline({
                   </div>
                 )}
           </div>
+        </div>
 
-          <div className="relative flex w-full items-center justify-between gap-2 text-xs text-muted-foreground">
-            <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap">
-              <span>
-                {formatVolume(event.volume)}
-                {' '}
-                Vol.
-              </span>
-              {isResolvedEvent
-                ? (
-                    sportsCompetitionLabel
+        <div className="relative flex w-full items-center justify-between gap-2 text-xs text-muted-foreground">
+          <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap">
+            <span>
+              {formatVolume(event.volume)}
+              {' '}
+              Vol.
+            </span>
+            {isResolvedEvent
+              ? (
+                  sportsCompetitionLabel
+                    ? (
+                        <>
+                          <span className="opacity-50">·</span>
+                          <span>{sportsCompetitionLabel}</span>
+                        </>
+                      )
+                    : null
+                )
+              : (
+                  <>
+                    {sportsCompetitionLabel
                       ? (
                           <>
                             <span className="opacity-50">·</span>
                             <span>{sportsCompetitionLabel}</span>
                           </>
                         )
-                      : null
-                  )
-                : (
-                    <>
-                      {sportsCompetitionLabel
-                        ? (
-                            <>
-                              <span className="opacity-50">·</span>
-                              <span>{sportsCompetitionLabel}</span>
-                            </>
-                          )
-                        : null}
-                      {startTimeLabel
-                        ? (
-                            <>
-                              <span className="opacity-50">·</span>
-                              <span>{startTimeLabel}</span>
-                            </>
-                          )
-                        : null}
-                    </>
-                  )}
-            </div>
-
-            {isResolvedEvent
-              ? (endedLabel
-                  ? <span className="shrink-0">{endedLabel}</span>
-                  : null)
-              : (
-                  <div className="shrink-0">
-                    <EventBookmark event={event} refreshStatusOnMount={false} />
-                  </div>
+                      : null}
+                    {startTimeLabel
+                      ? (
+                          <>
+                            <span className="opacity-50">·</span>
+                            <span>{startTimeLabel}</span>
+                          </>
+                        )
+                      : null}
+                  </>
                 )}
           </div>
+
+          {isResolvedEvent
+            ? (endedLabel
+                ? <span className="shrink-0">{endedLabel}</span>
+                : null)
+            : (
+                <div className="shrink-0">
+                  <EventBookmark event={event} refreshStatusOnMount={false} />
+                </div>
+              )}
         </div>
       </CardContent>
     </Card>
