@@ -1,10 +1,12 @@
 'use client'
 
-import { MenuIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
+import { DownloadIcon, MenuIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
+import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import ThemeSelector from '@/components/ThemeSelector'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,10 +17,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { usePwaInstall } from '@/hooks/usePwaInstall'
 
 export default function HeaderDropdownUserMenuGuest() {
   const t = useExtracted()
   const isMobile = useIsMobile()
+  const { canShowInstallUi, isIos, isPrompting, requestInstall } = usePwaInstall()
   const enableHoverOpen = !isMobile
   const [menuOpen, setMenuOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
@@ -69,6 +73,21 @@ export default function HeaderDropdownUserMenuGuest() {
     closeTimeoutRef.current = setTimeout(() => {
       setMenuOpen(false)
     }, 120)
+  }
+
+  async function handleInstallAction() {
+    setMenuOpen(false)
+
+    if (isIos) {
+      toast.info(t('Install app'), {
+        description: (
+          <PwaInstallIosInstructions className="max-w-sm pt-1" />
+        ),
+      })
+      return
+    }
+
+    await requestInstall()
   }
 
   return (
@@ -122,6 +141,21 @@ export default function HeaderDropdownUserMenuGuest() {
               {t('APIs')}
             </IntentPrefetchLink>
           </DropdownMenuItem>
+
+          {canShowInstallUi && (
+            <DropdownMenuItem
+              className="py-2 text-sm font-semibold text-foreground"
+              onSelect={() => {
+                void handleInstallAction()
+              }}
+              disabled={isPrompting}
+            >
+              <div className="flex w-full items-center gap-1.5">
+                <DownloadIcon className="size-4 text-sky-500" />
+                {t('Install app')}
+              </div>
+            </DropdownMenuItem>
+          )}
 
           <div className="flex items-center justify-between gap-2 px-2 py-1 text-sm font-semibold text-foreground">
             <span>{t('Dark Mode')}</span>

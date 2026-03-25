@@ -1,8 +1,9 @@
 'use client'
 
-import { DownloadIcon, ShareIcon } from 'lucide-react'
+import { DownloadIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
+import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import { Button } from '@/components/ui/button'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -44,11 +45,7 @@ export default function PwaInstallCard() {
 
           {isIos
             ? (
-                <p className="flex max-w-64 flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-                  {t('Tap Share')}
-                  <ShareIcon className="size-4" />
-                  {t('then Add to Home Screen.')}
-                </p>
+                <PwaInstallIosInstructions className="max-w-72" />
               )
             : (
                 <p className="max-w-64 text-sm text-muted-foreground">

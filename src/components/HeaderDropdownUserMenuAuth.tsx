@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
+import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import ThemeSelector from '@/components/ThemeSelector'
 import { Button } from '@/components/ui/button'
 import {
@@ -103,7 +104,9 @@ export default function HeaderDropdownUserMenuAuth() {
 
     if (isIos) {
       toast.info(t('Install app'), {
-        description: `${t('Tap Share')} ${t('then Add to Home Screen.')}`,
+        description: (
+          <PwaInstallIosInstructions className="max-w-sm pt-1" />
+        ),
       })
       return
     }
