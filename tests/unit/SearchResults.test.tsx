@@ -1,0 +1,112 @@
+import { fireEvent, render, screen } from '@testing-library/react'
+import { SearchResults } from '@/app/[locale]/(platform)/_components/SearchResults'
+
+const mocks = vi.hoisted(() => ({
+  usePlatformNavigationData: vi.fn(),
+}))
+
+vi.mock('next-intl', () => ({
+  useExtracted: () => (value: string) => value,
+}))
+
+vi.mock('lucide-react', () => ({
+  ArrowRightIcon: () => <svg data-testid="arrow-right-icon" />,
+  LoaderIcon: () => <svg data-testid="loader-icon" />,
+}))
+
+vi.mock('@/i18n/navigation', () => ({
+  Link: ({ children, href, ...props }: any) => <a href={href} {...props}>{children}</a>,
+}))
+
+vi.mock('@/app/[locale]/(platform)/_providers/PlatformNavigationProvider', () => ({
+  usePlatformNavigationData: mocks.usePlatformNavigationData,
+}))
+
+vi.mock('@/app/[locale]/(platform)/_components/SearchTabs', () => ({
+  SearchTabs: () => <div data-testid="search-tabs" />,
+}))
+
+vi.mock('@/components/EventIconImage', () => ({
+  default: function MockEventIconImage({ alt }: { alt: string }) {
+    return <span>{alt}</span>
+  },
+}))
+
+vi.mock('@/components/ProfileLink', () => ({
+  default: function MockProfileLink() {
+    return <span>Profile</span>
+  },
+}))
+
+describe('searchResults', () => {
+  beforeEach(() => {
+    mocks.usePlatformNavigationData.mockReturnValue({
+      childParentMap: {},
+      tags: [
+        {
+          slug: 'politics',
+          name: 'Politics',
+          childs: [
+            { name: 'Brazil', slug: 'brazil' },
+            { name: 'Elections', slug: 'elections' },
+          ],
+        },
+        {
+          slug: 'world',
+          name: 'World',
+          childs: [
+            { name: 'Brazil', slug: 'brazil' },
+          ],
+        },
+      ],
+    })
+  })
+
+  it('dedupes matching category chips and routes chips and footer to predictions pages', () => {
+    const onResultClick = vi.fn()
+
+    render(
+      <SearchResults
+        results={{
+          events: [
+            {
+              id: 'event-1',
+              slug: 'brazil-presidential-election',
+              title: 'Brazil Presidential Election',
+              icon_url: 'https://example.com/icon.png',
+              markets: [
+                {
+                  probability: 44,
+                },
+              ],
+            } as any,
+          ],
+          profiles: [],
+        }}
+        isLoading={{
+          events: false,
+          profiles: false,
+        }}
+        activeTab="events"
+        query="brazil"
+        onResultClick={onResultClick}
+        onTabChange={() => {}}
+      />,
+    )
+
+    const categoryLinks = screen.getAllByRole('link', { name: 'Brazil' })
+    const categoryLink = categoryLinks[0]
+    const eventLink = screen.getByRole('link', { name: /Brazil Presidential Election/ })
+    const seeAllLink = screen.getByRole('link', { name: 'See all results' })
+
+    expect(categoryLinks).toHaveLength(1)
+    expect(categoryLink).toHaveAttribute('href', '/predictions/brazil')
+    expect(eventLink).toHaveAttribute('href', '/event/brazil-presidential-election')
+    expect(seeAllLink).toHaveAttribute('href', '/predictions/brazil')
+
+    fireEvent.click(categoryLink)
+    fireEvent.click(seeAllLink)
+
+    expect(onResultClick).toHaveBeenCalledTimes(2)
+  })
+})

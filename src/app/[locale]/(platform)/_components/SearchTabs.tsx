@@ -52,7 +52,7 @@ export function SearchTabs({
   }
 
   return (
-    <div className="border-b bg-background">
+    <div className="bg-background px-1 pt-1">
       <ul className="relative flex h-10">
         {searchTabs.map((tab, index) => {
           const isActive = activeTab === tab
@@ -66,10 +66,10 @@ export function SearchTabs({
                 tabRef.current[index] = el
               }}
               className={cn(
-                'flex cursor-pointer items-center px-4 text-sm font-medium transition-colors duration-200',
+                `flex cursor-pointer items-center rounded-md px-3 text-sm font-medium transition-colors duration-200`,
                 isActive
-                  ? 'text-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
+                  ? 'bg-accent/70 text-foreground'
+                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
               )}
               onClick={() => onTabChange(tab)}
               onKeyDown={e => handleKeyDown(e, tab)}

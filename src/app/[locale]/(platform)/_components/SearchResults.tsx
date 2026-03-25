@@ -1,11 +1,145 @@
+import type { Route } from 'next'
+import type { PlatformNavigationTag } from '@/lib/platform-navigation'
 import type { Event, PublicProfile, SearchLoadingStates, SearchResultItems } from '@/types'
-import { LoaderIcon } from 'lucide-react'
+import { ArrowRightIcon, LoaderIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventIconImage from '@/components/EventIconImage'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import ProfileLink from '@/components/ProfileLink'
+import { buttonVariants } from '@/components/ui/button'
 import { resolveEventPagePath } from '@/lib/events-routing'
+import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
+import { cn } from '@/lib/utils'
 import { SearchTabs } from './SearchTabs'
+
+interface SearchCategoryMatch {
+  href: Route
+  isMainCategory: boolean
+  label: string
+  slug: string
+  score: number
+}
+
+function normalizeSearchValue(value: string) {
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036F]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function slugifySearchValue(value: string) {
+  return normalizeSearchValue(value)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function getSearchMatchScore(value: string, query: string) {
+  if (!value || !query) {
+    return Number.POSITIVE_INFINITY
+  }
+
+  if (value === query) {
+    return 0
+  }
+
+  if (value.startsWith(query)) {
+    return 1
+  }
+
+  if (value.includes(query)) {
+    return 2
+  }
+
+  return Number.POSITIVE_INFINITY
+}
+
+function buildSearchCategoryMatches(tags: PlatformNavigationTag[], query: string): SearchCategoryMatch[] {
+  const normalizedQuery = normalizeSearchValue(query)
+  if (!normalizedQuery) {
+    return []
+  }
+
+  const matchesBySlug = new Map<string, SearchCategoryMatch>()
+
+  function registerMatch({
+    isMainCategory,
+    label,
+    slug,
+  }: Omit<SearchCategoryMatch, 'href' | 'score'>) {
+    const normalizedMatchSlug = slugifySearchValue(slug)
+    if (!normalizedMatchSlug) {
+      return
+    }
+
+    const normalizedLabel = normalizeSearchValue(label)
+    const normalizedSlug = normalizeSearchValue(normalizedMatchSlug.replace(/-/g, ' '))
+    const score = Math.min(
+      getSearchMatchScore(normalizedLabel, normalizedQuery),
+      getSearchMatchScore(normalizedSlug, normalizedQuery),
+    )
+
+    if (!Number.isFinite(score)) {
+      return
+    }
+
+    const href = `/predictions/${normalizedMatchSlug}` as Route
+    const existing = matchesBySlug.get(normalizedMatchSlug)
+    if (!existing || score < existing.score || (score === existing.score && isMainCategory && !existing.isMainCategory)) {
+      matchesBySlug.set(normalizedMatchSlug, {
+        href,
+        isMainCategory,
+        label,
+        slug: normalizedMatchSlug,
+        score,
+      })
+    }
+  }
+
+  for (const tag of tags) {
+    const isDynamicCategory = isDynamicHomeCategorySlug(tag.slug)
+
+    if (isDynamicCategory) {
+      registerMatch({
+        isMainCategory: true,
+        label: tag.name,
+        slug: tag.slug,
+      })
+    }
+
+    if (!isDynamicCategory) {
+      continue
+    }
+
+    for (const child of tag.childs ?? []) {
+      if (!child.slug.trim()) {
+        continue
+      }
+
+      registerMatch({
+        isMainCategory: false,
+        label: child.name,
+        slug: child.slug,
+      })
+    }
+  }
+
+  return Array.from(matchesBySlug.values()).sort((a, b) => (
+    a.score - b.score
+    || Number(b.isMainCategory) - Number(a.isMainCategory)
+    || a.label.localeCompare(b.label)
+  ))
+}
+
+function resolveAllResultsHref(query: string, categories: SearchCategoryMatch[]) {
+  const slug = slugifySearchValue(query)
+  if (!slug) {
+    return categories[0]?.href ?? null
+  }
+
+  return `/predictions/${slug}` as Route
+}
 
 interface SearchResultsProps {
   results: SearchResultItems
@@ -113,8 +247,11 @@ interface EventResultsProps {
 
 function EventResults({ events, query, isLoading, onResultClick }: EventResultsProps) {
   const t = useExtracted()
+  const { tags } = usePlatformNavigationData()
+  const categories = buildSearchCategoryMatches(tags, query)
+  const allResultsHref = resolveAllResultsHref(query, categories)
 
-  if (events.length === 0 && !isLoading && query.length >= 2) {
+  if (events.length === 0 && categories.length === 0 && !allResultsHref && !isLoading && query.length >= 2) {
     return (
       <div className="p-4 text-center text-sm text-muted-foreground">
         {t('No events found')}
@@ -122,19 +259,39 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
     )
   }
 
-  if (events.length === 0) {
-    return <></>
-  }
-
   return (
-    <>
+    <div className="flex flex-col">
+      {categories.length > 0 && (
+        <div className="flex flex-wrap gap-2 border-b px-3 py-2">
+          {categories.map(category => (
+            <IntentPrefetchLink
+              key={category.href}
+              href={category.href}
+              onClick={onResultClick}
+              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'rounded-lg')}
+            >
+              <span className="truncate">{category.label}</span>
+            </IntentPrefetchLink>
+          ))}
+        </div>
+      )}
+
+      {events.length === 0 && !isLoading && query.length >= 2 && (
+        <div className="p-4 text-center text-sm text-muted-foreground">
+          {t('No events found')}
+        </div>
+      )}
+
       {events.map(result => (
         <IntentPrefetchLink
           key={`${result.id}-${result.slug}`}
           href={resolveEventPagePath(result)}
           onClick={onResultClick}
           data-testid="search-result-item"
-          className="flex items-center justify-between p-3 transition-colors last:rounded-b-lg hover:bg-accent"
+          className={cn(
+            'flex items-center justify-between p-3 transition-colors hover:bg-accent',
+            { 'last:rounded-b-lg': !allResultsHref },
+          )}
         >
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="size-8 shrink-0 overflow-hidden rounded-sm">
@@ -161,7 +318,22 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
           </div>
         </IntentPrefetchLink>
       ))}
-    </>
+
+      {allResultsHref && (
+        <IntentPrefetchLink
+          href={allResultsHref}
+          onClick={onResultClick}
+          className={`
+            flex items-center justify-between gap-2 rounded-b-lg border-t p-3 text-sm font-medium text-primary
+            transition-colors
+            hover:bg-accent hover:text-primary
+          `}
+        >
+          <span>{t('See all results')}</span>
+          <ArrowRightIcon className="size-4" />
+        </IntentPrefetchLink>
+      )}
+    </div>
   )
 }
 
