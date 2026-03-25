@@ -10,10 +10,10 @@ import { useAppKitAccount } from '@reown/appkit/react'
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import { BookmarkIcon, ChevronRightIcon, Clock3Icon, FlameIcon, MessageCircleIcon, SearchIcon, Settings2Icon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
-import { useSearchParams } from 'next/navigation'
-import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useCommentMetrics } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
 import PredictionResultsFilters from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsFilters'
+import PredictionResultsSearchParamsSync from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsSearchParamsSync'
 import EventIconImage from '@/components/EventIconImage'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import { Button } from '@/components/ui/button'
@@ -36,8 +36,6 @@ import {
   buildPredictionResultsUrlSearchParams,
   DEFAULT_PREDICTION_RESULTS_SORT,
   DEFAULT_PREDICTION_RESULTS_STATUS,
-  PREDICTION_RESULTS_SORT_PARAM,
-  PREDICTION_RESULTS_STATUS_PARAM,
   resolvePredictionResultsApiSort,
 } from '@/lib/prediction-results-filters'
 import { buildPredictionResultsPath } from '@/lib/prediction-search'
@@ -90,7 +88,7 @@ function sortPredictionEvents(events: Event[], sort: PredictionResultsSortOption
   })
 }
 
-function buildDateLabel(event: Event) {
+function buildDateLabel(event: Event, currentTimestamp: number) {
   if (event.status === 'resolved' && event.resolved_at) {
     const resolvedAt = new Date(event.resolved_at)
     return Number.isNaN(resolvedAt.getTime()) ? 'Resolved' : `Resolved ${formatDate(resolvedAt)}`
@@ -102,7 +100,7 @@ function buildDateLabel(event: Event) {
       return 'Ends soon'
     }
 
-    const diffMs = endDate.getTime() - Date.now()
+    const diffMs = endDate.getTime() - currentTimestamp
     if (diffMs <= 0) {
       return 'Ended'
     }
@@ -197,16 +195,19 @@ export default function PredictionResultsClient({
   const { isConnected } = useAppKitAccount()
   const pathname = usePathname()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const lastRequestedUrlRef = useRef<string | null>(null)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [searchValue, setSearchValue] = useState(initialInputValue)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [selectedSort, setSelectedSort] = useState(initialSort)
+  const [selectedStatus, setSelectedStatus] = useState(initialStatus)
+  const [currentTimestamp, setCurrentTimestamp] = useState(initialCurrentTimestamp)
+  const [searchParamsString, setSearchParamsString] = useState('')
   const debouncedSearchValue = useDebounce(searchValue, 300)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const canRetryLoadMoreAfterErrorRef = useRef(true)
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
-  const searchParamsString = searchParams.toString()
+  const canUseInitialData = !isBookmarked && selectedSort === initialSort && selectedStatus === initialStatus
 
   const {
     data,
@@ -222,8 +223,8 @@ export default function PredictionResultsClient({
       routeMainTag,
       routeTag,
       initialQuery,
-      initialSort,
-      initialStatus,
+      selectedSort,
+      selectedStatus,
       isBookmarked,
       locale,
     ],
@@ -235,11 +236,11 @@ export default function PredictionResultsClient({
       query: initialQuery,
       routeMainTag,
       routeTag,
-      sort: initialSort,
-      status: initialStatus,
+      sort: selectedSort,
+      status: selectedStatus,
     }),
     getNextPageParam: (lastPage, allPages) => lastPage.length === HOME_EVENTS_PAGE_SIZE ? allPages.length * HOME_EVENTS_PAGE_SIZE : undefined,
-    initialData: isBookmarked ? undefined : { pageParams: [0], pages: [initialEvents] },
+    initialData: canUseInitialData ? { pageParams: [0], pages: [initialEvents] } : undefined,
     initialPageParam: 0,
     placeholderData: keepPreviousData,
     refetchOnMount: false,
@@ -248,9 +249,20 @@ export default function PredictionResultsClient({
   })
 
   useEffect(() => {
+    function updateCurrentTimestamp() {
+      setCurrentTimestamp(Math.floor(Date.now() / 60_000) * 60_000)
+    }
+
+    updateCurrentTimestamp()
+    const intervalId = window.setInterval(updateCurrentTimestamp, 60_000)
+
+    return () => window.clearInterval(intervalId)
+  }, [])
+
+  useEffect(() => {
     setInfiniteScrollError(null)
     canRetryLoadMoreAfterErrorRef.current = true
-  }, [initialQuery, initialSort, initialStatus, isBookmarked, locale, routeMainTag, routeTag])
+  }, [initialQuery, selectedSort, selectedStatus, isBookmarked, locale, routeMainTag, routeTag])
 
   useEffect(() => {
     if (!loadMoreRef.current || !hasNextPage) {
@@ -280,8 +292,8 @@ export default function PredictionResultsClient({
     }
 
     const nextParams = buildPredictionResultsUrlSearchParams(searchParamsString, {
-      sort: initialSort,
-      status: initialStatus,
+      sort: selectedSort,
+      status: selectedStatus,
     })
     const nextQuery = nextParams.toString()
     const nextUrl = nextQuery ? `${nextPath}?${nextQuery}` : nextPath
@@ -296,7 +308,7 @@ export default function PredictionResultsClient({
     startTransition(() => {
       router.replace(nextUrl as Route, { scroll: false })
     })
-  }, [debouncedSearchValue, initialSort, initialStatus, pathname, router, searchParamsString])
+  }, [debouncedSearchValue, pathname, router, searchParamsString, selectedSort, selectedStatus])
 
   useEffect(() => {
     const currentUrl = searchParamsString ? `${pathname}?${searchParamsString}` : pathname
@@ -308,32 +320,32 @@ export default function PredictionResultsClient({
 
   const visibleEvents = useMemo(() => {
     const pages = data?.pages.flat() ?? initialEvents
-    return sortPredictionEvents(pages, initialSort)
-  }, [data, initialEvents, initialSort])
+    return sortPredictionEvents(pages, selectedSort)
+  }, [data, initialEvents, selectedSort])
 
   const isEmptyState = !isPending && !isFetching && visibleEvents.length === 0
   const showInitialSkeleton = visibleEvents.length === 0 && (isPending || isFetching)
 
   function replaceRoute({
-    nextSort = initialSort,
-    nextStatus = initialStatus,
+    nextSort = selectedSort,
+    nextStatus = selectedStatus,
   }: {
     nextSort?: PredictionResultsSortOption
     nextStatus?: PredictionResultsStatusOption
   }) {
-    const nextParams = buildPredictionResultsUrlSearchParams(searchParams, {
+    const nextParams = buildPredictionResultsUrlSearchParams(searchParamsString, {
       sort: nextSort,
       status: nextStatus,
     })
     const nextQuery = nextParams.toString()
     const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname
 
-    if (
-      nextSort === searchParams.get(PREDICTION_RESULTS_SORT_PARAM)
-      && nextStatus === searchParams.get(PREDICTION_RESULTS_STATUS_PARAM)
-    ) {
+    if (nextSort === selectedSort && nextStatus === selectedStatus) {
       return
     }
+
+    setSelectedSort(nextSort)
+    setSelectedStatus(nextStatus)
 
     startTransition(() => {
       router.replace(nextUrl as Route, { scroll: false })
@@ -370,8 +382,8 @@ export default function PredictionResultsClient({
   const filtersContent = (
     <PredictionResultsFilters
       searchValue={searchValue}
-      sort={initialSort}
-      status={initialStatus}
+      sort={selectedSort}
+      status={selectedStatus}
       onSearchValueChange={setSearchValue}
       onSortChange={value => replaceRoute({ nextSort: value })}
       onStatusChange={value => replaceRoute({ nextStatus: value })}
@@ -380,6 +392,16 @@ export default function PredictionResultsClient({
 
   return (
     <div className="mx-auto flex w-full min-w-0 flex-col gap-6 lg:flex-row lg:items-start lg:gap-12">
+      <Suspense fallback={null}>
+        <PredictionResultsSearchParamsSync
+          onChange={({ searchParamsString: nextSearchParamsString, sort, status }) => {
+            setSearchParamsString(current => current === nextSearchParamsString ? current : nextSearchParamsString)
+            setSelectedSort(current => current === sort ? current : sort)
+            setSelectedStatus(current => current === status ? current : status)
+          }}
+        />
+      </Suspense>
+
       <div className="min-w-0 flex-1">
         <header className="mb-4 flex flex-col gap-3">
           <div className="flex items-start justify-between gap-4">
@@ -480,7 +502,7 @@ export default function PredictionResultsClient({
               : (
                   <div className="divide-y divide-border/70">
                     {visibleEvents.map(event => (
-                      <PredictionResultRow key={event.id} event={event} />
+                      <PredictionResultRow key={event.id} event={event} currentTimestamp={currentTimestamp} />
                     ))}
                   </div>
                 )}
@@ -537,7 +559,13 @@ export default function PredictionResultsClient({
   )
 }
 
-function PredictionResultRow({ event }: { event: Event }) {
+function PredictionResultRow({
+  currentTimestamp,
+  event,
+}: {
+  currentTimestamp: number
+  event: Event
+}) {
   const t = useExtracted()
   const locale = useLocale()
   const { data: commentMetrics } = useCommentMetrics(event.slug)
@@ -640,7 +668,7 @@ function PredictionResultRow({ event }: { event: Event }) {
                 </a>
                 <span className="flex items-center gap-1 whitespace-nowrap">
                   <Clock3Icon className="size-3.5 text-muted-foreground" />
-                  <span>{buildDateLabel(event)}</span>
+                  <span>{buildDateLabel(event, currentTimestamp)}</span>
                 </span>
               </div>
             </div>

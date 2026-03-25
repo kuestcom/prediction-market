@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { cacheLife } from 'next/cache'
 import { notFound } from 'next/navigation'
 import PredictionResultsClient from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsClient'
 import { TagRepository } from '@/lib/db/queries/tag'
@@ -18,7 +19,7 @@ import { resolvePredictionSearchContext } from '@/lib/prediction-search'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 async function getPredictionPageContext(locale: SupportedLocale, slug: string) {
-  const t = await getExtracted()
+  const t = await getExtracted({ locale })
   const { data: mainTags, globalChilds = [] } = await TagRepository.getMainTags(locale)
   const tags = buildPlatformNavigationTags({
     globalChilds,
@@ -28,10 +29,6 @@ async function getPredictionPageContext(locale: SupportedLocale, slug: string) {
   })
 
   return resolvePredictionSearchContext(tags, slug)
-}
-
-function getQueryParamValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value
 }
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/predictions/[slug]'>): Promise<Metadata> {
@@ -51,21 +48,21 @@ export async function generateStaticParams() {
 }
 
 async function CachedPredictionResultsPageContent({
-  initialCurrentTimestamp,
   initialSort,
   initialStatus,
   locale,
   slug,
 }: {
-  initialCurrentTimestamp: number
   initialSort: ReturnType<typeof parsePredictionResultsSort>
   initialStatus: ReturnType<typeof parsePredictionResultsStatus>
   locale: SupportedLocale
   slug: string
 }) {
   'use cache'
+  cacheLife('minutes')
 
   const context = await getPredictionPageContext(locale, slug)
+  const initialCurrentTimestamp = Math.floor(Date.now() / 60_000) * 60_000
   let initialEvents: Event[] = []
 
   try {
@@ -109,7 +106,6 @@ async function CachedPredictionResultsPageContent({
 
 export default async function PredictionResultsPage({
   params,
-  searchParams,
 }: PageProps<'/[locale]/predictions/[slug]'>) {
   const { locale, slug } = await params
   const resolvedLocale = locale as SupportedLocale
@@ -119,18 +115,11 @@ export default async function PredictionResultsPage({
     notFound()
   }
 
-  const resolvedSearchParams = searchParams ? await searchParams : undefined
-  const initialSort = parsePredictionResultsSort(
-    getQueryParamValue(resolvedSearchParams?._sort) ?? DEFAULT_PREDICTION_RESULTS_SORT,
-  )
-  const initialStatus = parsePredictionResultsStatus(
-    getQueryParamValue(resolvedSearchParams?._status) ?? DEFAULT_PREDICTION_RESULTS_STATUS,
-  )
-  const initialCurrentTimestamp = Math.floor(Date.now() / 60_000) * 60_000
+  const initialSort = parsePredictionResultsSort(DEFAULT_PREDICTION_RESULTS_SORT)
+  const initialStatus = parsePredictionResultsStatus(DEFAULT_PREDICTION_RESULTS_STATUS)
 
   return (
     <CachedPredictionResultsPageContent
-      initialCurrentTimestamp={initialCurrentTimestamp}
       initialSort={initialSort}
       initialStatus={initialStatus}
       locale={resolvedLocale}
