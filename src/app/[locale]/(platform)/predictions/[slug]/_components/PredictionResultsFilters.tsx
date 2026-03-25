@@ -11,7 +11,6 @@ import {
   TrendingUpIcon,
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
@@ -23,7 +22,6 @@ interface PredictionResultsFiltersProps {
   onSearchValueChange: (value: string) => void
   onSortChange: (value: PredictionResultsSortOption) => void
   onStatusChange: (value: PredictionResultsStatusOption) => void
-  onClearFilters: () => void
 }
 
 export default function PredictionResultsFilters({
@@ -34,7 +32,6 @@ export default function PredictionResultsFilters({
   onSearchValueChange,
   onSortChange,
   onStatusChange,
-  onClearFilters,
 }: PredictionResultsFiltersProps) {
   const t = useExtracted()
   const sortOptions: Array<{
@@ -57,26 +54,29 @@ export default function PredictionResultsFilters({
   ]
 
   return (
-    <div className={cn('flex flex-col gap-4', className)}>
-      <div className="space-y-3">
-        <div className="relative">
-          <SearchIcon className="
-            pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground
+    <div className={cn('flex flex-col', className)}>
+      <div className="relative">
+        <SearchIcon className="
+          pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground
+        "
+        />
+        <Input
+          type="text"
+          value={searchValue}
+          onChange={event => onSearchValueChange(event.target.value)}
+          placeholder={t('Search predictions')}
+          data-testid="prediction-search-input"
+          className="
+            h-12 rounded-none border-0 bg-transparent px-10 shadow-none
+            focus-visible:ring-2 focus-visible:ring-ring/30
           "
-          />
-          <Input
-            type="text"
-            value={searchValue}
-            onChange={event => onSearchValueChange(event.target.value)}
-            placeholder={t('Search predictions')}
-            data-testid="prediction-search-input"
-            className="h-12 rounded-xl border-0 bg-background pr-3 pl-10 shadow-none ring-1 ring-border/70"
-          />
-        </div>
+        />
       </div>
 
-      <div className="space-y-3 border-t border-border/70 pt-4">
-        <p className="text-[13px] font-medium tracking-[-0.08px] text-muted-foreground">
+      <div className="border-t border-border/70" />
+
+      <div className="flex flex-col gap-2 p-3">
+        <p className="text-[13px] font-medium tracking-[-0.09px] text-muted-foreground">
           {t('Sort by')}
         </p>
         <div data-testid="prediction-sort-select" className="flex flex-wrap gap-2">
@@ -92,25 +92,27 @@ export default function PredictionResultsFilters({
                 onClick={() => onSortChange(option.value)}
                 className={cn(
                   `
-                    inline-flex h-8 items-center gap-2 rounded-md px-3 text-[13px] font-medium tracking-[-0.08px]
+                    inline-flex h-8 items-center gap-2 rounded-md px-3 text-[13px] font-medium tracking-[-0.09px]
                     transition-colors
-                    focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none
+                    focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
                   `,
                   isActive
-                    ? 'bg-foreground text-background'
-                    : 'bg-muted/70 text-foreground hover:bg-muted',
+                    ? 'bg-muted text-foreground'
+                    : 'bg-background text-foreground hover:bg-muted/80',
                 )}
               >
                 <Icon className="size-4" />
-                {option.label}
+                <span>{option.label}</span>
               </button>
             )
           })}
         </div>
       </div>
 
-      <div className="space-y-3 border-t border-border/70 pt-4">
-        <p className="text-[13px] font-medium tracking-[-0.08px] text-muted-foreground">
+      <div className="border-t border-border/70" />
+
+      <div className="flex flex-col gap-2 p-3">
+        <p className="text-[13px] font-medium tracking-[-0.09px] text-muted-foreground">
           {t('Event status')}
         </p>
         <div className="flex flex-wrap gap-2">
@@ -126,13 +128,13 @@ export default function PredictionResultsFilters({
                 onClick={() => onStatusChange(option.value)}
                 className={cn(
                   `
-                    inline-flex h-8 items-center rounded-md px-3 text-[13px] font-medium tracking-[-0.08px]
+                    inline-flex h-8 items-center rounded-md px-3 text-[13px] font-medium tracking-[-0.09px]
                     transition-colors
-                    focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none
+                    focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
                   `,
                   isActive
-                    ? 'bg-foreground text-background'
-                    : 'bg-muted/70 text-foreground hover:bg-muted',
+                    ? 'bg-muted text-foreground'
+                    : 'bg-background text-foreground hover:bg-muted/80',
                 )}
               >
                 {option.label}
@@ -141,15 +143,6 @@ export default function PredictionResultsFilters({
           })}
         </div>
       </div>
-
-      <Button
-        type="button"
-        variant="ghost"
-        onClick={onClearFilters}
-        className="mt-2 h-9 justify-center px-0 text-[13px] font-medium tracking-[-0.08px] text-muted-foreground"
-      >
-        {t('Clear filters')}
-      </Button>
     </div>
   )
 }

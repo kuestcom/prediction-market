@@ -342,7 +342,6 @@ export default function PredictionResultsClient({
       onSearchValueChange={setSearchValue}
       onSortChange={value => replaceRoute({ nextSort: value })}
       onStatusChange={value => replaceRoute({ nextStatus: value })}
-      onClearFilters={handleClearFilters}
     />
   )
 
@@ -386,7 +385,19 @@ export default function PredictionResultsClient({
                   <DrawerDescription>{t('Refine the current prediction results page')}</DrawerDescription>
                 </DrawerHeader>
                 <div className="overflow-y-auto px-4 pb-6">
-                  {filtersContent}
+                  <div className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-md">
+                    {filtersContent}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleClearFilters}
+                    className="
+                      mt-4 h-10 w-full justify-center text-[13px] font-medium tracking-[-0.09px] text-muted-foreground
+                    "
+                  >
+                    {t('Clear filters')}
+                  </Button>
                 </div>
               </DrawerContent>
             </Drawer>
@@ -439,15 +450,25 @@ export default function PredictionResultsClient({
 
       <aside
         data-testid="prediction-filters-aside"
-        className="hidden w-full lg:block lg:w-[350px]"
+        className="
+          hidden w-full self-start
+          lg:sticky lg:top-[150px] lg:flex lg:w-[350px] lg:shrink-0 lg:flex-col lg:gap-4
+        "
       >
-        <div className="lg:sticky lg:top-24">
-          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-            <div className="p-4">
-              {filtersContent}
-            </div>
+        <div className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-md">
+          <div className="w-full shrink-0 bg-card">
+            {filtersContent}
           </div>
         </div>
+
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={handleClearFilters}
+          className="h-10 w-full justify-center text-[13px] font-medium tracking-[-0.09px] text-muted-foreground"
+        >
+          {t('Clear filters')}
+        </Button>
       </aside>
     </div>
   )
