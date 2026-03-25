@@ -109,4 +109,73 @@ describe('searchResults', () => {
 
     expect(onResultClick).toHaveBeenCalledTimes(2)
   })
+
+  it('renders resolved events with muted title and trailing probability styles', () => {
+    render(
+      <SearchResults
+        results={{
+          events: [
+            {
+              id: 'event-2',
+              slug: 'closed-market',
+              title: 'Closed Market',
+              icon_url: 'https://example.com/icon.png',
+              status: 'resolved',
+              markets: [
+                {
+                  probability: 61,
+                },
+              ],
+            } as any,
+          ],
+          profiles: [],
+        }}
+        isLoading={{
+          events: false,
+          profiles: false,
+        }}
+        activeTab="events"
+        query="closed"
+        onResultClick={() => {}}
+        onTabChange={() => {}}
+      />,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Closed Market' })).toHaveClass('text-muted-foreground')
+    expect(screen.getByText('61%')).toHaveClass('text-muted-foreground')
+  })
+
+  it('limits the dropdown event preview to five rows and keeps the see-all link', () => {
+    render(
+      <SearchResults
+        results={{
+          events: Array.from({ length: 6 }, (_, index) => ({
+            id: `event-${index + 1}`,
+            slug: `event-${index + 1}`,
+            title: `Event ${index + 1}`,
+            icon_url: 'https://example.com/icon.png',
+            status: 'active',
+            markets: [
+              {
+                probability: 40 + index,
+              },
+            ],
+          })) as any,
+          profiles: [],
+        }}
+        isLoading={{
+          events: false,
+          profiles: false,
+        }}
+        activeTab="events"
+        query="event"
+        onResultClick={() => {}}
+        onTabChange={() => {}}
+      />,
+    )
+
+    expect(screen.getAllByTestId('search-result-item')).toHaveLength(5)
+    expect(screen.getByRole('link', { name: 'See all results' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Event 6/ })).not.toBeInTheDocument()
+  })
 })

@@ -15,6 +15,8 @@ import {
 import { cn } from '@/lib/utils'
 import { SearchTabs } from './SearchTabs'
 
+const EVENT_RESULTS_DROPDOWN_LIMIT = 5
+
 interface SearchResultsProps {
   results: SearchResultItems
   isLoading: SearchLoadingStates
@@ -124,6 +126,7 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
   const { tags } = usePlatformNavigationData()
   const categories = buildSearchCategoryMatches(tags, query)
   const allResultsHref = resolvePredictionResultsHref(query, categories) as Route | null
+  const visibleEvents = events.slice(0, EVENT_RESULTS_DROPDOWN_LIMIT)
 
   if (events.length === 0 && categories.length === 0 && !allResultsHref && !isLoading && query.length >= 2) {
     return (
@@ -156,42 +159,49 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
         </div>
       )}
 
-      {events.map(result => (
-        <IntentPrefetchLink
-          key={`${result.id}-${result.slug}`}
-          href={resolveEventPagePath(result)}
-          onClick={onResultClick}
-          data-testid="search-result-item"
-          className={cn(
-            'flex items-center justify-between p-3 transition-colors hover:bg-accent',
-            { 'last:rounded-b-lg': !allResultsHref },
-          )}
-        >
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="size-8 shrink-0 overflow-hidden rounded-sm">
-              <EventIconImage
-                src={result.icon_url}
-                alt={result.title}
-                sizes="32px"
-                containerClassName="size-full"
-              />
+      {visibleEvents.map((result) => {
+        const isResolvedEvent = result.status === 'resolved'
+
+        return (
+          <IntentPrefetchLink
+            key={`${result.id}-${result.slug}`}
+            href={resolveEventPagePath(result)}
+            onClick={onResultClick}
+            data-testid="search-result-item"
+            className={cn(
+              'flex items-center justify-between p-3 transition-colors hover:bg-accent',
+              { 'last:rounded-b-lg': !allResultsHref },
+            )}
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="size-8 shrink-0 overflow-hidden rounded-sm">
+                <EventIconImage
+                  src={result.icon_url}
+                  alt={result.title}
+                  sizes="32px"
+                  containerClassName={cn('size-full', isResolvedEvent && 'opacity-65')}
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h3 className={cn('truncate text-sm font-medium', isResolvedEvent
+                  ? 'text-muted-foreground'
+                  : `text-foreground`)}
+                >
+                  {result.title}
+                </h3>
+              </div>
             </div>
 
-            <div className="min-w-0 flex-1">
-              <h3 className="truncate text-sm font-medium text-foreground">
-                {result.title}
-              </h3>
+            <div className="flex flex-col items-end text-right">
+              <span className={cn('text-lg font-bold', isResolvedEvent ? 'text-muted-foreground' : 'text-foreground')}>
+                {result.markets[0].probability.toFixed(0)}
+                %
+              </span>
             </div>
-          </div>
-
-          <div className="flex flex-col items-end text-right">
-            <span className="text-lg font-bold text-foreground">
-              {result.markets[0].probability.toFixed(0)}
-              %
-            </span>
-          </div>
-        </IntentPrefetchLink>
-      ))}
+          </IntentPrefetchLink>
+        )
+      })}
 
       {allResultsHref && (
         <IntentPrefetchLink

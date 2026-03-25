@@ -422,7 +422,7 @@ export default function PredictionResultsClient({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+                <h1 className="text-xl font-medium whitespace-nowrap">
                   {displayLabel}
                   {' '}
                   predictions & odds
@@ -431,7 +431,7 @@ export default function PredictionResultsClient({
                 <p className="text-base text-muted-foreground md:text-xl">
                   {visibleEvents.length}
                   {' '}
-                  {visibleEvents.length === 1 ? t('result loaded') : t('results loaded')}
+                  {visibleEvents.length === 1 ? t('event') : t('events')}
                 </p>
               </div>
             </div>

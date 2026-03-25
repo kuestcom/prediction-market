@@ -1,5 +1,6 @@
 import type { SearchLoadingStates, SearchResultItems } from '@/types'
 import { useCallback, useEffect, useState } from 'react'
+import { sortSearchResultEvents } from '@/lib/event-search-results'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 
 interface UseSearch {
@@ -36,13 +37,17 @@ export function useSearch(): UseSearch {
 
     setIsLoading(prev => ({ ...prev, events: true }))
     try {
-      const response = await fetch(`/api/events?search=${encodeURIComponent(searchQuery)}`)
+      const params = new URLSearchParams({
+        search: searchQuery,
+        status: 'all',
+      })
+      const response = await fetch(`/api/events?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
         const filteredEvents = Array.isArray(data)
           ? data.filter(event => !isSportsAuxiliaryEventSlug(event?.slug))
           : []
-        setResults(prev => ({ ...prev, events: filteredEvents }))
+        setResults(prev => ({ ...prev, events: sortSearchResultEvents(filteredEvents) }))
       }
       else {
         setResults(prev => ({ ...prev, events: [] }))

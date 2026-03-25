@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
+import { isEventListStatusFilter } from '@/lib/event-list-filters'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -15,7 +16,12 @@ export async function GET(request: Request) {
   const sportsSection = sportsSectionParam === 'games' || sportsSectionParam === 'props'
     ? sportsSectionParam
     : ''
-  const status = searchParams.get('status') === 'resolved' ? 'resolved' : 'active'
+  const statusParam = searchParams.get('status')
+  const status = statusParam ?? 'active'
+
+  if (!isEventListStatusFilter(status)) {
+    return NextResponse.json({ error: 'Invalid status filter.' }, { status: 400 })
+  }
 
   try {
     const { data, error } = await EventRepository.listEventMarketSlugs({

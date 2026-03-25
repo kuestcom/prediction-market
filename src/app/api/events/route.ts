@@ -3,7 +3,7 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
-import { isEventListSortBy } from '@/lib/event-list-filters'
+import { isEventListSortBy, isEventListStatusFilter } from '@/lib/event-list-filters'
 import { listHomeEventsPage } from '@/lib/home-events-page'
 
 export async function GET(request: Request) {
@@ -17,7 +17,8 @@ export async function GET(request: Request) {
   const hideCrypto = searchParams.get('hideCrypto') === 'true'
   const hideEarnings = searchParams.get('hideEarnings') === 'true'
   const homeFeed = searchParams.get('homeFeed') === 'true'
-  const status = searchParams.get('status') || 'active'
+  const statusParam = searchParams.get('status')
+  const status = statusParam ?? 'active'
   const sportsSportSlug = searchParams.get('sportsSportSlug') || ''
   const sportsSectionParam = searchParams.get('sportsSection') || ''
   const sportsSection = sportsSectionParam.trim().toLowerCase()
@@ -31,8 +32,10 @@ export async function GET(request: Request) {
     : DEFAULT_LOCALE
   const offset = Number.parseInt(searchParams.get('offset') || '0', 10)
   const clampedOffset = Number.isNaN(offset) ? 0 : Math.max(0, offset)
+  const limitParam = Number.parseInt(searchParams.get('limit') || '', 10)
+  const limit = Number.isNaN(limitParam) ? undefined : Math.max(1, limitParam)
 
-  if (status !== 'active' && status !== 'resolved') {
+  if (!isEventListStatusFilter(status)) {
     return NextResponse.json({ error: 'Invalid status filter.' }, { status: 400 })
   }
 
@@ -53,6 +56,10 @@ export async function GET(request: Request) {
     }
 
     if (homeFeed) {
+      if (status === 'all') {
+        return NextResponse.json({ error: 'Combined status filter is not supported for home feed.' }, { status: 400 })
+      }
+
       const { data: events, error } = await listHomeEventsPage({
         tag,
         mainTag,
@@ -61,7 +68,7 @@ export async function GET(request: Request) {
         userId: userId ?? '',
         bookmarked,
         frequency: (frequency === 'daily' || frequency === 'weekly' || frequency === 'monthly') ? frequency : 'all',
-        status: status === 'resolved' ? 'resolved' : 'active',
+        status,
         offset: clampedOffset,
         currentTimestamp,
         locale,
@@ -87,6 +94,7 @@ export async function GET(request: Request) {
       frequency,
       status,
       offset: clampedOffset,
+      limit,
       locale,
       sportsSportSlug,
       sportsSection: (sportsSection === 'games' || sportsSection === 'props') ? sportsSection : '',
