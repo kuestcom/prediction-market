@@ -3,6 +3,7 @@
 import { DownloadIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
+import { toast } from 'sonner'
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import { Button } from '@/components/ui/button'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
@@ -60,7 +61,14 @@ export default function PwaInstallCard() {
             variant="secondary"
             className="mt-1 h-11 w-full justify-start gap-3 rounded-md px-3 text-sm sm:w-fit"
             onClick={() => {
-              void requestInstall()
+              void (async () => {
+                try {
+                  await requestInstall()
+                }
+                catch {
+                  toast.error(t('An unexpected error occurred. Please try again.'))
+                }
+              })()
             }}
             disabled={isPrompting}
           >

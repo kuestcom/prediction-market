@@ -87,7 +87,12 @@ export default function HeaderDropdownUserMenuGuest() {
       return
     }
 
-    await requestInstall()
+    try {
+      await requestInstall()
+    }
+    catch {
+      toast.error(t('An unexpected error occurred. Please try again.'))
+    }
   }
 
   return (
