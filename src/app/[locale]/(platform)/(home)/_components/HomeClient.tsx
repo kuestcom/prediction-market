@@ -16,7 +16,7 @@ import { buildDynamicHomeCategorySlugSet } from '@/lib/platform-routing'
 
 interface HomeClientProps {
   initialEvents: Event[]
-  initialCurrentTimestamp: number
+  initialCurrentTimestamp: number | null
   initialTag?: string
   initialMainTag?: string
 }

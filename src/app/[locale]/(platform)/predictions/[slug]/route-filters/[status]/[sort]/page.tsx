@@ -9,10 +9,23 @@ import {
 import {
   DEFAULT_PREDICTION_RESULTS_SORT,
   DEFAULT_PREDICTION_RESULTS_STATUS,
+  parsePredictionResultsSort,
+  parsePredictionResultsStatus,
 } from '@/lib/prediction-results-filters'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
-export async function generateMetadata({ params }: PageProps<'/[locale]/predictions/[slug]'>): Promise<Metadata> {
+interface PredictionResultsFilteredPageParams {
+  locale: string
+  slug: string
+  sort: string
+  status: string
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<PredictionResultsFilteredPageParams>
+}): Promise<Metadata> {
   const { locale, slug } = await params
   const resolvedLocale = locale as SupportedLocale
   setRequestLocale(resolvedLocale)
@@ -24,13 +37,19 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/predicti
 }
 
 export async function generateStaticParams() {
-  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
+  return [{
+    slug: STATIC_PARAMS_PLACEHOLDER,
+    sort: DEFAULT_PREDICTION_RESULTS_SORT,
+    status: DEFAULT_PREDICTION_RESULTS_STATUS,
+  }]
 }
 
-export default async function PredictionResultsPage({
+export default async function PredictionResultsFilteredPage({
   params,
-}: PageProps<'/[locale]/predictions/[slug]'>) {
-  const { locale, slug } = await params
+}: {
+  params: Promise<PredictionResultsFilteredPageParams>
+}) {
+  const { locale, slug, sort, status } = await params
   const resolvedLocale = locale as SupportedLocale
   setRequestLocale(resolvedLocale)
 
@@ -39,8 +58,8 @@ export default async function PredictionResultsPage({
   }
 
   return renderPredictionResultsPage({
-    initialSort: DEFAULT_PREDICTION_RESULTS_SORT,
-    initialStatus: DEFAULT_PREDICTION_RESULTS_STATUS,
+    initialSort: parsePredictionResultsSort(sort),
+    initialStatus: parsePredictionResultsStatus(status),
     locale: resolvedLocale,
     slug,
   })

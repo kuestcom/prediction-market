@@ -44,7 +44,7 @@ import { cn } from '@/lib/utils'
 
 interface PredictionResultsClientProps {
   displayLabel: string
-  initialCurrentTimestamp: number
+  initialCurrentTimestamp: number | null
   initialEvents: Event[]
   initialInputValue: string
   initialQuery: string
@@ -89,7 +89,7 @@ function sortPredictionEvents(events: Event[], sort: PredictionResultsSortOption
   })
 }
 
-function buildDateLabel(event: Event, currentTimestamp: number) {
+function buildDateLabel(event: Event, currentTimestamp: number | null) {
   if (event.status === 'resolved' && event.resolved_at) {
     const resolvedAt = new Date(event.resolved_at)
     return Number.isNaN(resolvedAt.getTime()) ? 'Resolved' : `Resolved ${formatDate(resolvedAt)}`
@@ -99,6 +99,10 @@ function buildDateLabel(event: Event, currentTimestamp: number) {
     const endDate = new Date(event.end_date)
     if (Number.isNaN(endDate.getTime())) {
       return 'Ends soon'
+    }
+
+    if (currentTimestamp == null) {
+      return `Ends ${formatDate(endDate)}`
     }
 
     const diffMs = endDate.getTime() - currentTimestamp
@@ -161,7 +165,7 @@ function filterPredictionEventsByStatus(events: Event[], status: PredictionResul
 }
 
 async function fetchPredictionResults({
-  initialCurrentTimestamp,
+  currentTimestamp,
   locale,
   pageParam = 0,
   query,
@@ -171,7 +175,7 @@ async function fetchPredictionResults({
   status,
   bookmarked = false,
 }: {
-  initialCurrentTimestamp: number
+  currentTimestamp: number | null
   locale: string
   pageParam?: number
   query: string
@@ -191,7 +195,6 @@ async function fetchPredictionResults({
   })
   const params = new URLSearchParams({
     bookmarked: String(bookmarked),
-    currentTimestamp: initialCurrentTimestamp.toString(),
     homeFeed: 'true',
     locale,
     mainTag: routeMainTag,
@@ -200,6 +203,10 @@ async function fetchPredictionResults({
     status: requestStatus,
     tag: routeTag,
   })
+
+  if (currentTimestamp != null) {
+    params.set('currentTimestamp', currentTimestamp.toString())
+  }
 
   if (sortBy) {
     params.set('sort', sortBy)
@@ -236,7 +243,7 @@ export default function PredictionResultsClient({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [selectedSort, setSelectedSort] = useState(initialSort)
   const [selectedStatus, setSelectedStatus] = useState(initialStatus)
-  const [currentTimestamp, setCurrentTimestamp] = useState(initialCurrentTimestamp)
+  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(initialCurrentTimestamp)
   const [searchParamsString, setSearchParamsString] = useState('')
   const [searchParamsPathname, setSearchParamsPathname] = useState<string | null>(null)
   const debouncedSearchValue = useDebounce(searchValue, 300)
@@ -266,7 +273,7 @@ export default function PredictionResultsClient({
     ],
     queryFn: ({ pageParam }) => fetchPredictionResults({
       bookmarked: isBookmarked,
-      initialCurrentTimestamp,
+      currentTimestamp,
       locale,
       pageParam,
       query: initialQuery,
@@ -614,7 +621,7 @@ function PredictionResultRow({
   currentTimestamp,
   event,
 }: {
-  currentTimestamp: number
+  currentTimestamp: number | null
   event: Event
 }) {
   const t = useExtracted()

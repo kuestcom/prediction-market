@@ -25,7 +25,7 @@ interface ListHomeEventsPageOptions {
 
 export async function listHomeEventsPage({
   bookmarked,
-  currentTimestamp = null,
+  currentTimestamp,
   frequency = 'all',
   hideCrypto = false,
   hideEarnings = false,
@@ -43,6 +43,7 @@ export async function listHomeEventsPage({
 }: ListHomeEventsPageOptions) {
   const targetOffset = Math.max(0, offset)
   const targetVisibleCount = targetOffset + HOME_EVENTS_PAGE_SIZE
+  const resolvedCurrentTimestamp = currentTimestamp ?? null
   let rawOffset = 0
   const accumulatedEvents: Event[] = []
   let visibleEvents: Event[] = []
@@ -64,7 +65,7 @@ export async function listHomeEventsPage({
     })
 
     if (error) {
-      return { data: [], error }
+      return { data: [], error, currentTimestamp: resolvedCurrentTimestamp ?? null }
     }
 
     const batch = rawEvents ?? []
@@ -75,7 +76,7 @@ export async function listHomeEventsPage({
     accumulatedEvents.push(...batch)
 
     visibleEvents = filterHomeEvents(accumulatedEvents, {
-      currentTimestamp,
+      currentTimestamp: resolvedCurrentTimestamp ?? null,
       hideSports,
       hideCrypto,
       hideEarnings,
@@ -96,5 +97,6 @@ export async function listHomeEventsPage({
   return {
     data: visibleEvents.slice(targetOffset, targetOffset + HOME_EVENTS_PAGE_SIZE),
     error: null,
+    currentTimestamp: resolvedCurrentTimestamp ?? null,
   }
 }

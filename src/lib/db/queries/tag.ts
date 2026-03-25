@@ -270,13 +270,11 @@ async function getVisibleActiveEventCountsByTagSlugs(tagSlugs: string[]): Promis
     eventsByTagSlug.set(row.tag_slug, bucket)
   }
 
-  const currentTimestamp = Date.now()
   const countsByTagSlug = new Map<string, number>()
 
   for (const tagSlug of normalizedTagSlugs) {
     const visibleEvents = filterHomeEvents(
       Array.from(eventsByTagSlug.get(tagSlug)?.values() ?? []),
-      { currentTimestamp },
     )
 
     countsByTagSlug.set(tagSlug, visibleEvents.length)
@@ -413,10 +411,7 @@ export const TagRepository = {
       sidebarCountEventsById.set(eventId, existing)
     }
 
-    const visibleSidebarCountEvents = filterHomeEvents(
-      Array.from(sidebarCountEventsById.values()),
-      { currentTimestamp: Date.now() },
-    )
+    const visibleSidebarCountEvents = filterHomeEvents(Array.from(sidebarCountEventsById.values()))
 
     const subcategoryEventCounts = new Map<string, number>()
     const mainCategoryEventCounts = new Map<string, number>()

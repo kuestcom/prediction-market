@@ -54,6 +54,7 @@ describe('listHomeEventsPage', () => {
     expect(result).toEqual({
       data: visibleAfterSecondBatch.slice(0, 32),
       error: null,
+      currentTimestamp: null,
     })
   })
 
@@ -89,6 +90,7 @@ describe('listHomeEventsPage', () => {
     expect(result).toEqual({
       data: visibleAfterThirdBatch.slice(0, 32),
       error: null,
+      currentTimestamp: null,
     })
   })
 

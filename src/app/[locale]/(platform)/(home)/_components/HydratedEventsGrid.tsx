@@ -22,7 +22,7 @@ import { useUser } from '@/stores/useUser'
 interface HydratedEventsGridProps {
   filters: FilterState
   initialEvents: Event[]
-  initialCurrentTimestamp: number
+  initialCurrentTimestamp: number | null
   maxColumns?: number
   onClearFilters?: () => void
   routeMainTag: string
@@ -104,7 +104,7 @@ async function fetchEvents({
   filters,
   locale,
 }: {
-  currentTimestamp: number
+  currentTimestamp: number | null
   pageParam: number
   filters: FilterState
   locale: string
@@ -119,8 +119,11 @@ async function fetchEvents({
     status: filters.status,
     offset: pageParam.toString(),
     locale,
-    currentTimestamp: currentTimestamp.toString(),
   })
+
+  if (currentTimestamp != null) {
+    params.set('currentTimestamp', currentTimestamp.toString())
+  }
 
   if (filters.hideSports) {
     params.set('hideSports', 'true')
@@ -212,7 +215,7 @@ export default function HydratedEventsGrid({
   ].join(':')
   const queryTimestampRef = useRef<{
     key: string
-    timestamp: number
+    timestamp: number | null
   }>({
     key: queryRunKey,
     timestamp: resolvedCurrentTimestamp,
@@ -292,6 +295,18 @@ export default function HydratedEventsGrid({
 
   useEffect(() => {
     if (!shouldAutoRefreshEvents || status !== 'success') {
+      return
+    }
+
+    if (resolvedCurrentTimestamp == null) {
+      return
+    }
+
+    if (queryTimestampRef.current.timestamp == null) {
+      queryTimestampRef.current = {
+        key: queryRunKey,
+        timestamp: resolvedCurrentTimestamp,
+      }
       return
     }
 

@@ -2,6 +2,7 @@ import type { EventListSortBy } from '@/lib/event-list-filters'
 
 export const PREDICTION_RESULTS_SORT_PARAM = '_sort'
 export const PREDICTION_RESULTS_STATUS_PARAM = '_status'
+export const PREDICTION_RESULTS_INTERNAL_ROUTE_SEGMENT = 'route-filters'
 
 export const PREDICTION_RESULTS_SORT_OPTIONS = [
   'trending',
@@ -31,6 +32,14 @@ function normalizeRouteFilterValue(value: string | null | undefined) {
     .toLowerCase()
     .replace(/[\s_]+/g, '-')
     ?? ''
+}
+
+function trimTrailingSlash(pathname: string) {
+  if (pathname.length > 1 && pathname.endsWith('/')) {
+    return pathname.slice(0, -1)
+  }
+
+  return pathname
 }
 
 export function parsePredictionResultsSort(value: string | null | undefined): PredictionResultsSortOption {
@@ -82,6 +91,27 @@ export function resolvePredictionResultsApiSort(sort: PredictionResultsSortOptio
     default:
       return 'trending'
   }
+}
+
+export function hasPredictionResultsFilterSearchParams(searchParams: Pick<URLSearchParams, 'has'>) {
+  return searchParams.has(PREDICTION_RESULTS_SORT_PARAM) || searchParams.has(PREDICTION_RESULTS_STATUS_PARAM)
+}
+
+export function buildPredictionResultsInternalRoutePath(
+  pathname: string,
+  filters: {
+    sort: PredictionResultsSortOption
+    status: PredictionResultsStatusOption
+  },
+) {
+  const normalizedPathname = trimTrailingSlash(pathname)
+
+  return [
+    normalizedPathname,
+    PREDICTION_RESULTS_INTERNAL_ROUTE_SEGMENT,
+    filters.status,
+    filters.sort,
+  ].join('/')
 }
 
 export function resolvePredictionResultsRequestedApiSort({

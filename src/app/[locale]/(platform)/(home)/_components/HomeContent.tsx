@@ -20,20 +20,21 @@ export default async function HomeContent({
   const resolvedLocale = locale as SupportedLocale
   const initialTagSlug = initialTag ?? 'trending'
   const initialMainTagSlug = initialMainTag ?? initialTagSlug
-  const initialCurrentTimestamp = Date.now()
+  let initialCurrentTimestamp: number | null = null
 
   let initialEvents: Event[] = []
 
   try {
-    const { data: events, error } = await listHomeEventsPage({
+    const { data: events, error, currentTimestamp } = await listHomeEventsPage({
       tag: initialTagSlug,
       mainTag: initialMainTagSlug,
       search: '',
       userId: '',
       bookmarked: false,
-      currentTimestamp: initialCurrentTimestamp,
       locale: resolvedLocale,
     })
+
+    initialCurrentTimestamp = currentTimestamp ?? null
 
     if (error) {
       console.warn('Failed to fetch initial events for static generation:', error)
