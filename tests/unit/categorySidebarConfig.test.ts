@@ -39,16 +39,18 @@ describe('category sidebar config', () => {
     })
   })
 
-  it('leaves non-configured categories untouched', () => {
+  it('builds a default sidebar for non-configured categories with a counted all item', () => {
     const result = resolveCategorySidebarData({
       categorySlug: 'economy',
       categoryCount: 4,
       childs: [{ slug: 'fed-rates', name: 'Fed Rates', count: 4 }],
     })
 
-    expect(result).toEqual({
-      childs: [{ slug: 'fed-rates', name: 'Fed Rates', count: 4 }],
-    })
+    expect(result.childs).toEqual([{ slug: 'fed-rates', name: 'Fed Rates', count: 4 }])
+    expect(result.sidebarItems).toEqual([
+      { type: 'link', slug: 'economy', label: 'All', count: 4, isAll: true },
+      { type: 'link', slug: 'fed-rates', label: 'Fed Rates', count: 4 },
+    ])
   })
 
   it('builds the finance sidebar with href overrides and hidden-count items', () => {

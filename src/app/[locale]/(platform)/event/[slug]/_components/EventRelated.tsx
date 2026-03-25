@@ -354,7 +354,6 @@ export default function EventRelated({ event }: EventRelatedProps) {
                         <EventIconImage
                           src={relatedEvent.icon_url}
                           alt={relatedEvent.title}
-                          quality={100}
                           sizes="42px"
                           containerClassName="size-[42px] shrink-0 rounded-sm"
                         />

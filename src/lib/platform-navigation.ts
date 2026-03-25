@@ -20,6 +20,7 @@ export type PlatformCategorySidebarIconKey
     | 'ethereum'
     | 'solana'
     | 'xrp'
+    | 'bnb'
     | 'dogecoin'
     | 'microstrategy'
     | 'stocks'

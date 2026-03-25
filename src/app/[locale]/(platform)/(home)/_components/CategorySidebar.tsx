@@ -119,6 +119,11 @@ const sidebarIconAssets: Record<PlatformCategorySidebarIconKey, SidebarIconAsset
     rounded: true,
     src: '/images/logos/xrp.png',
   },
+  'bnb': {
+    alt: 'BNB logo',
+    rounded: true,
+    src: '/images/logos/bnb.png',
+  },
   'dogecoin': {
     alt: 'Dogecoin logo',
     rounded: true,

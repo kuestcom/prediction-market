@@ -46,6 +46,7 @@ const categorySidebarTemplates: Partial<Record<string, CategorySidebarTemplateIt
     { type: 'link', slug: 'solana', label: 'Solana', icon: 'solana' },
     { type: 'link', slug: 'xrp', label: 'XRP', icon: 'xrp' },
     { type: 'link', slug: 'dogecoin', label: 'Dogecoin', icon: 'dogecoin' },
+    { type: 'link', slug: 'bnb', label: 'BNB', icon: 'bnb' },
     { type: 'link', slug: 'microstrategy', label: 'Microstrategy', icon: 'microstrategy' },
   ],
   finance: [
@@ -101,7 +102,24 @@ export function resolveCategorySidebarData({
 }: ResolveCategorySidebarDataParams): CategorySidebarResolutionResult {
   const template = categorySidebarTemplates[categorySlug]
   if (!template) {
-    return { childs }
+    return {
+      childs,
+      sidebarItems: [
+        {
+          type: 'link',
+          slug: categorySlug,
+          label: 'All',
+          count: categoryCount,
+          isAll: true,
+        },
+        ...childs.map(child => ({
+          type: 'link' as const,
+          slug: child.slug,
+          label: child.name,
+          count: child.count,
+        })),
+      ],
+    }
   }
 
   const childsBySlug = new Map(childs.map(child => [child.slug, child]))
