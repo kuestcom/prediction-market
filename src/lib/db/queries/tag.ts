@@ -118,6 +118,37 @@ function buildSourceHash(value: string) {
   return createHash('sha256').update(value).digest('hex')
 }
 
+function normalizeCurrentTimestampMs(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+
+  if (value instanceof Date) {
+    return value.getTime()
+  }
+
+  return null
+}
+
+async function getCurrentTimestampMs() {
+  const { data } = await runQuery(async () => {
+    const result = await db.execute(
+      sql`SELECT FLOOR(EXTRACT(EPOCH FROM statement_timestamp()) * 1000)::double precision AS current_timestamp_ms`,
+    )
+
+    return { data: result, error: null }
+  })
+
+  return normalizeCurrentTimestampMs(
+    (data as Array<{ current_timestamp_ms?: unknown }> | null)?.[0]?.current_timestamp_ms,
+  )
+}
+
 function buildTagTranslationsByTagId(rows: TagTranslationRecord[]): Map<number, TagTranslationsMap> {
   const mapByTagId = new Map<number, TagTranslationsMap>()
 
@@ -411,7 +442,10 @@ export const TagRepository = {
       sidebarCountEventsById.set(eventId, existing)
     }
 
-    const visibleSidebarCountEvents = filterHomeEvents(Array.from(sidebarCountEventsById.values()))
+    const currentTimestamp = await getCurrentTimestampMs()
+    const visibleSidebarCountEvents = filterHomeEvents(Array.from(sidebarCountEventsById.values()), {
+      currentTimestamp,
+    })
 
     const subcategoryEventCounts = new Map<string, number>()
     const mainCategoryEventCounts = new Map<string, number>()
