@@ -6,6 +6,7 @@ import { formatCompactCount } from '@/lib/formatters'
 interface EventTweetMarketsPanelProps {
   tweetCount: number | null
   countdownTargetMs: number | null
+  isFinal?: boolean
 }
 
 interface CountdownUnit {
@@ -17,14 +18,39 @@ function padTwoDigits(value: number) {
   return String(Math.max(0, value)).padStart(2, '0')
 }
 
-function buildCountdownUnits(countdownTargetMs: number | null, nowMs: number): CountdownUnit[] {
+function buildPlaceholderCountdownUnits() {
+  return [
+    { label: 'DAYS', value: '--' },
+    { label: 'HRS', value: '--' },
+    { label: 'MIN', value: '--' },
+    { label: 'SEG', value: '--' },
+  ] satisfies CountdownUnit[]
+}
+
+function buildFinalCountdownUnits() {
+  return [
+    { label: 'DAYS', value: '0' },
+    { label: 'HRS', value: '00' },
+    { label: 'MIN', value: '00' },
+    { label: 'SEG', value: '00' },
+  ] satisfies CountdownUnit[]
+}
+
+function buildCountdownUnits(
+  countdownTargetMs: number | null,
+  nowMs: number,
+  isFinal: boolean,
+): CountdownUnit[] {
   if (countdownTargetMs == null || !Number.isFinite(countdownTargetMs)) {
-    return [
-      { label: 'DAYS', value: '--' },
-      { label: 'HRS', value: '--' },
-      { label: 'MIN', value: '--' },
-      { label: 'SEG', value: '--' },
-    ]
+    return buildPlaceholderCountdownUnits()
+  }
+
+  if (isFinal) {
+    return buildFinalCountdownUnits()
+  }
+
+  if (!Number.isFinite(nowMs) || nowMs <= 0) {
+    return buildPlaceholderCountdownUnits()
   }
 
   const totalSeconds = Math.max(0, Math.floor((countdownTargetMs - nowMs) / 1000))
@@ -44,6 +70,7 @@ function buildCountdownUnits(countdownTargetMs: number | null, nowMs: number): C
 export default function EventTweetMarketsPanel({
   tweetCount,
   countdownTargetMs,
+  isFinal = false,
 }: EventTweetMarketsPanelProps) {
   const [nowMs, setNowMs] = useState(0)
 
@@ -64,12 +91,13 @@ export default function EventTweetMarketsPanel({
   }, [countdownTargetMs])
 
   const countdownUnits = useMemo(
-    () => buildCountdownUnits(countdownTargetMs, nowMs),
-    [countdownTargetMs, nowMs],
+    () => buildCountdownUnits(countdownTargetMs, nowMs, isFinal),
+    [countdownTargetMs, isFinal, nowMs],
   )
-  const isFinal = countdownTargetMs != null
+  const hasReachedCountdownTarget = countdownTargetMs != null
     && Number.isFinite(countdownTargetMs)
     && nowMs >= countdownTargetMs
+  const isResolved = isFinal || hasReachedCountdownTarget
   const tweetCountLabel = typeof tweetCount === 'number' && Number.isFinite(tweetCount)
     ? formatCompactCount(tweetCount)
     : '--'
@@ -83,7 +111,7 @@ export default function EventTweetMarketsPanel({
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="grid gap-2">
-          {isFinal
+          {isResolved
             ? (
                 <span className={`
                   inline-flex w-fit text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase

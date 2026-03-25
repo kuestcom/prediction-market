@@ -37,6 +37,7 @@ import { Button } from '@/components/ui/button'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators } from '@/lib/binary-outcome-resolution'
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData, fetchUserOtherBalance, fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatAmountInputValue, formatSharesLabel, fromMicro } from '@/lib/formatters'
@@ -101,28 +102,7 @@ export function resolveWinningOutcomeIndex(market: Event['markets'][number]) {
     return explicitWinner.outcome_index
   }
 
-  const payoutNumerators = market.condition?.payout_numerators
-  if (!Array.isArray(payoutNumerators) || payoutNumerators.length === 0) {
-    return null
-  }
-
-  const numericNumerators = payoutNumerators.map(value => Number(value))
-  const finiteNumerators = numericNumerators.filter(value => Number.isFinite(value))
-  if (finiteNumerators.length === 0) {
-    return null
-  }
-
-  const maxValue = Math.max(...finiteNumerators)
-  if (!(maxValue > 0)) {
-    return null
-  }
-
-  const winnerIndex = numericNumerators.findIndex(value => value === maxValue)
-  if (winnerIndex === OUTCOME_INDEX.YES || winnerIndex === OUTCOME_INDEX.NO) {
-    return winnerIndex
-  }
-
-  return null
+  return resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators(market.condition?.payout_numerators)
 }
 
 interface CashOutModalPayload {

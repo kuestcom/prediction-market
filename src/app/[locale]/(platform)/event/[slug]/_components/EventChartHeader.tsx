@@ -21,6 +21,7 @@ interface EventChartHeaderProps {
   showTweetMarketsPanel?: boolean
   tweetCount?: number | null
   tweetCountdownTargetMs?: number | null
+  tweetMarketsFinal?: boolean
 }
 
 export default function EventChartHeader({
@@ -38,6 +39,7 @@ export default function EventChartHeader({
   showTweetMarketsPanel = false,
   tweetCount = null,
   tweetCountdownTargetMs = null,
+  tweetMarketsFinal = false,
 }: EventChartHeaderProps) {
   const seriesNavigation = showSeriesNavigation
     ? <EventSeriesPills currentEventSlug={currentEventSlug} seriesEvents={seriesEvents} />
@@ -47,6 +49,7 @@ export default function EventChartHeader({
         <EventTweetMarketsPanel
           tweetCount={tweetCount}
           countdownTargetMs={tweetCountdownTargetMs}
+          isFinal={tweetMarketsFinal}
         />
       )
     : null

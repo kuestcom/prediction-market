@@ -239,7 +239,7 @@ export default function EventContent({
     return event.markets.find(market => market.condition_id === currentMarketId) ?? initialMarket
   }, [currentMarketId, event.markets, initialMarket])
   const selectedMarketTimelineOutcome = useMemo(
-    () => selectedMarket
+    () => selectedMarket && isMarketResolved(selectedMarket)
       ? toResolutionTimelineOutcome(resolveEventResolvedOutcomeIndex(event, selectedMarket))
       : null,
     [event, selectedMarket],

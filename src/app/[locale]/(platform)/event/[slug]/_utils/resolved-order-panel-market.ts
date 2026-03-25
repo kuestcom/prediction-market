@@ -1,4 +1,11 @@
 import type { Event } from '@/types'
+import {
+  normalizeComparableText,
+  parseSportsScore,
+  resolveEventTeams,
+  resolveTeamNameFromText,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/sports-resolution-helpers'
+import { resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators } from '@/lib/binary-outcome-resolution'
 import { OUTCOME_INDEX } from '@/lib/constants'
 
 const RESOLUTION_PRICE_TOLERANCE = 1e-9
@@ -10,16 +17,6 @@ type SportsResolvedDisplayKind
     | 'btts'
     | 'exactScore'
     | 'halftimeResult'
-
-function normalizeComparableText(value: string | null | undefined) {
-  return value
-    ?.normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    ?? ''
-}
 
 function toFiniteNumber(value: unknown) {
   const numericValue = Number(value)
@@ -153,26 +150,6 @@ function resolveSportsResolvedDisplayKind(market: Market | null | undefined): Sp
   return market?.sports_market_type ? 'moneyline' : null
 }
 
-function parseSportsScore(value: string | null | undefined) {
-  const trimmed = value?.trim()
-  if (!trimmed) {
-    return null
-  }
-
-  const match = trimmed.match(/(\d+)\D+(\d+)/)
-  if (!match) {
-    return null
-  }
-
-  const team1 = Number.parseInt(match[1] ?? '', 10)
-  const team2 = Number.parseInt(match[2] ?? '', 10)
-  if (!Number.isFinite(team1) || !Number.isFinite(team2)) {
-    return null
-  }
-
-  return { team1, team2 }
-}
-
 function resolveExactScoreDescriptor(market: Market | null | undefined) {
   return resolveMarketDescriptor(market)
 }
@@ -209,50 +186,6 @@ function extractUnsignedLineFromText(value: string | null | undefined) {
 function extractSignedLineFromText(value: string | null | undefined) {
   const match = value?.match(/([+-]\s*\d+(?:\.\d+)?)/)
   return match?.[1]?.replace(/\s+/g, '') ?? null
-}
-
-function resolveEventTeams(event: Event | null | undefined) {
-  const teams = (event?.sports_teams ?? [])
-    .map(team => ({
-      name: team?.name?.trim() ?? '',
-      abbreviation: team?.abbreviation?.trim() ?? '',
-      hostStatus: team?.host_status?.trim().toLowerCase() ?? '',
-    }))
-    .filter(team => team.name.length > 0)
-
-  const homeTeam = teams.find(team => team.hostStatus === 'home') ?? teams[0] ?? null
-  const awayTeam = teams.find(team => team.hostStatus === 'away') ?? teams.find(team => team !== homeTeam) ?? null
-
-  return {
-    teams,
-    homeTeam,
-    awayTeam,
-  }
-}
-
-function resolveTeamNameFromText(value: string | null | undefined, event: Event | null | undefined) {
-  const normalizedValue = normalizeComparableText(value)
-  if (!normalizedValue) {
-    return null
-  }
-
-  const { teams } = resolveEventTeams(event)
-  const teamsByLength = [...teams].sort((left, right) => right.name.length - left.name.length)
-  const matchedByName = teamsByLength.find((team) => {
-    const normalizedName = normalizeComparableText(team.name)
-    return normalizedName.length > 0 && normalizedValue.includes(normalizedName)
-  })
-  if (matchedByName) {
-    return matchedByName.name
-  }
-
-  const tokens = new Set(normalizedValue.split(' ').filter(Boolean))
-  const matchedByAbbreviation = teamsByLength.find((team) => {
-    const normalizedAbbreviation = normalizeComparableText(team.abbreviation)
-    return normalizedAbbreviation.length > 0 && tokens.has(normalizedAbbreviation)
-  })
-
-  return matchedByAbbreviation?.name ?? null
 }
 
 function resolveMarketSubjectLabel(market: Market | null | undefined, event: Event | null | undefined) {
@@ -447,28 +380,7 @@ export function resolveWinningOutcomeIndexForBinaryMarket(
     }
   }
 
-  const payoutNumerators = market.condition?.payout_numerators
-  if (!Array.isArray(payoutNumerators) || payoutNumerators.length === 0) {
-    return null
-  }
-
-  const numericNumerators = payoutNumerators.map(value => Number(value))
-  const finiteNumerators = numericNumerators.filter(value => Number.isFinite(value))
-  if (finiteNumerators.length === 0) {
-    return null
-  }
-
-  const maxValue = Math.max(...finiteNumerators)
-  if (!(maxValue > 0)) {
-    return null
-  }
-
-  const winnerIndex = numericNumerators.findIndex(value => value === maxValue)
-  if (winnerIndex === OUTCOME_INDEX.YES || winnerIndex === OUTCOME_INDEX.NO) {
-    return winnerIndex
-  }
-
-  return null
+  return resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators(market.condition?.payout_numerators)
 }
 
 export function resolveResolvedOrderPanelMarket(params: {

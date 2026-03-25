@@ -490,6 +490,12 @@ function EventChartComponent({
   const shouldRenderTweetMarketsPanel = shouldShowTweetMarketsPanel
     && resolvedTweetStartTargetMs != null
     && nowMs >= resolvedTweetStartTargetMs
+  const isTweetMarketsFinal = Boolean(event.resolved_at || event.status === 'resolved')
+    || (
+      resolvedTweetCountdownTargetMs != null
+      && Number.isFinite(resolvedTweetCountdownTargetMs)
+      && nowMs >= resolvedTweetCountdownTargetMs
+    )
 
   const yesMarketTargets = useMemo(
     () => buildMarketTargets(event.markets, OUTCOME_INDEX.YES),
@@ -1183,6 +1189,7 @@ function EventChartComponent({
             showTweetMarketsPanel={shouldRenderTweetMarketsPanel}
             tweetCount={resolvedTweetCount}
             tweetCountdownTargetMs={resolvedTweetCountdownTargetMs}
+            tweetMarketsFinal={isTweetMarketsFinal}
           />
         )}
         chart={(

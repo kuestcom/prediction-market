@@ -1,4 +1,5 @@
 import type { Event, Market, Outcome, SportsTeam } from '@/types'
+import { resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators } from '@/lib/binary-outcome-resolution'
 
 function normalizeText(value: string | null | undefined) {
   return value
@@ -314,24 +315,7 @@ function resolveBinaryWinningOutcomeIndex(market: Pick<Market, 'outcomes' | 'con
     return explicitWinner.outcome_index
   }
 
-  const payoutNumerators = market.condition?.payout_numerators
-  if (!Array.isArray(payoutNumerators) || payoutNumerators.length === 0) {
-    return null
-  }
-
-  const numericNumerators = payoutNumerators.map(value => Number(value))
-  const finiteNumerators = numericNumerators.filter(value => Number.isFinite(value))
-  if (finiteNumerators.length === 0) {
-    return null
-  }
-
-  const maxValue = Math.max(...finiteNumerators)
-  if (!(maxValue > 0)) {
-    return null
-  }
-
-  const winnerIndex = numericNumerators.findIndex(value => value === maxValue)
-  return winnerIndex >= 0 ? winnerIndex : null
+  return resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators(market.condition?.payout_numerators)
 }
 
 function resolveResolvedWinnerLabel(

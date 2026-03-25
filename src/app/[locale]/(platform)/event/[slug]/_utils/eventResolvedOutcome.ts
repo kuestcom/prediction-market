@@ -1,6 +1,12 @@
 import type { Event } from '@/types'
 import { inferResolvedTweetMarketOutcome, parseTweetMarketRange } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
 import { resolveWinningOutcomeIndexForBinaryMarket } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
+import {
+  doesTextMatchTeam,
+  normalizeComparableText,
+  parseSportsScore,
+  resolveEventTeams,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/sports-resolution-helpers'
 import { OUTCOME_INDEX } from '@/lib/constants'
 
 type EventMarket = Event['markets'][number]
@@ -13,16 +19,6 @@ interface ResolveEventResolvedOutcomeOptions {
 
 function isMarketResolved(market: EventMarket) {
   return Boolean(market.is_resolved || market.condition?.resolved)
-}
-
-function normalizeComparableText(value: string | null | undefined) {
-  return value
-    ?.normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    ?? ''
 }
 
 function normalizeNumericRangeInput(value: string | null | undefined) {
@@ -112,65 +108,6 @@ function inferResolvedRangeOutcomeByValue(
     : OUTCOME_INDEX.NO
 }
 
-function parseSportsScore(value: string | null | undefined) {
-  const trimmed = value?.trim()
-  if (!trimmed) {
-    return null
-  }
-
-  const match = trimmed.match(/(\d+)\D+(\d+)/)
-  if (!match) {
-    return null
-  }
-
-  const homeScore = Number.parseInt(match[1] ?? '', 10)
-  const awayScore = Number.parseInt(match[2] ?? '', 10)
-  if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore)) {
-    return null
-  }
-
-  return { homeScore, awayScore }
-}
-
-function resolvePrimaryTeams(event: Event) {
-  const teams = (event.sports_teams ?? [])
-    .map(team => ({
-      name: team.name?.trim() ?? '',
-      abbreviation: team.abbreviation?.trim() ?? '',
-      hostStatus: team.host_status?.trim().toLowerCase() ?? '',
-    }))
-    .filter(team => team.name.length > 0)
-
-  const homeTeam = teams.find(team => team.hostStatus === 'home') ?? teams[0] ?? null
-  const awayTeam = teams.find(team => team.hostStatus === 'away') ?? teams.find(team => team !== homeTeam) ?? null
-
-  return { homeTeam, awayTeam }
-}
-
-function doesTextMatchTeam(value: string | null | undefined, team: ReturnType<typeof resolvePrimaryTeams>['homeTeam']) {
-  if (!value || !team) {
-    return false
-  }
-
-  const haystack = normalizeComparableText(value)
-  if (!haystack) {
-    return false
-  }
-
-  const normalizedName = normalizeComparableText(team.name)
-  if (normalizedName && haystack.includes(normalizedName)) {
-    return true
-  }
-
-  const normalizedAbbreviation = normalizeComparableText(team.abbreviation)
-  if (!normalizedAbbreviation) {
-    return false
-  }
-
-  const haystackTokens = new Set(haystack.split(' ').filter(Boolean))
-  return haystackTokens.has(normalizedAbbreviation)
-}
-
 function isMoneylineLikeMarket(market: EventMarket) {
   const normalizedType = normalizeComparableText(market.sports_market_type)
   if (
@@ -207,15 +144,15 @@ function inferSportsMoneylineOutcomeFromScore(event: Event, market: EventMarket)
   }
 
   if (normalizedDescriptor.includes('draw')) {
-    return score.homeScore === score.awayScore ? OUTCOME_INDEX.YES : OUTCOME_INDEX.NO
+    return score.team1 === score.team2 ? OUTCOME_INDEX.YES : OUTCOME_INDEX.NO
   }
 
-  const { homeTeam, awayTeam } = resolvePrimaryTeams(event)
-  if (!homeTeam || !awayTeam || score.homeScore === score.awayScore) {
+  const { homeTeam, awayTeam } = resolveEventTeams(event)
+  if (!homeTeam || !awayTeam || score.team1 === score.team2) {
     return null
   }
 
-  const winningTeam = score.homeScore > score.awayScore ? homeTeam : awayTeam
+  const winningTeam = score.team1 > score.team2 ? homeTeam : awayTeam
   const losingTeam = winningTeam === homeTeam ? awayTeam : homeTeam
 
   if (doesTextMatchTeam(descriptor, winningTeam)) {
