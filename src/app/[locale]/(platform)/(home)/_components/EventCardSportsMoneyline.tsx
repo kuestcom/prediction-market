@@ -270,7 +270,7 @@ export default function EventCardSportsMoneyline({
         </div>
 
         <div className="flex flex-1 flex-col">
-          <div className={cn(isResolvedEvent ? 'mt-auto' : 'mt-auto mb-2')}>
+          <div className={cn(isResolvedEvent ? 'mt-auto mb-3' : 'mt-auto mb-2')}>
             {isResolvedEvent && resolvedWinner
               ? (
                   <div className={`
