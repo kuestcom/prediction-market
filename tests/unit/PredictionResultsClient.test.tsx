@@ -21,6 +21,10 @@ vi.mock('@tanstack/react-query', () => ({
   useInfiniteQuery: (options: any) => mocks.useInfiniteQuery(options),
 }))
 
+vi.mock('@reown/appkit/react', () => ({
+  useAppKitAccount: () => ({ isConnected: true }),
+}))
+
 vi.mock('next-intl', () => ({
   useExtracted: () => (value: string) => value,
   useLocale: () => 'en',
@@ -40,6 +44,10 @@ vi.mock('@/components/EventIconImage', () => ({
   default: function MockEventIconImage({ alt }: { alt: string }) {
     return <span>{alt}</span>
   },
+}))
+
+vi.mock('@/hooks/useAppKit', () => ({
+  useAppKit: () => ({ open: vi.fn() }),
 }))
 
 vi.mock('@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics', () => ({

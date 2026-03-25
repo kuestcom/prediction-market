@@ -6,8 +6,9 @@ import type {
   PredictionResultsStatusOption,
 } from '@/lib/prediction-results-filters'
 import type { Event, Market } from '@/types'
+import { useAppKitAccount } from '@reown/appkit/react'
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
-import { ChevronRightIcon, Clock3Icon, FlameIcon, MessageCircleIcon, SearchIcon, Settings2Icon } from 'lucide-react'
+import { BookmarkIcon, ChevronRightIcon, Clock3Icon, FlameIcon, MessageCircleIcon, SearchIcon, Settings2Icon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
@@ -25,6 +26,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAppKit } from '@/hooks/useAppKit'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { resolveEventPagePath } from '@/lib/events-routing'
@@ -145,6 +147,7 @@ async function fetchPredictionResults({
   routeTag,
   sort,
   status,
+  bookmarked = false,
 }: {
   initialCurrentTimestamp: number
   locale: string
@@ -154,8 +157,10 @@ async function fetchPredictionResults({
   routeTag: string
   sort: PredictionResultsSortOption
   status: PredictionResultsStatusOption
+  bookmarked?: boolean
 }): Promise<Event[]> {
   const params = new URLSearchParams({
+    bookmarked: String(bookmarked),
     currentTimestamp: initialCurrentTimestamp.toString(),
     homeFeed: 'true',
     locale,
@@ -188,9 +193,12 @@ export default function PredictionResultsClient({
 }: PredictionResultsClientProps) {
   const t = useExtracted()
   const locale = useLocale()
+  const { open } = useAppKit()
+  const { isConnected } = useAppKitAccount()
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [isBookmarked, setIsBookmarked] = useState(false)
   const [searchValue, setSearchValue] = useState(initialInputValue)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const debouncedSearchValue = useDebounce(searchValue, 300)
@@ -218,9 +226,11 @@ export default function PredictionResultsClient({
       initialQuery,
       initialSort,
       initialStatus,
+      isBookmarked,
       locale,
     ],
     queryFn: ({ pageParam }) => fetchPredictionResults({
+      bookmarked: isBookmarked,
       initialCurrentTimestamp,
       locale,
       pageParam,
@@ -231,7 +241,7 @@ export default function PredictionResultsClient({
       status: initialStatus,
     }),
     getNextPageParam: (lastPage, allPages) => lastPage.length === HOME_EVENTS_PAGE_SIZE ? allPages.length * HOME_EVENTS_PAGE_SIZE : undefined,
-    initialData: { pageParams: [0], pages: [initialEvents] },
+    initialData: isBookmarked ? undefined : { pageParams: [0], pages: [initialEvents] },
     initialPageParam: 0,
     placeholderData: keepPreviousData,
     refetchOnMount: false,
@@ -242,7 +252,7 @@ export default function PredictionResultsClient({
   useEffect(() => {
     setInfiniteScrollError(null)
     canRetryLoadMoreAfterErrorRef.current = true
-  }, [initialQuery, initialSort, initialStatus, locale, routeMainTag, routeTag])
+  }, [initialQuery, initialSort, initialStatus, isBookmarked, locale, routeMainTag, routeTag])
 
   useEffect(() => {
     if (!loadMoreRef.current || !hasNextPage) {
@@ -327,11 +337,21 @@ export default function PredictionResultsClient({
   }
 
   function handleClearFilters() {
+    setIsBookmarked(false)
     setSearchValue(initialInputValue)
     replaceRoute({
       nextSort: DEFAULT_PREDICTION_RESULTS_SORT,
       nextStatus: DEFAULT_PREDICTION_RESULTS_STATUS,
     })
+  }
+
+  function handleBookmarkToggle() {
+    if (!isConnected) {
+      queueMicrotask(() => open())
+      return
+    }
+
+    setIsBookmarked(current => !current)
   }
 
   const filtersContent = (
@@ -365,42 +385,57 @@ export default function PredictionResultsClient({
             </div>
           </div>
 
-          <div className="shrink-0 lg:hidden">
-            <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-              <DrawerTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  data-testid="prediction-filters-drawer-trigger"
-                  className="rounded-full border-border/70 bg-background px-3"
-                >
-                  <Settings2Icon className="size-4" />
-                  {t('Search & filters')}
-                </Button>
-              </DrawerTrigger>
-              <DrawerContent className="max-h-[85vh] rounded-t-[28px]">
-                <DrawerHeader>
-                  <DrawerTitle>{t('Search & filters')}</DrawerTitle>
-                  <DrawerDescription>{t('Refine the current prediction results page')}</DrawerDescription>
-                </DrawerHeader>
-                <div className="overflow-y-auto px-4 pb-6">
-                  <div className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-md">
-                    {filtersContent}
-                  </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              data-testid="prediction-bookmark-filter"
+              title={isBookmarked ? t('Show all items') : t('Show only bookmarked items')}
+              aria-label={isBookmarked ? t('Remove bookmark filter') : t('Filter by bookmarks')}
+              aria-pressed={isBookmarked}
+              onClick={handleBookmarkToggle}
+            >
+              <BookmarkIcon className={cn('size-6 md:size-5', { 'fill-primary text-primary': isBookmarked })} />
+            </Button>
+
+            <div className="lg:hidden">
+              <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+                <DrawerTrigger asChild>
                   <Button
                     type="button"
-                    variant="ghost"
-                    onClick={handleClearFilters}
-                    className="
-                      mt-4 h-10 w-full justify-center text-[13px] font-medium tracking-[-0.09px] text-muted-foreground
-                    "
+                    variant="outline"
+                    size="sm"
+                    data-testid="prediction-filters-drawer-trigger"
+                    className="rounded-full border-border/70 bg-background px-3"
                   >
-                    {t('Clear filters')}
+                    <Settings2Icon className="size-4" />
+                    {t('Search & filters')}
                   </Button>
-                </div>
-              </DrawerContent>
-            </Drawer>
+                </DrawerTrigger>
+                <DrawerContent className="max-h-[85vh] rounded-t-[28px]">
+                  <DrawerHeader>
+                    <DrawerTitle>{t('Search & filters')}</DrawerTitle>
+                    <DrawerDescription>{t('Refine the current prediction results page')}</DrawerDescription>
+                  </DrawerHeader>
+                  <div className="overflow-y-auto px-4 pb-6">
+                    <div className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-md">
+                      {filtersContent}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleClearFilters}
+                      className="
+                        mt-4 h-10 w-full justify-center text-[13px] font-medium tracking-[-0.09px] text-muted-foreground
+                      "
+                    >
+                      {t('Clear filters')}
+                    </Button>
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            </div>
           </div>
         </header>
 
@@ -549,10 +584,7 @@ function PredictionResultRow({ event }: { event: Event }) {
               <h2 className="line-clamp-3 text-lg/snug font-medium text-foreground group-hover:underline">
                 {event.title}
               </h2>
-              <div className="
-                mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-muted-foreground
-              "
-              >
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1 whitespace-nowrap">
                   <span>
                     {formatCompactCurrency(event.volume ?? 0)}
