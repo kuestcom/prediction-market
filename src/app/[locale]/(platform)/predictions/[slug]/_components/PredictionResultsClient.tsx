@@ -198,6 +198,7 @@ export default function PredictionResultsClient({
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const lastRequestedUrlRef = useRef<string | null>(null)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [searchValue, setSearchValue] = useState(initialInputValue)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -205,10 +206,7 @@ export default function PredictionResultsClient({
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const canRetryLoadMoreAfterErrorRef = useRef(true)
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
-
-  useEffect(() => {
-    setSearchValue(initialInputValue)
-  }, [initialInputValue])
+  const searchParamsString = searchParams.toString()
 
   const {
     data,
@@ -277,21 +275,36 @@ export default function PredictionResultsClient({
 
   useEffect(() => {
     const nextPath = buildPredictionResultsPath(debouncedSearchValue)
-    if (!nextPath || nextPath === pathname) {
+    if (!nextPath) {
       return
     }
 
-    const nextParams = buildPredictionResultsUrlSearchParams(searchParams, {
+    const nextParams = buildPredictionResultsUrlSearchParams(searchParamsString, {
       sort: initialSort,
       status: initialStatus,
     })
     const nextQuery = nextParams.toString()
     const nextUrl = nextQuery ? `${nextPath}?${nextQuery}` : nextPath
+    const currentUrl = searchParamsString ? `${pathname}?${searchParamsString}` : pathname
+
+    if (nextUrl === currentUrl || nextUrl === lastRequestedUrlRef.current) {
+      return
+    }
+
+    lastRequestedUrlRef.current = nextUrl
 
     startTransition(() => {
       router.replace(nextUrl as Route, { scroll: false })
     })
-  }, [debouncedSearchValue, initialSort, initialStatus, pathname, router, searchParams])
+  }, [debouncedSearchValue, initialSort, initialStatus, pathname, router, searchParamsString])
+
+  useEffect(() => {
+    const currentUrl = searchParamsString ? `${pathname}?${searchParamsString}` : pathname
+
+    if (lastRequestedUrlRef.current === currentUrl) {
+      lastRequestedUrlRef.current = null
+    }
+  }, [pathname, searchParamsString])
 
   const visibleEvents = useMemo(() => {
     const pages = data?.pages.flat() ?? initialEvents
@@ -368,24 +381,41 @@ export default function PredictionResultsClient({
   return (
     <div className="mx-auto flex w-full min-w-0 flex-col gap-6 lg:flex-row lg:items-start lg:gap-12">
       <div className="min-w-0 flex-1">
-        <header className="mb-4 flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-                {displayLabel}
-                {' '}
-                predictions & odds
-              </h1>
-              <span className="text-xl text-muted-foreground">·</span>
-              <p className="text-base text-muted-foreground md:text-xl">
-                {visibleEvents.length}
-                {' '}
-                {visibleEvents.length === 1 ? t('result loaded') : t('results loaded')}
-              </p>
+        <header className="mb-4 flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+                  {displayLabel}
+                  {' '}
+                  predictions & odds
+                </h1>
+                <span className="text-xl text-muted-foreground">·</span>
+                <p className="text-base text-muted-foreground md:text-xl">
+                  {visibleEvents.length}
+                  {' '}
+                  {visibleEvents.length === 1 ? t('result loaded') : t('results loaded')}
+                </p>
+              </div>
+            </div>
+
+            <div className="hidden shrink-0 items-center gap-2 lg:flex">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                data-testid="prediction-bookmark-filter"
+                title={isBookmarked ? t('Show all items') : t('Show only bookmarked items')}
+                aria-label={isBookmarked ? t('Remove bookmark filter') : t('Filter by bookmarks')}
+                aria-pressed={isBookmarked}
+                onClick={handleBookmarkToggle}
+              >
+                <BookmarkIcon className={cn('size-6 md:size-5', { 'fill-primary text-primary': isBookmarked })} />
+              </Button>
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex items-center justify-end gap-2 lg:hidden">
             <Button
               type="button"
               variant="ghost"
@@ -399,43 +429,41 @@ export default function PredictionResultsClient({
               <BookmarkIcon className={cn('size-6 md:size-5', { 'fill-primary text-primary': isBookmarked })} />
             </Button>
 
-            <div className="lg:hidden">
-              <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-                <DrawerTrigger asChild>
+            <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+              <DrawerTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  data-testid="prediction-filters-drawer-trigger"
+                  className="rounded-full border-border/70 bg-background px-3"
+                >
+                  <Settings2Icon className="size-4" />
+                  {t('Search & filters')}
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent className="max-h-[85vh] rounded-t-[28px]">
+                <DrawerHeader>
+                  <DrawerTitle>{t('Search & filters')}</DrawerTitle>
+                  <DrawerDescription>{t('Refine the current prediction results page')}</DrawerDescription>
+                </DrawerHeader>
+                <div className="overflow-y-auto px-4 pb-6">
+                  <div className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-md">
+                    {filtersContent}
+                  </div>
                   <Button
                     type="button"
-                    variant="outline"
-                    size="sm"
-                    data-testid="prediction-filters-drawer-trigger"
-                    className="rounded-full border-border/70 bg-background px-3"
+                    variant="ghost"
+                    onClick={handleClearFilters}
+                    className="
+                      mt-4 h-10 w-full justify-center text-[13px] font-medium tracking-[-0.09px] text-muted-foreground
+                    "
                   >
-                    <Settings2Icon className="size-4" />
-                    {t('Search & filters')}
+                    {t('Clear filters')}
                   </Button>
-                </DrawerTrigger>
-                <DrawerContent className="max-h-[85vh] rounded-t-[28px]">
-                  <DrawerHeader>
-                    <DrawerTitle>{t('Search & filters')}</DrawerTitle>
-                    <DrawerDescription>{t('Refine the current prediction results page')}</DrawerDescription>
-                  </DrawerHeader>
-                  <div className="overflow-y-auto px-4 pb-6">
-                    <div className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-md">
-                      {filtersContent}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={handleClearFilters}
-                      className="
-                        mt-4 h-10 w-full justify-center text-[13px] font-medium tracking-[-0.09px] text-muted-foreground
-                      "
-                    >
-                      {t('Clear filters')}
-                    </Button>
-                  </div>
-                </DrawerContent>
-              </Drawer>
-            </div>
+                </div>
+              </DrawerContent>
+            </Drawer>
           </div>
         </header>
 
