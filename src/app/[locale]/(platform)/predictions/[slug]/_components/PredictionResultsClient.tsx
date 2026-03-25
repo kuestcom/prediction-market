@@ -7,10 +7,11 @@ import type {
 } from '@/lib/prediction-results-filters'
 import type { Event, Market } from '@/types'
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
-import { ChevronRightIcon, SearchIcon, Settings2Icon } from 'lucide-react'
+import { ChevronRightIcon, Clock3Icon, FlameIcon, MessageCircleIcon, SearchIcon, Settings2Icon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
+import { useCommentMetrics } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
 import PredictionResultsFilters from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsFilters'
 import EventIconImage from '@/components/EventIconImage'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
@@ -27,7 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { resolveEventPagePath } from '@/lib/events-routing'
-import { formatDate, formatVolume } from '@/lib/formatters'
+import { formatCompactCurrency, formatDate } from '@/lib/formatters'
 import { HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
 import {
   buildPredictionResultsUrlSearchParams,
@@ -95,10 +96,44 @@ function buildDateLabel(event: Event) {
 
   if (event.end_date) {
     const endDate = new Date(event.end_date)
-    return Number.isNaN(endDate.getTime()) ? 'Ends soon' : `Ends ${formatDate(endDate)}`
+    if (Number.isNaN(endDate.getTime())) {
+      return 'Ends soon'
+    }
+
+    const diffMs = endDate.getTime() - Date.now()
+    if (diffMs <= 0) {
+      return 'Ended'
+    }
+
+    const diffMinutes = Math.floor(diffMs / (1000 * 60))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    const diffMonths = Math.round(diffDays / 30)
+
+    if (diffDays >= 60) {
+      return `Ends in ${diffMonths} months`
+    }
+    if (diffDays >= 30) {
+      return `Ends in ${diffMonths} month`
+    }
+    if (diffDays >= 2) {
+      return `Ends in ${diffDays} days`
+    }
+    if (diffHours >= 1) {
+      return `Ends in ${diffHours} hours`
+    }
+    if (diffMinutes >= 1) {
+      return `Ends in ${diffMinutes} min`
+    }
+
+    return 'Ends soon'
   }
 
   return event.status === 'resolved' ? 'Resolved' : 'Active'
+}
+
+function getEventRecentVolume(event: Event) {
+  return event.markets.reduce((sum, market) => sum + (market.volume_24h ?? 0), 0)
 }
 
 async function fetchPredictionResults({
@@ -419,14 +454,24 @@ export default function PredictionResultsClient({
 }
 
 function PredictionResultRow({ event }: { event: Event }) {
+  const t = useExtracted()
+  const locale = useLocale()
+  const { data: commentMetrics } = useCommentMetrics(event.slug)
   const primaryMarket = resolvePrimaryMarket(event)
   const primaryProbability = primaryMarket?.probability ?? 0
   const supportingTags = event.tags.slice(0, 2)
+  const isMultiMarket = Math.max(event.total_markets_count, event.markets.length) > 1
+  const recentVolume = getEventRecentVolume(event)
+  const commentsCount = commentMetrics?.comments_count ?? null
+  const eventPath = resolveEventPagePath(event)
+  const selectedMarketLabel = primaryMarket?.short_title?.trim()
+    || primaryMarket?.title?.trim()
+    || (event.status === 'resolved' ? t('Resolved') : t('Market'))
 
   return (
     <div className="group relative py-4">
       <IntentPrefetchLink
-        href={resolveEventPagePath(event) as Route}
+        href={eventPath as Route}
         aria-label={event.title}
         className="absolute inset-0 z-0 rounded-2xl"
       />
@@ -487,15 +532,35 @@ function PredictionResultRow({ event }: { event: Event }) {
                 mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-muted-foreground
               "
               >
-                <span>
-                  {formatVolume(event.volume ?? 0)}
-                  {' '}
-                  Vol.
+                <span className="flex items-center gap-1 whitespace-nowrap">
+                  <span>
+                    {formatCompactCurrency(event.volume ?? 0)}
+                    {' '}
+                    Vol.
+                  </span>
                 </span>
-                <span>{buildDateLabel(event)}</span>
-                {primaryMarket?.question && (
-                  <span className="max-w-full truncate font-normal">{primaryMarket.question}</span>
-                )}
+                <span className="flex items-center gap-1 whitespace-nowrap">
+                  <FlameIcon className="size-3.5 text-rose-400" />
+                  <span>
+                    {formatCompactCurrency(recentVolume)}
+                    {' '}
+                    24h
+                  </span>
+                </span>
+                <a
+                  href={`${eventPath}#commentsInner`}
+                  className="
+                    pointer-events-auto flex items-center gap-1 whitespace-nowrap transition-colors
+                    hover:text-foreground
+                  "
+                >
+                  <MessageCircleIcon className="size-3.5 text-muted-foreground" />
+                  <span>{commentsCount == null ? '—' : Number(commentsCount).toLocaleString(locale)}</span>
+                </a>
+                <span className="flex items-center gap-1 whitespace-nowrap">
+                  <Clock3Icon className="size-3.5 text-muted-foreground" />
+                  <span>{buildDateLabel(event)}</span>
+                </span>
               </div>
             </div>
 
@@ -505,9 +570,11 @@ function PredictionResultRow({ event }: { event: Event }) {
                   {Math.round(primaryProbability)}
                   %
                 </p>
-                <p className="truncate text-sm text-muted-foreground">
-                  {primaryMarket?.short_title ?? primaryMarket?.title ?? (event.status === 'resolved' ? 'Resolved' : 'Market')}
-                </p>
+                {isMultiMarket && (
+                  <p className="truncate text-sm text-muted-foreground">
+                    {selectedMarketLabel}
+                  </p>
+                )}
               </div>
               <ChevronRightIcon className="
                 size-4 shrink-0 text-muted-foreground transition-transform duration-150

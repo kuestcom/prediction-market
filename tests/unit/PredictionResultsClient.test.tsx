@@ -42,6 +42,12 @@ vi.mock('@/components/EventIconImage', () => ({
   },
 }))
 
+vi.mock('@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics', () => ({
+  useCommentMetrics: () => ({
+    data: { comments_count: 3417 },
+  }),
+}))
+
 vi.mock('@/components/ui/drawer', () => ({
   Drawer: ({ children }: any) => <div>{children}</div>,
   DrawerTrigger: ({ children }: any) => children,
