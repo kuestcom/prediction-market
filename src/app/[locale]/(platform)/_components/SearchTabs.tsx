@@ -2,7 +2,7 @@
 
 import type { SearchLoadingStates } from '@/types'
 import { LoaderIcon } from 'lucide-react'
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useMemo } from 'react'
 import { cn } from '@/lib/utils'
 
 interface SearchTabsProps {
@@ -21,28 +21,6 @@ export function SearchTabs({
   isLoading,
 }: SearchTabsProps) {
   const searchTabs = useMemo(() => ['events', 'profiles'] as const, [])
-  const tabRef = useRef<(HTMLLIElement | null)[]>([])
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
-  const [isInitialized, setIsInitialized] = useState(false)
-
-  useLayoutEffect(() => {
-    const activeTabIndex = searchTabs.indexOf(activeTab)
-    const activeTabElement = tabRef.current[activeTabIndex]
-
-    if (activeTabElement) {
-      const { offsetLeft, offsetWidth } = activeTabElement
-
-      queueMicrotask(() => {
-        setIndicatorStyle(prev => ({
-          ...prev,
-          left: offsetLeft,
-          width: offsetWidth,
-        }))
-
-        setIsInitialized(prev => prev || true)
-      })
-    }
-  }, [activeTab, searchTabs])
 
   function handleKeyDown(event: React.KeyboardEvent, tab: 'events' | 'profiles') {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -53,8 +31,8 @@ export function SearchTabs({
 
   return (
     <div className="bg-background px-1 pt-1">
-      <ul className="relative flex h-10">
-        {searchTabs.map((tab, index) => {
+      <ul className="relative flex h-10 gap-2">
+        {searchTabs.map((tab) => {
           const isActive = activeTab === tab
           const count = tab === 'events' ? eventCount : profileCount
           const loading = tab === 'events' ? isLoading.events : isLoading.profiles
@@ -62,14 +40,11 @@ export function SearchTabs({
           return (
             <li
               key={tab}
-              ref={(el) => {
-                tabRef.current[index] = el
-              }}
               className={cn(
                 `flex cursor-pointer items-center rounded-md px-3 text-sm font-medium transition-colors duration-200`,
                 isActive
-                  ? 'bg-accent/70 text-foreground'
-                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
               )}
               onClick={() => onTabChange(tab)}
               onKeyDown={e => handleKeyDown(e, tab)}
@@ -93,17 +68,6 @@ export function SearchTabs({
             </li>
           )
         })}
-
-        <div
-          className={cn(
-            'absolute bottom-0 h-0.5 bg-primary',
-            { 'transition-all duration-300 ease-out': isInitialized },
-          )}
-          style={{
-            left: `${indicatorStyle.left}px`,
-            width: `${indicatorStyle.width}px`,
-          }}
-        />
       </ul>
     </div>
   )

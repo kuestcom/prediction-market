@@ -11,6 +11,7 @@ interface UseSearch {
   handleQueryChange: (query: string) => void
   clearSearch: () => void
   hideResults: () => void
+  showSearchResults: () => void
   setActiveTab: (tab: 'events' | 'profiles') => void
 }
 
@@ -137,6 +138,14 @@ export function useSearch(): UseSearch {
     setShowResults(false)
   }
 
+  function showSearchResults() {
+    if (query.length < 2) {
+      return
+    }
+
+    setShowResults(true)
+  }
+
   function handleSetActiveTab(tab: 'events' | 'profiles') {
     setActiveTab(tab)
   }
@@ -150,6 +159,7 @@ export function useSearch(): UseSearch {
     handleQueryChange,
     clearSearch,
     hideResults,
+    showSearchResults,
     setActiveTab: handleSetActiveTab,
   }
 }

@@ -12,7 +12,18 @@ import { cn } from '@/lib/utils'
 export default function HeaderSearch() {
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const { query, handleQueryChange, results, isLoading, showResults, clearSearch, hideResults, activeTab, setActiveTab } = useSearch()
+  const {
+    query,
+    handleQueryChange,
+    results,
+    isLoading,
+    showResults,
+    clearSearch,
+    hideResults,
+    showSearchResults,
+    activeTab,
+    setActiveTab,
+  } = useSearch()
   const showDropdown = showResults || isLoading.events || isLoading.profiles
   const inputBaseClass = showDropdown ? 'bg-background' : 'bg-accent'
   const inputBorderClass = showDropdown ? 'border-border' : 'border-transparent'
@@ -75,6 +86,7 @@ export default function HeaderSearch() {
         placeholder={`${t('Search')} ${sitename}`}
         value={query}
         onChange={e => handleQueryChange(e.target.value)}
+        onFocus={showSearchResults}
         className={cn(
           'h-12 w-full pr-12 pl-11 shadow-none transition-colors lg:h-10',
           inputBorderClass,
