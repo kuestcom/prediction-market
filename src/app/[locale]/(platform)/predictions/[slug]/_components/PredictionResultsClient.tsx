@@ -531,16 +531,17 @@ export default function PredictionResultsClient({
                   <div className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-md">
                     {filtersContent}
                   </div>
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
                     onClick={handleClearFilters}
                     className="
-                      mt-4 h-10 w-full justify-center text-[13px] font-medium tracking-[-0.09px] text-muted-foreground
+                      mt-4 inline-flex h-10 w-full items-center justify-center text-[13px] font-medium
+                      tracking-[-0.09px] text-muted-foreground transition-colors
+                      hover:text-foreground
                     "
                   >
                     {t('Clear filters')}
-                  </Button>
+                  </button>
                 </div>
               </DrawerContent>
             </Drawer>
@@ -604,14 +605,17 @@ export default function PredictionResultsClient({
           </div>
         </div>
 
-        <Button
+        <button
           type="button"
-          variant="ghost"
           onClick={handleClearFilters}
-          className="h-10 w-full justify-center text-[13px] font-medium tracking-[-0.09px] text-muted-foreground"
+          className="
+            inline-flex h-10 w-full items-center justify-center text-[13px] font-medium tracking-[-0.09px]
+            text-muted-foreground transition-colors
+            hover:text-foreground
+          "
         >
           {t('Clear filters')}
-        </Button>
+        </button>
       </aside>
     </div>
   )
@@ -647,13 +651,13 @@ function PredictionResultRow({
       />
 
       <div className="
-        pointer-events-none absolute -inset-x-4 inset-y-1 rounded-2xl bg-accent/35 opacity-0 transition-opacity
+        pointer-events-none absolute -inset-x-4 inset-y-0 rounded-2xl bg-accent/35 opacity-0 transition-opacity
         duration-150
         group-hover:opacity-100
       "
       />
 
-      <div className="relative z-10 flex items-start gap-4">
+      <div className="relative z-10 flex items-center gap-4">
         <div className="
           relative size-12 shrink-0 overflow-hidden rounded-md border border-border/70 bg-muted
           md:size-13
@@ -667,93 +671,91 @@ function PredictionResultRow({
           />
         </div>
 
-        <div className="min-w-0 flex-1">
-          {supportingTags.length > 0 && (
-            <div className="
-              pointer-events-auto mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground
-            "
-            >
-              {supportingTags.map((tag, index) => {
-                const tagPath = buildPredictionResultsPath(tag.slug)
-
-                return tagPath
-                  ? (
-                      <div key={`${event.id}-${tag.slug}`} className="flex items-center gap-2">
-                        {index > 0 && <span className="text-muted-foreground/80">·</span>}
-                        <IntentPrefetchLink
-                          href={tagPath as Route}
-                          className="font-medium text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          {tag.name}
-                        </IntentPrefetchLink>
-                      </div>
-                    )
-                  : null
-              })}
-            </div>
-          )}
-
-          <div className="flex items-start gap-4">
-            <div className="min-w-0 flex-1">
-              <IntentPrefetchLink
-                href={eventPath as Route}
-                className="pointer-events-auto relative z-20 block rounded-sm focus-visible:outline-none"
-              >
-                <h2 className="line-clamp-3 text-lg/snug font-medium text-foreground group-hover:underline">
-                  {event.title}
-                </h2>
-              </IntentPrefetchLink>
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1 whitespace-nowrap">
-                  <span>
-                    {formatCompactCurrency(event.volume ?? 0)}
-                    {' '}
-                    Vol.
-                  </span>
-                </span>
-                <span className="flex items-center gap-1 whitespace-nowrap">
-                  <FlameIcon className="size-3.5 text-rose-400" />
-                  <span>
-                    {formatCompactCurrency(recentVolume)}
-                    {' '}
-                    24h
-                  </span>
-                </span>
-                <a
-                  href={`${eventPath}#commentsInner`}
-                  className="
-                    pointer-events-auto flex items-center gap-1 whitespace-nowrap transition-colors
-                    hover:text-foreground
-                  "
-                >
-                  <MessageCircleIcon className="size-3.5 text-muted-foreground" />
-                  <span>{commentsCount == null ? '—' : Number(commentsCount).toLocaleString(locale)}</span>
-                </a>
-                <span className="flex items-center gap-1 whitespace-nowrap">
-                  <Clock3Icon className="size-3.5 text-muted-foreground" />
-                  <span>{buildDateLabel(event, currentTimestamp)}</span>
-                </span>
-              </div>
-            </div>
-
-            <div className="flex max-w-[42%] min-w-[112px] shrink-0 items-center gap-3 self-center">
-              <div className="min-w-0 flex-1 text-right">
-                <p className="truncate text-2xl font-semibold tracking-tight text-foreground md:text-[32px]">
-                  {Math.round(primaryProbability)}
-                  %
-                </p>
-                {isMultiMarket && (
-                  <p className="truncate text-sm text-muted-foreground">
-                    {selectedMarketLabel}
-                  </p>
-                )}
-              </div>
-              <ChevronRightIcon className="
-                size-4 shrink-0 text-muted-foreground transition-transform duration-150
-                group-hover:translate-x-0.5
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <div className="min-w-0 flex-1">
+            {supportingTags.length > 0 && (
+              <div className="
+                pointer-events-auto mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground
               "
-              />
+              >
+                {supportingTags.map((tag, index) => {
+                  const tagPath = buildPredictionResultsPath(tag.slug)
+
+                  return tagPath
+                    ? (
+                        <div key={`${event.id}-${tag.slug}`} className="flex items-center gap-2">
+                          {index > 0 && <span className="text-muted-foreground/80">·</span>}
+                          <IntentPrefetchLink
+                            href={tagPath as Route}
+                            className="font-medium text-muted-foreground transition-colors hover:text-foreground"
+                          >
+                            {tag.name}
+                          </IntentPrefetchLink>
+                        </div>
+                      )
+                    : null
+                })}
+              </div>
+            )}
+
+            <IntentPrefetchLink
+              href={eventPath as Route}
+              className="pointer-events-auto relative z-20 block rounded-sm focus-visible:outline-none"
+            >
+              <h2 className="line-clamp-3 text-lg/snug font-medium text-foreground group-hover:underline">
+                {event.title}
+              </h2>
+            </IntentPrefetchLink>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1 whitespace-nowrap">
+                <span>
+                  {formatCompactCurrency(event.volume ?? 0)}
+                  {' '}
+                  Vol.
+                </span>
+              </span>
+              <span className="flex items-center gap-1 whitespace-nowrap">
+                <FlameIcon className="size-3.5 text-rose-400" />
+                <span>
+                  {formatCompactCurrency(recentVolume)}
+                  {' '}
+                  24h
+                </span>
+              </span>
+              <a
+                href={`${eventPath}#commentsInner`}
+                className="
+                  pointer-events-auto flex items-center gap-1 whitespace-nowrap transition-colors
+                  hover:text-foreground
+                "
+              >
+                <MessageCircleIcon className="size-3.5 text-muted-foreground" />
+                <span>{commentsCount == null ? '—' : Number(commentsCount).toLocaleString(locale)}</span>
+              </a>
+              <span className="flex items-center gap-1 whitespace-nowrap">
+                <Clock3Icon className="size-3.5 text-muted-foreground" />
+                <span>{buildDateLabel(event, currentTimestamp)}</span>
+              </span>
             </div>
+          </div>
+
+          <div className="flex max-w-[42%] min-w-[112px] shrink-0 items-center gap-3 self-center">
+            <div className="flex min-w-0 flex-1 flex-col items-end justify-center text-right">
+              <p className="truncate text-xl leading-none font-semibold tracking-tight text-foreground md:text-[26px]">
+                {Math.round(primaryProbability)}
+                %
+              </p>
+              {isMultiMarket && (
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  {selectedMarketLabel}
+                </p>
+              )}
+            </div>
+            <ChevronRightIcon className="
+              size-4 shrink-0 text-muted-foreground transition-transform duration-150
+              group-hover:translate-x-0.5
+            "
+            />
           </div>
         </div>
       </div>
@@ -765,7 +767,7 @@ function PredictionResultsListSkeleton({ compact = false }: { compact?: boolean 
   return (
     <div className={cn('divide-y divide-border/70', compact && 'opacity-80')} data-testid="prediction-results-skeleton">
       {Array.from({ length: compact ? 2 : 4 }).map((_, index) => (
-        <div key={index} className="flex items-start gap-4 py-4">
+        <div key={index} className="flex items-center gap-4 py-4">
           <Skeleton className="size-12 rounded-md md:size-13" />
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex gap-2">
@@ -775,9 +777,9 @@ function PredictionResultsListSkeleton({ compact = false }: { compact?: boolean 
             <Skeleton className="h-5 w-4/5" />
             <Skeleton className="mt-2 h-4 w-3/5" />
           </div>
-          <div className="ml-auto space-y-2 text-right">
-            <Skeleton className="ml-auto h-8 w-14" />
-            <Skeleton className="ml-auto h-4 w-24" />
+          <div className="ml-auto flex flex-col items-end justify-center gap-2 text-right">
+            <Skeleton className="ml-auto h-6 w-12" />
+            <Skeleton className="ml-auto h-3 w-20" />
           </div>
         </div>
       ))}
