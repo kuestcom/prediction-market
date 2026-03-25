@@ -21,6 +21,13 @@ describe('resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators', () => {
     expect(resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators([1, 2, 4])).toBeNull()
   })
 
+  it('returns null when payout numerators are not a complete binary pair', () => {
+    expect(resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators([5])).toBeNull()
+    expect(resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators([5, null])).toBeNull()
+    expect(resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators([undefined, 5])).toBeNull()
+    expect(resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators([5, 1, 0])).toBeNull()
+  })
+
   it('returns null when all payout numerators are non-positive', () => {
     expect(resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators([0, 0])).toBeNull()
     expect(resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators([-1, -2])).toBeNull()

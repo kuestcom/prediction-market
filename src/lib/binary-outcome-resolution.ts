@@ -4,24 +4,43 @@ export type BinaryOutcomeIndex = typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX
 export type OutcomeNumerator = number | string | null | undefined
 
 function toFiniteNumber(value: unknown) {
+  if (value == null) {
+    return null
+  }
+
+  if (typeof value === 'string' && value.trim().length === 0) {
+    return null
+  }
+
   const numericValue = Number(value)
   return Number.isFinite(numericValue) ? numericValue : null
+}
+
+function resolveBinaryPayoutNumerators(
+  payoutNumerators: Array<OutcomeNumerator> | null | undefined,
+) {
+  if (!Array.isArray(payoutNumerators) || payoutNumerators.length !== 2) {
+    return null
+  }
+
+  const yesPayout = toFiniteNumber(payoutNumerators[OUTCOME_INDEX.YES])
+  const noPayout = toFiniteNumber(payoutNumerators[OUTCOME_INDEX.NO])
+  if (yesPayout == null || noPayout == null) {
+    return null
+  }
+
+  return [yesPayout, noPayout] as const
 }
 
 export function resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators(
   payoutNumerators: Array<OutcomeNumerator> | null | undefined,
 ): BinaryOutcomeIndex | null {
-  if (!Array.isArray(payoutNumerators) || payoutNumerators.length === 0) {
+  const numericNumerators = resolveBinaryPayoutNumerators(payoutNumerators)
+  if (!numericNumerators) {
     return null
   }
 
-  const numericNumerators = payoutNumerators.map(value => toFiniteNumber(value))
-  const finiteNumerators = numericNumerators.filter((value): value is number => value != null)
-  if (finiteNumerators.length === 0) {
-    return null
-  }
-
-  const maxValue = Math.max(...finiteNumerators)
+  const maxValue = Math.max(...numericNumerators)
   if (!(maxValue > 0)) {
     return null
   }

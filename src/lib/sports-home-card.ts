@@ -1,15 +1,12 @@
 import type { Event, Market, Outcome, SportsTeam } from '@/types'
 import { resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators } from '@/lib/binary-outcome-resolution'
+import {
+  doesTextMatchTeam,
+  normalizeComparableText,
+  parseSportsScore,
+} from '@/lib/sports-resolution'
 
-function normalizeText(value: string | null | undefined) {
-  return value
-    ?.normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    ?? ''
-}
+const normalizeText = normalizeComparableText
 
 function normalizeHexColor(value: string | null | undefined) {
   if (!value) {
@@ -76,30 +73,6 @@ function marketDisplayText(market: Market) {
 
 function isDrawMarket(market: Market) {
   return normalizeText(marketDisplayText(market)).includes('draw')
-}
-
-function doesTextMatchTeam(value: string | null | undefined, team: HomeSportsTeam | null) {
-  if (!value || !team) {
-    return false
-  }
-
-  const haystack = normalizeText(value)
-  if (!haystack) {
-    return false
-  }
-
-  const normalizedName = normalizeText(team.name)
-  if (normalizedName && haystack.includes(normalizedName)) {
-    return true
-  }
-
-  const normalizedAbbreviation = normalizeText(team.abbreviation)
-  if (!normalizedAbbreviation) {
-    return false
-  }
-
-  const haystackTokens = new Set(haystack.split(' ').filter(Boolean))
-  return haystackTokens.has(normalizedAbbreviation)
 }
 
 function doesMarketMatchTeam(market: Market, team: HomeSportsTeam | null) {
@@ -192,29 +165,6 @@ function resolvePrimaryTeams(teams: HomeSportsTeam[]) {
   const team1 = homeTeam ?? teams[0] ?? null
   const team2 = awayTeam ?? teams.find(team => team !== team1) ?? null
   return { team1, team2 }
-}
-
-function parseSportsScore(value: string | null | undefined) {
-  const trimmed = value?.trim()
-  if (!trimmed) {
-    return null
-  }
-
-  const match = trimmed.match(/(\d+)\D+(\d+)/)
-  if (!match) {
-    return null
-  }
-
-  const team1Score = Number.parseInt(match[1] ?? '', 10)
-  const team2Score = Number.parseInt(match[2] ?? '', 10)
-  if (!Number.isFinite(team1Score) || !Number.isFinite(team2Score)) {
-    return null
-  }
-
-  return {
-    team1Score,
-    team2Score,
-  }
 }
 
 function toHomeButton(payload: {
@@ -365,7 +315,7 @@ export function resolveResolvedHomeSportsMoneylineWinner(
     return null
   }
 
-  if (finalScore.team1Score === finalScore.team2Score) {
+  if (finalScore.team1 === finalScore.team2) {
     if (!model.drawButton) {
       return null
     }
@@ -378,7 +328,7 @@ export function resolveResolvedHomeSportsMoneylineWinner(
     }
   }
 
-  const winningButton = finalScore.team1Score > finalScore.team2Score
+  const winningButton = finalScore.team1 > finalScore.team2
     ? model.team1Button
     : model.team2Button
 
