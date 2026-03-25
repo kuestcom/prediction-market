@@ -84,6 +84,34 @@ export function resolvePredictionResultsApiSort(sort: PredictionResultsSortOptio
   }
 }
 
+export function resolvePredictionResultsRequestedApiSort({
+  query,
+  sort,
+}: {
+  query: string
+  sort: PredictionResultsSortOption
+}): EventListSortBy | undefined {
+  if (query.trim() && sort === DEFAULT_PREDICTION_RESULTS_SORT) {
+    return undefined
+  }
+
+  return resolvePredictionResultsApiSort(sort)
+}
+
+export function resolvePredictionResultsRequestedApiStatus({
+  query,
+  status,
+}: {
+  query: string
+  status: PredictionResultsStatusOption
+}): PredictionResultsStatusOption {
+  if (!query.trim() && status === 'resolved') {
+    return 'all'
+  }
+
+  return status
+}
+
 function resolveSearchParamValue(value: string | string[] | null | undefined) {
   return Array.isArray(value) ? value[0] : value
 }

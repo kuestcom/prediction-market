@@ -36,7 +36,8 @@ import {
   buildPredictionResultsUrlSearchParams,
   DEFAULT_PREDICTION_RESULTS_SORT,
   DEFAULT_PREDICTION_RESULTS_STATUS,
-  resolvePredictionResultsApiSort,
+  resolvePredictionResultsRequestedApiSort,
+  resolvePredictionResultsRequestedApiStatus,
 } from '@/lib/prediction-results-filters'
 import { buildPredictionResultsPath } from '@/lib/prediction-search'
 import { cn } from '@/lib/utils'
@@ -136,6 +137,29 @@ function getEventRecentVolume(event: Event) {
   return event.markets.reduce((sum, market) => sum + (market.volume_24h ?? 0), 0)
 }
 
+function isResolvedLikeEvent(event: Pick<Event, 'status' | 'markets'>) {
+  if (event.status === 'resolved') {
+    return true
+  }
+
+  if (event.markets.length === 0) {
+    return false
+  }
+
+  return event.markets.every(market => market.is_resolved || market.condition?.resolved)
+}
+
+function filterPredictionEventsByStatus(events: Event[], status: PredictionResultsStatusOption) {
+  if (status === 'all') {
+    return events
+  }
+
+  return events.filter((event) => {
+    const isResolvedEvent = isResolvedLikeEvent(event)
+    return status === 'resolved' ? isResolvedEvent : !isResolvedEvent
+  })
+}
+
 async function fetchPredictionResults({
   initialCurrentTimestamp,
   locale,
@@ -157,6 +181,14 @@ async function fetchPredictionResults({
   status: PredictionResultsStatusOption
   bookmarked?: boolean
 }): Promise<Event[]> {
+  const requestStatus = resolvePredictionResultsRequestedApiStatus({
+    query,
+    status,
+  })
+  const sortBy = resolvePredictionResultsRequestedApiSort({
+    query,
+    sort,
+  })
   const params = new URLSearchParams({
     bookmarked: String(bookmarked),
     currentTimestamp: initialCurrentTimestamp.toString(),
@@ -165,10 +197,13 @@ async function fetchPredictionResults({
     mainTag: routeMainTag,
     offset: pageParam.toString(),
     search: query,
-    sort: resolvePredictionResultsApiSort(sort),
-    status,
+    status: requestStatus,
     tag: routeTag,
   })
+
+  if (sortBy) {
+    params.set('sort', sortBy)
+  }
 
   const response = await fetch(`/api/events?${params}`)
   if (!response.ok) {
@@ -334,8 +369,9 @@ export default function PredictionResultsClient({
 
   const visibleEvents = useMemo(() => {
     const pages = data?.pages.flat() ?? initialEvents
-    return sortPredictionEvents(pages, selectedSort)
-  }, [data, initialEvents, selectedSort])
+    const filteredPages = filterPredictionEventsByStatus(pages, selectedStatus)
+    return sortPredictionEvents(filteredPages, selectedSort)
+  }, [data, initialEvents, selectedSort, selectedStatus])
 
   const isEmptyState = !isPending && !isFetching && visibleEvents.length === 0
   const showInitialSkeleton = visibleEvents.length === 0 && (isPending || isFetching)

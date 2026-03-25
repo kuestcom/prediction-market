@@ -13,7 +13,8 @@ import {
   DEFAULT_PREDICTION_RESULTS_STATUS,
   parsePredictionResultsSort,
   parsePredictionResultsStatus,
-  resolvePredictionResultsApiSort,
+  resolvePredictionResultsRequestedApiSort,
+  resolvePredictionResultsRequestedApiStatus,
 } from '@/lib/prediction-results-filters'
 import { resolvePredictionSearchContext } from '@/lib/prediction-search'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
@@ -72,8 +73,14 @@ async function CachedPredictionResultsPageContent({
       locale,
       mainTag: context.mainTag,
       search: context.query,
-      sortBy: resolvePredictionResultsApiSort(initialSort),
-      status: initialStatus,
+      sortBy: resolvePredictionResultsRequestedApiSort({
+        query: context.query,
+        sort: initialSort,
+      }),
+      status: resolvePredictionResultsRequestedApiStatus({
+        query: context.query,
+        status: initialStatus,
+      }),
       tag: context.tag,
       userId: '',
     })

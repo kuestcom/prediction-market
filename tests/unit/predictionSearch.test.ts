@@ -5,6 +5,8 @@ import {
   parsePredictionResultsStatus,
   resolvePredictionResultsApiSort,
   resolvePredictionResultsFiltersFromSearchParams,
+  resolvePredictionResultsRequestedApiSort,
+  resolvePredictionResultsRequestedApiStatus,
 } from '@/lib/prediction-results-filters'
 import {
   buildPredictionResultsPath,
@@ -106,5 +108,39 @@ describe('prediction search helpers', () => {
     expect(resolvePredictionResultsApiSort('competitive')).toBe('trending')
     expect(resolvePredictionResultsApiSort('newest')).toBe('created_at')
     expect(resolvePredictionResultsApiSort('ending-soon')).toBe('end_date')
+  })
+
+  it('uses search ordering for free-text queries on the default trending sort', () => {
+    expect(resolvePredictionResultsRequestedApiSort({
+      query: 'meta',
+      sort: 'trending',
+    })).toBeUndefined()
+
+    expect(resolvePredictionResultsRequestedApiSort({
+      query: '',
+      sort: 'trending',
+    })).toBe('trending')
+
+    expect(resolvePredictionResultsRequestedApiSort({
+      query: 'meta',
+      sort: 'volume',
+    })).toBe('volume')
+  })
+
+  it('uses the combined status dataset for resolved category pages only', () => {
+    expect(resolvePredictionResultsRequestedApiStatus({
+      query: '',
+      status: 'resolved',
+    })).toBe('all')
+
+    expect(resolvePredictionResultsRequestedApiStatus({
+      query: 'meta',
+      status: 'resolved',
+    })).toBe('resolved')
+
+    expect(resolvePredictionResultsRequestedApiStatus({
+      query: '',
+      status: 'active',
+    })).toBe('active')
   })
 })

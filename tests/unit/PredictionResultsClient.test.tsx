@@ -229,6 +229,74 @@ describe('predictionResultsClient', () => {
     expect(options).toEqual({ scroll: false })
   })
 
+  it('shows only resolved events on resolved category pages even when the fetched dataset is combined', () => {
+    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mocks.useInfiniteQuery.mockImplementation(() => ({
+      data: {
+        pages: [[
+          {
+            id: 'event-active',
+            slug: 'meta-active',
+            title: 'Meta active event',
+            icon_url: '/icon.png',
+            status: 'active',
+            volume: 120000,
+            end_date: '2026-04-01T00:00:00.000Z',
+            tags: [{ id: 1, name: 'Meta', slug: 'meta', isMainCategory: true }],
+            markets: [{
+              condition: { resolved: false },
+              condition_id: 'c1',
+              is_resolved: false,
+              probability: 51,
+              title: 'Yes',
+            }],
+          },
+          {
+            id: 'event-resolved',
+            slug: 'meta-resolved',
+            title: 'Meta resolved event',
+            icon_url: '/icon.png',
+            status: 'resolved',
+            volume: 90000,
+            resolved_at: '2026-03-24T00:00:00.000Z',
+            end_date: '2026-03-24T00:00:00.000Z',
+            tags: [{ id: 1, name: 'Meta', slug: 'meta', isMainCategory: true }],
+            markets: [{
+              condition: { resolved: true },
+              condition_id: 'c2',
+              is_resolved: true,
+              probability: 100,
+              title: 'Yes',
+            }],
+          },
+        ]],
+      },
+      error: null,
+      fetchNextPage: mocks.fetchNextPage,
+      hasNextPage: false,
+      isFetching: false,
+      isFetchingNextPage: false,
+      isPending: false,
+    }))
+
+    render(
+      <PredictionResultsClient
+        displayLabel="Meta"
+        initialCurrentTimestamp={Date.parse('2026-03-25T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="meta"
+        initialQuery=""
+        initialSort="trending"
+        initialStatus="resolved"
+        routeMainTag="meta"
+        routeTag="meta"
+      />,
+    )
+
+    expect(screen.queryByRole('heading', { name: 'Meta active event' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Meta resolved event' })).toBeInTheDocument()
+  })
+
   it('renders the desktop aside shell and the mobile drawer trigger', () => {
     render(
       <PredictionResultsClient
@@ -249,6 +317,8 @@ describe('predictionResultsClient', () => {
   })
 
   it('renders the event title inside a link to the event page', () => {
+    mocks.useSearchParams.mockReturnValue(new URLSearchParams(''))
+
     render(
       <PredictionResultsClient
         displayLabel="Test"
@@ -256,8 +326,8 @@ describe('predictionResultsClient', () => {
         initialEvents={[]}
         initialInputValue="test"
         initialQuery="test"
-        initialSort="competitive"
-        initialStatus="resolved"
+        initialSort="trending"
+        initialStatus="active"
         routeMainTag="trending"
         routeTag="trending"
       />,
