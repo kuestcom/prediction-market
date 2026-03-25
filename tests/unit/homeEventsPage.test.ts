@@ -91,4 +91,24 @@ describe('listHomeEventsPage', () => {
       error: null,
     })
   })
+
+  it('forwards sortBy to the events repository', async () => {
+    mocks.listEvents.mockResolvedValueOnce({ data: [], error: null })
+    mocks.filterHomeEvents.mockReturnValueOnce([])
+
+    const { listHomeEventsPage } = await import('@/lib/home-events-page')
+    await listHomeEventsPage({
+      bookmarked: false,
+      locale: 'en',
+      mainTag: 'trending',
+      sortBy: 'trending',
+      status: 'active',
+      tag: 'trending',
+      userId: '',
+    })
+
+    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
+      sortBy: 'trending',
+    }))
+  })
 })

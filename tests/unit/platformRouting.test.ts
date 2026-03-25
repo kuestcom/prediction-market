@@ -68,6 +68,7 @@ describe('platform routing helpers', () => {
 
   it('does not treat reserved or invalid slugs as dynamic categories', () => {
     expect(isDynamicHomeCategorySlug('event')).toBe(false)
+    expect(isDynamicHomeCategorySlug('predictions')).toBe(false)
     expect(isDynamicHomeCategorySlug('@bruno')).toBe(false)
     expect(isDynamicHomeCategorySlug('0x1234567890123456789012345678901234567890')).toBe(false)
     expect(isDynamicHomeCategorySlug('iran')).toBe(true)

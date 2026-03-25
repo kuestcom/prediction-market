@@ -3,6 +3,7 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
+import { isEventListSortBy } from '@/lib/event-list-filters'
 import { listHomeEventsPage } from '@/lib/home-events-page'
 
 export async function GET(request: Request) {
@@ -20,6 +21,8 @@ export async function GET(request: Request) {
   const sportsSportSlug = searchParams.get('sportsSportSlug') || ''
   const sportsSectionParam = searchParams.get('sportsSection') || ''
   const sportsSection = sportsSectionParam.trim().toLowerCase()
+  const sortParam = searchParams.get('sort')
+  const sortBy = isEventListSortBy(sortParam) ? sortParam : undefined
   const currentTimestampParam = Number.parseInt(searchParams.get('currentTimestamp') || '', 10)
   const currentTimestamp = Number.isNaN(currentTimestampParam) ? null : currentTimestampParam
   const localeParam = searchParams.get('locale') ?? DEFAULT_LOCALE
@@ -54,6 +57,7 @@ export async function GET(request: Request) {
         tag,
         mainTag,
         search,
+        sortBy,
         userId: userId ?? '',
         bookmarked,
         frequency: (frequency === 'daily' || frequency === 'weekly' || frequency === 'monthly') ? frequency : 'all',
@@ -77,6 +81,7 @@ export async function GET(request: Request) {
       tag,
       mainTag,
       search,
+      sortBy,
       userId,
       bookmarked,
       frequency,

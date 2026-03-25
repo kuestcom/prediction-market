@@ -55,4 +55,16 @@ describe('events route', () => {
       userId: 'user-1',
     }))
   })
+
+  it('forwards validated sort params to the home feed loader', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
+    mocks.listHomeEventsPage.mockResolvedValueOnce({ data: [], error: null })
+
+    const response = await GET(new Request('https://example.com/api/events?homeFeed=true&sort=trending&locale=en'))
+
+    expect(response.status).toBe(200)
+    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(expect.objectContaining({
+      sortBy: 'trending',
+    }))
+  })
 })

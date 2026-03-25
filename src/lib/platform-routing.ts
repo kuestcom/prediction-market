@@ -7,6 +7,7 @@ const PLATFORM_RESERVED_ROOT_SLUGS = new Set([
   'mentions',
   'new',
   'portfolio',
+  'predictions',
   'profile',
   'r',
   'series',

@@ -1,4 +1,5 @@
 import type { SupportedLocale } from '@/i18n/locales'
+import type { EventListSortBy } from '@/lib/event-list-filters'
 import type { Event } from '@/types'
 import { EventRepository } from '@/lib/db/queries/event'
 import { filterHomeEvents, HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
@@ -14,6 +15,7 @@ interface ListHomeEventsPageOptions {
   mainTag: string
   offset?: number
   search?: string
+  sortBy?: EventListSortBy
   sportsSection?: 'games' | 'props' | ''
   sportsSportSlug?: string
   status?: 'active' | 'resolved'
@@ -32,6 +34,7 @@ export async function listHomeEventsPage({
   mainTag,
   offset = 0,
   search = '',
+  sortBy,
   sportsSection = '',
   sportsSportSlug = '',
   status = 'active',
@@ -49,6 +52,7 @@ export async function listHomeEventsPage({
       tag,
       mainTag,
       search,
+      sortBy,
       userId,
       bookmarked,
       frequency,

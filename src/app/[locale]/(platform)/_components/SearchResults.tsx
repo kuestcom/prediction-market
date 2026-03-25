@@ -1,5 +1,4 @@
 import type { Route } from 'next'
-import type { PlatformNavigationTag } from '@/lib/platform-navigation'
 import type { Event, PublicProfile, SearchLoadingStates, SearchResultItems } from '@/types'
 import { ArrowRightIcon, LoaderIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -9,137 +8,12 @@ import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import ProfileLink from '@/components/ProfileLink'
 import { buttonVariants } from '@/components/ui/button'
 import { resolveEventPagePath } from '@/lib/events-routing'
-import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
+import {
+  buildSearchCategoryMatches,
+  resolvePredictionResultsHref,
+} from '@/lib/prediction-search'
 import { cn } from '@/lib/utils'
 import { SearchTabs } from './SearchTabs'
-
-interface SearchCategoryMatch {
-  href: Route
-  isMainCategory: boolean
-  label: string
-  slug: string
-  score: number
-}
-
-function normalizeSearchValue(value: string) {
-  return value
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .trim()
-}
-
-function slugifySearchValue(value: string) {
-  return normalizeSearchValue(value)
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
-function getSearchMatchScore(value: string, query: string) {
-  if (!value || !query) {
-    return Number.POSITIVE_INFINITY
-  }
-
-  if (value === query) {
-    return 0
-  }
-
-  if (value.startsWith(query)) {
-    return 1
-  }
-
-  if (value.includes(query)) {
-    return 2
-  }
-
-  return Number.POSITIVE_INFINITY
-}
-
-function buildSearchCategoryMatches(tags: PlatformNavigationTag[], query: string): SearchCategoryMatch[] {
-  const normalizedQuery = normalizeSearchValue(query)
-  if (!normalizedQuery) {
-    return []
-  }
-
-  const matchesBySlug = new Map<string, SearchCategoryMatch>()
-
-  function registerMatch({
-    isMainCategory,
-    label,
-    slug,
-  }: Omit<SearchCategoryMatch, 'href' | 'score'>) {
-    const normalizedMatchSlug = slugifySearchValue(slug)
-    if (!normalizedMatchSlug) {
-      return
-    }
-
-    const normalizedLabel = normalizeSearchValue(label)
-    const normalizedSlug = normalizeSearchValue(normalizedMatchSlug.replace(/-/g, ' '))
-    const score = Math.min(
-      getSearchMatchScore(normalizedLabel, normalizedQuery),
-      getSearchMatchScore(normalizedSlug, normalizedQuery),
-    )
-
-    if (!Number.isFinite(score)) {
-      return
-    }
-
-    const href = `/predictions/${normalizedMatchSlug}` as Route
-    const existing = matchesBySlug.get(normalizedMatchSlug)
-    if (!existing || score < existing.score || (score === existing.score && isMainCategory && !existing.isMainCategory)) {
-      matchesBySlug.set(normalizedMatchSlug, {
-        href,
-        isMainCategory,
-        label,
-        slug: normalizedMatchSlug,
-        score,
-      })
-    }
-  }
-
-  for (const tag of tags) {
-    const isDynamicCategory = isDynamicHomeCategorySlug(tag.slug)
-
-    if (isDynamicCategory) {
-      registerMatch({
-        isMainCategory: true,
-        label: tag.name,
-        slug: tag.slug,
-      })
-    }
-
-    if (!isDynamicCategory) {
-      continue
-    }
-
-    for (const child of tag.childs ?? []) {
-      if (!child.slug.trim()) {
-        continue
-      }
-
-      registerMatch({
-        isMainCategory: false,
-        label: child.name,
-        slug: child.slug,
-      })
-    }
-  }
-
-  return Array.from(matchesBySlug.values()).sort((a, b) => (
-    a.score - b.score
-    || Number(b.isMainCategory) - Number(a.isMainCategory)
-    || a.label.localeCompare(b.label)
-  ))
-}
-
-function resolveAllResultsHref(query: string, categories: SearchCategoryMatch[]) {
-  const slug = slugifySearchValue(query)
-  if (!slug) {
-    return categories[0]?.href ?? null
-  }
-
-  return `/predictions/${slug}` as Route
-}
 
 interface SearchResultsProps {
   results: SearchResultItems
@@ -249,7 +123,7 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
   const t = useExtracted()
   const { tags } = usePlatformNavigationData()
   const categories = buildSearchCategoryMatches(tags, query)
-  const allResultsHref = resolveAllResultsHref(query, categories)
+  const allResultsHref = resolvePredictionResultsHref(query, categories) as Route | null
 
   if (events.length === 0 && categories.length === 0 && !allResultsHref && !isLoading && query.length >= 2) {
     return (

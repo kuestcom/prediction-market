@@ -1,6 +1,7 @@
 import type { SQL } from 'drizzle-orm'
 import type { SupportedLocale } from '@/i18n/locales'
 import type { conditions } from '@/lib/db/schema/events/tables'
+import type { EventListSortBy } from '@/lib/event-list-filters'
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, QueryResult } from '@/types'
 import { and, asc, count, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
@@ -363,6 +364,7 @@ interface ListEventsProps {
   tag: string
   mainTag?: string
   search?: string
+  sortBy?: EventListSortBy
   userId?: string | undefined
   bookmarked?: boolean
   frequency?: 'all' | 'daily' | 'weekly' | 'monthly'
@@ -1025,6 +1027,18 @@ function buildTrendingVolumeOrder() {
   )`
 }
 
+function buildTotalVolumeOrder() {
+  return sql<number>`COALESCE((
+    SELECT SUM(${markets.volume})
+    FROM ${markets}
+    WHERE ${markets.event_id} = ${events.id}
+  ), 0)::double precision`
+}
+
+function buildEndDateNullsLastOrder() {
+  return sql<number>`CASE WHEN ${events.end_date} IS NULL THEN 1 ELSE 0 END`
+}
+
 async function buildEventListQueryContext({
   tag = 'trending',
   mainTag = '',
@@ -1514,6 +1528,7 @@ export const EventRepository = {
     tag = 'trending',
     mainTag = '',
     search = '',
+    sortBy,
     userId = '',
     bookmarked = false,
     frequency = 'all',
@@ -1698,7 +1713,7 @@ export const EventRepository = {
 
       let eventsData: DrizzleEventResult[] = []
 
-      if (tag === 'trending') {
+      if ((tag === 'trending' && !sortBy) || sortBy === 'trending') {
         const trendingVolumeOrder = buildTrendingVolumeOrder()
 
         const trendingEventIds = await db
@@ -1751,9 +1766,21 @@ export const EventRepository = {
         })
       }
       else {
-        const orderByClause = tag === 'new'
-          ? [desc(events.created_at)]
-          : [desc(events.id)]
+        const totalVolumeOrder = buildTotalVolumeOrder()
+        const orderByClause = (() => {
+          switch (sortBy) {
+            case 'volume':
+              return [desc(totalVolumeOrder), desc(events.created_at)]
+            case 'created_at':
+              return [desc(events.created_at)]
+            case 'end_date':
+              return [asc(buildEndDateNullsLastOrder()), asc(events.end_date), desc(events.created_at)]
+            default:
+              return tag === 'new'
+                ? [desc(events.created_at)]
+                : [desc(events.id)]
+          }
+        })()
 
         eventsData = await db.query.events.findMany({
           where: baseWhere,
