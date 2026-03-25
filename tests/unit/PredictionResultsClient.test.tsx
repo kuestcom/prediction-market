@@ -157,6 +157,24 @@ describe('predictionResultsClient', () => {
     expect(options).toEqual({ scroll: false })
   })
 
+  it('does not replace the route on mount when the current filtered url is already in sync', () => {
+    render(
+      <PredictionResultsClient
+        displayLabel="Test"
+        initialCurrentTimestamp={Date.parse('2026-03-25T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="test"
+        initialQuery="test"
+        initialSort="competitive"
+        initialStatus="resolved"
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    expect(mocks.replace).not.toHaveBeenCalled()
+  })
+
   it('renders the desktop aside shell and the mobile drawer trigger', () => {
     render(
       <PredictionResultsClient

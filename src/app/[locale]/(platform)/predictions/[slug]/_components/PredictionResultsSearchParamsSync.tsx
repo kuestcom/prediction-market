@@ -7,10 +7,7 @@ import type {
 import { useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import {
-  parsePredictionResultsSort,
-  parsePredictionResultsStatus,
-  PREDICTION_RESULTS_SORT_PARAM,
-  PREDICTION_RESULTS_STATUS_PARAM,
+  resolvePredictionResultsFiltersFromSearchParams,
 } from '@/lib/prediction-results-filters'
 
 export default function PredictionResultsSearchParamsSync({
@@ -23,15 +20,10 @@ export default function PredictionResultsSearchParamsSync({
   }) => void
 }) {
   const searchParams = useSearchParams()
-  const searchParamsString = searchParams.toString()
 
   useEffect(() => {
-    onChange({
-      searchParamsString,
-      sort: parsePredictionResultsSort(searchParams.get(PREDICTION_RESULTS_SORT_PARAM)),
-      status: parsePredictionResultsStatus(searchParams.get(PREDICTION_RESULTS_STATUS_PARAM)),
-    })
-  }, [onChange, searchParams, searchParamsString])
+    onChange(resolvePredictionResultsFiltersFromSearchParams(searchParams))
+  }, [onChange, searchParams])
 
   return null
 }

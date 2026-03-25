@@ -22,6 +22,8 @@ export type PredictionResultsStatusOption = typeof PREDICTION_RESULTS_STATUS_OPT
 export const DEFAULT_PREDICTION_RESULTS_SORT: PredictionResultsSortOption = 'trending'
 export const DEFAULT_PREDICTION_RESULTS_STATUS: PredictionResultsStatusOption = 'active'
 
+type PredictionResultsSearchParamsRecord = Record<string, string | string[] | undefined>
+
 function normalizeRouteFilterValue(value: string | null | undefined) {
   return value
     ?.trim()
@@ -74,6 +76,65 @@ export function resolvePredictionResultsApiSort(sort: PredictionResultsSortOptio
     case 'trending':
     default:
       return 'trending'
+  }
+}
+
+function resolveSearchParamValue(value: string | string[] | null | undefined) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+function serializePredictionResultsSearchParams(searchParams: PredictionResultsSearchParamsRecord) {
+  const params = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        params.append(key, item)
+      }
+      continue
+    }
+
+    if (value !== undefined) {
+      params.append(key, value)
+    }
+  }
+
+  return params.toString()
+}
+
+function hasSearchParamsMethods(
+  searchParams: PredictionResultsSearchParamsRecord | Pick<URLSearchParams, 'get' | 'toString'>,
+): searchParams is Pick<URLSearchParams, 'get' | 'toString'> {
+  return typeof searchParams.get === 'function'
+}
+
+export function resolvePredictionResultsFiltersFromSearchParams(
+  searchParams:
+    | PredictionResultsSearchParamsRecord
+    | Pick<URLSearchParams, 'get' | 'toString'>
+    | null
+    | undefined,
+) {
+  if (!searchParams) {
+    return {
+      searchParamsString: '',
+      sort: DEFAULT_PREDICTION_RESULTS_SORT,
+      status: DEFAULT_PREDICTION_RESULTS_STATUS,
+    }
+  }
+
+  if (hasSearchParamsMethods(searchParams)) {
+    return {
+      searchParamsString: searchParams.toString(),
+      sort: parsePredictionResultsSort(searchParams.get(PREDICTION_RESULTS_SORT_PARAM)),
+      status: parsePredictionResultsStatus(searchParams.get(PREDICTION_RESULTS_STATUS_PARAM)),
+    }
+  }
+
+  return {
+    searchParamsString: serializePredictionResultsSearchParams(searchParams),
+    sort: parsePredictionResultsSort(resolveSearchParamValue(searchParams[PREDICTION_RESULTS_SORT_PARAM])),
+    status: parsePredictionResultsStatus(resolveSearchParamValue(searchParams[PREDICTION_RESULTS_STATUS_PARAM])),
   }
 }
 

@@ -89,7 +89,6 @@ async function CachedPredictionResultsPageContent({
   return (
     <main className="container py-6 lg:py-8">
       <PredictionResultsClient
-        key={`${slug}:${initialSort}:${initialStatus}`}
         displayLabel={context.label}
         initialCurrentTimestamp={initialCurrentTimestamp}
         initialEvents={initialEvents}

@@ -4,6 +4,7 @@ import {
   parsePredictionResultsSort,
   parsePredictionResultsStatus,
   resolvePredictionResultsApiSort,
+  resolvePredictionResultsFiltersFromSearchParams,
 } from '@/lib/prediction-results-filters'
 import {
   buildPredictionResultsPath,
@@ -76,6 +77,18 @@ describe('prediction search helpers', () => {
     )
 
     expect(params.toString()).toBe('foo=bar&_sort=volume&_status=resolved')
+  })
+
+  it('resolves prediction result filters from route search params', () => {
+    expect(resolvePredictionResultsFiltersFromSearchParams({
+      foo: 'bar',
+      _sort: 'competitive',
+      _status: 'resolved',
+    })).toEqual({
+      searchParamsString: 'foo=bar&_sort=competitive&_status=resolved',
+      sort: 'competitive',
+      status: 'resolved',
+    })
   })
 
   it('maps prediction sorts to API sorts', () => {

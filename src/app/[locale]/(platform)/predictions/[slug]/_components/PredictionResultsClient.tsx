@@ -203,6 +203,7 @@ export default function PredictionResultsClient({
   const [selectedStatus, setSelectedStatus] = useState(initialStatus)
   const [currentTimestamp, setCurrentTimestamp] = useState(initialCurrentTimestamp)
   const [searchParamsString, setSearchParamsString] = useState('')
+  const [searchParamsPathname, setSearchParamsPathname] = useState<string | null>(null)
   const debouncedSearchValue = useDebounce(searchValue, 300)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const canRetryLoadMoreAfterErrorRef = useRef(true)
@@ -260,6 +261,15 @@ export default function PredictionResultsClient({
   }, [])
 
   useEffect(() => {
+    setSearchValue(current => current === initialInputValue ? current : initialInputValue)
+  }, [initialInputValue])
+
+  useEffect(() => {
+    setIsBookmarked(false)
+    setIsDrawerOpen(false)
+  }, [initialQuery, routeMainTag, routeTag])
+
+  useEffect(() => {
     setInfiniteScrollError(null)
     canRetryLoadMoreAfterErrorRef.current = true
   }, [initialQuery, selectedSort, selectedStatus, isBookmarked, locale, routeMainTag, routeTag])
@@ -286,6 +296,10 @@ export default function PredictionResultsClient({
   }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   useEffect(() => {
+    if (searchParamsPathname !== pathname) {
+      return
+    }
+
     const nextPath = buildPredictionResultsPath(debouncedSearchValue)
     if (!nextPath) {
       return
@@ -308,7 +322,7 @@ export default function PredictionResultsClient({
     startTransition(() => {
       router.replace(nextUrl as Route, { scroll: false })
     })
-  }, [debouncedSearchValue, pathname, router, searchParamsString, selectedSort, selectedStatus])
+  }, [debouncedSearchValue, pathname, router, searchParamsPathname, searchParamsString, selectedSort, selectedStatus])
 
   useEffect(() => {
     const currentUrl = searchParamsString ? `${pathname}?${searchParamsString}` : pathname
@@ -395,6 +409,7 @@ export default function PredictionResultsClient({
       <Suspense fallback={null}>
         <PredictionResultsSearchParamsSync
           onChange={({ searchParamsString: nextSearchParamsString, sort, status }) => {
+            setSearchParamsPathname(current => current === pathname ? current : pathname)
             setSearchParamsString(current => current === nextSearchParamsString ? current : nextSearchParamsString)
             setSelectedSort(current => current === sort ? current : sort)
             setSelectedStatus(current => current === status ? current : status)
