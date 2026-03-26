@@ -21,7 +21,8 @@ const CHART_HEIGHT = 120
 const MAX_CHART_POINTS = 28
 // Keep the OG inline image budget aligned with the current public asset size limit.
 const MAX_OG_REMOTE_IMAGE_BYTES = 2 * 1024 * 1024
-const SOCIAL_FETCH_TIMEOUT_MS = 2500
+const SOCIAL_IMAGE_FETCH_TIMEOUT_MS = 1200
+const SOCIAL_HISTORY_FETCH_TIMEOUT_MS = 1500
 const IMAGE_DATA_URI_CONTENT_TYPES = new Set([
   'image/gif',
   'image/jpeg',
@@ -122,7 +123,7 @@ async function fetchImageDataUrl(url: string) {
       next: {
         revalidate: 300,
       },
-      signal: AbortSignal.timeout(SOCIAL_FETCH_TIMEOUT_MS),
+      signal: AbortSignal.timeout(SOCIAL_IMAGE_FETCH_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -147,16 +148,6 @@ async function fetchImageDataUrl(url: string) {
   }
 }
 
-function buildAbsoluteImageUrl(url: string) {
-  try {
-    const parsed = new URL(url)
-    return parsed.toString()
-  }
-  catch {
-    return url
-  }
-}
-
 function resolveFocusedMarket(event: Event, marketSlug: string) {
   const normalizedMarketSlug = marketSlug.trim().toLowerCase()
   if (normalizedMarketSlug) {
@@ -178,27 +169,19 @@ function resolveFocusedMarket(event: Event, marketSlug: string) {
 }
 
 async function resolveEventImage(event: Event, focusedMarket: EventMarket | null, siteUrl: string) {
-  const imageCandidates = [
+  const imageCandidate = [
     focusedMarket?.icon_url,
     event.icon_url,
     event.sports_team_logo_urls?.[0],
   ]
+    .map(candidate => sanitizeImageUrl(candidate, siteUrl))
+    .find(Boolean)
 
-  let fallbackUrl = ''
-
-  for (const candidate of imageCandidates) {
-    const sanitized = sanitizeImageUrl(candidate, siteUrl)
-    if (sanitized) {
-      fallbackUrl ||= buildAbsoluteImageUrl(sanitized)
-
-      const dataUrl = await fetchImageDataUrl(sanitized)
-      if (dataUrl) {
-        return dataUrl
-      }
-    }
+  if (!imageCandidate) {
+    return ''
   }
 
-  return fallbackUrl
+  return fetchImageDataUrl(imageCandidate)
 }
 
 function resolveBinaryOutcome(market: EventMarket, outcomeIndex: number, fallbackIndex: number) {
@@ -380,7 +363,7 @@ async function fetchMarketPriceHistory(tokenId: string, createdAt: string, resol
       next: {
         revalidate: 300,
       },
-      signal: AbortSignal.timeout(SOCIAL_FETCH_TIMEOUT_MS),
+      signal: AbortSignal.timeout(SOCIAL_HISTORY_FETCH_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -600,11 +583,13 @@ export async function GET(request: Request) {
   )
   const explicitMarketRequested = Boolean(marketSlug)
   const focusedMarket = resolveFocusedMarket(event, marketSlug)
-  const eventImageUrl = await resolveEventImage(event, focusedMarket, siteUrl)
+  const chartTokenId = resolveChartTokenId(focusedMarket)
+  const [eventImageUrl, chartHistory] = await Promise.all([
+    resolveEventImage(event, focusedMarket, siteUrl),
+    fetchMarketPriceHistory(chartTokenId, event.created_at, event.resolved_at),
+  ])
   const outcomeButtons = resolveOutcomeButtons(event, focusedMarket, explicitMarketRequested)
   const headlineMetric = resolveHeadlineMetric(event, focusedMarket, explicitMarketRequested)
-  const chartTokenId = resolveChartTokenId(focusedMarket)
-  const chartHistory = await fetchMarketPriceHistory(chartTokenId, event.created_at, event.resolved_at)
   const chartData = buildChartData(chartHistory.length > 0 ? chartHistory : buildFallbackHistory(focusedMarket?.price ?? null))
   const headlinePriceLabel = headlineMetric.price !== null && headlineMetric.price !== undefined
     ? formatPercent((headlineMetric.price ?? 0) * 100, { digits: 0 })
