@@ -950,7 +950,6 @@ export default function SportsEventCenter({
   const orderEventId = useOrder(state => state.event?.id ?? null)
   const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
-  const orderSide = useOrder(state => state.side)
   const user = useUser()
   const [querySelection, setQuerySelection] = useState<SportsEventQuerySelection>(EMPTY_QUERY_SELECTION)
   const [oddsFormat, setOddsFormat] = useState<OddsFormat>('price')
@@ -1869,8 +1868,8 @@ export default function SportsEventCenter({
       return null
     }
 
-    return `${orderEventId}:${orderMarketConditionId}:${orderOutcomeIndex}:${orderSide}`
-  }, [orderEventId, orderMarketConditionId, orderOutcomeIndex, orderSide])
+    return `${orderEventId}:${orderMarketConditionId}:${orderOutcomeIndex}`
+  }, [orderEventId, orderMarketConditionId, orderOutcomeIndex])
   const fallbackButtonFromOrderState = useMemo(() => {
     if (orderEventId !== activeCard.event.id || !orderMarketConditionId) {
       return null
@@ -2075,13 +2074,12 @@ export default function SportsEventCenter({
       return
     }
 
-    const nextOrderSelectionSyncKey = `${activeCard.event.id}:${market.condition_id}:${outcome.outcome_index}:${ORDER_SIDE.BUY}`
+    const nextOrderSelectionSyncKey = `${activeCard.event.id}:${market.condition_id}:${outcome.outcome_index}`
 
     if (
       orderEventId === activeCard.event.id
       && orderMarketConditionId === market.condition_id
       && orderOutcomeIndex === outcome.outcome_index
-      && orderSide === ORDER_SIDE.BUY
     ) {
       pushedOrderSelectionRef.current = nextOrderSelectionSyncKey
       return
@@ -2098,7 +2096,6 @@ export default function SportsEventCenter({
     orderEventId,
     orderMarketConditionId,
     orderOutcomeIndex,
-    orderSide,
     setOrderEvent,
     setOrderMarket,
     setOrderOutcome,

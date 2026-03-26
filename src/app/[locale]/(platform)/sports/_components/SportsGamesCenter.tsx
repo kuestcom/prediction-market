@@ -3627,6 +3627,7 @@ export default function SportsGamesCenter({
   const setOrderOutcome = useOrder(state => state.setOutcome)
   const setOrderSide = useOrder(state => state.setSide)
   const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
+  const orderEventId = useOrder(state => state.event?.id ?? null)
   const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
   const isLivePage = pageMode === 'live'
@@ -4151,11 +4152,28 @@ export default function SportsGamesCenter({
       return
     }
 
+    if (
+      orderEventId === activeTradeContext.card.event.id
+      && orderMarketConditionId === activeTradeContext.market.condition_id
+      && orderOutcomeIndex === activeTradeContext.outcome.outcome_index
+    ) {
+      return
+    }
+
     setOrderEvent(activeTradeContext.card.event)
     setOrderMarket(activeTradeContext.market)
     setOrderOutcome(activeTradeContext.outcome)
     setOrderSide(ORDER_SIDE.BUY)
-  }, [activeTradeContext, setOrderEvent, setOrderMarket, setOrderOutcome, setOrderSide])
+  }, [
+    activeTradeContext,
+    orderEventId,
+    orderMarketConditionId,
+    orderOutcomeIndex,
+    setOrderEvent,
+    setOrderMarket,
+    setOrderOutcome,
+    setOrderSide,
+  ])
 
   function toggleCard(
     card: SportsGamesCard,

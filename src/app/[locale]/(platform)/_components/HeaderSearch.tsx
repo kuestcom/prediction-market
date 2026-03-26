@@ -31,6 +31,8 @@ export default function HeaderSearch({
 }: HeaderSearchProps) {
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const blurFrameRef = useRef<number | null>(null)
+  const pointerDownInsideRef = useRef(false)
   const router = useRouter()
   const {
     query,
@@ -79,6 +81,13 @@ export default function HeaderSearch({
     router.push(nextPath as Route)
   }
 
+  function clearPendingBlurFrame() {
+    if (blurFrameRef.current !== null) {
+      window.cancelAnimationFrame(blurFrameRef.current)
+      blurFrameRef.current = null
+    }
+  }
+
   useEffect(() => {
     function handleSlashShortcut(event: KeyboardEvent) {
       if (event.key !== '/') {
@@ -123,7 +132,11 @@ export default function HeaderSearch({
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      const isInsideSearch = searchRef.current?.contains(event.target as Node) ?? false
+      pointerDownInsideRef.current = isInsideSearch
+
+      if (!isInsideSearch) {
+        clearPendingBlurFrame()
         setHasFocusWithin(false)
         setIsResultsDismissed(true)
         hideResults()
@@ -139,6 +152,8 @@ export default function HeaderSearch({
     }
   }, [showAttachedDropdown, hideResults])
 
+  useEffect(() => () => clearPendingBlurFrame(), [])
+
   return (
     <div className="w-full lg:max-w-[600px] lg:min-w-[400px]">
       <div
@@ -146,23 +161,46 @@ export default function HeaderSearch({
         ref={searchRef}
         data-testid="header-search-container"
         onFocusCapture={() => {
+          clearPendingBlurFrame()
           setHasFocusWithin(true)
           setIsResultsDismissed(false)
         }}
         onBlurCapture={(event) => {
+          clearPendingBlurFrame()
           const nextFocusedElement = event.relatedTarget as Node | null
 
-          if (!nextFocusedElement) {
+          if (nextFocusedElement) {
+            pointerDownInsideRef.current = false
+            const containsFocusedElement = searchRef.current?.contains(nextFocusedElement) ?? false
+            setHasFocusWithin(containsFocusedElement)
+
+            if (!containsFocusedElement) {
+              setIsResultsDismissed(true)
+              hideResults()
+            }
             return
           }
 
-          const containsFocusedElement = searchRef.current?.contains(nextFocusedElement) ?? false
-          setHasFocusWithin(containsFocusedElement)
+          const pointerDownStartedInside = pointerDownInsideRef.current
 
-          if (!containsFocusedElement) {
-            setIsResultsDismissed(true)
-            hideResults()
-          }
+          blurFrameRef.current = window.requestAnimationFrame(() => {
+            blurFrameRef.current = null
+
+            const activeElement = document.activeElement as Node | null
+            const containsActiveElement = activeElement
+              ? (searchRef.current?.contains(activeElement) ?? false)
+              : false
+            const shouldKeepDropdownOpen = containsActiveElement || pointerDownStartedInside
+
+            setHasFocusWithin(shouldKeepDropdownOpen)
+
+            if (!shouldKeepDropdownOpen) {
+              setIsResultsDismissed(true)
+              hideResults()
+            }
+
+            pointerDownInsideRef.current = false
+          })
         }}
       >
         <SearchIcon className="absolute top-1/2 left-4 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
