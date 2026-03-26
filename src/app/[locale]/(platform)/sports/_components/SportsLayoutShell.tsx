@@ -6,6 +6,7 @@ import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import { useCallback, useEffect, useMemo } from 'react'
 import SportsSidebarMenu from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 import { usePathname, useRouter } from '@/i18n/navigation'
+import { normalizeAliasKey } from '@/lib/sports-slug-mapping'
 import { cn } from '@/lib/utils'
 
 interface SportsLayoutShellProps {
@@ -24,26 +25,6 @@ interface SportsPathContext {
   sportSlug: string | null
   section: 'games' | 'props' | null
   title: string
-}
-
-function stripDiacritics(value: string) {
-  return value
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-}
-
-function normalizeAliasKey(value: string | null | undefined) {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const normalized = stripDiacritics(value)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    .replace(/\s+/g, ' ')
-
-  return normalized || null
 }
 
 function resolveCanonicalSlugFromAlias(

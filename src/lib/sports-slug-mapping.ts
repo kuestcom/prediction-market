@@ -1,3 +1,5 @@
+import { normalizeAliasKey, normalizeComparableValue, stripDiacritics } from '@/lib/slug'
+
 export interface SportsSlugSectionConfig {
   gamesEnabled: boolean
   propsEnabled: boolean
@@ -25,34 +27,7 @@ export interface SportsSlugResolver {
   sectionsBySlug: Map<string, SportsSlugSectionConfig>
 }
 
-function stripDiacritics(value: string) {
-  return value
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-}
-
-function normalizeComparableValue(value: string | null | undefined) {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const normalized = value.trim().toLowerCase()
-  return normalized || null
-}
-
-export function normalizeAliasKey(value: string | null | undefined) {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const normalized = stripDiacritics(value)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    .replace(/\s+/g, ' ')
-
-  return normalized || null
-}
+export { normalizeAliasKey }
 
 function registerAlias(
   resolver: SportsSlugResolver,

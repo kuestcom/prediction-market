@@ -1,4 +1,4 @@
-const DATA_API_URL = process.env.DATA_URL!
+import { buildDataApiUrl } from '@/lib/data-api/client'
 
 interface DataApiHolder {
   proxyWallet: string
@@ -81,16 +81,12 @@ export async function fetchTopHoldersFromDataApi(
     throw new Error('conditionId is required')
   }
 
-  if (!DATA_API_URL) {
-    throw new Error('DATA_URL environment variable is not configured.')
-  }
-
   const params = new URLSearchParams({
     market: conditionId,
     limit: String(Math.min(Math.max(limit, 1), 500)),
   })
 
-  const response = await fetch(`${DATA_API_URL}/holders?${params.toString()}`)
+  const response = await fetch(buildDataApiUrl('/holders', params))
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null)

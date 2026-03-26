@@ -1,5 +1,6 @@
 'use client'
 
+import type { EmbedCodeLine } from '@/lib/embed-code'
 import type { EmbedTheme } from '@/lib/embed-widget'
 import type { Market } from '@/types'
 import { CheckIcon, CopyIcon } from 'lucide-react'
@@ -14,13 +15,25 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { fetchAffiliateSettingsFromAPI } from '@/lib/affiliate-data'
 import { maybeShowAffiliateToast } from '@/lib/affiliate-toast'
 import {
+  attributeLine,
+  EmbedCodePreview,
+  tagCloseLine,
+  tagEndLine,
+  tagOpenLine,
+  tagSelfCloseLine,
+  tagWithAttributeLine,
+} from '@/lib/embed-code'
+import {
   buildFeatureList,
   buildIframeCode,
   buildIframeSrc,
   buildPreviewSrc,
   buildWebComponentCode,
   EMBED_SCRIPT_URL,
+  normalizeEmbedBaseUrl,
+  requireEmbedValue,
 } from '@/lib/embed-widget'
+import { slugifySiteName } from '@/lib/slug'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
@@ -32,129 +45,14 @@ interface EventChartEmbedDialogProps {
 }
 
 type EmbedType = 'iframe' | 'web-component'
-
-function requireEnv(value: string | undefined, name: string) {
-  if (!value || !value.trim()) {
-    throw new Error(`${name} is required for embeds.`)
-  }
-  return value
-}
-
-const SITE_URL = normalizeBaseUrl(requireEnv(process.env.SITE_URL, 'SITE_URL'))
-
-function slugifySiteName(value: string) {
-  const slug = value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-  if (!slug) {
-    throw new Error('Site name must include at least one letter or number.')
-  }
-  return slug
-}
-
-function normalizeBaseUrl(value: string) {
-  return value.replace(/\/$/, '')
-}
+const SITE_URL = normalizeEmbedBaseUrl(requireEmbedValue(process.env.SITE_URL, 'SITE_URL'))
 
 const IFRAME_HEIGHT_WITH_CHART = 400
 const IFRAME_HEIGHT_WITH_FILTERS = 440
 const IFRAME_HEIGHT_NO_CHART = 180
 
-const tokenStyles = {
-  tag: 'text-muted-foreground',
-  attr: 'text-red-500',
-  value: 'text-rose-500',
-  punctuation: 'text-muted-foreground',
-}
-
-interface CodeToken {
-  text: string
-  className?: string
-}
-
-type CodeLine = CodeToken[]
-
 function buildMarketLabel(market: Market) {
   return market.short_title?.trim() || market.title || market.slug
-}
-
-function token(text: string, className?: string): CodeToken {
-  return { text, className }
-}
-
-function tagOpenLine(indent: string, tagName: string): CodeLine {
-  return [
-    token(indent),
-    token('<', tokenStyles.tag),
-    token(tagName, tokenStyles.tag),
-  ]
-}
-
-function tagWithAttributeLine(indent: string, tagName: string, attrName: string, attrValue: string, closing: string) {
-  return [
-    token(indent),
-    token('<', tokenStyles.tag),
-    token(tagName, tokenStyles.tag),
-    token(' '),
-    token(attrName, tokenStyles.attr),
-    token('=', tokenStyles.punctuation),
-    token('"', tokenStyles.punctuation),
-    token(attrValue, tokenStyles.value),
-    token('"', tokenStyles.punctuation),
-    token(closing, tokenStyles.tag),
-  ]
-}
-
-function attributeLine(indent: string, name: string, value: string): CodeLine {
-  return [
-    token(indent),
-    token(name, tokenStyles.attr),
-    token('=', tokenStyles.punctuation),
-    token('"', tokenStyles.punctuation),
-    token(value, tokenStyles.value),
-    token('"', tokenStyles.punctuation),
-  ]
-}
-
-function tagCloseLine(indent: string, tagName: string): CodeLine {
-  return [
-    token(indent),
-    token('</', tokenStyles.tag),
-    token(tagName, tokenStyles.tag),
-    token('>', tokenStyles.tag),
-  ]
-}
-
-function tagSelfCloseLine(indent: string): CodeLine {
-  return [
-    token(indent),
-    token('/>', tokenStyles.tag),
-  ]
-}
-
-function tagEndLine(indent: string): CodeLine {
-  return [
-    token(indent),
-    token('>', tokenStyles.tag),
-  ]
-}
-
-function renderCode(lines: CodeLine[]) {
-  return (
-    <pre className="min-w-max font-mono text-xs/5">
-      {lines.map((line, lineIndex) => (
-        <div key={lineIndex} className="whitespace-pre">
-          {line.map((segment, segmentIndex) => (
-            <span key={segmentIndex} className={segment.className}>
-              {segment.text}
-            </span>
-          ))}
-        </div>
-      ))}
-    </pre>
-  )
 }
 
 export default function EventChartEmbedDialog({
@@ -289,7 +187,7 @@ export default function EventChartEmbedDialog({
   )
   const activeCode = embedType === 'iframe' ? iframeCode : webComponentCode
 
-  const iframeLines = useMemo<CodeLine[]>(() => ([
+  const iframeLines = useMemo<EmbedCodeLine[]>(() => ([
     tagOpenLine('', 'iframe'),
     attributeLine('\t', 'title', embedIframeTitle),
     attributeLine('\t', 'src', iframeSrc),
@@ -299,8 +197,8 @@ export default function EventChartEmbedDialog({
     tagSelfCloseLine(''),
   ]), [embedIframeTitle, iframeSrc, iframeHeight])
 
-  const webComponentLines = useMemo<CodeLine[]>(() => {
-    const lines: CodeLine[] = [
+  const webComponentLines = useMemo<EmbedCodeLine[]>(() => {
+    const lines: EmbedCodeLine[] = [
       tagWithAttributeLine('', 'div', 'id', embedElementName, '>'),
       tagOpenLine('\t', 'script'),
       attributeLine('\t\t', 'type', 'module'),
@@ -335,7 +233,7 @@ export default function EventChartEmbedDialog({
     try {
       await navigator.clipboard.writeText(activeCode)
       setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
+      window.setTimeout(setCopied, 1500, false)
       maybeShowAffiliateToast({
         affiliateCode,
         affiliateSharePercent,
@@ -455,7 +353,9 @@ export default function EventChartEmbedDialog({
                   </div>
                 </div>
                 <div className="overflow-x-auto rounded-md border border-border bg-muted/70 p-4">
-                  {embedType === 'iframe' ? renderCode(iframeLines) : renderCode(webComponentLines)}
+                  {embedType === 'iframe'
+                    ? <EmbedCodePreview lines={iframeLines} />
+                    : <EmbedCodePreview lines={webComponentLines} />}
                 </div>
               </div>
             </div>

@@ -21,6 +21,7 @@ import { formatCurrency, formatSharePriceLabel, formatTimeAgo, toMicro } from '@
 import { POLYGON_SCAN_BASE } from '@/lib/network'
 import { buildPublicProfilePath, isDynamicHomeCategorySlug } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
+import { createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
 type LiveActivityPayload = DataApiActivity & {
   category?: string
@@ -217,7 +218,6 @@ export default function ActivityFeed() {
 
     let isActive = true
     let ws: WebSocket | null = null
-    let reconnectTimeout: number | null = null
 
     function buildSubscriptionPayload(action: 'subscribe' | 'unsubscribe') {
       return JSON.stringify({
@@ -320,6 +320,20 @@ export default function ActivityFeed() {
       // no-op
     }
 
+    let reconnectController: ReturnType<typeof createWebSocketReconnectController> | null = null
+
+    function clearReconnect() {
+      reconnectController?.clearReconnect()
+    }
+
+    function handleVisibilityChange() {
+      reconnectController?.handleVisibilityChange()
+    }
+
+    function scheduleReconnect() {
+      reconnectController?.scheduleReconnect()
+    }
+
     function handleClose() {
       if (!isActive) {
         return
@@ -341,34 +355,14 @@ export default function ActivityFeed() {
       ws.addEventListener('close', handleClose)
     }
 
-    function clearReconnect() {
-      if (reconnectTimeout != null) {
-        window.clearTimeout(reconnectTimeout)
-        reconnectTimeout = null
-      }
-    }
-
-    function scheduleReconnect() {
-      clearReconnect()
-      reconnectTimeout = window.setTimeout(() => {
-        if (!isActive) {
-          return
-        }
-        if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-          ws = null
-          connect()
-        }
-      }, 1500)
-    }
-
-    function handleVisibilityChange() {
-      if (!document.hidden) {
-        if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-          ws = null
-          connect()
-        }
-      }
-    }
+    reconnectController = createWebSocketReconnectController({
+      connect,
+      getWebSocket: () => ws,
+      isActive: () => isActive,
+      resetWebSocket: () => {
+        ws = null
+      },
+    })
 
     connect()
     document.addEventListener('visibilitychange', handleVisibilityChange)

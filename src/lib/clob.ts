@@ -1,15 +1,19 @@
 import type { OrderBookSummaryResponse } from '@/types/EventCardTypes'
 
-const PRICE_EPSILON = 1e-8
-const MAX_LIMIT_PRICE = 99.9
 const CLOB_BASE_URL = process.env.CLOB_URL
+const MAX_LIMIT_PRICE = 99.9
+const PRICE_EPSILON = 1e-8
 
-export async function fetchClobJson<T>(path: string, body: unknown): Promise<T> {
+export function getClobBaseUrl() {
   if (!CLOB_BASE_URL) {
     throw new Error('CLOB URL is not configured.')
   }
 
-  const response = await fetch(`${CLOB_BASE_URL}${path}`, {
+  return CLOB_BASE_URL
+}
+
+export async function fetchClobJson<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${getClobBaseUrl()}${path}`, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
@@ -37,7 +41,7 @@ export async function fetchOrderBookSummary(tokenId: string): Promise<OrderBookS
   const orderBooks = await fetchClobJson<Array<OrderBookSummaryResponse & { asset_id?: string, token_id?: string }>>('/books', payload)
 
   const entry = Array.isArray(orderBooks)
-    ? orderBooks.find(item => item && (item.asset_id === tokenId || (item as any).token_id === tokenId))
+    ? orderBooks.find(item => item && (item.asset_id === tokenId || item.token_id === tokenId))
     : null
 
   if (!entry) {

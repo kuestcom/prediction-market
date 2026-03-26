@@ -1,4 +1,5 @@
 import type { Event } from '@/types'
+import { isEventResolvedLike } from '@/lib/home-events'
 
 function toTimestamp(value: string | null | undefined) {
   if (!value) {
@@ -7,18 +8,6 @@ function toTimestamp(value: string | null | undefined) {
 
   const timestamp = Date.parse(value)
   return Number.isFinite(timestamp) ? timestamp : Number.NaN
-}
-
-function isResolvedLikeEvent(event: Pick<Event, 'status' | 'markets'>) {
-  if (event.status === 'resolved') {
-    return true
-  }
-
-  if (!event.markets.length) {
-    return false
-  }
-
-  return event.markets.every(market => market.is_resolved || market.condition?.resolved)
 }
 
 function compareDescending(left: number, right: number) {
@@ -54,8 +43,8 @@ function compareAscending(left: number, right: number) {
 }
 
 export function compareSearchResultEvents(left: Event, right: Event) {
-  const leftResolved = isResolvedLikeEvent(left)
-  const rightResolved = isResolvedLikeEvent(right)
+  const leftResolved = isEventResolvedLike(left)
+  const rightResolved = isEventResolvedLike(right)
 
   if (leftResolved !== rightResolved) {
     return Number(leftResolved) - Number(rightResolved)

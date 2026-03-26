@@ -67,19 +67,7 @@ function isMoreRecentEvent<T extends HomeVisibleEventCandidate>(candidate: T, cu
   return candidate.id > current.id
 }
 
-function isResolvedLike(event: any) {
-  if (event.status === 'resolved') {
-    return true
-  }
-
-  if (!event.markets || event.markets.length === 0) {
-    return false
-  }
-
-  return event.markets.every((market: any) => market.is_resolved)
-}
-
-export function isHomeEventResolvedLike<T extends HomeVisibleEventCandidate>(event: T) {
+export function isEventResolvedLike<T extends Pick<HomeVisibleEventCandidate, 'status' | 'markets'>>(event: T) {
   if (event.status === 'resolved') {
     return true
   }
@@ -90,6 +78,8 @@ export function isHomeEventResolvedLike<T extends HomeVisibleEventCandidate>(eve
 
   return event.markets.every(market => market.is_resolved || market.condition?.resolved === true)
 }
+
+export const isHomeEventResolvedLike = isEventResolvedLike
 
 function isOverdueUnresolved<T extends HomeVisibleEventCandidate>(event: T, nowMs: number) {
   const endTimestamp = toTimestamp(event.end_date)
@@ -195,11 +185,11 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
   })
 
   if (status === 'resolved') {
-    return eventsMatchingTagFilters.filter(event => isHomeEventResolvedLike(event))
+    return eventsMatchingTagFilters.filter(event => isEventResolvedLike(event))
   }
 
   const activeSeriesCandidates = status === 'all'
-    ? eventsMatchingTagFilters.filter(event => !isResolvedLike(event))
+    ? eventsMatchingTagFilters.filter(event => !isEventResolvedLike(event))
     : eventsMatchingTagFilters
 
   const newestBySeriesSlug = new Map<string, T>()
@@ -225,7 +215,7 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
   }
 
   return eventsMatchingTagFilters.filter((event) => {
-    if (status === 'all' && isResolvedLike(event)) {
+    if (status === 'all' && isEventResolvedLike(event)) {
       return true
     }
 

@@ -2,7 +2,8 @@ import type { NextRequest } from 'next/server'
 import type { SupportedLocale } from '@/i18n/locales'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { EventRepository } from '@/lib/db/queries/event'
-import { EMBED_SCRIPT_URL } from '@/lib/embed-widget'
+import { EMBED_SCRIPT_URL, normalizeEmbedBaseUrl, requireEmbedValue } from '@/lib/embed-widget'
+import { slugifySiteName } from '@/lib/slug'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 function escapeAttr(value: string) {
@@ -11,29 +12,6 @@ function escapeAttr(value: string) {
     .replace(/"/g, '&quot;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-}
-
-function normalizeBaseUrl(value: string) {
-  return value.replace(/\/$/, '')
-}
-
-function requireValue(value: string | undefined, name: string) {
-  if (!value || !value.trim()) {
-    throw new Error(`${name} is required for embeds.`)
-  }
-  return value
-}
-
-function slugifySiteName(value: string) {
-  const slug = value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-  if (!slug) {
-    throw new Error('Site name must include at least one letter or number.')
-  }
-  return slug
 }
 
 async function resolveInitialCategoryMarketSlug(categorySlug: string, locale: SupportedLocale) {
@@ -86,10 +64,10 @@ export async function GET(request: NextRequest) {
   const showFilters = showChart && features.has('filters')
   const navArrowColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(17, 24, 39, 0.9)'
 
-  const siteUrl = normalizeBaseUrl(requireValue(process.env.SITE_URL, 'SITE_URL'))
+  const siteUrl = normalizeEmbedBaseUrl(requireEmbedValue(process.env.SITE_URL, 'SITE_URL'))
   const scriptUrl = EMBED_SCRIPT_URL
   const runtimeTheme = await loadRuntimeThemeState()
-  const siteName = requireValue(runtimeTheme.site.name, 'theme.site_name')
+  const siteName = requireEmbedValue(runtimeTheme.site.name, 'theme.site_name')
   const elementName = `${slugifySiteName(siteName)}-market-embed`
   const siteLogoUrl = runtimeTheme.site.logoUrl
   const initialCategoryMarketSlug = categorySlug

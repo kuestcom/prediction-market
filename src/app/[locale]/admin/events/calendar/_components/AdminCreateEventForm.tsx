@@ -7,9 +7,9 @@ import type {
   AdminSportsFormState,
   AdminSportsPreparePayload,
   AdminSportsPropState,
+  AdminSportsSlugCatalog,
   AdminSportsTeamHostStatus,
 } from '@/lib/admin-sports-create'
-import type { AdminSportsSlugCatalog } from '@/lib/admin-sports-slugs'
 import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import type { EventCreationAssetPayload, EventCreationAssetRef, EventCreationRecurrenceUnit } from '@/lib/event-creation'
 import { useAppKitAccount } from '@reown/appkit/react'
@@ -69,13 +69,11 @@ import {
   createAdminSportsCustomMarket,
   createAdminSportsProp,
   createInitialAdminSportsForm,
-  isSportsMainCategory,
-} from '@/lib/admin-sports-create'
-import {
   getAdminSportsMarketTypeDefaultOutcomes,
   getAdminSportsMarketTypeGroups,
+  isSportsMainCategory,
   resolveAdminSportsMarketTypeOption,
-} from '@/lib/admin-sports-market-types'
+} from '@/lib/admin-sports-create'
 import { defaultNetwork } from '@/lib/appkit'
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import {
@@ -89,6 +87,8 @@ import {
   buildScheduledRecurringDeployAt,
   hasEventCreationDateTemplateVariable,
   normalizeEventCreationAssetPayload,
+  slugifyEventCreationValue as slugify,
+  slugifyEventCreationTemplate as slugifyTemplate,
 } from '@/lib/event-creation'
 import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID, POLYGON_SCAN_BASE } from '@/lib/network'
 import { cn } from '@/lib/utils'
@@ -714,50 +714,6 @@ async function resolveStoredAssetFile(localFile: File | null, asset: EventCreati
   return new File([blob], asset.fileName || 'asset', {
     type: asset.contentType || blob.type || 'application/octet-stream',
   })
-}
-
-function slugify(text: string) {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
-function normalizeTemplateToken(token: string) {
-  const match = token.match(/\{\{\s*([a-z_]+)\s*\}\}/i)
-  return match?.[1] ? `{{${match[1].toLowerCase()}}}` : token.trim()
-}
-
-function slugifyTemplate(text: string) {
-  const trimmed = text.trim()
-  if (!trimmed) {
-    return ''
-  }
-
-  const tokens = trimmed.match(/\{\{\s*[a-z_]+\s*\}\}/gi) ?? []
-  const parts = trimmed.split(/\{\{\s*[a-z_]+\s*\}\}/gi)
-  const segments: string[] = []
-
-  parts.forEach((part, index) => {
-    const slugPart = slugify(part)
-    if (slugPart) {
-      segments.push(slugPart)
-    }
-
-    const token = tokens[index]
-    if (token) {
-      segments.push(normalizeTemplateToken(token))
-    }
-  })
-
-  return segments
-    .join('-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
 }
 
 function shortenAddress(address: string) {

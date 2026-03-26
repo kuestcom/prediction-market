@@ -29,9 +29,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePathname, useRouter } from '@/i18n/navigation'
+import { fetchEventsApi } from '@/lib/events-api'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { formatCompactCurrency, formatDate } from '@/lib/formatters'
-import { HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
+import { HOME_EVENTS_PAGE_SIZE, isEventResolvedLike } from '@/lib/home-events'
 import {
   buildPredictionResultsUrlSearchParams,
   DEFAULT_PREDICTION_RESULTS_SORT,
@@ -141,25 +142,13 @@ function getEventRecentVolume(event: Event) {
   return event.markets.reduce((sum, market) => sum + (market.volume_24h ?? 0), 0)
 }
 
-function isResolvedLikeEvent(event: Pick<Event, 'status' | 'markets'>) {
-  if (event.status === 'resolved') {
-    return true
-  }
-
-  if (event.markets.length === 0) {
-    return false
-  }
-
-  return event.markets.every(market => market.is_resolved || market.condition?.resolved)
-}
-
 function filterPredictionEventsByStatus(events: Event[], status: PredictionResultsStatusOption) {
   if (status === 'all') {
     return events
   }
 
   return events.filter((event) => {
-    const isResolvedEvent = isResolvedLikeEvent(event)
+    const isResolvedEvent = isEventResolvedLike(event)
     return status === 'resolved' ? isResolvedEvent : !isResolvedEvent
   })
 }
@@ -193,31 +182,18 @@ async function fetchPredictionResults({
     query,
     sort,
   })
-  const params = new URLSearchParams({
-    bookmarked: String(bookmarked),
-    homeFeed: 'true',
-    locale,
-    mainTag: routeMainTag,
-    offset: pageParam.toString(),
-    search: query,
-    status: requestStatus,
+  return fetchEventsApi({
     tag: routeTag,
+    mainTag: routeMainTag,
+    search: query,
+    bookmarked,
+    homeFeed: true,
+    locale,
+    offset: pageParam,
+    status: requestStatus,
+    currentTimestamp,
+    sort: sortBy,
   })
-
-  if (currentTimestamp != null) {
-    params.set('currentTimestamp', currentTimestamp.toString())
-  }
-
-  if (sortBy) {
-    params.set('sort', sortBy)
-  }
-
-  const response = await fetch(`/api/events?${params}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch prediction results')
-  }
-
-  return response.json()
 }
 
 export default function PredictionResultsClient({

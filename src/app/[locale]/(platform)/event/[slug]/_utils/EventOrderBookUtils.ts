@@ -8,43 +8,11 @@ import type {
   OrderBookSummaryResponse,
 } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { Market, Outcome } from '@/types'
+import { fetchClobJson, getRoundedCents } from '@/lib/clob'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { formatCentsLabel, formatSharesLabel, toCents } from '@/lib/formatters'
 
 const DEFAULT_MAX_LEVELS = 12
-const MAX_LIMIT_PRICE = 99.9
-const PRICE_EPSILON = 1e-8
-const CLOB_BASE_URL = process.env.CLOB_URL
-
-export async function fetchClobJson<T>(path: string, body: unknown): Promise<T> {
-  if (!CLOB_BASE_URL) {
-    throw new Error('CLOB URL is not configured.')
-  }
-
-  const endpoint = `${CLOB_BASE_URL}${path}`
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-
-  const text = await response.text()
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${path}: ${response.status} ${text}`)
-  }
-
-  try {
-    return JSON.parse(text) as T
-  }
-  catch (error) {
-    console.error(`Failed to parse response from ${path}`, error)
-    throw new Error(`Failed to parse response from ${path}`)
-  }
-}
 
 export async function fetchOrderBookSummaries(tokenIds: string[]): Promise<OrderBookSummariesResponse> {
   if (!tokenIds.length) {
@@ -131,21 +99,6 @@ export function buildOrderBookSnapshot(
 
 export function getExecutableLimitPrice(level: OrderBookLevel) {
   return getRoundedCents(level.rawPrice, level.side).toFixed(1)
-}
-
-export function getRoundedCents(rawPrice: number, side: 'ask' | 'bid') {
-  const cents = rawPrice * 100
-  if (!Number.isFinite(cents)) {
-    return 0
-  }
-
-  const scaled = cents * 10
-  const roundedScaled = side === 'bid'
-    ? Math.floor(scaled + PRICE_EPSILON)
-    : Math.ceil(scaled - PRICE_EPSILON)
-
-  const normalized = Math.max(0, Math.min(roundedScaled / 10, MAX_LIMIT_PRICE))
-  return Number(normalized.toFixed(1))
 }
 
 function normalizeLevels(levels: OrderbookLevelSummary[] | undefined, side: 'ask' | 'bid'): OrderBookLevel[] {

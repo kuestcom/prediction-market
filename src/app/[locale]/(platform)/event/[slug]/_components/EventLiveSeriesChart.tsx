@@ -11,6 +11,7 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+import { createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 import EventChart from './EventChart'
 import EventSeriesPills from './EventSeriesPills'
 
@@ -257,7 +258,7 @@ function extractLivePriceUpdates(payload: any, topic: string, symbol: string, fa
   const deduped: Array<{ price: number, timestamp: number, symbol: string | null }> = []
 
   for (const update of sorted) {
-    const last = deduped[deduped.length - 1]
+    const last = deduped.at(-1)
     if (last && last.timestamp === update.timestamp) {
       deduped[deduped.length - 1] = update
       continue
@@ -364,7 +365,7 @@ function keepWithinLiveWindow(points: DataPoint[], cutoffMs: number) {
     return trimmed
   }
 
-  const lastPoint = points[points.length - 1]
+  const lastPoint = points.at(-1)
   const lastPrice = lastPoint?.[SERIES_KEY]
   if (typeof lastPrice !== 'number' || !Number.isFinite(lastPrice)) {
     return []
@@ -836,7 +837,6 @@ export default function EventLiveSeriesChart({
 
     let isActive = true
     let ws: WebSocket | null = null
-    let reconnectTimeout: number | null = null
 
     function buildSubscriptionPayload(action: 'subscribe' | 'unsubscribe') {
       const filters = JSON.stringify({
@@ -853,26 +853,6 @@ export default function EventLiveSeriesChart({
           },
         ],
       })
-    }
-
-    function clearReconnect() {
-      if (reconnectTimeout != null) {
-        window.clearTimeout(reconnectTimeout)
-        reconnectTimeout = null
-      }
-    }
-
-    function scheduleReconnect() {
-      clearReconnect()
-      reconnectTimeout = window.setTimeout(() => {
-        if (!isActive) {
-          return
-        }
-        if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-          ws = null
-          connect()
-        }
-      }, 1500)
     }
 
     function handleOpen() {
@@ -922,7 +902,7 @@ export default function EventLiveSeriesChart({
       }
 
       setStatus('live')
-      const latest = wsUpdatesForRender[wsUpdatesForRender.length - 1]
+      const latest = wsUpdatesForRender.at(-1)
       if (latest) {
         writePersistedLivePrice(config.topic, subscriptionSymbol, latest.price, latest.timestamp)
       }
@@ -959,7 +939,7 @@ export default function EventLiveSeriesChart({
         }
 
         let next = keepWithinLiveWindow(prev, cutoff)
-        let lastTimestamp = next.length ? next[next.length - 1].date.getTime() : null
+        let lastTimestamp = next.length ? next.at(-1).date.getTime() : null
 
         for (const update of wsUpdatesForRender) {
           // Anchor incoming points to arrival time to avoid delayed-source timestamp jumps.
@@ -990,6 +970,20 @@ export default function EventLiveSeriesChart({
       }
     }
 
+    let reconnectController: ReturnType<typeof createWebSocketReconnectController> | null = null
+
+    function clearReconnect() {
+      reconnectController?.clearReconnect()
+    }
+
+    function handleVisibilityChange() {
+      reconnectController?.handleVisibilityChange()
+    }
+
+    function scheduleReconnect() {
+      reconnectController?.scheduleReconnect()
+    }
+
     function handleClose() {
       if (!isActive) {
         return
@@ -1010,14 +1004,14 @@ export default function EventLiveSeriesChart({
       ws.addEventListener('close', handleClose)
     }
 
-    function handleVisibilityChange() {
-      if (!document.hidden) {
-        if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-          ws = null
-          connect()
-        }
-      }
-    }
+    reconnectController = createWebSocketReconnectController({
+      connect,
+      getWebSocket: () => ws,
+      isActive: () => isActive,
+      resetWebSocket: () => {
+        ws = null
+      },
+    })
 
     connect()
     document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -1138,7 +1132,7 @@ export default function EventLiveSeriesChart({
         : [lastPointBeforeDomainStart]
     }
 
-    const lastPoint = next[next.length - 1]
+    const lastPoint = next.at(-1)
     const lastPrice = lastPoint?.[SERIES_KEY]
     const lastTimestamp = lastPoint?.date?.getTime?.() ?? Number.NaN
 
@@ -1160,7 +1154,7 @@ export default function EventLiveSeriesChart({
     return next
   }, [data, nowMs])
 
-  const lastPoint = renderData[renderData.length - 1]
+  const lastPoint = renderData.at(-1)
   const currentPrice = typeof lastPoint?.[SERIES_KEY] === 'number'
     ? lastPoint[SERIES_KEY] as number
     : fallbackCurrentPrice

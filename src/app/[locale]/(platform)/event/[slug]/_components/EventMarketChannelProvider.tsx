@@ -8,6 +8,7 @@ import type {
 import type { Market } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { createContext, use, useEffect, useMemo, useRef, useState } from 'react'
+import { createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
 type MarketChannelStatus = 'connecting' | 'live' | 'offline'
 type MarketChannelListener = (payload: any) => void
@@ -226,7 +227,6 @@ function EventMarketChannelProvider({
 
     let isActive = true
     let ws: WebSocket | null = null
-    let reconnectTimeout: number | null = null
 
     function handleOpen() {
       if (!ws) {
@@ -292,6 +292,20 @@ function EventMarketChannelProvider({
       }
     }
 
+    let reconnectController: ReturnType<typeof createWebSocketReconnectController> | null = null
+
+    function clearReconnect() {
+      reconnectController?.clearReconnect()
+    }
+
+    function handleVisibilityChange() {
+      reconnectController?.handleVisibilityChange()
+    }
+
+    function scheduleReconnect() {
+      reconnectController?.scheduleReconnect()
+    }
+
     function handleClose() {
       if (isActive) {
         setStatus('offline')
@@ -311,34 +325,14 @@ function EventMarketChannelProvider({
       ws.addEventListener('close', handleClose)
     }
 
-    function clearReconnect() {
-      if (reconnectTimeout != null) {
-        window.clearTimeout(reconnectTimeout)
-        reconnectTimeout = null
-      }
-    }
-
-    function scheduleReconnect() {
-      clearReconnect()
-      reconnectTimeout = window.setTimeout(() => {
-        if (!isActive) {
-          return
-        }
-        if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-          ws = null
-          connect()
-        }
-      }, 1500)
-    }
-
-    function handleVisibilityChange() {
-      if (!document.hidden) {
-        if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-          ws = null
-          connect()
-        }
-      }
-    }
+    reconnectController = createWebSocketReconnectController({
+      connect,
+      getWebSocket: () => ws,
+      isActive: () => isActive,
+      resetWebSocket: () => {
+        ws = null
+      },
+    })
 
     connect()
     document.addEventListener('visibilitychange', handleVisibilityChange)

@@ -15,6 +15,8 @@ import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_ho
 import { buildMarketTargets } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { useColumns } from '@/hooks/useColumns'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
+import { fetchEventsApi } from '@/lib/events-api'
+import { filterHomeEvents, HOME_EVENTS_PAGE_SIZE, isEventResolvedLike } from '@/lib/home-events'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
@@ -32,16 +34,11 @@ const EMPTY_PRICE_OVERRIDES: Record<string, number> = {}
 const SPORTS_LIVE_OVERRIDE_SETTLE_DELAY_MS = 2_000
 
 function resolveSportsCardMarkets(event: Event) {
-  const activeMarkets = event.status === 'resolved'
+  const activeMarkets = isEventResolvedLike(event)
     ? event.markets
     : event.markets.filter(market => !market.is_resolved && !market.condition?.resolved)
 
   return activeMarkets.length > 0 ? activeMarkets : event.markets
-}
-
-function normalizeSeriesSlug(value: string | null | undefined) {
-  const normalized = value?.trim().toLowerCase()
-  return normalized || null
 }
 
 function toTimestamp(value: string | null | undefined) {
@@ -51,36 +48,6 @@ function toTimestamp(value: string | null | undefined) {
 
   const timestamp = Date.parse(value)
   return Number.isFinite(timestamp) ? timestamp : Number.NEGATIVE_INFINITY
-}
-
-function isMoreRecentEvent(candidate: Event, current: Event) {
-  const candidateCreatedAt = toTimestamp(candidate.created_at)
-  const currentCreatedAt = toTimestamp(current.created_at)
-
-  if (candidateCreatedAt !== currentCreatedAt) {
-    return candidateCreatedAt > currentCreatedAt
-  }
-
-  const candidateUpdatedAt = toTimestamp(candidate.updated_at)
-  const currentUpdatedAt = toTimestamp(current.updated_at)
-
-  if (candidateUpdatedAt !== currentUpdatedAt) {
-    return candidateUpdatedAt > currentUpdatedAt
-  }
-
-  return candidate.id > current.id
-}
-
-function isResolvedLike(event: Event) {
-  if (event.status === 'resolved') {
-    return true
-  }
-
-  if (!event.markets || event.markets.length === 0) {
-    return false
-  }
-
-  return event.markets.every(market => market.is_resolved)
 }
 
 function resolveEventStartTimestamp(event: Event) {
@@ -120,42 +87,6 @@ function isEventFuture(event: Event, nowMs: number) {
   return start > nowMs && event.status === 'active'
 }
 
-function isPreferredSeriesEvent(candidate: Event, current: Event, nowMs: number) {
-  const candidateEnd = toTimestamp(candidate.end_date)
-  const currentEnd = toTimestamp(current.end_date)
-  const candidateHasFutureEnd = candidateEnd >= nowMs
-  const currentHasFutureEnd = currentEnd >= nowMs
-  const candidateResolved = isResolvedLike(candidate)
-  const currentResolved = isResolvedLike(current)
-
-  if (candidateHasFutureEnd && currentHasFutureEnd) {
-    if (candidateResolved !== currentResolved) {
-      return !candidateResolved
-    }
-
-    if (candidateEnd !== currentEnd) {
-      // Among upcoming series events, keep the one ending sooner (current cycle).
-      return candidateEnd < currentEnd
-    }
-
-    return isMoreRecentEvent(candidate, current)
-  }
-
-  if (candidateHasFutureEnd !== currentHasFutureEnd) {
-    return candidateHasFutureEnd
-  }
-
-  if (candidateResolved !== currentResolved) {
-    return !candidateResolved
-  }
-
-  if (candidateEnd !== currentEnd) {
-    return candidateEnd > currentEnd
-  }
-
-  return isMoreRecentEvent(candidate, current)
-}
-
 async function fetchEvents({
   pageParam = 0,
   filters,
@@ -169,35 +100,20 @@ async function fetchEvents({
   sportsSportSlug: string | null
   sportsSection: 'games' | 'props' | null
 }): Promise<Event[]> {
-  const params = new URLSearchParams({
+  return fetchEventsApi({
     tag: 'sports',
     search: filters.search,
-    bookmarked: filters.bookmarked.toString(),
+    bookmarked: filters.bookmarked,
     frequency: filters.frequency,
     status: filters.status,
-    offset: pageParam.toString(),
+    offset: pageParam,
     locale,
+    hideSports: filters.hideSports,
+    hideCrypto: filters.hideCrypto,
+    hideEarnings: filters.hideEarnings,
+    sportsSportSlug,
+    sportsSection,
   })
-  if (filters.hideSports) {
-    params.set('hideSports', 'true')
-  }
-  if (filters.hideCrypto) {
-    params.set('hideCrypto', 'true')
-  }
-  if (filters.hideEarnings) {
-    params.set('hideEarnings', 'true')
-  }
-  if (sportsSportSlug) {
-    params.set('sportsSportSlug', sportsSportSlug)
-  }
-  if (sportsSection) {
-    params.set('sportsSection', sportsSection)
-  }
-  const response = await fetch(`/api/events?${params}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch events')
-  }
-  return response.json()
 }
 
 export default function SportsEventsGrid({
@@ -216,7 +132,7 @@ export default function SportsEventsGrid({
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const [sportsMode, setSportsMode] = useState<SportsSidebarMode>(initialMode)
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
-  const PAGE_SIZE = 32
+  const PAGE_SIZE = HOME_EVENTS_PAGE_SIZE
   const normalizedSportsSportSlug = sportsSportSlug?.trim().toLowerCase() || null
   const isDefaultState = filters.search === ''
     && !filters.bookmarked
@@ -311,68 +227,12 @@ export default function SportsEventsGrid({
       return EMPTY_EVENTS
     }
 
-    const eventsMatchingTagFilters = allEvents.filter((event) => {
-      const tagSlugs = new Set<string>()
-
-      if (event.main_tag) {
-        tagSlugs.add(event.main_tag.toLowerCase())
-      }
-
-      for (const tag of event.tags ?? []) {
-        if (tag?.slug) {
-          tagSlugs.add(tag.slug.toLowerCase())
-        }
-      }
-
-      const slugs = Array.from(tagSlugs)
-      const hasSportsTag = slugs.some(slug => slug.includes('sport'))
-      const hasCryptoTag = slugs.some(slug => slug.includes('crypto'))
-      const hasEarningsTag = slugs.some(slug => slug.includes('earning'))
-
-      if (filters.hideSports && hasSportsTag) {
-        return false
-      }
-
-      if (filters.hideCrypto && hasCryptoTag) {
-        return false
-      }
-
-      return !(filters.hideEarnings && hasEarningsTag)
-    })
-
-    if (filters.status === 'resolved') {
-      return eventsMatchingTagFilters
-    }
-
-    if (currentTimestamp == null) {
-      return eventsMatchingTagFilters
-    }
-
-    const newestBySeriesSlug = new Map<string, Event>()
-
-    for (const event of eventsMatchingTagFilters) {
-      const seriesSlug = normalizeSeriesSlug(event.series_slug)
-      if (!seriesSlug) {
-        continue
-      }
-
-      const currentNewest = newestBySeriesSlug.get(seriesSlug)
-      if (!currentNewest || isPreferredSeriesEvent(event, currentNewest, currentTimestamp)) {
-        newestBySeriesSlug.set(seriesSlug, event)
-      }
-    }
-
-    if (newestBySeriesSlug.size === 0) {
-      return eventsMatchingTagFilters
-    }
-
-    return eventsMatchingTagFilters.filter((event) => {
-      const seriesSlug = normalizeSeriesSlug(event.series_slug)
-      if (!seriesSlug) {
-        return true
-      }
-
-      return newestBySeriesSlug.get(seriesSlug)?.id === event.id
+    return filterHomeEvents(allEvents, {
+      currentTimestamp,
+      hideSports: filters.hideSports,
+      hideCrypto: filters.hideCrypto,
+      hideEarnings: filters.hideEarnings,
+      status: filters.status,
     })
   }, [allEvents, currentTimestamp, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status])
 

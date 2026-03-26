@@ -15,6 +15,7 @@ import {
 } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
+import { normalizeComparableValue } from '@/lib/slug'
 import { SPORTS_AUXILIARY_SLUG_SQL_REGEX } from '@/lib/sports-event-slugs'
 import {
   buildSportsSlugResolver,
@@ -52,15 +53,6 @@ export interface SportsMenuLayoutData {
   canonicalSlugByAliasKey: Record<string, string>
   h1TitleBySlug: Record<string, string>
   sectionsBySlug: Record<string, { gamesEnabled: boolean, propsEnabled: boolean }>
-}
-
-function normalizeComparableValue(value: string | null | undefined) {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const normalized = value.trim().toLowerCase()
-  return normalized || null
 }
 
 function toOptionalStringArray(value: unknown) {

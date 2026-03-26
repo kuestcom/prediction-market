@@ -2,10 +2,9 @@ import type { DataApiActivity } from '@/lib/data-api/user'
 import type { ActivityOrder } from '@/types'
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { IS_BROWSER } from '@/lib/constants'
+import { buildDataApiUrl } from '@/lib/data-api/client'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 import { toMicro } from '@/lib/formatters'
-
-const DATA_API_URL = process.env.DATA_URL!
 
 interface FetchEventTradesParams {
   marketIds: string[]
@@ -22,10 +21,6 @@ export async function fetchEventTrades({
   minAmountFilter,
   signal,
 }: FetchEventTradesParams): Promise<ActivityOrder[]> {
-  if (!DATA_API_URL) {
-    throw new Error('DATA_URL environment variable is not configured.')
-  }
-
   const markets = Array.from(new Set(marketIds.filter(Boolean)))
   if (markets.length === 0) {
     throw new Error('At least one market id is required to load event activity.')
@@ -75,7 +70,7 @@ export async function fetchEventTrades({
     params.set('filterAmount', parsedFilterAmount.toString())
   }
 
-  const response = await fetch(`${DATA_API_URL}/trades?${params.toString()}`, { signal })
+  const response = await fetch(buildDataApiUrl('/trades', params), { signal })
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null)

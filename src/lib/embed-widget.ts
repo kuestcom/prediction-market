@@ -3,6 +3,18 @@ const EMBED_SCRIPT_URL = 'https://unpkg.com/@kuestcom/embeds/dist/index.js'
 type EmbedTheme = 'light' | 'dark'
 const CUSTOM_ELEMENT_NAME_PATTERN = /^[a-z](?:[a-z0-9-]*[a-z0-9])?$/
 
+export function requireEmbedValue(value: string | undefined, name: string) {
+  if (!value || !value.trim()) {
+    throw new Error(`${name} is required for embeds.`)
+  }
+
+  return value
+}
+
+export function normalizeEmbedBaseUrl(value: string) {
+  return value.replace(/\/$/, '')
+}
+
 function appendAffiliateRef(params: URLSearchParams, affiliateCode?: string) {
   const sanitized = affiliateCode?.trim()
   if (!sanitized || params.has('r')) {

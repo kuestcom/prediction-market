@@ -1,7 +1,14 @@
+import type { OpenOrderOutcomeMeta } from '@/lib/clob-open-orders'
 import type { ClobOrderType, UserOpenOrder } from '@/types'
 import { inArray } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
-import { DEFAULT_ERROR_MESSAGE, MICRO_UNIT } from '@/lib/constants'
+import {
+  mapClobOpenOrder,
+  normalizeClobId,
+  normalizeClobOpenOrdersResponse,
+
+} from '@/lib/clob-open-orders'
+import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 import { markets } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
@@ -66,7 +73,7 @@ export async function GET(request: Request) {
     const conditionIds = Array.from(
       new Set(
         clobOrders
-          .map(order => normalizeId(order.market))
+          .map(order => normalizeClobId(order.market))
           .filter(Boolean),
       ),
     )
@@ -79,7 +86,7 @@ export async function GET(request: Request) {
     const { marketMap, outcomeMap } = buildMarketLookups(marketMetadata ?? [])
 
     const normalizedOrders = clobOrders
-      .map(order => mapClobOrder(order, marketMap, outcomeMap))
+      .map(order => mapClobOpenOrder(order, marketMap, outcomeMap))
       .filter((order): order is UserOpenOrder => Boolean(order))
     return NextResponse.json({ data: normalizedOrders, next_cursor })
   }
@@ -228,10 +235,10 @@ function buildMarketLookups(marketsList: Array<{
     event_slug?: string
     event_title?: string
   }>()
-  const outcomeMap = new Map<string, { index: number, text: string }>()
+  const outcomeMap = new Map<string, OpenOrderOutcomeMeta>()
 
   for (const market of marketsList) {
-    const normalizedCondition = normalizeId(market.condition_id)
+    const normalizedCondition = normalizeClobId(market.condition_id)
     marketMap.set(normalizedCondition, {
       condition_id: market.condition_id,
       title: market.title,
@@ -244,7 +251,7 @@ function buildMarketLookups(marketsList: Array<{
     })
 
     for (const outcome of market.outcomes) {
-      const normalizedToken = normalizeId(outcome.token_id)
+      const normalizedToken = normalizeClobId(outcome.token_id)
       if (normalizedToken) {
         outcomeMap.set(normalizedToken, {
           index: outcome.outcome_index,
@@ -255,121 +262,4 @@ function buildMarketLookups(marketsList: Array<{
   }
 
   return { marketMap, outcomeMap }
-}
-
-function mapClobOrder(
-  order: ClobOpenOrder,
-  marketMap: Map<string, UserOpenOrder['market'] & { icon_url?: string, event_slug?: string, event_title?: string }>,
-  outcomeMap: Map<string, { index: number, text: string }>,
-): (UserOpenOrder & { market: UserOpenOrder['market'] & { icon_url?: string, event_slug?: string, event_title?: string } }) | null {
-  const marketMeta = marketMap.get(normalizeId(order.market))
-  if (!marketMeta) {
-    return null
-  }
-
-  const outcomeMeta = resolveOutcome(order, outcomeMap)
-  const side = order.side === 'SELL' ? 'sell' : 'buy'
-  const priceValue = clampNumber(parseNumber(order.price), 0, 1)
-  const totalShares = Math.max(parseNumber(order.original_size), 0)
-  const filledShares = Math.max(parseNumber(order.size_matched), 0)
-  const { makerAmount, takerAmount } = calculateAmounts(totalShares, priceValue, side)
-  const expiry = parseNumber(order.expiration)
-  const createdAt = order.created_at
-
-  return {
-    id: order.id,
-    side,
-    type: order.type ?? 'GTC',
-    status: order.status || 'live',
-    price: priceValue,
-    maker_amount: makerAmount,
-    taker_amount: takerAmount,
-    size_matched: Math.round(filledShares * MICRO_UNIT),
-    created_at: createdAt,
-    expiration: Number.isFinite(expiry) ? expiry : null,
-    outcome: {
-      index: outcomeMeta?.index ?? 0,
-      text: outcomeMeta?.text || '',
-    },
-    market: marketMeta,
-  }
-}
-
-function resolveOutcome(order: ClobOpenOrder, outcomeMap: Map<string, { index: number, text: string }>) {
-  const candidates = [order.asset_id, order.outcome]
-  for (const candidate of candidates) {
-    const normalized = normalizeId(candidate)
-    if (!normalized) {
-      continue
-    }
-
-    if (outcomeMap.has(normalized)) {
-      return outcomeMap.get(normalized)
-    }
-
-    if (normalized.includes(':')) {
-      const [base] = normalized.split(':')
-      if (base && outcomeMap.has(base)) {
-        return outcomeMap.get(base)
-      }
-    }
-  }
-  return undefined
-}
-
-function calculateAmounts(totalShares: number, price: number, side: 'buy' | 'sell') {
-  const sharesMicro = Math.round(totalShares * MICRO_UNIT)
-  const valueMicro = Math.round(totalShares * price * MICRO_UNIT)
-
-  if (side === 'buy') {
-    return {
-      makerAmount: valueMicro,
-      takerAmount: sharesMicro,
-    }
-  }
-
-  return {
-    makerAmount: sharesMicro,
-    takerAmount: valueMicro,
-  }
-}
-
-function normalizeId(value?: string | null) {
-  return typeof value === 'string' ? value.trim().toLowerCase() : ''
-}
-
-function parseNumber(value?: string | number | null) {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : 0
-  }
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : 0
-  }
-  return 0
-}
-
-function clampNumber(value: number, min: number, max: number) {
-  if (!Number.isFinite(value)) {
-    return min
-  }
-  return Math.min(Math.max(value, min), max)
-}
-
-function normalizeClobOpenOrdersResponse(result: unknown) {
-  if (Array.isArray(result)) {
-    return { data: result as ClobOpenOrder[], next_cursor: 'LTE=' }
-  }
-
-  if (result && typeof result === 'object') {
-    const data = Array.isArray((result as { data?: unknown }).data)
-      ? (result as { data: ClobOpenOrder[] }).data
-      : []
-    const next_cursor = typeof (result as { next_cursor?: unknown }).next_cursor === 'string'
-      ? (result as { next_cursor: string }).next_cursor
-      : 'LTE='
-    return { data, next_cursor }
-  }
-
-  return { data: [], next_cursor: 'LTE=' }
 }

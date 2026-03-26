@@ -1,5 +1,6 @@
 import type { ActivityOrder, UserPosition } from '@/types'
 import { MICRO_UNIT } from '@/lib/constants'
+import { buildDataApiUrl } from '@/lib/data-api/client'
 
 interface DataApiRequestParams {
   pageParam: number
@@ -63,14 +64,6 @@ export interface DataApiOtherBalance {
   slug?: string
   user?: string
   size?: number
-}
-
-const DATA_API_URL = process.env.DATA_URL!
-
-function assertDataApiUrl() {
-  if (!DATA_API_URL) {
-    throw new Error('DATA_URL environment variable is not configured.')
-  }
 }
 
 function normalizeValue(value: number | undefined | null): number {
@@ -257,8 +250,6 @@ export async function fetchUserActivityData({
   signal,
   conditionId,
 }: DataApiRequestParams & { conditionId?: string }): Promise<DataApiActivity[]> {
-  assertDataApiUrl()
-
   const params = new URLSearchParams({
     limit: '50',
     offset: pageParam.toString(),
@@ -270,7 +261,7 @@ export async function fetchUserActivityData({
     params.set('conditionId', conditionId)
   }
 
-  const response = await fetch(`${DATA_API_URL}/activity?${params.toString()}`, { signal })
+  const response = await fetch(buildDataApiUrl('/activity', params), { signal })
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null)
@@ -295,8 +286,6 @@ export async function fetchUserOtherBalance({
   userAddress: string
   signal?: AbortSignal
 }): Promise<DataApiOtherBalance[]> {
-  assertDataApiUrl()
-
   const slug = eventSlug.trim()
   if (!slug) {
     return []
@@ -308,7 +297,7 @@ export async function fetchUserOtherBalance({
     user: normalizedUserAddress,
   })
 
-  const response = await fetch(`${DATA_API_URL}/other?${params.toString()}`, { signal })
+  const response = await fetch(buildDataApiUrl('/other', params), { signal })
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null)
     const errorMessage = errorBody?.error || 'Server error occurred. Please try again later.'
@@ -423,7 +412,6 @@ export async function fetchUserPositionsForMarket({
   status: 'active' | 'closed'
   conditionId?: string
 }): Promise<UserPosition[]> {
-  assertDataApiUrl()
   const endpoint = status === 'closed' ? '/closed-positions' : '/positions'
   const normalizedUserAddress = userAddress.toLowerCase()
   const params = new URLSearchParams({
@@ -441,7 +429,7 @@ export async function fetchUserPositionsForMarket({
     params.set('market', conditionId)
   }
 
-  const response = await fetch(`${DATA_API_URL}${endpoint}?${params.toString()}`, { signal })
+  const response = await fetch(buildDataApiUrl(endpoint, params), { signal })
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null)

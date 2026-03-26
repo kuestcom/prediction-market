@@ -1,3 +1,4 @@
+import { buildDataApiUrl, getDataApiUrl, normalizeDataApiAddress } from '@/lib/data-api/client'
 import { normalizeAddress } from '@/lib/wallet'
 
 export interface ProfileLinkStats {
@@ -5,9 +6,6 @@ export interface ProfileLinkStats {
   volume: string | null
   positionsValue: number
 }
-
-const DATA_API_URL = process.env.DATA_URL!
-const LEADERBOARD_API_URL = DATA_API_URL.endsWith('/v1') ? DATA_API_URL : `${DATA_API_URL}/v1`
 
 const CACHE_TTL_MS = 5 * 60 * 1000
 const CACHE_MAX_ENTRIES = 200
@@ -140,20 +138,30 @@ async function fetchJson(url: string, signal?: AbortSignal) {
   return await response.json()
 }
 
+function getLeaderboardApiUrl() {
+  const dataApiUrl = getDataApiUrl()
+  return dataApiUrl.endsWith('/v1') ? dataApiUrl : `${dataApiUrl}/v1`
+}
+
 export async function fetchProfileLinkStats(
   userAddress?: string | null,
   signal?: AbortSignal,
 ): Promise<ProfileLinkStats | null> {
-  if (!DATA_API_URL) {
-    return null
-  }
-
   const address = normalizeAddress(userAddress)
   if (!address) {
     return null
   }
 
-  const cacheKey = address.toLowerCase()
+  let leaderboardApiUrl: string
+  try {
+    leaderboardApiUrl = getLeaderboardApiUrl()
+  }
+  catch {
+    return null
+  }
+
+  const normalizedAddress = normalizeDataApiAddress(address)
+  const cacheKey = normalizedAddress
   const now = Date.now()
   pruneCache(now)
   const cached = statsCache.get(cacheKey)
@@ -171,17 +179,17 @@ export async function fetchProfileLinkStats(
 
   const request = (async () => {
     try {
-      const valueUrl = `${DATA_API_URL}/value?user=${encodeURIComponent(address)}`
-      const volumeUrl = `${DATA_API_URL}/volume?user=${encodeURIComponent(address)}`
+      const valueUrl = buildDataApiUrl('/value', new URLSearchParams({ user: normalizedAddress }))
+      const volumeUrl = buildDataApiUrl('/volume', new URLSearchParams({ user: normalizedAddress }))
       const leaderboardParams = new URLSearchParams({
-        user: address,
+        user: normalizedAddress,
         timePeriod: 'all',
         orderBy: 'PNL',
         category: 'overall',
         limit: '1',
         offset: '0',
       })
-      const leaderboardUrl = `${LEADERBOARD_API_URL}/leaderboard?${leaderboardParams.toString()}`
+      const leaderboardUrl = `${leaderboardApiUrl}/leaderboard?${leaderboardParams.toString()}`
 
       const [
         valueResult,

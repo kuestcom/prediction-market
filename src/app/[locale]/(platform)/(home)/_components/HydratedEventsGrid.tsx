@@ -14,6 +14,7 @@ import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_ho
 import { buildMarketTargets } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { useColumns } from '@/hooks/useColumns'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
+import { fetchEventsApi } from '@/lib/events-api'
 import { HOME_EVENTS_PAGE_SIZE, isHomeEventResolvedLike } from '@/lib/home-events'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
@@ -109,38 +110,21 @@ async function fetchEvents({
   filters: FilterState
   locale: string
 }): Promise<Event[]> {
-  const params = new URLSearchParams({
+  return fetchEventsApi({
     tag: filters.tag,
     mainTag: filters.mainTag,
     search: filters.search,
-    bookmarked: filters.bookmarked.toString(),
+    bookmarked: filters.bookmarked,
     frequency: filters.frequency,
-    homeFeed: 'true',
+    homeFeed: true,
     status: filters.status,
-    offset: pageParam.toString(),
+    offset: pageParam,
     locale,
+    currentTimestamp,
+    hideSports: filters.hideSports,
+    hideCrypto: filters.hideCrypto,
+    hideEarnings: filters.hideEarnings,
   })
-
-  if (currentTimestamp != null) {
-    params.set('currentTimestamp', currentTimestamp.toString())
-  }
-
-  if (filters.hideSports) {
-    params.set('hideSports', 'true')
-  }
-  if (filters.hideCrypto) {
-    params.set('hideCrypto', 'true')
-  }
-  if (filters.hideEarnings) {
-    params.set('hideEarnings', 'true')
-  }
-
-  const response = await fetch(`/api/events?${params}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch events')
-  }
-
-  return response.json()
 }
 
 export default function HydratedEventsGrid({

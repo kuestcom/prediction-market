@@ -9,6 +9,7 @@ import {
   buildEventCreationTimestampSeed,
   buildEventCreationWalletTail,
   buildScheduledRecurringDeployAt,
+  slugifyEventCreationValue,
 } from '@/lib/event-creation'
 
 type MarketMode = 'binary' | 'multi_multiple' | 'multi_unique'
@@ -44,15 +45,6 @@ export interface EventCreationPreparePayload {
   sports?: ReturnType<typeof buildAdminSportsDerivedContent>['payload']
 }
 
-function slugify(value: string) {
-  return value
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
 function readString(value: unknown, fallback = '') {
   return typeof value === 'string' ? value.trim() : fallback.trim()
 }
@@ -76,7 +68,7 @@ function normalizeCategoryItems(record: EventCreationDraftRecord) {
     .map((item) => {
       const candidate = readObject(item)
       const label = readString(candidate.label)
-      const slug = slugify(readString(candidate.slug))
+      const slug = slugifyEventCreationValue(readString(candidate.slug))
       if (!label || !slug) {
         return null
       }
@@ -168,7 +160,7 @@ function normalizeMultiOptions(record: EventCreationDraftRecord) {
       const title = readString(candidate.title)
       const question = readString(candidate.question)
       const shortName = readString(candidate.shortName)
-      const slug = slugify(readString(candidate.slug) || title)
+      const slug = slugifyEventCreationValue(readString(candidate.slug) || title)
       if (!title || !question || !slug) {
         return null
       }
@@ -207,7 +199,7 @@ function buildOccurrenceContent(record: EventCreationDraftRecord, date: Date) {
 
   const title = applyEventCreationTemplate(record.titleTemplate ?? '', date, baseTitle) || baseTitle
   const slugTemplateResult = applyEventCreationTemplate(record.slugTemplate ?? '', date, baseSlug)
-  const baseResolvedSlug = slugify(slugTemplateResult || baseSlug || title)
+  const baseResolvedSlug = slugifyEventCreationValue(slugTemplateResult || baseSlug || title)
   const recurringSuffix = `${buildEventCreationTimestampSeed(date)}${buildEventCreationWalletTail(record.walletAddress)}`
   const slug = record.creationMode === 'recurring'
     ? appendEventCreationSlugSuffix(baseResolvedSlug, recurringSuffix)
@@ -236,7 +228,7 @@ export function buildEventCreationPreparePayload(input: {
 
   const categories = Array.from(new Map(
     [
-      { label: mainCategorySlug, slug: slugify(mainCategorySlug) },
+      { label: mainCategorySlug, slug: slugifyEventCreationValue(mainCategorySlug) },
       ...normalizeCategoryItems(record),
     ]
       .filter(item => item.label && item.slug)
@@ -261,7 +253,7 @@ export function buildEventCreationPreparePayload(input: {
     title: occurrence.title,
     slug: occurrence.slug,
     endDateIso: occurrenceDate.toISOString(),
-    mainCategorySlug: slugify(mainCategorySlug),
+    mainCategorySlug: slugifyEventCreationValue(mainCategorySlug),
     categories,
     marketMode: isSports ? 'multi_multiple' : marketMode,
     resolutionSource,
@@ -284,7 +276,7 @@ export function buildEventCreationPreparePayload(input: {
       question: option.question.trim(),
       title: option.title.trim(),
       shortName: option.shortName.trim(),
-      slug: slugify(option.slug),
+      slug: slugifyEventCreationValue(option.slug),
     }))
     payload.sports = derived.payload
     return {

@@ -1,7 +1,5 @@
+import { getRoundedCents } from '@/lib/clob'
 import { MICRO_UNIT, ORDER_SIDE } from '@/lib/constants'
-
-const MAX_LIMIT_PRICE = 99.9
-const PRICE_EPSILON = 1e-8
 
 export function normalizeShares(value?: number) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
@@ -9,21 +7,6 @@ export function normalizeShares(value?: number) {
   }
 
   return value > 100_000 ? value / MICRO_UNIT : value
-}
-
-export function getRoundedCents(rawPrice: number, side: 'ask' | 'bid') {
-  const cents = rawPrice * 100
-  if (!Number.isFinite(cents)) {
-    return 0
-  }
-
-  const scaled = cents * 10
-  const roundedScaled = side === 'bid'
-    ? Math.floor(scaled + PRICE_EPSILON)
-    : Math.ceil(scaled - PRICE_EPSILON)
-
-  const normalized = Math.max(0, Math.min(roundedScaled / 10, MAX_LIMIT_PRICE))
-  return Number(normalized.toFixed(1))
 }
 
 export interface NormalizedBookLevel {

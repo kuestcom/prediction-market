@@ -1,3 +1,5 @@
+import { slugifyText } from '@/lib/slug'
+
 export type EventCreationMode = 'single' | 'recurring'
 export type EventCreationStatus = 'draft' | 'scheduled' | 'running' | 'deployed' | 'failed' | 'canceled'
 export type EventCreationRecurrenceUnit = 'minute' | 'hour' | 'day' | 'week' | 'month' | 'quarter' | 'semiannual' | 'year'
@@ -43,13 +45,8 @@ const BLOCKED_ASSET_RECORD_KEYS = new Set(['__proto__', 'constructor', 'prototyp
 const EVENT_CREATION_TEMPLATE_TOKEN_REPLACE_PATTERN = /\{\{\s*([a-z_]+(?:[+-]\d+)?)\s*\}\}/gi
 const EVENT_CREATION_DATE_TEMPLATE_TOKEN_PATTERN = /\{\{\s*(?:day|day_padded|month|month_padded|month_name|month_name_lower|date|date_short|year)(?:[+-]\d+)?\s*\}\}/i
 
-function slugify(value: string) {
-  return value
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+export function slugifyEventCreationValue(value: string) {
+  return slugifyText(value)
 }
 
 export function buildEventCreationWalletTail(walletAddress: string | null | undefined) {
@@ -237,6 +234,39 @@ function resolveEventCreationTemplateToken(rawToken: string, baseDate: Date) {
   return buildEventCreationTemplateTokens(targetDate)[baseToken] ?? ''
 }
 
+function normalizeTemplateToken(token: string) {
+  const match = token.match(/\{\{\s*([a-z_]+)\s*\}\}/i)
+  return match?.[1] ? `{{${match[1].toLowerCase()}}}` : token.trim()
+}
+
+export function slugifyEventCreationTemplate(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return ''
+  }
+
+  const tokens = trimmed.match(/\{\{\s*[a-z_]+\s*\}\}/gi) ?? []
+  const parts = trimmed.split(/\{\{\s*[a-z_]+\s*\}\}/gi)
+  const segments: string[] = []
+
+  parts.forEach((part, index) => {
+    const slugPart = slugifyEventCreationValue(part)
+    if (slugPart) {
+      segments.push(slugPart)
+    }
+
+    const token = tokens[index]
+    if (token) {
+      segments.push(normalizeTemplateToken(token))
+    }
+  })
+
+  return segments
+    .join('-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 export function applyEventCreationTemplate(template: string, date: Date, fallbackValue?: string) {
   const normalizedTemplate = template.trim() || fallbackValue?.trim() || ''
   if (!normalizedTemplate) {
@@ -257,11 +287,11 @@ export function buildOccurrenceTitle(input: {
 }) {
   const title = applyEventCreationTemplate(input.titleTemplate ?? '', input.date, input.title)
   const rawSlug = applyEventCreationTemplate(input.slugTemplate ?? '', input.date, input.slug ?? '')
-  const slug = slugify(rawSlug)
+  const slug = slugifyEventCreationValue(rawSlug)
 
   return {
     title,
-    slug: slug || slugify(input.slug ?? ''),
+    slug: slug || slugifyEventCreationValue(input.slug ?? ''),
   }
 }
 

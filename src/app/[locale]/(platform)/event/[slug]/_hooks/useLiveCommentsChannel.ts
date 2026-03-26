@@ -4,6 +4,7 @@ import type { Comment, User } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { commentMetricsQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
+import { createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
 interface LiveCommentProfile {
   baseAddress?: string
@@ -116,7 +117,6 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
 
     let isActive = true
     let ws: WebSocket | null = null
-    let reconnectTimeout: number | null = null
 
     function buildSubscriptionPayload(action: 'subscribe' | 'unsubscribe') {
       return JSON.stringify({
@@ -294,6 +294,20 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       }
     }
 
+    let reconnectController: ReturnType<typeof createWebSocketReconnectController> | null = null
+
+    function clearReconnect() {
+      reconnectController?.clearReconnect()
+    }
+
+    function handleVisibilityChange() {
+      reconnectController?.handleVisibilityChange()
+    }
+
+    function scheduleReconnect() {
+      reconnectController?.scheduleReconnect()
+    }
+
     function handleClose() {
       if (!isActive) {
         return
@@ -314,34 +328,14 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       ws.addEventListener('close', handleClose)
     }
 
-    function clearReconnect() {
-      if (reconnectTimeout != null) {
-        window.clearTimeout(reconnectTimeout)
-        reconnectTimeout = null
-      }
-    }
-
-    function scheduleReconnect() {
-      clearReconnect()
-      reconnectTimeout = window.setTimeout(() => {
-        if (!isActive) {
-          return
-        }
-        if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-          ws = null
-          connect()
-        }
-      }, 1500)
-    }
-
-    function handleVisibilityChange() {
-      if (!document.hidden) {
-        if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-          ws = null
-          connect()
-        }
-      }
-    }
+    reconnectController = createWebSocketReconnectController({
+      connect,
+      getWebSocket: () => ws,
+      isActive: () => isActive,
+      resetWebSocket: () => {
+        ws = null
+      },
+    })
 
     connect()
     document.addEventListener('visibilitychange', handleVisibilityChange)

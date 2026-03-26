@@ -1,3 +1,5 @@
+import { buildDataApiUrl, normalizeDataApiAddress } from '@/lib/data-api/client'
+
 export interface FeeReceiverTotal {
   exchange: string
   receiver: string
@@ -16,18 +18,6 @@ interface FeeReceiverTotalsParams {
   offset?: number
 }
 
-const DATA_API_URL = process.env.DATA_URL!
-
-function assertDataApiUrl() {
-  if (!DATA_API_URL) {
-    throw new Error('DATA_URL environment variable is not configured.')
-  }
-}
-
-function normalizeAddress(value: string) {
-  return value.trim().toLowerCase()
-}
-
 export async function fetchFeeReceiverTotals({
   endpoint,
   address,
@@ -36,12 +26,10 @@ export async function fetchFeeReceiverTotals({
   limit = 100,
   offset = 0,
 }: FeeReceiverTotalsParams): Promise<FeeReceiverTotal[]> {
-  assertDataApiUrl()
-
   const params = new URLSearchParams()
-  params.set('address', normalizeAddress(address))
+  params.set('address', normalizeDataApiAddress(address))
   if (exchange) {
-    params.set('exchange', normalizeAddress(exchange))
+    params.set('exchange', normalizeDataApiAddress(exchange))
   }
   if (tokenId) {
     params.set('tokenId', tokenId)
@@ -49,7 +37,7 @@ export async function fetchFeeReceiverTotals({
   params.set('limit', Math.min(Math.max(limit, 1), 500).toString())
   params.set('offset', Math.max(offset, 0).toString())
 
-  const response = await fetch(`${DATA_API_URL}/${endpoint}?${params.toString()}`, {
+  const response = await fetch(buildDataApiUrl(`/${endpoint}`, params), {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
