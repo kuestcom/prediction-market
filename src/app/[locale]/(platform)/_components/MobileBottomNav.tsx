@@ -1,6 +1,6 @@
 'use client'
 
-import type { ComponentProps } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 import type { SupportedLocale } from '@/i18n/locales'
 import type { PredictionResultsSortOption } from '@/lib/prediction-results-filters'
 import { useAppKitAccount } from '@reown/appkit/react'
@@ -29,17 +29,22 @@ import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import ThemeSelector from '@/components/ThemeSelector'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAppKit } from '@/hooks/useAppKit'
+import { useBalance } from '@/hooks/useBalance'
+import { usePortfolioValue } from '@/hooks/usePortfolioValue'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
 import { LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { authClient } from '@/lib/auth-client'
+import { formatCompactCurrency } from '@/lib/formatters'
 import {
   buildPredictionResultsUrlSearchParams,
   DEFAULT_PREDICTION_RESULTS_SORT,
   DEFAULT_PREDICTION_RESULTS_STATUS,
 } from '@/lib/prediction-results-filters'
 import { cn } from '@/lib/utils'
+import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 import { useUser } from '@/stores/useUser'
 
 const HeaderSearch = dynamic(
@@ -321,12 +326,7 @@ export default function MobileBottomNav() {
             <MobileNavButton label={t('Search')} active={isSearchOpen} onClick={() => setIsSearchOpen(true)} icon={SearchIcon} />
             {isAuthenticated
               ? (
-                  <MobileNavLink
-                    href="/portfolio"
-                    label={t('Portfolio')}
-                    active={pathname.startsWith('/portfolio')}
-                    icon={ChartCandlestickIcon}
-                  />
+                  <MobilePortfolioNavLink active={pathname.startsWith('/portfolio')} />
                 )
               : (
                   <MobileNavButton
@@ -430,7 +430,7 @@ interface MobileNavLinkProps {
   active: boolean
   href: IntentPrefetchHref
   icon: typeof HouseIcon
-  label: string
+  label: ReactNode
 }
 
 function MobileNavLink({ active, href, icon: Icon, label }: MobileNavLinkProps) {
@@ -447,7 +447,43 @@ function MobileNavLink({ active, href, icon: Icon, label }: MobileNavLinkProps) 
       )}
     >
       <Icon className={cn('size-[18px]', active && 'text-primary')} />
-      <span>{label}</span>
+      <span className="max-w-full truncate">{label}</span>
+    </IntentPrefetchLink>
+  )
+}
+
+function MobilePortfolioNavLink({ active }: { active: boolean }) {
+  const t = useExtracted()
+  const { balance, isLoadingBalance } = useBalance()
+  const { isLoading, value: positionsValue } = usePortfolioValue()
+  const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
+  const isLoadingValue = isLoadingBalance || isLoading
+  const totalPortfolioValue = (positionsValue ?? 0) + (balance?.raw ?? 0)
+  const portfolioValueLabel = Number.isFinite(totalPortfolioValue)
+    ? formatCompactCurrency(totalPortfolioValue)
+    : '$0.00'
+
+  return (
+    <IntentPrefetchLink
+      href="/portfolio"
+      aria-current={active ? 'page' : undefined}
+      aria-label={t('Portfolio')}
+      className={cn(
+        `
+          flex size-full flex-col items-center justify-center gap-1.5 px-2 text-[11px] leading-none font-semibold
+          transition-colors
+        `,
+        active ? 'text-foreground' : 'text-muted-foreground',
+      )}
+    >
+      <ChartCandlestickIcon className={cn('size-[18px]', active && 'text-primary')} />
+      {isLoadingValue
+        ? <Skeleton className="h-3 w-12 rounded-full" />
+        : (
+            <span className="max-w-full truncate">
+              {areValuesHidden ? '****' : portfolioValueLabel}
+            </span>
+          )}
     </IntentPrefetchLink>
   )
 }
