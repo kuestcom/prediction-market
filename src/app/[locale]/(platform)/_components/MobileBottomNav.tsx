@@ -6,12 +6,13 @@ import type { PredictionResultsSortOption } from '@/lib/prediction-results-filte
 import { useAppKitAccount } from '@reown/appkit/react'
 import {
   BookOpenIcon,
-  BriefcaseBusinessIcon,
+  ChartCandlestickIcon,
   CheckIcon,
   DownloadIcon,
   FileTextIcon,
   FlameIcon,
   HouseIcon,
+  InfoIcon,
   MenuIcon,
   SearchIcon,
   TrophyIcon,
@@ -37,7 +38,6 @@ import {
   buildPredictionResultsUrlSearchParams,
   DEFAULT_PREDICTION_RESULTS_SORT,
   DEFAULT_PREDICTION_RESULTS_STATUS,
-
 } from '@/lib/prediction-results-filters'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
@@ -121,14 +121,14 @@ export default function MobileBottomNav() {
   const { canShowInstallUi, isIos, isPrompting, requestInstall } = usePwaInstall()
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isGuestMenuOpen, setIsGuestMenuOpen] = useState(false)
+  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
 
   const isAuthenticated = Boolean(session?.user) || Boolean(user) || isConnected
-  const isTradingSurface = pathname.startsWith('/event/') || pathname.startsWith('/sports/')
-  const shouldShowHowItWorks = !isAuthenticated && !isTradingSurface
 
   useEffect(() => {
     setIsSearchOpen(false)
     setIsGuestMenuOpen(false)
+    setIsHowItWorksOpen(false)
   }, [pathname])
 
   async function handleInstallAction() {
@@ -158,9 +158,20 @@ export default function MobileBottomNav() {
     }, 120)
   }
 
+  function handleHowItWorksAction() {
+    setIsGuestMenuOpen(false)
+    window.setTimeout(() => {
+      setIsHowItWorksOpen(true)
+    }, 120)
+  }
+
   return (
     <>
       <div aria-hidden="true" className={cn('lg:hidden', MOBILE_BOTTOM_NAV_SPACER_CLASS)} />
+
+      <div className="lg:hidden">
+        <HowItWorks open={isHowItWorksOpen} onOpenChange={setIsHowItWorksOpen} hideTrigger />
+      </div>
 
       <Drawer open={isSearchOpen} onOpenChange={setIsSearchOpen}>
         <DrawerContent
@@ -257,6 +268,19 @@ export default function MobileBottomNav() {
 
               <div className="overflow-hidden rounded-2xl border border-border/70">
                 <DrawerClose asChild>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold"
+                    onClick={handleHowItWorksAction}
+                  >
+                    <InfoIcon className="size-4 text-primary" />
+                    {t('How it works')}
+                  </button>
+                </DrawerClose>
+
+                <div className="mx-4 h-px bg-border/70" />
+
+                <DrawerClose asChild>
                   <IntentPrefetchLink
                     href="/docs/users"
                     className="flex items-center gap-3 px-4 py-3 text-sm font-semibold"
@@ -284,13 +308,6 @@ export default function MobileBottomNav() {
       )}
 
       <nav className="fixed inset-x-0 bottom-0 z-40 lg:hidden" aria-label="Primary navigation">
-        {shouldShowHowItWorks && (
-          <HowItWorks
-            mobileBannerPlacement="inline"
-            mobileBannerClassName="border-border/70 shadow-[0_-18px_36px_-28px_rgba(15,23,42,0.45)]"
-          />
-        )}
-
         <div
           className={`
             border-t border-border/70 bg-background/95 pb-[calc(env(safe-area-inset-bottom)+0.375rem)]
@@ -308,7 +325,7 @@ export default function MobileBottomNav() {
                     href="/portfolio"
                     label={t('Portfolio')}
                     active={pathname.startsWith('/portfolio')}
-                    icon={BriefcaseBusinessIcon}
+                    icon={ChartCandlestickIcon}
                   />
                 )
               : (

@@ -1,10 +1,9 @@
 'use client'
 
-import { InfoIcon, XIcon } from 'lucide-react'
+import { InfoIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,27 +22,24 @@ import {
 } from '@/components/ui/drawer'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { usePathname } from '@/i18n/navigation'
 import { cn, triggerConfetti } from '@/lib/utils'
-import { useIsSingleMarket } from '@/stores/useOrder'
 
 interface HowItWorksProps {
-  mobileBannerPlacement?: 'inline' | 'portal'
-  mobileBannerClassName?: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  hideTrigger?: boolean
 }
 
 export default function HowItWorks({
-  mobileBannerPlacement = 'portal',
-  mobileBannerClassName,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger = false,
 }: HowItWorksProps) {
   const t = useExtracted()
-  const pathname = usePathname()
   const isMobile = useIsMobile()
-  const isSingleMarket = useIsSingleMarket()
   const { open } = useAppKit()
-  const [isOpen, setIsOpen] = useState(false)
+  const [uncontrolledIsOpen, setUncontrolledIsOpen] = useState(false)
   const [activeStep, setActiveStep] = useState(0)
-  const [isMobileBannerDismissed, setIsMobileBannerDismissed] = useState(false)
 
   const steps = [
     {
@@ -74,34 +70,24 @@ export default function HowItWorks({
 
   const currentStep = steps[activeStep]
   const isLastStep = activeStep === steps.length - 1
+  const isOpen = controlledOpen ?? uncontrolledIsOpen
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
+  function setOpen(nextOpen: boolean) {
+    if (controlledOpen === undefined) {
+      setUncontrolledIsOpen(nextOpen)
     }
-
-    const dismissed = window.localStorage.getItem('how_it_works_banner_dismissed')
-    if (dismissed === 'true') {
-      queueMicrotask(() => setIsMobileBannerDismissed(true))
-    }
-  }, [])
-
-  function handleDismissBanner() {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('how_it_works_banner_dismissed', 'true')
-    }
-    setIsMobileBannerDismissed(true)
+    onOpenChange?.(nextOpen)
   }
 
   function handleOpenChange(nextOpen: boolean) {
-    setIsOpen(nextOpen)
+    setOpen(nextOpen)
     setActiveStep(0)
   }
 
   function handleNext() {
     if (isLastStep) {
       triggerConfetti('primary')
-      setIsOpen(false)
+      setOpen(false)
       setActiveStep(0)
       setTimeout(() => {
         void open()
@@ -112,54 +98,21 @@ export default function HowItWorks({
     setActiveStep(step => Math.min(step + 1, steps.length - 1))
   }
 
-  const showMobileBanner = !isMobileBannerDismissed
-  const shouldOffsetForEventOrderPanel = (pathname.startsWith('/event/') || pathname.startsWith('/sports/')) && isSingleMarket
-
   if (isMobile) {
-    const mobileBanner = (
-      <div
-        className={cn(
-          mobileBannerPlacement === 'inline'
-            ? 'rounded-t-[1.15rem] border-t bg-background'
-            : 'fixed inset-x-0 z-40 rounded-t-xl border-t bg-background sm:hidden',
-          mobileBannerPlacement === 'portal' && (shouldOffsetForEventOrderPanel ? 'bottom-20' : 'bottom-0'),
-          mobileBannerClassName,
-        )}
-        data-testid="how-it-works-mobile-banner"
-      >
-        <div className="flex items-center justify-between gap-2 px-4 py-3">
+    return (
+      <Drawer open={isOpen} onOpenChange={handleOpenChange}>
+        {!hideTrigger && (
           <Button
             type="button"
             variant="link"
             size="sm"
-            className="flex-1 justify-center gap-2 text-primary hover:no-underline"
-            onClick={() => setIsOpen(true)}
+            className="justify-start gap-2 px-0 text-primary hover:no-underline sm:hidden"
+            onClick={() => setOpen(true)}
             data-testid="how-it-works-trigger-mobile"
           >
             <InfoIcon className="size-4" />
             {t('How it works')}
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            onClick={handleDismissBanner}
-            data-testid="how-it-works-dismiss-banner"
-          >
-            <XIcon className="size-4" />
-            <span className="sr-only">{t('Dismiss')}</span>
-          </Button>
-        </div>
-      </div>
-    )
-
-    return (
-      <Drawer open={isOpen} onOpenChange={handleOpenChange}>
-        {showMobileBanner && (
-          mobileBannerPlacement === 'portal'
-            ? createPortal(mobileBanner, document.body)
-            : mobileBanner
         )}
 
         <DrawerContent className="max-h-[95vh] gap-0 overflow-y-auto p-0" data-testid="how-it-works-dialog">
@@ -207,18 +160,20 @@ export default function HowItWorks({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="link"
-          size="sm"
-          className="hidden items-center gap-1.5 text-primary hover:no-underline lg:inline-flex"
-          data-testid="how-it-works-trigger-desktop"
-        >
-          <InfoIcon className="size-4" />
-          {t('How it works')}
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            className="hidden items-center gap-1.5 text-primary hover:no-underline lg:inline-flex"
+            data-testid="how-it-works-trigger-desktop"
+          >
+            <InfoIcon className="size-4" />
+            {t('How it works')}
+          </Button>
+        </DialogTrigger>
+      )}
 
       <DialogContent className="max-h-[95vh] gap-0 overflow-y-auto p-0 sm:max-w-md" data-testid="how-it-works-dialog">
         <div className="h-85 overflow-hidden rounded-t-lg">
