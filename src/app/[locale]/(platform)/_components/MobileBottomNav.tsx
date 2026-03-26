@@ -414,7 +414,7 @@ function MobileSearchDrawerBrowse({ onNavigate }: MobileSearchDrawerBrowseProps)
                     {tag.slug === 'sports'
                       ? t('Live markets and props')
                       : tag.childs.length > 0
-                        ? t('{count} subtopics', { count: tag.childs.length })
+                        ? t('{count} subtopics', { count: `${tag.childs.length}` })
                         : t('Browse markets')}
                   </p>
                 </div>
