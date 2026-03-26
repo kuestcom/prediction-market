@@ -2696,7 +2696,7 @@ export default function SportsEventCenter({
               allowedConditionIds={new Set(singleConditionId ? [singleConditionId] : entry.markets.map(market => market.condition_id))}
               showAboutTab
               aboutEvent={activeCard.event}
-              showRedeemInPositions={activeCard.event.sports_ended === true}
+              showRedeemInPositions
               onOpenRedeemForCondition={handleOpenRedeemForCondition}
               oddsFormat={oddsFormat}
               onChangeTab={tab => setTabByAuxiliaryConditionId(current => ({ ...current, [panelKey]: tab }))}
@@ -2836,7 +2836,7 @@ export default function SportsEventCenter({
             allowedConditionIds={new Set(entry.markets.map(market => market.condition_id))}
             showAboutTab
             aboutEvent={activeCard.event}
-            showRedeemInPositions={activeCard.event.sports_ended === true}
+            showRedeemInPositions
             onOpenRedeemForCondition={handleOpenRedeemForCondition}
             oddsFormat={oddsFormat}
             onChangeTab={tab => setTabByAuxiliaryConditionId(current => ({ ...current, [panelKey]: tab }))}
@@ -2867,7 +2867,7 @@ export default function SportsEventCenter({
                 defaultGraphTimeRange="ALL"
                 allowedConditionIds={allCardConditionIds}
                 positionsTitle="All Positions"
-                showRedeemInPositions={activeCard.event.sports_ended === true}
+                showRedeemInPositions
                 onOpenRedeemForCondition={handleOpenRedeemForCondition}
                 oddsFormat={oddsFormat}
                 onChangeTab={() => {}}

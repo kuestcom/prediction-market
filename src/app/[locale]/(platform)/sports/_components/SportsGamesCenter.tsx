@@ -3466,6 +3466,8 @@ export function SportsGameDetailsPanel({
                           && tag.outcomeIndex === OUTCOME_INDEX.NO
                           && tag.outcome.outcome_index === OUTCOME_INDEX.NO
                           && tag.shares > 0
+                        const canRedeem = showRedeemInPositions
+                          && Boolean(tag.market.is_resolved || tag.market.condition?.resolved)
 
                         return (
                           <tr key={tag.key} className="text-xs text-foreground">
@@ -3509,7 +3511,7 @@ export function SportsGameDetailsPanel({
                                     Convert
                                   </button>
                                 )}
-                                {showRedeemInPositions
+                                {canRedeem
                                   ? (
                                       <button
                                         type="button"
