@@ -14,6 +14,8 @@ import { formatCentsLabel, formatSharesLabel, toCents } from '@/lib/formatters'
 
 const DEFAULT_MAX_LEVELS = 12
 
+export { getRoundedCents }
+
 export async function fetchOrderBookSummaries(tokenIds: string[]): Promise<OrderBookSummariesResponse> {
   if (!tokenIds.length) {
     return {}

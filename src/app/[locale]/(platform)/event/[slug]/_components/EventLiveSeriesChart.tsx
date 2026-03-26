@@ -939,7 +939,8 @@ export default function EventLiveSeriesChart({
         }
 
         let next = keepWithinLiveWindow(prev, cutoff)
-        let lastTimestamp = next.length ? next.at(-1).date.getTime() : null
+        const lastPoint = next.length ? next.at(-1) : null
+        let lastTimestamp = lastPoint ? lastPoint.date.getTime() : null
 
         for (const update of wsUpdatesForRender) {
           // Anchor incoming points to arrival time to avoid delayed-source timestamp jumps.
