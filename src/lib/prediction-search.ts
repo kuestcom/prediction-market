@@ -163,6 +163,31 @@ export function resolvePredictionResultsHref(query: string, categories: SearchCa
 export function resolvePredictionSearchContext(tags: PlatformNavigationTag[], slug: string): PredictionSearchContext {
   const normalizedSlug = slugifyPredictionSearchValue(slug)
   const inputValue = humanizePredictionSearchSlug(slug)
+  const reservedTag = tags.find(tag => slugifyPredictionSearchValue(tag.slug) === normalizedSlug)
+
+  if (normalizedSlug === 'trending') {
+    return {
+      inputValue: '',
+      kind: 'main-tag',
+      label: reservedTag?.name ?? 'Trending',
+      mainTag: 'trending',
+      query: '',
+      slug: normalizedSlug,
+      tag: 'trending',
+    }
+  }
+
+  if (normalizedSlug === 'new') {
+    return {
+      inputValue: '',
+      kind: 'main-tag',
+      label: reservedTag?.name ?? 'New',
+      mainTag: 'new',
+      query: '',
+      slug: normalizedSlug,
+      tag: 'new',
+    }
+  }
 
   for (const tag of tags) {
     if (!isDynamicHomeCategorySlug(tag.slug)) {

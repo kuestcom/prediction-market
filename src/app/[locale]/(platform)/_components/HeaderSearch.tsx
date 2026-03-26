@@ -1,9 +1,10 @@
 'use client'
 
 import type { Route } from 'next'
+import type { ReactNode } from 'react'
 import { SearchIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { SearchResults } from '@/app/[locale]/(platform)/_components/SearchResults'
 import { Input } from '@/components/ui/input'
 import { useSearch } from '@/hooks/useSearch'
@@ -14,11 +15,13 @@ import { cn } from '@/lib/utils'
 
 interface HeaderSearchProps {
   autoFocus?: boolean
+  emptyState?: ReactNode
   onNavigate?: () => void
 }
 
 export default function HeaderSearch({
   autoFocus = false,
+  emptyState,
   onNavigate,
 }: HeaderSearchProps) {
   const searchRef = useRef<HTMLDivElement>(null)
@@ -36,7 +39,8 @@ export default function HeaderSearch({
     activeTab,
     setActiveTab,
   } = useSearch()
-  const showDropdown = showResults || isLoading.events || isLoading.profiles
+  const [isResultsDismissed, setIsResultsDismissed] = useState(false)
+  const showDropdown = (showResults || isLoading.events || isLoading.profiles) && !isResultsDismissed
   const inputBaseClass = showDropdown ? 'bg-background' : 'bg-accent'
   const inputBorderClass = showDropdown ? 'border-border' : 'border-transparent'
   const inputHoverClass = showDropdown ? 'hover:bg-background' : 'hover:bg-secondary'
@@ -44,6 +48,7 @@ export default function HeaderSearch({
   const site = useSiteIdentity()
   const sitename = `${site.name || 'events and profiles'}`.toLowerCase()
   const t = useExtracted()
+  const shouldShowEmptyState = Boolean(emptyState) && query.trim().length === 0 && !showDropdown
 
   function navigateToPredictionResults() {
     const nextPath = buildPredictionResultsPath(query)
@@ -82,96 +87,107 @@ export default function HeaderSearch({
   }, [])
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handlePointerDown(event: PointerEvent) {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsResultsDismissed(true)
         hideResults()
+        inputRef.current?.blur()
       }
     }
 
-    if (showResults) {
-      document.addEventListener('mousedown', handleClickOutside)
+    if (showDropdown) {
+      document.addEventListener('pointerdown', handlePointerDown)
       return () => {
-        document.removeEventListener('mousedown', handleClickOutside)
+        document.removeEventListener('pointerdown', handlePointerDown)
       }
     }
-  }, [showResults, hideResults])
+  }, [showDropdown, hideResults])
 
   return (
-    <div
-      className="relative w-full lg:max-w-[600px] lg:min-w-[400px]"
-      ref={searchRef}
-      data-testid="header-search-container"
-    >
-      <SearchIcon className="absolute top-1/2 left-4 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        type="text"
-        ref={inputRef}
-        autoFocus={autoFocus}
-        data-testid="header-search-input"
-        placeholder={`${t('Search')} ${sitename}`}
-        value={query}
-        onChange={e => handleQueryChange(e.target.value)}
-        onKeyDown={(event) => {
-          if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
-            return
-          }
+    <div className="w-full lg:max-w-[600px] lg:min-w-[400px]">
+      <div
+        className="relative w-full"
+        ref={searchRef}
+        data-testid="header-search-container"
+      >
+        <SearchIcon className="absolute top-1/2 left-4 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          type="text"
+          ref={inputRef}
+          autoFocus={autoFocus}
+          data-testid="header-search-input"
+          placeholder={`${t('Search')} ${sitename}`}
+          value={query}
+          onChange={(e) => {
+            setIsResultsDismissed(false)
+            handleQueryChange(e.target.value)
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
+              return
+            }
 
-          event.preventDefault()
-          navigateToPredictionResults()
-        }}
-        onFocus={showSearchResults}
-        className={cn(
-          'h-12 w-full pr-12 pl-11 shadow-none transition-colors lg:h-10',
-          inputBorderClass,
-          inputBaseClass,
-          { 'rounded-b-none': showDropdown },
-          inputHoverClass,
-          'focus-visible:border-border',
-          inputFocusClass,
-          'focus-visible:ring-0 focus-visible:ring-offset-0',
-        )}
-      />
-      {query.length > 0
-        ? (
-            <button
-              type="button"
-              className={`
-                absolute top-1/2 right-3 hidden -translate-y-1/2 items-center justify-center rounded-sm p-1
-                text-muted-foreground transition-colors
-                hover:text-foreground
+            event.preventDefault()
+            navigateToPredictionResults()
+          }}
+          onFocus={() => {
+            setIsResultsDismissed(false)
+            showSearchResults()
+          }}
+          className={cn(
+            'h-12 w-full pr-12 pl-11 shadow-none transition-colors lg:h-10',
+            inputBorderClass,
+            inputBaseClass,
+            { 'rounded-b-none': showDropdown },
+            inputHoverClass,
+            'focus-visible:border-border',
+            inputFocusClass,
+            'focus-visible:ring-0 focus-visible:ring-offset-0',
+          )}
+        />
+        {query.length > 0
+          ? (
+              <button
+                type="button"
+                className={`
+                  absolute top-1/2 right-3 inline-flex -translate-y-1/2 items-center justify-center rounded-sm p-1
+                  text-muted-foreground transition-colors
+                  hover:text-foreground
+                `}
+                onClick={() => {
+                  clearSearch()
+                  inputRef.current?.focus()
+                }}
+                aria-label="Clear search"
+              >
+                <XIcon className="size-4" />
+              </button>
+            )
+          : (
+              <span className={`
+                absolute top-1/2 right-3 hidden -translate-y-1/2 font-mono text-xs text-muted-foreground
                 lg:inline-flex
               `}
-              onClick={() => {
-                clearSearch()
-                inputRef.current?.focus()
-              }}
-              aria-label="Clear search"
-            >
-              <XIcon className="size-4" />
-            </button>
-          )
-        : (
-            <span className={`
-              absolute top-1/2 right-3 hidden -translate-y-1/2 font-mono text-xs text-muted-foreground
-              lg:inline-flex
-            `}
-            >
-              /
-            </span>
-          )}
-      {(showResults || isLoading.events || isLoading.profiles) && (
-        <SearchResults
-          results={results}
-          isLoading={isLoading}
-          activeTab={activeTab}
-          query={query}
-          onResultClick={() => {
-            clearSearch()
-            onNavigate?.()
-          }}
-          onTabChange={setActiveTab}
-        />
-      )}
+              >
+                /
+              </span>
+            )}
+        {showDropdown && (
+          <SearchResults
+            results={results}
+            isLoading={isLoading}
+            activeTab={activeTab}
+            query={query}
+            onResultClick={() => {
+              clearSearch()
+              onNavigate?.()
+            }}
+            onTabChange={setActiveTab}
+          />
+        )}
+      </div>
+
+      {shouldShowEmptyState ? emptyState : null}
     </div>
   )
 }

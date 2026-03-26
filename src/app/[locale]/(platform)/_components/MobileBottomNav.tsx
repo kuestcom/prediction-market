@@ -2,6 +2,7 @@
 
 import type { ComponentProps } from 'react'
 import type { SupportedLocale } from '@/i18n/locales'
+import type { PredictionResultsSortOption } from '@/lib/prediction-results-filters'
 import { useAppKitAccount } from '@reown/appkit/react'
 import {
   BookOpenIcon,
@@ -21,6 +22,7 @@ import dynamic from 'next/dynamic'
 import { useParams } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import ThemeSelector from '@/components/ThemeSelector'
@@ -31,6 +33,12 @@ import { usePwaInstall } from '@/hooks/usePwaInstall'
 import { LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { authClient } from '@/lib/auth-client'
+import {
+  buildPredictionResultsUrlSearchParams,
+  DEFAULT_PREDICTION_RESULTS_SORT,
+  DEFAULT_PREDICTION_RESULTS_STATUS,
+
+} from '@/lib/prediction-results-filters'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
@@ -49,6 +57,59 @@ const { useSession } = authClient
 const MOBILE_BOTTOM_NAV_SPACER_CLASS = 'h-[calc(env(safe-area-inset-bottom)+4.75rem)]'
 
 type IntentPrefetchHref = ComponentProps<typeof IntentPrefetchLink>['href']
+
+function buildPredictionBrowseHref(baseSlug: string, sort: PredictionResultsSortOption = DEFAULT_PREDICTION_RESULTS_SORT) {
+  const params = buildPredictionResultsUrlSearchParams('', {
+    sort,
+    status: DEFAULT_PREDICTION_RESULTS_STATUS,
+  })
+  const queryString = params.toString()
+
+  return queryString
+    ? `/predictions/${baseSlug}?${queryString}`
+    : `/predictions/${baseSlug}`
+}
+
+function resolveMobileSearchTopicHref(slug: string) {
+  if (slug === 'sports') {
+    return '/sports/live'
+  }
+
+  return `/predictions/${slug}`
+}
+
+function resolveTopicAccentClassName(slug: string) {
+  switch (slug) {
+    case 'sports':
+      return 'bg-orange-100 text-orange-700'
+    case 'crypto':
+      return 'bg-amber-100 text-amber-700'
+    case 'politics':
+      return 'bg-blue-100 text-blue-700'
+    case 'finance':
+      return 'bg-emerald-100 text-emerald-700'
+    case 'weather':
+      return 'bg-cyan-100 text-cyan-700'
+    case 'tech':
+    case 'ai':
+      return 'bg-violet-100 text-violet-700'
+    case 'pop-culture':
+      return 'bg-pink-100 text-pink-700'
+    default:
+      return 'bg-muted text-foreground'
+  }
+}
+
+function getTopicMonogram(label: string) {
+  const monogram = label
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(segment => segment[0]?.toUpperCase() ?? '')
+    .join('')
+
+  return monogram || '?'
+}
 
 export default function MobileBottomNav() {
   const t = useExtracted()
@@ -102,14 +163,22 @@ export default function MobileBottomNav() {
       <div aria-hidden="true" className={cn('lg:hidden', MOBILE_BOTTOM_NAV_SPACER_CLASS)} />
 
       <Drawer open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-        <DrawerContent className="
-          max-h-[88vh] overflow-visible rounded-t-[1.75rem] border-border/70 bg-background px-4 pt-2 pb-6
-        "
+        <DrawerContent
+          className="
+            h-dvh max-h-dvh overflow-y-auto rounded-none border-x-0 border-b-0 border-border/70 bg-background px-4 pt-2
+            pb-6
+          "
         >
-          <DrawerHeader className="px-0 pb-3 text-left">
+          <DrawerHeader className="sr-only p-0">
             <DrawerTitle>{t('Search')}</DrawerTitle>
           </DrawerHeader>
-          <HeaderSearch autoFocus onNavigate={() => setIsSearchOpen(false)} />
+          <div className="mt-4">
+            <HeaderSearch
+              autoFocus
+              onNavigate={() => setIsSearchOpen(false)}
+              emptyState={<MobileSearchDrawerBrowse onNavigate={() => setIsSearchOpen(false)} />}
+            />
+          </div>
         </DrawerContent>
       </Drawer>
 
@@ -231,8 +300,8 @@ export default function MobileBottomNav() {
         >
           <div className="grid h-17.5 grid-cols-4">
             <MobileNavLink href="/" label={t('Home')} active={pathname === '/'} icon={HouseIcon} />
-            <MobileNavButton label={t('Search')} active={isSearchOpen} onClick={() => setIsSearchOpen(true)} icon={SearchIcon} />
             <MobileNavLink href="/new" label={t('New')} active={pathname === '/new'} icon={FlameIcon} />
+            <MobileNavButton label={t('Search')} active={isSearchOpen} onClick={() => setIsSearchOpen(true)} icon={SearchIcon} />
             {isAuthenticated
               ? (
                   <MobileNavLink
@@ -254,6 +323,89 @@ export default function MobileBottomNav() {
         </div>
       </nav>
     </>
+  )
+}
+
+interface MobileSearchDrawerBrowseProps {
+  onNavigate: () => void
+}
+
+function MobileSearchDrawerBrowse({ onNavigate }: MobileSearchDrawerBrowseProps) {
+  const t = useExtracted()
+  const { tags } = usePlatformNavigationData()
+  const browseLinks = [
+    { href: buildPredictionBrowseHref('trending'), label: t('Trending') },
+    { href: buildPredictionBrowseHref('new'), label: t('New') },
+    { href: buildPredictionBrowseHref('trending', 'volume'), label: t('Popular') },
+    { href: buildPredictionBrowseHref('trending', 'ending-soon'), label: t('Ending Soon') },
+    { href: buildPredictionBrowseHref('trending', 'competitive'), label: t('Competitive') },
+    { href: '/sports/live', label: t('Sports') },
+  ] as const
+
+  const topicTags = tags
+    .filter(tag => tag.slug !== 'trending' && tag.slug !== 'new')
+    .slice(0, 8)
+
+  return (
+    <div className="mt-5 grid gap-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
+      <section className="grid gap-3">
+        <p className="text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase">{t('Browse')}</p>
+        <div className="flex flex-wrap gap-2">
+          {browseLinks.map(link => (
+            <IntentPrefetchLink
+              key={link.href}
+              href={link.href}
+              onClick={onNavigate}
+              className={`
+                rounded-full border border-border/70 bg-card px-3 py-2 text-sm font-semibold transition-colors
+                hover:bg-accent hover:text-accent-foreground
+              `}
+            >
+              {link.label}
+            </IntentPrefetchLink>
+          ))}
+        </div>
+      </section>
+
+      {topicTags.length > 0 && (
+        <section className="grid gap-3">
+          <p className="text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase">{t('Topics')}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {topicTags.map(tag => (
+              <IntentPrefetchLink
+                key={tag.slug}
+                href={resolveMobileSearchTopicHref(tag.slug)}
+                onClick={onNavigate}
+                className={`
+                  flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors
+                  hover:bg-accent hover:text-accent-foreground
+                `}
+              >
+                <div
+                  className={cn(
+                    'flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold',
+                    resolveTopicAccentClassName(tag.slug),
+                  )}
+                >
+                  {getTopicMonogram(tag.name)}
+                </div>
+
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">{tag.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {tag.slug === 'sports'
+                      ? t('Live markets and props')
+                      : tag.childs.length > 0
+                        ? t('{count} subtopics', { count: `${tag.childs.length}` })
+                        : t('Browse markets')}
+                  </p>
+                </div>
+              </IntentPrefetchLink>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
   )
 }
 
