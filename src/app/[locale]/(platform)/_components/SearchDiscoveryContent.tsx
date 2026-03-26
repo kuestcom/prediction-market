@@ -49,7 +49,7 @@ function resolveSearchTopicHref(slug: string) {
   }
 
   if (slug === 'sports') {
-    return '/sports'
+    return '/sports/live'
   }
 
   return `/predictions/${slug}`
@@ -166,143 +166,141 @@ export default function SearchDiscoveryContent({
         </div>
       </section>
 
-      {recentEvents.length > 0
-        ? (
-            <section className={cn('grid', isDesktop ? 'gap-3' : 'gap-2')}>
-              <p
+      {recentEvents.length > 0 && (
+        <section className={cn('grid', isDesktop ? 'gap-3' : 'gap-2')}>
+          <p
+            className={cn(
+              'font-semibold tracking-[0.22em] text-muted-foreground uppercase',
+              isDesktop ? 'text-[11px]' : 'text-2xs',
+            )}
+          >
+            {t('Recent')}
+          </p>
+          <div className="grid gap-1">
+            {recentEvents.map(item => (
+              <div
+                key={item.id}
                 className={cn(
-                  'font-semibold tracking-[0.22em] text-muted-foreground uppercase',
-                  isDesktop ? 'text-[11px]' : 'text-2xs',
+                  'flex items-center rounded-md transition-colors hover:bg-accent',
+                  isDesktop ? 'gap-2' : 'gap-1.5',
                 )}
               >
-                {t('Recent')}
-              </p>
-              <div className="grid gap-1">
-                {recentEvents.map(item => (
-                  <div
-                    key={item.id}
-                    className={cn(
-                      'flex items-center rounded-md transition-colors hover:bg-accent',
-                      isDesktop ? 'gap-2' : 'gap-1.5',
-                    )}
-                  >
-                    <IntentPrefetchLink
-                      href={item.href}
-                      onClick={onNavigate}
-                      className={cn(
-                        'flex min-w-0 flex-1 items-center',
-                        isDesktop ? 'gap-3 px-1.5 py-2' : 'gap-2 px-1 py-1.5',
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          'shrink-0 overflow-hidden',
-                          isDesktop ? 'size-8 rounded-md' : 'size-6 rounded-sm',
-                        )}
-                      >
-                        {item.iconUrl
-                          ? (
-                              <EventIconImage
-                                src={item.iconUrl}
-                                alt={item.title}
-                                sizes={isDesktop ? '32px' : '24px'}
-                                containerClassName="size-full"
-                              />
-                            )
-                          : (
-                              <div className="size-full bg-muted" />
-                            )}
-                      </div>
-                      <p
-                        className={cn(
-                          'min-w-0 truncate font-normal text-foreground',
-                          isDesktop ? 'text-sm' : 'text-xs/tight',
-                        )}
-                      >
-                        {item.title}
-                      </p>
-                    </IntentPrefetchLink>
-
-                    <button
-                      type="button"
-                      aria-label={t('Remove')}
-                      className={cn(
-                        `
-                          inline-flex shrink-0 items-center justify-center rounded-sm text-muted-foreground
-                          transition-colors
-                          hover:text-foreground
-                        `,
-                        isDesktop ? 'size-8' : 'size-7',
-                      )}
-                      onClick={(event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        removeRecentSearchEvent(item.id)
-                      }}
-                    >
-                      <XIcon className="size-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )
-        : topicItems.length > 0
-          ? (
-              <section className={cn('grid', isDesktop ? 'gap-4' : 'gap-3')}>
-                <p
+                <IntentPrefetchLink
+                  href={item.href}
+                  onClick={onNavigate}
                   className={cn(
-                    'font-semibold tracking-[0.22em] text-muted-foreground uppercase',
-                    isDesktop ? 'text-[11px]' : 'text-2xs',
+                    'flex min-w-0 flex-1 items-center',
+                    isDesktop ? 'gap-3 px-1.5 py-2' : 'gap-2 px-1 py-1.5',
                   )}
                 >
-                  {t('Topics')}
-                </p>
-                <div className={cn('grid grid-cols-2', isDesktop ? 'gap-2.5' : 'gap-2')}>
-                  {topicItems.map(item => (
-                    <IntentPrefetchLink
-                      key={item.slug}
-                      href={item.href}
-                      onClick={onNavigate}
-                      className={cn(
-                        `
-                          flex items-center border border-border/70 transition-colors
-                          hover:bg-accent hover:text-accent-foreground
-                        `,
-                        isDesktop
-                          ? 'gap-2.5 rounded-xl px-2.25 py-1.75'
-                          : 'gap-2 rounded-lg px-1.5 py-1.25',
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          'relative shrink-0 overflow-hidden',
-                          isDesktop ? 'size-9.5 rounded-lg' : 'size-6.5 rounded-md',
+                  <div
+                    className={cn(
+                      'shrink-0 overflow-hidden',
+                      isDesktop ? 'size-8 rounded-md' : 'size-6 rounded-sm',
+                    )}
+                  >
+                    {item.iconUrl
+                      ? (
+                          <EventIconImage
+                            src={item.iconUrl}
+                            alt={item.title}
+                            sizes={isDesktop ? '32px' : '24px'}
+                            containerClassName="size-full"
+                          />
+                        )
+                      : (
+                          <div className="size-full bg-muted" />
                         )}
-                      >
-                        <Image
-                          src={item.imageSrc}
-                          alt={item.label}
-                          fill
-                          sizes={isDesktop ? '38px' : '26px'}
-                          className="object-cover"
-                        />
-                      </div>
+                  </div>
+                  <p
+                    className={cn(
+                      'min-w-0 truncate font-normal text-foreground',
+                      isDesktop ? 'text-sm' : 'text-xs/tight',
+                    )}
+                  >
+                    {item.title}
+                  </p>
+                </IntentPrefetchLink>
 
-                      <p
-                        className={cn(
-                          'min-w-0 truncate font-normal text-foreground',
-                          isDesktop ? 'text-sm/tight' : 'text-xs/tight',
-                        )}
-                      >
-                        {item.label}
-                      </p>
-                    </IntentPrefetchLink>
-                  ))}
+                <button
+                  type="button"
+                  aria-label={t('Remove')}
+                  className={cn(
+                    `
+                      inline-flex shrink-0 items-center justify-center rounded-sm text-muted-foreground
+                      transition-colors
+                      hover:text-foreground
+                    `,
+                    isDesktop ? 'size-8' : 'size-7',
+                  )}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    removeRecentSearchEvent(item.id)
+                  }}
+                >
+                  <XIcon className="size-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {topicItems.length > 0 && (
+        <section className={cn('grid', isDesktop ? 'gap-4' : 'gap-3')}>
+          <p
+            className={cn(
+              'font-semibold tracking-[0.22em] text-muted-foreground uppercase',
+              isDesktop ? 'text-[11px]' : 'text-2xs',
+            )}
+          >
+            {t('Topics')}
+          </p>
+          <div className={cn('grid grid-cols-2', isDesktop ? 'gap-2.5' : 'gap-2')}>
+            {topicItems.map(item => (
+              <IntentPrefetchLink
+                key={item.slug}
+                href={item.href}
+                onClick={onNavigate}
+                className={cn(
+                  `
+                    flex items-center border border-border/70 transition-colors
+                    hover:bg-accent hover:text-accent-foreground
+                  `,
+                  isDesktop
+                    ? 'gap-2.5 rounded-xl px-2.25 py-1.75'
+                    : 'gap-2 rounded-lg px-1.5 py-1.25',
+                )}
+              >
+                <div
+                  className={cn(
+                    'relative shrink-0 overflow-hidden',
+                    isDesktop ? 'size-9.5 rounded-lg' : 'size-6.5 rounded-md',
+                  )}
+                >
+                  <Image
+                    src={item.imageSrc}
+                    alt={item.label}
+                    fill
+                    sizes={isDesktop ? '38px' : '26px'}
+                    className="object-cover"
+                  />
                 </div>
-              </section>
-            )
-          : null}
+
+                <p
+                  className={cn(
+                    'min-w-0 truncate font-normal text-foreground',
+                    isDesktop ? 'text-sm/tight' : 'text-xs/tight',
+                  )}
+                >
+                  {item.label}
+                </p>
+              </IntentPrefetchLink>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

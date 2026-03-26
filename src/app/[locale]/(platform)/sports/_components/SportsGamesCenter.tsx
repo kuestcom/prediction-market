@@ -583,8 +583,7 @@ export function resolveStableSpreadPrimaryOutcomeIndex(card: SportsGamesCard, co
     return null
   }
 
-  const marketIndices = [...market.outcomes]
-    .map(outcome => outcome.outcome_index)
+  const marketIndices = Array.from(market.outcomes, outcome => outcome.outcome_index)
     .filter((index): index is number => index === OUTCOME_INDEX.YES || index === OUTCOME_INDEX.NO)
   const uniqueMarketIndices = Array.from(new Set(marketIndices)).sort((a, b) => a - b)
 
@@ -1447,7 +1446,7 @@ export function SportsGameGraph({
     }
 
     const firstTimestamp = chartData[0]?.date.getTime()
-    const lastTimestamp = chartData[chartData.length - 1]?.date.getTime()
+    const lastTimestamp = chartData.at(-1)?.date.getTime()
     if (!Number.isFinite(firstTimestamp) || !Number.isFinite(lastTimestamp) || lastTimestamp <= firstTimestamp) {
       return undefined
     }
@@ -1515,7 +1514,7 @@ export function SportsGameGraph({
       }
 
       const firstTimestamp = chartData[0]?.date.getTime()
-      const lastTimestamp = chartData[chartData.length - 1]?.date.getTime()
+      const lastTimestamp = chartData.at(-1)?.date.getTime()
       if (!Number.isFinite(firstTimestamp) || !Number.isFinite(lastTimestamp)) {
         return []
       }
@@ -2480,11 +2479,9 @@ export function SportsGameDetailsPanel({
         ? position.outcome_index
         : undefined
       const normalizedOutcomeText = position.outcome_text?.trim().toLowerCase()
-      const resolvedOutcomeIndex = explicitOutcomeIndex != null
-        ? explicitOutcomeIndex
-        : normalizedOutcomeText === 'no'
-          ? OUTCOME_INDEX.NO
-          : OUTCOME_INDEX.YES
+      const resolvedOutcomeIndex = explicitOutcomeIndex ?? normalizedOutcomeText === 'no'
+        ? OUTCOME_INDEX.NO
+        : OUTCOME_INDEX.YES
 
       if (resolvedOutcomeIndex !== OUTCOME_INDEX.YES && resolvedOutcomeIndex !== OUTCOME_INDEX.NO) {
         return
@@ -2945,7 +2942,7 @@ export function SportsGameDetailsPanel({
     }
 
     const firstOptionId = linePickerOptions[0]?.conditionId
-    const lastOptionId = linePickerOptions[linePickerOptions.length - 1]?.conditionId
+    const lastOptionId = linePickerOptions.at(-1)?.conditionId
     const firstButton = firstOptionId ? linePickerButtonsRef.current[firstOptionId] : null
     const lastButton = lastOptionId ? linePickerButtonsRef.current[lastOptionId] : null
     const fallbackButtonWidth = 40
@@ -3623,22 +3620,12 @@ export default function SportsGamesCenter({
   const [titleRowActionsTarget, setTitleRowActionsTarget] = useState<HTMLElement | null>(null)
   const searchShellRef = useRef<HTMLDivElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
-  const currentOrderSelectionRef = useRef<{
-    eventId: string | null
-    conditionId: string | null
-    outcomeIndex: number | null
-  }>({
-    eventId: null,
-    conditionId: null,
-    outcomeIndex: null,
-  })
   const openLivestream = useSportsLivestream(state => state.openStream)
   const setOrderEvent = useOrder(state => state.setEvent)
   const setOrderMarket = useOrder(state => state.setMarket)
   const setOrderOutcome = useOrder(state => state.setOutcome)
   const setOrderSide = useOrder(state => state.setSide)
   const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
-  const orderEventId = useOrder(state => state.event?.id ?? null)
   const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
   const isLivePage = pageMode === 'live'
@@ -3651,14 +3638,6 @@ export default function SportsGamesCenter({
     (card: SportsGamesCard) => resolveCardCategoryLabel(card, normalizedCategoryTitleBySlug),
     [normalizedCategoryTitleBySlug],
   )
-
-  useEffect(() => {
-    currentOrderSelectionRef.current = {
-      eventId: orderEventId,
-      conditionId: orderMarketConditionId,
-      outcomeIndex: orderOutcomeIndex,
-    }
-  }, [orderEventId, orderMarketConditionId, orderOutcomeIndex])
 
   useEffect(() => {
     setCurrentTimestampMs(Date.now())
@@ -3760,7 +3739,7 @@ export default function SportsGamesCenter({
     return String(initialWeek)
   }, [initialWeek, isLivePage])
   const latestWeekOption = useMemo(
-    () => (weekOptions.length > 0 ? String(weekOptions[weekOptions.length - 1]) : 'all'),
+    () => (weekOptions.length > 0 ? String(weekOptions.at(-1)) : 'all'),
     [weekOptions],
   )
 
@@ -4172,15 +4151,15 @@ export default function SportsGamesCenter({
     }
 
     const {
-      eventId: currentOrderEventId,
-      conditionId: currentOrderMarketConditionId,
-      outcomeIndex: currentOrderOutcomeIndex,
-    } = currentOrderSelectionRef.current
+      event: currentOrderEvent,
+      market: currentOrderMarket,
+      outcome: currentOrderOutcome,
+    } = useOrder.getState()
 
     if (
-      currentOrderEventId === activeTradeContext.card.event.id
-      && currentOrderMarketConditionId === activeTradeContext.market.condition_id
-      && currentOrderOutcomeIndex === activeTradeContext.outcome.outcome_index
+      currentOrderEvent === activeTradeContext.card.event
+      && currentOrderMarket === activeTradeContext.market
+      && currentOrderOutcome === activeTradeContext.outcome
     ) {
       return
     }

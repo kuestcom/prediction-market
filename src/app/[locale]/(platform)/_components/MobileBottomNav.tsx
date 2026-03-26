@@ -160,16 +160,14 @@ export default function MobileBottomNav() {
     <>
       <div aria-hidden="true" className="lg:hidden" style={{ height: MOBILE_BOTTOM_NAV_OFFSET }} />
 
-      {isHowItWorksOpen && (
-        <div className="lg:hidden">
-          <HowItWorks
-            open={isHowItWorksOpen}
-            onOpenChange={setIsHowItWorksOpen}
-            hideTrigger
-            displayMode="mobile"
-          />
-        </div>
-      )}
+      <div className="lg:hidden">
+        <HowItWorks
+          open={isHowItWorksOpen}
+          onOpenChange={setIsHowItWorksOpen}
+          hideTrigger
+          displayMode="mobile"
+        />
+      </div>
 
       <Drawer
         open={isSearchOpen}
