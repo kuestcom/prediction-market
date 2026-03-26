@@ -22,6 +22,7 @@ import {
   TrendingUpIcon,
   TrophyIcon,
   UnplugIcon,
+  XIcon,
 } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
@@ -31,6 +32,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { MOBILE_BOTTOM_NAV_OFFSET } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
+import EventIconImage from '@/components/EventIconImage'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import ThemeSelector from '@/components/ThemeSelector'
@@ -41,6 +43,7 @@ import { useAppKit } from '@/hooks/useAppKit'
 import { useBalance } from '@/hooks/useBalance'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
+import { useRecentSearchEvents } from '@/hooks/useRecentSearchEvents'
 import { LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { authClient } from '@/lib/auth-client'
@@ -376,6 +379,7 @@ interface MobileSearchDrawerBrowseProps {
 function MobileSearchDrawerBrowse({ onNavigate }: MobileSearchDrawerBrowseProps) {
   const t = useExtracted()
   const { tags } = usePlatformNavigationData()
+  const { recentEvents, removeRecentSearchEvent } = useRecentSearchEvents()
   const browseLinks = [
     { href: buildPredictionBrowseHref('trending'), icon: TrendingUpIcon, label: t('Trending') },
     { href: buildPredictionBrowseHref('new'), icon: SparkleIcon, label: t('New') },
@@ -394,6 +398,91 @@ function MobileSearchDrawerBrowse({ onNavigate }: MobileSearchDrawerBrowseProps)
     href: resolveMobileSearchTopicHref(item.slug),
     label: topicLabelsBySlug.get(item.slug) ?? item.fallbackLabel,
   }))
+  const secondarySection = recentEvents.length > 0
+    ? (
+        <section className="grid gap-2">
+          <p className="text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase">{t('Recent')}</p>
+          <div className="grid gap-1">
+            {recentEvents.map(item => (
+              <div key={item.id} className="flex items-center gap-1.5">
+                <IntentPrefetchLink
+                  href={item.href}
+                  onClick={onNavigate}
+                  className="
+                    flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1.5 transition-colors
+                    hover:bg-accent
+                  "
+                >
+                  <div className="size-6 shrink-0 overflow-hidden rounded-sm">
+                    {item.iconUrl
+                      ? (
+                          <EventIconImage
+                            src={item.iconUrl}
+                            alt={item.title}
+                            sizes="24px"
+                            containerClassName="size-full"
+                          />
+                        )
+                      : (
+                          <div className="size-full bg-muted" />
+                        )}
+                  </div>
+                  <p className="min-w-0 truncate text-xs/tight font-normal text-foreground">{item.title}</p>
+                </IntentPrefetchLink>
+
+                <button
+                  type="button"
+                  aria-label={t('Remove')}
+                  className="
+                    inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-muted-foreground
+                    transition-colors
+                    hover:text-foreground
+                  "
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    removeRecentSearchEvent(item.id)
+                  }}
+                >
+                  <XIcon className="size-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    : topicItems.length > 0
+      ? (
+          <section className="grid gap-3">
+            <p className="text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase">{t('Topics')}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {topicItems.map(item => (
+                <IntentPrefetchLink
+                  key={item.slug}
+                  href={item.href}
+                  onClick={onNavigate}
+                  className={`
+                    flex items-center gap-2 rounded-lg border border-border/70 px-1.5 py-1.25 transition-colors
+                    hover:bg-accent hover:text-accent-foreground
+                  `}
+                >
+                  <div className="relative size-6.5 shrink-0 overflow-hidden rounded-md">
+                    <Image
+                      src={item.imageSrc}
+                      alt={item.label}
+                      fill
+                      sizes="26px"
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <p className="min-w-0 truncate text-xs/tight font-normal text-foreground">{item.label}</p>
+                </IntentPrefetchLink>
+              ))}
+            </div>
+          </section>
+        )
+      : null
 
   return (
     <div className="mt-5 grid gap-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
@@ -417,37 +506,7 @@ function MobileSearchDrawerBrowse({ onNavigate }: MobileSearchDrawerBrowseProps)
           ))}
         </div>
       </section>
-
-      {topicItems.length > 0 && (
-        <section className="grid gap-3">
-          <p className="text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase">{t('Topics')}</p>
-          <div className="grid grid-cols-2 gap-2">
-            {topicItems.map(item => (
-              <IntentPrefetchLink
-                key={item.slug}
-                href={item.href}
-                onClick={onNavigate}
-                className={`
-                  flex items-center gap-2 rounded-lg border border-border/70 px-1.5 py-1.25 transition-colors
-                  hover:bg-accent hover:text-accent-foreground
-                `}
-              >
-                <div className="relative size-6.5 shrink-0 overflow-hidden rounded-md">
-                  <Image
-                    src={item.imageSrc}
-                    alt={item.label}
-                    fill
-                    sizes="26px"
-                    className="object-cover"
-                  />
-                </div>
-
-                <p className="min-w-0 truncate text-xs/tight font-normal text-foreground">{item.label}</p>
-              </IntentPrefetchLink>
-            ))}
-          </div>
-        </section>
-      )}
+      {secondarySection}
     </div>
   )
 }

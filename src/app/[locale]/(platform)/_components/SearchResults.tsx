@@ -7,6 +7,7 @@ import EventIconImage from '@/components/EventIconImage'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import ProfileLink from '@/components/ProfileLink'
 import { buttonVariants } from '@/components/ui/button'
+import { saveRecentSearchEvent } from '@/hooks/useRecentSearchEvents'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import {
   buildSearchCategoryMatches,
@@ -161,12 +162,21 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
 
       {visibleEvents.map((result) => {
         const isResolvedEvent = result.status === 'resolved'
+        const eventHref = resolveEventPagePath(result) as Route
 
         return (
           <IntentPrefetchLink
             key={`${result.id}-${result.slug}`}
-            href={resolveEventPagePath(result)}
-            onClick={onResultClick}
+            href={eventHref}
+            onClick={() => {
+              saveRecentSearchEvent({
+                id: result.id,
+                href: eventHref,
+                title: result.title,
+                iconUrl: result.icon_url?.trim() ?? '',
+              })
+              onResultClick()
+            }}
             data-testid="search-result-item"
             className={cn(
               'flex items-center justify-between p-3 transition-colors hover:bg-accent',
