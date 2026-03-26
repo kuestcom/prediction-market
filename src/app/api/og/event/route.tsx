@@ -8,6 +8,7 @@ import { OUTCOME_INDEX } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
 import { formatCentsLabel, formatCompactCurrency, formatPercent } from '@/lib/formatters'
 import { resolveOutcomeButtonTheme } from '@/lib/outcome-theme'
+import { readResponseBodyWithLimit } from '@/lib/read-response-body-with-limit'
 import siteUrlUtils from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -18,6 +19,8 @@ const IMAGE_HEIGHT = 630
 const CHART_WIDTH = 598
 const CHART_HEIGHT = 120
 const MAX_CHART_POINTS = 28
+// Keep the OG inline image budget aligned with the current public asset size limit.
+const MAX_OG_REMOTE_IMAGE_BYTES = 2 * 1024 * 1024
 const SOCIAL_FETCH_TIMEOUT_MS = 2500
 const IMAGE_DATA_URI_CONTENT_TYPES = new Set([
   'image/gif',
@@ -131,7 +134,12 @@ async function fetchImageDataUrl(url: string) {
       return ''
     }
 
-    const base64 = Buffer.from(await response.arrayBuffer()).toString('base64')
+    const imageBytes = await readResponseBodyWithLimit(response, MAX_OG_REMOTE_IMAGE_BYTES)
+    if (!imageBytes || imageBytes.byteLength === 0) {
+      return ''
+    }
+
+    const base64 = Buffer.from(imageBytes).toString('base64')
     return `data:${contentType};base64,${base64}`
   }
   catch {
