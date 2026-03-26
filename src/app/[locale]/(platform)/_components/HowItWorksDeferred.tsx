@@ -2,6 +2,9 @@
 
 import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
+import { shouldHideMobileBottomNav } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
+import { useIsMobile } from '@/hooks/useIsMobile'
+import { usePathname } from '@/i18n/navigation'
 import { useUser } from '@/stores/useUser'
 
 const HowItWorks = dynamic(
@@ -11,7 +14,10 @@ const HowItWorks = dynamic(
 
 export default function HowItWorksDeferred() {
   const user = useUser()
+  const isMobile = useIsMobile()
+  const pathname = usePathname()
   const [shouldRender, setShouldRender] = useState(false)
+  const shouldRenderInHeader = !isMobile || shouldHideMobileBottomNav(pathname)
 
   useEffect(() => {
     if (user) {
@@ -35,7 +41,7 @@ export default function HowItWorksDeferred() {
     }
   }, [user])
 
-  if (user || !shouldRender) {
+  if (user || !shouldRender || !shouldRenderInHeader) {
     return null
   }
 

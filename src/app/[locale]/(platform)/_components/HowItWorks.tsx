@@ -27,7 +27,15 @@ import { usePathname } from '@/i18n/navigation'
 import { cn, triggerConfetti } from '@/lib/utils'
 import { useIsSingleMarket } from '@/stores/useOrder'
 
-export default function HowItWorks() {
+interface HowItWorksProps {
+  mobileBannerPlacement?: 'inline' | 'portal'
+  mobileBannerClassName?: string
+}
+
+export default function HowItWorks({
+  mobileBannerPlacement = 'portal',
+  mobileBannerClassName,
+}: HowItWorksProps) {
   const t = useExtracted()
   const pathname = usePathname()
   const isMobile = useIsMobile()
@@ -105,45 +113,53 @@ export default function HowItWorks() {
   }
 
   const showMobileBanner = !isMobileBannerDismissed
-  const shouldOffsetForEventOrderPanel = pathname.startsWith('/event/') && isSingleMarket
+  const shouldOffsetForEventOrderPanel = (pathname.startsWith('/event/') || pathname.startsWith('/sports/')) && isSingleMarket
 
   if (isMobile) {
+    const mobileBanner = (
+      <div
+        className={cn(
+          mobileBannerPlacement === 'inline'
+            ? 'rounded-t-[1.15rem] border-t bg-background'
+            : 'fixed inset-x-0 z-40 rounded-t-xl border-t bg-background sm:hidden',
+          mobileBannerPlacement === 'portal' && (shouldOffsetForEventOrderPanel ? 'bottom-20' : 'bottom-0'),
+          mobileBannerClassName,
+        )}
+        data-testid="how-it-works-mobile-banner"
+      >
+        <div className="flex items-center justify-between gap-2 px-4 py-3">
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            className="flex-1 justify-center gap-2 text-primary hover:no-underline"
+            onClick={() => setIsOpen(true)}
+            data-testid="how-it-works-trigger-mobile"
+          >
+            <InfoIcon className="size-4" />
+            {t('How it works')}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={handleDismissBanner}
+            data-testid="how-it-works-dismiss-banner"
+          >
+            <XIcon className="size-4" />
+            <span className="sr-only">{t('Dismiss')}</span>
+          </Button>
+        </div>
+      </div>
+    )
+
     return (
       <Drawer open={isOpen} onOpenChange={handleOpenChange}>
-        {showMobileBanner && createPortal(
-          <div
-            className={cn(
-              'fixed inset-x-0 z-40 rounded-t-xl border-t bg-background sm:hidden',
-              shouldOffsetForEventOrderPanel ? 'bottom-20' : 'bottom-0',
-            )}
-            data-testid="how-it-works-mobile-banner"
-          >
-            <div className="container flex items-center justify-between gap-2 py-3">
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                className="flex-1 justify-center gap-2 text-primary hover:no-underline"
-                onClick={() => setIsOpen(true)}
-                data-testid="how-it-works-trigger-mobile"
-              >
-                <InfoIcon className="size-4" />
-                {t('How it works')}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                onClick={handleDismissBanner}
-                data-testid="how-it-works-dismiss-banner"
-              >
-                <XIcon className="size-4" />
-                <span className="sr-only">{t('Dismiss')}</span>
-              </Button>
-            </div>
-          </div>,
-          document.body,
+        {showMobileBanner && (
+          mobileBannerPlacement === 'portal'
+            ? createPortal(mobileBanner, document.body)
+            : mobileBanner
         )}
 
         <DrawerContent className="max-h-[95vh] gap-0 overflow-y-auto p-0" data-testid="how-it-works-dialog">

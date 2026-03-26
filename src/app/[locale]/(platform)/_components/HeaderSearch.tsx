@@ -12,7 +12,15 @@ import { useRouter } from '@/i18n/navigation'
 import { buildPredictionResultsPath } from '@/lib/prediction-search'
 import { cn } from '@/lib/utils'
 
-export default function HeaderSearch() {
+interface HeaderSearchProps {
+  autoFocus?: boolean
+  onNavigate?: () => void
+}
+
+export default function HeaderSearch({
+  autoFocus = false,
+  onNavigate,
+}: HeaderSearchProps) {
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -45,6 +53,7 @@ export default function HeaderSearch() {
     }
 
     clearSearch()
+    onNavigate?.()
     router.push(nextPath as Route)
   }
 
@@ -97,6 +106,7 @@ export default function HeaderSearch() {
       <Input
         type="text"
         ref={inputRef}
+        autoFocus={autoFocus}
         data-testid="header-search-input"
         placeholder={`${t('Search')} ${sitename}`}
         value={query}
@@ -155,7 +165,10 @@ export default function HeaderSearch() {
           isLoading={isLoading}
           activeTab={activeTab}
           query={query}
-          onResultClick={clearSearch}
+          onResultClick={() => {
+            clearSearch()
+            onNavigate?.()
+          }}
           onTabChange={setActiveTab}
         />
       )}

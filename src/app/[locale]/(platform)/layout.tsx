@@ -5,6 +5,7 @@ import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
 import AffiliateQueryHandler from '@/app/[locale]/(platform)/_components/AffiliateQueryHandler'
 import Header from '@/app/[locale]/(platform)/_components/Header'
+import MobileBottomNav from '@/app/[locale]/(platform)/_components/MobileBottomNav'
 import NavigationTabs from '@/app/[locale]/(platform)/_components/NavigationTabs'
 import PlatformViewerState from '@/app/[locale]/(platform)/_components/PlatformViewerState'
 import { FilterProvider } from '@/app/[locale]/(platform)/_providers/FilterProvider'
@@ -37,6 +38,7 @@ export default async function PlatformLayout({ params, children }: LayoutProps<'
           <Header />
           <NavigationTabs />
           {children}
+          <MobileBottomNav />
           <AffiliateQueryHandler />
         </PlatformNavigationProvider>
       </FilterProvider>
