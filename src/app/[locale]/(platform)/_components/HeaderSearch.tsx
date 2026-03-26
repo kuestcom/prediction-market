@@ -40,7 +40,8 @@ export default function HeaderSearch({
     setActiveTab,
   } = useSearch()
   const [isResultsDismissed, setIsResultsDismissed] = useState(false)
-  const showDropdown = (showResults || isLoading.events || isLoading.profiles) && !isResultsDismissed
+  const hasActiveQuery = query.trim().length >= 2
+  const showDropdown = hasActiveQuery && (showResults || isLoading.events || isLoading.profiles) && !isResultsDismissed
   const inputBaseClass = showDropdown ? 'bg-background' : 'bg-accent'
   const inputBorderClass = showDropdown ? 'border-border' : 'border-transparent'
   const inputHoverClass = showDropdown ? 'hover:bg-background' : 'hover:bg-secondary'

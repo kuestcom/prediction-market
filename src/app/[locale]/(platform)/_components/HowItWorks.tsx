@@ -3,7 +3,7 @@
 import { InfoIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -71,6 +71,14 @@ export default function HowItWorks({
   const currentStep = steps[activeStep]
   const isLastStep = activeStep === steps.length - 1
   const isOpen = controlledOpen ?? uncontrolledIsOpen
+
+  useEffect(() => {
+    if (controlledOpen === undefined || controlledOpen) {
+      return
+    }
+
+    setActiveStep(0)
+  }, [controlledOpen])
 
   function setOpen(nextOpen: boolean) {
     if (controlledOpen === undefined) {

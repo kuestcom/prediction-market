@@ -23,6 +23,7 @@ import dynamic from 'next/dynamic'
 import { useParams } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { MOBILE_BOTTOM_NAV_OFFSET } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
@@ -58,8 +59,6 @@ const HowItWorks = dynamic(
 )
 
 const { useSession } = authClient
-
-const MOBILE_BOTTOM_NAV_SPACER_CLASS = 'h-[calc(env(safe-area-inset-bottom)+4.75rem)]'
 
 type IntentPrefetchHref = ComponentProps<typeof IntentPrefetchLink>['href']
 
@@ -172,11 +171,13 @@ export default function MobileBottomNav() {
 
   return (
     <>
-      <div aria-hidden="true" className={cn('lg:hidden', MOBILE_BOTTOM_NAV_SPACER_CLASS)} />
+      <div aria-hidden="true" className="lg:hidden" style={{ height: MOBILE_BOTTOM_NAV_OFFSET }} />
 
-      <div className="lg:hidden">
-        <HowItWorks open={isHowItWorksOpen} onOpenChange={setIsHowItWorksOpen} hideTrigger />
-      </div>
+      {isHowItWorksOpen && (
+        <div className="lg:hidden">
+          <HowItWorks open={isHowItWorksOpen} onOpenChange={setIsHowItWorksOpen} hideTrigger />
+        </div>
+      )}
 
       <Drawer open={isSearchOpen} onOpenChange={setIsSearchOpen}>
         <DrawerContent
@@ -413,7 +414,7 @@ function MobileSearchDrawerBrowse({ onNavigate }: MobileSearchDrawerBrowseProps)
                     {tag.slug === 'sports'
                       ? t('Live markets and props')
                       : tag.childs.length > 0
-                        ? t('{count} subtopics', { count: `${tag.childs.length}` })
+                        ? t('{count} subtopics', { count: tag.childs.length })
                         : t('Browse markets')}
                   </p>
                 </div>

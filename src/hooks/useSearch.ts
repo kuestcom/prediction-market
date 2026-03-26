@@ -1,5 +1,5 @@
 import type { SearchLoadingStates, SearchResultItems } from '@/types'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { sortSearchResultEvents } from '@/lib/event-search-results'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 
@@ -28,14 +28,20 @@ export function useSearch(): UseSearch {
   })
   const [showResults, setShowResults] = useState(false)
   const [activeTab, setActiveTab] = useState<'events' | 'profiles'>('events')
+  const requestIdRef = useRef(0)
 
-  const searchEvents = useCallback(async (searchQuery: string) => {
+  const searchEvents = useCallback(async (searchQuery: string, requestId: number) => {
     if (searchQuery.length < 2) {
-      setResults(prev => ({ ...prev, events: [] }))
+      if (requestId === requestIdRef.current) {
+        setResults(prev => ({ ...prev, events: [] }))
+      }
       return
     }
 
-    setIsLoading(prev => ({ ...prev, events: true }))
+    if (requestId === requestIdRef.current) {
+      setIsLoading(prev => ({ ...prev, events: true }))
+    }
+
     try {
       const params = new URLSearchParams({
         search: searchQuery,
@@ -47,61 +53,104 @@ export function useSearch(): UseSearch {
         const filteredEvents = Array.isArray(data)
           ? data.filter(event => !isSportsAuxiliaryEventSlug(event?.slug))
           : []
+
+        if (requestId !== requestIdRef.current) {
+          return
+        }
+
         setResults(prev => ({ ...prev, events: sortSearchResultEvents(filteredEvents) }))
       }
       else {
+        if (requestId !== requestIdRef.current) {
+          return
+        }
         setResults(prev => ({ ...prev, events: [] }))
       }
     }
     catch (error) {
       console.error('Events search error:', error)
+
+      if (requestId !== requestIdRef.current) {
+        return
+      }
+
       setResults(prev => ({ ...prev, events: [] }))
     }
     finally {
-      setIsLoading(prev => ({ ...prev, events: false }))
+      if (requestId === requestIdRef.current) {
+        setIsLoading(prev => ({ ...prev, events: false }))
+      }
     }
   }, [])
 
-  const searchProfiles = useCallback(async (searchQuery: string) => {
+  const searchProfiles = useCallback(async (searchQuery: string, requestId: number) => {
     if (searchQuery.length < 2) {
-      setResults(prev => ({ ...prev, profiles: [] }))
+      if (requestId === requestIdRef.current) {
+        setResults(prev => ({ ...prev, profiles: [] }))
+      }
       return
     }
 
-    setIsLoading(prev => ({ ...prev, profiles: true }))
+    if (requestId === requestIdRef.current) {
+      setIsLoading(prev => ({ ...prev, profiles: true }))
+    }
+
     try {
       const response = await fetch(`/api/users?search=${encodeURIComponent(searchQuery)}`)
       if (response.ok) {
         const data = await response.json()
+
+        if (requestId !== requestIdRef.current) {
+          return
+        }
+
         setResults(prev => ({ ...prev, profiles: data }))
       }
       else {
+        if (requestId !== requestIdRef.current) {
+          return
+        }
         setResults(prev => ({ ...prev, profiles: [] }))
       }
     }
     catch (error) {
       console.error('Profiles search error:', error)
+
+      if (requestId !== requestIdRef.current) {
+        return
+      }
+
       setResults(prev => ({ ...prev, profiles: [] }))
     }
     finally {
-      setIsLoading(prev => ({ ...prev, profiles: false }))
+      if (requestId === requestIdRef.current) {
+        setIsLoading(prev => ({ ...prev, profiles: false }))
+      }
     }
   }, [])
 
   const search = useCallback(async (searchQuery: string) => {
-    if (searchQuery.length < 2) {
+    const normalizedQuery = searchQuery.trim()
+    const requestId = requestIdRef.current + 1
+
+    requestIdRef.current = requestId
+
+    if (normalizedQuery.length < 2) {
       setResults({ events: [], profiles: [] })
+      setIsLoading({ events: false, profiles: false })
       setShowResults(false)
       return
     }
 
     // Execute both searches in parallel
     await Promise.all([
-      searchEvents(searchQuery),
-      searchProfiles(searchQuery),
+      searchEvents(normalizedQuery, requestId),
+      searchProfiles(normalizedQuery, requestId),
     ])
 
-    setShowResults(true)
+    if (requestId === requestIdRef.current) {
+      setShowResults(true)
+    }
   }, [searchEvents, searchProfiles])
 
   // Debounce search
@@ -129,12 +178,15 @@ export function useSearch(): UseSearch {
   }, [results.events.length, results.profiles.length, isLoading.events, isLoading.profiles])
 
   function handleQueryChange(newQuery: string) {
+    requestIdRef.current += 1
     setQuery(newQuery)
   }
 
   function clearSearch() {
+    requestIdRef.current += 1
     setQuery('')
     setResults({ events: [], profiles: [] })
+    setIsLoading({ events: false, profiles: false })
     setShowResults(false)
     setActiveTab('events')
   }

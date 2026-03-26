@@ -17,7 +17,7 @@ export default function HowItWorksDeferred() {
   const shouldRenderInHeader = !isMobile
 
   useEffect(() => {
-    if (user) {
+    if (user || !shouldRenderInHeader) {
       return
     }
 
@@ -36,7 +36,7 @@ export default function HowItWorksDeferred() {
       window.removeEventListener('pointerdown', renderHowItWorks)
       window.removeEventListener('keydown', renderHowItWorks)
     }
-  }, [user])
+  }, [shouldRenderInHeader, user])
 
   if (user || !shouldRender || !shouldRenderInHeader) {
     return null
