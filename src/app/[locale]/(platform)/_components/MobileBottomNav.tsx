@@ -2,37 +2,29 @@
 
 import type { ComponentProps, ReactNode } from 'react'
 import type { SupportedLocale } from '@/i18n/locales'
-import type { PredictionResultsSortOption } from '@/lib/prediction-results-filters'
 import { useAppKitAccount } from '@reown/appkit/react'
 import {
   BookOpenIcon,
-  ChartCandlestickIcon,
+  ChartLineIcon,
   CheckIcon,
-  ClockFadingIcon,
   DownloadIcon,
-  DropletIcon,
   FileTextIcon,
-  FlameIcon,
-  HandFistIcon,
   HouseIcon,
   InfoIcon,
   MenuIcon,
   SearchIcon,
   SparkleIcon,
-  TrendingUpIcon,
   TrophyIcon,
   UnplugIcon,
-  XIcon,
 } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
-import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
+import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
+import SearchDiscoveryContent from '@/app/[locale]/(platform)/_components/SearchDiscoveryContent'
 import { MOBILE_BOTTOM_NAV_OFFSET } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
-import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
-import EventIconImage from '@/components/EventIconImage'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import ThemeSelector from '@/components/ThemeSelector'
@@ -43,16 +35,10 @@ import { useAppKit } from '@/hooks/useAppKit'
 import { useBalance } from '@/hooks/useBalance'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
-import { useRecentSearchEvents } from '@/hooks/useRecentSearchEvents'
 import { LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { authClient } from '@/lib/auth-client'
 import { formatCompactCurrency } from '@/lib/formatters'
-import {
-  buildPredictionResultsUrlSearchParams,
-  DEFAULT_PREDICTION_RESULTS_SORT,
-  DEFAULT_PREDICTION_RESULTS_STATUS,
-} from '@/lib/prediction-results-filters'
 import { cn } from '@/lib/utils'
 import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 import { useUser } from '@/stores/useUser'
@@ -69,75 +55,6 @@ const HowItWorks = dynamic(
 
 const { useSession } = authClient
 
-type IntentPrefetchHref = ComponentProps<typeof IntentPrefetchLink>['href']
-
-function buildPredictionBrowseHref(baseSlug: string, sort: PredictionResultsSortOption = DEFAULT_PREDICTION_RESULTS_SORT) {
-  const params = buildPredictionResultsUrlSearchParams('', {
-    sort,
-    status: DEFAULT_PREDICTION_RESULTS_STATUS,
-  })
-  const queryString = params.toString()
-
-  return queryString
-    ? `/predictions/${baseSlug}?${queryString}`
-    : `/predictions/${baseSlug}`
-}
-
-function resolveMobileSearchTopicHref(slug: string) {
-  if (slug === 'live-crypto') {
-    return '/predictions/up-or-down'
-  }
-
-  if (slug === 'sports') {
-    return '/sports'
-  }
-
-  return `/predictions/${slug}`
-}
-
-const MOBILE_SEARCH_TOPIC_ORDER = [
-  {
-    slug: 'live-crypto',
-    fallbackLabel: 'Live Crypto',
-    imageSrc: '/images/mobile-search/nav-live-crypto.webp',
-  },
-  {
-    slug: 'politics',
-    fallbackLabel: 'Politics',
-    imageSrc: '/images/mobile-search/nav-markets-politics.webp',
-  },
-  {
-    slug: 'middle-east',
-    fallbackLabel: 'Middle East',
-    imageSrc: '/images/mobile-search/nav-markets-middle-east.webp',
-  },
-  {
-    slug: 'crypto',
-    fallbackLabel: 'Crypto',
-    imageSrc: '/images/mobile-search/nav-markets-crypto.webp',
-  },
-  {
-    slug: 'sports',
-    fallbackLabel: 'Sports',
-    imageSrc: '/images/mobile-search/nav-nba.webp',
-  },
-  {
-    slug: 'pop-culture',
-    fallbackLabel: 'Pop Culture',
-    imageSrc: '/images/mobile-search/nav-markets-pop-culture.webp',
-  },
-  {
-    slug: 'tech',
-    fallbackLabel: 'Tech',
-    imageSrc: '/images/mobile-search/nav-markets-tech.webp',
-  },
-  {
-    slug: 'ai',
-    fallbackLabel: 'AI',
-    imageSrc: '/images/mobile-search/nav-markets-ai.webp',
-  },
-] as const
-
 export default function MobileBottomNav() {
   const t = useExtracted()
   const pathname = usePathname()
@@ -147,6 +64,7 @@ export default function MobileBottomNav() {
   const user = useUser()
   const { canShowInstallUi, isIos, isPrompting, requestInstall } = usePwaInstall()
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchFocusTrigger, setSearchFocusTrigger] = useState(0)
   const [isGuestMenuOpen, setIsGuestMenuOpen] = useState(false)
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
 
@@ -157,6 +75,52 @@ export default function MobileBottomNav() {
     setIsGuestMenuOpen(false)
     setIsHowItWorksOpen(false)
   }, [pathname])
+
+  function focusMobileSearchInput() {
+    const input = document.querySelector<HTMLInputElement>(
+      '[data-mobile-search-drawer="true"] input[data-testid="header-search-input"]',
+    )
+
+    if (!input) {
+      return false
+    }
+
+    input.focus({ preventScroll: true })
+    return document.activeElement === input
+  }
+
+  function handleSearchAction() {
+    // iOS only opens the keyboard if the input focus stays inside the tap gesture.
+    // eslint-disable-next-line react-dom/no-flush-sync
+    flushSync(() => {
+      setIsSearchOpen(true)
+    })
+
+    if (focusMobileSearchInput()) {
+      setSearchFocusTrigger(0)
+      return
+    }
+
+    setSearchFocusTrigger(prev => prev + 1)
+  }
+
+  function handleSearchOpenChange(nextOpen: boolean) {
+    setIsSearchOpen(nextOpen)
+
+    if (nextOpen) {
+      return
+    }
+
+    setSearchFocusTrigger(0)
+
+    window.setTimeout(() => {
+      const activeElement = document.activeElement
+
+      if (activeElement instanceof HTMLElement) {
+        activeElement.blur()
+      }
+    }, 0)
+  }
 
   async function handleInstallAction() {
     setIsGuestMenuOpen(false)
@@ -207,8 +171,14 @@ export default function MobileBottomNav() {
         </div>
       )}
 
-      <Drawer open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+      <Drawer
+        open={isSearchOpen}
+        onOpenChange={handleSearchOpenChange}
+        fixed
+        repositionInputs={false}
+      >
         <DrawerContent
+          data-mobile-search-drawer="true"
           className="
             h-dvh max-h-dvh overflow-y-auto rounded-none border-x-0 border-b-0 border-border/70 bg-background px-2 pt-2
             pb-6
@@ -219,9 +189,9 @@ export default function MobileBottomNav() {
           </DrawerHeader>
           <div className="mt-4">
             <HeaderSearch
-              autoFocus
               onNavigate={() => setIsSearchOpen(false)}
-              emptyState={<MobileSearchDrawerBrowse onNavigate={() => setIsSearchOpen(false)} />}
+              emptyState={<SearchDiscoveryContent onNavigate={() => setIsSearchOpen(false)} />}
+              focusTrigger={searchFocusTrigger}
             />
           </div>
         </DrawerContent>
@@ -344,14 +314,14 @@ export default function MobileBottomNav() {
       <nav className="fixed inset-x-0 bottom-0 z-40 lg:hidden" aria-label="Primary navigation">
         <div
           className={`
-            border-t border-border/70 bg-background/95 pb-[calc(env(safe-area-inset-bottom)+0.375rem)]
+            border-t border-border/70 bg-background/95 pb-[calc(env(safe-area-inset-bottom)+0.25rem)]
             shadow-[0_-20px_48px_-36px_rgba(15,23,42,0.55)] backdrop-blur-sm
             supports-backdrop-filter:bg-background/90
           `}
         >
-          <div className="grid h-17.5 grid-cols-4">
+          <div className="grid h-16.5 grid-cols-4">
             <MobileNavLink href="/" label={t('Home')} active={pathname === '/'} icon={HouseIcon} />
-            <MobileNavButton label={t('Search')} active={isSearchOpen} onClick={() => setIsSearchOpen(true)} icon={SearchIcon} />
+            <MobileNavButton label={t('Search')} active={isSearchOpen} onClick={handleSearchAction} icon={SearchIcon} />
             <MobileNavLink href="/new" label={t('New')} active={pathname === '/new'} icon={SparkleIcon} />
             {isAuthenticated
               ? (
@@ -372,148 +342,9 @@ export default function MobileBottomNav() {
   )
 }
 
-interface MobileSearchDrawerBrowseProps {
-  onNavigate: () => void
-}
-
-function MobileSearchDrawerBrowse({ onNavigate }: MobileSearchDrawerBrowseProps) {
-  const t = useExtracted()
-  const { tags } = usePlatformNavigationData()
-  const { recentEvents, removeRecentSearchEvent } = useRecentSearchEvents()
-  const browseLinks = [
-    { href: buildPredictionBrowseHref('trending'), icon: TrendingUpIcon, label: t('Trending') },
-    { href: buildPredictionBrowseHref('new'), icon: SparkleIcon, label: t('New') },
-    { href: buildPredictionBrowseHref('trending', 'volume'), icon: FlameIcon, label: t('Popular') },
-    { href: '/', icon: DropletIcon, label: 'Liquid' },
-    { href: buildPredictionBrowseHref('trending', 'ending-soon'), icon: ClockFadingIcon, label: t('Ending Soon') },
-    { href: buildPredictionBrowseHref('trending', 'competitive'), icon: HandFistIcon, label: t('Competitive') },
-  ] as const
-
-  const topicLabelsBySlug = new Map([
-    ...tags.map(tag => [tag.slug, tag.name] as const),
-    ...tags.flatMap(tag => tag.childs.map(child => [child.slug, child.name] as const)),
-  ])
-  const topicItems = MOBILE_SEARCH_TOPIC_ORDER.map(item => ({
-    ...item,
-    href: resolveMobileSearchTopicHref(item.slug),
-    label: topicLabelsBySlug.get(item.slug) ?? item.fallbackLabel,
-  }))
-  const secondarySection = recentEvents.length > 0
-    ? (
-        <section className="grid gap-2">
-          <p className="text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase">{t('Recent')}</p>
-          <div className="grid gap-1">
-            {recentEvents.map(item => (
-              <div key={item.id} className="flex items-center gap-1.5">
-                <IntentPrefetchLink
-                  href={item.href}
-                  onClick={onNavigate}
-                  className="
-                    flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1.5 transition-colors
-                    hover:bg-accent
-                  "
-                >
-                  <div className="size-6 shrink-0 overflow-hidden rounded-sm">
-                    {item.iconUrl
-                      ? (
-                          <EventIconImage
-                            src={item.iconUrl}
-                            alt={item.title}
-                            sizes="24px"
-                            containerClassName="size-full"
-                          />
-                        )
-                      : (
-                          <div className="size-full bg-muted" />
-                        )}
-                  </div>
-                  <p className="min-w-0 truncate text-xs/tight font-normal text-foreground">{item.title}</p>
-                </IntentPrefetchLink>
-
-                <button
-                  type="button"
-                  aria-label={t('Remove')}
-                  className="
-                    inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-muted-foreground
-                    transition-colors
-                    hover:text-foreground
-                  "
-                  onClick={(event) => {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    removeRecentSearchEvent(item.id)
-                  }}
-                >
-                  <XIcon className="size-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )
-    : topicItems.length > 0
-      ? (
-          <section className="grid gap-3">
-            <p className="text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase">{t('Topics')}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {topicItems.map(item => (
-                <IntentPrefetchLink
-                  key={item.slug}
-                  href={item.href}
-                  onClick={onNavigate}
-                  className={`
-                    flex items-center gap-2 rounded-lg border border-border/70 px-1.5 py-1.25 transition-colors
-                    hover:bg-accent hover:text-accent-foreground
-                  `}
-                >
-                  <div className="relative size-6.5 shrink-0 overflow-hidden rounded-md">
-                    <Image
-                      src={item.imageSrc}
-                      alt={item.label}
-                      fill
-                      sizes="26px"
-                      className="object-cover"
-                    />
-                  </div>
-
-                  <p className="min-w-0 truncate text-xs/tight font-normal text-foreground">{item.label}</p>
-                </IntentPrefetchLink>
-              ))}
-            </div>
-          </section>
-        )
-      : null
-
-  return (
-    <div className="mt-5 grid gap-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
-      <section className="grid gap-3">
-        <p className="text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase">{t('Browse')}</p>
-        <div className="flex flex-wrap gap-2">
-          {browseLinks.map(link => (
-            <IntentPrefetchLink
-              key={link.href}
-              href={link.href}
-              onClick={onNavigate}
-              className={`
-                inline-flex items-center gap-1.5 rounded-sm border border-border/70 px-2.25 py-1 text-xs font-normal
-                transition-colors
-                hover:bg-accent hover:text-accent-foreground
-              `}
-            >
-              <link.icon className="size-3.5" />
-              {link.label}
-            </IntentPrefetchLink>
-          ))}
-        </div>
-      </section>
-      {secondarySection}
-    </div>
-  )
-}
-
 interface MobileNavLinkProps {
   active: boolean
-  href: IntentPrefetchHref
+  href: ComponentProps<typeof IntentPrefetchLink>['href']
   icon: typeof HouseIcon
   label: ReactNode
 }
@@ -525,13 +356,13 @@ function MobileNavLink({ active, href, icon: Icon, label }: MobileNavLinkProps) 
       aria-current={active ? 'page' : undefined}
       className={cn(
         `
-          flex size-full flex-col items-center justify-center gap-1.5 px-2 text-[11px] leading-none font-semibold
+          flex size-full flex-col items-center justify-center gap-1 px-2 text-[11px] leading-none font-semibold
           transition-colors
         `,
         active ? 'text-foreground' : 'text-muted-foreground',
       )}
     >
-      <Icon className={cn('size-[18px]', active && 'text-primary')} />
+      <Icon className="size-[17px]" />
       <span className="max-w-full truncate">{label}</span>
     </IntentPrefetchLink>
   )
@@ -555,13 +386,13 @@ function MobilePortfolioNavLink({ active }: { active: boolean }) {
       aria-label={t('Portfolio')}
       className={cn(
         `
-          flex size-full flex-col items-center justify-center gap-1.5 px-2 text-[11px] leading-none font-semibold
+          flex size-full flex-col items-center justify-center gap-1 px-2 text-[11px] leading-none font-semibold
           transition-colors
         `,
         active ? 'text-foreground' : 'text-muted-foreground',
       )}
     >
-      <ChartCandlestickIcon className={cn('size-[18px]', active && 'text-primary')} />
+      <ChartLineIcon className="size-[17px]" />
       {isLoadingValue
         ? <Skeleton className="h-3 w-12 rounded-full" />
         : (
@@ -587,7 +418,7 @@ function MobileNavButton({ active, icon: Icon, label, onClick }: MobileNavButton
       onClick={onClick}
       className={cn(
         `
-          flex size-full flex-col items-center justify-center gap-1.5 px-2 text-[11px] leading-none font-semibold
+          flex size-full flex-col items-center justify-center gap-1 px-2 text-[11px] leading-none font-semibold
           transition-colors
           focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none
         `,
@@ -595,7 +426,7 @@ function MobileNavButton({ active, icon: Icon, label, onClick }: MobileNavButton
       )}
       aria-label={label}
     >
-      <Icon className={cn('size-[18px]', active && 'text-primary')} />
+      <Icon className="size-[17px]" />
       <span>{label}</span>
     </button>
   )

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import { SearchIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
+import SearchDiscoveryContent from '@/app/[locale]/(platform)/_components/SearchDiscoveryContent'
 import { SearchResults } from '@/app/[locale]/(platform)/_components/SearchResults'
 import { Input } from '@/components/ui/input'
 import { useSearch } from '@/hooks/useSearch'
@@ -16,13 +17,17 @@ import { cn } from '@/lib/utils'
 interface HeaderSearchProps {
   autoFocus?: boolean
   emptyState?: ReactNode
+  focusTrigger?: number
   onNavigate?: () => void
+  showDesktopDiscovery?: boolean
 }
 
 export default function HeaderSearch({
   autoFocus = false,
   emptyState,
+  focusTrigger,
   onNavigate,
+  showDesktopDiscovery = true,
 }: HeaderSearchProps) {
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -39,17 +44,29 @@ export default function HeaderSearch({
     activeTab,
     setActiveTab,
   } = useSearch()
+  const [hasFocusWithin, setHasFocusWithin] = useState(false)
   const [isResultsDismissed, setIsResultsDismissed] = useState(false)
   const hasActiveQuery = query.trim().length >= 2
   const showDropdown = hasActiveQuery && (showResults || isLoading.events || isLoading.profiles) && !isResultsDismissed
-  const inputBaseClass = showDropdown ? 'bg-background' : 'bg-accent'
-  const inputBorderClass = showDropdown ? 'border-border' : 'border-transparent'
-  const inputHoverClass = showDropdown ? 'hover:bg-background' : 'hover:bg-secondary'
+  const showDiscoveryDropdown = showDesktopDiscovery && !emptyState && query.trim().length === 0 && hasFocusWithin && !isResultsDismissed
+  const showAttachedDropdown = showDropdown || showDiscoveryDropdown
+  const inputBaseClass = showAttachedDropdown ? 'bg-background' : 'bg-accent'
+  const inputBorderClass = showAttachedDropdown ? 'border-border' : 'border-transparent'
+  const inputHoverClass = showAttachedDropdown ? 'hover:bg-background' : 'hover:bg-secondary'
   const inputFocusClass = 'focus:bg-background focus-visible:bg-background'
   const site = useSiteIdentity()
   const sitename = `${site.name || 'events and profiles'}`.toLowerCase()
   const t = useExtracted()
-  const shouldShowEmptyState = Boolean(emptyState) && query.trim().length === 0 && !showDropdown
+  const shouldShowEmptyState = Boolean(emptyState) && query.trim().length === 0 && !showAttachedDropdown
+
+  function handleNavigate() {
+    clearSearch()
+    setHasFocusWithin(false)
+    setIsResultsDismissed(true)
+    hideResults()
+    inputRef.current?.blur()
+    onNavigate?.()
+  }
 
   function navigateToPredictionResults() {
     const nextPath = buildPredictionResultsPath(query)
@@ -58,8 +75,7 @@ export default function HeaderSearch({
       return
     }
 
-    clearSearch()
-    onNavigate?.()
+    handleNavigate()
     router.push(nextPath as Route)
   }
 
@@ -88,21 +104,40 @@ export default function HeaderSearch({
   }, [])
 
   useEffect(() => {
+    if (!focusTrigger) {
+      return
+    }
+
+    if (document.activeElement === inputRef.current) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      inputRef.current?.focus({ preventScroll: true })
+    }, 40)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [focusTrigger])
+
+  useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setHasFocusWithin(false)
         setIsResultsDismissed(true)
         hideResults()
         inputRef.current?.blur()
       }
     }
 
-    if (showDropdown) {
+    if (showAttachedDropdown) {
       document.addEventListener('pointerdown', handlePointerDown)
       return () => {
         document.removeEventListener('pointerdown', handlePointerDown)
       }
     }
-  }, [showDropdown, hideResults])
+  }, [showAttachedDropdown, hideResults])
 
   return (
     <div className="w-full lg:max-w-[600px] lg:min-w-[400px]">
@@ -110,6 +145,21 @@ export default function HeaderSearch({
         className="relative w-full"
         ref={searchRef}
         data-testid="header-search-container"
+        onFocusCapture={() => {
+          setHasFocusWithin(true)
+          setIsResultsDismissed(false)
+        }}
+        onBlurCapture={() => {
+          requestAnimationFrame(() => {
+            const containsFocusedElement = searchRef.current?.contains(document.activeElement) ?? false
+            setHasFocusWithin(containsFocusedElement)
+
+            if (!containsFocusedElement) {
+              setIsResultsDismissed(true)
+              hideResults()
+            }
+          })
+        }}
       >
         <SearchIcon className="absolute top-1/2 left-4 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -139,7 +189,7 @@ export default function HeaderSearch({
             'h-12 w-full pr-12 pl-11 shadow-none transition-colors lg:h-10',
             inputBorderClass,
             inputBaseClass,
-            { 'rounded-b-none': showDropdown },
+            { 'rounded-b-none': showAttachedDropdown },
             inputHoverClass,
             'focus-visible:border-border',
             inputFocusClass,
@@ -157,6 +207,7 @@ export default function HeaderSearch({
                 `}
                 onClick={() => {
                   clearSearch()
+                  setIsResultsDismissed(false)
                   inputRef.current?.focus()
                 }}
                 aria-label="Clear search"
@@ -179,12 +230,18 @@ export default function HeaderSearch({
             isLoading={isLoading}
             activeTab={activeTab}
             query={query}
-            onResultClick={() => {
-              clearSearch()
-              onNavigate?.()
-            }}
+            onResultClick={handleNavigate}
             onTabChange={setActiveTab}
           />
+        )}
+        {showDiscoveryDropdown && (
+          <div
+            className={`
+              absolute inset-x-0 top-full z-50 mt-0 rounded-lg rounded-t-none border border-t-0 bg-background shadow-lg
+            `}
+          >
+            <SearchDiscoveryContent variant="desktop" onNavigate={handleNavigate} />
+          </div>
         )}
       </div>
 
