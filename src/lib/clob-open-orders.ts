@@ -49,7 +49,9 @@ export function mapClobOpenOrder<TMarket extends UserOpenOrder['market'], TOrder
   const totalShares = Math.max(parseClobNumber(order.original_size), 0)
   const filledShares = Math.max(parseClobNumber(order.size_matched), 0)
   const { makerAmount, takerAmount } = calculateClobAmounts(totalShares, priceValue, side)
-  const expiry = parseClobNumber(order.expiration)
+  const expiry = order.expiration == null || order.expiration === ''
+    ? null
+    : parseClobNumber(order.expiration)
 
   return {
     id: order.id,
@@ -61,7 +63,7 @@ export function mapClobOpenOrder<TMarket extends UserOpenOrder['market'], TOrder
     taker_amount: takerAmount,
     size_matched: Math.round(filledShares * MICRO_UNIT),
     created_at: order.created_at,
-    expiration: Number.isFinite(expiry) ? expiry : null,
+    expiration: typeof expiry === 'number' && Number.isFinite(expiry) ? expiry : null,
     outcome: {
       index: outcomeMeta?.index ?? 0,
       text: outcomeMeta?.text || '',

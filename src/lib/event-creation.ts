@@ -44,6 +44,8 @@ const MONTH_NAMES = [
 const BLOCKED_ASSET_RECORD_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 const EVENT_CREATION_TEMPLATE_TOKEN_REPLACE_PATTERN = /\{\{\s*([a-z_]+(?:[+-]\d+)?)\s*\}\}/gi
 const EVENT_CREATION_DATE_TEMPLATE_TOKEN_PATTERN = /\{\{\s*(?:day|day_padded|month|month_padded|month_name|month_name_lower|date|date_short|year)(?:[+-]\d+)?\s*\}\}/i
+const EVENT_CREATION_TEMPLATE_TOKEN_PATTERN = /\{\{\s*[a-z_]+(?:[+-]\d+)?\s*\}\}/gi
+const EVENT_CREATION_TEMPLATE_TOKEN_NORMALIZE_PATTERN = /\{\{\s*([a-z_]+(?:[+-]\d+)?)\s*\}\}/i
 
 export function slugifyEventCreationValue(value: string) {
   return slugifyText(value)
@@ -235,7 +237,7 @@ function resolveEventCreationTemplateToken(rawToken: string, baseDate: Date) {
 }
 
 function normalizeTemplateToken(token: string) {
-  const match = token.match(/\{\{\s*([a-z_]+)\s*\}\}/i)
+  const match = token.match(EVENT_CREATION_TEMPLATE_TOKEN_NORMALIZE_PATTERN)
   return match?.[1] ? `{{${match[1].toLowerCase()}}}` : token.trim()
 }
 
@@ -245,8 +247,8 @@ export function slugifyEventCreationTemplate(value: string) {
     return ''
   }
 
-  const tokens = trimmed.match(/\{\{\s*[a-z_]+\s*\}\}/gi) ?? []
-  const parts = trimmed.split(/\{\{\s*[a-z_]+\s*\}\}/gi)
+  const tokens = trimmed.match(EVENT_CREATION_TEMPLATE_TOKEN_PATTERN) ?? []
+  const parts = trimmed.split(EVENT_CREATION_TEMPLATE_TOKEN_PATTERN)
   const segments: string[] = []
 
   parts.forEach((part, index) => {

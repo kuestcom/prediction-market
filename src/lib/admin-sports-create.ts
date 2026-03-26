@@ -300,7 +300,7 @@ export function buildAdminSportsSlugCatalog(menuEntries: SportsMenuEntry[]): Adm
         value: sportValue,
       })
 
-      const groupLeagueOptions: AdminSportsSlugOption[] = []
+      const groupLeagueOptions = [...(leagueOptionsBySport.get(sportValue) ?? [])]
       entry.links.forEach((link) => {
         const leagueValue = link.menuSlug?.trim().toLowerCase() || slugify(link.label)
         const option = {
@@ -332,7 +332,9 @@ export function buildAdminSportsSlugCatalog(menuEntries: SportsMenuEntry[]): Adm
 
     pushUniqueOption(sportOptions, option)
     pushUniqueOption(allLeagueOptions, option)
-    leagueOptionsBySport.set(value, [option])
+    const leagueOptions = [...(leagueOptionsBySport.get(value) ?? [])]
+    pushUniqueOption(leagueOptions, option)
+    leagueOptionsBySport.set(value, leagueOptions)
   }
 
   return {
