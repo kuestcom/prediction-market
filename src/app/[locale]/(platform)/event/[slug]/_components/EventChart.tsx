@@ -1135,20 +1135,21 @@ function EventChartComponent({
           {legendEntriesWithValues.map((entry) => {
             const resolvedValue = entry.value as number
             return (
-              <div key={entry.key} className="flex items-center gap-2 whitespace-nowrap">
+              <div key={entry.key} className="flex max-w-full items-center gap-2">
                 <div
                   className="size-2 shrink-0 rounded-full"
                   style={{ backgroundColor: entry.color }}
                 />
                 <span
                   className="
-                    inline-flex w-fit items-center gap-1.5 text-xs font-medium whitespace-nowrap text-muted-foreground
+                    inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs font-medium
+                    text-muted-foreground
                   "
                 >
-                  <span>{entry.name}</span>
+                  <span className="min-w-0 wrap-break-word">{entry.name}</span>
                   <span className={`
-                    inline-flex min-w-8 shrink-0 items-baseline justify-end text-sm font-semibold text-foreground
-                    tabular-nums
+                    inline-flex min-w-8 shrink-0 items-baseline justify-end text-sm font-semibold whitespace-nowrap
+                    text-foreground tabular-nums
                   `}
                   >
                     {resolvedValue.toFixed(0)}

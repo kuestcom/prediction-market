@@ -17,15 +17,19 @@ function isBrowserReady() {
   return typeof window !== 'undefined'
 }
 
+function trimString(value: unknown) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
 function normalizeRecentSearchEvent(value: unknown): RecentSearchEvent | null {
   if (!value || typeof value !== 'object') {
     return null
   }
 
   const candidate = value as Partial<RecentSearchEvent>
-  const id = candidate.id?.trim()
-  const href = candidate.href?.trim()
-  const title = candidate.title?.trim()
+  const id = trimString(candidate.id)
+  const href = trimString(candidate.href)
+  const title = trimString(candidate.title)
 
   if (!id || !href || !title) {
     return null
@@ -35,7 +39,7 @@ function normalizeRecentSearchEvent(value: unknown): RecentSearchEvent | null {
     id,
     href,
     title,
-    iconUrl: candidate.iconUrl?.trim() ?? '',
+    iconUrl: trimString(candidate.iconUrl),
   }
 }
 

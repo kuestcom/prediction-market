@@ -149,16 +149,20 @@ export default function HeaderSearch({
           setHasFocusWithin(true)
           setIsResultsDismissed(false)
         }}
-        onBlurCapture={() => {
-          requestAnimationFrame(() => {
-            const containsFocusedElement = searchRef.current?.contains(document.activeElement) ?? false
-            setHasFocusWithin(containsFocusedElement)
+        onBlurCapture={(event) => {
+          const nextFocusedElement = event.relatedTarget as Node | null
 
-            if (!containsFocusedElement) {
-              setIsResultsDismissed(true)
-              hideResults()
-            }
-          })
+          if (!nextFocusedElement) {
+            return
+          }
+
+          const containsFocusedElement = searchRef.current?.contains(nextFocusedElement) ?? false
+          setHasFocusWithin(containsFocusedElement)
+
+          if (!containsFocusedElement) {
+            setIsResultsDismissed(true)
+            hideResults()
+          }
         }}
       >
         <SearchIcon className="absolute top-1/2 left-4 z-10 size-4 -translate-y-1/2 text-muted-foreground" />

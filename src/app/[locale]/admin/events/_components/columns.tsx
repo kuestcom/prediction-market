@@ -71,7 +71,7 @@ export function useAdminEventsColumns({
       cell: ({ row }) => {
         const event = row.original
         return (
-          <div className="min-w-[18rem]">
+          <div className="max-w-lg min-w-[16rem]">
             <div className="flex items-start gap-3">
               <div className="relative size-10 shrink-0 overflow-hidden rounded-md border bg-muted/40">
                 {event.icon_url
@@ -98,7 +98,8 @@ export function useAdminEventsColumns({
                   <Link
                     href={`/event/${event.slug}`}
                     className={`
-                      truncate text-sm font-medium underline-offset-4 hover:underline
+                      line-clamp-2 text-sm font-medium text-wrap underline-offset-4
+                      hover:underline
                       ${event.is_hidden ? 'text-muted-foreground' : 'text-foreground'}
                     `}
                   >
