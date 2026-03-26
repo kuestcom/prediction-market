@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { useAppKitAccount } from '@reown/appkit/react'
-import { BookmarkIcon, ClockIcon, DropletIcon, FlameIcon, HandFistIcon, Settings2Icon, SparklesIcon, TrendingUpIcon } from 'lucide-react'
+import { BookmarkIcon, ClockIcon, DropletIcon, FlameIcon, HandFistIcon, Settings2Icon, SparkleIcon, TrendingUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import FilterToolbarSearchInput from '@/app/[locale]/(platform)/(home)/_components/FilterToolbarSearchInput'
@@ -337,7 +337,7 @@ function FilterSettingsRow({
     { value: '24h-volume', label: t('24h Volume'), icon: TrendingUpIcon },
     { value: 'total-volume', label: t('Total Volume'), icon: FlameIcon },
     { value: 'liquidity', label: t('Liquidity'), icon: DropletIcon },
-    { value: 'newest', label: t('Newest'), icon: SparklesIcon },
+    { value: 'newest', label: t('Newest'), icon: SparkleIcon },
     { value: 'ending-soon', label: t('Ending Soon'), icon: ClockIcon },
     { value: 'competitive', label: t('Competitive'), icon: HandFistIcon },
   ], [t])

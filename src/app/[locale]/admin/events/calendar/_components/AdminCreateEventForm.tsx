@@ -27,7 +27,7 @@ import {
   ImageUp,
   Loader2Icon,
   PlusIcon,
-  SparklesIcon,
+  SparkleIcon,
   SquarePenIcon,
   Trash2Icon,
   XIcon,
@@ -6602,7 +6602,7 @@ export default function AdminCreateEventForm({
                   >
                     {isGeneratingRules
                       ? <Loader2Icon className="mr-2 size-4 animate-spin" />
-                      : <SparklesIcon className="mr-2 size-4" />}
+                      : <SparkleIcon className="mr-2 size-4" />}
                     Generate with AI
                   </Button>
                 </div>

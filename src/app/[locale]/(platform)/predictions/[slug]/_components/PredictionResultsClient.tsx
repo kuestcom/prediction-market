@@ -715,7 +715,7 @@ function PredictionResultRow({
                 </span>
               </span>
               <span className="flex items-center gap-1 whitespace-nowrap">
-                <FlameIcon className="size-3.5 text-rose-400" />
+                <FlameIcon className={cn('size-3.5', recentVolume > 200 ? 'text-rose-400' : 'text-muted-foreground')} />
                 <span>
                   {formatCompactCurrency(recentVolume)}
                   {' '}

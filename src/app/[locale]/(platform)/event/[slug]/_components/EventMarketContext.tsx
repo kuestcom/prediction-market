@@ -1,5 +1,5 @@
 import type { Event } from '@/types'
-import { LoaderIcon, SparklesIcon } from 'lucide-react'
+import { LoaderIcon, SparkleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { generateMarketContextAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/generate-market-context'
@@ -201,7 +201,7 @@ export default function EventMarketContext({ event }: EventMarketContextProps) {
                   shadow-sm transition
                 `}
               >
-                {isPending ? <LoaderIcon className="size-3 animate-spin" /> : <SparklesIcon className="size-3" />}
+                {isPending ? <LoaderIcon className="size-3 animate-spin" /> : <SparkleIcon className="size-3" />}
                 {isPending ? t('Generating...') : t('Generate')}
               </span>
             </button>

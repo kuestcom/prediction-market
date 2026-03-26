@@ -1131,16 +1131,20 @@ function EventChartComponent({
 
   const legendContent = shouldRenderLegendEntries
     ? (
-        <div className="flex min-h-5 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+        <div className="flex min-h-5 flex-wrap items-center gap-x-3 gap-y-1.5 sm:gap-x-4 sm:gap-y-2">
           {legendEntriesWithValues.map((entry) => {
             const resolvedValue = entry.value as number
             return (
-              <div key={entry.key} className="flex items-center gap-2">
+              <div key={entry.key} className="flex items-center gap-2 whitespace-nowrap">
                 <div
                   className="size-2 shrink-0 rounded-full"
                   style={{ backgroundColor: entry.color }}
                 />
-                <span className="inline-flex w-fit items-center gap-2 text-xs font-medium text-muted-foreground">
+                <span
+                  className="
+                    inline-flex w-fit items-center gap-1.5 text-xs font-medium whitespace-nowrap text-muted-foreground
+                  "
+                >
                   <span>{entry.name}</span>
                   <span className={`
                     inline-flex min-w-8 shrink-0 items-baseline justify-end text-sm font-semibold text-foreground

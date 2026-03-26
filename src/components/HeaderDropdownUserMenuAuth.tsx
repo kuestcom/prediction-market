@@ -211,11 +211,11 @@ export default function HeaderDropdownUserMenuAuth() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="w-64"
+          className="z-70 w-64"
           align="end"
           sideOffset={0}
           collisionPadding={16}
-          portalled={false}
+          portalled={isMobile}
           onInteractOutside={() => setMenuOpen(false)}
           onEscapeKeyDown={() => setMenuOpen(false)}
         >

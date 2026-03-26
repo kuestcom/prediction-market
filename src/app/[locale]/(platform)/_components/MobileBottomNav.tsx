@@ -8,18 +8,24 @@ import {
   BookOpenIcon,
   ChartCandlestickIcon,
   CheckIcon,
+  ClockFadingIcon,
   DownloadIcon,
+  DropletIcon,
   FileTextIcon,
   FlameIcon,
+  HandFistIcon,
   HouseIcon,
   InfoIcon,
   MenuIcon,
   SearchIcon,
+  SparkleIcon,
+  TrendingUpIcon,
   TrophyIcon,
   UnplugIcon,
 } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
@@ -75,45 +81,59 @@ function buildPredictionBrowseHref(baseSlug: string, sort: PredictionResultsSort
 }
 
 function resolveMobileSearchTopicHref(slug: string) {
+  if (slug === 'live-crypto') {
+    return '/predictions/up-or-down'
+  }
+
   if (slug === 'sports') {
-    return '/sports/live'
+    return '/sports'
   }
 
   return `/predictions/${slug}`
 }
 
-function resolveTopicAccentClassName(slug: string) {
-  switch (slug) {
-    case 'sports':
-      return 'bg-orange-100 text-orange-700'
-    case 'crypto':
-      return 'bg-amber-100 text-amber-700'
-    case 'politics':
-      return 'bg-blue-100 text-blue-700'
-    case 'finance':
-      return 'bg-emerald-100 text-emerald-700'
-    case 'weather':
-      return 'bg-cyan-100 text-cyan-700'
-    case 'tech':
-    case 'ai':
-      return 'bg-violet-100 text-violet-700'
-    case 'pop-culture':
-      return 'bg-pink-100 text-pink-700'
-    default:
-      return 'bg-muted text-foreground'
-  }
-}
-
-function getTopicMonogram(label: string) {
-  const monogram = label
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(segment => segment[0]?.toUpperCase() ?? '')
-    .join('')
-
-  return monogram || '?'
-}
+const MOBILE_SEARCH_TOPIC_ORDER = [
+  {
+    slug: 'live-crypto',
+    fallbackLabel: 'Live Crypto',
+    imageSrc: '/images/mobile-search/nav-live-crypto.webp',
+  },
+  {
+    slug: 'politics',
+    fallbackLabel: 'Politics',
+    imageSrc: '/images/mobile-search/nav-markets-politics.webp',
+  },
+  {
+    slug: 'middle-east',
+    fallbackLabel: 'Middle East',
+    imageSrc: '/images/mobile-search/nav-markets-middle-east.webp',
+  },
+  {
+    slug: 'crypto',
+    fallbackLabel: 'Crypto',
+    imageSrc: '/images/mobile-search/nav-markets-crypto.webp',
+  },
+  {
+    slug: 'sports',
+    fallbackLabel: 'Sports',
+    imageSrc: '/images/mobile-search/nav-nba.webp',
+  },
+  {
+    slug: 'pop-culture',
+    fallbackLabel: 'Pop Culture',
+    imageSrc: '/images/mobile-search/nav-markets-pop-culture.webp',
+  },
+  {
+    slug: 'tech',
+    fallbackLabel: 'Tech',
+    imageSrc: '/images/mobile-search/nav-markets-tech.webp',
+  },
+  {
+    slug: 'ai',
+    fallbackLabel: 'AI',
+    imageSrc: '/images/mobile-search/nav-markets-ai.webp',
+  },
+] as const
 
 export default function MobileBottomNav() {
   const t = useExtracted()
@@ -175,14 +195,19 @@ export default function MobileBottomNav() {
 
       {isHowItWorksOpen && (
         <div className="lg:hidden">
-          <HowItWorks open={isHowItWorksOpen} onOpenChange={setIsHowItWorksOpen} hideTrigger />
+          <HowItWorks
+            open={isHowItWorksOpen}
+            onOpenChange={setIsHowItWorksOpen}
+            hideTrigger
+            displayMode="mobile"
+          />
         </div>
       )}
 
       <Drawer open={isSearchOpen} onOpenChange={setIsSearchOpen}>
         <DrawerContent
           className="
-            h-dvh max-h-dvh overflow-y-auto rounded-none border-x-0 border-b-0 border-border/70 bg-background px-4 pt-2
+            h-dvh max-h-dvh overflow-y-auto rounded-none border-x-0 border-b-0 border-border/70 bg-background px-2 pt-2
             pb-6
           "
         >
@@ -203,20 +228,28 @@ export default function MobileBottomNav() {
         <Drawer open={isGuestMenuOpen} onOpenChange={setIsGuestMenuOpen}>
           <DrawerContent className="max-h-[88vh] rounded-t-[1.75rem] border-border/70 bg-background px-4 pt-2 pb-6">
             <div className="grid gap-4 pt-3">
-              <div className="grid grid-cols-2 gap-2">
-                <DrawerClose asChild>
-                  <Button type="button" variant="outline" className="h-10" onClick={handleAuthAction}>
-                    {t('Log In')}
-                  </Button>
-                </DrawerClose>
-                <DrawerClose asChild>
-                  <Button type="button" className="h-10" onClick={handleAuthAction}>
-                    {t('Sign Up')}
-                  </Button>
-                </DrawerClose>
-              </div>
-
               <div className="overflow-hidden rounded-2xl border border-border/70">
+                {canShowInstallUi && (
+                  <>
+                    <button
+                      type="button"
+                      className={`
+                        flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold
+                        disabled:pointer-events-none disabled:opacity-50
+                      `}
+                      onClick={() => {
+                        void handleInstallAction()
+                      }}
+                      disabled={isPrompting}
+                    >
+                      <DownloadIcon className="size-4 text-sky-500" />
+                      {t('Install app')}
+                    </button>
+
+                    <div className="mx-4 h-px bg-border/70" />
+                  </>
+                )}
+
                 <DrawerClose asChild>
                   <IntentPrefetchLink
                     href="/leaderboard"
@@ -240,27 +273,6 @@ export default function MobileBottomNav() {
                     {t('APIs')}
                   </IntentPrefetchLink>
                 </DrawerClose>
-
-                {canShowInstallUi && (
-                  <>
-                    <div className="mx-4 h-px bg-border/70" />
-
-                    <button
-                      type="button"
-                      className={`
-                        flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold
-                        disabled:pointer-events-none disabled:opacity-50
-                      `}
-                      onClick={() => {
-                        void handleInstallAction()
-                      }}
-                      disabled={isPrompting}
-                    >
-                      <DownloadIcon className="size-4 text-sky-500" />
-                      {t('Install app')}
-                    </button>
-                  </>
-                )}
               </div>
 
               <div className="rounded-2xl border border-border/70 px-4 py-3">
@@ -308,6 +320,19 @@ export default function MobileBottomNav() {
                   </IntentPrefetchLink>
                 </DrawerClose>
               </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <DrawerClose asChild>
+                  <Button type="button" variant="outline" className="h-10" onClick={handleAuthAction}>
+                    {t('Log In')}
+                  </Button>
+                </DrawerClose>
+                <DrawerClose asChild>
+                  <Button type="button" className="h-10" onClick={handleAuthAction}>
+                    {t('Sign Up')}
+                  </Button>
+                </DrawerClose>
+              </div>
             </div>
           </DrawerContent>
         </Drawer>
@@ -323,8 +348,8 @@ export default function MobileBottomNav() {
         >
           <div className="grid h-17.5 grid-cols-4">
             <MobileNavLink href="/" label={t('Home')} active={pathname === '/'} icon={HouseIcon} />
-            <MobileNavLink href="/new" label={t('New')} active={pathname === '/new'} icon={FlameIcon} />
             <MobileNavButton label={t('Search')} active={isSearchOpen} onClick={() => setIsSearchOpen(true)} icon={SearchIcon} />
+            <MobileNavLink href="/new" label={t('New')} active={pathname === '/new'} icon={SparkleIcon} />
             {isAuthenticated
               ? (
                   <MobilePortfolioNavLink active={pathname.startsWith('/portfolio')} />
@@ -352,17 +377,23 @@ function MobileSearchDrawerBrowse({ onNavigate }: MobileSearchDrawerBrowseProps)
   const t = useExtracted()
   const { tags } = usePlatformNavigationData()
   const browseLinks = [
-    { href: buildPredictionBrowseHref('trending'), label: t('Trending') },
-    { href: buildPredictionBrowseHref('new'), label: t('New') },
-    { href: buildPredictionBrowseHref('trending', 'volume'), label: t('Popular') },
-    { href: buildPredictionBrowseHref('trending', 'ending-soon'), label: t('Ending Soon') },
-    { href: buildPredictionBrowseHref('trending', 'competitive'), label: t('Competitive') },
-    { href: '/sports/live', label: t('Sports') },
+    { href: buildPredictionBrowseHref('trending'), icon: TrendingUpIcon, label: t('Trending') },
+    { href: buildPredictionBrowseHref('new'), icon: SparkleIcon, label: t('New') },
+    { href: buildPredictionBrowseHref('trending', 'volume'), icon: FlameIcon, label: t('Popular') },
+    { href: '/', icon: DropletIcon, label: 'Liquid' },
+    { href: buildPredictionBrowseHref('trending', 'ending-soon'), icon: ClockFadingIcon, label: t('Ending Soon') },
+    { href: buildPredictionBrowseHref('trending', 'competitive'), icon: HandFistIcon, label: t('Competitive') },
   ] as const
 
-  const topicTags = tags
-    .filter(tag => tag.slug !== 'trending' && tag.slug !== 'new')
-    .slice(0, 8)
+  const topicLabelsBySlug = new Map([
+    ...tags.map(tag => [tag.slug, tag.name] as const),
+    ...tags.flatMap(tag => tag.childs.map(child => [child.slug, child.name] as const)),
+  ])
+  const topicItems = MOBILE_SEARCH_TOPIC_ORDER.map(item => ({
+    ...item,
+    href: resolveMobileSearchTopicHref(item.slug),
+    label: topicLabelsBySlug.get(item.slug) ?? item.fallbackLabel,
+  }))
 
   return (
     <div className="mt-5 grid gap-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
@@ -375,49 +406,43 @@ function MobileSearchDrawerBrowse({ onNavigate }: MobileSearchDrawerBrowseProps)
               href={link.href}
               onClick={onNavigate}
               className={`
-                rounded-full border border-border/70 bg-card px-3 py-2 text-sm font-semibold transition-colors
+                inline-flex items-center gap-1.5 rounded-sm border border-border/70 px-2.25 py-1 text-xs font-normal
+                transition-colors
                 hover:bg-accent hover:text-accent-foreground
               `}
             >
+              <link.icon className="size-3.5" />
               {link.label}
             </IntentPrefetchLink>
           ))}
         </div>
       </section>
 
-      {topicTags.length > 0 && (
+      {topicItems.length > 0 && (
         <section className="grid gap-3">
           <p className="text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase">{t('Topics')}</p>
           <div className="grid grid-cols-2 gap-2">
-            {topicTags.map(tag => (
+            {topicItems.map(item => (
               <IntentPrefetchLink
-                key={tag.slug}
-                href={resolveMobileSearchTopicHref(tag.slug)}
+                key={item.slug}
+                href={item.href}
                 onClick={onNavigate}
                 className={`
-                  flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors
+                  flex items-center gap-2 rounded-lg border border-border/70 px-1.5 py-1.25 transition-colors
                   hover:bg-accent hover:text-accent-foreground
                 `}
               >
-                <div
-                  className={cn(
-                    'flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold',
-                    resolveTopicAccentClassName(tag.slug),
-                  )}
-                >
-                  {getTopicMonogram(tag.name)}
+                <div className="relative size-6.5 shrink-0 overflow-hidden rounded-md">
+                  <Image
+                    src={item.imageSrc}
+                    alt={item.label}
+                    fill
+                    sizes="26px"
+                    className="object-cover"
+                  />
                 </div>
 
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">{tag.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {tag.slug === 'sports'
-                      ? t('Live markets and props')
-                      : tag.childs.length > 0
-                        ? t('{count} subtopics', { count: `${tag.childs.length}` })
-                        : t('Browse markets')}
-                  </p>
-                </div>
+                <p className="min-w-0 truncate text-xs/tight font-normal text-foreground">{item.label}</p>
               </IntentPrefetchLink>
             ))}
           </div>

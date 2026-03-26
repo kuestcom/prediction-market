@@ -7,7 +7,7 @@ import {
   FlameIcon,
   HandFistIcon,
   SearchIcon,
-  SparklesIcon,
+  SparkleIcon,
   TrendingUpIcon,
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -41,7 +41,7 @@ export default function PredictionResultsFilters({
   }> = [
     { value: 'trending', icon: TrendingUpIcon, label: t('Trending') },
     { value: 'volume', icon: FlameIcon, label: t('Volume') },
-    { value: 'newest', icon: SparklesIcon, label: t('Newest') },
+    { value: 'newest', icon: SparkleIcon, label: t('Newest') },
     { value: 'ending-soon', icon: Clock3Icon, label: t('Ending Soon') },
     { value: 'competitive', icon: HandFistIcon, label: t('Competitive') },
   ]

@@ -25,12 +25,14 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { cn, triggerConfetti } from '@/lib/utils'
 
 interface HowItWorksProps {
+  displayMode?: 'auto' | 'mobile' | 'desktop'
   open?: boolean
   onOpenChange?: (open: boolean) => void
   hideTrigger?: boolean
 }
 
 export default function HowItWorks({
+  displayMode = 'auto',
   open: controlledOpen,
   onOpenChange,
   hideTrigger = false,
@@ -71,6 +73,9 @@ export default function HowItWorks({
   const currentStep = steps[activeStep]
   const isLastStep = activeStep === steps.length - 1
   const isOpen = controlledOpen ?? uncontrolledIsOpen
+  const shouldUseMobileLayout = displayMode === 'auto'
+    ? isMobile
+    : displayMode === 'mobile'
 
   useEffect(() => {
     if (controlledOpen === undefined || controlledOpen) {
@@ -106,7 +111,7 @@ export default function HowItWorks({
     setActiveStep(step => Math.min(step + 1, steps.length - 1))
   }
 
-  if (isMobile) {
+  if (shouldUseMobileLayout) {
     return (
       <Drawer open={isOpen} onOpenChange={handleOpenChange}>
         {!hideTrigger && (
