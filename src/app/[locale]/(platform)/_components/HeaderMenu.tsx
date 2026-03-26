@@ -78,7 +78,7 @@ function HeaderMenuClient() {
           >
             {t('Sign Up')}
           </Button>
-          <HeaderDropdownUserMenuGuest />
+          {!isMobile && <HeaderDropdownUserMenuGuest />}
         </>
       )}
     </>

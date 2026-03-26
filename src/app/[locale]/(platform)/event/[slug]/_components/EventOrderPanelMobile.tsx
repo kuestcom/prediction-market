@@ -105,7 +105,12 @@ export default function EventOrderPanelMobile({
     >
       {shouldShowDefaultTrigger && (
         <DrawerTrigger asChild>
-          <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background p-4 lg:hidden">
+          <div
+            className={`
+              fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] z-30 border-t bg-background p-4
+              lg:hidden
+            `}
+          >
             <div className="flex gap-2">
               <Button
                 variant="yes"

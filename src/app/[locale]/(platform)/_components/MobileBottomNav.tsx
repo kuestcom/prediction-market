@@ -21,7 +21,6 @@ import dynamic from 'next/dynamic'
 import { useParams } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { shouldHideMobileBottomNav } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import ThemeSelector from '@/components/ThemeSelector'
@@ -63,7 +62,8 @@ export default function MobileBottomNav() {
   const [isGuestMenuOpen, setIsGuestMenuOpen] = useState(false)
 
   const isAuthenticated = Boolean(session?.user) || Boolean(user) || isConnected
-  const shouldHide = shouldHideMobileBottomNav(pathname)
+  const isTradingSurface = pathname.startsWith('/event/') || pathname.startsWith('/sports/')
+  const shouldShowHowItWorks = !isAuthenticated && !isTradingSurface
 
   useEffect(() => {
     setIsSearchOpen(false)
@@ -97,10 +97,6 @@ export default function MobileBottomNav() {
     }, 120)
   }
 
-  if (shouldHide) {
-    return null
-  }
-
   return (
     <>
       <div aria-hidden="true" className={cn('lg:hidden', MOBILE_BOTTOM_NAV_SPACER_CLASS)} />
@@ -120,11 +116,7 @@ export default function MobileBottomNav() {
       {!isAuthenticated && (
         <Drawer open={isGuestMenuOpen} onOpenChange={setIsGuestMenuOpen}>
           <DrawerContent className="max-h-[88vh] rounded-t-[1.75rem] border-border/70 bg-background px-4 pt-2 pb-6">
-            <DrawerHeader className="px-0 pb-4 text-left">
-              <DrawerTitle>{t('Menu')}</DrawerTitle>
-            </DrawerHeader>
-
-            <div className="grid gap-4">
+            <div className="grid gap-4 pt-3">
               <div className="grid grid-cols-2 gap-2">
                 <DrawerClose asChild>
                   <Button type="button" variant="outline" className="h-10" onClick={handleAuthAction}>
@@ -223,7 +215,7 @@ export default function MobileBottomNav() {
       )}
 
       <nav className="fixed inset-x-0 bottom-0 z-40 lg:hidden" aria-label="Primary navigation">
-        {!isAuthenticated && (
+        {shouldShowHowItWorks && (
           <HowItWorks
             mobileBannerPlacement="inline"
             mobileBannerClassName="border-border/70 shadow-[0_-18px_36px_-28px_rgba(15,23,42,0.45)]"
