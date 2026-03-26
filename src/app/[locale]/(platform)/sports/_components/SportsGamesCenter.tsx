@@ -3621,6 +3621,15 @@ export default function SportsGamesCenter({
   const [titleRowActionsTarget, setTitleRowActionsTarget] = useState<HTMLElement | null>(null)
   const searchShellRef = useRef<HTMLDivElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const currentOrderSelectionRef = useRef<{
+    eventId: string | null
+    conditionId: string | null
+    outcomeIndex: number | null
+  }>({
+    eventId: null,
+    conditionId: null,
+    outcomeIndex: null,
+  })
   const openLivestream = useSportsLivestream(state => state.openStream)
   const setOrderEvent = useOrder(state => state.setEvent)
   const setOrderMarket = useOrder(state => state.setMarket)
@@ -3640,6 +3649,14 @@ export default function SportsGamesCenter({
     (card: SportsGamesCard) => resolveCardCategoryLabel(card, normalizedCategoryTitleBySlug),
     [normalizedCategoryTitleBySlug],
   )
+
+  useEffect(() => {
+    currentOrderSelectionRef.current = {
+      eventId: orderEventId,
+      conditionId: orderMarketConditionId,
+      outcomeIndex: orderOutcomeIndex,
+    }
+  }, [orderEventId, orderMarketConditionId, orderOutcomeIndex])
 
   useEffect(() => {
     setCurrentTimestampMs(Date.now())
@@ -4152,10 +4169,16 @@ export default function SportsGamesCenter({
       return
     }
 
+    const {
+      eventId: currentOrderEventId,
+      conditionId: currentOrderMarketConditionId,
+      outcomeIndex: currentOrderOutcomeIndex,
+    } = currentOrderSelectionRef.current
+
     if (
-      orderEventId === activeTradeContext.card.event.id
-      && orderMarketConditionId === activeTradeContext.market.condition_id
-      && orderOutcomeIndex === activeTradeContext.outcome.outcome_index
+      currentOrderEventId === activeTradeContext.card.event.id
+      && currentOrderMarketConditionId === activeTradeContext.market.condition_id
+      && currentOrderOutcomeIndex === activeTradeContext.outcome.outcome_index
     ) {
       return
     }
@@ -4166,9 +4189,6 @@ export default function SportsGamesCenter({
     setOrderSide(ORDER_SIDE.BUY)
   }, [
     activeTradeContext,
-    orderEventId,
-    orderMarketConditionId,
-    orderOutcomeIndex,
     setOrderEvent,
     setOrderMarket,
     setOrderOutcome,

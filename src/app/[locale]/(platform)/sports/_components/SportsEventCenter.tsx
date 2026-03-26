@@ -1398,6 +1398,15 @@ export default function SportsEventCenter({
   const previousCardIdRef = useRef<string | null>(null)
   const appliedMarketSlugSelectionRef = useRef<string | null>(null)
   const pushedOrderSelectionRef = useRef<string | null>(null)
+  const currentOrderSelectionRef = useRef<{
+    eventId: string | null
+    conditionId: string | null
+    outcomeIndex: number | null
+  }>({
+    eventId: null,
+    conditionId: null,
+    outcomeIndex: null,
+  })
   const auxiliaryMarketCards = useMemo<AuxiliaryMarketPanel[]>(() => {
     const buttonsByConditionId = new Map<string, SportsGamesButton[]>()
 
@@ -2061,6 +2070,14 @@ export default function SportsEventCenter({
   const activeTradeContextButtonKey = activeTradeContext?.button.key ?? null
 
   useEffect(() => {
+    currentOrderSelectionRef.current = {
+      eventId: orderEventId,
+      conditionId: orderMarketConditionId,
+      outcomeIndex: orderOutcomeIndex,
+    }
+  }, [orderEventId, orderMarketConditionId, orderOutcomeIndex])
+
+  useEffect(() => {
     if (!activeTradeContextButtonKey) {
       pushedOrderSelectionRef.current = null
       return
@@ -2075,11 +2092,16 @@ export default function SportsEventCenter({
     }
 
     const nextOrderSelectionSyncKey = `${activeCard.event.id}:${market.condition_id}:${outcome.outcome_index}`
+    const {
+      eventId: currentOrderEventId,
+      conditionId: currentOrderMarketConditionId,
+      outcomeIndex: currentOrderOutcomeIndex,
+    } = currentOrderSelectionRef.current
 
     if (
-      orderEventId === activeCard.event.id
-      && orderMarketConditionId === market.condition_id
-      && orderOutcomeIndex === outcome.outcome_index
+      currentOrderEventId === activeCard.event.id
+      && currentOrderMarketConditionId === market.condition_id
+      && currentOrderOutcomeIndex === outcome.outcome_index
     ) {
       pushedOrderSelectionRef.current = nextOrderSelectionSyncKey
       return
@@ -2093,9 +2115,6 @@ export default function SportsEventCenter({
   }, [
     activeCard,
     activeTradeContextButtonKey,
-    orderEventId,
-    orderMarketConditionId,
-    orderOutcomeIndex,
     setOrderEvent,
     setOrderMarket,
     setOrderOutcome,
