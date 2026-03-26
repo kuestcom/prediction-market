@@ -58,22 +58,6 @@ export const AllowedMarketCreatorRepository = {
     })
   },
 
-  async isAllowed(walletAddress: string): Promise<QueryResult<boolean>> {
-    return runQuery(async () => {
-      const normalizedWalletAddress = normalizeWalletAddress(walletAddress)
-      const rows = await db
-        .select({ walletAddress: allowed_market_creators.wallet_address })
-        .from(allowed_market_creators)
-        .where(eq(allowed_market_creators.wallet_address, normalizedWalletAddress))
-        .limit(1)
-
-      return {
-        data: rows.length > 0,
-        error: null,
-      }
-    })
-  },
-
   async upsertMany(entries: UpsertAllowedMarketCreatorInput[]): Promise<QueryResult<AllowedMarketCreatorRecord[]>> {
     return runQuery(async () => {
       if (entries.length === 0) {

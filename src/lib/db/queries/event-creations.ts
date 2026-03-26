@@ -142,31 +142,31 @@ function buildExecutionStateUpdateValues(input: SetExecutionStateInput): Partial
     updated_at: new Date(),
   }
 
-  if (Object.prototype.hasOwnProperty.call(input, 'lastError')) {
+  if (Object.hasOwn(input, 'lastError')) {
     nextValues.last_error = input.lastError ?? null
   }
-  if (Object.prototype.hasOwnProperty.call(input, 'deployedEventId')) {
+  if (Object.hasOwn(input, 'deployedEventId')) {
     nextValues.deployed_event_id = input.deployedEventId
   }
-  if (Object.prototype.hasOwnProperty.call(input, 'nextStartAt')) {
+  if (Object.hasOwn(input, 'nextStartAt')) {
     nextValues.start_at = input.nextStartAt
   }
-  if (Object.prototype.hasOwnProperty.call(input, 'nextDeployAt')) {
+  if (Object.hasOwn(input, 'nextDeployAt')) {
     nextValues.deploy_at = input.nextDeployAt
   }
-  if (Object.prototype.hasOwnProperty.call(input, 'lastRunAt')) {
+  if (Object.hasOwn(input, 'lastRunAt')) {
     nextValues.last_run_at = input.lastRunAt
   }
-  if (Object.prototype.hasOwnProperty.call(input, 'pendingRequestId')) {
+  if (Object.hasOwn(input, 'pendingRequestId')) {
     nextValues.pending_request_id = input.pendingRequestId
   }
-  if (Object.prototype.hasOwnProperty.call(input, 'pendingPayloadHash')) {
+  if (Object.hasOwn(input, 'pendingPayloadHash')) {
     nextValues.pending_payload_hash = input.pendingPayloadHash
   }
-  if (Object.prototype.hasOwnProperty.call(input, 'pendingChainId')) {
+  if (Object.hasOwn(input, 'pendingChainId')) {
     nextValues.pending_chain_id = input.pendingChainId
   }
-  if (Object.prototype.hasOwnProperty.call(input, 'pendingConfirmedTxs')) {
+  if (Object.hasOwn(input, 'pendingConfirmedTxs')) {
     nextValues.pending_confirmed_txs = input.pendingConfirmedTxs
   }
 
@@ -212,32 +212,6 @@ export const EventCreationRepository = {
       const row = insertedRows[0]
       if (!row) {
         return { data: null, error: 'Could not create draft.' }
-      }
-
-      return {
-        data: mapDraftSummary(row),
-        error: null,
-      }
-    })
-  },
-
-  async getDraftSummaryByIdForUser(input: {
-    draftId: string
-    userId: string
-  }): Promise<QueryResult<EventCreationDraftSummary>> {
-    return runQuery(async () => {
-      const rows = await db
-        .select()
-        .from(event_creations)
-        .where(and(
-          eq(event_creations.id, input.draftId),
-          eq(event_creations.created_by_user_id, input.userId),
-        ))
-        .limit(1)
-
-      const row = rows[0]
-      if (!row) {
-        return { data: null, error: 'Draft not found.' }
       }
 
       return {

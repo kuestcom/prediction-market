@@ -9,7 +9,7 @@ import { cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { OUTCOME_INDEX } from '@/lib/constants'
-import { getSportsCountsBySlugFromDb, getSportsSlugResolverFromDb } from '@/lib/db/queries/sports-menu'
+import { getSportsSlugResolverFromDb } from '@/lib/db/queries/sports-menu'
 import { bookmarks } from '@/lib/db/schema/bookmarks/tables'
 import {
   conditions_audit,
@@ -374,14 +374,6 @@ interface ListEventsProps {
   locale?: SupportedLocale
   sportsSportSlug?: string
   sportsSection?: 'games' | 'props' | ''
-}
-
-interface ListHomeFeedEventsProps extends Omit<ListEventsProps, 'limit' | 'status'> {
-  currentTimestamp?: number | null
-  hideCrypto?: boolean
-  hideEarnings?: boolean
-  hideSports?: boolean
-  status?: 'active' | 'resolved'
 }
 
 interface RelatedEventOptions {
@@ -1362,220 +1354,6 @@ async function selectOrderedEventIds({
   return rows.map(row => row.id)
 }
 
-async function selectHomeFeedEventIds({
-  baseWhere,
-  currentTimestamp,
-  limit = DEFAULT_EVENT_LIST_LIMIT,
-  offset = 0,
-  tag,
-}: {
-  baseWhere: SQL<unknown> | undefined
-  currentTimestamp?: number | null
-  limit?: number
-  offset?: number
-  tag: string
-}) {
-  if (!baseWhere) {
-    return []
-  }
-
-  const safeLimit = normalizeEventListLimit(limit)
-  const safeOffset = normalizeEventListOffset(offset)
-  const seriesGroup = sql<string>`COALESCE(NULLIF(LOWER(TRIM(${events.series_slug})), ''), CONCAT('event:', ${events.id}))`
-  const hasAnyMarkets = exists(
-    db.select({ condition_id: markets.condition_id })
-      .from(markets)
-      .where(eq(markets.event_id, events.id)),
-  )
-  const hasUnresolvedMarkets = exists(
-    db.select({ condition_id: markets.condition_id })
-      .from(markets)
-      .where(and(
-        eq(markets.event_id, events.id),
-        eq(markets.is_resolved, false),
-      )),
-  )
-  const resolvedLike = sql<boolean>`${events.status} = 'resolved' OR (${hasAnyMarkets} AND NOT ${hasUnresolvedMarkets})`
-  const normalizedTimestamp = Number.isFinite(currentTimestamp ?? Number.NaN)
-    ? new Date(currentTimestamp as number)
-    : null
-  const trendingSort = buildTrendingVolumeOrder()
-
-  const seriesRank = normalizedTimestamp
-    ? (() => {
-        const hasFutureEnd = sql<boolean>`COALESCE(${events.end_date} >= ${normalizedTimestamp}, false)`
-        const overdueUnresolved = sql<boolean>`${events.end_date} IS NOT NULL AND ${events.end_date} < ${normalizedTimestamp} AND NOT (${resolvedLike})`
-        const priorityGroup = sql<number>`
-          CASE
-            WHEN ${overdueUnresolved} THEN 0
-            WHEN ${hasFutureEnd} AND NOT (${resolvedLike}) THEN 1
-            WHEN ${hasFutureEnd} AND (${resolvedLike}) THEN 2
-            WHEN NOT (${resolvedLike}) THEN 3
-            ELSE 4
-          END
-        `
-
-        return sql<number>`
-          row_number() OVER (
-            PARTITION BY ${seriesGroup}
-            ORDER BY
-              ${priorityGroup} ASC,
-              CASE WHEN ${priorityGroup} IN (1, 2) THEN ${events.end_date} END ASC NULLS LAST,
-              CASE WHEN ${priorityGroup} IN (0, 3, 4) THEN ${events.end_date} END DESC NULLS LAST,
-              ${events.created_at} DESC,
-              ${events.updated_at} DESC,
-              ${events.id} DESC
-          )
-        `
-      })()
-    : sql<number>`
-        row_number() OVER (
-          PARTITION BY ${seriesGroup}
-          ORDER BY
-            ${events.created_at} DESC,
-            ${events.updated_at} DESC,
-            ${events.id} DESC
-        )
-      `
-
-  const rankedEvents = db
-    .select({
-      id: events.id,
-      createdAt: events.created_at,
-      idSort: events.id,
-      rank: seriesRank,
-      trendingSort,
-    })
-    .from(events)
-    .where(baseWhere)
-    .as('ranked_events')
-
-  const baseQuery = db
-    .select({
-      id: rankedEvents.id,
-    })
-    .from(rankedEvents)
-    .where(eq(rankedEvents.rank, 1))
-
-  const rows = tag === 'trending'
-    ? await baseQuery
-        .orderBy(desc(rankedEvents.trendingSort), desc(rankedEvents.createdAt))
-        .limit(safeLimit)
-        .offset(safeOffset)
-    : tag === 'new'
-      ? await baseQuery
-          .orderBy(desc(rankedEvents.createdAt), desc(rankedEvents.idSort))
-          .limit(safeLimit)
-          .offset(safeOffset)
-      : await baseQuery
-          .orderBy(desc(rankedEvents.idSort))
-          .limit(safeLimit)
-          .offset(safeOffset)
-
-  return rows.map(row => row.id)
-}
-
-async function loadEventResourcesByIds({
-  locale,
-  orderedIds,
-  sportsSlugResolver,
-  userId = '',
-}: {
-  locale: SupportedLocale
-  orderedIds: string[]
-  sportsSlugResolver: SportsSlugResolver
-  userId?: string
-}) {
-  if (orderedIds.length === 0) {
-    return []
-  }
-
-  const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
-  const eventsData = await db.query.events.findMany({
-    where: inArray(events.id, orderedIds),
-    with: {
-      markets: {
-        with: {
-          sports: true,
-          condition: {
-            with: { outcomes: true },
-          },
-        },
-      },
-      eventTags: {
-        with: { tag: true },
-      },
-      sports: true,
-      ...(userId && {
-        bookmarks: {
-          where: eq(bookmarks.user_id, userId),
-        },
-      }),
-    },
-  }) as DrizzleEventResult[]
-
-  const sortedEventsData = eventsData.sort((left, right) => {
-    const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER
-    const rightIndex = orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER
-    return leftIndex - rightIndex
-  })
-
-  const tokensForPricing = sortedEventsData.flatMap(event =>
-    (event.markets ?? []).flatMap(market =>
-      (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
-    ),
-  )
-  const tagIds = Array.from(new Set(
-    sortedEventsData.flatMap(event =>
-      (event.eventTags ?? [])
-        .map(eventTag => eventTag.tag?.id)
-        .filter((tagId): tagId is number => typeof tagId === 'number'),
-    ),
-  ))
-  const eventIds = sortedEventsData.map(event => event.id)
-  const sportsVolumeGroupKeyByEventId = await getSportsVolumeGroupKeysByEventId(eventIds)
-  const sportsVolumeGroupKeysForAggregation = Array.from(new Set(
-    sportsVolumeGroupKeyByEventId.values(),
-  ))
-  const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, groupedSportsVolumesByGroupKey] = await Promise.all([
-    fetchOutcomePrices(tokensForPricing),
-    fetchLastTradePrices(tokensForPricing),
-    getLocalizedTagNamesById(tagIds, locale),
-    getLocalizedEventTitlesById(eventIds, locale),
-    getSportsAggregatedVolumesByGroupKey(sportsVolumeGroupKeysForAggregation),
-  ])
-  const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
-
-  return sortedEventsData
-    .filter(event => event.markets?.length > 0)
-    .map(event => eventResource(
-      event as DrizzleEventResult,
-      userId,
-      sportsSlugResolver,
-      priceMap,
-      lastTradeMap,
-      localizedTagNamesById,
-      localizedEventTitlesById,
-      liveChartSeriesSlugs,
-    ))
-    .map((event) => {
-      const groupKey = sportsVolumeGroupKeyByEventId.get(event.id)
-      if (!groupKey) {
-        return event
-      }
-
-      const groupedVolume = groupedSportsVolumesByGroupKey.get(groupKey)
-      if (groupedVolume == null) {
-        return event
-      }
-
-      return {
-        ...event,
-        volume: groupedVolume,
-      }
-    })
-}
-
 function getEventMainTag(tags: any[] | undefined): string {
   if (!tags?.length) {
     return 'World'
@@ -1586,16 +1364,6 @@ function getEventMainTag(tags: any[] | undefined): string {
 }
 
 export const EventRepository = {
-  async getActiveSportsCountsBySlug(): Promise<QueryResult<Record<string, number>>> {
-    'use cache'
-    cacheTag(cacheTags.eventsGlobal)
-
-    return runQuery(async () => {
-      const countsBySlug = await getSportsCountsBySlugFromDb()
-      return { data: countsBySlug, error: null }
-    })
-  },
-
   async listEvents({
     tag = 'trending',
     mainTag = '',
@@ -1987,77 +1755,6 @@ export const EventRepository = {
         })
 
       return { data: eventsWithMarkets, error: null }
-    })
-  },
-
-  async listHomeFeedEvents({
-    tag = 'trending',
-    mainTag = '',
-    search = '',
-    userId = '',
-    bookmarked = false,
-    frequency = 'all',
-    status = 'active',
-    offset = 0,
-    locale = DEFAULT_LOCALE,
-    sportsSportSlug = '',
-    sportsSection = '',
-    currentTimestamp = null,
-    hideCrypto = false,
-    hideEarnings = false,
-    hideSports = false,
-  }: ListHomeFeedEventsProps): Promise<QueryResult<Event[]>> {
-    'use cache'
-    cacheTag(cacheTags.events(userId || 'guest'))
-    cacheTag(cacheTags.eventsGlobal)
-
-    return await runQuery(async () => {
-      const normalizedTimestamp = Number.isFinite(currentTimestamp ?? Number.NaN)
-        ? Math.floor((currentTimestamp as number) / 60_000) * 60_000
-        : null
-      const { baseWhere, empty, sportsSlugResolver } = await buildEventListQueryContext({
-        tag,
-        mainTag,
-        search,
-        userId,
-        bookmarked,
-        frequency,
-        status,
-        sportsSportSlug,
-        sportsSection,
-        hideSports,
-        hideCrypto,
-        hideEarnings,
-        excludeSportsAuxiliary: true,
-      })
-
-      if (empty) {
-        return { data: [], error: null }
-      }
-
-      const orderedIds = status === 'active'
-        ? await selectHomeFeedEventIds({
-            baseWhere,
-            currentTimestamp: normalizedTimestamp,
-            tag,
-            limit: DEFAULT_EVENT_LIST_LIMIT,
-            offset,
-          })
-        : await selectOrderedEventIds({
-            baseWhere,
-            tag,
-            limit: DEFAULT_EVENT_LIST_LIMIT,
-            offset,
-          })
-
-      const data = await loadEventResourcesByIds({
-        orderedIds,
-        userId,
-        sportsSlugResolver,
-        locale,
-      })
-
-      return { data, error: null }
     })
   },
 
@@ -2686,24 +2383,6 @@ export const EventRepository = {
         },
         error: null,
       }
-    })
-  },
-
-  async getIdBySlug(slug: string): Promise<QueryResult<{ id: string }>> {
-    'use cache'
-
-    return runQuery(async () => {
-      const result = await db
-        .select({ id: events.id })
-        .from(events)
-        .where(eq(events.slug, slug))
-        .limit(1)
-
-      if (result.length === 0) {
-        throw new Error('Event not found')
-      }
-
-      return { data: result[0], error: null }
     })
   },
 

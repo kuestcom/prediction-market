@@ -18,15 +18,6 @@ interface AffiliateUser {
   image: string | null
 }
 
-interface ReferralData {
-  user_id: string
-  affiliate_user_id: string
-  created_at: Date
-  affiliate_user: {
-    address: string
-  }
-}
-
 interface ReferralArgs {
   user_id: string
   affiliate_user_id: string
@@ -190,40 +181,6 @@ export const AffiliateRepository = {
           : null,
         error: null,
       }
-    })
-  },
-
-  async getReferral(userId: string): Promise<QueryResult<ReferralData | null>> {
-    'use cache'
-
-    return runQuery(async () => {
-      const result = await db
-        .select({
-          user_id: affiliate_referrals.user_id,
-          affiliate_user_id: affiliate_referrals.affiliate_user_id,
-          created_at: affiliate_referrals.created_at,
-          affiliate_user_address: users.address,
-        })
-        .from(affiliate_referrals)
-        .innerJoin(users, eq(affiliate_referrals.affiliate_user_id, users.id))
-        .where(eq(affiliate_referrals.user_id, userId))
-        .limit(1)
-
-      if (result.length === 0) {
-        return { data: null, error: null }
-      }
-
-      const row = result[0]
-      const data = {
-        user_id: row.user_id,
-        affiliate_user_id: row.affiliate_user_id,
-        created_at: row.created_at,
-        affiliate_user: {
-          address: row.affiliate_user_address,
-        },
-      }
-
-      return { data, error: null }
     })
   },
 

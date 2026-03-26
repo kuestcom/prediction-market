@@ -1,5 +1,3 @@
-import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
-
 export type EventCreationMode = 'single' | 'recurring'
 export type EventCreationStatus = 'draft' | 'scheduled' | 'running' | 'deployed' | 'failed' | 'canceled'
 export type EventCreationRecurrenceUnit = 'minute' | 'hour' | 'day' | 'week' | 'month' | 'quarter' | 'semiannual' | 'year'
@@ -42,7 +40,6 @@ const MONTH_NAMES = [
 ] as const
 
 const BLOCKED_ASSET_RECORD_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
-const EVENT_CREATION_TEMPLATE_TOKEN_TEST_PATTERN = /\{\{\s*[a-z_]+(?:[+-]\d+)?\s*\}\}/i
 const EVENT_CREATION_TEMPLATE_TOKEN_REPLACE_PATTERN = /\{\{\s*([a-z_]+(?:[+-]\d+)?)\s*\}\}/gi
 const EVENT_CREATION_DATE_TEMPLATE_TOKEN_PATTERN = /\{\{\s*(?:day|day_padded|month|month_padded|month_name|month_name_lower|date|date_short|year)(?:[+-]\d+)?\s*\}\}/i
 
@@ -192,15 +189,6 @@ export function buildScheduledRecurringDeployAt(
 
   const previousOccurrenceResolutionAt = subtractRecurrenceInterval(resolutionAt, unit, interval)
   return buildDefaultDeployAt(previousOccurrenceResolutionAt)
-}
-
-export function hasEventCreationTemplateVariable(value: string | null | undefined) {
-  const normalized = value?.trim() || ''
-  if (!normalized) {
-    return false
-  }
-
-  return EVENT_CREATION_TEMPLATE_TOKEN_TEST_PATTERN.test(normalized)
 }
 
 export function hasEventCreationDateTemplateVariable(value: string | null | undefined) {
@@ -408,23 +396,5 @@ function normalizeAssetRef(value: unknown): EventCreationAssetRef {
     publicUrl: typeof candidate.publicUrl === 'string' ? candidate.publicUrl : '',
     fileName: typeof candidate.fileName === 'string' ? candidate.fileName : 'asset',
     contentType: typeof candidate.contentType === 'string' ? candidate.contentType : 'application/octet-stream',
-  }
-}
-
-export function normalizeScheduleInput(value: string | null | undefined) {
-  const normalized = normalizeDateTimeLocalValue(value ?? '')
-  if (!normalized) {
-    return null
-  }
-
-  const parsed = new Date(normalized)
-  if (Number.isNaN(parsed.getTime())) {
-    return null
-  }
-
-  return {
-    localValue: formatDateTimeLocalValue(parsed),
-    isoValue: parsed.toISOString(),
-    date: parsed,
   }
 }

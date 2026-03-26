@@ -77,8 +77,6 @@ const OPTIONS: AdminSportsMarketTypeOption[] = [
   { value: 'two_plus_touchdowns', label: '2+ Touchdowns Selection', group: 'Props', section: 'props', outcomePreset: 'yes_no' },
 ]
 
-export const ADMIN_SPORTS_MARKET_TYPE_OPTIONS = OPTIONS
-
 export function getAdminSportsMarketTypeGroups(section: AdminSportsMarketTypeSection) {
   const groups = new Map<string, AdminSportsMarketTypeOption[]>()
 
