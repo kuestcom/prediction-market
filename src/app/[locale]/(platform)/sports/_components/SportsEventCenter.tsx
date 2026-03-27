@@ -1343,6 +1343,9 @@ export default function SportsEventCenter({
         title: group.title,
         amount: group.amount,
         indexSets: Array.from(group._indexSetCollection).sort((a, b) => a - b),
+        isNegRisk: group.isNegRisk,
+        yesShares: group.yesShares,
+        noShares: group.noShares,
         positions: group.positions,
       })
     })
