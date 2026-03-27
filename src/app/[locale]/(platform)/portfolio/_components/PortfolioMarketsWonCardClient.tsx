@@ -31,6 +31,7 @@ import { removeClaimedPublicPositions, updateQueryDataWhere } from '@/lib/optimi
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import {
   aggregateSafeTransactions,
+  buildNegRiskRedeemPositionTransaction,
   buildRedeemPositionTransaction,
   getSafeTxTypedData,
   packSafeSignature,
@@ -52,6 +53,9 @@ export interface PortfolioClaimMarket {
   returnPercent: number
   timestamp?: number
   indexSets: number[]
+  isNegRisk?: boolean
+  yesShares?: number
+  noShares?: number
 }
 
 export interface PortfolioMarketsWonData {
@@ -184,10 +188,16 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
       }
 
       const transactions = claimTargets.map(market =>
-        buildRedeemPositionTransaction({
-          conditionId: market.conditionId as `0x${string}`,
-          indexSets: market.indexSets,
-        }),
+        market.isNegRisk
+          ? buildNegRiskRedeemPositionTransaction({
+              conditionId: market.conditionId as `0x${string}`,
+              yesAmount: market.yesShares ?? 0,
+              noAmount: market.noShares ?? 0,
+            })
+          : buildRedeemPositionTransaction({
+              conditionId: market.conditionId as `0x${string}`,
+              indexSets: market.indexSets,
+            }),
       )
 
       const aggregated = aggregateSafeTransactions(transactions)

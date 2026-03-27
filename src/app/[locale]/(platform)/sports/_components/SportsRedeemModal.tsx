@@ -21,6 +21,7 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { formatCurrency, formatSharesLabel } from '@/lib/formatters'
 import {
   aggregateSafeTransactions,
+  buildNegRiskRedeemPositionTransaction,
   buildRedeemPositionTransaction,
   getSafeTxTypedData,
   packSafeSignature,
@@ -34,6 +35,7 @@ export interface SportsRedeemModalPosition {
   label: string
   shares: number
   value: number
+  outcomeIndex?: number | null
   badgeClassName?: string
   badgeStyle?: CSSProperties
 }
@@ -43,6 +45,9 @@ export interface SportsRedeemModalGroup {
   title: string
   amount: number
   indexSets: number[]
+  isNegRisk?: boolean
+  yesShares?: number
+  noShares?: number
   positions: SportsRedeemModalPosition[]
 }
 
@@ -236,10 +241,16 @@ export default function SportsRedeemModal({
       }
 
       const transactions = selectedGroups.map(group =>
-        buildRedeemPositionTransaction({
-          conditionId: group.conditionId as `0x${string}`,
-          indexSets: group.indexSets,
-        }),
+        group.isNegRisk
+          ? buildNegRiskRedeemPositionTransaction({
+              conditionId: group.conditionId as `0x${string}`,
+              yesAmount: group.yesShares ?? 0,
+              noAmount: group.noShares ?? 0,
+            })
+          : buildRedeemPositionTransaction({
+              conditionId: group.conditionId as `0x${string}`,
+              indexSets: group.indexSets,
+            }),
       )
 
       const aggregated = aggregateSafeTransactions(transactions)

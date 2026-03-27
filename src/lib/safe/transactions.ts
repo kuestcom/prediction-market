@@ -134,6 +134,16 @@ const negRiskAdapterAbi = [
     ],
     outputs: [],
   },
+  {
+    name: 'redeemPositions',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'conditionId', type: 'bytes32' },
+      { name: 'amounts', type: 'uint256[]' },
+    ],
+    outputs: [],
+  },
 ] as const
 
 interface SafeTxMessage {
@@ -318,6 +328,13 @@ interface NegRiskSplitArgs {
   contract?: `0x${string}`
 }
 
+interface NegRiskRedeemArgs {
+  conditionId: `0x${string}`
+  yesAmount: string | number | bigint
+  noAmount: string | number | bigint
+  contract?: `0x${string}`
+}
+
 export function buildNegRiskSplitPositionTransaction(args: NegRiskSplitArgs): SafeTransaction {
   const data = encodeFunctionData({
     abi: negRiskAdapterAbi,
@@ -325,6 +342,27 @@ export function buildNegRiskSplitPositionTransaction(args: NegRiskSplitArgs): Sa
     args: [
       args.conditionId,
       BigInt(args.amount),
+    ],
+  })
+
+  return {
+    to: (args.contract ?? UMA_NEG_RISK_ADAPTER_ADDRESS) as `0x${string}`,
+    value: '0',
+    data,
+    operation: SafeOperationType.Call,
+  }
+}
+
+export function buildNegRiskRedeemPositionTransaction(args: NegRiskRedeemArgs): SafeTransaction {
+  const data = encodeFunctionData({
+    abi: negRiskAdapterAbi,
+    functionName: 'redeemPositions',
+    args: [
+      args.conditionId,
+      [
+        parseAmountToBaseUnits(args.yesAmount, 6),
+        parseAmountToBaseUnits(args.noAmount, 6),
+      ],
     ],
   })
 

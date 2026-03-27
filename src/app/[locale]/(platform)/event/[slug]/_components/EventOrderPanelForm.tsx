@@ -61,6 +61,7 @@ import { signOrderPayload } from '@/lib/orders/signing'
 import { MIN_LIMIT_ORDER_SHARES, validateOrder } from '@/lib/orders/validation'
 import {
   aggregateSafeTransactions,
+  buildNegRiskRedeemPositionTransaction,
   buildRedeemPositionTransaction,
   getSafeTxTypedData,
   packSafeSignature,
@@ -577,6 +578,26 @@ export default function EventOrderPanelForm({
       }, 0),
     [claimablePositionsForMarket],
   )
+  const claimableNegRiskAmounts = useMemo(() => {
+    return claimablePositionsForMarket.reduce(
+      (amounts, position) => {
+        const shares = typeof position.total_shares === 'number' ? position.total_shares : 0
+        if (!(shares > 0)) {
+          return amounts
+        }
+
+        if (position.outcome_index === OUTCOME_INDEX.YES) {
+          amounts.yesShares += shares
+        }
+        else if (position.outcome_index === OUTCOME_INDEX.NO) {
+          amounts.noShares += shares
+        }
+
+        return amounts
+      },
+      { yesShares: 0, noShares: 0 },
+    )
+  }, [claimablePositionsForMarket])
   const claimIndexSets = useMemo(() => {
     const indexSetCollection = new Set<number>()
     claimablePositionsForMarket.forEach((position) => {
@@ -1330,10 +1351,16 @@ export default function EventOrderPanelForm({
         return
       }
 
-      const transaction = buildRedeemPositionTransaction({
-        conditionId: conditionId as `0x${string}`,
-        indexSets: claimIndexSets,
-      })
+      const transaction = isNegRiskMarket
+        ? buildNegRiskRedeemPositionTransaction({
+            conditionId: conditionId as `0x${string}`,
+            yesAmount: claimableNegRiskAmounts.yesShares,
+            noAmount: claimableNegRiskAmounts.noShares,
+          })
+        : buildRedeemPositionTransaction({
+            conditionId: conditionId as `0x${string}`,
+            indexSets: claimIndexSets,
+          })
       const aggregated = aggregateSafeTransactions([transaction])
       const typedData = getSafeTxTypedData({
         chainId: defaultNetwork.id,

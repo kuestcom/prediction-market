@@ -1249,11 +1249,17 @@ export default function SportsEventCenter({
             title: resolveRedeemOptionLabel(activeCard, market, firstButton),
             amount: 0,
             indexSets: [],
+            isNegRisk: Boolean(market.neg_risk),
+            yesShares: 0,
+            noShares: 0,
             positions: [],
             _indexSetCollection: new Set<number>(),
           },
         }
         bySectionCondition.set(key, bucket)
+      }
+      else if (market.neg_risk) {
+        bucket.group.isNegRisk = true
       }
 
       const outcomeIndex = resolveOutcomeIndexFromPosition(position)
@@ -1301,9 +1307,20 @@ export default function SportsEventCenter({
         label: positionLabel,
         shares,
         value: shares,
+        outcomeIndex,
         badgeClassName: tagAccent.badgeClassName,
         badgeStyle: tagAccent.badgeStyle,
       })
+
+      if (bucket.group.isNegRisk) {
+        if (outcomeIndex === OUTCOME_INDEX.YES) {
+          bucket.group.yesShares = (bucket.group.yesShares ?? 0) + shares
+        }
+        else if (outcomeIndex === OUTCOME_INDEX.NO) {
+          bucket.group.noShares = (bucket.group.noShares ?? 0) + shares
+        }
+      }
+
       bucket.group.amount += shares
     })
 

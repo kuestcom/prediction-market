@@ -1,7 +1,7 @@
 import type { PortfolioClaimMarket, PortfolioMarketsWonData } from './PortfolioMarketsWonCardClient'
 import type { DataApiPosition } from '@/lib/data-api/user'
 import { inArray } from 'drizzle-orm'
-import { MICRO_UNIT } from '@/lib/constants'
+import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { markets } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
 import { getPublicAssetUrl } from '@/lib/storage'
@@ -20,6 +20,7 @@ interface MarketMetadata {
   slug?: string
   eventSlug?: string
   iconUrl?: string
+  negRisk?: boolean
 }
 
 interface MarketAggregate {
@@ -33,6 +34,9 @@ interface MarketAggregate {
   latestTimestamp: number
   outcomeIndices: Set<number>
   outcomeLabels: Set<string>
+  isNegRisk: boolean
+  yesShares: number
+  noShares: number
 }
 
 function pickString(...values: Array<string | null | undefined>): string | undefined {
@@ -169,6 +173,7 @@ async function fetchMarketMetadata(conditionIds: string[]): Promise<Map<string, 
       title: true,
       slug: true,
       icon_url: true,
+      neg_risk: true,
     },
     with: {
       event: {
@@ -194,6 +199,7 @@ async function fetchMarketMetadata(conditionIds: string[]): Promise<Map<string, 
       slug: pickString(row.slug ?? undefined),
       eventSlug: pickString(row.event?.slug ?? undefined),
       iconUrl,
+      negRisk: Boolean(row.neg_risk),
     })
   }
 
@@ -244,6 +250,9 @@ function buildClaimData(
       latestTimestamp: 0,
       outcomeIndices: new Set<number>(),
       outcomeLabels: new Set<string>(),
+      isNegRisk: Boolean(meta?.negRisk || position.mergeable),
+      yesShares: 0,
+      noShares: 0,
     }
 
     aggregate.title = pickString(aggregate.title, title) ?? 'Untitled market'
@@ -253,9 +262,16 @@ function buildClaimData(
     aggregate.invested += invested
     aggregate.proceeds += proceeds
     aggregate.latestTimestamp = Math.max(aggregate.latestTimestamp, timestamp)
+    aggregate.isNegRisk = aggregate.isNegRisk || Boolean(meta?.negRisk || position.mergeable)
 
     if (typeof outcomeIndex === 'number') {
       aggregate.outcomeIndices.add(outcomeIndex)
+      if (outcomeIndex === OUTCOME_INDEX.YES) {
+        aggregate.yesShares += size
+      }
+      else if (outcomeIndex === OUTCOME_INDEX.NO) {
+        aggregate.noShares += size
+      }
     }
     if (outcomeLabel) {
       aggregate.outcomeLabels.add(outcomeLabel)
@@ -292,6 +308,9 @@ function buildClaimData(
       outcomeIndex,
       outcome,
       indexSets,
+      isNegRisk: aggregate.isNegRisk,
+      yesShares: aggregate.yesShares,
+      noShares: aggregate.noShares,
     }
   })
 
