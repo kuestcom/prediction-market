@@ -52,8 +52,6 @@ export function SearchResults({
           <SearchTabs
             activeTab={activeTab}
             onTabChange={onTabChange}
-            eventCount={events.length}
-            profileCount={profiles.length}
             isLoading={isLoading}
           />
         )}
@@ -80,8 +78,6 @@ export function SearchResults({
         <SearchTabs
           activeTab={activeTab}
           onTabChange={onTabChange}
-          eventCount={events.length}
-          profileCount={profiles.length}
           isLoading={isLoading}
         />
       )}

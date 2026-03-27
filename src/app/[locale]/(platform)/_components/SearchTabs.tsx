@@ -8,16 +8,12 @@ import { cn } from '@/lib/utils'
 interface SearchTabsProps {
   activeTab: 'events' | 'profiles'
   onTabChange: (tab: 'events' | 'profiles') => void
-  eventCount: number
-  profileCount: number
   isLoading: SearchLoadingStates
 }
 
 export function SearchTabs({
   activeTab,
   onTabChange,
-  eventCount,
-  profileCount,
   isLoading,
 }: SearchTabsProps) {
   const searchTabs = useMemo(() => ['events', 'profiles'] as const, [])
@@ -34,7 +30,6 @@ export function SearchTabs({
       <ul className="relative flex h-10 gap-2">
         {searchTabs.map((tab) => {
           const isActive = activeTab === tab
-          const count = tab === 'events' ? eventCount : profileCount
           const loading = tab === 'events' ? isLoading.events : isLoading.profiles
 
           return (
@@ -58,13 +53,7 @@ export function SearchTabs({
                 ? (
                     <LoaderIcon className="ml-1 size-3 animate-spin" />
                   )
-                : (
-                    <span className="ml-1 text-xs text-muted-foreground">
-                      (
-                      {count}
-                      )
-                    </span>
-                  )}
+                : null}
             </li>
           )
         })}

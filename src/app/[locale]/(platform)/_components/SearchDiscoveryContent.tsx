@@ -108,8 +108,8 @@ export default function SearchDiscoveryContent({
   const isDesktop = variant === 'desktop'
 
   const browseLinks = [
-    { href: buildPredictionBrowseHref('trending'), icon: TrendingUpIcon, label: t('Trending') },
     { href: buildPredictionBrowseHref('new'), icon: SparkleIcon, label: t('New') },
+    { href: buildPredictionBrowseHref('trending'), icon: TrendingUpIcon, label: t('Trending') },
     { href: buildPredictionBrowseHref('trending', 'volume'), icon: FlameIcon, label: t('Popular') },
     { href: '/', icon: DropletIcon, label: t('Liquidity') },
     { href: buildPredictionBrowseHref('trending', 'ending-soon'), icon: ClockFadingIcon, label: t('Ending Soon') },
@@ -137,8 +137,7 @@ export default function SearchDiscoveryContent({
       <section className="grid gap-3">
         <p
           className={cn(
-            'font-semibold tracking-[0.22em] text-muted-foreground uppercase',
-            isDesktop ? 'text-[11px]' : 'text-2xs',
+            'text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase',
           )}
         >
           {t('Browse')}
@@ -159,7 +158,7 @@ export default function SearchDiscoveryContent({
                   : 'gap-1.5 rounded-sm px-2.25 py-1 text-xs',
               )}
             >
-              <link.icon className={cn(isDesktop ? 'size-3.5' : 'size-3.5')} />
+              <link.icon className={cn(isDesktop ? 'size-4.5' : 'size-3.5')} />
               {link.label}
             </IntentPrefetchLink>
           ))}
@@ -170,8 +169,7 @@ export default function SearchDiscoveryContent({
         <section className={cn('grid', isDesktop ? 'gap-3' : 'gap-2')}>
           <p
             className={cn(
-              'font-semibold tracking-[0.22em] text-muted-foreground uppercase',
-              isDesktop ? 'text-[11px]' : 'text-2xs',
+              'text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase',
             )}
           >
             {t('Recent')}
@@ -247,12 +245,11 @@ export default function SearchDiscoveryContent({
         </section>
       )}
 
-      {topicItems.length > 0 && (
+      {recentEvents.length === 0 && topicItems.length > 0 && (
         <section className={cn('grid', isDesktop ? 'gap-4' : 'gap-3')}>
           <p
             className={cn(
-              'font-semibold tracking-[0.22em] text-muted-foreground uppercase',
-              isDesktop ? 'text-[11px]' : 'text-2xs',
+              'text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase',
             )}
           >
             {t('Topics')}
@@ -276,14 +273,14 @@ export default function SearchDiscoveryContent({
                 <div
                   className={cn(
                     'relative shrink-0 overflow-hidden',
-                    isDesktop ? 'size-9.5 rounded-lg' : 'size-6.5 rounded-md',
+                    isDesktop ? 'size-8.5 rounded-md' : 'size-6.5 rounded-sm',
                   )}
                 >
                   <Image
                     src={item.imageSrc}
                     alt={item.label}
                     fill
-                    sizes={isDesktop ? '38px' : '26px'}
+                    sizes={isDesktop ? '34px' : '26px'}
                     className="object-cover"
                   />
                 </div>
