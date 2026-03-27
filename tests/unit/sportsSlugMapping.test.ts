@@ -137,7 +137,7 @@ describe('sports slug mapping', () => {
       sportsTags: ['Football'],
     })).toBe('nfl')
     expect(resolveSportsSportSlugQueryCandidates(resolver, 'football')).toEqual(
-      expect.arrayContaining(['football', 'nfl', 'national football league', 'cfb', 'college football']),
+      expect.arrayContaining(['football', 'nfl', 'national-football-league', 'cfb', 'college-football']),
     )
   })
 })
