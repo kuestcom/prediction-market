@@ -47,6 +47,7 @@ interface ActiveSportsCountRow {
   slug: string | null
   series_slug: string | null
   tags: unknown
+  is_hidden: boolean
 }
 
 export interface SportsMenuLayoutData {
@@ -242,11 +243,13 @@ const getCachedActiveSportsCountRows = unstable_cache(
         slug: event_sports.sports_sport_slug,
         series_slug: event_sports.sports_series_slug,
         tags: event_sports.sports_tags,
+        is_hidden: events.is_hidden,
       })
       .from(event_sports)
       .innerJoin(events, eq(event_sports.event_id, events.id))
       .where(and(
         eq(events.status, 'active'),
+        eq(events.is_hidden, false),
         gt(events.active_markets_count, 0),
         sql`LOWER(TRIM(COALESCE(${events.slug}, ''))) !~ ${SPORTS_AUXILIARY_SLUG_SQL_REGEX}`,
         or(
@@ -258,7 +261,7 @@ const getCachedActiveSportsCountRows = unstable_cache(
 
     return rows
   },
-  ['sports-menu-active-count-rows-v3'],
+  ['sports-menu-active-count-rows-v4'],
   {
     revalidate: 300,
     tags: [cacheTags.eventsGlobal],
@@ -515,6 +518,10 @@ function buildCountsBySlug(
   const countsBySlug: Record<string, number> = {}
 
   for (const row of activeCountRows) {
+    if (row.is_hidden) {
+      continue
+    }
+
     const sportsTags = toOptionalStringArray(row.tags)
     const canonicalSlug = resolveCanonicalSportsSportSlug(resolver, {
       sportsSportSlug: row.slug,
