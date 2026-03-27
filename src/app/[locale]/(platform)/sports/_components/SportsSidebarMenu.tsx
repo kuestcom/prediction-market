@@ -363,7 +363,7 @@ function SportsMobileQuickLink({
           flex h-19 w-[72px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-center
           transition-colors
         `,
-        isActive ? 'bg-muted/75' : 'bg-transparent hover:bg-muted/55',
+        isActive ? 'bg-muted' : 'bg-transparent hover:bg-muted',
       )}
     >
       <span className="size-6">
@@ -413,9 +413,9 @@ function SportsMobileSheetLink({
       aria-current={isActive ? 'page' : undefined}
       onClick={() => onActionComplete?.()}
       className={cn(
-        `flex w-full items-center gap-2.5 rounded-md p-3 text-left transition-colors hover:bg-muted/55`,
+        `flex w-full items-center gap-2.5 rounded-md p-3 text-left transition-colors hover:bg-muted`,
         nested && 'py-2.5 pl-7',
-        isActive ? 'bg-muted/70' : 'bg-transparent',
+        isActive ? 'bg-muted' : 'bg-transparent',
       )}
     >
       <span className={cn('shrink-0', nested ? 'size-4' : 'size-5')}>
@@ -483,12 +483,12 @@ function SportsMenuLink({
       >
         <div
           className={cn(
-            'relative rounded-md p-3 transition-colors hover:bg-neutral-50',
-            isActive ? 'bg-neutral-50' : 'bg-transparent',
+            'relative rounded-md p-3 transition-colors hover:bg-muted',
+            isActive ? 'bg-muted' : 'bg-transparent',
           )}
         >
           <div className="flex min-w-0 items-center gap-x-2.5">
-            <span className="shrink-0 text-secondary [&_svg]:size-4">
+            <span className="shrink-0 text-muted-foreground [&_svg]:size-4">
               <SportsMenuIcon
                 entry={entry}
                 futureIconVariant={futureIconVariant}
@@ -498,7 +498,7 @@ function SportsMenuLink({
                 className="size-5 object-contain"
               />
             </span>
-            <span className="truncate pr-4 text-sm font-medium whitespace-nowrap text-primary">
+            <span className="truncate pr-4 text-sm font-medium whitespace-nowrap">
               {entry.label}
             </span>
           </div>
@@ -523,13 +523,13 @@ function SportsMenuLink({
       className={cn(
         `
           flex w-full flex-row items-center justify-between rounded-md bg-transparent p-3 text-left transition-colors
-          hover:bg-neutral-50
+          hover:bg-muted
         `,
-        isActive ? 'bg-neutral-50' : 'bg-transparent',
+        isActive ? 'bg-muted' : 'bg-transparent',
       )}
     >
       <span className="flex min-w-0 flex-1 flex-row items-center gap-x-2.5">
-        <span className="size-5 shrink-0 text-secondary [&_svg]:size-5">
+        <span className="size-5 shrink-0 text-muted-foreground [&_svg]:size-5">
           <SportsMenuIcon
             entry={entry}
             futureIconVariant={futureIconVariant}
@@ -543,7 +543,7 @@ function SportsMenuLink({
       </span>
 
       {displayCount !== null && (
-        <span className="shrink-0 pl-2 text-xs font-semibold text-secondary tabular-nums">
+        <span className="shrink-0 pl-2 text-xs font-semibold text-muted-foreground tabular-nums">
           {displayCount}
         </span>
       )}
@@ -678,7 +678,7 @@ export default function SportsSidebarMenu({
   function renderDesktopMenuEntries(onActionComplete?: () => void) {
     return entries.map((entry) => {
       if (entry.type === 'divider') {
-        return <div key={entry.id} className="mb-2 w-full border-b border-neutral-100 pb-2" />
+        return <div key={entry.id} className="mb-2 w-full border-b pb-2" />
       }
 
       if (entry.type === 'header') {
@@ -686,8 +686,8 @@ export default function SportsSidebarMenu({
           <div
             key={entry.id}
             className="
-              mt-4 mb-3 flex items-center p-3 text-[11px] font-medium tracking-wider whitespace-nowrap text-secondary
-              uppercase
+              mt-4 mb-3 flex items-center p-3 text-[11px] font-medium tracking-wider whitespace-nowrap
+              text-muted-foreground uppercase
             "
           >
             {entry.label}
@@ -739,12 +739,12 @@ export default function SportsSidebarMenu({
               onActionComplete?.()
             }}
             className={cn(
-              `flex w-full flex-row items-center justify-between rounded-md p-3 transition-colors hover:bg-neutral-50`,
-              isExpanded ? 'bg-neutral-50' : 'bg-transparent',
+              `flex w-full flex-row items-center justify-between rounded-md p-3 transition-colors hover:bg-muted`,
+              isExpanded ? 'bg-muted' : 'bg-transparent',
             )}
           >
             <span className="flex min-w-0 items-center gap-x-2.5">
-              <span className="size-5 shrink-0 text-secondary [&_svg]:size-5">
+              <span className="size-5 shrink-0 text-muted-foreground [&_svg]:size-5">
                 <Image
                   src={entry.iconPath}
                   alt=""
@@ -757,7 +757,7 @@ export default function SportsSidebarMenu({
             </span>
             <ChevronDownIcon
               className={cn(
-                'size-3 shrink-0 text-secondary transition-transform duration-200',
+                'size-3 shrink-0 text-muted-foreground transition-transform duration-200',
                 isExpanded ? 'rotate-180' : 'rotate-0',
               )}
             />
@@ -839,8 +839,8 @@ export default function SportsSidebarMenu({
           <button
             type="button"
             className={cn(
-              'flex w-full items-center gap-2.5 rounded-md p-3 text-left transition-colors hover:bg-muted/55',
-              isGroupActive ? 'bg-muted/70' : 'bg-transparent',
+              'flex w-full items-center gap-2.5 rounded-md p-3 text-left transition-colors hover:bg-muted',
+              isGroupActive ? 'bg-muted' : 'bg-transparent',
             )}
             onClick={() => {
               setExpandedGroups(current => ({
@@ -931,8 +931,8 @@ export default function SportsSidebarMenu({
                 transition-colors
               `,
               isMobileMoreButtonActive || isMobileMoreMenuOpen
-                ? 'bg-muted/75'
-                : 'bg-transparent hover:bg-muted/55',
+                ? 'bg-muted'
+                : 'bg-transparent hover:bg-muted',
             )}
             aria-label={`Open more ${verticalConfig.label.toLowerCase()}`}
           >
