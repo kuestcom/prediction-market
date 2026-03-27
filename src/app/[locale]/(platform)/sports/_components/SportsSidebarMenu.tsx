@@ -162,6 +162,14 @@ function resolveGroupEventsCount(
   return hasCount ? total : null
 }
 
+function findActiveGroupId(entries: SportsMenuEntry[], activeTagSlug: string | null) {
+  const activeGroup = entries
+    .filter(isGroupEntry)
+    .find(entry => isMenuGroupActive(entry, activeTagSlug))
+
+  return activeGroup?.id ?? null
+}
+
 function LiveStatusIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -562,10 +570,9 @@ export default function SportsSidebarMenu({
   const mobileQuickMenuContainerRef = useRef<HTMLDivElement | null>(null)
   const [isMobileMoreMenuOpen, setIsMobileMoreMenuOpen] = useState(false)
   const [mobileVisiblePrimaryLinkCount, setMobileVisiblePrimaryLinkCount] = useState(4)
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
-    const groups = entries.filter(isGroupEntry)
-    return Object.fromEntries(groups.map(group => [group.id, isMenuGroupActive(group, activeTagSlug)]))
-  })
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(() =>
+    findActiveGroupId(entries, activeTagSlug),
+  )
   const primaryTopLevelLinks = useMemo(
     () => entries.filter(isLinkEntry),
     [entries],
@@ -604,33 +611,8 @@ export default function SportsSidebarMenu({
   )
 
   useEffect(() => {
-    const groups = entries.filter(isGroupEntry)
-
-    setExpandedGroups((current) => {
-      const next: Record<string, boolean> = {}
-      let changed = false
-
-      for (const group of groups) {
-        const nextValue = isMenuGroupActive(group, activeTagSlug)
-          ? true
-          : (current[group.id] ?? false)
-        next[group.id] = nextValue
-      }
-
-      if (Object.keys(current).length !== Object.keys(next).length) {
-        changed = true
-      }
-      else {
-        for (const group of groups) {
-          if ((current[group.id] ?? false) !== next[group.id]) {
-            changed = true
-            break
-          }
-        }
-      }
-
-      return changed ? next : current
-    })
+    const nextExpandedGroupId = findActiveGroupId(entries, activeTagSlug)
+    setExpandedGroupId(current => (current === nextExpandedGroupId ? current : nextExpandedGroupId))
   }, [entries, activeTagSlug])
 
   useEffect(() => {
@@ -714,7 +696,7 @@ export default function SportsSidebarMenu({
         return null
       }
 
-      const isExpanded = expandedGroups[entry.id] ?? isMenuGroupActive(entry, activeTagSlug)
+      const isExpanded = expandedGroupId === entry.id
       const isCurrentPage = areTagSlugsEquivalent(entry.menuSlug, activeTagSlug)
 
       return (
@@ -725,17 +707,11 @@ export default function SportsSidebarMenu({
             onClick={(event) => {
               if (isCurrentPage) {
                 event.preventDefault()
-                setExpandedGroups(current => ({
-                  ...current,
-                  [entry.id]: !(current[entry.id] ?? true),
-                }))
+                setExpandedGroupId(current => (current === entry.id ? null : entry.id))
                 return
               }
 
-              setExpandedGroups(current => ({
-                ...current,
-                [entry.id]: true,
-              }))
+              setExpandedGroupId(entry.id)
               onActionComplete?.()
             }}
             className={cn(
@@ -830,7 +806,7 @@ export default function SportsSidebarMenu({
         return null
       }
 
-      const isExpanded = expandedGroups[entry.id] ?? true
+      const isExpanded = expandedGroupId === entry.id
       const isGroupActive = isMenuGroupActive(entry, activeTagSlug)
       const groupCount = resolveGroupEventsCount(entry, countByTagSlug)
 
@@ -843,10 +819,7 @@ export default function SportsSidebarMenu({
               isGroupActive ? 'bg-muted' : 'bg-transparent',
             )}
             onClick={() => {
-              setExpandedGroups(current => ({
-                ...current,
-                [entry.id]: !(current[entry.id] ?? true),
-              }))
+              setExpandedGroupId(current => (current === entry.id ? null : entry.id))
             }}
           >
             <span className="size-5 shrink-0">
