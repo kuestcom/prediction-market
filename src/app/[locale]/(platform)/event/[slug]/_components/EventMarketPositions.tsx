@@ -114,9 +114,11 @@ function resolvePositionValue(position: UserPosition, marketPrice: number | null
 function resolvePositionOutcomeIndex(position: UserPosition) {
   const normalizedOutcome = position.outcome_text?.toLowerCase()
   const explicitOutcomeIndex = typeof position.outcome_index === 'number' ? position.outcome_index : undefined
-  const resolvedOutcomeIndex = explicitOutcomeIndex ?? normalizedOutcome === 'no'
-    ? OUTCOME_INDEX.NO
-    : OUTCOME_INDEX.YES
+  const resolvedOutcomeIndex = explicitOutcomeIndex ?? (
+    normalizedOutcome === 'no'
+      ? OUTCOME_INDEX.NO
+      : OUTCOME_INDEX.YES
+  )
   return resolvedOutcomeIndex === OUTCOME_INDEX.NO ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES
 }
 
@@ -797,9 +799,11 @@ export default function EventMarketPositions({
 
     const normalizedOutcome = positionItem.outcome_text?.toLowerCase()
     const explicitOutcomeIndex = typeof positionItem.outcome_index === 'number' ? positionItem.outcome_index : undefined
-    const resolvedOutcomeIndex = explicitOutcomeIndex ?? normalizedOutcome === 'no'
-      ? OUTCOME_INDEX.NO
-      : OUTCOME_INDEX.YES
+    const resolvedOutcomeIndex = explicitOutcomeIndex ?? (
+      normalizedOutcome === 'no'
+        ? OUTCOME_INDEX.NO
+        : OUTCOME_INDEX.YES
+    )
     const targetOutcome = market.outcomes.find(outcome => outcome.outcome_index === resolvedOutcomeIndex)
       ?? market.outcomes[0]
 
