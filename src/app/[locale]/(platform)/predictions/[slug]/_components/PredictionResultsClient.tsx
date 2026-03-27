@@ -688,6 +688,11 @@ function PredictionResultRow({
       outcomeIndex: resolvedDisplay.outcomeIndex,
     }
   }, [event, isResolvedEvent, normalizeOutcomeLabel, showResolvedOutcomeLayout, t])
+  const resolvedBadgeOutcome = resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.NO
+    ? 'no'
+    : resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.YES
+      ? 'yes'
+      : 'unknown'
 
   return (
     <div className="group relative py-4">
@@ -799,15 +804,19 @@ function PredictionResultRow({
                       </p>
                       <span
                         data-testid="prediction-result-resolved-badge"
-                        data-outcome={resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.NO ? 'no' : 'yes'}
+                        data-outcome={resolvedBadgeOutcome}
                         className={cn(
-                          'flex size-5 shrink-0 items-center justify-center rounded-full text-background',
-                          resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.NO ? 'bg-no' : 'bg-yes',
+                          'flex size-5 shrink-0 items-center justify-center rounded-full',
+                          resolvedBadgeOutcome === 'no' && 'bg-no text-background',
+                          resolvedBadgeOutcome === 'yes' && 'bg-yes text-background',
+                          resolvedBadgeOutcome === 'unknown' && 'bg-muted text-muted-foreground',
                         )}
                       >
-                        {resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.NO
+                        {resolvedBadgeOutcome === 'no'
                           ? <XIcon className="size-3.5" strokeWidth={2.6} />
-                          : <CheckIcon className="size-3.5" strokeWidth={2.6} />}
+                          : resolvedBadgeOutcome === 'yes'
+                            ? <CheckIcon className="size-3.5" strokeWidth={2.6} />
+                            : <span className="size-2 rounded-full bg-current" />}
                       </span>
                     </div>
                   </div>
