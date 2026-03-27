@@ -8,7 +8,7 @@ export function requireEmbedValue(value: string | undefined, name: string) {
     throw new Error(`${name} is required for embeds.`)
   }
 
-  return value
+  return value.trim()
 }
 
 export function normalizeEmbedBaseUrl(value: string) {
