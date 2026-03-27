@@ -45,13 +45,15 @@ export default function PublicActivityFilters({
               aria-label="Filter activity type"
               className="
                 w-9 justify-center gap-0 px-0
+                *:data-[slot=select-value]:hidden
                 sm:w-fit sm:justify-between sm:gap-1.5 sm:px-2.5
+                sm:*:data-[slot=select-value]:flex
                 dark:bg-transparent
                 [&>svg:last-of-type]:hidden
               "
             >
               <ListFilterIcon className="size-4 text-muted-foreground" />
-              <SelectValue className="hidden sm:flex" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
@@ -67,13 +69,15 @@ export default function PublicActivityFilters({
               aria-label="Sort activity"
               className="
                 w-9 justify-center gap-0 px-0
+                *:data-[slot=select-value]:hidden
                 sm:w-fit sm:justify-between sm:gap-1.5 sm:px-2.5
+                sm:*:data-[slot=select-value]:flex
                 dark:bg-transparent
                 [&>svg:last-of-type]:hidden
               "
             >
               <ArrowDownNarrowWideIcon className="size-4 text-muted-foreground" />
-              <SelectValue className="hidden sm:flex" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="newest">Newest</SelectItem>
