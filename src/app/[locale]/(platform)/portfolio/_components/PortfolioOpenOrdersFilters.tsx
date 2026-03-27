@@ -21,31 +21,42 @@ export default function PortfolioOpenOrdersFilters({
 }: PortfolioOpenOrdersFiltersProps) {
   return (
     <div className="space-y-3 px-2 pt-2 sm:px-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <SearchIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search open orders..."
-            value={searchQuery}
-            onChange={e => onSearchChange(e.target.value)}
-            className="w-full pr-3 pl-9"
-          />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:flex-1 sm:gap-3">
+          <div className="relative min-w-0 flex-1">
+            <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
+            <Input
+              type="text"
+              placeholder="Search open orders..."
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+              className="w-full min-w-0 pr-3 pl-8 text-sm sm:pl-9"
+            />
+          </div>
+
+          <Select value={sortBy} onValueChange={value => onSortChange(value as PortfolioOpenOrdersSort)}>
+            <SelectTrigger
+              aria-label="Sort open orders"
+              className="
+                w-9 justify-center gap-0 px-0
+                sm:w-fit sm:justify-between sm:gap-1.5 sm:px-2.5
+                dark:bg-transparent
+                [&>svg:last-of-type]:hidden
+              "
+            >
+              <ArrowDownNarrowWideIcon className="size-4 text-muted-foreground" />
+              <SelectValue className="hidden sm:flex" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="market">Market</SelectItem>
+              <SelectItem value="filled">Filled Quantity</SelectItem>
+              <SelectItem value="total">Total Quantity</SelectItem>
+              <SelectItem value="date">Order Date</SelectItem>
+              <SelectItem value="resolving">Resolving Soonest</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <Select value={sortBy} onValueChange={value => onSortChange(value as PortfolioOpenOrdersSort)}>
-          <SelectTrigger className="dark:bg-transparent [&>svg:last-of-type]:hidden">
-            <ArrowDownNarrowWideIcon className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="market">Market</SelectItem>
-            <SelectItem value="filled">Filled Quantity</SelectItem>
-            <SelectItem value="total">Total Quantity</SelectItem>
-            <SelectItem value="date">Order Date</SelectItem>
-            <SelectItem value="resolving">Resolving Soonest</SelectItem>
-          </SelectContent>
-        </Select>
         {action}
       </div>
     </div>

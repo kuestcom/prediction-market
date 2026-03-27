@@ -13,7 +13,7 @@ export default function PortfolioWalletActions({ className }: PortfolioWalletAct
   const { startDepositFlow, startWithdrawFlow } = useTradingOnboarding()
 
   return (
-    <div className={cn('flex flex-col gap-3 sm:flex-row', className)}>
+    <div className={cn('grid grid-cols-2 gap-3', className)}>
       <Button className="h-11 flex-1" onClick={startDepositFlow}>
         <ArrowDownToLineIcon className="size-4" />
         Deposit
