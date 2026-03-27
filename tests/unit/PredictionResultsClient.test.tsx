@@ -354,6 +354,64 @@ describe('predictionResultsClient', () => {
     expect(screen.queryByText('100%')).not.toBeInTheDocument()
   })
 
+  it('uses the no-outcome badge styling when the resolved winner is no', () => {
+    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mocks.useInfiniteQuery.mockImplementation(() => ({
+      data: {
+        pages: [[
+          {
+            id: 'event-single-no-resolved',
+            slug: 'meta-single-no-resolved',
+            title: 'Meta down?',
+            icon_url: '/icon.png',
+            status: 'resolved',
+            volume: 90000,
+            resolved_at: '2026-03-24T00:00:00.000Z',
+            end_date: '2026-03-24T00:00:00.000Z',
+            total_markets_count: 1,
+            tags: [{ id: 1, name: 'Meta', slug: 'meta', isMainCategory: true }],
+            markets: [{
+              condition: { resolved: true, resolution_price: 0 },
+              condition_id: 'single-market-no',
+              is_resolved: true,
+              outcomes: [
+                { outcome_index: 0, outcome_text: 'Up' },
+                { outcome_index: 1, outcome_text: 'Down' },
+              ],
+              probability: 0,
+              short_title: 'Up or Down',
+              title: 'Up or Down',
+            }],
+          },
+        ]],
+      },
+      error: null,
+      fetchNextPage: mocks.fetchNextPage,
+      hasNextPage: false,
+      isFetching: false,
+      isFetchingNextPage: false,
+      isPending: false,
+    }))
+
+    render(
+      <PredictionResultsClient
+        displayLabel="Meta"
+        initialCurrentTimestamp={Date.parse('2026-03-25T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="meta"
+        initialQuery=""
+        initialSort="trending"
+        initialStatus="resolved"
+        routeMainTag="meta"
+        routeTag="meta"
+      />,
+    )
+
+    expect(screen.getByText('Down')).toBeInTheDocument()
+    expect(screen.getByTestId('prediction-result-resolved-badge')).toHaveAttribute('data-outcome', 'no')
+    expect(screen.getByTestId('prediction-result-resolved-badge')).toHaveClass('bg-no')
+  })
+
   it('shows the winning market label on resolved multi-market rows', () => {
     mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
     mocks.useInfiniteQuery.mockImplementation(() => ({

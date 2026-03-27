@@ -8,7 +8,7 @@ import type {
 import type { Event, Market } from '@/types'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
-import { BookmarkIcon, CheckIcon, ChevronRightIcon, Clock3Icon, FlameIcon, MessageCircleIcon, SearchIcon, Settings2Icon } from 'lucide-react'
+import { BookmarkIcon, CheckIcon, ChevronRightIcon, Clock3Icon, FlameIcon, MessageCircleIcon, SearchIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { startTransition, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useCommentMetrics } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
@@ -178,7 +178,16 @@ function resolveResolvedPredictionResultLabel(event: Event) {
     })
     .sort((left, right) => (left.rank - right.rank) || (left.index - right.index))
 
-  return rankedCandidates.find(candidate => Boolean(candidate.label))?.label ?? null
+  const winningCandidate = rankedCandidates.find(candidate => Boolean(candidate.label))
+
+  return {
+    label: winningCandidate?.label ?? null,
+    outcomeIndex: winningCandidate?.rank === 1
+      ? OUTCOME_INDEX.NO
+      : winningCandidate?.rank === 0
+        ? OUTCOME_INDEX.YES
+        : null,
+  }
 }
 
 function filterPredictionEventsByStatus(events: Event[], status: PredictionResultsStatusOption) {
@@ -665,13 +674,19 @@ function PredictionResultRow({
   const selectedMarketLabel = primaryMarket?.short_title?.trim()
     || primaryMarket?.title?.trim()
     || (event.status === 'resolved' ? t('Resolved') : t('Market'))
-  const resolvedResultLabel = useMemo(() => {
+  const resolvedResultDisplay = useMemo(() => {
     if (!showResolvedOutcomeLayout || !isResolvedEvent) {
-      return null
+      return {
+        label: null,
+        outcomeIndex: null,
+      }
     }
 
-    const label = resolveResolvedPredictionResultLabel(event)
-    return label ? (normalizeOutcomeLabel(label) || label) : t('Resolved')
+    const resolvedDisplay = resolveResolvedPredictionResultLabel(event)
+    return {
+      label: resolvedDisplay.label ? (normalizeOutcomeLabel(resolvedDisplay.label) || resolvedDisplay.label) : t('Resolved'),
+      outcomeIndex: resolvedDisplay.outcomeIndex,
+    }
   }, [event, isResolvedEvent, normalizeOutcomeLabel, showResolvedOutcomeLayout, t])
 
   return (
@@ -778,15 +793,21 @@ function PredictionResultRow({
                     <div className="flex max-w-full items-center gap-2">
                       <p
                         className="truncate text-lg font-medium text-foreground"
-                        title={resolvedResultLabel ?? undefined}
+                        title={resolvedResultDisplay.label ?? undefined}
                       >
-                        {resolvedResultLabel}
+                        {resolvedResultDisplay.label}
                       </p>
-                      <span className="
-                        flex size-5 shrink-0 items-center justify-center rounded-full bg-yes text-background
-                      "
+                      <span
+                        data-testid="prediction-result-resolved-badge"
+                        data-outcome={resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.NO ? 'no' : 'yes'}
+                        className={cn(
+                          'flex size-5 shrink-0 items-center justify-center rounded-full text-background',
+                          resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.NO ? 'bg-no' : 'bg-yes',
+                        )}
                       >
-                        <CheckIcon className="size-3.5" strokeWidth={2.6} />
+                        {resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.NO
+                          ? <XIcon className="size-3.5" strokeWidth={2.6} />
+                          : <CheckIcon className="size-3.5" strokeWidth={2.6} />}
                       </span>
                     </div>
                   </div>
