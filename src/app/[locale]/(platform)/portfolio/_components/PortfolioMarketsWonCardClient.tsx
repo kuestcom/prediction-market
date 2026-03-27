@@ -307,22 +307,23 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
       <Card className="relative z-0 w-full rounded-lg border bg-transparent">
         <CardContent
           className={`
-            flex flex-wrap items-center justify-between gap-4 py-3 pr-3 pl-5
-            md:flex-nowrap md:gap-6 md:py-4 md:pr-4 md:pl-6
+            flex flex-nowrap items-center justify-between gap-2 p-3
+            sm:gap-4 sm:pl-4
+            md:gap-6 md:py-4 md:pr-4 md:pl-6
           `}
         >
-          <div className="flex min-w-0 items-center gap-5">
-            <div className="relative isolate ml-2 h-12 w-17 shrink-0">
+          <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
+            <div className="relative isolate h-10 w-14 shrink-0 sm:ml-2 sm:h-12 sm:w-17">
               {previewMarkets.map((market, index) => {
                 const stackClass = (() => {
                   if (previewMarkets.length <= 1) {
-                    return 'left-[0.5rem] top-[0.125rem] z-20'
+                    return 'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]'
                   }
 
                   const stackClassByIndex = [
-                    'left-[-0.875rem] top-0 -rotate-[13deg] z-10',
-                    'left-[0.5rem] top-[0.125rem] z-20',
-                    'right-[-0.875rem] top-[0.125rem] rotate-[19deg] z-30',
+                    'left-[-0.625rem] top-0 -rotate-[13deg] z-10 sm:left-[-0.875rem]',
+                    'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]',
+                    'right-[-0.625rem] top-[0.125rem] rotate-[19deg] z-30 sm:right-[-0.875rem]',
                   ] as const
                   return stackClassByIndex[Math.min(index, 2)]
                 })()
@@ -332,9 +333,10 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
                   <div
                     key={market.conditionId}
                     className={`
-                      absolute size-11 overflow-hidden rounded-lg border-2 border-foreground bg-muted shadow-sm
+                      absolute size-9 overflow-hidden rounded-lg border-2 border-foreground bg-muted shadow-sm
                       motion-safe:animate-in motion-safe:duration-300 motion-safe:fade-in-0 motion-safe:zoom-in-95
                       motion-reduce:animate-none
+                      sm:size-11
                       ${stackClass}
                     `}
                     style={{ animationDelay: `${index * 55}ms` }}
@@ -344,7 +346,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
                           <EventIconImage
                             src={market.imageUrl}
                             alt={market.title}
-                            sizes="44px"
+                            sizes="(max-width: 640px) 36px, 44px"
                             containerClassName="size-full"
                           />
                         )
@@ -354,7 +356,12 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
                           </div>
                         )}
                     {showOverflowCount && (
-                      <div className="absolute inset-0 grid place-items-center bg-black/40 text-sm font-bold text-white">
+                      <div
+                        className="
+                          absolute inset-0 grid place-items-center bg-black/40 text-xs font-bold text-white
+                          sm:text-sm
+                        "
+                      >
                         +
                         {previewExtraCount}
                       </div>
@@ -364,10 +371,16 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
               })}
             </div>
 
-            <div className="min-w-0 pl-2 text-left">
-              <p className="inline-flex items-center gap-2 text-base font-semibold text-muted-foreground">
+            <div className="min-w-0 flex-1 text-left sm:pl-2">
+              <p
+                className="
+                  inline-flex max-w-full items-center gap-1.5 text-sm font-semibold whitespace-nowrap
+                  text-muted-foreground
+                  sm:gap-2 sm:text-base
+                "
+              >
                 <span>You won</span>
-                <span className="text-2xl font-semibold text-foreground tabular-nums">
+                <span className="text-lg leading-none font-semibold text-foreground tabular-nums sm:text-2xl">
                   {formatCurrency(summary.totalProceeds)}
                 </span>
               </p>
@@ -375,7 +388,10 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           </div>
 
           <DialogTrigger asChild>
-            <Button className="h-10 shrink-0 rounded-md px-7" disabled={!hasClaimableMarkets}>
+            <Button
+              className="h-9 shrink-0 rounded-md px-3 text-xs sm:h-10 sm:px-7 sm:text-sm"
+              disabled={!hasClaimableMarkets}
+            >
               <BanknoteArrowDownIcon className="size-4" />
               Claim
             </Button>

@@ -24,23 +24,31 @@ export default function PublicPositionsFilters({
 }: PublicPositionsFiltersProps) {
   return (
     <div className="space-y-3 px-2 pt-2 sm:px-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <SearchIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="relative min-w-0 flex-1">
+          <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
           <Input
             type="text"
             placeholder="Search markets..."
             value={searchQuery}
             onChange={event => onSearchChange(event.target.value)}
-            className="w-full pr-3 pl-9"
+            className="w-full min-w-0 pr-3 pl-8 text-sm sm:pl-9"
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Select value={sortBy} onValueChange={value => onSortChange(value as SortOption)}>
-            <SelectTrigger className="dark:bg-transparent [&>svg:last-of-type]:hidden">
+            <SelectTrigger
+              aria-label="Sort positions"
+              className="
+                w-9 justify-center gap-0 px-0
+                sm:w-fit sm:justify-between sm:gap-1.5 sm:px-2.5
+                dark:bg-transparent
+                [&>svg:last-of-type]:hidden
+              "
+            >
               <ArrowDownNarrowWideIcon className="size-4 text-muted-foreground" />
-              <SelectValue />
+              <SelectValue className="hidden sm:flex" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="currentValue">Current value</SelectItem>
