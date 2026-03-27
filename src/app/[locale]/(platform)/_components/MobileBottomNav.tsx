@@ -1,5 +1,6 @@
 'use client'
 
+import type { Route } from 'next'
 import type { ComponentProps, ReactNode } from 'react'
 import type { SupportedLocale } from '@/i18n/locales'
 import { useAppKitAccount } from '@reown/appkit/react'
@@ -58,6 +59,7 @@ const { useSession } = authClient
 export default function MobileBottomNav() {
   const t = useExtracted()
   const pathname = usePathname()
+  const router = useRouter()
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const { data: session } = useSession()
@@ -104,13 +106,7 @@ export default function MobileBottomNav() {
     setSearchFocusTrigger(prev => prev + 1)
   }
 
-  function handleSearchOpenChange(nextOpen: boolean) {
-    setIsSearchOpen(nextOpen)
-
-    if (nextOpen) {
-      return
-    }
-
+  function resetSearchDrawerInteractionState() {
     setSearchFocusTrigger(0)
 
     window.setTimeout(() => {
@@ -120,6 +116,25 @@ export default function MobileBottomNav() {
         activeElement.blur()
       }
     }, 0)
+  }
+
+  function handleSearchOpenChange(nextOpen: boolean) {
+    setIsSearchOpen(nextOpen)
+
+    if (nextOpen) {
+      return
+    }
+
+    resetSearchDrawerInteractionState()
+  }
+
+  function handleSearchNavigate() {
+    resetSearchDrawerInteractionState()
+  }
+
+  function handlePredictionResultsNavigate(href: Route) {
+    resetSearchDrawerInteractionState()
+    router.push(href)
   }
 
   async function handleInstallAction() {
@@ -178,8 +193,8 @@ export default function MobileBottomNav() {
         <DrawerContent
           data-mobile-search-drawer="true"
           className="
-            h-dvh max-h-dvh overflow-y-auto rounded-none border-x-0 border-b-0 border-border/70 bg-background px-2 pt-2
-            pb-6
+            h-[90dvh] max-h-dvh overflow-y-auto rounded-none border-x-0 border-b-0 border-border/70 bg-background px-2
+            pt-2 pb-6
           "
         >
           <DrawerHeader className="sr-only p-0">
@@ -187,8 +202,9 @@ export default function MobileBottomNav() {
           </DrawerHeader>
           <div className="mt-4">
             <HeaderSearch
-              onNavigate={() => setIsSearchOpen(false)}
-              emptyState={<SearchDiscoveryContent onNavigate={() => setIsSearchOpen(false)} />}
+              onNavigate={handleSearchNavigate}
+              onPredictionResultsNavigate={handlePredictionResultsNavigate}
+              emptyState={<SearchDiscoveryContent onNavigate={handleSearchNavigate} />}
               focusTrigger={searchFocusTrigger}
             />
           </div>

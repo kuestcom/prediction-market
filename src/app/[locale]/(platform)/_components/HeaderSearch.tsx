@@ -19,6 +19,7 @@ interface HeaderSearchProps {
   emptyState?: ReactNode
   focusTrigger?: number
   onNavigate?: () => void
+  onPredictionResultsNavigate?: (href: Route) => void
   showDesktopDiscovery?: boolean
 }
 
@@ -27,6 +28,7 @@ export default function HeaderSearch({
   emptyState,
   focusTrigger,
   onNavigate,
+  onPredictionResultsNavigate,
   showDesktopDiscovery = true,
 }: HeaderSearchProps) {
   const searchRef = useRef<HTMLDivElement>(null)
@@ -48,8 +50,11 @@ export default function HeaderSearch({
   } = useSearch()
   const [hasFocusWithin, setHasFocusWithin] = useState(false)
   const [isResultsDismissed, setIsResultsDismissed] = useState(false)
+  const isManagedSearchSurface = Boolean(onPredictionResultsNavigate)
   const hasActiveQuery = query.trim().length >= 2
-  const showDropdown = hasActiveQuery && (showResults || isLoading.events || isLoading.profiles) && !isResultsDismissed
+  const showDropdown = hasActiveQuery
+    && (showResults || isLoading.events || isLoading.profiles)
+    && (isManagedSearchSurface || !isResultsDismissed)
   const showDiscoveryDropdown = showDesktopDiscovery && !emptyState && query.trim().length === 0 && hasFocusWithin && !isResultsDismissed
   const showAttachedDropdown = showDropdown || showDiscoveryDropdown
   const inputBaseClass = showAttachedDropdown ? 'bg-background' : 'bg-accent'
@@ -70,6 +75,17 @@ export default function HeaderSearch({
     onNavigate?.()
   }
 
+  function navigateToRoute(href: Route) {
+    if (onPredictionResultsNavigate) {
+      handleNavigate()
+      onPredictionResultsNavigate(href)
+      return
+    }
+
+    handleNavigate()
+    router.push(href)
+  }
+
   function navigateToPredictionResults() {
     const nextPath = buildPredictionResultsPath(query)
 
@@ -77,8 +93,11 @@ export default function HeaderSearch({
       return
     }
 
-    handleNavigate()
-    router.push(nextPath as Route)
+    navigateToRoute(nextPath as Route)
+  }
+
+  function navigateToSearchHref(href: Route) {
+    navigateToRoute(href)
   }
 
   function clearPendingBlurFrame() {
@@ -144,13 +163,17 @@ export default function HeaderSearch({
       }
     }
 
+    if (isManagedSearchSurface) {
+      return
+    }
+
     if (showAttachedDropdown) {
       document.addEventListener('pointerdown', handlePointerDown)
       return () => {
         document.removeEventListener('pointerdown', handlePointerDown)
       }
     }
-  }, [showAttachedDropdown, hideResults])
+  }, [hideResults, isManagedSearchSurface, showAttachedDropdown])
 
   useEffect(() => () => clearPendingBlurFrame(), [])
 
@@ -166,6 +189,10 @@ export default function HeaderSearch({
           setIsResultsDismissed(false)
         }}
         onBlurCapture={(event) => {
+          if (isManagedSearchSurface) {
+            return
+          }
+
           clearPendingBlurFrame()
           const nextFocusedElement = event.relatedTarget as Node | null
 
@@ -272,6 +299,7 @@ export default function HeaderSearch({
             isLoading={isLoading}
             activeTab={activeTab}
             query={query}
+            onHrefNavigate={onPredictionResultsNavigate ? navigateToSearchHref : undefined}
             onResultClick={handleNavigate}
             onTabChange={setActiveTab}
           />

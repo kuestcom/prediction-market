@@ -1,7 +1,9 @@
 import type { Route } from 'next'
+import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { Event, PublicProfile, SearchLoadingStates, SearchResultItems } from '@/types'
 import { ArrowRightIcon, LoaderIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import { useRef } from 'react'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventIconImage from '@/components/EventIconImage'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
@@ -23,6 +25,7 @@ interface SearchResultsProps {
   isLoading: SearchLoadingStates
   activeTab: 'events' | 'profiles'
   query: string
+  onHrefNavigate?: (href: Route) => void
   onResultClick: () => void
   onTabChange: (tab: 'events' | 'profiles') => void
 }
@@ -32,6 +35,7 @@ export function SearchResults({
   isLoading,
   activeTab,
   query,
+  onHrefNavigate,
   onResultClick,
   onTabChange,
 }: SearchResultsProps) {
@@ -95,7 +99,13 @@ export function SearchResults({
                   </div>
                 )
               : (
-                  <EventResults events={events} query={query} isLoading={isLoading.events} onResultClick={onResultClick} />
+                  <EventResults
+                    events={events}
+                    query={query}
+                    isLoading={isLoading.events}
+                    onHrefNavigate={onHrefNavigate}
+                    onResultClick={onResultClick}
+                  />
                 )}
           </div>
         )}
@@ -119,15 +129,51 @@ interface EventResultsProps {
   events: Event[]
   query: string
   isLoading: boolean
+  onHrefNavigate?: (href: Route) => void
   onResultClick: () => void
 }
 
-function EventResults({ events, query, isLoading, onResultClick }: EventResultsProps) {
+function EventResults({
+  events,
+  query,
+  isLoading,
+  onHrefNavigate,
+  onResultClick,
+}: EventResultsProps) {
   const t = useExtracted()
   const { tags } = usePlatformNavigationData()
+  const pointerNavigationHrefRef = useRef<Route | null>(null)
   const categories = buildSearchCategoryMatches(tags, query)
   const allResultsHref = resolvePredictionResultsHref(query, categories) as Route | null
   const visibleEvents = events.slice(0, EVENT_RESULTS_DROPDOWN_LIMIT)
+
+  function navigateToHref(href: Route) {
+    if (onHrefNavigate) {
+      onHrefNavigate(href)
+      return
+    }
+
+    onResultClick()
+  }
+
+  function handlePointerHrefNavigation(event: ReactPointerEvent<HTMLElement>, href: Route) {
+    if (event.pointerType === 'mouse') {
+      return
+    }
+
+    pointerNavigationHrefRef.current = href
+    event.preventDefault()
+    navigateToHref(href)
+  }
+
+  function handleClickHrefNavigation(href: Route) {
+    if (pointerNavigationHrefRef.current === href) {
+      pointerNavigationHrefRef.current = null
+      return
+    }
+
+    navigateToHref(href)
+  }
 
   if (events.length === 0 && categories.length === 0 && !allResultsHref && !isLoading && query.length >= 2) {
     return (
@@ -142,14 +188,28 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
       {categories.length > 0 && (
         <div className="flex flex-wrap gap-2 border-b px-3 py-2">
           {categories.map(category => (
-            <IntentPrefetchLink
-              key={category.href}
-              href={category.href}
-              onClick={onResultClick}
-              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'rounded-lg')}
-            >
-              <span className="truncate">{category.label}</span>
-            </IntentPrefetchLink>
+            onHrefNavigate
+              ? (
+                  <button
+                    key={category.href}
+                    type="button"
+                    onPointerDown={event => handlePointerHrefNavigation(event, category.href as Route)}
+                    onClick={() => handleClickHrefNavigation(category.href as Route)}
+                    className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'rounded-lg')}
+                  >
+                    <span className="truncate">{category.label}</span>
+                  </button>
+                )
+              : (
+                  <IntentPrefetchLink
+                    key={category.href}
+                    href={category.href}
+                    onClick={onResultClick}
+                    className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'rounded-lg')}
+                  >
+                    <span className="truncate">{category.label}</span>
+                  </IntentPrefetchLink>
+                )
           ))}
         </div>
       )}
@@ -164,25 +224,17 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
         const isResolvedEvent = result.status === 'resolved'
         const eventHref = resolveEventPagePath(result) as Route
 
-        return (
-          <IntentPrefetchLink
-            key={`${result.id}-${result.slug}`}
-            href={eventHref}
-            onClick={() => {
-              saveRecentSearchEvent({
-                id: result.id,
-                href: eventHref,
-                title: result.title,
-                iconUrl: result.icon_url?.trim() ?? '',
-              })
-              onResultClick()
-            }}
-            data-testid="search-result-item"
-            className={cn(
-              'flex items-center justify-between p-3 transition-colors hover:bg-accent',
-              { 'last:rounded-b-lg': !allResultsHref },
-            )}
-          >
+        function persistRecentEvent() {
+          saveRecentSearchEvent({
+            id: result.id,
+            href: eventHref,
+            title: result.title,
+            iconUrl: result.icon_url?.trim() ?? '',
+          })
+        }
+
+        const resultContent = (
+          <>
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <div className="size-8 shrink-0 overflow-hidden rounded-sm">
                 <EventIconImage
@@ -209,23 +261,86 @@ function EventResults({ events, query, isLoading, onResultClick }: EventResultsP
                 %
               </span>
             </div>
-          </IntentPrefetchLink>
+          </>
         )
+
+        return onHrefNavigate
+          ? (
+              <button
+                key={`${result.id}-${result.slug}`}
+                type="button"
+                onPointerDown={(event) => {
+                  persistRecentEvent()
+                  handlePointerHrefNavigation(event, eventHref)
+                }}
+                onClick={() => {
+                  if (pointerNavigationHrefRef.current === eventHref) {
+                    pointerNavigationHrefRef.current = null
+                    return
+                  }
+
+                  persistRecentEvent()
+                  navigateToHref(eventHref)
+                }}
+                data-testid="search-result-item"
+                className={cn(
+                  'flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-accent',
+                  { 'last:rounded-b-lg': !allResultsHref },
+                )}
+              >
+                {resultContent}
+              </button>
+            )
+          : (
+              <IntentPrefetchLink
+                key={`${result.id}-${result.slug}`}
+                href={eventHref}
+                onClick={() => {
+                  persistRecentEvent()
+                  onResultClick()
+                }}
+                data-testid="search-result-item"
+                className={cn(
+                  'flex items-center justify-between p-3 transition-colors hover:bg-accent',
+                  { 'last:rounded-b-lg': !allResultsHref },
+                )}
+              >
+                {resultContent}
+              </IntentPrefetchLink>
+            )
       })}
 
       {allResultsHref && (
-        <IntentPrefetchLink
-          href={allResultsHref}
-          onClick={onResultClick}
-          className={`
-            flex items-center justify-between gap-2 rounded-b-lg border-t p-3 text-sm font-medium text-primary
-            transition-colors
-            hover:bg-accent hover:text-primary
-          `}
-        >
-          <span>{t('See all results')}</span>
-          <ArrowRightIcon className="size-4" />
-        </IntentPrefetchLink>
+        onHrefNavigate
+          ? (
+              <button
+                type="button"
+                onPointerDown={event => handlePointerHrefNavigation(event, allResultsHref)}
+                onClick={() => handleClickHrefNavigation(allResultsHref)}
+                className={`
+                  flex w-full items-center justify-between gap-2 rounded-b-lg border-t p-3 text-left text-sm font-medium
+                  text-primary transition-colors
+                  hover:bg-accent hover:text-primary
+                `}
+              >
+                <span>{t('See all results')}</span>
+                <ArrowRightIcon className="size-4" />
+              </button>
+            )
+          : (
+              <IntentPrefetchLink
+                href={allResultsHref}
+                onClick={onResultClick}
+                className={`
+                  flex items-center justify-between gap-2 rounded-b-lg border-t p-3 text-sm font-medium text-primary
+                  transition-colors
+                  hover:bg-accent hover:text-primary
+                `}
+              >
+                <span>{t('See all results')}</span>
+                <ArrowRightIcon className="size-4" />
+              </IntentPrefetchLink>
+            )
       )}
     </div>
   )

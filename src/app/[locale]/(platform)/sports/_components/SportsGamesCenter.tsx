@@ -1445,8 +1445,14 @@ export function SportsGameGraph({
       return undefined
     }
 
-    const firstTimestamp = chartData[0]?.date.getTime()
-    const lastTimestamp = chartData.at(-1)?.date.getTime()
+    const firstPoint = chartData[0]
+    const lastPoint = chartData.at(-1)
+    if (!firstPoint || !lastPoint) {
+      return undefined
+    }
+
+    const firstTimestamp = firstPoint.date.getTime()
+    const lastTimestamp = lastPoint.date.getTime()
     if (!Number.isFinite(firstTimestamp) || !Number.isFinite(lastTimestamp) || lastTimestamp <= firstTimestamp) {
       return undefined
     }
@@ -1513,8 +1519,14 @@ export function SportsGameGraph({
         }>
       }
 
-      const firstTimestamp = chartData[0]?.date.getTime()
-      const lastTimestamp = chartData.at(-1)?.date.getTime()
+      const firstPoint = chartData[0]
+      const lastPoint = chartData.at(-1)
+      if (!firstPoint || !lastPoint) {
+        return []
+      }
+
+      const firstTimestamp = firstPoint.date.getTime()
+      const lastTimestamp = lastPoint.date.getTime()
       if (!Number.isFinite(firstTimestamp) || !Number.isFinite(lastTimestamp)) {
         return []
       }
@@ -4156,18 +4168,27 @@ export default function SportsGamesCenter({
       outcome: currentOrderOutcome,
     } = useOrder.getState()
 
-    if (
-      currentOrderEvent === activeTradeContext.card.event
-      && currentOrderMarket === activeTradeContext.market
-      && currentOrderOutcome === activeTradeContext.outcome
-    ) {
-      return
+    const isSameSelection = (
+      currentOrderEvent?.id === activeTradeContext.card.event.id
+      && currentOrderMarket?.condition_id === activeTradeContext.market.condition_id
+      && currentOrderOutcome?.outcome_index === activeTradeContext.outcome.outcome_index
+    )
+
+    if (currentOrderEvent !== activeTradeContext.card.event) {
+      setOrderEvent(activeTradeContext.card.event)
     }
 
-    setOrderEvent(activeTradeContext.card.event)
-    setOrderMarket(activeTradeContext.market)
-    setOrderOutcome(activeTradeContext.outcome)
-    setOrderSide(ORDER_SIDE.BUY)
+    if (currentOrderMarket !== activeTradeContext.market) {
+      setOrderMarket(activeTradeContext.market)
+    }
+
+    if (currentOrderOutcome !== activeTradeContext.outcome) {
+      setOrderOutcome(activeTradeContext.outcome)
+    }
+
+    if (!isSameSelection) {
+      setOrderSide(ORDER_SIDE.BUY)
+    }
   }, [
     activeTradeContext,
     setOrderEvent,
