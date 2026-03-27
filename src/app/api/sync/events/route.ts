@@ -299,7 +299,9 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
     }
 
     if (eventIdsNeedingStatusUpdate.size > 0) {
-      await updateEventStatusesFromMarketsBatch(Array.from(eventIdsNeedingStatusUpdate))
+      const eventIdsToRefresh = Array.from(eventIdsNeedingStatusUpdate)
+      await updateEventStatusesFromMarketsBatch(eventIdsToRefresh)
+      await invalidateEventCaches(eventIdsToRefresh)
       eventIdsNeedingStatusUpdate.clear()
     }
 
@@ -314,7 +316,9 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
   }
 
   if (eventIdsNeedingStatusUpdate.size > 0) {
-    await updateEventStatusesFromMarketsBatch(Array.from(eventIdsNeedingStatusUpdate))
+    const eventIdsToRefresh = Array.from(eventIdsNeedingStatusUpdate)
+    await updateEventStatusesFromMarketsBatch(eventIdsToRefresh)
+    await invalidateEventCaches(eventIdsToRefresh)
     eventIdsNeedingStatusUpdate.clear()
   }
 
@@ -657,6 +661,10 @@ async function processEvent(
     }
     catch (updateError) {
       console.error(`Failed to update event ${existingEvent.id}:`, updateError)
+    }
+
+    if (eventData.tags?.length > 0) {
+      await processTags(existingEvent.id, eventData.tags)
     }
 
     await upsertEventSportsMetadata(existingEvent.id, {
@@ -1025,11 +1033,25 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
       .set({ status: nextStatus, resolved_at: resolvedAtUpdate })
       .where(eq(eventsTable.id, eventId))
   }
+}
+
+async function invalidateEventCaches(eventIds: string[]) {
+  const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
+  if (uniqueEventIds.length === 0) {
+    return
+  }
+
+  const rows = await db
+    .select({
+      slug: eventsTable.slug,
+    })
+    .from(eventsTable)
+    .where(inArray(eventsTable.id, uniqueEventIds))
 
   updateTag(cacheTags.eventsGlobal)
-  for (const currentEvent of currentEvents) {
-    if (currentEvent.slug) {
-      updateTag(cacheTags.event(currentEvent.slug))
+  for (const row of rows) {
+    if (row.slug) {
+      updateTag(cacheTags.event(row.slug))
     }
   }
 }

@@ -1678,6 +1678,17 @@ function resolveLatestResolvedAt(events: Event[]) {
   return latestValue
 }
 
+function canRenderSportsGamesCard(
+  event: Event,
+  teams: SportsGamesTeam[],
+  eventHref: string,
+) {
+  // Sports list pages should only render cards that can resolve back into sports routes.
+  return event.sports_section === 'games'
+    && eventHref.startsWith('/sports/')
+    && teams.length >= 2
+}
+
 function buildSportsGamesCard(
   eventsGroup: Event[],
   options?: {
@@ -1707,6 +1718,11 @@ function buildSportsGamesCard(
   }
 
   const teams = toSportsTeams(teamSourceEvent)
+  const eventHref = resolveEventPagePath(primaryEvent)
+  if (!canRenderSportsGamesCard(eventForDisplay, teams, eventHref)) {
+    return null
+  }
+
   const buttons = buildButtons(eventForDisplay.markets ?? [], teams)
   if (buttons.length === 0) {
     return null
@@ -1735,7 +1751,7 @@ function buildSportsGamesCard(
       total_markets_count: marketsCount,
     },
     slug: primaryEvent.slug,
-    eventHref: resolveEventPagePath(primaryEvent),
+    eventHref,
     title: primaryEvent.title,
     volume,
     marketsCount,

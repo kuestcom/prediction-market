@@ -1101,4 +1101,43 @@ describe('sportsGamesData', () => {
       'goalscorer-suarez:NO',
     ])
   })
+
+  it('ignores generic prediction events that fall back to /event routes', () => {
+    const event = {
+      id: 'generic-event',
+      slug: 'meta-up-or-down-on-march-26-2026',
+      title: 'Meta (META) Up or Down on March 26?',
+      creator: '',
+      icon_url: '',
+      show_market_icons: true,
+      status: 'active',
+      sports_event_slug: null,
+      sports_sport_slug: null,
+      sports_section: 'games',
+      sports_start_time: null,
+      sports_teams: [],
+      active_markets_count: 1,
+      total_markets_count: 1,
+      volume: 0,
+      start_date: null,
+      end_date: null,
+      created_at: '2026-03-26T00:00:00.000Z',
+      updated_at: '2026-03-26T00:00:00.000Z',
+      markets: [
+        buildBinaryMarket({
+          conditionId: 'generic-binary',
+          eventId: 'generic-event',
+          slug: 'meta-up-or-down-on-march-26-2026',
+          title: 'Meta Up or Down',
+          marketType: 'binary',
+        }),
+      ],
+      tags: [],
+      main_tag: 'sports',
+      is_bookmarked: false,
+      is_trending: false,
+    } as any
+
+    expect(buildSportsGamesCardGroups([event])).toEqual([])
+  })
 })
