@@ -4,7 +4,7 @@ import type { Route } from 'next'
 import type { ReactNode } from 'react'
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import type { SportsVertical } from '@/lib/sports-vertical'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import SportsSidebarMenu from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { normalizeAliasKey } from '@/lib/sports-slug-mapping'
@@ -177,14 +177,6 @@ export default function SportsLayoutShell({
     [vertical, pathname, sportsMenuEntries, canonicalSlugByAliasKey, h1TitleBySlug],
   )
 
-  const handleNavigateHref = useCallback((href: string) => {
-    router.push(href as Route)
-  }, [router])
-
-  const handleSelectSportsTag = useCallback((_requestedTagSlug: string, href: string) => {
-    router.push(href as Route)
-  }, [router])
-
   const sectionConfig = context.sportSlug ? sectionsBySlug[context.sportSlug] : null
   const showSportSectionPills = context.mode === 'all'
     && Boolean(context.sportSlug)
@@ -273,9 +265,6 @@ export default function SportsLayoutShell({
           vertical={vertical}
           mode={context.mode}
           activeTagSlug={context.activeTagSlug}
-          onSelectMode={() => {}}
-          onSelectTagSlug={handleSelectSportsTag}
-          onNavigateHref={handleNavigateHref}
           countByTagSlug={sportsCountsBySlug}
         />
         <div

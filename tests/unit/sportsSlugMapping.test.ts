@@ -31,6 +31,39 @@ const resolver = buildSportsSlugResolver([
       propsEnabled: false,
     },
   },
+  {
+    menuSlug: 'nfl',
+    h1Title: 'NFL',
+    label: 'NFL',
+    aliases: ['national-football-league'],
+    mappedTags: ['National Football League'],
+    sections: {
+      gamesEnabled: false,
+      propsEnabled: true,
+    },
+  },
+  {
+    menuSlug: 'cfb',
+    h1Title: 'College Football',
+    label: 'CFB',
+    aliases: ['college-football'],
+    mappedTags: ['College Football'],
+    sections: {
+      gamesEnabled: false,
+      propsEnabled: true,
+    },
+  },
+  {
+    menuSlug: 'football',
+    h1Title: 'Football',
+    label: 'Football',
+    queryCandidates: ['nfl', 'national-football-league', 'cfb', 'college-football'],
+    sections: {
+      gamesEnabled: false,
+      propsEnabled: true,
+    },
+    useForEventClassification: false,
+  },
 ])
 
 describe('sports slug mapping', () => {
@@ -94,5 +127,17 @@ describe('sports slug mapping', () => {
 
     expect(title).toBe('Brazil Série A')
     expect(sections).toEqual({ gamesEnabled: true, propsEnabled: false })
+  })
+
+  it('supports aggregate route slugs without overriding leaf event classification', () => {
+    expect(resolveCanonicalSportsSlugAlias(resolver, 'football')).toBe('football')
+    expect(resolveCanonicalSportsSlugAlias(resolver, 'nfl')).toBe('nfl')
+    expect(resolveCanonicalSportsSportSlug(resolver, {
+      sportsSportSlug: 'nfl',
+      sportsTags: ['Football'],
+    })).toBe('nfl')
+    expect(resolveSportsSportSlugQueryCandidates(resolver, 'football')).toEqual(
+      expect.arrayContaining(['football', 'nfl', 'national football league', 'cfb', 'college football']),
+    )
   })
 })

@@ -16,7 +16,7 @@ import {
 } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
-import { normalizeComparableValue } from '@/lib/slug'
+import { normalizeComparableValue, slugifyText } from '@/lib/slug'
 import { SPORTS_AUXILIARY_SLUG_SQL_REGEX } from '@/lib/sports-event-slugs'
 import {
   buildSportsSlugResolver,
@@ -81,6 +81,26 @@ function requireText(value: string | null | undefined, rowId: string, field: str
   return normalized
 }
 
+function buildChildrenByParent(rows: SportsMenuItemRow[]) {
+  const childrenByParent = new Map<string, SportsMenuItemRow[]>()
+
+  for (const row of rows) {
+    if (!row.parent_id) {
+      continue
+    }
+
+    const childRows = childrenByParent.get(row.parent_id) ?? []
+    childRows.push(row)
+    childrenByParent.set(row.parent_id, childRows)
+  }
+
+  for (const childRows of childrenByParent.values()) {
+    childRows.sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
+  }
+
+  return childrenByParent
+}
+
 function createSyntheticMenuRow(params: Partial<SportsMenuItemRow> & {
   id: string
   item_type: SportsMenuItemType
@@ -101,6 +121,87 @@ function createSyntheticMenuRow(params: Partial<SportsMenuItemRow> & {
     props_enabled: params.props_enabled ?? false,
     sort_order: params.sort_order,
   } satisfies SportsMenuItemRow
+}
+
+function resolveGroupMenuSlug(row: SportsMenuItemRow) {
+  const configuredSlug = normalizeComparableValue(row.menu_slug)
+  if (configuredSlug) {
+    return configuredSlug
+  }
+
+  const label = row.label?.trim()
+  if (!label) {
+    return null
+  }
+
+  return slugifyText(label) || null
+}
+
+function resolveGroupSectionConfig(childRows: SportsMenuItemRow[]) {
+  const hrefs = childRows
+    .map(child => child.href?.trim().toLowerCase() ?? '')
+    .filter(Boolean)
+
+  return {
+    gamesEnabled: childRows.some(child => child.item_type === 'link' && Boolean(child.games_enabled))
+      || hrefs.some(href => href.endsWith('/games')),
+    propsEnabled: childRows.some(child => child.item_type === 'link' && Boolean(child.props_enabled))
+      || hrefs.some(href => href.endsWith('/props')),
+  }
+}
+
+function resolveDefaultGroupSection(childRows: SportsMenuItemRow[]) {
+  const sectionConfig = resolveGroupSectionConfig(childRows)
+  if (sectionConfig.gamesEnabled) {
+    return 'games' as const
+  }
+
+  if (sectionConfig.propsEnabled) {
+    return 'props' as const
+  }
+
+  const hrefs = childRows
+    .map(child => child.href?.trim().toLowerCase() ?? '')
+    .filter(Boolean)
+
+  if (hrefs.some(href => href.endsWith('/games'))) {
+    return 'games' as const
+  }
+
+  if (hrefs.some(href => href.endsWith('/props'))) {
+    return 'props' as const
+  }
+
+  return null
+}
+
+function buildGroupQueryCandidates(childRows: SportsMenuItemRow[]) {
+  const queryCandidates = new Set<string>()
+
+  for (const child of childRows) {
+    if (child.item_type !== 'link') {
+      continue
+    }
+
+    const menuSlug = normalizeComparableValue(child.menu_slug)
+    if (menuSlug) {
+      queryCandidates.add(menuSlug)
+    }
+
+    if (child.label?.trim()) {
+      queryCandidates.add(child.label)
+    }
+
+    for (const alias of toOptionalStringArray(child.url_aliases)) {
+      queryCandidates.add(alias)
+    }
+
+    for (const mappedTag of toOptionalStringArray(child.mapped_tags)) {
+      queryCandidates.add(mappedTag)
+    }
+  }
+
+  return Array.from(queryCandidates)
 }
 
 const getCachedSportsMenuRows = unstable_cache(
@@ -165,33 +266,59 @@ const getCachedActiveSportsCountRows = unstable_cache(
 )
 
 function toMappingEntries(rows: SportsMenuItemRow[]) {
+  const childrenByParent = buildChildrenByParent(rows)
   const mappings: SportsSlugMappingEntry[] = []
 
   for (const row of rows) {
-    if (row.item_type !== 'link') {
+    if (row.item_type === 'link') {
+      const menuSlug = normalizeComparableValue(row.menu_slug)
+      if (!menuSlug) {
+        continue
+      }
+
+      const h1Title = row.h1_title?.trim()
+      if (!h1Title) {
+        throw new Error(`sports_menu_items.h1_title is required for menu slug ${menuSlug}`)
+      }
+
+      mappings.push({
+        menuSlug,
+        h1Title,
+        label: row.label,
+        aliases: toOptionalStringArray(row.url_aliases),
+        mappedTags: toOptionalStringArray(row.mapped_tags),
+        sections: {
+          gamesEnabled: Boolean(row.games_enabled),
+          propsEnabled: Boolean(row.props_enabled),
+        },
+      })
       continue
     }
 
-    const menuSlug = normalizeComparableValue(row.menu_slug)
+    if (row.item_type !== 'group') {
+      continue
+    }
+
+    const menuSlug = resolveGroupMenuSlug(row)
     if (!menuSlug) {
       continue
     }
 
-    const h1Title = row.h1_title?.trim()
-    if (!h1Title) {
-      throw new Error(`sports_menu_items.h1_title is required for menu slug ${menuSlug}`)
+    const childRows = childrenByParent.get(row.id) ?? []
+    const sectionConfig = resolveGroupSectionConfig(childRows)
+    if (!sectionConfig.gamesEnabled && !sectionConfig.propsEnabled) {
+      continue
     }
 
     mappings.push({
       menuSlug,
-      h1Title,
+      h1Title: row.h1_title?.trim() || requireText(row.label, row.id, 'label'),
       label: row.label,
       aliases: toOptionalStringArray(row.url_aliases),
       mappedTags: toOptionalStringArray(row.mapped_tags),
-      sections: {
-        gamesEnabled: Boolean(row.games_enabled),
-        propsEnabled: Boolean(row.props_enabled),
-      },
+      queryCandidates: buildGroupQueryCandidates(childRows),
+      sections: sectionConfig,
+      useForEventClassification: false,
     })
   }
 
@@ -312,25 +439,18 @@ function buildVerticalMenuRows(rows: SportsMenuItemRow[], vertical: SportsVertic
   ]
 }
 
-function toSidebarMenuEntries(rows: SportsMenuItemRow[]) {
-  const childrenByParent = new Map<string, SportsMenuItemRow[]>()
+function toSidebarMenuEntries(rows: SportsMenuItemRow[], vertical: SportsVertical) {
+  const childrenByParent = buildChildrenByParent(rows)
   const rootRows: SportsMenuItemRow[] = []
+  const verticalConfig = getSportsVerticalConfig(vertical)
 
   for (const row of rows) {
-    if (row.parent_id) {
-      const parentRows = childrenByParent.get(row.parent_id) ?? []
-      parentRows.push(row)
-      childrenByParent.set(row.parent_id, parentRows)
-      continue
+    if (!row.parent_id) {
+      rootRows.push(row)
     }
-
-    rootRows.push(row)
   }
 
   rootRows.sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
-  for (const childRows of childrenByParent.values()) {
-    childRows.sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
-  }
 
   const entries: SportsMenuEntry[] = []
 
@@ -363,12 +483,21 @@ function toSidebarMenuEntries(rows: SportsMenuItemRow[]) {
       const groupLinks = (childrenByParent.get(row.id) ?? [])
         .filter(child => child.item_type === 'link')
         .map(toLinkEntry)
+      const menuSlug = resolveGroupMenuSlug(row)
+      const defaultSection = resolveDefaultGroupSection(childrenByParent.get(row.id) ?? [])
+
+      if (!menuSlug || !defaultSection || groupLinks.length === 0) {
+        continue
+      }
 
       const groupEntry: SportsMenuGroupEntry = {
         type: 'group',
         id: row.id,
         label: requireText(row.label, row.id, 'label'),
+        href: rewriteVerticalHref(row.href, vertical)
+          ?? `${verticalConfig.basePath}/${menuSlug}/${defaultSection}`,
         iconPath: requireText(row.icon_url, row.id, 'icon_url'),
+        menuSlug,
         links: groupLinks,
       }
 
@@ -454,7 +583,7 @@ export const SportsMenuRepository = {
       const verticalRows = buildVerticalMenuRows(rows, vertical)
 
       return {
-        data: toSidebarMenuEntries(verticalRows),
+        data: toSidebarMenuEntries(verticalRows, vertical),
         error: null,
       }
     })
@@ -470,7 +599,7 @@ export const SportsMenuRepository = {
         getCachedActiveSportsCountRows(),
       ])
       const resolver = buildSportsSlugResolver(toMappingEntries(rows))
-      const menuEntries = toSidebarMenuEntries(buildVerticalMenuRows(rows, vertical))
+      const menuEntries = toSidebarMenuEntries(buildVerticalMenuRows(rows, vertical), vertical)
       const countsBySlug = buildCountsBySlug(resolver, activeCountRows)
 
       return {
@@ -506,7 +635,7 @@ export const SportsMenuRepository = {
 
     return runQuery(async () => {
       const rows = await getCachedSportsMenuRows()
-      const menuEntries = toSidebarMenuEntries(buildVerticalMenuRows(rows, vertical))
+      const menuEntries = toSidebarMenuEntries(buildVerticalMenuRows(rows, vertical), vertical)
 
       return {
         data: findDefaultLandingHref(menuEntries),
@@ -521,7 +650,7 @@ export const SportsMenuRepository = {
 
     return runQuery(async () => {
       const rows = await getCachedSportsMenuRows()
-      const menuEntries = toSidebarMenuEntries(buildVerticalMenuRows(rows, vertical))
+      const menuEntries = toSidebarMenuEntries(buildVerticalMenuRows(rows, vertical), vertical)
 
       return {
         data: findDefaultFuturesHref(menuEntries),

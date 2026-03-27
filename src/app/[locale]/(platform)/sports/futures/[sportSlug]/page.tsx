@@ -36,6 +36,7 @@ export default async function SportsFuturesBySportPage({
     || !findSportsHrefBySlug({
       menuEntries: layoutData?.menuEntries,
       canonicalSportSlug,
+      hrefPrefix: '/sports/futures/',
     })
   ) {
     notFound()

@@ -22,7 +22,9 @@ export interface SportsMenuGroupEntry {
   type: 'group'
   id: string
   label: string
+  href: string
   iconPath: string
+  menuSlug: string | null
   links: SportsMenuLinkEntry[]
 }
 
