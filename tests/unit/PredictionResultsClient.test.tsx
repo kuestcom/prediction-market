@@ -297,6 +297,134 @@ describe('predictionResultsClient', () => {
     expect(screen.getByRole('heading', { name: 'Meta resolved event' })).toBeInTheDocument()
   })
 
+  it('shows the winning outcome label on resolved single-market rows', () => {
+    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mocks.useInfiniteQuery.mockImplementation(() => ({
+      data: {
+        pages: [[
+          {
+            id: 'event-single-resolved',
+            slug: 'meta-single-resolved',
+            title: 'Meta up or down?',
+            icon_url: '/icon.png',
+            status: 'resolved',
+            volume: 90000,
+            resolved_at: '2026-03-24T00:00:00.000Z',
+            end_date: '2026-03-24T00:00:00.000Z',
+            total_markets_count: 1,
+            tags: [{ id: 1, name: 'Meta', slug: 'meta', isMainCategory: true }],
+            markets: [{
+              condition: { resolved: true, resolution_price: 1 },
+              condition_id: 'single-market',
+              is_resolved: true,
+              outcomes: [
+                { outcome_index: 0, outcome_text: 'Up' },
+                { outcome_index: 1, outcome_text: 'Down' },
+              ],
+              probability: 100,
+              short_title: 'Up or Down',
+              title: 'Up or Down',
+            }],
+          },
+        ]],
+      },
+      error: null,
+      fetchNextPage: mocks.fetchNextPage,
+      hasNextPage: false,
+      isFetching: false,
+      isFetchingNextPage: false,
+      isPending: false,
+    }))
+
+    render(
+      <PredictionResultsClient
+        displayLabel="Meta"
+        initialCurrentTimestamp={Date.parse('2026-03-25T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="meta"
+        initialQuery=""
+        initialSort="trending"
+        initialStatus="resolved"
+        routeMainTag="meta"
+        routeTag="meta"
+      />,
+    )
+
+    expect(screen.getByText('Up')).toBeInTheDocument()
+    expect(screen.queryByText('100%')).not.toBeInTheDocument()
+  })
+
+  it('shows the winning market label on resolved multi-market rows', () => {
+    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mocks.useInfiniteQuery.mockImplementation(() => ({
+      data: {
+        pages: [[
+          {
+            id: 'event-multi-resolved',
+            slug: 'meta-multi-resolved',
+            title: 'Meta closing range?',
+            icon_url: '/icon.png',
+            status: 'resolved',
+            volume: 90000,
+            resolved_at: '2026-03-24T00:00:00.000Z',
+            end_date: '2026-03-24T00:00:00.000Z',
+            total_markets_count: 2,
+            tags: [{ id: 1, name: 'Meta', slug: 'meta', isMainCategory: true }],
+            markets: [
+              {
+                condition: { resolved: true, resolution_price: 0 },
+                condition_id: 'range-loser',
+                is_resolved: true,
+                outcomes: [
+                  { outcome_index: 0, outcome_text: 'Yes' },
+                  { outcome_index: 1, outcome_text: 'No' },
+                ],
+                probability: 0,
+                short_title: '260-279',
+                title: '260-279',
+              },
+              {
+                condition: { resolved: true, resolution_price: 1 },
+                condition_id: 'range-winner',
+                is_resolved: true,
+                outcomes: [
+                  { outcome_index: 0, outcome_text: 'Yes' },
+                  { outcome_index: 1, outcome_text: 'No' },
+                ],
+                probability: 100,
+                short_title: '280-299',
+                title: '280-299',
+              },
+            ],
+          },
+        ]],
+      },
+      error: null,
+      fetchNextPage: mocks.fetchNextPage,
+      hasNextPage: false,
+      isFetching: false,
+      isFetchingNextPage: false,
+      isPending: false,
+    }))
+
+    render(
+      <PredictionResultsClient
+        displayLabel="Meta"
+        initialCurrentTimestamp={Date.parse('2026-03-25T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="meta"
+        initialQuery=""
+        initialSort="trending"
+        initialStatus="resolved"
+        routeMainTag="meta"
+        routeTag="meta"
+      />,
+    )
+
+    expect(screen.getByText('280-299')).toBeInTheDocument()
+    expect(screen.queryByText('100%')).not.toBeInTheDocument()
+  })
+
   it('renders the desktop aside shell and the mobile drawer trigger', () => {
     render(
       <PredictionResultsClient
