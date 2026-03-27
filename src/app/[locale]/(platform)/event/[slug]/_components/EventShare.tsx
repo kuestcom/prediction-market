@@ -237,7 +237,7 @@ export default function EventShare({ event }: EventShareProps) {
       await navigator.clipboard.writeText(url)
       setShareSuccess(true)
       await showAffiliateToast()
-      setTimeout(() => setShareSuccess(false), 2000)
+      setTimeout(setShareSuccess, 2000, false)
     }
     catch (error) {
       console.error('Error copying URL:', error)
@@ -252,7 +252,7 @@ export default function EventShare({ event }: EventShareProps) {
       if (copyTimeoutRef.current) {
         window.clearTimeout(copyTimeoutRef.current)
       }
-      copyTimeoutRef.current = window.setTimeout(() => setCopiedKey(null), 1600)
+      copyTimeoutRef.current = window.setTimeout(setCopiedKey, 1600, null)
       await showAffiliateToast()
     }
     catch (error) {

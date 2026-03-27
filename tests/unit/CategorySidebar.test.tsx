@@ -8,6 +8,7 @@ vi.mock('next-intl', () => ({
 
 vi.mock('next/image', () => ({
   default: function MockImage({ unoptimized: _unoptimized, ...props }: any) {
+    // eslint-disable-next-line next/no-img-element
     return <img {...props} />
   },
 }))

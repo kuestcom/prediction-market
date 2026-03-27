@@ -887,13 +887,13 @@ export default function EventOrderPanelForm({
   function triggerLimitSharesShake() {
     setShouldShakeLimitShares(true)
     limitSharesInputRef.current?.focus()
-    setTimeout(() => setShouldShakeLimitShares(false), 320)
+    setTimeout(setShouldShakeLimitShares, 320, false)
   }
 
   function triggerInputShake() {
     setShouldShakeInput(true)
     state.inputRef?.current?.focus()
-    setTimeout(() => setShouldShakeInput(false), 320)
+    setTimeout(setShouldShakeInput, 320, false)
   }
 
   async function onSubmit() {

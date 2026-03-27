@@ -446,7 +446,7 @@ function buildChartData(points: PriceHistoryPoint[]): ChartData {
     .join(' ')
 
   const firstValue = plottedPoints[0]?.value
-  const lastValue = plottedPoints[plottedPoints.length - 1]?.value
+  const lastValue = plottedPoints.at(-1)?.value
   const delta = typeof firstValue === 'number' && typeof lastValue === 'number'
     ? (lastValue - firstValue) * 100
     : 0
@@ -597,7 +597,7 @@ export async function GET(request: Request) {
   const volumeLabel = event.volume > 0 ? `${formatCompactCurrency(event.volume)} Vol.` : 'New market'
   const marketLabel = focusedMarket?.title?.trim() ?? ''
   const imageTitle = marketLabel || event.title
-  const chartEndPoint = chartData.points[chartData.points.length - 1] ?? null
+  const chartEndPoint = chartData.points.at(-1) ?? null
 
   return new ImageResponse(
     (

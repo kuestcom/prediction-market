@@ -1918,7 +1918,7 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
     try {
       await navigator.clipboard.writeText(walletAddress)
       setCopied(true)
-      setTimeout(() => setCopied(false), 1200)
+      setTimeout(setCopied, 1200, false)
     }
     catch {
       //

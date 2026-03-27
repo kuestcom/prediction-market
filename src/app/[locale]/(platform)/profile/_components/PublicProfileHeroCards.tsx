@@ -186,9 +186,9 @@ function ProfitLossCard({
   const hasPnlSeries = pnlSeries.length > 0
   const chartData = hasPnlSeries ? pnlSeries : fallbackData
   const startDate = chartData[0]?.date ?? fallbackStartDate
-  const endDate = chartData[chartData.length - 1]?.date ?? fallbackEndDate
+  const endDate = chartData.at(-1)?.date ?? fallbackEndDate
   const startValue = chartData[0]?.value ?? fallbackRange.startValue
-  const endValue = chartData[chartData.length - 1]?.value ?? fallbackRange.endValue
+  const endValue = chartData.at(-1)?.value ?? fallbackRange.endValue
 
   const chartWidth = 360
   const chartHeight = 80
@@ -247,9 +247,15 @@ function ProfitLossCard({
       return chartData[0].value
     }
 
+    const firstPoint = chartData[0]
+    const lastPoint = chartData.at(-1)
+    if (!firstPoint || !lastPoint) {
+      return endValue
+    }
+
     const targetTime = cursorDate ? cursorDate.getTime() : endDate.getTime()
-    let left = chartData[0]
-    let right = chartData[chartData.length - 1]
+    let left = firstPoint
+    let right = lastPoint
 
     for (const point of chartData) {
       if (point.date.getTime() <= targetTime) {

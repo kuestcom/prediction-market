@@ -394,7 +394,10 @@ export function PredictionChart({
       }
 
       const firstPoint = data[0]
-      const lastPoint = data[data.length - 1]
+      const lastPoint = data.at(-1)
+      if (!firstPoint || !lastPoint) {
+        return null
+      }
       const targetTime = targetDate.getTime()
       const firstTime = firstPoint.date.getTime()
       const lastTime = lastPoint.date.getTime()
@@ -651,9 +654,9 @@ export function PredictionChart({
       }
 
       const previousFirst = previousData[0]?.date?.getTime?.()
-      const previousLast = previousData[previousData.length - 1]?.date?.getTime?.()
+      const previousLast = previousData.at(-1)?.date?.getTime?.()
       const incomingFirst = providedData[0]?.date?.getTime?.()
-      const incomingLast = providedData[providedData.length - 1]?.date?.getTime?.()
+      const incomingLast = providedData.at(-1)?.date?.getTime?.()
 
       const timelineValues = [previousFirst, previousLast, incomingFirst, incomingLast]
       const hasInvalidTimeline = timelineValues.some(
@@ -702,8 +705,9 @@ export function PredictionChart({
         }
       }
 
-      const lastTimestamp = nextData.length
-        ? nextData[nextData.length - 1].date.getTime()
+      const latestNextPoint = nextData.length > 0 ? (nextData.at(-1) ?? null) : null
+      const lastTimestamp = latestNextPoint
+        ? latestNextPoint.date.getTime()
         : null
 
       const appendedPoints = providedData.filter((point) => {
@@ -730,10 +734,11 @@ export function PredictionChart({
       }
 
       if (lastTimestamp !== null && nextData.length > 0) {
-        const latestPoint = nextData[nextData.length - 1]
-        const incomingLatestPoint = providedData[providedData.length - 1]
+        const latestPoint = nextData.at(-1)
+        const incomingLatestPoint = providedData.at(-1)
         if (
-          incomingLatestPoint
+          latestPoint
+          && incomingLatestPoint
           && incomingLatestPoint.date.getTime() === lastTimestamp
           && !arePointsEqual(latestPoint, incomingLatestPoint)
         ) {
@@ -1055,7 +1060,7 @@ export function PredictionChart({
     }
   }
 
-  const lastDataPoint = data.length > 0 ? data[data.length - 1] : null
+  const lastDataPoint = data.length > 0 ? (data.at(-1) ?? null) : null
   const isTooltipAtLastPoint = tooltipActive
     && lastDataPoint !== null
     && effectiveTooltipData !== null
@@ -1065,8 +1070,8 @@ export function PredictionChart({
   const crossFadeActive = Boolean(crossFadeData && crossFadeProgress < 0.999 && !shouldSplitByCursor)
   const crossFadeIn = crossFadeActive ? crossFadeProgress : 1
   const crossFadeOut = crossFadeActive ? 1 - crossFadeProgress : 0
-  const totalDurationHours = data.length > 1
-    ? (data[data.length - 1].date.valueOf() - data[0].date.valueOf()) / 36e5
+  const totalDurationHours = data.length > 1 && lastDataPoint
+    ? (lastDataPoint.date.valueOf() - data[0].date.valueOf()) / 36e5
     : 0
   const isMonthOnlyLabels = totalDurationHours > 24 * 45
   const verticalGridTicks = showVerticalGrid
@@ -1302,7 +1307,7 @@ export function PredictionChart({
       return baseX
     }
 
-    const lastTimestamp = data[data.length - 1]?.date.getTime()
+    const lastTimestamp = data.at(-1)?.date.getTime()
     if (!Number.isFinite(lastTimestamp) || d.date.getTime() !== lastTimestamp) {
       return baseX
     }
@@ -1630,7 +1635,7 @@ export function PredictionChart({
 
                           const finiteColoredPoints = seriesColoredPoints.filter(point => hasSeriesValue(point, seriesItem.key))
                           const firstColoredPoint = finiteColoredPoints[0]
-                          const lastColoredPoint = finiteColoredPoints[finiteColoredPoints.length - 1]
+                          const lastColoredPoint = finiteColoredPoints.at(-1)
                           const canRenderAreaFill = showAreaFill
                             && finiteColoredPoints.length > 1
                             && finiteColoredPoints.length === seriesColoredPoints.length

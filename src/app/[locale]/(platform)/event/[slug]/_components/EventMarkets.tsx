@@ -321,11 +321,9 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
 
           const normalizedOutcome = position.outcome_text?.toLowerCase()
           const explicitOutcomeIndex = typeof position.outcome_index === 'number' ? position.outcome_index : undefined
-          const resolvedOutcomeIndex = explicitOutcomeIndex != null
-            ? explicitOutcomeIndex
-            : normalizedOutcome === 'no'
-              ? OUTCOME_INDEX.NO
-              : OUTCOME_INDEX.YES
+          const resolvedOutcomeIndex = explicitOutcomeIndex ?? normalizedOutcome === 'no'
+            ? OUTCOME_INDEX.NO
+            : OUTCOME_INDEX.YES
 
           if (resolvedOutcomeIndex !== outcomeIndex) {
             return sum
@@ -407,11 +405,9 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
 
       const normalizedOutcome = position.outcome_text?.toLowerCase()
       const explicitOutcomeIndex = typeof position.outcome_index === 'number' ? position.outcome_index : undefined
-      const resolvedOutcomeIndex = explicitOutcomeIndex != null
-        ? explicitOutcomeIndex
-        : normalizedOutcome === 'no'
-          ? OUTCOME_INDEX.NO
-          : OUTCOME_INDEX.YES
+      const resolvedOutcomeIndex = explicitOutcomeIndex ?? normalizedOutcome === 'no'
+        ? OUTCOME_INDEX.NO
+        : OUTCOME_INDEX.YES
       const outcomeLabel = normalizeOutcomeLabel(position.outcome_text)
         || (resolvedOutcomeIndex === OUTCOME_INDEX.NO ? t('No') : t('Yes'))
       const avgPrice = toNumber(position.avgPrice)
@@ -478,11 +474,9 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
 
         const normalizedOutcome = position.outcome_text?.toLowerCase()
         const explicitOutcomeIndex = typeof position.outcome_index === 'number' ? position.outcome_index : undefined
-        const resolvedOutcomeIndex = explicitOutcomeIndex != null
-          ? explicitOutcomeIndex
-          : normalizedOutcome === 'no'
-            ? OUTCOME_INDEX.NO
-            : OUTCOME_INDEX.YES
+        const resolvedOutcomeIndex = explicitOutcomeIndex ?? normalizedOutcome === 'no'
+          ? OUTCOME_INDEX.NO
+          : OUTCOME_INDEX.YES
         if (resolvedOutcomeIndex !== OUTCOME_INDEX.NO) {
           return options
         }

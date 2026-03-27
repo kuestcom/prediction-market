@@ -23,7 +23,7 @@ function sanitizeSegment(value: string) {
 
 function resolveAssetExtension(file: File) {
   const nameParts = file.name.split('.')
-  const rawExtension = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
+  const rawExtension = nameParts.length > 1 ? (nameParts.at(-1) ?? '') : ''
   const normalized = rawExtension.trim().toLowerCase()
   return normalized || 'bin'
 }

@@ -41,11 +41,9 @@ export function useEventOrderPanelPositions({
 
       const normalizedOutcome = position.outcome_text?.toLowerCase()
       const explicitOutcomeIndex = typeof position.outcome_index === 'number' ? position.outcome_index : undefined
-      const resolvedOutcomeIndex = explicitOutcomeIndex != null
-        ? explicitOutcomeIndex
-        : normalizedOutcome === 'no'
-          ? OUTCOME_INDEX.NO
-          : OUTCOME_INDEX.YES
+      const resolvedOutcomeIndex = explicitOutcomeIndex ?? normalizedOutcome === 'no'
+        ? OUTCOME_INDEX.NO
+        : OUTCOME_INDEX.YES
 
       if (!acc[resolvedConditionId]) {
         acc[resolvedConditionId] = {

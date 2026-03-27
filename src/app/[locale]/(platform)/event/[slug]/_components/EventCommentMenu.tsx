@@ -22,7 +22,7 @@ export default function EventCommentMenu({ comment, onDelete, isDeleting }: Comm
           <DropdownMenuItem
             className="text-destructive"
             onSelect={() => {
-              setTimeout(() => setIsDeleteOpen(true), 0)
+              setTimeout(setIsDeleteOpen, 0, true)
             }}
           >
             <Trash2Icon />

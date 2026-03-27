@@ -390,7 +390,7 @@ async function syncResolutions(): Promise<SyncStats> {
     }
     else if (!timeLimitReached) {
       // Avoid stalling forever when a page only contains unknown IDs.
-      const lastResolutionInPage = page.resolutions[page.resolutions.length - 1]
+      const lastResolutionInPage = page.resolutions.at(-1)
       const pageEndTimestamp = Number(lastResolutionInPage?.lastUpdateTimestamp)
       if (!lastResolutionInPage || Number.isNaN(pageEndTimestamp)) {
         break

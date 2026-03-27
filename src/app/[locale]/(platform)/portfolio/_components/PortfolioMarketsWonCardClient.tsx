@@ -143,7 +143,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
       window.open(shareUrl.toString(), '_blank', 'noopener,noreferrer')
     }
     finally {
-      window.setTimeout(() => setIsSharingOnX(false), 200)
+      window.setTimeout(setIsSharingOnX, 200, false)
     }
   }, [siteName, summary.totalProceeds, user?.proxy_wallet_address, user?.username])
 

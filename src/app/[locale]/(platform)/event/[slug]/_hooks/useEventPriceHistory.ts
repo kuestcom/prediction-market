@@ -253,7 +253,7 @@ export function buildNormalizedHistory(historyByMarket: PriceHistoryByMarket): N
   })
 
   const latestSnapshot: Record<string, number> = {}
-  const latestPoint = points[points.length - 1]
+  const latestPoint = points.at(-1)
   if (latestPoint) {
     Object.entries(latestPoint).forEach(([key, value]) => {
       if (key !== 'date' && typeof value === 'number' && Number.isFinite(value)) {
@@ -285,7 +285,7 @@ function clipNormalizedHistoryToResolvedAt(
 
   const clippedLatestSnapshot: Record<string, number> = {}
   const clippedLatestRawPrices: Record<string, number> = {}
-  const lastPoint = clippedPoints[clippedPoints.length - 1]
+  const lastPoint = clippedPoints.at(-1)
 
   if (lastPoint) {
     Object.entries(lastPoint).forEach(([key, value]) => {

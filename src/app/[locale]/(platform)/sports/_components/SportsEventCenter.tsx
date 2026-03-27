@@ -554,7 +554,7 @@ function SportsEventShareButton({ event }: { event: SportsGamesCard['event'] }) 
       }
       await navigator.clipboard.writeText(url.toString())
       setShareSuccess(true)
-      window.setTimeout(() => setShareSuccess(false), 2000)
+      window.setTimeout(setShareSuccess, 2000, false)
     }
     catch {
       // noop

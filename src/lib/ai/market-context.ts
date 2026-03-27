@@ -93,7 +93,7 @@ function buildMarketContextVariables(event: Event, market: Market) {
 function applyPromptTemplate(template: string, variables: Record<string, string>) {
   return template.replace(/\[([a-z0-9-]+)\]/gi, (match, key) => {
     const normalized = key.toLowerCase()
-    return Object.prototype.hasOwnProperty.call(variables, normalized)
+    return Object.hasOwn(variables, normalized)
       ? variables[normalized]
       : match
   })

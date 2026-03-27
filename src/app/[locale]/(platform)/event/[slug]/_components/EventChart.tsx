@@ -372,7 +372,7 @@ function buildCombinedOutcomeHistory(
   })
 
   const latestSnapshot: Record<string, number> = {}
-  const latestPoint = points[points.length - 1]
+  const latestPoint = points.at(-1)
   if (latestPoint) {
     const yesValue = latestPoint[yesKey]
     const noValue = latestPoint[noKey]

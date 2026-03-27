@@ -40,7 +40,7 @@ interface EventCreationDraftRouteProps {
 }
 
 function hasOwnField<T extends object, K extends PropertyKey>(value: T, key: K): value is T & Record<K, unknown> {
-  return Object.prototype.hasOwnProperty.call(value, key)
+  return Object.hasOwn(value, key)
 }
 
 export async function PATCH(request: NextRequest, { params }: EventCreationDraftRouteProps) {

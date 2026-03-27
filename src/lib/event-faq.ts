@@ -149,11 +149,10 @@ function resolveBinarySelection(event: Event): FaqSelection {
 }
 
 function resolveFrontRunnerSelections(event: Event) {
-  return [...event.markets]
-    .map(market => ({
-      label: resolveMarketLabel(market),
-      cents: resolveMarketPriceCents(market),
-    }))
+  return Array.from(event.markets, market => ({
+    label: resolveMarketLabel(market),
+    cents: resolveMarketPriceCents(market),
+  }))
     .sort((left, right) => right.cents - left.cents)
 }
 

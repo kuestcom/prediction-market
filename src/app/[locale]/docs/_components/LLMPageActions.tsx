@@ -169,7 +169,7 @@ export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
 
       if (success) {
         setCopied(true)
-        window.setTimeout(() => setCopied(false), 1800)
+        window.setTimeout(setCopied, 1800, false)
       }
     }
     catch {

@@ -135,7 +135,7 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
     }
     catch (error: any) {
       const firstId = batch[0]?.conditionId ?? 'unknown'
-      const lastId = batch[batch.length - 1]?.conditionId ?? 'unknown'
+      const lastId = batch.at(-1)?.conditionId ?? 'unknown'
       stats.errors.push({
         context: `batch:${firstId}-${lastId}`,
         error: error?.message ?? 'volume_batch_failed',

@@ -55,7 +55,10 @@ export function computeChanceChanges(
     return {}
   }
 
-  const latestPoint = points[points.length - 1]
+  const latestPoint = points.at(-1)
+  if (!latestPoint) {
+    return {}
+  }
   const targetTime = latestPoint.date.getTime() - TWELVE_HOURS_MS
   let baselinePoint = points[0]
 

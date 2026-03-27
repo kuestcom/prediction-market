@@ -285,7 +285,7 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
     }
     else if (!timeLimitReached) {
       // Avoid stalling forever if an entire page cannot be processed.
-      const lastConditionInPage = page.conditions[page.conditions.length - 1]
+      const lastConditionInPage = page.conditions.at(-1)
       const pageEndTimestamp = Number(lastConditionInPage?.updatedAt)
       if (!lastConditionInPage || Number.isNaN(pageEndTimestamp)) {
         break
@@ -1598,7 +1598,7 @@ function normalizeAssetReference(value: unknown): string | null {
   }
 
   const parts = withoutQuery.split('/').filter(Boolean)
-  return parts.length > 0 ? parts[parts.length - 1] : withoutQuery
+  return parts.length > 0 ? (parts.at(-1) ?? withoutQuery) : withoutQuery
 }
 
 function buildSportsLogoStoragePath(reference: string): string {
