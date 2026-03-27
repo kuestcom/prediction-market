@@ -104,6 +104,10 @@ interface SyncOptions {
   autoDeployNewEvents: boolean
 }
 
+interface SyncRuntimeState {
+  eventTagSlugsByEventId: Map<string, Set<string>>
+}
+
 async function getAllowedCreators(): Promise<string[]> {
   const { data, error } = await loadAllowedMarketCreatorWallets()
   if (error || !data) {
@@ -213,6 +217,9 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
   const errors: { conditionId: string, error: string }[] = []
   let timeLimitReached = false
   const eventIdsNeedingStatusUpdate = new Set<string>()
+  const runtimeState: SyncRuntimeState = {
+    eventTagSlugsByEventId: new Map(),
+  }
 
   while (Date.now() - syncStartedAt < SYNC_TIME_LIMIT_MS) {
     const page = await fetchPnLConditionsPage(cursor)
@@ -260,7 +267,7 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
       }
 
       try {
-        const eventIdForStatusUpdate = await processMarket(condition, options)
+        const eventIdForStatusUpdate = await processMarket(condition, options, runtimeState)
         if (eventIdForStatusUpdate) {
           eventIdsNeedingStatusUpdate.add(eventIdForStatusUpdate)
         }
@@ -439,7 +446,11 @@ async function fetchPnLConditionsPage(afterCursor: SyncCursor | null): Promise<{
   return { conditions: normalizedConditions }
 }
 
-async function processMarket(market: SubgraphCondition, options: SyncOptions) {
+async function processMarket(
+  market: SubgraphCondition,
+  options: SyncOptions,
+  runtimeState: SyncRuntimeState,
+) {
   const timestamps = getMarketTimestamps(market)
   await processCondition(market, timestamps)
   if (!market.metadataHash) {
@@ -453,6 +464,7 @@ async function processMarket(market: SubgraphCondition, options: SyncOptions) {
     market.creator!,
     timestamps.createdAtIso,
     options.autoDeployNewEvents,
+    runtimeState,
   )
   return await processMarketData(market, metadata, eventId, timestamps)
 }
@@ -558,6 +570,7 @@ async function processEvent(
   creatorAddress: string,
   createdAtIso: string,
   autoDeployNewEvents: boolean,
+  runtimeState: SyncRuntimeState,
 ) {
   if (!eventData || !eventData.slug || !eventData.title) {
     throw new Error(`Invalid event data: ${JSON.stringify(eventData)}`)
@@ -600,6 +613,7 @@ async function processEvent(
   const sportsLive = normalizeOptionalBooleanField(sportsEventData?.live)
   const sportsEnded = normalizeOptionalBooleanField(sportsEventData?.ended)
   const sportsTags = normalizeStringArrayField(sportsEventData?.tags)
+  const normalizedEventTags = normalizeIncomingTags(eventData.tags)
   const normalizedSportsTeams = normalizeSportsTeamsField(sportsEventData?.teams)
   const sportsAssets = await normalizeSportsTeamAssets(normalizedSportsTeams)
   const sportsTeams = sportsAssets.teams
@@ -663,8 +677,17 @@ async function processEvent(
       console.error(`Failed to update event ${existingEvent.id}:`, updateError)
     }
 
-    if (eventData.tags?.length > 0) {
-      await processTags(existingEvent.id, eventData.tags)
+    if (
+      normalizedEventTags.size > 0
+    ) {
+      const existingEventTagSlugs = await loadEventTagSlugs(existingEvent.id, runtimeState)
+      if (hasMissingTags(existingEventTagSlugs, normalizedEventTags)) {
+        await processNormalizedTags(existingEvent.id, normalizedEventTags)
+
+        for (const slug of normalizedEventTags.keys()) {
+          existingEventTagSlugs.add(slug)
+        }
+      }
     }
 
     await upsertEventSportsMetadata(existingEvent.id, {
@@ -736,8 +759,9 @@ async function processEvent(
 
   console.log(`Created event ${eventSlug} with ID: ${newEvent.id}`)
 
-  if (eventData.tags?.length > 0) {
-    await processTags(newEvent.id, eventData.tags)
+  if (normalizedEventTags.size > 0) {
+    await processNormalizedTags(newEvent.id, normalizedEventTags)
+    runtimeState.eventTagSlugsByEventId.set(newEvent.id, new Set(normalizedEventTags.keys()))
   }
 
   if (!autoDeployNewEvents) {
@@ -1091,8 +1115,12 @@ async function processOutcomes(conditionId: string, outcomes: any[]) {
   await db.insert(outcomesTable).values(outcomeData)
 }
 
-async function processTags(eventId: string, tagNames: any[]) {
+function normalizeIncomingTags(tagNames: any[] | null | undefined) {
   const normalizedTagBySlug = new Map<string, string>()
+
+  if (!Array.isArray(tagNames)) {
+    return normalizedTagBySlug
+  }
 
   for (const tagName of tagNames) {
     if (typeof tagName !== 'string') {
@@ -1115,6 +1143,50 @@ async function processTags(eventId: string, tagNames: any[]) {
     }
   }
 
+  return normalizedTagBySlug
+}
+
+async function loadEventTagSlugs(eventId: string, runtimeState: SyncRuntimeState) {
+  const cachedTagSlugs = runtimeState.eventTagSlugsByEventId.get(eventId)
+  if (cachedTagSlugs) {
+    return cachedTagSlugs
+  }
+
+  let existingEventTagRows: Array<{ slug: string | null }> = []
+  try {
+    existingEventTagRows = await db
+      .select({
+        slug: tagsTable.slug,
+      })
+      .from(eventTagsTable)
+      .innerJoin(tagsTable, eq(eventTagsTable.tag_id, tagsTable.id))
+      .where(eq(eventTagsTable.event_id, eventId))
+  }
+  catch (existingEventTagsError) {
+    console.error(`Failed to load existing event tags for event ${eventId}:`, existingEventTagsError)
+    return new Set<string>()
+  }
+
+  const eventTagSlugs = new Set(
+    existingEventTagRows
+      .map(tag => tag.slug?.trim().toLowerCase() ?? '')
+      .filter(Boolean),
+  )
+  runtimeState.eventTagSlugsByEventId.set(eventId, eventTagSlugs)
+  return eventTagSlugs
+}
+
+function hasMissingTags(existingTagSlugs: Set<string>, normalizedTagBySlug: Map<string, string>) {
+  for (const slug of normalizedTagBySlug.keys()) {
+    if (!existingTagSlugs.has(slug)) {
+      return true
+    }
+  }
+
+  return false
+}
+
+async function processNormalizedTags(eventId: string, normalizedTagBySlug: Map<string, string>) {
   if (normalizedTagBySlug.size === 0) {
     return
   }
@@ -1222,7 +1294,6 @@ async function processTags(eventId: string, tagNames: any[]) {
     console.error(`Failed to upsert event_tags for event ${eventId}:`, eventTagsError)
   }
 }
-
 function resolveImageMeta(contentType: string | null, bytes: Uint8Array | null) {
   const normalized = (contentType ?? '').split(';')[0]?.trim().toLowerCase()
 

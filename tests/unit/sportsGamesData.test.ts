@@ -140,6 +140,9 @@ function buildSportsEvent(params: {
   sportsTeamLogoUrls?: string[]
   sportsEventId?: string | null
   sportsParentEventId?: number | null
+  sportsSportSlug?: string
+  mainTag?: string
+  tags?: Array<Record<string, unknown>>
 }) {
   const {
     id,
@@ -152,6 +155,9 @@ function buildSportsEvent(params: {
     sportsTeamLogoUrls = [],
     sportsEventId = null,
     sportsParentEventId = null,
+    sportsSportSlug = 'international',
+    mainTag = 'sports',
+    tags = [],
   } = params
 
   return {
@@ -163,7 +169,7 @@ function buildSportsEvent(params: {
     show_market_icons: true,
     status: 'active',
     sports_event_slug: slug,
-    sports_sport_slug: 'international',
+    sports_sport_slug: sportsSportSlug,
     sports_section: 'games',
     sports_start_time: sportsStartTime,
     sports_teams: sportsTeams,
@@ -178,8 +184,8 @@ function buildSportsEvent(params: {
     created_at: createdAt,
     updated_at: createdAt,
     markets,
-    tags: [],
-    main_tag: 'sports',
+    tags,
+    main_tag: mainTag,
     is_bookmarked: false,
     is_trending: false,
   } as any
@@ -1139,5 +1145,40 @@ describe('sportsGamesData', () => {
     } as any
 
     expect(buildSportsGamesCardGroups([event])).toEqual([])
+  })
+
+  it('keeps esports cards that resolve to dedicated /esports routes', () => {
+    const event = buildSportsEvent({
+      id: 'esports-event',
+      slug: 'team-spirit-vs-faze-2026-03-09',
+      title: 'Team Spirit vs FaZe',
+      sportsSportSlug: 'counter-strike',
+      mainTag: 'esports',
+      tags: [{ slug: 'esports' }],
+      sportsTeams: [
+        { name: 'Team Spirit', abbreviation: 'TS', host_status: 'home' },
+        { name: 'FaZe', abbreviation: 'FZE', host_status: 'away' },
+      ],
+      markets: [
+        {
+          ...buildMoneylineMarket({
+            eventId: 'esports-event',
+            slug: 'team-spirit-vs-faze-2026-03-09',
+            title: 'Match Winner',
+            outcomes: ['Team Spirit', 'FaZe'],
+          }),
+          condition_id: 'esports-match-winner',
+          question_id: 'esports-match-winner-question',
+          outcomes: [
+            buildOutcome('esports-match-winner', 0, 'Team Spirit'),
+            buildOutcome('esports-match-winner', 1, 'FaZe'),
+          ],
+        },
+      ],
+    })
+
+    const group = buildSportsGamesCardGroups([event])[0]
+
+    expect(group?.primaryCard.eventHref).toBe('/esports/counter-strike/team-spirit-vs-faze-2026-03-09')
   })
 })

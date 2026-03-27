@@ -1685,7 +1685,7 @@ function canRenderSportsGamesCard(
 ) {
   // Sports list pages should only render cards that can resolve back into sports routes.
   return event.sports_section === 'games'
-    && eventHref.startsWith('/sports/')
+    && (eventHref.startsWith('/sports/') || eventHref.startsWith('/esports/'))
     && teams.length >= 2
 }
 
