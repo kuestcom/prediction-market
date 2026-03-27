@@ -129,10 +129,12 @@ export default function MobileBottomNav() {
   }
 
   function handleSearchNavigate() {
+    setIsSearchOpen(false)
     resetSearchDrawerInteractionState()
   }
 
   function handlePredictionResultsNavigate(href: Route) {
+    setIsSearchOpen(false)
     resetSearchDrawerInteractionState()
     router.push(href)
   }

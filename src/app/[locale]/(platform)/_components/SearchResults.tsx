@@ -1,9 +1,7 @@
 import type { Route } from 'next'
-import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { Event, PublicProfile, SearchLoadingStates, SearchResultItems } from '@/types'
 import { ArrowRightIcon, LoaderIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useRef } from 'react'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventIconImage from '@/components/EventIconImage'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
@@ -142,7 +140,6 @@ function EventResults({
 }: EventResultsProps) {
   const t = useExtracted()
   const { tags } = usePlatformNavigationData()
-  const pointerNavigationHrefRef = useRef<Route | null>(null)
   const categories = buildSearchCategoryMatches(tags, query)
   const allResultsHref = resolvePredictionResultsHref(query, categories) as Route | null
   const visibleEvents = events.slice(0, EVENT_RESULTS_DROPDOWN_LIMIT)
@@ -154,25 +151,6 @@ function EventResults({
     }
 
     onResultClick()
-  }
-
-  function handlePointerHrefNavigation(event: ReactPointerEvent<HTMLElement>, href: Route) {
-    if (event.pointerType === 'mouse') {
-      return
-    }
-
-    pointerNavigationHrefRef.current = href
-    event.preventDefault()
-    navigateToHref(href)
-  }
-
-  function handleClickHrefNavigation(href: Route) {
-    if (pointerNavigationHrefRef.current === href) {
-      pointerNavigationHrefRef.current = null
-      return
-    }
-
-    navigateToHref(href)
   }
 
   if (events.length === 0 && categories.length === 0 && !allResultsHref && !isLoading && query.length >= 2) {
@@ -193,8 +171,7 @@ function EventResults({
                   <button
                     key={category.href}
                     type="button"
-                    onPointerDown={event => handlePointerHrefNavigation(event, category.href as Route)}
-                    onClick={() => handleClickHrefNavigation(category.href as Route)}
+                    onClick={() => navigateToHref(category.href as Route)}
                     className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'rounded-lg')}
                   >
                     <span className="truncate">{category.label}</span>
@@ -269,16 +246,7 @@ function EventResults({
               <button
                 key={`${result.id}-${result.slug}`}
                 type="button"
-                onPointerDown={(event) => {
-                  persistRecentEvent()
-                  handlePointerHrefNavigation(event, eventHref)
-                }}
                 onClick={() => {
-                  if (pointerNavigationHrefRef.current === eventHref) {
-                    pointerNavigationHrefRef.current = null
-                    return
-                  }
-
                   persistRecentEvent()
                   navigateToHref(eventHref)
                 }}
@@ -315,8 +283,7 @@ function EventResults({
           ? (
               <button
                 type="button"
-                onPointerDown={event => handlePointerHrefNavigation(event, allResultsHref)}
-                onClick={() => handleClickHrefNavigation(allResultsHref)}
+                onClick={() => navigateToHref(allResultsHref)}
                 className={`
                   flex w-full items-center justify-between gap-2 rounded-b-lg border-t p-3 text-left text-sm font-medium
                   text-primary transition-colors
