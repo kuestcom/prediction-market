@@ -2511,6 +2511,7 @@ export const EventRepository = {
     sports_sport_slug: string | null
     sports_event_slug: string | null
     sports_section: 'games' | 'props' | null
+    tags: Array<{ slug: string }>
   }>> {
     'use cache'
     cacheTag(cacheTags.eventsGlobal)
@@ -2576,6 +2577,9 @@ export const EventRepository = {
           }),
           sports_event_slug: result.sports?.sports_event_slug ?? null,
           sports_section: resolveSportsSection({ tags: result.eventTags.map(eventTag => eventTag.tag) }),
+          tags: result.eventTags.map(eventTag => ({
+            slug: eventTag.tag.slug,
+          })),
         },
         error: null,
       }

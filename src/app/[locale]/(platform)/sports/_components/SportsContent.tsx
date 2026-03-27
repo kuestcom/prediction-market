@@ -13,6 +13,7 @@ type SportsSection = 'games' | 'props'
 interface SportsContentProps {
   locale: string
   initialTag?: string
+  mainTag?: string
   initialMode?: SportsPageMode
   sportsSportSlug?: string | null
   sportsSection?: SportsSection | null
@@ -21,6 +22,7 @@ interface SportsContentProps {
 export default async function SportsContent({
   locale,
   initialTag = 'sports',
+  mainTag = initialTag,
   initialMode = 'all',
   sportsSportSlug = null,
   sportsSection = null,
@@ -61,6 +63,7 @@ export default async function SportsContent({
     <SportsClient
       initialEvents={initialEvents}
       initialTag={initialTag}
+      mainTag={mainTag}
       initialMode={initialMode}
       sportsSportSlug={normalizedSportsSportSlug || null}
       sportsSection={resolvedSportsSection || null}

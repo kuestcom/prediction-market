@@ -43,6 +43,16 @@ describe('platform navigation helpers', () => {
     })
   })
 
+  it('treats esports routes like sports-style dedicated paths', () => {
+    expect(parsePlatformPathname('/esports/live', dynamicHomeCategorySlugSet)).toMatchObject({
+      isHomeLikePage: true,
+      isMainTagPathPage: true,
+      isSportsPathPage: true,
+      selectedMainTagPathSlug: 'esports',
+      selectedSubtagPathSlug: null,
+    })
+  })
+
   it('keeps the route category active on category pages even before filters sync', () => {
     const selection = resolvePlatformNavigationSelection({
       dynamicHomeCategorySlugSet,

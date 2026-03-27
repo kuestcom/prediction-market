@@ -10,6 +10,7 @@ import type {
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
+import type { SportsVertical } from '@/lib/sports-vertical'
 import type { Market, Outcome, UserPosition } from '@/types'
 import type { DataPoint, PredictionChartCursorSnapshot, PredictionChartProps } from '@/types/PredictionChartTypes'
 import { useQuery } from '@tanstack/react-query'
@@ -94,6 +95,7 @@ import {
   resolveSportsTeamFallbackOverlayStyle,
 } from '@/lib/sports-team-colors'
 import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
+import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 import { buildUmaProposeUrl, buildUmaSettledUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
@@ -107,6 +109,7 @@ interface SportsGamesCenterProps {
   pageMode?: 'games' | 'live'
   categoryTitleBySlug?: Record<string, string>
   initialWeek?: number | null
+  vertical?: SportsVertical
 }
 
 type DetailsTab = 'orderBook' | 'graph' | 'about'
@@ -3614,7 +3617,9 @@ export default function SportsGamesCenter({
   pageMode = 'games',
   categoryTitleBySlug = {},
   initialWeek = null,
+  vertical = 'sports',
 }: SportsGamesCenterProps) {
+  const verticalConfig = getSportsVerticalConfig(vertical)
   const router = useRouter()
   const locale = useLocale()
   const isMobile = useIsMobile()
@@ -5057,7 +5062,7 @@ export default function SportsGamesCenter({
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => router.push(`/sports/${sportSlug}/games` as Route)}
+                    onClick={() => router.push(`${verticalConfig.basePath}/${sportSlug}/games` as Route)}
                     className={`
                       rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground
                       transition-colors
@@ -5067,7 +5072,7 @@ export default function SportsGamesCenter({
                   </button>
                   <button
                     type="button"
-                    onClick={() => router.push(`/sports/${sportSlug}/props` as Route)}
+                    onClick={() => router.push(`${verticalConfig.basePath}/${sportSlug}/props` as Route)}
                     className="rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors"
                   >
                     Props

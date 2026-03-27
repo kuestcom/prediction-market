@@ -66,7 +66,7 @@ export async function generateMetadata({
   })
 }
 
-export default async function SportsEventMarketPage({
+export default async function EsportsEventMarketPage({
   params,
 }: {
   params: Promise<{ locale: string, sport: string, event: string, market: string }>
@@ -91,7 +91,7 @@ export default async function SportsEventMarketPage({
     notFound()
   }
   const expectedPath = resolveEventMarketPath(eventRoute, market)
-  if (!resolveEventBasePath(eventRoute) || expectedPath !== `/sports/${sport}/${event}/${market}`) {
+  if (!resolveEventBasePath(eventRoute) || expectedPath !== `/esports/${sport}/${event}/${market}`) {
     redirect({
       href: expectedPath,
       locale: resolvedLocale,
@@ -114,9 +114,9 @@ export default async function SportsEventMarketPage({
     || targetCard.event.sports_sport_slug
     || sport
   const [{ data: layoutData }, { data: relatedEventsResult }, runtimeTheme] = await Promise.all([
-    SportsMenuRepository.getLayoutData('sports'),
+    SportsMenuRepository.getLayoutData('esports'),
     EventRepository.listEvents({
-      tag: 'sports',
+      tag: 'esports',
       search: '',
       userId: '',
       bookmarked: false,
@@ -157,7 +157,7 @@ export default async function SportsEventMarketPage({
           sportLabel={sportLabel}
           initialMarketSlug={market}
           initialMarketViewKey={resolveSportsEventMarketViewKey(canonicalEventSlug)}
-          vertical="sports"
+          vertical="esports"
           key={`is-bookmarked-${targetCard.event.is_bookmarked}`}
         />
       </EventMarketChannelProvider>

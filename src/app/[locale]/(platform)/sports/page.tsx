@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default async function SportsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   setRequestLocale(locale)
-  const { data: landingHref } = await SportsMenuRepository.getLandingHref()
+  const { data: landingHref } = await SportsMenuRepository.getLandingHref('sports')
   if (!landingHref) {
     notFound()
   }

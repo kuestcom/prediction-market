@@ -1,9 +1,12 @@
+import { getSportsVerticalConfig, resolveSportsVerticalFromTags } from '@/lib/sports-vertical'
+
 interface EventRouteTagInput {
   slug?: string | null
 }
 
 interface EventRouteInput {
   slug: string
+  main_tag?: string | null
   sports_sport_slug?: string | null
   sports_event_slug?: string | null
   sports_section?: 'games' | 'props' | '' | null
@@ -50,7 +53,12 @@ export function resolveEventBasePath(event: EventRouteInput) {
   const sportsEventSlug = normalizePathSegment(event.sports_event_slug)
 
   if (sportsSportSlug && sportsEventSlug) {
-    return `/sports/${sportsSportSlug}/${sportsEventSlug}`
+    const vertical = resolveSportsVerticalFromTags({
+      tags: event.tags,
+      mainTag: event.main_tag,
+    })
+
+    return `${getSportsVerticalConfig(vertical).basePath}/${sportsSportSlug}/${sportsEventSlug}`
   }
 
   return null

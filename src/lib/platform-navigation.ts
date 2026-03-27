@@ -130,6 +130,7 @@ export function parsePlatformPathname(pathname: string, dynamicHomeCategorySlugS
   const isHomePage = pathname === '/'
   const isMentionsPage = pathname === '/mentions'
   const isEventPathPage = pathname.startsWith('/event/')
+  const sportsLikeRootSlugs = new Set(['sports', 'esports'])
 
   if (pathSegments.length === 0) {
     return {
@@ -145,7 +146,7 @@ export function parsePlatformPathname(pathname: string, dynamicHomeCategorySlugS
   }
 
   const [candidate, subcategoryCandidate] = pathSegments
-  if (candidate === 'sports') {
+  if (sportsLikeRootSlugs.has(candidate)) {
     return {
       isEventPathPage,
       isHomeLikePage: true,

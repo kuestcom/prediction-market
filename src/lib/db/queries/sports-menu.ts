@@ -4,6 +4,7 @@ import type {
   SportsMenuLinkEntry,
 } from '@/lib/sports-menu-types'
 import type { SportsSlugMappingEntry } from '@/lib/sports-slug-mapping'
+import type { SportsVertical } from '@/lib/sports-vertical'
 import type { QueryResult } from '@/types'
 import { and, asc, eq, gt, or, sql } from 'drizzle-orm'
 import { cacheTag, unstable_cache } from 'next/cache'
@@ -22,6 +23,7 @@ import {
   resolveCanonicalSportsSlugAlias,
   resolveCanonicalSportsSportSlug,
 } from '@/lib/sports-slug-mapping'
+import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 
 type SportsMenuItemType = 'link' | 'group' | 'header' | 'divider'
 
@@ -77,6 +79,28 @@ function requireText(value: string | null | undefined, rowId: string, field: str
   }
 
   return normalized
+}
+
+function createSyntheticMenuRow(params: Partial<SportsMenuItemRow> & {
+  id: string
+  item_type: SportsMenuItemType
+  sort_order: number
+}) {
+  return {
+    id: params.id,
+    item_type: params.item_type,
+    label: params.label ?? null,
+    href: params.href ?? null,
+    icon_url: params.icon_url ?? null,
+    parent_id: params.parent_id ?? null,
+    menu_slug: params.menu_slug ?? null,
+    h1_title: params.h1_title ?? null,
+    mapped_tags: params.mapped_tags ?? [],
+    url_aliases: params.url_aliases ?? [],
+    games_enabled: params.games_enabled ?? false,
+    props_enabled: params.props_enabled ?? false,
+    sort_order: params.sort_order,
+  } satisfies SportsMenuItemRow
 }
 
 const getCachedSportsMenuRows = unstable_cache(
@@ -187,6 +211,105 @@ function toLinkEntry(row: SportsMenuItemRow): SportsMenuLinkEntry {
     iconPath,
     menuSlug: normalizeComparableValue(row.menu_slug),
   }
+}
+
+function rewriteVerticalHref(href: string | null | undefined, vertical: SportsVertical) {
+  if (!href) {
+    return href ?? null
+  }
+
+  const verticalConfig = getSportsVerticalConfig(vertical)
+  if (href === '/sports/live') {
+    return verticalConfig.livePath
+  }
+
+  if (href === '/sports/futures' || href.startsWith('/sports/futures/')) {
+    return href.replace('/sports/futures', verticalConfig.futurePathPrefix)
+  }
+
+  if (href.startsWith('/sports/')) {
+    return href.replace('/sports', verticalConfig.basePath)
+  }
+
+  return href
+}
+
+function findEsportsGroupRow(rows: SportsMenuItemRow[]) {
+  return rows.find(row =>
+    row.item_type === 'group'
+    && normalizeComparableValue(row.label) === 'esports',
+  ) ?? null
+}
+
+function buildVerticalMenuRows(rows: SportsMenuItemRow[], vertical: SportsVertical) {
+  if (vertical === 'sports') {
+    const esportsGroupRow = findEsportsGroupRow(rows)
+    if (!esportsGroupRow) {
+      return rows
+    }
+
+    return rows.filter(row => row.id !== esportsGroupRow.id)
+  }
+
+  const verticalConfig = getSportsVerticalConfig(vertical)
+  const esportsGroupRow = findEsportsGroupRow(rows)
+  if (!esportsGroupRow) {
+    return rows
+  }
+
+  const liveTemplateRow = rows.find(row =>
+    row.item_type === 'link'
+    && row.href === '/sports/live',
+  )
+  const futureTemplateRow = rows.find(row =>
+    row.item_type === 'link'
+    && row.href?.startsWith('/sports/futures'),
+  )
+  const esportsLinks = rows
+    .filter(row => row.parent_id === esportsGroupRow.id && row.item_type === 'link')
+    .map((row, index) =>
+      createSyntheticMenuRow({
+        ...row,
+        item_type: 'link',
+        id: `esports-link-${row.id}`,
+        href: rewriteVerticalHref(row.href, vertical),
+        parent_id: null,
+        sort_order: 100 + index,
+      }),
+    )
+
+  return [
+    createSyntheticMenuRow({
+      ...liveTemplateRow,
+      id: 'esports-top-link-live',
+      item_type: 'link',
+      label: liveTemplateRow?.label ?? 'Live',
+      href: verticalConfig.livePath,
+      icon_url: liveTemplateRow?.icon_url ?? futureTemplateRow?.icon_url ?? '/images/sports/menu/full/top-live-live.svg',
+      sort_order: 0,
+    }),
+    createSyntheticMenuRow({
+      ...futureTemplateRow,
+      id: 'esports-top-link-upcoming',
+      item_type: 'link',
+      label: verticalConfig.futureLabel,
+      href: verticalConfig.futurePath,
+      icon_url: futureTemplateRow?.icon_url ?? liveTemplateRow?.icon_url ?? '/images/sports/menu/full/top-futures-futures-nba.svg',
+      sort_order: 1,
+    }),
+    createSyntheticMenuRow({
+      id: 'esports-divider',
+      item_type: 'divider',
+      sort_order: 2,
+    }),
+    createSyntheticMenuRow({
+      id: 'esports-header',
+      item_type: 'header',
+      label: verticalConfig.menuHeaderLabel,
+      sort_order: 3,
+    }),
+    ...esportsLinks,
+  ]
 }
 
 function toSidebarMenuEntries(rows: SportsMenuItemRow[]) {
@@ -322,21 +445,22 @@ export async function getSportsCountsBySlugFromDb() {
 }
 
 export const SportsMenuRepository = {
-  async getMenuEntries(): Promise<QueryResult<SportsMenuEntry[]>> {
+  async getMenuEntries(vertical: SportsVertical = 'sports'): Promise<QueryResult<SportsMenuEntry[]>> {
     'use cache'
     cacheTag(cacheTags.eventsGlobal)
 
     return runQuery(async () => {
       const rows = await getCachedSportsMenuRows()
+      const verticalRows = buildVerticalMenuRows(rows, vertical)
 
       return {
-        data: toSidebarMenuEntries(rows),
+        data: toSidebarMenuEntries(verticalRows),
         error: null,
       }
     })
   },
 
-  async getLayoutData(): Promise<QueryResult<SportsMenuLayoutData>> {
+  async getLayoutData(vertical: SportsVertical = 'sports'): Promise<QueryResult<SportsMenuLayoutData>> {
     'use cache'
     cacheTag(cacheTags.eventsGlobal)
 
@@ -346,7 +470,7 @@ export const SportsMenuRepository = {
         getCachedActiveSportsCountRows(),
       ])
       const resolver = buildSportsSlugResolver(toMappingEntries(rows))
-      const menuEntries = toSidebarMenuEntries(rows)
+      const menuEntries = toSidebarMenuEntries(buildVerticalMenuRows(rows, vertical))
       const countsBySlug = buildCountsBySlug(resolver, activeCountRows)
 
       return {
@@ -376,13 +500,13 @@ export const SportsMenuRepository = {
     })
   },
 
-  async getLandingHref(): Promise<QueryResult<string | null>> {
+  async getLandingHref(vertical: SportsVertical = 'sports'): Promise<QueryResult<string | null>> {
     'use cache'
     cacheTag(cacheTags.eventsGlobal)
 
     return runQuery(async () => {
       const rows = await getCachedSportsMenuRows()
-      const menuEntries = toSidebarMenuEntries(rows)
+      const menuEntries = toSidebarMenuEntries(buildVerticalMenuRows(rows, vertical))
 
       return {
         data: findDefaultLandingHref(menuEntries),
@@ -391,13 +515,13 @@ export const SportsMenuRepository = {
     })
   },
 
-  async getFuturesHref(): Promise<QueryResult<string | null>> {
+  async getFuturesHref(vertical: SportsVertical = 'sports'): Promise<QueryResult<string | null>> {
     'use cache'
     cacheTag(cacheTags.eventsGlobal)
 
     return runQuery(async () => {
       const rows = await getCachedSportsMenuRows()
-      const menuEntries = toSidebarMenuEntries(rows)
+      const menuEntries = toSidebarMenuEntries(buildVerticalMenuRows(rows, vertical))
 
       return {
         data: findDefaultFuturesHref(menuEntries),

@@ -22,9 +22,11 @@ import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
 interface SportsEventsGridProps {
+  eventTag: string
   filters: FilterState
   initialEvents: Event[]
   initialMode?: SportsSidebarMode
+  mainTag: string
   sportsSportSlug?: string | null
   sportsSection?: 'games' | 'props' | null
 }
@@ -89,25 +91,30 @@ function isEventFuture(event: Event, nowMs: number) {
 
 async function fetchEvents({
   pageParam = 0,
+  eventTag,
   filters,
   locale,
+  mainTag,
   sportsSportSlug,
   sportsSection,
 }: {
   pageParam: number
+  eventTag: string
   filters: FilterState
   locale: string
+  mainTag: string
   sportsSportSlug: string | null
   sportsSection: 'games' | 'props' | null
 }): Promise<Event[]> {
   return fetchEventsApi({
-    tag: 'sports',
+    tag: eventTag,
     search: filters.search,
     bookmarked: filters.bookmarked,
     frequency: filters.frequency,
     status: filters.status,
     offset: pageParam,
     locale,
+    mainTag,
     hideSports: filters.hideSports,
     hideCrypto: filters.hideCrypto,
     hideEarnings: filters.hideEarnings,
@@ -117,9 +124,11 @@ async function fetchEvents({
 }
 
 export default function SportsEventsGrid({
+  eventTag,
   filters,
   initialEvents = EMPTY_EVENTS,
   initialMode = 'all',
+  mainTag,
   sportsSportSlug = null,
   sportsSection = null,
 }: SportsEventsGridProps) {
@@ -160,15 +169,19 @@ export default function SportsEventsGrid({
       filters.hideSports,
       filters.hideCrypto,
       filters.hideEarnings,
+      eventTag,
       locale,
+      mainTag,
       userCacheKey,
       normalizedSportsSportSlug,
       sportsSection,
     ],
     queryFn: ({ pageParam }) => fetchEvents({
       pageParam,
+      eventTag,
       filters,
       locale,
+      mainTag,
       sportsSportSlug: normalizedSportsSportSlug,
       sportsSection,
     }),
@@ -211,9 +224,11 @@ export default function SportsEventsGrid({
     filters.hideCrypto,
     filters.hideEarnings,
     filters.hideSports,
+    eventTag,
     filters.search,
     filters.status,
     locale,
+    mainTag,
     normalizedSportsSportSlug,
     sportsMode,
     sportsSection,

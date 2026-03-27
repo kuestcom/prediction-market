@@ -14,6 +14,21 @@ describe('events routing', () => {
     expect(resolveEventMarketPath(event, 'moneyline')).toBe('/sports/nba/lakers-celtics-2026-03-09/moneyline')
   })
 
+  it('routes esports games through esports paths when tagged accordingly', () => {
+    const event = {
+      slug: 'team-spirit-vs-faze-2026-03-09',
+      sports_event_slug: 'team-spirit-vs-faze-2026-03-09',
+      sports_sport_slug: 'counter-strike',
+      sports_section: 'games' as const,
+      tags: [
+        { slug: 'esports' },
+      ],
+    }
+
+    expect(resolveEventPagePath(event)).toBe('/esports/counter-strike/team-spirit-vs-faze-2026-03-09')
+    expect(resolveEventMarketPath(event, 'match-winner')).toBe('/esports/counter-strike/team-spirit-vs-faze-2026-03-09/match-winner')
+  })
+
   it('routes sports props through standard event pages', () => {
     const event = {
       slug: 'lebron-james-points-2026-03-09',

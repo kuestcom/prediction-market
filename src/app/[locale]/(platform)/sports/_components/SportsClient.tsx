@@ -11,6 +11,7 @@ type SportsSection = 'games' | 'props'
 interface SportsClientProps {
   initialEvents: Event[]
   initialTag?: string
+  mainTag?: string
   initialMode?: SportsPageMode
   sportsSportSlug?: string | null
   sportsSection?: SportsSection | null
@@ -19,12 +20,14 @@ interface SportsClientProps {
 export default function SportsClient({
   initialEvents,
   initialTag,
+  mainTag,
   initialMode = 'all',
   sportsSportSlug = null,
   sportsSection = null,
 }: SportsClientProps) {
   const { filters, updateFilters } = useFilters()
   const lastAppliedInitialTagRef = useRef<string | null>(null)
+  const effectiveMainTag = mainTag?.trim() || initialTag?.trim() || 'sports'
 
   useEffect(() => {
     const targetTag = initialTag ?? 'sports'
@@ -33,11 +36,13 @@ export default function SportsClient({
     }
 
     lastAppliedInitialTagRef.current = targetTag
-    updateFilters({ tag: targetTag, mainTag: 'sports' })
-  }, [initialTag, updateFilters])
+    updateFilters({ tag: targetTag, mainTag: effectiveMainTag })
+  }, [effectiveMainTag, initialTag, updateFilters])
 
   return (
     <SportsEventsGrid
+      eventTag={initialTag ?? 'sports'}
+      mainTag={effectiveMainTag}
       filters={filters}
       initialEvents={initialEvents}
       initialMode={initialMode}

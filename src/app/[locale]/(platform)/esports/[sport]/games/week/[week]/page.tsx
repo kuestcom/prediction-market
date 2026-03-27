@@ -13,7 +13,7 @@ import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export const metadata: Metadata = {
-  title: 'Sports Games',
+  title: 'Esports Games',
 }
 
 export async function generateStaticParams() {
@@ -32,7 +32,7 @@ function parseWeekParam(value: string) {
   return parsed
 }
 
-export default async function SportsGamesBySportWeekPage({
+export default async function EsportsGamesBySportWeekPage({
   params,
 }: {
   params: Promise<{ locale: string, sport: string, week: string }>
@@ -51,7 +51,7 @@ export default async function SportsGamesBySportWeekPage({
 
   const [{ data: canonicalSportSlug }, { data: layoutData }] = await Promise.all([
     SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
-    SportsMenuRepository.getLayoutData('sports'),
+    SportsMenuRepository.getLayoutData('esports'),
   ])
   if (
     !canonicalSportSlug
@@ -64,7 +64,7 @@ export default async function SportsGamesBySportWeekPage({
   }
 
   const commonParams = {
-    tag: 'sports' as const,
+    tag: 'esports' as const,
     search: '',
     userId: '',
     bookmarked: false,
@@ -94,7 +94,7 @@ export default async function SportsGamesBySportWeekPage({
       sportSlug={canonicalSportSlug}
       sportTitle={sportTitle}
       initialWeek={parsedWeek}
-      vertical="sports"
+      vertical="esports"
     />
   )
 }

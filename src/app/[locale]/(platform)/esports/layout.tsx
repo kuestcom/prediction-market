@@ -3,8 +3,8 @@ import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/
 import SportsLayoutShell from '@/app/[locale]/(platform)/sports/_components/SportsLayoutShell'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 
-export default async function SportsLayout({ children }: LayoutProps<'/[locale]/sports'>) {
-  const { data: layoutData } = await SportsMenuRepository.getLayoutData('sports')
+export default async function EsportsLayout({ children }: LayoutProps<'/[locale]/esports'>) {
+  const { data: layoutData } = await SportsMenuRepository.getLayoutData('esports')
   if (!layoutData) {
     notFound()
   }
@@ -12,7 +12,7 @@ export default async function SportsLayout({ children }: LayoutProps<'/[locale]/
   return (
     <TradingOnboardingProvider>
       <SportsLayoutShell
-        vertical="sports"
+        vertical="esports"
         sportsCountsBySlug={layoutData.countsBySlug}
         sportsMenuEntries={layoutData.menuEntries}
         canonicalSlugByAliasKey={layoutData.canonicalSlugByAliasKey}

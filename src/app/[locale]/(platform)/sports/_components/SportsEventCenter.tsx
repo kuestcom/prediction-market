@@ -9,6 +9,7 @@ import type {
 } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { SportsEventMarketViewKey } from '@/lib/sports-event-slugs'
+import type { SportsVertical } from '@/lib/sports-vertical'
 import type { UserPosition } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, ShareIcon } from 'lucide-react'
@@ -57,6 +58,7 @@ import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatVolume } from '@/lib/formatters'
 import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
+import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
 import { useSportsLivestream } from '@/stores/useSportsLivestream'
@@ -74,6 +76,7 @@ interface SportsEventCenterProps {
   sportLabel: string
   initialMarketSlug?: string | null
   initialMarketViewKey?: SportsEventMarketViewKey | null
+  vertical?: SportsVertical
 }
 
 interface SportsEventQuerySelection {
@@ -808,12 +811,15 @@ function SportsEventRelatedGames({
   sportSlug,
   sportLabel,
   locale,
+  vertical,
 }: {
   cards: SportsGamesCard[]
   sportSlug: string
   sportLabel: string
   locale: string
+  vertical: SportsVertical
 }) {
+  const verticalConfig = getSportsVerticalConfig(vertical)
   const dateTimeFormatter = useMemo(
     () => new Intl.DateTimeFormat(locale, {
       month: 'short',
@@ -832,7 +838,7 @@ function SportsEventRelatedGames({
     <div className="grid gap-2.5">
       <p className="text-sm font-normal text-muted-foreground">
         {'More '}
-        <Link href={`/sports/${sportSlug}/games`} className="underline-offset-2 hover:underline">
+        <Link href={`${verticalConfig.basePath}/${sportSlug}/games`} className="underline-offset-2 hover:underline">
           {sportLabel}
         </Link>
         {' Games'}
@@ -936,7 +942,9 @@ export default function SportsEventCenter({
   sportLabel,
   initialMarketSlug = null,
   initialMarketViewKey = null,
+  vertical = 'sports',
 }: SportsEventCenterProps) {
+  const verticalConfig = getSportsVerticalConfig(vertical)
   const locale = useLocale()
   const site = useSiteIdentity()
   const isMobile = useIsMobile()
@@ -3226,7 +3234,7 @@ export default function SportsEventCenter({
           <div className="mb-4">
             <div className="relative mb-1 flex min-h-9 items-center justify-center">
               <Link
-                href={`/sports/${sportSlug}/games`}
+                href={`${verticalConfig.basePath}/${sportSlug}/games`}
                 aria-label="Back to games"
                 className={cn(
                   headerIconButtonClass,
@@ -3242,11 +3250,11 @@ export default function SportsEventCenter({
                   sm:px-22
                 "
               >
-                <Link href="/sports/live" className="hover:text-foreground">
-                  Sports
+                <Link href={verticalConfig.livePath} className="hover:text-foreground">
+                  {verticalConfig.label}
                 </Link>
                 <span className="opacity-60">·</span>
-                <Link href={`/sports/${sportSlug}/games`} className="truncate hover:text-foreground">
+                <Link href={`${verticalConfig.basePath}/${sportSlug}/games`} className="truncate hover:text-foreground">
                   {sportLabel}
                 </Link>
               </div>
@@ -3523,6 +3531,7 @@ export default function SportsEventCenter({
                     sportSlug={sportSlug}
                     sportLabel={sportLabel}
                     locale={locale}
+                    vertical={vertical}
                   />
                 </div>
               )

@@ -6,6 +6,7 @@ import { buildEventOgImageUrl } from '@/lib/event-open-graph'
 import { withLocalePrefix } from '@/lib/locale-path'
 import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
 import siteUrlUtils from '@/lib/site-url'
+import { getSportsVerticalConfig, resolveSportsVerticalFromTags } from '@/lib/sports-vertical'
 import { getThemeSiteSameAs } from '@/lib/theme-site-identity'
 
 const { resolveSiteUrl } = siteUrlUtils
@@ -138,8 +139,11 @@ function buildBreadcrumbTargets({
 
   if (event.sports_sport_slug?.trim()) {
     const sportsSlug = event.sports_sport_slug.trim().toLowerCase()
-    addTarget('Sports', '/sports')
-    addTarget(humanizeSlug(sportsSlug), `/sports/${sportsSlug}`)
+    const vertical = resolveSportsVerticalFromTags({ tags: event.tags, mainTag: event.main_tag })
+    const verticalConfig = getSportsVerticalConfig(vertical)
+
+    addTarget(verticalConfig.label, verticalConfig.basePath)
+    addTarget(humanizeSlug(sportsSlug), `${verticalConfig.basePath}/${sportsSlug}`)
   }
   else {
     const mainTag = event.tags.find(tag => tag.isMainCategory && isDynamicHomeCategorySlug(tag.slug)) ?? null

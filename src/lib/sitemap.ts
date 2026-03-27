@@ -4,7 +4,7 @@ import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { getSportsSlugResolverFromDb } from '@/lib/db/queries/sports-menu'
 import { TagRepository } from '@/lib/db/queries/tag'
-import { event_sports, events, markets } from '@/lib/db/schema/events/tables'
+import { event_sports, event_tags, events, markets, tags } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
 import { buildPublicEventListVisibilityCondition } from '@/lib/event-visibility'
 import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
@@ -46,6 +46,7 @@ interface EventSitemapRow {
   resolved_at: Date | null
   end_date: Date | null
   updated_at: Date
+  has_esports_tag: boolean
   sports_sport_slug: string | null
   sports_series_slug: string | null
   sports_event_slug: string | null
@@ -57,6 +58,7 @@ interface PredictionSitemapRow {
   event_slug: string
   market_slug: string
   updated_at: Date
+  has_esports_tag: boolean
   sports_sport_slug: string | null
   sports_series_slug: string | null
   sports_event_slug: string | null
@@ -203,11 +205,21 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
 
   try {
     const sportsSlugResolver = await getSportsSlugResolverFromDb()
+    const hasEsportsTag = exists(
+      db.select()
+        .from(event_tags)
+        .innerJoin(tags, eq(event_tags.tag_id, tags.id))
+        .where(and(
+          eq(event_tags.event_id, events.id),
+          eq(tags.slug, 'esports'),
+        )),
+    )
     const rows = await db
       .select({
         event_slug: events.slug,
         market_slug: markets.slug,
         updated_at: markets.updated_at,
+        has_esports_tag: hasEsportsTag,
         sports_sport_slug: event_sports.sports_sport_slug,
         sports_series_slug: event_sports.sports_series_slug,
         sports_event_slug: event_sports.sports_event_slug,
@@ -239,6 +251,7 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
 
       const marketPath = resolveEventMarketPath({
         slug: row.event_slug,
+        tags: row.has_esports_tag ? [{ slug: 'esports' }] : undefined,
         sports_sport_slug: canonicalSportsSportSlug,
         sports_event_slug: row.sports_event_slug,
       }, row.market_slug)
@@ -263,6 +276,15 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
 
   try {
     const sportsSlugResolver = await getSportsSlugResolverFromDb()
+    const hasEsportsTag = exists(
+      db.select()
+        .from(event_tags)
+        .innerJoin(tags, eq(event_tags.tag_id, tags.id))
+        .where(and(
+          eq(event_tags.event_id, events.id),
+          eq(tags.slug, 'esports'),
+        )),
+    )
     const hasAnyMarkets = exists(
       db.select({ condition_id: markets.condition_id })
         .from(markets)
@@ -284,6 +306,7 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
         resolved_at: events.resolved_at,
         end_date: events.end_date,
         updated_at: events.updated_at,
+        has_esports_tag: hasEsportsTag,
         sports_sport_slug: event_sports.sports_sport_slug,
         sports_series_slug: event_sports.sports_series_slug,
         sports_event_slug: event_sports.sports_event_slug,
@@ -328,6 +351,7 @@ function groupEventRowsBySitemap(rows: EventSitemapRow[], sportsSlugResolver: Aw
 
     const eventPath = resolveEventPagePath({
       slug: row.slug,
+      tags: row.has_esports_tag ? [{ slug: 'esports' }] : undefined,
       sports_sport_slug: canonicalSportsSportSlug,
       sports_event_slug: row.sports_event_slug,
     })
@@ -376,6 +400,10 @@ function resolveCategoryPath(slug: string): string | null {
 
   if (normalizedSlug === 'sports') {
     return '/sports'
+  }
+
+  if (normalizedSlug === 'esports') {
+    return '/esports'
   }
 
   if (isDynamicHomeCategorySlug(normalizedSlug)) {
