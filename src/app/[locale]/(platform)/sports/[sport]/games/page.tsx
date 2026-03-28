@@ -71,11 +71,13 @@ export default async function SportsGamesBySportPage({
   const sportTitle = layoutData?.h1TitleBySlug[canonicalSportSlug] ?? canonicalSportSlug.toUpperCase()
 
   return (
-    <SportsGamesCenter
-      cards={cards}
-      sportSlug={canonicalSportSlug}
-      sportTitle={sportTitle}
-      vertical="sports"
-    />
+    <div key={`sports-games-page-${canonicalSportSlug}`} className="contents">
+      <SportsGamesCenter
+        cards={cards}
+        sportSlug={canonicalSportSlug}
+        sportTitle={sportTitle}
+        vertical="sports"
+      />
+    </div>
   )
 }
