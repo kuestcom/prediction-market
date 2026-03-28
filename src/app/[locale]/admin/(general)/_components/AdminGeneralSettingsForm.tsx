@@ -376,7 +376,7 @@ export default function AdminGeneralSettingsForm({
   }
 
   return (
-    <form action={formAction} encType="multipart/form-data" className="grid gap-6">
+    <form action={formAction} className="grid gap-6">
       <input type="hidden" name="logo_mode" value={logoMode} />
       <input type="hidden" name="logo_image_path" value={logoImagePath} />
       <input type="hidden" name="logo_svg" value={logoSvg} />
