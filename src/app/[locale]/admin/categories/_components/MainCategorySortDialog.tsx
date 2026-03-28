@@ -120,21 +120,29 @@ export default function MainCategorySortDialog({
     setIsSaving(true)
     setSortError(null)
 
-    const result = await updateMainCategoriesDisplayOrderAction(
-      orderedCategories.map(category => category.id),
-    )
+    try {
+      const result = await updateMainCategoriesDisplayOrderAction(
+        orderedCategories.map(category => category.id),
+      )
 
-    if (!result.success) {
-      setSortError(result.error ?? t('Failed to update main category order'))
-      setIsSaving(false)
-      return
+      if (!result.success) {
+        setSortError(result.error ?? t('Failed to update main category order'))
+        return
+      }
+
+      toast.success(t('Main category order updated.'))
+      await queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin-main-categories-order'] })
+      onSaved()
+      onOpenChange(false)
     }
-
-    toast.success(t('Main category order updated.'))
-    await queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
-    await queryClient.invalidateQueries({ queryKey: ['admin-main-categories-order'] })
-    onSaved()
-    onOpenChange(false)
+    catch (error) {
+      console.error('Failed to update main category order:', error)
+      setSortError(t('Failed to update main category order'))
+    }
+    finally {
+      setIsSaving(false)
+    }
   }, [onOpenChange, onSaved, orderedCategories, queryClient, t])
 
   const errorMessage = error instanceof Error
@@ -149,7 +157,6 @@ export default function MainCategorySortDialog({
 
   const sorterBody = (
     <div className="space-y-4">
-
       {isLoading
         ? (
             <div className="space-y-2">
