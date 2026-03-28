@@ -3,6 +3,7 @@
 import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { useQueryClient } from '@tanstack/react-query'
+import { ArrowUpDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
@@ -10,6 +11,7 @@ import { DataTable } from '@/app/[locale]/admin/_components/DataTable'
 import { updateCategoryAction } from '@/app/[locale]/admin/categories/_actions/update-category'
 import { updateCategoryTranslationsAction } from '@/app/[locale]/admin/categories/_actions/update-category-translations'
 import { useAdminCategoryColumns } from '@/app/[locale]/admin/categories/_components/columns'
+import MainCategorySortDialog from '@/app/[locale]/admin/categories/_components/MainCategorySortDialog'
 import { useAdminCategoriesTable } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
 import { Button } from '@/components/ui/button'
 import {
@@ -56,6 +58,7 @@ export default function AdminCategoriesTable() {
   const [translationValues, setTranslationValues] = useState<Partial<Record<NonDefaultLocale, string>>>({})
   const [translationError, setTranslationError] = useState<string | null>(null)
   const [isSavingTranslations, setIsSavingTranslations] = useState(false)
+  const [isMainCategorySortOpen, setIsMainCategorySortOpen] = useState(false)
 
   const closeTranslationsDialog = useCallback(() => {
     setTranslationCategory(null)
@@ -223,6 +226,20 @@ export default function AdminCategoriesTable() {
     </div>
   )
 
+  const sortMainCategoriesControl = mainOnly
+    ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="h-8"
+          onClick={() => setIsMainCategorySortOpen(true)}
+        >
+          <ArrowUpDownIcon className="mr-2 size-4" />
+          {t('Sort main categories')}
+        </Button>
+      )
+    : null
+
   return (
     <>
       <DataTable
@@ -248,6 +265,7 @@ export default function AdminCategoriesTable() {
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
         toolbarLeftContent={onlyMainControl}
+        toolbarRightContent={sortMainCategoriesControl}
       />
 
       <Dialog
@@ -321,6 +339,12 @@ export default function AdminCategoriesTable() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <MainCategorySortDialog
+        open={isMainCategorySortOpen}
+        onOpenChange={setIsMainCategorySortOpen}
+        onSaved={() => handleSortChange('display_order', 'asc')}
+      />
     </>
   )
 }

@@ -41,6 +41,13 @@ interface AdminTagRow {
   translations: TagTranslationsMap
 }
 
+export interface MainCategoryOrderRow {
+  id: number
+  name: string
+  slug: string
+  display_order: number
+}
+
 interface TagWithChilds {
   id: number
   name: string
@@ -920,6 +927,92 @@ export const TagRepository = {
       data: formattedData,
       error: null,
     }
+  },
+
+  async listMainCategoriesForOrdering(): Promise<{
+    data: MainCategoryOrderRow[]
+    error: string | null
+  }> {
+    const selectQuery = db
+      .select({
+        id: tags.id,
+        name: tags.name,
+        slug: tags.slug,
+        display_order: tags.display_order,
+      })
+      .from(tags)
+      .where(eq(tags.is_main_category, true))
+      .orderBy(asc(tags.display_order), asc(tags.name))
+
+    const { data, error } = await runQuery(async () => {
+      const result = await selectQuery
+      return { data: result, error: null }
+    })
+
+    if (error) {
+      return {
+        data: [],
+        error,
+      }
+    }
+
+    return {
+      data: (data ?? []).map(row => ({
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        display_order: row.display_order ?? 0,
+      })),
+      error: null,
+    }
+  },
+
+  async updateMainCategoriesDisplayOrder(categoryIds: number[]): Promise<{
+    error: string | null
+  }> {
+    if (categoryIds.length === 0) {
+      return { error: null }
+    }
+
+    const orderCases = categoryIds.map((categoryId, index) => sql`
+      WHEN ${tags.id} = ${categoryId} THEN ${index + 1}
+    `)
+    const displayOrderSql = sql<number>`
+      CASE
+        ${sql.join(orderCases, sql` `)}
+        ELSE ${tags.display_order}
+      END
+    `
+
+    const updateQuery = db
+      .update(tags)
+      .set({
+        display_order: displayOrderSql,
+      })
+      .where(and(
+        eq(tags.is_main_category, true),
+        inArray(tags.id, categoryIds),
+      ))
+      .returning({ id: tags.id })
+
+    const { data, error } = await runQuery(async () => {
+      const result = await updateQuery
+      return { data: result, error: null }
+    })
+
+    if (error) {
+      return { error }
+    }
+
+    if ((data?.length ?? 0) !== categoryIds.length) {
+      return {
+        error: 'One or more main categories could not be updated.',
+      }
+    }
+
+    revalidatePath('/')
+
+    return { error: null }
   },
 
   async updateTagTranslationsById(tagId: number, translations: TagTranslationsMap): Promise<{

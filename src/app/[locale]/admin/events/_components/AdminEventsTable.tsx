@@ -470,7 +470,7 @@ export default function AdminEventsTable({
             {settingsButton}
           </div>
         )}
-        searchInputClassName="h-9 w-37.5 lg:w-62.5"
+        searchInputClassName="h-9 sm:w-37.5 lg:w-62.5"
         searchLeadingIcon={<SearchIcon className="size-4" />}
       />
 

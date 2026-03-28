@@ -519,3 +519,26 @@ describe('tagRepository.listTags', () => {
     ])
   })
 })
+
+describe('tagRepository.updateMainCategoriesDisplayOrder', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    mocks.cacheTag.mockReset()
+    mocks.revalidatePath.mockReset()
+    mocks.runQuery.mockReset()
+  })
+
+  it('updates all provided main category ids in a single pass', async () => {
+    mocks.runQuery.mockResolvedValueOnce({
+      data: [{ id: 2 }, { id: 1 }, { id: 3 }],
+      error: null,
+    })
+
+    const { TagRepository } = await import('@/lib/db/queries/tag')
+    const result = await TagRepository.updateMainCategoriesDisplayOrder([2, 1, 3])
+
+    expect(result.error).toBeNull()
+    expect(mocks.runQuery).toHaveBeenCalledTimes(1)
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/')
+  })
+})
