@@ -34,6 +34,8 @@ const SVG_DIMENSION_ATTR_PATTERN = /\s(?:width|height)\s*=\s*(?:"[^"]*"|'[^']*'|
 const SVG_WIDTH_ATTR_PATTERN = /\swidth\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i
 const SVG_HEIGHT_ATTR_PATTERN = /\sheight\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i
 const SVG_VIEWBOX_ATTR_PATTERN = /\sviewbox\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i
+const HTTP_URL_PROTOCOL_PATTERN = /^https?:\/\//i
+const MAILTO_PROTOCOL_PATTERN = /^mailto:/i
 
 export interface ThemeSiteSocialLinks {
   discordLink: string | null
@@ -186,12 +188,7 @@ export function validateThemeSiteGoogleAnalyticsId(value: string | null | undefi
   return { value: normalized, error: null }
 }
 
-export function validateThemeSiteExternalUrl(value: string | null | undefined, sourceLabel: string) {
-  const normalized = normalizeOptionalString(value)
-  if (!normalized) {
-    return { value: null, error: null as string | null }
-  }
-
+function validateThemeSiteHttpUrl(normalized: string, sourceLabel: string) {
   if (normalized.length > 2048) {
     return { value: null, error: `${sourceLabel} is too long.` }
   }
@@ -200,7 +197,7 @@ export function validateThemeSiteExternalUrl(value: string | null | undefined, s
     return { value: null, error: `${sourceLabel} must start with http:// or https://.` }
   }
 
-  const withProtocol = /^https?:\/\//i.test(normalized) ? normalized : `https://${normalized}`
+  const withProtocol = HTTP_URL_PROTOCOL_PATTERN.test(normalized) ? normalized : `https://${normalized}`
   try {
     const parsed = new URL(withProtocol)
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
@@ -212,6 +209,71 @@ export function validateThemeSiteExternalUrl(value: string | null | undefined, s
   }
 
   return { value: withProtocol, error: null }
+}
+
+function looksLikeEmailAddress(value: string) {
+  if (value.includes(' ') || /[/?#]/.test(value)) {
+    return false
+  }
+
+  const atIndex = value.indexOf('@')
+  if (atIndex <= 0 || atIndex !== value.lastIndexOf('@') || atIndex === value.length - 1) {
+    return false
+  }
+
+  const localPart = value.slice(0, atIndex)
+  const domain = value.slice(atIndex + 1)
+  if (!localPart || !domain || domain.startsWith('.') || domain.endsWith('.') || !domain.includes('.')) {
+    return false
+  }
+
+  return domain.split('.').every(label => label.length > 0)
+}
+
+function validateThemeSiteMailtoUrl(normalized: string, sourceLabel: string) {
+  if (normalized.length > 2048) {
+    return { value: null, error: `${sourceLabel} is too long.` }
+  }
+
+  try {
+    const parsed = new URL(normalized)
+    const emailAddress = decodeURIComponent(parsed.pathname).trim()
+
+    if (parsed.protocol !== 'mailto:' || !looksLikeEmailAddress(emailAddress)) {
+      return { value: null, error: `${sourceLabel} must contain a valid email address.` }
+    }
+  }
+  catch {
+    return { value: null, error: `${sourceLabel} must contain a valid email address.` }
+  }
+
+  return { value: normalized, error: null }
+}
+
+export function validateThemeSiteExternalUrl(value: string | null | undefined, sourceLabel: string) {
+  const normalized = normalizeOptionalString(value)
+  if (!normalized) {
+    return { value: null, error: null as string | null }
+  }
+
+  return validateThemeSiteHttpUrl(normalized, sourceLabel)
+}
+
+export function validateThemeSiteSupportUrl(value: string | null | undefined, sourceLabel: string) {
+  const normalized = normalizeOptionalString(value)
+  if (!normalized) {
+    return { value: null, error: null as string | null }
+  }
+
+  if (MAILTO_PROTOCOL_PATTERN.test(normalized)) {
+    return validateThemeSiteMailtoUrl(normalized, sourceLabel)
+  }
+
+  if (looksLikeEmailAddress(normalized)) {
+    return { value: `mailto:${normalized}`, error: null }
+  }
+
+  return validateThemeSiteHttpUrl(normalized, sourceLabel)
 }
 
 export function validateThemeSiteName(value: string | null | undefined, sourceLabel: string) {

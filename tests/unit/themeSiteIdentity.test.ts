@@ -8,6 +8,7 @@ import {
   validateThemeSiteGoogleAnalyticsId,
   validateThemeSiteLogoMode,
   validateThemeSiteName,
+  validateThemeSiteSupportUrl,
 } from '@/lib/theme-site-identity'
 
 describe('theme site identity helpers', () => {
@@ -92,5 +93,13 @@ describe('theme site identity helpers', () => {
     expect(validateThemeSiteExternalUrl('', 'Discord link')).toEqual({ value: null, error: null })
     expect(validateThemeSiteExternalUrl('discord.gg/kuest', 'Discord link')).toEqual({ value: 'https://discord.gg/kuest', error: null })
     expect(validateThemeSiteExternalUrl('ftp://example.com', 'Discord link').error).toContain('http:// or https://')
+  })
+
+  it('normalizes support emails to mailto links', () => {
+    expect(validateThemeSiteSupportUrl('', 'Support URL')).toEqual({ value: null, error: null })
+    expect(validateThemeSiteSupportUrl('support@kuest.com', 'Support URL')).toEqual({ value: 'mailto:support@kuest.com', error: null })
+    expect(validateThemeSiteSupportUrl('mailto:support@kuest.com', 'Support URL')).toEqual({ value: 'mailto:support@kuest.com', error: null })
+    expect(validateThemeSiteSupportUrl('x.com/@kuest', 'Support URL')).toEqual({ value: 'https://x.com/@kuest', error: null })
+    expect(validateThemeSiteSupportUrl('mailto:not-an-email', 'Support URL').error).toContain('valid email address')
   })
 })

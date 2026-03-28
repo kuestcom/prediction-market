@@ -1596,6 +1596,7 @@ function WalletSuccessStep({
   const safeSuffix = walletAddress?.slice(-4) ?? '5678'
   const site = useSiteIdentity()
   const supportUrl = site.supportUrl
+  const supportIsEmail = supportUrl?.startsWith('mailto:') ?? false
   const formattedAmount = formatDisplayAmount(amountValue)
   const displayAmount = formattedAmount && formattedAmount.trim() !== '' ? formattedAmount : '0.00'
   const sendSymbol = selectedToken?.symbol ?? 'Token'
@@ -1752,8 +1753,8 @@ function WalletSuccessStep({
             {' '}
             <a
               href={supportUrl}
-              target="_blank"
-              rel="noreferrer"
+              target={supportIsEmail ? undefined : '_blank'}
+              rel={supportIsEmail ? undefined : 'noreferrer'}
               className="underline"
             >
               Get help

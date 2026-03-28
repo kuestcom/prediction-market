@@ -38,6 +38,7 @@ describe('themeSettings social links', () => {
       tiktokLink: 'tiktok.com/@kuest',
       linkedinLink: 'linkedin.com/company/kuest',
       youtubeLink: 'youtube.com/@kuest',
+      supportUrl: 'support@kuest.com',
     })
 
     expect(result.error).toBeNull()
@@ -47,9 +48,10 @@ describe('themeSettings social links', () => {
     expect(result.data?.tiktokLinkValue).toBe('https://tiktok.com/@kuest')
     expect(result.data?.linkedinLinkValue).toBe('https://linkedin.com/company/kuest')
     expect(result.data?.youtubeLinkValue).toBe('https://youtube.com/@kuest')
+    expect(result.data?.supportUrlValue).toBe('mailto:support@kuest.com')
   })
 
-  it('hydrates new social link fields from general settings', () => {
+  it('hydrates social links and support email from general settings', () => {
     const state = getThemeSiteSettingsFormState({
       general: {
         site_twitter_link: {
@@ -76,6 +78,10 @@ describe('themeSettings social links', () => {
           value: 'youtube.com/@kuest',
           updated_at: '2026-03-08T00:00:00.000Z',
         },
+        site_support_url: {
+          value: 'support@kuest.com',
+          updated_at: '2026-03-08T00:00:00.000Z',
+        },
       },
     })
 
@@ -85,5 +91,6 @@ describe('themeSettings social links', () => {
     expect(state.tiktokLink).toBe('https://tiktok.com/@kuest')
     expect(state.linkedinLink).toBe('https://linkedin.com/company/kuest')
     expect(state.youtubeLink).toBe('https://youtube.com/@kuest')
+    expect(state.supportUrl).toBe('mailto:support@kuest.com')
   })
 })
