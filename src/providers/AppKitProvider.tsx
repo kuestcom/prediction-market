@@ -8,6 +8,7 @@ import { createSIWEConfig, formatMessage, getAddressFromMessage } from '@reown/a
 import { createAppKit, useAppKitTheme } from '@reown/appkit/react'
 import { generateRandomString } from 'better-auth/crypto'
 import { useTheme } from 'next-themes'
+import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 import { WagmiProvider } from 'wagmi'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
@@ -22,6 +23,10 @@ import { mergeSessionUserState, useUser } from '@/stores/useUser'
 let hasInitializedAppKit = false
 let appKitInstance: AppKit | null = null
 const SIWE_TWO_FACTOR_INTENT_COOKIE = 'siwe_2fa_intent'
+const SignaturePrompt = dynamic(
+  () => import('@/components/SignaturePrompt').then(mod => mod.SignaturePrompt),
+  { ssr: false },
+)
 
 function setSiweTwoFactorIntentCookie() {
   if (!IS_BROWSER) {
@@ -229,6 +234,7 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
     <WagmiProvider config={wagmiConfig}>
       <AppKitContext value={AppKitValue}>
         {children}
+        <SignaturePrompt />
         {canSyncTheme && <AppKitThemeSynchronizer themeMode={appKitThemeMode} />}
       </AppKitContext>
     </WagmiProvider>

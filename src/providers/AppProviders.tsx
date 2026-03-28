@@ -7,7 +7,6 @@ import { ThemeProvider } from 'next-themes'
 import dynamic from 'next/dynamic'
 import { Toaster } from '@/components/ui/sonner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
-import AppKitProvider from '@/providers/AppKitProvider'
 import ProgressIndicatorProvider from '@/providers/ProgressIndicatorProvider'
 
 const SpeedInsights = process.env.IS_VERCEL === 'true'
@@ -17,27 +16,19 @@ const SpeedInsights = process.env.IS_VERCEL === 'true'
     )
   : () => null
 
-const SignaturePrompt = dynamic(
-  () => import('@/components/SignaturePrompt').then(mod => mod.SignaturePrompt),
-  { ssr: false },
-)
-
 const queryClient = new QueryClient()
 
 interface AppProvidersProps {
   children: ReactNode
-  disableAppKit?: boolean
 }
 
-export function AppProviders({ children, disableAppKit }: AppProvidersProps) {
+export function AppProviders({ children }: AppProvidersProps) {
   const site = useSiteIdentity()
   const gaId = site.googleAnalyticsId
-  const shouldLoadAppKit = !disableAppKit
 
   const content = (
     <div className="min-h-screen bg-background">
       {children}
-      <SignaturePrompt />
       <Toaster position="bottom-left" />
       {process.env.NODE_ENV === 'production' && <SpeedInsights />}
       {process.env.NODE_ENV === 'production' && gaId && <GoogleAnalytics gaId={gaId} />}
@@ -47,15 +38,7 @@ export function AppProviders({ children, disableAppKit }: AppProvidersProps) {
   const providersContent = (
     <ThemeProvider attribute="class">
       <QueryClientProvider client={queryClient}>
-        {shouldLoadAppKit
-          ? (
-              <AppKitProvider>
-                {content}
-              </AppKitProvider>
-            )
-          : (
-              content
-            )}
+        {content}
       </QueryClientProvider>
     </ThemeProvider>
   )
