@@ -984,19 +984,18 @@ export const TagRepository = {
       END
     `
 
-    const updateQuery = db
-      .update(tags)
-      .set({
-        display_order: displayOrderSql,
-      })
-      .where(and(
-        eq(tags.is_main_category, true),
-        inArray(tags.id, categoryIds),
-      ))
-      .returning({ id: tags.id })
-
     const { data, error } = await runQuery(async () => {
-      const result = await updateQuery
+      const result = await db
+        .update(tags)
+        .set({
+          display_order: displayOrderSql,
+        })
+        .where(and(
+          eq(tags.is_main_category, true),
+          inArray(tags.id, categoryIds),
+        ))
+        .returning({ id: tags.id })
+
       return { data: result, error: null }
     })
 

@@ -92,7 +92,7 @@ describe('dataTableToolbar', () => {
       )
     })
 
-    const input = screen.getByPlaceholderText('Search...')
+    const [input] = screen.getAllByPlaceholderText('Search...')
     fireEvent.change(input, { target: { value: 'betamax' } })
 
     act(() => {
