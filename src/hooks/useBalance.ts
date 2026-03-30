@@ -1,5 +1,4 @@
 import type { Address, PublicClient } from 'viem'
-import { useAppKitAccount } from '@reown/appkit/react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { createPublicClient, getContract, http } from 'viem'
@@ -36,7 +35,6 @@ interface UseBalanceOptions {
 const RPC_URL = defaultNetwork.rpcUrls.default.http[0]
 
 export function useBalance(options: UseBalanceOptions = {}) {
-  const { isConnected } = useAppKitAccount()
   const user = useUser()
   const [hasMounted, setHasMounted] = useState(false)
 
@@ -55,8 +53,12 @@ export function useBalance(options: UseBalanceOptions = {}) {
     })
   }, [hasMounted])
 
+  const proxyWalletAddress: Address | null = user?.proxy_wallet_address
+    ? normalizeAddress(user.proxy_wallet_address) as Address | null
+    : null
+
   const contract = useMemo(() => {
-    if (!client) {
+    if (!client || !proxyWalletAddress) {
       return null
     }
 
@@ -65,15 +67,10 @@ export function useBalance(options: UseBalanceOptions = {}) {
       abi: ERC20_ABI,
       client,
     })
-  }, [client])
-
-  const proxyWalletAddress: Address | null = user?.proxy_wallet_address
-    ? normalizeAddress(user.proxy_wallet_address) as Address | null
-    : null
+  }, [client, proxyWalletAddress])
 
   const isOptionsEnabled = options.enabled ?? true
-  const isAwaitingConnection = Boolean(hasMounted && user && isOptionsEnabled && !isConnected)
-  const isQueryEnabled = Boolean(hasMounted && client && isConnected && proxyWalletAddress && isOptionsEnabled)
+  const isQueryEnabled = Boolean(hasMounted && client && proxyWalletAddress && isOptionsEnabled)
 
   const {
     data,
@@ -109,10 +106,7 @@ export function useBalance(options: UseBalanceOptions = {}) {
   })
 
   const balance = isQueryEnabled && data ? data : INITIAL_STATE
-  const isWaitingForProxy = Boolean(hasMounted && isConnected && isOptionsEnabled && !proxyWalletAddress)
   const isLoadingBalance = !hasMounted
-    || isAwaitingConnection
-    || isWaitingForProxy
     || (isQueryEnabled ? (isLoading || (!data && isFetching)) : false)
   return {
     balance,
