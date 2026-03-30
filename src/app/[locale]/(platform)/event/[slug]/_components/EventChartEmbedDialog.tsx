@@ -3,14 +3,17 @@
 import type { EmbedCodeLine } from '@/lib/embed-code'
 import type { EmbedTheme } from '@/lib/embed-widget'
 import type { Market } from '@/types'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { fetchAffiliateSettingsFromAPI } from '@/lib/affiliate-data'
 import { maybeShowAffiliateToast } from '@/lib/affiliate-toast'
@@ -63,6 +66,7 @@ export default function EventChartEmbedDialog({
 }: EventChartEmbedDialogProps) {
   const t = useExtracted()
   const site = useSiteIdentity()
+  const isMobile = useIsMobile()
   const [theme, setTheme] = useState<EmbedTheme>('light')
   const [embedType, setEmbedType] = useState<EmbedType>('iframe')
   const [selectedMarketId, setSelectedMarketId] = useState<string>('')
@@ -247,6 +251,140 @@ export default function EventChartEmbedDialog({
     }
   }
 
+  const dialogBody = (
+    <div className="grid items-stretch gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="order-2 min-w-0 space-y-6 lg:order-1">
+        <div className="space-y-3">
+          <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('THEME')}</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {(['light', 'dark'] as EmbedTheme[]).map(option => (
+              <button
+                key={option}
+                type="button"
+                className={cn(
+                  'h-10 rounded-md border px-3 text-sm font-semibold transition-colors',
+                  option === theme
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-muted text-muted-foreground hover:text-foreground',
+                )}
+                onClick={() => setTheme(option)}
+              >
+                {option === 'light' ? t('Light') : t('Dark')}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {showMarketSelector
+          ? (
+              <div className="space-y-3">
+                <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('MARKET')}</Label>
+                <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
+                  <SelectTrigger className={`
+                    w-full bg-transparent text-sm
+                    hover:bg-transparent
+                    dark:bg-transparent
+                    dark:hover:bg-transparent
+                  `}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {marketOptions.map(option => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )
+          : null}
+
+        <div className="space-y-3">
+          <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('OPTIONS')}</Label>
+          <div className="rounded-md border border-border p-3">
+            <div className="flex flex-col gap-3 text-sm font-semibold text-foreground">
+              <label className="flex items-center justify-between gap-4">
+                <span>{t('Show Volume')}</span>
+                <Switch checked={showVolume} onCheckedChange={setShowVolume} />
+              </label>
+              <label className="flex items-center justify-between gap-4">
+                <span>{t('Show Chart')}</span>
+                <Switch checked={showChart} onCheckedChange={setShowChart} />
+              </label>
+              {showChart
+                ? (
+                    <label className="flex items-center justify-between gap-4">
+                      <span>{t('Show Time Range Selector')}</span>
+                      <Switch checked={showTimeRange} onCheckedChange={setShowTimeRange} />
+                    </label>
+                  )
+                : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="min-w-0 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('EMBED CODE')}</Label>
+            <div className="flex items-center gap-2">
+              <Select value={embedType} onValueChange={value => setEmbedType(value as EmbedType)}>
+                <SelectTrigger size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="iframe">{t('Iframe')}</SelectItem>
+                  <SelectItem value="web-component">{t('Web component')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button type="button" size="sm" variant="outline" onClick={handleCopy}>
+                {copied ? <CheckIcon /> : <CopyIcon />}
+                {t('Copy')}
+              </Button>
+            </div>
+          </div>
+          <div className="min-w-0 overflow-x-auto rounded-md border border-border bg-muted/70 p-4">
+            {embedType === 'iframe'
+              ? <EmbedCodePreview lines={iframeLines} />
+              : <EmbedCodePreview lines={webComponentLines} />}
+          </div>
+        </div>
+      </div>
+
+      <div className="order-1 flex h-full min-w-0 flex-col gap-3 lg:order-2">
+        <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('PREVIEW')}</Label>
+        <div
+          className="flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-md bg-[#f7f7f9] p-2"
+          style={{ minHeight: `${iframeHeight}px` }}
+        >
+          <iframe
+            title={t('Embed preview')}
+            src={previewSrc}
+            style={{ height: `${iframeHeight}px` }}
+            className="w-full max-w-[400px] border-0 bg-transparent"
+          />
+        </div>
+      </div>
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[90vh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
+          <VisuallyHidden>
+            <DrawerTitle>{t('Embed')}</DrawerTitle>
+          </VisuallyHidden>
+
+          <div className="min-h-0 space-y-4 overflow-y-auto pr-1 sm:space-y-6">
+            {dialogBody}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -255,126 +393,12 @@ export default function EventChartEmbedDialog({
           'sm:w-full sm:max-w-4xl sm:p-8',
         )}
       >
+        <VisuallyHidden>
+          <DialogTitle>{t('Embed')}</DialogTitle>
+        </VisuallyHidden>
+
         <div className="space-y-4 sm:space-y-6">
-          <DialogHeader>
-            <DialogTitle className="text-center text-2xl font-bold">{t('Embed')}</DialogTitle>
-          </DialogHeader>
-
-          <div className="grid items-stretch gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('THEME')}</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['light', 'dark'] as EmbedTheme[]).map(option => (
-                    <button
-                      key={option}
-                      type="button"
-                      className={cn(
-                        'h-10 rounded-md border px-3 text-sm font-semibold transition-colors',
-                        option === theme
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border bg-muted text-muted-foreground hover:text-foreground',
-                      )}
-                      onClick={() => setTheme(option)}
-                    >
-                      {option === 'light' ? t('Light') : t('Dark')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {showMarketSelector
-                ? (
-                    <div className="space-y-3">
-                      <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('MARKET')}</Label>
-                      <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
-                        <SelectTrigger className={`
-                          w-full bg-transparent text-sm
-                          hover:bg-transparent
-                          dark:bg-transparent
-                          dark:hover:bg-transparent
-                        `}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {marketOptions.map(option => (
-                            <SelectItem key={option.id} value={option.id}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )
-                : null}
-
-              <div className="space-y-3">
-                <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('OPTIONS')}</Label>
-                <div className="rounded-md border border-border p-3">
-                  <div className="flex flex-col gap-3 text-sm font-semibold text-foreground">
-                    <label className="flex items-center justify-between gap-4">
-                      <span>{t('Show Volume')}</span>
-                      <Switch checked={showVolume} onCheckedChange={setShowVolume} />
-                    </label>
-                    <label className="flex items-center justify-between gap-4">
-                      <span>{t('Show Chart')}</span>
-                      <Switch checked={showChart} onCheckedChange={setShowChart} />
-                    </label>
-                    {showChart
-                      ? (
-                          <label className="flex items-center justify-between gap-4">
-                            <span>{t('Show Time Range Selector')}</span>
-                            <Switch checked={showTimeRange} onCheckedChange={setShowTimeRange} />
-                          </label>
-                        )
-                      : null}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('EMBED CODE')}</Label>
-                  <div className="flex items-center gap-2">
-                    <Select value={embedType} onValueChange={value => setEmbedType(value as EmbedType)}>
-                      <SelectTrigger size="sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="iframe">{t('Iframe')}</SelectItem>
-                        <SelectItem value="web-component">{t('Web component')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button type="button" size="sm" variant="outline" onClick={handleCopy}>
-                      {copied ? <CheckIcon /> : <CopyIcon />}
-                      {t('Copy')}
-                    </Button>
-                  </div>
-                </div>
-                <div className="overflow-x-auto rounded-md border border-border bg-muted/70 p-4">
-                  {embedType === 'iframe'
-                    ? <EmbedCodePreview lines={iframeLines} />
-                    : <EmbedCodePreview lines={webComponentLines} />}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex h-full flex-col gap-3">
-              <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('PREVIEW')}</Label>
-              <div
-                className="flex flex-1 items-center justify-center overflow-hidden rounded-md bg-[#f7f7f9] p-2"
-                style={{ minHeight: `${iframeHeight}px` }}
-              >
-                <iframe
-                  title={t('Embed preview')}
-                  src={previewSrc}
-                  style={{ height: `${iframeHeight}px` }}
-                  className="w-100 max-w-full border-0 bg-transparent"
-                />
-              </div>
-            </div>
-          </div>
+          {dialogBody}
         </div>
       </DialogContent>
     </Dialog>
