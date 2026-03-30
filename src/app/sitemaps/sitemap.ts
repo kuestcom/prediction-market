@@ -1,4 +1,8 @@
 import type { MetadataRoute } from 'next'
+import type { SupportedLocale } from '@/i18n/locales'
+import { loadEnabledLocales } from '@/i18n/locale-settings'
+import { DEFAULT_LOCALE } from '@/i18n/locales'
+import { withLocalePrefix } from '@/lib/locale-path'
 import siteUrlUtils from '@/lib/site-url'
 import { formatDateForSitemap, getDynamicSitemapEntriesById, getSitemapIds } from '@/lib/sitemap'
 
@@ -6,10 +10,11 @@ const { resolveSiteUrl } = siteUrlUtils
 
 const BASE_PATHS = [
   '/',
+  '/activity',
   '/leaderboard',
   '/mentions',
   '/portfolio',
-  '/sports',
+  '/predictions',
   '/terms-of-use',
 ] as const
 
@@ -26,53 +31,91 @@ export default async function sitemap({ id }: Props): Promise<MetadataRoute.Site
   const sitemapId = await id
   const siteUrl = resolveSiteUrl(process.env)
   const fallbackLastModified = formatDateForSitemap(new Date())
+  const enabledLocales = await loadEnabledLocales()
 
-  return buildSitemapEntries(sitemapId, siteUrl, fallbackLastModified)
+  return buildSitemapEntries(sitemapId, siteUrl, fallbackLastModified, enabledLocales)
 }
 
-async function buildSitemapEntries(sitemapId: string, siteUrl: string, lastModified: string): Promise<MetadataRoute.Sitemap> {
+async function buildSitemapEntries(
+  sitemapId: string,
+  siteUrl: string,
+  lastModified: string,
+  enabledLocales: SupportedLocale[],
+): Promise<MetadataRoute.Sitemap> {
   if (sitemapId === 'base') {
-    return buildPathEntries(BASE_PATHS, siteUrl, lastModified)
+    return buildPathEntries(BASE_PATHS, siteUrl, lastModified, enabledLocales)
   }
 
   if (sitemapId === 'categories') {
     const dynamicEntries = await getDynamicSitemapEntriesById(sitemapId)
-    return buildDynamicEntries(dynamicEntries, siteUrl)
+    return buildDynamicEntries(dynamicEntries, siteUrl, enabledLocales)
   }
 
   if (sitemapId.startsWith('predictions-')) {
     const dynamicEntries = await getDynamicSitemapEntriesById(sitemapId)
-    return buildDynamicEntries(dynamicEntries, siteUrl)
+    return buildDynamicEntries(dynamicEntries, siteUrl, enabledLocales)
   }
 
   if (sitemapId.startsWith('events-active-')) {
     const dynamicEntries = await getDynamicSitemapEntriesById(sitemapId)
-    return buildDynamicEntries(dynamicEntries, siteUrl)
+    return buildDynamicEntries(dynamicEntries, siteUrl, enabledLocales)
   }
 
   if (sitemapId.startsWith('events-closed-')) {
     const dynamicEntries = await getDynamicSitemapEntriesById(sitemapId)
-    return buildDynamicEntries(dynamicEntries, siteUrl)
+    return buildDynamicEntries(dynamicEntries, siteUrl, enabledLocales)
   }
 
   return []
 }
 
-function buildPathEntries(paths: readonly string[], siteUrl: string, lastModified: string): MetadataRoute.Sitemap {
-  return paths.map(path => ({
-    url: toAbsoluteUrl(siteUrl, path),
-    lastModified,
-  }))
+function buildPathEntries(
+  paths: readonly string[],
+  siteUrl: string,
+  lastModified: string,
+  enabledLocales: SupportedLocale[],
+): MetadataRoute.Sitemap {
+  return paths.map(path => buildSitemapEntry(path, lastModified, siteUrl, enabledLocales))
 }
 
 function buildDynamicEntries(
   entries: Array<{ path: string, lastModified: string }>,
   siteUrl: string,
+  enabledLocales: SupportedLocale[],
 ): MetadataRoute.Sitemap {
-  return entries.map(entry => ({
-    url: toAbsoluteUrl(siteUrl, entry.path),
-    lastModified: entry.lastModified,
-  }))
+  return entries.map(entry => buildSitemapEntry(entry.path, entry.lastModified, siteUrl, enabledLocales))
+}
+
+function buildSitemapEntry(
+  path: string,
+  lastModified: string,
+  siteUrl: string,
+  enabledLocales: SupportedLocale[],
+): MetadataRoute.Sitemap[number] {
+  const languages = buildAlternateLanguages(path, siteUrl, enabledLocales)
+
+  return {
+    url: toAbsoluteUrl(siteUrl, path),
+    lastModified,
+    ...(languages ? { alternates: { languages } } : {}),
+  }
+}
+
+function buildAlternateLanguages(
+  path: string,
+  siteUrl: string,
+  enabledLocales: SupportedLocale[],
+): Record<string, string> | undefined {
+  const languages = enabledLocales
+    .filter(locale => locale !== DEFAULT_LOCALE)
+    .reduce<Record<string, string>>((accumulator, locale) => {
+      accumulator[locale] = toAbsoluteUrl(siteUrl, withLocalePrefix(path, locale))
+      return accumulator
+    }, {})
+
+  return Object.keys(languages).length > 0
+    ? languages
+    : undefined
 }
 
 function toAbsoluteUrl(siteUrl: string, path: string): string {
