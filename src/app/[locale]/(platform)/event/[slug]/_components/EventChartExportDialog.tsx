@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { slugifySiteName as buildSiteSlug } from '@/lib/slug'
@@ -208,6 +210,7 @@ export default function EventChartExportDialog({
 }: EventChartExportDialogProps) {
   const site = useSiteIdentity()
   const t = useExtracted()
+  const isMobile = useIsMobile()
   const optionsListId = useId()
   const eventStartDate = useMemo(() => new Date(eventCreatedAt), [eventCreatedAt])
   const [frequency, setFrequency] = useState<Frequency>(defaultFrequency)
@@ -350,132 +353,152 @@ export default function EventChartExportDialog({
     `,
   )
 
+  const dialogTitle = t('Download Price History')
+  const dialogBody = (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold text-foreground">{t('From')}</Label>
+          <DropdownMenu open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className={dateButtonClass}>
+                <span>{formatShortDate(fromDate, locale)}</span>
+                <CalendarIcon className="size-4 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="bottom"
+              align="start"
+              sideOffset={8}
+              collisionPadding={16}
+              portalled={isMobile}
+              className="border border-border bg-background p-2 shadow-xl"
+            >
+              <Calendar
+                mode="single"
+                selected={fromDate}
+                onSelect={(date) => {
+                  if (!date) {
+                    return
+                  }
+                  setFromDate(date)
+                  setCalendarOpen(false)
+                }}
+                className="bg-transparent p-0"
+                classNames={{ root: 'w-full' }}
+              />
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <p className="text-xs text-muted-foreground">{t('Market start pre-filled')}</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold text-foreground">{t('To')}</Label>
+          <button type="button" className={dateButtonClass} disabled>
+            <span>{formatShortDate(toDate, locale)}</span>
+            <CalendarIcon className="size-4 text-muted-foreground" />
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold text-foreground">{t('Frequency')}</Label>
+          <Select value={frequency} onValueChange={value => setFrequency(value as Frequency)}>
+            <SelectTrigger className="w-full text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {localizedFrequencyOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {isMultiMarket
+        ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-foreground">{t('Options')}</span>
+                <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={checked => setSelectedOptions(checked ? allOptionIds : [])}
+                    className="size-5 rounded-sm dark:bg-transparent"
+                  />
+                  {t('Select All')}
+                </label>
+              </div>
+              <div className="max-h-36 overflow-y-auto rounded-md border border-border bg-background p-3">
+                <div className="flex flex-col gap-2">
+                  {optionItems.map((option, index) => {
+                    const optionId = `${optionsListId}-${index}`
+                    const isChecked = selectedOptions.includes(option.id)
+                    return (
+                      <label
+                        key={option.id}
+                        htmlFor={optionId}
+                        className="flex items-center gap-2 text-sm font-medium text-foreground"
+                      >
+                        <Checkbox
+                          id={optionId}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            setSelectedOptions((prev) => {
+                              if (checked) {
+                                if (prev.includes(option.id)) {
+                                  return prev
+                                }
+                                return [...prev, option.id]
+                              }
+                              return prev.filter(item => item !== option.id)
+                            })
+                          }}
+                          className="size-5 rounded-sm dark:bg-transparent"
+                        />
+                        <span className="truncate">{option.label}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )
+        : null}
+
+      <Button type="button" className="w-full" onClick={handleDownload} disabled={isDownloading}>
+        {isDownloading ? t('Downloading...') : t('Download (.csv)')}
+      </Button>
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[90vh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
+          <div className="mt-4 space-y-6 overflow-y-auto">
+            <DrawerHeader className="space-y-3 p-0 text-center">
+              <DrawerTitle className="text-2xl font-bold">{dialogTitle}</DrawerTitle>
+            </DrawerHeader>
+            {dialogBody}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl sm:p-8">
         <div className="space-y-6">
           <DialogHeader>
             <DialogTitle className="text-center text-xl font-bold">
-              {t('Download Price History')}
+              {dialogTitle}
             </DialogTitle>
           </DialogHeader>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-foreground">{t('From')}</Label>
-              <DropdownMenu open={calendarOpen} onOpenChange={setCalendarOpen}>
-                <DropdownMenuTrigger asChild>
-                  <button type="button" className={dateButtonClass}>
-                    <span>{formatShortDate(fromDate, locale)}</span>
-                    <CalendarIcon className="size-4 text-muted-foreground" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  side="bottom"
-                  align="start"
-                  sideOffset={8}
-                  collisionPadding={16}
-                  portalled={false}
-                  className="border border-border bg-background p-2 shadow-xl"
-                >
-                  <Calendar
-                    mode="single"
-                    selected={fromDate}
-                    onSelect={(date) => {
-                      if (!date) {
-                        return
-                      }
-                      setFromDate(date)
-                      setCalendarOpen(false)
-                    }}
-                    className="bg-transparent p-0"
-                    classNames={{ root: 'w-full' }}
-                  />
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <p className="text-xs text-muted-foreground">{t('Market start pre-filled')}</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-foreground">{t('To')}</Label>
-              <button type="button" className={dateButtonClass} disabled>
-                <span>{formatShortDate(toDate, locale)}</span>
-                <CalendarIcon className="size-4 text-muted-foreground" />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-foreground">{t('Frequency')}</Label>
-              <Select value={frequency} onValueChange={value => setFrequency(value as Frequency)}>
-                <SelectTrigger className="w-full text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {localizedFrequencyOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {isMultiMarket
-            ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-foreground">{t('Options')}</span>
-                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
-                      <Checkbox
-                        checked={allSelected}
-                        onCheckedChange={checked => setSelectedOptions(checked ? allOptionIds : [])}
-                        className="size-5 rounded-sm dark:bg-transparent"
-                      />
-                      {t('Select All')}
-                    </label>
-                  </div>
-                  <div className="max-h-36 overflow-y-auto rounded-md border border-border bg-background p-3">
-                    <div className="flex flex-col gap-2">
-                      {optionItems.map((option, index) => {
-                        const optionId = `${optionsListId}-${index}`
-                        const isChecked = selectedOptions.includes(option.id)
-                        return (
-                          <label
-                            key={option.id}
-                            htmlFor={optionId}
-                            className="flex items-center gap-2 text-sm font-medium text-foreground"
-                          >
-                            <Checkbox
-                              id={optionId}
-                              checked={isChecked}
-                              onCheckedChange={(checked) => {
-                                setSelectedOptions((prev) => {
-                                  if (checked) {
-                                    if (prev.includes(option.id)) {
-                                      return prev
-                                    }
-                                    return [...prev, option.id]
-                                  }
-                                  return prev.filter(item => item !== option.id)
-                                })
-                              }}
-                              className="size-5 rounded-sm dark:bg-transparent"
-                            />
-                            <span className="truncate">{option.label}</span>
-                          </label>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )
-            : null}
-
-          <Button type="button" className="w-full" onClick={handleDownload} disabled={isDownloading}>
-            {isDownloading ? t('Downloading...') : t('Download (.csv)')}
-          </Button>
-
+          {dialogBody}
         </div>
       </DialogContent>
     </Dialog>
