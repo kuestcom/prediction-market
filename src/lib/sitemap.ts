@@ -1,5 +1,6 @@
 import { and, desc, eq, exists, inArray, sql } from 'drizzle-orm'
 import { cacheTag } from 'next/cache'
+import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { getSportsSlugResolverFromDb } from '@/lib/db/queries/sports-menu'
@@ -22,7 +23,7 @@ const PREDICTIONS_SITEMAP_PATTERN = /^predictions-(\d{3})$/
 const ACTIVE_EVENTS_SITEMAP_PREFIX = 'events-active-'
 const ACTIVE_EVENTS_SITEMAP_PATTERN = /^events-active-(\d{3})$/
 const CLOSED_EVENTS_SITEMAP_PREFIX = 'events-closed-'
-const CLOSED_MONTH_PATTERN = /^\d{4}-\d{2}$/
+const CLOSED_EVENTS_SITEMAP_PATTERN = /^events-closed-(\d{4}-\d{2})(?:-(\d{3}))?$/
 const SITEMAP_URL_LIMIT = 50_000
 
 interface SitemapRouteEntry {
@@ -38,6 +39,11 @@ interface DynamicEventSitemaps {
 interface SitemapIndexEntry {
   id: string
   lastmod: string
+}
+
+interface ClosedSitemapId {
+  monthKey: string
+  chunkIndex: number
 }
 
 interface EventSitemapRow {
@@ -94,6 +100,7 @@ export async function getSitemapIndexEntries(): Promise<SitemapIndexEntry[]> {
   const categoryEntries = await getCategorySitemapEntries()
   const dynamicSitemaps = await getDynamicEventSitemaps()
   const predictionEntries = await getPredictionSitemapEntries()
+  const chunkSize = await resolveLocalizedSitemapChunkSize()
   const entries: SitemapIndexEntry[] = [
     ...STATIC_SITEMAP_IDS.map(id => ({ id, lastmod: fallbackDate })),
     {
@@ -102,7 +109,7 @@ export async function getSitemapIndexEntries(): Promise<SitemapIndexEntry[]> {
     },
   ]
 
-  const predictionChunks = chunkSitemapEntries(predictionEntries, SITEMAP_URL_LIMIT)
+  const predictionChunks = chunkSitemapEntries(predictionEntries, chunkSize)
   for (let index = 0; index < predictionChunks.length; index += 1) {
     const chunkEntries = predictionChunks[index] ?? []
     entries.push({
@@ -111,7 +118,7 @@ export async function getSitemapIndexEntries(): Promise<SitemapIndexEntry[]> {
     })
   }
 
-  const activeChunks = chunkSitemapEntries(dynamicSitemaps.active, SITEMAP_URL_LIMIT)
+  const activeChunks = chunkSitemapEntries(dynamicSitemaps.active, chunkSize)
   for (let index = 0; index < activeChunks.length; index += 1) {
     const chunkEntries = activeChunks[index] ?? []
     entries.push({
@@ -132,10 +139,14 @@ export async function getSitemapIndexEntries(): Promise<SitemapIndexEntry[]> {
       continue
     }
 
-    entries.push({
-      id: `${CLOSED_EVENTS_SITEMAP_PREFIX}${monthKey}`,
-      lastmod: getLatestLastModified(monthEntries, fallbackDate),
-    })
+    const monthChunks = chunkSitemapEntries(monthEntries, chunkSize)
+    for (let index = 0; index < monthChunks.length; index += 1) {
+      const chunkEntries = monthChunks[index] ?? []
+      entries.push({
+        id: formatClosedSitemapId(monthKey, index + 1, monthChunks.length),
+        lastmod: getLatestLastModified(chunkEntries, fallbackDate),
+      })
+    }
   }
 
   return entries
@@ -146,10 +157,11 @@ export async function getDynamicSitemapEntriesById(id: string): Promise<SitemapR
     return getCategorySitemapEntries()
   }
 
+  const chunkSize = await resolveLocalizedSitemapChunkSize()
   const predictionChunkIndex = extractPredictionChunkIndex(id)
   if (predictionChunkIndex !== null) {
     const predictionEntries = await getPredictionSitemapEntries()
-    const predictionChunks = chunkSitemapEntries(predictionEntries, SITEMAP_URL_LIMIT)
+    const predictionChunks = chunkSitemapEntries(predictionEntries, chunkSize)
     return predictionChunks[predictionChunkIndex - 1] ?? []
   }
 
@@ -157,16 +169,18 @@ export async function getDynamicSitemapEntriesById(id: string): Promise<SitemapR
 
   const activeChunkIndex = extractActiveChunkIndex(id)
   if (activeChunkIndex !== null) {
-    const activeChunks = chunkSitemapEntries(dynamicSitemaps.active, SITEMAP_URL_LIMIT)
+    const activeChunks = chunkSitemapEntries(dynamicSitemaps.active, chunkSize)
     return activeChunks[activeChunkIndex - 1] ?? []
   }
 
-  const monthKey = extractClosedMonthKey(id)
-  if (!monthKey) {
+  const closedSitemapId = extractClosedSitemapId(id)
+  if (!closedSitemapId) {
     return []
   }
 
-  return dynamicSitemaps.closedByMonth[monthKey] ?? []
+  const monthEntries = dynamicSitemaps.closedByMonth[closedSitemapId.monthKey] ?? []
+  const monthChunks = chunkSitemapEntries(monthEntries, chunkSize)
+  return monthChunks[closedSitemapId.chunkIndex - 1] ?? []
 }
 
 async function getCategorySitemapEntries(): Promise<SitemapRouteEntry[]> {
@@ -423,6 +437,15 @@ function formatPredictionSitemapId(index: number): string {
   return `${PREDICTIONS_SITEMAP_PREFIX}${suffix}`
 }
 
+function formatClosedSitemapId(monthKey: string, index: number, totalChunks: number): string {
+  if (totalChunks <= 1) {
+    return `${CLOSED_EVENTS_SITEMAP_PREFIX}${monthKey}`
+  }
+
+  const suffix = String(index).padStart(3, '0')
+  return `${CLOSED_EVENTS_SITEMAP_PREFIX}${monthKey}-${suffix}`
+}
+
 function extractPredictionChunkIndex(id: string): number | null {
   const match = id.match(PREDICTIONS_SITEMAP_PATTERN)
   if (!match) {
@@ -464,17 +487,29 @@ function chunkSitemapEntries(entries: SitemapRouteEntry[], chunkSize: number): S
   return chunks
 }
 
-function extractClosedMonthKey(id: string): string | null {
-  if (!id.startsWith(CLOSED_EVENTS_SITEMAP_PREFIX)) {
+async function resolveLocalizedSitemapChunkSize(): Promise<number> {
+  const enabledLocales = await loadEnabledLocales()
+  const localeCount = Math.max(enabledLocales.length, 1)
+
+  return Math.max(1, Math.floor(SITEMAP_URL_LIMIT / localeCount))
+}
+
+function extractClosedSitemapId(id: string): ClosedSitemapId | null {
+  const match = id.match(CLOSED_EVENTS_SITEMAP_PATTERN)
+  if (!match) {
     return null
   }
 
-  const monthKey = id.slice(CLOSED_EVENTS_SITEMAP_PREFIX.length)
-  if (!CLOSED_MONTH_PATTERN.test(monthKey)) {
+  const monthKey = match[1]
+  const chunkIndex = match[2] ? Number(match[2]) : 1
+  if (!monthKey || !Number.isInteger(chunkIndex) || chunkIndex < 1) {
     return null
   }
 
-  return monthKey
+  return {
+    monthKey,
+    chunkIndex,
+  }
 }
 
 function getLatestLastModified(entries: SitemapRouteEntry[], fallbackDate: string): string {

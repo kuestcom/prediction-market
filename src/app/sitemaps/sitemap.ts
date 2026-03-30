@@ -75,7 +75,7 @@ function buildPathEntries(
   lastModified: string,
   enabledLocales: SupportedLocale[],
 ): MetadataRoute.Sitemap {
-  return paths.map(path => buildSitemapEntry(path, lastModified, siteUrl, enabledLocales))
+  return paths.flatMap(path => buildLocalizedSitemapEntries(path, lastModified, siteUrl, enabledLocales))
 }
 
 function buildDynamicEntries(
@@ -83,22 +83,25 @@ function buildDynamicEntries(
   siteUrl: string,
   enabledLocales: SupportedLocale[],
 ): MetadataRoute.Sitemap {
-  return entries.map(entry => buildSitemapEntry(entry.path, entry.lastModified, siteUrl, enabledLocales))
+  return entries.flatMap(entry => buildLocalizedSitemapEntries(entry.path, entry.lastModified, siteUrl, enabledLocales))
 }
 
-function buildSitemapEntry(
+function buildLocalizedSitemapEntries(
   path: string,
   lastModified: string,
   siteUrl: string,
   enabledLocales: SupportedLocale[],
-): MetadataRoute.Sitemap[number] {
+): MetadataRoute.Sitemap {
   const languages = buildAlternateLanguages(path, siteUrl, enabledLocales)
+  const locales = enabledLocales.length > 0
+    ? enabledLocales
+    : [DEFAULT_LOCALE]
 
-  return {
-    url: toAbsoluteUrl(siteUrl, path),
+  return locales.map(locale => ({
+    url: toAbsoluteUrl(siteUrl, withLocalePrefix(path, locale)),
     lastModified,
     ...(languages ? { alternates: { languages } } : {}),
-  }
+  }))
 }
 
 function buildAlternateLanguages(
@@ -106,12 +109,15 @@ function buildAlternateLanguages(
   siteUrl: string,
   enabledLocales: SupportedLocale[],
 ): Record<string, string> | undefined {
-  const languages = enabledLocales
-    .filter(locale => locale !== DEFAULT_LOCALE)
-    .reduce<Record<string, string>>((accumulator, locale) => {
-      accumulator[locale] = toAbsoluteUrl(siteUrl, withLocalePrefix(path, locale))
-      return accumulator
-    }, {})
+  const locales = enabledLocales.length > 0
+    ? enabledLocales
+    : [DEFAULT_LOCALE]
+
+  const languages = locales.reduce<Record<string, string>>((accumulator, locale) => {
+    accumulator[locale] = toAbsoluteUrl(siteUrl, withLocalePrefix(path, locale))
+    return accumulator
+  }, {})
+  languages['x-default'] = toAbsoluteUrl(siteUrl, path)
 
   return Object.keys(languages).length > 0
     ? languages
