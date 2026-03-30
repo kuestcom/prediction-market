@@ -12,6 +12,17 @@ function escapeSqlLiteral(value) {
   return String(value).replace(/'/g, '\'\'')
 }
 
+function joinSiteUrlPath(siteUrl, endpointPath) {
+  const normalizedSiteUrl = String(siteUrl).trim().replace(/\/+$/, '')
+  const normalizedEndpointPath = String(endpointPath).trim().replace(/^\/+/, '')
+
+  if (!normalizedEndpointPath) {
+    return normalizedSiteUrl
+  }
+
+  return `${normalizedSiteUrl}/${normalizedEndpointPath}`
+}
+
 function buildSyncCronSql({
   jobName,
   schedule,
@@ -19,7 +30,7 @@ function buildSyncCronSql({
   siteUrl,
   cronSecret,
 }) {
-  const endpointUrl = `${siteUrl}/${endpointPath}`
+  const endpointUrl = joinSiteUrlPath(siteUrl, endpointPath)
   const escapedJobName = escapeSqlLiteral(jobName)
   const escapedSchedule = escapeSqlLiteral(schedule)
   const escapedEndpointUrl = escapeSqlLiteral(endpointUrl)
