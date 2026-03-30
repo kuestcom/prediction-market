@@ -5,15 +5,15 @@ and portable self-hosted targets.
 
 ## Layout
 
-- `vercel/`: Vercel + Supabase deployment runbook
-- `docker/`: Docker image plus local/production Compose runbook
-- `cloud-run/`: Google Cloud Run deployment runbook
-- `fly/`: Fly.io deployment runbook
-- `digital-ocean/`: DigitalOcean deployment runbook (Droplet or App Platform)
-- `vps/`: generic VPS (DigitalOcean Droplets, Vultr, Hetzner, EC2, etc.) deployment runbook
-- `kubernetes/`: baseline manifests for app deployment and ingress
-- `terraform/`: reusable deployment target modules and production stacks
-- `scheduler-contract.md`: single scheduler contract for `/api/sync/*`
+- [vercel/](./vercel/README.md): Vercel + Supabase deployment runbook
+- [docker/](./docker/README.md): Docker image plus local/production Compose runbook
+- [cloud-run/](./cloud-run/README.md): Google Cloud Run deployment runbook
+- [fly/](./fly/README.md): Fly.io deployment runbook
+- [digital-ocean/](./digital-ocean/README.md): DigitalOcean deployment runbook (Droplet or App Platform)
+- [vps/](./vps/README.md): generic VPS (DigitalOcean Droplets, Vultr, Hetzner, EC2, etc.) deployment runbook
+- [kubernetes/](./kubernetes/README.md): baseline manifests for app deployment and ingress
+- [terraform/](./terraform/README.md): reusable deployment target modules and production stacks
+- [scheduler-contract.md](./scheduler-contract.md): single scheduler contract for `/api/sync/*`
 
 ## Deployment decision tree
 
@@ -79,14 +79,3 @@ Scheduler:
 ## Scheduler contract
 
 All non-Supabase targets should implement the same [HTTP scheduler contract](./scheduler-contract.md).
-
-## Runbooks
-
-- [Vercel + Supabase runbook](./vercel/README.md)
-- [Docker runbook](./docker/README.md)
-- [Cloud Run runbook](./cloud-run/README.md)
-- [Fly.io runbook](./fly/README.md)
-- [DigitalOcean runbook](./digital-ocean/README.md)
-- [VPS (DigitalOcean Droplets, Vultr, Hetzner, EC2, etc.) runbook](./vps/README.md)
-- [Kubernetes runbook](./kubernetes/README.md)
-- [Terraform runbook](./terraform/README.md)
