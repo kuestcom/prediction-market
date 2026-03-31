@@ -1,8 +1,7 @@
 import type { SportsEventMarketViewKey } from '@/lib/sports-event-slugs'
 import type { Event, Market, Outcome, SportsTeam } from '@/types'
-import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventPagePath } from '@/lib/events-routing'
-import { resolveOutcomePriceCents } from '@/lib/market-pricing'
+import { resolveOutcomeSelectionPriceCents } from '@/lib/market-pricing'
 import {
   isSportsMoreMarketsSlug,
   SPORTS_EVENT_MARKET_VIEW_LABELS,
@@ -23,6 +22,7 @@ export interface SportsGamesButton {
   key: string
   conditionId: string
   outcomeIndex: number
+  fallbackIsNoOutcome: boolean
   label: string
   cents: number
   color: string | null
@@ -261,11 +261,9 @@ function normalizeOutcomePriceCents(
   market: Market,
   fallbackIsNoOutcome = false,
 ) {
-  const outcomeIndex = outcome?.outcome_index === OUTCOME_INDEX.NO
-    ? OUTCOME_INDEX.NO
-    : (fallbackIsNoOutcome ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES)
-
-  return resolveOutcomePriceCents(market, outcomeIndex) ?? 50
+  return resolveOutcomeSelectionPriceCents(market, outcome, {
+    fallbackIsNoOutcome,
+  }) ?? 50
 }
 
 function marketDisplayText(market: Market) {
@@ -998,6 +996,7 @@ function appendButton(
     key: buttonKey,
     conditionId: market.condition_id,
     outcomeIndex,
+    fallbackIsNoOutcome: isNoOutcome,
     label: payload.label,
     cents: normalizeOutcomePriceCents(selectedOutcome, market, isNoOutcome),
     color: payload.color,

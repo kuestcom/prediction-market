@@ -57,7 +57,7 @@ import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatVolume } from '@/lib/formatters'
-import { resolveOutcomePriceCents } from '@/lib/market-pricing'
+import { resolveOutcomePriceCents, resolveOutcomeSelectionPriceCents } from '@/lib/market-pricing'
 import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
@@ -1061,6 +1061,8 @@ export default function SportsEventCenter({
 
     activeCard.buttons.forEach((button) => {
       const market = detailMarketByConditionId.get(button.conditionId) ?? null
+      const outcome = market?.outcomes.find(currentOutcome => currentOutcome.outcome_index === button.outcomeIndex)
+        ?? market?.outcomes[button.outcomeIndex]
       const cents = resolveOutcomePriceCents(
         market,
         button.outcomeIndex === OUTCOME_INDEX.NO ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES,
@@ -1068,8 +1070,13 @@ export default function SportsEventCenter({
           orderBookSummaries: buttonOrderBookSummaries,
           side: ORDER_SIDE.BUY,
         },
-      ) ?? button.cents
-      priceByKey.set(button.key, cents)
+      )
+      const selectionCents = resolveOutcomeSelectionPriceCents(market, outcome, {
+        orderBookSummaries: buttonOrderBookSummaries,
+        side: ORDER_SIDE.BUY,
+        fallbackIsNoOutcome: button.fallbackIsNoOutcome,
+      })
+      priceByKey.set(button.key, selectionCents ?? cents ?? button.cents)
     })
 
     return priceByKey

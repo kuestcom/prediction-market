@@ -74,6 +74,37 @@ export function resolveFallbackOutcomeUnitPrice(
     : marketPrice
 }
 
+export function resolveOutcomeSelectionUnitPrice(
+  market: Market | null | undefined,
+  outcome: Outcome | null | undefined,
+  options?: {
+    orderBookSummaries?: OrderBookSummariesResponse | null
+    side?: typeof ORDER_SIDE.BUY | typeof ORDER_SIDE.SELL
+    fallbackIsNoOutcome?: boolean
+  },
+) {
+  const tokenId = outcome?.token_id ? String(outcome.token_id) : null
+  const bookSide = options?.side === ORDER_SIDE.SELL ? 'bid' : 'ask'
+  const topOfBookPrice = tokenId
+    ? getTopOfBookUnitPrice(options?.orderBookSummaries?.[tokenId], bookSide)
+    : null
+
+  if (topOfBookPrice != null) {
+    return topOfBookPrice
+  }
+
+  if (outcome && Number.isFinite(outcome.buy_price)) {
+    return clampUnitPrice(Number(outcome.buy_price))
+  }
+
+  const marketPrice = normalizeMarketUnitPrice(market)
+  if (marketPrice == null) {
+    return null
+  }
+
+  return options?.fallbackIsNoOutcome ? clampUnitPrice(1 - marketPrice) : marketPrice
+}
+
 export function getTopOfBookUnitPrice(
   summary: OrderBookSummaryResponse | null | undefined,
   side: 'ask' | 'bid',
@@ -91,13 +122,11 @@ export function resolveOutcomeUnitPrice(
   },
 ) {
   const outcome = resolveMarketOutcome(market, outcomeIndex)
-  const tokenId = outcome?.token_id ? String(outcome.token_id) : null
-  const bookSide = options?.side === ORDER_SIDE.SELL ? 'bid' : 'ask'
-  const topOfBookPrice = tokenId
-    ? getTopOfBookUnitPrice(options?.orderBookSummaries?.[tokenId], bookSide)
-    : null
-
-  return topOfBookPrice ?? resolveFallbackOutcomeUnitPrice(market, outcome)
+  return resolveOutcomeSelectionUnitPrice(market, outcome, {
+    orderBookSummaries: options?.orderBookSummaries,
+    side: options?.side,
+    fallbackIsNoOutcome: outcomeIndex === OUTCOME_INDEX.NO,
+  })
 }
 
 export function resolveOutcomePriceCents(
@@ -109,4 +138,16 @@ export function resolveOutcomePriceCents(
   },
 ) {
   return toCents(resolveOutcomeUnitPrice(market, outcomeIndex, options))
+}
+
+export function resolveOutcomeSelectionPriceCents(
+  market: Market | null | undefined,
+  outcome: Outcome | null | undefined,
+  options?: {
+    orderBookSummaries?: OrderBookSummariesResponse | null
+    side?: typeof ORDER_SIDE.BUY | typeof ORDER_SIDE.SELL
+    fallbackIsNoOutcome?: boolean
+  },
+) {
+  return toCents(resolveOutcomeSelectionUnitPrice(market, outcome, options))
 }

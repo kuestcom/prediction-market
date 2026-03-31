@@ -84,7 +84,7 @@ import {
   formatVolume,
   fromMicro,
 } from '@/lib/formatters'
-import { resolveOutcomePriceCents } from '@/lib/market-pricing'
+import { resolveOutcomePriceCents, resolveOutcomeSelectionPriceCents } from '@/lib/market-pricing'
 import { formatOddsFromCents, ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { calculateYAxisBounds } from '@/lib/prediction-chart'
@@ -3878,6 +3878,8 @@ export default function SportsGamesCenter({
 
       card.buttons.forEach((button) => {
         const market = marketsByConditionId.get(button.conditionId) ?? null
+        const outcome = market?.outcomes.find(currentOutcome => currentOutcome.outcome_index === button.outcomeIndex)
+          ?? market?.outcomes[button.outcomeIndex]
         const cents = resolveOutcomePriceCents(
           market,
           button.outcomeIndex === OUTCOME_INDEX.NO ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES,
@@ -3885,8 +3887,13 @@ export default function SportsGamesCenter({
             orderBookSummaries: buttonOrderBookSummaries,
             side: ORDER_SIDE.BUY,
           },
-        ) ?? button.cents
-        priceByKey.set(`${card.id}:${button.key}`, cents)
+        )
+        const selectionCents = resolveOutcomeSelectionPriceCents(market, outcome, {
+          orderBookSummaries: buttonOrderBookSummaries,
+          side: ORDER_SIDE.BUY,
+          fallbackIsNoOutcome: button.fallbackIsNoOutcome,
+        })
+        priceByKey.set(`${card.id}:${button.key}`, selectionCents ?? cents ?? button.cents)
       })
     })
 
