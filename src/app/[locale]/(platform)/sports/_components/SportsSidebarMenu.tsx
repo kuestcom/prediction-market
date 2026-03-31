@@ -939,7 +939,8 @@ export default function SportsSidebarMenu({
           'hidden w-[190px] shrink-0',
           independentScroll
             ? `
-              lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:justify-start lg:overflow-y-auto lg:overscroll-contain lg:py-8
+              lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:justify-start lg:overflow-y-auto lg:overscroll-contain lg:pt-2
+              lg:pb-8
             `
             : `
               lg:sticky lg:top-22 lg:flex lg:h-[calc(100vh-5.5rem)] lg:flex-col lg:justify-start lg:overflow-y-auto

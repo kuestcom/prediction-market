@@ -187,9 +187,11 @@ export default function SportsLayoutShell({
       context.mode === 'all'
       && (context.section === 'games' || context.isEventRoute)
     )
-  const headerInsideGamesCenter = context.mode === 'all'
-    && context.section === 'games'
-    && !context.isEventRoute
+  const headerInsideGamesCenter = !context.isEventRoute
+    && (
+      context.mode === 'live'
+      || (context.mode === 'all' && context.section === 'games')
+    )
   const showShellHeader = !headerInsideGamesCenter
   const showTitle = Boolean(context.title) && !context.isEventRoute
   const activeSection = context.section ?? 'games'

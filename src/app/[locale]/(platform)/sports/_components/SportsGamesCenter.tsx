@@ -31,7 +31,6 @@ import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
 import EventChartControls, { defaultChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
@@ -3649,7 +3648,6 @@ export default function SportsGamesCenter({
   const [showSpreadsAndTotals, setShowSpreadsAndTotals] = useState(false)
   const [hasLoadedOddsFormat, setHasLoadedOddsFormat] = useState(false)
   const [currentTimestampMs, setCurrentTimestampMs] = useState(0)
-  const [titleRowActionsTarget, setTitleRowActionsTarget] = useState<HTMLElement | null>(null)
   const searchShellRef = useRef<HTMLDivElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const openLivestream = useSportsLivestream(state => state.openStream)
@@ -3707,15 +3705,6 @@ export default function SportsGamesCenter({
       showSpreadsAndTotals ? '1' : '0',
     )
   }, [hasLoadedOddsFormat, oddsFormat, showSpreadsAndTotals])
-
-  useBrowserLayoutEffect(() => {
-    if (!isLivePage || typeof document === 'undefined') {
-      setTitleRowActionsTarget(null)
-      return
-    }
-
-    setTitleRowActionsTarget(document.getElementById('sports-title-row-actions'))
-  }, [isLivePage])
 
   useEffect(() => {
     if (!isMobile) {
@@ -5038,19 +5027,8 @@ export default function SportsGamesCenter({
     )
   }
 
-  const liveTitleRowActions = isLivePage && titleRowActionsTarget
-    ? createPortal(
-        <div className="flex items-center gap-2">
-          {renderSearchControl()}
-          {renderSettingsMenu()}
-        </div>,
-        titleRowActionsTarget,
-      )
-    : null
-
   return (
     <>
-      {liveTitleRowActions}
       <div className="
         min-[1200px]:grid min-[1200px]:h-full min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem]
         min-[1200px]:[align-content:start] min-[1200px]:[align-items:start] min-[1200px]:gap-6
@@ -5065,17 +5043,20 @@ export default function SportsGamesCenter({
           "
         >
           <div className="mb-4">
-            {!isLivePage && (
-              <div className="mb-3 flex items-start justify-between gap-3 lg:mt-2">
-                <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                  {sportTitle}
-                </h1>
-
-                <div className="flex items-center gap-2">
-                  {renderSettingsMenu()}
-                </div>
-              </div>
+            <div className={cn(
+              'mb-3 flex items-start justify-between gap-3',
+              !isLivePage && 'lg:mt-2',
             )}
+            >
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+                {sportTitle}
+              </h1>
+
+              <div className="flex items-center gap-2">
+                {isLivePage && renderSearchControl()}
+                {renderSettingsMenu()}
+              </div>
+            </div>
 
             {!isLivePage && (
               <div className="mb-4 flex flex-wrap items-center gap-3">
