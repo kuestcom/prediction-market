@@ -7,11 +7,12 @@ import type {
   SportsMenuLinkEntry,
 } from '@/lib/sports-menu-types'
 import type { SportsVertical } from '@/lib/sports-vertical'
-import { ChevronDownIcon } from 'lucide-react'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
+import { ChevronDownIcon, MoreHorizontalIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import IntentPrefetchLink from '@/components/IntentPrefetchLink'
-import { Drawer, DrawerContent } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 import { cn } from '@/lib/utils'
 
@@ -29,17 +30,13 @@ type SportsMenuChildLinkEntry = SportsMenuGroupEntry['links'][number]
 type SportsMenuRenderableLinkEntry = SportsMenuLinkEntry | SportsMenuChildLinkEntry
 type SportsMenuNavigableEntry = SportsMenuRenderableLinkEntry | SportsMenuGroupEntry
 
-const MOBILE_MENU_ITEM_WIDTH = 72
-const MOBILE_MENU_ITEM_GAP = 6
+const MOBILE_MENU_ITEM_MIN_WIDTH = 56
+const MOBILE_MENU_ITEM_GAP = 4
 const MOBILE_MENU_MIN_VISIBLE_LINKS = 1
 
 function normalizeTagSlug(value: string | null | undefined) {
   return value?.trim().toLowerCase() || ''
 }
-
-// function isFutureMenuHref(value: string | null | undefined, vertical: SportsVertical) {
-//   return normalizeTagSlug(value).startsWith(normalizeTagSlug(getSportsVerticalConfig(vertical).futurePathPrefix))
-// }
 
 function areTagSlugsEquivalent(input: string | null | undefined, current: string | null | undefined) {
   const left = normalizeTagSlug(input)
@@ -368,13 +365,13 @@ function SportsMobileQuickLink({
       aria-current={isActive ? 'page' : undefined}
       className={cn(
         `
-          flex h-19 w-[72px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-center
+          flex h-[60px] min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-center
           transition-colors
         `,
         isActive ? 'bg-muted' : 'bg-transparent hover:bg-muted',
       )}
     >
-      <span className="size-6">
+      <span className="size-5 shrink-0 text-muted-foreground [&_svg]:size-5">
         <SportsMenuIcon
           entry={entry}
           futureIconVariant={futureIconVariant}
@@ -384,7 +381,7 @@ function SportsMobileQuickLink({
           className="size-full"
         />
       </span>
-      <span className="w-full truncate text-2xs leading-none font-semibold tracking-[0.05em] text-foreground uppercase">
+      <span className="w-full truncate text-[11px] leading-tight font-medium text-foreground">
         {entry.label}
       </span>
     </IntentPrefetchLink>
@@ -595,6 +592,7 @@ export default function SportsSidebarMenu({
     () => primaryTopLevelLinks.slice(0, mobileVisiblePrimaryLinkCount),
     [primaryTopLevelLinks, mobileVisiblePrimaryLinkCount],
   )
+  const mobileQuickNavColumnCount = Math.max(1, mobileVisiblePrimaryLinks.length + 1)
   const hasVisibleActiveMobilePrimaryLink = mobileVisiblePrimaryLinks.some(entry => isMenuLinkActive({
     entry,
     vertical,
@@ -634,7 +632,7 @@ export default function SportsSidebarMenu({
 
       const slotCount = Math.max(
         2,
-        Math.floor((width + MOBILE_MENU_ITEM_GAP) / (MOBILE_MENU_ITEM_WIDTH + MOBILE_MENU_ITEM_GAP)),
+        Math.floor((width + MOBILE_MENU_ITEM_GAP) / (MOBILE_MENU_ITEM_MIN_WIDTH + MOBILE_MENU_ITEM_GAP)),
       )
       const nextCount = Math.max(MOBILE_MENU_MIN_VISIBLE_LINKS, slotCount - 1)
       setMobileVisiblePrimaryLinkCount(current => (current === nextCount ? current : nextCount))
@@ -883,53 +881,60 @@ export default function SportsSidebarMenu({
 
   return (
     <>
-      <nav className="mb-3 pb-2 lg:hidden">
-        <div ref={mobileQuickMenuContainerRef} className="flex min-w-0 items-stretch gap-1.5 overflow-hidden">
-          {mobileVisiblePrimaryLinks.map(entry => (
-            <SportsMobileQuickLink
-              key={entry.id}
-              entry={entry}
-              vertical={vertical}
-              mode={mode}
-              activeTagSlug={activeTagSlug}
-            />
-          ))}
-
-          <button
-            type="button"
-            onClick={() => setIsMobileMoreMenuOpen(true)}
-            className={cn(
-              `
-                flex h-19 w-[72px] shrink-0 flex-col items-center justify-center rounded-xl px-1.5 py-2 text-center
-                transition-colors
-              `,
-              isMobileMoreButtonActive || isMobileMoreMenuOpen
-                ? 'bg-muted'
-                : 'bg-transparent hover:bg-muted',
-            )}
-            aria-label={`Open more ${verticalConfig.label.toLowerCase()}`}
+      <Drawer open={isMobileMoreMenuOpen} onOpenChange={setIsMobileMoreMenuOpen}>
+        <nav className="mb-3 pb-2 lg:hidden">
+          <div
+            ref={mobileQuickMenuContainerRef}
+            className="grid min-w-0 items-stretch"
+            style={{
+              gap: `${MOBILE_MENU_ITEM_GAP}px`,
+              gridTemplateColumns: `repeat(${mobileQuickNavColumnCount}, minmax(0, 1fr))`,
+            }}
           >
-            <span className="relative -top-1 text-[30px] leading-none font-bold text-foreground">...</span>
-            <span className="
-              w-full truncate text-2xs leading-none font-semibold tracking-[0.05em] text-foreground uppercase
-            "
-            >
-              More
-            </span>
-          </button>
-        </div>
+            {mobileVisiblePrimaryLinks.map(entry => (
+              <SportsMobileQuickLink
+                key={entry.id}
+                entry={entry}
+                vertical={vertical}
+                mode={mode}
+                activeTagSlug={activeTagSlug}
+              />
+            ))}
 
-        <Drawer open={isMobileMoreMenuOpen} onOpenChange={setIsMobileMoreMenuOpen}>
-          <DrawerContent className="max-h-[88vh] w-full border-border/70 bg-background px-0 pt-2 pb-4">
-            <div className="px-4 pb-2">
-              <p className="text-base font-semibold text-foreground">{verticalConfig.label}</p>
-            </div>
-            <div className="max-h-[72dvh] overflow-y-auto px-2">
-              {renderMobileSheetMenuEntries()}
-            </div>
-          </DrawerContent>
-        </Drawer>
-      </nav>
+            <DrawerTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  `
+                    flex h-[60px] min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-center
+                    transition-colors
+                  `,
+                  isMobileMoreButtonActive || isMobileMoreMenuOpen
+                    ? 'bg-muted'
+                    : 'bg-transparent hover:bg-muted',
+                )}
+                aria-label={`Open more ${verticalConfig.label.toLowerCase()}`}
+              >
+                <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
+                  <MoreHorizontalIcon className="size-5 text-foreground" />
+                </span>
+                <span className="w-full truncate text-[11px] leading-tight font-medium text-foreground">
+                  More
+                </span>
+              </button>
+            </DrawerTrigger>
+          </div>
+        </nav>
+
+        <DrawerContent className="max-h-[88vh] w-full border-border/70 bg-background px-0 pt-2 pb-4">
+          <VisuallyHidden>
+            <DrawerTitle>{verticalConfig.label}</DrawerTitle>
+          </VisuallyHidden>
+          <div className="mt-4 max-h-[72dvh] overflow-y-auto px-2">
+            {renderMobileSheetMenuEntries()}
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       <aside
         data-sports-scroll-pane="sidebar"

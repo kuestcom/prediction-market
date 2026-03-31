@@ -196,7 +196,7 @@ export default function MobileBottomNav() {
         <DrawerContent
           data-mobile-search-drawer="true"
           className="
-            h-[90dvh] max-h-dvh overflow-y-auto rounded-none border-x-0 border-b-0 border-border/70 bg-background px-2
+            h-[90dvh] max-h-dvh overflow-y-auto rounded-none border-x-0 border-b-0 border-border/70 bg-background px-4
             pt-2 pb-6
           "
         >
