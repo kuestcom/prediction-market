@@ -1,4 +1,4 @@
-import { buildSportsGamesCardGroups } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import { buildSportsGamesCardGroups, isSportsGamesCardResolved } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 
 function buildOutcome(conditionId: string, outcomeIndex: number, outcomeText: string) {
   return {
@@ -191,7 +191,71 @@ function buildSportsEvent(params: {
   } as any
 }
 
+function buildResolvedBinaryMarket(params?: {
+  conditionId?: string
+  slug?: string
+  title?: string
+  marketType?: string
+}) {
+  const market = buildBinaryMarket({
+    conditionId: params?.conditionId ?? 'resolved-market',
+    slug: params?.slug ?? 'sample-resolved-event',
+    title: params?.title ?? 'Match Winner',
+    marketType: params?.marketType ?? 'moneyline',
+  })
+
+  return {
+    ...market,
+    is_active: false,
+    is_resolved: true,
+    condition: {
+      ...market.condition,
+      resolved: true,
+    },
+  }
+}
+
 describe('sportsGamesData', () => {
+  it('treats cards as resolved when the event is resolved', () => {
+    const resolvedMarket = buildResolvedBinaryMarket()
+    const resolvedEvent = {
+      ...buildSportsEvent({
+        id: 'resolved-event',
+        slug: 'sample-resolved-event',
+        title: 'Team Alpha vs Team Beta',
+        markets: [resolvedMarket],
+      }),
+      status: 'resolved',
+      resolved_at: '2026-03-30T07:13:02.993Z',
+    }
+
+    expect(isSportsGamesCardResolved({
+      event: resolvedEvent,
+      detailMarkets: [resolvedMarket],
+    } as any)).toBe(true)
+  })
+
+  it('keeps cards visible when at least one market is unresolved', () => {
+    const resolvedMarket = buildResolvedBinaryMarket()
+    const activeMarket = buildBinaryMarket({
+      conditionId: 'active-market',
+      slug: 'sample-mixed-event-map-2',
+      title: 'Map 2 Winner',
+      marketType: 'child_moneyline',
+    })
+    const activeEvent = buildSportsEvent({
+      id: 'mixed-event',
+      slug: 'sample-mixed-event',
+      title: 'Team Alpha vs Team Beta',
+      markets: [resolvedMarket, activeMarket],
+    })
+
+    expect(isSportsGamesCardResolved({
+      event: activeEvent,
+      detailMarkets: [resolvedMarket, activeMarket],
+    } as any)).toBe(false)
+  })
+
   it('keeps CS2 child moneyline markets out of the primary moneyline buttons', () => {
     const event = buildSportsEvent({
       id: 'cs2-event',

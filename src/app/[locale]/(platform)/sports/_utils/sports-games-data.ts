@@ -101,6 +101,18 @@ export function resolveSportsGamesHeaderMarketTypes(
     ? firstColumns
     : []
 }
+
+export function isSportsGamesCardResolved(
+  card: Pick<SportsGamesCard, 'event' | 'detailMarkets'>,
+) {
+  if (card.event.status === 'resolved' || Boolean(card.event.resolved_at)) {
+    return true
+  }
+
+  return card.detailMarkets.length > 0
+    && card.detailMarkets.every(market => market.is_resolved || market.condition?.resolved)
+}
+
 export interface SportsGamesCardMarketView {
   key: SportsEventMarketViewKey
   label: string

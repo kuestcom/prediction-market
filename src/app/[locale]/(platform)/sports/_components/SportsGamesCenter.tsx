@@ -53,6 +53,7 @@ import SportsLivestreamFloatingPlayer
   from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import {
   hasSportsGamesCardPrimaryMarketTrio,
+  isSportsGamesCardResolved,
   resolveSportsGamesCardVisibleMarketTypes,
   resolveSportsGamesHeaderMarketTypes,
 } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -3735,19 +3736,27 @@ export default function SportsGamesCenter({
       ?? resolveDefaultConditionId(card)
   }, [showSpreadsAndTotals])
 
+  const visibleCards = useMemo(() => {
+    if (isLivePage) {
+      return cards
+    }
+
+    return cards.filter(card => !isSportsGamesCardResolved(card))
+  }, [cards, isLivePage])
+
   const weekOptions = useMemo(() => {
     if (isLivePage) {
       return []
     }
 
     const weeks = Array.from(new Set(
-      cards
+      visibleCards
         .map(card => card.week)
         .filter((week): week is number => Number.isFinite(week)),
     ))
 
     return weeks.sort((a, b) => a - b)
-  }, [cards, isLivePage])
+  }, [isLivePage, visibleCards])
 
   const requestedWeekOption = useMemo(() => {
     if (isLivePage || initialWeek == null || !Number.isFinite(initialWeek)) {
@@ -3755,6 +3764,7 @@ export default function SportsGamesCenter({
     }
     return String(initialWeek)
   }, [initialWeek, isLivePage])
+
   const latestWeekOption = useMemo(
     () => (weekOptions.length > 0 ? String(weekOptions.at(-1)) : 'all'),
     [weekOptions],
@@ -3789,16 +3799,16 @@ export default function SportsGamesCenter({
 
   const weekFilteredCards = useMemo(() => {
     if (isLivePage) {
-      return cards
+      return visibleCards
     }
 
     if (selectedWeek === 'all') {
-      return cards
+      return visibleCards
     }
 
     const week = Number(selectedWeek)
-    return cards.filter(card => card.week === week)
-  }, [cards, isLivePage, selectedWeek])
+    return visibleCards.filter(card => card.week === week)
+  }, [isLivePage, selectedWeek, visibleCards])
 
   useEffect(() => {
     if (!isSearchOpen) {
