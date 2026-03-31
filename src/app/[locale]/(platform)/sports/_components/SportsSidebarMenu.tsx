@@ -33,6 +33,7 @@ type SportsMenuNavigableEntry = SportsMenuRenderableLinkEntry | SportsMenuGroupE
 const MOBILE_MENU_ITEM_MIN_WIDTH = 56
 const MOBILE_MENU_ITEM_GAP = 4
 const MOBILE_MENU_MIN_VISIBLE_LINKS = 1
+const MOBILE_MENU_DEFAULT_VISIBLE_LINKS = 5
 
 function normalizeTagSlug(value: string | null | undefined) {
   return value?.trim().toLowerCase() || ''
@@ -566,7 +567,9 @@ export default function SportsSidebarMenu({
   const verticalConfig = getSportsVerticalConfig(vertical)
   const mobileQuickMenuContainerRef = useRef<HTMLDivElement | null>(null)
   const [isMobileMoreMenuOpen, setIsMobileMoreMenuOpen] = useState(false)
-  const [mobileVisiblePrimaryLinkCount, setMobileVisiblePrimaryLinkCount] = useState(4)
+  const [mobileVisiblePrimaryLinkCount, setMobileVisiblePrimaryLinkCount] = useState(
+    MOBILE_MENU_DEFAULT_VISIBLE_LINKS,
+  )
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(() =>
     findActiveGroupId(entries, activeTagSlug),
   )
