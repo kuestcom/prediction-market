@@ -1,6 +1,8 @@
 import type { SportsEventMarketViewKey } from '@/lib/sports-event-slugs'
 import type { Event, Market, Outcome, SportsTeam } from '@/types'
+import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventPagePath } from '@/lib/events-routing'
+import { resolveOutcomePriceCents } from '@/lib/market-pricing'
 import {
   isSportsMoreMarketsSlug,
   SPORTS_EVENT_MARKET_VIEW_LABELS,
@@ -254,28 +256,16 @@ function normalizeTeamRecord(value: string | null | undefined) {
   return trimmed
 }
 
-function normalizeMarketPriceCents(market: Market) {
-  const value = Number.isFinite(market.price)
-    ? market.price * 100
-    : Number.isFinite(market.probability)
-      ? market.probability
-      : 0
-
-  return Math.max(0, Math.min(100, Math.round(value)))
-}
-
 function normalizeOutcomePriceCents(
   outcome: Outcome | null | undefined,
   market: Market,
   fallbackIsNoOutcome = false,
 ) {
-  if (outcome && Number.isFinite(outcome.buy_price)) {
-    const value = Number(outcome.buy_price) * 100
-    return Math.max(0, Math.min(100, Math.round(value)))
-  }
+  const outcomeIndex = outcome?.outcome_index === OUTCOME_INDEX.NO
+    ? OUTCOME_INDEX.NO
+    : (fallbackIsNoOutcome ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES)
 
-  const yesPrice = normalizeMarketPriceCents(market)
-  return fallbackIsNoOutcome ? Math.max(0, 100 - yesPrice) : yesPrice
+  return resolveOutcomePriceCents(market, outcomeIndex) ?? 50
 }
 
 function marketDisplayText(market: Market) {

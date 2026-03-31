@@ -46,6 +46,7 @@ import { defaultNetwork } from '@/lib/appkit'
 import { CLOB_ORDER_TYPE, DEFAULT_ERROR_MESSAGE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { formatCentsLabel, formatCurrency, formatSharesLabel, toCents } from '@/lib/formatters'
+import { resolveFallbackOutcomeUnitPrice, resolveMarketOutcome } from '@/lib/market-pricing'
 import {
   applyPositionDeltasToUserPositions,
   buildOptimisticOpenOrder,
@@ -150,55 +151,6 @@ function resolveEndOfDayTimestamp() {
   return Math.floor(now.getTime() / 1000)
 }
 
-function normalizeMarketPrice(market: Market | null | undefined) {
-  if (!market) {
-    return null
-  }
-
-  const value = Number.isFinite(market.price)
-    ? market.price
-    : Number.isFinite(market.probability)
-      ? Number(market.probability) / 100
-      : null
-
-  if (value == null) {
-    return null
-  }
-
-  return Math.max(0, Math.min(1, value))
-}
-
-function resolveMarketOutcome(
-  market: Market | null | undefined,
-  outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
-) {
-  if (!market) {
-    return null
-  }
-
-  return market.outcomes.find(outcome => outcome.outcome_index === outcomeIndex)
-    ?? market.outcomes[outcomeIndex]
-    ?? null
-}
-
-function resolveFallbackOutcomePrice(
-  market: Market | null | undefined,
-  outcome: Outcome | null | undefined,
-) {
-  if (outcome && Number.isFinite(outcome.buy_price)) {
-    return Math.max(0, Math.min(1, Number(outcome.buy_price)))
-  }
-
-  const marketPrice = normalizeMarketPrice(market)
-  if (marketPrice == null) {
-    return null
-  }
-
-  return outcome?.outcome_index === OUTCOME_INDEX.NO
-    ? Math.max(0, Math.min(1, 1 - marketPrice))
-    : marketPrice
-}
-
 export default function EventOrderPanelForm({
   event,
   isMobile,
@@ -271,8 +223,10 @@ export default function EventOrderPanelForm({
     () => resolveMarketOutcome(activeMarket, OUTCOME_INDEX.NO),
     [activeMarket],
   )
-  const yesPrice = liveYesPrice ?? resolveFallbackOutcomePrice(activeMarket, yesOutcome)
-  const noPrice = liveNoPrice ?? resolveFallbackOutcomePrice(activeMarket, noOutcome)
+  const activeLiveYesPrice = hasMatchingStoreMarket ? liveYesPrice : null
+  const activeLiveNoPrice = hasMatchingStoreMarket ? liveNoPrice : null
+  const yesPrice = activeLiveYesPrice ?? resolveFallbackOutcomeUnitPrice(activeMarket, yesOutcome)
+  const noPrice = activeLiveNoPrice ?? resolveFallbackOutcomeUnitPrice(activeMarket, noOutcome)
   const outcomeTokenId = activeOutcome?.token_id ? String(activeOutcome.token_id) : null
   const shouldLoadOrderBookSummary = Boolean(
     outcomeTokenId

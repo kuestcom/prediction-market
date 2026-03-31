@@ -41,6 +41,7 @@ import { resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators } from '@/li
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData, fetchUserOtherBalance, fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatAmountInputValue, formatSharesLabel, fromMicro } from '@/lib/formatters'
+import { resolveOutcomeUnitPrice } from '@/lib/market-pricing'
 import { applyPositionDeltasToUserPositions } from '@/lib/optimistic-trading'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { buildUmaProposeUrl, buildUmaSettledUrl } from '@/lib/uma'
@@ -59,6 +60,7 @@ function toNumber(value: unknown) {
   if (value === null || value === undefined) {
     return null
   }
+
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : null
 }
@@ -73,27 +75,6 @@ function getMarketEndTime(market: Event['markets'][number]) {
   }
   const parsed = Date.parse(market.end_time)
   return Number.isNaN(parsed) ? null : parsed
-}
-
-function resolveOutcomeUnitPrice(
-  market: Event['markets'][number],
-  outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
-) {
-  const outcome = market.outcomes.find(currentOutcome => currentOutcome.outcome_index === outcomeIndex)
-    ?? market.outcomes[outcomeIndex]
-  const explicitPrice = toNumber(outcome?.buy_price)
-  if (explicitPrice != null && explicitPrice > 0 && explicitPrice <= 1) {
-    return explicitPrice
-  }
-
-  const marketPrice = toNumber(market.price)
-  if (marketPrice != null && marketPrice > 0 && marketPrice <= 1) {
-    return outcomeIndex === OUTCOME_INDEX.NO
-      ? Math.max(0, Math.min(1, 1 - marketPrice))
-      : marketPrice
-  }
-
-  return 0.5
 }
 
 export function resolveWinningOutcomeIndex(market: Event['markets'][number]) {
@@ -139,43 +120,8 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   )
   const { rows: marketRows, hasChanceData } = useEventMarketRows(event)
   const xtrackerTweetCountQuery = useXTrackerTweetCount(event, isTweetMarketEvent)
-  const { activeMarketRows, resolvedMarketRows } = useMemo(() => {
-    const activeRows: typeof marketRows = []
-    const resolvedRows: typeof marketRows = []
-
-    marketRows.forEach((row) => {
-      if (isMarketResolved(row.market)) {
-        resolvedRows.push(row)
-      }
-      else {
-        activeRows.push(row)
-      }
-    })
-
-    return { activeMarketRows: activeRows, resolvedMarketRows: resolvedRows }
-  }, [marketRows])
-  const sortedResolvedMarketRows = useMemo(() => {
-    if (!resolvedMarketRows.length) {
-      return resolvedMarketRows
-    }
-
-    return resolvedMarketRows
-      .map((row, index) => ({
-        row,
-        index,
-        endTime: getMarketEndTime(row.market),
-      }))
-      .sort((a, b) => {
-        if (a.endTime != null && b.endTime != null) {
-          return a.endTime - b.endTime
-        }
-        return a.index - b.index
-      })
-      .map(item => item.row)
-  }, [resolvedMarketRows])
   const {
     expandedMarketId,
-    orderBookPollingEnabled,
     toggleMarket,
     expandMarket,
     selectDetailTab,
@@ -249,7 +195,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
 
     return Array.from(ids)
   }, [event.markets])
-  const shouldEnableOrderBookPolling = !isSingleMarket && orderBookPollingEnabled
+  const shouldEnableOrderBookPolling = !isSingleMarket
   const orderBookQuery = useOrderBookSummaries(eventTokenIds, { enabled: shouldEnableOrderBookPolling })
   const orderBookSummaries = orderBookQuery.data
   const isOrderBookLoading = orderBookQuery.isLoading
@@ -617,12 +563,60 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     }
   }, [expandMarket, inputRef, setIsMobileOrderPanelOpen, setMarket, setOutcome, setSide])
 
-  const allMarketsResolved = marketRows.length > 0
-    && marketRows.every(row => isMarketResolved(row.market))
+  const pricedMarketRows = useMemo(
+    () => marketRows.map(row => ({
+      ...row,
+      yesPriceValue: resolveOutcomeUnitPrice(row.market, OUTCOME_INDEX.YES, {
+        orderBookSummaries,
+        side: ORDER_SIDE.BUY,
+      }),
+      noPriceValue: resolveOutcomeUnitPrice(row.market, OUTCOME_INDEX.NO, {
+        orderBookSummaries,
+        side: ORDER_SIDE.BUY,
+      }),
+    })),
+    [marketRows, orderBookSummaries],
+  )
+  const { activeDisplayRows, resolvedDisplayRows } = useMemo(() => {
+    const activeRows: EventMarketRow[] = []
+    const resolvedRows: EventMarketRow[] = []
+
+    pricedMarketRows.forEach((row) => {
+      if (isMarketResolved(row.market)) {
+        resolvedRows.push(row)
+        return
+      }
+
+      activeRows.push(row)
+    })
+
+    return { activeDisplayRows: activeRows, resolvedDisplayRows: resolvedRows }
+  }, [pricedMarketRows])
+  const sortedResolvedDisplayRows = useMemo(() => {
+    if (!resolvedDisplayRows.length) {
+      return resolvedDisplayRows
+    }
+
+    return resolvedDisplayRows
+      .map((row, index) => ({
+        row,
+        index,
+        endTime: getMarketEndTime(row.market),
+      }))
+      .sort((a, b) => {
+        if (a.endTime != null && b.endTime != null) {
+          return a.endTime - b.endTime
+        }
+        return a.index - b.index
+      })
+      .map(item => item.row)
+  }, [resolvedDisplayRows])
+  const allMarketsResolved = pricedMarketRows.length > 0
+    && pricedMarketRows.every(row => isMarketResolved(row.market))
   const showResolvedInline = allMarketsResolved
-  const primaryMarketRows = showResolvedInline ? sortedResolvedMarketRows : activeMarketRows
+  const primaryMarketRows = showResolvedInline ? sortedResolvedDisplayRows : activeDisplayRows
   const shouldShowActiveSection = primaryMarketRows.length > 0 || shouldShowOtherRow
-  const shouldShowResolvedSection = !showResolvedInline && sortedResolvedMarketRows.length > 0
+  const shouldShowResolvedSection = !showResolvedInline && sortedResolvedDisplayRows.length > 0
 
   if (isSingleMarket) {
     return <></>
@@ -748,7 +742,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
 
             {showResolvedMarkets && (
               <div className="mt-4">
-                {sortedResolvedMarketRows.map((row, index, orderedMarkets) => {
+                {sortedResolvedDisplayRows.map((row, index, orderedMarkets) => {
                   const { market } = row
                   const isExpanded = expandedMarketId === market.condition_id
                   const activeOutcomeForMarket = selectedOutcome && selectedOutcome.condition_id === market.condition_id

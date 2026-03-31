@@ -13,6 +13,7 @@ import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { formatCentsLabel } from '@/lib/formatters'
+import { resolveFallbackOutcomeUnitPrice, resolveMarketOutcome } from '@/lib/market-pricing'
 import { formatOddsFromPrice } from '@/lib/odds-format'
 import { useIsSingleMarket, useOrder, useOutcomeTopOfBookPrice } from '@/stores/useOrder'
 
@@ -61,27 +62,10 @@ export default function EventOrderPanelMobile({
   const liveNoPrice = useOutcomeTopOfBookPrice(OUTCOME_INDEX.NO, ORDER_SIDE.BUY)
   const activeLiveYesPrice = hasMatchingStoreMarket ? liveYesPrice : null
   const activeLiveNoPrice = hasMatchingStoreMarket ? liveNoPrice : null
-  const yesOutcome = activeMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-    ?? activeMarket?.outcomes[OUTCOME_INDEX.YES]
-  const noOutcome = activeMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
-    ?? activeMarket?.outcomes[OUTCOME_INDEX.NO]
-  const marketPrice = typeof activeMarket?.price === 'number' && Number.isFinite(activeMarket.price)
-    ? activeMarket.price
-    : typeof activeMarket?.probability === 'number' && Number.isFinite(activeMarket.probability)
-      ? activeMarket.probability / 100
-      : null
-  const yesPrice = activeLiveYesPrice ?? (
-    typeof yesOutcome?.buy_price === 'number'
-      ? yesOutcome.buy_price
-      : marketPrice
-  )
-  const noPrice = activeLiveNoPrice ?? (
-    typeof noOutcome?.buy_price === 'number'
-      ? noOutcome.buy_price
-      : typeof marketPrice === 'number'
-        ? Math.max(0, Math.min(1, 1 - marketPrice))
-        : null
-  )
+  const yesOutcome = resolveMarketOutcome(activeMarket, OUTCOME_INDEX.YES)
+  const noOutcome = resolveMarketOutcome(activeMarket, OUTCOME_INDEX.NO)
+  const yesPrice = activeLiveYesPrice ?? resolveFallbackOutcomeUnitPrice(activeMarket, yesOutcome)
+  const noPrice = activeLiveNoPrice ?? resolveFallbackOutcomeUnitPrice(activeMarket, noOutcome)
   const buyYesOutcome = yesOutcome ?? activeMarket?.outcomes[0] ?? null
   const buyNoOutcome = noOutcome ?? activeMarket?.outcomes[1] ?? null
   const buyYesOutcomeLabel = buyYesOutcome?.outcome_text

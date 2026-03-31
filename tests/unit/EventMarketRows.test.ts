@@ -61,9 +61,27 @@ describe('buildEventMarketRows', () => {
     expect(result.rows[1]?.chanceMeta.chanceDisplay).toBe('—')
   })
 
-  it('clamps yes/no price overrides within bounds', () => {
+  it('clamps yes/no price overrides within bounds when the market has no explicit fallback price', () => {
     const event = createEvent([
-      createMarket({ condition_id: 'm1' }),
+      createMarket({
+        condition_id: 'm1',
+        price: Number.NaN,
+        probability: Number.NaN,
+        outcomes: [
+          {
+            outcome_index: OUTCOME_INDEX.YES,
+            outcome_text: 'Yes',
+            buy_price: Number.NaN,
+            token_id: 'yes-token',
+          },
+          {
+            outcome_index: OUTCOME_INDEX.NO,
+            outcome_text: 'No',
+            buy_price: Number.NaN,
+            token_id: 'no-token',
+          },
+        ],
+      }),
     ])
 
     const result = buildEventMarketRows(event, {
