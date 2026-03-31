@@ -1099,23 +1099,31 @@ export function SportsGameGraph({
 
   useBrowserLayoutEffect(() => {
     const element = chartContainerRef.current
-    if (!element || typeof ResizeObserver === 'undefined') {
+    if (!element) {
       return
     }
     const chartElement = element
 
     function updateWidth() {
       const nextWidth = Math.floor(chartElement.clientWidth)
-      if (nextWidth > 0) {
-        setMeasuredChartWidth(nextWidth)
-      }
+      const resolvedWidth = nextWidth > 0 ? nextWidth : fallbackChartWidth
+
+      setMeasuredChartWidth(current => (current === resolvedWidth ? current : resolvedWidth))
     }
 
     updateWidth()
-    const observer = new ResizeObserver(() => updateWidth())
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateWidth)
+      return () => {
+        window.removeEventListener('resize', updateWidth)
+      }
+    }
+
+    const observer = new ResizeObserver(updateWidth)
     observer.observe(chartElement)
     return () => observer.disconnect()
-  }, [])
+  }, [fallbackChartWidth])
 
   useEffect(() => {
     const stored = loadStoredChartSettings()
@@ -3007,9 +3015,15 @@ export function SportsGameDetailsPanel({
     }
 
     updateLinePickerSpacers()
-    const observer = new ResizeObserver(() => {
-      updateLinePickerSpacers()
-    })
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateLinePickerSpacers)
+      return () => {
+        window.removeEventListener('resize', updateLinePickerSpacers)
+      }
+    }
+
+    const observer = new ResizeObserver(updateLinePickerSpacers)
     observer.observe(scrollerElement)
     return () => {
       observer.disconnect()
