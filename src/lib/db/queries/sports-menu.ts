@@ -1,8 +1,4 @@
-import type {
-  SportsMenuEntry,
-  SportsMenuGroupEntry,
-  SportsMenuLinkEntry,
-} from '@/lib/sports-menu-types'
+import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import type { SportsSlugMappingEntry } from '@/lib/sports-slug-mapping'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { QueryResult } from '@/types'
@@ -18,14 +14,12 @@ import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { normalizeComparableValue, slugifyText } from '@/lib/slug'
 import { SPORTS_AUXILIARY_SLUG_SQL_REGEX } from '@/lib/sports-event-slugs'
+import { buildSportsSidebarEntries } from '@/lib/sports-sidebar-entries'
 import {
   buildSportsSlugResolver,
   resolveCanonicalSportsSlugAlias,
   resolveCanonicalSportsSportSlug,
 } from '@/lib/sports-slug-mapping'
-import { getSportsVerticalConfig } from '@/lib/sports-vertical'
-
-type SportsMenuItemType = 'link' | 'group' | 'header' | 'divider'
 
 interface SportsMenuItemRow {
   id: string
@@ -102,28 +96,6 @@ function buildChildrenByParent(rows: SportsMenuItemRow[]) {
   return childrenByParent
 }
 
-function createSyntheticMenuRow(params: Partial<SportsMenuItemRow> & {
-  id: string
-  item_type: SportsMenuItemType
-  sort_order: number
-}) {
-  return {
-    id: params.id,
-    item_type: params.item_type,
-    label: params.label ?? null,
-    href: params.href ?? null,
-    icon_url: params.icon_url ?? null,
-    parent_id: params.parent_id ?? null,
-    menu_slug: params.menu_slug ?? null,
-    h1_title: params.h1_title ?? null,
-    mapped_tags: params.mapped_tags ?? [],
-    url_aliases: params.url_aliases ?? [],
-    games_enabled: params.games_enabled ?? false,
-    props_enabled: params.props_enabled ?? false,
-    sort_order: params.sort_order,
-  } satisfies SportsMenuItemRow
-}
-
 function resolveGroupMenuSlug(row: SportsMenuItemRow) {
   const configuredSlug = normalizeComparableValue(row.menu_slug)
   if (configuredSlug) {
@@ -149,31 +121,6 @@ function resolveGroupSectionConfig(childRows: SportsMenuItemRow[]) {
     propsEnabled: childRows.some(child => child.item_type === 'link' && Boolean(child.props_enabled))
       || hrefs.some(href => href.endsWith('/props')),
   }
-}
-
-function resolveDefaultGroupSection(childRows: SportsMenuItemRow[]) {
-  const sectionConfig = resolveGroupSectionConfig(childRows)
-  if (sectionConfig.gamesEnabled) {
-    return 'games' as const
-  }
-
-  if (sectionConfig.propsEnabled) {
-    return 'props' as const
-  }
-
-  const hrefs = childRows
-    .map(child => child.href?.trim().toLowerCase() ?? '')
-    .filter(Boolean)
-
-  if (hrefs.some(href => href.endsWith('/games'))) {
-    return 'games' as const
-  }
-
-  if (hrefs.some(href => href.endsWith('/props'))) {
-    return 'props' as const
-  }
-
-  return null
 }
 
 function buildGroupQueryCandidates(childRows: SportsMenuItemRow[]) {
@@ -229,7 +176,7 @@ const getCachedSportsMenuRows = unstable_cache(
 
     return rows
   },
-  ['sports-menu-items-v1'],
+  ['sports-menu-items-v2'],
   {
     revalidate: 1800,
     tags: [cacheTags.eventsGlobal],
@@ -328,189 +275,6 @@ function toMappingEntries(rows: SportsMenuItemRow[]) {
   return mappings
 }
 
-function toLinkEntry(row: SportsMenuItemRow): SportsMenuLinkEntry {
-  const label = requireText(row.label, row.id, 'label')
-  const href = requireText(row.href, row.id, 'href')
-  const iconPath = requireText(row.icon_url, row.id, 'icon_url')
-
-  return {
-    type: 'link',
-    id: row.id,
-    label,
-    href,
-    iconPath,
-    menuSlug: normalizeComparableValue(row.menu_slug),
-  }
-}
-
-function rewriteVerticalHref(href: string | null | undefined, vertical: SportsVertical) {
-  if (!href) {
-    return href ?? null
-  }
-
-  const verticalConfig = getSportsVerticalConfig(vertical)
-  if (href === '/sports/live') {
-    return verticalConfig.livePath
-  }
-
-  if (href === '/sports/futures' || href.startsWith('/sports/futures/')) {
-    return href.replace('/sports/futures', verticalConfig.futurePathPrefix)
-  }
-
-  if (href.startsWith('/sports/')) {
-    return href.replace('/sports', verticalConfig.basePath)
-  }
-
-  return href
-}
-
-function findEsportsGroupRow(rows: SportsMenuItemRow[]) {
-  return rows.find(row =>
-    row.item_type === 'group'
-    && normalizeComparableValue(row.label) === 'esports',
-  ) ?? null
-}
-
-function buildVerticalMenuRows(rows: SportsMenuItemRow[], vertical: SportsVertical) {
-  if (vertical === 'sports') {
-    const esportsGroupRow = findEsportsGroupRow(rows)
-    if (!esportsGroupRow) {
-      return rows
-    }
-
-    return rows.filter(row => row.id !== esportsGroupRow.id)
-  }
-
-  const verticalConfig = getSportsVerticalConfig(vertical)
-  const esportsGroupRow = findEsportsGroupRow(rows)
-  if (!esportsGroupRow) {
-    return rows
-  }
-
-  const liveTemplateRow = rows.find(row =>
-    row.item_type === 'link'
-    && row.href === '/sports/live',
-  )
-  const futureTemplateRow = rows.find(row =>
-    row.item_type === 'link'
-    && row.href?.startsWith('/sports/futures'),
-  )
-  const esportsLinks = rows
-    .filter(row => row.parent_id === esportsGroupRow.id && row.item_type === 'link')
-    .map((row, index) =>
-      createSyntheticMenuRow({
-        ...row,
-        item_type: 'link',
-        id: `esports-link-${row.id}`,
-        href: rewriteVerticalHref(row.href, vertical),
-        parent_id: null,
-        sort_order: 100 + index,
-      }),
-    )
-
-  return [
-    createSyntheticMenuRow({
-      ...liveTemplateRow,
-      id: 'esports-top-link-live',
-      item_type: 'link',
-      label: liveTemplateRow?.label ?? 'Live',
-      href: verticalConfig.livePath,
-      icon_url: liveTemplateRow?.icon_url ?? futureTemplateRow?.icon_url ?? '/images/sports/menu/full/top-live-live.svg',
-      sort_order: 0,
-    }),
-    createSyntheticMenuRow({
-      ...futureTemplateRow,
-      id: 'esports-top-link-upcoming',
-      item_type: 'link',
-      label: verticalConfig.futureLabel,
-      href: verticalConfig.futurePath,
-      icon_url: futureTemplateRow?.icon_url ?? liveTemplateRow?.icon_url ?? '/images/sports/menu/full/top-futures-futures-nba.svg',
-      sort_order: 1,
-    }),
-    createSyntheticMenuRow({
-      id: 'esports-divider',
-      item_type: 'divider',
-      sort_order: 2,
-    }),
-    createSyntheticMenuRow({
-      id: 'esports-header',
-      item_type: 'header',
-      label: verticalConfig.menuHeaderLabel,
-      sort_order: 3,
-    }),
-    ...esportsLinks,
-  ]
-}
-
-function toSidebarMenuEntries(rows: SportsMenuItemRow[], vertical: SportsVertical) {
-  const childrenByParent = buildChildrenByParent(rows)
-  const rootRows: SportsMenuItemRow[] = []
-  const verticalConfig = getSportsVerticalConfig(vertical)
-
-  for (const row of rows) {
-    if (!row.parent_id) {
-      rootRows.push(row)
-    }
-  }
-
-  rootRows.sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
-
-  const entries: SportsMenuEntry[] = []
-
-  for (const row of rootRows) {
-    const type = row.item_type as SportsMenuItemType
-
-    if (type === 'divider') {
-      entries.push({
-        type: 'divider',
-        id: row.id,
-      })
-      continue
-    }
-
-    if (type === 'header') {
-      entries.push({
-        type: 'header',
-        id: row.id,
-        label: requireText(row.label, row.id, 'label'),
-      })
-      continue
-    }
-
-    if (type === 'link') {
-      entries.push(toLinkEntry(row))
-      continue
-    }
-
-    if (type === 'group') {
-      const groupLinks = (childrenByParent.get(row.id) ?? [])
-        .filter(child => child.item_type === 'link')
-        .map(toLinkEntry)
-      const menuSlug = resolveGroupMenuSlug(row)
-      const defaultSection = resolveDefaultGroupSection(childrenByParent.get(row.id) ?? [])
-
-      if (!menuSlug || !defaultSection || groupLinks.length === 0) {
-        continue
-      }
-
-      const groupEntry: SportsMenuGroupEntry = {
-        type: 'group',
-        id: row.id,
-        label: requireText(row.label, row.id, 'label'),
-        href: rewriteVerticalHref(row.href, vertical)
-          ?? `${verticalConfig.basePath}/${menuSlug}/${defaultSection}`,
-        iconPath: requireText(row.icon_url, row.id, 'icon_url'),
-        menuSlug,
-        links: groupLinks,
-      }
-
-      entries.push(groupEntry)
-    }
-  }
-
-  return entries
-}
-
 function buildCountsBySlug(
   resolver: ReturnType<typeof buildSportsSlugResolver>,
   activeCountRows: ActiveSportsCountRow[],
@@ -587,10 +351,9 @@ export const SportsMenuRepository = {
 
     return runQuery(async () => {
       const rows = await getCachedSportsMenuRows()
-      const verticalRows = buildVerticalMenuRows(rows, vertical)
 
       return {
-        data: toSidebarMenuEntries(verticalRows, vertical),
+        data: buildSportsSidebarEntries(rows, vertical),
         error: null,
       }
     })
@@ -606,7 +369,7 @@ export const SportsMenuRepository = {
         getCachedActiveSportsCountRows(),
       ])
       const resolver = buildSportsSlugResolver(toMappingEntries(rows))
-      const menuEntries = toSidebarMenuEntries(buildVerticalMenuRows(rows, vertical), vertical)
+      const menuEntries = buildSportsSidebarEntries(rows, vertical)
       const countsBySlug = buildCountsBySlug(resolver, activeCountRows)
 
       return {
@@ -642,7 +405,7 @@ export const SportsMenuRepository = {
 
     return runQuery(async () => {
       const rows = await getCachedSportsMenuRows()
-      const menuEntries = toSidebarMenuEntries(buildVerticalMenuRows(rows, vertical), vertical)
+      const menuEntries = buildSportsSidebarEntries(rows, vertical)
 
       return {
         data: findDefaultLandingHref(menuEntries),
@@ -657,7 +420,7 @@ export const SportsMenuRepository = {
 
     return runQuery(async () => {
       const rows = await getCachedSportsMenuRows()
-      const menuEntries = toSidebarMenuEntries(buildVerticalMenuRows(rows, vertical), vertical)
+      const menuEntries = buildSportsSidebarEntries(rows, vertical)
 
       return {
         data: findDefaultFuturesHref(menuEntries),
