@@ -5038,12 +5038,17 @@ export default function SportsGamesCenter({
     <>
       {liveTitleRowActions}
       <div className="
-        min-[1200px]:grid min-[1200px]:h-full min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem] min-[1200px]:gap-6
+        min-[1200px]:grid min-[1200px]:h-full min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem]
+        min-[1200px]:[align-content:start] min-[1200px]:[align-items:start] min-[1200px]:gap-6
       "
       >
         <section
           data-sports-scroll-pane="center"
-          className="min-w-0 min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:pr-1 lg:ml-4"
+          className="
+            min-w-0
+            min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:overscroll-contain min-[1200px]:pr-1
+            lg:ml-4
+          "
         >
           <div className="mb-4">
             {!isLivePage && (
@@ -5207,8 +5212,8 @@ export default function SportsGamesCenter({
           data-sports-scroll-pane="aside"
           className={`
             hidden gap-4
-            min-[1200px]:sticky min-[1200px]:top-0 min-[1200px]:grid min-[1200px]:max-h-full min-[1200px]:self-start
-            min-[1200px]:overflow-y-auto
+            min-[1200px]:sticky min-[1200px]:top-0 min-[1200px]:block min-[1200px]:h-fit min-[1200px]:max-h-full
+            min-[1200px]:self-start min-[1200px]:overflow-y-auto
           `}
         >
           {activeTradeContext

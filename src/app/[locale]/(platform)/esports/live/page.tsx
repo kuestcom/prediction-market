@@ -30,13 +30,15 @@ export default async function EsportsLivePage({ params }: { params: Promise<{ lo
   const cards = buildSportsGamesCards(events ?? [])
 
   return (
-    <SportsGamesCenter
-      cards={cards}
-      sportSlug="live"
-      sportTitle="LIVE"
-      pageMode="live"
-      categoryTitleBySlug={layoutData?.h1TitleBySlug ?? {}}
-      vertical="esports"
-    />
+    <div key="esports-live-page" className="contents">
+      <SportsGamesCenter
+        cards={cards}
+        sportSlug="live"
+        sportTitle="LIVE"
+        pageMode="live"
+        categoryTitleBySlug={layoutData?.h1TitleBySlug ?? {}}
+        vertical="esports"
+      />
+    </div>
   )
 }
