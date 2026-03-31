@@ -935,7 +935,7 @@ export default function SportsSidebarMenu({
         data-sports-scroll-pane="sidebar"
         className={`
           hidden w-[190px] shrink-0 self-start
-          lg:sticky lg:top-22 lg:flex lg:max-h-[calc(100vh-5.5rem)] lg:flex-col lg:overflow-y-auto lg:py-2 lg:pr-1
+          lg:sticky lg:top-22 lg:block lg:h-fit lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto lg:py-2 lg:pr-1
         `}
       >
         {renderDesktopMenuEntries()}

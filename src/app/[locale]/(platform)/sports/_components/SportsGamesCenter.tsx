@@ -1084,6 +1084,7 @@ export function SportsGameGraph({
   const heroLegendTextMeasureCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const tradeFlowIdRef = useRef(0)
   const [measuredChartWidth, setMeasuredChartWidth] = useState<number | null>(null)
+  const canRenderPositionedSeriesLegend = usesPositionedSeriesLegend && measuredChartWidth !== null
 
   const fallbackChartWidth = useMemo(() => {
     const viewportWidth = windowWidth ?? 1200
@@ -1096,7 +1097,7 @@ export function SportsGameGraph({
   }, [windowWidth])
   const chartWidth = measuredChartWidth ?? fallbackChartWidth
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const element = chartContainerRef.current
     if (!element || typeof ResizeObserver === 'undefined') {
       return
@@ -1309,7 +1310,7 @@ export function SportsGameGraph({
   }, [graphSeriesTargets])
 
   const heroLegendRenderedWidth = useMemo(() => {
-    if (!usesPositionedSeriesLegend || chartSeries.length === 0) {
+    if (!canRenderPositionedSeriesLegend || chartSeries.length === 0) {
       return HERO_LEGEND_MIN_WIDTH_PX
     }
 
@@ -1339,7 +1340,7 @@ export function SportsGameGraph({
 
     const targetWidth = Math.ceil(longestLabelWidth + HERO_LEGEND_NAME_PADDING_PX)
     return Math.max(HERO_LEGEND_MIN_WIDTH_PX, targetWidth)
-  }, [chartSeries, usesPositionedSeriesLegend])
+  }, [canRenderPositionedSeriesLegend, chartSeries])
 
   const historyChartData = useMemo<DataPoint[]>(() => {
     return normalizedHistory
@@ -1488,7 +1489,7 @@ export function SportsGameGraph({
 
   const heroLegendSeriesWithValues = useMemo(
     () => {
-      if (!usesPositionedSeriesLegend) {
+      if (!canRenderPositionedSeriesLegend) {
         return []
       }
 
@@ -1506,12 +1507,12 @@ export function SportsGameGraph({
         })
         .filter((entry): entry is { key: string, name: string, color: string, value: number } => entry !== null)
     },
-    [chartSeries, cursorSnapshot, latestSnapshot, usesPositionedSeriesLegend],
+    [canRenderPositionedSeriesLegend, chartSeries, cursorSnapshot, latestSnapshot],
   )
 
   const heroLegendPositionedEntries = useMemo(
     () => {
-      if (!usesPositionedSeriesLegend || heroLegendSeriesWithValues.length === 0 || chartData.length === 0) {
+      if (!canRenderPositionedSeriesLegend || heroLegendSeriesWithValues.length === 0 || chartData.length === 0) {
         return [] as Array<{
           key: string
           name: string
@@ -1641,7 +1642,7 @@ export function SportsGameGraph({
       chartXDomain?.start,
       cursorSnapshot?.date,
       heroLegendSeriesWithValues,
-      usesPositionedSeriesLegend,
+      canRenderPositionedSeriesLegend,
     ],
   )
 
@@ -1786,7 +1787,7 @@ export function SportsGameGraph({
             leadingGapStart={leadingGapStart}
           />
 
-          {usesPositionedSeriesLegend && heroLegendPositionedEntries.length > 0 && (
+          {canRenderPositionedSeriesLegend && heroLegendPositionedEntries.length > 0 && (
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
               {heroLegendPositionedEntries.map(entry => (
                 <div
