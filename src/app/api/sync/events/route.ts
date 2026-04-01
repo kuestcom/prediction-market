@@ -558,6 +558,13 @@ async function processCondition(market: SubgraphCondition, timestamps: MarketTim
     throw new Error(`Market ${market.id} missing required metadataHash field`)
   }
 
+  const resolutionPayload = market.resolved
+    ? {
+        resolution_status: 'resolved' as const,
+        resolution_last_update: new Date(timestamps.updatedAtIso),
+      }
+    : {}
+
   const payload = {
     id: market.id,
     oracle: market.oracle,
@@ -567,6 +574,7 @@ async function processCondition(market: SubgraphCondition, timestamps: MarketTim
     creator: market.creator!,
     created_at: new Date(timestamps.createdAtIso),
     updated_at: new Date(timestamps.updatedAtIso),
+    ...resolutionPayload,
   }
 
   await db
