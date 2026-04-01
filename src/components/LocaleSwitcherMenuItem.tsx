@@ -101,7 +101,7 @@ export default function LocaleSwitcherMenuItem() {
     const targetUrl = `${targetPathname}${window.location.search}${window.location.hash}`
 
     setIsPending(true)
-    window.location.assign(targetUrl)
+    window.location.replace(targetUrl)
   }
 
   return (

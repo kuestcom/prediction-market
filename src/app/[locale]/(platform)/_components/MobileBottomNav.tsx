@@ -501,7 +501,7 @@ function MobileLocaleSwitcher({ onLocaleChange }: MobileLocaleSwitcherProps) {
 
     onLocaleChange?.()
     setIsPending(true)
-    window.location.assign(targetUrl)
+    window.location.replace(targetUrl)
   }
 
   return (
