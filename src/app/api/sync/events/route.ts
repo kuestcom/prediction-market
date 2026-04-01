@@ -135,10 +135,19 @@ const PNL_CONDITIONS_PAGE_SINCE_QUERY = `
       orderBy: updatedAt
       orderDirection: asc
       where: {
-        creator_in: $creators
-        or: [
-          { updatedAt_gt: $lastUpdatedAt }
-          { updatedAt: $lastUpdatedAt, id_gt: $lastConditionId }
+        and: [
+          { creator_in: $creators }
+          {
+            or: [
+              { updatedAt_gt: $lastUpdatedAt }
+              {
+                and: [
+                  { updatedAt: $lastUpdatedAt }
+                  { id_gt: $lastConditionId }
+                ]
+              }
+            ]
+          }
         ]
       }
     ) {

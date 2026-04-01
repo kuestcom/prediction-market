@@ -92,10 +92,19 @@ const RESOLUTION_PAGE_SINCE_QUERY = `
       orderBy: lastUpdateTimestamp
       orderDirection: asc
       where: {
-        author_in: $authors
-        or: [
-          { lastUpdateTimestamp_gt: $lastTimestamp }
-          { lastUpdateTimestamp: $lastTimestamp, id_gt: $lastId }
+        and: [
+          { author_in: $authors }
+          {
+            or: [
+              { lastUpdateTimestamp_gt: $lastTimestamp }
+              {
+                and: [
+                  { lastUpdateTimestamp: $lastTimestamp }
+                  { id_gt: $lastId }
+                ]
+              }
+            ]
+          }
         ]
       }
     ) {
