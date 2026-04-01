@@ -1,9 +1,7 @@
 import { createSearchAPI } from 'fumadocs-core/search/server'
 import { source } from '@/lib/source'
 
-const pages = JSON.parse(process.env.ENABLE_LAUNCH_GUIDE || 'false')
-  ? source.getPages()
-  : source.getPages().filter(page => !page.url.includes('/launch'))
+const pages = source.getPages()
 
 export const { GET } = createSearchAPI('advanced', {
   language: 'english',

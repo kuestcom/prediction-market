@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import type { SupportedLocale } from '@/i18n/locales'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
-import { BookOpenIcon, CodeIcon, GitForkIcon, HomeIcon } from 'lucide-react'
+import { BookOpenIcon, CodeIcon, HomeIcon } from 'lucide-react'
 import { setRequestLocale } from 'next-intl/server'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { withLocalePrefix } from '@/lib/locale-path'
@@ -72,16 +72,6 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
             url: docsPath('/docs/api-reference'),
             icon: <CodeIcon className="size-4" />,
           },
-          ...(process.env.ENABLE_LAUNCH_GUIDE === 'true'
-            ? [
-                {
-                  title: 'Launch Guide',
-                  description: 'For Entrepeneurs',
-                  url: docsPath('/docs/launch'),
-                  icon: <GitForkIcon className="size-4" />,
-                },
-              ]
-            : []),
         ],
       }}
       tree={source.pageTree}

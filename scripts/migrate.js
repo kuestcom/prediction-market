@@ -392,7 +392,7 @@ async function run() {
       await configureSupabaseScheduler(reserved, siteUrl, cronSecret)
     }
     else {
-      console.log('Skipping database scheduler setup because Supabase mode is not configured. Use external scheduler contract from infra/scheduler-contract.md.')
+      console.log('Skipping database scheduler setup because Supabase mode is not configured. Use the external scheduler contract from https://docs.kuest.com/manual-installation/scheduler-jobs.')
     }
   }
   catch (error) {

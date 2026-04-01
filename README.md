@@ -11,6 +11,7 @@
 <p align="center">
   <a href="https://kuest.com">kuest.com</a> ·
   <a href="https://demo.kuest.com">Live Demo</a> ·
+  <a href="https://docs.kuest.com">Owner Docs</a> ·
   <a href="#launch">Launch</a> ·
   <a href="#roadmap">Roadmap</a>
 </p>
@@ -71,9 +72,10 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 
 | | Option | Best for |
 |---|---|---|
-| ⚡ | **[No-code at kuest.com/launch](https://kuest.com/launch)** — fill out a form, market live in 15 min | Most operators |
-| 🔧 | **[Vercel + Supabase](infra/vercel/README.md)** — fork and deploy with full codebase control | Developers |
-| 🏗️ | **[Custom infrastructure](infra/README.md)** — Docker, bare metal, your own cloud | Advanced / enterprise |
+| ⚡ | **[No-code at kuest.com/launch](https://kuest.com/launch)**, fill out the guided setup and go live fast | Most operators |
+| 📘 | **[Launch walkthrough](https://docs.kuest.com/launch/overview)**, field-by-field guide for the `/launch` flow | Operators who want guidance before deploying |
+| 🔧 | **[Vercel + Supabase](https://docs.kuest.com/manual-installation/vercel)**, hosted deployment with full codebase control | Technical operators |
+| 🏗️ | **[Manual installation overview](https://docs.kuest.com/manual-installation/overview)**, Docker, VPS, Cloud Run, Fly.io, Kubernetes, and Terraform | Advanced / enterprise |
 
 ---
 
@@ -94,7 +96,7 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 **Completed**
 - [x] Polymarket-compatible UI and market pages
 - [x] Polygon mainnet support
-- [x] Shared liquidity across forks
+- [x] Shared liquidity across operator sites
 - [x] Configurable fees per operator
 - [x] On-chain affiliate / trustless fee sharing
 - [x] CLOB engine + relayer
@@ -105,12 +107,12 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 - [x] PnL system + trader leaderboard
 - [x] Multi-language UI + theme customization
 - [x] Crypto, Nasdaq, sports, and community markets
-- [x] Fork-created markets with opt-in cross-fork sharing
+- [x] Operator-created markets with opt-in network sharing
 
 **In progress**
 - [ ] 🏆 MVP — stress tests, security, and financial consistency checks
 - [ ] MOOV2 integration (whitelist)
-- [ ] Gamma metadata API (fork-isolated)
+- [ ] Gamma metadata API (site-isolated)
 - [ ] Move matching engine to mainnet
 - [ ] Kalshi market mirroring + arbitrage connector
 
@@ -130,4 +132,4 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 
 ---
 
-**License:** [Kuest MIT+Commons](LICENSE) — forks for branding, frontend changes, and custom UX are welcome. Production deployments must use Kuest infrastructure. Running an independent trading stack or white-glove institutional deployment requires a [commercial agreement](mailto:hello@kuest.com).
+**License:** [Kuest MIT+Commons](LICENSE). Custom branding, frontend changes, and custom UX are welcome. Production deployments must use Kuest infrastructure. Running an independent trading stack or white-glove institutional deployment requires a [commercial agreement](mailto:hello@kuest.com).

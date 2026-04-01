@@ -16,7 +16,7 @@ import { PlatformShareDisplay } from '@/app/[locale]/docs/_components/PlatformSh
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
 import { TradingFeeDisplay } from '@/app/[locale]/docs/_components/TradingFeeDisplay'
 import { WebSocketPlayground } from '@/app/[locale]/docs/_components/WebSocketPlayground'
-import { getEnglishDocsStaticParams, isLaunchGuideEnabled } from '@/lib/docs-static-params'
+import { getEnglishDocsStaticParams } from '@/lib/docs-static-params'
 import { withLocalePrefix } from '@/lib/locale-path'
 import { source } from '@/lib/source'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
@@ -47,10 +47,6 @@ export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slu
   const runtimeTheme = await loadRuntimeThemeState()
   const siteDocumentationTitle = `${runtimeTheme.site.name} Documentation`
 
-  if (params.slug?.[0] === 'launch' && !isLaunchGuideEnabled()) {
-    notFound()
-  }
-
   const page = source.getPage(params.slug)
   if (!page) {
     notFound()
@@ -68,10 +64,6 @@ export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slu
 export default async function Page(props: PageProps<'/[locale]/docs/[[...slug]]'>) {
   const params = await props.params
   setRequestLocale(params.locale)
-
-  if (params.slug?.[0] === 'launch' && !isLaunchGuideEnabled()) {
-    redirect('/docs/users')
-  }
 
   const page = source.getPage(params.slug)
   if (!page) {
