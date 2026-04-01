@@ -108,6 +108,52 @@ interface SyncRuntimeState {
   eventTagSlugsByEventId: Map<string, Set<string>>
 }
 
+const PNL_CONDITIONS_PAGE_QUERY = `
+  query PnlConditionsPage($creators: [String!]!, $pageSize: Int!) {
+    conditions(
+      first: $pageSize
+      orderBy: updatedAt
+      orderDirection: asc
+      where: { creator_in: $creators }
+    ) {
+      id
+      oracle
+      questionId
+      resolved
+      metadataHash
+      creator
+      creationTimestamp
+      updatedAt
+    }
+  }
+`
+
+const PNL_CONDITIONS_PAGE_SINCE_QUERY = `
+  query PnlConditionsPage($creators: [String!]!, $pageSize: Int!, $lastUpdatedAt: BigInt!, $lastConditionId: String!) {
+    conditions(
+      first: $pageSize
+      orderBy: updatedAt
+      orderDirection: asc
+      where: {
+        creator_in: $creators
+        or: [
+          { updatedAt_gt: $lastUpdatedAt }
+          { updatedAt: $lastUpdatedAt, id_gt: $lastConditionId }
+        ]
+      }
+    ) {
+      id
+      oracle
+      questionId
+      resolved
+      metadataHash
+      creator
+      creationTimestamp
+      updatedAt
+    }
+  }
+`
+
 async function getAllowedCreators(): Promise<string[]> {
   const { data, error } = await loadAllowedMarketCreatorWallets()
   if (error || !data) {
@@ -200,6 +246,20 @@ export async function GET(request: Request) {
 }
 
 async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): Promise<SyncStats> {
+  const trackedCreators = Array.from(allowedCreators)
+    .map(creator => creator.trim().toLowerCase())
+    .filter(Boolean)
+
+  if (trackedCreators.length === 0) {
+    return {
+      fetchedCount: 0,
+      processedCount: 0,
+      skippedCreatorCount: 0,
+      errors: [],
+      timeLimitReached: false,
+    }
+  }
+
   const syncStartedAt = Date.now()
   let cursor = await getLastPnLCursor()
 
@@ -222,7 +282,7 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
   }
 
   while (Date.now() - syncStartedAt < SYNC_TIME_LIMIT_MS) {
-    const page = await fetchPnLConditionsPage(cursor)
+    const page = await fetchPnLConditionsPage(trackedCreators, cursor)
 
     if (page.conditions.length === 0) {
       console.log('📦 PnL subgraph returned no additional conditions')
@@ -389,41 +449,33 @@ async function updatePnLCursor(cursor: SyncCursor) {
   }
 }
 
-async function fetchPnLConditionsPage(afterCursor: SyncCursor | null): Promise<{ conditions: SubgraphCondition[] }> {
-  const cursorUpdatedAt = afterCursor?.updatedAt
-  const cursorConditionId = afterCursor?.conditionId
-
-  let whereClause = ''
-  if (cursorUpdatedAt !== undefined && cursorConditionId !== undefined) {
-    const timestampLiteral = JSON.stringify(cursorUpdatedAt.toString())
-    const conditionIdLiteral = JSON.stringify(cursorConditionId)
-    whereClause = `, where: { or: [{ updatedAt_gt: ${timestampLiteral} }, { updatedAt: ${timestampLiteral}, id_gt: ${conditionIdLiteral} }] }`
+async function fetchPnLConditionsPage(
+  creators: string[],
+  afterCursor: SyncCursor | null,
+): Promise<{ conditions: SubgraphCondition[] }> {
+  if (creators.length === 0) {
+    return { conditions: [] }
   }
 
-  const query = `
-    {
-      conditions(
-        first: ${PNL_PAGE_SIZE},
-        orderBy: updatedAt,
-        orderDirection: asc${whereClause}
-      ) {
-        id
-        oracle
-        questionId
-        resolved
-        metadataHash
-        creator
-        creationTimestamp
-        updatedAt
+  const hasCursor = afterCursor != null
+  const query = hasCursor ? PNL_CONDITIONS_PAGE_SINCE_QUERY : PNL_CONDITIONS_PAGE_QUERY
+  const variables = hasCursor
+    ? {
+        creators,
+        pageSize: PNL_PAGE_SIZE,
+        lastUpdatedAt: afterCursor.updatedAt.toString(),
+        lastConditionId: afterCursor.conditionId,
       }
-    }
-  `
+    : {
+        creators,
+        pageSize: PNL_PAGE_SIZE,
+      }
 
   const response = await fetch(PNL_SUBGRAPH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     keepalive: true,
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ query, variables }),
   })
 
   if (!response.ok) {
