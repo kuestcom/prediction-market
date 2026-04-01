@@ -277,6 +277,7 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
   const errors: { conditionId: string, error: string }[] = []
   let timeLimitReached = false
   const eventIdsNeedingStatusUpdate = new Set<string>()
+  const eventIdsNeedingCacheInvalidation = new Set<string>()
   const runtimeState: SyncRuntimeState = {
     eventTagSlugsByEventId: new Map(),
   }
@@ -330,6 +331,7 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
         const eventIdForStatusUpdate = await processMarket(condition, options, runtimeState)
         if (eventIdForStatusUpdate) {
           eventIdsNeedingStatusUpdate.add(eventIdForStatusUpdate)
+          eventIdsNeedingCacheInvalidation.add(eventIdForStatusUpdate)
         }
         processedCount++
         lastPersistableCursor = conditionCursor
@@ -368,7 +370,6 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
     if (eventIdsNeedingStatusUpdate.size > 0) {
       const eventIdsToRefresh = Array.from(eventIdsNeedingStatusUpdate)
       await updateEventStatusesFromMarketsBatch(eventIdsToRefresh)
-      await invalidateEventCaches(eventIdsToRefresh)
       eventIdsNeedingStatusUpdate.clear()
     }
 
@@ -385,8 +386,13 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
   if (eventIdsNeedingStatusUpdate.size > 0) {
     const eventIdsToRefresh = Array.from(eventIdsNeedingStatusUpdate)
     await updateEventStatusesFromMarketsBatch(eventIdsToRefresh)
-    await invalidateEventCaches(eventIdsToRefresh)
     eventIdsNeedingStatusUpdate.clear()
+  }
+
+  if (eventIdsNeedingCacheInvalidation.size > 0) {
+    await invalidateEventCaches(Array.from(eventIdsNeedingCacheInvalidation), {
+      includeGlobal: true,
+    })
   }
 
   return {
@@ -1118,7 +1124,10 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
   }
 }
 
-async function invalidateEventCaches(eventIds: string[]) {
+async function invalidateEventCaches(
+  eventIds: string[],
+  options: { includeGlobal?: boolean } = {},
+) {
   const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
   if (uniqueEventIds.length === 0) {
     return
@@ -1131,7 +1140,9 @@ async function invalidateEventCaches(eventIds: string[]) {
     .from(eventsTable)
     .where(inArray(eventsTable.id, uniqueEventIds))
 
-  updateTag(cacheTags.eventsGlobal)
+  if (options.includeGlobal) {
+    updateTag(cacheTags.eventsGlobal)
+  }
   for (const row of rows) {
     if (row.slug) {
       updateTag(cacheTags.event(row.slug))

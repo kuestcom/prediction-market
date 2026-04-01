@@ -315,6 +315,8 @@ async function syncResolutions(): Promise<SyncStats> {
   const errors: { questionId: string, error: string }[] = []
   let timeLimitReached = false
   const eventIdsNeedingStatusUpdate = new Set<string>()
+  const eventIdsNeedingCacheInvalidation = new Set<string>()
+  const eventIdsNeedingGlobalCacheInvalidation = new Set<string>()
 
   while (Date.now() - syncStartedAt < SYNC_TIME_LIMIT_MS) {
     const page = await fetchResolutionPage(trackedAuthors, cursor)
@@ -379,6 +381,7 @@ async function syncResolutions(): Promise<SyncStats> {
         )
         if (eventId) {
           eventIdsNeedingStatusUpdate.add(eventId)
+          eventIdsNeedingCacheInvalidation.add(eventId)
         }
         processedCount++
         lastPersistableCursor = nextCursor
@@ -413,7 +416,10 @@ async function syncResolutions(): Promise<SyncStats> {
     }
 
     if (eventIdsNeedingStatusUpdate.size > 0) {
-      await updateEventStatusesFromMarketsBatch(Array.from(eventIdsNeedingStatusUpdate))
+      const changedEventIds = await updateEventStatusesFromMarketsBatch(Array.from(eventIdsNeedingStatusUpdate))
+      for (const eventId of changedEventIds) {
+        eventIdsNeedingGlobalCacheInvalidation.add(eventId)
+      }
       eventIdsNeedingStatusUpdate.clear()
     }
 
@@ -423,7 +429,16 @@ async function syncResolutions(): Promise<SyncStats> {
   }
 
   if (eventIdsNeedingStatusUpdate.size > 0) {
-    await updateEventStatusesFromMarketsBatch(Array.from(eventIdsNeedingStatusUpdate))
+    const changedEventIds = await updateEventStatusesFromMarketsBatch(Array.from(eventIdsNeedingStatusUpdate))
+    for (const eventId of changedEventIds) {
+      eventIdsNeedingGlobalCacheInvalidation.add(eventId)
+    }
+  }
+
+  if (eventIdsNeedingCacheInvalidation.size > 0) {
+    await invalidateEventCaches(Array.from(eventIdsNeedingCacheInvalidation), {
+      includeGlobal: eventIdsNeedingGlobalCacheInvalidation.size > 0,
+    })
   }
 
   return {
@@ -786,9 +801,10 @@ async function updateOutcomePayouts(conditionId: string, price: number) {
 async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
   const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
   if (uniqueEventIds.length === 0) {
-    return
+    return []
   }
   const failedUpdates: string[] = []
+  const changedEventIds: string[] = []
 
   const [currentEvents, marketRows] = await Promise.all([
     db
@@ -879,6 +895,7 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
         .update(eventsTable)
         .set({ status: nextStatus, resolved_at: resolvedAtUpdate })
         .where(eq(eventsTable.id, eventId))
+      changedEventIds.push(eventId)
     }
     catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -887,17 +904,39 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
     }
   }
 
-  updateTag(cacheTags.eventsGlobal)
-  for (const currentEvent of currentEvents) {
-    if (currentEvent.slug) {
-      updateTag(cacheTags.event(currentEvent.slug))
-    }
-  }
-
   if (failedUpdates.length > 0) {
     const sample = failedUpdates.slice(0, 3).join('; ')
     throw new Error(
       `Failed to update ${failedUpdates.length} event status record(s). Example failures: ${sample}`,
     )
+  }
+
+  return changedEventIds
+}
+
+async function invalidateEventCaches(
+  eventIds: string[],
+  options: { includeGlobal?: boolean } = {},
+) {
+  const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
+  if (uniqueEventIds.length === 0) {
+    return
+  }
+
+  const rows = await db
+    .select({
+      slug: eventsTable.slug,
+    })
+    .from(eventsTable)
+    .where(inArray(eventsTable.id, uniqueEventIds))
+
+  if (options.includeGlobal) {
+    updateTag(cacheTags.eventsGlobal)
+  }
+
+  for (const row of rows) {
+    if (row.slug) {
+      updateTag(cacheTags.event(row.slug))
+    }
   }
 }
