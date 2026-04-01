@@ -3,8 +3,7 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import { CheckIcon } from 'lucide-react'
 import { useLocale } from 'next-intl'
-import { useParams } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState } from 'react'
 import {
   DropdownMenuPortal,
   DropdownMenuRadioGroup,
@@ -14,14 +13,11 @@ import {
   DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
 import { LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
-import { usePathname, useRouter } from '@/i18n/navigation'
+import { stripLocalePrefix, withLocalePrefix } from '@/lib/locale-path'
 
 export default function LocaleSwitcherMenuItem() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const params = useParams()
   const locale = useLocale()
-  const [isPending, startTransition] = useTransition()
+  const [isPending, setIsPending] = useState(false)
   const [enabledLocales, setEnabledLocales] = useState<SupportedLocale[] | null>(null)
   const [carouselIndex, setCarouselIndex] = useState(0)
   const [isSliding, setIsSliding] = useState(true)
@@ -94,13 +90,18 @@ export default function LocaleSwitcherMenuItem() {
   }
 
   function handleValueChange(nextLocale: string) {
-    startTransition(() => {
-      router.replace(
-        // @ts-expect-error -- next-intl validates that params match the pathname.
-        { pathname, params },
-        { locale: nextLocale as SupportedLocale },
-      )
-    })
+    const resolvedLocale = nextLocale as SupportedLocale
+
+    if (resolvedLocale === locale || typeof window === 'undefined') {
+      return
+    }
+
+    const currentPathname = stripLocalePrefix(window.location.pathname)
+    const targetPathname = withLocalePrefix(currentPathname, resolvedLocale)
+    const targetUrl = `${targetPathname}${window.location.search}${window.location.hash}`
+
+    setIsPending(true)
+    window.location.assign(targetUrl)
   }
 
   return (

@@ -171,7 +171,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
   }
 
   return (
-    <>
+    <div id="commentsInner">
       <EventCommentForm
         user={user}
         createComment={createComment}
@@ -284,6 +284,6 @@ export default function EventComments({ event, user }: EventCommentsProps) {
           </div>
         )}
       </div>
-    </>
+    </div>
   )
 }

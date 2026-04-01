@@ -20,8 +20,7 @@ import {
 } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
-import { useParams } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 import SearchDiscoveryContent from '@/app/[locale]/(platform)/_components/SearchDiscoveryContent'
@@ -40,6 +39,7 @@ import { LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES 
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { authClient } from '@/lib/auth-client'
 import { formatCompactCurrency } from '@/lib/formatters'
+import { stripLocalePrefix, withLocalePrefix } from '@/lib/locale-path'
 import { cn } from '@/lib/utils'
 import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 import { useUser } from '@/stores/useUser'
@@ -455,10 +455,7 @@ interface MobileLocaleSwitcherProps {
 
 function MobileLocaleSwitcher({ onLocaleChange }: MobileLocaleSwitcherProps) {
   const locale = useLocale() as SupportedLocale
-  const pathname = usePathname()
-  const router = useRouter()
-  const params = useParams()
-  const [isPending, startTransition] = useTransition()
+  const [isPending, setIsPending] = useState(false)
   const [enabledLocales, setEnabledLocales] = useState<SupportedLocale[]>([...SUPPORTED_LOCALES])
 
   useEffect(() => {
@@ -494,15 +491,17 @@ function MobileLocaleSwitcher({ onLocaleChange }: MobileLocaleSwitcherProps) {
   }, [])
 
   function handleLocaleChange(nextLocale: SupportedLocale) {
-    if (nextLocale === locale) {
+    if (nextLocale === locale || typeof window === 'undefined') {
       return
     }
 
+    const currentPathname = stripLocalePrefix(window.location.pathname)
+    const targetPathname = withLocalePrefix(currentPathname, nextLocale)
+    const targetUrl = `${targetPathname}${window.location.search}${window.location.hash}`
+
     onLocaleChange?.()
-    startTransition(() => {
-      // @ts-expect-error -- next-intl validates that params match the pathname.
-      router.replace({ pathname, params }, { locale: nextLocale })
-    })
+    setIsPending(true)
+    window.location.assign(targetUrl)
   }
 
   return (
