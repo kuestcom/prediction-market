@@ -561,7 +561,6 @@ async function processCondition(market: SubgraphCondition, timestamps: MarketTim
   const resolutionPayload = market.resolved
     ? {
         resolution_status: 'resolved' as const,
-        resolution_last_update: new Date(timestamps.updatedAtIso),
       }
     : {}
 
