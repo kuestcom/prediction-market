@@ -4,7 +4,7 @@ metadata:
   name: kuest-sync-events
   namespace: kuest
 spec:
-  schedule: '1-59/3 * * * *'
+  schedule: '2,11,20,29,38,47,56 * * * *'
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
@@ -36,7 +36,7 @@ metadata:
   name: kuest-sync-resolution
   namespace: kuest
 spec:
-  schedule: '2-56/6 * * * *'
+  schedule: '5-55/10 * * * *'
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:

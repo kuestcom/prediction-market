@@ -249,7 +249,7 @@ async function createSyncCron(sql, options) {
 async function createSyncEventsCron(sql, siteUrl, cronSecret) {
   await createSyncCron(sql, {
     jobName: 'sync-events',
-    schedule: '1-59/3 * * * *',
+    schedule: '2,11,20,29,38,47,56 * * * *',
     endpointPath: '/api/sync/events',
     siteUrl,
     cronSecret,
@@ -279,7 +279,7 @@ async function createSyncTranslationsCron(sql, siteUrl, cronSecret) {
 async function createSyncResolutionCron(sql, siteUrl, cronSecret) {
   await createSyncCron(sql, {
     jobName: 'sync-resolution',
-    schedule: '2-56/6 * * * *',
+    schedule: '5-55/10 * * * *',
     endpointPath: '/api/sync/resolution',
     siteUrl,
     cronSecret,
