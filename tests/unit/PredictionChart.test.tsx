@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, waitFor, within } from '@testing-library/react'
 import PredictionChart from '@/components/PredictionChart'
 
 const data = [
@@ -10,8 +10,19 @@ const series = [
   { key: 'price', name: 'Price', color: '#F59E0B' },
 ]
 
+beforeAll(() => {
+  if (typeof SVGElement !== 'undefined' && typeof SVGElement.prototype.getComputedTextLength !== 'function') {
+    Object.defineProperty(SVGElement.prototype, 'getComputedTextLength', {
+      configurable: true,
+      value() {
+        return (this.textContent?.length ?? 0) * 8
+      },
+    })
+  }
+})
+
 describe('predictionChart', () => {
-  it('honors explicit empty y-axis ticks', () => {
+  it('honors explicit empty y-axis ticks', async () => {
     const { container } = render(
       <PredictionChart
         data={data}
@@ -23,11 +34,15 @@ describe('predictionChart', () => {
       />,
     )
 
+    await waitFor(() => {
+      expect(container.querySelector('path')).not.toBeNull()
+    })
+
     expect(container.querySelectorAll('text')).toHaveLength(0)
   })
 
-  it('dedupes repeated explicit y-axis ticks', () => {
-    render(
+  it('dedupes repeated explicit y-axis ticks', async () => {
+    const { container } = render(
       <PredictionChart
         data={data}
         series={series}
@@ -39,6 +54,24 @@ describe('predictionChart', () => {
       />,
     )
 
-    expect(screen.getAllByText('50%')).toHaveLength(1)
+    expect(await within(container).findAllByText('50%')).toHaveLength(1)
+  })
+
+  it('falls back to default ticks when a non-empty explicit y-axis tick array normalizes to empty', async () => {
+    const { container } = render(
+      <PredictionChart
+        data={data}
+        series={series}
+        width={400}
+        height={220}
+        showXAxis={false}
+        showHorizontalGrid={false}
+        yAxis={{ ticks: [Number.NaN, Number.POSITIVE_INFINITY] }}
+      />,
+    )
+
+    expect(await within(container).findByText('45%')).toBeInTheDocument()
+    expect(within(container).getByText('50%')).toBeInTheDocument()
+    expect(within(container).getByText('55%')).toBeInTheDocument()
   })
 })
