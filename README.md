@@ -72,10 +72,9 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 
 | | Option | Best for |
 |---|---|---|
-| ⚡ | **[No-code at kuest.com/launch](https://kuest.com/launch)**, fill out the guided setup and go live fast | Most operators |
-| 📘 | **[Launch walkthrough](https://docs.kuest.com/launch/overview)**, field-by-field guide for the `/launch` flow | Operators who want guidance before deploying |
-| 🔧 | **[Vercel + Supabase](https://docs.kuest.com/manual-installation/vercel)**, hosted deployment with full codebase control | Technical operators |
-| 🏗️ | **[Manual installation overview](https://docs.kuest.com/manual-installation/overview)**, Docker, VPS, Cloud Run, Fly.io, Kubernetes, and Terraform | Advanced / enterprise |
+| ⚡ | **[No-code Launch](https://kuest.com/launch)** - fill out the guided setup and go live fast | Most operators |
+| 🔧 | **[Vercel + Supabase](https://docs.kuest.com/manual-installation/vercel)** - hosted deployment with full codebase control | Technical operators |
+| 🏗️ | **[Manual installation](https://docs.kuest.com/manual-installation/overview)** - Docker, VPS, Cloud Run, Fly.io, Kubernetes, and Terraform | Advanced / enterprise |
 
 ---
 
