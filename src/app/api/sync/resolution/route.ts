@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm'
-import { updateTag } from 'next/cache'
+import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { isCronAuthorized } from '@/lib/auth-cron'
 import { cacheTags } from '@/lib/cache-tags'
@@ -194,76 +194,23 @@ async function tryAcquireSyncLock(): Promise<boolean> {
     if (claimedRows.length > 0) {
       return true
     }
-  }
-  catch (error: any) {
-    if (isMissingColumnError(error, 'status')) {
-      return tryAcquireLegacySyncLock()
-    }
-    throw new Error(`Failed to claim sync lock: ${error?.message ?? String(error)}`)
-  }
-
-  try {
-    const insertedRows = await db
-      .insert(subgraph_syncs)
-      .values(runningPayload)
-      .onConflictDoNothing()
-      .returning({ id: subgraph_syncs.id })
-
-    if (insertedRows.length > 0) {
-      return true
-    }
-
-    return false
-  }
-  catch (error: any) {
-    if (isMissingColumnError(error, 'status')) {
-      return tryAcquireLegacySyncLock()
-    }
-    throw new Error(`Failed to initialize sync lock: ${error?.message ?? String(error)}`)
-  }
-}
-
-function isMissingColumnError(error: { message?: string } | null | undefined, column: string): boolean {
-  const message = error?.message ?? ''
-  return message.includes(`column subgraph_syncs.${column} does not exist`)
-}
-
-async function tryAcquireLegacySyncLock(): Promise<boolean> {
-  const legacyPayload = {
-    service_name: 'resolution_sync',
-    subgraph_name: 'resolution',
-    error_message: null,
-  }
-
-  try {
-    const updatedRows = await db
-      .update(subgraph_syncs)
-      .set(legacyPayload)
+    const existingRows = await db
+      .select({ id: subgraph_syncs.id })
+      .from(subgraph_syncs)
       .where(and(
         eq(subgraph_syncs.service_name, 'resolution_sync'),
         eq(subgraph_syncs.subgraph_name, 'resolution'),
       ))
-      .returning({ id: subgraph_syncs.id })
+      .limit(1)
 
-    if (updatedRows.length > 0) {
-      return true
+    if (existingRows.length > 0) {
+      return false
     }
+
+    throw new Error('Missing sync state row for resolution_sync/resolution. Run the latest database migrations.')
   }
   catch (error: any) {
-    throw new Error(`Failed to claim legacy sync lock: ${error?.message ?? String(error)}`)
-  }
-
-  try {
-    const insertedRows = await db
-      .insert(subgraph_syncs)
-      .values(legacyPayload)
-      .onConflictDoNothing()
-      .returning({ id: subgraph_syncs.id })
-
-    return insertedRows.length > 0
-  }
-  catch (error: any) {
-    throw new Error(`Failed to initialize legacy sync lock: ${error?.message ?? String(error)}`)
+    throw new Error(`Failed to claim sync lock: ${error?.message ?? String(error)}`)
   }
 }
 
@@ -287,18 +234,20 @@ async function updateSyncStatus(
   }
 
   try {
-    await db
-      .insert(subgraph_syncs)
-      .values(updateData)
-      .onConflictDoUpdate({
-        target: [subgraph_syncs.service_name, subgraph_syncs.subgraph_name],
-        set: updateData,
-      })
+    const updatedRows = await db
+      .update(subgraph_syncs)
+      .set(updateData)
+      .where(and(
+        eq(subgraph_syncs.service_name, 'resolution_sync'),
+        eq(subgraph_syncs.subgraph_name, 'resolution'),
+      ))
+      .returning({ id: subgraph_syncs.id })
+
+    if (updatedRows.length === 0) {
+      console.error('Failed to update sync status: missing sync state row for resolution_sync/resolution')
+    }
   }
   catch (error: any) {
-    if (isMissingColumnError(error, 'status')) {
-      return
-    }
     console.error(`Failed to update sync status to ${status}:`, error)
   }
 }
@@ -540,20 +489,23 @@ async function getLastResolutionCursor(): Promise<ResolutionCursor | null> {
 
 async function updateResolutionCursor(cursor: ResolutionCursor) {
   try {
-    const payload = {
-      service_name: 'resolution_sync',
-      subgraph_name: 'resolution',
+    const cursorPayload = {
       cursor_updated_at: BigInt(cursor.lastUpdateTimestamp),
       cursor_id: cursor.id,
     }
 
-    await db
-      .insert(subgraph_syncs)
-      .values(payload)
-      .onConflictDoUpdate({
-        target: [subgraph_syncs.service_name, subgraph_syncs.subgraph_name],
-        set: payload,
-      })
+    const updatedRows = await db
+      .update(subgraph_syncs)
+      .set(cursorPayload)
+      .where(and(
+        eq(subgraph_syncs.service_name, 'resolution_sync'),
+        eq(subgraph_syncs.subgraph_name, 'resolution'),
+      ))
+      .returning({ id: subgraph_syncs.id })
+
+    if (updatedRows.length === 0) {
+      console.error('Failed to update resolution cursor: missing sync state row for resolution_sync/resolution')
+    }
   }
   catch (error) {
     console.error('Failed to update resolution cursor:', error)
@@ -940,12 +892,12 @@ async function invalidateEventCaches(
     .where(inArray(eventsTable.id, uniqueEventIds))
 
   if (options.includeGlobal) {
-    updateTag(cacheTags.eventsGlobal)
+    revalidateTag(cacheTags.eventsGlobal, 'max')
   }
 
   for (const row of rows) {
     if (row.slug) {
-      updateTag(cacheTags.event(row.slug))
+      revalidateTag(cacheTags.event(row.slug), 'max')
     }
   }
 }

@@ -2,7 +2,6 @@ import {
   bigint,
   integer,
   pgTable,
-  smallint,
   text,
   timestamp,
 } from 'drizzle-orm/pg-core'
@@ -10,7 +9,7 @@ import {
 export const subgraph_syncs = pgTable(
   'subgraph_syncs',
   {
-    id: smallint().primaryKey().generatedAlwaysAsIdentity(),
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
     service_name: text().notNull(),
     subgraph_name: text().notNull(),
     status: text().default('idle').notNull(),

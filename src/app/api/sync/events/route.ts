@@ -1,5 +1,5 @@
 import { and, eq, inArray, lt, ne, or } from 'drizzle-orm'
-import { updateTag } from 'next/cache'
+import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { loadAllowedMarketCreatorWallets } from '@/lib/allowed-market-creators-server'
 import { isCronAuthorized } from '@/lib/auth-cron'
@@ -444,20 +444,23 @@ async function getLastPnLCursor(): Promise<SyncCursor | null> {
 
 async function updatePnLCursor(cursor: SyncCursor) {
   try {
-    const payload = {
-      service_name: 'market_sync',
-      subgraph_name: 'pnl',
+    const cursorPayload = {
       cursor_updated_at: BigInt(cursor.updatedAt),
       cursor_id: cursor.conditionId,
     }
 
-    await db
-      .insert(subgraph_syncs)
-      .values(payload)
-      .onConflictDoUpdate({
-        target: [subgraph_syncs.service_name, subgraph_syncs.subgraph_name],
-        set: payload,
-      })
+    const updatedRows = await db
+      .update(subgraph_syncs)
+      .set(cursorPayload)
+      .where(and(
+        eq(subgraph_syncs.service_name, 'market_sync'),
+        eq(subgraph_syncs.subgraph_name, 'pnl'),
+      ))
+      .returning({ id: subgraph_syncs.id })
+
+    if (updatedRows.length === 0) {
+      console.error('Failed to update market sync cursor: missing sync state row for market_sync/pnl')
+    }
   }
   catch (error) {
     console.error('Failed to update market sync cursor:', error)
@@ -1150,11 +1153,11 @@ async function invalidateEventCaches(
     .where(inArray(eventsTable.id, uniqueEventIds))
 
   if (options.includeGlobal) {
-    updateTag(cacheTags.eventsGlobal)
+    revalidateTag(cacheTags.eventsGlobal, 'max')
   }
   for (const row of rows) {
     if (row.slug) {
-      updateTag(cacheTags.event(row.slug))
+      revalidateTag(cacheTags.event(row.slug), 'max')
     }
   }
 }
@@ -1979,72 +1982,23 @@ async function tryAcquireSyncLock(): Promise<boolean> {
     if (claimedRows.length > 0) {
       return true
     }
-  }
-  catch (claimError: any) {
-    if (isMissingColumnError(claimError, 'status')) {
-      return tryAcquireLegacySyncLock()
-    }
-    throw new Error(`Failed to claim sync lock: ${claimError?.message ?? String(claimError)}`)
-  }
-
-  try {
-    const insertedRows = await db
-      .insert(subgraph_syncs)
-      .values(runningPayload)
-      .onConflictDoNothing()
-      .returning({ id: subgraph_syncs.id })
-
-    return insertedRows.length > 0
-  }
-  catch (insertError: any) {
-    if (isMissingColumnError(insertError, 'status')) {
-      return tryAcquireLegacySyncLock()
-    }
-    throw new Error(`Failed to initialize sync lock: ${insertError?.message ?? String(insertError)}`)
-  }
-}
-
-function isMissingColumnError(error: { message?: string } | null | undefined, column: string): boolean {
-  const message = error?.message ?? ''
-  return message.includes(`column subgraph_syncs.${column} does not exist`)
-}
-
-async function tryAcquireLegacySyncLock(): Promise<boolean> {
-  const legacyPayload = {
-    service_name: 'market_sync',
-    subgraph_name: 'pnl',
-    error_message: null,
-  }
-
-  try {
-    const updatedRows = await db
-      .update(subgraph_syncs)
-      .set(legacyPayload)
+    const existingRows = await db
+      .select({ id: subgraph_syncs.id })
+      .from(subgraph_syncs)
       .where(and(
         eq(subgraph_syncs.service_name, 'market_sync'),
         eq(subgraph_syncs.subgraph_name, 'pnl'),
       ))
-      .returning({ id: subgraph_syncs.id })
+      .limit(1)
 
-    if (updatedRows.length > 0) {
-      return true
+    if (existingRows.length > 0) {
+      return false
     }
-  }
-  catch (updateError: any) {
-    throw new Error(`Failed to claim legacy sync lock: ${updateError?.message ?? String(updateError)}`)
-  }
 
-  try {
-    const insertedRows = await db
-      .insert(subgraph_syncs)
-      .values(legacyPayload)
-      .onConflictDoNothing()
-      .returning({ id: subgraph_syncs.id })
-
-    return insertedRows.length > 0
+    throw new Error('Missing sync state row for market_sync/pnl. Run the latest database migrations.')
   }
-  catch (insertError: any) {
-    throw new Error(`Failed to initialize legacy sync lock: ${insertError?.message ?? String(insertError)}`)
+  catch (claimError: any) {
+    throw new Error(`Failed to claim sync lock: ${claimError?.message ?? String(claimError)}`)
   }
 }
 
@@ -2068,18 +2022,20 @@ async function updateSyncStatus(
   }
 
   try {
-    await db
-      .insert(subgraph_syncs)
-      .values(updateData)
-      .onConflictDoUpdate({
-        target: [subgraph_syncs.service_name, subgraph_syncs.subgraph_name],
-        set: updateData,
-      })
+    const updatedRows = await db
+      .update(subgraph_syncs)
+      .set(updateData)
+      .where(and(
+        eq(subgraph_syncs.service_name, 'market_sync'),
+        eq(subgraph_syncs.subgraph_name, 'pnl'),
+      ))
+      .returning({ id: subgraph_syncs.id })
+
+    if (updatedRows.length === 0) {
+      console.error('Failed to update sync status: missing sync state row for market_sync/pnl')
+    }
   }
   catch (error: any) {
-    if (isMissingColumnError(error, 'status')) {
-      return
-    }
     console.error(`Failed to update sync status to ${status}:`, error)
   }
 }
