@@ -3268,7 +3268,7 @@ export default function SportsEventCenter({
         <SportsEventQuerySync onSelectionChange={handleQuerySelectionChange} />
       </Suspense>
       <div className="
-        min-[1200px]:grid min-[1200px]:h-full min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem]
+        min-[1200px]:grid min-[1200px]:h-full min-[1200px]:min-h-0 min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem]
         min-[1200px]:[align-content:start] min-[1200px]:[align-items:start] min-[1200px]:gap-6
       "
       >
@@ -3276,7 +3276,8 @@ export default function SportsEventCenter({
           data-sports-scroll-pane="center"
           className="
             min-w-0
-            min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:overscroll-contain min-[1200px]:pr-1
+            min-[1200px]:min-h-0 min-[1200px]:self-stretch min-[1200px]:overflow-y-auto min-[1200px]:overscroll-contain
+            min-[1200px]:pr-1
             lg:ml-4
           "
         >
