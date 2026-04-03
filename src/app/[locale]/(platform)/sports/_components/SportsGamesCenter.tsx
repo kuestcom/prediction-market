@@ -2020,6 +2020,45 @@ function resolveTeamShortLabel(name: string | null | undefined, abbreviation: st
   return compactName.slice(0, 3)
 }
 
+const FRANCHISE_MULTI_WORD_NICKNAME_PREFIXES = new Set([
+  'blue',
+  'golden',
+  'maple',
+  'red',
+  'trail',
+  'white',
+])
+
+function resolveFranchiseTradeHeaderTeamLabel(
+  name: string | null | undefined,
+  abbreviation: string | null | undefined,
+) {
+  const trimmedName = name?.trim()
+  if (!trimmedName) {
+    return resolveTeamShortLabel(name, abbreviation)
+  }
+
+  const nameTokens = trimmedName.split(/\s+/).filter(Boolean)
+  if (nameTokens.length <= 1) {
+    return trimmedName
+  }
+
+  const lastToken = nameTokens.at(-1)
+  const secondToLastToken = nameTokens.at(-2)
+  if (!lastToken) {
+    return resolveTeamShortLabel(name, abbreviation)
+  }
+
+  if (
+    secondToLastToken
+    && FRANCHISE_MULTI_WORD_NICKNAME_PREFIXES.has(normalizeComparableText(secondToLastToken))
+  ) {
+    return `${secondToLastToken} ${lastToken}`
+  }
+
+  return lastToken
+}
+
 function resolveEsportsTradeHeaderTeamLabel(
   name: string | null | undefined,
   abbreviation: string | null | undefined,
@@ -2043,6 +2082,14 @@ const COMPACT_COMBAT_TRADE_HEADER_SPORT_SLUGS = new Set([
   'mma',
   'ufc',
   'zuffa',
+])
+
+const COMPACT_FRANCHISE_TRADE_HEADER_SPORT_SLUGS = new Set([
+  'mlb',
+  'nba',
+  'nfl',
+  'nhl',
+  'wnba',
 ])
 
 function hasDrawMoneylineOption(card: SportsGamesCard) {
@@ -2079,9 +2126,10 @@ function shouldUseCompactTradeHeaderTitle(card: SportsGamesCard, vertical: Sport
     return true
   }
 
-  return COMPACT_COMBAT_TRADE_HEADER_SPORT_SLUGS.has(
-    normalizeComparableText(card.event.sports_sport_slug),
-  )
+  const normalizedSportSlug = normalizeComparableText(card.event.sports_sport_slug)
+
+  return COMPACT_COMBAT_TRADE_HEADER_SPORT_SLUGS.has(normalizedSportSlug)
+    || COMPACT_FRANCHISE_TRADE_HEADER_SPORT_SLUGS.has(normalizedSportSlug)
 }
 
 function escapeRegExp(value: string) {
@@ -2142,9 +2190,14 @@ function resolveTradeHeaderTitle({
     mainTag: card.event.main_tag,
   })
   if (shouldUseCompactTradeHeaderTitle(card, vertical)) {
+    const normalizedSportSlug = normalizeComparableText(card.event.sports_sport_slug)
     const compactTitle = resolveCompactTradeHeaderTitle(
       card,
-      vertical === 'esports' ? resolveEsportsTradeHeaderTeamLabel : resolveTeamShortLabel,
+      vertical === 'esports'
+        ? resolveEsportsTradeHeaderTeamLabel
+        : COMPACT_FRANCHISE_TRADE_HEADER_SPORT_SLUGS.has(normalizedSportSlug)
+          ? resolveFranchiseTradeHeaderTeamLabel
+          : resolveTeamShortLabel,
     )
     if (compactTitle) {
       return compactTitle
