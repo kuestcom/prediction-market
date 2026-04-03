@@ -544,9 +544,19 @@ export function resolveOrderPanelOutcomeLabelOverrides(
     return {}
   }
 
+  const hasDrawMoneylineOption = card.buttons.some(button =>
+    button.marketType === 'moneyline' && button.tone === 'draw',
+  )
+  const isMoneylineCondition = card.buttons.some(button =>
+    button.conditionId === market.condition_id && button.marketType === 'moneyline',
+  )
+  if (hasDrawMoneylineOption && isMoneylineCondition) {
+    return {}
+  }
+
   const labels: Partial<Record<number, string>> = {}
   card.buttons.forEach((button) => {
-    if (button.conditionId !== market.condition_id) {
+    if (button.conditionId !== market.condition_id || button.tone === 'draw') {
       return
     }
 
@@ -2002,6 +2012,7 @@ function resolveEsportsTradeHeaderTeamLabel(
 
 const COMPACT_COMBAT_TRADE_HEADER_SPORT_SLUGS = new Set([
   'boxing',
+  'chess',
   'mma',
   'ufc',
   'zuffa',
