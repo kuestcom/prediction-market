@@ -180,7 +180,10 @@ export default function SearchDiscoveryContent({
               <div
                 key={item.id}
                 className={cn(
-                  'flex items-center rounded-md transition-colors hover:bg-accent',
+                  `
+                    grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center rounded-md transition-colors
+                    hover:bg-accent
+                  `,
                   isDesktop ? 'gap-2' : 'gap-1.5',
                 )}
               >
@@ -189,7 +192,7 @@ export default function SearchDiscoveryContent({
                   href={item.href}
                   onClick={onNavigate}
                   className={cn(
-                    'flex min-w-0 flex-1 items-center',
+                    'flex min-w-0 items-center overflow-hidden',
                     isDesktop ? 'gap-3 px-1.5 py-2' : 'gap-2 px-1 py-1.5',
                   )}
                 >
@@ -214,7 +217,7 @@ export default function SearchDiscoveryContent({
                   </div>
                   <p
                     className={cn(
-                      'min-w-0 truncate font-normal text-foreground',
+                      'min-w-0 flex-1 truncate font-normal text-foreground',
                       isDesktop ? 'text-sm' : 'text-xs/tight',
                     )}
                   >
