@@ -215,6 +215,7 @@ const sportsSidebarSpec: SidebarSpecItem[] = [
   {
     type: 'link',
     id: 'sports-top-link-mlb',
+    label: 'Baseball',
     source: { menuSlug: 'mlb' },
   },
   {

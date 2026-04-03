@@ -212,6 +212,14 @@ describe('sports sidebar entries', () => {
       '/sports/chess/games',
       '/sports/boxing/props',
     ])
+
+    const baseballLink = buildSportsSidebarEntries(rows, 'sports').find(entry =>
+      entry.type === 'link' && entry.href === '/sports/mlb/games',
+    )
+    expect(baseballLink).toMatchObject({
+      type: 'link',
+      label: 'Baseball',
+    })
   })
 
   it('orders soccer child links like the html spec and omits non-spec items', () => {
