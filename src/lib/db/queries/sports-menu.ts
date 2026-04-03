@@ -186,6 +186,10 @@ const getCachedActiveSportsCountRows = unstable_cache(
       .select({
         slug: event_sports.sports_sport_slug,
         series_slug: event_sports.sports_series_slug,
+        event_slug: events.slug,
+        sports_event_id: event_sports.sports_event_id,
+        sports_event_slug: event_sports.sports_event_slug,
+        parent_event_id: event_sports.sports_parent_event_id,
         tags: event_sports.sports_tags,
         is_hidden: events.is_hidden,
         sports_live: event_sports.sports_live,

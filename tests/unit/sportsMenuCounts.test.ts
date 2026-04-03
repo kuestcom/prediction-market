@@ -70,6 +70,10 @@ describe('buildSportsMenuCountsBySlug', () => {
         {
           slug: null,
           series_slug: 'league-of-legends',
+          event_slug: 'league-of-legends-match-1',
+          sports_event_id: 'league-of-legends-match-1',
+          sports_event_slug: 'league-of-legends-match-1',
+          parent_event_id: null,
           tags: ['Games'],
           is_hidden: false,
           sports_live: false,
@@ -81,6 +85,10 @@ describe('buildSportsMenuCountsBySlug', () => {
         {
           slug: 'cs2',
           series_slug: null,
+          event_slug: 'cs2-match-1',
+          sports_event_id: 'cs2-match-1',
+          sports_event_slug: 'cs2-match-1',
+          parent_event_id: null,
           tags: ['Games'],
           is_hidden: false,
           sports_live: true,
@@ -138,6 +146,10 @@ describe('buildSportsMenuCountsBySlug', () => {
         {
           slug: 'basketball',
           series_slug: null,
+          event_slug: 'basketball-match-1',
+          sports_event_id: 'basketball-match-1',
+          sports_event_slug: 'basketball-match-1',
+          parent_event_id: null,
           tags: [],
           is_hidden: false,
           sports_live: true,
@@ -209,6 +221,10 @@ describe('buildSportsMenuCountsBySlug', () => {
         {
           slug: 'zuffa',
           series_slug: 'zuffa',
+          event_slug: 'zuffa-a-b-1',
+          sports_event_id: 'zuffa-a-b-1',
+          sports_event_slug: 'zuffa-a-b-1',
+          parent_event_id: null,
           tags: ['Sports', 'Games', 'Boxing', 'Zuffa'],
           is_hidden: false,
           sports_live: false,
@@ -220,6 +236,10 @@ describe('buildSportsMenuCountsBySlug', () => {
         {
           slug: 'zuffa',
           series_slug: 'zuffa',
+          event_slug: 'zuffa-c-d-1',
+          sports_event_id: 'zuffa-c-d-1',
+          sports_event_slug: 'zuffa-c-d-1',
+          parent_event_id: null,
           tags: ['Sports', 'Games', 'Zuffa', 'Boxing'],
           is_hidden: false,
           sports_live: false,
@@ -231,6 +251,10 @@ describe('buildSportsMenuCountsBySlug', () => {
         {
           slug: 'zuffa',
           series_slug: 'zuffa',
+          event_slug: 'zuffa-e-f-1',
+          sports_event_id: 'zuffa-e-f-1',
+          sports_event_slug: 'zuffa-e-f-1',
+          parent_event_id: null,
           tags: ['Sports', 'Zuffa', 'Boxing', 'Games'],
           is_hidden: false,
           sports_live: false,
@@ -248,5 +272,113 @@ describe('buildSportsMenuCountsBySlug', () => {
       'zuffa::games': 3,
     })
     expect(counts['boxing::props']).toBeUndefined()
+  })
+
+  it('dedupes sidebar counts across grouped auxiliary game rows', () => {
+    const resolver = buildSportsSlugResolver([
+      {
+        menuSlug: 'crint',
+        h1Title: 'International',
+        label: 'International',
+        sections: {
+          gamesEnabled: true,
+          propsEnabled: true,
+        },
+      },
+    ])
+
+    const menuEntries: SportsMenuEntry[] = [
+      buildLinkEntry({
+        id: 'crint',
+        label: 'International',
+        href: '/sports/crint/games',
+        menuSlug: 'crint',
+      }),
+    ]
+
+    const counts = buildSportsMenuCountsBySlug(
+      resolver,
+      [
+        {
+          slug: 'international',
+          series_slug: 'international-cricket',
+          event_slug: 'crint-nam-sco-2026-04-06',
+          sports_event_id: '334449',
+          sports_event_slug: 'crint-nam-sco-2026-04-06',
+          parent_event_id: null,
+          tags: ['Sports', 'Games', 'Cricket', 'International Cricket'],
+          is_hidden: false,
+          sports_live: false,
+          sports_ended: false,
+          sports_start_time: new Date('2026-04-06T15:00:00.000Z'),
+          start_date: new Date('2026-04-06T15:00:00.000Z'),
+          end_date: new Date('2026-04-06T17:00:00.000Z'),
+        },
+        {
+          slug: 'international',
+          series_slug: 'international-cricket',
+          event_slug: 'crint-nam-sco-2026-04-06-team-top-batter',
+          sports_event_id: '334451',
+          sports_event_slug: 'crint-nam-sco-2026-04-06-team-top-batter',
+          parent_event_id: 334449,
+          tags: ['Sports', 'Games', 'Cricket', 'International Cricket'],
+          is_hidden: false,
+          sports_live: false,
+          sports_ended: false,
+          sports_start_time: new Date('2026-04-06T15:00:00.000Z'),
+          start_date: new Date('2026-04-06T15:00:00.000Z'),
+          end_date: new Date('2026-04-06T17:00:00.000Z'),
+        },
+        {
+          slug: 'international',
+          series_slug: 'international-cricket',
+          event_slug: 'crint-prt-nor-2026-04-07',
+          sports_event_id: '334493',
+          sports_event_slug: 'crint-prt-nor-2026-04-07',
+          parent_event_id: null,
+          tags: ['Sports', 'Games', 'Cricket', 'International Cricket'],
+          is_hidden: false,
+          sports_live: false,
+          sports_ended: false,
+          sports_start_time: new Date('2026-04-07T15:00:00.000Z'),
+          start_date: new Date('2026-04-07T15:00:00.000Z'),
+          end_date: new Date('2026-04-07T17:00:00.000Z'),
+        },
+        {
+          slug: 'international',
+          series_slug: 'international-cricket',
+          event_slug: 'crint-prt-nor-2026-04-07-most-sixes',
+          sports_event_id: '334495',
+          sports_event_slug: 'crint-prt-nor-2026-04-07-most-sixes',
+          parent_event_id: '334493',
+          tags: ['Sports', 'Games', 'Cricket', 'International Cricket'],
+          is_hidden: false,
+          sports_live: false,
+          sports_ended: false,
+          sports_start_time: new Date('2026-04-07T15:00:00.000Z'),
+          start_date: new Date('2026-04-07T15:00:00.000Z'),
+          end_date: new Date('2026-04-07T17:00:00.000Z'),
+        },
+        {
+          slug: 'international',
+          series_slug: 'international-cricket',
+          event_slug: 'crint-prt-nor-2026-04-07-team-top-batter',
+          sports_event_id: '334496',
+          sports_event_slug: 'crint-prt-nor-2026-04-07-team-top-batter',
+          parent_event_id: '334493',
+          tags: ['Sports', 'Games', 'Cricket', 'International Cricket'],
+          is_hidden: false,
+          sports_live: false,
+          sports_ended: false,
+          sports_start_time: new Date('2026-04-07T15:00:00.000Z'),
+          start_date: new Date('2026-04-07T15:00:00.000Z'),
+          end_date: new Date('2026-04-07T17:00:00.000Z'),
+        },
+      ],
+      menuEntries,
+      new Date('2026-04-02T12:00:00.000Z').getTime(),
+    )
+
+    expect(counts['crint::games']).toBe(2)
   })
 })

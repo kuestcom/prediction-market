@@ -1,6 +1,7 @@
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import { normalizeComparableValue } from '@/lib/slug'
+import { stripSportsAuxiliaryEventSuffix } from '@/lib/sports-event-slugs'
 import {
   resolveSportsSidebarMenuSlugCountKey,
   SPORTS_SIDEBAR_FUTURE_COUNT_KEY,
@@ -11,6 +12,10 @@ import { resolveCanonicalSportsSportSlug } from '@/lib/sports-slug-mapping'
 export interface SportsMenuActiveCountRow {
   slug: string | null
   series_slug: string | null
+  event_slug: string | null
+  sports_event_id: number | string | null
+  sports_event_slug: string | null
+  parent_event_id: number | string | null
   tags: unknown
   is_hidden: boolean
   sports_live: boolean | null
@@ -123,6 +128,58 @@ function resolveCountRowSection(row: SportsMenuActiveCountRow) {
   return null
 }
 
+function resolveCountRowGroupKey(row: SportsMenuActiveCountRow) {
+  if (typeof row.parent_event_id === 'number' && Number.isFinite(row.parent_event_id)) {
+    return String(row.parent_event_id)
+  }
+
+  const normalizedParentEventId = typeof row.parent_event_id === 'string'
+    ? row.parent_event_id.trim()
+    : ''
+  if (normalizedParentEventId) {
+    return normalizedParentEventId
+  }
+
+  if (typeof row.sports_event_id === 'number' && Number.isFinite(row.sports_event_id)) {
+    return String(row.sports_event_id)
+  }
+
+  const normalizedSportsEventId = typeof row.sports_event_id === 'string'
+    ? row.sports_event_id.trim()
+    : ''
+  if (normalizedSportsEventId) {
+    return normalizedSportsEventId
+  }
+
+  const rawSlug = row.sports_event_slug?.trim() || row.event_slug?.trim() || ''
+  if (!rawSlug) {
+    return null
+  }
+
+  return stripSportsAuxiliaryEventSuffix(rawSlug)
+}
+
+function incrementCountForGroup(params: {
+  countsBySlug: Record<string, number>
+  seenGroupKeysByCountKey: Map<string, Set<string>>
+  countKey: string
+  groupKey: string | null
+}) {
+  if (!params.groupKey) {
+    params.countsBySlug[params.countKey] = (params.countsBySlug[params.countKey] ?? 0) + 1
+    return
+  }
+
+  const seenGroupKeys = params.seenGroupKeysByCountKey.get(params.countKey) ?? new Set<string>()
+  if (seenGroupKeys.has(params.groupKey)) {
+    return
+  }
+
+  seenGroupKeys.add(params.groupKey)
+  params.seenGroupKeysByCountKey.set(params.countKey, seenGroupKeys)
+  params.countsBySlug[params.countKey] = (params.countsBySlug[params.countKey] ?? 0) + 1
+}
+
 function addMenuCountKey(
   countKeysBySlug: Map<string, Set<string>>,
   entry: Extract<SportsMenuEntry, { type: 'link' }>,
@@ -174,6 +231,7 @@ export function buildSportsMenuCountsBySlug(
 ) {
   const countsBySlug: Record<string, number> = {}
   const menuCountKeysBySlug = collectMenuCountKeysBySlug(menuEntries)
+  const seenGroupKeysByCountKey = new Map<string, Set<string>>()
 
   for (const row of activeCountRows) {
     if (row.is_hidden) {
@@ -192,6 +250,7 @@ export function buildSportsMenuCountsBySlug(
     }
 
     const rowSection = resolveCountRowSection(row)
+    const rowGroupKey = resolveCountRowGroupKey(row)
     const rowSectionKey = rowSection
       ? resolveSportsSidebarMenuSlugCountKey({
           href: `/${rowSection}`,
@@ -200,18 +259,38 @@ export function buildSportsMenuCountsBySlug(
       : null
 
     if (rowSectionKey && menuCountKeys.has(rowSectionKey)) {
-      countsBySlug[rowSectionKey] = (countsBySlug[rowSectionKey] ?? 0) + 1
+      incrementCountForGroup({
+        countsBySlug,
+        seenGroupKeysByCountKey,
+        countKey: rowSectionKey,
+        groupKey: rowGroupKey,
+      })
     }
     else if (menuCountKeys.has(canonicalSlug)) {
-      countsBySlug[canonicalSlug] = (countsBySlug[canonicalSlug] ?? 0) + 1
+      incrementCountForGroup({
+        countsBySlug,
+        seenGroupKeysByCountKey,
+        countKey: canonicalSlug,
+        groupKey: rowGroupKey,
+      })
     }
 
     if (isCountRowLiveNow(row, nowMs)) {
-      countsBySlug[SPORTS_SIDEBAR_LIVE_COUNT_KEY] = (countsBySlug[SPORTS_SIDEBAR_LIVE_COUNT_KEY] ?? 0) + 1
+      incrementCountForGroup({
+        countsBySlug,
+        seenGroupKeysByCountKey,
+        countKey: SPORTS_SIDEBAR_LIVE_COUNT_KEY,
+        groupKey: rowGroupKey,
+      })
     }
 
     if (isCountRowFuture(row, nowMs)) {
-      countsBySlug[SPORTS_SIDEBAR_FUTURE_COUNT_KEY] = (countsBySlug[SPORTS_SIDEBAR_FUTURE_COUNT_KEY] ?? 0) + 1
+      incrementCountForGroup({
+        countsBySlug,
+        seenGroupKeysByCountKey,
+        countKey: SPORTS_SIDEBAR_FUTURE_COUNT_KEY,
+        groupKey: rowGroupKey,
+      })
     }
   }
 
