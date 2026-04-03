@@ -25,7 +25,7 @@ import EventOrderPanelTermsDisclaimer
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
 import EventTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabs'
 import SportsEventAboutPanel from '@/app/[locale]/(platform)/sports/_components/SportsEventAboutPanel'
-import { buildLinePickerOptions, groupButtonsByMarketType, resolveButtonDepthStyle, resolveButtonOverlayStyle, resolveButtonStyle, resolveDefaultConditionId, resolveOrderPanelOutcomeAccentOverrides, resolveOrderPanelOutcomeLabelOverrides, resolveSelectedButton, resolveSelectedMarket, resolveSelectedOutcome, resolveStableSpreadPrimaryOutcomeIndex, SportsGameDetailsPanel, SportsGameGraph, SportsOrderPanelMarketInfo } from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
+import { buildLinePickerOptions, groupButtonsByMarketType, resolveButtonDepthStyle, resolveButtonOverlayStyle, resolveButtonStyle, resolveDefaultConditionId, resolveOrderPanelOutcomeAccentOverrides, resolveOrderPanelOutcomeLabelOverrides, resolvePreferredLinePickerButton, resolveSelectedButton, resolveSelectedMarket, resolveSelectedOutcome, resolveStableSpreadPrimaryOutcomeIndex, SportsGameDetailsPanel, SportsGameGraph, SportsOrderPanelMarketInfo } from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import SportsLivestreamFloatingPlayer
   from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import SportsRedeemModal from '@/app/[locale]/(platform)/sports/_components/SportsRedeemModal'
@@ -92,7 +92,7 @@ interface SportsSegmentNumberPickerOption {
 const SECTION_ORDER: Array<{ key: EventSectionKey, label: string }> = [
   { key: 'moneyline', label: 'Moneyline' },
   { key: 'spread', label: 'Spread' },
-  { key: 'total', label: 'Total' },
+  { key: 'total', label: 'Totals' },
   { key: 'btts', label: 'Both Teams to Score?' },
 ]
 
@@ -2331,9 +2331,7 @@ export default function SportsEventCenter({
     }
 
     const buttons = spreadOption.buttonsByConditionId.get(preferredConditionId) ?? []
-    const preferredButton = buttons.find(button => button.outcomeIndex === selectedSpreadSectionButton?.outcomeIndex)
-      ?? buttons[0]
-      ?? null
+    const preferredButton = resolvePreferredLinePickerButton(buttons, selectedSpreadSectionButton)
     if (!preferredButton) {
       return
     }
@@ -2346,9 +2344,7 @@ export default function SportsEventCenter({
       return
     }
 
-    const preferredButton = option.buttons.find(button => button.outcomeIndex === selectedTotalSectionButton?.outcomeIndex)
-      ?? option.buttons[0]
-      ?? null
+    const preferredButton = resolvePreferredLinePickerButton(option.buttons, selectedTotalSectionButton)
     if (!preferredButton) {
       return
     }
@@ -2369,10 +2365,8 @@ export default function SportsEventCenter({
     }
 
     const buttons = activeSeriesSpreadSegmentOption.buttonsByConditionId.get(preferredConditionId) ?? []
-    const preferredOutcomeIndex = selectedSpreadSectionButton?.outcomeIndex
 
-    return buttons.find(button => button.outcomeIndex === preferredOutcomeIndex)?.key
-      ?? buttons[0]?.key
+    return resolvePreferredLinePickerButton(buttons, selectedSpreadSectionButton)?.key
       ?? null
   }, [activeSeriesSpreadConditionId, activeSeriesSpreadSegmentOption, selectedSpreadSectionButton])
   const resolveSeriesTotalSelectedButtonKey = useCallback(() => {
@@ -2380,9 +2374,7 @@ export default function SportsEventCenter({
       return null
     }
 
-    const preferredOutcomeIndex = selectedTotalSectionButton?.outcomeIndex
-    return activeSeriesTotalLineOption.buttons.find(button => button.outcomeIndex === preferredOutcomeIndex)?.key
-      ?? activeSeriesTotalLineOption.buttons[0]?.key
+    return resolvePreferredLinePickerButton(activeSeriesTotalLineOption.buttons, selectedTotalSectionButton)?.key
       ?? null
   }, [activeSeriesTotalLineOption, selectedTotalSectionButton])
 

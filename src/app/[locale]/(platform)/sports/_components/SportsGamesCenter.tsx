@@ -753,6 +753,33 @@ export function buildLinePickerOptions(card: SportsGamesCard, marketType: LinePi
     })
 }
 
+export function resolvePreferredLinePickerButton(
+  buttons: SportsGamesButton[],
+  selectedButton: SportsGamesButton | null | undefined,
+) {
+  if (buttons.length === 0) {
+    return null
+  }
+
+  if (!selectedButton) {
+    return buttons[0] ?? null
+  }
+
+  if (selectedButton.tone !== 'neutral') {
+    const toneMatch = buttons.find(button => button.tone === selectedButton.tone)
+    if (toneMatch) {
+      return toneMatch
+    }
+  }
+
+  const outcomeIndexMatch = buttons.find(button => button.outcomeIndex === selectedButton.outcomeIndex)
+  if (outcomeIndexMatch) {
+    return outcomeIndexMatch
+  }
+
+  return buttons[0] ?? null
+}
+
 function resolveGraphSeriesName(card: SportsGamesCard, button: SportsGamesButton | undefined, market: Market) {
   if (!button) {
     return market.sports_group_item_title?.trim()
@@ -2981,8 +3008,7 @@ export function SportsGameDetailsPanel({
       return
     }
 
-    const preferredButton = option.buttons.find(button => button.outcomeIndex === selectedButton.outcomeIndex)
-      ?? option.buttons[0]
+    const preferredButton = resolvePreferredLinePickerButton(option.buttons, selectedButton)
     if (!preferredButton) {
       return
     }
