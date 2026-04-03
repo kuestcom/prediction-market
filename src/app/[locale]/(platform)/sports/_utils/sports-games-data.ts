@@ -136,6 +136,11 @@ const AUXILIARY_BUTTON_TONE_ORDER: Record<SportsGamesButton['tone'], number> = {
   neutral: 5,
 }
 
+const STANDALONE_BINARY_AUXILIARY_MARKET_TYPES = new Set([
+  'ufc_go_the_distance',
+  'ufc_method_of_victory',
+].map(normalizeText))
+
 const SPORTS_MARKET_TYPE_PREFIXES = new Set([
   'americanfootball',
   'baseball',
@@ -346,6 +351,14 @@ function isBinaryYesNoMarket(market: Market) {
 
   const outcomeTexts = market.outcomes.map(outcome => outcome.outcome_text)
   return outcomeTexts.every(isYesNoOutcomeText)
+}
+
+function shouldUseStandaloneAuxiliaryMarketGrouping(market: Market) {
+  if (!isBinaryYesNoMarket(market)) {
+    return false
+  }
+
+  return STANDALONE_BINARY_AUXILIARY_MARKET_TYPES.has(normalizeText(market.sports_market_type))
 }
 
 function hasMarketSlugSuffix(market: Market, suffix: string) {
@@ -638,6 +651,10 @@ export function resolveSportsAuxiliaryMarketGroupKey(market: Market) {
     return `${market.event_id}:${market.condition_id}`
   }
 
+  if (shouldUseStandaloneAuxiliaryMarketGrouping(market)) {
+    return `${market.event_id}:${market.condition_id}`
+  }
+
   const normalizedType = normalizeText(market.sports_market_type)
   if (!normalizedType) {
     return market.condition_id
@@ -654,6 +671,13 @@ export function resolveSportsAuxiliaryMarketTitle(markets: Market[]) {
 
   const marketKind = resolveAuxiliaryMarketKind(primaryMarket)
   if (marketKind === 'exactScore' || marketKind === 'goalscorers') {
+    return primaryMarket.sports_group_item_title?.trim()
+      ?? primaryMarket.short_title?.trim()
+      ?? primaryMarket.title
+      ?? 'Market'
+  }
+
+  if (markets.length === 1 && shouldUseStandaloneAuxiliaryMarketGrouping(primaryMarket)) {
     return primaryMarket.sports_group_item_title?.trim()
       ?? primaryMarket.short_title?.trim()
       ?? primaryMarket.title

@@ -735,6 +735,22 @@ describe('sportsGamesData', () => {
       card?.buttons.filter(button => button.marketType === 'binary').map(button => button.conditionId),
     ))
     expect(binaryConditionIds).toHaveLength(5)
+    expect(card?.buttons.filter(button => button.marketType === 'binary')).toHaveLength(10)
+
+    const binaryLabelsByConditionId = new Map<string, string[]>(
+      binaryConditionIds.map(conditionId => [
+        conditionId,
+        card?.buttons
+          .filter(button => button.marketType === 'binary' && button.conditionId === conditionId)
+          .map(button => button.label) ?? [],
+      ]),
+    )
+
+    expect(binaryLabelsByConditionId.get('go-distance')).toEqual(['YES', 'NO'])
+    expect(binaryLabelsByConditionId.get('fight-ko')).toEqual(['YES', 'NO'])
+    expect(binaryLabelsByConditionId.get('sousa-ko')).toEqual(['YES', 'NO'])
+    expect(binaryLabelsByConditionId.get('oki-ko')).toEqual(['YES', 'NO'])
+    expect(binaryLabelsByConditionId.get('submission')).toEqual(['YES', 'NO'])
 
     expect(
       card?.detailMarkets
