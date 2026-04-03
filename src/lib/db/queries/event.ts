@@ -2475,6 +2475,10 @@ export const EventRepository = {
         throw new Error('Event not found')
       }
 
+      const normalizedSportsEventSlugColumn = sql<string>`
+        LOWER(TRIM(COALESCE(${event_sports.sports_event_slug}, '')))
+      `
+
       const result = await db
         .select({
           slug: events.slug,
@@ -2483,7 +2487,7 @@ export const EventRepository = {
         .from(event_sports)
         .innerJoin(events, eq(event_sports.event_id, events.id))
         .where(and(
-          eq(event_sports.sports_event_slug, normalizedSportsEventSlug),
+          eq(normalizedSportsEventSlugColumn, normalizedSportsEventSlug),
           eq(events.is_hidden, false),
           buildPublicEventListVisibilityCondition(events.id),
           sportsSlugMatchCondition,
