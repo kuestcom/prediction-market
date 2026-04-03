@@ -2,6 +2,7 @@ import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import { normalizeComparableValue } from '@/lib/slug'
 import {
+  resolveSportsSidebarMenuSlugCountKey,
   SPORTS_SIDEBAR_FUTURE_COUNT_KEY,
   SPORTS_SIDEBAR_LIVE_COUNT_KEY,
 } from '@/lib/sports-sidebar-counts'
@@ -104,15 +105,52 @@ function isCountRowFuture(row: SportsMenuActiveCountRow, nowMs: number) {
   return Number.isFinite(startMs) && startMs > nowMs
 }
 
-function collectMenuSlugs(entries: SportsMenuEntry[]) {
-  const slugs = new Set<string>()
+function resolveCountRowSection(row: SportsMenuActiveCountRow) {
+  const tagSlugs = new Set(
+    toOptionalStringArray(row.tags)
+      .map(tag => normalizeComparableValue(tag))
+      .filter((tag): tag is string => Boolean(tag)),
+  )
+
+  if (tagSlugs.has('props') || tagSlugs.has('prop')) {
+    return 'props' as const
+  }
+
+  if (tagSlugs.has('games') || tagSlugs.has('game')) {
+    return 'games' as const
+  }
+
+  return null
+}
+
+function addMenuCountKey(
+  countKeysBySlug: Map<string, Set<string>>,
+  entry: Extract<SportsMenuEntry, { type: 'link' }>,
+) {
+  const menuSlug = normalizeComparableValue(entry.menuSlug)
+  if (!menuSlug) {
+    return
+  }
+
+  const countKey = resolveSportsSidebarMenuSlugCountKey({
+    href: entry.href,
+    menuSlug,
+  })
+  if (!countKey) {
+    return
+  }
+
+  const countKeys = countKeysBySlug.get(menuSlug) ?? new Set<string>()
+  countKeys.add(countKey)
+  countKeysBySlug.set(menuSlug, countKeys)
+}
+
+function collectMenuCountKeysBySlug(entries: SportsMenuEntry[]) {
+  const countKeysBySlug = new Map<string, Set<string>>()
 
   for (const entry of entries) {
     if (entry.type === 'link') {
-      const menuSlug = normalizeComparableValue(entry.menuSlug)
-      if (menuSlug) {
-        slugs.add(menuSlug)
-      }
+      addMenuCountKey(countKeysBySlug, entry)
       continue
     }
 
@@ -120,20 +158,12 @@ function collectMenuSlugs(entries: SportsMenuEntry[]) {
       continue
     }
 
-    const groupMenuSlug = normalizeComparableValue(entry.menuSlug)
-    if (groupMenuSlug) {
-      slugs.add(groupMenuSlug)
-    }
-
     for (const link of entry.links) {
-      const linkMenuSlug = normalizeComparableValue(link.menuSlug)
-      if (linkMenuSlug) {
-        slugs.add(linkMenuSlug)
-      }
+      addMenuCountKey(countKeysBySlug, link)
     }
   }
 
-  return slugs
+  return countKeysBySlug
 }
 
 export function buildSportsMenuCountsBySlug(
@@ -143,7 +173,7 @@ export function buildSportsMenuCountsBySlug(
   nowMs = Date.now(),
 ) {
   const countsBySlug: Record<string, number> = {}
-  const menuSlugs = collectMenuSlugs(menuEntries)
+  const menuCountKeysBySlug = collectMenuCountKeysBySlug(menuEntries)
 
   for (const row of activeCountRows) {
     if (row.is_hidden) {
@@ -156,11 +186,25 @@ export function buildSportsMenuCountsBySlug(
       sportsSeriesSlug: row.series_slug,
       sportsTags,
     })
-    if (!canonicalSlug || !menuSlugs.has(canonicalSlug)) {
+    const menuCountKeys = canonicalSlug ? menuCountKeysBySlug.get(canonicalSlug) : null
+    if (!canonicalSlug || !menuCountKeys || menuCountKeys.size === 0) {
       continue
     }
 
-    countsBySlug[canonicalSlug] = (countsBySlug[canonicalSlug] ?? 0) + 1
+    const rowSection = resolveCountRowSection(row)
+    const rowSectionKey = rowSection
+      ? resolveSportsSidebarMenuSlugCountKey({
+          href: `/${rowSection}`,
+          menuSlug: canonicalSlug,
+        })
+      : null
+
+    if (rowSectionKey && menuCountKeys.has(rowSectionKey)) {
+      countsBySlug[rowSectionKey] = (countsBySlug[rowSectionKey] ?? 0) + 1
+    }
+    else if (menuCountKeys.has(canonicalSlug)) {
+      countsBySlug[canonicalSlug] = (countsBySlug[canonicalSlug] ?? 0) + 1
+    }
 
     if (isCountRowLiveNow(row, nowMs)) {
       countsBySlug[SPORTS_SIDEBAR_LIVE_COUNT_KEY] = (countsBySlug[SPORTS_SIDEBAR_LIVE_COUNT_KEY] ?? 0) + 1

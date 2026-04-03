@@ -3,9 +3,41 @@ import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 
 export const SPORTS_SIDEBAR_LIVE_COUNT_KEY = '__live__'
 export const SPORTS_SIDEBAR_FUTURE_COUNT_KEY = '__future__'
+export const SPORTS_SIDEBAR_SECTION_DELIMITER = '::'
 
 function normalizeComparableValue(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? ''
+}
+
+export function resolveSportsSidebarHrefSection(value: string | null | undefined) {
+  const normalizedValue = normalizeComparableValue(value)
+
+  if (normalizedValue.endsWith('/games')) {
+    return 'games' as const
+  }
+
+  if (normalizedValue.endsWith('/props')) {
+    return 'props' as const
+  }
+
+  return null
+}
+
+export function resolveSportsSidebarMenuSlugCountKey(input: {
+  href?: string | null
+  menuSlug?: string | null
+}) {
+  const normalizedMenuSlug = normalizeComparableValue(input.menuSlug)
+  if (!normalizedMenuSlug) {
+    return null
+  }
+
+  const section = resolveSportsSidebarHrefSection(input.href)
+  if (!section) {
+    return normalizedMenuSlug
+  }
+
+  return `${normalizedMenuSlug}${SPORTS_SIDEBAR_SECTION_DELIMITER}${section}`
 }
 
 export function isSportsSidebarLiveHref(value: string | null | undefined, vertical: SportsVertical) {
@@ -30,6 +62,5 @@ export function resolveSportsSidebarCountKey(input: {
     return SPORTS_SIDEBAR_FUTURE_COUNT_KEY
   }
 
-  const normalizedMenuSlug = normalizeComparableValue(input.menuSlug)
-  return normalizedMenuSlug || null
+  return resolveSportsSidebarMenuSlugCountKey(input)
 }

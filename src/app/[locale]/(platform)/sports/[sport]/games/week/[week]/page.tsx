@@ -6,7 +6,6 @@ import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import { mergeUniqueEventsById } from '@/app/[locale]/(platform)/sports/_utils/sports-games-utils'
 import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sports-menu-routing'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
@@ -74,19 +73,12 @@ export default async function SportsGamesBySportWeekPage({
     sportsSection: 'games' as const,
   }
 
-  const [activeResult, resolvedResult] = await Promise.all([
-    EventRepository.listEvents({
-      ...commonParams,
-      status: 'active',
-    }),
-    EventRepository.listEvents({
-      ...commonParams,
-      status: 'resolved',
-    }),
-  ])
+  const { data: activeEvents } = await EventRepository.listEvents({
+    ...commonParams,
+    status: 'active',
+  })
 
-  const mergedEvents = mergeUniqueEventsById(activeResult.data ?? [], resolvedResult.data ?? [])
-  const cards = buildSportsGamesCards(mergedEvents)
+  const cards = buildSportsGamesCards(activeEvents ?? [])
   const sportTitle = layoutData?.h1TitleBySlug[canonicalSportSlug] ?? canonicalSportSlug.toUpperCase()
 
   return (

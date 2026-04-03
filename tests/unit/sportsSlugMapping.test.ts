@@ -64,6 +64,35 @@ const resolver = buildSportsSlugResolver([
     },
     useForEventClassification: false,
   },
+  {
+    menuSlug: 'ufc',
+    h1Title: 'UFC',
+    label: 'UFC',
+    sections: {
+      gamesEnabled: true,
+      propsEnabled: true,
+    },
+  },
+  {
+    menuSlug: 'zuffa',
+    h1Title: 'Zuffa',
+    label: 'Zuffa',
+    sections: {
+      gamesEnabled: true,
+      propsEnabled: false,
+    },
+  },
+  {
+    menuSlug: 'ufc',
+    h1Title: 'UFC',
+    label: 'UFC',
+    queryCandidates: ['ufc', 'zuffa'],
+    sections: {
+      gamesEnabled: true,
+      propsEnabled: true,
+    },
+    useForEventClassification: false,
+  },
 ])
 
 describe('sports slug mapping', () => {
@@ -121,6 +150,16 @@ describe('sports slug mapping', () => {
     expect(slug).toBe('bra')
   })
 
+  it('prefers direct structured slugs over tag matches when both are present', () => {
+    const slug = resolveCanonicalSportsSportSlug(resolver, {
+      sportsSportSlug: 'zuffa',
+      sportsSeriesSlug: 'zuffa',
+      sportsTags: ['Boxing', 'Games'],
+    })
+
+    expect(slug).toBe('zuffa')
+  })
+
   it('resolves h1 and section config from canonical or alias slugs', () => {
     const title = resolveSportsTitleBySlug(resolver, 'brazil')
     const sections = resolveSportsSectionConfigBySlug(resolver, 'pakistan-super-league')
@@ -138,6 +177,16 @@ describe('sports slug mapping', () => {
     })).toBe('nfl')
     expect(resolveSportsSportSlugQueryCandidates(resolver, 'football')).toEqual(
       expect.arrayContaining(['football', 'nfl', 'national-football-league', 'cfb', 'college-football']),
+    )
+  })
+
+  it('does not let duplicate aggregate slugs widen a leaf route query', () => {
+    expect(resolveSportsSportSlugQueryCandidates(resolver, 'ufc')).toEqual(
+      expect.arrayContaining(['ufc']),
+    )
+    expect(resolveSportsSportSlugQueryCandidates(resolver, 'ufc')).not.toContain('zuffa')
+    expect(resolveSportsSportSlugQueryCandidates(resolver, 'zuffa')).toEqual(
+      expect.arrayContaining(['zuffa']),
     )
   })
 })

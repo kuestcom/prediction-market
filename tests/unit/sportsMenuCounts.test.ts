@@ -70,7 +70,7 @@ describe('buildSportsMenuCountsBySlug', () => {
         {
           slug: null,
           series_slug: 'league-of-legends',
-          tags: [],
+          tags: ['Games'],
           is_hidden: false,
           sports_live: false,
           sports_ended: false,
@@ -81,7 +81,7 @@ describe('buildSportsMenuCountsBySlug', () => {
         {
           slug: 'cs2',
           series_slug: null,
-          tags: [],
+          tags: ['Games'],
           is_hidden: false,
           sports_live: true,
           sports_ended: false,
@@ -95,8 +95,8 @@ describe('buildSportsMenuCountsBySlug', () => {
     )
 
     expect(counts).toMatchObject({
-      'league-of-legends': 1,
-      'counter-strike': 1,
+      'league-of-legends::games': 1,
+      'counter-strike::games': 1,
       [SPORTS_SIDEBAR_LIVE_COUNT_KEY]: 1,
       [SPORTS_SIDEBAR_FUTURE_COUNT_KEY]: 1,
     })
@@ -152,5 +152,101 @@ describe('buildSportsMenuCountsBySlug', () => {
     )
 
     expect(counts).toEqual({})
+  })
+
+  it('prefers direct slug classification and only counts rows for matching sidebar sections', () => {
+    const resolver = buildSportsSlugResolver([
+      {
+        menuSlug: 'zuffa',
+        h1Title: 'Zuffa',
+        label: 'Zuffa',
+        sections: {
+          gamesEnabled: true,
+          propsEnabled: false,
+        },
+      },
+      {
+        menuSlug: 'boxing',
+        h1Title: 'Boxing',
+        label: 'Boxing',
+        sections: {
+          gamesEnabled: false,
+          propsEnabled: true,
+        },
+      },
+    ])
+
+    const menuEntries: SportsMenuEntry[] = [
+      buildLinkEntry({
+        id: 'boxing',
+        label: 'Boxing',
+        href: '/sports/boxing/props',
+        menuSlug: 'boxing',
+      }),
+      {
+        type: 'group',
+        id: 'ufc',
+        label: 'UFC',
+        href: '/sports/ufc/props',
+        iconPath: '/icons/ufc.svg',
+        menuSlug: 'ufc',
+        links: [
+          {
+            type: 'link',
+            id: 'zuffa',
+            label: 'Zuffa',
+            href: '/sports/zuffa/games',
+            iconPath: '/icons/zuffa.svg',
+            menuSlug: 'zuffa',
+          },
+        ],
+      },
+    ]
+
+    const counts = buildSportsMenuCountsBySlug(
+      resolver,
+      [
+        {
+          slug: 'zuffa',
+          series_slug: 'zuffa',
+          tags: ['Sports', 'Games', 'Boxing', 'Zuffa'],
+          is_hidden: false,
+          sports_live: false,
+          sports_ended: false,
+          sports_start_time: new Date('2026-04-05T15:00:00.000Z'),
+          start_date: new Date('2026-04-05T15:00:00.000Z'),
+          end_date: new Date('2026-04-05T17:00:00.000Z'),
+        },
+        {
+          slug: 'zuffa',
+          series_slug: 'zuffa',
+          tags: ['Sports', 'Games', 'Zuffa', 'Boxing'],
+          is_hidden: false,
+          sports_live: false,
+          sports_ended: false,
+          sports_start_time: new Date('2026-04-05T18:00:00.000Z'),
+          start_date: new Date('2026-04-05T18:00:00.000Z'),
+          end_date: new Date('2026-04-05T20:00:00.000Z'),
+        },
+        {
+          slug: 'zuffa',
+          series_slug: 'zuffa',
+          tags: ['Sports', 'Zuffa', 'Boxing', 'Games'],
+          is_hidden: false,
+          sports_live: false,
+          sports_ended: false,
+          sports_start_time: new Date('2026-04-05T21:00:00.000Z'),
+          start_date: new Date('2026-04-05T21:00:00.000Z'),
+          end_date: new Date('2026-04-05T23:00:00.000Z'),
+        },
+      ],
+      menuEntries,
+      new Date('2026-04-02T12:00:00.000Z').getTime(),
+    )
+
+    expect(counts).toMatchObject({
+      'zuffa::games': 3,
+    })
+    expect(counts['boxing::props']).toBeUndefined()
   })
 })

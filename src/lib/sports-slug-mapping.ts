@@ -77,6 +77,12 @@ function registerAlias(
 export function buildSportsSlugResolver(
   entries: SportsSlugMappingEntry[],
 ): SportsSlugResolver {
+  const directCanonicalSlugs = new Set(
+    entries
+      .filter(entry => entry.useForEventClassification !== false)
+      .map(entry => normalizeComparableValue(entry.menuSlug))
+      .filter(Boolean),
+  )
   const resolver: SportsSlugResolver = {
     canonicalByAliasKey: new Map(),
     classificationByAliasKey: new Map(),
@@ -88,6 +94,10 @@ export function buildSportsSlugResolver(
   for (const entry of entries) {
     const canonicalSlug = normalizeComparableValue(entry.menuSlug)
     if (!canonicalSlug) {
+      continue
+    }
+
+    if (entry.useForEventClassification === false && directCanonicalSlugs.has(canonicalSlug)) {
       continue
     }
 
@@ -172,6 +182,16 @@ export function resolveCanonicalSportsSportSlug(
     sportsTags,
   }: SportsSlugResolutionInput,
 ) {
+  const resolvedSportSlug = resolveAlias(resolver.classificationByAliasKey, sportsSportSlug)
+  if (resolvedSportSlug) {
+    return resolvedSportSlug
+  }
+
+  const resolvedSeriesSlug = resolveAlias(resolver.classificationByAliasKey, sportsSeriesSlug)
+  if (resolvedSeriesSlug) {
+    return resolvedSeriesSlug
+  }
+
   const tagCandidates = Array.isArray(sportsTags) ? sportsTags : []
   for (const candidate of tagCandidates) {
     const mappedSlug = resolveAlias(resolver.classificationByAliasKey, candidate)
@@ -180,12 +200,7 @@ export function resolveCanonicalSportsSportSlug(
     }
   }
 
-  const resolvedSportSlug = resolveAlias(resolver.classificationByAliasKey, sportsSportSlug)
-  if (resolvedSportSlug) {
-    return resolvedSportSlug
-  }
-
-  return resolveAlias(resolver.classificationByAliasKey, sportsSeriesSlug)
+  return null
 }
 
 export function resolveSportsSportSlugQueryCandidates(
