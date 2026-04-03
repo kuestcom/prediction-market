@@ -2,6 +2,7 @@ import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import { describe, expect, it } from 'vitest'
 import { buildSportsMenuCountsBySlug } from '@/lib/sports-menu-counts'
 import {
+  resolveSportsSidebarCountKey,
   SPORTS_SIDEBAR_FUTURE_COUNT_KEY,
   SPORTS_SIDEBAR_LIVE_COUNT_KEY,
 } from '@/lib/sports-sidebar-counts'
@@ -24,6 +25,18 @@ function buildLinkEntry(params: {
 }
 
 describe('buildSportsMenuCountsBySlug', () => {
+  it('maps sports soon and legacy futures links to the same future sidebar bucket', () => {
+    expect(resolveSportsSidebarCountKey({
+      href: '/sports/soon',
+      vertical: 'sports',
+    })).toBe(SPORTS_SIDEBAR_FUTURE_COUNT_KEY)
+
+    expect(resolveSportsSidebarCountKey({
+      href: '/sports/futures/nba',
+      vertical: 'sports',
+    })).toBe(SPORTS_SIDEBAR_FUTURE_COUNT_KEY)
+  })
+
   it('counts live and future sidebar buckets and matches events by sports_series_slug aliases', () => {
     const resolver = buildSportsSlugResolver([
       {

@@ -5,6 +5,10 @@ export const SPORTS_SIDEBAR_LIVE_COUNT_KEY = '__live__'
 export const SPORTS_SIDEBAR_FUTURE_COUNT_KEY = '__future__'
 export const SPORTS_SIDEBAR_SECTION_DELIMITER = '::'
 
+function resolveSportsSidebarSoonPath(vertical: SportsVertical) {
+  return vertical === 'sports' ? '/sports/soon' : '/esports/soon'
+}
+
 function normalizeComparableValue(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? ''
 }
@@ -44,7 +48,15 @@ export function isSportsSidebarLiveHref(value: string | null | undefined, vertic
   return normalizeComparableValue(value) === normalizeComparableValue(getSportsVerticalConfig(vertical).livePath)
 }
 
+export function isSportsSidebarSoonHref(value: string | null | undefined, vertical: SportsVertical) {
+  return normalizeComparableValue(value) === normalizeComparableValue(resolveSportsSidebarSoonPath(vertical))
+}
+
 export function isSportsSidebarFutureHref(value: string | null | undefined, vertical: SportsVertical) {
+  if (vertical !== 'sports') {
+    return false
+  }
+
   return normalizeComparableValue(value)
     .startsWith(normalizeComparableValue(getSportsVerticalConfig(vertical).futurePathPrefix))
 }
@@ -58,7 +70,10 @@ export function resolveSportsSidebarCountKey(input: {
     return SPORTS_SIDEBAR_LIVE_COUNT_KEY
   }
 
-  if (isSportsSidebarFutureHref(input.href, input.vertical)) {
+  if (
+    isSportsSidebarSoonHref(input.href, input.vertical)
+    || isSportsSidebarFutureHref(input.href, input.vertical)
+  ) {
     return SPORTS_SIDEBAR_FUTURE_COUNT_KEY
   }
 

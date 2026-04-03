@@ -9,16 +9,16 @@ import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 
 export const metadata: Metadata = {
-  title: 'Esports Live',
+  title: 'Sports Upcoming',
 }
 
-export default async function EsportsLivePage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function SportsSoonPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   setRequestLocale(locale)
   const [{ data: events }, { data: layoutData }] = await Promise.all([
     EventRepository.listEvents({
-      tag: 'esports',
-      sportsVertical: 'esports',
+      tag: 'sports',
+      sportsVertical: 'sports',
       search: '',
       userId: '',
       bookmarked: false,
@@ -26,19 +26,19 @@ export default async function EsportsLivePage({ params }: { params: Promise<{ lo
       locale: locale as SupportedLocale,
       sportsSection: 'games',
     }),
-    SportsMenuRepository.getLayoutData('esports'),
+    SportsMenuRepository.getLayoutData('sports'),
   ])
   const cards = buildSportsGamesCards(events ?? [])
 
   return (
-    <div key="esports-live-page" className="contents">
+    <div key="sports-soon-page" className="contents">
       <SportsGamesCenter
         cards={cards}
-        sportSlug="live"
-        sportTitle="Live"
-        pageMode="liveAndSoon"
+        sportSlug="soon"
+        sportTitle="Upcoming Sports Games"
+        pageMode="soon"
         categoryTitleBySlug={layoutData?.h1TitleBySlug ?? {}}
-        vertical="esports"
+        vertical="sports"
       />
     </div>
   )

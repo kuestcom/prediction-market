@@ -64,6 +64,13 @@ const sportsSidebarSpec: SidebarSpecItem[] = [
   },
   {
     type: 'link',
+    href: '/sports/soon',
+    id: 'sports-top-link-upcoming',
+    label: 'Upcoming',
+    source: { href: '/sports/futures/nba' },
+  },
+  {
+    type: 'link',
     source: { href: '/sports/futures/nba' },
   },
   {

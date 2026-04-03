@@ -16,12 +16,13 @@ import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/
 import {
   isSportsSidebarFutureHref,
   isSportsSidebarLiveHref,
+  isSportsSidebarSoonHref,
   resolveSportsSidebarCountKey,
 } from '@/lib/sports-sidebar-counts'
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 import { cn } from '@/lib/utils'
 
-export type SportsSidebarMode = 'all' | 'live' | 'futures'
+export type SportsSidebarMode = 'all' | 'live' | 'soon' | 'futures'
 
 interface SportsSidebarMenuProps {
   entries: SportsMenuEntry[]
@@ -72,6 +73,10 @@ function isFutureMenuLinkHref(value: string, vertical: SportsVertical) {
   return isSportsSidebarFutureHref(value, vertical)
 }
 
+function isSoonMenuLinkHref(value: string, vertical: SportsVertical) {
+  return isSportsSidebarSoonHref(value, vertical)
+}
+
 function isMenuLinkActive({
   entry,
   vertical,
@@ -85,10 +90,15 @@ function isMenuLinkActive({
 }) {
   const href = normalizeTagSlug(entry.href)
   const isLiveLink = isLiveMenuHref(href, vertical)
+  const isSoonLink = isSoonMenuLinkHref(href, vertical)
   const isFutureLink = isFutureMenuLinkHref(href, vertical)
 
   if (isLiveLink) {
     return mode === 'live'
+  }
+
+  if (isSoonLink) {
+    return mode === 'soon'
   }
 
   if (isFutureLink) {
@@ -368,8 +378,9 @@ function SportsMobileQuickLink({
 }) {
   const href = normalizeTagSlug(entry.href)
   const isLiveLink = isLiveMenuHref(href, vertical)
+  const isSoonLink = isSoonMenuLinkHref(href, vertical)
   const isFutureLink = isFutureMenuLinkHref(href, vertical)
-  const futureIconVariant = vertical === 'esports' ? 'upcoming' : 'futures'
+  const futureIconVariant = isSoonLink ? 'upcoming' : 'futures'
   const isActive = isMenuLinkActive({ entry, vertical, mode, activeTagSlug })
 
   return (
@@ -389,7 +400,7 @@ function SportsMobileQuickLink({
         <SportsMenuIcon
           entry={entry}
           futureIconVariant={futureIconVariant}
-          isFutureLink={isFutureLink}
+          isFutureLink={isSoonLink || isFutureLink}
           isLiveLink={isLiveLink}
           nested={false}
           className="size-full"
@@ -421,8 +432,9 @@ function SportsMobileSheetLink({
 }) {
   const href = normalizeTagSlug(entry.href)
   const isLiveLink = isLiveMenuHref(href, vertical)
+  const isSoonLink = isSoonMenuLinkHref(href, vertical)
   const isFutureLink = isFutureMenuLinkHref(href, vertical)
-  const futureIconVariant = vertical === 'esports' ? 'upcoming' : 'futures'
+  const futureIconVariant = isSoonLink ? 'upcoming' : 'futures'
   const isActive = isMenuLinkActive({ entry, vertical, mode, activeTagSlug })
   const displayCount = resolveLinkEventsCount(entry, vertical, countByTagSlug)
 
@@ -442,7 +454,7 @@ function SportsMobileSheetLink({
         <SportsMenuIcon
           entry={entry}
           futureIconVariant={futureIconVariant}
-          isFutureLink={isFutureLink}
+          isFutureLink={isSoonLink || isFutureLink}
           isLiveLink={isLiveLink}
           nested={nested}
           className="size-full"
@@ -488,8 +500,9 @@ function SportsMenuLink({
 }) {
   const href = normalizeTagSlug(entry.href)
   const isLiveLink = isLiveMenuHref(href, vertical)
+  const isSoonLink = isSoonMenuLinkHref(href, vertical)
   const isFutureLink = isFutureMenuLinkHref(href, vertical)
-  const futureIconVariant = vertical === 'esports' ? 'upcoming' : 'futures'
+  const futureIconVariant = isSoonLink ? 'upcoming' : 'futures'
   const isActive = isMenuLinkActive({ entry, vertical, mode, activeTagSlug })
   const displayCount = resolveLinkEventsCount(entry, vertical, countByTagSlug)
 
@@ -513,7 +526,7 @@ function SportsMenuLink({
               <SportsMenuIcon
                 entry={entry}
                 futureIconVariant={futureIconVariant}
-                isFutureLink={isFutureLink}
+                isFutureLink={isSoonLink || isFutureLink}
                 isLiveLink={isLiveLink}
                 nested
                 className="size-5 object-contain"
@@ -555,7 +568,7 @@ function SportsMenuLink({
           <SportsMenuIcon
             entry={entry}
             futureIconVariant={futureIconVariant}
-            isFutureLink={isFutureLink}
+            isFutureLink={isSoonLink || isFutureLink}
             isLiveLink={isLiveLink}
             nested={false}
             className="size-full"
@@ -582,20 +595,30 @@ export default function SportsSidebarMenu({
   independentScroll = false,
 }: SportsSidebarMenuProps) {
   const verticalConfig = getSportsVerticalConfig(vertical)
+  const visibleEntries = useMemo(
+    () => entries.filter((entry) => {
+      return !(
+        vertical === 'sports'
+        && entry.type === 'link'
+        && isFutureMenuLinkHref(entry.href, vertical)
+      )
+    }),
+    [entries, vertical],
+  )
   const mobileQuickMenuContainerRef = useRef<HTMLDivElement | null>(null)
   const [isMobileMoreMenuOpen, setIsMobileMoreMenuOpen] = useState(false)
   const [mobileVisiblePrimaryLinkCount, setMobileVisiblePrimaryLinkCount] = useState(
     MOBILE_MENU_DEFAULT_VISIBLE_LINKS,
   )
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(() =>
-    findActiveGroupId(entries, activeTagSlug),
+    findActiveGroupId(visibleEntries, activeTagSlug),
   )
   const primaryTopLevelLinks = useMemo(
-    () => entries.filter(isLinkEntry),
-    [entries],
+    () => visibleEntries.filter(isLinkEntry),
+    [visibleEntries],
   )
   const allMenuEntries = useMemo(
-    () => entries.flatMap((entry) => {
+    () => visibleEntries.flatMap((entry) => {
       if (entry.type === 'link') {
         return [entry]
       }
@@ -606,7 +629,7 @@ export default function SportsSidebarMenu({
 
       return []
     }),
-    [entries],
+    [visibleEntries],
   )
   const mobileVisiblePrimaryLinks = useMemo(
     () => primaryTopLevelLinks.slice(0, mobileVisiblePrimaryLinkCount),
@@ -629,9 +652,9 @@ export default function SportsSidebarMenu({
   )
 
   useEffect(() => {
-    const nextExpandedGroupId = findActiveGroupId(entries, activeTagSlug)
+    const nextExpandedGroupId = findActiveGroupId(visibleEntries, activeTagSlug)
     setExpandedGroupId(current => (current === nextExpandedGroupId ? current : nextExpandedGroupId))
-  }, [entries, activeTagSlug])
+  }, [visibleEntries, activeTagSlug])
 
   useEffect(() => {
     const container = mobileQuickMenuContainerRef.current
@@ -676,7 +699,7 @@ export default function SportsSidebarMenu({
   }, [])
 
   function renderDesktopMenuEntries(onActionComplete?: () => void) {
-    return entries.map((entry) => {
+    return visibleEntries.map((entry) => {
       if (entry.type === 'divider') {
         return <div key={entry.id} className="mb-2 w-full border-b pb-2" />
       }
@@ -788,7 +811,7 @@ export default function SportsSidebarMenu({
   }
 
   function renderMobileSheetMenuEntries() {
-    return entries.map((entry) => {
+    return visibleEntries.map((entry) => {
       if (entry.type === 'divider') {
         return <div key={entry.id} className="my-1.5 w-full border-b border-border" />
       }

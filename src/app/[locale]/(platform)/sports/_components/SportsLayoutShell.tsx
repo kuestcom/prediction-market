@@ -23,7 +23,7 @@ interface SportsLayoutShellProps {
 
 interface SportsPathContext {
   isEventRoute: boolean
-  mode: 'all' | 'live' | 'futures'
+  mode: 'all' | 'live' | 'soon' | 'futures'
   activeTagSlug: string | null
   sportSlug: string | null
   section: 'games' | 'props' | null
@@ -114,6 +114,17 @@ function getSportsPathContext(params: {
     }
   }
 
+  if (second === 'soon') {
+    return {
+      isEventRoute: false,
+      mode: 'soon',
+      activeTagSlug: null,
+      sportSlug: null,
+      section: null,
+      title: resolveMenuLabelByHref(menuEntries, `/${vertical}/soon`),
+    }
+  }
+
   if (second === verticalConfig.futurePathSegment) {
     const canonicalSportSlug = resolveCanonicalSlugFromAlias(canonicalSlugByAliasKey, third)
     const futureTitle = resolveMenuLabelByHref(menuEntries, verticalConfig.futurePath)
@@ -184,7 +195,7 @@ export default function SportsLayoutShell({
     && !context.isEventRoute
     && Boolean(sectionConfig?.gamesEnabled && sectionConfig?.propsEnabled)
   const useIndependentColumns = context.mode === 'live'
-    || (vertical === 'esports' && context.mode === 'futures')
+    || context.mode === 'soon'
     || (
       context.mode === 'all'
       && (context.section === 'games' || context.isEventRoute)
@@ -192,7 +203,7 @@ export default function SportsLayoutShell({
   const headerInsideGamesCenter = !context.isEventRoute
     && (
       context.mode === 'live'
-      || (vertical === 'esports' && context.mode === 'futures')
+      || context.mode === 'soon'
       || (context.mode === 'all' && context.section === 'games')
     )
   const showShellHeader = !headerInsideGamesCenter

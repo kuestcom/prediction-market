@@ -193,6 +193,7 @@ describe('sports sidebar entries', () => {
 
     expect(flattenMenuHrefs(buildSportsSidebarEntries(rows, 'sports'))).toEqual([
       '/sports/live',
+      '/sports/soon',
       '/sports/futures/nba',
       '/sports/nba/games',
       '/sports/cbb/games',
