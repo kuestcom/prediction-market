@@ -178,7 +178,7 @@ const PredictionChart = dynamic<PredictionChartProps>(
   { ssr: false },
 )
 
-interface SportsLinePickerOption {
+export interface SportsLinePickerOption {
   conditionId: string
   label: string
   lineValue: number
@@ -701,7 +701,7 @@ function resolveMarketLineValue(market: Market | null, marketType: LinePickerMar
     : lineValue
 }
 
-function buildLinePickerOptions(card: SportsGamesCard, marketType: LinePickerMarketType): SportsLinePickerOption[] {
+export function buildLinePickerOptions(card: SportsGamesCard, marketType: LinePickerMarketType): SportsLinePickerOption[] {
   const sourceButtons = card.buttons.filter(button => button.marketType === marketType)
   if (sourceButtons.length === 0) {
     return []
