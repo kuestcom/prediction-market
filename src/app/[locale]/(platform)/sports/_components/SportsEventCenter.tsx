@@ -565,6 +565,11 @@ function shouldNormalizeSegmentedEsportsMarketButtons(
     return true
   }
 
+  const expectedMarketType = resolveSegmentedEsportsButtonMarketType(market)
+  if (currentButtons.some(button => button.marketType !== expectedMarketType)) {
+    return true
+  }
+
   const currentOutcomeIndexes = new Set(currentButtons.map(button => button.outcomeIndex))
   return market.outcomes.some(outcome => !currentOutcomeIndexes.has(outcome.outcome_index))
 }
@@ -1394,11 +1399,22 @@ export default function SportsEventCenter({
     () => parseEsportsSegmentTabNumber(activeEsportsSegmentTabKey),
     [activeEsportsSegmentTabKey],
   )
+  const [activeSeriesPreviewSegmentNumber, setActiveSeriesPreviewSegmentNumber] = useState<number | null>(
+    esportsSegmentTabNumbers[0] ?? null,
+  )
   const usesSectionLayout = baseUsesSectionLayout && (!hasEsportsSegmentedLayout || activeEsportsSegmentTabKey === 'series')
 
   useEffect(() => {
     setActiveEsportsSegmentTabKey(initialEsportsSegmentTabKey)
   }, [initialEsportsSegmentTabKey])
+
+  useEffect(() => {
+    setActiveSeriesPreviewSegmentNumber(current => (
+      current != null && esportsSegmentTabNumbers.includes(current)
+        ? current
+        : (esportsSegmentTabNumbers[0] ?? null)
+    ))
+  }, [esportsSegmentTabNumbers])
 
   const { data: userPositions } = useQuery<UserPosition[]>({
     queryKey: ['sports-event-user-positions', ownerAddress, activeCard.id],
@@ -1842,6 +1858,26 @@ export default function SportsEventCenter({
 
     return auxiliaryMarketCards.filter(entry => entry.mapNumber === activeEsportsSegmentNumber)
   }, [activeEsportsSegmentNumber, activeEsportsSegmentTabKey, auxiliaryMarketCards, hasEsportsSegmentedLayout])
+  const seriesPreviewSegmentWinnerPanels = useMemo(() => {
+    if (!hasEsportsSegmentedLayout) {
+      return [] as AuxiliaryMarketPanel[]
+    }
+
+    return auxiliaryMarketCards.filter(entry =>
+      entry.mapNumber != null
+      && entry.markets.some(market => isSegmentedEsportsChildMoneylineMarket(market))
+      && entry.buttons.every(button => button.marketType === 'moneyline'),
+    )
+  }, [auxiliaryMarketCards, hasEsportsSegmentedLayout])
+  const activeSeriesPreviewSegmentWinnerPanel = useMemo(() => {
+    if (seriesPreviewSegmentWinnerPanels.length === 0) {
+      return null
+    }
+
+    return seriesPreviewSegmentWinnerPanels.find(entry => entry.mapNumber === activeSeriesPreviewSegmentNumber)
+      ?? seriesPreviewSegmentWinnerPanels[0]
+      ?? null
+  }, [activeSeriesPreviewSegmentNumber, seriesPreviewSegmentWinnerPanels])
   const auxiliaryPanelsForSelection = auxiliaryMarketCards
   const auxiliaryPanelKeyByButtonKey = useMemo(() => {
     const map = new Map<string, string>()
@@ -2904,6 +2940,125 @@ export default function SportsEventCenter({
     )
   })
   const nonSectionAuxiliaryMarketPanels = auxiliaryMarketPanels
+  const seriesPreviewSegmentWinnerCard = activeSeriesPreviewSegmentWinnerPanel
+    && hasEsportsSegmentedLayout
+    && activeEsportsSegmentTabKey === 'series'
+    ? (() => {
+        const entry = activeSeriesPreviewSegmentWinnerPanel
+        const selectedButtonKey = selectedAuxiliaryButtonByConditionId[entry.key] ?? entry.buttons[0]?.key ?? null
+
+        return (
+          <article
+            key={`${activeCard.id}-series-preview-${entry.key}`}
+            className="overflow-hidden rounded-xl border bg-card"
+          >
+            <div
+              className="flex w-full flex-col items-stretch gap-3 px-4 py-[18px] sm:flex-row sm:items-center"
+            >
+              <div className="min-w-0 text-left">
+                <h3 className="text-sm font-semibold text-foreground">{entry.title}</h3>
+                <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+                  {formatVolume(entry.volume)}
+                  {' '}
+                  Vol.
+                </p>
+              </div>
+
+              <div
+                className={cn(
+                  `
+                    grid w-full items-stretch gap-2
+                    sm:ml-auto sm:flex sm:w-auto sm:flex-none sm:flex-wrap sm:justify-end
+                  `,
+                  resolveMoneylineButtonGridClass(entry.buttons.length),
+                )}
+              >
+                {entry.buttons.map((button) => {
+                  const isActive = activeTradeButtonKey === button.key || selectedButtonKey === button.key
+                  const hasTeamColor = button.tone === 'team1' || button.tone === 'team2'
+                  const buttonOverlayStyle = hasTeamColor
+                    ? resolveButtonOverlayStyle(button.color, button.tone)
+                    : undefined
+
+                  return (
+                    <div
+                      key={`${entry.key}-${button.key}`}
+                      className="relative w-full min-w-0 overflow-hidden rounded-lg pb-1.25 sm:w-[118px] sm:shrink-0"
+                    >
+                      <div
+                        className={cn(
+                          'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
+                          !hasTeamColor && 'bg-border/70',
+                        )}
+                        style={hasTeamColor ? resolveButtonDepthStyle(button.color, button.tone) : undefined}
+                      />
+                      <button
+                        type="button"
+                        data-sports-card-control="true"
+                        onClick={() => {
+                          updateAuxiliarySelection(entry.key, button.key, { panelMode: isMobile ? 'full' : 'partial' })
+                        }}
+                        style={hasTeamColor ? resolveButtonStyle(button.color, button.tone) : undefined}
+                        className={cn(
+                          `
+                            relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg px-2 text-xs
+                            font-semibold shadow-sm transition-transform duration-150 ease-out
+                            hover:translate-y-px
+                            active:translate-y-0.5
+                          `,
+                          !hasTeamColor && 'bg-secondary text-secondary-foreground hover:bg-accent',
+                        )}
+                      >
+                        {buttonOverlayStyle
+                          ? <span className="pointer-events-none absolute inset-0 rounded-lg" style={buttonOverlayStyle} />
+                          : null}
+                        <span className={cn('relative z-1 mr-1 uppercase', isActive ? 'opacity-80' : 'opacity-70')}>
+                          {button.label}
+                        </span>
+                        <span className="relative z-1 text-sm leading-none tabular-nums">
+                          {formatButtonOdds(buttonPriceCentsByKey.get(button.key) ?? button.cents)}
+                        </span>
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {seriesPreviewSegmentWinnerPanels.length > 1 && (
+              <div className="border-t border-border/70 px-3">
+                <div className="flex items-center justify-center gap-2 overflow-x-auto py-2">
+                  {seriesPreviewSegmentWinnerPanels.map((panel) => {
+                    const isActive = panel.mapNumber === entry.mapNumber
+
+                    return (
+                      <button
+                        key={`${activeCard.id}-series-preview-selector-${panel.key}`}
+                        type="button"
+                        data-sports-card-control="true"
+                        onClick={() => setActiveSeriesPreviewSegmentNumber(panel.mapNumber)}
+                        className={cn(
+                          `
+                            inline-flex h-9 min-w-9 shrink-0 items-center justify-center rounded-md px-3 text-sm
+                            font-semibold transition-colors
+                          `,
+                          isActive
+                            ? 'bg-secondary text-foreground'
+                            : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
+                        )}
+                        aria-label={`${segmentLabel} ${panel.mapNumber}`}
+                      >
+                        {panel.mapNumber}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </article>
+        )
+      })()
+    : null
   const marketPanelsContent = usesSectionLayout
     ? (
         <div key={activeMarketView?.key ?? 'gameLines'}>
@@ -3227,6 +3382,8 @@ export default function SportsEventCenter({
                       />
                     </div>
                   </article>
+
+                  {section.key === 'moneyline' ? seriesPreviewSegmentWinnerCard : null}
                 </div>
               )
             })}
