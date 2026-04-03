@@ -2092,6 +2092,23 @@ const COMPACT_FRANCHISE_TRADE_HEADER_SPORT_SLUGS = new Set([
   'wnba',
 ])
 
+function resolveTradeHeaderSportSlugCandidates(card: SportsGamesCard) {
+  return [
+    card.event.sports_sport_slug,
+    card.event.sports_series_slug,
+  ]
+    .map(value => normalizeComparableText(value))
+    .filter((value): value is string => Boolean(value))
+}
+
+function isCompactCricketTradeHeaderSportSlug(slug: string) {
+  return slug === 'cricket' || slug === 'crint' || slug.startsWith('cric')
+}
+
+function shouldUseFranchiseTradeHeaderTeamLabels(sportSlugs: string[]) {
+  return sportSlugs.some(slug => COMPACT_FRANCHISE_TRADE_HEADER_SPORT_SLUGS.has(slug))
+}
+
 function hasDrawMoneylineOption(card: SportsGamesCard) {
   return card.buttons.some(button =>
     button.marketType === 'moneyline' && button.tone === 'draw',
@@ -2126,10 +2143,12 @@ function shouldUseCompactTradeHeaderTitle(card: SportsGamesCard, vertical: Sport
     return true
   }
 
-  const normalizedSportSlug = normalizeComparableText(card.event.sports_sport_slug)
+  const sportSlugs = resolveTradeHeaderSportSlugCandidates(card)
 
-  return COMPACT_COMBAT_TRADE_HEADER_SPORT_SLUGS.has(normalizedSportSlug)
-    || COMPACT_FRANCHISE_TRADE_HEADER_SPORT_SLUGS.has(normalizedSportSlug)
+  return sportSlugs.some(slug =>
+    COMPACT_COMBAT_TRADE_HEADER_SPORT_SLUGS.has(slug)
+    || COMPACT_FRANCHISE_TRADE_HEADER_SPORT_SLUGS.has(slug)
+    || isCompactCricketTradeHeaderSportSlug(slug))
 }
 
 function escapeRegExp(value: string) {
@@ -2190,12 +2209,12 @@ function resolveTradeHeaderTitle({
     mainTag: card.event.main_tag,
   })
   if (shouldUseCompactTradeHeaderTitle(card, vertical)) {
-    const normalizedSportSlug = normalizeComparableText(card.event.sports_sport_slug)
+    const sportSlugs = resolveTradeHeaderSportSlugCandidates(card)
     const compactTitle = resolveCompactTradeHeaderTitle(
       card,
       vertical === 'esports'
         ? resolveEsportsTradeHeaderTeamLabel
-        : COMPACT_FRANCHISE_TRADE_HEADER_SPORT_SLUGS.has(normalizedSportSlug)
+        : shouldUseFranchiseTradeHeaderTeamLabels(sportSlugs)
           ? resolveFranchiseTradeHeaderTeamLabel
           : resolveTeamShortLabel,
     )
