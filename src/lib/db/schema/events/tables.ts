@@ -295,6 +295,8 @@ export const event_sports = pgTable(
     sports_series_recurrence: text(),
     sports_series_color: text(),
     sports_sport_slug: text(),
+    sports_league_label: text(),
+    sports_league_slug: text(),
     sports_event_week: integer(),
     sports_score: text(),
     sports_period: text(),

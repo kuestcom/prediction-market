@@ -10,7 +10,6 @@ import { db } from '@/lib/drizzle'
 import { buildPublicEventListVisibilityCondition } from '@/lib/event-visibility'
 import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
 import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
-import { slugifyText } from '@/lib/slug'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 import { resolveCanonicalSportsSportSlug } from '@/lib/sports-slug-mapping'
 
@@ -55,7 +54,7 @@ interface EventSitemapRow {
   updated_at: Date
   has_esports_tag: boolean
   sports_sport_slug: string | null
-  sports_league_label: string | null
+  sports_league_slug: string | null
   sports_series_slug: string | null
   sports_event_slug: string | null
   sports_tags: unknown
@@ -68,7 +67,7 @@ interface PredictionSitemapRow {
   updated_at: Date
   has_esports_tag: boolean
   sports_sport_slug: string | null
-  sports_league_label: string | null
+  sports_league_slug: string | null
   sports_series_slug: string | null
   sports_event_slug: string | null
   sports_tags: unknown
@@ -87,32 +86,6 @@ function toOptionalStringArray(value: unknown) {
     .filter((item): item is string => typeof item === 'string')
     .map(item => item.trim())
     .filter(Boolean)
-}
-
-function resolveSportsLeagueSlugFromLabel(value: string | null | undefined) {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const trimmedValue = value.trim()
-  if (!trimmedValue) {
-    return null
-  }
-
-  return slugifyText(trimmedValue) || null
-}
-
-function buildSportsLeagueLabelSql(eventIdColumn: typeof events.id) {
-  return sql<string | null>`
-    (
-      SELECT NULLIF(TRIM(COALESCE(league_market.metadata::jsonb -> 'event' ->> 'league', '')), '')
-      FROM ${markets} AS league_market
-      WHERE league_market.event_id = ${eventIdColumn}
-        AND NULLIF(TRIM(COALESCE(league_market.metadata::jsonb -> 'event' ->> 'league', '')), '') IS NOT NULL
-      ORDER BY league_market.updated_at DESC NULLS LAST, league_market.created_at DESC NULLS LAST
-      LIMIT 1
-    )
-  `
 }
 
 export function formatDateForSitemap(date: Date): string {
@@ -264,7 +237,7 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
         updated_at: markets.updated_at,
         has_esports_tag: hasEsportsTag,
         sports_sport_slug: event_sports.sports_sport_slug,
-        sports_league_label: buildSportsLeagueLabelSql(events.id),
+        sports_league_slug: event_sports.sports_league_slug,
         sports_series_slug: event_sports.sports_series_slug,
         sports_event_slug: event_sports.sports_event_slug,
         sports_tags: event_sports.sports_tags,
@@ -297,7 +270,7 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
         slug: row.event_slug,
         tags: row.has_esports_tag ? [{ slug: 'esports' }] : undefined,
         sports_sport_slug: canonicalSportsSportSlug,
-        sports_league_slug: resolveSportsLeagueSlugFromLabel(row.sports_league_label),
+        sports_league_slug: row.sports_league_slug,
         sports_event_slug: row.sports_event_slug,
       }, row.market_slug)
 
@@ -353,7 +326,7 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
         updated_at: events.updated_at,
         has_esports_tag: hasEsportsTag,
         sports_sport_slug: event_sports.sports_sport_slug,
-        sports_league_label: buildSportsLeagueLabelSql(events.id),
+        sports_league_slug: event_sports.sports_league_slug,
         sports_series_slug: event_sports.sports_series_slug,
         sports_event_slug: event_sports.sports_event_slug,
         sports_tags: event_sports.sports_tags,
@@ -399,7 +372,7 @@ function groupEventRowsBySitemap(rows: EventSitemapRow[], sportsSlugResolver: Aw
       slug: row.slug,
       tags: row.has_esports_tag ? [{ slug: 'esports' }] : undefined,
       sports_sport_slug: canonicalSportsSportSlug,
-      sports_league_slug: resolveSportsLeagueSlugFromLabel(row.sports_league_label),
+      sports_league_slug: row.sports_league_slug,
       sports_event_slug: row.sports_event_slug,
     })
     const eventLastModified = formatDateForSitemap(row.updated_at)

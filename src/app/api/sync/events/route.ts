@@ -18,6 +18,7 @@ import {
 import { db } from '@/lib/drizzle'
 import { loadAutoDeployNewEventsEnabled } from '@/lib/event-sync-settings'
 import { setEventHiddenFromNew } from '@/lib/event-visibility'
+import { slugifyText } from '@/lib/slug'
 import { uploadPublicAsset } from '@/lib/storage'
 
 export const maxDuration = 300
@@ -63,6 +64,8 @@ interface EventSportsMetadataInput {
   sports_series_recurrence: string | null
   sports_series_color: string | null
   sports_sport_slug: string | null
+  sports_league_label: string | null
+  sports_league_slug: string | null
   sports_event_week: number | null
   sports_score: string | null
   sports_period: string | null
@@ -683,6 +686,9 @@ async function processEvent(
   const sportsSeriesRecurrence = normalizeStringField(sportsEventData?.series_recurrence)
   const sportsSeriesColor = normalizeStringField(sportsEventData?.series_color)
   const sportsSportSlug = normalizeStringField(sportsEventData?.sport_slug)
+  const sportsLeagueLabel = normalizeStringField(eventData.league)
+    ?? normalizeStringField(sportsEventData?.league)
+  const sportsLeagueSlug = sportsLeagueLabel ? slugifyText(sportsLeagueLabel) || null : null
   const sportsEventWeek = normalizeIntegerField(sportsEventData?.event_week)
   const sportsScore = normalizeStringField(sportsEventData?.score)
   const sportsPeriod = normalizeStringField(sportsEventData?.period)
@@ -779,6 +785,8 @@ async function processEvent(
       sports_series_recurrence: sportsSeriesRecurrence,
       sports_series_color: sportsSeriesColor,
       sports_sport_slug: sportsSportSlug,
+      sports_league_label: sportsLeagueLabel,
+      sports_league_slug: sportsLeagueSlug,
       sports_event_week: sportsEventWeek,
       sports_score: sportsScore,
       sports_period: sportsPeriod,
@@ -857,6 +865,8 @@ async function processEvent(
     sports_series_recurrence: sportsSeriesRecurrence,
     sports_series_color: sportsSeriesColor,
     sports_sport_slug: sportsSportSlug,
+    sports_league_label: sportsLeagueLabel,
+    sports_league_slug: sportsLeagueSlug,
     sports_event_week: sportsEventWeek,
     sports_score: sportsScore,
     sports_period: sportsPeriod,
@@ -1514,6 +1524,14 @@ async function upsertEventSportsMetadata(eventId: string, input: EventSportsMeta
   }
   if (input.sports_sport_slug !== null) {
     payload.sports_sport_slug = input.sports_sport_slug
+    hasSportsData = true
+  }
+  if (input.sports_league_label !== null) {
+    payload.sports_league_label = input.sports_league_label
+    hasSportsData = true
+  }
+  if (input.sports_league_slug !== null) {
+    payload.sports_league_slug = input.sports_league_slug
     hasSportsData = true
   }
   if (input.sports_event_week !== null) {
