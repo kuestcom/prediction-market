@@ -2459,7 +2459,7 @@ export function SportsGameDetailsPanel({
   showRedeemInPositions = false,
   onOpenRedeemForCondition = null,
   oddsFormat = 'price',
-  marketContextEnabled = false,
+  marketContextEnabled = true,
   onChangeTab,
   onSelectButton,
 }: SportsGameDetailsPanelProps) {

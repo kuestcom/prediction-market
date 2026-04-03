@@ -116,9 +116,7 @@ function getSportsPathContext(params: {
 
   if (second === verticalConfig.futurePathSegment) {
     const canonicalSportSlug = resolveCanonicalSlugFromAlias(canonicalSlugByAliasKey, third)
-    const futureTitle = vertical === 'esports' && !canonicalSportSlug
-      ? 'Upcoming Esports Games'
-      : resolveMenuLabelByHref(menuEntries, verticalConfig.futurePath)
+    const futureTitle = resolveMenuLabelByHref(menuEntries, verticalConfig.futurePath)
 
     return {
       isEventRoute: false,
