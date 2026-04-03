@@ -1323,6 +1323,17 @@ function resolveAuxiliaryPanelCreatedAt(markets: SportsGamesCard['detailMarkets'
   }, Number.POSITIVE_INFINITY)
 }
 
+function resolveAuxiliaryPanelThreshold(markets: SportsGamesCard['detailMarkets']) {
+  return markets.reduce<number>((lowestThreshold, market) => {
+    const threshold = Number(market.sports_group_item_threshold)
+    if (!Number.isFinite(threshold)) {
+      return lowestThreshold
+    }
+
+    return Math.min(lowestThreshold, threshold)
+  }, Number.POSITIVE_INFINITY)
+}
+
 function SportsEventRelatedGames({
   cards,
   sportSlug,
@@ -2087,6 +2098,12 @@ export default function SportsEventCenter({
           - resolveEsportsSegmentPanelSortOrder(right.markets)
         if (segmentTypeComparison !== 0) {
           return segmentTypeComparison
+        }
+
+        const thresholdComparison = resolveAuxiliaryPanelThreshold(left.markets)
+          - resolveAuxiliaryPanelThreshold(right.markets)
+        if (thresholdComparison !== 0) {
+          return thresholdComparison
         }
 
         const timestampComparison = resolveAuxiliaryPanelCreatedAt(left.markets) - resolveAuxiliaryPanelCreatedAt(right.markets)
