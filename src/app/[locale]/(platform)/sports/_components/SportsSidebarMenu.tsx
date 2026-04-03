@@ -686,7 +686,7 @@ export default function SportsSidebarMenu({
           <div
             key={entry.id}
             className="
-              mt-4 mb-3 flex items-center p-3 text-[11px] font-medium tracking-wider whitespace-nowrap
+              mt-2 mb-1.5 flex items-center px-3 py-1.5 text-[11px] font-medium tracking-wider whitespace-nowrap
               text-muted-foreground uppercase
             "
           >
@@ -798,7 +798,7 @@ export default function SportsSidebarMenu({
           <div
             key={entry.id}
             className={`
-              mt-2 mb-1 px-3 py-1.5 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase
+              mt-1.5 mb-0.5 px-3 py-1 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase
             `}
           >
             {entry.label}

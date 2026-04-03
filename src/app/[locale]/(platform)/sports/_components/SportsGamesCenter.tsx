@@ -5369,7 +5369,7 @@ export default function SportsGamesCenter({
             min-[1200px]:overscroll-contain min-[1200px]:pr-1
           "
         >
-          <div className="mb-4">
+          <div className="mb-3">
             {showHeading
               ? (
                   <div className={cn(
@@ -5400,7 +5400,7 @@ export default function SportsGamesCenter({
             )}
 
             {!isFeedPage && (
-              <div className="mb-4 flex flex-wrap items-center gap-3">
+              <div className="mb-3 flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-3">
                   <button
                     type="button"

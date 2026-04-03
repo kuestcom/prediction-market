@@ -306,7 +306,7 @@ export default function SportsLayoutShell({
               )}
               {showSportSectionPills && context.sportSlug && (
                 <div className={cn(
-                  'mb-4 flex items-center gap-3 min-[1200px]:ml-4',
+                  'mb-3 flex items-center gap-3 min-[1200px]:ml-4',
                   centerColumnHeaderClass,
                 )}
                 >
