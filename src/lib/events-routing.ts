@@ -8,6 +8,7 @@ interface EventRouteInput {
   slug: string
   main_tag?: string | null
   sports_sport_slug?: string | null
+  sports_league_slug?: string | null
   sports_event_slug?: string | null
   sports_section?: 'games' | 'props' | '' | null
   tags?: EventRouteTagInput[] | null
@@ -50,6 +51,7 @@ export function resolveEventBasePath(event: EventRouteInput) {
   }
 
   const sportsSportSlug = normalizePathSegment(event.sports_sport_slug)
+  const sportsLeagueSlug = normalizePathSegment(event.sports_league_slug)
   const sportsEventSlug = normalizePathSegment(event.sports_event_slug)
 
   if (sportsSportSlug && sportsEventSlug) {
@@ -57,8 +59,13 @@ export function resolveEventBasePath(event: EventRouteInput) {
       tags: event.tags,
       mainTag: event.main_tag,
     })
+    const verticalConfig = getSportsVerticalConfig(vertical)
 
-    return `${getSportsVerticalConfig(vertical).basePath}/${sportsSportSlug}/${sportsEventSlug}`
+    if (vertical === 'esports' && sportsLeagueSlug) {
+      return `${verticalConfig.basePath}/${sportsSportSlug}/${sportsLeagueSlug}/${sportsEventSlug}`
+    }
+
+    return `${verticalConfig.basePath}/${sportsSportSlug}/${sportsEventSlug}`
   }
 
   return null

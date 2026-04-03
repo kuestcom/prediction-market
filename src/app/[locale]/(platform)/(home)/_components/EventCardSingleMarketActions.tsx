@@ -12,6 +12,7 @@ interface EventCardSingleMarketActionsProps {
   event: {
     slug: string
     sports_sport_slug?: string | null
+    sports_league_slug?: string | null
     sports_event_slug?: string | null
   }
   yesOutcome: Outcome

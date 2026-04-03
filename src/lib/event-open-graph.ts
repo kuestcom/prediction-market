@@ -104,6 +104,7 @@ export function buildEventPageUrl({
   const resolvedRoute = route ?? {
     slug: eventSlug,
     sports_sport_slug: null,
+    sports_league_slug: null,
     sports_event_slug: null,
     sports_section: null,
   }

@@ -27,8 +27,16 @@ export interface EventPageShellData {
   site: ThemeSiteIdentity
 }
 
-export async function resolveCanonicalEventSlugFromSportsPath(sportSlug: string, eventSlug: string) {
-  const { data, error } = await EventRepository.getCanonicalEventSlugBySportsPath(sportSlug, eventSlug)
+export async function resolveCanonicalEventSlugFromSportsPath(
+  sportSlug: string,
+  eventSlug: string,
+  leagueSlug?: string | null,
+) {
+  const { data, error } = await EventRepository.getCanonicalEventSlugBySportsPath(
+    sportSlug,
+    eventSlug,
+    leagueSlug,
+  )
   if (error || !data?.slug) {
     return null
   }

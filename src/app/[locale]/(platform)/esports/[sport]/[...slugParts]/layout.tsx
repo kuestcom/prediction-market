@@ -3,14 +3,14 @@ import { setRequestLocale } from 'next-intl/server'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
-  return [{ sport: STATIC_PARAMS_PLACEHOLDER, event: STATIC_PARAMS_PLACEHOLDER }]
+  return [{ sport: STATIC_PARAMS_PLACEHOLDER, slugParts: [STATIC_PARAMS_PLACEHOLDER] }]
 }
 
-export default async function EsportsEventLayout({
+export default async function EsportsSlugPartsLayout({
   params,
   children,
 }: {
-  params: Promise<{ locale: string, sport: string, event: string }>
+  params: Promise<{ locale: string, sport: string, slugParts: string[] }>
   children: ReactNode
 }) {
   const { locale } = await params

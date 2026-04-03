@@ -29,6 +29,22 @@ describe('events routing', () => {
     expect(resolveEventMarketPath(event, 'match-winner')).toBe('/esports/counter-strike/team-spirit-vs-faze-2026-03-09/match-winner')
   })
 
+  it('routes esports league events through nested league paths when available', () => {
+    const event = {
+      slug: 'dota2-vg-yb1-2026-04-03',
+      sports_event_slug: 'dota2-vg-yb1-2026-04-03',
+      sports_sport_slug: 'dota-2',
+      sports_league_slug: 'blast-slam',
+      sports_section: 'games' as const,
+      tags: [
+        { slug: 'esports' },
+      ],
+    }
+
+    expect(resolveEventPagePath(event)).toBe('/esports/dota-2/blast-slam/dota2-vg-yb1-2026-04-03')
+    expect(resolveEventMarketPath(event, 'game-1-winner')).toBe('/esports/dota-2/blast-slam/dota2-vg-yb1-2026-04-03/game-1-winner')
+  })
+
   it('routes sports props through standard event pages', () => {
     const event = {
       slug: 'lebron-james-points-2026-03-09',

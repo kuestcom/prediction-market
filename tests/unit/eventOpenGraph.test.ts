@@ -128,11 +128,32 @@ describe('event open graph helpers', () => {
       route: {
         slug: 'us-recession-by-end-of-2026',
         sports_sport_slug: null,
+        sports_league_slug: null,
         sports_event_slug: null,
         sports_section: null,
       },
     })
 
     expect(pageUrl).toBe('https://demo.kuest.com/pt/event/us-recession-by-end-of-2026')
+  })
+
+  it('builds canonical esports league urls when the route includes a league slug', () => {
+    process.env.SITE_URL = 'https://demo.kuest.com'
+
+    const pageUrl = buildEventPageUrl({
+      eventSlug: 'dota2-vg-yb1-2026-04-03',
+      locale: 'en',
+      marketSlug: 'game-1-winner',
+      route: {
+        slug: 'dota2-vg-yb1-2026-04-03',
+        sports_sport_slug: 'dota-2',
+        sports_league_slug: 'blast-slam',
+        sports_event_slug: 'dota2-vg-yb1-2026-04-03',
+        sports_section: 'games',
+        tags: [{ slug: 'esports' }],
+      },
+    })
+
+    expect(pageUrl).toBe('https://demo.kuest.com/esports/dota-2/blast-slam/dota2-vg-yb1-2026-04-03/game-1-winner')
   })
 })
