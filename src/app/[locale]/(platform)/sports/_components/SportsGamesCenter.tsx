@@ -2018,6 +2018,12 @@ const COMPACT_COMBAT_TRADE_HEADER_SPORT_SLUGS = new Set([
   'zuffa',
 ])
 
+function hasDrawMoneylineOption(card: SportsGamesCard) {
+  return card.buttons.some(button =>
+    button.marketType === 'moneyline' && button.tone === 'draw',
+  )
+}
+
 function resolveCompactTradeHeaderTitle(
   card: SportsGamesCard,
   resolveTeamLabel: (
@@ -2039,6 +2045,10 @@ function resolveCompactTradeHeaderTitle(
 
 function shouldUseCompactTradeHeaderTitle(card: SportsGamesCard, vertical: SportsVertical | null) {
   if (vertical === 'esports') {
+    return true
+  }
+
+  if (hasDrawMoneylineOption(card)) {
     return true
   }
 
@@ -2096,10 +2106,6 @@ function resolveTradeHeaderTitle({
 
   if (marketType === 'total') {
     return 'Over vs Under'
-  }
-
-  if (selectedButton.tone === 'draw') {
-    return 'DRAW'
   }
 
   const team1 = card.teams[0] ?? null

@@ -579,8 +579,13 @@ function resolveTeamShortLabel(team: SportsGamesCard['teams'][number] | null | u
 
 const FULL_COMPETITOR_NAME_HERO_LABEL_SPORT_SLUGS = new Set([
   'boxing',
+  'chess',
+  'f1',
+  'golf',
   'mma',
+  'tennis',
   'ufc',
+  'wtt-mens-singles',
   'zuffa',
 ])
 
@@ -588,6 +593,16 @@ function shouldUseFullCompetitorHeroLabels(sportSlug: string | null | undefined)
   return FULL_COMPETITOR_NAME_HERO_LABEL_SPORT_SLUGS.has(
     normalizeComparableToken(sportSlug),
   )
+}
+
+function shouldUseFullScoreboardHeroLabels({
+  sportSlug,
+  vertical,
+}: {
+  sportSlug: string | null | undefined
+  vertical: SportsVertical
+}) {
+  return vertical === 'esports' || shouldUseFullCompetitorHeroLabels(sportSlug)
 }
 
 function parseSportsScore(value: string | null | undefined) {
@@ -3057,7 +3072,10 @@ export default function SportsEventCenter({
 
   const team1 = heroCard.teams[0] ?? null
   const team2 = heroCard.teams[1] ?? null
-  const useFullCompetitorHeroLabels = shouldUseFullCompetitorHeroLabels(heroCard.event.sports_sport_slug ?? sportSlug)
+  const useFullCompetitorHeroLabels = shouldUseFullScoreboardHeroLabels({
+    sportSlug: heroCard.event.sports_sport_slug ?? sportSlug,
+    vertical,
+  })
   const heroTeam1Label = useFullCompetitorHeroLabels ? (team1?.name ?? '—') : (team1?.abbreviation ?? '—')
   const heroTeam2Label = useFullCompetitorHeroLabels ? (team2?.name ?? '—') : (team2?.abbreviation ?? '—')
   const useCroppedHeroTeamLogo = shouldUseCroppedSportsTeamLogo(heroCard.event.sports_sport_slug ?? sportSlug)
