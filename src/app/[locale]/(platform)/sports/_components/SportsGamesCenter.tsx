@@ -2486,6 +2486,7 @@ export function SportsGameDetailsPanel({
   const linePickerScrollerRef = useRef<HTMLDivElement | null>(null)
   const linePickerButtonsRef = useRef<Record<string, HTMLButtonElement | null>>({})
   const linePickerScrollSettleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const linePickerSuppressScrollSyncUntilRef = useRef(0)
   const [linePickerStartSpacer, setLinePickerStartSpacer] = useState(0)
   const [linePickerEndSpacer, setLinePickerEndSpacer] = useState(0)
   const [cashOutPayload, setCashOutPayload] = useState<SportsCashOutModalPayload | null>(null)
@@ -2966,6 +2967,10 @@ export function SportsGameDetailsPanel({
     form?.requestSubmit()
   }, [setOrderAmount])
 
+  const suppressLinePickerScrollSync = useCallback((durationMs = 220) => {
+    linePickerSuppressScrollSyncUntilRef.current = Date.now() + durationMs
+  }, [])
+
   const pickLineOption = useCallback((optionIndex: number) => {
     if (!selectedButton) {
       return
@@ -2982,8 +2987,9 @@ export function SportsGameDetailsPanel({
       return
     }
 
+    suppressLinePickerScrollSync()
     onSelectButton(preferredButton.key, { panelMode: 'preserve' })
-  }, [linePickerOptions, onSelectButton, selectedButton])
+  }, [linePickerOptions, onSelectButton, selectedButton, suppressLinePickerScrollSync])
 
   const handlePickPreviousLine = useCallback(() => {
     if (activeLineOptionIndex <= 0) {
@@ -3046,12 +3052,13 @@ export function SportsGameDetailsPanel({
       return
     }
 
+    suppressLinePickerScrollSync()
     const targetLeft = activeButton.offsetLeft - ((scroller.clientWidth - activeButton.offsetWidth) / 2)
     scroller.scrollTo({
       left: Math.max(0, targetLeft),
       behavior,
     })
-  }, [activeLineOptionIndex, linePickerOptions])
+  }, [activeLineOptionIndex, linePickerOptions, suppressLinePickerScrollSync])
 
   const updateLinePickerSpacers = useCallback(() => {
     const scroller = linePickerScrollerRef.current
@@ -3142,6 +3149,10 @@ export function SportsGameDetailsPanel({
     }
 
     function handleScroll() {
+      if (Date.now() < linePickerSuppressScrollSyncUntilRef.current) {
+        return
+      }
+
       if (linePickerScrollSettleTimeoutRef.current) {
         clearTimeout(linePickerScrollSettleTimeoutRef.current)
       }
