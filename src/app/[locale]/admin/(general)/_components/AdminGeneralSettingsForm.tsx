@@ -963,12 +963,12 @@ export default function AdminGeneralSettingsForm({
                 placeholder="e.g. Refer friends and earn rewards this week"
               />
               <p className="text-xs text-muted-foreground">
-                Visible at the top of the public website. Leave empty to hide the banner.
+                {t('Displayed in the website header. Leave empty to hide.')}
               </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="global-announcement-link-url">Optional link URL</Label>
+              <Label htmlFor="global-announcement-link-url">{t('URL (optional)')}</Label>
               <Input
                 id="global-announcement-link-url"
                 name="global_announcement_link_url"
@@ -978,9 +978,6 @@ export default function AdminGeneralSettingsForm({
                 disabled={isPending}
                 placeholder="https://example.com/campaign"
               />
-              <p className="text-xs text-muted-foreground">
-                If set, clicking the banner opens this URL.
-              </p>
             </div>
 
             <div className="grid gap-2">
