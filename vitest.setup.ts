@@ -11,3 +11,13 @@ if (!process.env.SUPABASE_URL) {
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
 }
+
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = MockResizeObserver as typeof ResizeObserver
+}
