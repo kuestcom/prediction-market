@@ -11,22 +11,56 @@ interface EventMarketContextProps {
   marketConditionId?: string | null
 }
 
+function parseTimestamp(value: string | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  const timestamp = Date.parse(value)
+  return Number.isNaN(timestamp) ? null : timestamp
+}
+
+function formatContextUpdatedLabel(updatedAtMs: number | null) {
+  if (!updatedAtMs) {
+    return 'Experimental AI-generated summary'
+  }
+
+  const date = new Date(updatedAtMs)
+  const datePart = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date)
+  const timePart = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date)
+  const timezonePart = new Intl.DateTimeFormat('en-US', {
+    timeZoneName: 'shortOffset',
+  }).formatToParts(date).find(part => part.type === 'timeZoneName')?.value ?? 'GMT'
+
+  return `Experimental AI-generated summary · Updated ${datePart} at ${timePart} ${timezonePart}`
+}
+
 export default function EventMarketContext({ event, marketConditionId = null }: EventMarketContextProps) {
   const t = useExtracted()
   const state = useOrder()
+  const resolvedMarketConditionId = marketConditionId ?? state.market?.condition_id ?? undefined
   const [isExpanded, setIsExpanded] = useState(false)
   const [context, setContext] = useState<string | null>(null)
   const [displayedContext, setDisplayedContext] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [hasGenerated, setHasGenerated] = useState(false)
+  const [cacheExpiresAtMs, setCacheExpiresAtMs] = useState<number | null>(null)
+  const [contextUpdatedAtMs, setContextUpdatedAtMs] = useState<number | null>(null)
   const [isTyping, setIsTyping] = useState(false)
   const hasAnimatedRef = useRef(false)
   const contextRef = useRef<string | null>(null)
   const isContentExpanded = isExpanded || Boolean(error)
 
   async function generateMarketContext() {
-    const resolvedMarketConditionId = marketConditionId ?? state.market?.condition_id ?? null
     if (!resolvedMarketConditionId) {
       return
     }
@@ -47,6 +81,9 @@ export default function EventMarketContext({ event, marketConditionId = null }: 
           setError(response.error)
           setContext(null)
           setIsExpanded(false)
+          setHasGenerated(false)
+          setCacheExpiresAtMs(null)
+          setContextUpdatedAtMs(null)
           return
         }
 
@@ -54,6 +91,8 @@ export default function EventMarketContext({ event, marketConditionId = null }: 
           setContext(response.context)
           setIsExpanded(true)
           setHasGenerated(true)
+          setCacheExpiresAtMs(parseTimestamp(response.expiresAt))
+          setContextUpdatedAtMs(parseTimestamp(response.updatedAt) ?? Date.now())
         }
       }
       catch (caughtError) {
@@ -61,9 +100,84 @@ export default function EventMarketContext({ event, marketConditionId = null }: 
         setError(t('Unable to reach the market context service right now.'))
         setContext(null)
         setIsExpanded(false)
+        setHasGenerated(false)
+        setCacheExpiresAtMs(null)
+        setContextUpdatedAtMs(null)
       }
     })
   }
+
+  useEffect(() => {
+    setError(null)
+    setContext(null)
+    setIsExpanded(false)
+    setHasGenerated(false)
+    setCacheExpiresAtMs(null)
+    setContextUpdatedAtMs(null)
+
+    if (!resolvedMarketConditionId) {
+      return
+    }
+
+    let isActive = true
+
+    async function preloadCachedContext() {
+      try {
+        const response = await generateMarketContextAction({
+          slug: event.slug,
+          marketConditionId: resolvedMarketConditionId,
+          readOnly: true,
+        })
+
+        if (!isActive || response?.error || !response?.context) {
+          return
+        }
+
+        setContext(response.context)
+        setHasGenerated(true)
+        setCacheExpiresAtMs(parseTimestamp(response.expiresAt))
+        setContextUpdatedAtMs(parseTimestamp(response.updatedAt) ?? Date.now())
+      }
+      catch (caughtError) {
+        console.error('Failed to fetch cached market context.', caughtError)
+      }
+    }
+
+    void preloadCachedContext()
+
+    return () => {
+      isActive = false
+    }
+  }, [event.slug, resolvedMarketConditionId])
+
+  useEffect(() => {
+    if (!cacheExpiresAtMs) {
+      return
+    }
+
+    const remainingMs = cacheExpiresAtMs - Date.now()
+
+    if (remainingMs <= 0) {
+      setHasGenerated(false)
+      setContext(null)
+      setIsExpanded(false)
+      setCacheExpiresAtMs(null)
+      setContextUpdatedAtMs(null)
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      setHasGenerated(false)
+      setContext(null)
+      setIsExpanded(false)
+      setCacheExpiresAtMs(null)
+      setContextUpdatedAtMs(null)
+    }, remainingMs)
+
+    return () => {
+      window.clearTimeout(timeout)
+    }
+  }, [cacheExpiresAtMs])
 
   useEffect(() => {
     if (contextRef.current !== context) {
@@ -136,6 +250,8 @@ export default function EventMarketContext({ event, marketConditionId = null }: 
       .filter(Boolean)
   }, [displayedContext])
 
+  const updatedLabel = useMemo(() => formatContextUpdatedLabel(contextUpdatedAtMs), [contextUpdatedAtMs])
+
   function toggleCollapse() {
     setIsExpanded(current => !current)
   }
@@ -194,7 +310,7 @@ export default function EventMarketContext({ event, marketConditionId = null }: 
                 `,
                 { 'rounded-b-none': isContentExpanded },
               )}
-              disabled={isPending || !(marketConditionId ?? state.market?.condition_id)}
+              disabled={isPending || !resolvedMarketConditionId}
             >
               <span className="text-base font-medium">{t('Market Context')}</span>
               <span
@@ -239,8 +355,8 @@ export default function EventMarketContext({ event, marketConditionId = null }: 
 
             {!error && context && !isTyping && displayedContext === context && (
               <div className="flex justify-end">
-                <span className="font-mono text-2xs tracking-wide text-muted-foreground/80 uppercase">
-                  {t('Results are experimental')}
+                <span className="font-mono text-2xs tracking-wide text-muted-foreground/80">
+                  {updatedLabel}
                 </span>
               </div>
             )}

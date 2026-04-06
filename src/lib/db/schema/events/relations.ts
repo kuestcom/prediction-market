@@ -5,6 +5,7 @@ import {
   event_tags,
   event_translations,
   events,
+  market_context_cache,
   market_sports,
   markets,
   outcomes,
@@ -32,6 +33,7 @@ export const marketsRelations = relations(markets, ({ one, many }) => ({
     fields: [markets.event_id],
     references: [events.id],
   }),
+  contextCacheEntries: many(market_context_cache),
   sports: one(market_sports, {
     fields: [markets.condition_id],
     references: [market_sports.condition_id],
@@ -41,6 +43,13 @@ export const marketsRelations = relations(markets, ({ one, many }) => ({
     references: [conditions.id],
   }),
   outcomes: many(outcomes),
+}))
+
+export const marketContextCacheRelations = relations(market_context_cache, ({ one }) => ({
+  market: one(markets, {
+    fields: [market_context_cache.condition_id],
+    references: [markets.condition_id],
+  }),
 }))
 
 export const eventSportsRelations = relations(event_sports, ({ one }) => ({
