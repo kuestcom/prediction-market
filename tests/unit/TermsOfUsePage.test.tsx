@@ -47,7 +47,10 @@ describe('termsOfUsePage', () => {
     const { default: TermsOfUsePage } = await import('@/app/[locale]/(platform)/tos/page')
     render(await TermsOfUsePage({ params: Promise.resolve({ locale: 'en' }) } as any))
 
-    expect(screen.getByTitle('Terms of Use PDF')).toHaveAttribute('src', 'https://cdn.example.com/legal/tos.pdf')
+    expect(screen.getByTitle('Terms of Use PDF')).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/legal/tos.pdf#view=FitH&zoom=page-width&pagemode=none',
+    )
     expect(screen.queryByText(/These Terms of Use \("Terms"\) govern your access/i)).not.toBeInTheDocument()
   })
 

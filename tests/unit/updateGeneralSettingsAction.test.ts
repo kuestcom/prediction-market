@@ -268,14 +268,19 @@ describe('updateGeneralSettingsAction', () => {
 
     const uploadedPath = mocks.upload.mock.calls[0][0] as string
     expect(uploadedPath).toMatch(/^legal\/terms-of-service-\d+-[a-z0-9]+\.pdf$/)
-    expect(mocks.upload).toHaveBeenCalledWith(
-      uploadedPath,
-      expect.any(Uint8Array),
-      {
-        contentType: 'application/pdf',
-        cacheControl: '31536000',
-      },
-    )
+    const uploadedBody = mocks.upload.mock.calls[0][1] as unknown
+    const isBinaryBody = ArrayBuffer.isView(uploadedBody)
+      || (
+        uploadedBody !== null
+        && typeof uploadedBody === 'object'
+        && 'type' in uploadedBody
+        && 'data' in uploadedBody
+      )
+    expect(isBinaryBody).toBe(true)
+    expect(mocks.upload.mock.calls[0][2]).toEqual({
+      contentType: 'application/pdf',
+      cacheControl: '31536000',
+    })
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
     expect(savedPayload.find(entry => entry.key === 'tos_pdf_path')?.value).toBe(uploadedPath)

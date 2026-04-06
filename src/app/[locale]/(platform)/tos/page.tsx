@@ -26,10 +26,14 @@ export default async function TermsOfUsePage({ params }: PageProps<'/[locale]/to
   const termsOfServicePdfUrl = getTermsOfServicePdfUrl(allSettings ?? undefined)
 
   if (termsOfServicePdfUrl) {
+    const pdfViewerUrl = termsOfServicePdfUrl.includes('#')
+      ? termsOfServicePdfUrl
+      : `${termsOfServicePdfUrl}#view=FitH&zoom=page-width&pagemode=none`
+
     return (
-      <main className="h-[calc(100dvh-5rem)] w-full">
+      <main className="h-[calc(100dvh-5rem)] w-full overflow-x-hidden">
         <iframe
-          src={termsOfServicePdfUrl}
+          src={pdfViewerUrl}
           title="Terms of Use PDF"
           className="block size-full border-0"
         />
