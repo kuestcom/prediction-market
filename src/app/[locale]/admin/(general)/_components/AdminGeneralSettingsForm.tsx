@@ -488,6 +488,8 @@ export default function AdminGeneralSettingsForm({
           return
         }
 
+        setTosPdfPath('')
+        setSelectedTermsOfServicePdfFile(null)
         toast.success(t('Terms of Use PDF removed.'))
         router.refresh()
       }

@@ -47,7 +47,7 @@ describe('adminGeneralSettingsForm', () => {
     const user = userEvent.setup()
     mocks.removeTermsOfServicePdfAction.mockResolvedValueOnce({ error: null })
 
-    render(
+    const { container } = render(
       <AdminGeneralSettingsForm
         initialThemeSiteSettings={{
           siteName: 'Kuest',
@@ -87,10 +87,12 @@ describe('adminGeneralSettingsForm', () => {
     )
 
     await user.click(screen.getByRole('button', { name: /Legal/i }))
+    expect((container.querySelector('input[name="tos_pdf_path"]') as HTMLInputElement).value).toBe('legal/current-terms.pdf')
     await user.click(screen.getByRole('button', { name: /Remove uploaded PDF/i }))
 
     await waitFor(() => {
       expect(mocks.removeTermsOfServicePdfAction).toHaveBeenCalledTimes(1)
+      expect((container.querySelector('input[name="tos_pdf_path"]') as HTMLInputElement).value).toBe('')
     })
   })
 
