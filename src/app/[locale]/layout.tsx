@@ -6,6 +6,7 @@ import { setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
 import { notFound } from 'next/navigation'
 import CustomJavascriptCode from '@/components/CustomJavascriptCode'
+import GlobalAnnouncementBanner from '@/components/GlobalAnnouncementBanner'
 import PwaInstallStateSync from '@/components/PwaInstallStateSync'
 import PwaServiceWorker from '@/components/PwaServiceWorker'
 import SiteStructuredData from '@/components/seo/SiteStructuredData'
@@ -14,6 +15,7 @@ import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { routing } from '@/i18n/routing'
 import { cacheTags } from '@/lib/cache-tags'
 import { openSauceOne } from '@/lib/fonts'
+import { loadGlobalAnnouncementSettings } from '@/lib/global-announcement-settings'
 import { IS_TEST_MODE } from '@/lib/network'
 import { resolvePwaThemeColors } from '@/lib/pwa-colors'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
@@ -78,6 +80,7 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
   }
 
   const runtimeTheme = await loadRuntimeThemeState()
+  const globalAnnouncement = await loadGlobalAnnouncementSettings()
   cacheTag(cacheTags.settings)
 
   setRequestLocale(locale)
@@ -96,6 +99,12 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
         <SiteIdentityProvider site={runtimeTheme.site}>
           <NextIntlClientProvider locale={locale}>
             <AppProviders>
+              <GlobalAnnouncementBanner
+                locale={locale}
+                message={globalAnnouncement.message}
+                linkUrl={globalAnnouncement.linkUrl}
+                disabledOn={globalAnnouncement.disabledOn}
+              />
               {IS_TEST_MODE && <TestModeBannerDeferred />}
               <PwaInstallStateSync />
               {children}

@@ -75,6 +75,11 @@ describe('adminGeneralSettingsForm', () => {
           lifiApiKey: '',
           lifiApiKeyConfigured: false,
         }}
+        initialGlobalAnnouncement={{
+          message: '',
+          linkUrl: '',
+          disabledOn: [],
+        }}
         initialTermsOfServicePdfPath="legal/current-terms.pdf"
         initialTermsOfServicePdfUrl="https://cdn.example.com/legal/current-terms.pdf"
         openRouterSettings={{
@@ -125,6 +130,11 @@ describe('adminGeneralSettingsForm', () => {
           lifiIntegrator: '',
           lifiApiKey: '',
           lifiApiKeyConfigured: false,
+        }}
+        initialGlobalAnnouncement={{
+          message: '',
+          linkUrl: '',
+          disabledOn: [],
         }}
         initialTermsOfServicePdfPath=""
         initialTermsOfServicePdfUrl={null}

@@ -7,6 +7,12 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { encryptSecret } from '@/lib/encryption'
+import {
+  GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY,
+  GLOBAL_ANNOUNCEMENT_LINK_URL_KEY,
+  GLOBAL_ANNOUNCEMENT_MESSAGE_KEY,
+  validateGlobalAnnouncementInput,
+} from '@/lib/global-announcement-settings'
 import { uploadPublicAsset } from '@/lib/storage'
 import { normalizeTermsOfServicePdfPath, TERMS_OF_SERVICE_PDF_PATH_KEY } from '@/lib/terms-of-service'
 import { validateThemeSiteSettingsInput } from '@/lib/theme-settings'
@@ -159,6 +165,9 @@ export async function updateGeneralSettingsAction(
   const linkedinLinkRaw = formData.get('linkedin_link')
   const youtubeLinkRaw = formData.get('youtube_link')
   const supportUrlRaw = formData.get('support_url')
+  const globalAnnouncementMessageRaw = formData.get('global_announcement_message')
+  const globalAnnouncementLinkUrlRaw = formData.get('global_announcement_link_url')
+  const globalAnnouncementDisabledOnJsonRaw = formData.get('global_announcement_disabled_on_json')
   const customJavascriptCodesJsonRaw = formData.get('custom_javascript_codes_json')
   const feeRecipientWalletRaw = formData.get('fee_recipient_wallet')
   const tosPdfPathRaw = formData.get('tos_pdf_path')
@@ -184,6 +193,11 @@ export async function updateGeneralSettingsAction(
   const linkedinLink = typeof linkedinLinkRaw === 'string' ? linkedinLinkRaw : ''
   const youtubeLink = typeof youtubeLinkRaw === 'string' ? youtubeLinkRaw : ''
   const supportUrl = typeof supportUrlRaw === 'string' ? supportUrlRaw : ''
+  const globalAnnouncementMessage = typeof globalAnnouncementMessageRaw === 'string' ? globalAnnouncementMessageRaw : ''
+  const globalAnnouncementLinkUrl = typeof globalAnnouncementLinkUrlRaw === 'string' ? globalAnnouncementLinkUrlRaw : ''
+  const globalAnnouncementDisabledOnJson = typeof globalAnnouncementDisabledOnJsonRaw === 'string'
+    ? globalAnnouncementDisabledOnJsonRaw
+    : ''
   const customJavascriptCodesJson = typeof customJavascriptCodesJsonRaw === 'string' ? customJavascriptCodesJsonRaw : ''
   const feeRecipientWallet = typeof feeRecipientWalletRaw === 'string' ? feeRecipientWalletRaw : ''
   let tosPdfPath = typeof tosPdfPathRaw === 'string' ? tosPdfPathRaw : ''
@@ -198,6 +212,15 @@ export async function updateGeneralSettingsAction(
 
   if (openRouterApiKey.length > 256) {
     return { error: 'OpenRouter API key is too long.' }
+  }
+
+  const validatedGlobalAnnouncement = validateGlobalAnnouncementInput({
+    message: globalAnnouncementMessage,
+    linkUrl: globalAnnouncementLinkUrl,
+    disabledOnJson: globalAnnouncementDisabledOnJson,
+  })
+  if (!validatedGlobalAnnouncement.data) {
+    return { error: validatedGlobalAnnouncement.error ?? 'Invalid global announcement input.' }
   }
 
   const normalizedTermsOfServicePdfPath = normalizeTermsOfServicePdfPath(tosPdfPath)
@@ -314,6 +337,9 @@ export async function updateGeneralSettingsAction(
     { group: 'general', key: 'site_linkedin_link', value: validated.data.linkedinLinkValue },
     { group: 'general', key: 'site_youtube_link', value: validated.data.youtubeLinkValue },
     { group: 'general', key: 'site_support_url', value: validated.data.supportUrlValue },
+    { group: 'general', key: GLOBAL_ANNOUNCEMENT_MESSAGE_KEY, value: validatedGlobalAnnouncement.data.messageValue },
+    { group: 'general', key: GLOBAL_ANNOUNCEMENT_LINK_URL_KEY, value: validatedGlobalAnnouncement.data.linkUrlValue },
+    { group: 'general', key: GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY, value: validatedGlobalAnnouncement.data.disabledOnValue },
     { group: 'general', key: 'site_custom_javascript_codes', value: validated.data.customJavascriptCodesValue },
     { group: 'general', key: 'fee_recipient_wallet', value: validated.data.feeRecipientWalletValue },
     { group: 'general', key: TERMS_OF_SERVICE_PDF_PATH_KEY, value: tosPdfPath },

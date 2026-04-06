@@ -34,6 +34,8 @@ const initialState = {
 }
 
 const AUTOMATIC_MODEL_VALUE = '__AUTOMATIC__'
+const MAX_GLOBAL_ANNOUNCEMENT_MESSAGE_LENGTH = 220
+const MAX_GLOBAL_ANNOUNCEMENT_LINK_URL_LENGTH = 2048
 
 interface ModelOption {
   id: string
@@ -49,8 +51,15 @@ interface OpenRouterGeneralSettings {
   modelsError?: string
 }
 
+interface InitialGlobalAnnouncementSettings {
+  message: string
+  linkUrl: string
+  disabledOn: CustomJavascriptCodeDisablePage[]
+}
+
 interface AdminGeneralSettingsFormProps {
   initialThemeSiteSettings: AdminThemeSiteSettingsInitialState
+  initialGlobalAnnouncement: InitialGlobalAnnouncementSettings
   initialTermsOfServicePdfPath: string
   initialTermsOfServicePdfUrl: string | null
   openRouterSettings: OpenRouterGeneralSettings
@@ -143,6 +152,7 @@ function SettingsAccordionSection({
 
 export default function AdminGeneralSettingsForm({
   initialThemeSiteSettings,
+  initialGlobalAnnouncement,
   initialTermsOfServicePdfPath,
   initialTermsOfServicePdfUrl,
   openRouterSettings,
@@ -167,6 +177,9 @@ export default function AdminGeneralSettingsForm({
   const initialLinkedinLink = initialThemeSiteSettings.linkedinLink
   const initialYoutubeLink = initialThemeSiteSettings.youtubeLink
   const initialSupportUrl = initialThemeSiteSettings.supportUrl
+  const initialGlobalAnnouncementMessage = initialGlobalAnnouncement.message
+  const initialGlobalAnnouncementLinkUrl = initialGlobalAnnouncement.linkUrl
+  const initialGlobalAnnouncementDisabledOn = initialGlobalAnnouncement.disabledOn
   const initialCustomJavascriptCodes = initialThemeSiteSettings.customJavascriptCodes
   const initialFeeRecipientWallet = initialThemeSiteSettings.feeRecipientWallet
   const initialLiFiIntegrator = initialThemeSiteSettings.lifiIntegrator
@@ -197,6 +210,11 @@ export default function AdminGeneralSettingsForm({
   const [linkedinLink, setLinkedinLink] = useState(initialLinkedinLink)
   const [youtubeLink, setYoutubeLink] = useState(initialYoutubeLink)
   const [supportUrl, setSupportUrl] = useState(initialSupportUrl)
+  const [globalAnnouncementMessage, setGlobalAnnouncementMessage] = useState(initialGlobalAnnouncementMessage)
+  const [globalAnnouncementLinkUrl, setGlobalAnnouncementLinkUrl] = useState(initialGlobalAnnouncementLinkUrl)
+  const [globalAnnouncementDisabledOn, setGlobalAnnouncementDisabledOn] = useState<CustomJavascriptCodeDisablePage[]>(
+    initialGlobalAnnouncementDisabledOn,
+  )
   const [customJavascriptCodes, setCustomJavascriptCodes] = useState<CustomJavascriptCodeDraft[]>(
     () => initialCustomJavascriptCodes.map(code => createCustomJavascriptCodeDraft(nextCustomJavascriptCodeIdRef.current++, code)),
   )
@@ -284,6 +302,18 @@ export default function AdminGeneralSettingsForm({
   }, [initialSupportUrl])
 
   useEffect(() => {
+    setGlobalAnnouncementMessage(initialGlobalAnnouncementMessage)
+  }, [initialGlobalAnnouncementMessage])
+
+  useEffect(() => {
+    setGlobalAnnouncementLinkUrl(initialGlobalAnnouncementLinkUrl)
+  }, [initialGlobalAnnouncementLinkUrl])
+
+  useEffect(() => {
+    setGlobalAnnouncementDisabledOn(initialGlobalAnnouncementDisabledOn)
+  }, [initialGlobalAnnouncementDisabledOn])
+
+  useEffect(() => {
     setTosPdfPath(initialTermsOfServicePdfPath)
   }, [initialTermsOfServicePdfPath])
 
@@ -360,6 +390,10 @@ export default function AdminGeneralSettingsForm({
   const serializedCustomJavascriptCodes = useMemo(
     () => serializeCustomJavascriptCodes(customJavascriptCodes.map(toCustomJavascriptCodeConfig)),
     [customJavascriptCodes],
+  )
+  const serializedGlobalAnnouncementDisabledOn = useMemo(
+    () => JSON.stringify(globalAnnouncementDisabledOn),
+    [globalAnnouncementDisabledOn],
   )
   const customJavascriptCodeDisablePageOptions = useMemo(() => ([
     { value: 'home' as const, label: t('Home') },
@@ -438,6 +472,16 @@ export default function AdminGeneralSettingsForm({
     })
   }
 
+  function handleToggleGlobalAnnouncementDisableOn(value: CustomJavascriptCodeDisablePage, checked: boolean) {
+    setGlobalAnnouncementDisabledOn((previous) => {
+      const next = checked
+        ? Array.from(new Set([...previous, value]))
+        : previous.filter(entry => entry !== value)
+
+      return next
+    })
+  }
+
   async function handleRefreshOpenRouterModels() {
     if (!trimmedOpenRouterApiKey) {
       return
@@ -510,6 +554,7 @@ export default function AdminGeneralSettingsForm({
       <input type="hidden" name="openrouter_model" value={openRouterModel} />
       <input type="hidden" name="tos_pdf_path" value={tosPdfPath} />
       <input type="hidden" name="custom_javascript_codes_json" value={serializedCustomJavascriptCodes} />
+      <input type="hidden" name="global_announcement_disabled_on_json" value={serializedGlobalAnnouncementDisabledOn} />
 
       <div className="grid gap-6">
         <SettingsAccordionSection
@@ -895,6 +940,78 @@ export default function AdminGeneralSettingsForm({
                 disabled={isPending}
                 placeholder={t('Discord, Telegram, WhatsApp link, or support email (optional)')}
               />
+            </div>
+          </div>
+        </SettingsAccordionSection>
+
+        <SettingsAccordionSection
+          value="global-announcement"
+          isOpen={openSections.includes('global-announcement')}
+          onToggle={toggleSection}
+          header={<h3 className="text-base font-medium">Global announcement banner</h3>}
+        >
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="global-announcement-message">Message</Label>
+              <Input
+                id="global-announcement-message"
+                name="global_announcement_message"
+                maxLength={MAX_GLOBAL_ANNOUNCEMENT_MESSAGE_LENGTH}
+                value={globalAnnouncementMessage}
+                onChange={event => setGlobalAnnouncementMessage(event.target.value)}
+                disabled={isPending}
+                placeholder="e.g. Refer friends and earn rewards this week"
+              />
+              <p className="text-xs text-muted-foreground">
+                Visible at the top of the public website. Leave empty to hide the banner.
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="global-announcement-link-url">Optional link URL</Label>
+              <Input
+                id="global-announcement-link-url"
+                name="global_announcement_link_url"
+                maxLength={MAX_GLOBAL_ANNOUNCEMENT_LINK_URL_LENGTH}
+                value={globalAnnouncementLinkUrl}
+                onChange={event => setGlobalAnnouncementLinkUrl(event.target.value)}
+                disabled={isPending}
+                placeholder="https://example.com/campaign"
+              />
+              <p className="text-xs text-muted-foreground">
+                If set, clicking the banner opens this URL.
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Disable on</Label>
+              <div className="flex flex-wrap gap-3">
+                {customJavascriptCodeDisablePageOptions.map((option) => {
+                  const fieldId = `global-announcement-disable-${option.value}`
+                  return (
+                    <label
+                      key={option.value}
+                      htmlFor={fieldId}
+                      className={cn(
+                        `
+                          flex min-w-32 cursor-pointer items-center gap-2 rounded-lg border border-border/60 px-3 py-2
+                          text-sm transition-colors
+                          hover:bg-muted/40
+                        `,
+                        globalAnnouncementDisabledOn.includes(option.value) && 'border-primary/50 bg-primary/5',
+                      )}
+                    >
+                      <Checkbox
+                        id={fieldId}
+                        checked={globalAnnouncementDisabledOn.includes(option.value)}
+                        disabled={isPending}
+                        onCheckedChange={checked => handleToggleGlobalAnnouncementDisableOn(option.value, checked === true)}
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </SettingsAccordionSection>
