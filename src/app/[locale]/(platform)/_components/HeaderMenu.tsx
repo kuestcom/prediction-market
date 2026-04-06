@@ -3,6 +3,7 @@
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
+import { useEffect, useState } from 'react'
 import HeaderDropdownUserMenuGuest from '@/app/[locale]/(platform)/_components/HeaderDropdownUserMenuGuest'
 import HeaderNotifications from '@/app/[locale]/(platform)/_components/HeaderNotifications'
 import { useOptionalTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
@@ -30,12 +31,17 @@ function HeaderMenuClient() {
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const { data: session, isPending: isSessionPending } = useSession()
+  const [hasHydrated, setHasHydrated] = useState(false)
   const isMobile = useIsMobile()
   const tradingOnboarding = useOptionalTradingOnboarding()
   const user = useUser()
 
-  const isAuthenticated = Boolean(session?.user) || Boolean(user) || isConnected
-  const shouldShowGuestActions = !isAuthenticated && !isSessionPending
+  useEffect(() => {
+    setHasHydrated(true)
+  }, [])
+
+  const isAuthenticated = hasHydrated && (Boolean(session?.user) || Boolean(user) || isConnected)
+  const shouldShowGuestActions = hasHydrated && !isAuthenticated && !isSessionPending
   const startDepositFlow = tradingOnboarding?.startDepositFlow
 
   return (

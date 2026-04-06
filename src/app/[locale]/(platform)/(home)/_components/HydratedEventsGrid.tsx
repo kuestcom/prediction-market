@@ -147,6 +147,7 @@ export default function HydratedEventsGrid({
     initialTimestamp: initialCurrentTimestamp,
     intervalMs: HOME_FEED_REFRESH_INTERVAL_MS,
   })
+  const [hasHydrated, setHasHydrated] = useState(false)
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const snapshotKey = [
     locale,
@@ -373,9 +374,12 @@ export default function HydratedEventsGrid({
     && lastStableVisibleEvents.length > 0
     && status !== 'success'
   const eventsToRender = shouldShowSnapshotFallback ? lastStableVisibleEvents : visibleEvents
+  const hydrationSafeEventsToRender = !hasHydrated && isRouteInitialState
+    ? initialEvents
+    : eventsToRender
   const livePriceEvents = useMemo(
-    () => eventsToRender.filter(event => livePriceEventIds.includes(String(event.id))),
-    [eventsToRender, livePriceEventIds],
+    () => hydrationSafeEventsToRender.filter(event => livePriceEventIds.includes(String(event.id))),
+    [hydrationSafeEventsToRender, livePriceEventIds],
   )
   const marketTargets = useMemo(
     () => livePriceEvents.flatMap(event => buildMarketTargets(resolveHomeCardMarkets(event))),
@@ -433,6 +437,10 @@ export default function HydratedEventsGrid({
     && (isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0)))
 
   useEffect(() => {
+    setHasHydrated(true)
+  }, [])
+
+  useEffect(() => {
     if (priceOverrideCommitTimeoutRef.current) {
       clearTimeout(priceOverrideCommitTimeoutRef.current)
       priceOverrideCommitTimeoutRef.current = null
@@ -470,7 +478,7 @@ export default function HydratedEventsGrid({
   }, [priceOverrideSignature, priceOverridesByMarket])
 
   useEffect(() => {
-    if (!parentRef.current || eventsToRender.length === 0) {
+    if (!parentRef.current || hydrationSafeEventsToRender.length === 0) {
       setLivePriceEventIds([])
       return
     }
@@ -513,7 +521,7 @@ export default function HydratedEventsGrid({
     cardElements.forEach(element => observer.observe(element))
 
     return () => observer.disconnect()
-  }, [eventsToRender])
+  }, [hydrationSafeEventsToRender])
 
   useEffect(() => {
     if (!loadMoreRef.current || !hasNextPage) {
@@ -572,11 +580,11 @@ export default function HydratedEventsGrid({
     )
   }
 
-  if (eventsToRender.length === 0 && (!allEvents || allEvents.length === 0)) {
+  if (hydrationSafeEventsToRender.length === 0 && (!allEvents || allEvents.length === 0)) {
     return <EventsEmptyState tag={filters.tag} searchQuery={filters.search} onClearFilters={onClearFilters} />
   }
 
-  if (eventsToRender.length === 0) {
+  if (hydrationSafeEventsToRender.length === 0) {
     return (
       <div
         ref={parentRef}
@@ -590,8 +598,8 @@ export default function HydratedEventsGrid({
   return (
     <div ref={parentRef} className="w-full space-y-3 transition-opacity duration-200">
       <EventsStaticGrid
-        events={eventsToRender}
-        priceOverridesByMarket={stablePriceOverridesByMarket}
+        events={hydrationSafeEventsToRender}
+        priceOverridesByMarket={hasHydrated ? stablePriceOverridesByMarket : EMPTY_PRICE_OVERRIDES}
         maxColumns={maxColumns}
         isFetching={(visibleEvents.length === 0) || (isFetching && hasFreshQueryData)}
         currentTimestamp={currentTimestamp}
