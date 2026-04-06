@@ -92,8 +92,7 @@ describe('generateMarketContextAction', () => {
     expect(mocks.upsertContext).not.toHaveBeenCalled()
   })
 
-  it('does not generate when readOnly is true and no cache entry exists', async () => {
-    mockConfiguredSettings()
+  it('does not generate when readOnly is true and no cache entry exists, even without generation settings', async () => {
     mocks.getEventBySlug.mockResolvedValue({ data: makeEvent(), error: null })
     mocks.getValidContext.mockResolvedValue({ data: null, error: null })
 
@@ -113,6 +112,7 @@ describe('generateMarketContextAction', () => {
     })
     expect(mocks.generateMarketContext).not.toHaveBeenCalled()
     expect(mocks.upsertContext).not.toHaveBeenCalled()
+    expect(mocks.loadMarketContextSettings).not.toHaveBeenCalled()
   })
 
   it('generates and persists a new cache entry when cache is missing', async () => {

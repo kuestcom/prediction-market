@@ -21,11 +21,6 @@ const GenerateMarketContextSchema = z.object({
 type GenerateMarketContextInput = z.infer<typeof GenerateMarketContextSchema>
 
 export async function generateMarketContextAction(input: GenerateMarketContextInput) {
-  const settings = await loadMarketContextSettings()
-  if (!settings.enabled || !settings.apiKey) {
-    return { error: 'Market context generation is not configured.' }
-  }
-
   const parsed = GenerateMarketContextSchema.safeParse(input)
 
   if (!parsed.success) {
@@ -72,6 +67,11 @@ export async function generateMarketContextAction(input: GenerateMarketContextIn
         updatedAt: null,
         cached: false,
       }
+    }
+
+    const settings = await loadMarketContextSettings()
+    if (!settings.enabled || !settings.apiKey) {
+      return { error: 'Market context generation is not configured.' }
     }
 
     const context = await generateMarketContext(event, market, settings, locale)
