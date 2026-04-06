@@ -7,6 +7,7 @@ import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getPublicAssetUrl } from '@/lib/storage'
+import { getTermsOfServicePdfPath, getTermsOfServicePdfUrl } from '@/lib/terms-of-service'
 import { getThemeSiteSettingsFormState } from '@/lib/theme-settings'
 import { DEFAULT_THEME_SITE_PWA_ICON_192_URL, DEFAULT_THEME_SITE_PWA_ICON_512_URL } from '@/lib/theme-site-identity'
 
@@ -58,6 +59,8 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
     ?? DEFAULT_THEME_SITE_PWA_ICON_192_URL
   const initialPwaIcon512Url = getPublicAssetUrl(initialThemeSiteSettings.pwaIcon512Path || null)
     ?? DEFAULT_THEME_SITE_PWA_ICON_512_URL
+  const initialTermsOfServicePdfPath = getTermsOfServicePdfPath(allSettings ?? undefined)
+  const initialTermsOfServicePdfUrl = getTermsOfServicePdfUrl(allSettings ?? undefined) || null
   const initialThemeSiteSettingsWithImage: AdminThemeSiteSettingsInitialState = {
     ...initialThemeSiteSettings,
     logoImageUrl: initialThemeSiteImageUrl,
@@ -76,6 +79,8 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
 
       <AdminGeneralSettingsForm
         initialThemeSiteSettings={initialThemeSiteSettingsWithImage}
+        initialTermsOfServicePdfPath={initialTermsOfServicePdfPath}
+        initialTermsOfServicePdfUrl={initialTermsOfServicePdfUrl}
         openRouterSettings={{
           defaultModel: defaultOpenRouterModel,
           isApiKeyConfigured: isOpenRouterApiKeyConfigured,

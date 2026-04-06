@@ -14,6 +14,11 @@ const config: NextConfig = {
   cacheComponents: true,
   typedRoutes: true,
   reactStrictMode: false,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
   images: {
     unoptimized: process.env.DISABLE_IMAGE_OPTIMIZATION === 'true',
     loader: 'custom',

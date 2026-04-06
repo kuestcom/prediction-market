@@ -8,12 +8,14 @@ import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { encryptSecret } from '@/lib/encryption'
 import { uploadPublicAsset } from '@/lib/storage'
+import { normalizeTermsOfServicePdfPath, TERMS_OF_SERVICE_PDF_PATH_KEY } from '@/lib/terms-of-service'
 import { validateThemeSiteSettingsInput } from '@/lib/theme-settings'
 
 const MAX_LOGO_FILE_SIZE = 2 * 1024 * 1024
 const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
 const MAX_PWA_ICON_FILE_SIZE = 2 * 1024 * 1024
 const ACCEPTED_PWA_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
+const MAX_TERMS_OF_SERVICE_PDF_FILE_SIZE = 2 * 1024 * 1024
 
 export interface GeneralSettingsActionState {
   error: string | null
@@ -22,6 +24,11 @@ export interface GeneralSettingsActionState {
 function buildThemeAssetPath(prefix: string) {
   const random = Math.random().toString(36).slice(2, 8)
   return `theme/${prefix}-${Date.now()}-${random}.png`
+}
+
+function buildTermsOfServicePdfPath() {
+  const random = Math.random().toString(36).slice(2, 8)
+  return `legal/terms-of-service-${Date.now()}-${random}.pdf`
 }
 
 async function processThemeLogoFile(file: File) {
@@ -89,6 +96,41 @@ async function processPwaIconFile(file: File, size: number, label: string) {
   return { path: filePath, error: null as string | null }
 }
 
+function isPdfFile(file: File) {
+  return file.type === 'application/pdf' || file.name.trim().toLowerCase().endsWith('.pdf')
+}
+
+async function processTermsOfServicePdfFile(file: File) {
+  if (!isPdfFile(file)) {
+    return { path: null as string | null, error: 'Terms of Use PDF must be a PDF file.' }
+  }
+
+  if (file.size > MAX_TERMS_OF_SERVICE_PDF_FILE_SIZE) {
+    return { path: null as string | null, error: 'Terms of Use PDF must be 2MB or smaller.' }
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer())
+  const filePath = buildTermsOfServicePdfPath()
+  const { error } = await uploadPublicAsset(filePath, buffer, {
+    contentType: 'application/pdf',
+    cacheControl: '31536000',
+  })
+
+  if (error) {
+    return { path: null as string | null, error: DEFAULT_ERROR_MESSAGE }
+  }
+
+  return { path: filePath, error: null as string | null }
+}
+
+function revalidateGeneralSettingsPaths() {
+  revalidatePath('/[locale]/admin', 'page')
+  revalidatePath('/[locale]/admin/theme', 'page')
+  revalidatePath('/[locale]/admin/market-context', 'page')
+  revalidatePath('/[locale]/tos', 'page')
+  revalidatePath('/[locale]', 'layout')
+}
+
 export async function updateGeneralSettingsAction(
   _prevState: GeneralSettingsActionState,
   formData: FormData,
@@ -119,6 +161,8 @@ export async function updateGeneralSettingsAction(
   const supportUrlRaw = formData.get('support_url')
   const customJavascriptCodesJsonRaw = formData.get('custom_javascript_codes_json')
   const feeRecipientWalletRaw = formData.get('fee_recipient_wallet')
+  const tosPdfPathRaw = formData.get('tos_pdf_path')
+  const tosPdfFileRaw = formData.get('tos_pdf')
   const lifiIntegratorRaw = formData.get('lifi_integrator')
   const lifiApiKeyRaw = formData.get('lifi_api_key')
   const openRouterModelRaw = formData.get('openrouter_model')
@@ -142,6 +186,7 @@ export async function updateGeneralSettingsAction(
   const supportUrl = typeof supportUrlRaw === 'string' ? supportUrlRaw : ''
   const customJavascriptCodesJson = typeof customJavascriptCodesJsonRaw === 'string' ? customJavascriptCodesJsonRaw : ''
   const feeRecipientWallet = typeof feeRecipientWalletRaw === 'string' ? feeRecipientWalletRaw : ''
+  let tosPdfPath = typeof tosPdfPathRaw === 'string' ? tosPdfPathRaw : ''
   const lifiIntegrator = typeof lifiIntegratorRaw === 'string' ? lifiIntegratorRaw : ''
   const lifiApiKey = typeof lifiApiKeyRaw === 'string' ? lifiApiKeyRaw : ''
   const openRouterModel = typeof openRouterModelRaw === 'string' ? openRouterModelRaw.trim() : ''
@@ -154,6 +199,12 @@ export async function updateGeneralSettingsAction(
   if (openRouterApiKey.length > 256) {
     return { error: 'OpenRouter API key is too long.' }
   }
+
+  const normalizedTermsOfServicePdfPath = normalizeTermsOfServicePdfPath(tosPdfPath)
+  if (normalizedTermsOfServicePdfPath.error) {
+    return { error: normalizedTermsOfServicePdfPath.error }
+  }
+  tosPdfPath = normalizedTermsOfServicePdfPath.value
 
   if (logoFileRaw instanceof File && logoFileRaw.size > 0) {
     const processed = await processThemeLogoFile(logoFileRaw)
@@ -186,6 +237,15 @@ export async function updateGeneralSettingsAction(
       return { error: processed.error ?? DEFAULT_ERROR_MESSAGE }
     }
     pwaIcon512Path = processed.path
+  }
+
+  if (tosPdfFileRaw instanceof File && tosPdfFileRaw.size > 0) {
+    const processed = await processTermsOfServicePdfFile(tosPdfFileRaw)
+    if (!processed.path) {
+      return { error: processed.error ?? DEFAULT_ERROR_MESSAGE }
+    }
+
+    tosPdfPath = processed.path
   }
 
   const validated = validateThemeSiteSettingsInput({
@@ -256,6 +316,7 @@ export async function updateGeneralSettingsAction(
     { group: 'general', key: 'site_support_url', value: validated.data.supportUrlValue },
     { group: 'general', key: 'site_custom_javascript_codes', value: validated.data.customJavascriptCodesValue },
     { group: 'general', key: 'fee_recipient_wallet', value: validated.data.feeRecipientWalletValue },
+    { group: 'general', key: TERMS_OF_SERVICE_PDF_PATH_KEY, value: tosPdfPath },
     { group: 'general', key: 'lifi_integrator', value: validated.data.lifiIntegratorValue },
     { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
     { group: 'ai', key: 'openrouter_model', value: openRouterModel },
@@ -268,10 +329,26 @@ export async function updateGeneralSettingsAction(
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 
-  revalidatePath('/[locale]/admin', 'page')
-  revalidatePath('/[locale]/admin/theme', 'page')
-  revalidatePath('/[locale]/admin/market-context', 'page')
-  revalidatePath('/[locale]', 'layout')
+  revalidateGeneralSettingsPaths()
+
+  return { error: null }
+}
+
+export async function removeTermsOfServicePdfAction(): Promise<GeneralSettingsActionState> {
+  const user = await UserRepository.getCurrentUser()
+  if (!user || !user.is_admin) {
+    return { error: 'Unauthenticated.' }
+  }
+
+  const { error } = await SettingsRepository.updateSettings([
+    { group: 'general', key: TERMS_OF_SERVICE_PDF_PATH_KEY, value: '' },
+  ])
+
+  if (error) {
+    return { error: DEFAULT_ERROR_MESSAGE }
+  }
+
+  revalidateGeneralSettingsPaths()
 
   return { error: null }
 }

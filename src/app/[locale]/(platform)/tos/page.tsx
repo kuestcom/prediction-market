@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
-import { loadRuntimeThemeState } from '@/lib/theme-settings'
+import { SettingsRepository } from '@/lib/db/queries/settings'
+import { getTermsOfServicePdfUrl } from '@/lib/terms-of-service'
+import { getThemeSiteSettingsFormState, loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateMetadata(): Promise<Metadata> {
   const runtimeTheme = await loadRuntimeThemeState()
@@ -16,10 +18,24 @@ export default async function TermsOfUsePage({ params }: PageProps<'/[locale]/to
   const { locale } = await params
   setRequestLocale(locale)
 
-  const runtimeTheme = await loadRuntimeThemeState()
-  const siteName = runtimeTheme.site.name
+  const { data: allSettings } = await SettingsRepository.getSettings()
+  const siteSettings = getThemeSiteSettingsFormState(allSettings ?? undefined)
+  const siteName = siteSettings.siteName
   const siteNameUpper = siteName.toUpperCase()
   const siteUrl = (process.env.SITE_URL?.trim()?.replace(/\/$/, '') ?? '') || undefined
+  const termsOfServicePdfUrl = getTermsOfServicePdfUrl(allSettings ?? undefined)
+
+  if (termsOfServicePdfUrl) {
+    return (
+      <main className="h-[calc(100dvh-5rem)] w-full">
+        <iframe
+          src={termsOfServicePdfUrl}
+          title="Terms of Use PDF"
+          className="block size-full border-0"
+        />
+      </main>
+    )
+  }
 
   return (
     <main className="container mx-auto max-w-4xl space-y-10 py-12 leading-relaxed text-foreground dark:text-foreground">
