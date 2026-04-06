@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function TermsOfUsePage({ params }: PageProps<'/[locale]/terms-of-use'>) {
+export default async function TermsOfUsePage({ params }: PageProps<'/[locale]/tos'>) {
   const { locale } = await params
   setRequestLocale(locale)
 

@@ -14,7 +14,7 @@ const PLATFORM_RESERVED_ROOT_SLUGS = new Set([
   'series',
   'settings',
   'sports',
-  'terms-of-use',
+  'tos',
 ])
 
 const PLATFORM_NON_CATEGORY_MAIN_TAG_SLUGS = new Set(['trending'])

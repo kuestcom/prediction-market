@@ -304,7 +304,7 @@ export default function HeaderDropdownUserMenuAuth() {
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <AppLink intentPrefetch href="/terms-of-use" data-testid="header-terms-link">{t('Terms of Use')}</AppLink>
+            <AppLink intentPrefetch href="/tos" data-testid="header-terms-link">{t('Terms of Use')}</AppLink>
           </DropdownMenuItem>
 
           <LocaleSwitcherMenuItem />

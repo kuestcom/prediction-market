@@ -8,7 +8,7 @@ export default function EventOrderPanelTermsDisclaimer() {
     <p className="pb-2 text-center text-xs font-medium text-muted-foreground lg:-mt-2 lg:pb-0">
       {t('By trading, you agree to our')}
       {' '}
-      <AppLink className="underline" href="/terms-of-use">
+      <AppLink className="underline" href="/tos">
         {t('Terms of Use')}
       </AppLink>
       .

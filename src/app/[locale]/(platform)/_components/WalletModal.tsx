@@ -1536,7 +1536,7 @@ function WalletConfirmStep({
         By clicking on Confirm Order, you agree to our
         {' '}
         <a
-          href="/terms-of-use"
+          href="/tos"
           target="_blank"
           rel="noreferrer"
           className="underline"

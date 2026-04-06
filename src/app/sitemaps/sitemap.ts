@@ -15,7 +15,7 @@ const BASE_PATHS = [
   '/mentions',
   '/portfolio',
   '/predictions',
-  '/terms-of-use',
+  '/tos',
 ] as const
 
 export async function generateSitemaps() {

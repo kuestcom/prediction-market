@@ -306,7 +306,7 @@ export default function MobileBottomNav() {
                 <DrawerClose asChild>
                   <AppLink
                     intentPrefetch
-                    href="/terms-of-use"
+                    href="/tos"
                     className="flex items-center gap-3 px-4 py-3 text-sm font-semibold"
                   >
                     <FileTextIcon className="size-4 text-muted-foreground" />
