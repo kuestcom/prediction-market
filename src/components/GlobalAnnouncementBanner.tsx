@@ -49,7 +49,7 @@ export default function GlobalAnnouncementBanner({
   }
 
   const content = (
-    <div className="w-full bg-amber-300 text-amber-950">
+    <div className="w-full bg-primary text-primary-foreground">
       <div className="container py-2 text-center text-xs font-semibold sm:text-sm">
         {message}
       </div>
