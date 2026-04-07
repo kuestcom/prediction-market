@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import { connection } from 'next/server'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
 import {
@@ -72,7 +71,6 @@ export default async function SportsEventMarketPage({
   params: Promise<{ locale: string, sport: string, event: string, market: string }>
 }) {
   const { locale, sport, event, market } = await params
-  await connection()
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale
   if (

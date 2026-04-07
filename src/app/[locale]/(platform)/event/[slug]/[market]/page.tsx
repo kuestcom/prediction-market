@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import { connection } from 'next/server'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
@@ -86,7 +85,6 @@ async function CachedEventMarketPageContent({
 
 export default async function EventMarketPage({ params }: PageProps<'/[locale]/event/[slug]/[market]'>) {
   const { locale, slug, market } = await params
-  await connection()
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale
   if (slug === STATIC_PARAMS_PLACEHOLDER || market === STATIC_PARAMS_PLACEHOLDER) {
