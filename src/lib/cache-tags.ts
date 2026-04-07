@@ -3,7 +3,7 @@ export const cacheTags = {
   activity: (key: string) => `activity:${key}`,
   holders: (key: string) => `holders:${key}`,
   events: (key: string) => `events:${key}`,
-  eventsGlobal: 'events:all',
+  eventsList: 'events:list',
   event: (key: string) => `event:${key}`,
   adminCategories: 'admin:categories',
   mainTags: (locale: string) => `main-tags:${locale}`,

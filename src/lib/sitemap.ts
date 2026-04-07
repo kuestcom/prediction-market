@@ -217,7 +217,7 @@ async function getCategorySitemapEntries(): Promise<SitemapRouteEntry[]> {
 async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
   'use cache'
 
-  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.eventsList)
 
   try {
     const sportsSlugResolver = await getSportsSlugResolverFromDb()
@@ -290,7 +290,7 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
 async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
   'use cache'
 
-  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.eventsList)
 
   try {
     const sportsSlugResolver = await getSportsSlugResolverFromDb()

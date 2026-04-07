@@ -278,6 +278,23 @@ export const markets = pgTable(
   },
 )
 
+export const market_context_cache = pgTable(
+  'market_context_cache',
+  {
+    condition_id: text()
+      .notNull()
+      .references(() => markets.condition_id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    locale: text().notNull(),
+    context: text().notNull(),
+    expires_at: timestamp({ withTimezone: true }).notNull(),
+    created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  table => ({
+    pk: primaryKey({ columns: [table.condition_id, table.locale] }),
+  }),
+)
+
 export const event_sports = pgTable(
   'event_sports',
   {

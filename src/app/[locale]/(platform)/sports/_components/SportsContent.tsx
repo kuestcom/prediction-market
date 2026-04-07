@@ -28,7 +28,7 @@ export default async function SportsContent({
   sportsSportSlug = null,
   sportsSection = null,
 }: SportsContentProps) {
-  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.eventsList)
   const resolvedLocale = locale as SupportedLocale
 
   let initialEvents: Event[] = []

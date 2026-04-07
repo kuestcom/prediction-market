@@ -38,8 +38,6 @@ async function CachedEventMarketPageContent({
   slug: string
   market: string
 }) {
-  'use cache'
-
   const eventRoute = await getEventRouteBySlug(slug)
   if (!eventRoute) {
     notFound()

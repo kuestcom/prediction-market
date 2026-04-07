@@ -1442,7 +1442,7 @@ export const EventRepository = {
   }: ListEventsProps): Promise<QueryResult<Event[]>> {
     'use cache'
     cacheTag(cacheTags.events(userId || 'guest'))
-    cacheTag(cacheTags.eventsGlobal)
+    cacheTag(cacheTags.eventsList)
 
     return await runQuery(async () => {
       const safeLimit = normalizeEventListLimit(limit)
@@ -1828,7 +1828,7 @@ export const EventRepository = {
     sportsVertical = '',
   }: ListEventMarketSlugsProps): Promise<QueryResult<string[]>> {
     'use cache'
-    cacheTag(cacheTags.eventsGlobal)
+    cacheTag(cacheTags.eventsList)
 
     return await runQuery(async () => {
       const { baseWhere, empty } = await buildEventListQueryContext({
@@ -2536,7 +2536,6 @@ export const EventRepository = {
     locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<QueryResult<{ title: string }>> {
     'use cache'
-    cacheTag(cacheTags.eventsGlobal)
     cacheTag(cacheTags.event(slug))
 
     return runQuery(async () => {
@@ -2582,7 +2581,6 @@ export const EventRepository = {
     tags: Array<{ slug: string }>
   }>> {
     'use cache'
-    cacheTag(cacheTags.eventsGlobal)
     cacheTag(cacheTags.event(slug))
 
     return runQuery(async () => {

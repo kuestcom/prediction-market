@@ -60,6 +60,7 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
   <img src="https://github.com/user-attachments/assets/c644944a-ce74-464c-9036-e0a63326fd35" height="28" alt="UMA" />
   <img src="https://github.com/user-attachments/assets/9bed7d91-57ba-4652-90d4-e7c83873b24b" height="28" alt="Safe" />
   <img src="https://github.com/user-attachments/assets/23dbcdb4-ce31-40b9-a1c5-bedd3ce55a6c" height="28" alt="Reown" />
+  <img src="https://github.com/user-attachments/assets/080146ee-00bd-4e5d-8b24-b84ae6321fa3" height="28" alt="Li.Fi" />
   <img src="https://github.com/user-attachments/assets/5f2935d3-ee8d-43d3-8362-873003e92f03" height="28" alt="wagmi/viem" />
 </p>
 

@@ -64,6 +64,11 @@ interface SyncStats {
   timeLimitReached: boolean
 }
 
+interface ProcessResolutionResult {
+  eventId: string | null
+  changed: boolean
+}
+
 const RESOLUTION_PAGE_QUERY = `
   query ResolutionPage($authors: [Bytes!]!, $pageSize: Int!) {
     marketResolutions(
@@ -274,7 +279,7 @@ async function syncResolutions(): Promise<SyncStats> {
   let timeLimitReached = false
   const eventIdsNeedingStatusUpdate = new Set<string>()
   const eventIdsNeedingCacheInvalidation = new Set<string>()
-  const eventIdsNeedingGlobalCacheInvalidation = new Set<string>()
+  let shouldInvalidateListCache = false
 
   while (Date.now() - syncStartedAt < SYNC_TIME_LIMIT_MS) {
     const page = await fetchResolutionPage(trackedAuthors, cursor)
@@ -332,14 +337,14 @@ async function syncResolutions(): Promise<SyncStats> {
 
       try {
         const marketContext = marketContextMap.get(conditionId) ?? { eventId: null, negRisk: false }
-        const eventId = await processResolution(
+        const processResult = await processResolution(
           resolution,
           conditionId,
           marketContext,
         )
-        if (eventId) {
-          eventIdsNeedingStatusUpdate.add(eventId)
-          eventIdsNeedingCacheInvalidation.add(eventId)
+        if (processResult.eventId && processResult.changed) {
+          eventIdsNeedingStatusUpdate.add(processResult.eventId)
+          eventIdsNeedingCacheInvalidation.add(processResult.eventId)
         }
         processedCount++
         lastPersistableCursor = nextCursor
@@ -376,7 +381,10 @@ async function syncResolutions(): Promise<SyncStats> {
     if (eventIdsNeedingStatusUpdate.size > 0) {
       const changedEventIds = await updateEventStatusesFromMarketsBatch(Array.from(eventIdsNeedingStatusUpdate))
       for (const eventId of changedEventIds) {
-        eventIdsNeedingGlobalCacheInvalidation.add(eventId)
+        eventIdsNeedingCacheInvalidation.add(eventId)
+      }
+      if (changedEventIds.length > 0) {
+        shouldInvalidateListCache = true
       }
       eventIdsNeedingStatusUpdate.clear()
     }
@@ -389,14 +397,18 @@ async function syncResolutions(): Promise<SyncStats> {
   if (eventIdsNeedingStatusUpdate.size > 0) {
     const changedEventIds = await updateEventStatusesFromMarketsBatch(Array.from(eventIdsNeedingStatusUpdate))
     for (const eventId of changedEventIds) {
-      eventIdsNeedingGlobalCacheInvalidation.add(eventId)
+      eventIdsNeedingCacheInvalidation.add(eventId)
+    }
+    if (changedEventIds.length > 0) {
+      shouldInvalidateListCache = true
     }
   }
 
-  if (eventIdsNeedingCacheInvalidation.size > 0) {
-    await invalidateEventCaches(Array.from(eventIdsNeedingCacheInvalidation), {
-      includeGlobal: eventIdsNeedingGlobalCacheInvalidation.size > 0,
+  if (eventIdsNeedingCacheInvalidation.size > 0 || shouldInvalidateListCache) {
+    const invalidationSummary = await invalidateEventCaches(Array.from(eventIdsNeedingCacheInvalidation), {
+      includeList: shouldInvalidateListCache,
     })
+    console.log('🧹 Resolution cache invalidation summary:', invalidationSummary)
   }
 
   return {
@@ -587,7 +599,7 @@ async function processResolution(
   resolution: SubgraphResolution,
   conditionId: string,
   marketContext: MarketContext,
-) {
+): Promise<ProcessResolutionResult> {
   const lastUpdateTimestamp = Number(resolution.lastUpdateTimestamp)
   const lastUpdateIso = new Date(lastUpdateTimestamp * 1000).toISOString()
   const status = resolution.status?.toLowerCase() ?? 'posed'
@@ -603,22 +615,57 @@ async function processResolution(
   )
   const lastUpdateAt = new Date(lastUpdateIso)
   const deadlineAtDate = deadlineAt ? new Date(deadlineAt) : null
+  const nextResolutionPrice = resolutionPrice == null ? null : String(resolutionPrice)
+  const nextResolutionApproved = resolution.approved ?? null
+  const nextResolutionDeadlineIso = deadlineAtDate?.toISOString() ?? null
 
-  await db
-    .update(conditionsTable)
-    .set({
-      resolved: isResolved,
-      resolution_status: status,
-      resolution_flagged: resolution.flagged,
-      resolution_paused: resolution.paused,
-      resolution_last_update: lastUpdateAt,
-      resolution_price: resolutionPrice == null ? null : String(resolutionPrice),
-      resolution_was_disputed: resolution.wasDisputed,
-      resolution_approved: resolution.approved ?? null,
-      resolution_deadline_at: deadlineAtDate,
-      resolution_liveness_seconds: resolutionLivenessSeconds,
+  const existingConditionRows = await db
+    .select({
+      resolved: conditionsTable.resolved,
+      resolution_status: conditionsTable.resolution_status,
+      resolution_flagged: conditionsTable.resolution_flagged,
+      resolution_paused: conditionsTable.resolution_paused,
+      resolution_last_update: conditionsTable.resolution_last_update,
+      resolution_price: conditionsTable.resolution_price,
+      resolution_was_disputed: conditionsTable.resolution_was_disputed,
+      resolution_approved: conditionsTable.resolution_approved,
+      resolution_deadline_at: conditionsTable.resolution_deadline_at,
+      resolution_liveness_seconds: conditionsTable.resolution_liveness_seconds,
     })
+    .from(conditionsTable)
     .where(eq(conditionsTable.id, conditionId))
+    .limit(1)
+  const existingCondition = existingConditionRows[0]
+
+  const conditionChanged = !existingCondition
+    || existingCondition.resolved !== isResolved
+    || (existingCondition.resolution_status ?? null) !== status
+    || (existingCondition.resolution_flagged ?? null) !== resolution.flagged
+    || (existingCondition.resolution_paused ?? null) !== resolution.paused
+    || (existingCondition.resolution_last_update?.toISOString() ?? null) !== lastUpdateAt.toISOString()
+    || (existingCondition.resolution_price ?? null) !== nextResolutionPrice
+    || (existingCondition.resolution_was_disputed ?? null) !== resolution.wasDisputed
+    || (existingCondition.resolution_approved ?? null) !== nextResolutionApproved
+    || (existingCondition.resolution_deadline_at?.toISOString() ?? null) !== nextResolutionDeadlineIso
+    || (existingCondition.resolution_liveness_seconds ?? null) !== resolutionLivenessSeconds
+
+  if (conditionChanged) {
+    await db
+      .update(conditionsTable)
+      .set({
+        resolved: isResolved,
+        resolution_status: status,
+        resolution_flagged: resolution.flagged,
+        resolution_paused: resolution.paused,
+        resolution_last_update: lastUpdateAt,
+        resolution_price: nextResolutionPrice,
+        resolution_was_disputed: resolution.wasDisputed,
+        resolution_approved: nextResolutionApproved,
+        resolution_deadline_at: deadlineAtDate,
+        resolution_liveness_seconds: resolutionLivenessSeconds,
+      })
+      .where(eq(conditionsTable.id, conditionId))
+  }
 
   const marketUpdate: Record<string, any> = isResolved
     ? {
@@ -647,16 +694,23 @@ async function processResolution(
         ),
       )
 
-  await db
+  const changedMarketRows = await db
     .update(marketsTable)
     .set(marketUpdate)
     .where(marketWhere)
+    .returning({ condition_id: marketsTable.condition_id })
+
+  const marketChanged = changedMarketRows.length > 0
+  let payoutsChanged = false
 
   if (isResolved && resolutionPrice != null) {
-    await updateOutcomePayouts(conditionId, resolutionPrice)
+    payoutsChanged = await updateOutcomePayouts(conditionId, resolutionPrice)
   }
 
-  return marketContext.eventId ?? null
+  return {
+    eventId: marketContext.eventId ?? null,
+    changed: conditionChanged || marketChanged || payoutsChanged,
+  }
 }
 
 function computeResolutionDeadline(
@@ -729,7 +783,7 @@ function normalizeResolutionPrice(rawValue: string | null): number | null {
   }
 }
 
-async function updateOutcomePayouts(conditionId: string, price: number) {
+async function updateOutcomePayouts(conditionId: string, price: number): Promise<boolean> {
   const payoutYes = price >= 1 ? 1 : price <= 0 ? 0 : price
   const payoutNo = price <= 0 ? 1 : price >= 1 ? 0 : price
 
@@ -737,10 +791,11 @@ async function updateOutcomePayouts(conditionId: string, price: number) {
     { index: 0, payout: payoutYes },
     { index: 1, payout: payoutNo },
   ]
+  let didChange = false
 
   for (const update of updates) {
     const isWinningOutcome = update.payout > 0
-    await db
+    const changedRows = await db
       .update(outcomesTable)
       .set({
         is_winning_outcome: isWinningOutcome,
@@ -756,7 +811,14 @@ async function updateOutcomePayouts(conditionId: string, price: number) {
           ne(outcomesTable.payout_value, String(update.payout)),
         ),
       ))
+      .returning({ condition_id: outcomesTable.condition_id })
+
+    if (changedRows.length > 0) {
+      didChange = true
+    }
   }
+
+  return didChange
 }
 
 async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
@@ -877,11 +939,20 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
 
 async function invalidateEventCaches(
   eventIds: string[],
-  options: { includeGlobal?: boolean } = {},
+  options: { includeList?: boolean } = {},
 ) {
   const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
+  const listTagInvalidated = options.includeList === true
+  if (listTagInvalidated) {
+    revalidateTag(cacheTags.eventsList, 'max')
+  }
+
   if (uniqueEventIds.length === 0) {
-    return
+    return {
+      listTagInvalidated,
+      eventTagInvalidations: 0,
+      uniqueEventIdsCount: 0,
+    }
   }
 
   const rows = await db
@@ -891,13 +962,17 @@ async function invalidateEventCaches(
     .from(eventsTable)
     .where(inArray(eventsTable.id, uniqueEventIds))
 
-  if (options.includeGlobal) {
-    revalidateTag(cacheTags.eventsGlobal, 'max')
-  }
-
+  let eventTagInvalidations = 0
   for (const row of rows) {
     if (row.slug) {
       revalidateTag(cacheTags.event(row.slug), 'max')
+      eventTagInvalidations += 1
     }
+  }
+
+  return {
+    listTagInvalidated,
+    eventTagInvalidations,
+    uniqueEventIdsCount: uniqueEventIds.length,
   }
 }

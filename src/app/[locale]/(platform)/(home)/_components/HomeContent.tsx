@@ -16,7 +16,7 @@ export default async function HomeContent({
   initialTag,
   initialMainTag,
 }: HomeContentProps) {
-  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.eventsList)
   const resolvedLocale = locale as SupportedLocale
   const initialTagSlug = initialTag ?? 'trending'
   const initialMainTagSlug = initialMainTag ?? initialTagSlug

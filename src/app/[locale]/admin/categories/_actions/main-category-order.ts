@@ -29,7 +29,7 @@ function revalidateCategoryCaches(userId: string) {
   revalidatePath('/[locale]/admin/categories', 'page')
   revalidatePath('/[locale]', 'layout')
   updateTag(cacheTags.adminCategories)
-  updateTag(cacheTags.eventsGlobal)
+  updateTag(cacheTags.eventsList)
   updateTag(cacheTags.events(userId))
 
   for (const locale of SUPPORTED_LOCALES) {
