@@ -33,6 +33,8 @@ export interface DataApiPosition {
   oppositeOutcome?: string
   oppositeAsset?: string
   timestamp?: number
+  negativeRisk?: boolean
+  negative_risk?: boolean
 }
 
 export function formatCurrencyValue(value?: number) {
@@ -282,6 +284,7 @@ export function mapDataApiPosition(position: DataApiPosition, status: 'active' |
     size: Number.isFinite(sizeValue) ? sizeValue : undefined,
     redeemable: Boolean(position.redeemable),
     isResolved: Boolean(position.isResolved ?? position.is_resolved),
+    negativeRisk: Boolean(position.negativeRisk ?? position.negative_risk),
   }
 }
 
@@ -292,7 +295,12 @@ function normalizeAsset(value?: string | null) {
 
 export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMarket[] {
   const activeMergeable = positions.filter(
-    position => position.status === 'active' && position.conditionId && normalizeAsset(position.asset),
+    position =>
+      position.status === 'active'
+      && position.conditionId
+      && position.mergeable
+      && !position.negativeRisk
+      && normalizeAsset(position.asset),
   )
 
   const grouped = new Map<string, PublicPosition[]>()
@@ -306,7 +314,7 @@ export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMar
   const markets: MergeableMarket[] = []
 
   grouped.forEach((groupPositions, conditionId) => {
-    const assets = new Map<string, PublicPosition>()
+    const assets = new Map<string, { position: PublicPosition, totalSize: number }>()
 
     groupPositions.forEach((position) => {
       const assetKey = normalizeAsset(position.asset)
@@ -315,9 +323,15 @@ export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMar
       }
 
       const existing = assets.get(assetKey)
-      if (!existing || (position.size ?? 0) > (existing.size ?? 0)) {
-        assets.set(assetKey, position)
-      }
+      const positionSize = Math.max(0, position.size ?? 0)
+      const representative = !existing?.position.icon && position.icon
+        ? position
+        : existing?.position ?? position
+
+      assets.set(assetKey, {
+        position: representative,
+        totalSize: (existing?.totalSize ?? 0) + positionSize,
+      })
     })
 
     if (assets.size !== 2) {
@@ -325,7 +339,7 @@ export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMar
     }
 
     let outcomeAssets: [string, string] | null = null
-    for (const position of assets.values()) {
+    for (const { position } of assets.values()) {
       const assetKey = normalizeAsset(position.asset)
       const oppositeKey = normalizeAsset(position.oppositeAsset)
       if (assetKey && oppositeKey && assets.has(oppositeKey)) {
@@ -345,20 +359,20 @@ export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMar
       return
     }
 
-    const firstPosition = assets.get(outcomeAssets[0])
-    const secondPosition = assets.get(outcomeAssets[1])
-    if (!firstPosition || !secondPosition) {
+    const firstAsset = assets.get(outcomeAssets[0])
+    const secondAsset = assets.get(outcomeAssets[1])
+    if (!firstAsset || !secondAsset) {
       return
     }
 
-    const mergeableAmount = Math.min(firstPosition.size ?? 0, secondPosition.size ?? 0)
+    const mergeableAmount = Math.min(firstAsset.totalSize, secondAsset.totalSize)
     const mergeableCents = Math.floor(mergeableAmount * 100 + 1e-8) / 100
 
     if (!Number.isFinite(mergeableCents) || mergeableCents <= 0) {
       return
     }
 
-    const sample = firstPosition.icon ? firstPosition : secondPosition
+    const sample = firstAsset.position.icon ? firstAsset.position : secondAsset.position
 
     markets.push({
       conditionId,

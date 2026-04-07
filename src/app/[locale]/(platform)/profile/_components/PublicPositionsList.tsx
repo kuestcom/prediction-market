@@ -216,7 +216,12 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     const map: Record<string, Record<string, number>> = {}
 
     positionsWithIcons
-      .filter(position => position.status === 'active' && position.conditionId)
+      .filter(position =>
+        position.status === 'active'
+        && position.conditionId
+        && position.mergeable
+        && !position.negativeRisk,
+      )
       .forEach((position) => {
         const conditionId = position.conditionId as string
         const assetKey = typeof position.asset === 'string' ? position.asset.trim() : ''

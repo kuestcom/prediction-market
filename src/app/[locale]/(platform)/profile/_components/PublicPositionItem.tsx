@@ -19,4 +19,5 @@ export interface PublicPosition {
   curPrice?: number
   redeemable?: boolean
   isResolved?: boolean
+  negativeRisk?: boolean
 }

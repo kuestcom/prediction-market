@@ -58,6 +58,8 @@ export interface DataApiPosition {
   oppositeAsset?: string
   timestamp?: number
   orderCount?: number
+  negativeRisk?: boolean
+  negative_risk?: boolean
 }
 
 export interface DataApiOtherBalance {
