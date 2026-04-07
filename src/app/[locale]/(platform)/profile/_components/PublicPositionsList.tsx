@@ -219,8 +219,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
       .filter(position =>
         position.status === 'active'
         && position.conditionId
-        && position.mergeable
-        && !position.negativeRisk,
+        && position.asset,
       )
       .forEach((position) => {
         const conditionId = position.conditionId as string
@@ -259,7 +258,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     }
 
     fetchLockedSharesByCondition(mergeableMarkets)
-      .then((lockedSharesByCondition) => {
+      .then((availabilityByCondition) => {
         if (cancelled) {
           return
         }
@@ -277,7 +276,8 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
             }
 
             const [firstOutcome, secondOutcome] = market.outcomeAssets
-            const locked = lockedSharesByCondition[conditionId] ?? {}
+            const availability = availabilityByCondition[conditionId]
+            const locked = availability?.lockedShares ?? {}
             const availableFirst = Math.max(
               0,
               (positionShares[firstOutcome] ?? 0) - (locked[firstOutcome] ?? 0),
@@ -295,6 +295,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
             return {
               ...market,
               mergeAmount: safeMergeAmount,
+              isNegRisk: availability?.isNegRisk ?? market.isNegRisk,
             }
           })
           .filter((entry): entry is MergeableMarket => Boolean(entry))

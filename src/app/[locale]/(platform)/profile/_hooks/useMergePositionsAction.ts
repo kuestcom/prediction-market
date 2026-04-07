@@ -14,7 +14,7 @@ import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_CONDITION_PARTITION, DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
-import { ZERO_COLLECTION_ID } from '@/lib/contracts'
+import { UMA_NEG_RISK_ADAPTER_ADDRESS, ZERO_COLLECTION_ID } from '@/lib/contracts'
 import { toMicro } from '@/lib/formatters'
 import { applyConditionReductionsToPublicPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { aggregateSafeTransactions, buildMergePositionTransaction, getSafeTxTypedData, packSafeSignature } from '@/lib/safe/transactions'
@@ -71,7 +71,7 @@ export function useMergePositionsAction({
     try {
       setIsMergeProcessing(true)
 
-      const [lockedSharesByCondition, nonceResult] = await Promise.all([
+      const [availabilityByCondition, nonceResult] = await Promise.all([
         fetchLockedSharesByCondition(mergeableMarkets),
         getSafeNonceAction(),
       ])
@@ -91,7 +91,7 @@ export function useMergePositionsAction({
           }
 
           const [firstOutcome, secondOutcome] = market.outcomeAssets
-          const locked = lockedSharesByCondition[conditionId] ?? {}
+          const locked = availabilityByCondition[conditionId]?.lockedShares ?? {}
           const availableFirst = Math.max(
             0,
             (positionShares[firstOutcome] ?? 0) - (locked[firstOutcome] ?? 0),
@@ -110,9 +110,10 @@ export function useMergePositionsAction({
           return {
             conditionId,
             mergeAmount: normalizedMergeAmount,
+            isNegRisk: market.isNegRisk,
           }
         })
-        .filter((entry): entry is { conditionId: string, mergeAmount: number } => Boolean(entry))
+        .filter((entry): entry is { conditionId: string, mergeAmount: number, isNegRisk: boolean } => Boolean(entry))
 
       if (preparedMerges.length === 0) {
         toast.info('No eligible pairs to merge.')
@@ -126,6 +127,7 @@ export function useMergePositionsAction({
           partition: [...DEFAULT_CONDITION_PARTITION],
           amount: toMicro(entry.mergeAmount),
           parentCollectionId: ZERO_COLLECTION_ID,
+          contract: entry.isNegRisk ? UMA_NEG_RISK_ADAPTER_ADDRESS : undefined,
         }),
       )
 

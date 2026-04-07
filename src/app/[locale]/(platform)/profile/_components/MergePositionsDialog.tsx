@@ -31,6 +31,7 @@ export interface MergeableMarket {
   icon?: string
   mergeAmount: number
   outcomeAssets: [string, string]
+  isNegRisk: boolean
 }
 
 interface MergePositionsDialogProps {

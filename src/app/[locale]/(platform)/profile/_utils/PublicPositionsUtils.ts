@@ -294,18 +294,16 @@ function normalizeAsset(value?: string | null) {
 }
 
 export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMarket[] {
-  const activeMergeable = positions.filter(
+  const activePositions = positions.filter(
     position =>
       position.status === 'active'
       && position.conditionId
-      && position.mergeable
-      && !position.negativeRisk
       && normalizeAsset(position.asset),
   )
 
   const grouped = new Map<string, PublicPosition[]>()
 
-  activeMergeable.forEach((position) => {
+  activePositions.forEach((position) => {
     const key = position.conditionId as string
     const existing = grouped.get(key) ?? []
     grouped.set(key, [...existing, position])
@@ -315,6 +313,7 @@ export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMar
 
   grouped.forEach((groupPositions, conditionId) => {
     const assets = new Map<string, { position: PublicPosition, totalSize: number }>()
+    const isNegRisk = groupPositions.some(position => Boolean(position.negativeRisk))
 
     groupPositions.forEach((position) => {
       const assetKey = normalizeAsset(position.asset)
@@ -381,6 +380,7 @@ export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMar
       icon: sample.icon,
       mergeAmount: mergeableCents,
       outcomeAssets,
+      isNegRisk,
     })
   })
 
@@ -395,7 +395,17 @@ export function normalizeOrderShares(value: number) {
   return numeric > 100_000 ? numeric / MICRO_UNIT : numeric
 }
 
-async function fetchMarketOutcomeAssetMap(eventSlug: string, conditionId: string): Promise<Record<number, string>> {
+interface MarketMetadataSummary {
+  outcomeMap: Record<number, string>
+  isNegRisk: boolean
+}
+
+export interface ConditionAvailability {
+  lockedShares: ConditionShares
+  isNegRisk: boolean
+}
+
+async function fetchMarketMetadataSummary(eventSlug: string, conditionId: string): Promise<MarketMetadataSummary> {
   const response = await fetch(
     `/api/events/${encodeURIComponent(eventSlug)}/market-metadata?conditionId=${encodeURIComponent(conditionId)}`,
   )
@@ -405,7 +415,8 @@ async function fetchMarketOutcomeAssetMap(eventSlug: string, conditionId: string
   }
 
   const payload = await response.json().catch(() => null)
-  const outcomes = payload?.data?.outcomes ?? []
+  const market = payload?.data
+  const outcomes = market?.outcomes ?? []
   const outcomeMap: Record<number, string> = {}
 
   outcomes.forEach((outcome: { token_id?: string, outcome_index?: number | string | null }) => {
@@ -417,10 +428,13 @@ async function fetchMarketOutcomeAssetMap(eventSlug: string, conditionId: string
     outcomeMap[outcomeIndex] = tokenId
   })
 
-  return outcomeMap
+  return {
+    outcomeMap,
+    isNegRisk: Boolean(market?.neg_risk),
+  }
 }
 
-export async function fetchLockedSharesByCondition(markets: MergeableMarket[]): Promise<Record<string, ConditionShares>> {
+export async function fetchLockedSharesByCondition(markets: MergeableMarket[]): Promise<Record<string, ConditionAvailability>> {
   const uniqueKeys = Array.from(new Map(
     markets
       .filter(market => market.conditionId && market.eventSlug)
@@ -434,15 +448,22 @@ export async function fetchLockedSharesByCondition(markets: MergeableMarket[]): 
     }
   })
 
-  const lockedByCondition: Record<string, ConditionShares> = {}
+  const availabilityByCondition: Record<string, ConditionAvailability> = {}
 
   await Promise.all(uniqueKeys.map(async ({ eventSlug, conditionId }) => {
     try {
-      const outcomeAssetMap = await fetchMarketOutcomeAssetMap(eventSlug, conditionId)
+      const { outcomeMap: outcomeAssetMap, isNegRisk } = await fetchMarketMetadataSummary(eventSlug, conditionId)
       const expectedAssets = expectedAssetsByCondition.get(conditionId)
       if (!expectedAssets) {
         throw new Error(`Missing outcome assets for condition ${conditionId}`)
       }
+
+      const availability = availabilityByCondition[conditionId] ?? {
+        lockedShares: {},
+        isNegRisk,
+      }
+      availability.isNegRisk = isNegRisk
+      availabilityByCondition[conditionId] = availability
 
       const availableAssets = new Set(Object.values(outcomeAssetMap))
       const hasAllAssets = expectedAssets.every(asset => availableAssets.has(asset))
@@ -485,9 +506,8 @@ export async function fetchLockedSharesByCondition(markets: MergeableMarket[]): 
             return
           }
 
-          const bucket = lockedByCondition[conditionId] ?? {}
+          const bucket = availability.lockedShares
           bucket[assetKey] = (bucket[assetKey] ?? 0) + remainingShares
-          lockedByCondition[conditionId] = bucket
         })
 
         nextCursor = openOrdersPage.next_cursor
@@ -498,7 +518,7 @@ export async function fetchLockedSharesByCondition(markets: MergeableMarket[]): 
     }
   }))
 
-  return lockedByCondition
+  return availabilityByCondition
 }
 
 export function sortPositions(
