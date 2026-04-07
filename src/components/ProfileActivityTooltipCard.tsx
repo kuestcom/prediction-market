@@ -9,6 +9,7 @@ interface ProfileActivityTooltipCardProps {
   profile: {
     username: string
     avatarUrl?: string | null
+    avatarSeed?: string | null
     href: string
     joinedAt?: string | null
   }
@@ -106,8 +107,9 @@ export default function ProfileActivityTooltipCard({
             : 'text-foreground'
   const avatarUrl = profile.avatarUrl?.trim() ?? ''
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
+  const avatarSeed = profile.avatarSeed?.trim() || profile.username
   const fallbackStyle = showPlaceholder
-    ? getAvatarPlaceholderStyle(profile.username)
+    ? getAvatarPlaceholderStyle(avatarSeed)
     : undefined
 
   return (

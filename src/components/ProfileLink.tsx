@@ -323,6 +323,7 @@ export default function ProfileLink({
           profile={{
             username: displayUsername,
             avatarUrl: tooltipAvatarUrl,
+            avatarSeed,
             href: profileHref,
             joinedAt,
           }}
