@@ -82,7 +82,6 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
   const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false)
   const [mergeSuccess, setMergeSuccess] = useState(false)
   const [hideMergeButton, setHideMergeButton] = useState(false)
-  const [hiddenMergeSignature, setHiddenMergeSignature] = useState<string | null>(null)
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
   const [sharePosition, setSharePosition] = useState<PublicPosition | null>(null)
   const [availableMergeableMarkets, setAvailableMergeableMarkets] = useState<MergeableMarket[]>([])
@@ -131,7 +130,6 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
       setSearchQuery('')
       setRetryCount(0)
       setHideMergeButton(false)
-      setHiddenMergeSignature(null)
     })
   }, [userAddress])
 
@@ -237,16 +235,6 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     return map
   }, [positionsWithIcons])
 
-  const mergeSignature = useMemo(() => {
-    if (!availableMergeableMarkets.length) {
-      return ''
-    }
-    return availableMergeableMarkets
-      .map(market => `${market.conditionId}:${market.mergeAmount.toFixed(6)}`)
-      .sort()
-      .join('|')
-  }, [availableMergeableMarkets])
-
   useEffect(() => {
     let cancelled = false
 
@@ -329,27 +317,15 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     onSuccess: () => setMergeSuccess(true),
   })
 
-  useEffect(() => {
-    if (!hideMergeButton || !hiddenMergeSignature) {
-      return
-    }
-
-    if (mergeSignature && mergeSignature !== hiddenMergeSignature) {
-      setHideMergeButton(false)
-      setHiddenMergeSignature(null)
-    }
-  }, [hideMergeButton, hiddenMergeSignature, mergeSignature])
-
   const handleMergeDialogChange = useCallback((open: boolean) => {
     setIsMergeDialogOpen(open)
     if (!open) {
       if (mergeSuccess) {
         setHideMergeButton(true)
-        setHiddenMergeSignature(mergeSignature)
       }
       setMergeSuccess(false)
     }
-  }, [mergeSignature, mergeSuccess])
+  }, [mergeSuccess])
 
   const shareCardPayload = useMemo(() => {
     if (!sharePosition) {

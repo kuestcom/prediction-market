@@ -2,7 +2,7 @@
 
 import type { Route } from 'next'
 import type { Notification } from '@/types'
-import { BellIcon, ExternalLinkIcon } from 'lucide-react'
+import { BellIcon, ExternalLinkIcon, MergeIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -81,6 +81,15 @@ function isLikelyTransactionHashSnippet(value: string | null | undefined) {
   }
 
   return /^0x[a-fA-F0-9]{8,}$/.test(value.trim())
+}
+
+function isLocalMergeNotification(notification: Notification) {
+  if (!isLocalOrderFillNotification(notification)) {
+    return false
+  }
+
+  const metadata = notification.metadata as { action?: string } | undefined
+  return metadata?.action === 'merge'
 }
 
 export default function HeaderNotifications() {
@@ -171,6 +180,7 @@ export default function HeaderNotifications() {
                 const timeLabel = getNotificationTimeLabel(notification, currentTimestamp)
                 const hasLink = Boolean(notification.link_url)
                 const isLocalOrderFill = isLocalOrderFillNotification(notification)
+                const isLocalMerge = isLocalMergeNotification(notification)
                 const linkIsExternal = notification.link_type === 'external' || isLocalOrderFill
                 const extraInfo = notification.extra_info?.trim()
                 const shouldShowExtraInfo = Boolean(extraInfo) && !isLikelyTransactionHashSnippet(extraInfo)
@@ -201,6 +211,19 @@ export default function HeaderNotifications() {
                   >
                     <div className="shrink-0">
                       {(() => {
+                        if (isLocalMerge) {
+                          return (
+                            <div
+                              aria-hidden="true"
+                              className={`
+                                flex size-10.5 items-center justify-center rounded-md bg-muted text-muted-foreground
+                              `}
+                            >
+                              <MergeIcon className="size-4 rotate-90" />
+                            </div>
+                          )
+                        }
+
                         const avatarUrl = notification.user_avatar?.trim() ?? ''
                         if (avatarUrl) {
                           if (isEventMarketIconUrl(avatarUrl)) {
