@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function MentionsPage({ params }: PageProps<'/[locale]/mentions'>) {
   const { locale } = await params
   setRequestLocale(locale)
-  cacheTag(cacheTags.eventsGlobal)
+  cacheTag(cacheTags.eventsList)
   const resolvedLocale = locale as SupportedLocale
 
   const { data, error } = await EventRepository.listEvents({

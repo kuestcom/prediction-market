@@ -111,6 +111,24 @@ interface SyncRuntimeState {
   eventTagSlugsByEventId: Map<string, Set<string>>
 }
 
+interface ProcessMarketResult {
+  eventIdForStatusUpdate: string | null
+  eventIdForCacheInvalidation: string | null
+  changed: boolean
+  listAffectingChange: boolean
+}
+
+interface ProcessEventResult {
+  eventId: string
+  eventChanged: boolean
+  listAffectingChange: boolean
+}
+
+interface ProcessMarketDataResult {
+  eventIdForStatusUpdate: string
+  marketChanged: boolean
+}
+
 const PNL_CONDITIONS_PAGE_QUERY = `
   query PnlConditionsPage($creators: [String!]!, $pageSize: Int!) {
     conditions(
@@ -290,6 +308,7 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
   let timeLimitReached = false
   const eventIdsNeedingStatusUpdate = new Set<string>()
   const eventIdsNeedingCacheInvalidation = new Set<string>()
+  let shouldInvalidateListCache = false
   const runtimeState: SyncRuntimeState = {
     eventTagSlugsByEventId: new Map(),
   }
@@ -340,10 +359,15 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
       }
 
       try {
-        const eventIdForStatusUpdate = await processMarket(condition, options, runtimeState)
-        if (eventIdForStatusUpdate) {
-          eventIdsNeedingStatusUpdate.add(eventIdForStatusUpdate)
-          eventIdsNeedingCacheInvalidation.add(eventIdForStatusUpdate)
+        const processResult = await processMarket(condition, options, runtimeState)
+        if (processResult.eventIdForStatusUpdate && processResult.changed) {
+          eventIdsNeedingStatusUpdate.add(processResult.eventIdForStatusUpdate)
+        }
+        if (processResult.eventIdForCacheInvalidation && processResult.changed) {
+          eventIdsNeedingCacheInvalidation.add(processResult.eventIdForCacheInvalidation)
+        }
+        if (processResult.listAffectingChange) {
+          shouldInvalidateListCache = true
         }
         processedCount++
         lastPersistableCursor = conditionCursor
@@ -381,7 +405,13 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
 
     if (eventIdsNeedingStatusUpdate.size > 0) {
       const eventIdsToRefresh = Array.from(eventIdsNeedingStatusUpdate)
-      await updateEventStatusesFromMarketsBatch(eventIdsToRefresh)
+      const changedEventIds = await updateEventStatusesFromMarketsBatch(eventIdsToRefresh)
+      for (const changedEventId of changedEventIds) {
+        eventIdsNeedingCacheInvalidation.add(changedEventId)
+      }
+      if (changedEventIds.length > 0) {
+        shouldInvalidateListCache = true
+      }
       eventIdsNeedingStatusUpdate.clear()
     }
 
@@ -397,14 +427,21 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
 
   if (eventIdsNeedingStatusUpdate.size > 0) {
     const eventIdsToRefresh = Array.from(eventIdsNeedingStatusUpdate)
-    await updateEventStatusesFromMarketsBatch(eventIdsToRefresh)
+    const changedEventIds = await updateEventStatusesFromMarketsBatch(eventIdsToRefresh)
+    for (const changedEventId of changedEventIds) {
+      eventIdsNeedingCacheInvalidation.add(changedEventId)
+    }
+    if (changedEventIds.length > 0) {
+      shouldInvalidateListCache = true
+    }
     eventIdsNeedingStatusUpdate.clear()
   }
 
-  if (eventIdsNeedingCacheInvalidation.size > 0) {
-    await invalidateEventCaches(Array.from(eventIdsNeedingCacheInvalidation), {
-      includeGlobal: true,
+  if (eventIdsNeedingCacheInvalidation.size > 0 || shouldInvalidateListCache) {
+    const invalidationSummary = await invalidateEventCaches(Array.from(eventIdsNeedingCacheInvalidation), {
+      includeList: shouldInvalidateListCache,
     })
+    console.log('🧹 Event cache invalidation summary:', invalidationSummary)
   }
 
   return {
@@ -523,14 +560,14 @@ async function processMarket(
   market: SubgraphCondition,
   options: SyncOptions,
   runtimeState: SyncRuntimeState,
-) {
+): Promise<ProcessMarketResult> {
   const timestamps = getMarketTimestamps(market)
-  await processCondition(market, timestamps)
+  const conditionChanged = await processCondition(market, timestamps)
   if (!market.metadataHash) {
     throw new Error(`Market ${market.id} missing required metadataHash field`)
   }
   const metadata = await fetchMetadata(market.metadataHash)
-  const eventId = await processEvent(
+  const eventResult = await processEvent(
     metadata.event,
     metadata.sports?.event,
     metadata.sports?.market,
@@ -539,7 +576,15 @@ async function processMarket(
     options.autoDeployNewEvents,
     runtimeState,
   )
-  return await processMarketData(market, metadata, eventId, timestamps)
+  const marketResult = await processMarketData(market, metadata, eventResult.eventId, timestamps)
+  const changed = conditionChanged || eventResult.eventChanged || marketResult.marketChanged
+
+  return {
+    eventIdForStatusUpdate: changed ? marketResult.eventIdForStatusUpdate : null,
+    eventIdForCacheInvalidation: changed ? eventResult.eventId : null,
+    changed,
+    listAffectingChange: eventResult.listAffectingChange,
+  }
 }
 
 async function fetchMetadata(metadataHash: string) {
@@ -562,7 +607,7 @@ async function fetchMetadata(metadataHash: string) {
   return metadata
 }
 
-async function processCondition(market: SubgraphCondition, timestamps: MarketTimestamps) {
+async function processCondition(market: SubgraphCondition, timestamps: MarketTimestamps): Promise<boolean> {
   if (!market.oracle) {
     throw new Error(`Market ${market.id} missing required oracle field`)
   }
@@ -597,6 +642,38 @@ async function processCondition(market: SubgraphCondition, timestamps: MarketTim
     ...resolutionPayload,
   }
 
+  const existingConditionRows = await db
+    .select({
+      oracle: conditionsTable.oracle,
+      question_id: conditionsTable.question_id,
+      resolved: conditionsTable.resolved,
+      metadata_hash: conditionsTable.metadata_hash,
+      creator: conditionsTable.creator,
+      updated_at: conditionsTable.updated_at,
+    })
+    .from(conditionsTable)
+    .where(eq(conditionsTable.id, market.id))
+    .limit(1)
+
+  const existingCondition = existingConditionRows[0]
+  const incomingUpdatedAtMs = Date.parse(timestamps.updatedAtIso)
+  const existingUpdatedAtMs = existingCondition?.updated_at
+    ? new Date(existingCondition.updated_at).getTime()
+    : Number.NaN
+
+  const hasConditionChange = !existingCondition
+    || !Number.isFinite(existingUpdatedAtMs)
+    || incomingUpdatedAtMs > existingUpdatedAtMs
+    || existingCondition.oracle !== market.oracle
+    || existingCondition.question_id !== market.questionId
+    || existingCondition.resolved !== market.resolved
+    || existingCondition.metadata_hash !== market.metadataHash
+    || existingCondition.creator !== market.creator
+
+  if (!hasConditionChange) {
+    return false
+  }
+
   await db
     .insert(conditionsTable)
     .values(payload)
@@ -606,6 +683,7 @@ async function processCondition(market: SubgraphCondition, timestamps: MarketTim
     })
 
   console.log(`Processed condition: ${market.id}`)
+  return true
 }
 
 function normalizeTimestamp(rawValue: unknown): string | null {
@@ -651,7 +729,7 @@ async function processEvent(
   createdAtIso: string,
   autoDeployNewEvents: boolean,
   runtimeState: SyncRuntimeState,
-) {
+): Promise<ProcessEventResult> {
   if (!eventData || !eventData.slug || !eventData.title) {
     throw new Error(`Invalid event data: ${JSON.stringify(eventData)}`)
   }
@@ -708,6 +786,13 @@ async function processEvent(
       start_date: eventsTable.start_date,
       end_date: eventsTable.end_date,
       created_at: eventsTable.created_at,
+      enable_neg_risk: eventsTable.enable_neg_risk,
+      neg_risk_augmented: eventsTable.neg_risk_augmented,
+      neg_risk: eventsTable.neg_risk,
+      neg_risk_market_id: eventsTable.neg_risk_market_id,
+      series_slug: eventsTable.series_slug,
+      series_id: eventsTable.series_id,
+      series_recurrence: eventsTable.series_recurrence,
     })
     .from(eventsTable)
     .where(eq(eventsTable.slug, eventSlug))
@@ -715,18 +800,43 @@ async function processEvent(
   const existingEvent = existingEventRows[0]
 
   if (existingEvent) {
-    const updatePayload: Record<string, any> = {
-      enable_neg_risk: enableNegRiskFlag,
-      neg_risk_augmented: negRiskAugmentedFlag,
-      neg_risk: eventNegRiskFlag,
-      neg_risk_market_id: eventNegRiskMarketId ?? null,
-      series_slug: eventSeriesSlug ?? null,
-      series_id: eventSeriesId ?? null,
-      series_recurrence: eventSeriesRecurrence ?? null,
+    const updatePayload: Record<string, any> = {}
+    let eventChanged = false
+    let listAffectingChange = false
+
+    if (existingEvent.enable_neg_risk !== enableNegRiskFlag) {
+      updatePayload.enable_neg_risk = enableNegRiskFlag
+      eventChanged = true
+    }
+    if (existingEvent.neg_risk_augmented !== negRiskAugmentedFlag) {
+      updatePayload.neg_risk_augmented = negRiskAugmentedFlag
+      eventChanged = true
+    }
+    if (existingEvent.neg_risk !== eventNegRiskFlag) {
+      updatePayload.neg_risk = eventNegRiskFlag
+      eventChanged = true
+    }
+    if ((existingEvent.neg_risk_market_id ?? null) !== (eventNegRiskMarketId ?? null)) {
+      updatePayload.neg_risk_market_id = eventNegRiskMarketId ?? null
+      eventChanged = true
+    }
+    if ((existingEvent.series_slug ?? null) !== (eventSeriesSlug ?? null)) {
+      updatePayload.series_slug = eventSeriesSlug ?? null
+      eventChanged = true
+    }
+    if ((existingEvent.series_id ?? null) !== (eventSeriesId ?? null)) {
+      updatePayload.series_id = eventSeriesId ?? null
+      eventChanged = true
+    }
+    if ((existingEvent.series_recurrence ?? null) !== (eventSeriesRecurrence ?? null)) {
+      updatePayload.series_recurrence = eventSeriesRecurrence ?? null
+      eventChanged = true
     }
 
     if (existingEvent.title !== normalizedEventTitle) {
       updatePayload.title = normalizedEventTitle
+      eventChanged = true
+      listAffectingChange = true
     }
 
     const existingCreatedAtMs = existingEvent.created_at
@@ -738,26 +848,34 @@ async function processEvent(
       && (Number.isNaN(existingCreatedAtMs) || incomingCreatedAtMs < existingCreatedAtMs)
     ) {
       updatePayload.created_at = new Date(createdAtIso)
+      eventChanged = true
+      listAffectingChange = true
     }
 
     const existingEndDateIso = existingEvent.end_date?.toISOString() ?? null
     if (normalizedEndDate && normalizedEndDate !== existingEndDateIso) {
       updatePayload.end_date = new Date(normalizedEndDate)
+      eventChanged = true
+      listAffectingChange = true
     }
 
     const existingStartDateIso = existingEvent.start_date?.toISOString() ?? null
     if (sportsStartTime && sportsStartTime !== existingStartDateIso) {
       updatePayload.start_date = new Date(sportsStartTime)
+      eventChanged = true
+      listAffectingChange = true
     }
 
-    try {
-      await db
-        .update(eventsTable)
-        .set(updatePayload)
-        .where(eq(eventsTable.id, existingEvent.id))
-    }
-    catch (updateError) {
-      console.error(`Failed to update event ${existingEvent.id}:`, updateError)
+    if (Object.keys(updatePayload).length > 0) {
+      try {
+        await db
+          .update(eventsTable)
+          .set(updatePayload)
+          .where(eq(eventsTable.id, existingEvent.id))
+      }
+      catch (updateError) {
+        console.error(`Failed to update event ${existingEvent.id}:`, updateError)
+      }
     }
 
     if (
@@ -766,6 +884,8 @@ async function processEvent(
       const existingEventTagSlugs = await loadEventTagSlugs(existingEvent.id, runtimeState)
       if (hasMissingTags(existingEventTagSlugs, normalizedEventTags)) {
         await processNormalizedTags(existingEvent.id, normalizedEventTags)
+        eventChanged = true
+        listAffectingChange = true
 
         for (const slug of normalizedEventTags.keys()) {
           existingEventTagSlugs.add(slug)
@@ -799,7 +919,11 @@ async function processEvent(
     })
 
     console.log(`Event ${eventSlug} already exists, using existing ID: ${existingEvent.id}`)
-    return existingEvent.id
+    return {
+      eventId: existingEvent.id,
+      eventChanged,
+      listAffectingChange,
+    }
   }
 
   let iconUrl: string | null = null
@@ -878,7 +1002,11 @@ async function processEvent(
     sports_team_logo_urls: sportsTeamLogoUrls,
   })
 
-  return newEvent.id
+  return {
+    eventId: newEvent.id,
+    eventChanged: true,
+    listAffectingChange: true,
+  }
 }
 
 async function processMarketData(
@@ -886,7 +1014,7 @@ async function processMarketData(
   metadata: any,
   eventId: string,
   timestamps: MarketTimestamps,
-) {
+): Promise<ProcessMarketDataResult> {
   if (!eventId) {
     throw new Error(`Invalid eventId: ${eventId}. Event must be created first.`)
   }
@@ -895,6 +1023,8 @@ async function processMarketData(
     .select({
       condition_id: marketsTable.condition_id,
       event_id: marketsTable.event_id,
+      is_resolved: marketsTable.is_resolved,
+      updated_at: marketsTable.updated_at,
     })
     .from(marketsTable)
     .where(eq(marketsTable.condition_id, market.id))
@@ -903,9 +1033,25 @@ async function processMarketData(
 
   const marketAlreadyExists = Boolean(existingMarket)
   const eventIdForStatusUpdate = existingMarket?.event_id ?? eventId
+  const incomingUpdatedAtMs = Date.parse(timestamps.updatedAtIso)
+  const existingUpdatedAtMs = existingMarket?.updated_at
+    ? new Date(existingMarket.updated_at).getTime()
+    : Number.NaN
+  const marketNeedsUpdate = !existingMarket
+    || !Number.isFinite(existingUpdatedAtMs)
+    || incomingUpdatedAtMs > existingUpdatedAtMs
+    || existingMarket.event_id !== eventId
+    || existingMarket.is_resolved !== market.resolved
 
   if (marketAlreadyExists) {
     console.log(`Market ${market.id} already exists, updating cached data...`)
+  }
+
+  if (!marketNeedsUpdate) {
+    return {
+      eventIdForStatusUpdate,
+      marketChanged: false,
+    }
   }
 
   let iconUrl: string | null = null
@@ -1046,14 +1192,18 @@ async function processMarketData(
     await processOutcomes(market.id, metadata.outcomes)
   }
 
-  return eventIdForStatusUpdate
+  return {
+    eventIdForStatusUpdate,
+    marketChanged: true,
+  }
 }
 
 async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
   const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
   if (uniqueEventIds.length === 0) {
-    return
+    return [] as string[]
   }
+  const changedEventIds: string[] = []
 
   const [currentEvents, marketRows] = await Promise.all([
     db
@@ -1143,16 +1293,28 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
       .update(eventsTable)
       .set({ status: nextStatus, resolved_at: resolvedAtUpdate })
       .where(eq(eventsTable.id, eventId))
+    changedEventIds.push(eventId)
   }
+
+  return changedEventIds
 }
 
 async function invalidateEventCaches(
   eventIds: string[],
-  options: { includeGlobal?: boolean } = {},
+  options: { includeList?: boolean } = {},
 ) {
   const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
+  const listTagInvalidated = options.includeList === true
+  if (listTagInvalidated) {
+    revalidateTag(cacheTags.eventsList, 'max')
+  }
+
   if (uniqueEventIds.length === 0) {
-    return
+    return {
+      listTagInvalidated,
+      eventTagInvalidations: 0,
+      uniqueEventIdsCount: 0,
+    }
   }
 
   const rows = await db
@@ -1162,13 +1324,18 @@ async function invalidateEventCaches(
     .from(eventsTable)
     .where(inArray(eventsTable.id, uniqueEventIds))
 
-  if (options.includeGlobal) {
-    revalidateTag(cacheTags.eventsGlobal, 'max')
-  }
+  let eventTagInvalidations = 0
   for (const row of rows) {
     if (row.slug) {
       revalidateTag(cacheTags.event(row.slug), 'max')
+      eventTagInvalidations += 1
     }
+  }
+
+  return {
+    listTagInvalidated,
+    eventTagInvalidations,
+    uniqueEventIdsCount: uniqueEventIds.length,
   }
 }
 

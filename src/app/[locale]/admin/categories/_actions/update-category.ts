@@ -71,7 +71,7 @@ export async function updateCategoryAction(
     revalidatePath('/[locale]/admin/categories', 'page')
     revalidatePath('/[locale]', 'layout')
     updateTag(cacheTags.adminCategories)
-    updateTag(cacheTags.eventsGlobal)
+    updateTag(cacheTags.eventsList)
     updateTag(cacheTags.events(currentUser.id))
 
     for (const locale of SUPPORTED_LOCALES) {

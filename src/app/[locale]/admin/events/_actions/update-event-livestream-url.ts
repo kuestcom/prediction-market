@@ -67,7 +67,7 @@ export async function updateEventLivestreamUrlAction(
     }
 
     revalidatePath('/[locale]/admin/events', 'page')
-    updateTag(cacheTags.eventsGlobal)
+    updateTag(cacheTags.eventsList)
     updateTag(cacheTags.event(data.slug))
 
     return {
