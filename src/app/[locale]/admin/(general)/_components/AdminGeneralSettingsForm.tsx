@@ -948,11 +948,11 @@ export default function AdminGeneralSettingsForm({
           value="global-announcement"
           isOpen={openSections.includes('global-announcement')}
           onToggle={toggleSection}
-          header={<h3 className="text-base font-medium">Global announcement banner</h3>}
+          header={<h3 className="text-base font-medium">{t('Global announcement banner')}</h3>}
         >
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="global-announcement-message">Message</Label>
+              <Label htmlFor="global-announcement-message">{t('Message')}</Label>
               <Input
                 id="global-announcement-message"
                 name="global_announcement_message"
@@ -960,7 +960,7 @@ export default function AdminGeneralSettingsForm({
                 value={globalAnnouncementMessage}
                 onChange={event => setGlobalAnnouncementMessage(event.target.value)}
                 disabled={isPending}
-                placeholder="e.g. Refer friends and earn rewards this week"
+                placeholder={t('e.g. Refer friends and earn rewards this week')}
               />
               <p className="text-xs text-muted-foreground">
                 {t('Displayed in the website header. Leave empty to hide.')}
@@ -976,12 +976,12 @@ export default function AdminGeneralSettingsForm({
                 value={globalAnnouncementLinkUrl}
                 onChange={event => setGlobalAnnouncementLinkUrl(event.target.value)}
                 disabled={isPending}
-                placeholder="https://example.com/campaign"
+                placeholder={t('https://example.com/campaign')}
               />
             </div>
 
             <div className="grid gap-2">
-              <Label>Disable on</Label>
+              <Label>{t('Disable on')}</Label>
               <div className="flex flex-wrap gap-3">
                 {customJavascriptCodeDisablePageOptions.map((option) => {
                   const fieldId = `global-announcement-disable-${option.value}`
