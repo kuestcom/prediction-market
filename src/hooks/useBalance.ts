@@ -1,6 +1,6 @@
 import type { Address, PublicClient } from 'viem'
 import { useQuery } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { createPublicClient, getContract, http } from 'viem'
 import { defaultNetwork } from '@/lib/appkit'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
@@ -36,25 +36,20 @@ const RPC_URL = defaultNetwork.rpcUrls.default.http[0]
 
 export function useBalance(options: UseBalanceOptions = {}) {
   const user = useUser()
-  const [hasMounted] = useState(true)
 
-  const client = useMemo<PublicClient | null>(() => {
-    if (!hasMounted) {
-      return null
-    }
-
+  const client = useMemo<PublicClient>(() => {
     return createPublicClient({
       chain: defaultNetwork,
       transport: http(RPC_URL),
     })
-  }, [hasMounted])
+  }, [])
 
   const proxyWalletAddress: Address | null = user?.proxy_wallet_address
     ? normalizeAddress(user.proxy_wallet_address) as Address | null
     : null
 
   const contract = useMemo(() => {
-    if (!client || !proxyWalletAddress) {
+    if (!proxyWalletAddress) {
       return null
     }
 
@@ -66,7 +61,7 @@ export function useBalance(options: UseBalanceOptions = {}) {
   }, [client, proxyWalletAddress])
 
   const isOptionsEnabled = options.enabled ?? true
-  const isQueryEnabled = Boolean(hasMounted && client && proxyWalletAddress && isOptionsEnabled)
+  const isQueryEnabled = Boolean(client && proxyWalletAddress && isOptionsEnabled)
 
   const {
     data,
@@ -102,8 +97,8 @@ export function useBalance(options: UseBalanceOptions = {}) {
   })
 
   const balance = isQueryEnabled && data ? data : INITIAL_STATE
-  const isLoadingBalance = !hasMounted
-    || (isQueryEnabled ? (isLoading || (!data && isFetching)) : false)
+  const isLoadingBalance = isQueryEnabled ? (isLoading || (!data && isFetching)) : false
+
   return {
     balance,
     isLoadingBalance,

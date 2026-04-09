@@ -1,36 +1,51 @@
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 interface WindowSize {
   width: number
   height: number
 }
 
+const INITIAL_WINDOW_SIZE: WindowSize = { width: 0, height: 0 }
+
+let cachedWindowSize = INITIAL_WINDOW_SIZE
+
+function subscribeToWindowSizeStore(onStoreChange: () => void) {
+  if (typeof window === 'undefined') {
+    return function unsubscribeFromWindowSizeStore() {}
+  }
+
+  window.addEventListener('resize', onStoreChange)
+
+  return function unsubscribeFromWindowSizeStore() {
+    window.removeEventListener('resize', onStoreChange)
+  }
+}
+
+function getWindowSizeClientSnapshot() {
+  const nextWindowSize = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }
+
+  if (
+    cachedWindowSize.width === nextWindowSize.width
+    && cachedWindowSize.height === nextWindowSize.height
+  ) {
+    return cachedWindowSize
+  }
+
+  cachedWindowSize = nextWindowSize
+  return cachedWindowSize
+}
+
+function getWindowSizeServerSnapshot() {
+  return INITIAL_WINDOW_SIZE
+}
+
 export function useWindowSize() {
-  const [size, setSize] = useState<WindowSize>(() => {
-    if (typeof window === 'undefined') {
-      return { width: 0, height: 0 }
-    }
-
-    return {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    }
-  })
-
-  useEffect(() => {
-    function updateSize() {
-      setSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      })
-    }
-
-    window.addEventListener('resize', updateSize)
-
-    return function () {
-      window.removeEventListener('resize', updateSize)
-    }
-  }, [])
-
-  return size
+  return useSyncExternalStore(
+    subscribeToWindowSizeStore,
+    getWindowSizeClientSnapshot,
+    getWindowSizeServerSnapshot,
+  )
 }

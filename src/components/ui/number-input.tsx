@@ -5,6 +5,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
+function formatNumberInputValue(value: number) {
+  if (value === 0) {
+    return ''
+  }
+
+  return value.toFixed(1).replace(/\.0$/, '')
+}
+
 export function NumberInput({
   value,
   onChange,
@@ -15,11 +23,9 @@ export function NumberInput({
   step?: number
 }) {
   const MAX = 99.9
-  const [inputValue, setInputValue] = useState<string>('')
+  const [inputValue, setInputValue] = useState<string>(() => formatNumberInputValue(value))
 
-  const displayValue = inputValue === '' && value !== 0
-    ? value.toFixed(1).replace(/\.0$/, '')
-    : inputValue
+  const displayValue = inputValue
 
   const inputRef = useRef<HTMLInputElement>(null)
   const hasValue = displayValue.trim() !== ''
@@ -29,7 +35,7 @@ export function NumberInput({
     const input = e.target
     const raw = input.value
     const selectionStart = input.selectionStart ?? raw.length
-    const prev = inputValue
+    const prev = displayValue
     const dotIndex = prev.indexOf('.')
     const isDelete = prev.length > raw.length
 
@@ -81,24 +87,14 @@ export function NumberInput({
     else {
       onChange(0)
     }
-    if (!Number.isNaN(clamped) && clamped !== 0) {
-      setInputValue(clamped.toFixed(1).replace(/\.0$/, ''))
-    }
-    else {
-      setInputValue('')
-    }
+    setInputValue(formatNumberInputValue(clamped))
   }
 
   function handleStep(delta: number) {
     let newValue = Number((value + delta).toFixed(1))
     newValue = Math.max(0, Math.min(newValue, MAX))
     onChange(newValue)
-    if (newValue !== 0) {
-      setInputValue(newValue.toFixed(1).replace(/\.0$/, ''))
-    }
-    else {
-      setInputValue('')
-    }
+    setInputValue(formatNumberInputValue(newValue))
   }
 
   return (
