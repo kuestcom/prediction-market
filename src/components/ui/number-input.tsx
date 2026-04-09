@@ -1,6 +1,6 @@
 import { MinusIcon, PlusIcon } from 'lucide-react'
 import * as React from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -15,19 +15,15 @@ export function NumberInput({
   step?: number
 }) {
   const MAX = 99.9
-  const initialString = value === 0 ? '' : value.toFixed(1).replace(/\.0$/, '')
-  const [inputValue, setInputValue] = useState<string>(initialString)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const hasValue = inputValue.trim() !== ''
-  const inputSize = inputValue.trim() ? Math.max(inputValue.length, 1) : 3
+  const [inputValue, setInputValue] = useState<string>('')
 
-  useEffect(() => {
-    const newVal = value === 0 ? '' : value.toFixed(1).replace(/\.0$/, '')
-    if (newVal !== inputValue) {
-      setInputValue(newVal)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value])
+  const displayValue = inputValue === '' && value !== 0
+    ? value.toFixed(1).replace(/\.0$/, '')
+    : inputValue
+
+  const inputRef = useRef<HTMLInputElement>(null)
+  const hasValue = displayValue.trim() !== ''
+  const inputSize = displayValue.trim() ? Math.max(displayValue.length, 1) : 3
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const input = e.target
@@ -93,10 +89,6 @@ export function NumberInput({
     }
   }
 
-  function handleBlur() {
-    commitInput(inputValue)
-  }
-
   function handleStep(delta: number) {
     let newValue = Number((value + delta).toFixed(1))
     newValue = Math.max(0, Math.min(newValue, MAX))
@@ -126,9 +118,9 @@ export function NumberInput({
           ref={inputRef}
           type="text"
           inputMode="decimal"
-          value={inputValue}
+          value={displayValue}
           onChange={handleInputChange}
-          onBlur={handleBlur}
+          onBlur={() => commitInput(displayValue)}
           maxLength={5}
           placeholder="0.0"
           className={`
