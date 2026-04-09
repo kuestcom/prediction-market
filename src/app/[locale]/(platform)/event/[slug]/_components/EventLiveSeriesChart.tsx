@@ -601,30 +601,30 @@ function isUsEquityMarketOpen(timestamp: number) {
   return minutesOfDay >= 9 * 60 + 30 && minutesOfDay < 16 * 60
 }
 
+function clampCountdownDigit(value: number) {
+  return Math.max(0, Math.min(9, value))
+}
+
 function RollingCountdownDigit({ digit }: { digit: number }) {
-  const [currentDigit, setCurrentDigit] = useState(() => Math.max(0, Math.min(9, digit)))
+  const nextDigit = clampCountdownDigit(digit)
+  const [currentDigit, setCurrentDigit] = useState(() => nextDigit)
   const [previousDigit, setPreviousDigit] = useState<number | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
 
-  useEffect(() => {
-    const nextDigit = Math.max(0, Math.min(9, digit))
-    if (nextDigit === currentDigit) {
-      return
-    }
-
+  if (nextDigit !== currentDigit) {
     setPreviousDigit(currentDigit)
     setCurrentDigit(nextDigit)
     setIsAnimating(true)
+  }
 
-    const timeout = window.setTimeout(() => {
-      setIsAnimating(false)
-      setPreviousDigit(null)
-    }, 240)
-
-    return () => {
-      window.clearTimeout(timeout)
+  function handleDigitTransitionEnd() {
+    if (!isAnimating) {
+      return
     }
-  }, [currentDigit, digit])
+
+    setIsAnimating(false)
+    setPreviousDigit(null)
+  }
 
   return (
     <span className="relative inline-flex h-[1em] w-[0.72em] overflow-hidden">
@@ -647,6 +647,7 @@ function RollingCountdownDigit({ digit }: { digit: number }) {
               ? 'translate-y-0 opacity-100'
               : 'translate-y-full opacity-0',
         )}
+        onTransitionEnd={handleDigitTransitionEnd}
       >
         {currentDigit}
       </span>
@@ -694,23 +695,55 @@ export default function EventLiveSeriesChart({
   event,
   isMobile,
   seriesEvents = [],
-  config: inputConfig,
+  config,
 }: EventLiveSeriesChartProps) {
-  const wsUrl = process.env.WS_LIVE_DATA_URL
-  const config = inputConfig
-  const site = useSiteIdentity()
-  const { width: windowWidth } = useWindowSize()
-  const liveColor = config.line_color || '#F59E0B'
   const subscriptionSymbol = useMemo(
     () => normalizeSubscriptionSymbol(config.topic, config.symbol),
     [config.symbol, config.topic],
   )
+  const resetKey = `${event.id}:${config.topic}:${config.event_type}:${subscriptionSymbol}`
+
+  return (
+    <EventLiveSeriesChartContent
+      key={resetKey}
+      event={event}
+      isMobile={isMobile}
+      seriesEvents={seriesEvents}
+      config={config}
+      subscriptionSymbol={subscriptionSymbol}
+    />
+  )
+}
+
+interface EventLiveSeriesChartContentProps {
+  event: Event
+  isMobile: boolean
+  seriesEvents: EventSeriesEntry[]
+  config: EventLiveChartConfig
+  subscriptionSymbol: string
+}
+
+function EventLiveSeriesChartContent({
+  event,
+  isMobile,
+  seriesEvents,
+  config,
+  subscriptionSymbol,
+}: EventLiveSeriesChartContentProps) {
+  const wsUrl = process.env.WS_LIVE_DATA_URL
+  const site = useSiteIdentity()
+  const { width: windowWidth } = useWindowSize()
+  const liveColor = config.line_color || '#F59E0B'
   const [nowMs, setNowMs] = useState(0)
   const [data, setData] = useState<DataPoint[]>([])
-  const [persistedFallbackPrice, setPersistedFallbackPrice] = useState<PersistedLivePrice | null>(null)
+  const [persistedFallbackPrice, setPersistedFallbackPrice] = useState<PersistedLivePrice | null>(
+    () => readPersistedLivePrice(config.topic, subscriptionSymbol),
+  )
   const [baselinePrice, setBaselinePrice] = useState<number | null>(null)
   const [referenceSnapshot, setReferenceSnapshot] = useState<LiveSeriesPriceSnapshot | null>(null)
-  const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>('connecting')
+  const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>(
+    () => (wsUrl ? 'connecting' : 'offline'),
+  )
   const [activeView, setActiveView] = useState<'live' | 'market'>('live')
   const isLiveView = activeView === 'live'
   const startTimestamp = useMemo(() => parseUtcDate(event.start_date ?? null), [event.start_date])
@@ -724,16 +757,6 @@ export default function EventLiveSeriesChart({
     }
     return !isUsEquityMarketOpen(nowMs)
   }, [config.topic, nowMs])
-
-  useEffect(() => {
-    const persistedPrice = readPersistedLivePrice(config.topic, subscriptionSymbol)
-    setPersistedFallbackPrice(persistedPrice)
-    setData([])
-    setBaselinePrice(null)
-    setReferenceSnapshot(null)
-    setStatus('connecting')
-    setActiveView('live')
-  }, [event.id, config.topic, config.event_type, subscriptionSymbol])
 
   useEffect(() => {
     if (!isLiveView) {
@@ -848,7 +871,6 @@ export default function EventLiveSeriesChart({
     }
 
     if (!wsUrl) {
-      setStatus('offline')
       return
     }
     // Intentionally keep WS active regardless of event close to preserve always-live behavior.
