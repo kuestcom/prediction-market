@@ -89,20 +89,17 @@ function useRelatedEvents(params: UseRelatedEventsParams) {
 export default function EventRelated({ event }: EventRelatedProps) {
   const t = useExtracted()
   const locale = useLocale()
-  const [activeTag, setActiveTag] = useState('all')
+  const [activeTagByEvent, setActiveTagByEvent] = useState<Record<string, string>>({})
   const [backgroundStyle, setBackgroundStyle] = useState<BackgroundStyle>(INITIAL_BACKGROUND_STYLE)
   const [showLeftShadow, setShowLeftShadow] = useState(false)
   const [showRightShadow, setShowRightShadow] = useState(false)
+  const activeTag = activeTagByEvent[event.slug] ?? 'all'
 
   const { data: events = [], isLoading: loading, error } = useRelatedEvents({
     eventSlug: event.slug,
     tag: activeTag,
     locale,
   })
-
-  function resetActiveTag() {
-    setActiveTag('all')
-  }
 
   function resetBackgroundStyle() {
     setBackgroundStyle({ ...INITIAL_BACKGROUND_STYLE })
@@ -151,10 +148,6 @@ export default function EventRelated({ event }: EventRelatedProps) {
     () => tagItems.findIndex(item => item.slug === activeTag),
     [activeTag, tagItems],
   )
-
-  useEffect(() => {
-    resetActiveTag()
-  }, [event.slug])
 
   useEffect(() => {
     buttonRef.current = Array.from({ length: tagItems.length }).map((_, index) => buttonRef.current[index] ?? null)
@@ -209,7 +202,6 @@ export default function EventRelated({ event }: EventRelatedProps) {
 
   useEffect(() => {
     const container = scrollContainerRef.current
-    updateScrollShadows()
 
     if (!container) {
       return
@@ -239,18 +231,22 @@ export default function EventRelated({ event }: EventRelatedProps) {
     }
   }, [updateBackgroundPosition, updateScrollShadows, tagItems.length])
 
-  useEffect(() => {
-    if (activeIndex < 0) {
-      return
-    }
+  function handleTagClick(slug: string, index: number) {
+    setActiveTagByEvent((current) => {
+      const currentTag = current[event.slug] ?? 'all'
+      if (currentTag === slug) {
+        return current
+      }
+
+      return {
+        ...current,
+        [event.slug]: slug,
+      }
+    })
 
     const container = scrollContainerRef.current
-    if (!container) {
-      return
-    }
-
-    const activeButton = buttonRef.current[activeIndex]
-    if (!activeButton) {
+    const activeButton = buttonRef.current[index]
+    if (!container || !activeButton) {
       return
     }
 
@@ -261,10 +257,6 @@ export default function EventRelated({ event }: EventRelatedProps) {
     const clampedLeft = Math.min(Math.max(0, targetLeft), maxLeft)
 
     container.scrollTo({ left: clampedLeft, behavior: 'smooth' })
-  }, [activeIndex])
-
-  function handleTagClick(slug: string) {
-    setActiveTag(current => (current === slug ? current : slug))
   }
 
   return (
@@ -320,7 +312,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
                     ? 'font-medium text-foreground'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
-                onClick={() => handleTagClick(item.slug)}
+                onClick={() => handleTagClick(item.slug, index)}
               >
                 {item.label}
               </Button>
