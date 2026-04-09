@@ -9,6 +9,8 @@ import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { toCents } from '@/lib/formatters'
 import { resolveOutcomeUnitPrice } from '@/lib/market-pricing'
 
+const ORDER_TYPE_STORAGE_KEY = 'kuest:order-panel-type'
+
 type ConditionShares = Record<typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO, number>
 
 export type LimitExpirationOption = 'end-of-day' | 'custom'
@@ -61,6 +63,22 @@ function areOutcomesEqual(left: Outcome | null | undefined, right: Outcome | nul
   return left === right
 }
 
+function resolveStoredOrderType() {
+  if (typeof window === 'undefined') {
+    return ORDER_TYPE.MARKET
+  }
+
+  try {
+    const storedType = window.localStorage.getItem(ORDER_TYPE_STORAGE_KEY)
+    if (storedType === ORDER_TYPE.LIMIT || storedType === ORDER_TYPE.MARKET) {
+      return storedType
+    }
+  }
+  catch {}
+
+  return ORDER_TYPE.MARKET
+}
+
 interface OrderState {
   // Order state
   event: Event | null
@@ -105,7 +123,7 @@ export const useOrder = create<OrderState>()((set, _, store) => ({
   market: null,
   outcome: null,
   side: ORDER_SIDE.BUY,
-  type: ORDER_TYPE.MARKET,
+  type: resolveStoredOrderType(),
   amount: '',
   limitPrice: '0.0',
   limitShares: '0',
