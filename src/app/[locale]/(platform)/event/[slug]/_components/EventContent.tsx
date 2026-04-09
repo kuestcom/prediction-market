@@ -411,7 +411,7 @@ export default function EventContent({
 
   return (
     <EventMarketChannelProvider markets={event.markets}>
-      <EventOutcomeChanceProvider eventId={event.id}>
+      <EventOutcomeChanceProvider key={event.id}>
         <OrderLimitPriceSync />
         <Suspense fallback={null}>
           <EventOrderQuerySync event={event} marketSlug={marketSlug} isMobile={isMobile} />

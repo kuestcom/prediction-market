@@ -1,7 +1,7 @@
 'use client'
 
 import type { MarketQuote } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
-import { createContext, use, useEffect, useMemo, useState } from 'react'
+import { createContext, use, useMemo, useState } from 'react'
 
 interface EventOutcomeChanceContextValue {
   chanceByMarket: Record<string, number>
@@ -17,22 +17,14 @@ interface EventOutcomeChanceContextValue {
 const EventOutcomeChanceContext = createContext<EventOutcomeChanceContextValue | null>(null)
 
 interface EventOutcomeChanceProviderProps {
-  eventId: string
   children: React.ReactNode
 }
 
-export function EventOutcomeChanceProvider({ eventId, children }: EventOutcomeChanceProviderProps) {
+export function EventOutcomeChanceProvider({ children }: EventOutcomeChanceProviderProps) {
   const [chanceByMarket, setChanceByMarket] = useState<Record<string, number>>({})
   const [yesPriceByMarket, setYesPriceByMarket] = useState<Record<string, number>>({})
   const [chanceChangeByMarket, setChanceChangeByMarket] = useState<Record<string, number>>({})
   const [marketQuotesByMarket, setMarketQuotesByMarket] = useState<Record<string, MarketQuote>>({})
-
-  useEffect(() => {
-    setChanceByMarket({})
-    setYesPriceByMarket({})
-    setChanceChangeByMarket({})
-    setMarketQuotesByMarket({})
-  }, [eventId])
 
   const value = useMemo<EventOutcomeChanceContextValue>(() => ({
     chanceByMarket,
