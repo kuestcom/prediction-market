@@ -1,8 +1,6 @@
-'use client'
-
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 interface TestModeBannerProps {
   persistKey?: string
@@ -11,9 +9,22 @@ interface TestModeBannerProps {
 export default function TestModeBanner({
   persistKey = 'test_mode_banner_closed_session',
 }: TestModeBannerProps) {
-  const [visible, setVisible] = useState<boolean | null>(null)
+  const [closed, setClosed] = useState(() => {
+    try {
+      return sessionStorage.getItem(persistKey) === '1'
+    }
+    catch {
+      return false
+    }
+  })
+
   const discordUrl = 'https://discord.gg/kuest'
   const t = useExtracted()
+
+  if (closed) {
+    return null
+  }
+
   const message = (
     <>
       {t('Test mode is')}
@@ -27,20 +38,6 @@ export default function TestModeBanner({
     </>
   )
 
-  useEffect(() => {
-    try {
-      const closed = sessionStorage.getItem(persistKey)
-      setVisible(closed !== '1')
-    }
-    catch {
-      setVisible(true)
-    }
-  }, [persistKey])
-
-  if (visible !== true) {
-    return null
-  }
-
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-4 z-60">
       <div className="container flex justify-end">
@@ -48,13 +45,11 @@ export default function TestModeBanner({
           <button
             type="button"
             onClick={() => {
-              setVisible(false)
+              setClosed(true)
               try {
                 sessionStorage.setItem(persistKey, '1')
               }
-              catch {
-                //
-              }
+              catch {}
             }}
             className={`
               absolute -top-2 -right-2 inline-flex size-7 items-center justify-center rounded-full border bg-background
@@ -67,9 +62,7 @@ export default function TestModeBanner({
           </button>
           <div className="py-3 pr-3 pl-4">
             <div className="flex flex-col gap-2">
-              <p className="text-sm/relaxed">
-                {message}
-              </p>
+              <p className="text-sm/relaxed">{message}</p>
               <a
                 href={discordUrl}
                 target="_blank"
