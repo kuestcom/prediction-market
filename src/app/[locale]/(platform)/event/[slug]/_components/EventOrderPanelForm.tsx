@@ -10,7 +10,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { CheckIcon, TriangleAlertIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Form from 'next/form'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 import { hashTypedData } from 'viem'
 import { useSignMessage, useSignTypedData } from 'wagmi'
@@ -154,6 +154,18 @@ function resolveEndOfDayTimestamp() {
   return Math.floor(now.getTime() / 1000)
 }
 
+function subscribeToHydrationStore() {
+  return function unsubscribeFromHydrationStore() {}
+}
+
+function getHydratedClientSnapshot() {
+  return true
+}
+
+function getHydratedServerSnapshot() {
+  return false
+}
+
 export default function EventOrderPanelForm({
   event,
   isMobile,
@@ -215,8 +227,12 @@ export default function EventOrderPanelForm({
   const [shouldShakeInput, setShouldShakeInput] = useState(false)
   const [shouldShakeLimitShares, setShouldShakeLimitShares] = useState(false)
   const [isClaimSubmitting, setIsClaimSubmitting] = useState(false)
-  const [claimedConditionIds, setClaimedConditionIds] = useState<Record<string, true>>({})
-  const [hasMounted, setHasMounted] = useState(false)
+  const [claimedConditionIdsByEvent, setClaimedConditionIdsByEvent] = useState<Record<string, Record<string, true>>>({})
+  const hasMounted = useSyncExternalStore(
+    subscribeToHydrationStore,
+    getHydratedClientSnapshot,
+    getHydratedServerSnapshot,
+  )
   const limitSharesInputRef = useRef<HTMLInputElement | null>(null)
   const limitSharesNumber = Number.parseFloat(state.limitShares) || 0
   const { balance, isLoadingBalance } = useBalance()
@@ -412,9 +428,7 @@ export default function EventOrderPanelForm({
     conditionId: activeMarket?.condition_id,
   })
 
-  useEffect(() => {
-    setHasMounted(true)
-  }, [])
+  const claimedConditionIds = claimedConditionIdsByEvent[event.id] ?? {}
 
   const normalizedOrderBook = useMemo(() => {
     const summary = outcomeTokenId ? orderBookSummaryQuery.data?.[outcomeTokenId] : undefined
@@ -487,7 +501,6 @@ export default function EventOrderPanelForm({
   useEffect(() => {
     if (!makerAddress) {
       setUserShares({}, { replace: true })
-      setShowMarketMinimumWarning(false)
       return
     }
 
@@ -820,54 +833,67 @@ export default function EventOrderPanelForm({
     ? sellOrderSnapshot.priceCents
     : null
   const sellAmountLabel = formatCurrency(sellAmountValue)
+
+  const filledSharesForCurrentSide = state.side === ORDER_SIDE.BUY
+    ? (marketBuyFill?.filledShares ?? 0)
+    : (marketSellFill?.filledShares ?? 0)
+  const shouldShowResolvedNoLiquidityWarning = showNoLiquidityWarning
+    && !isLimitOrder
+    && amountNumber > 0
+    && filledSharesForCurrentSide <= 0
+  const shouldShowResolvedMarketMinimumWarning = showMarketMinimumWarning
+    && !isLimitOrder
+    && state.side === ORDER_SIDE.BUY
+    && amountNumber > 0
+    && amountNumber < 1
+
   useEffect(() => {
     if (!isLimitOrder || limitSharesNumber >= MIN_LIMIT_ORDER_SHARES) {
       setShowLimitMinimumWarning(false)
     }
   }, [isLimitOrder, limitSharesNumber])
 
-  useEffect(() => {
-    setClaimedConditionIds({})
-  }, [event.id])
-
-  useEffect(() => {
+  function clearValidationWarnings() {
+    setShowMarketMinimumWarning(false)
     setShowInsufficientSharesWarning(false)
     setShowInsufficientBalanceWarning(false)
     setShowAmountTooLowWarning(false)
     setShowNoLiquidityWarning(false)
+  }
+
+  function clearValidationFeedback() {
+    clearValidationWarnings()
     setShouldShakeInput(false)
     setShouldShakeLimitShares(false)
-  }, [state.amount, state.side, selectedShares])
-
-  useEffect(() => {
-    const filledShares = state.side === ORDER_SIDE.BUY
-      ? (marketBuyFill?.filledShares ?? 0)
-      : (marketSellFill?.filledShares ?? 0)
-
-    if (isLimitOrder || amountNumber <= 0 || filledShares > 0) {
-      setShowNoLiquidityWarning(false)
-    }
-  }, [
-    amountNumber,
-    isLimitOrder,
-    marketBuyFill?.filledShares,
-    marketSellFill?.filledShares,
-    state.side,
-  ])
-
-  useEffect(() => {
-    if (
-      isLimitOrder
-      || state.side !== ORDER_SIDE.BUY
-      || amountNumber >= 1
-      || amountNumber <= 0
-    ) {
-      setShowMarketMinimumWarning(false)
-    }
-  }, [amountNumber, isLimitOrder, state.side])
+  }
 
   function focusInput() {
     state.inputRef?.current?.focus()
+  }
+
+  function handleSideChange(nextSide: typeof state.side) {
+    clearValidationFeedback()
+    state.setSide(nextSide)
+  }
+
+  function handleAmountReset() {
+    clearValidationFeedback()
+    state.setAmount('')
+  }
+
+  function handleAmountChange(nextAmount: string) {
+    clearValidationFeedback()
+    state.setAmount(nextAmount)
+  }
+
+  function handleLimitPriceChange(nextLimitPrice: string) {
+    clearValidationFeedback()
+    state.setLimitPrice(nextLimitPrice)
+  }
+
+  function handleLimitSharesChange(nextLimitShares: string) {
+    clearValidationFeedback()
+    state.setLimitShares(nextLimitShares)
   }
 
   function triggerLimitSharesShake() {
@@ -1398,14 +1424,18 @@ export default function EventOrderPanelForm({
       toast.success(t('Claim submitted'), {
         description: t('We sent your claim transaction.'),
       })
-      setClaimedConditionIds((current) => {
-        if (current[conditionId]) {
+      setClaimedConditionIdsByEvent((current) => {
+        const currentEventClaims = current[event.id] ?? {}
+        if (currentEventClaims[conditionId]) {
           return current
         }
 
         return {
           ...current,
-          [conditionId]: true,
+          [event.id]: {
+            ...currentEventClaims,
+            [conditionId]: true,
+          },
         }
       })
 
@@ -1466,6 +1496,8 @@ export default function EventOrderPanelForm({
   const primaryPrice = normalizedPrimaryOutcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
   const secondaryPrice = normalizedSecondaryOutcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
   function handleTypeChange(nextType: typeof state.type) {
+    clearValidationFeedback()
+    setShowLimitMinimumWarning(false)
     state.setType(nextType)
     if (nextType !== ORDER_TYPE.LIMIT) {
       return
@@ -1564,9 +1596,9 @@ export default function EventOrderPanelForm({
                 eventPath={resolveEventPagePath(event)}
                 marketTitle={activeMarket?.title || activeMarket?.short_title}
                 marketIconUrl={activeMarket?.icon_url}
-                onSideChange={state.setSide}
+                onSideChange={handleSideChange}
                 onTypeChange={handleTypeChange}
-                onAmountReset={() => state.setAmount('')}
+                onAmountReset={handleAmountReset}
                 onFocusInput={focusInput}
               />
 
@@ -1642,8 +1674,8 @@ export default function EventOrderPanelForm({
                         showLimitMinimumWarning={showLimitMinimumWarning}
                         shouldShakeShares={shouldShakeLimitShares}
                         limitSharesRef={limitSharesInputRef}
-                        onLimitPriceChange={state.setLimitPrice}
-                        onLimitSharesChange={state.setLimitShares}
+                        onLimitPriceChange={handleLimitPriceChange}
+                        onLimitSharesChange={handleLimitSharesChange}
                         onLimitExpirationEnabledChange={state.setLimitExpirationEnabled}
                         onLimitExpirationOptionChange={state.setLimitExpirationOption}
                         onLimitExpirationTimestampChange={state.setLimitExpirationTimestamp}
@@ -1671,7 +1703,7 @@ export default function EventOrderPanelForm({
                         balance={balance}
                         isBalanceLoading={isLoadingBalance}
                         inputRef={state.inputRef}
-                        onAmountChange={state.setAmount}
+                        onAmountChange={handleAmountChange}
                         shouldShake={shouldShakeInput}
                       />
                       <div
@@ -1697,7 +1729,7 @@ export default function EventOrderPanelForm({
                           buyMultiplier={buyPayoutSummary.multiplier}
                         />
                       </div>
-                      {showMarketMinimumWarning && (
+                      {shouldShowResolvedMarketMinimumWarning && (
                         <div
                           className={`
                             mt-3 flex animate-order-shake items-center justify-center gap-2 pb-1 text-sm font-semibold
@@ -1708,7 +1740,7 @@ export default function EventOrderPanelForm({
                           {t('Market buys must be at least $1')}
                         </div>
                       )}
-                      {showNoLiquidityWarning && (
+                      {shouldShowResolvedNoLiquidityWarning && (
                         <div
                           className={`
                             mt-3 flex animate-order-shake items-center justify-center gap-2 pb-1 text-sm font-semibold
