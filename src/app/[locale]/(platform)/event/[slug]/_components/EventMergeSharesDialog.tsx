@@ -4,7 +4,7 @@ import type { UserPosition } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { CheckIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { hashTypedData } from 'viem'
 import { useSignMessage } from 'wagmi'
@@ -100,13 +100,18 @@ export default function EventMergeSharesDialog({
     return trimmed || '0'
   }
 
-  useEffect(() => {
-    if (!open) {
-      setAmount('')
-      setError(null)
-      setIsSubmitting(false)
+  function resetDialogState() {
+    setAmount('')
+    setError(null)
+    setIsSubmitting(false)
+  }
+
+  function handleDialogOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      resetDialogState()
     }
-  }, [open])
+    onOpenChange(nextOpen)
+  }
 
   const formattedAvailableShares = useMemo(() => {
     return formatFullPrecision(availableShares)
@@ -392,7 +397,7 @@ export default function EventMergeSharesDialog({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
+      <Drawer open={open} onOpenChange={handleDialogOpenChange}>
         <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
           <div className="space-y-6">
             <DrawerHeader className="space-y-3 text-center">
@@ -407,7 +412,7 @@ export default function EventMergeSharesDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-md sm:p-8">
         <div className="space-y-6">
           <DialogHeader className="space-y-3">
