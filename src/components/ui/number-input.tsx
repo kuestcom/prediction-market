@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
 function formatNumberInputValue(value: number) {
-  if (value === 0) {
+  if (!Number.isFinite(value) || value === 0) {
     return ''
   }
 
@@ -23,9 +23,10 @@ export function NumberInput({
   step?: number
 }) {
   const MAX = 99.9
+  const [isEditing, setIsEditing] = useState(false)
   const [inputValue, setInputValue] = useState<string>(() => formatNumberInputValue(value))
 
-  const displayValue = inputValue
+  const displayValue = isEditing ? inputValue : formatNumberInputValue(value)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const hasValue = displayValue.trim() !== ''
@@ -115,8 +116,15 @@ export function NumberInput({
           type="text"
           inputMode="decimal"
           value={displayValue}
+          onFocus={() => {
+            setInputValue(formatNumberInputValue(value))
+            setIsEditing(true)
+          }}
           onChange={handleInputChange}
-          onBlur={() => commitInput(displayValue)}
+          onBlur={() => {
+            commitInput(displayValue)
+            setIsEditing(false)
+          }}
           maxLength={5}
           placeholder="0.0"
           className={`
