@@ -9,7 +9,7 @@ import type { Event, UserPosition } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, ChevronDownIcon, LockKeyholeIcon, RefreshCwIcon, XIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
 import ConnectionStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/ConnectionStatusIndicator'
 import EventMarketCard from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketCard'
@@ -176,9 +176,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     ],
     [event.id],
   )
-  const [chancePulseToken, setChancePulseToken] = useState(0)
   const [showResolvedMarkets, setShowResolvedMarkets] = useState(false)
-  const priceHistoryWasFetchingRef = useRef(false)
   const {
     isFetching: isPriceHistoryFetching,
   } = useChanceRefresh({ queryKeys: chanceRefreshQueryKeys })
@@ -519,19 +517,9 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     form?.requestSubmit()
   }, [setAmount])
 
-  useEffect(() => {
-    setChancePulseToken(0)
-    priceHistoryWasFetchingRef.current = true
-  }, [event.id])
-
-  useEffect(() => {
-    const wasFetching = priceHistoryWasFetchingRef.current
-    priceHistoryWasFetchingRef.current = isPriceHistoryFetching
-
-    if (hasChanceData && wasFetching && !isPriceHistoryFetching) {
-      setChancePulseToken(token => token + 1)
-    }
-  }, [hasChanceData, isPriceHistoryFetching])
+  const chanceHighlightVersion = hasChanceData
+    ? (isPriceHistoryFetching ? 'fetching' : 'ready')
+    : 'idle'
 
   const handleToggle = useCallback((market: Event['markets'][number]) => {
     toggleMarket(market.condition_id)
@@ -611,9 +599,8 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
       })
       .map(item => item.row)
   }, [resolvedDisplayRows])
-  const allMarketsResolved = pricedMarketRows.length > 0
+  const showResolvedInline = pricedMarketRows.length > 0
     && pricedMarketRows.every(row => isMarketResolved(row.market))
-  const showResolvedInline = allMarketsResolved
   const primaryMarketRows = showResolvedInline ? sortedResolvedDisplayRows : activeDisplayRows
   const shouldShowActiveSection = primaryMarketRows.length > 0 || shouldShowOtherRow
   const shouldShowResolvedSection = !showResolvedInline && sortedResolvedDisplayRows.length > 0
@@ -633,7 +620,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
             const activeOutcomeForMarket = selectedOutcome && selectedOutcome.condition_id === market.condition_id
               ? selectedOutcome
               : market.outcomes[0]
-            const chanceHighlightKey = `${market.condition_id}-${chancePulseToken}`
+            const chanceHighlightKey = `${market.condition_id}-${event.id}-${chanceHighlightVersion}`
             const activeOutcomeIndex = selectedOutcome && selectedOutcome.condition_id === market.condition_id
               ? selectedOutcome.outcome_index
               : null
