@@ -1,6 +1,6 @@
 import type { Address, PublicClient } from 'viem'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { createPublicClient, getContract, http } from 'viem'
 import { defaultNetwork } from '@/lib/appkit'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
@@ -36,11 +36,7 @@ const RPC_URL = defaultNetwork.rpcUrls.default.http[0]
 
 export function useBalance(options: UseBalanceOptions = {}) {
   const user = useUser()
-  const [hasMounted, setHasMounted] = useState(false)
-
-  useEffect(() => {
-    setHasMounted(true)
-  }, [])
+  const [hasMounted] = useState(true)
 
   const client = useMemo<PublicClient | null>(() => {
     if (!hasMounted) {
