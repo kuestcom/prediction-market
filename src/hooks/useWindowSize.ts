@@ -6,22 +6,30 @@ interface WindowSize {
 }
 
 export function useWindowSize() {
-  const [size, setSize] = useState<WindowSize>({ width: 0, height: 0 })
+  const [size, setSize] = useState<WindowSize>(() => {
+    if (typeof window === 'undefined') {
+      return { width: 0, height: 0 }
+    }
+
+    return {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    }
+  })
 
   useEffect(() => {
     function updateSize() {
-      const width = window.innerWidth
-      const height = window.innerHeight
-
-      queueMicrotask(() => {
-        setSize({ width, height })
+      setSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
       })
     }
 
-    updateSize()
     window.addEventListener('resize', updateSize)
 
-    return () => window.removeEventListener('resize', updateSize)
+    return function () {
+      window.removeEventListener('resize', updateSize)
+    }
   }, [])
 
   return size
