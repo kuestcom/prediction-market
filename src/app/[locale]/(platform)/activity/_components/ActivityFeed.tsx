@@ -13,6 +13,7 @@ import ProfileLink from '@/components/ProfileLink'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { useWindowSize } from '@/hooks/useWindowSize'
 import { useRouter } from '@/i18n/navigation'
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { MICRO_UNIT } from '@/lib/constants'
@@ -184,6 +185,12 @@ function hasText(value?: string | null) {
   return Boolean(value && value.trim())
 }
 
+function getBaseVisibleCount(windowHeight: number) {
+  const viewportHeight = windowHeight || 800
+  const estimate = Math.ceil(viewportHeight / ROW_HEIGHT_ESTIMATE) + 6
+  return Math.min(MAX_VISIBLE_ITEMS, Math.max(MIN_VISIBLE_ITEMS, estimate))
+}
+
 export default function ActivityFeed() {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -194,21 +201,19 @@ export default function ActivityFeed() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [minAmountFilter, setMinAmountFilter] = useState<string>('none')
   const [items, setItems] = useState<LiveActivityItem[]>([])
-  const [baseVisibleCount, setBaseVisibleCount] = useState<number>(20)
-  const [visibleCount, setVisibleCount] = useState<number>(20)
+  const [loadMoreCount, setLoadMoreCount] = useState<number>(0)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const seenIdsRef = useRef<Set<string>>(new Set())
+  const { height: windowHeight } = useWindowSize()
   const categoryValues = useMemo(() => buildActivityCategoryValues(tags), [tags])
   const categoryOptions = useMemo(
     () => buildActivityCategoryOptions(tags, t('All')),
     [t, tags],
   )
-
-  useEffect(() => {
-    if (categoryFilter !== 'all' && !categoryValues.has(categoryFilter)) {
-      setCategoryFilter('all')
-    }
-  }, [categoryFilter, categoryValues])
+  const resolvedCategoryFilter = categoryFilter !== 'all' && !categoryValues.has(categoryFilter)
+    ? 'all'
+    : categoryFilter
+  const baseVisibleCount = useMemo(() => getBaseVisibleCount(windowHeight), [windowHeight])
 
   useEffect(() => {
     if (!wsUrl) {
@@ -384,19 +389,6 @@ export default function ActivityFeed() {
     }
   }, [categoryValues, wsUrl])
 
-  useEffect(() => {
-    function updateBaseCount() {
-      const viewportHeight = window.innerHeight || 800
-      const estimate = Math.ceil(viewportHeight / ROW_HEIGHT_ESTIMATE) + 6
-      const clamped = Math.min(MAX_VISIBLE_ITEMS, Math.max(MIN_VISIBLE_ITEMS, estimate))
-      setBaseVisibleCount(clamped)
-    }
-
-    updateBaseCount()
-    window.addEventListener('resize', updateBaseCount)
-    return () => window.removeEventListener('resize', updateBaseCount)
-  }, [])
-
   const minAmountMicro = useMemo(() => {
     const parsed = Number(minAmountFilter)
     if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -407,37 +399,36 @@ export default function ActivityFeed() {
 
   const filteredOrders = useMemo(() => {
     let filtered = items
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(item => item.categories.includes(categoryFilter))
+    if (resolvedCategoryFilter !== 'all') {
+      filtered = filtered.filter(item => item.categories.includes(resolvedCategoryFilter))
     }
     return filterActivitiesByMinAmount(filtered.map(item => item.order), minAmountMicro)
-  }, [categoryFilter, items, minAmountMicro])
+  }, [resolvedCategoryFilter, items, minAmountMicro])
 
   const minAmountDisplay = useMemo(() => {
     return MIN_AMOUNT_OPTIONS.find(option => option.value === minAmountFilter)?.display ?? 'Min amount'
   }, [minAmountFilter])
 
   const categoryDisplay = useMemo(() => {
-    return categoryOptions.find(option => option.value === categoryFilter)?.label ?? t('All')
-  }, [categoryFilter, categoryOptions, t])
-
-  useEffect(() => {
-    setVisibleCount(baseVisibleCount)
-  }, [baseVisibleCount, categoryFilter, minAmountFilter])
-
-  useEffect(() => {
-    setVisibleCount((current) => {
-      if (filteredOrders.length === 0) {
-        return baseVisibleCount
-      }
-      const clamped = Math.min(current, filteredOrders.length)
-      return Math.max(baseVisibleCount, clamped)
-    })
-  }, [baseVisibleCount, filteredOrders.length])
+    return categoryOptions.find(option => option.value === resolvedCategoryFilter)?.label ?? t('All')
+  }, [resolvedCategoryFilter, categoryOptions, t])
 
   const pageSize = Math.max(6, Math.round(baseVisibleCount * 0.6))
+  const visibleCount = filteredOrders.length === 0
+    ? baseVisibleCount
+    : Math.min(filteredOrders.length, baseVisibleCount + loadMoreCount)
   const hasHiddenItems = visibleCount < filteredOrders.length
   const visibleOrders = filteredOrders.slice(0, visibleCount)
+
+  function handleCategoryFilterChange(nextCategoryFilter: string) {
+    setCategoryFilter(nextCategoryFilter)
+    setLoadMoreCount(0)
+  }
+
+  function handleMinAmountFilterChange(nextMinAmountFilter: string) {
+    setMinAmountFilter(nextMinAmountFilter)
+    setLoadMoreCount(0)
+  }
 
   useEffect(() => {
     const node = loadMoreRef.current
@@ -451,14 +442,14 @@ export default function ActivityFeed() {
         if (!entry?.isIntersecting) {
           return
         }
-        setVisibleCount(current => Math.min(current + pageSize, filteredOrders.length))
+        setLoadMoreCount(current => current + pageSize)
       },
       { rootMargin: '200px 0px' },
     )
 
     observer.observe(node)
     return () => observer.disconnect()
-  }, [filteredOrders.length, hasHiddenItems, pageSize])
+  }, [hasHiddenItems, pageSize])
 
   const isLoading = items.length === 0
 
@@ -480,7 +471,7 @@ export default function ActivityFeed() {
           {t('Activity')}
         </h1>
         <div className="flex flex-wrap items-center gap-3">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select value={resolvedCategoryFilter} onValueChange={handleCategoryFilterChange}>
             <SelectTrigger className="h-10 text-base font-medium text-foreground">
               <SelectValue asChild>
                 <span className="line-clamp-1">{categoryDisplay}</span>
@@ -495,7 +486,7 @@ export default function ActivityFeed() {
             </SelectContent>
           </Select>
 
-          <Select value={minAmountFilter} onValueChange={setMinAmountFilter}>
+          <Select value={minAmountFilter} onValueChange={handleMinAmountFilterChange}>
             <SelectTrigger className="h-10 text-base font-medium text-foreground">
               <SelectValue asChild>
                 <span className="line-clamp-1">{minAmountDisplay}</span>
