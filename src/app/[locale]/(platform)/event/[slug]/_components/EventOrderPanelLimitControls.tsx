@@ -4,7 +4,7 @@ import type { OrderSide } from '@/types'
 import { InfoIcon, TriangleAlertIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import EventLimitExpirationCalendar from '@/app/[locale]/(platform)/event/[slug]/_components/EventLimitExpirationCalendar'
 import { Button } from '@/components/ui/button'
@@ -156,9 +156,7 @@ export default function EventOrderPanelLimitControls({
     ? formatSharesLabel(matchingShares)
     : null
   const [isExpirationModalOpen, setIsExpirationModalOpen] = useState(false)
-  const [draftExpiration, setDraftExpiration] = useState<Date | null>(
-    () => limitExpirationTimestamp ? new Date(limitExpirationTimestamp * 1000) : null,
-  )
+  const [draftExpiration, setDraftExpiration] = useState<Date | null>(null)
   const customExpirationLabel = useMemo(() => {
     if (!limitExpirationTimestamp) {
       return null
@@ -244,19 +242,17 @@ export default function EventOrderPanelLimitControls({
     medium: 'text-base',
     small: 'text-sm',
   })
-  useEffect(() => {
+
+  function resolveInitialDraftExpiration() {
     if (limitExpirationTimestamp) {
-      setDraftExpiration(new Date(limitExpirationTimestamp * 1000))
-      return
+      return new Date(limitExpirationTimestamp * 1000)
     }
 
-    setDraftExpiration(resolveDraftExpirationFromNow())
-  }, [limitExpirationTimestamp])
+    return resolveDraftExpirationFromNow()
+  }
 
   function openExpirationModal() {
-    if (!draftExpiration) {
-      setDraftExpiration(resolveDraftExpirationFromNow())
-    }
+    setDraftExpiration(resolveInitialDraftExpiration())
     setIsExpirationModalOpen(true)
   }
 
