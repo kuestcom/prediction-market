@@ -110,7 +110,7 @@ export function removeRecentSearchEvent(id: string) {
 }
 
 export function useRecentSearchEvents() {
-  const [recentEvents, setRecentEvents] = useState<RecentSearchEvent[]>([])
+  const [recentEvents, setRecentEvents] = useState<RecentSearchEvent[]>(() => readRecentSearchEvents())
 
   useEffect(() => {
     if (!isBrowserReady()) {
@@ -120,8 +120,6 @@ export function useRecentSearchEvents() {
     function syncRecentSearchEvents() {
       setRecentEvents(readRecentSearchEvents())
     }
-
-    syncRecentSearchEvents()
 
     window.addEventListener(RECENT_SEARCH_EVENTS_UPDATED_EVENT, syncRecentSearchEvents as EventListener)
     window.addEventListener('storage', syncRecentSearchEvents)
