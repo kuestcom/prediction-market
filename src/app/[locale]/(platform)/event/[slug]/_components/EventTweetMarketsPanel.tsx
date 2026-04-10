@@ -69,7 +69,7 @@ function buildCountdownUnits(
 
 const COUNTDOWN_TICK_INTERVAL_MS = 1000
 
-function hasValidCountdownTarget(countdownTargetMs: number | null) {
+function hasValidCountdownTarget(countdownTargetMs: number | null): countdownTargetMs is number {
   return countdownTargetMs != null && Number.isFinite(countdownTargetMs)
 }
 
@@ -78,13 +78,18 @@ function subscribeToNow(
   countdownTargetMs: number | null,
   isFinal: boolean,
 ) {
-  if (isFinal || !hasValidCountdownTarget(countdownTargetMs) || countdownTargetMs <= Date.now()) {
+  if (isFinal || !hasValidCountdownTarget(countdownTargetMs)) {
+    return () => {}
+  }
+
+  const targetMs = countdownTargetMs
+  if (targetMs <= Date.now()) {
     return () => {}
   }
 
   const interval = window.setInterval(() => {
     onStoreChange()
-    if (Date.now() >= countdownTargetMs) {
+    if (Date.now() >= targetMs) {
       window.clearInterval(interval)
     }
   }, COUNTDOWN_TICK_INTERVAL_MS)
