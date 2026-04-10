@@ -3,7 +3,6 @@
 import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
-import { useEffect, useState } from 'react'
 import AlertBanner from '@/components/AlertBanner'
 import ProfileLink from '@/components/ProfileLink'
 import ProfileLinkSkeleton from '@/components/ProfileLinkSkeleton'
@@ -49,26 +48,10 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
   const isSingleMarket = useIsSingleMarket()
   const orderState = useOrder()
   const isSportsEvent = Boolean(event.sports_sport_slug?.trim())
-  const [selectedMarket, setSelectedMarket] = useState<string>('')
   const fallbackConditionId = event.markets[0]?.condition_id
-
-  useEffect(() => {
-    if (isSingleMarket) {
-      queueMicrotask(() => setSelectedMarket(''))
-    }
-    else if (orderState.market && !selectedMarket) {
-      queueMicrotask(() => setSelectedMarket(orderState.market!.condition_id))
-    }
-    else if (!selectedMarket && event.markets.length > 0) {
-      queueMicrotask(() => setSelectedMarket(event.markets[0].condition_id))
-    }
-  }, [isSingleMarket, orderState.market, selectedMarket, event.markets])
-
-  useEffect(() => {
-    if (!isSingleMarket && orderState.market && selectedMarket !== orderState.market.condition_id) {
-      queueMicrotask(() => setSelectedMarket(orderState.market!.condition_id))
-    }
-  }, [isSingleMarket, orderState.market, selectedMarket])
+  const selectedMarket = isSingleMarket
+    ? ''
+    : (orderState.market?.condition_id || fallbackConditionId || '')
 
   const conditionId = selectedMarket || fallbackConditionId
   const marketForTokens = event.markets.find(m => m.condition_id === conditionId)
@@ -82,8 +65,6 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
   const { data, isLoading, error } = useEventHolders(conditionId, yesToken, noToken)
 
   function handleMarketChange(conditionId: string) {
-    setSelectedMarket(conditionId)
-
     const market = event.markets.find(m => m.condition_id === conditionId)
     if (market) {
       orderState.setMarket(market)
