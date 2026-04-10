@@ -280,10 +280,11 @@ function ProfitLossCard({
       top: `${(cursorY / innerHeight) * 100}%`,
     }
   }, [clampedCursorX, cursorY, innerHeight, innerWidth])
-  const displayValue = clampedCursorX == null ? endValue : cursorValue
-  const deltaValue = displayValue - startValue
-  const isDeltaPositive = deltaValue > 0
-  const isDeltaNegative = deltaValue < 0
+  const displayAbsoluteValue = clampedCursorX == null ? endValue : cursorValue
+  const displayBaselineValue = activeTimeframe === 'ALL' ? 0 : startValue
+  const displayNetValue = displayAbsoluteValue - displayBaselineValue
+  const isDeltaPositive = displayNetValue > 0
+  const isDeltaNegative = displayNetValue < 0
   const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
   const [gainTotal, lossTotal] = useMemo(() => {
     if (!chartData.length) {
@@ -293,6 +294,7 @@ function ProfitLossCard({
     const targetTime = (cursorDate ?? endDate).getTime()
     const firstPoint = chartData[0]
     const firstTime = firstPoint.date.getTime()
+    const baseline = activeTimeframe === 'ALL' ? 0 : firstPoint.value
 
     if (targetTime < firstTime) {
       return [0, 0]
@@ -300,17 +302,16 @@ function ProfitLossCard({
 
     let gain = 0
     let loss = 0
-    let prevValue = 0
+    let prevValue = firstPoint.value
     let prevTime = firstTime
 
-    const initialDelta = firstPoint.value - prevValue
+    const initialDelta = firstPoint.value - baseline
     if (initialDelta >= 0) {
       gain += initialDelta
     }
     else {
       loss += Math.abs(initialDelta)
     }
-    prevValue = firstPoint.value
 
     for (let index = 1; index < chartData.length; index += 1) {
       const point = chartData[index]
@@ -345,7 +346,7 @@ function ProfitLossCard({
     }
 
     return [gain, loss]
-  }, [chartData, cursorDate, endDate])
+  }, [activeTimeframe, chartData, cursorDate, endDate])
   const timeframeLabel = ({
     'ALL': 'All-Time',
     '1D': 'Past Day',
@@ -428,8 +429,8 @@ function ProfitLossCard({
                     ? '****'
                     : (
                         <>
-                          {displayValue < 0 ? '-' : '+'}
-                          {formatCurrency(Math.abs(displayValue))}
+                          {displayNetValue < 0 ? '-' : '+'}
+                          {formatCurrency(Math.abs(displayNetValue))}
                         </>
                       )}
                 </span>
@@ -482,8 +483,8 @@ function ProfitLossCard({
                             ? '****'
                             : (
                                 <>
-                                  {displayValue < 0 ? '-' : '+'}
-                                  {formatCurrency(Math.abs(displayValue))}
+                                  {displayNetValue < 0 ? '-' : '+'}
+                                  {formatCurrency(Math.abs(displayNetValue))}
                                 </>
                               )}
                         </span>
