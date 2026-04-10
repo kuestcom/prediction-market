@@ -149,7 +149,18 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
     setState(prev => ({ ...prev, isDisabling: true }))
 
     try {
-      await disableTwoFactorAction()
+      const result = await disableTwoFactorAction()
+
+      if ('error' in result) {
+        const errorMessage = result.error === 'Failed to disable two factor'
+          ? t('An unexpected error occurred while disabling two-factor authentication. Please try again.')
+          : result.error
+
+        toast.error(errorMessage)
+        setState(prev => ({ ...prev, isDisabling: false }))
+        return
+      }
+
       toast.success(t('Successfully disabled two-factor authentication.'))
 
       setState(prev => ({

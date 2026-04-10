@@ -291,6 +291,7 @@ export const auth = betterAuth({
     }),
     siweTwoFactorRedirect(),
     twoFactor({
+      allowPasswordless: true,
       skipVerificationOnEnable: false,
       schema: {
         user: {

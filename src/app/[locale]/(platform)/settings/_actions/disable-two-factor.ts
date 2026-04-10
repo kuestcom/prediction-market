@@ -8,17 +8,15 @@ import { extractTwoFactorErrorMessage } from './two-factor-errors'
 
 export async function disableTwoFactorAction() {
   try {
-    const user = await UserRepository.getCurrentUser()
-    if (!user) {
+    const currentUser = await UserRepository.getCurrentUser()
+    if (!currentUser) {
       return { error: 'Unauthenticated.' }
     }
 
     const h = await headers()
 
     return await auth.api.disableTwoFactor({
-      body: {
-        password: user.address,
-      },
+      body: {},
       headers: h,
     })
   }

@@ -99,6 +99,7 @@ export const two_factors = pgTable('two_factors', {
   id: text().primaryKey(),
   secret: text().notNull(),
   backup_codes: text().notNull(),
+  verified: boolean().default(true).notNull(),
   user_id: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
