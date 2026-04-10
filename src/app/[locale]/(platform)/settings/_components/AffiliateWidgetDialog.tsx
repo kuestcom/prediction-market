@@ -3,6 +3,7 @@
 import type { EmbedCodeLine } from '@/lib/embed-code'
 import type { EmbedTheme } from '@/lib/embed-widget'
 import type { Event } from '@/types'
+import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
@@ -163,11 +164,7 @@ export default function AffiliateWidgetDialog({
   const [showChart, setShowChart] = useState(false)
   const [showTimeRange, setShowTimeRange] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string>('')
-  const [selectedMarketId, setSelectedMarketId] = useState<string>('')
-  const [marketsByCategory, setMarketsByCategory] = useState<Record<string, WidgetMarket[]>>({})
-  const [loadingCategorySlug, setLoadingCategorySlug] = useState<string | null>(null)
-  const [categoryLoadFailed, setCategoryLoadFailed] = useState(false)
+  const [selectedCategoryState, setSelectedCategoryState] = useState<string>(categories[0]?.slug ?? '')
   const [affiliateSharePercent, setAffiliateSharePercent] = useState<number | null>(null)
   const [tradeFeePercent, setTradeFeePercent] = useState<number | null>(null)
 
@@ -180,37 +177,26 @@ export default function AffiliateWidgetDialog({
     }
   }, [site.name])
 
-  const currentMarkets = useMemo(
-    () => marketsByCategory[selectedCategory] ?? [],
-    [marketsByCategory, selectedCategory],
+  const selectedCategory = useMemo(
+    () => categories.some(category => category.slug === selectedCategoryState)
+      ? selectedCategoryState
+      : (categories[0]?.slug ?? ''),
+    [categories, selectedCategoryState],
   )
-  const selectedMarket = currentMarkets.find(market => market.id === selectedMarketId) ?? currentMarkets[0]
+  const {
+    data: currentMarkets = [],
+    isFetching: isFetchingCategory,
+    isError: categoryLoadFailed,
+  } = useQuery({
+    queryKey: ['affiliate-widget-category-markets', locale, selectedCategory],
+    enabled: open && Boolean(selectedCategory),
+    staleTime: 60_000,
+    gcTime: 300_000,
+    queryFn: ({ signal }) => fetchCategoryMarkets(selectedCategory, locale, signal),
+  })
+  const selectedMarket = currentMarkets[0]
   const embedElementName = `${siteSlug}-market-embed`
   const embedIframeTitle = `${siteSlug}-market-iframe`
-
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-
-    setTheme('light')
-    setEmbedType('iframe')
-    setShowVolume(false)
-    setShowChart(false)
-    setShowTimeRange(false)
-    setCopied(false)
-    setSelectedCategory(categories[0]?.slug ?? '')
-    setSelectedMarketId('')
-    setMarketsByCategory({})
-    setLoadingCategorySlug(null)
-    setCategoryLoadFailed(false)
-  }, [open, categories])
-
-  useEffect(() => {
-    if (!showChart) {
-      setShowTimeRange(false)
-    }
-  }, [showChart])
 
   useEffect(() => {
     if (!affiliateCode) {
@@ -249,61 +235,23 @@ export default function AffiliateWidgetDialog({
     }
   }, [affiliateCode])
 
-  useEffect(() => {
-    if (!open || !selectedCategory) {
-      return
+  function handleShowChartChange(nextValue: boolean) {
+    setShowChart(nextValue)
+    if (!nextValue) {
+      setShowTimeRange(false)
     }
+  }
 
-    if (marketsByCategory[selectedCategory] !== undefined) {
-      return
-    }
+  function handleSelectedCategoryChange(nextValue: string) {
+    setSelectedCategoryState(nextValue)
+  }
 
-    const abortController = new AbortController()
-    const categorySlug = selectedCategory
-    setLoadingCategorySlug(categorySlug)
-    setCategoryLoadFailed(false)
-
-    fetchCategoryMarkets(categorySlug, locale, abortController.signal)
-      .then((markets) => {
-        setMarketsByCategory(previous => ({
-          ...previous,
-          [categorySlug]: markets,
-        }))
-      })
-      .catch((error) => {
-        if (abortController.signal.aborted) {
-          return
-        }
-        console.error('Failed to fetch affiliate widget markets', error)
-        setCategoryLoadFailed(true)
-        setMarketsByCategory(previous => ({
-          ...previous,
-          [categorySlug]: [],
-        }))
-      })
-      .finally(() => {
-        if (!abortController.signal.aborted) {
-          setLoadingCategorySlug(current => (current === categorySlug ? null : current))
-        }
-      })
-
-    return () => {
-      abortController.abort()
+  function handleDialogOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      setCopied(false)
     }
-  }, [open, selectedCategory, locale, marketsByCategory])
-
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-    if (currentMarkets.length === 0) {
-      setSelectedMarketId('')
-      return
-    }
-    if (!currentMarkets.some(market => market.id === selectedMarketId)) {
-      setSelectedMarketId(currentMarkets[0].id)
-    }
-  }, [open, currentMarkets, selectedMarketId])
+    onOpenChange(nextOpen)
+  }
 
   const features = useMemo(
     () => buildFeatureList(showVolume, showChart, showTimeRange),
@@ -420,10 +368,10 @@ export default function AffiliateWidgetDialog({
     }
   }
 
-  const isLoadingCategory = Boolean(loadingCategorySlug && loadingCategorySlug === selectedCategory)
+  const isLoadingCategory = isFetchingCategory
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-4xl sm:max-w-4xl sm:p-8">
         <div className="space-y-6">
           <DialogHeader>
@@ -455,7 +403,11 @@ export default function AffiliateWidgetDialog({
 
               <div className="space-y-3">
                 <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('Categories')}</Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={categories.length === 0}>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={handleSelectedCategoryChange}
+                  disabled={categories.length === 0}
+                >
                   <SelectTrigger className={`
                     w-full bg-transparent text-sm
                     hover:bg-transparent
@@ -485,7 +437,7 @@ export default function AffiliateWidgetDialog({
                     </label>
                     <label className="flex items-center justify-between gap-4">
                       <span>{t('Show Chart')}</span>
-                      <Switch checked={showChart} onCheckedChange={setShowChart} />
+                      <Switch checked={showChart} onCheckedChange={handleShowChartChange} />
                     </label>
                     {showChart
                       ? (
