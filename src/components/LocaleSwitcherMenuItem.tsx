@@ -19,9 +19,10 @@ export default function LocaleSwitcherMenuItem() {
   const locale = useLocale()
   const [isPending, setIsPending] = useState(false)
   const [enabledLocales, setEnabledLocales] = useState<SupportedLocale[] | null>(null)
-  const [carouselIndex, setCarouselIndex] = useState(0)
-  const [isSliding, setIsSliding] = useState(true)
+  const [carouselState, setCarouselState] = useState({ index: 0, isSliding: true })
   const displayLocales = enabledLocales ?? SUPPORTED_LOCALES
+  const carouselIndex = carouselState.index
+  const isSliding = carouselState.isSliding
   const localeLabels = displayLocales.map(
     option => LOOP_LABELS[option] ?? option.toUpperCase(),
   )
@@ -70,23 +71,26 @@ export default function LocaleSwitcherMenuItem() {
     }
 
     const interval = window.setInterval(() => {
-      setIsSliding(true)
-      setCarouselIndex(prev => prev + 1)
+      setCarouselState(prev => ({
+        index: prev.index >= localeLabels.length ? 1 : prev.index + 1,
+        isSliding: true,
+      }))
     }, displayDurationMs + transitionDurationMs)
 
     return () => window.clearInterval(interval)
-  }, [shouldAnimate, displayDurationMs, transitionDurationMs])
-
-  useEffect(() => {
-    setCarouselIndex(0)
-    setIsSliding(true)
-  }, [displayLocales.length])
+  }, [shouldAnimate, displayDurationMs, transitionDurationMs, localeLabels.length])
 
   function handleCarouselTransitionEnd() {
-    if (carouselIndex === localeLabels.length) {
-      setIsSliding(false)
-      setCarouselIndex(0)
-    }
+    setCarouselState((prev) => {
+      if (prev.index < localeLabels.length) {
+        return prev
+      }
+
+      return {
+        index: 0,
+        isSliding: false,
+      }
+    })
   }
 
   function handleValueChange(nextLocale: string) {
