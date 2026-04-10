@@ -9,7 +9,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { BanknoteArrowDownIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { hashTypedData } from 'viem'
 import { useSignMessage } from 'wagmi'
@@ -111,13 +111,12 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
   }, [markets])
   const hasClaimableMarkets = claimableSignature.length > 0
 
-  useEffect(() => {
-    if (!isDialogOpen) {
-      return
+  const handleDialogOpenChange = useCallback((nextOpen: boolean) => {
+    setIsDialogOpen(nextOpen)
+    if (nextOpen) {
+      triggerConfetti('yes')
     }
-
-    triggerConfetti('yes')
-  }, [isDialogOpen])
+  }, [])
 
   const handleShareOnX = useCallback(() => {
     if (typeof window === 'undefined') {
@@ -303,7 +302,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
   }
 
   return (
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+    <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
       <Card className="relative z-0 w-full rounded-lg border bg-transparent">
         <CardContent
           className={`
