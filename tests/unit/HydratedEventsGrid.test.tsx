@@ -244,4 +244,45 @@ describe('hydratedEventsGrid', () => {
 
     expect(mocks.refetch).not.toHaveBeenCalled()
   })
+
+  it('refetches once when the client timestamp hydrates from null', async () => {
+    const filters = {
+      tag: 'trending',
+      mainTag: 'trending',
+      search: '',
+      bookmarked: false,
+      frequency: 'all',
+      status: 'active',
+      hideSports: false,
+      hideCrypto: false,
+      hideEarnings: false,
+    } as const
+
+    const hydratedTimestamp = Date.parse('2026-03-16T12:00:00.000Z')
+    mocks.useCurrentTimestamp.mockReturnValueOnce(null).mockReturnValue(hydratedTimestamp)
+
+    const { rerender } = render(
+      <HydratedEventsGrid
+        filters={filters}
+        initialEvents={[]}
+        initialCurrentTimestamp={null}
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    await act(async () => {
+      rerender(
+        <HydratedEventsGrid
+          filters={filters}
+          initialEvents={[]}
+          initialCurrentTimestamp={null}
+          routeMainTag="trending"
+          routeTag="trending"
+        />,
+      )
+    })
+
+    expect(mocks.refetch).toHaveBeenCalledTimes(1)
+  })
 })

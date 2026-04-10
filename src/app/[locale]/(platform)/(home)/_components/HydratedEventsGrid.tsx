@@ -164,8 +164,7 @@ export default function HydratedEventsGrid({
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const canRetryLoadMoreAfterErrorRef = useRef(true)
   const user = useUser()
-  const userCacheKey = user?.id ?? 'guest'
-  const queryUserScope = userCacheKey
+  const queryUserScope = user?.id ?? 'guest'
   const currentTimestamp = useCurrentTimestamp({
     initialTimestamp: initialCurrentTimestamp,
     intervalMs: HOME_FEED_REFRESH_INTERVAL_MS,
@@ -329,6 +328,11 @@ export default function HydratedEventsGrid({
         key: queryRunKey,
         timestamp: resolvedCurrentTimestamp,
       }
+
+      if (!isFetching && !isFetchingNextPage) {
+        void refetch()
+      }
+
       return
     }
 
