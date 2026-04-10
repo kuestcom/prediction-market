@@ -1,7 +1,7 @@
 'use client'
 
 import { ExternalLinkIcon, GripVerticalIcon, RadioIcon, XIcon } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { resolveLivestreamEmbedTarget } from '@/lib/livestream-embed'
 import { useSportsLivestream } from '@/stores/useSportsLivestream'
 
@@ -18,28 +18,32 @@ function clamp(value: number, min: number, max: number) {
   return value
 }
 
+function subscribeToViewportWidth(onStoreChange: () => void) {
+  window.addEventListener('resize', onStoreChange)
+  return () => {
+    window.removeEventListener('resize', onStoreChange)
+  }
+}
+
+function getViewportWidthSnapshot() {
+  return window.innerWidth
+}
+
+function getViewportWidthServerSnapshot() {
+  return 0
+}
+
 export default function SportsLivestreamFloatingPlayer() {
   const streamUrl = useSportsLivestream(state => state.streamUrl)
   const streamTitle = useSportsLivestream(state => state.streamTitle)
   const closeStream = useSportsLivestream(state => state.closeStream)
-  const [viewportWidth, setViewportWidth] = useState<number>(0)
-  const [playerWidth, setPlayerWidth] = useState(DEFAULT_PLAYER_WIDTH)
-  const [resizeSession, setResizeSession] = useState<{ startX: number, startY: number, startWidth: number } | null>(null)
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    function updateViewport() {
-      setViewportWidth(window.innerWidth)
-    }
-    updateViewport()
-    window.addEventListener('resize', updateViewport)
-    return () => {
-      window.removeEventListener('resize', updateViewport)
-    }
-  }, [])
+  const viewportWidth = useSyncExternalStore(
+    subscribeToViewportWidth,
+    getViewportWidthSnapshot,
+    getViewportWidthServerSnapshot,
+  )
+  const [requestedWidth, setRequestedWidth] = useState(DEFAULT_PLAYER_WIDTH)
+  const dragCleanupRef = useRef<(() => void) | null>(null)
 
   const maxWidth = useMemo(() => {
     if (viewportWidth <= 0) {
@@ -61,41 +65,14 @@ export default function SportsLivestreamFloatingPlayer() {
     return viewportWidth < 768 ? Math.min(300, Math.max(240, viewportWidth - 24)) : MIN_PLAYER_WIDTH
   }, [viewportWidth])
 
-  const effectiveWidth = useMemo(() => clamp(playerWidth, minWidth, maxWidth), [maxWidth, minWidth, playerWidth])
+  const effectiveWidth = useMemo(() => clamp(requestedWidth, minWidth, maxWidth), [maxWidth, minWidth, requestedWidth])
 
   useEffect(() => {
-    if (!streamUrl) {
-      setResizeSession(null)
-      return
+    function cleanupDragListenersOnUnmount() {
+      dragCleanupRef.current?.()
     }
-
-    setPlayerWidth(current => clamp(current || DEFAULT_PLAYER_WIDTH, minWidth, maxWidth))
-  }, [maxWidth, minWidth, streamUrl])
-
-  useEffect(() => {
-    if (!resizeSession) {
-      return
-    }
-    const session = resizeSession
-
-    function handlePointerMove(event: PointerEvent) {
-      const deltaX = session.startX - event.clientX
-      const deltaY = (session.startY - event.clientY) * (16 / 9)
-      const nextWidth = session.startWidth + Math.max(deltaX, deltaY)
-      setPlayerWidth(clamp(nextWidth, minWidth, maxWidth))
-    }
-
-    function handlePointerUp() {
-      setResizeSession(null)
-    }
-
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerUp)
-    }
-  }, [maxWidth, minWidth, resizeSession])
+    return cleanupDragListenersOnUnmount
+  }, [])
 
   const embedTarget = useMemo(() => {
     if (!streamUrl) {
@@ -123,7 +100,27 @@ export default function SportsLivestreamFloatingPlayer() {
           aria-label="Resize stream player"
           onPointerDown={(event) => {
             event.preventDefault()
-            setResizeSession({ startX: event.clientX, startY: event.clientY, startWidth: effectiveWidth })
+            const startX = event.clientX
+            const startY = event.clientY
+            const startWidth = effectiveWidth
+
+            function stopResize() {
+              window.removeEventListener('pointermove', handlePointerMove)
+              window.removeEventListener('pointerup', stopResize)
+              dragCleanupRef.current = null
+            }
+
+            function handlePointerMove(pointerEvent: PointerEvent) {
+              const deltaX = startX - pointerEvent.clientX
+              const deltaY = (startY - pointerEvent.clientY) * (16 / 9)
+              const nextWidth = startWidth + Math.max(deltaX, deltaY)
+              setRequestedWidth(clamp(nextWidth, minWidth, maxWidth))
+            }
+
+            dragCleanupRef.current?.()
+            window.addEventListener('pointermove', handlePointerMove)
+            window.addEventListener('pointerup', stopResize)
+            dragCleanupRef.current = stopResize
           }}
           className={`
             absolute top-0 left-0 z-10 size-6 cursor-nwse-resize bg-linear-to-br from-border/90 via-border/35
@@ -146,7 +143,10 @@ export default function SportsLivestreamFloatingPlayer() {
         <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
-            onClick={closeStream}
+            onClick={() => {
+              dragCleanupRef.current?.()
+              closeStream()
+            }}
             className={`
               inline-flex size-6 items-center justify-center rounded-sm text-muted-foreground transition-colors
               hover:bg-muted/80 hover:text-foreground
