@@ -1,8 +1,52 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 export type MarketDetailTab = 'orderBook' | 'graph' | 'resolution' | 'history' | 'positions' | 'openOrders'
 
 const DEFAULT_TAB: MarketDetailTab = 'orderBook'
+
+interface MarketDetailControllerState {
+  eventId: string
+  expandedMarketId: string | null
+  orderBookPollingEnabled: boolean
+  marketDetailTabById: Record<string, MarketDetailTab>
+}
+
+function createDefaultControllerState(eventId: string): MarketDetailControllerState {
+  return {
+    eventId,
+    expandedMarketId: null,
+    orderBookPollingEnabled: false,
+    marketDetailTabById: {},
+  }
+}
+
+function resolveControllerStateForEvent(
+  state: MarketDetailControllerState,
+  eventId: string,
+): MarketDetailControllerState {
+  if (state.eventId === eventId) {
+    return state
+  }
+
+  return createDefaultControllerState(eventId)
+}
+
+function withDefaultTab(
+  state: MarketDetailControllerState,
+  marketId: string,
+): MarketDetailControllerState {
+  if (state.marketDetailTabById[marketId]) {
+    return state
+  }
+
+  return {
+    ...state,
+    marketDetailTabById: {
+      ...state.marketDetailTabById,
+      [marketId]: DEFAULT_TAB,
+    },
+  }
+}
 
 export interface MarketDetailController {
   expandedMarketId: string | null
@@ -15,58 +59,73 @@ export interface MarketDetailController {
 }
 
 export function useMarketDetailController(eventId: string): MarketDetailController {
-  const [expandedMarketId, setExpandedMarketId] = useState<string | null>(null)
-  const [orderBookPollingEnabled, setOrderBookPollingEnabled] = useState(false)
-  const [marketDetailTabById, setMarketDetailTabById] = useState<Record<string, MarketDetailTab>>({})
-
-  useEffect(() => {
-    setExpandedMarketId(null)
-    setMarketDetailTabById({})
-    setOrderBookPollingEnabled(false)
-  }, [eventId])
-
-  const ensureDefaultTab = useCallback((marketId: string) => {
-    setMarketDetailTabById(prev => (prev[marketId]
-      ? prev
-      : { ...prev, [marketId]: DEFAULT_TAB }))
-  }, [])
+  const [controllerState, setControllerState] = useState<MarketDetailControllerState>(() => createDefaultControllerState(eventId))
+  const currentState = resolveControllerStateForEvent(controllerState, eventId)
 
   const expandMarket = useCallback((marketId: string) => {
-    ensureDefaultTab(marketId)
-    setOrderBookPollingEnabled(true)
-    setExpandedMarketId(marketId)
-  }, [ensureDefaultTab])
+    setControllerState((previousState) => {
+      const eventState = resolveControllerStateForEvent(previousState, eventId)
+      const withTab = withDefaultTab(eventState, marketId)
+      return {
+        ...withTab,
+        expandedMarketId: marketId,
+        orderBookPollingEnabled: true,
+      }
+    })
+  }, [eventId])
 
   const collapseMarket = useCallback(() => {
-    setExpandedMarketId(null)
-    setOrderBookPollingEnabled(false)
-  }, [])
+    setControllerState((previousState) => {
+      const eventState = resolveControllerStateForEvent(previousState, eventId)
+      return {
+        ...eventState,
+        expandedMarketId: null,
+        orderBookPollingEnabled: false,
+      }
+    })
+  }, [eventId])
 
   const toggleMarket = useCallback((marketId: string) => {
-    setExpandedMarketId((current) => {
-      if (current === marketId) {
-        setOrderBookPollingEnabled(false)
-        return null
+    setControllerState((previousState) => {
+      const eventState = resolveControllerStateForEvent(previousState, eventId)
+      if (eventState.expandedMarketId === marketId) {
+        return {
+          ...eventState,
+          expandedMarketId: null,
+          orderBookPollingEnabled: false,
+        }
       }
 
-      ensureDefaultTab(marketId)
-      setOrderBookPollingEnabled(true)
-      return marketId
+      const withTab = withDefaultTab(eventState, marketId)
+      return {
+        ...withTab,
+        expandedMarketId: marketId,
+        orderBookPollingEnabled: true,
+      }
     })
-  }, [ensureDefaultTab])
+  }, [eventId])
 
   const selectDetailTab = useCallback((marketId: string, tab: MarketDetailTab) => {
-    setMarketDetailTabById(prev => ({ ...prev, [marketId]: tab }))
-  }, [])
+    setControllerState((previousState) => {
+      const eventState = resolveControllerStateForEvent(previousState, eventId)
+      return {
+        ...eventState,
+        marketDetailTabById: {
+          ...eventState.marketDetailTabById,
+          [marketId]: tab,
+        },
+      }
+    })
+  }, [eventId])
 
   const getSelectedDetailTab = useCallback(
-    (marketId: string) => marketDetailTabById[marketId] ?? DEFAULT_TAB,
-    [marketDetailTabById],
+    (marketId: string) => currentState.marketDetailTabById[marketId] ?? DEFAULT_TAB,
+    [currentState.marketDetailTabById],
   )
 
   return {
-    expandedMarketId,
-    orderBookPollingEnabled,
+    expandedMarketId: currentState.expandedMarketId,
+    orderBookPollingEnabled: currentState.orderBookPollingEnabled,
     toggleMarket,
     expandMarket,
     collapseMarket,
