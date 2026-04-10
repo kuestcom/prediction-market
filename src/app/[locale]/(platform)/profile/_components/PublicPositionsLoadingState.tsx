@@ -1,7 +1,7 @@
 'use client'
 
 import { SearchIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import PublicPositionItemSkeleton from './PublicPositionItemSkeleton'
 
 interface PositionsLoadingStateProps {
@@ -12,6 +12,19 @@ interface PositionsLoadingStateProps {
   retryCount?: number
 }
 
+function subscribeToWindowResize(onStoreChange: () => void) {
+  window.addEventListener('resize', onStoreChange)
+  return () => window.removeEventListener('resize', onStoreChange)
+}
+
+function getViewportWidthSnapshot() {
+  return window.innerWidth
+}
+
+function getViewportWidthServerSnapshot() {
+  return 1024
+}
+
 export default function PublicPositionsLoadingState({
   skeletonCount,
   isSearchActive = false,
@@ -19,16 +32,12 @@ export default function PublicPositionsLoadingState({
   marketStatusFilter = 'active',
   retryCount = 0,
 }: PositionsLoadingStateProps) {
-  const [resolvedCount, setResolvedCount] = useState(() => skeletonCount ?? 8)
-
-  useEffect(() => {
-    if (skeletonCount !== undefined) {
-      setResolvedCount(skeletonCount)
-      return
-    }
-
-    setResolvedCount(window.innerWidth < 768 ? 6 : 8)
-  }, [skeletonCount])
+  const viewportWidth = useSyncExternalStore(
+    subscribeToWindowResize,
+    getViewportWidthSnapshot,
+    getViewportWidthServerSnapshot,
+  )
+  const resolvedCount = skeletonCount ?? (viewportWidth < 768 ? 6 : 8)
 
   return (
     <div className="overflow-hidden rounded-lg border border-border">
