@@ -141,14 +141,59 @@ export default function SportsEventsGrid({
   const locale = useLocale()
   const parentRef = useRef<HTMLDivElement | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
-  const canRetryLoadMoreAfterErrorRef = useRef(true)
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
-  const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
-  const [sportsMode, setSportsMode] = useState<SportsSidebarMode>(initialMode)
+  const sportsMode: SportsSidebarMode = initialMode
+  const normalizedSportsSportSlug = sportsSportSlug?.trim().toLowerCase() || null
+  const queryScopeKey = useMemo(
+    () => [
+      filters.bookmarked,
+      filters.frequency,
+      filters.hideCrypto,
+      filters.hideEarnings,
+      filters.hideSports,
+      eventTag,
+      filters.search,
+      filters.status,
+      locale,
+      mainTag,
+      normalizedSportsSportSlug,
+      sportsMode,
+      sportsSection,
+      sportsVertical,
+      userCacheKey,
+    ].join('|'),
+    [
+      eventTag,
+      filters.bookmarked,
+      filters.frequency,
+      filters.hideCrypto,
+      filters.hideEarnings,
+      filters.hideSports,
+      filters.search,
+      filters.status,
+      locale,
+      mainTag,
+      normalizedSportsSportSlug,
+      sportsMode,
+      sportsSection,
+      sportsVertical,
+      userCacheKey,
+    ],
+  )
+  const [infiniteScrollErrorState, setInfiniteScrollErrorState] = useState<{ key: string, error: string | null }>({
+    key: queryScopeKey,
+    error: null,
+  })
+  const infiniteScrollError = infiniteScrollErrorState.key === queryScopeKey
+    ? infiniteScrollErrorState.error
+    : null
+  const canRetryStateRef = useRef<{ key: string, canRetry: boolean }>({ key: queryScopeKey, canRetry: true })
+  if (canRetryStateRef.current.key !== queryScopeKey) {
+    canRetryStateRef.current = { key: queryScopeKey, canRetry: true }
+  }
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const PAGE_SIZE = HOME_EVENTS_PAGE_SIZE
-  const normalizedSportsSportSlug = sportsSportSlug?.trim().toLowerCase() || null
   const isDefaultState = filters.search === ''
     && !filters.bookmarked
     && filters.frequency === 'all'
@@ -206,7 +251,13 @@ export default function SportsEventsGrid({
   })
 
   const previousUserKeyRef = useRef(userCacheKey)
-  const [stablePriceOverridesByMarket, setStablePriceOverridesByMarket] = useState<Record<string, number>>(EMPTY_PRICE_OVERRIDES)
+  const [stablePriceOverrideState, setStablePriceOverrideState] = useState<{
+    signature: string
+    overrides: Record<string, number>
+  }>({
+    signature: '',
+    overrides: EMPTY_PRICE_OVERRIDES,
+  })
   const pendingPriceOverrideSignatureRef = useRef<string>('')
   const priceOverrideCommitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -218,31 +269,6 @@ export default function SportsEventsGrid({
     previousUserKeyRef.current = userCacheKey
     void refetch()
   }, [refetch, userCacheKey])
-
-  useEffect(() => {
-    setSportsMode(initialMode)
-  }, [initialMode])
-
-  useEffect(() => {
-    setInfiniteScrollError(null)
-    canRetryLoadMoreAfterErrorRef.current = true
-  }, [
-    filters.bookmarked,
-    filters.frequency,
-    filters.hideCrypto,
-    filters.hideEarnings,
-    filters.hideSports,
-    eventTag,
-    filters.search,
-    filters.status,
-    locale,
-    mainTag,
-    sportsVertical,
-    normalizedSportsSportSlug,
-    sportsMode,
-    sportsSection,
-    userCacheKey,
-  ])
 
   const allEvents = useMemo(() => (data ? data.pages.flat() : []), [data])
 
@@ -327,6 +353,9 @@ export default function SportsEventsGrid({
       .join('|'),
     [priceOverridesByMarket],
   )
+  const stablePriceOverridesByMarket = stablePriceOverrideState.signature === priceOverrideSignature
+    ? stablePriceOverrideState.overrides
+    : EMPTY_PRICE_OVERRIDES
 
   const columns = useColumns()
   const activeColumns = columns >= 3 ? columns - 1 : columns
@@ -342,7 +371,6 @@ export default function SportsEventsGrid({
 
     if (!priceOverrideSignature) {
       pendingPriceOverrideSignatureRef.current = ''
-      setStablePriceOverridesByMarket(current => (Object.keys(current).length === 0 ? current : EMPTY_PRICE_OVERRIDES))
       return
     }
 
@@ -353,13 +381,15 @@ export default function SportsEventsGrid({
         return
       }
 
-      setStablePriceOverridesByMarket((current) => {
-        const currentSignature = Object.entries(current)
-          .sort(([left], [right]) => left.localeCompare(right))
-          .map(([marketId, price]) => `${marketId}:${price}`)
-          .join('|')
+      setStablePriceOverrideState((current) => {
+        if (current.signature === priceOverrideSignature) {
+          return current
+        }
 
-        return currentSignature === priceOverrideSignature ? current : nextOverrides
+        return {
+          signature: priceOverrideSignature,
+          overrides: nextOverrides,
+        }
       })
     }, SPORTS_LIVE_OVERRIDE_SETTLE_DELAY_MS)
 
@@ -382,7 +412,7 @@ export default function SportsEventsGrid({
       }
 
       if (!entry.isIntersecting) {
-        canRetryLoadMoreAfterErrorRef.current = true
+        canRetryStateRef.current = { key: queryScopeKey, canRetry: true }
         return
       }
 
@@ -391,11 +421,11 @@ export default function SportsEventsGrid({
       }
 
       if (infiniteScrollError) {
-        if (!canRetryLoadMoreAfterErrorRef.current) {
+        if (!canRetryStateRef.current.canRetry) {
           return
         }
 
-        setInfiniteScrollError(null)
+        setInfiniteScrollErrorState({ key: queryScopeKey, error: null })
       }
 
       fetchNextPage().catch((error: any) => {
@@ -403,14 +433,17 @@ export default function SportsEventsGrid({
           return
         }
 
-        canRetryLoadMoreAfterErrorRef.current = false
-        setInfiniteScrollError(error?.message || 'Failed to load more events.')
+        canRetryStateRef.current = { key: queryScopeKey, canRetry: false }
+        setInfiniteScrollErrorState({
+          key: queryScopeKey,
+          error: error?.message || 'Failed to load more events.',
+        })
       })
     }, { rootMargin: '200px 0px' })
 
     observer.observe(loadMoreRef.current)
     return () => observer.disconnect()
-  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage])
+  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage, queryScopeKey])
 
   if (isLoadingNewData) {
     return (
