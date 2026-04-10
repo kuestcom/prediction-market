@@ -37,6 +37,7 @@ describe('homeContent', () => {
       tag: 'ai',
       mainTag: 'tech',
       locale: 'en',
+      currentTimestamp: expect.any(Number),
     }))
   })
 })
