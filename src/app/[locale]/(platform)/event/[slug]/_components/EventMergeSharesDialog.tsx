@@ -106,9 +106,15 @@ export default function EventMergeSharesDialog({
     setIsSubmitting(false)
   }
 
+  function closeDialog() {
+    resetDialogState()
+    onOpenChange(false)
+  }
+
   function handleDialogOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
-      resetDialogState()
+      closeDialog()
+      return
     }
     onOpenChange(nextOpen)
   }
@@ -183,7 +189,7 @@ export default function EventMergeSharesDialog({
       const nonceResult = await getSafeNonceAction()
       if (nonceResult.error || !nonceResult.nonce) {
         if (isTradingAuthRequiredError(nonceResult.error)) {
-          onOpenChange(false)
+          closeDialog()
           openTradeRequirements({ forceTradingAuth: true })
         }
         else {
@@ -239,7 +245,7 @@ export default function EventMergeSharesDialog({
 
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
-          onOpenChange(false)
+          closeDialog()
           openTradeRequirements({ forceTradingAuth: true })
         }
         else {
@@ -329,8 +335,7 @@ export default function EventMergeSharesDialog({
       )
 
       void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
-      setAmount('')
-      onOpenChange(false)
+      closeDialog()
     }
     catch (error) {
       console.error('Failed to submit merge operation.', error)

@@ -1514,6 +1514,21 @@ export default function EventOrderPanelForm({
     state.setLimitPrice(cents.toFixed(1))
   }
 
+  function handleOutcomeSelect(nextOutcome: Outcome | null | undefined) {
+    if (!activeMarket || !nextOutcome) {
+      return
+    }
+
+    clearValidationFeedback()
+
+    if (!state.market) {
+      state.setMarket(activeMarket)
+    }
+
+    state.setOutcome(nextOutcome)
+    focusInput()
+  }
+
   return (
     <Form
       action={onSubmit}
@@ -1615,16 +1630,7 @@ export default function EventOrderPanelForm({
                   oddsFormat={oddsFormat}
                   styleVariant={outcomeButtonStyleVariant}
                   selectedAccent={outcomeAccentOverrides[normalizedPrimaryOutcomeIndex] ?? null}
-                  onSelect={() => {
-                    if (!activeMarket || !primaryOutcome) {
-                      return
-                    }
-                    if (!state.market) {
-                      state.setMarket(activeMarket)
-                    }
-                    state.setOutcome(primaryOutcome)
-                    focusInput()
-                  }}
+                  onSelect={() => handleOutcomeSelect(primaryOutcome)}
                 />
                 <EventOrderPanelOutcomeButton
                   variant="no"
@@ -1638,16 +1644,7 @@ export default function EventOrderPanelForm({
                   oddsFormat={oddsFormat}
                   styleVariant={outcomeButtonStyleVariant}
                   selectedAccent={outcomeAccentOverrides[normalizedSecondaryOutcomeIndex] ?? null}
-                  onSelect={() => {
-                    if (!activeMarket || !secondaryOutcome) {
-                      return
-                    }
-                    if (!state.market) {
-                      state.setMarket(activeMarket)
-                    }
-                    state.setOutcome(secondaryOutcome)
-                    focusInput()
-                  }}
+                  onSelect={() => handleOutcomeSelect(secondaryOutcome)}
                 />
               </div>
 
