@@ -47,7 +47,6 @@ function ProfitLossCard({
   const platformName = site.name ?? ''
   const [activeTimeframe, setActiveTimeframe] = useState<(typeof PNL_TIMEFRAMES)[number]>('ALL')
   const [cursorX, setCursorX] = useState<number | null>(null)
-  const [pnlSeries, setPnlSeries] = useState<PnlPoint[]>([])
   const timeRangeContainerRef = useRef<HTMLDivElement | null>(null)
   const timeRangeRef = useRef<(HTMLButtonElement | null)[]>([])
   const [timeRangeIndicator, setTimeRangeIndicator] = useState({ width: 0, left: 0 })
@@ -61,10 +60,15 @@ function ProfitLossCard({
     .replace(/fill="url\([^"]+\)"/gi, 'fill="currentColor"')
   const pnlAddress = portfolioAddress
   const pnlBaseUrl = process.env.USER_PNL_URL!
+  const pnlSeriesKey = `${pnlAddress ?? ''}:${pnlBaseUrl}:${activeTimeframe}`
+  const [pnlSeriesState, setPnlSeriesState] = useState<{ key: string, series: PnlPoint[] }>({
+    key: pnlSeriesKey,
+    series: [],
+  })
+  const pnlSeries = pnlSeriesState.key === pnlSeriesKey ? pnlSeriesState.series : []
 
   useEffect(() => {
     if (!pnlAddress || !pnlBaseUrl) {
-      setPnlSeries([])
       return
     }
 
@@ -94,7 +98,7 @@ function ProfitLossCard({
       })
       .then((data) => {
         if (!Array.isArray(data)) {
-          setPnlSeries([])
+          setPnlSeriesState({ key: pnlSeriesKey, series: [] })
           return
         }
 
@@ -108,20 +112,20 @@ function ProfitLossCard({
           .sort((a, b) => a.date.getTime() - b.date.getTime())
 
         if (normalized.length === 0) {
-          setPnlSeries([])
+          setPnlSeriesState({ key: pnlSeriesKey, series: [] })
           return
         }
 
-        setPnlSeries(normalized)
+        setPnlSeriesState({ key: pnlSeriesKey, series: normalized })
       })
       .catch((error) => {
         if (error?.name !== 'AbortError') {
-          setPnlSeries([])
+          setPnlSeriesState({ key: pnlSeriesKey, series: [] })
         }
       })
 
     return () => controller.abort()
-  }, [activeTimeframe, pnlAddress, pnlBaseUrl])
+  }, [activeTimeframe, pnlAddress, pnlBaseUrl, pnlSeriesKey])
 
   const updateIndicator = useCallback(() => {
     const activeIndex = PNL_TIMEFRAMES.findIndex(range => range === activeTimeframe)
