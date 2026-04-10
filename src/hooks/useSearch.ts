@@ -1,5 +1,5 @@
 import type { SearchLoadingStates, SearchResultItems } from '@/types'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { sortSearchResultEvents } from '@/lib/event-search-results'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 
@@ -27,7 +27,7 @@ export function useSearch(): UseSearch {
     profiles: false,
   })
   const [showResults, setShowResults] = useState(false)
-  const [activeTab, setActiveTab] = useState<'events' | 'profiles'>('events')
+  const [manualActiveTab, setManualActiveTab] = useState<'events' | 'profiles' | null>(null)
   const requestIdRef = useRef(0)
 
   const searchEvents = useCallback(async (searchQuery: string, requestId: number) => {
@@ -162,23 +162,35 @@ export function useSearch(): UseSearch {
     return () => clearTimeout(timer)
   }, [query, search])
 
-  useEffect(() => {
-    const hasEvents = results.events.length > 0 || isLoading.events
-    const hasProfiles = results.profiles.length > 0 || isLoading.profiles
+  const hasEvents = results.events.length > 0 || isLoading.events
+  const hasProfiles = results.profiles.length > 0 || isLoading.profiles
+  const activeTab = useMemo<'events' | 'profiles'>(() => {
+    if (manualActiveTab === 'events' && !hasEvents && hasProfiles) {
+      return 'profiles'
+    }
+
+    if (manualActiveTab === 'profiles' && !hasProfiles && hasEvents) {
+      return 'events'
+    }
+
+    if (manualActiveTab) {
+      return manualActiveTab
+    }
 
     if (hasEvents && !hasProfiles) {
-      queueMicrotask(() => setActiveTab('events'))
+      return 'events'
     }
-    else if (!hasEvents && hasProfiles) {
-      queueMicrotask(() => setActiveTab('profiles'))
+
+    if (!hasEvents && hasProfiles) {
+      return 'profiles'
     }
-    else if (hasEvents && hasProfiles) {
-      queueMicrotask(() => setActiveTab('events'))
-    }
-  }, [results.events.length, results.profiles.length, isLoading.events, isLoading.profiles])
+
+    return 'events'
+  }, [hasEvents, hasProfiles, manualActiveTab])
 
   function handleQueryChange(newQuery: string) {
     requestIdRef.current += 1
+    setManualActiveTab(null)
     setQuery(newQuery)
   }
 
@@ -188,7 +200,7 @@ export function useSearch(): UseSearch {
     setResults({ events: [], profiles: [] })
     setIsLoading({ events: false, profiles: false })
     setShowResults(false)
-    setActiveTab('events')
+    setManualActiveTab(null)
   }
 
   function hideResults() {
@@ -204,7 +216,7 @@ export function useSearch(): UseSearch {
   }
 
   function handleSetActiveTab(tab: 'events' | 'profiles') {
-    setActiveTab(tab)
+    setManualActiveTab(tab)
   }
 
   return {
