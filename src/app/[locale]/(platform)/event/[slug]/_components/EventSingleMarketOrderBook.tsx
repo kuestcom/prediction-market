@@ -3,7 +3,7 @@
 import type { Market, Outcome } from '@/types'
 import { InfoIcon, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import ConnectionStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/ConnectionStatusIndicator'
 import { useMarketChannelStatus } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventOrderBook, {
@@ -39,19 +39,11 @@ export default function EventSingleMarketOrderBook({
   const setOrderMarket = useOrder(state => state.setMarket)
   const setOrderOutcome = useOrder(state => state.setOutcome)
 
-  const initialOutcomeIndex = useMemo<OutcomeToggleIndex>(() => {
+  const selectedOutcomeIndex: OutcomeToggleIndex = useMemo(() => {
     if (orderMarket?.condition_id === market.condition_id && orderOutcome) {
       return orderOutcome.outcome_index === OUTCOME_INDEX.NO ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES
     }
     return OUTCOME_INDEX.YES
-  }, [orderMarket?.condition_id, orderOutcome, market.condition_id])
-
-  const [selectedOutcomeIndex, setSelectedOutcomeIndex] = useState<OutcomeToggleIndex>(initialOutcomeIndex)
-
-  useEffect(() => {
-    if (orderMarket?.condition_id === market.condition_id && orderOutcome) {
-      setSelectedOutcomeIndex(orderOutcome.outcome_index === OUTCOME_INDEX.NO ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES)
-    }
   }, [orderMarket?.condition_id, orderOutcome, market.condition_id])
 
   const tokenIds = useMemo(
@@ -91,7 +83,6 @@ export default function EventSingleMarketOrderBook({
   }, [market.volume, showCompactVolume])
 
   function handleOutcomeSelection(outcomeIndex: OutcomeToggleIndex) {
-    setSelectedOutcomeIndex(outcomeIndex)
     const outcome = market.outcomes[outcomeIndex]
     if (!outcome) {
       return
