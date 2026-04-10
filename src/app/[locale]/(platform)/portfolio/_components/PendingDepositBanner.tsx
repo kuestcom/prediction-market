@@ -2,7 +2,7 @@
 
 import type { SafeOperationType } from '@/lib/safe/transactions'
 import { ArrowDownToLineIcon, CheckIcon, Loader2Icon } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { hashTypedData } from 'viem'
 import { useSignMessage } from 'wagmi'
@@ -43,24 +43,29 @@ export default function PendingDepositBanner() {
     maximumFractionDigits: 2,
   }), [pendingBalance.raw])
 
-  useEffect(() => {
-    if (!open) {
-      setStep('prompt')
-      setStatusMessage(null)
-    }
-  }, [open])
+  const resetDialogState = useCallback(() => {
+    setStep('prompt')
+    setStatusMessage(null)
+  }, [])
 
-  useEffect(() => {
-    if (step !== 'success') {
+  const openDialog = useCallback(() => {
+    resetDialogState()
+    setOpen(true)
+  }, [resetDialogState])
+
+  const closeDialog = useCallback(() => {
+    setOpen(false)
+    resetDialogState()
+  }, [resetDialogState])
+
+  const handleOpenChange = useCallback((next: boolean) => {
+    if (next) {
+      openDialog()
       return
     }
 
-    triggerConfettiColorful()
-  }, [step])
-
-  const handleOpenChange = useCallback((next: boolean) => {
-    setOpen(next)
-  }, [])
+    closeDialog()
+  }, [openDialog, closeDialog])
 
   const handleConfirm = useCallback(async () => {
     if (step === 'signing') {
@@ -92,7 +97,7 @@ export default function PendingDepositBanner() {
 
       if (buildResult.error || !buildResult.payload) {
         if (isTradingAuthRequiredError(buildResult.error)) {
-          setOpen(false)
+          closeDialog()
           openTradeRequirements({ forceTradingAuth: true })
         }
         else {
@@ -139,7 +144,7 @@ export default function PendingDepositBanner() {
       const submitResult = await submitPendingUsdcSwapAction(submitPayload)
       if (submitResult.error) {
         if (isTradingAuthRequiredError(submitResult.error)) {
-          setOpen(false)
+          closeDialog()
           openTradeRequirements({ forceTradingAuth: true })
         }
         else {
@@ -151,6 +156,7 @@ export default function PendingDepositBanner() {
 
       await new Promise(resolve => setTimeout(resolve, CONFIRMATION_DELAY_MS))
       setStep('success')
+      triggerConfettiColorful()
       void refetchPendingDeposit()
     }
     catch (error) {
@@ -162,6 +168,7 @@ export default function PendingDepositBanner() {
     }
   }, [
     openTradeRequirements,
+    closeDialog,
     pendingBalance.rawBase,
     refetchPendingDeposit,
     runWithSignaturePrompt,
@@ -172,9 +179,9 @@ export default function PendingDepositBanner() {
   ])
 
   const handleStartTrading = useCallback(() => {
-    setOpen(false)
+    closeDialog()
     router.push('/')
-  }, [router])
+  }, [closeDialog, router])
 
   if (!hasPendingDeposit) {
     return null
@@ -184,7 +191,7 @@ export default function PendingDepositBanner() {
     <>
       <Button
         className="h-11 w-full justify-between px-4 text-left"
-        onClick={() => setOpen(true)}
+        onClick={openDialog}
       >
         <span className="text-sm font-semibold">Confirm pending deposit</span>
         <ArrowDownToLineIcon className="size-4" />
