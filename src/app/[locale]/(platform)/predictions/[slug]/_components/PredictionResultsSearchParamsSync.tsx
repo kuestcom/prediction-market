@@ -5,7 +5,7 @@ import type {
   PredictionResultsStatusOption,
 } from '@/lib/prediction-results-filters'
 import { useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
 import {
   resolvePredictionResultsFiltersFromSearchParams,
 } from '@/lib/prediction-results-filters'
@@ -21,7 +21,7 @@ export default function PredictionResultsSearchParamsSync({
 }) {
   const searchParams = useSearchParams()
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     onChange(resolvePredictionResultsFiltersFromSearchParams(searchParams))
   }, [onChange, searchParams])
 
