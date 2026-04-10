@@ -10,7 +10,7 @@ import { useAppKitAccount } from '@reown/appkit/react'
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import { BookmarkIcon, CheckIcon, ChevronRightIcon, Clock3Icon, FlameIcon, MessageCircleIcon, SearchIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
-import { startTransition, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useCommentMetrics } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
 import { resolveResolvedOrderPanelDisplay } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
 import PredictionResultsFilters from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsFilters'
@@ -28,7 +28,6 @@ import {
 } from '@/components/ui/drawer'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAppKit } from '@/hooks/useAppKit'
-import { useDebounce } from '@/hooks/useDebounce'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
@@ -59,6 +58,16 @@ interface PredictionResultsClientProps {
 }
 
 const COMPETITIVE_NEUTRAL_PROBABILITY = 50
+const TIMESTAMP_REFRESH_MS = 60_000
+
+function subscribeToCurrentTimestamp(onStoreChange: () => void) {
+  const intervalId = window.setInterval(onStoreChange, TIMESTAMP_REFRESH_MS)
+  return () => window.clearInterval(intervalId)
+}
+
+function getCurrentTimestampSnapshot() {
+  return Math.floor(Date.now() / TIMESTAMP_REFRESH_MS) * TIMESTAMP_REFRESH_MS
+}
 
 function resolvePrimaryMarket(event: Event): Market | null {
   if (event.markets.length === 0) {
@@ -261,19 +270,42 @@ export default function PredictionResultsClient({
   const { isConnected } = useAppKitAccount()
   const pathname = usePathname()
   const router = useRouter()
-  const lastRequestedUrlRef = useRef<string | null>(null)
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [searchValue, setSearchValue] = useState(initialInputValue)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [selectedSort, setSelectedSort] = useState(initialSort)
-  const [selectedStatus, setSelectedStatus] = useState(initialStatus)
-  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(initialCurrentTimestamp)
+  const routeScopeKey = `${routeMainTag}:${routeTag}:${initialQuery}`
+  const searchScopeKey = `${routeScopeKey}:${initialInputValue}`
+  const [isBookmarkedState, setIsBookmarkedState] = useState<{ key: string, value: boolean }>({ key: routeScopeKey, value: false })
+  const [isDrawerOpenState, setIsDrawerOpenState] = useState<{ key: string, value: boolean }>({ key: routeScopeKey, value: false })
+  const [searchValueState, setSearchValueState] = useState<{ key: string, value: string }>({ key: searchScopeKey, value: initialInputValue })
+  const [selectedSortState, setSelectedSortState] = useState<{ key: string, value: PredictionResultsSortOption }>({
+    key: routeScopeKey,
+    value: initialSort,
+  })
+  const [selectedStatusState, setSelectedStatusState] = useState<{ key: string, value: PredictionResultsStatusOption }>({
+    key: routeScopeKey,
+    value: initialStatus,
+  })
+  const isBookmarked = isBookmarkedState.key === routeScopeKey ? isBookmarkedState.value : false
+  const searchValue = searchValueState.key === searchScopeKey ? searchValueState.value : initialInputValue
+  const isDrawerOpen = isDrawerOpenState.key === routeScopeKey ? isDrawerOpenState.value : false
+  const selectedSort = selectedSortState.key === routeScopeKey ? selectedSortState.value : initialSort
+  const selectedStatus = selectedStatusState.key === routeScopeKey ? selectedStatusState.value : initialStatus
+  const currentTimestamp = useSyncExternalStore(
+    subscribeToCurrentTimestamp,
+    getCurrentTimestampSnapshot,
+    () => initialCurrentTimestamp,
+  )
   const [searchParamsString, setSearchParamsString] = useState('')
-  const [searchParamsPathname, setSearchParamsPathname] = useState<string | null>(null)
-  const debouncedSearchValue = useDebounce(searchValue, 300)
+  const searchDebounceTimeoutRef = useRef<number | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
-  const canRetryLoadMoreAfterErrorRef = useRef(true)
-  const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
+  const infiniteScrollScopeKey = `${initialQuery}:${selectedSort}:${selectedStatus}:${isBookmarked}:${locale}:${routeMainTag}:${routeTag}`
+  const canRetryLoadMoreStateRef = useRef<{ key: string, value: boolean }>({ key: infiniteScrollScopeKey, value: true })
+  const [infiniteScrollErrorState, setInfiniteScrollErrorState] = useState<{ key: string, value: string | null }>({
+    key: infiniteScrollScopeKey,
+    value: null,
+  })
+  const infiniteScrollError = infiniteScrollErrorState.key === infiniteScrollScopeKey ? infiniteScrollErrorState.value : null
+  if (canRetryLoadMoreStateRef.current.key !== infiniteScrollScopeKey) {
+    canRetryLoadMoreStateRef.current = { key: infiniteScrollScopeKey, value: true }
+  }
   const canUseInitialData = !isBookmarked && selectedSort === initialSort && selectedStatus === initialStatus
 
   const {
@@ -316,29 +348,12 @@ export default function PredictionResultsClient({
   })
 
   useEffect(() => {
-    function updateCurrentTimestamp() {
-      setCurrentTimestamp(Math.floor(Date.now() / 60_000) * 60_000)
+    return () => {
+      if (searchDebounceTimeoutRef.current) {
+        window.clearTimeout(searchDebounceTimeoutRef.current)
+      }
     }
-
-    updateCurrentTimestamp()
-    const intervalId = window.setInterval(updateCurrentTimestamp, 60_000)
-
-    return () => window.clearInterval(intervalId)
   }, [])
-
-  useEffect(() => {
-    setSearchValue(current => current === initialInputValue ? current : initialInputValue)
-  }, [initialInputValue])
-
-  useEffect(() => {
-    setIsBookmarked(false)
-    setIsDrawerOpen(false)
-  }, [initialQuery, routeMainTag, routeTag])
-
-  useEffect(() => {
-    setInfiniteScrollError(null)
-    canRetryLoadMoreAfterErrorRef.current = true
-  }, [initialQuery, selectedSort, selectedStatus, isBookmarked, locale, routeMainTag, routeTag])
 
   useEffect(() => {
     if (!loadMoreRef.current || !hasNextPage) {
@@ -346,57 +361,20 @@ export default function PredictionResultsClient({
     }
 
     const observer = new IntersectionObserver(([entry]) => {
-      if (!entry?.isIntersecting || !canRetryLoadMoreAfterErrorRef.current || isFetchingNextPage) {
+      if (!entry?.isIntersecting || !canRetryLoadMoreStateRef.current.value || isFetchingNextPage) {
         return
       }
 
       void fetchNextPage().catch((fetchError: Error) => {
-        canRetryLoadMoreAfterErrorRef.current = false
-        setInfiniteScrollError(fetchError.message || 'Failed to load more results.')
+        canRetryLoadMoreStateRef.current = { key: infiniteScrollScopeKey, value: false }
+        setInfiniteScrollErrorState({ key: infiniteScrollScopeKey, value: fetchError.message || 'Failed to load more results.' })
       })
     }, { rootMargin: '240px 0px' })
 
     observer.observe(loadMoreRef.current)
 
     return () => observer.disconnect()
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
-
-  useEffect(() => {
-    if (searchParamsPathname !== pathname) {
-      return
-    }
-
-    const nextPath = buildPredictionResultsPath(debouncedSearchValue)
-    if (!nextPath) {
-      return
-    }
-
-    const nextParams = buildPredictionResultsUrlSearchParams(searchParamsString, {
-      sort: selectedSort,
-      status: selectedStatus,
-    })
-    const nextQuery = nextParams.toString()
-    const nextUrl = nextQuery ? `${nextPath}?${nextQuery}` : nextPath
-    const currentUrl = searchParamsString ? `${pathname}?${searchParamsString}` : pathname
-
-    if (nextUrl === currentUrl || nextUrl === lastRequestedUrlRef.current) {
-      return
-    }
-
-    lastRequestedUrlRef.current = nextUrl
-
-    startTransition(() => {
-      router.replace(nextUrl as Route, { scroll: false })
-    })
-  }, [debouncedSearchValue, pathname, router, searchParamsPathname, searchParamsString, selectedSort, selectedStatus])
-
-  useEffect(() => {
-    const currentUrl = searchParamsString ? `${pathname}?${searchParamsString}` : pathname
-
-    if (lastRequestedUrlRef.current === currentUrl) {
-      lastRequestedUrlRef.current = null
-    }
-  }, [pathname, searchParamsString])
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, infiniteScrollScopeKey])
 
   const visibleEvents = useMemo(() => {
     const pages = data?.pages.flat() ?? initialEvents
@@ -408,46 +386,86 @@ export default function PredictionResultsClient({
   const showInitialSkeleton = visibleEvents.length === 0 && (isPending || isFetching)
 
   function replaceRoute({
+    nextSearchValue = null,
     nextSort = selectedSort,
     nextStatus = selectedStatus,
+    immediate = true,
   }: {
+    nextSearchValue?: string | null
     nextSort?: PredictionResultsSortOption
     nextStatus?: PredictionResultsStatusOption
+    immediate?: boolean
   }) {
+    const nextPath = nextSearchValue == null
+      ? pathname
+      : buildPredictionResultsPath(nextSearchValue)
+
+    if (!nextPath) {
+      return
+    }
+
     const nextParams = buildPredictionResultsUrlSearchParams(searchParamsString, {
       sort: nextSort,
       status: nextStatus,
     })
     const nextQuery = nextParams.toString()
-    const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname
+    const nextUrl = nextQuery ? `${nextPath}?${nextQuery}` : nextPath
+    const currentUrl = searchParamsString ? `${pathname}?${searchParamsString}` : pathname
 
-    if (nextSort === selectedSort && nextStatus === selectedStatus) {
+    if (nextUrl === currentUrl) {
       return
     }
 
-    setSelectedSort(nextSort)
-    setSelectedStatus(nextStatus)
+    function runReplace() {
+      startTransition(() => {
+        router.replace(nextUrl as Route, { scroll: false })
+      })
+    }
 
-    startTransition(() => {
-      router.replace(nextUrl as Route, { scroll: false })
-    })
+    if (immediate) {
+      runReplace()
+      return
+    }
+
+    if (searchDebounceTimeoutRef.current) {
+      window.clearTimeout(searchDebounceTimeoutRef.current)
+    }
+    searchDebounceTimeoutRef.current = window.setTimeout(() => {
+      searchDebounceTimeoutRef.current = null
+      runReplace()
+    }, 300)
   }
 
   function handleRetryLoadMore() {
-    canRetryLoadMoreAfterErrorRef.current = true
-    setInfiniteScrollError(null)
+    canRetryLoadMoreStateRef.current = { key: infiniteScrollScopeKey, value: true }
+    setInfiniteScrollErrorState({ key: infiniteScrollScopeKey, value: null })
     void fetchNextPage().catch((fetchError: Error) => {
-      canRetryLoadMoreAfterErrorRef.current = false
-      setInfiniteScrollError(fetchError.message || 'Failed to load more results.')
+      canRetryLoadMoreStateRef.current = { key: infiniteScrollScopeKey, value: false }
+      setInfiniteScrollErrorState({ key: infiniteScrollScopeKey, value: fetchError.message || 'Failed to load more results.' })
+    })
+  }
+
+  function handleSearchValueChange(nextValue: string) {
+    setSearchValueState({ key: searchScopeKey, value: nextValue })
+    replaceRoute({
+      nextSearchValue: nextValue,
+      nextSort: selectedSort,
+      nextStatus: selectedStatus,
+      immediate: false,
     })
   }
 
   function handleClearFilters() {
-    setIsBookmarked(false)
-    setSearchValue(initialInputValue)
+    setIsBookmarkedState({ key: routeScopeKey, value: false })
+    setIsDrawerOpenState({ key: routeScopeKey, value: false })
+    setSearchValueState({ key: searchScopeKey, value: initialInputValue })
+    setSelectedSortState({ key: routeScopeKey, value: DEFAULT_PREDICTION_RESULTS_SORT })
+    setSelectedStatusState({ key: routeScopeKey, value: DEFAULT_PREDICTION_RESULTS_STATUS })
     replaceRoute({
+      nextSearchValue: initialInputValue,
       nextSort: DEFAULT_PREDICTION_RESULTS_SORT,
       nextStatus: DEFAULT_PREDICTION_RESULTS_STATUS,
+      immediate: true,
     })
   }
 
@@ -457,7 +475,13 @@ export default function PredictionResultsClient({
       return
     }
 
-    setIsBookmarked(current => !current)
+    setIsBookmarkedState((current) => {
+      const currentValue = current.key === routeScopeKey ? current.value : false
+      return {
+        key: routeScopeKey,
+        value: !currentValue,
+      }
+    })
   }
 
   const filtersContent = (
@@ -465,9 +489,15 @@ export default function PredictionResultsClient({
       searchValue={searchValue}
       sort={selectedSort}
       status={selectedStatus}
-      onSearchValueChange={setSearchValue}
-      onSortChange={value => replaceRoute({ nextSort: value })}
-      onStatusChange={value => replaceRoute({ nextStatus: value })}
+      onSearchValueChange={handleSearchValueChange}
+      onSortChange={((value) => {
+        setSelectedSortState({ key: routeScopeKey, value })
+        replaceRoute({ nextSort: value, immediate: true })
+      })}
+      onStatusChange={((value) => {
+        setSelectedStatusState({ key: routeScopeKey, value })
+        replaceRoute({ nextStatus: value, immediate: true })
+      })}
     />
   )
 
@@ -476,10 +506,15 @@ export default function PredictionResultsClient({
       <Suspense fallback={null}>
         <PredictionResultsSearchParamsSync
           onChange={({ searchParamsString: nextSearchParamsString, sort, status }) => {
-            setSearchParamsPathname(current => current === pathname ? current : pathname)
             setSearchParamsString(current => current === nextSearchParamsString ? current : nextSearchParamsString)
-            setSelectedSort(current => current === sort ? current : sort)
-            setSelectedStatus(current => current === status ? current : status)
+            setSelectedSortState((current) => {
+              const currentValue = current.key === routeScopeKey ? current.value : initialSort
+              return currentValue === sort ? current : { key: routeScopeKey, value: sort }
+            })
+            setSelectedStatusState((current) => {
+              const currentValue = current.key === routeScopeKey ? current.value : initialStatus
+              return currentValue === status ? current : { key: routeScopeKey, value: status }
+            })
           }}
         />
       </Suspense>
@@ -533,7 +568,10 @@ export default function PredictionResultsClient({
               <BookmarkIcon className={cn('size-6 md:size-5', { 'fill-primary text-primary': isBookmarked })} />
             </Button>
 
-            <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+            <Drawer
+              open={isDrawerOpen}
+              onOpenChange={nextOpen => setIsDrawerOpenState({ key: routeScopeKey, value: nextOpen })}
+            >
               <DrawerTrigger asChild>
                 <Button
                   type="button"
