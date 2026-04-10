@@ -67,6 +67,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { useRouter } from '@/i18n/navigation'
@@ -189,10 +190,6 @@ function resolveInitialShowSpreadsAndTotals() {
   }
 
   return window.localStorage.getItem(SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY) === '1'
-}
-
-function resolveInitialCurrentTimestampMs() {
-  return Date.now()
 }
 
 const PredictionChart = dynamic<PredictionChartProps>(
@@ -3902,7 +3899,8 @@ export default function SportsGamesCenter({
   const [searchQuery, setSearchQuery] = useState('')
   const [oddsFormat, setOddsFormat] = useState<OddsFormat>(() => resolveInitialSportsEventOddsFormat())
   const [showSpreadsAndTotals, setShowSpreadsAndTotals] = useState(() => resolveInitialShowSpreadsAndTotals())
-  const [currentTimestampMs, setCurrentTimestampMs] = useState(() => resolveInitialCurrentTimestampMs())
+  const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
+  const currentTimestampMs = currentTimestamp ?? 0
   const searchShellRef = useRef<HTMLDivElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const openLivestream = useSportsLivestream(state => state.openStream)
@@ -3926,16 +3924,6 @@ export default function SportsGamesCenter({
     (card: SportsGamesCard) => resolveCardCategoryLabel(card, normalizedCategoryTitleBySlug),
     [normalizedCategoryTitleBySlug],
   )
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setCurrentTimestampMs(Date.now())
-    }, 60_000)
-
-    return () => {
-      window.clearInterval(intervalId)
-    }
-  }, [])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
