@@ -16,7 +16,7 @@ import { scaleLinear, scaleTime } from '@visx/scale'
 import { LinePath } from '@visx/shape'
 import { useTooltip } from '@visx/tooltip'
 import { bisector } from 'd3-array'
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import PredictionChartHeader from '@/components/PredictionChartHeader'
 import PredictionChartTooltipOverlay from '@/components/PredictionChartTooltipOverlay'
 import {
@@ -648,7 +648,7 @@ export function PredictionChart({
     })
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isClient) {
       return
     }
@@ -661,7 +661,7 @@ export function PredictionChart({
     }
   }, [providedSeries, isClient])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isClient) {
       return
     }
@@ -785,21 +785,21 @@ export function PredictionChart({
     })
   }, [providedData, normalizedSignature, isClient])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setHoveredAnnotationClusterId(null)
   }, [normalizedSignature, showAnnotations])
 
-  useEffect(
+  useLayoutEffect(
     () => () => stopRevealAnimation(revealAnimationFrameRef),
     [revealAnimationFrameRef],
   )
 
-  useEffect(
+  useLayoutEffect(
     () => () => stopRevealAnimation(crossFadeFrameRef),
     [crossFadeFrameRef],
   )
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     return () => {
       if (surgeTimeoutRef.current) {
         window.clearTimeout(surgeTimeoutRef.current)
@@ -807,7 +807,7 @@ export function PredictionChart({
     }
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (data.length === 0) {
       stopRevealAnimation(revealAnimationFrameRef)
       stopRevealAnimation(crossFadeFrameRef)
@@ -898,7 +898,7 @@ export function PredictionChart({
     previousDataRef.current = data
   }, [data, series, revealAnimationFrameRef, crossFadeFrameRef, disableResetAnimation])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof document === 'undefined') {
       return
     }
@@ -917,7 +917,7 @@ export function PredictionChart({
     return () => observer.disconnect()
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (crossFadeData && crossFadeProgress >= 0.999) {
       setCrossFadeData(null)
     }
@@ -936,7 +936,7 @@ export function PredictionChart({
     return 'rgba(15, 23, 42, 0.55)'
   }, [isDarkMode])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!surgePendingRef.current) {
       return
     }
