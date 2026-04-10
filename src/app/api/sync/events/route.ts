@@ -198,7 +198,7 @@ async function getAllowedCreators(): Promise<string[]> {
  * This function syncs prediction markets from the Goldsky PnL subgraph:
  * - Fetches new markets from blockchain via subgraph (INCREMENTAL)
  * - Downloads metadata and images from Irys
- * - Stores everything in database and configured object storage
+ * - Stores everything in the database and configured object storage
  */
 export async function GET(request: Request) {
   const auth = request.headers.get('authorization')

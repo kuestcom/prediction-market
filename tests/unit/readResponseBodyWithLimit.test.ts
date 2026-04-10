@@ -28,6 +28,18 @@ describe('readResponseBodyWithLimit', () => {
     expect(bytes).toBeNull()
   })
 
+  it('rejects responses with a negative content length header', async () => {
+    const response = new Response('hello', {
+      headers: {
+        'content-length': '-1',
+      },
+    })
+
+    const bytes = await readResponseBodyWithLimit(response, 32)
+
+    expect(bytes).toBeNull()
+  })
+
   it('rejects streaming responses that exceed the byte limit without content length', async () => {
     const response = new Response(new ReadableStream({
       start(controller) {

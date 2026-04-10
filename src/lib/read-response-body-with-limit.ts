@@ -6,7 +6,7 @@ export async function readResponseBodyWithLimit(response: Response, maxBytes: nu
   const contentLengthHeader = response.headers.get('content-length')
   const contentLength = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : Number.NaN
 
-  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+  if (Number.isFinite(contentLength) && (contentLength < 0 || contentLength > maxBytes)) {
     return null
   }
 

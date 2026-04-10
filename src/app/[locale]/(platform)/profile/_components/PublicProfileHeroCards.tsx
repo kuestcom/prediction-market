@@ -112,13 +112,7 @@ function ProfitLossCard({
           return
         }
 
-        const base = normalized[0].value
-        const rebased = normalized.map(point => ({
-          ...point,
-          value: point.value - base,
-        }))
-
-        setPnlSeries(rebased)
+        setPnlSeries(normalized)
       })
       .catch((error) => {
         if (error?.name !== 'AbortError') {

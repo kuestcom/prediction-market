@@ -13,9 +13,9 @@ import ProfileLink from '@/components/ProfileLink'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
-import { useWindowSize } from '@/hooks/useWindowSize'
 import { useRouter } from '@/i18n/navigation'
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
+import { PUBLIC_ALLOWED_MARKET_CREATORS_PATH } from '@/lib/allowed-market-creators'
 import { MICRO_UNIT } from '@/lib/constants'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 import { formatCurrency, formatSharePriceLabel, formatTimeAgo, toMicro } from '@/lib/formatters'
@@ -26,6 +26,7 @@ import { createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
 type LiveActivityPayload = DataApiActivity & {
   category?: string
+  creator?: string
   mainCategory?: string
   main_category?: string
   tag?: string
@@ -185,10 +186,17 @@ function hasText(value?: string | null) {
   return Boolean(value && value.trim())
 }
 
-function getBaseVisibleCount(windowHeight: number) {
-  const viewportHeight = windowHeight || 800
-  const estimate = Math.ceil(viewportHeight / ROW_HEIGHT_ESTIMATE) + 6
-  return Math.min(MAX_VISIBLE_ITEMS, Math.max(MIN_VISIBLE_ITEMS, estimate))
+function normalizeWalletAddress(value?: string | null) {
+  if (!value) {
+    return null
+  }
+
+  const normalized = value.trim().toLowerCase()
+  return normalized || null
+}
+
+function resolveActivityCreatorWallet(payload: LiveActivityPayload) {
+  return normalizeWalletAddress(payload.creator)
 }
 
 export default function ActivityFeed() {
@@ -201,22 +209,63 @@ export default function ActivityFeed() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [minAmountFilter, setMinAmountFilter] = useState<string>('none')
   const [items, setItems] = useState<LiveActivityItem[]>([])
-  const [loadMoreCount, setLoadMoreCount] = useState<number>(0)
+  const [allowedCreatorWallets, setAllowedCreatorWallets] = useState<ReadonlySet<string> | null>(null)
+  const [baseVisibleCount, setBaseVisibleCount] = useState<number>(20)
+  const [visibleCount, setVisibleCount] = useState<number>(20)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const seenIdsRef = useRef<Set<string>>(new Set())
-  const { height: windowHeight } = useWindowSize()
   const categoryValues = useMemo(() => buildActivityCategoryValues(tags), [tags])
   const categoryOptions = useMemo(
     () => buildActivityCategoryOptions(tags, t('All')),
     [t, tags],
   )
-  const resolvedCategoryFilter = categoryFilter !== 'all' && !categoryValues.has(categoryFilter)
-    ? 'all'
-    : categoryFilter
-  const baseVisibleCount = useMemo(() => getBaseVisibleCount(windowHeight), [windowHeight])
 
   useEffect(() => {
-    if (!wsUrl) {
+    const abortController = new AbortController()
+
+    async function loadAllowedCreators() {
+      try {
+        const response = await fetch(PUBLIC_ALLOWED_MARKET_CREATORS_PATH, {
+          signal: abortController.signal,
+          cache: 'no-store',
+        })
+
+        if (!response.ok) {
+          setAllowedCreatorWallets(new Set())
+          return
+        }
+
+        const payload = await response.json() as { wallets: string[] }
+
+        const wallets = payload.wallets
+          .map(wallet => normalizeWalletAddress(wallet))
+          .filter((wallet): wallet is string => Boolean(wallet))
+        setAllowedCreatorWallets(new Set(wallets))
+      }
+      catch (error) {
+        if (abortController.signal.aborted) {
+          return
+        }
+        console.error('Failed to load allowed market creator wallets:', error)
+        setAllowedCreatorWallets(new Set())
+      }
+    }
+
+    void loadAllowedCreators()
+
+    return () => {
+      abortController.abort()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (categoryFilter !== 'all' && !categoryValues.has(categoryFilter)) {
+      setCategoryFilter('all')
+    }
+  }, [categoryFilter, categoryValues])
+
+  useEffect(() => {
+    if (!wsUrl || !allowedCreatorWallets) {
       return
     }
     wsUrlRef.current = wsUrl
@@ -264,6 +313,11 @@ export default function ActivityFeed() {
       const nextItems: LiveActivityItem[] = []
 
       for (const rawPayload of rawItems) {
+        const creatorWallet = resolveActivityCreatorWallet(rawPayload)
+        if (!creatorWallet || !allowedCreatorWallets?.has(creatorWallet)) {
+          continue
+        }
+
         const hasTitle = hasText(rawPayload.title)
         const hasMarketSlug = hasText(rawPayload.slug)
         const hasUser = hasText(rawPayload.pseudonym) || hasText(rawPayload.name) || hasText(rawPayload.proxyWallet)
@@ -387,7 +441,20 @@ export default function ActivityFeed() {
         ws.close()
       }
     }
-  }, [categoryValues, wsUrl])
+  }, [allowedCreatorWallets, categoryValues, wsUrl])
+
+  useEffect(() => {
+    function updateBaseCount() {
+      const viewportHeight = window.innerHeight || 800
+      const estimate = Math.ceil(viewportHeight / ROW_HEIGHT_ESTIMATE) + 6
+      const clamped = Math.min(MAX_VISIBLE_ITEMS, Math.max(MIN_VISIBLE_ITEMS, estimate))
+      setBaseVisibleCount(clamped)
+    }
+
+    updateBaseCount()
+    window.addEventListener('resize', updateBaseCount)
+    return () => window.removeEventListener('resize', updateBaseCount)
+  }, [])
 
   const minAmountMicro = useMemo(() => {
     const parsed = Number(minAmountFilter)
@@ -399,36 +466,37 @@ export default function ActivityFeed() {
 
   const filteredOrders = useMemo(() => {
     let filtered = items
-    if (resolvedCategoryFilter !== 'all') {
-      filtered = filtered.filter(item => item.categories.includes(resolvedCategoryFilter))
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(item => item.categories.includes(categoryFilter))
     }
     return filterActivitiesByMinAmount(filtered.map(item => item.order), minAmountMicro)
-  }, [resolvedCategoryFilter, items, minAmountMicro])
+  }, [categoryFilter, items, minAmountMicro])
 
   const minAmountDisplay = useMemo(() => {
     return MIN_AMOUNT_OPTIONS.find(option => option.value === minAmountFilter)?.display ?? 'Min amount'
   }, [minAmountFilter])
 
   const categoryDisplay = useMemo(() => {
-    return categoryOptions.find(option => option.value === resolvedCategoryFilter)?.label ?? t('All')
-  }, [resolvedCategoryFilter, categoryOptions, t])
+    return categoryOptions.find(option => option.value === categoryFilter)?.label ?? t('All')
+  }, [categoryFilter, categoryOptions, t])
+
+  useEffect(() => {
+    setVisibleCount(baseVisibleCount)
+  }, [baseVisibleCount, categoryFilter, minAmountFilter])
+
+  useEffect(() => {
+    setVisibleCount((current) => {
+      if (filteredOrders.length === 0) {
+        return baseVisibleCount
+      }
+      const clamped = Math.min(current, filteredOrders.length)
+      return Math.max(baseVisibleCount, clamped)
+    })
+  }, [baseVisibleCount, filteredOrders.length])
 
   const pageSize = Math.max(6, Math.round(baseVisibleCount * 0.6))
-  const visibleCount = filteredOrders.length === 0
-    ? baseVisibleCount
-    : Math.min(filteredOrders.length, baseVisibleCount + loadMoreCount)
   const hasHiddenItems = visibleCount < filteredOrders.length
   const visibleOrders = filteredOrders.slice(0, visibleCount)
-
-  function handleCategoryFilterChange(nextCategoryFilter: string) {
-    setCategoryFilter(nextCategoryFilter)
-    setLoadMoreCount(0)
-  }
-
-  function handleMinAmountFilterChange(nextMinAmountFilter: string) {
-    setMinAmountFilter(nextMinAmountFilter)
-    setLoadMoreCount(0)
-  }
 
   useEffect(() => {
     const node = loadMoreRef.current
@@ -442,14 +510,14 @@ export default function ActivityFeed() {
         if (!entry?.isIntersecting) {
           return
         }
-        setLoadMoreCount(current => current + pageSize)
+        setVisibleCount(current => Math.min(current + pageSize, filteredOrders.length))
       },
       { rootMargin: '200px 0px' },
     )
 
     observer.observe(node)
     return () => observer.disconnect()
-  }, [hasHiddenItems, pageSize])
+  }, [filteredOrders.length, hasHiddenItems, pageSize])
 
   const isLoading = items.length === 0
 
@@ -471,7 +539,7 @@ export default function ActivityFeed() {
           {t('Activity')}
         </h1>
         <div className="flex flex-wrap items-center gap-3">
-          <Select value={resolvedCategoryFilter} onValueChange={handleCategoryFilterChange}>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="h-10 text-base font-medium text-foreground">
               <SelectValue asChild>
                 <span className="line-clamp-1">{categoryDisplay}</span>
@@ -486,7 +554,7 @@ export default function ActivityFeed() {
             </SelectContent>
           </Select>
 
-          <Select value={minAmountFilter} onValueChange={handleMinAmountFilterChange}>
+          <Select value={minAmountFilter} onValueChange={setMinAmountFilter}>
             <SelectTrigger className="h-10 text-base font-medium text-foreground">
               <SelectValue asChild>
                 <span className="line-clamp-1">{minAmountDisplay}</span>
