@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useSyncExternalStore } from 'react'
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { formatCompactCount } from '@/lib/formatters'
 
 interface EventTweetMarketsPanelProps {
@@ -69,8 +69,26 @@ function buildCountdownUnits(
 
 const COUNTDOWN_TICK_INTERVAL_MS = 1000
 
-function subscribeToNow(onStoreChange: () => void) {
-  const interval = window.setInterval(onStoreChange, COUNTDOWN_TICK_INTERVAL_MS)
+function hasValidCountdownTarget(countdownTargetMs: number | null) {
+  return countdownTargetMs != null && Number.isFinite(countdownTargetMs)
+}
+
+function subscribeToNow(
+  onStoreChange: () => void,
+  countdownTargetMs: number | null,
+  isFinal: boolean,
+) {
+  if (isFinal || !hasValidCountdownTarget(countdownTargetMs) || countdownTargetMs <= Date.now()) {
+    return () => {}
+  }
+
+  const interval = window.setInterval(() => {
+    onStoreChange()
+    if (Date.now() >= countdownTargetMs) {
+      window.clearInterval(interval)
+    }
+  }, COUNTDOWN_TICK_INTERVAL_MS)
+
   return () => {
     window.clearInterval(interval)
   }
@@ -89,7 +107,11 @@ export default function EventTweetMarketsPanel({
   countdownTargetMs,
   isFinal = false,
 }: EventTweetMarketsPanelProps) {
-  const nowMs = useSyncExternalStore(subscribeToNow, getNowSnapshot, getServerNowSnapshot)
+  const subscribeToNowForCountdown = useCallback(
+    (onStoreChange: () => void) => subscribeToNow(onStoreChange, countdownTargetMs, isFinal),
+    [countdownTargetMs, isFinal],
+  )
+  const nowMs = useSyncExternalStore(subscribeToNowForCountdown, getNowSnapshot, getServerNowSnapshot)
 
   const countdownUnits = useMemo(
     () => buildCountdownUnits(countdownTargetMs, nowMs, isFinal),

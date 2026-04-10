@@ -21,8 +21,6 @@ export default function LocaleSwitcherMenuItem() {
   const [enabledLocales, setEnabledLocales] = useState<SupportedLocale[] | null>(null)
   const [carouselState, setCarouselState] = useState({ index: 0, isSliding: true })
   const displayLocales = enabledLocales ?? SUPPORTED_LOCALES
-  const carouselIndex = carouselState.index
-  const isSliding = carouselState.isSliding
   const localeLabels = displayLocales.map(
     option => LOOP_LABELS[option] ?? option.toUpperCase(),
   )
@@ -31,6 +29,10 @@ export default function LocaleSwitcherMenuItem() {
     localeLabels[0],
   ].filter(Boolean)
   const shouldAnimate = localeLabels.length > 1
+  const carouselIndex = shouldAnimate
+    ? Math.min(carouselState.index, localeLabels.length)
+    : 0
+  const isSliding = carouselState.isSliding
   const displayDurationMs = 1800
   const transitionDurationMs = 240
   const itemHeightRem = 1.25
