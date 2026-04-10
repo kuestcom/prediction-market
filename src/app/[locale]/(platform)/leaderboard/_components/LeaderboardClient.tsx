@@ -167,15 +167,35 @@ function formatValueOrDash(value?: number) {
   return formatCurrency(value as number, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
+function buildFiltersKey(filters: LeaderboardFilters) {
+  return `${filters.category}:${filters.period}:${filters.order}`
+}
+
+function buildLeaderboardScopeKey(filters: LeaderboardFilters, searchQuery: string) {
+  return `${buildFiltersKey(filters)}:${searchQuery}`
+}
+
 export default function LeaderboardClient({ initialFilters }: { initialFilters: LeaderboardFilters }) {
   const router = useRouter()
   const user = useUser()
-  const [filters, setFilters] = useState<LeaderboardFilters>(initialFilters)
+  const initialFiltersKey = buildFiltersKey(initialFilters)
+  const [filtersState, setFiltersState] = useState<{ key: string, value: LeaderboardFilters }>(() => ({
+    key: initialFiltersKey,
+    value: initialFilters,
+  }))
   const [entries, setEntries] = useState<LeaderboardEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [loadedLeaderboardKey, setLoadedLeaderboardKey] = useState<string | null>(null)
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [page, setPage] = useState(1)
+  const filters = filtersState.key === initialFiltersKey ? filtersState.value : initialFilters
+  const leaderboardScopeKey = buildLeaderboardScopeKey(filters, searchQuery)
+  const [pageState, setPageState] = useState<{ key: string, value: number }>({
+    key: leaderboardScopeKey,
+    value: 1,
+  })
+  const page = pageState.key === leaderboardScopeKey ? pageState.value : 1
+  const leaderboardRequestKey = `${leaderboardScopeKey}:${page}`
+  const isLoading = loadedLeaderboardKey !== leaderboardRequestKey
   const [userEntry, setUserEntry] = useState<LeaderboardEntry | null>(null)
   const initialBiggestWinsKey = `${resolveCategoryApiValue(initialFilters.category)}:${resolvePeriodApiValue(initialFilters.period)}`
   const initialBiggestWins = BIGGEST_WINS_CACHE.get(initialBiggestWinsKey) ?? []
@@ -187,10 +207,6 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
   )
 
   useEffect(() => {
-    setFilters(initialFilters)
-  }, [initialFilters])
-
-  useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setSearchQuery(searchInput.trim())
     }, 300)
@@ -199,12 +215,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
   }, [searchInput])
 
   useEffect(() => {
-    setPage(1)
-  }, [filters.category, filters.period, filters.order, searchQuery])
-
-  useEffect(() => {
     const controller = new AbortController()
-    setIsLoading(true)
 
     const params = new URLSearchParams({
       limit: String(PAGE_SIZE),
@@ -236,16 +247,15 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
       })
       .finally(() => {
         if (!controller.signal.aborted) {
-          setIsLoading(false)
+          setLoadedLeaderboardKey(leaderboardRequestKey)
         }
       })
 
     return () => controller.abort()
-  }, [filters.category, filters.period, filters.order, searchQuery, page])
+  }, [filters.category, filters.period, filters.order, searchQuery, page, leaderboardRequestKey])
 
   useEffect(() => {
     if (!userAddress) {
-      setUserEntry(null)
       return
     }
 
@@ -333,9 +343,23 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
   )
 
   function updateFilters(next: LeaderboardFilters) {
-    setFilters(next)
+    setFiltersState({
+      key: initialFiltersKey,
+      value: next,
+    })
     const nextPath = buildLeaderboardPath(next) as Route
     router.push(nextPath)
+  }
+
+  function setPageValue(nextPage: number | ((currentPage: number) => number)) {
+    setPageState((currentState) => {
+      const currentPage = currentState.key === leaderboardScopeKey ? currentState.value : 1
+      const resolvedPage = typeof nextPage === 'function' ? nextPage(currentPage) : nextPage
+      return {
+        key: leaderboardScopeKey,
+        value: Math.max(1, resolvedPage),
+      }
+    })
   }
 
   const rowClassName = cn(
@@ -742,7 +766,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
               <div className="mt-4 flex items-center justify-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                  onClick={() => setPageValue(prev => Math.max(1, prev - 1))}
                   className={paginationChevronClass(page === 1)}
                   disabled={page === 1}
                   aria-label="Previous page"
@@ -753,7 +777,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
                   <button
                     key={`leaderboard-page-${pageNumber}`}
                     type="button"
-                    onClick={() => setPage(pageNumber)}
+                    onClick={() => setPageValue(pageNumber)}
                     className={paginationButtonClass(pageNumber === page)}
                     aria-current={pageNumber === page ? 'page' : undefined}
                   >
@@ -763,7 +787,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
                 <span className="text-sm text-muted-foreground">…</span>
                 <button
                   type="button"
-                  onClick={() => setPage(prev => prev + 1)}
+                  onClick={() => setPageValue(prev => prev + 1)}
                   className={paginationChevronClass(false)}
                   aria-label="Next page"
                 >
