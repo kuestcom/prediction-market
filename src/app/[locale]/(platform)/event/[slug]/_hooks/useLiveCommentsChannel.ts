@@ -101,6 +101,8 @@ interface LiveCommentsChannelParams {
 export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveCommentsChannelParams) {
   const queryClient = useQueryClient()
   const wsUrl = process.env.WS_LIVE_DATA_URL!
+  const isEnabled = enabled ?? true
+  const shouldConnect = Boolean(eventSlug && wsUrl && isEnabled)
   const userRef = useRef<User | null>(user)
   const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>('connecting')
 
@@ -109,9 +111,7 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
   }, [user])
 
   useEffect(() => {
-    const isEnabled = enabled ?? true
-    if (!eventSlug || !wsUrl || !isEnabled) {
-      setStatus('offline')
+    if (!shouldConnect) {
       return
     }
 
@@ -356,7 +356,7 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
         ws.close()
       }
     }
-  }, [enabled, eventSlug, queryClient, wsUrl])
+  }, [queryClient, shouldConnect, eventSlug, wsUrl])
 
-  return { status }
+  return { status: shouldConnect ? status : 'offline' }
 }
