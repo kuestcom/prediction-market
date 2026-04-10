@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import type { EventSeriesEntry } from '@/types'
 import { ChevronDownIcon, GavelIcon, TriangleIcon } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState, useSyncExternalStore } from 'react'
 import AppLink from '@/components/AppLink'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -12,6 +12,22 @@ import { cn } from '@/lib/utils'
 
 const MAX_PAST_RESULT_BADGES = 5
 const LIVE_TRADING_WINDOW_MS = 24 * 60 * 60 * 1000
+const NOW_TICK_INTERVAL_MS = 1000
+
+function subscribeToNowTimestamp(onStoreChange: () => void) {
+  const interval = window.setInterval(onStoreChange, NOW_TICK_INTERVAL_MS)
+  return () => {
+    window.clearInterval(interval)
+  }
+}
+
+function getNowTimestampSnapshot() {
+  return Date.now()
+}
+
+function getServerNowTimestampSnapshot() {
+  return 0
+}
 
 function parseSeriesEventDate(value: string | null | undefined) {
   if (!value) {
@@ -259,19 +275,11 @@ export default function EventSeriesPills({
 }: EventSeriesPillsProps) {
   const [isPastMenuOpen, setIsPastMenuOpen] = useState(false)
   const [hoveredPastBadgeId, setHoveredPastBadgeId] = useState<string | null>(null)
-  const [nowTimestamp, setNowTimestamp] = useState(0)
-
-  useEffect(() => {
-    setNowTimestamp(Date.now())
-
-    const interval = window.setInterval(() => {
-      setNowTimestamp(Date.now())
-    }, 1000)
-
-    return () => {
-      window.clearInterval(interval)
-    }
-  }, [])
+  const nowTimestamp = useSyncExternalStore(
+    subscribeToNowTimestamp,
+    getNowTimestampSnapshot,
+    getServerNowTimestampSnapshot,
+  )
 
   const {
     pastResolvedEvents,
