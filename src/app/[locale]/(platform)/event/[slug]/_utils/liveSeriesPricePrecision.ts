@@ -27,3 +27,19 @@ export function resolveLiveSeriesPriceDisplayDigits(
 
   return resolveAdaptiveCryptoPriceDigits(referencePrice)
 }
+
+export function resolveLiveSeriesDeltaDisplayDigits(
+  priceDisplayDigits: number,
+  delta?: number | null,
+) {
+  const normalizedDigits = Number.isFinite(priceDisplayDigits)
+    ? Math.max(0, Math.floor(priceDisplayDigits))
+    : 2
+
+  const absDelta = Math.abs(Number(delta))
+  if (Number.isFinite(absDelta) && absDelta > 1) {
+    return 0
+  }
+
+  return Math.max(2, normalizedDigits)
+}

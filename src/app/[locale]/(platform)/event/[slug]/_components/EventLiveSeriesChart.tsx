@@ -13,6 +13,7 @@ import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 import {
+  resolveLiveSeriesDeltaDisplayDigits,
   resolveLiveSeriesPriceDisplayDigits,
   resolveLiveSeriesTopicPriceDigits,
 } from '../_utils/liveSeriesPricePrecision'
@@ -1215,10 +1216,10 @@ function EventLiveSeriesChartContent({
     precisionReferencePrice,
   )
   const headerPriceDisplayDigits = Math.max(2, priceDisplayDigits)
-  const deltaDisplayDigits = priceDisplayDigits >= 4 ? 4 : 0
   const delta = currentPrice != null && resolvedBaselinePrice != null
     ? currentPrice - resolvedBaselinePrice
     : null
+  const deltaDisplayDigits = resolveLiveSeriesDeltaDisplayDigits(priceDisplayDigits, delta)
   const rawAxisValues = useMemo(() => {
     const values = axisSourceData
       .map(point => point[SERIES_KEY])
