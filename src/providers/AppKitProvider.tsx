@@ -22,39 +22,10 @@ import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
 let hasInitializedAppKit = false
 let appKitInstance: AppKit | null = null
-const SIWE_TWO_FACTOR_INTENT_COOKIE = 'siwe_2fa_intent'
 const SignaturePrompt = dynamic(
   () => import('@/components/SignaturePrompt').then(mod => mod.SignaturePrompt),
   { ssr: false },
 )
-
-function setSiweTwoFactorIntentCookie() {
-  if (!IS_BROWSER) {
-    return
-  }
-
-  const secure = window.location.protocol === 'https:' ? '; Secure' : ''
-  document.cookie = `${SIWE_TWO_FACTOR_INTENT_COOKIE}=1; Max-Age=180; Path=/; SameSite=Lax${secure}`
-}
-
-function hasSiweTwoFactorIntentCookie() {
-  if (!IS_BROWSER) {
-    return false
-  }
-
-  return document.cookie
-    .split('; ')
-    .some(cookie => cookie.startsWith(`${SIWE_TWO_FACTOR_INTENT_COOKIE}=`))
-}
-
-function clearSiweTwoFactorIntentCookie() {
-  if (!IS_BROWSER) {
-    return
-  }
-
-  const secure = window.location.protocol === 'https:' ? '; Secure' : ''
-  document.cookie = `${SIWE_TWO_FACTOR_INTENT_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax${secure}`
-}
 
 function clearAppKitState() {
   if (!IS_BROWSER) {
@@ -137,8 +108,7 @@ function initializeAppKitSingleton(
             })
             // @ts-expect-error does not recognize twoFactorRedirect
             if (data?.twoFactorRedirect && typeof window !== 'undefined') {
-              if (stripLocalePrefix(window.location.pathname) !== '/2fa' && hasSiweTwoFactorIntentCookie()) {
-                clearSiweTwoFactorIntentCookie()
+              if (stripLocalePrefix(window.location.pathname) !== '/2fa') {
                 window.location.href = buildTwoFactorRedirectPath(window.location.pathname, window.location.search)
               }
               return false
@@ -219,7 +189,6 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
       setCanSyncTheme(true)
       setAppKitValue({
         open: async (options) => {
-          setSiweTwoFactorIntentCookie()
           await instance.open(options)
         },
         close: async () => {

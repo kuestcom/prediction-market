@@ -133,8 +133,8 @@ export default async function proxy(request: NextRequest) {
   }
 
   const hasTwoFactorCookie = Boolean(
-    request.cookies.get('__Secure-better-auth.siwe_2fa_pending')
-    ?? request.cookies.get('better-auth.siwe_2fa_pending'),
+    request.cookies.get('__Secure-better-auth.two_factor')
+    ?? request.cookies.get('better-auth.two_factor'),
   )
   const session = await auth.api.getSession({
     headers: request.headers,

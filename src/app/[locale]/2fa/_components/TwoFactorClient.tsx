@@ -14,7 +14,6 @@ import { signOutAndRedirect } from '@/lib/logout'
 import { useUser } from '@/stores/useUser'
 
 const CODE_LENGTH = 6
-const SIWE_TWO_FACTOR_INTENT_COOKIE = 'siwe_2fa_intent'
 
 function getSafeRedirect(value: string | null | undefined) {
   if (!value) {
@@ -26,15 +25,6 @@ function getSafeRedirect(value: string | null | undefined) {
   }
 
   return value
-}
-
-function clearSiweTwoFactorIntentCookie() {
-  if (typeof document === 'undefined') {
-    return
-  }
-
-  const secure = window.location.protocol === 'https:' ? '; Secure' : ''
-  document.cookie = `${SIWE_TWO_FACTOR_INTENT_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax${secure}`
 }
 
 export default function TwoFactorClient({ next }: { next?: string | null }) {
@@ -104,7 +94,6 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
         })
       }
 
-      clearSiweTwoFactorIntentCookie()
       router.replace(redirectTo as Route)
     }
     catch {
