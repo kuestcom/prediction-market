@@ -42,6 +42,41 @@ const MOBILE_MENU_ITEM_GAP = 4
 const MOBILE_MENU_MIN_VISIBLE_LINKS = 1
 const MOBILE_MENU_DEFAULT_VISIBLE_LINKS = 5
 
+type GroupExpansionOverride = { type: 'none' } | { type: 'group', groupId: string } | null
+
+function resolveMobileVisiblePrimaryLinkCount(width: number) {
+  if (width <= 0) {
+    return MOBILE_MENU_DEFAULT_VISIBLE_LINKS
+  }
+
+  const slotCount = Math.max(
+    2,
+    Math.floor((width + MOBILE_MENU_ITEM_GAP) / (MOBILE_MENU_ITEM_MIN_WIDTH + MOBILE_MENU_ITEM_GAP)),
+  )
+  return Math.max(MOBILE_MENU_MIN_VISIBLE_LINKS, slotCount - 1)
+}
+
+function resolveExpandedGroupId(
+  override: GroupExpansionOverride,
+  activeGroupId: string | null,
+  visibleEntries: SportsMenuEntry[],
+) {
+  if (override?.type === 'none') {
+    return null
+  }
+
+  if (override?.type === 'group') {
+    const hasGroup = visibleEntries
+      .filter(isGroupEntry)
+      .some(entry => entry.id === override.groupId)
+    if (hasGroup) {
+      return override.groupId
+    }
+  }
+
+  return activeGroupId
+}
+
 function normalizeTagSlug(value: string | null | undefined) {
   return value?.trim().toLowerCase() || ''
 }
@@ -607,11 +642,20 @@ export default function SportsSidebarMenu({
   )
   const mobileQuickMenuContainerRef = useRef<HTMLDivElement | null>(null)
   const [isMobileMoreMenuOpen, setIsMobileMoreMenuOpen] = useState(false)
-  const [mobileVisiblePrimaryLinkCount, setMobileVisiblePrimaryLinkCount] = useState(
-    MOBILE_MENU_DEFAULT_VISIBLE_LINKS,
+  const [mobileVisiblePrimaryLinkCount, setMobileVisiblePrimaryLinkCount] = useState(() => {
+    if (typeof window === 'undefined') {
+      return MOBILE_MENU_DEFAULT_VISIBLE_LINKS
+    }
+    return resolveMobileVisiblePrimaryLinkCount(window.innerWidth)
+  })
+  const [groupExpansionOverride, setGroupExpansionOverride] = useState<GroupExpansionOverride>(null)
+  const activeGroupId = useMemo(
+    () => findActiveGroupId(visibleEntries, activeTagSlug),
+    [activeTagSlug, visibleEntries],
   )
-  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(() =>
-    findActiveGroupId(visibleEntries, activeTagSlug),
+  const expandedGroupId = useMemo(
+    () => resolveExpandedGroupId(groupExpansionOverride, activeGroupId, visibleEntries),
+    [activeGroupId, groupExpansionOverride, visibleEntries],
   )
   const primaryTopLevelLinks = useMemo(
     () => visibleEntries.filter(isLinkEntry),
@@ -652,11 +696,6 @@ export default function SportsSidebarMenu({
   )
 
   useEffect(() => {
-    const nextExpandedGroupId = findActiveGroupId(visibleEntries, activeTagSlug)
-    setExpandedGroupId(current => (current === nextExpandedGroupId ? current : nextExpandedGroupId))
-  }, [visibleEntries, activeTagSlug])
-
-  useEffect(() => {
     const container = mobileQuickMenuContainerRef.current
     if (!container) {
       return
@@ -673,15 +712,9 @@ export default function SportsSidebarMenu({
         return
       }
 
-      const slotCount = Math.max(
-        2,
-        Math.floor((width + MOBILE_MENU_ITEM_GAP) / (MOBILE_MENU_ITEM_MIN_WIDTH + MOBILE_MENU_ITEM_GAP)),
-      )
-      const nextCount = Math.max(MOBILE_MENU_MIN_VISIBLE_LINKS, slotCount - 1)
+      const nextCount = resolveMobileVisiblePrimaryLinkCount(width)
       setMobileVisiblePrimaryLinkCount(current => (current === nextCount ? current : nextCount))
     }
-
-    updateVisibleLinkCount()
 
     if (typeof ResizeObserver === 'undefined') {
       window.addEventListener('resize', updateVisibleLinkCount)
@@ -697,6 +730,16 @@ export default function SportsSidebarMenu({
       resizeObserver.disconnect()
     }
   }, [])
+
+  function toggleExpandedGroup(groupId: string) {
+    setGroupExpansionOverride((current) => {
+      const currentExpandedGroupId = resolveExpandedGroupId(current, activeGroupId, visibleEntries)
+      if (currentExpandedGroupId === groupId) {
+        return { type: 'none' }
+      }
+      return { type: 'group', groupId }
+    })
+  }
 
   function renderDesktopMenuEntries(onActionComplete?: () => void) {
     return visibleEntries.map((entry) => {
@@ -749,11 +792,11 @@ export default function SportsSidebarMenu({
             onClick={(event) => {
               if (isCurrentPage) {
                 event.preventDefault()
-                setExpandedGroupId(current => (current === entry.id ? null : entry.id))
+                toggleExpandedGroup(entry.id)
                 return
               }
 
-              setExpandedGroupId(entry.id)
+              setGroupExpansionOverride({ type: 'group', groupId: entry.id })
               onActionComplete?.()
             }}
             className={cn(
@@ -861,7 +904,7 @@ export default function SportsSidebarMenu({
               isGroupActive ? 'bg-muted' : 'bg-transparent',
             )}
             onClick={() => {
-              setExpandedGroupId(current => (current === entry.id ? null : entry.id))
+              toggleExpandedGroup(entry.id)
             }}
           >
             <span className="size-5 shrink-0">
