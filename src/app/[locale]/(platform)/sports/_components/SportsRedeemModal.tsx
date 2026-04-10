@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronDownIcon } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { hashTypedData } from 'viem'
 import { useSignMessage } from 'wagmi'
@@ -81,6 +81,34 @@ function resolveGroupAmount(group: SportsRedeemModalGroup) {
   return group.amount
 }
 
+function resolveInitialSelectedConditionIds({
+  defaultSelectedConditionId,
+  defaultSelectedSectionKey,
+  normalizedGroups,
+  normalizedSections,
+}: {
+  defaultSelectedConditionId: string | null
+  defaultSelectedSectionKey: string | null
+  normalizedGroups: SportsRedeemModalGroup[]
+  normalizedSections: SportsRedeemModalSection[]
+}) {
+  const selected: Record<string, true> = {}
+
+  const preferredGroup = defaultSelectedConditionId
+    ? normalizedGroups.find(group => group.conditionId === defaultSelectedConditionId) ?? null
+    : null
+  const preferredSection = defaultSelectedSectionKey
+    ? normalizedSections.find(section => section.key === defaultSelectedSectionKey)
+    : null
+  const fallbackGroup = preferredSection?.groups[0] ?? normalizedGroups[0] ?? null
+  const defaultGroup = preferredGroup ?? fallbackGroup
+  if (defaultGroup) {
+    selected[defaultGroup.conditionId] = true
+  }
+
+  return selected
+}
+
 function markConditionsAsClaimedInPositions<T extends {
   market?: { condition_id?: string | null } | null
   redeemable?: boolean
@@ -126,8 +154,6 @@ export default function SportsRedeemModal({
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [selectedConditionIds, setSelectedConditionIds] = useState<Record<string, true>>({})
-  const [expandedConditionIds, setExpandedConditionIds] = useState<Record<string, boolean>>({})
 
   const normalizedSections = useMemo(() => {
     return sections
@@ -143,35 +169,47 @@ export default function SportsRedeemModal({
     [normalizedSections],
   )
 
-  useEffect(() => {
-    if (!open) {
-      return
-    }
+  const selectionStateKey = useMemo(() => [
+    defaultSelectedConditionId,
+    defaultSelectedSectionKey,
+    open ? 'open' : 'closed',
+    normalizedGroups.map(group => group.conditionId).join(','),
+  ].join('|'), [
+    defaultSelectedConditionId,
+    defaultSelectedSectionKey,
+    normalizedGroups,
+    open,
+  ])
 
-    const selected: Record<string, true> = {}
-    const expanded: Record<string, boolean> = {}
-
-    const preferredGroup = defaultSelectedConditionId
-      ? normalizedGroups.find(group => group.conditionId === defaultSelectedConditionId) ?? null
-      : null
-    const preferredSection = defaultSelectedSectionKey
-      ? normalizedSections.find(section => section.key === defaultSelectedSectionKey)
-      : null
-    const fallbackGroup = preferredSection?.groups[0] ?? normalizedGroups[0] ?? null
-    const defaultGroup = preferredGroup ?? fallbackGroup
-    if (defaultGroup) {
-      selected[defaultGroup.conditionId] = true
-    }
-
-    setSelectedConditionIds(selected)
-    setExpandedConditionIds(expanded)
-  }, [
+  const initialSelectedConditionIds = useMemo(() => resolveInitialSelectedConditionIds({
     defaultSelectedConditionId,
     defaultSelectedSectionKey,
     normalizedGroups,
     normalizedSections,
-    open,
+  }), [
+    defaultSelectedConditionId,
+    defaultSelectedSectionKey,
+    normalizedGroups,
+    normalizedSections,
   ])
+
+  const [selectionState, setSelectionState] = useState<{
+    key: string
+    selectedConditionIds: Record<string, true>
+    expandedConditionIds: Record<string, boolean>
+  }>(() => ({
+    key: selectionStateKey,
+    selectedConditionIds: initialSelectedConditionIds,
+    expandedConditionIds: {},
+  }))
+
+  const isCurrentSelectionState = selectionState.key === selectionStateKey
+  const selectedConditionIds = isCurrentSelectionState
+    ? selectionState.selectedConditionIds
+    : initialSelectedConditionIds
+  const expandedConditionIds = isCurrentSelectionState
+    ? selectionState.expandedConditionIds
+    : {}
 
   const selectedGroups = useMemo(
     () => normalizedGroups.filter(group => selectedConditionIds[group.conditionId]),
@@ -188,23 +226,45 @@ export default function SportsRedeemModal({
   )
 
   function toggleConditionSelection(conditionId: string) {
-    setSelectedConditionIds((current) => {
-      const next = { ...current }
-      if (next[conditionId]) {
-        delete next[conditionId]
+    setSelectionState((current) => {
+      const baseSelected = current.key === selectionStateKey
+        ? current.selectedConditionIds
+        : initialSelectedConditionIds
+      const baseExpanded = current.key === selectionStateKey
+        ? current.expandedConditionIds
+        : {}
+      const nextSelected = { ...baseSelected }
+      if (nextSelected[conditionId]) {
+        delete nextSelected[conditionId]
       }
       else {
-        next[conditionId] = true
+        nextSelected[conditionId] = true
       }
-      return next
+      return {
+        key: selectionStateKey,
+        selectedConditionIds: nextSelected,
+        expandedConditionIds: baseExpanded,
+      }
     })
   }
 
   function toggleConditionExpansion(conditionId: string) {
-    setExpandedConditionIds(current => ({
-      ...current,
-      [conditionId]: !current[conditionId],
-    }))
+    setSelectionState((current) => {
+      const baseSelected = current.key === selectionStateKey
+        ? current.selectedConditionIds
+        : initialSelectedConditionIds
+      const baseExpanded = current.key === selectionStateKey
+        ? current.expandedConditionIds
+        : {}
+      return {
+        key: selectionStateKey,
+        selectedConditionIds: baseSelected,
+        expandedConditionIds: {
+          ...baseExpanded,
+          [conditionId]: !baseExpanded[conditionId],
+        },
+      }
+    })
   }
 
   async function handleSubmit() {
