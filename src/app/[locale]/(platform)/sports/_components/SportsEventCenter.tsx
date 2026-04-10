@@ -16,7 +16,7 @@ import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, ShareIcon } from 'lucide-
 import { useLocale } from 'next-intl'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
@@ -114,6 +114,33 @@ function resolveInitialOddsFormat(): OddsFormat {
   const storedOddsFormat = window.localStorage.getItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY)
   const matchedOption = ODDS_FORMAT_OPTIONS.find(option => option.value === storedOddsFormat)
   return matchedOption?.value ?? 'price'
+}
+
+function subscribeToOddsFormatStorage(listener: () => void) {
+  if (typeof window === 'undefined') {
+    return function unsubscribeFromOddsFormatStorage() {}
+  }
+
+  function handleStorage(event: StorageEvent) {
+    if (event.key && event.key !== SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY) {
+      return
+    }
+
+    listener()
+  }
+
+  window.addEventListener('storage', handleStorage)
+  return function unsubscribeFromOddsFormatStorage() {
+    window.removeEventListener('storage', handleStorage)
+  }
+}
+
+function getStoredOddsFormatClientSnapshot(): OddsFormat {
+  return resolveInitialOddsFormat()
+}
+
+function getStoredOddsFormatServerSnapshot(): OddsFormat {
+  return 'price'
 }
 
 function areRecordValuesEqual<T extends string | null | undefined>(
@@ -1502,7 +1529,11 @@ export default function SportsEventCenter({
   const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
   const user = useUser()
   const [querySelection, setQuerySelection] = useState<SportsEventQuerySelection>(EMPTY_QUERY_SELECTION)
-  const [oddsFormat] = useState<OddsFormat>(() => resolveInitialOddsFormat())
+  const oddsFormat = useSyncExternalStore(
+    subscribeToOddsFormatStorage,
+    getStoredOddsFormatClientSnapshot,
+    getStoredOddsFormatServerSnapshot,
+  )
   const [claimedConditionIds, setClaimedConditionIds] = useState<Record<string, true>>({})
   const [redeemSectionKey, setRedeemSectionKey] = useState<EventSectionKey | null>(null)
   const [redeemDefaultConditionId, setRedeemDefaultConditionId] = useState<string | null>(null)
@@ -1722,14 +1753,6 @@ export default function SportsEventCenter({
 
     return () => {}
   }, [activeCard.id])
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY, oddsFormat)
-    }
-
-    return () => {}
-  }, [oddsFormat])
 
   const formatButtonOdds = useCallback((cents: number) => {
     if (oddsFormat === 'price') {
