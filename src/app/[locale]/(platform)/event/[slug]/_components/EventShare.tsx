@@ -87,6 +87,7 @@ export default function EventShare({ event }: EventShareProps) {
   function handleWrapperPointerEnter() {
     clearCloseTimeout()
     setShareMenuOpen(true)
+    prefetchAffiliateToastData()
   }
 
   function handleWrapperPointerLeave(event: React.PointerEvent) {
@@ -160,13 +161,13 @@ export default function EventShare({ event }: EventShareProps) {
     return request
   }, [affiliateCode, affiliateSharePercent, hasResolvedAffiliateToastData, tradeFeePercent])
 
-  useEffect(() => {
-    if (!affiliateCode || !shareMenuOpen) {
+  function prefetchAffiliateToastData() {
+    if (!affiliateCode) {
       return
     }
 
     void ensureAffiliateToastData()
-  }, [affiliateCode, ensureAffiliateToastData, shareMenuOpen])
+  }
 
   const showAffiliateToast = useCallback(async () => {
     const toastData = await ensureAffiliateToastData()
@@ -272,6 +273,9 @@ export default function EventShare({ event }: EventShareProps) {
           onOpenChange={(open) => {
             clearCloseTimeout()
             setShareMenuOpen(open)
+            if (open) {
+              prefetchAffiliateToastData()
+            }
           }}
           modal={false}
         >
