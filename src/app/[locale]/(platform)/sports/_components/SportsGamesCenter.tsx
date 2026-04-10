@@ -33,7 +33,7 @@ import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
-import EventChartControls, { defaultChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
+import EventChartControls from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
 import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'
 import EventConvertPositionsDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventConvertPositionsDialog'
@@ -172,6 +172,28 @@ const GENERIC_SPORTS_CATEGORY_LABELS = new Set([
   'today',
   'tomorrow',
 ])
+
+function resolveInitialSportsEventOddsFormat(): OddsFormat {
+  if (typeof window === 'undefined') {
+    return 'price'
+  }
+
+  const storedOddsFormat = window.localStorage.getItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY)
+  const matchedOption = ODDS_FORMAT_OPTIONS.find(option => option.value === storedOddsFormat)
+  return matchedOption?.value ?? 'price'
+}
+
+function resolveInitialShowSpreadsAndTotals() {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return window.localStorage.getItem(SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY) === '1'
+}
+
+function resolveInitialCurrentTimestampMs() {
+  return Date.now()
+}
 
 const PredictionChart = dynamic<PredictionChartProps>(
   () => import('@/components/PredictionChart'),
@@ -1184,11 +1206,15 @@ export function SportsGameGraph({
   defaultTimeRange?: (typeof TIME_RANGES)[number]
   variant?: SportsGameGraphVariant
 }) {
+  function resolveInitialGraphChartSettings() {
+    const stored = loadStoredChartSettings()
+    return { ...stored, bothOutcomes: false }
+  }
+
   const { width: windowWidth } = useWindowSize()
   const [cursorSnapshot, setCursorSnapshot] = useState<PredictionChartCursorSnapshot | null>(null)
   const [activeTimeRange, setActiveTimeRange] = useState<(typeof TIME_RANGES)[number]>(defaultTimeRange)
-  const [chartSettings, setChartSettings] = useState(() => ({ ...defaultChartSettings, bothOutcomes: false }))
-  const [hasLoadedChartSettings, setHasLoadedChartSettings] = useState(false)
+  const [chartSettings, setChartSettings] = useState(resolveInitialGraphChartSettings)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
   const [tradeFlowItems, setTradeFlowItems] = useState<SportsTradeFlowLabelItem[]>([])
@@ -1245,24 +1271,18 @@ export function SportsGameGraph({
   }, [fallbackChartWidth])
 
   useEffect(() => {
-    const stored = loadStoredChartSettings()
-    setChartSettings({ ...stored, bothOutcomes: false })
-    setHasLoadedChartSettings(true)
-  }, [])
-
-  useEffect(() => {
     setActiveTimeRange(defaultTimeRange)
+    return () => {}
   }, [defaultTimeRange])
 
   useEffect(() => {
-    if (!hasLoadedChartSettings) {
-      return
-    }
     storeChartSettings({ ...chartSettings, bothOutcomes: false })
-  }, [chartSettings, hasLoadedChartSettings])
+    return () => {}
+  }, [chartSettings])
 
   useEffect(() => {
-    setCursorSnapshot(null)
+    setCursorSnapshot(() => (selectedConditionId || selectedMarketType ? null : null))
+    return () => {}
   }, [activeTimeRange, selectedConditionId, selectedMarketType])
 
   const graphSeriesTargets = useMemo<SportsGraphSeriesTarget[]>(
@@ -1405,8 +1425,9 @@ export function SportsGameGraph({
   )
 
   useEffect(() => {
-    setTradeFlowItems([])
+    setTradeFlowItems(() => (tradeFlowTokenSignature ? [] : []))
     tradeFlowIdRef.current = 0
+    return () => {}
   }, [tradeFlowTokenSignature])
 
   const marketTargets = useMemo(
@@ -2867,9 +2888,30 @@ export function SportsGameDetailsPanel({
   }, [allowedConditionIds, card.detailMarkets])
 
   useEffect(() => {
-    if (convertTagKey && !positionTags.some(tag => tag.key === convertTagKey)) {
-      setConvertTagKey(null)
+    let hasConvertTag = false
+    if (convertTagKey) {
+      for (const tag of positionTags) {
+        if (tag.key === convertTagKey) {
+          hasConvertTag = true
+          break
+        }
+      }
     }
+
+    if (convertTagKey && !hasConvertTag) {
+      setConvertTagKey((current) => {
+        if (current) {
+          for (const tag of positionTags) {
+            if (tag.key === current) {
+              return current
+            }
+          }
+        }
+
+        return null
+      })
+    }
+    return () => {}
   }, [convertTagKey, positionTags])
 
   const selectedButton = useMemo(
@@ -3315,6 +3357,8 @@ export function SportsGameDetailsPanel({
     if (resolvedActiveDetailsTab !== activeDetailsTab) {
       onChangeTab(resolvedActiveDetailsTab)
     }
+
+    return () => {}
   }, [activeDetailsTab, onChangeTab, resolvedActiveDetailsTab, showBottomContent])
 
   const {
@@ -3856,10 +3900,9 @@ export default function SportsGamesCenter({
   const [tradeSelection, setTradeSelection] = useState<SportsTradeSelection>({ cardId: null, buttonKey: null })
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [oddsFormat, setOddsFormat] = useState<OddsFormat>('price')
-  const [showSpreadsAndTotals, setShowSpreadsAndTotals] = useState(false)
-  const [hasLoadedOddsFormat, setHasLoadedOddsFormat] = useState(false)
-  const [currentTimestampMs, setCurrentTimestampMs] = useState(0)
+  const [oddsFormat, setOddsFormat] = useState<OddsFormat>(() => resolveInitialSportsEventOddsFormat())
+  const [showSpreadsAndTotals, setShowSpreadsAndTotals] = useState(() => resolveInitialShowSpreadsAndTotals())
+  const [currentTimestampMs, setCurrentTimestampMs] = useState(() => resolveInitialCurrentTimestampMs())
   const searchShellRef = useRef<HTMLDivElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const openLivestream = useSportsLivestream(state => state.openStream)
@@ -3885,7 +3928,6 @@ export default function SportsGamesCenter({
   )
 
   useEffect(() => {
-    setCurrentTimestampMs(Date.now())
     const intervalId = window.setInterval(() => {
       setCurrentTimestampMs(Date.now())
     }, 60_000)
@@ -3896,30 +3938,16 @@ export default function SportsGamesCenter({
   }, [])
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY, oddsFormat)
+      window.localStorage.setItem(
+        SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY,
+        showSpreadsAndTotals ? '1' : '0',
+      )
     }
 
-    const storedOddsFormat = window.localStorage.getItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY)
-    const matchedOption = ODDS_FORMAT_OPTIONS.find(option => option.value === storedOddsFormat)
-    if (matchedOption) {
-      setOddsFormat(matchedOption.value)
-    }
-    const storedShowSpreadsAndTotals = window.localStorage.getItem(SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY)
-    setShowSpreadsAndTotals(storedShowSpreadsAndTotals === '1')
-    setHasLoadedOddsFormat(true)
-  }, [])
-
-  useEffect(() => {
-    if (!hasLoadedOddsFormat || typeof window === 'undefined') {
-      return
-    }
-    window.localStorage.setItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY, oddsFormat)
-    window.localStorage.setItem(
-      SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY,
-      showSpreadsAndTotals ? '1' : '0',
-    )
-  }, [hasLoadedOddsFormat, oddsFormat, showSpreadsAndTotals])
+    return () => {}
+  }, [oddsFormat, showSpreadsAndTotals])
 
   useEffect(() => {
     if (!isMobile) {
@@ -3928,6 +3956,7 @@ export default function SportsGamesCenter({
 
     // Avoid carrying over an open trade drawer while browsing cards on mobile.
     setIsMobileOrderPanelOpen(false)
+    return () => {}
   }, [isMobile, setIsMobileOrderPanelOpen])
 
   const formatButtonOdds = useCallback((cents: number) => {
@@ -4016,15 +4045,32 @@ export default function SportsGamesCenter({
       return
     }
 
-    const currentIsValid = selectedWeek !== 'all'
-      && weekOptions.some(week => String(week) === selectedWeek)
+    let currentIsValid = false
+    if (selectedWeek !== 'all') {
+      for (const week of weekOptions) {
+        if (String(week) === selectedWeek) {
+          currentIsValid = true
+          break
+        }
+      }
+    }
+
     if (!currentIsValid) {
-      const requestedIsValid = requestedWeekOption != null
-        && weekOptions.some(week => String(week) === requestedWeekOption)
+      let requestedIsValid = false
+      if (requestedWeekOption != null) {
+        for (const week of weekOptions) {
+          if (String(week) === requestedWeekOption) {
+            requestedIsValid = true
+            break
+          }
+        }
+      }
+
       setSelectedWeek(requestedIsValid
         ? requestedWeekOption!
         : latestWeekOption)
     }
+    return () => {}
   }, [isFeedPage, latestWeekOption, requestedWeekOption, selectedWeek, weekOptions])
 
   const weekFilteredCards = useMemo(() => {
@@ -4045,6 +4091,7 @@ export default function SportsGamesCenter({
       return
     }
     searchInputRef.current?.focus()
+    return () => {}
   }, [isSearchOpen])
 
   useEffect(() => {
@@ -4166,15 +4213,52 @@ export default function SportsGamesCenter({
     : 'No live games available.'
 
   useEffect(() => {
-    if (openCardId && !filteredCards.some(card => card.id === openCardId)) {
-      setOpenCardId(null)
-      setIsDetailsContentVisible(true)
+    let hasOpenCard = false
+    if (openCardId) {
+      for (const card of filteredCards) {
+        if (card.id === openCardId) {
+          hasOpenCard = true
+          break
+        }
+      }
     }
+
+    if (openCardId && !hasOpenCard) {
+      setOpenCardId((current) => {
+        if (current) {
+          for (const card of filteredCards) {
+            if (card.id === current) {
+              return current
+            }
+          }
+        }
+        return null
+      })
+      setIsDetailsContentVisible((current) => {
+        if (openCardId) {
+          for (const card of filteredCards) {
+            if (card.id === openCardId) {
+              return current
+            }
+          }
+        }
+        return true
+      })
+    }
+    return () => {}
   }, [filteredCards, openCardId])
 
   useEffect(() => {
     if (filteredCards.length === 0) {
-      setTradeSelection({ cardId: null, buttonKey: null })
+      setTradeSelection((current) => {
+        if (filteredCards.length > 0) {
+          return current
+        }
+        if (current.cardId == null && current.buttonKey == null) {
+          return current
+        }
+        return { cardId: null, buttonKey: null }
+      })
       return
     }
 
@@ -4217,6 +4301,7 @@ export default function SportsGamesCenter({
         buttonKey: firstButtonKey,
       }
     })
+    return () => {}
   }, [filteredCards, resolveDisplayButtonKey, selectedConditionByCardId, showSpreadsAndTotals])
 
   const dateLabelFormatter = useMemo(
@@ -4520,6 +4605,7 @@ export default function SportsGamesCenter({
     if (!isSameSelection) {
       setOrderSide(ORDER_SIDE.BUY)
     }
+    return () => {}
   }, [
     activeTradeContext,
     setOrderEvent,
