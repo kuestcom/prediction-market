@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import { formatCompactCount } from '@/lib/formatters'
 
 interface EventTweetMarketsPanelProps {
@@ -67,28 +67,29 @@ function buildCountdownUnits(
   ]
 }
 
+const COUNTDOWN_TICK_INTERVAL_MS = 1000
+
+function subscribeToNow(onStoreChange: () => void) {
+  const interval = window.setInterval(onStoreChange, COUNTDOWN_TICK_INTERVAL_MS)
+  return () => {
+    window.clearInterval(interval)
+  }
+}
+
+function getNowSnapshot() {
+  return Date.now()
+}
+
+function getServerNowSnapshot() {
+  return 0
+}
+
 export default function EventTweetMarketsPanel({
   tweetCount,
   countdownTargetMs,
   isFinal = false,
 }: EventTweetMarketsPanelProps) {
-  const [nowMs, setNowMs] = useState(0)
-
-  useEffect(() => {
-    if (countdownTargetMs == null || !Number.isFinite(countdownTargetMs)) {
-      return
-    }
-
-    setNowMs(Date.now())
-
-    const interval = window.setInterval(() => {
-      setNowMs(Date.now())
-    }, 1000)
-
-    return () => {
-      window.clearInterval(interval)
-    }
-  }, [countdownTargetMs])
+  const nowMs = useSyncExternalStore(subscribeToNow, getNowSnapshot, getServerNowSnapshot)
 
   const countdownUnits = useMemo(
     () => buildCountdownUnits(countdownTargetMs, nowMs, isFinal),
