@@ -62,7 +62,7 @@ export default function ProfileLink({
 }: ProfileLinkProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [stats, setStats] = useState<Awaited<ReturnType<typeof fetchProfileLinkStats>>>(null)
-  const [hasLoaded, setHasLoaded] = useState(false)
+  const [loadedStatsAddress, setLoadedStatsAddress] = useState<string | null>(null)
   const isInline = layout === 'inline'
   const isStacked = layout === 'stacked'
   const inlineBody = inlineContent ?? children
@@ -111,46 +111,43 @@ export default function ProfileLink({
     () => user.proxy_wallet_address ?? user.address,
     [user.address, user.proxy_wallet_address],
   )
-
-  useEffect(() => {
-    setStats(null)
-    setHasLoaded(false)
-  }, [statsAddress])
+  const normalizedStatsAddress = statsAddress ?? null
+  const hasLoaded = normalizedStatsAddress === null || loadedStatsAddress === normalizedStatsAddress
+  const tooltipStats = loadedStatsAddress === normalizedStatsAddress ? stats : null
 
   useEffect(() => {
     if (!isOpen || hasLoaded) {
       return
     }
 
-    if (!statsAddress) {
-      setHasLoaded(true)
+    if (!normalizedStatsAddress) {
       return
     }
 
     const controller = new AbortController()
     let isActive = true
 
-    fetchProfileLinkStats(statsAddress, controller.signal)
+    fetchProfileLinkStats(normalizedStatsAddress, controller.signal)
       .then((result) => {
         if (!isActive || controller.signal.aborted) {
           return
         }
         setStats(result)
-        setHasLoaded(true)
+        setLoadedStatsAddress(normalizedStatsAddress)
       })
       .catch((error) => {
         if (!isActive || controller.signal.aborted || error?.name === 'AbortError') {
           return
         }
         setStats(null)
-        setHasLoaded(true)
+        setLoadedStatsAddress(normalizedStatsAddress)
       })
 
     return () => {
       isActive = false
       controller.abort()
     }
-  }, [hasLoaded, isOpen, statsAddress])
+  }, [hasLoaded, isOpen, normalizedStatsAddress])
 
   const isTooltipLoading = isOpen && !hasLoaded
 
@@ -327,7 +324,7 @@ export default function ProfileLink({
             href: profileHref,
             joinedAt,
           }}
-          stats={stats}
+          stats={tooltipStats}
           isLoading={isTooltipLoading}
         />
       </TooltipContent>
