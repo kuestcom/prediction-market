@@ -17,8 +17,25 @@ export default function PublicActivityList({ userAddress }: PublicActivityListPr
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<ActivityTypeFilter>('all')
   const [sortFilter, setSortFilter] = useState<ActivitySort>('newest')
-  const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const loadMoreScopeKey = `${userAddress}:${searchQuery}:${typeFilter}:${sortFilter}`
+  const [loadMoreState, setLoadMoreState] = useState<{
+    key: string
+    infiniteScrollError: string | null
+    isLoadingMore: boolean
+  }>({
+    key: loadMoreScopeKey,
+    infiniteScrollError: null,
+    isLoadingMore: false,
+  })
+  const scopedLoadMoreState = loadMoreState.key === loadMoreScopeKey
+    ? loadMoreState
+    : {
+        key: loadMoreScopeKey,
+        infiniteScrollError: null,
+        isLoadingMore: false,
+      }
+  const infiniteScrollError = scopedLoadMoreState.infiniteScrollError
+  const isLoadingMore = scopedLoadMoreState.isLoadingMore
   const site = useSiteIdentity()
 
   const {
@@ -85,17 +102,33 @@ export default function PublicActivityList({ userAddress }: PublicActivityListPr
     const observer = new IntersectionObserver((entries) => {
       const [entry] = entries
       if (entry?.isIntersecting && !isFetchingNextPage && !isLoadingMore && !infiniteScrollError) {
-        setIsLoadingMore(true)
+        setLoadMoreState({
+          key: loadMoreScopeKey,
+          infiniteScrollError: null,
+          isLoadingMore: true,
+        })
         fetchNextPage()
           .then(() => {
-            setIsLoadingMore(false)
-            setInfiniteScrollError(null)
+            setLoadMoreState({
+              key: loadMoreScopeKey,
+              infiniteScrollError: null,
+              isLoadingMore: false,
+            })
           })
           .catch((error) => {
-            setIsLoadingMore(false)
             if (error.name !== 'AbortError') {
-              setInfiniteScrollError(error.message || 'Failed to load more activity.')
+              setLoadMoreState({
+                key: loadMoreScopeKey,
+                infiniteScrollError: error.message || 'Failed to load more activity.',
+                isLoadingMore: false,
+              })
+              return
             }
+            setLoadMoreState({
+              key: loadMoreScopeKey,
+              infiniteScrollError: null,
+              isLoadingMore: false,
+            })
           })
       }
     }, { rootMargin: '200px' })
@@ -103,12 +136,7 @@ export default function PublicActivityList({ userAddress }: PublicActivityListPr
     observer.observe(loadMoreRef.current)
 
     return () => observer.disconnect()
-  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage, isLoadingMore])
-
-  useEffect(() => {
-    setInfiniteScrollError(null)
-    setIsLoadingMore(false)
-  }, [searchQuery, sortFilter, typeFilter, userAddress])
+  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage, isLoadingMore, loadMoreScopeKey])
 
   return (
     <div className="space-y-3 pb-0">
@@ -132,16 +160,27 @@ export default function PublicActivityList({ userAddress }: PublicActivityListPr
         isLoadingMore={isLoadingMore}
         infiniteScrollError={infiniteScrollError}
         onRetryLoadMore={() => {
-          setInfiniteScrollError(null)
-          setIsLoadingMore(true)
+          setLoadMoreState({
+            key: loadMoreScopeKey,
+            infiniteScrollError: null,
+            isLoadingMore: true,
+          })
           fetchNextPage()
             .catch((error) => {
               if (error.name !== 'AbortError') {
-                setInfiniteScrollError(error.message || 'Failed to load more activity.')
+                setLoadMoreState({
+                  key: loadMoreScopeKey,
+                  infiniteScrollError: error.message || 'Failed to load more activity.',
+                  isLoadingMore: false,
+                })
               }
             })
             .finally(() => {
-              setIsLoadingMore(false)
+              setLoadMoreState(previous => ({
+                key: loadMoreScopeKey,
+                infiniteScrollError: previous.key === loadMoreScopeKey ? previous.infiniteScrollError : null,
+                isLoadingMore: false,
+              }))
             })
         }}
         loadMoreRef={loadMoreRef}
