@@ -1,5 +1,6 @@
 'use client'
 
+import type { ChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { Market, Outcome } from '@/types'
 import type { PredictionChartCursorSnapshot, PredictionChartProps } from '@/types/PredictionChartTypes'
@@ -7,8 +8,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Clock3Icon, SparkleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
-import { useEffect, useMemo, useState } from 'react'
-import EventChartControls, { defaultChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+import EventChartControls from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
 import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'
 import EventChartHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartHeader'
@@ -18,7 +19,12 @@ import {
   TIME_RANGES,
   useEventPriceHistory,
 } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
-import { loadStoredChartSettings, storeChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
+import {
+  getStoredChartSettingsServerSnapshot,
+  loadStoredChartSettings,
+  storeChartSettings,
+  subscribeToChartSettings,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
@@ -56,36 +62,29 @@ export default function MarketOutcomeGraph({
   const site = useSiteIdentity()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const [activeTimeRange, setActiveTimeRange] = useState<TimeRange>('ALL')
-  const [activeOutcomeIndex, setActiveOutcomeIndex] = useState(outcome.outcome_index)
-  const [cursorSnapshot, setCursorSnapshot] = useState<PredictionChartCursorSnapshot | null>(null)
-  const [chartSettings, setChartSettings] = useState(() => ({ ...defaultChartSettings }))
-  const [hasLoadedSettings, setHasLoadedSettings] = useState(false)
+  const [activeOutcomeOverride, setActiveOutcomeOverride] = useState<{ key: string, index: number } | null>(null)
+  const [cursorState, setCursorState] = useState<{ key: string, snapshot: PredictionChartCursorSnapshot | null }>({
+    key: '',
+    snapshot: null,
+  })
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
   const marketTargets = useMemo(() => buildMarketTargets(allMarkets), [allMarkets])
   const { width: windowWidth } = useWindowSize()
   const chartWidth = isMobile ? ((windowWidth || 400) * 0.84) : Math.min((windowWidth ?? 1440) * 0.55, 900)
-
-  useEffect(() => {
-    setActiveOutcomeIndex(outcome.outcome_index)
-    setCursorSnapshot(null)
-  }, [outcome.token_id, outcome.outcome_index])
-
-  useEffect(() => {
-    setCursorSnapshot(null)
-  }, [activeTimeRange, activeOutcomeIndex, chartSettings.bothOutcomes])
-
-  useEffect(() => {
-    setChartSettings(loadStoredChartSettings())
-    setHasLoadedSettings(true)
-  }, [])
-
-  useEffect(() => {
-    if (!hasLoadedSettings) {
-      return
+  const chartSettings = useSyncExternalStore(
+    subscribeToChartSettings,
+    loadStoredChartSettings,
+    getStoredChartSettingsServerSnapshot,
+  )
+  const activeOutcomeKey = outcome.token_id || `${market.condition_id}:${outcome.outcome_index}`
+  const activeOutcomeIndex = useMemo(() => {
+    if (activeOutcomeOverride?.key === activeOutcomeKey) {
+      return activeOutcomeOverride.index
     }
-    storeChartSettings(chartSettings)
-  }, [chartSettings, hasLoadedSettings])
+
+    return outcome.outcome_index
+  }, [activeOutcomeKey, activeOutcomeOverride, outcome.outcome_index])
 
   const activeOutcome = useMemo(
     () => market.outcomes.find(item => item.outcome_index === activeOutcomeIndex) ?? outcome,
@@ -142,6 +141,22 @@ export default function MarketOutcomeGraph({
     () => `${market.condition_id}:${activeOutcomeIndex}:${activeTimeRange}:${showBothOutcomes ? 'both' : 'single'}`,
     [market.condition_id, activeOutcomeIndex, activeTimeRange, showBothOutcomes],
   )
+  const cursorSnapshot = cursorState.key === chartSignature ? cursorState.snapshot : null
+  const handleCursorDataChange = useCallback((nextSnapshot: PredictionChartCursorSnapshot | null) => {
+    setCursorState({ key: chartSignature, snapshot: nextSnapshot })
+  }, [chartSignature])
+  const handleChartSettingsChange = useCallback((nextSettings: ChartSettings | ((current: ChartSettings) => ChartSettings)) => {
+    const resolvedSettings = typeof nextSettings === 'function'
+      ? nextSettings(chartSettings)
+      : nextSettings
+    storeChartSettings(resolvedSettings)
+  }, [chartSettings])
+  const handleShuffleOutcome = useCallback(() => {
+    setActiveOutcomeOverride({
+      key: activeOutcomeKey,
+      index: oppositeOutcome.outcome_index,
+    })
+  }, [activeOutcomeKey, oppositeOutcome.outcome_index])
   const hasChartData = chartData.length > 0
   const watermark = useMemo(
     () => ({
@@ -226,7 +241,7 @@ export default function MarketOutcomeGraph({
                 height={318}
                 margin={{ top: 20, right: 40, bottom: 48, left: 0 }}
                 dataSignature={chartSignature}
-                onCursorDataChange={setCursorSnapshot}
+                onCursorDataChange={handleCursorDataChange}
                 xAxisTickCount={isMobile ? 2 : 4}
                 autoscale={chartSettings.autoscale}
                 showXAxis={chartSettings.xAxis}
@@ -257,9 +272,9 @@ export default function MarketOutcomeGraph({
                   onTimeRangeChange={setActiveTimeRange}
                   showOutcomeSwitch={showOutcomeSwitch}
                   oppositeOutcomeLabel={normalizeOutcomeLabel(oppositeOutcome.outcome_text) ?? oppositeOutcome.outcome_text}
-                  onShuffle={() => setActiveOutcomeIndex(oppositeOutcome.outcome_index)}
+                  onShuffle={handleShuffleOutcome}
                   settings={chartSettings}
-                  onSettingsChange={setChartSettings}
+                  onSettingsChange={handleChartSettingsChange}
                   onExportData={() => setExportDialogOpen(true)}
                   onEmbed={() => setEmbedDialogOpen(true)}
                 />
