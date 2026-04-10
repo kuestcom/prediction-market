@@ -16,7 +16,6 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { defaultNetwork, networks, projectId, wagmiAdapter, wagmiConfig } from '@/lib/appkit'
 import { authClient } from '@/lib/auth-client'
 import { IS_BROWSER } from '@/lib/constants'
-import { buildTwoFactorRedirectPath, stripLocalePrefix } from '@/lib/locale-path'
 import { clearBrowserStorage, clearNonHttpOnlyCookies } from '@/lib/utils'
 import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
@@ -106,13 +105,6 @@ function initializeAppKitSingleton(
               walletAddress: address,
               chainId: defaultNetwork.id,
             })
-            // @ts-expect-error does not recognize twoFactorRedirect
-            if (data?.twoFactorRedirect && typeof window !== 'undefined') {
-              if (stripLocalePrefix(window.location.pathname) !== '/2fa') {
-                window.location.href = buildTwoFactorRedirectPath(window.location.pathname, window.location.search)
-              }
-              return false
-            }
             return Boolean(data?.success)
           }
           catch {
