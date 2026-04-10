@@ -3,7 +3,7 @@ import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { UserPosition } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { hashTypedData } from 'viem'
 import { useSignMessage } from 'wagmi'
@@ -95,13 +95,22 @@ export default function EventSplitSharesDialog({
     })
   }
 
-  useEffect(() => {
-    if (!open) {
-      setAmount('')
-      setError(null)
-      setIsSubmitting(false)
+  function resetFormState() {
+    setAmount('')
+    setError(null)
+    setIsSubmitting(false)
+  }
+
+  function handleDialogOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      resetFormState()
     }
-  }, [open])
+    onOpenChange(nextOpen)
+  }
+
+  function closeDialog() {
+    handleDialogOpenChange(false)
+  }
 
   const formattedUsdcBalance = useMemo(() => {
     if (!Number.isFinite(availableUsdc)) {
@@ -176,7 +185,7 @@ export default function EventSplitSharesDialog({
       const nonceResult = await getSafeNonceAction()
       if (nonceResult.error || !nonceResult.nonce) {
         if (isTradingAuthRequiredError(nonceResult.error)) {
-          onOpenChange(false)
+          closeDialog()
           openTradeRequirements({ forceTradingAuth: true })
         }
         else {
@@ -236,7 +245,7 @@ export default function EventSplitSharesDialog({
 
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
-          onOpenChange(false)
+          closeDialog()
           openTradeRequirements({ forceTradingAuth: true })
         }
         else {
@@ -328,7 +337,7 @@ export default function EventSplitSharesDialog({
 
       void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
       setAmount('')
-      onOpenChange(false)
+      closeDialog()
     }
     catch (error) {
       console.error('Failed to submit split operation.', error)
@@ -396,7 +405,7 @@ export default function EventSplitSharesDialog({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
+      <Drawer open={open} onOpenChange={handleDialogOpenChange}>
         <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
           <div className="space-y-6">
             <DrawerHeader className="space-y-3 text-center">
@@ -411,7 +420,7 @@ export default function EventSplitSharesDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-md sm:p-8">
         <div className="space-y-6">
           <DialogHeader className="space-y-3">
