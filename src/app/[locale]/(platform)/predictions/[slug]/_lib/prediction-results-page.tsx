@@ -7,6 +7,7 @@ import type {
 import type { Event } from '@/types'
 import { getExtracted } from 'next-intl/server'
 import PredictionResultsClient from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsClient'
+import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { listHomeEventsPage } from '@/lib/home-events-page'
 import { buildPlatformNavigationTags } from '@/lib/platform-navigation'
@@ -15,6 +16,56 @@ import {
   resolvePredictionResultsRequestedApiStatus,
 } from '@/lib/prediction-results-filters'
 import { resolvePredictionSearchContext } from '@/lib/prediction-search'
+import siteUrlUtils from '@/lib/site-url'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
+
+const { resolveSiteUrl } = siteUrlUtils
+
+function buildLocalizedPagePath(path: string, locale: SupportedLocale) {
+  if (locale === DEFAULT_LOCALE) {
+    return path
+  }
+
+  return `/${locale}${path}`
+}
+
+function buildPredictionResultsOgImageUrl({
+  locale,
+  slug,
+  label,
+  version,
+}: {
+  locale: SupportedLocale
+  slug: string
+  label: string
+  version?: string | null
+}) {
+  const params = new URLSearchParams({
+    locale,
+    slug,
+    label,
+  })
+
+  const normalizedVersion = version?.trim()
+  if (normalizedVersion) {
+    params.set('v', normalizedVersion)
+  }
+
+  const siteUrl = resolveSiteUrl(process.env)
+  return new URL(`/api/og/predictions?${params.toString()}`, siteUrl).toString()
+}
+
+function buildPredictionResultsPageUrl({
+  locale,
+  slug,
+}: {
+  locale: SupportedLocale
+  slug: string
+}) {
+  const pagePath = buildLocalizedPagePath(`/predictions/${slug}`, locale)
+  const siteUrl = resolveSiteUrl(process.env)
+  return new URL(pagePath, siteUrl).toString()
+}
 
 async function getPredictionPageContext(locale: SupportedLocale, slug: string) {
   const t = await getExtracted({ locale })
@@ -36,26 +87,59 @@ export async function generatePredictionResultsMetadata({
   locale: SupportedLocale
   slug: string
 }): Promise<Metadata> {
-  const [t, context] = await Promise.all([
-    getExtracted({ locale }),
+  const t = await getExtracted({ locale })
+  const [context, runtimeTheme] = await Promise.all([
     getPredictionPageContext(locale, slug),
+    loadRuntimeThemeState(),
   ])
   const dateLabel = new Intl.DateTimeFormat(locale, {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
   }).format(new Date())
-  const liveMarketsCount = new Intl.NumberFormat(locale).format(1727)
+  const title = t('{slug} Predictions & Real-Time Odds', {
+    slug: context.label,
+  })
+  const description = t('Explore live {slug} prediction markets as of {date}.', {
+    slug: context.label,
+    date: dateLabel,
+  })
+  const siteName = runtimeTheme.site.name
+  const pageUrl = buildPredictionResultsPageUrl({
+    locale,
+    slug,
+  })
+  const imageUrl = buildPredictionResultsOgImageUrl({
+    locale,
+    slug,
+    label: context.label,
+    version: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+  })
+  const socialImage = {
+    url: imageUrl,
+    width: 1200,
+    height: 630,
+    alt: `${context.label} prediction markets on ${siteName}`,
+    type: 'image/png',
+  } as const
 
   return {
-    title: t('{slug} Predictions & Real-Time Odds', {
-      slug: context.label,
-    }),
-    description: t('Explore {count} live {slug} prediction markets as of {date}.', {
-      count: liveMarketsCount,
-      slug: context.label,
-      date: dateLabel,
-    }),
+    title,
+    description,
+    openGraph: {
+      type: 'website',
+      url: pageUrl,
+      title,
+      description,
+      siteName,
+      images: [socialImage],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [socialImage],
+    },
   }
 }
 
