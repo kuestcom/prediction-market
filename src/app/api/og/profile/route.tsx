@@ -79,6 +79,23 @@ function resolvePositionIconUrl(rawIcon: unknown, siteUrl: string) {
   return `https://gateway.irys.xyz/${icon}`
 }
 
+function resolveProfileAvatarUrl(rawAvatar: unknown, siteUrl: string) {
+  const avatar = typeof rawAvatar === 'string' ? rawAvatar.trim() : ''
+  if (!avatar) {
+    return ''
+  }
+
+  if (avatar.startsWith('/')) {
+    return new URL(avatar, siteUrl).toString()
+  }
+
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+    return avatar
+  }
+
+  return ''
+}
+
 function resolveOutcomeLabel(rawPosition: Record<string, unknown>): 'Yes' | 'No' {
   const outcome = typeof rawPosition.outcome === 'string' ? rawPosition.outcome.trim().toLowerCase() : ''
   if (outcome.includes('no')) {
@@ -272,291 +289,342 @@ export async function GET(request: Request) {
     return new Response('Invalid profile slug.', { status: 400 })
   }
 
-  const [runtimeTheme, profileResult] = await Promise.all([
-    loadRuntimeThemeState(),
-    UserRepository.getProfileByUsernameOrProxyAddress(normalized.value),
-  ])
-  const profile = profileResult.data
-  const profileUsername = normalizeText(profile?.username ?? null, 28)
-  const displayName = profileUsername
-    ?? (normalized.type === 'username' ? normalized.value : truncateAddress(normalized.value))
-  const resolvedAddress = profile?.proxy_wallet_address
-    ?? (normalized.type === 'address' ? normalized.value : null)
-  const siteUrl = resolveSiteUrl(process.env)
+  try {
+    const [runtimeTheme, profileResult] = await Promise.all([
+      loadRuntimeThemeState(),
+      UserRepository.getProfileByUsernameOrProxyAddress(normalized.value),
+    ])
+    const profile = profileResult.data
+    const profileUsername = normalizeText(profile?.username ?? null, 28)
+    const displayName = profileUsername
+      ?? (normalized.type === 'username' ? normalized.value : truncateAddress(normalized.value))
+    const siteUrl = resolveSiteUrl(process.env)
+    const avatarUrl = resolveProfileAvatarUrl(profile?.image, siteUrl)
+    const resolvedAddress = profile?.proxy_wallet_address
+      ?? (normalized.type === 'address' ? normalized.value : null)
 
-  const [snapshot, positions] = await Promise.all([
-    fetchPortfolioSnapshot(resolvedAddress),
-    resolvedAddress ? fetchProfilePositions(resolvedAddress, siteUrl) : Promise.resolve([]),
-  ])
+    const [snapshot, positions] = await Promise.all([
+      fetchPortfolioSnapshot(resolvedAddress),
+      resolvedAddress ? fetchProfilePositions(resolvedAddress, siteUrl) : Promise.resolve([]),
+    ])
 
-  const sparklineValues = buildSparklineValues(resolvedAddress ?? rawSlug, snapshot.profitLoss)
-  const sparklinePath = buildSparklinePath(sparklineValues, 520, 122)
-  const pnlLabel = formatSignedCurrency(snapshot.profitLoss)
-  const pnlColor = snapshot.profitLoss < 0 ? '#ff4b5c' : '#23c36b'
-  const rowPlaceholders = positions.length > 0
-    ? positions
-    : Array.from({ length: 6 }).map((_, index) => ({
-        title: `Position ${index + 1}`,
-        iconUrl: '',
-        tradeValue: 0,
-        currentValue: 0,
-        outcomeLabel: index % 2 === 0 ? 'Yes' : 'No',
-        outcomePriceCents: 50,
-      } satisfies ProfilePositionRow))
+    const sparklineValues = buildSparklineValues(resolvedAddress ?? rawSlug, snapshot.profitLoss)
+    const sparklinePath = buildSparklinePath(sparklineValues, 520, 122)
+    const pnlLabel = formatSignedCurrency(snapshot.profitLoss)
+    const pnlColor = snapshot.profitLoss < 0 ? '#ff4b5c' : '#23c36b'
+    const rowPlaceholders = positions.length > 0
+      ? positions
+      : Array.from({ length: 6 }).map((_, index) => ({
+          title: `Position ${index + 1}`,
+          iconUrl: '',
+          tradeValue: 0,
+          currentValue: 0,
+          outcomeLabel: index % 2 === 0 ? 'Yes' : 'No',
+          outcomePriceCents: 50,
+        } satisfies ProfilePositionRow))
 
-  const response = new ImageResponse(
-    (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          backgroundColor: '#0a0c11',
-          fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif',
-        }}
-      >
+    const response = new ImageResponse(
+      (
         <div
           style={{
-            width: '50%',
+            width: '100%',
             height: '100%',
             display: 'flex',
-            flexDirection: 'column',
-            position: 'relative',
-            padding: '28px 32px',
-            background: 'linear-gradient(180deg, #b447d0 0%, #40124f 32%, #0a0c11 70%, #05070a 100%)',
+            backgroundColor: '#0a0c11',
+            fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif',
           }}
         >
           <div
             style={{
+              width: '50%',
+              height: '100%',
               display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
+              flexDirection: 'column',
+              position: 'relative',
+              padding: '28px 32px',
+              background: 'linear-gradient(180deg, #b447d0 0%, #40124f 32%, #0a0c11 70%, #05070a 100%)',
             }}
           >
-            {runtimeTheme.site.logoUrl
-              ? (
-                  // eslint-disable-next-line next/no-img-element
-                  <img
-                    src={runtimeTheme.site.logoUrl}
-                    alt=""
-                    width={36}
-                    height={36}
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      objectFit: 'contain',
-                      filter: 'brightness(0) invert(1)',
-                    }}
-                  />
-                )
-              : null}
-            <div style={{ display: 'flex', color: '#f4f6fb', fontSize: '43px', fontWeight: 600, letterSpacing: '-0.02em' }}>
-              {normalizeText(runtimeTheme.site.name, 18) ?? 'Market'}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+            >
+              {runtimeTheme.site.logoUrl
+                ? (
+                    // eslint-disable-next-line next/no-img-element
+                    <img
+                      src={runtimeTheme.site.logoUrl}
+                      alt=""
+                      width={36}
+                      height={36}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        objectFit: 'contain',
+                        filter: 'brightness(0) invert(1)',
+                      }}
+                    />
+                  )
+                : null}
+              <div style={{ display: 'flex', color: '#f4f6fb', fontSize: '43px', fontWeight: 600, letterSpacing: '-0.02em' }}>
+                {normalizeText(runtimeTheme.site.name, 18) ?? 'Market'}
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: '88px',
+                width: '94px',
+                height: '94px',
+                display: 'flex',
+                borderRadius: '999px',
+                boxShadow: '0 22px 42px rgba(7, 10, 16, 0.45)',
+                overflow: 'hidden',
+                background: 'radial-gradient(circle at 35% 28%, #ff76df 0%, #b447d0 52%, #31d35b 100%)',
+              }}
+            >
+              {avatarUrl
+                ? (
+                    // eslint-disable-next-line next/no-img-element
+                    <img
+                      src={avatarUrl}
+                      alt=""
+                      width={94}
+                      height={94}
+                      style={{
+                        width: '94px',
+                        height: '94px',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  )
+                : null}
+            </div>
+
+            <div
+              style={{
+                marginTop: '24px',
+                display: 'flex',
+                color: '#f2f5fb',
+                fontSize: '64px',
+                fontWeight: 500,
+                letterSpacing: '-0.03em',
+                lineHeight: 1,
+              }}
+            >
+              {displayName}
+            </div>
+
+            <div
+              style={{
+                marginTop: '10px',
+                display: 'flex',
+                color: pnlColor,
+                fontSize: '70px',
+                fontWeight: 700,
+                letterSpacing: '-0.03em',
+                lineHeight: 1,
+              }}
+            >
+              {pnlLabel}
+            </div>
+
+            <div
+              style={{
+                marginTop: 'auto',
+                width: '100%',
+                height: '170px',
+                borderRadius: '14px',
+                backgroundColor: 'rgba(5, 7, 10, 0.4)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '18px 16px',
+              }}
+            >
+              <svg
+                width="100%"
+                height="122"
+                viewBox="0 0 520 122"
+                role="img"
+                aria-label="Profile performance chart"
+              >
+                <path
+                  d={sparklinePath}
+                  fill="none"
+                  stroke={pnlColor}
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
           </div>
 
           <div
             style={{
-              marginTop: '88px',
-              width: '94px',
-              height: '94px',
-              borderRadius: '999px',
-              background: 'radial-gradient(circle at 35% 28%, #ff76df 0%, #b447d0 52%, #31d35b 100%)',
-              boxShadow: '0 22px 42px rgba(7, 10, 16, 0.45)',
-            }}
-          />
-
-          <div
-            style={{
-              marginTop: '24px',
-              display: 'flex',
-              color: '#f2f5fb',
-              fontSize: '64px',
-              fontWeight: 500,
-              letterSpacing: '-0.03em',
-              lineHeight: 1,
-            }}
-          >
-            {displayName}
-          </div>
-
-          <div
-            style={{
-              marginTop: '10px',
-              display: 'flex',
-              color: pnlColor,
-              fontSize: '70px',
-              fontWeight: 700,
-              letterSpacing: '-0.03em',
-              lineHeight: 1,
-            }}
-          >
-            {pnlLabel}
-          </div>
-
-          <div
-            style={{
-              marginTop: 'auto',
-              width: '100%',
-              height: '170px',
-              borderRadius: '14px',
-              backgroundColor: 'rgba(5, 7, 10, 0.4)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              padding: '18px 16px',
-            }}
-          >
-            <svg
-              width="100%"
-              height="122"
-              viewBox="0 0 520 122"
-              role="img"
-              aria-label="Profile performance chart"
-            >
-              <path
-                d={sparklinePath}
-                fill="none"
-                stroke={pnlColor}
-                strokeWidth="5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-        </div>
-
-        <div
-          style={{
-            width: '50%',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            backgroundColor: '#f4f4f5',
-            borderLeft: '6px solid #0a0c11',
-            padding: '28px 28px 20px 28px',
-          }}
-        >
-          <div style={{ display: 'flex', fontSize: '55px', fontWeight: 700, color: '#12151b' }}>
-            Positions
-          </div>
-
-          <div
-            style={{
-              marginTop: '18px',
+              width: '50%',
+              height: '100%',
               display: 'flex',
               flexDirection: 'column',
-              gap: '6px',
+              backgroundColor: '#f4f4f5',
+              borderLeft: '6px solid #0a0c11',
+              padding: '28px 28px 20px 28px',
             }}
           >
-            {rowPlaceholders.map((position, index) => {
-              const isPositiveOutcome = position.outcomeLabel === 'Yes'
-              const badgeColor = isPositiveOutcome ? '#2f9e62' : '#d74b52'
-              const badgeBackground = isPositiveOutcome ? 'rgba(47, 158, 98, 0.12)' : 'rgba(215, 75, 82, 0.12)'
+            <div style={{ display: 'flex', fontSize: '55px', fontWeight: 700, color: '#12151b' }}>
+              Positions
+            </div>
 
-              return (
-                <div
-                  key={`position-row-${index}`}
-                  style={{
-                    height: '67px',
-                    borderRadius: '14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '0 12px',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid rgba(15, 23, 42, 0.08)',
-                    gap: '12px',
-                  }}
-                >
+            <div
+              style={{
+                marginTop: '18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+              }}
+            >
+              {rowPlaceholders.map((position, index) => {
+                const isPositiveOutcome = position.outcomeLabel === 'Yes'
+                const badgeColor = isPositiveOutcome ? '#2f9e62' : '#d74b52'
+                const badgeBackground = isPositiveOutcome ? 'rgba(47, 158, 98, 0.12)' : 'rgba(215, 75, 82, 0.12)'
+
+                return (
                   <div
+                    key={`position-row-${index}`}
                     style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: '11px',
-                      overflow: 'hidden',
-                      backgroundColor: '#dbe0e8',
+                      height: '67px',
+                      borderRadius: '14px',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
+                      padding: '0 12px',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid rgba(15, 23, 42, 0.08)',
+                      gap: '12px',
                     }}
                   >
-                    {position.iconUrl
-                      ? (
-                          // eslint-disable-next-line next/no-img-element
-                          <img
-                            src={position.iconUrl}
-                            alt=""
-                            width={38}
-                            height={38}
-                            style={{
-                              width: '38px',
-                              height: '38px',
-                              objectFit: 'cover',
-                            }}
-                          />
-                        )
-                      : null}
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
                     <div
                       style={{
-                        display: 'flex',
-                        color: '#111827',
-                        fontSize: '22px',
-                        fontWeight: 600,
-                        lineHeight: 1.15,
-                        whiteSpace: 'nowrap',
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '11px',
                         overflow: 'hidden',
-                        textOverflow: 'ellipsis',
+                        backgroundColor: '#dbe0e8',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
-                      {position.title}
+                      {position.iconUrl
+                        ? (
+                            // eslint-disable-next-line next/no-img-element
+                            <img
+                              src={position.iconUrl}
+                              alt=""
+                              width={38}
+                              height={38}
+                              style={{
+                                width: '38px',
+                                height: '38px',
+                                objectFit: 'cover',
+                              }}
+                            />
+                          )
+                        : null}
                     </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          color: '#111827',
+                          fontSize: '22px',
+                          fontWeight: 600,
+                          lineHeight: 1.15,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {position.title}
+                      </div>
+                      <div
+                        style={{
+                          marginTop: '5px',
+                          display: 'flex',
+                          color: '#22a06b',
+                          fontSize: '22px',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {`${formatCompactCurrency(position.tradeValue)} → ${formatCompactCurrency(position.currentValue)}`}
+                      </div>
+                    </div>
+
                     <div
                       style={{
-                        marginTop: '5px',
+                        minWidth: '128px',
+                        height: '40px',
+                        borderRadius: '12px',
+                        backgroundColor: badgeBackground,
+                        color: badgeColor,
+                        fontSize: '24px',
+                        fontWeight: 700,
                         display: 'flex',
-                        color: '#22a06b',
-                        fontSize: '22px',
-                        fontWeight: 600,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 10px',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {`${formatCompactCurrency(position.tradeValue)} → ${formatCompactCurrency(position.currentValue)}`}
+                      {`${position.outcomeLabel} @ ${position.outcomePriceCents}c`}
                     </div>
                   </div>
-
-                  <div
-                    style={{
-                      minWidth: '128px',
-                      height: '40px',
-                      borderRadius: '12px',
-                      backgroundColor: badgeBackground,
-                      color: badgeColor,
-                      fontSize: '24px',
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '0 10px',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {`${position.outcomeLabel} @ ${position.outcomePriceCents}c`}
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
         </div>
-      </div>
-    ),
-    {
-      width: OG_IMAGE_WIDTH,
-      height: OG_IMAGE_HEIGHT,
-    },
-  )
+      ),
+      {
+        width: OG_IMAGE_WIDTH,
+        height: OG_IMAGE_HEIGHT,
+      },
+    )
 
-  response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300')
-  return response
+    response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300')
+    return response
+  }
+  catch (error) {
+    console.error('Failed to generate profile OG image', error)
+
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#0a0c11',
+            color: '#f4f6fb',
+            fontSize: '64px',
+            fontWeight: 700,
+            fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif',
+          }}
+        >
+          {normalized.type === 'username' ? `@${normalized.value}` : truncateAddress(normalized.value)}
+        </div>
+      ),
+      {
+        width: OG_IMAGE_WIDTH,
+        height: OG_IMAGE_HEIGHT,
+        status: 200,
+      },
+    )
+  }
 }
