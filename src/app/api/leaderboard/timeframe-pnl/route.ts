@@ -247,7 +247,9 @@ async function fetchUserTimeframePnl(
     return null
   })()
     .finally(() => {
-      TIMEFRAME_PNL_IN_FLIGHT.delete(key)
+      if (TIMEFRAME_PNL_IN_FLIGHT.get(key) === entry) {
+        TIMEFRAME_PNL_IN_FLIGHT.delete(key)
+      }
     })
 
   TIMEFRAME_PNL_IN_FLIGHT.set(key, entry)
