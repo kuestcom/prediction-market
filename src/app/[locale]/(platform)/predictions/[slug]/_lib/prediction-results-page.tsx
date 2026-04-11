@@ -6,6 +6,7 @@ import type {
 } from '@/lib/prediction-results-filters'
 import type { Event } from '@/types'
 import { getExtracted } from 'next-intl/server'
+import { connection } from 'next/server'
 import PredictionResultsClient from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsClient'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { TagRepository } from '@/lib/db/queries/tag'
@@ -87,6 +88,7 @@ export async function generatePredictionResultsMetadata({
   locale: SupportedLocale
   slug: string
 }): Promise<Metadata> {
+  await connection()
   const t = await getExtracted({ locale })
   const [context, runtimeTheme] = await Promise.all([
     getPredictionPageContext(locale, slug),
