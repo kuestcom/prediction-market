@@ -7,8 +7,11 @@ import type {
 import type { Event } from '@/types'
 import { getExtracted } from 'next-intl/server'
 import { connection } from 'next/server'
+import {
+  buildPredictionResultsOgImageUrl,
+  buildPredictionResultsPageUrl,
+} from '@/app/[locale]/(platform)/_lib/prediction-results-metadata'
 import PredictionResultsClient from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsClient'
-import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { listHomeEventsPage } from '@/lib/home-events-page'
 import { buildPlatformNavigationTags } from '@/lib/platform-navigation'
@@ -17,56 +20,7 @@ import {
   resolvePredictionResultsRequestedApiStatus,
 } from '@/lib/prediction-results-filters'
 import { resolvePredictionSearchContext } from '@/lib/prediction-search'
-import siteUrlUtils from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
-
-const { resolveSiteUrl } = siteUrlUtils
-
-function buildLocalizedPagePath(path: string, locale: SupportedLocale) {
-  if (locale === DEFAULT_LOCALE) {
-    return path
-  }
-
-  return `/${locale}${path}`
-}
-
-function buildPredictionResultsOgImageUrl({
-  locale,
-  slug,
-  label,
-  version,
-}: {
-  locale: SupportedLocale
-  slug: string
-  label: string
-  version?: string | null
-}) {
-  const params = new URLSearchParams({
-    locale,
-    slug,
-    label,
-  })
-
-  const normalizedVersion = version?.trim()
-  if (normalizedVersion) {
-    params.set('v', normalizedVersion)
-  }
-
-  const siteUrl = resolveSiteUrl(process.env)
-  return new URL(`/api/og/predictions?${params.toString()}`, siteUrl).toString()
-}
-
-function buildPredictionResultsPageUrl({
-  locale,
-  slug,
-}: {
-  locale: SupportedLocale
-  slug: string
-}) {
-  const pagePath = buildLocalizedPagePath(`/predictions/${slug}`, locale)
-  const siteUrl = resolveSiteUrl(process.env)
-  return new URL(pagePath, siteUrl).toString()
-}
 
 async function getPredictionPageContext(locale: SupportedLocale, slug: string) {
   const t = await getExtracted({ locale })

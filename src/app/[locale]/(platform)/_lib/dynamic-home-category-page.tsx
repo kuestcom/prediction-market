@@ -2,7 +2,10 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { notFound } from 'next/navigation'
 import HomeContent from '@/app/[locale]/(platform)/(home)/_components/HomeContent'
-import { DEFAULT_LOCALE } from '@/i18n/locales'
+import {
+  buildLocalizedPagePath,
+  buildPredictionResultsOgImageUrl,
+} from '@/app/[locale]/(platform)/_lib/prediction-results-metadata'
 import { TagRepository } from '@/lib/db/queries/tag'
 import {
   findDynamicHomeCategoryBySlug,
@@ -17,40 +20,6 @@ const { resolveSiteUrl } = siteUrlUtils
 async function getMainTags(locale: SupportedLocale) {
   const { data: mainTags } = await TagRepository.getMainTags(locale)
   return mainTags ?? []
-}
-
-function buildLocalizedPagePath(path: string, locale: SupportedLocale) {
-  if (locale === DEFAULT_LOCALE) {
-    return path
-  }
-
-  return `/${locale}${path}`
-}
-
-function buildPredictionResultsOgImageUrl({
-  locale,
-  slug,
-  label,
-  version,
-}: {
-  locale: SupportedLocale
-  slug: string
-  label: string
-  version?: string | null
-}) {
-  const params = new URLSearchParams({
-    locale,
-    slug,
-    label,
-  })
-
-  const normalizedVersion = version?.trim()
-  if (normalizedVersion) {
-    params.set('v', normalizedVersion)
-  }
-
-  const siteUrl = resolveSiteUrl(process.env)
-  return new URL(`/api/og/predictions?${params.toString()}`, siteUrl).toString()
 }
 
 export async function generateDynamicHomeCategoryStaticParams() {

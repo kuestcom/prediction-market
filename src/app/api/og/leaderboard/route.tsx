@@ -18,8 +18,10 @@ import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 const OG_IMAGE_WIDTH = 1200
 const OG_IMAGE_HEIGHT = 630
-const DATA_API_URL = process.env.DATA_URL ?? ''
-const LEADERBOARD_API_URL = DATA_API_URL.endsWith('/v1') ? DATA_API_URL : `${DATA_API_URL}/v1`
+const DATA_API_URL = process.env.DATA_URL?.trim().replace(/\/+$/, '') ?? ''
+const LEADERBOARD_API_URL = DATA_API_URL
+  ? (DATA_API_URL.endsWith('/v1') ? DATA_API_URL : `${DATA_API_URL}/v1`)
+  : ''
 const THEME_PRESET_PRIMARY_COLOR = {
   amber: 'oklch(0.881 0.168 94.237)',
   default: 'oklch(0.55 0.2 255)',
