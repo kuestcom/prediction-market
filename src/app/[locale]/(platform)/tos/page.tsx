@@ -1,16 +1,21 @@
 import type { Metadata } from 'next'
-import { setRequestLocale } from 'next-intl/server'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getTermsOfServicePdfUrl } from '@/lib/terms-of-service'
 import { getThemeSiteSettingsFormState, loadRuntimeThemeState } from '@/lib/theme-settings'
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<'/[locale]/tos'>): Promise<Metadata> {
+  const { locale } = await params
+  setRequestLocale(locale)
+
+  const t = await getExtracted()
+
   const runtimeTheme = await loadRuntimeThemeState()
   const siteName = runtimeTheme.site.name
 
   return {
-    title: 'Terms of Use',
-    description: `Terms of Use for ${siteName}`,
+    title: t('Terms of Use'),
+    description: t(`Terms of Use for {siteName}`, { siteName }),
   }
 }
 

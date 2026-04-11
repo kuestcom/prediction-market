@@ -2,17 +2,29 @@
 
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
-import { setRequestLocale } from 'next-intl/server'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
-export const metadata: Metadata = {
-  title: 'Sports Live',
+export async function generateMetadata({ params }: PageProps<'/[locale]/sports/live'>): Promise<Metadata> {
+  const { locale } = await params
+  setRequestLocale(locale)
+
+  const t = await getExtracted()
+
+  const runtimeTheme = await loadRuntimeThemeState()
+  const siteName = runtimeTheme.site.name
+
+  return {
+    title: t('Sports Live Prediction Markets & Live Odds'),
+    description: t(`Trade on live sports in real time on {siteName}. Trade on NBA, NHL, UFC, MLB, soccer, and 20+ sports with moneyline, spread, and total markets. Real-time odds and scores.`, { siteName }),
+  }
 }
 
-export default async function SportsLivePage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function SportsLivePage({ params }: PageProps<'/[locale]/sports/live'>) {
   const { locale } = await params
   setRequestLocale(locale)
   const [{ data: events }, { data: layoutData }] = await Promise.all([

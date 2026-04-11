@@ -2,14 +2,22 @@
 
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
-import { setRequestLocale } from 'next-intl/server'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
 import MentionsList from '@/app/[locale]/(platform)/mentions/_components/MentionsList'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 
-export const metadata: Metadata = {
-  title: 'Mentions',
+export async function generateMetadata({ params }: PageProps<'/[locale]/mentions'>): Promise<Metadata> {
+  const { locale } = await params
+  setRequestLocale(locale)
+
+  const t = await getExtracted()
+
+  return {
+    title: t('Mentions'),
+    description: t('Live events where you can predict the words and phrases that will be said.'),
+  }
 }
 
 export default async function MentionsPage({ params }: PageProps<'/[locale]/mentions'>) {

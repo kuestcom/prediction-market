@@ -1,12 +1,24 @@
 'use cache'
 
 import type { Metadata } from 'next'
-import { setRequestLocale } from 'next-intl/server'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
 import LeaderboardClient from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardClient'
 import { CATEGORY_OPTIONS, ORDER_OPTIONS, parseLeaderboardFilters, PERIOD_OPTIONS } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
-export const metadata: Metadata = {
-  title: 'Leaderboard',
+export async function generateMetadata({ params }: PageProps<'/[locale]/leaderboard/[[...filters]]'>): Promise<Metadata> {
+  const { locale } = await params
+  setRequestLocale(locale)
+
+  const t = await getExtracted()
+
+  const runtimeTheme = await loadRuntimeThemeState()
+  const siteName = runtimeTheme.site.name
+
+  return {
+    title: t('Leaderboard'),
+    description: t('See top traders and biggest wins on {siteName}', { siteName }),
+  }
 }
 
 export async function generateStaticParams() {
