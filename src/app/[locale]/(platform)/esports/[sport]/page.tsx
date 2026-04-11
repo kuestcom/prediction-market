@@ -12,9 +12,7 @@ export async function generateStaticParams() {
 
 export default async function EsportsBySportRedirectPage({
   params,
-}: {
-  params: Promise<{ locale: string, sport: string }>
-}) {
+}: PageProps<'/[locale]/esports/[sport]'>) {
   const { locale, sport } = await params
   setRequestLocale(locale)
   if (sport === STATIC_PARAMS_PLACEHOLDER) {

@@ -12,8 +12,6 @@ import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
-type RouteParams = Promise<{ locale: string, sport: string }>
-
 async function resolveEsportsSportContext(sport: string) {
   const [{ data: canonicalSportSlug }, { data: layoutData }] = await Promise.all([
     SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
@@ -38,9 +36,7 @@ async function resolveEsportsSportContext(sport: string) {
 
 export async function generateMetadata({
   params,
-}: {
-  params: RouteParams
-}): Promise<Metadata> {
+}: PageProps<'/[locale]/esports/[sport]/games'>): Promise<Metadata> {
   const { locale, sport } = await params
   setRequestLocale(locale)
 
@@ -72,9 +68,7 @@ export async function generateStaticParams() {
 
 export default async function EsportsGamesBySportPage({
   params,
-}: {
-  params: RouteParams
-}) {
+}: PageProps<'/[locale]/esports/[sport]/games'>) {
   const { locale, sport } = await params
   setRequestLocale(locale)
   if (sport === STATIC_PARAMS_PLACEHOLDER) {
