@@ -19,8 +19,14 @@ interface CacheEntry {
   expiresAt: number
 }
 
+interface InFlightEntry {
+  controller: AbortController
+  consumers: number
+  promise: Promise<number | null>
+}
+
 const TIMEFRAME_PNL_CACHE = new Map<string, CacheEntry>()
-const TIMEFRAME_PNL_IN_FLIGHT = new Map<string, Promise<number | null>>()
+const TIMEFRAME_PNL_IN_FLIGHT = new Map<string, InFlightEntry>()
 
 function resolvePeriodConfig(period: TimePeriod) {
   switch (period) {
@@ -130,23 +136,46 @@ function abortError() {
   return new DOMException('The operation was aborted.', 'AbortError')
 }
 
-async function withAbortSignal<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+function releaseInFlightConsumer(entry: InFlightEntry) {
+  entry.consumers = Math.max(0, entry.consumers - 1)
+  if (entry.consumers === 0) {
+    entry.controller.abort()
+  }
+}
+
+async function waitForInFlightEntry(
+  key: string,
+  entry: InFlightEntry,
+  signal: AbortSignal,
+): Promise<number | null> {
   if (signal.aborted) {
+    if (entry.consumers === 0) {
+      entry.controller.abort()
+    }
     throw abortError()
   }
 
-  return await new Promise<T>((resolve, reject) => {
-    const onAbort = () => {
+  entry.consumers += 1
+
+  return await new Promise<number | null>((resolve, reject) => {
+    let settled = false
+
+    function cleanup() {
+      if (settled) {
+        return
+      }
+      settled = true
+      signal.removeEventListener('abort', onAbort)
+      releaseInFlightConsumer(entry)
+    }
+
+    function onAbort() {
       cleanup()
       reject(abortError())
     }
 
-    const cleanup = () => {
-      signal.removeEventListener('abort', onAbort)
-    }
-
     signal.addEventListener('abort', onAbort, { once: true })
-    promise
+    entry.promise
       .then((value) => {
         cleanup()
         resolve(value)
@@ -161,6 +190,7 @@ async function withAbortSignal<T>(promise: Promise<T>, signal: AbortSignal): Pro
 async function fetchUserTimeframePnl(
   period: TimePeriod,
   address: string,
+  signal: AbortSignal,
 ): Promise<number | null> {
   if (!USER_PNL_API_URL) {
     return null
@@ -175,10 +205,17 @@ async function fetchUserTimeframePnl(
   const key = toCacheKey(period, address)
   const inFlight = TIMEFRAME_PNL_IN_FLIGHT.get(key)
   if (inFlight) {
-    return inFlight
+    return await waitForInFlightEntry(key, inFlight, signal)
   }
 
-  const request = (async () => {
+  const controller = new AbortController()
+  const entry: InFlightEntry = {
+    controller,
+    consumers: 0,
+    promise: Promise.resolve(null),
+  }
+
+  entry.promise = (async () => {
     const { interval, fidelity, relative } = resolvePeriodConfig(period)
     const params = new URLSearchParams({
       user_address: address,
@@ -188,6 +225,7 @@ async function fetchUserTimeframePnl(
 
     const endpoint = new URL('/user-pnl', USER_PNL_API_URL)
     const response = await fetch(`${endpoint.toString()}?${params.toString()}`, {
+      signal: controller.signal,
       cache: 'no-store',
     })
 
@@ -197,7 +235,7 @@ async function fetchUserTimeframePnl(
 
     const payload = await response.json()
     const value = parseUserPnlValue(payload, relative)
-    if (Number.isFinite(value)) {
+    if (typeof value === 'number' && Number.isFinite(value)) {
       setCachedValue(period, address, value, Date.now())
       return value
     }
@@ -208,8 +246,8 @@ async function fetchUserTimeframePnl(
       TIMEFRAME_PNL_IN_FLIGHT.delete(key)
     })
 
-  TIMEFRAME_PNL_IN_FLIGHT.set(key, request)
-  return request
+  TIMEFRAME_PNL_IN_FLIGHT.set(key, entry)
+  return await waitForInFlightEntry(key, entry, signal)
 }
 
 async function fetchBatchPnlValues(
@@ -234,8 +272,7 @@ async function fetchBatchPnlValues(
         return
       }
 
-      const sharedLookup = fetchUserTimeframePnl(period, nextAddress)
-      const value = await withAbortSignal(sharedLookup, signal).catch(() => null)
+      const value = await fetchUserTimeframePnl(period, nextAddress, signal).catch(() => null)
       if (typeof value === 'number' && Number.isFinite(value)) {
         values[nextAddress] = value
       }
