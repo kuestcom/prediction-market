@@ -13,16 +13,35 @@ import { cn } from '@/lib/utils'
 const MAX_PAST_RESULT_BADGES = 5
 const LIVE_TRADING_WINDOW_MS = 24 * 60 * 60 * 1000
 const NOW_TICK_INTERVAL_MS = 1000
+let nowTimestampStore = Date.now()
+const nowTimestampListeners = new Set<() => void>()
+let nowTimestampInterval: number | null = null
 
 function subscribeToNowTimestamp(onStoreChange: () => void) {
-  const interval = window.setInterval(onStoreChange, NOW_TICK_INTERVAL_MS)
+  nowTimestampListeners.add(onStoreChange)
+  nowTimestampStore = Date.now()
+
+  if (nowTimestampInterval === null) {
+    nowTimestampInterval = window.setInterval(() => {
+      nowTimestampStore = Date.now()
+      for (const listener of nowTimestampListeners) {
+        listener()
+      }
+    }, NOW_TICK_INTERVAL_MS)
+  }
+
   return () => {
-    window.clearInterval(interval)
+    nowTimestampListeners.delete(onStoreChange)
+
+    if (nowTimestampListeners.size === 0 && nowTimestampInterval !== null) {
+      window.clearInterval(nowTimestampInterval)
+      nowTimestampInterval = null
+    }
   }
 }
 
 function getNowTimestampSnapshot() {
-  return Date.now()
+  return nowTimestampStore
 }
 
 function getServerNowTimestampSnapshot() {
