@@ -52,15 +52,12 @@ interface BiggestWinEntry {
 
 const DATA_API_URL = process.env.DATA_URL!
 const LEADERBOARD_API_URL = DATA_API_URL.endsWith('/v1') ? DATA_API_URL : `${DATA_API_URL}/v1`
-const USER_PNL_API_URL = process.env.USER_PNL_URL
 const PAGE_SIZE = 20
 const BIGGEST_WINS_CACHE = new Map<string, BiggestWinEntry[]>()
 const BIGGEST_WINS_IN_FLIGHT = new Map<string, Promise<BiggestWinEntry[]>>()
-const USER_TIMEFRAME_PNL_CACHE = new Map<string, number>()
 
-interface UserPnlPoint {
-  t?: number
-  p?: number
+interface TimeframePnlBatchResponse {
+  values?: Record<string, number>
 }
 
 async function fetchBiggestWins(category: string, period: string) {
@@ -186,69 +183,44 @@ function normalizeWalletAddress(value?: string) {
   return (value ?? '').trim().toLowerCase()
 }
 
-function resolveUserPnlTimeframe(period: LeaderboardFilters['period']) {
-  switch (period) {
-    case 'today':
-      return { interval: '1d', fidelity: '1h', relative: true }
-    case 'weekly':
-      return { interval: '1w', fidelity: '3h', relative: true }
-    case 'monthly':
-      return { interval: '1m', fidelity: '18h', relative: true }
-    case 'all':
-      return { interval: 'all', fidelity: '12h', relative: false }
-    default:
-      return { interval: '1d', fidelity: '1h', relative: true }
-  }
-}
-
-async function fetchUserTimeframePnl(
-  userAddress: string,
+async function fetchTimeframePnlBatch(
+  userAddresses: string[],
   period: LeaderboardFilters['period'],
   signal: AbortSignal,
-): Promise<number | null> {
-  const normalizedAddress = normalizeWalletAddress(userAddress)
-  if (!normalizedAddress || !USER_PNL_API_URL) {
-    return null
-  }
-
-  const cacheKey = `${period}:${normalizedAddress}`
-  const cached = USER_TIMEFRAME_PNL_CACHE.get(cacheKey)
-  if (typeof cached === 'number' && Number.isFinite(cached)) {
-    return cached
-  }
-
-  const timeframe = resolveUserPnlTimeframe(period)
-  const params = new URLSearchParams({
-    user_address: normalizedAddress,
-    interval: timeframe.interval,
-    fidelity: timeframe.fidelity,
+): Promise<Map<string, number>> {
+  const response = await fetch('/api/leaderboard/timeframe-pnl', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      period,
+      addresses: userAddresses,
+    }),
+    signal,
   })
-  const endpoint = new URL('/user-pnl', USER_PNL_API_URL)
-  const response = await fetch(`${endpoint.toString()}?${params.toString()}`, { signal })
+
   if (!response.ok) {
-    return null
+    return new Map()
   }
 
-  const payload = await response.json() as UserPnlPoint[]
-  if (!Array.isArray(payload) || payload.length === 0) {
-    USER_TIMEFRAME_PNL_CACHE.set(cacheKey, 0)
-    return 0
+  const payload = await response.json() as TimeframePnlBatchResponse
+  if (!payload || typeof payload !== 'object' || !payload.values || typeof payload.values !== 'object') {
+    return new Map()
   }
 
-  const points = payload
-    .map(point => (typeof point.p === 'number' && Number.isFinite(point.p) ? point.p : null))
-    .filter((value): value is number => value !== null)
-
-  if (points.length === 0) {
-    USER_TIMEFRAME_PNL_CACHE.set(cacheKey, 0)
-    return 0
+  const values = new Map<string, number>()
+  for (const [address, rawValue] of Object.entries(payload.values)) {
+    const normalizedAddress = normalizeWalletAddress(address)
+    if (!normalizedAddress) {
+      continue
+    }
+    if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+      values.set(normalizedAddress, rawValue)
+    }
   }
 
-  const start = points[0]
-  const end = points[points.length - 1]
-  const value = timeframe.relative ? end - start : end
-  USER_TIMEFRAME_PNL_CACHE.set(cacheKey, value)
-  return value
+  return values
 }
 
 async function hydrateEntriesWithPortfolioPnl(
@@ -260,7 +232,7 @@ async function hydrateEntriesWithPortfolioPnl(
     return entries
   }
 
-  if (filters.category !== 'overall' || !USER_PNL_API_URL) {
+  if (filters.category !== 'overall' || filters.order !== 'profit') {
     return entries
   }
 
@@ -276,19 +248,7 @@ async function hydrateEntriesWithPortfolioPnl(
     return entries
   }
 
-  const values = await Promise.all(
-    addresses.map(async (address) => {
-      const pnl = await fetchUserTimeframePnl(address, filters.period, signal).catch(() => null)
-      return [address, pnl] as const
-    }),
-  )
-
-  const pnlByAddress = new Map<string, number>()
-  for (const [address, pnl] of values) {
-    if (typeof pnl === 'number' && Number.isFinite(pnl)) {
-      pnlByAddress.set(address, pnl)
-    }
-  }
+  const pnlByAddress = await fetchTimeframePnlBatch(addresses, filters.period, signal).catch(() => new Map())
 
   if (pnlByAddress.size === 0) {
     return entries
