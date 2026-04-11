@@ -108,9 +108,9 @@ function setCachedValue(period: TimePeriod, address: string, value: number, now:
   trimCache()
 }
 
-function parseUserPnlValue(payload: unknown, relative: boolean): number {
+function parseUserPnlValue(payload: unknown, relative: boolean): number | null {
   if (!Array.isArray(payload) || payload.length === 0) {
-    return 0
+    return null
   }
 
   const points = (payload as UserPnlPoint[])
@@ -118,7 +118,7 @@ function parseUserPnlValue(payload: unknown, relative: boolean): number {
     .filter((value): value is number => value !== null)
 
   if (points.length === 0) {
-    return 0
+    return null
   }
 
   const start = points[0]
@@ -126,10 +126,41 @@ function parseUserPnlValue(payload: unknown, relative: boolean): number {
   return relative ? end - start : end
 }
 
+function abortError() {
+  return new DOMException('The operation was aborted.', 'AbortError')
+}
+
+async function withAbortSignal<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) {
+    throw abortError()
+  }
+
+  return await new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      cleanup()
+      reject(abortError())
+    }
+
+    const cleanup = () => {
+      signal.removeEventListener('abort', onAbort)
+    }
+
+    signal.addEventListener('abort', onAbort, { once: true })
+    promise
+      .then((value) => {
+        cleanup()
+        resolve(value)
+      })
+      .catch((error) => {
+        cleanup()
+        reject(error)
+      })
+  })
+}
+
 async function fetchUserTimeframePnl(
   period: TimePeriod,
   address: string,
-  signal: AbortSignal,
 ): Promise<number | null> {
   if (!USER_PNL_API_URL) {
     return null
@@ -157,7 +188,6 @@ async function fetchUserTimeframePnl(
 
     const endpoint = new URL('/user-pnl', USER_PNL_API_URL)
     const response = await fetch(`${endpoint.toString()}?${params.toString()}`, {
-      signal,
       cache: 'no-store',
     })
 
@@ -195,12 +225,17 @@ async function fetchBatchPnlValues(
   const queue = [...addresses]
   const workers = Array.from({ length: Math.min(UPSTREAM_CONCURRENCY, queue.length) }, async () => {
     while (queue.length > 0) {
+      if (signal.aborted) {
+        return
+      }
+
       const nextAddress = queue.shift()
       if (!nextAddress) {
         return
       }
 
-      const value = await fetchUserTimeframePnl(period, nextAddress, signal).catch(() => null)
+      const sharedLookup = fetchUserTimeframePnl(period, nextAddress)
+      const value = await withAbortSignal(sharedLookup, signal).catch(() => null)
       if (typeof value === 'number' && Number.isFinite(value)) {
         values[nextAddress] = value
       }

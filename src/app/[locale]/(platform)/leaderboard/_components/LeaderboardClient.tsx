@@ -232,7 +232,7 @@ async function hydrateEntriesWithPortfolioPnl(
     return entries
   }
 
-  if (filters.category !== 'overall' || filters.order !== 'profit') {
+  if (filters.category !== 'overall') {
     return entries
   }
 
