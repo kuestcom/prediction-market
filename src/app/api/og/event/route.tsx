@@ -920,7 +920,7 @@ export async function GET(request: Request) {
       width: IMAGE_WIDTH,
       height: IMAGE_HEIGHT,
       headers: {
-        'cache-control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=86400',
+        'cache-control': 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=1800',
       },
     },
   )

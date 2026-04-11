@@ -114,7 +114,7 @@ export async function buildDynamicHomeSubcategoryMetadata(
     notFound()
   }
 
-  const title = `${resolvedSubcategory.subcategory.name} | ${getMainTagSeoTitle(resolvedSubcategory.category.name)}`
+  const title = `${resolvedSubcategory.subcategory.name} ${getMainTagSeoTitle(resolvedSubcategory.category.name)}`
   const siteUrl = resolveSiteUrl(process.env)
   const imageUrl = buildPredictionResultsOgImageUrl({
     locale,

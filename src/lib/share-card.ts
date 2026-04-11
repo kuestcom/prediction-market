@@ -114,5 +114,5 @@ export function buildShareCardUrl(payload: ShareCardPayload) {
   const params = new URLSearchParams({
     position: encodedPayload,
   })
-  return `/api/og?${params.toString()}`
+  return `/api/og/position?${params.toString()}`
 }

@@ -477,6 +477,6 @@ export async function GET(request: Request) {
     },
   )
 
-  response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300')
+  response.headers.set('Cache-Control', 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=1800')
   return response
 }
