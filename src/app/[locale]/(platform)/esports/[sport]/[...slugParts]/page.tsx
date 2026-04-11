@@ -11,8 +11,6 @@ import {
 import { resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
-type RouteParams = Promise<{ locale: string, sport: string, slugParts: string[] }>
-
 export async function generateStaticParams() {
   return [{ sport: STATIC_PARAMS_PLACEHOLDER, slugParts: [STATIC_PARAMS_PLACEHOLDER] }]
 }
@@ -40,9 +38,7 @@ async function resolveLeagueEventPath(
 
 export async function generateMetadata({
   params,
-}: {
-  params: RouteParams
-}): Promise<Metadata> {
+}: PageProps<'/[locale]/esports/[sport]/[...slugParts]'>): Promise<Metadata> {
   const { locale, sport, slugParts } = await params
 
   if (sport === STATIC_PARAMS_PLACEHOLDER || slugParts.includes(STATIC_PARAMS_PLACEHOLDER)) {
@@ -91,9 +87,7 @@ export async function generateMetadata({
 
 export default async function EsportsSlugPartsPage({
   params,
-}: {
-  params: RouteParams
-}) {
+}: PageProps<'/[locale]/esports/[sport]/[...slugParts]'>) {
   const { locale, sport, slugParts } = await params
 
   if (sport === STATIC_PARAMS_PLACEHOLDER || slugParts.includes(STATIC_PARAMS_PLACEHOLDER)) {

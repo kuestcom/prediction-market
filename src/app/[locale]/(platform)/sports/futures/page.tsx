@@ -6,9 +6,7 @@ import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 
 export default async function SportsFuturesRedirectPage({
   params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
+}: PageProps<'/[locale]/sports/futures'>) {
   const { locale } = await params
   setRequestLocale(locale)
   const { data: futuresHref } = await SportsMenuRepository.getFuturesHref('sports')

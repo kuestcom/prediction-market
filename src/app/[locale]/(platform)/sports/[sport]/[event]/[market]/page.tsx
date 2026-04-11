@@ -43,9 +43,7 @@ function isSameSportsGame(
 
 export async function generateMetadata({
   params,
-}: {
-  params: Promise<{ locale: string, sport: string, event: string, market: string }>
-}): Promise<Metadata> {
+}: PageProps<'/[locale]/sports/[sport]/[event]/[market]'>): Promise<Metadata> {
   const { locale, sport, event, market } = await params
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale
@@ -69,9 +67,7 @@ export async function generateMetadata({
 
 export default async function SportsEventMarketPage({
   params,
-}: {
-  params: Promise<{ locale: string, sport: string, event: string, market: string }>
-}) {
+}: PageProps<'/[locale]/sports/[sport]/[event]/[market]'>) {
   const { locale, sport, event, market } = await params
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale

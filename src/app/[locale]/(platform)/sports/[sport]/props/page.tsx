@@ -1,15 +1,61 @@
 'use cache'
 
 import type { Metadata } from 'next'
-import { setRequestLocale } from 'next-intl/server'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
 import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sports-menu-routing'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
-export const metadata: Metadata = {
-  title: 'Sports Props',
+async function resolveSportsSportContext(sport: string) {
+  const [{ data: canonicalSportSlug }, { data: layoutData }] = await Promise.all([
+    SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
+    SportsMenuRepository.getLayoutData('sports'),
+  ])
+
+  if (
+    !canonicalSportSlug
+    || !findSportsHrefBySlug({
+      menuEntries: layoutData?.menuEntries,
+      canonicalSportSlug,
+    })
+  ) {
+    return null
+  }
+
+  return {
+    canonicalSportSlug,
+    sportTitle: layoutData?.h1TitleBySlug[canonicalSportSlug] ?? canonicalSportSlug.toUpperCase(),
+  }
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps<'/[locale]/sports/[sport]/props'>): Promise<Metadata> {
+  const { locale, sport } = await params
+  setRequestLocale(locale)
+
+  if (sport === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
+
+  const [runtimeTheme, sportContext] = await Promise.all([
+    loadRuntimeThemeState(),
+    resolveSportsSportContext(sport),
+  ])
+  if (!sportContext) {
+    notFound()
+  }
+
+  const siteName = runtimeTheme.site.name
+  const t = await getExtracted()
+
+  return {
+    title: t('{sportTitle} Props Prediction Markets & Live Odds', { sportTitle: sportContext.sportTitle }),
+    description: t('Trade on live {sportTitle} player props in real time on {siteName}. Bet on points, rebounds, strikeouts, touchdowns, and more specialty markets while you watch.', { sportTitle: sportContext.sportTitle, siteName }),
+  }
 }
 
 export async function generateStaticParams() {
@@ -18,28 +64,18 @@ export async function generateStaticParams() {
 
 export default async function SportsPropsBySportPage({
   params,
-}: {
-  params: Promise<{ locale: string, sport: string }>
-}) {
+}: PageProps<'/[locale]/sports/[sport]/props'>) {
   const { locale, sport } = await params
   setRequestLocale(locale)
   if (sport === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
 
-  const [{ data: canonicalSportSlug }, { data: layoutData }] = await Promise.all([
-    SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
-    SportsMenuRepository.getLayoutData('sports'),
-  ])
-  if (
-    !canonicalSportSlug
-    || !findSportsHrefBySlug({
-      menuEntries: layoutData?.menuEntries,
-      canonicalSportSlug,
-    })
-  ) {
+  const sportContext = await resolveSportsSportContext(sport)
+  if (!sportContext) {
     notFound()
   }
+  const { canonicalSportSlug } = sportContext
 
   return (
     <div className="grid gap-4">

@@ -2,7 +2,7 @@
 
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
-import { setRequestLocale } from 'next-intl/server'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -10,16 +10,35 @@ import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sp
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
-
-export const metadata: Metadata = {
-  title: 'Sports Games',
-}
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateStaticParams() {
   return [{
     sport: STATIC_PARAMS_PLACEHOLDER,
     week: STATIC_PARAMS_PLACEHOLDER,
   }]
+}
+
+async function resolveSportsSportContext(sport: string) {
+  const [{ data: canonicalSportSlug }, { data: layoutData }] = await Promise.all([
+    SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
+    SportsMenuRepository.getLayoutData('sports'),
+  ])
+
+  if (
+    !canonicalSportSlug
+    || !findSportsHrefBySlug({
+      menuEntries: layoutData?.menuEntries,
+      canonicalSportSlug,
+    })
+  ) {
+    return null
+  }
+
+  return {
+    canonicalSportSlug,
+    sportTitle: layoutData?.h1TitleBySlug[canonicalSportSlug] ?? canonicalSportSlug.toUpperCase(),
+  }
 }
 
 function parseWeekParam(value: string) {
@@ -31,11 +50,9 @@ function parseWeekParam(value: string) {
   return parsed
 }
 
-export default async function SportsGamesBySportWeekPage({
+export async function generateMetadata({
   params,
-}: {
-  params: Promise<{ locale: string, sport: string, week: string }>
-}) {
+}: PageProps<'/[locale]/sports/[sport]/games/week/[week]'>): Promise<Metadata> {
   const { locale, sport, week } = await params
   setRequestLocale(locale)
 
@@ -48,19 +65,46 @@ export default async function SportsGamesBySportWeekPage({
     notFound()
   }
 
-  const [{ data: canonicalSportSlug }, { data: layoutData }] = await Promise.all([
-    SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
-    SportsMenuRepository.getLayoutData('sports'),
+  const [runtimeTheme, sportContext] = await Promise.all([
+    loadRuntimeThemeState(),
+    resolveSportsSportContext(sport),
   ])
-  if (
-    !canonicalSportSlug
-    || !findSportsHrefBySlug({
-      menuEntries: layoutData?.menuEntries,
-      canonicalSportSlug,
-    })
-  ) {
+  if (!sportContext) {
     notFound()
   }
+
+  const siteName = runtimeTheme.site.name
+  const t = await getExtracted()
+
+  return {
+    title: t('{sportTitle} Prediction Markets & Live Odds - Week {week}', {
+      sportTitle: sportContext.sportTitle,
+      week: String(parsedWeek),
+    }),
+    description: t('Trade on live {sportTitle} matches in real time on {siteName}. Bet on moneyline, spread, and total markets. Real-time odds and scores.', { sportTitle: sportContext.sportTitle, siteName }),
+  }
+}
+
+export default async function SportsGamesBySportWeekPage({
+  params,
+}: PageProps<'/[locale]/sports/[sport]/games/week/[week]'>) {
+  const { locale, sport, week } = await params
+  setRequestLocale(locale)
+
+  if (sport === STATIC_PARAMS_PLACEHOLDER || week === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
+
+  const parsedWeek = parseWeekParam(week)
+  if (parsedWeek == null) {
+    notFound()
+  }
+
+  const sportContext = await resolveSportsSportContext(sport)
+  if (!sportContext) {
+    notFound()
+  }
+  const { canonicalSportSlug, sportTitle } = sportContext
 
   const commonParams = {
     tag: 'sports' as const,
@@ -79,7 +123,6 @@ export default async function SportsGamesBySportWeekPage({
   })
 
   const cards = buildSportsGamesCards(activeEvents ?? [])
-  const sportTitle = layoutData?.h1TitleBySlug[canonicalSportSlug] ?? canonicalSportSlug.toUpperCase()
 
   return (
     <div key={`sports-games-week-page-${canonicalSportSlug}-${parsedWeek}`} className="contents">

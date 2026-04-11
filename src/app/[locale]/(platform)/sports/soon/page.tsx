@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: 'Sports Upcoming',
 }
 
-export default async function SportsSoonPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function SportsSoonPage({ params }: PageProps<'/[locale]/sports/soon'>) {
   const { locale } = await params
   setRequestLocale(locale)
   const [{ data: events }, { data: layoutData }] = await Promise.all([

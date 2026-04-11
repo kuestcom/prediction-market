@@ -18,9 +18,7 @@ export async function generateStaticParams() {
 
 export default async function SportsFuturesBySportPage({
   params,
-}: {
-  params: Promise<{ locale: string, sportSlug: string }>
-}) {
+}: PageProps<'/[locale]/sports/futures/[sportSlug]'>) {
   const { locale, sportSlug } = await params
   setRequestLocale(locale)
   if (sportSlug === STATIC_PARAMS_PLACEHOLDER) {
