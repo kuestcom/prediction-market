@@ -204,8 +204,12 @@ async function fetchUserTimeframePnl(
 
   const key = toCacheKey(period, address)
   const inFlight = TIMEFRAME_PNL_IN_FLIGHT.get(key)
-  if (inFlight) {
+  if (inFlight && !inFlight.controller.signal.aborted) {
     return await waitForInFlightEntry(key, inFlight, signal)
+  }
+
+  if (inFlight?.controller.signal.aborted) {
+    TIMEFRAME_PNL_IN_FLIGHT.delete(key)
   }
 
   const controller = new AbortController()
