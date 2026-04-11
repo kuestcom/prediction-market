@@ -2,7 +2,7 @@
 
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
-import { setRequestLocale } from 'next-intl/server'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -10,9 +10,60 @@ import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sp
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
-export const metadata: Metadata = {
-  title: 'Esports Games',
+type RouteParams = Promise<{ locale: string, sport: string }>
+
+async function resolveEsportsSportContext(sport: string) {
+  const [{ data: canonicalSportSlug }, { data: layoutData }] = await Promise.all([
+    SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
+    SportsMenuRepository.getLayoutData('esports'),
+  ])
+
+  if (
+    !canonicalSportSlug
+    || !findSportsHrefBySlug({
+      menuEntries: layoutData?.menuEntries,
+      canonicalSportSlug,
+    })
+  ) {
+    return null
+  }
+
+  return {
+    canonicalSportSlug,
+    sportTitle: layoutData?.h1TitleBySlug[canonicalSportSlug] ?? canonicalSportSlug.toUpperCase(),
+  }
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: RouteParams
+}): Promise<Metadata> {
+  const { locale, sport } = await params
+  setRequestLocale(locale)
+
+  if (sport === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
+
+  const [runtimeTheme, sportContext] = await Promise.all([
+    loadRuntimeThemeState(),
+    resolveEsportsSportContext(sport),
+  ])
+  if (!sportContext) {
+    notFound()
+  }
+
+  const siteName = runtimeTheme.site.name
+
+  const t = await getExtracted()
+
+  return {
+    title: t('{sportTitle} Prediction Markets & Live Odds', { sportTitle: sportContext.sportTitle }),
+    description: t('Trade on live {sportTitle} esports matches in real time on {siteName}. Bet on moneyline, spread, and total markets. Watch streams while you trade.', { sportTitle: sportContext.sportTitle, siteName }),
+  }
 }
 
 export async function generateStaticParams() {
@@ -22,7 +73,7 @@ export async function generateStaticParams() {
 export default async function EsportsGamesBySportPage({
   params,
 }: {
-  params: Promise<{ locale: string, sport: string }>
+  params: RouteParams
 }) {
   const { locale, sport } = await params
   setRequestLocale(locale)
@@ -30,19 +81,11 @@ export default async function EsportsGamesBySportPage({
     notFound()
   }
 
-  const [{ data: canonicalSportSlug }, { data: layoutData }] = await Promise.all([
-    SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
-    SportsMenuRepository.getLayoutData('esports'),
-  ])
-  if (
-    !canonicalSportSlug
-    || !findSportsHrefBySlug({
-      menuEntries: layoutData?.menuEntries,
-      canonicalSportSlug,
-    })
-  ) {
+  const sportContext = await resolveEsportsSportContext(sport)
+  if (!sportContext) {
     notFound()
   }
+  const { canonicalSportSlug, sportTitle } = sportContext
 
   const commonParams = {
     tag: 'esports' as const,
@@ -61,7 +104,6 @@ export default async function EsportsGamesBySportPage({
   })
 
   const cards = buildSportsGamesCards(activeEvents ?? [])
-  const sportTitle = layoutData?.h1TitleBySlug[canonicalSportSlug] ?? canonicalSportSlug.toUpperCase()
 
   return (
     <div key={`esports-games-page-${canonicalSportSlug}`} className="contents">
