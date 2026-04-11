@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { connection } from 'next/server'
@@ -19,12 +20,18 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/profile/[slug]'>): Promise<Metadata> {
-  const { slug } = await params
+  const { locale, slug } = await params
+  const resolvedLocale = locale as SupportedLocale
+  setRequestLocale(resolvedLocale)
+
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
 
-  return buildPublicProfileMetadata(resolveProfileNamespaceSlug(slug))
+  return await buildPublicProfileMetadata({
+    slug: resolveProfileNamespaceSlug(slug),
+    locale: resolvedLocale,
+  })
 }
 
 export default async function ProfileSlugPage({ params }: PageProps<'/[locale]/profile/[slug]'>) {

@@ -27,7 +27,10 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/[slug]'>
 
   const profileSlug = normalizePublicProfileSlug(slug)
   if (profileSlug.type !== 'invalid') {
-    return buildPublicProfileMetadata(slug)
+    return await buildPublicProfileMetadata({
+      slug,
+      locale: resolvedLocale,
+    })
   }
 
   if (isPlatformReservedRootSlug(slug)) {
