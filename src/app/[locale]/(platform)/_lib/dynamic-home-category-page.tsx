@@ -2,17 +2,55 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { notFound } from 'next/navigation'
 import HomeContent from '@/app/[locale]/(platform)/(home)/_components/HomeContent'
+import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { TagRepository } from '@/lib/db/queries/tag'
 import {
   findDynamicHomeCategoryBySlug,
   findDynamicHomeSubcategoryBySlug,
   getMainTagSeoTitle,
 } from '@/lib/platform-routing'
+import siteUrlUtils from '@/lib/site-url'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+
+const { resolveSiteUrl } = siteUrlUtils
 
 async function getMainTags(locale: SupportedLocale) {
   const { data: mainTags } = await TagRepository.getMainTags(locale)
   return mainTags ?? []
+}
+
+function buildLocalizedPagePath(path: string, locale: SupportedLocale) {
+  if (locale === DEFAULT_LOCALE) {
+    return path
+  }
+
+  return `/${locale}${path}`
+}
+
+function buildPredictionResultsOgImageUrl({
+  locale,
+  slug,
+  label,
+  version,
+}: {
+  locale: SupportedLocale
+  slug: string
+  label: string
+  version?: string | null
+}) {
+  const params = new URLSearchParams({
+    locale,
+    slug,
+    label,
+  })
+
+  const normalizedVersion = version?.trim()
+  if (normalizedVersion) {
+    params.set('v', normalizedVersion)
+  }
+
+  const siteUrl = resolveSiteUrl(process.env)
+  return new URL(`/api/og/predictions?${params.toString()}`, siteUrl).toString()
 }
 
 export async function generateDynamicHomeCategoryStaticParams() {
@@ -33,8 +71,32 @@ export async function buildDynamicHomeCategoryMetadata(locale: SupportedLocale, 
     notFound()
   }
 
+  const title = getMainTagSeoTitle(category.name)
+  const siteUrl = resolveSiteUrl(process.env)
+  const imageUrl = buildPredictionResultsOgImageUrl({
+    locale,
+    slug: category.slug,
+    label: category.name,
+    version: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+  })
+  const pageUrl = new URL(
+    buildLocalizedPagePath(`/${category.slug}`, locale),
+    siteUrl,
+  ).toString()
+
   return {
-    title: getMainTagSeoTitle(category.name),
+    title,
+    openGraph: {
+      type: 'website',
+      url: pageUrl,
+      title,
+      images: [imageUrl],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      images: [imageUrl],
+    },
   }
 }
 
@@ -52,8 +114,32 @@ export async function buildDynamicHomeSubcategoryMetadata(
     notFound()
   }
 
+  const title = `${resolvedSubcategory.subcategory.name} | ${getMainTagSeoTitle(resolvedSubcategory.category.name)}`
+  const siteUrl = resolveSiteUrl(process.env)
+  const imageUrl = buildPredictionResultsOgImageUrl({
+    locale,
+    slug: resolvedSubcategory.subcategory.slug,
+    label: resolvedSubcategory.subcategory.name,
+    version: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+  })
+  const pageUrl = new URL(
+    buildLocalizedPagePath(`/${resolvedSubcategory.category.slug}/${resolvedSubcategory.subcategory.slug}`, locale),
+    siteUrl,
+  ).toString()
+
   return {
-    title: `${resolvedSubcategory.subcategory.name} | ${getMainTagSeoTitle(resolvedSubcategory.category.name)}`,
+    title,
+    openGraph: {
+      type: 'website',
+      url: pageUrl,
+      title,
+      images: [imageUrl],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      images: [imageUrl],
+    },
   }
 }
 
