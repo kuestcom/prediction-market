@@ -36,10 +36,26 @@ export async function generatePredictionResultsMetadata({
   locale: SupportedLocale
   slug: string
 }): Promise<Metadata> {
-  const context = await getPredictionPageContext(locale, slug)
+  const [t, context] = await Promise.all([
+    getExtracted({ locale }),
+    getPredictionPageContext(locale, slug),
+  ])
+  const dateLabel = new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date())
+  const liveMarketsCount = new Intl.NumberFormat(locale).format(1727)
 
   return {
-    title: `${context.label} Odds & Predictions`,
+    title: t('{slug} Predictions & Real-Time Odds', {
+      slug: context.label,
+    }),
+    description: t('Explore {count} live {slug} prediction markets as of {date}.', {
+      count: liveMarketsCount,
+      slug: context.label,
+      date: dateLabel,
+    }),
   }
 }
 
