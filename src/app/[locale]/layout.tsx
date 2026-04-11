@@ -18,9 +18,12 @@ import { openSauceOne } from '@/lib/fonts'
 import { loadGlobalAnnouncementSettings } from '@/lib/global-announcement-settings'
 import { IS_TEST_MODE } from '@/lib/network'
 import { resolvePwaThemeColors } from '@/lib/pwa-colors'
+import siteUrlUtils from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 import { AppProviders } from '@/providers/AppProviders'
 import SiteIdentityProvider from '@/providers/SiteIdentityProvider'
+
+const { resolveSiteUrl } = siteUrlUtils
 
 export async function generateViewport(): Promise<Viewport> {
   const runtimeTheme = await loadRuntimeThemeState()
@@ -37,14 +40,37 @@ export async function generateViewport(): Promise<Viewport> {
 export async function generateMetadata(): Promise<Metadata> {
   const runtimeTheme = await loadRuntimeThemeState()
   const site = runtimeTheme.site
+  const siteUrl = resolveSiteUrl(process.env)
+  const defaultTitle = `${site.name} | ${site.description}`
+  const fallbackOgImage = new URL('/api/og', siteUrl).toString()
+  const socialImage = {
+    url: fallbackOgImage,
+    width: 1200,
+    height: 630,
+    alt: `${site.name} social image`,
+    type: 'image/png',
+  } as const
 
   return {
     title: {
       template: `%s | ${site.name}`,
-      default: `${site.name} | ${site.description}`,
+      default: defaultTitle,
     },
     description: site.description,
     applicationName: site.name,
+    openGraph: {
+      type: 'website',
+      title: defaultTitle,
+      description: site.description,
+      siteName: site.name,
+      images: [socialImage],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: defaultTitle,
+      description: site.description,
+      images: [socialImage],
+    },
     manifest: '/manifest.webmanifest',
     appleWebApp: {
       capable: true,
