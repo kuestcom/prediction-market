@@ -6,9 +6,7 @@ interface TestModeBannerProps {
   persistKey?: string
 }
 
-export default function TestModeBanner({
-  persistKey = 'test_mode_banner_closed_session',
-}: TestModeBannerProps) {
+function useTestModeBannerClosedState(persistKey: string) {
   const [closed, setClosed] = useState(() => {
     try {
       return sessionStorage.getItem(persistKey) === '1'
@@ -18,6 +16,22 @@ export default function TestModeBanner({
     }
   })
 
+  function closeBanner() {
+    setClosed(true)
+    try {
+      sessionStorage.setItem(persistKey, '1')
+    }
+    catch {}
+  }
+
+  return { closeBanner, closed }
+}
+
+export default function TestModeBanner({
+  persistKey = 'test_mode_banner_closed_session',
+}: TestModeBannerProps) {
+  const { closeBanner, closed } = useTestModeBannerClosedState(persistKey)
+
   const discordUrl = 'https://discord.gg/kuest'
   const t = useExtracted()
 
@@ -25,32 +39,13 @@ export default function TestModeBanner({
     return null
   }
 
-  const message = (
-    <>
-      {t('Test mode is')}
-      {' '}
-      <span className="font-bold">{t('ON')}</span>
-      .
-      {' '}
-      {t('Get free Amoy USDC in Discord with')}
-      {' '}
-      <span className="font-bold">/faucet</span>
-    </>
-  )
-
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-4 z-60">
       <div className="container flex justify-end">
         <div className="pointer-events-auto relative max-w-68 rounded-xl border bg-background text-foreground shadow-xl">
           <button
             type="button"
-            onClick={() => {
-              setClosed(true)
-              try {
-                sessionStorage.setItem(persistKey, '1')
-              }
-              catch {}
-            }}
+            onClick={closeBanner}
             className={`
               absolute -top-2 -right-2 inline-flex size-7 items-center justify-center rounded-full border bg-background
               text-sm text-foreground/80 shadow-md transition-colors
@@ -62,7 +57,16 @@ export default function TestModeBanner({
           </button>
           <div className="py-3 pr-3 pl-4">
             <div className="flex flex-col gap-2">
-              <p className="text-sm/relaxed">{message}</p>
+              <p className="text-sm/relaxed">
+                {t('Test mode is')}
+                {' '}
+                <span className="font-bold">{t('ON')}</span>
+                .
+                {' '}
+                {t('Get free Amoy USDC in Discord with')}
+                {' '}
+                <span className="font-bold">/faucet</span>
+              </p>
               <a
                 href={discordUrl}
                 target="_blank"
