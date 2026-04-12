@@ -8,26 +8,30 @@ const TestModeBanner = dynamic(
   { ssr: false },
 )
 
-export default function TestModeBannerDeferred() {
+function useShouldRenderTestModeBanner() {
   const [shouldRender, setShouldRender] = useState(false)
 
-  useEffect(() => {
+  useEffect(function subscribeToFirstInteractionEvents() {
     function renderBanner() {
       setShouldRender(true)
     }
 
-    const passiveOnceOptions = { once: true, passive: true } satisfies AddEventListenerOptions
+    const abortController = new AbortController()
 
-    window.addEventListener('scroll', renderBanner, passiveOnceOptions)
-    window.addEventListener('pointerdown', renderBanner, passiveOnceOptions)
-    window.addEventListener('keydown', renderBanner, { once: true })
+    window.addEventListener('scroll', renderBanner, { once: true, passive: true, signal: abortController.signal })
+    window.addEventListener('pointerdown', renderBanner, { once: true, passive: true, signal: abortController.signal })
+    window.addEventListener('keydown', renderBanner, { once: true, signal: abortController.signal })
 
-    return () => {
-      window.removeEventListener('scroll', renderBanner)
-      window.removeEventListener('pointerdown', renderBanner)
-      window.removeEventListener('keydown', renderBanner)
+    return function unsubscribeFromFirstInteractionEvents() {
+      abortController.abort()
     }
   }, [])
+
+  return shouldRender
+}
+
+export default function TestModeBannerDeferred() {
+  const shouldRender = useShouldRenderTestModeBanner()
 
   if (!shouldRender) {
     return null
