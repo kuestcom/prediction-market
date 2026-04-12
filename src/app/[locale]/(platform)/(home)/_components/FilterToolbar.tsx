@@ -74,18 +74,18 @@ function createDefaultFilters(overrides: Partial<FilterSettings> = {}): FilterSe
   }
 }
 
-export default function FilterToolbar({
+function useFilterToolbarState({
   filters,
   onFiltersChange,
-  hideDesktopSecondaryNavigation = false,
-  desktopTitle,
-  secondaryNavigation,
-  showFilterCheckboxes = true,
-}: FilterToolbarProps) {
+}: {
+  filters: FilterState
+  onFiltersChange: (filters: Partial<FilterState>) => void
+}) {
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [sortBy, setSortBy] = useState<SortOption>(BASE_FILTER_SETTINGS.sortBy)
+
   const filterSettings = useMemo(() => createDefaultFilters({
     sortBy,
     frequency: filters.frequency,
@@ -104,6 +104,7 @@ export default function FilterToolbar({
     || filterSettings.hideEarnings !== BASE_FILTER_SETTINGS.hideEarnings
     || filters.bookmarked
   ), [filterSettings, filters.bookmarked])
+
   const hasActiveSettingsFilters = useMemo(() => (
     filterSettings.sortBy !== BASE_FILTER_SETTINGS.sortBy
     || filterSettings.frequency !== BASE_FILTER_SETTINGS.frequency
@@ -171,6 +172,46 @@ export default function FilterToolbar({
   const handleSearchChange = useCallback((search: string) => {
     onFiltersChange({ search })
   }, [onFiltersChange])
+
+  return {
+    filterSettings,
+    handleBookmarkToggle,
+    handleClearFilters,
+    handleConnect,
+    handleFilterChange,
+    handleSearchChange,
+    handleSettingsToggle,
+    hasActiveFilters,
+    hasActiveSettingsFilters,
+    isConnected,
+    isSettingsOpen,
+  }
+}
+
+export default function FilterToolbar({
+  filters,
+  onFiltersChange,
+  hideDesktopSecondaryNavigation = false,
+  desktopTitle,
+  secondaryNavigation,
+  showFilterCheckboxes = true,
+}: FilterToolbarProps) {
+  const {
+    filterSettings,
+    handleBookmarkToggle,
+    handleClearFilters,
+    handleConnect,
+    handleFilterChange,
+    handleSearchChange,
+    handleSettingsToggle,
+    hasActiveFilters,
+    hasActiveSettingsFilters,
+    isConnected,
+    isSettingsOpen,
+  } = useFilterToolbarState({
+    filters,
+    onFiltersChange,
+  })
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-3">
@@ -249,16 +290,25 @@ export default function FilterToolbar({
   )
 }
 
-function BookmarkToggle({ isBookmarked, isConnected, onToggle, onConnect }: BookmarkToggleProps) {
+function useBookmarkToggleLabels(isBookmarked: boolean) {
   const t = useExtracted()
+
+  return {
+    ariaLabel: isBookmarked ? t('Remove bookmark filter') : t('Filter by bookmarks'),
+    title: isBookmarked ? t('Show all items') : t('Show only bookmarked items'),
+  }
+}
+
+function BookmarkToggle({ isBookmarked, isConnected, onToggle, onConnect }: BookmarkToggleProps) {
+  const { ariaLabel, title } = useBookmarkToggleLabels(isBookmarked)
 
   return (
     <Button
       type="button"
       variant="ghost"
       size="icon"
-      title={isBookmarked ? t('Show all items') : t('Show only bookmarked items')}
-      aria-label={isBookmarked ? t('Remove bookmark filter') : t('Filter by bookmarks')}
+      title={title}
+      aria-label={ariaLabel}
       aria-pressed={isBookmarked}
       onClick={isConnected ? onToggle : onConnect}
     >
@@ -267,8 +317,13 @@ function BookmarkToggle({ isBookmarked, isConnected, onToggle, onConnect }: Book
   )
 }
 
-function SettingsToggle({ isActive, isOpen, onToggle }: SettingsToggleProps) {
+function useSettingsToggleLabel() {
   const t = useExtracted()
+  return t('Open filters')
+}
+
+function SettingsToggle({ isActive, isOpen, onToggle }: SettingsToggleProps) {
+  const openFiltersLabel = useSettingsToggleLabel()
 
   return (
     <Button
@@ -278,8 +333,8 @@ function SettingsToggle({ isActive, isOpen, onToggle }: SettingsToggleProps) {
       className={cn(
         { 'bg-accent': isOpen || isActive },
       )}
-      title={t('Open filters')}
-      aria-label={t('Open filters')}
+      title={openFiltersLabel}
+      aria-label={openFiltersLabel}
       aria-pressed={isActive}
       aria-expanded={isOpen}
       onClick={onToggle}
@@ -298,17 +353,10 @@ interface FilterSettingsRowProps {
   showFilterCheckboxes?: boolean
 }
 
-function FilterSettingsRow({
-  filters,
-  onChange,
-  onClear,
-  hasActiveFilters,
-  className,
-  showFilterCheckboxes = true,
-}: FilterSettingsRowProps) {
+function useFilterSettingsRowOptions() {
   const t = useExtracted()
 
-  const SORT_OPTIONS: ReadonlyArray<{ value: SortOption, label: string, icon: LucideIcon }> = useMemo(() => [
+  const sortOptions: ReadonlyArray<{ value: SortOption, label: string, icon: LucideIcon }> = useMemo(() => [
     { value: '24h-volume', label: t('24h Volume'), icon: TrendingUpIcon },
     { value: 'total-volume', label: t('Total Volume'), icon: FlameIcon },
     { value: 'liquidity', label: t('Liquidity'), icon: DropletIcon },
@@ -317,23 +365,54 @@ function FilterSettingsRow({
     { value: 'competitive', label: t('Competitive'), icon: HandFistIcon },
   ], [t])
 
-  const FREQUENCY_OPTIONS: ReadonlyArray<{ value: FrequencyOption, label: string }> = useMemo(() => [
+  const frequencyOptions: ReadonlyArray<{ value: FrequencyOption, label: string }> = useMemo(() => [
     { value: 'all', label: t('All') },
     { value: 'daily', label: t('Daily') },
     { value: 'weekly', label: t('Weekly') },
     { value: 'monthly', label: t('Monthly') },
   ], [t])
 
-  const STATUS_OPTIONS: ReadonlyArray<{ value: StatusOption, label: string }> = useMemo(() => [
+  const statusOptions: ReadonlyArray<{ value: StatusOption, label: string }> = useMemo(() => [
     { value: 'active', label: t('Active') },
     { value: 'resolved', label: t('Resolved') },
   ], [t])
 
-  const FILTER_CHECKBOXES: ReadonlyArray<{ key: FilterCheckboxKey, label: string }> = useMemo(() => [
+  const filterCheckboxes: ReadonlyArray<{ key: FilterCheckboxKey, label: string }> = useMemo(() => [
     { key: 'hideSports', label: t('Hide sports?') },
     { key: 'hideCrypto', label: t('Hide crypto?') },
     { key: 'hideEarnings', label: t('Hide earnings?') },
   ], [t])
+
+  return {
+    clearFiltersLabel: t('Clear filters'),
+    filterCheckboxes,
+    frequencyLabel: t('Frequency:'),
+    frequencyOptions,
+    sortByLabel: t('Sort by:'),
+    sortOptions,
+    statusLabel: t('Status:'),
+    statusOptions,
+  }
+}
+
+function FilterSettingsRow({
+  filters,
+  onChange,
+  onClear,
+  hasActiveFilters,
+  className,
+  showFilterCheckboxes = true,
+}: FilterSettingsRowProps) {
+  const {
+    clearFiltersLabel,
+    filterCheckboxes,
+    frequencyLabel,
+    frequencyOptions,
+    sortByLabel,
+    sortOptions,
+    statusLabel,
+    statusOptions,
+  } = useFilterSettingsRowOptions()
 
   return (
     <div
@@ -346,31 +425,31 @@ function FilterSettingsRow({
       )}
     >
       <FilterSettingsSelect
-        label={t('Sort by:')}
+        label={sortByLabel}
         value={filters.sortBy}
-        options={SORT_OPTIONS}
+        options={sortOptions}
         showActiveIcon
         triggerClassName="min-w-[9.5rem]"
         onChange={value => onChange({ sortBy: value as SortOption })}
       />
 
       <FilterSettingsSelect
-        label={t('Frequency:')}
+        label={frequencyLabel}
         value={filters.frequency}
-        options={FREQUENCY_OPTIONS}
+        options={frequencyOptions}
         triggerClassName="min-w-[7rem]"
         onChange={value => onChange({ frequency: value as FrequencyOption })}
       />
 
       <FilterSettingsSelect
-        label={t('Status:')}
+        label={statusLabel}
         value={filters.status}
-        options={STATUS_OPTIONS}
+        options={statusOptions}
         triggerClassName="min-w-[8rem]"
         onChange={value => onChange({ status: value as StatusOption })}
       />
 
-      {showFilterCheckboxes && FILTER_CHECKBOXES.map(({ key, label }) => (
+      {showFilterCheckboxes && filterCheckboxes.map(({ key, label }) => (
         <Label
           key={key}
           htmlFor={`filter-${key}`}
@@ -394,7 +473,7 @@ function FilterSettingsRow({
           size="sm"
           onClick={onClear}
         >
-          {t('Clear filters')}
+          {clearFiltersLabel}
         </Button>
       )}
     </div>
