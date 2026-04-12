@@ -11,7 +11,10 @@ interface FilterToolbarSearchInputProps {
   onSearchChange: (search: string) => void
 }
 
-export default function FilterToolbarSearchInput({ search, onSearchChange }: FilterToolbarSearchInputProps) {
+function useFilterToolbarSearchInputResetState({
+  search,
+  onSearchChange,
+}: FilterToolbarSearchInputProps) {
   const resetKeyRef = useRef(0)
   const lastRenderedSearchRef = useRef(search)
   const lastSubmittedSearchRef = useRef(search)
@@ -32,9 +35,21 @@ export default function FilterToolbarSearchInput({ search, onSearchChange }: Fil
     onSearchChange(nextSearch)
   }, [onSearchChange])
 
+  return {
+    handleSearchChange,
+    resetKey: resetKeyRef.current,
+  }
+}
+
+export default function FilterToolbarSearchInput({ search, onSearchChange }: FilterToolbarSearchInputProps) {
+  const { handleSearchChange, resetKey } = useFilterToolbarSearchInputResetState({
+    search,
+    onSearchChange,
+  })
+
   return (
     <FilterToolbarSearchInputField
-      key={resetKeyRef.current}
+      key={resetKey}
       initialSearch={search}
       onSearchChange={handleSearchChange}
     />
@@ -46,13 +61,12 @@ interface FilterToolbarSearchInputFieldProps {
   onSearchChange: (search: string) => void
 }
 
-function FilterToolbarSearchInputField({
+function useFilterToolbarSearchInputFieldState({
   initialSearch,
   onSearchChange,
 }: FilterToolbarSearchInputFieldProps) {
   const [searchQuery, setSearchQuery] = useState(initialSearch)
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const t = useExtracted()
 
   useEffect(() => {
     return () => {
@@ -76,6 +90,27 @@ function FilterToolbarSearchInputField({
     }, 150)
   }, [onSearchChange])
 
+  return {
+    handleInputChange,
+    searchQuery,
+  }
+}
+
+function useFilterToolbarSearchInputPlaceholder() {
+  const t = useExtracted()
+  return t('Search')
+}
+
+function FilterToolbarSearchInputField({
+  initialSearch,
+  onSearchChange,
+}: FilterToolbarSearchInputFieldProps) {
+  const { handleInputChange, searchQuery } = useFilterToolbarSearchInputFieldState({
+    initialSearch,
+    onSearchChange,
+  })
+  const placeholder = useFilterToolbarSearchInputPlaceholder()
+
   const iconClasses = 'pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground'
 
   return (
@@ -84,7 +119,7 @@ function FilterToolbarSearchInputField({
       <Input
         type="text"
         data-testid="filter-search-input"
-        placeholder={t('Search')}
+        placeholder={placeholder}
         value={searchQuery}
         onChange={handleInputChange}
         className={`
