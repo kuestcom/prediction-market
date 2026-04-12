@@ -9,7 +9,7 @@ import { createAppKit, useAppKitTheme } from '@reown/appkit/react'
 import { generateRandomString } from 'better-auth/crypto'
 import { useTheme } from 'next-themes'
 import dynamic from 'next/dynamic'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { WagmiProvider } from 'wagmi'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -21,6 +21,7 @@ import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
 let hasInitializedAppKit = false
 let appKitInstance: AppKit | null = null
+
 const SignaturePrompt = dynamic(
   () => import('@/components/SignaturePrompt').then(mod => mod.SignaturePrompt),
   { ssr: false },
@@ -148,52 +149,74 @@ function initializeAppKitSingleton(
 }
 
 function AppKitThemeSynchronizer({ themeMode }: { themeMode: 'light' | 'dark' }) {
+  useSyncAppKitThemeMode(themeMode)
+
+  return null
+}
+
+function useSyncAppKitThemeMode(themeMode: 'light' | 'dark') {
   const { setThemeMode } = useAppKitTheme()
 
   useEffect(() => {
     setThemeMode(themeMode)
   }, [setThemeMode, themeMode])
+}
 
-  return null
+function useResolvedThemeMode() {
+  const { resolvedTheme } = useTheme()
+  return resolvedTheme
+}
+
+function createAppKitContextValue(instance: AppKit | null) {
+  if (!instance) {
+    return defaultAppKitValue
+  }
+
+  return {
+    open: async (options: Parameters<AppKit['open']>[0]) => {
+      await instance.open(options)
+    },
+    close: async () => {
+      await instance.close()
+    },
+    isReady: true,
+  }
+}
+
+function getAppKitProviderState({
+  resolvedTheme,
+  site,
+}: {
+  resolvedTheme: string | undefined
+  site: { name: string, description: string, logoUrl: string }
+}) {
+  const appKitThemeMode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light'
+  const instance = initializeAppKitSingleton(appKitThemeMode, {
+    name: site.name,
+    description: site.description,
+    logoUrl: site.logoUrl,
+  })
+  const appKitValue = createAppKitContextValue(instance)
+  const canSyncTheme = Boolean(instance)
+
+  return {
+    appKitThemeMode,
+    appKitValue,
+    canSyncTheme,
+  }
 }
 
 export default function AppKitProvider({ children }: { children: ReactNode }) {
   const site = useSiteIdentity()
-  const { resolvedTheme } = useTheme()
-  const [appKitThemeMode, setAppKitThemeMode] = useState<'light' | 'dark'>('light')
-  const [canSyncTheme, setCanSyncTheme] = useState(false)
-  const [AppKitValue, setAppKitValue] = useState(defaultAppKitValue)
-
-  useEffect(() => {
-    if (!IS_BROWSER) {
-      return
-    }
-
-    const nextThemeMode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light'
-    const instance = initializeAppKitSingleton(nextThemeMode, {
-      name: site.name,
-      description: site.description,
-      logoUrl: site.logoUrl,
-    })
-
-    if (instance) {
-      setAppKitThemeMode(nextThemeMode)
-      setCanSyncTheme(true)
-      setAppKitValue({
-        open: async (options) => {
-          await instance.open(options)
-        },
-        close: async () => {
-          await instance.close()
-        },
-        isReady: true,
-      })
-    }
-  }, [resolvedTheme, site.description, site.logoUrl, site.name])
+  const resolvedTheme = useResolvedThemeMode()
+  const { appKitThemeMode, appKitValue, canSyncTheme } = getAppKitProviderState({
+    resolvedTheme,
+    site,
+  })
 
   return (
     <WagmiProvider config={wagmiConfig}>
-      <AppKitContext value={AppKitValue}>
+      <AppKitContext value={appKitValue}>
         {children}
         <SignaturePrompt />
         {canSyncTheme && <AppKitThemeSynchronizer themeMode={appKitThemeMode} />}
