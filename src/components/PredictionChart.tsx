@@ -213,7 +213,7 @@ export function PredictionChart({
   watermark,
 }: PredictionChartProps): ReactElement {
   const [data, setData] = useState<DataPoint[]>([])
-  const [series, setSeries] = useState<SeriesConfig[]>([])
+  const series = useMemo(() => providedSeries ?? [], [providedSeries])
   const [isClient, setIsClient] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(
     () => typeof document !== 'undefined'
@@ -645,16 +645,6 @@ export function PredictionChart({
       setIsClient(true)
     })
   }, [])
-
-  useLayoutEffect(() => {
-    if (!isClient) {
-      return
-    }
-
-    queueMicrotask(() => {
-      setSeries(providedSeries ?? [])
-    })
-  }, [providedSeries, isClient])
 
   useLayoutEffect(() => {
     if (!isClient) {
