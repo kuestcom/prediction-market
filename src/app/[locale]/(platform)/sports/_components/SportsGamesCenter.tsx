@@ -31,7 +31,7 @@ import {
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
 import EventChartControls from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
@@ -150,7 +150,6 @@ const HERO_LEGEND_VERTICAL_GAP_PX = 10
 const TRADE_FLOW_MAX_ITEMS = 6
 const TRADE_FLOW_TTL_MS = 8000
 const TRADE_FLOW_CLEANUP_INTERVAL_MS = 500
-const useBrowserLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 const tradeFlowTextStrokeStyle = {
   textShadow: `
     1px 0 0 var(--background),
@@ -1222,10 +1221,8 @@ export function SportsGameGraph({
   const chartMargin = usesPositionedSeriesLegend
     ? { top: 12, right: 46, bottom: 40, left: 0 }
     : { top: 12, right: 30, bottom: 40, left: 0 }
-  const chartContainerRef = useRef<HTMLDivElement | null>(null)
   const tradeFlowIdRef = useRef(0)
-  const [measuredChartWidth, setMeasuredChartWidth] = useState<number | null>(null)
-  const canRenderPositionedSeriesLegend = usesPositionedSeriesLegend && measuredChartWidth !== null
+  const canRenderPositionedSeriesLegend = usesPositionedSeriesLegend
 
   const fallbackChartWidth = useMemo(() => {
     const viewportWidth = windowWidth ?? 1200
@@ -1236,50 +1233,12 @@ export function SportsGameGraph({
 
     return Math.min(860, viewportWidth - 520)
   }, [windowWidth])
-  const chartWidth = measuredChartWidth ?? fallbackChartWidth
-
-  useBrowserLayoutEffect(() => {
-    const element = chartContainerRef.current
-    if (!element) {
-      return
-    }
-    const chartElement = element
-
-    function updateWidth() {
-      const nextWidth = Math.floor(chartElement.clientWidth)
-      const resolvedWidth = nextWidth > 0 ? nextWidth : fallbackChartWidth
-
-      setMeasuredChartWidth(current => (current === resolvedWidth ? current : resolvedWidth))
-    }
-
-    updateWidth()
-
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', updateWidth)
-      return () => {
-        window.removeEventListener('resize', updateWidth)
-      }
-    }
-
-    const observer = new ResizeObserver(updateWidth)
-    observer.observe(chartElement)
-    return () => observer.disconnect()
-  }, [fallbackChartWidth])
-
-  useEffect(() => {
-    setActiveTimeRange(defaultTimeRange)
-    return () => {}
-  }, [defaultTimeRange])
+  const chartWidth = fallbackChartWidth
 
   useEffect(() => {
     storeChartSettings({ ...chartSettings, bothOutcomes: false })
     return () => {}
   }, [chartSettings])
-
-  useEffect(() => {
-    setCursorSnapshot(() => (selectedConditionId || selectedMarketType ? null : null))
-    return () => {}
-  }, [activeTimeRange, selectedConditionId, selectedMarketType])
 
   const graphSeriesTargets = useMemo<SportsGraphSeriesTarget[]>(
     () => {
@@ -1414,17 +1373,6 @@ export function SportsGameGraph({
 
     return map
   }, [graphSeriesTargets, isSportsEventHeroVariant])
-
-  const tradeFlowTokenSignature = useMemo(
-    () => Array.from(tradeFlowSeriesByTokenId.keys()).sort().join(','),
-    [tradeFlowSeriesByTokenId],
-  )
-
-  useEffect(() => {
-    setTradeFlowItems(() => (tradeFlowTokenSignature ? [] : []))
-    tradeFlowIdRef.current = 0
-    return () => {}
-  }, [tradeFlowTokenSignature])
 
   const marketTargets = useMemo(
     () => graphSeriesTargets
@@ -1894,7 +1842,7 @@ export function SportsGameGraph({
   return (
     <>
       <div style={usesPositionedSeriesLegend ? { minHeight: `${chartHeight + 56}px` } : undefined}>
-        <div ref={chartContainerRef} className="relative">
+        <div className="relative">
           <PredictionChart
             data={chartData}
             series={chartSeries}
@@ -2597,8 +2545,7 @@ export function SportsGameDetailsPanel({
   const linePickerButtonsRef = useRef<Record<string, HTMLButtonElement | null>>({})
   const linePickerScrollSettleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const linePickerSuppressScrollSyncUntilRef = useRef(0)
-  const [linePickerStartSpacer, setLinePickerStartSpacer] = useState(0)
-  const [linePickerEndSpacer, setLinePickerEndSpacer] = useState(0)
+  const linePickerSpacerWidth = 'calc(50% - 20px)'
   const [cashOutPayload, setCashOutPayload] = useState<SportsCashOutModalPayload | null>(null)
   const [isPositionsExpanded, setIsPositionsExpanded] = useState(false)
   const [convertTagKey, setConvertTagKey] = useState<string | null>(null)
@@ -2838,9 +2785,14 @@ export function SportsGameDetailsPanel({
     )
   }, [card.detailMarkets, card.event.neg_risk, card.event.neg_risk_augmented, card.event.neg_risk_market_id])
 
-  const convertDialogTag = useMemo(
-    () => (convertTagKey ? positionTags.find(tag => tag.key === convertTagKey) ?? null : null),
+  const activeConvertTagKey = useMemo(
+    () => (convertTagKey && positionTags.some(tag => tag.key === convertTagKey) ? convertTagKey : null),
     [convertTagKey, positionTags],
+  )
+
+  const convertDialogTag = useMemo(
+    () => (activeConvertTagKey ? positionTags.find(tag => tag.key === activeConvertTagKey) ?? null : null),
+    [activeConvertTagKey, positionTags],
   )
 
   const convertDialogOptions = useMemo(() => {
@@ -2876,33 +2828,6 @@ export function SportsGameDetailsPanel({
         iconUrl: market.icon_url,
       }))
   }, [allowedConditionIds, card.detailMarkets])
-
-  useEffect(() => {
-    let hasConvertTag = false
-    if (convertTagKey) {
-      for (const tag of positionTags) {
-        if (tag.key === convertTagKey) {
-          hasConvertTag = true
-          break
-        }
-      }
-    }
-
-    if (convertTagKey && !hasConvertTag) {
-      setConvertTagKey((current) => {
-        if (current) {
-          for (const tag of positionTags) {
-            if (tag.key === current) {
-              return current
-            }
-          }
-        }
-
-        return null
-      })
-    }
-    return () => {}
-  }, [convertTagKey, positionTags])
 
   const selectedButton = useMemo(
     () => resolveSelectedButton(card, selectedButtonKey),
@@ -3190,41 +3115,12 @@ export function SportsGameDetailsPanel({
     })
   }, [activeLineOptionIndex, linePickerOptions, suppressLinePickerScrollSync])
 
-  const updateLinePickerSpacers = useCallback(() => {
-    const scroller = linePickerScrollerRef.current
-    if (!scroller || linePickerOptions.length === 0) {
-      setLinePickerStartSpacer(0)
-      setLinePickerEndSpacer(0)
-      return
-    }
-
-    const firstOptionId = linePickerOptions[0]?.conditionId
-    const lastOptionId = linePickerOptions.at(-1)?.conditionId
-    const firstButton = firstOptionId ? linePickerButtonsRef.current[firstOptionId] : null
-    const lastButton = lastOptionId ? linePickerButtonsRef.current[lastOptionId] : null
-    const fallbackButtonWidth = 40
-    const inferredButtonWidth = firstButton?.offsetWidth
-      ?? lastButton?.offsetWidth
-      ?? fallbackButtonWidth
-    const firstButtonWidth = firstButton?.offsetWidth ?? inferredButtonWidth
-    const lastButtonWidth = lastButton?.offsetWidth ?? inferredButtonWidth
-
-    const viewportWidth = scroller.clientWidth
-    const scrollerStyles = window.getComputedStyle(scroller)
-    const gapWidth = Number.parseFloat(scrollerStyles.columnGap || scrollerStyles.gap || '0') || 0
-    const startSpacerWidth = Math.max(0, viewportWidth / 2 - firstButtonWidth / 2 - gapWidth)
-    const endSpacerWidth = Math.max(0, viewportWidth / 2 - lastButtonWidth / 2 - gapWidth)
-
-    setLinePickerStartSpacer(startSpacerWidth)
-    setLinePickerEndSpacer(endSpacerWidth)
-  }, [linePickerOptions])
-
   useEffect(() => {
     if (activeLineOptionIndex < 0) {
       return
     }
     alignActiveLineOption('auto')
-  }, [activeLineOptionIndex, alignActiveLineOption, linePickerStartSpacer, linePickerEndSpacer])
+  }, [activeLineOptionIndex, alignActiveLineOption])
 
   useEffect(() => {
     if (!hasLinePicker) {
@@ -3232,36 +3128,13 @@ export function SportsGameDetailsPanel({
     }
 
     const frame = window.requestAnimationFrame(() => {
-      updateLinePickerSpacers()
       alignActiveLineOption('auto')
     })
 
     return () => {
       window.cancelAnimationFrame(frame)
     }
-  }, [alignActiveLineOption, hasLinePicker, updateLinePickerSpacers])
-
-  useEffect(() => {
-    const scrollerElement = linePickerScrollerRef.current
-    if (!hasLinePicker || !scrollerElement) {
-      return
-    }
-
-    updateLinePickerSpacers()
-
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', updateLinePickerSpacers)
-      return () => {
-        window.removeEventListener('resize', updateLinePickerSpacers)
-      }
-    }
-
-    const observer = new ResizeObserver(updateLinePickerSpacers)
-    observer.observe(scrollerElement)
-    return () => {
-      observer.disconnect()
-    }
-  }, [hasLinePicker, updateLinePickerSpacers])
+  }, [alignActiveLineOption, hasLinePicker])
 
   useEffect(() => {
     const scrollerElement = linePickerScrollerRef.current
@@ -3437,7 +3310,7 @@ export function SportsGameDetailsPanel({
                       [&::-webkit-scrollbar]:hidden
                     `}
                   >
-                    <span aria-hidden className="shrink-0" style={{ width: linePickerStartSpacer }} />
+                    <span aria-hidden className="shrink-0" style={{ width: linePickerSpacerWidth }} />
                     {linePickerOptions.map((option, index) => (
                       <button
                         key={`${card.id}-${option.conditionId}`}
@@ -3459,7 +3332,7 @@ export function SportsGameDetailsPanel({
                         {option.label}
                       </button>
                     ))}
-                    <span aria-hidden className="shrink-0" style={{ width: linePickerEndSpacer }} />
+                    <span aria-hidden className="shrink-0" style={{ width: linePickerSpacerWidth }} />
                   </div>
                 </div>
 
@@ -3570,6 +3443,7 @@ export function SportsGameDetailsPanel({
 
           {resolvedActiveDetailsTab === 'graph' && (
             <SportsGameGraph
+              key={`${card.id}:${selectedButton?.marketType ?? 'moneyline'}:${selectedButton?.conditionId ?? 'none'}:${defaultGraphTimeRange}`}
               card={card}
               selectedMarketType={selectedButton?.marketType ?? 'moneyline'}
               selectedConditionId={selectedButton?.conditionId ?? null}
@@ -4015,43 +3889,28 @@ export default function SportsGamesCenter({
     ?? latestWeekOption,
   )
 
-  useEffect(() => {
-    if (isFeedPage) {
-      setSelectedWeek('all')
-      return
+  const effectiveSelectedWeek = useMemo(() => {
+    if (isFeedPage || weekOptions.length === 0) {
+      return 'all'
     }
 
-    if (weekOptions.length === 0) {
-      setSelectedWeek('all')
-      return
-    }
-
-    let currentIsValid = false
     if (selectedWeek !== 'all') {
       for (const week of weekOptions) {
         if (String(week) === selectedWeek) {
-          currentIsValid = true
-          break
+          return selectedWeek
         }
       }
     }
 
-    if (!currentIsValid) {
-      let requestedIsValid = false
-      if (requestedWeekOption != null) {
-        for (const week of weekOptions) {
-          if (String(week) === requestedWeekOption) {
-            requestedIsValid = true
-            break
-          }
+    if (requestedWeekOption != null) {
+      for (const week of weekOptions) {
+        if (String(week) === requestedWeekOption) {
+          return requestedWeekOption
         }
       }
-
-      setSelectedWeek(requestedIsValid
-        ? requestedWeekOption!
-        : latestWeekOption)
     }
-    return () => {}
+
+    return latestWeekOption
   }, [isFeedPage, latestWeekOption, requestedWeekOption, selectedWeek, weekOptions])
 
   const weekFilteredCards = useMemo(() => {
@@ -4059,13 +3918,13 @@ export default function SportsGamesCenter({
       return pageCards
     }
 
-    if (selectedWeek === 'all') {
+    if (effectiveSelectedWeek === 'all') {
       return visibleCards
     }
 
-    const week = Number(selectedWeek)
+    const week = Number(effectiveSelectedWeek)
     return visibleCards.filter(card => card.week === week)
-  }, [isFeedPage, pageCards, selectedWeek, visibleCards])
+  }, [effectiveSelectedWeek, isFeedPage, pageCards, visibleCards])
 
   useEffect(() => {
     if (!isSearchOpen) {
@@ -4193,97 +4052,61 @@ export default function SportsGamesCenter({
     ? 'No live games found for this search.'
     : 'No live games available.'
 
-  useEffect(() => {
-    let hasOpenCard = false
-    if (openCardId) {
-      for (const card of filteredCards) {
-        if (card.id === openCardId) {
-          hasOpenCard = true
-          break
-        }
-      }
+  const effectiveOpenCardId = useMemo(() => {
+    if (!openCardId) {
+      return null
     }
 
-    if (openCardId && !hasOpenCard) {
-      setOpenCardId((current) => {
-        if (current) {
-          for (const card of filteredCards) {
-            if (card.id === current) {
-              return current
-            }
-          }
-        }
-        return null
-      })
-      setIsDetailsContentVisible((current) => {
-        if (openCardId) {
-          for (const card of filteredCards) {
-            if (card.id === openCardId) {
-              return current
-            }
-          }
-        }
-        return true
-      })
-    }
-    return () => {}
+    return filteredCards.some(card => card.id === openCardId) ? openCardId : null
   }, [filteredCards, openCardId])
 
-  useEffect(() => {
+  const effectiveIsDetailsContentVisible = effectiveOpenCardId
+    ? isDetailsContentVisible
+    : true
+
+  const effectiveTradeSelection = useMemo<SportsTradeSelection>(() => {
     if (filteredCards.length === 0) {
-      setTradeSelection((current) => {
-        if (filteredCards.length > 0) {
-          return current
-        }
-        if (current.cardId == null && current.buttonKey == null) {
-          return current
-        }
-        return { cardId: null, buttonKey: null }
-      })
-      return
+      return { cardId: null, buttonKey: null }
     }
 
-    setTradeSelection((current) => {
-      const currentCard = current.cardId
-        ? filteredCards.find(card => card.id === current.cardId) ?? null
+    const currentCard = tradeSelection.cardId
+      ? filteredCards.find(card => card.id === tradeSelection.cardId) ?? null
+      : null
+
+    if (currentCard) {
+      const currentButton = tradeSelection.buttonKey
+        ? currentCard.buttons.find(button => button.key === tradeSelection.buttonKey) ?? null
         : null
-
-      if (currentCard) {
-        const currentButton = current.buttonKey
-          ? currentCard.buttons.find(button => button.key === current.buttonKey) ?? null
-          : null
-        const currentButtonExists = Boolean(
-          currentButton
-          && (showSpreadsAndTotals || currentButton.marketType === 'moneyline'),
-        )
-        if (currentButtonExists) {
-          return current
-        }
-
-        const preferredButtonKey = resolveDisplayButtonKey(
-          currentCard,
-          selectedConditionByCardId[currentCard.id] ?? resolveDefaultConditionId(currentCard),
-        )
-        const fallbackButtonKey = resolveSelectedButton(currentCard, preferredButtonKey)?.key ?? null
-        return {
-          cardId: currentCard.id,
-          buttonKey: fallbackButtonKey,
-        }
-      }
-
-      const firstCard = filteredCards[0]
-      const preferredButtonKey = resolveDisplayButtonKey(
-        firstCard,
-        selectedConditionByCardId[firstCard.id] ?? resolveDefaultConditionId(firstCard),
+      const currentButtonExists = Boolean(
+        currentButton
+        && (showSpreadsAndTotals || currentButton.marketType === 'moneyline'),
       )
-      const firstButtonKey = resolveSelectedButton(firstCard, preferredButtonKey)?.key ?? null
-      return {
-        cardId: firstCard.id,
-        buttonKey: firstButtonKey,
+      if (currentButtonExists) {
+        return tradeSelection
       }
-    })
-    return () => {}
-  }, [filteredCards, resolveDisplayButtonKey, selectedConditionByCardId, showSpreadsAndTotals])
+
+      const preferredButtonKey = resolveDisplayButtonKey(
+        currentCard,
+        selectedConditionByCardId[currentCard.id] ?? resolveDefaultConditionId(currentCard),
+      )
+      const fallbackButtonKey = resolveSelectedButton(currentCard, preferredButtonKey)?.key ?? null
+      return {
+        cardId: currentCard.id,
+        buttonKey: fallbackButtonKey,
+      }
+    }
+
+    const firstCard = filteredCards[0]
+    const preferredButtonKey = resolveDisplayButtonKey(
+      firstCard,
+      selectedConditionByCardId[firstCard.id] ?? resolveDefaultConditionId(firstCard),
+    )
+    const firstButtonKey = resolveSelectedButton(firstCard, preferredButtonKey)?.key ?? null
+    return {
+      cardId: firstCard.id,
+      buttonKey: firstButtonKey,
+    }
+  }, [filteredCards, resolveDisplayButtonKey, selectedConditionByCardId, showSpreadsAndTotals, tradeSelection])
 
   const dateLabelFormatter = useMemo(
     () => new Intl.DateTimeFormat(locale, {
@@ -4454,11 +4277,11 @@ export default function SportsGamesCenter({
       return null
     }
 
-    const selectedCardFromTrade = tradeSelection.cardId
-      ? filteredCards.find(card => card.id === tradeSelection.cardId) ?? null
+    const selectedCardFromTrade = effectiveTradeSelection.cardId
+      ? filteredCards.find(card => card.id === effectiveTradeSelection.cardId) ?? null
       : null
-    const selectedCardFromOpen = openCardId
-      ? filteredCards.find(card => card.id === openCardId) ?? null
+    const selectedCardFromOpen = effectiveOpenCardId
+      ? filteredCards.find(card => card.id === effectiveOpenCardId) ?? null
       : null
     const card = selectedCardFromTrade ?? selectedCardFromOpen ?? filteredCards[0] ?? null
     if (!card) {
@@ -4466,8 +4289,8 @@ export default function SportsGamesCenter({
     }
 
     const selectedButtonKey = resolveDisplayButtonKey(card, (
-      tradeSelection.cardId === card.id
-        ? tradeSelection.buttonKey
+      effectiveTradeSelection.cardId === card.id
+        ? effectiveTradeSelection.buttonKey
         : null
     ) ?? selectedConditionByCardId[card.id] ?? resolveDefaultConditionId(card))
 
@@ -4492,7 +4315,7 @@ export default function SportsGamesCenter({
       market,
       outcome,
     }
-  }, [filteredCards, openCardId, resolveDisplayButtonKey, selectedConditionByCardId, tradeSelection.buttonKey, tradeSelection.cardId])
+  }, [effectiveOpenCardId, effectiveTradeSelection.buttonKey, effectiveTradeSelection.cardId, filteredCards, resolveDisplayButtonKey, selectedConditionByCardId])
 
   const activeTradePrimaryOutcomeIndex = useMemo(() => {
     if (!activeTradeContext || activeTradeContext.button.marketType !== 'spread') {
@@ -4607,7 +4430,7 @@ export default function SportsGamesCenter({
     }
 
     if (card.event.sports_ended === true) {
-      const shouldOpen = openCardId !== card.id
+      const shouldOpen = effectiveOpenCardId !== card.id
       setOpenCardId(shouldOpen ? card.id : null)
       setIsDetailsContentVisible(shouldOpen)
       if (shouldOpen) {
@@ -4640,14 +4463,14 @@ export default function SportsGamesCenter({
       }
     })
 
-    if (openCardId !== card.id) {
+    if (effectiveOpenCardId !== card.id) {
       setOpenCardId(card.id)
       setIsDetailsContentVisible(true)
       setActiveDetailsTab('orderBook')
       return
     }
 
-    if (isDetailsContentVisible) {
+    if (effectiveIsDetailsContentVisible) {
       if (isSpreadOrTotalSelected) {
         setIsDetailsContentVisible(false)
         return
@@ -4736,7 +4559,7 @@ export default function SportsGamesCenter({
     const parsedStartTime = card.startTime ? new Date(card.startTime) : null
     const isValidTime = Boolean(parsedStartTime && !Number.isNaN(parsedStartTime.getTime()))
     const timeLabel = isValidTime ? timeLabelFormatter.format(parsedStartTime as Date) : 'TBD'
-    const isExpanded = openCardId === card.id
+    const isExpanded = effectiveOpenCardId === card.id
     const selectedButtonKey = resolveDisplayButtonKey(
       card,
       selectedConditionByCardId[card.id] ?? resolveDefaultConditionId(card),
@@ -4756,7 +4579,7 @@ export default function SportsGamesCenter({
     )
       ? (teamScores[0] > teamScores[1] ? 0 : 1)
       : null
-    const shouldRenderDetailsPanel = isExpanded && (isDetailsContentVisible || isSpreadOrTotalSelected)
+    const shouldRenderDetailsPanel = isExpanded && (effectiveIsDetailsContentVisible || isSpreadOrTotalSelected)
     const activeMarketType = resolveActiveMarketType(card, selectedButtonKey)
     const buttonGroups = groupButtonsByMarketType(card.buttons)
     const shouldUseClosedDetailsSpacing = Boolean(
@@ -5086,12 +4909,9 @@ export default function SportsGamesCenter({
                   }
 
                   const isMoneylineOnlyLayout = shouldCollapseCardControlsToMoneylineOnly && column.key === 'moneyline'
+                  let renderedButtons = columnButtons
 
-                  const renderedButtons = (() => {
-                    if (column.key === 'moneyline') {
-                      return columnButtons
-                    }
-
+                  if (column.key !== 'moneyline') {
                     const buttonsByConditionId = new Map<string, SportsGamesButton[]>()
                     for (const button of columnButtons) {
                       const existing = buttonsByConditionId.get(button.conditionId)
@@ -5111,6 +4931,8 @@ export default function SportsGamesCenter({
                       ?? (orderedConditionIds[0] ? buttonsByConditionId.get(orderedConditionIds[0]) : [])
                       ?? []
 
+                    renderedButtons = selectedButtons
+
                     if (column.key === 'spread') {
                       const spreadOrder: Record<SportsGamesButton['tone'], number> = {
                         team1: 0,
@@ -5121,13 +4943,11 @@ export default function SportsGamesCenter({
                         neutral: 5,
                       }
 
-                      return [...selectedButtons].sort((a, b) => (
+                      renderedButtons = [...selectedButtons].sort((a, b) => (
                         (spreadOrder[a.tone] ?? 99) - (spreadOrder[b.tone] ?? 99)
                       ))
                     }
-
-                    return selectedButtons
-                  })()
+                  }
 
                   if (renderedButtons.length === 0) {
                     return null
@@ -5241,7 +5061,7 @@ export default function SportsGamesCenter({
               card={card}
               activeDetailsTab={activeDetailsTab}
               selectedButtonKey={selectedButtonKey}
-              showBottomContent={shouldRenderDetailsPanel ? isDetailsContentVisible : false}
+              showBottomContent={shouldRenderDetailsPanel ? effectiveIsDetailsContentVisible : false}
               defaultGraphTimeRange={pageMode === 'games' ? '1H' : '1W'}
               oddsFormat={oddsFormat}
               onChangeTab={setActiveDetailsTab}
@@ -5255,7 +5075,7 @@ export default function SportsGamesCenter({
 
   const weekSelect = (
     <Select
-      value={selectedWeek}
+      value={effectiveSelectedWeek}
       onValueChange={setSelectedWeek}
       disabled={weekOptions.length === 0}
     >
