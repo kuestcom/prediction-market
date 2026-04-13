@@ -6,7 +6,7 @@ import eslintPluginUseEncapsulation from 'eslint-plugin-use-encapsulation'
 export default antfu({
   react: true,
   nextjs: true,
-  ignores: ['AGENTS.md'],
+  ignores: ['AGENTS.md', 'tests'],
 }, {
   plugins: {
     'better-tailwindcss': eslintPluginBetterTailwindcss,
@@ -16,7 +16,7 @@ export default antfu({
   rules: {
     ...reactYouMightNotNeedAnEffect.configs.recommended.rules,
     ...eslintPluginBetterTailwindcss.configs['recommended-error'].rules,
-    'use-encapsulation/prefer-custom-hooks': ['warn'],
+    'use-encapsulation/prefer-custom-hooks': ['off'],
     'node/prefer-global/process': 'off',
     'no-console': 'off',
     'prefer-arrow-callback': ['error', { allowNamedFunctions: true }],
@@ -24,8 +24,6 @@ export default antfu({
     'react/no-array-index-key': 'off',
     'react-dom/no-dangerously-set-innerhtml': 'off',
     'react-refresh/only-export-components': 'off',
-    'react-hooks/set-state-in-effect': 'off',
-    'react-hooks-extra/no-direct-set-state-in-use-effect': 'off',
     'func-style': ['error', 'declaration', { allowArrowFunctions: false }],
     'better-tailwindcss/enforce-consistent-line-wrapping': ['error', {
       group: 'newLine',
