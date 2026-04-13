@@ -29,12 +29,10 @@ function createHomeRouteFilters(targetTag: string, targetMainTag: string): Filte
   }
 }
 
-export default function HomeClient({
-  initialEvents,
-  initialCurrentTimestamp,
+function useHomeClientState({
   initialTag,
   initialMainTag,
-}: HomeClientProps) {
+}: Pick<HomeClientProps, 'initialTag' | 'initialMainTag'>) {
   const pathname = usePathname()
   const { tags, childParentMap } = usePlatformNavigationData()
   const dynamicHomeCategorySlugSet = useMemo(() => buildDynamicHomeCategorySlugSet(tags), [tags])
@@ -70,6 +68,42 @@ export default function HomeClient({
   const targetMainTag = pathState.isHomeLikePage && !pathState.isSportsPathPage ? pathTargetMainTag : serverTargetMainTag
   const targetFilterKey = `${targetMainTag}:${targetTag}`
 
+  return {
+    pathname,
+    tags,
+    childParentMap,
+    dynamicHomeCategorySlugSet,
+    serverTargetTag,
+    serverTargetMainTag,
+    pathState,
+    targetTag,
+    targetMainTag,
+    targetFilterKey,
+  }
+}
+
+export default function HomeClient({
+  initialEvents,
+  initialCurrentTimestamp,
+  initialTag,
+  initialMainTag,
+}: HomeClientProps) {
+  const {
+    pathname,
+    tags,
+    childParentMap,
+    dynamicHomeCategorySlugSet,
+    serverTargetTag,
+    serverTargetMainTag,
+    pathState,
+    targetTag,
+    targetMainTag,
+    targetFilterKey,
+  } = useHomeClientState({
+    initialTag,
+    initialMainTag,
+  })
+
   return (
     <HomeClientContent
       key={targetFilterKey}
@@ -102,25 +136,34 @@ interface HomeClientContentProps {
   targetTag: string
 }
 
-function HomeClientContent({
+type HomeClientContentStateInput = Pick<HomeClientContentProps, | 'childParentMap'
+  | 'dynamicHomeCategorySlugSet'
+  | 'pathname'
+  | 'serverTargetMainTag'
+  | 'serverTargetTag'
+  | 'tags'
+  | 'targetMainTag'
+  | 'targetTag'>
+
+function useHomeClientContentState({
   childParentMap,
   dynamicHomeCategorySlugSet,
-  initialCurrentTimestamp,
-  initialEvents,
   pathname,
-  pathState,
   serverTargetMainTag,
   serverTargetTag,
   tags,
   targetMainTag,
   targetTag,
-}: HomeClientContentProps) {
+}: HomeClientContentStateInput) {
   const router = useRouter()
   const { updateFilters } = useFilters()
   const [homeFilters, setHomeFilters] = useState<FilterState>(() => createHomeRouteFilters(targetTag, targetMainTag))
-  const canUseServerInitialEvents = serverTargetTag === targetTag && serverTargetMainTag === targetMainTag
+  const canUseServerInitialEvents = useMemo(
+    () => serverTargetTag === targetTag && serverTargetMainTag === targetMainTag,
+    [serverTargetMainTag, serverTargetTag, targetMainTag, targetTag],
+  )
 
-  useEffect(() => {
+  useEffect(function syncHomeFiltersToGlobalFilterStore() {
     updateFilters({
       tag: homeFilters.tag,
       mainTag: homeFilters.mainTag,
@@ -227,6 +270,53 @@ function HomeClientContent({
         />
       )
     : null
+
+  return {
+    homeFilters,
+    canUseServerInitialEvents,
+    handleFiltersChange,
+    handleClearFilters,
+    hasCategorySidebar,
+    categorySidebar,
+    activeSidebarSubcategorySlug,
+    secondaryNavigation,
+    handleSecondaryNavigation,
+  }
+}
+
+function HomeClientContent({
+  childParentMap,
+  dynamicHomeCategorySlugSet,
+  initialCurrentTimestamp,
+  initialEvents,
+  pathname,
+  pathState,
+  serverTargetMainTag,
+  serverTargetTag,
+  tags,
+  targetMainTag,
+  targetTag,
+}: HomeClientContentProps) {
+  const {
+    homeFilters,
+    canUseServerInitialEvents,
+    handleFiltersChange,
+    handleClearFilters,
+    hasCategorySidebar,
+    categorySidebar,
+    activeSidebarSubcategorySlug,
+    secondaryNavigation,
+    handleSecondaryNavigation,
+  } = useHomeClientContentState({
+    childParentMap,
+    dynamicHomeCategorySlugSet,
+    pathname,
+    serverTargetMainTag,
+    serverTargetTag,
+    tags,
+    targetMainTag,
+    targetTag,
+  })
 
   return (
     <>
