@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import type { PortfolioSnapshot } from '@/lib/portfolio'
 import { CheckIcon, EyeIcon, EyeOffIcon, FocusIcon } from 'lucide-react'
 import Image from 'next/image'
-import { useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -52,13 +52,7 @@ export default function ProfileOverviewCard({
   const { balance, isLoadingBalance } = useBalance({ enabled: variant === 'portfolio' })
   const shouldWaitForBalance = variant === 'portfolio'
   const isInitialLoading = shouldWaitForBalance ? isLoadingBalance || isLoading : isLoading
-  const hasLoadedRef = useRef(!isInitialLoading)
-
-  if (!hasLoadedRef.current && !isInitialLoading) {
-    hasLoadedRef.current = true
-  }
-
-  const isReady = hasLoadedRef.current
+  const isReady = !isInitialLoading
   const totalPortfolioValue = (positionsValue ?? 0) + (balance?.raw ?? 0)
   const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
   const toggleValuesHidden = usePortfolioValueVisibility(state => state.toggle)
