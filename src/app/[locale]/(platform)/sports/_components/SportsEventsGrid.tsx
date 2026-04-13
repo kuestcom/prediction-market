@@ -185,13 +185,14 @@ export default function SportsEventsGrid({
     key: queryScopeKey,
     error: null,
   })
+  const [canRetryState, setCanRetryState] = useState<{ key: string, canRetry: boolean }>({
+    key: queryScopeKey,
+    canRetry: true,
+  })
   const infiniteScrollError = infiniteScrollErrorState.key === queryScopeKey
     ? infiniteScrollErrorState.error
     : null
-  const canRetryStateRef = useRef<{ key: string, canRetry: boolean }>({ key: queryScopeKey, canRetry: true })
-  if (canRetryStateRef.current.key !== queryScopeKey) {
-    canRetryStateRef.current = { key: queryScopeKey, canRetry: true }
-  }
+  const canRetryLoadMore = canRetryState.key === queryScopeKey ? canRetryState.canRetry : true
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const PAGE_SIZE = HOME_EVENTS_PAGE_SIZE
   const isDefaultState = filters.search === ''
@@ -412,7 +413,7 @@ export default function SportsEventsGrid({
       }
 
       if (!entry.isIntersecting) {
-        canRetryStateRef.current = { key: queryScopeKey, canRetry: true }
+        setCanRetryState({ key: queryScopeKey, canRetry: true })
         return
       }
 
@@ -421,7 +422,7 @@ export default function SportsEventsGrid({
       }
 
       if (infiniteScrollError) {
-        if (!canRetryStateRef.current.canRetry) {
+        if (!canRetryLoadMore) {
           return
         }
 
@@ -433,7 +434,7 @@ export default function SportsEventsGrid({
           return
         }
 
-        canRetryStateRef.current = { key: queryScopeKey, canRetry: false }
+        setCanRetryState({ key: queryScopeKey, canRetry: false })
         setInfiniteScrollErrorState({
           key: queryScopeKey,
           error: error?.message || 'Failed to load more events.',
@@ -443,7 +444,7 @@ export default function SportsEventsGrid({
 
     observer.observe(loadMoreRef.current)
     return () => observer.disconnect()
-  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage, queryScopeKey])
+  }, [canRetryLoadMore, fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage, queryScopeKey])
 
   if (isLoadingNewData) {
     return (
