@@ -165,17 +165,7 @@ function EventMarketContextContent({ event, resolvedMarketConditionId }: EventMa
       return
     }
 
-    const remainingMs = cacheExpiresAtMs - Date.now()
-
-    if (remainingMs <= 0) {
-      setHasGenerated(false)
-      setContext(null)
-      setIsExpanded(false)
-      setCacheExpiresAtMs(null)
-      setContextUpdatedAtMs(null)
-      return
-    }
-
+    const remainingMs = Math.max(0, cacheExpiresAtMs - Date.now())
     const timeout = window.setTimeout(() => {
       setHasGenerated(false)
       setContext(null)
@@ -190,43 +180,64 @@ function EventMarketContextContent({ event, resolvedMarketConditionId }: EventMa
   }, [cacheExpiresAtMs])
 
   useEffect(() => {
+    let isActive = true
+    let animationFrame = 0
+
+    function scheduleContextDisplay(nextContext: string, nextIsTyping: boolean) {
+      queueMicrotask(() => {
+        if (!isActive) {
+          return
+        }
+
+        setDisplayedContext(nextContext)
+        setIsTyping(nextIsTyping)
+      })
+    }
+
     if (contextRef.current !== context) {
       contextRef.current = context
       hasAnimatedRef.current = false
     }
 
     if (!context) {
-      setDisplayedContext('')
-      setIsTyping(false)
-      return
+      scheduleContextDisplay('', false)
+      return () => {
+        isActive = false
+      }
     }
 
     if (!isExpanded) {
-      setDisplayedContext(context)
-      setIsTyping(false)
-      return
+      scheduleContextDisplay(context, false)
+      return () => {
+        isActive = false
+      }
     }
 
     if (hasAnimatedRef.current) {
-      return
+      return () => {
+        isActive = false
+      }
     }
 
     if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setDisplayedContext(context)
-      setIsTyping(false)
+      scheduleContextDisplay(context, false)
       hasAnimatedRef.current = true
-      return
+      return () => {
+        isActive = false
+      }
     }
 
     const fullContext = context
     const totalDurationMs = Math.min(2400, Math.max(900, fullContext.length * 12))
     const start = performance.now()
-    let animationFrame = 0
 
-    setIsTyping(true)
-    setDisplayedContext('')
+    scheduleContextDisplay('', true)
 
     function tick(now: number) {
+      if (!isActive) {
+        return
+      }
+
       const progress = Math.min(1, (now - start) / totalDurationMs)
       const nextLength = Math.max(1, Math.floor(progress * fullContext.length))
       setDisplayedContext(fullContext.slice(0, nextLength))
@@ -243,6 +254,7 @@ function EventMarketContextContent({ event, resolvedMarketConditionId }: EventMa
     animationFrame = window.requestAnimationFrame(tick)
 
     return () => {
+      isActive = false
       if (animationFrame) {
         window.cancelAnimationFrame(animationFrame)
       }
