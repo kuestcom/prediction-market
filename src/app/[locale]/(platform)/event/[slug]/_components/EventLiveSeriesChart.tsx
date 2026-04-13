@@ -1220,7 +1220,7 @@ function EventLiveSeriesChartContent({
     ? currentPrice - resolvedBaselinePrice
     : null
   const deltaDisplayDigits = resolveLiveSeriesDeltaDisplayDigits(priceDisplayDigits, delta)
-  const rawAxisValues = useMemo(() => {
+  const axisValues = (() => {
     const values = axisSourceData
       .map(point => point[SERIES_KEY])
       .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
@@ -1230,9 +1230,8 @@ function EventLiveSeriesChartContent({
     }
 
     return buildAxis(values, priceDisplayDigits)
-  }, [axisSourceData, currentPrice, priceDisplayDigits])
-  const axisValues = rawAxisValues
-  const currentLineTop = useMemo(() => {
+  })()
+  const currentLineTop = (() => {
     if (currentPrice == null) {
       return null
     }
@@ -1243,8 +1242,8 @@ function EventLiveSeriesChartContent({
     const ratio = (currentPrice - axisValues.min) / Math.max(1e-6, axisValues.max - axisValues.min)
     const clamped = Math.max(0, Math.min(1, ratio))
     return marginTop + innerHeight - innerHeight * clamped
-  }, [axisValues.max, axisValues.min, currentPrice])
-  const targetLine = useMemo(() => {
+  })()
+  const targetLine = (() => {
     if (!isTradingWindowActive || resolvedBaselinePrice == null || !Number.isFinite(resolvedBaselinePrice)) {
       return null
     }
@@ -1263,7 +1262,7 @@ function EventLiveSeriesChartContent({
       isAbove: ratio > 1,
       isBelow: ratio < 0,
     }
-  }, [axisValues.max, axisValues.min, isTradingWindowActive, resolvedBaselinePrice])
+  })()
   const targetLineGuideColor = hexToRgba('#94a3b8', 0.62)
   const targetBadgeColor = '#94a3b8'
   const currentPriceGuideColor = hexToRgba(liveColor, 0.62)
