@@ -119,8 +119,6 @@ export function DataTable<TData, TValue>({
     }
   }, [sorting, onSortChange])
 
-  // TanStack Table intentionally returns non-memoizable handlers.
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
