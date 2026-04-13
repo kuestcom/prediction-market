@@ -1,5 +1,5 @@
 import type { VolumeResponseItem, VolumeWorkItem } from '@/app/api/sync/volume/helpers'
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, lt, ne, or } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import {
   chunkVolumeWork,
@@ -13,12 +13,15 @@ import {
   VOLUME_REQUEST_TIMEOUT_MS,
 } from '@/app/api/sync/volume/helpers'
 import { isCronAuthorized } from '@/lib/auth-cron'
-import { markets, outcomes } from '@/lib/db/schema'
+import { markets, outcomes, subgraph_syncs } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
 
 export const maxDuration = 300
 
 const CLOB_URL = process.env.CLOB_URL!
+const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000
+const VOLUME_SYNC_SERVICE = 'volume_sync'
+const VOLUME_SYNC_SUBGRAPH = 'volume'
 
 interface VolumeSyncStats {
   scanned: number
@@ -26,6 +29,8 @@ interface VolumeSyncStats {
   skipped: number
   errors: { context: string, error: string }[]
   timeLimitReached: boolean
+  nextCursor: string | null
+  wrappedAround: boolean
 }
 
 interface OutcomeRow {
@@ -41,10 +46,21 @@ export async function GET(request: Request) {
   }
 
   try {
+    const lockAcquired = await tryAcquireSyncLock()
+    if (!lockAcquired) {
+      return NextResponse.json({
+        success: false,
+        message: 'Sync already running',
+        skipped: true,
+      }, { status: 409 })
+    }
+
     const stats = await syncMarketVolumes(request)
+    await updateSyncStatus('completed', null, stats.updated, stats.nextCursor)
     return NextResponse.json({ success: true, ...stats })
   }
   catch (error: any) {
+    await updateSyncStatus('error', error?.message ?? 'Unknown error')
     console.error('volume-sync failed', error)
     return NextResponse.json(
       { success: false, error: error?.message ?? 'Unknown error' },
@@ -60,15 +76,19 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
     DEFAULT_VOLUME_SYNC_LIMIT,
     MAX_VOLUME_SYNC_LIMIT,
   )
+  const cursorOverride = normalizeCursorParam(url.searchParams.get('cursor'))
+  const currentCursor = cursorOverride ?? await getStoredCursor()
   const startedAt = Date.now()
 
-  const worklist = await buildVolumeWorklist(limit)
+  const worklist = await buildVolumeWorklist(limit, currentCursor)
   const stats: VolumeSyncStats = {
     scanned: worklist.scanned,
     updated: 0,
     skipped: worklist.skipped,
     errors: [...worklist.errors],
     timeLimitReached: false,
+    nextCursor: worklist.nextCursor,
+    wrappedAround: worklist.wrappedAround,
   }
 
   if (worklist.items.length === 0) {
@@ -146,25 +166,31 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
   return stats
 }
 
-async function buildVolumeWorklist(limit: number): Promise<{
+function normalizeCursorParam(value: string | null): string | null {
+  if (!value) {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed || null
+}
+
+async function buildVolumeWorklist(limit: number, cursor: string | null): Promise<{
   items: VolumeWorkItem[]
   scanned: number
   skipped: number
   errors: { context: string, error: string }[]
+  nextCursor: string | null
+  wrappedAround: boolean
 }> {
-  const marketRows = await db
-    .select({
-      condition_id: markets.condition_id,
-      volume_24h: markets.volume_24h,
-      volume: markets.volume,
-    })
-    .from(markets)
-    .where(and(
-      eq(markets.is_active, true),
-      eq(markets.is_resolved, false),
-    ))
-    .orderBy(asc(markets.updated_at))
-    .limit(limit)
+  let wrappedAround = false
+  let marketRows = await fetchMarketRows(limit, cursor)
+  if (marketRows.length === 0 && cursor) {
+    marketRows = await fetchMarketRows(limit, null)
+    wrappedAround = true
+  }
+
+  const nextCursor = marketRows.at(-1)?.condition_id ?? null
   const conditionIds = marketRows.map(market => market.condition_id)
 
   let outcomesMap = new Map<string, string[]>()
@@ -208,7 +234,31 @@ async function buildVolumeWorklist(limit: number): Promise<{
     scanned: marketRows.length,
     skipped,
     errors,
+    nextCursor,
+    wrappedAround,
   }
+}
+
+async function fetchMarketRows(limit: number, cursor: string | null) {
+  const basePredicate = and(
+    eq(markets.is_active, true),
+    eq(markets.is_resolved, false),
+  )
+
+  const predicate = cursor
+    ? and(basePredicate, gt(markets.condition_id, cursor))
+    : basePredicate
+
+  return db
+    .select({
+      condition_id: markets.condition_id,
+      volume_24h: markets.volume_24h,
+      volume: markets.volume,
+    })
+    .from(markets)
+    .where(predicate)
+    .orderBy(asc(markets.condition_id))
+    .limit(limit)
 }
 
 function buildOutcomeMap(outcomes: OutcomeRow[]): Map<string, string[]> {
@@ -276,4 +326,113 @@ async function updateMarketVolume(conditionId: string, totalVolume: string, volu
       volume_24h: volume24h,
     })
     .where(eq(markets.condition_id, conditionId))
+}
+
+async function getStoredCursor(): Promise<string | null> {
+  const rows = await db
+    .select({
+      cursor_id: subgraph_syncs.cursor_id,
+    })
+    .from(subgraph_syncs)
+    .where(and(
+      eq(subgraph_syncs.service_name, VOLUME_SYNC_SERVICE),
+      eq(subgraph_syncs.subgraph_name, VOLUME_SYNC_SUBGRAPH),
+    ))
+    .limit(1)
+
+  if (rows.length === 0) {
+    throw new Error('Missing sync state row for volume_sync/volume. Run the latest database migrations.')
+  }
+
+  return rows[0]?.cursor_id ?? null
+}
+
+async function tryAcquireSyncLock(): Promise<boolean> {
+  const staleThreshold = new Date(Date.now() - SYNC_RUNNING_STALE_MS)
+  const runningPayload = {
+    service_name: VOLUME_SYNC_SERVICE,
+    subgraph_name: VOLUME_SYNC_SUBGRAPH,
+    status: 'running' as const,
+    error_message: null,
+  }
+
+  try {
+    const claimedRows = await db
+      .update(subgraph_syncs)
+      .set(runningPayload)
+      .where(and(
+        eq(subgraph_syncs.service_name, VOLUME_SYNC_SERVICE),
+        eq(subgraph_syncs.subgraph_name, VOLUME_SYNC_SUBGRAPH),
+        or(
+          ne(subgraph_syncs.status, 'running'),
+          lt(subgraph_syncs.updated_at, staleThreshold),
+        ),
+      ))
+      .returning({ id: subgraph_syncs.id })
+
+    if (claimedRows.length > 0) {
+      return true
+    }
+
+    const existingRows = await db
+      .select({ id: subgraph_syncs.id })
+      .from(subgraph_syncs)
+      .where(and(
+        eq(subgraph_syncs.service_name, VOLUME_SYNC_SERVICE),
+        eq(subgraph_syncs.subgraph_name, VOLUME_SYNC_SUBGRAPH),
+      ))
+      .limit(1)
+
+    if (existingRows.length > 0) {
+      return false
+    }
+
+    throw new Error('Missing sync state row for volume_sync/volume. Run the latest database migrations.')
+  }
+  catch (error: any) {
+    throw new Error(`Failed to claim sync lock: ${error?.message ?? String(error)}`)
+  }
+}
+
+async function updateSyncStatus(
+  status: 'running' | 'completed' | 'error',
+  errorMessage?: string | null,
+  totalProcessed?: number,
+  cursorId?: string | null,
+) {
+  const updateData: any = {
+    service_name: VOLUME_SYNC_SERVICE,
+    subgraph_name: VOLUME_SYNC_SUBGRAPH,
+    status,
+  }
+
+  if (errorMessage !== undefined) {
+    updateData.error_message = errorMessage
+  }
+
+  if (totalProcessed !== undefined) {
+    updateData.total_processed = totalProcessed
+  }
+
+  if (cursorId !== undefined) {
+    updateData.cursor_id = cursorId
+  }
+
+  try {
+    const updatedRows = await db
+      .update(subgraph_syncs)
+      .set(updateData)
+      .where(and(
+        eq(subgraph_syncs.service_name, VOLUME_SYNC_SERVICE),
+        eq(subgraph_syncs.subgraph_name, VOLUME_SYNC_SUBGRAPH),
+      ))
+      .returning({ id: subgraph_syncs.id })
+
+    if (updatedRows.length === 0) {
+      console.error('Failed to update sync status: missing sync state row for volume_sync/volume')
+    }
+  }
+  catch (error: any) {
+    console.error(`Failed to update sync status to ${status}:`, error)
+  }
 }

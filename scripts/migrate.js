@@ -29,11 +29,15 @@ function buildSyncCronSql({
   endpointPath,
   siteUrl,
   cronSecret,
+  timeoutMilliseconds = 20000,
 }) {
   const endpointUrl = joinSiteUrlPath(siteUrl, endpointPath)
   const escapedJobName = escapeSqlLiteral(jobName)
   const escapedSchedule = escapeSqlLiteral(schedule)
   const escapedEndpointUrl = escapeSqlLiteral(endpointUrl)
+  const normalizedTimeout = Number.isFinite(Number(timeoutMilliseconds))
+    ? Math.max(1000, Math.trunc(Number(timeoutMilliseconds)))
+    : 20000
   const escapedHeaders = escapeSqlLiteral(JSON.stringify({
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${cronSecret}`,
@@ -46,7 +50,8 @@ function buildSyncCronSql({
     cmd text := $c$
       SELECT net.http_get(
         url := '${escapedEndpointUrl}',
-        headers := '${escapedHeaders}'
+        headers := '${escapedHeaders}',
+        timeout_milliseconds := ${normalizedTimeout}
       );
     $c$;
   BEGIN
@@ -259,10 +264,11 @@ async function createSyncEventsCron(sql, siteUrl, cronSecret) {
 async function createSyncVolumeCron(sql, siteUrl, cronSecret) {
   await createSyncCron(sql, {
     jobName: 'sync-volume',
-    schedule: '16,46 * * * *',
-    endpointPath: '/api/sync/volume',
+    schedule: '* * * * *',
+    endpointPath: '/api/sync/volume?limit=120',
     siteUrl,
     cronSecret,
+    timeoutMilliseconds: 20000,
   })
 }
 
