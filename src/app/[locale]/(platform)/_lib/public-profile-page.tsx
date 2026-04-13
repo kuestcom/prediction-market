@@ -21,6 +21,10 @@ function buildLocalizedPagePath(path: string, locale: SupportedLocale) {
   return `/${locale}${path}`
 }
 
+function getFallbackChartEndDate() {
+  return new Date().toISOString()
+}
+
 function buildPublicProfileOgImageUrl({
   locale,
   slug,
@@ -139,7 +143,7 @@ export async function buildPublicProfileMetadata({
 }
 
 export async function PublicProfilePageContent({ slug }: { slug: string }) {
-  const fallbackChartEndDate = new Date().toISOString()
+  const fallbackChartEndDate = getFallbackChartEndDate()
   const normalized = normalizePublicProfileSlug(slug)
   if (normalized.type === 'invalid') {
     notFound()
