@@ -9,7 +9,7 @@ import { createAppKit, useAppKitTheme } from '@reown/appkit/react'
 import { generateRandomString } from 'better-auth/crypto'
 import { useTheme } from 'next-themes'
 import dynamic from 'next/dynamic'
-import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { WagmiProvider } from 'wagmi'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -22,6 +22,7 @@ import { mergeSessionUserState, useUser } from '@/stores/useUser'
 let hasInitializedAppKit = false
 let appKitInstance: AppKit | null = null
 const appKitStateListeners = new Set<() => void>()
+const APPKIT_INIT_RETRY_DELAY_MS = 3000
 
 const SignaturePrompt = dynamic(
   () => import('@/components/SignaturePrompt').then(mod => mod.SignaturePrompt),
@@ -206,6 +207,7 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
   const site = useSiteIdentity()
   const resolvedTheme = useResolvedThemeMode()
   const appKitThemeMode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light'
+  const [appKitInitRetryToken, setAppKitInitRetryToken] = useState(0)
   const instance = useSyncExternalStore(
     subscribeAppKitStateChange,
     getAppKitInstanceSnapshot,
@@ -213,12 +215,26 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    initializeAppKitSingleton(appKitThemeMode, {
+    if (instance) {
+      return
+    }
+
+    const initializedInstance = initializeAppKitSingleton(appKitThemeMode, {
       name: site.name,
       description: site.description,
       logoUrl: site.logoUrl,
     })
-  }, [appKitThemeMode, site.description, site.logoUrl, site.name])
+    if (initializedInstance) {
+      return
+    }
+
+    const retryTimeout = window.setTimeout(() => {
+      setAppKitInitRetryToken(previous => previous + 1)
+    }, APPKIT_INIT_RETRY_DELAY_MS)
+    return () => {
+      window.clearTimeout(retryTimeout)
+    }
+  }, [appKitThemeMode, appKitInitRetryToken, instance, site.description, site.logoUrl, site.name])
 
   const appKitValue = useMemo(() => createAppKitContextValue(instance), [instance])
   const canSyncTheme = Boolean(instance)
