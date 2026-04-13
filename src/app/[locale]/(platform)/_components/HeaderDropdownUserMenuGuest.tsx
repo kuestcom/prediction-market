@@ -28,7 +28,16 @@ export default function HeaderDropdownUserMenuGuest() {
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => () => clearCloseTimeout(), [])
+  useEffect(function clearMenuCloseTimeoutOnUnmount() {
+    function cleanupMenuCloseTimeout() {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current)
+        closeTimeoutRef.current = null
+      }
+    }
+
+    return cleanupMenuCloseTimeout
+  }, [])
 
   function relatedTargetIsWithin(ref: React.RefObject<HTMLElement | null>, relatedTarget: EventTarget | null) {
     const current = ref.current

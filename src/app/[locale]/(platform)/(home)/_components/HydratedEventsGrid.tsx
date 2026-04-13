@@ -14,6 +14,7 @@ import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_ho
 import { buildMarketTargets } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { useColumns } from '@/hooks/useColumns'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
+import { useDebounce } from '@/hooks/useDebounce'
 import { fetchEventsApi } from '@/lib/events-api'
 import { HOME_EVENTS_PAGE_SIZE, isHomeEventResolvedLike } from '@/lib/home-events'
 import { resolveDisplayPrice } from '@/lib/market-chance'
@@ -66,17 +67,6 @@ function peekHydratedEventsSnapshot(key: string) {
   return hydratedEventsSnapshotCache.get(key) ?? null
 }
 
-function touchHydratedEventsSnapshot(key: string) {
-  const snapshot = hydratedEventsSnapshotCache.get(key) ?? null
-  if (!snapshot) {
-    return null
-  }
-
-  hydratedEventsSnapshotCache.delete(key)
-  hydratedEventsSnapshotCache.set(key, snapshot)
-  return snapshot
-}
-
 function setHydratedEventsSnapshot(key: string, events: Event[]) {
   if (events.length === 0) {
     hydratedEventsSnapshotCache.delete(key)
@@ -97,17 +87,6 @@ function setHydratedEventsSnapshot(key: string, events: Event[]) {
 
     hydratedEventsSnapshotCache.delete(oldestKey)
   }
-}
-
-function areVisibleEventsEquivalent(left: Event[], right: Event[]) {
-  return left.length === right.length
-    && left.every((event, index) => {
-      const nextEvent = right[index]
-      return (
-        event.id === nextEvent?.id
-        && event.is_bookmarked === nextEvent?.is_bookmarked
-      )
-    })
 }
 
 function subscribeToHydrationStore() {
@@ -169,7 +148,6 @@ export default function HydratedEventsGrid({
     initialTimestamp: initialCurrentTimestamp,
     intervalMs: HOME_FEED_REFRESH_INTERVAL_MS,
   })
-  const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const hasHydrated = useSyncExternalStore(
     subscribeToHydrationStore,
     getHydratedClientSnapshot,
@@ -200,13 +178,6 @@ export default function HydratedEventsGrid({
     && !filters.hideCrypto
     && !filters.hideEarnings
   const initialSnapshotEvents = isRouteInitialState ? initialEvents : EMPTY_EVENTS
-  const lastStableVisibleEventsRef = useRef<{
-    events: Event[]
-    key: string
-  }>({
-    events: peekHydratedEventsSnapshot(snapshotKey) ?? initialSnapshotEvents,
-    key: snapshotKey,
-  })
   const PAGE_SIZE = HOME_EVENTS_PAGE_SIZE
   const shouldUseInitialData = isRouteInitialState
     && initialEvents.length > 0
@@ -249,22 +220,16 @@ export default function HydratedEventsGrid({
     timestamp: resolvedCurrentTimestamp,
   })
   const previousLoadMoreStateKeyRef = useRef(loadMoreStateKey)
-
-  if (queryTimestampRef.current.key !== queryRunKey) {
-    queryTimestampRef.current = {
-      key: queryRunKey,
-      timestamp: resolvedCurrentTimestamp,
-    }
-  }
-
-  if (previousLoadMoreStateKeyRef.current !== loadMoreStateKey) {
-    previousLoadMoreStateKeyRef.current = loadMoreStateKey
-    canRetryLoadMoreAfterErrorRef.current = true
-
-    if (infiniteScrollError !== null) {
-      setInfiniteScrollError(null)
-    }
-  }
+  const [infiniteScrollErrorState, setInfiniteScrollErrorState] = useState<{
+    key: string
+    value: string | null
+  }>({
+    key: loadMoreStateKey,
+    value: null,
+  })
+  const infiniteScrollError = infiniteScrollErrorState.key === loadMoreStateKey
+    ? infiniteScrollErrorState.value
+    : null
 
   const eventsQueryKey = [
     'events',
@@ -295,7 +260,7 @@ export default function HydratedEventsGrid({
     queryKey: eventsQueryKey,
     queryFn: ({ pageParam }) => fetchEvents({
       pageParam,
-      currentTimestamp: queryTimestampRef.current.timestamp,
+      currentTimestamp: resolvedCurrentTimestamp,
       filters,
       locale,
     }),
@@ -310,9 +275,26 @@ export default function HydratedEventsGrid({
   })
 
   const [livePriceEventIds, setLivePriceEventIds] = useState<string[]>([])
-  const [stablePriceOverridesByMarket, setStablePriceOverridesByMarket] = useState<Record<string, number>>(EMPTY_PRICE_OVERRIDES)
-  const pendingPriceOverrideSignatureRef = useRef<string>('')
-  const priceOverrideCommitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(function syncQueryTimestampForCurrentQueryKey() {
+    if (queryTimestampRef.current.key === queryRunKey) {
+      return
+    }
+
+    queryTimestampRef.current = {
+      key: queryRunKey,
+      timestamp: resolvedCurrentTimestamp,
+    }
+  }, [queryRunKey, resolvedCurrentTimestamp])
+
+  useEffect(function resetLoadMoreRetryStateOnQueryScopeChange() {
+    if (previousLoadMoreStateKeyRef.current === loadMoreStateKey) {
+      return
+    }
+
+    previousLoadMoreStateKeyRef.current = loadMoreStateKey
+    canRetryLoadMoreAfterErrorRef.current = true
+  }, [loadMoreStateKey])
 
   useEffect(() => {
     if (!shouldAutoRefreshEvents || status !== 'success') {
@@ -371,33 +353,10 @@ export default function HydratedEventsGrid({
     () => (allEvents.length === 0 ? EMPTY_EVENTS : allEvents),
     [allEvents],
   )
-  if (lastStableVisibleEventsRef.current.key !== snapshotKey) {
-    lastStableVisibleEventsRef.current = {
-      events: touchHydratedEventsSnapshot(snapshotKey) ?? initialSnapshotEvents,
-      key: snapshotKey,
-    }
-  }
-
-  if (
-    visibleEvents.length > 0
-    && !areVisibleEventsEquivalent(lastStableVisibleEventsRef.current.events, visibleEvents)
-  ) {
-    lastStableVisibleEventsRef.current = {
-      events: visibleEvents,
-      key: snapshotKey,
-    }
-  }
-
-  if (
-    status === 'success'
-    && visibleEvents.length === 0
-    && lastStableVisibleEventsRef.current.events.length > 0
-  ) {
-    lastStableVisibleEventsRef.current = {
-      events: EMPTY_EVENTS,
-      key: snapshotKey,
-    }
-  }
+  const cachedSnapshotEvents = useMemo(
+    () => peekHydratedEventsSnapshot(snapshotKey) ?? initialSnapshotEvents,
+    [initialSnapshotEvents, snapshotKey],
+  )
 
   useEffect(() => {
     if (visibleEvents.length === 0) {
@@ -417,11 +376,10 @@ export default function HydratedEventsGrid({
 
   const columns = useColumns(maxColumns)
   const loadingMoreColumns = Math.max(1, columns)
-  const lastStableVisibleEvents = lastStableVisibleEventsRef.current.events
   const shouldShowSnapshotFallback = visibleEvents.length === 0
-    && lastStableVisibleEvents.length > 0
+    && cachedSnapshotEvents.length > 0
     && status !== 'success'
-  const eventsToRender = shouldShowSnapshotFallback ? lastStableVisibleEvents : visibleEvents
+  const eventsToRender = shouldShowSnapshotFallback ? cachedSnapshotEvents : visibleEvents
   const hydrationSafeEventsToRender = !hasHydrated && isRouteInitialState
     ? initialEvents
     : eventsToRender
@@ -481,68 +439,12 @@ export default function HydratedEventsGrid({
       .join('|'),
     [priceOverridesByMarket],
   )
-  const previousPriceOverrideSignatureRef = useRef(priceOverrideSignature)
+  const debouncedPriceOverridesByMarket = useDebounce(priceOverridesByMarket, HOME_LIVE_OVERRIDE_SETTLE_DELAY_MS)
+  const stablePriceOverridesByMarket = priceOverrideSignature
+    ? debouncedPriceOverridesByMarket
+    : EMPTY_PRICE_OVERRIDES
   const isLoadingNewData = eventsToRender.length === 0
     && (isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0)))
-
-  if (
-    priceOverrideSignature === ''
-    && previousPriceOverrideSignatureRef.current !== ''
-    && Object.keys(stablePriceOverridesByMarket).length > 0
-  ) {
-    setStablePriceOverridesByMarket(EMPTY_PRICE_OVERRIDES)
-  }
-
-  previousPriceOverrideSignatureRef.current = priceOverrideSignature
-
-  useEffect(() => {
-    if (priceOverrideCommitTimeoutRef.current) {
-      clearTimeout(priceOverrideCommitTimeoutRef.current)
-      priceOverrideCommitTimeoutRef.current = null
-    }
-
-    if (!priceOverrideSignature) {
-      pendingPriceOverrideSignatureRef.current = ''
-      return
-    }
-
-    pendingPriceOverrideSignatureRef.current = priceOverrideSignature
-    const nextOverrides = priceOverridesByMarket
-    priceOverrideCommitTimeoutRef.current = setTimeout(() => {
-      if (pendingPriceOverrideSignatureRef.current !== priceOverrideSignature) {
-        return
-      }
-
-      setStablePriceOverridesByMarket((current) => {
-        const currentSignature = Object.entries(current)
-          .sort(([left], [right]) => left.localeCompare(right))
-          .map(([marketId, price]) => `${marketId}:${price}`)
-          .join('|')
-
-        return currentSignature === priceOverrideSignature ? current : nextOverrides
-      })
-    }, HOME_LIVE_OVERRIDE_SETTLE_DELAY_MS)
-
-    return () => {
-      if (priceOverrideCommitTimeoutRef.current) {
-        clearTimeout(priceOverrideCommitTimeoutRef.current)
-        priceOverrideCommitTimeoutRef.current = null
-      }
-    }
-  }, [priceOverrideSignature, priceOverridesByMarket])
-
-  const renderedEventIds = useMemo(
-    () => new Set(hydrationSafeEventsToRender.map(event => String(event.id))),
-    [hydrationSafeEventsToRender],
-  )
-
-  if (livePriceEventIds.length > 0) {
-    const nextLivePriceEventIds = livePriceEventIds.filter(eventId => renderedEventIds.has(eventId))
-
-    if (nextLivePriceEventIds.length !== livePriceEventIds.length) {
-      setLivePriceEventIds(nextLivePriceEventIds)
-    }
-  }
 
   useEffect(() => {
     if (!parentRef.current || hydrationSafeEventsToRender.length === 0) {
@@ -612,7 +514,7 @@ export default function HydratedEventsGrid({
           return
         }
 
-        setInfiniteScrollError(null)
+        setInfiniteScrollErrorState({ key: loadMoreStateKey, value: null })
       }
 
       fetchNextPage().catch((error: any) => {
@@ -621,13 +523,16 @@ export default function HydratedEventsGrid({
         }
 
         canRetryLoadMoreAfterErrorRef.current = false
-        setInfiniteScrollError(error?.message || 'Failed to load more events.')
+        setInfiniteScrollErrorState({
+          key: loadMoreStateKey,
+          value: error?.message || 'Failed to load more events.',
+        })
       })
     }, { rootMargin: '200px 0px' })
 
     observer.observe(loadMoreRef.current)
     return () => observer.disconnect()
-  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetching, isFetchingNextPage])
+  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetching, isFetchingNextPage, loadMoreStateKey])
 
   if (isLoadingNewData) {
     return (

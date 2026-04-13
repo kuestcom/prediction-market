@@ -11,6 +11,10 @@ interface HomeContentProps {
   initialMainTag?: string
 }
 
+function getServerCurrentTimestamp() {
+  return Date.now()
+}
+
 export default async function HomeContent({
   locale,
   initialTag,
@@ -20,7 +24,7 @@ export default async function HomeContent({
   const resolvedLocale = locale as SupportedLocale
   const initialTagSlug = initialTag ?? 'trending'
   const initialMainTagSlug = initialMainTag ?? initialTagSlug
-  const serverCurrentTimestamp = Date.now()
+  const serverCurrentTimestamp = getServerCurrentTimestamp()
   let initialCurrentTimestamp: number | null = serverCurrentTimestamp
 
   let initialEvents: Event[] = []

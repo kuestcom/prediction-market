@@ -4,7 +4,7 @@ import type { Table } from '@tanstack/react-table'
 import type { ReactNode } from 'react'
 import { XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -37,50 +37,59 @@ function DataTableToolbarInner<TData>({
 }: DataTableToolbarProps<TData>) {
   const t = useExtracted()
   const [searchInput, setSearchInput] = useState(search)
+  const [isDebouncePending, setIsDebouncePending] = useState(false)
+  const [pendingBaseSearch, setPendingBaseSearch] = useState(search)
   const debounceTimeoutRef = useRef<number | null>(null)
-  const lastSubmittedSearchRef = useRef(search)
-  const searchRef = useRef(search)
-  searchRef.current = search
 
-  useEffect(() => {
-    return () => {
-      if (debounceTimeoutRef.current !== null) {
-        window.clearTimeout(debounceTimeoutRef.current)
-      }
+  const latestSearchRef = useRef(search)
+
+  useLayoutEffect(function syncLatestSearchRef() {
+    latestSearchRef.current = search
+  }, [search])
+
+  function clearPendingSearchDebounce() {
+    if (debounceTimeoutRef.current !== null) {
+      window.clearTimeout(debounceTimeoutRef.current)
+      debounceTimeoutRef.current = null
     }
+    setIsDebouncePending(false)
+  }
+
+  useEffect(function clearPendingSearchDebounceOnUnmount() {
+    return clearPendingSearchDebounce
   }, [])
 
   function handleSearchInputChange(nextSearch: string) {
     setSearchInput(nextSearch)
 
-    if (debounceTimeoutRef.current !== null) {
-      window.clearTimeout(debounceTimeoutRef.current)
-      debounceTimeoutRef.current = null
-    }
+    clearPendingSearchDebounce()
 
     if (nextSearch === search) {
       return
     }
 
-    lastSubmittedSearchRef.current = searchRef.current
+    const baselineSearch = search
+    setPendingBaseSearch(baselineSearch)
+    setIsDebouncePending(true)
 
     debounceTimeoutRef.current = window.setTimeout(() => {
-      const hasExternalSearchOverride = searchRef.current !== lastSubmittedSearchRef.current
+      const hasExternalSearchOverride = latestSearchRef.current !== baselineSearch
       if (hasExternalSearchOverride) {
         debounceTimeoutRef.current = null
+        setIsDebouncePending(false)
         return
       }
 
-      lastSubmittedSearchRef.current = nextSearch
       onSearchChange(nextSearch)
       debounceTimeoutRef.current = null
+      setIsDebouncePending(false)
     }, 300)
   }
 
   const resolvedSearchPlaceholder = searchPlaceholder ?? t('Search...')
   const showPendingSearchInput
-    = debounceTimeoutRef.current !== null
-      && search === lastSubmittedSearchRef.current
+    = isDebouncePending
+      && search === pendingBaseSearch
   const resolvedSearchInput = showPendingSearchInput ? searchInput : search
   const isFiltered = resolvedSearchInput.length > 0
   const selectedRowsCount = table.getFilteredSelectedRowModel().rows.length
@@ -99,11 +108,7 @@ function DataTableToolbarInner<TData>({
         <Button
           variant="ghost"
           onClick={() => {
-            if (debounceTimeoutRef.current !== null) {
-              window.clearTimeout(debounceTimeoutRef.current)
-              debounceTimeoutRef.current = null
-            }
-            lastSubmittedSearchRef.current = ''
+            clearPendingSearchDebounce()
             setSearchInput('')
             onSearchChange('')
           }}

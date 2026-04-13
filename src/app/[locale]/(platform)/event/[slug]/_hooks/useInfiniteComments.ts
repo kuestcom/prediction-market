@@ -45,21 +45,23 @@ export function useInfiniteComments(
   const [infiniteScrollError, setInfiniteScrollError] = useState<Error | null>(null)
   const [loadingRepliesForComment, setLoadingRepliesForComment] = useState<string | null>(null)
   const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(() => new Set())
-  const commentsQueryKey = ['event-comments', eventSlug, sortBy, holdersOnly, user?.address ?? null]
+  const userAddress = user?.address ?? null
+  const userProxyWalletAddress = user?.proxy_wallet_address ?? null
+  const commentsQueryKey = ['event-comments', eventSlug, sortBy, holdersOnly, userAddress]
   const communityApiUrl = process.env.COMMUNITY_URL!
 
   const getCommunityToken = useCallback(async () => {
-    if (!user?.address) {
+    if (!userAddress) {
       throw new Error('Connect your wallet to comment')
     }
 
     return await ensureCommunityToken({
-      address: user.address,
+      address: userAddress,
       signMessageAsync: args => runWithSignaturePrompt(() => signMessageAsync(args)),
       communityApiUrl,
-      proxyWalletAddress: user.proxy_wallet_address ?? null,
+      proxyWalletAddress: userProxyWalletAddress,
     })
-  }, [communityApiUrl, runWithSignaturePrompt, signMessageAsync, user?.address, user?.proxy_wallet_address])
+  }, [communityApiUrl, runWithSignaturePrompt, signMessageAsync, userAddress, userProxyWalletAddress])
 
   const fetchCommentsPage = useCallback(async ({ pageParam = 0 }: { pageParam: number }) => {
     const offset = pageParam * COMMENTS_PAGE_SIZE
@@ -73,8 +75,8 @@ export function useInfiniteComments(
     }
 
     const headers: HeadersInit = {}
-    if (user?.address) {
-      const auth = loadCommunityAuth(user.address)
+    if (userAddress) {
+      const auth = loadCommunityAuth(userAddress)
       if (auth?.token) {
         headers.Authorization = `Bearer ${auth.token}`
       }
@@ -92,7 +94,7 @@ export function useInfiniteComments(
 
     const payload = await response.json()
     return Array.isArray(payload) ? payload : []
-  }, [communityApiUrl, eventSlug, holdersOnly, sortBy, user?.address])
+  }, [communityApiUrl, eventSlug, holdersOnly, sortBy, userAddress])
 
   const {
     data,

@@ -33,6 +33,8 @@ export default function PendingDepositBanner() {
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const router = useRouter()
   const user = useUser()
+  const userAddress = user?.address ?? null
+  const userProxyWalletAddress = user?.proxy_wallet_address ?? null
   const { openTradeRequirements } = useTradingOnboarding()
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<PendingDepositStep>('prompt')
@@ -77,7 +79,7 @@ export default function PendingDepositBanner() {
       return
     }
 
-    if (!user?.address || !user.proxy_wallet_address) {
+    if (!userAddress || !userProxyWalletAddress) {
       toast.error('Connect your wallet to continue.')
       return
     }
@@ -110,7 +112,7 @@ export default function PendingDepositBanner() {
       const { transaction, nonce, signatureParams } = buildResult.payload
       const typedData = getSafeTxTypedData({
         chainId: defaultNetwork.id,
-        safeAddress: user.proxy_wallet_address as `0x${string}`,
+        safeAddress: userProxyWalletAddress as `0x${string}`,
         transaction: {
           to: transaction.to as `0x${string}`,
           value: transaction.value,
@@ -131,9 +133,9 @@ export default function PendingDepositBanner() {
       const signature = await runWithSignaturePrompt(() => signMessageAsync({ message: { raw: structHash } }))
       const submitPayload = {
         type: 'SAFE' as const,
-        from: user.address,
+        from: userAddress,
         to: transaction.to,
-        proxyWallet: user.proxy_wallet_address,
+        proxyWallet: userProxyWalletAddress,
         data: transaction.data,
         nonce,
         signature: packSafeSignature(signature as `0x${string}`),
@@ -174,8 +176,8 @@ export default function PendingDepositBanner() {
     runWithSignaturePrompt,
     signMessageAsync,
     step,
-    user?.address,
-    user?.proxy_wallet_address,
+    userAddress,
+    userProxyWalletAddress,
   ])
 
   const handleStartTrading = useCallback(() => {

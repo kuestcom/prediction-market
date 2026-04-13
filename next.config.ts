@@ -14,6 +14,7 @@ const config: NextConfig = {
   cacheComponents: true,
   typedRoutes: true,
   reactStrictMode: false,
+  reactCompiler: true,
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',

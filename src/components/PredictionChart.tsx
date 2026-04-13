@@ -224,12 +224,12 @@ export function PredictionChart({
   const [crossFadeProgress, setCrossFadeProgress] = useState(1)
   const [crossFadeData, setCrossFadeData] = useState<DataPoint[] | null>(null)
   const [surgeActive, setSurgeActive] = useState(false)
+  const [surgeLengths, setSurgeLengths] = useState<Record<string, number>>({})
   const [revealSeriesKeys, setRevealSeriesKeys] = useState<string[]>([])
   const revealAnimationFrameRef = useRef<number | null>(null)
   const crossFadeFrameRef = useRef<number | null>(null)
   const surgeTimeoutRef = useRef<number | null>(null)
   const surgePendingRef = useRef(false)
-  const surgeLengthsRef = useRef<Record<string, number>>({})
   const seriesPathRef = useRef<Record<string, SVGPathElement | null>>({})
   const previousSeriesKeysRef = useRef<string[]>([])
   const dataSignatureRef = useRef<string | number | null>(null)
@@ -331,31 +331,29 @@ export function PredictionChart({
   const hasExplicitYMax = typeof yAxis?.max === 'number' && Number.isFinite(yAxis.max)
   const hasExplicitYTicks = Array.isArray(yAxis?.ticks) && yAxis.ticks.length > 0
   const shouldUseNiceYScale = autoscale && !(hasExplicitYMin || hasExplicitYMax || hasExplicitYTicks)
-  const resolvedYAxisTicks = useMemo(() => {
-    function normalizeTicks(sourceTicks: number[]) {
-      const seen = new Set<number>()
+  function normalizeTicks(sourceTicks: number[]) {
+    const seen = new Set<number>()
 
-      return sourceTicks.filter((value) => {
-        if (!Number.isFinite(value) || seen.has(value)) {
-          return false
-        }
-
-        seen.add(value)
-        return true
-      })
-    }
-
-    if (Array.isArray(yAxis?.ticks)) {
-      if (yAxis.ticks.length === 0) {
-        return []
+    return sourceTicks.filter((value) => {
+      if (!Number.isFinite(value) || seen.has(value)) {
+        return false
       }
 
-      const normalizedTicks = normalizeTicks(yAxis.ticks)
-      return normalizedTicks.length > 0 ? normalizedTicks : defaultYAxisTicks
-    }
+      seen.add(value)
+      return true
+    })
+  }
 
-    return normalizeTicks(defaultYAxisTicks)
-  }, [defaultYAxisTicks, yAxis?.ticks])
+  const resolvedYAxisTicks = Array.isArray(yAxis?.ticks)
+    ? (
+        yAxis.ticks.length === 0
+          ? []
+          : (() => {
+              const normalizedTicks = normalizeTicks(yAxis.ticks)
+              return normalizedTicks.length > 0 ? normalizedTicks : defaultYAxisTicks
+            })()
+      )
+    : normalizeTicks(defaultYAxisTicks)
   const domainBounds = useMemo(() => {
     const explicitStart = toDomainTimestamp(xDomain?.start)
     const explicitEnd = toDomainTimestamp(xDomain?.end)
@@ -816,6 +814,7 @@ export function PredictionChart({
       setCrossFadeData(null)
       surgePendingRef.current = false
       setSurgeActive(false)
+      setSurgeLengths({})
       setRevealSeriesKeys((previousKeys) => {
         if (previousKeys.length === 0) {
           return previousKeys
@@ -963,7 +962,7 @@ export function PredictionChart({
       return
     }
 
-    surgeLengthsRef.current = nextLengths
+    setSurgeLengths(nextLengths)
 
     setSurgeActive(true)
 
@@ -1070,16 +1069,7 @@ export function PredictionChart({
   const cursorPoint = tooltipActive && cursorDate
     ? getClampedCursorPoint(cursorDate)
     : null
-  const resolvedCursorPoint = tooltipActive && cursorPoint
-    ? resolvePointFromPaths({
-        basePoint: cursorPoint,
-        series,
-        seriesPaths: seriesPathRef.current,
-        targetX: clampedTooltipX,
-        yScale,
-      })
-    : null
-  const effectiveTooltipData = resolvedCursorPoint ?? cursorPoint ?? tooltipData ?? null
+  const effectiveTooltipData = tooltipData ?? cursorPoint ?? null
 
   let coloredPoints: DataPoint[] = data
   let mutedPoints: DataPoint[] = []
@@ -1510,7 +1500,7 @@ export function PredictionChart({
                 const isSeriesRevealing = revealProgress < 0.999 || revealSeriesSet.has(seriesItem.key)
                 const seriesColoredPoints = isSeriesRevealing ? coloredPoints : data
                 const seriesMutedPoints = isSeriesRevealing ? mutedPoints : []
-                const surgeLength = surgeLengthsRef.current[seriesItem.key]
+                const surgeLength = surgeLengths[seriesItem.key]
                 const surgeDashLength = typeof surgeLength === 'number' && Number.isFinite(surgeLength)
                   ? Math.max(18, surgeLength * SURGE_DASH_RATIO)
                   : 0

@@ -1581,12 +1581,9 @@ export default function SportsEventCenter({
     })
   }, [])
 
-  const ownerAddress = useMemo(() => {
-    if (user?.proxy_wallet_address && user.proxy_wallet_status === 'deployed') {
-      return user.proxy_wallet_address
-    }
-    return null
-  }, [user?.proxy_wallet_address, user?.proxy_wallet_status])
+  const ownerAddress = user?.proxy_wallet_address && user.proxy_wallet_status === 'deployed'
+    ? user.proxy_wallet_address
+    : null
 
   useEffect(() => {
     setActiveMarketViewKey(resolvedInitialMarketViewKey)
