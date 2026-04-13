@@ -21,7 +21,6 @@ export default antfu({
     'no-console': 'off',
     'prefer-arrow-callback': ['error', { allowNamedFunctions: true }],
     'curly': ['error', 'all'],
-    'e18e/prefer-static-regex': 'off',
     'react/no-array-index-key': 'off',
     'react-dom/no-dangerously-set-innerhtml': 'off',
     'react-refresh/only-export-components': 'off',
