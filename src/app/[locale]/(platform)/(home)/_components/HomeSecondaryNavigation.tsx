@@ -75,26 +75,30 @@ export default function HomeSecondaryNavigation({
   }, [])
 
   const updateIndicator = useCallback(() => {
-    const activeIndex = tagItems.findIndex(item => item.slug === resolvedActiveSubtagSlug)
-    const activeButton = buttonRef.current[activeIndex]
+    function applyIndicatorPosition() {
+      const activeIndex = tagItems.findIndex(item => item.slug === resolvedActiveSubtagSlug)
+      const activeButton = buttonRef.current[activeIndex]
 
-    if (!activeButton) {
-      if (indicatorRetryRef.current === null) {
-        indicatorRetryRef.current = requestAnimationFrame(() => {
-          indicatorRetryRef.current = null
-          updateIndicator()
-        })
+      if (!activeButton) {
+        if (indicatorRetryRef.current === null) {
+          indicatorRetryRef.current = requestAnimationFrame(() => {
+            indicatorRetryRef.current = null
+            applyIndicatorPosition()
+          })
+        }
+        return
       }
-      return
+
+      cancelIndicatorRetry()
+
+      const { offsetLeft, offsetWidth } = activeButton
+      queueMicrotask(() => {
+        setIndicatorStyle({ left: offsetLeft, width: offsetWidth })
+        setIndicatorReady(true)
+      })
     }
 
-    cancelIndicatorRetry()
-
-    const { offsetLeft, offsetWidth } = activeButton
-    queueMicrotask(() => {
-      setIndicatorStyle({ left: offsetLeft, width: offsetWidth })
-      setIndicatorReady(true)
-    })
+    applyIndicatorPosition()
   }, [cancelIndicatorRetry, resolvedActiveSubtagSlug, tagItems])
 
   useEffect(() => {
