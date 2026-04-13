@@ -48,7 +48,16 @@ export default function HeaderDropdownUserMenuAuth() {
     ? getAvatarPlaceholderStyle(avatarSeed)
     : undefined
 
-  useEffect(() => () => clearCloseTimeout(), [])
+  useEffect(function clearMenuCloseTimeoutOnUnmount() {
+    function cleanupMenuCloseTimeout() {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current)
+        closeTimeoutRef.current = null
+      }
+    }
+
+    return cleanupMenuCloseTimeout
+  }, [])
 
   function relatedTargetIsWithin(ref: React.RefObject<HTMLElement | null>, relatedTarget: EventTarget | null) {
     const current = ref.current
