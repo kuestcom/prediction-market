@@ -148,7 +148,6 @@ export default function HydratedEventsGrid({
     initialTimestamp: initialCurrentTimestamp,
     intervalMs: HOME_FEED_REFRESH_INTERVAL_MS,
   })
-  const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const hasHydrated = useSyncExternalStore(
     subscribeToHydrationStore,
     getHydratedClientSnapshot,
@@ -221,6 +220,16 @@ export default function HydratedEventsGrid({
     timestamp: resolvedCurrentTimestamp,
   })
   const previousLoadMoreStateKeyRef = useRef(loadMoreStateKey)
+  const [infiniteScrollErrorState, setInfiniteScrollErrorState] = useState<{
+    key: string
+    value: string | null
+  }>({
+    key: loadMoreStateKey,
+    value: null,
+  })
+  const infiniteScrollError = infiniteScrollErrorState.key === loadMoreStateKey
+    ? infiniteScrollErrorState.value
+    : null
 
   const eventsQueryKey = [
     'events',
@@ -251,7 +260,7 @@ export default function HydratedEventsGrid({
     queryKey: eventsQueryKey,
     queryFn: ({ pageParam }) => fetchEvents({
       pageParam,
-      currentTimestamp: queryTimestampRef.current.timestamp,
+      currentTimestamp: resolvedCurrentTimestamp,
       filters,
       locale,
     }),
@@ -505,7 +514,7 @@ export default function HydratedEventsGrid({
           return
         }
 
-        setInfiniteScrollError(null)
+        setInfiniteScrollErrorState({ key: loadMoreStateKey, value: null })
       }
 
       fetchNextPage().catch((error: any) => {
@@ -514,13 +523,16 @@ export default function HydratedEventsGrid({
         }
 
         canRetryLoadMoreAfterErrorRef.current = false
-        setInfiniteScrollError(error?.message || 'Failed to load more events.')
+        setInfiniteScrollErrorState({
+          key: loadMoreStateKey,
+          value: error?.message || 'Failed to load more events.',
+        })
       })
     }, { rootMargin: '200px 0px' })
 
     observer.observe(loadMoreRef.current)
     return () => observer.disconnect()
-  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetching, isFetchingNextPage])
+  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetching, isFetchingNextPage, loadMoreStateKey])
 
   if (isLoadingNewData) {
     return (

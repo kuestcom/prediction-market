@@ -63,6 +63,11 @@ function FilterToolbarSearchInputField({
       return
     }
 
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+      debounceTimeoutRef.current = null
+    }
+
     const inputElement = inputRef.current
 
     if (!inputElement) {

@@ -1223,7 +1223,6 @@ export function SportsGameGraph({
     ? { top: 12, right: 46, bottom: 40, left: 0 }
     : { top: 12, right: 30, bottom: 40, left: 0 }
   const chartContainerRef = useRef<HTMLDivElement | null>(null)
-  const heroLegendTextMeasureCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const tradeFlowIdRef = useRef(0)
   const [measuredChartWidth, setMeasuredChartWidth] = useState<number | null>(null)
   const canRenderPositionedSeriesLegend = usesPositionedSeriesLegend && measuredChartWidth !== null
@@ -1463,11 +1462,7 @@ export function SportsGameGraph({
       return HERO_LEGEND_MIN_WIDTH_PX
     }
 
-    if (!heroLegendTextMeasureCanvasRef.current) {
-      heroLegendTextMeasureCanvasRef.current = document.createElement('canvas')
-    }
-
-    const context = heroLegendTextMeasureCanvasRef.current.getContext('2d')
+    const context = document.createElement('canvas').getContext('2d')
     if (!context) {
       return HERO_LEGEND_MIN_WIDTH_PX
     }
@@ -1708,10 +1703,9 @@ export function SportsGameGraph({
       const labelLeft = Math.max(plotLeft, Math.min(maxLeft, dotX + HERO_LEGEND_LABEL_GAP_PX))
       const availableLabelWidth = Math.max(1, chartWidth - labelLeft - HERO_LEGEND_RIGHT_INSET_PX)
 
-      if (!heroLegendTextMeasureCanvasRef.current && typeof document !== 'undefined') {
-        heroLegendTextMeasureCanvasRef.current = document.createElement('canvas')
-      }
-      const labelMeasureContext = heroLegendTextMeasureCanvasRef.current?.getContext('2d') ?? null
+      const labelMeasureContext = typeof document !== 'undefined'
+        ? document.createElement('canvas').getContext('2d')
+        : null
       if (labelMeasureContext) {
         labelMeasureContext.font = '500 13px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif'
       }
@@ -1783,8 +1777,7 @@ export function SportsGameGraph({
       chartMargin.top,
       chartSeries,
       chartWidth,
-      chartXDomain?.end,
-      chartXDomain?.start,
+      chartXDomain,
       cursorSnapshot?.date,
       heroLegendSeriesWithValues,
       canRenderPositionedSeriesLegend,
