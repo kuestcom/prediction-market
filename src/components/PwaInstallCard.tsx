@@ -30,6 +30,15 @@ export default function PwaInstallCard() {
     return null
   }
 
+  async function handleInstallClick() {
+    try {
+      await requestInstall()
+    }
+    catch {
+      toast.error(t('An unexpected error occurred. Please try again.'))
+    }
+  }
+
   return (
     <section className="relative h-full overflow-hidden rounded-lg border bg-background p-4 sm:p-6">
       <DownloadIcon
@@ -60,16 +69,7 @@ export default function PwaInstallCard() {
             type="button"
             variant="secondary"
             className="mt-1 h-11 w-full justify-start gap-3 rounded-md px-3 text-sm sm:w-fit"
-            onClick={() => {
-              void (async () => {
-                try {
-                  await requestInstall()
-                }
-                catch {
-                  toast.error(t('An unexpected error occurred. Please try again.'))
-                }
-              })()
-            }}
+            onClick={handleInstallClick}
             disabled={isPrompting}
           >
             <Image
