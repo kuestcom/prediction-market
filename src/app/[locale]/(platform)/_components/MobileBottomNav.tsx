@@ -57,8 +57,17 @@ const HowItWorks = dynamic(
 const { useSession } = authClient
 
 export default function MobileBottomNav() {
-  const t = useExtracted()
   const pathname = usePathname()
+
+  return <MobileBottomNavContent key={pathname} pathname={pathname} />
+}
+
+interface MobileBottomNavContentProps {
+  pathname: string
+}
+
+function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
+  const t = useExtracted()
   const router = useRouter()
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
@@ -71,12 +80,6 @@ export default function MobileBottomNav() {
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
 
   const isAuthenticated = Boolean(session?.user) || Boolean(user) || isConnected
-
-  useEffect(() => {
-    setIsSearchOpen(false)
-    setIsGuestMenuOpen(false)
-    setIsHowItWorksOpen(false)
-  }, [pathname])
 
   function focusMobileSearchInput() {
     const input = document.querySelector<HTMLInputElement>(
