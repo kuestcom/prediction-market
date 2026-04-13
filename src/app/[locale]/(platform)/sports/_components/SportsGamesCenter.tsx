@@ -2545,7 +2545,7 @@ export function SportsGameDetailsPanel({
   const linePickerButtonsRef = useRef<Record<string, HTMLButtonElement | null>>({})
   const linePickerScrollSettleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const linePickerSuppressScrollSyncUntilRef = useRef(0)
-  const linePickerSpacerWidth = 'calc(50% - 20px)'
+  const linePickerSpacerWidth = 'calc(50% - 28px)'
   const [cashOutPayload, setCashOutPayload] = useState<SportsCashOutModalPayload | null>(null)
   const [isPositionsExpanded, setIsPositionsExpanded] = useState(false)
   const [convertTagKey, setConvertTagKey] = useState<string | null>(null)
