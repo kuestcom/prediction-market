@@ -38,7 +38,7 @@
     "@reown/appkit-siwe": "1.8.19",
     "@sentry/nextjs": "^10.41.0",
     "@supabase/supabase-js": "^2.101.1",
-    "@tanstack/react-query": "^5.90.19",
+    "@tanstack/react-query": "^5.99.0",
     "@tanstack/react-table": "^8.21.3",
     "@vercel/speed-insights": "^1.2.0",
     "@visx/axis": "4.0.1-alpha.0",
