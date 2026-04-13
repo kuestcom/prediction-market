@@ -314,18 +314,14 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
             <div className="relative isolate h-10 w-14 shrink-0 sm:ml-2 sm:h-12 sm:w-17">
               {previewMarkets.map((market, index) => {
-                const stackClass = (() => {
-                  if (previewMarkets.length <= 1) {
-                    return 'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]'
-                  }
-
-                  const stackClassByIndex = [
-                    'left-[-0.625rem] top-0 -rotate-[13deg] z-10 sm:left-[-0.875rem]',
-                    'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]',
-                    'right-[-0.625rem] top-[0.125rem] rotate-[19deg] z-30 sm:right-[-0.875rem]',
-                  ] as const
-                  return stackClassByIndex[Math.min(index, 2)]
-                })()
+                const stackClassByIndex = [
+                  'left-[-0.625rem] top-0 -rotate-[13deg] z-10 sm:left-[-0.875rem]',
+                  'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]',
+                  'right-[-0.625rem] top-[0.125rem] rotate-[19deg] z-30 sm:right-[-0.875rem]',
+                ] as const
+                const stackClass = previewMarkets.length <= 1
+                  ? 'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]'
+                  : stackClassByIndex[Math.min(index, 2)]
                 const showOverflowCount = index === 2 && previewExtraCount > 0
 
                 return (
