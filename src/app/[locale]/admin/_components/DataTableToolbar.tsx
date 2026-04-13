@@ -4,7 +4,7 @@ import type { Table } from '@tanstack/react-table'
 import type { ReactNode } from 'react'
 import { XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -43,7 +43,7 @@ function DataTableToolbarInner<TData>({
 
   const latestSearchRef = useRef(search)
 
-  useEffect(function syncLatestSearchRef() {
+  useLayoutEffect(function syncLatestSearchRef() {
     latestSearchRef.current = search
   }, [search])
 
@@ -68,7 +68,7 @@ function DataTableToolbarInner<TData>({
       return
     }
 
-    const baselineSearch = latestSearchRef.current
+    const baselineSearch = search
     setPendingBaseSearch(baselineSearch)
     setIsDebouncePending(true)
 
