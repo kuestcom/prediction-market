@@ -35,7 +35,6 @@ export default function HeaderSearch({
   const inputRef = useRef<HTMLInputElement>(null)
   const blurFrameRef = useRef<number | null>(null)
   const pointerDownInsideRef = useRef(false)
-  const showAttachedDropdownRef = useRef(false)
   const router = useRouter()
   const {
     query,
@@ -58,7 +57,6 @@ export default function HeaderSearch({
     && (isManagedSearchSurface || !isResultsDismissed)
   const showDiscoveryDropdown = showDesktopDiscovery && !emptyState && query.trim().length === 0 && hasFocusWithin && !isResultsDismissed
   const showAttachedDropdown = showDropdown || showDiscoveryDropdown
-  showAttachedDropdownRef.current = showAttachedDropdown
   const inputBaseClass = showAttachedDropdown ? 'bg-background' : 'bg-accent'
   const inputBorderClass = showAttachedDropdown ? 'border-border' : 'border-transparent'
   const inputHoverClass = showAttachedDropdown ? 'hover:bg-background' : 'hover:bg-secondary'
@@ -153,7 +151,7 @@ export default function HeaderSearch({
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
-      if (!showAttachedDropdownRef.current) {
+      if (!showAttachedDropdown) {
         return
       }
 
@@ -179,7 +177,7 @@ export default function HeaderSearch({
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown)
     }
-  }, [hideResults, isManagedSearchSurface])
+  }, [hideResults, isManagedSearchSurface, showAttachedDropdown])
 
   useEffect(() => () => clearPendingBlurFrame(), [])
 
