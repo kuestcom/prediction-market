@@ -189,6 +189,46 @@ export default function HeaderNotifications() {
                     className={cn('size-3 text-muted-foreground', { 'opacity-0': !(hasLink) })}
                   />
                 )
+                const avatarUrl = notification.user_avatar?.trim() ?? ''
+                const avatarContent = isLocalMerge
+                  ? (
+                      <div
+                        aria-hidden="true"
+                        className={`
+                          flex size-10.5 items-center justify-center rounded-md bg-muted text-muted-foreground
+                        `}
+                      >
+                        <MergeIcon className="size-4 rotate-90" />
+                      </div>
+                    )
+                  : avatarUrl
+                    ? (
+                        isEventMarketIconUrl(avatarUrl)
+                          ? (
+                              <EventIconImage
+                                src={avatarUrl}
+                                alt="User avatar"
+                                sizes="42px"
+                                containerClassName="size-10.5 rounded-md"
+                              />
+                            )
+                          : (
+                              <Image
+                                src={avatarUrl}
+                                alt="User avatar"
+                                width={42}
+                                height={42}
+                                className="size-10.5 rounded-md object-cover"
+                              />
+                            )
+                      )
+                    : (
+                        <div
+                          aria-hidden="true"
+                          className="size-10.5 rounded-md"
+                          style={getAvatarPlaceholderStyle(notification.id || notification.title)}
+                        />
+                      )
 
                 return (
                   <div
@@ -210,51 +250,7 @@ export default function HeaderNotifications() {
                       : undefined}
                   >
                     <div className="shrink-0">
-                      {(() => {
-                        if (isLocalMerge) {
-                          return (
-                            <div
-                              aria-hidden="true"
-                              className={`
-                                flex size-10.5 items-center justify-center rounded-md bg-muted text-muted-foreground
-                              `}
-                            >
-                              <MergeIcon className="size-4 rotate-90" />
-                            </div>
-                          )
-                        }
-
-                        const avatarUrl = notification.user_avatar?.trim() ?? ''
-                        if (avatarUrl) {
-                          if (isEventMarketIconUrl(avatarUrl)) {
-                            return (
-                              <EventIconImage
-                                src={avatarUrl}
-                                alt="User avatar"
-                                sizes="42px"
-                                containerClassName="size-10.5 rounded-md"
-                              />
-                            )
-                          }
-
-                          return (
-                            <Image
-                              src={avatarUrl}
-                              alt="User avatar"
-                              width={42}
-                              height={42}
-                              className="size-10.5 rounded-md object-cover"
-                            />
-                          )
-                        }
-                        return (
-                          <div
-                            aria-hidden="true"
-                            className="size-10.5 rounded-md"
-                            style={getAvatarPlaceholderStyle(notification.id || notification.title)}
-                          />
-                        )
-                      })()}
+                      {avatarContent}
                     </div>
 
                     <div className="min-w-0 flex-1">
