@@ -1239,6 +1239,24 @@ function CountdownBadge({
   seconds?: number
   onReset?: () => void
 }) {
+  return (
+    <CountdownBadgeContent
+      key={seconds}
+      seconds={seconds}
+      onReset={onReset}
+    />
+  )
+}
+
+interface CountdownBadgeContentProps {
+  seconds: number
+  onReset?: () => void
+}
+
+function CountdownBadgeContent({
+  seconds,
+  onReset,
+}: CountdownBadgeContentProps) {
   const [remaining, setRemaining] = useState(seconds)
   const endTimeRef = useRef(0)
   const hasTriggeredResetRef = useRef(false)
@@ -1249,7 +1267,6 @@ function CountdownBadge({
   }, [onReset])
 
   useEffect(() => {
-    setRemaining(seconds)
     endTimeRef.current = Date.now() + seconds * 1000
     hasTriggeredResetRef.current = false
     const interval = setInterval(() => {
