@@ -38,6 +38,44 @@ function resolveBinaryOutcome(market: Market | undefined, outcomeIndex: typeof O
     ?? null
 }
 
+function useCanUseXTrackerResolvedOutcomes(event: EventCardProps['event']) {
+  return useMemo(() => shouldUseResolvedXTracker(event), [event])
+}
+
+function useResolvedOutcomeIndexByConditionId({
+  canUseXTrackerResolvedOutcomes,
+  event,
+  isResolvedEvent,
+  totalCount,
+}: {
+  canUseXTrackerResolvedOutcomes: boolean
+  event: EventCardProps['event']
+  isResolvedEvent: boolean
+  totalCount: number | null
+}) {
+  return useMemo<Partial<Record<string, typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO>>>(() => {
+    if (!isResolvedEvent) {
+      return {}
+    }
+
+    return Object.fromEntries(
+      event.markets
+        .map((market) => {
+          const resolvedOutcomeIndex = resolveEventCardResolvedOutcomeIndex(market, {
+            isTweetMarketEvent: canUseXTrackerResolvedOutcomes,
+            isTweetMarketFinal: true,
+            totalCount,
+          })
+
+          return resolvedOutcomeIndex == null
+            ? null
+            : [market.condition_id, resolvedOutcomeIndex] as const
+        })
+        .filter((entry): entry is readonly [string, 0 | 1] => entry != null),
+    )
+  }, [canUseXTrackerResolvedOutcomes, event.markets, isResolvedEvent, totalCount])
+}
+
 export default function EventCard({
   event,
   priceOverridesByMarket = EMPTY_PRICE_OVERRIDES,
@@ -45,10 +83,7 @@ export default function EventCard({
   currentTimestamp = null,
 }: EventCardProps) {
   const isResolvedEvent = isHomeEventResolvedLike(event)
-  const canUseXTrackerResolvedOutcomes = useMemo(
-    () => shouldUseResolvedXTracker(event),
-    [event],
-  )
+  const canUseXTrackerResolvedOutcomes = useCanUseXTrackerResolvedOutcomes(event)
   const xtrackerTweetCountQuery = useXTrackerTweetCount(event, isResolvedEvent && canUseXTrackerResolvedOutcomes)
   const marketsToDisplay = isResolvedEvent
     ? event.markets
@@ -71,28 +106,12 @@ export default function EventCard({
   const homeSportsMoneylineModel = enableHomeSportsMoneylineLayout
     ? buildHomeSportsMoneylineModel(event)
     : null
-  const resolvedOutcomeIndexByConditionId = useMemo<Partial<Record<string, typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO>>>(() => {
-    if (!isResolvedEvent) {
-      return {}
-    }
-
-    const totalCount = xtrackerTweetCountQuery.data?.totalCount ?? null
-    return Object.fromEntries(
-      event.markets
-        .map((market) => {
-          const resolvedOutcomeIndex = resolveEventCardResolvedOutcomeIndex(market, {
-            isTweetMarketEvent: canUseXTrackerResolvedOutcomes,
-            isTweetMarketFinal: true,
-            totalCount,
-          })
-
-          return resolvedOutcomeIndex == null
-            ? null
-            : [market.condition_id, resolvedOutcomeIndex] as const
-        })
-        .filter((entry): entry is readonly [string, 0 | 1] => entry != null),
-    )
-  }, [canUseXTrackerResolvedOutcomes, event.markets, isResolvedEvent, xtrackerTweetCountQuery.data?.totalCount])
+  const resolvedOutcomeIndexByConditionId = useResolvedOutcomeIndexByConditionId({
+    canUseXTrackerResolvedOutcomes,
+    event,
+    isResolvedEvent,
+    totalCount: xtrackerTweetCountQuery.data?.totalCount ?? null,
+  })
 
   function getDisplayChance(marketId: string) {
     return chanceByMarket[marketId] ?? 0
