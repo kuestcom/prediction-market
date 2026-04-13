@@ -43,7 +43,7 @@ export default function EventCategoryNote({ event }: EventCategoryNoteProps) {
   return (
     <section
       id="tag-banner"
-      className="mb-6 w-full max-w-full rounded-lg border border-border bg-card text-foreground sm:max-w-[938px]"
+      className="mb-6 w-full max-w-full rounded-lg border border-border bg-card text-foreground"
     >
       <div className="hidden p-4 lg:block">
         <p className="text-sm wrap-break-word whitespace-pre-line">
@@ -58,13 +58,13 @@ export default function EventCategoryNote({ event }: EventCategoryNoteProps) {
       <div className="lg:hidden">
         <Accordion type="single" collapsible className="border-none">
           <AccordionItem value="event-category-note" className="overflow-hidden border-none">
-            <AccordionTrigger className="rounded-md p-4 text-sm leading-[21px] font-semibold hover:no-underline">
-              <div className="flex min-w-0 flex-1 items-start gap-2 text-left">
+            <AccordionTrigger className="rounded-md p-4 text-sm font-semibold hover:no-underline">
+              <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
                 <InfoIcon className="size-4 shrink-0 text-foreground" />
                 <span className="wrap-break-word">{title}</span>
               </div>
             </AccordionTrigger>
-            <AccordionContent className="bg-transparent text-sm leading-[21px] [&>div]:px-4 [&>div]:pb-4">
+            <AccordionContent className="bg-transparent text-sm [&>div]:px-4 [&>div]:pb-4">
               <p className="wrap-break-word whitespace-pre-line">{categoryNote.note}</p>
             </AccordionContent>
           </AccordionItem>
