@@ -1318,6 +1318,7 @@ export default function AdminCreateEventForm({
   const lastDraftAutosaveFingerprintRef = useRef<string | null>(null)
   const contentCheckProgressRef = useRef<number | null>(null)
   const contentCheckFinishedTimeoutRef = useRef<number | null>(null)
+  const lastDraftLoadErrorMessageRef = useRef<string | null>(null)
   const lastPreSignChecksFingerprintRef = useRef<string | null>(null)
   const lastPreSignChecksCompletedRef = useRef(false)
   const lastPreSignChecksResultRef = useRef(false)
@@ -2641,7 +2642,16 @@ export default function AdminCreateEventForm({
         setAreMultiOutcomesEditable(Boolean(parsed.areMultiOutcomesEditable))
       }
       catch (error) {
-        void error
+        const draftLoadErrorMessage = error instanceof Error && error.message.trim()
+          ? error.message.trim()
+          : 'The saved draft could not be parsed.'
+        if (lastDraftLoadErrorMessageRef.current !== draftLoadErrorMessage) {
+          lastDraftLoadErrorMessageRef.current = draftLoadErrorMessage
+          toast.error('Failed to load saved draft.', {
+            id: 'admin-create-event-draft-load-error',
+            description: draftLoadErrorMessage,
+          })
+        }
         setSlugSeed(initialSlugSeed)
       }
     }
