@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import type { TradingOnboardingContextValue } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { User } from '@/types'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { hashTypedData, UserRejectedRequestError } from 'viem'
 import { useSignMessage, useSignTypedData } from 'wagmi'
 import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
@@ -55,36 +55,38 @@ import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
 export function TradingOnboardingProvider({ children }: { children: ReactNode }) {
   const user = useUser()
+
+  return (
+    <TradingOnboardingProviderContent
+      key={user?.id ?? 'guest'}
+      user={user}
+    >
+      {children}
+    </TradingOnboardingProviderContent>
+  )
+}
+
+interface TradingOnboardingProviderContentProps {
+  children: ReactNode
+  user: User | null
+}
+
+function TradingOnboardingProviderContent({
+  children,
+  user,
+}: TradingOnboardingProviderContentProps) {
   const { open } = useAppKit()
   const { signTypedDataAsync } = useSignTypedData()
   const { signMessageAsync } = useSignMessage()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const affiliateMetadata = useAffiliateOrderMetadata()
-  const [enableModalOpen, setEnableModalOpen] = useState(false)
-  const [fundModalOpen, setFundModalOpen] = useState(false)
-  const [tradeModalOpen, setTradeModalOpen] = useState(false)
-  const [shouldShowFundAfterProxy, setShouldShowFundAfterProxy] = useState(false)
-  const [proxyWalletError, setProxyWalletError] = useState<string | null>(null)
-  const [tradingAuthError, setTradingAuthError] = useState<string | null>(null)
-  const [tokenApprovalError, setTokenApprovalError] = useState<string | null>(null)
-  const [proxyStep, setProxyStep] = useState<'idle' | 'signing' | 'deploying' | 'completed'>('idle')
-  const [tradingAuthStep, setTradingAuthStep] = useState<'idle' | 'signing' | 'completed'>('idle')
-  const [approvalsStep, setApprovalsStep] = useState<'idle' | 'signing' | 'completed'>('idle')
-  const [requiresTradingAuthRefresh, setRequiresTradingAuthRefresh] = useState(false)
-  const [depositModalOpen, setDepositModalOpen] = useState(false)
-  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
-
   const proxyWalletStatus = user?.proxy_wallet_status ?? null
   const hasProxyWalletAddress = Boolean(user?.proxy_wallet_address)
-  const hasDeployedProxyWallet = useMemo(() => (
-    Boolean(user?.proxy_wallet_address && proxyWalletStatus === 'deployed')
-  ), [proxyWalletStatus, user?.proxy_wallet_address])
-  const isProxyWalletDeploying = useMemo(() => (
-    Boolean(
-      user?.proxy_wallet_address
-      && (proxyWalletStatus === 'deploying' || proxyWalletStatus === 'signed'),
-    )
-  ), [proxyWalletStatus, user?.proxy_wallet_address])
+  const hasDeployedProxyWallet = Boolean(user?.proxy_wallet_address && proxyWalletStatus === 'deployed')
+  const isProxyWalletDeploying = Boolean(
+    user?.proxy_wallet_address
+    && (proxyWalletStatus === 'deploying' || proxyWalletStatus === 'signed'),
+  )
   const tradingAuthSettings = user?.settings?.tradingAuth ?? null
   const hasTradingAuth = Boolean(
     tradingAuthSettings?.relayer?.enabled
@@ -92,6 +94,26 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
   )
   const approvalsSettings = tradingAuthSettings?.approvals ?? null
   const hasTokenApprovals = Boolean(approvalsSettings?.enabled)
+  const [enableModalOpen, setEnableModalOpen] = useState(false)
+  const [fundModalOpen, setFundModalOpen] = useState(false)
+  const [tradeModalOpen, setTradeModalOpen] = useState(false)
+  const [shouldShowFundAfterProxy, setShouldShowFundAfterProxy] = useState(false)
+  const [proxyWalletError, setProxyWalletError] = useState<string | null>(null)
+  const [tradingAuthError, setTradingAuthError] = useState<string | null>(null)
+  const [tokenApprovalError, setTokenApprovalError] = useState<string | null>(null)
+  const [proxyStep, setProxyStep] = useState<'idle' | 'signing' | 'deploying' | 'completed'>(
+    hasDeployedProxyWallet ? 'completed' : isProxyWalletDeploying ? 'deploying' : 'idle',
+  )
+  const [tradingAuthStep, setTradingAuthStep] = useState<'idle' | 'signing' | 'completed'>(
+    hasTradingAuth ? 'completed' : 'idle',
+  )
+  const [approvalsStep, setApprovalsStep] = useState<'idle' | 'signing' | 'completed'>(
+    hasTokenApprovals ? 'completed' : 'idle',
+  )
+  const [requiresTradingAuthRefresh, setRequiresTradingAuthRefresh] = useState(false)
+  const [depositModalOpen, setDepositModalOpen] = useState(false)
+  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
+
   const hasEffectiveTradingAuth = hasTradingAuth && !requiresTradingAuthRefresh
   const effectiveProxyStep
     = hasDeployedProxyWallet
@@ -106,32 +128,6 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
     = effectiveProxyStep === 'completed'
       && effectiveTradingAuthStep === 'completed'
       && effectiveApprovalsStep === 'completed'
-  const previousUserIdRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    const nextUserId = user?.id ?? null
-    if (previousUserIdRef.current === nextUserId) {
-      return
-    }
-
-    previousUserIdRef.current = nextUserId
-    setProxyWalletError(null)
-    setTradingAuthError(null)
-    setTokenApprovalError(null)
-    setShouldShowFundAfterProxy(false)
-    setRequiresTradingAuthRefresh(false)
-
-    if (!nextUserId) {
-      setProxyStep('idle')
-      setTradingAuthStep('idle')
-      setApprovalsStep('idle')
-      return
-    }
-
-    setProxyStep(hasDeployedProxyWallet ? 'completed' : isProxyWalletDeploying ? 'deploying' : 'idle')
-    setTradingAuthStep(hasTradingAuth ? 'completed' : 'idle')
-    setApprovalsStep(hasTokenApprovals ? 'completed' : 'idle')
-  }, [hasDeployedProxyWallet, hasTokenApprovals, hasTradingAuth, isProxyWalletDeploying, user?.id])
 
   const refreshSessionUserState = useCallback(async () => {
     try {
