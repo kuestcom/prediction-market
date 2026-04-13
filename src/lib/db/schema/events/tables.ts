@@ -401,6 +401,7 @@ export const tags = pgTable(
     is_main_category: boolean().default(false),
     is_hidden: boolean().notNull().default(false),
     hide_events: boolean().notNull().default(false),
+    event_page_note: text(),
     display_order: smallint().default(0),
     active_markets_count: integer().default(0),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),

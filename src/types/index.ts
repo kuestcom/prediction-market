@@ -46,6 +46,7 @@ export interface Event {
     name: string
     slug: string
     isMainCategory: boolean
+    event_page_note?: string | null
   }[]
   main_tag: string
   is_bookmarked: boolean

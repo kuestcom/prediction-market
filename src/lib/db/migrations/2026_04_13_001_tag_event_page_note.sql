@@ -1,0 +1,2 @@
+ALTER TABLE tags
+  ADD COLUMN IF NOT EXISTS event_page_note TEXT;

@@ -7,6 +7,7 @@ import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import EventCategoryNote from '@/app/[locale]/(platform)/event/[slug]/_components/EventCategoryNote'
 import EventHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventHeader'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventMarkets from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarkets'
@@ -444,6 +445,7 @@ export default function EventContent({
         </Suspense>
         <div className="grid gap-6 pt-5 pb-20 md:pb-0">
           <div className={cn(shouldHideChart ? 'grid gap-2' : 'grid gap-3')} ref={contentRef}>
+            <EventCategoryNote event={event} />
             <EventHeader event={event} />
 
             <div className={cn(shouldHideChart ? 'w-full' : 'min-h-96 w-full')}>

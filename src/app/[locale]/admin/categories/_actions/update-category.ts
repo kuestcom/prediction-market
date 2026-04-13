@@ -12,12 +12,14 @@ const UpdateCategoryInputSchema = z.object({
   is_main_category: z.boolean().optional(),
   is_hidden: z.boolean().optional(),
   hide_events: z.boolean().optional(),
+  event_page_note: z.string().max(10_000).nullable().optional(),
 })
 
 export interface UpdateCategoryInput {
   is_main_category?: boolean
   is_hidden?: boolean
   hide_events?: boolean
+  event_page_note?: string | null
 }
 
 export interface UpdateCategoryResult {
@@ -28,6 +30,8 @@ export interface UpdateCategoryResult {
     slug: string
     is_main_category: boolean
     is_hidden: boolean
+    hide_events: boolean
+    event_page_note: string | null
     display_order: number
     active_markets_count: number
     created_at: string
@@ -35,6 +39,10 @@ export interface UpdateCategoryResult {
     translations: Partial<Record<NonDefaultLocale, string>>
   }
   error?: string
+}
+
+function containsHtmlTags(value: string) {
+  return /<\/?[a-z][\s\S]*>/i.test(value)
 }
 
 export async function updateCategoryAction(
@@ -50,6 +58,22 @@ export async function updateCategoryAction(
       }
     }
 
+    const normalizedInput: UpdateCategoryInput = {
+      ...parsed.data,
+      event_page_note: parsed.data.event_page_note === undefined
+        ? undefined
+        : parsed.data.event_page_note?.trim()
+          ? parsed.data.event_page_note.trim()
+          : null,
+    }
+
+    if (typeof normalizedInput.event_page_note === 'string' && containsHtmlTags(normalizedInput.event_page_note)) {
+      return {
+        success: false,
+        error: 'Event note must be plain text only.',
+      }
+    }
+
     const currentUser = await UserRepository.getCurrentUser()
     if (!currentUser || !currentUser.is_admin) {
       return {
@@ -58,7 +82,7 @@ export async function updateCategoryAction(
       }
     }
 
-    const { data, error } = await TagRepository.updateTagById(categoryId, parsed.data)
+    const { data, error } = await TagRepository.updateTagById(categoryId, normalizedInput)
 
     if (error || !data) {
       console.error('Error updating category:', error)
@@ -70,6 +94,8 @@ export async function updateCategoryAction(
 
     revalidatePath('/[locale]/admin/categories', 'page')
     revalidatePath('/[locale]', 'layout')
+    revalidatePath('/[locale]/event/[slug]', 'page')
+    revalidatePath('/[locale]/event/[slug]/[market]', 'page')
     updateTag(cacheTags.adminCategories)
     updateTag(cacheTags.eventsList)
     updateTag(cacheTags.events(currentUser.id))

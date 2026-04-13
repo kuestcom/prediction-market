@@ -33,6 +33,7 @@ interface AdminTagRow {
   is_main_category: boolean
   is_hidden: boolean
   hide_events: boolean
+  event_page_note: string | null
   display_order: number
   active_markets_count: number
   active_events_count: number
@@ -669,6 +670,7 @@ export const TagRepository = {
       is_main_category: boolean | null
       is_hidden: boolean
       hide_events: boolean
+      event_page_note: string | null
       display_order: number | null
       active_markets_count: number | null
       created_at: Date
@@ -687,6 +689,7 @@ export const TagRepository = {
                 is_main_category: tags.is_main_category,
                 is_hidden: tags.is_hidden,
                 hide_events: tags.hide_events,
+                event_page_note: tags.event_page_note,
                 display_order: tags.display_order,
                 active_markets_count: tags.active_markets_count,
                 created_at: tags.created_at,
@@ -702,6 +705,7 @@ export const TagRepository = {
                 is_main_category: tags.is_main_category,
                 is_hidden: tags.is_hidden,
                 hide_events: tags.hide_events,
+                event_page_note: tags.event_page_note,
                 display_order: tags.display_order,
                 active_markets_count: tags.active_markets_count,
                 created_at: tags.created_at,
@@ -758,6 +762,7 @@ export const TagRepository = {
                 is_main_category: tags.is_main_category,
                 is_hidden: tags.is_hidden,
                 hide_events: tags.hide_events,
+                event_page_note: tags.event_page_note,
                 display_order: tags.display_order,
                 active_markets_count: tags.active_markets_count,
                 created_at: tags.created_at,
@@ -776,6 +781,7 @@ export const TagRepository = {
                 is_main_category: tags.is_main_category,
                 is_hidden: tags.is_hidden,
                 hide_events: tags.hide_events,
+                event_page_note: tags.event_page_note,
                 display_order: tags.display_order,
                 active_markets_count: tags.active_markets_count,
                 created_at: tags.created_at,
@@ -834,6 +840,7 @@ export const TagRepository = {
       is_main_category: row.is_main_category,
       is_hidden: row.is_hidden,
       hide_events: row.hide_events,
+      event_page_note: row.event_page_note,
       display_order: row.display_order,
       active_markets_count: row.active_markets_count ?? 0,
       active_events_count: visibleCountsByTagSlug.get(row.slug) ?? 0,
@@ -876,6 +883,7 @@ export const TagRepository = {
         is_main_category: tags.is_main_category,
         is_hidden: tags.is_hidden,
         hide_events: tags.hide_events,
+        event_page_note: tags.event_page_note,
         display_order: tags.display_order,
         active_markets_count: tags.active_markets_count,
         created_at: tags.created_at,
@@ -915,6 +923,7 @@ export const TagRepository = {
       is_main_category: row.is_main_category ?? false,
       is_hidden: row.is_hidden,
       hide_events: row.hide_events,
+      event_page_note: row.event_page_note,
       display_order: row.display_order ?? 0,
       active_markets_count: row.active_markets_count ?? 0,
       active_events_count: visibleCountsByTagSlug.get(row.slug) ?? 0,

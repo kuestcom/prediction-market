@@ -9,6 +9,7 @@ export interface AdminCategoryRow {
   is_main_category: boolean
   is_hidden: boolean
   hide_events: boolean
+  event_page_note: string | null
   display_order: number
   active_markets_count: number
   active_events_count: number

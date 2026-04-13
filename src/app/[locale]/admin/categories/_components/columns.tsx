@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
-import { ArrowUpDownIcon, LanguagesIcon } from 'lucide-react'
+import { ArrowUpDownIcon, LanguagesIcon, SquarePenIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ interface CategoryColumnOptions {
   onToggleHidden: (category: AdminCategoryRow, nextValue: boolean) => void
   onToggleHideEvents: (category: AdminCategoryRow, nextValue: boolean) => void
   onOpenTranslations: (category: AdminCategoryRow) => void
+  onOpenEventPageNote: (category: AdminCategoryRow) => void
   isUpdatingMain: (categoryId: number) => boolean
   isUpdatingHidden: (categoryId: number) => boolean
   isUpdatingHideEvents: (categoryId: number) => boolean
@@ -23,6 +24,7 @@ export function useAdminCategoryColumns({
   onToggleHidden,
   onToggleHideEvents,
   onOpenTranslations,
+  onOpenEventPageNote,
   isUpdatingMain,
   isUpdatingHidden,
   isUpdatingHideEvents,
@@ -177,16 +179,12 @@ export function useAdminCategoryColumns({
       enableSorting: false,
     },
     {
-      id: 'translations',
-      header: () => (
-        <div className="text-center text-xs font-medium text-muted-foreground uppercase">
-          {t('Translations')}
-        </div>
-      ),
+      id: 'actions',
+      header: () => null,
       cell: ({ row }) => {
         const category = row.original
         return (
-          <div className="text-center">
+          <div className="flex items-center justify-center gap-1">
             <Button
               type="button"
               variant="outline"
@@ -197,6 +195,19 @@ export function useAdminCategoryColumns({
               <LanguagesIcon className="size-4" />
               <span className="sr-only">
                 {t('Open translations for {name}', { name: category.name })}
+              </span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => onOpenEventPageNote(category)}
+            >
+              <SquarePenIcon className="size-4" />
+              <span className="sr-only">
+                {`Open event note for ${category.name}`}
               </span>
             </Button>
           </div>

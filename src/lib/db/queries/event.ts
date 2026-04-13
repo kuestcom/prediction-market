@@ -992,6 +992,7 @@ function eventResource(
       name: tag.name,
       slug: tag.slug,
       isMainCategory: Boolean(tag.is_main_category),
+      event_page_note: typeof tag.event_page_note === 'string' ? tag.event_page_note : null,
     })),
     main_tag: getEventMainTag(tagRecords),
     is_bookmarked: event.bookmarks?.some(bookmark => bookmark.user_id === userId) || false,

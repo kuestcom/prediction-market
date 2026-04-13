@@ -22,14 +22,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { LOCALE_LABELS, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 
 export default function AdminCategoriesTable() {
   const t = useExtracted()
+  const isMobile = useIsMobile()
   const queryClient = useQueryClient()
 
   const {
@@ -58,6 +69,10 @@ export default function AdminCategoriesTable() {
   const [translationValues, setTranslationValues] = useState<Partial<Record<NonDefaultLocale, string>>>({})
   const [translationError, setTranslationError] = useState<string | null>(null)
   const [isSavingTranslations, setIsSavingTranslations] = useState(false)
+  const [eventNoteCategory, setEventNoteCategory] = useState<AdminCategoryRow | null>(null)
+  const [eventNoteValue, setEventNoteValue] = useState('')
+  const [eventNoteError, setEventNoteError] = useState<string | null>(null)
+  const [isSavingEventNote, setIsSavingEventNote] = useState(false)
   const [isMainCategorySortOpen, setIsMainCategorySortOpen] = useState(false)
 
   const closeTranslationsDialog = useCallback(() => {
@@ -138,6 +153,20 @@ export default function AdminCategoriesTable() {
     )
   }, [])
 
+  const closeEventNoteEditor = useCallback(() => {
+    setEventNoteCategory(null)
+    setEventNoteValue('')
+    setEventNoteError(null)
+    setIsSavingEventNote(false)
+  }, [])
+
+  const handleOpenEventNote = useCallback((category: AdminCategoryRow) => {
+    setEventNoteCategory(category)
+    setEventNoteValue(category.event_page_note ?? '')
+    setEventNoteError(null)
+    setIsSavingEventNote(false)
+  }, [])
+
   const handleTranslationChange = useCallback((locale: NonDefaultLocale, value: string) => {
     setTranslationValues(prev => ({
       ...prev,
@@ -188,11 +217,59 @@ export default function AdminCategoriesTable() {
     setIsSavingTranslations(false)
   }, [closeTranslationsDialog, queryClient, t, translationCategory, translationValues])
 
+  const handleSaveEventNote = useCallback(async () => {
+    if (!eventNoteCategory) {
+      return
+    }
+
+    setIsSavingEventNote(true)
+    setEventNoteError(null)
+
+    const normalizedNote = eventNoteValue.trim()
+    const result = await updateCategoryAction(eventNoteCategory.id, {
+      event_page_note: normalizedNote.length > 0 ? normalizedNote : null,
+    })
+
+    if (result.success) {
+      queryClient.setQueriesData<{ data: AdminCategoryRow[], totalCount: number }>(
+        { queryKey: ['admin-categories'] },
+        (previous) => {
+          if (!previous) {
+            return previous
+          }
+
+          return {
+            ...previous,
+            data: previous.data.map((category) => {
+              if (category.id !== eventNoteCategory.id) {
+                return category
+              }
+
+              return {
+                ...category,
+                event_page_note: result.data?.event_page_note ?? null,
+              }
+            }),
+          }
+        },
+      )
+
+      toast.success(`Event note updated for ${eventNoteCategory.name}.`)
+      void queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
+      closeEventNoteEditor()
+      return
+    }
+
+    setEventNoteError(result.error ?? t('Failed to update category'))
+    setIsSavingEventNote(false)
+  }, [closeEventNoteEditor, eventNoteCategory, eventNoteValue, queryClient, t])
+
   const columns = useAdminCategoryColumns({
     onToggleMain: handleToggleMain,
     onToggleHidden: handleToggleHidden,
     onToggleHideEvents: handleToggleHideEvents,
     onOpenTranslations: handleOpenTranslations,
+    onOpenEventPageNote: handleOpenEventNote,
     isUpdatingMain: id => pendingMainId === id,
     isUpdatingHidden: id => pendingHiddenId === id,
     isUpdatingHideEvents: id => pendingHideEventsId === id,
@@ -239,6 +316,28 @@ export default function AdminCategoriesTable() {
         </Button>
       )
     : null
+
+  const eventNoteTitle = eventNoteCategory
+    ? `Event note for ${eventNoteCategory.name}`
+    : 'Event category note'
+  const eventNoteDescription = 'Set text shown on event pages that match this category. Plain text only.'
+
+  const eventNoteFormFields = (
+    <div className="grid gap-4 py-4">
+      <div className="grid gap-2">
+        <Label htmlFor="event-note-content">Note text</Label>
+        <Textarea
+          id="event-note-content"
+          value={eventNoteValue}
+          onChange={event => setEventNoteValue(event.target.value)}
+          disabled={isSavingEventNote}
+          placeholder="Write the category note shown on matching event pages (plain text only)."
+          className="min-h-36"
+        />
+      </div>
+      {eventNoteError && <InputError message={eventNoteError} />}
+    </div>
+  )
 
   return (
     <>
@@ -339,6 +438,85 @@ export default function AdminCategoriesTable() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {isMobile
+        ? (
+            <Drawer
+              open={Boolean(eventNoteCategory)}
+              onOpenChange={(open) => {
+                if (!open) {
+                  closeEventNoteEditor()
+                }
+              }}
+            >
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <form
+                  className="space-y-4"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void handleSaveEventNote()
+                  }}
+                >
+                  <DrawerHeader className="space-y-2 p-0 text-left">
+                    <DrawerTitle>{eventNoteTitle}</DrawerTitle>
+                    <DrawerDescription>{eventNoteDescription}</DrawerDescription>
+                  </DrawerHeader>
+                  {eventNoteFormFields}
+                  <DrawerFooter className="mt-2 p-0">
+                    <Button type="submit" disabled={isSavingEventNote}>
+                      {isSavingEventNote ? t('Saving...') : t('Save')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isSavingEventNote}
+                      onClick={closeEventNoteEditor}
+                    >
+                      {t('Cancel')}
+                    </Button>
+                  </DrawerFooter>
+                </form>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog
+              open={Boolean(eventNoteCategory)}
+              onOpenChange={(open) => {
+                if (!open) {
+                  closeEventNoteEditor()
+                }
+              }}
+            >
+              <DialogContent className="sm:max-w-xl">
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void handleSaveEventNote()
+                  }}
+                >
+                  <DialogHeader>
+                    <DialogTitle>{eventNoteTitle}</DialogTitle>
+                    <DialogDescription>{eventNoteDescription}</DialogDescription>
+                  </DialogHeader>
+                  {eventNoteFormFields}
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={closeEventNoteEditor}
+                      disabled={isSavingEventNote}
+                    >
+                      {t('Cancel')}
+                    </Button>
+                    <Button type="submit" disabled={isSavingEventNote}>
+                      {isSavingEventNote ? t('Saving...') : t('Save')}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
 
       <MainCategorySortDialog
         open={isMainCategorySortOpen}
