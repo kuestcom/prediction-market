@@ -162,28 +162,54 @@ function resolveBootstrapTargetMarket(event: Event, marketSlug?: string) {
   return resolveDefaultMarket(event.markets) ?? null
 }
 
-function subscribeWindowScroll(onStoreChange: () => void) {
+interface WindowViewportSnapshot {
+  scrollY: number
+  viewportWidth: number
+}
+
+const DEFAULT_WINDOW_VIEWPORT_SNAPSHOT: WindowViewportSnapshot = {
+  scrollY: 0,
+  viewportWidth: 0,
+}
+
+let windowViewportSnapshot: WindowViewportSnapshot = DEFAULT_WINDOW_VIEWPORT_SNAPSHOT
+
+function subscribeWindowViewport(onStoreChange: () => void) {
   if (typeof window === 'undefined') {
     return () => {}
   }
 
   window.addEventListener('scroll', onStoreChange, { passive: true })
-  return () => window.removeEventListener('scroll', onStoreChange)
+  window.addEventListener('resize', onStoreChange)
+  return () => {
+    window.removeEventListener('scroll', onStoreChange)
+    window.removeEventListener('resize', onStoreChange)
+  }
 }
 
-function getWindowScrollYSnapshot() {
+function getWindowViewportSnapshot() {
   if (typeof window === 'undefined') {
-    return 0
+    return DEFAULT_WINDOW_VIEWPORT_SNAPSHOT
   }
 
-  return window.scrollY
+  const scrollY = window.scrollY
+  const viewportWidth = window.innerWidth
+  if (windowViewportSnapshot.scrollY === scrollY && windowViewportSnapshot.viewportWidth === viewportWidth) {
+    return windowViewportSnapshot
+  }
+
+  windowViewportSnapshot = {
+    scrollY,
+    viewportWidth,
+  }
+  return windowViewportSnapshot
 }
 
-function useWindowScrollY() {
+function useWindowViewport() {
   return useSyncExternalStore(
-    subscribeWindowScroll,
-    getWindowScrollYSnapshot,
-    () => 0,
+    subscribeWindowViewport,
+    getWindowViewportSnapshot,
+    () => DEFAULT_WINDOW_VIEWPORT_SNAPSHOT,
   )
 }
 
@@ -280,7 +306,9 @@ export default function EventContent({
   const eventMarketsRef = useRef<HTMLDivElement | null>(null)
   const appliedMarketSlugRef = useRef<string | null>(null)
   const appliedEventIdRef = useRef<string | null>(null)
-  const scrollY = useWindowScrollY()
+  const windowViewport = useWindowViewport()
+  const scrollY = windowViewport.scrollY
+  const viewportWidth = windowViewport.viewportWidth
   const currentUser = clientUser ?? user
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const shouldHideChart = event.total_markets_count > 1 && !isNegRiskEnabled
@@ -329,11 +357,12 @@ export default function EventContent({
     }
 
     const rect = contentRef.current.getBoundingClientRect()
+    const boundedWidth = viewportWidth > 0 ? Math.min(rect.width, viewportWidth) : rect.width
     return {
       left: rect.left,
-      width: rect.width,
+      width: boundedWidth,
     }
-  }, [isMobile, scrollY])
+  }, [isMobile, scrollY, viewportWidth])
 
   useEffect(() => {
     let isActive = true
