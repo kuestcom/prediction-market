@@ -47,9 +47,8 @@ export default function EventLimitExpirationCalendar({
   applyLabel,
 }: EventLimitExpirationCalendarProps) {
   const t = useExtracted()
-  const [minTimestampMs] = useState(() => Date.now())
-  const [internalDate, setInternalDate] = useState<Date>(() => value ?? new Date(minTimestampMs))
-  const minDate = new Date(minTimestampMs)
+  const [minDate] = useState<Date>(() => new Date())
+  const [internalDate, setInternalDate] = useState<Date>(() => value ?? new Date(minDate.getTime()))
   const selectedDate = value ?? internalDate
   const timeValue = formatTimeInput(selectedDate)
   const showActions = Boolean(onCancel || onApply)
