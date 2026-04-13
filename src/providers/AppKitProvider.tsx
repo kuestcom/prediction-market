@@ -9,7 +9,7 @@ import { createAppKit, useAppKitTheme } from '@reown/appkit/react'
 import { generateRandomString } from 'better-auth/crypto'
 import { useTheme } from 'next-themes'
 import dynamic from 'next/dynamic'
-import { useEffect } from 'react'
+import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { WagmiProvider } from 'wagmi'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -21,6 +21,7 @@ import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
 let hasInitializedAppKit = false
 let appKitInstance: AppKit | null = null
+const appKitStateListeners = new Set<() => void>()
 
 const SignaturePrompt = dynamic(
   () => import('@/components/SignaturePrompt').then(mod => mod.SignaturePrompt),
@@ -34,6 +35,23 @@ function clearAppKitState() {
 
   clearBrowserStorage()
   clearNonHttpOnlyCookies()
+}
+
+function notifyAppKitStateChange() {
+  appKitStateListeners.forEach((listener) => {
+    listener()
+  })
+}
+
+function subscribeAppKitStateChange(onStoreChange: () => void) {
+  appKitStateListeners.add(onStoreChange)
+  return () => {
+    appKitStateListeners.delete(onStoreChange)
+  }
+}
+
+function getAppKitInstanceSnapshot() {
+  return appKitInstance
 }
 
 function initializeAppKitSingleton(
@@ -140,6 +158,7 @@ function initializeAppKitSingleton(
     })
 
     hasInitializedAppKit = true
+    notifyAppKitStateChange()
     return appKitInstance
   }
   catch (error) {
@@ -183,36 +202,26 @@ function createAppKitContextValue(instance: AppKit | null) {
   }
 }
 
-function getAppKitProviderState({
-  resolvedTheme,
-  site,
-}: {
-  resolvedTheme: string | undefined
-  site: { name: string, description: string, logoUrl: string }
-}) {
-  const appKitThemeMode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light'
-  const instance = initializeAppKitSingleton(appKitThemeMode, {
-    name: site.name,
-    description: site.description,
-    logoUrl: site.logoUrl,
-  })
-  const appKitValue = createAppKitContextValue(instance)
-  const canSyncTheme = Boolean(instance)
-
-  return {
-    appKitThemeMode,
-    appKitValue,
-    canSyncTheme,
-  }
-}
-
 export default function AppKitProvider({ children }: { children: ReactNode }) {
   const site = useSiteIdentity()
   const resolvedTheme = useResolvedThemeMode()
-  const { appKitThemeMode, appKitValue, canSyncTheme } = getAppKitProviderState({
-    resolvedTheme,
-    site,
-  })
+  const appKitThemeMode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light'
+  const instance = useSyncExternalStore(
+    subscribeAppKitStateChange,
+    getAppKitInstanceSnapshot,
+    () => null,
+  )
+
+  useEffect(() => {
+    initializeAppKitSingleton(appKitThemeMode, {
+      name: site.name,
+      description: site.description,
+      logoUrl: site.logoUrl,
+    })
+  }, [appKitThemeMode, site.description, site.logoUrl, site.name])
+
+  const appKitValue = useMemo(() => createAppKitContextValue(instance), [instance])
+  const canSyncTheme = Boolean(instance)
 
   return (
     <WagmiProvider config={wagmiConfig}>
