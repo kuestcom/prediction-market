@@ -6,7 +6,7 @@ import { ArrowUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import EventHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventHeader'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventMarkets from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarkets'
@@ -162,6 +162,31 @@ function resolveBootstrapTargetMarket(event: Event, marketSlug?: string) {
   return resolveDefaultMarket(event.markets) ?? null
 }
 
+function subscribeWindowScroll(onStoreChange: () => void) {
+  if (typeof window === 'undefined') {
+    return () => {}
+  }
+
+  window.addEventListener('scroll', onStoreChange, { passive: true })
+  return () => window.removeEventListener('scroll', onStoreChange)
+}
+
+function getWindowScrollYSnapshot() {
+  if (typeof window === 'undefined') {
+    return 0
+  }
+
+  return window.scrollY
+}
+
+function useWindowScrollY() {
+  return useSyncExternalStore(
+    subscribeWindowScroll,
+    getWindowScrollYSnapshot,
+    () => 0,
+  )
+}
+
 function EventOrderQuerySync({ event, marketSlug, isMobile }: EventOrderQuerySyncProps) {
   const searchParams = useSearchParams()
   const setMarket = useOrder(state => state.setMarket)
@@ -255,6 +280,7 @@ export default function EventContent({
   const eventMarketsRef = useRef<HTMLDivElement | null>(null)
   const appliedMarketSlugRef = useRef<string | null>(null)
   const appliedEventIdRef = useRef<string | null>(null)
+  const scrollY = useWindowScrollY()
   const currentUser = clientUser ?? user
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const shouldHideChart = event.total_markets_count > 1 && !isNegRiskEnabled
@@ -275,8 +301,6 @@ export default function EventContent({
     return initialMarket.outcomes[0] ?? null
   }, [initialMarket])
   const [hasResolvedMobileBreakpoint, setHasResolvedMobileBreakpoint] = useState(false)
-  const [showBackToTop, setShowBackToTop] = useState(false)
-  const [backToTopBounds, setBackToTopBounds] = useState<{ left: number, width: number } | null>(null)
   const selectedMarket = useMemo(() => {
     if (!currentMarketId) {
       return initialMarket
@@ -294,6 +318,22 @@ export default function EventContent({
   const usesLiveSeriesChart = Boolean(liveChartConfig && shouldUseLiveSeriesChart(event, liveChartConfig))
   const shouldRenderMobileRelated = hasResolvedMobileBreakpoint && isMobile
   const shouldRenderDesktopRelated = hasResolvedMobileBreakpoint && !isMobile
+  const backToTopBounds = useMemo(() => {
+    if (isMobile || !contentRef.current || !eventMarketsRef.current) {
+      return null
+    }
+
+    const eventMarketsTop = eventMarketsRef.current.getBoundingClientRect().top + scrollY
+    if (scrollY < eventMarketsTop - 80) {
+      return null
+    }
+
+    const rect = contentRef.current.getBoundingClientRect()
+    return {
+      left: rect.left,
+      width: rect.width,
+    }
+  }, [isMobile, scrollY])
 
   useEffect(() => {
     let isActive = true
@@ -361,49 +401,6 @@ export default function EventContent({
     appliedMarketSlugRef.current = marketSlug ?? null
     appliedEventIdRef.current = event.id
   }, [currentEventId, currentMarketId, event, marketSlug, orderBootstrapTargetMarket, setMarket, setOutcome])
-
-  useEffect(() => {
-    if (isMobile) {
-      setShowBackToTop(false)
-      setBackToTopBounds(null)
-      return
-    }
-
-    function handleScroll() {
-      if (!eventMarketsRef.current) {
-        setShowBackToTop(false)
-        return
-      }
-
-      const eventMarketsTop = eventMarketsRef.current.getBoundingClientRect().top + window.scrollY
-      setShowBackToTop(window.scrollY >= eventMarketsTop - 80)
-    }
-
-    handleScroll()
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [isMobile])
-
-  useEffect(() => {
-    if (isMobile) {
-      setBackToTopBounds(null)
-      return
-    }
-
-    function handleResize() {
-      if (!contentRef.current) {
-        setBackToTopBounds(null)
-        return
-      }
-
-      const rect = contentRef.current.getBoundingClientRect()
-      setBackToTopBounds({ left: rect.left, width: rect.width })
-    }
-
-    handleResize()
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [isMobile])
 
   function handleBackToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -519,7 +516,7 @@ export default function EventContent({
           </aside>
         )}
 
-        {!isMobile && showBackToTop && backToTopBounds && (
+        {!isMobile && backToTopBounds && (
           <div
             className="pointer-events-none fixed bottom-6 hidden md:flex"
             style={{ left: `${backToTopBounds.left}px`, width: `${backToTopBounds.width}px` }}
