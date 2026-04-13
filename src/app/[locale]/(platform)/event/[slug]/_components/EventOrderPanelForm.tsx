@@ -846,12 +846,9 @@ export default function EventOrderPanelForm({
     && state.side === ORDER_SIDE.BUY
     && amountNumber > 0
     && amountNumber < 1
-
-  useEffect(() => {
-    if (!isLimitOrder || limitSharesNumber >= MIN_LIMIT_ORDER_SHARES) {
-      setShowLimitMinimumWarning(false)
-    }
-  }, [isLimitOrder, limitSharesNumber])
+  const shouldShowLimitMinimumWarning = showLimitMinimumWarning
+    && isLimitOrder
+    && limitSharesNumber < MIN_LIMIT_ORDER_SHARES
 
   function clearValidationWarnings() {
     setShowMarketMinimumWarning(false)
@@ -1495,6 +1492,21 @@ export default function EventOrderPanelForm({
   ) ?? activeMarket?.outcomes[normalizedSecondaryOutcomeIndex]
   const primaryPrice = normalizedPrimaryOutcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
   const secondaryPrice = normalizedSecondaryOutcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
+  const submitButtonLabel = useMemo(() => {
+    if (!isInteractiveWalletReady) {
+      return t('Trade')
+    }
+    if (shouldShowDepositCta) {
+      return t('Deposit')
+    }
+    const outcomeLabel = selectedShareLabel
+    if (outcomeLabel) {
+      const verb = state.side === ORDER_SIDE.SELL ? t('Sell') : t('Buy')
+      return `${verb} ${outcomeLabel}`
+    }
+    return t('Trade')
+  }, [isInteractiveWalletReady, selectedShareLabel, shouldShowDepositCta, state.side, t])
+
   function handleTypeChange(nextType: typeof state.type) {
     clearValidationFeedback()
     setShowLimitMinimumWarning(false)
@@ -1668,7 +1680,7 @@ export default function EventOrderPanelForm({
                         isLimitOrder={isLimitOrder}
                         matchingShares={limitMatchingShares}
                         availableShares={selectedShares}
-                        showLimitMinimumWarning={showLimitMinimumWarning}
+                        showLimitMinimumWarning={shouldShowLimitMinimumWarning}
                         shouldShakeShares={shouldShakeLimitShares}
                         limitSharesRef={limitSharesInputRef}
                         onLimitPriceChange={handleLimitPriceChange}
@@ -1785,20 +1797,7 @@ export default function EventOrderPanelForm({
                   }
                   state.setLastMouseEvent(event)
                 }}
-                label={(() => {
-                  if (!isInteractiveWalletReady) {
-                    return t('Trade')
-                  }
-                  if (shouldShowDepositCta) {
-                    return t('Deposit')
-                  }
-                  const outcomeLabel = selectedShareLabel
-                  if (outcomeLabel) {
-                    const verb = state.side === ORDER_SIDE.SELL ? t('Sell') : t('Buy')
-                    return `${verb} ${outcomeLabel}`
-                  }
-                  return t('Trade')
-                })()}
+                label={submitButtonLabel}
               />
             </>
           )}
