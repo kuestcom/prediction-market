@@ -42,10 +42,7 @@ export default async function HomeContent({
 
     initialCurrentTimestamp = currentTimestamp ?? serverCurrentTimestamp
 
-    if (error) {
-      console.warn('Failed to fetch initial events for static generation:', error)
-    }
-    else {
+    if (!error) {
       initialEvents = events ?? []
     }
   }
