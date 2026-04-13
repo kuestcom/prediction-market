@@ -1039,7 +1039,6 @@ function EventLiveSeriesChartContent({
       if (!isActive || ws || document.hidden) {
         return
       }
-      setStatus('connecting')
       ws = new WebSocket(resolvedWsUrl)
       ws.addEventListener('open', handleOpen)
       ws.addEventListener('message', handleMessage)
