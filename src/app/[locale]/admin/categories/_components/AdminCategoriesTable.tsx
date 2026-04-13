@@ -457,7 +457,7 @@ export default function AdminCategoriesTable() {
                     void handleSaveEventNote()
                   }}
                 >
-                  <DrawerHeader className="space-y-2 p-0 text-left">
+                  <DrawerHeader className="mt-4 space-y-2 p-0 text-left">
                     <DrawerTitle>{eventNoteTitle}</DrawerTitle>
                     <DrawerDescription>{eventNoteDescription}</DrawerDescription>
                   </DrawerHeader>
