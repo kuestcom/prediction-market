@@ -1240,7 +1240,7 @@ function CountdownBadge({
   onReset?: () => void
 }) {
   const [remaining, setRemaining] = useState(seconds)
-  const endTimeRef = useRef(Date.now() + seconds * 1000)
+  const endTimeRef = useRef(0)
   const hasTriggeredResetRef = useRef(false)
   const onResetRef = useRef(onReset)
 
