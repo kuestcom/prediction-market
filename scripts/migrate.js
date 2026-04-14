@@ -264,8 +264,8 @@ async function createSyncEventsCron(sql, siteUrl, cronSecret) {
 async function createSyncVolumeCron(sql, siteUrl, cronSecret) {
   await createSyncCron(sql, {
     jobName: 'sync-volume',
-    schedule: '* * * * *',
-    endpointPath: '/api/sync/volume?limit=120',
+    schedule: '*/10 * * * *',
+    endpointPath: '/api/sync/volume?limit=150',
     siteUrl,
     cronSecret,
     timeoutMilliseconds: 20000,

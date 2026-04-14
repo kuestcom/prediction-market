@@ -1,6 +1,6 @@
 export const VOLUME_BATCH_SIZE = 100
 export const VOLUME_REQUEST_TIMEOUT_MS = 10_000
-export const DEFAULT_VOLUME_SYNC_LIMIT = 120
+export const DEFAULT_VOLUME_SYNC_LIMIT = 150
 export const MAX_VOLUME_SYNC_LIMIT = 500
 export const SYNC_TIME_LIMIT_MS = 250_000
 
