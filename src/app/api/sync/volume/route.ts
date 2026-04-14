@@ -45,8 +45,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
   }
 
+  let lockAcquired = false
+
   try {
-    const lockAcquired = await tryAcquireSyncLock()
+    lockAcquired = await tryAcquireSyncLock()
     if (!lockAcquired) {
       return NextResponse.json({
         success: false,
@@ -60,7 +62,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: true, ...stats })
   }
   catch (error: any) {
-    await updateSyncStatus('error', error?.message ?? 'Unknown error')
+    if (lockAcquired) {
+      await updateSyncStatus('error', error?.message ?? 'Unknown error')
+    }
     console.error('volume-sync failed', error)
     return NextResponse.json(
       { success: false, error: error?.message ?? 'Unknown error' },
