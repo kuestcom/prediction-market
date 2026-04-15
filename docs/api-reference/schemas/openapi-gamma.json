@@ -354,7 +354,7 @@
     },
     "/public-search": {
       "get": {
-        "summary": "Search markets and events",
+        "summary": "Search events and tags",
         "description": "Searches synced Gamma events and tags.",
         "tags": [
           "Search"
@@ -371,6 +371,9 @@
           },
           {
             "$ref": "#/components/parameters/SearchTagsParam"
+          },
+          {
+            "$ref": "#/components/parameters/SearchProfilesParam"
           },
           {
             "$ref": "#/components/parameters/CreatorParam"
