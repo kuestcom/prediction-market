@@ -1,0 +1,10 @@
+{
+  "title": "Events",
+  "description": "Gamma-compatible event discovery endpoints.",
+  "icon": "CalendarRange",
+  "pages": [
+    "list-events",
+    "get-event-by-id",
+    "get-event-by-slug"
+  ]
+}

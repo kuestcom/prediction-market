@@ -1,0 +1,8 @@
+{
+  "title": "Search",
+  "description": "Gamma-compatible search endpoints.",
+  "icon": "Search",
+  "pages": [
+    "search-markets-events-and-profiles"
+  ]
+}

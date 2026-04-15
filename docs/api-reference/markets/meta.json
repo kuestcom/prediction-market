@@ -3,6 +3,11 @@
   "description": "Market discovery endpoints for listing and fetching market details.",
   "icon": "ChartNoAxesCombined",
   "pages": [
+    "---Gamma API---",
+    "gamma-list-markets",
+    "gamma-get-market-by-id",
+    "gamma-get-market-by-slug",
+    "---CLOB API---",
     "get-market-by-id",
     "get-market-by-slug",
     "get-prices-history",

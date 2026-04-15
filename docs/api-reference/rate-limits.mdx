@@ -12,6 +12,10 @@ description: Request caps and throttling windows for CLOB endpoints
 
 <Cards>
   <Card
+    title="Gamma API"
+    description="Public discovery endpoints with dedicated caps for events, markets, tags, and search."
+  />
+  <Card
     title="General CLOB"
     description="5000 requests / 10s across general API traffic."
   />
@@ -26,6 +30,17 @@ description: Request caps and throttling windows for CLOB endpoints
 </Cards>
 
 ## Detailed Limits
+
+### Gamma API
+
+| Endpoint | Limit | Notes |
+| --- | --- | --- |
+| Gamma API (general) | 4000 requests / 10s | Mirrors the published Gamma API defaults |
+| `GET /events` | 500 requests / 10s | Events reads |
+| `GET /markets` | 300 requests / 10s | Markets reads |
+| `GET /events` + `GET /markets` listing | 900 requests / 10s | Combined listing window |
+| `GET /tags` | 200 requests / 10s | Tag discovery |
+| `GET /public-search` | 350 requests / 10s | Search traffic |
 
 ### General
 
@@ -62,5 +77,6 @@ description: Request caps and throttling windows for CLOB endpoints
 
 <Callout type="warning" title="Subject to change">
   Treat these values as operational defaults. Production limits may be adjusted
-  without a version bump.
+  without a version bump. Gamma values mirror the published Polymarket Gamma
+  guidance and should be treated as compatibility targets.
 </Callout>

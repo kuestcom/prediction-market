@@ -1,0 +1,8 @@
+{
+  "title": "Tags",
+  "description": "Gamma-compatible tag discovery endpoints.",
+  "icon": "Tags",
+  "pages": [
+    "list-tags"
+  ]
+}

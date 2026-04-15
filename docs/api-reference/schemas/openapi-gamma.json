@@ -1,0 +1,1148 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Gamma API",
+    "version": "0.1.0",
+    "description": "Gamma-compatible public discovery API backed by synced subgraph and metadata records."
+  },
+  "servers": [
+    {
+      "url": "https://gamma-api.kuest.com",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/events": {
+      "get": {
+        "summary": "List events",
+        "description": "Returns Gamma-compatible events from the synced catalog. Supports the optional `creator` filter for wallet or site-based creator scoping.",
+        "tags": [
+          "Events"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetParam"
+          },
+          {
+            "$ref": "#/components/parameters/ActiveParam"
+          },
+          {
+            "$ref": "#/components/parameters/ClosedParam"
+          },
+          {
+            "$ref": "#/components/parameters/ArchivedParam"
+          },
+          {
+            "$ref": "#/components/parameters/TagParam"
+          },
+          {
+            "$ref": "#/components/parameters/TagIdParam"
+          },
+          {
+            "$ref": "#/components/parameters/TagSlugParam"
+          },
+          {
+            "$ref": "#/components/parameters/SeriesSlugParam"
+          },
+          {
+            "$ref": "#/components/parameters/EventSlugQueryParam"
+          },
+          {
+            "$ref": "#/components/parameters/OrderParam"
+          },
+          {
+            "$ref": "#/components/parameters/AscendingParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Events were found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Event"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "id": "23784",
+                        "ticker": "what-will-happen-before-gta-vi",
+                        "slug": "what-will-happen-before-gta-vi",
+                        "title": "What will happen before GTA VI?",
+                        "description": "This is a market on predicting events that will occur before the release of Grand Theft Auto VI.",
+                        "resolutionSource": "",
+                        "startDate": "2025-05-02T15:48:25.262673Z",
+                        "endDate": "2026-07-31T12:00:00Z",
+                        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/what-will-happen-before-gta-vi-7hpNkEzQEqUE.jpg",
+                        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/what-will-happen-before-gta-vi-7hpNkEzQEqUE.jpg",
+                        "active": true,
+                        "closed": false,
+                        "archived": false,
+                        "createdAt": "2025-05-02T14:55:28.249386Z",
+                        "updatedAt": "2026-04-14T20:51:22.410362Z",
+                        "tags": [
+                          {
+                            "id": "100215",
+                            "label": "All",
+                            "slug": "all",
+                            "createdAt": "2023-10-25T18:55:50.681Z",
+                            "updatedAt": "2026-03-09T22:29:23.723738Z",
+                            "requiresTranslation": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          }
+        }
+      }
+    },
+    "/events/{id}": {
+      "get": {
+        "summary": "Get event by id",
+        "description": "Returns a single Gamma-compatible event by numeric id.",
+        "tags": [
+          "Events"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventIdPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The event was found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Event"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/events/slug/{slug}": {
+      "get": {
+        "summary": "Get event by slug",
+        "description": "Returns a single Gamma-compatible event by slug.",
+        "tags": [
+          "Events"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SlugPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The event was found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Event"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/SlugNotFoundResponse"
+          }
+        }
+      }
+    },
+    "/markets": {
+      "get": {
+        "summary": "List markets",
+        "description": "Returns Gamma-compatible markets from the synced catalog. Supports market, event, tag, and optional `creator` filters.",
+        "tags": [
+          "Markets"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetParam"
+          },
+          {
+            "$ref": "#/components/parameters/ActiveParam"
+          },
+          {
+            "$ref": "#/components/parameters/ClosedParam"
+          },
+          {
+            "$ref": "#/components/parameters/ArchivedParam"
+          },
+          {
+            "$ref": "#/components/parameters/TagParam"
+          },
+          {
+            "$ref": "#/components/parameters/TagIdParam"
+          },
+          {
+            "$ref": "#/components/parameters/TagSlugParam"
+          },
+          {
+            "$ref": "#/components/parameters/EventIdParam"
+          },
+          {
+            "$ref": "#/components/parameters/EventSlugParam"
+          },
+          {
+            "$ref": "#/components/parameters/ConditionIdParam"
+          },
+          {
+            "$ref": "#/components/parameters/SlugQueryParam"
+          },
+          {
+            "$ref": "#/components/parameters/OrderParam"
+          },
+          {
+            "$ref": "#/components/parameters/AscendingParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Markets were found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Market"
+                  }
+                },
+                "examples": {
+                  "sample": {
+                    "value": [
+                      {
+                        "id": "540816",
+                        "question": "Russia-Ukraine Ceasefire before GTA VI?",
+                        "conditionId": "0x9c1a953fe92c8357f1b646ba25d983aa83e90c525992db14fb726fa895cb5763",
+                        "slug": "russia-ukraine-ceasefire-before-gta-vi-554",
+                        "resolutionSource": "",
+                        "endDate": "2026-07-31T12:00:00Z",
+                        "startDate": "2025-05-02T15:48:00.174Z",
+                        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/what-will-happen-before-gta-vi-7hpNkEzQEqUE.jpg",
+                        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/what-will-happen-before-gta-vi-7hpNkEzQEqUE.jpg",
+                        "description": "This market will resolve to \"Yes\" if there is an official ceasefire agreement between Russia and Ukraine before GTA VI is officially released in the US.",
+                        "outcomes": "[\"Yes\", \"No\"]",
+                        "clobTokenIds": "[\"8501497159083948713316135768103773293754490207922884688769443031624417212426\", \"2527312495175492857904889758552137141356236738032676480522356889996545113869\"]",
+                        "active": true,
+                        "closed": false,
+                        "archived": false,
+                        "createdAt": "2025-05-02T15:03:10.397014Z",
+                        "updatedAt": "2026-04-14T20:50:23.030512Z",
+                        "questionID": "0x74dcd73f29877722e217723e10f2e8f9a888976f7cfc796234b75a3d3214d1c8",
+                        "events": [
+                          {
+                            "id": "23784",
+                            "ticker": "what-will-happen-before-gta-vi",
+                            "slug": "what-will-happen-before-gta-vi",
+                            "title": "What will happen before GTA VI?"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          }
+        }
+      }
+    },
+    "/markets/{id}": {
+      "get": {
+        "summary": "Get market by id",
+        "description": "Returns a single Gamma-compatible market by numeric market id or by condition id.",
+        "tags": [
+          "Markets"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MarketIdPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The market was found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Market"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/markets/slug/{slug}": {
+      "get": {
+        "summary": "Get market by slug",
+        "description": "Returns a single Gamma-compatible market by slug.",
+        "tags": [
+          "Markets"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SlugPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The market was found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Market"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/SlugNotFoundResponse"
+          }
+        }
+      }
+    },
+    "/public-search": {
+      "get": {
+        "summary": "Search markets, events, and profiles",
+        "description": "Searches synced Gamma events and tags. `search_profiles` is accepted for compatibility but profile results are not returned by this service.",
+        "tags": [
+          "Search"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SearchQueryParam"
+          },
+          {
+            "$ref": "#/components/parameters/LimitPerTypeParam"
+          },
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/SearchTagsParam"
+          },
+          {
+            "$ref": "#/components/parameters/SearchProfilesParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results were found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "value": {
+                      "events": [
+                        {
+                          "id": "31552",
+                          "ticker": "presidential-election-winner-2028",
+                          "slug": "presidential-election-winner-2028",
+                          "title": "Presidential Election Winner 2028"
+                        }
+                      ],
+                      "tags": [
+                        {
+                          "id": "126",
+                          "label": "Trump",
+                          "slug": "trump",
+                          "event_count": 3192
+                        }
+                      ],
+                      "pagination": {
+                        "hasMore": true,
+                        "totalResults": 3192
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          }
+        }
+      }
+    },
+    "/tags": {
+      "get": {
+        "summary": "List tags",
+        "description": "Returns tag records available in the synced Gamma catalog.",
+        "tags": [
+          "Tags"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tags were found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Tag"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/series": {
+      "get": {
+        "summary": "List series",
+        "description": "Returns event series assembled from the synced Gamma event catalog.",
+        "tags": [
+          "Series"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Series were found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Series"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "LimitParam": {
+        "name": "limit",
+        "in": "query",
+        "description": "Maximum number of rows to return.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 100
+        }
+      },
+      "OffsetParam": {
+        "name": "offset",
+        "in": "query",
+        "description": "Offset for pagination.",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "ActiveParam": {
+        "name": "active",
+        "in": "query",
+        "description": "Filter by active status.",
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "ClosedParam": {
+        "name": "closed",
+        "in": "query",
+        "description": "Filter by closed status.",
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "ArchivedParam": {
+        "name": "archived",
+        "in": "query",
+        "description": "Filter by archived status.",
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "TagParam": {
+        "name": "tag",
+        "in": "query",
+        "description": "Filter by tag slug. Alias of `tag_slug`.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "TagIdParam": {
+        "name": "tag_id",
+        "in": "query",
+        "description": "Filter by numeric tag id.",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "TagSlugParam": {
+        "name": "tag_slug",
+        "in": "query",
+        "description": "Filter by tag slug.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "SeriesSlugParam": {
+        "name": "series_slug",
+        "in": "query",
+        "description": "Filter by series slug.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "EventSlugQueryParam": {
+        "name": "slug",
+        "in": "query",
+        "description": "Filter by event slug.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "OrderParam": {
+        "name": "order",
+        "in": "query",
+        "description": "Sort column for the response.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AscendingParam": {
+        "name": "ascending",
+        "in": "query",
+        "description": "Set to true for ascending order.",
+        "schema": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "CreatorParam": {
+        "name": "creator",
+        "in": "query",
+        "description": "Optional creator filter. Accepts a wallet address or a site/domain whose `/api/allowed-market-creators` endpoint resolves allowed creator wallets.",
+        "schema": {
+          "type": "string",
+          "example": "kuest.com"
+        }
+      },
+      "EventIdPathParam": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Numeric event id.",
+        "schema": {
+          "type": "string",
+          "example": "23784"
+        }
+      },
+      "MarketIdPathParam": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Numeric market id or condition id.",
+        "schema": {
+          "type": "string",
+          "example": "540816"
+        }
+      },
+      "SlugPathParam": {
+        "name": "slug",
+        "in": "path",
+        "required": true,
+        "description": "Resource slug.",
+        "schema": {
+          "type": "string",
+          "example": "presidential-election-winner-2028"
+        }
+      },
+      "EventIdParam": {
+        "name": "event_id",
+        "in": "query",
+        "description": "Filter markets by numeric event id.",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "EventSlugParam": {
+        "name": "event_slug",
+        "in": "query",
+        "description": "Filter markets by event slug. Alias: `eventSlug`.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ConditionIdParam": {
+        "name": "conditionId",
+        "in": "query",
+        "description": "Filter markets by condition id. Alias: `condition_id`.",
+        "schema": {
+          "type": "string",
+          "example": "0x9c1a953fe92c8357f1b646ba25d983aa83e90c525992db14fb726fa895cb5763"
+        }
+      },
+      "SlugQueryParam": {
+        "name": "slug",
+        "in": "query",
+        "description": "Filter markets by market slug.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "SearchQueryParam": {
+        "name": "q",
+        "in": "query",
+        "required": true,
+        "description": "Search term.",
+        "schema": {
+          "type": "string",
+          "example": "trump"
+        }
+      },
+      "LimitPerTypeParam": {
+        "name": "limit_per_type",
+        "in": "query",
+        "description": "Maximum number of rows to return per result type.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 25
+        }
+      },
+      "PageParam": {
+        "name": "page",
+        "in": "query",
+        "description": "1-based search results page.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        }
+      },
+      "SearchTagsParam": {
+        "name": "search_tags",
+        "in": "query",
+        "description": "Set to true to include tag matches.",
+        "schema": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "SearchProfilesParam": {
+        "name": "search_profiles",
+        "in": "query",
+        "description": "Accepted for Gamma compatibility, but profile search results are not returned by this service.",
+        "schema": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "responses": {
+      "BadRequestResponse": {
+        "description": "The request was invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "sample": {
+                "value": {
+                  "type": "bad request",
+                  "error": "q is required"
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotFoundResponse": {
+        "description": "The resource was not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "sample": {
+                "value": {
+                  "type": "not found error",
+                  "error": "id not found"
+                }
+              }
+            }
+          }
+        }
+      },
+      "SlugNotFoundResponse": {
+        "description": "The resource slug was not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "sample": {
+                "value": {
+                  "type": "not found error",
+                  "error": "slug not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "PaginationSummary": {
+        "type": "object",
+        "properties": {
+          "hasMore": {
+            "type": "boolean"
+          },
+          "totalResults": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hasMore",
+          "totalResults"
+        ],
+        "additionalProperties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requiresTranslation": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "slug"
+        ],
+        "additionalProperties": true
+      },
+      "TagSearchResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "event_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "slug",
+          "event_count"
+        ],
+        "additionalProperties": false
+      },
+      "EventSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ticker": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "resolutionSource": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "creationDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "image": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title"
+        ],
+        "additionalProperties": true
+      },
+      "MarketSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "conditionId": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "resolutionSource": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "image": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "outcomes": {
+            "type": "string"
+          },
+          "clobTokenIds": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "questionID": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "conditionId"
+        ],
+        "additionalProperties": true
+      },
+      "SeriesSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ticker": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "seriesType": {
+            "type": "string"
+          },
+          "recurrence": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title"
+        ],
+        "additionalProperties": true
+      },
+      "Event": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/EventSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "tags": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              },
+              "markets": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MarketSummary"
+                }
+              },
+              "series": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SeriesSummary"
+                }
+              },
+              "eventMetadata": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true
+          }
+        ]
+      },
+      "Market": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/MarketSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "events": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EventSummary"
+                }
+              }
+            },
+            "additionalProperties": true
+          }
+        ]
+      },
+      "Series": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SeriesSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "events": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EventSummary"
+                }
+              }
+            },
+            "additionalProperties": true
+          }
+        ]
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagSearchResult"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationSummary"
+          }
+        },
+        "required": [
+          "pagination"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}
