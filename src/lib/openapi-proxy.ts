@@ -9,6 +9,21 @@ function toUrlOrigin(url: string): string | null {
   }
 }
 
+function resolveCreatorHostname(siteUrl: string | undefined): string | null {
+  const raw = siteUrl?.trim()
+  if (!raw) {
+    return null
+  }
+
+  try {
+    const hostname = new URL(raw).hostname.trim()
+    return hostname || null
+  }
+  catch {
+    return null
+  }
+}
+
 const allowedOrigins = new Set(
   Object.values(OPENAPI_SERVER_URLS)
     .filter((url): url is string => Boolean(url))
@@ -39,6 +54,17 @@ async function proxy(request: Request): Promise<Response> {
 
   if (!allowedOrigins.has(parsedUrl.origin)) {
     return toProxyError(`[Proxy] The origin "${parsedUrl.origin}" is not allowed.`, 400)
+  }
+
+  const gammaOrigin = toUrlOrigin(OPENAPI_SERVER_URLS.gamma ?? '')
+  if (gammaOrigin && parsedUrl.origin === gammaOrigin) {
+    const creatorHostname = resolveCreatorHostname(process.env.SITE_URL)
+    if (!creatorHostname) {
+      return toProxyError('[Proxy] SITE_URL environment variable is not configured.', 500)
+    }
+
+    // Force the creator scope for docs playground requests (immutable).
+    parsedUrl.searchParams.set('creator', creatorHostname)
   }
 
   const requestHeaders = new Headers(request.headers)

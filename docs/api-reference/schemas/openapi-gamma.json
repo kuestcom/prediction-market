@@ -55,9 +55,6 @@
           },
           {
             "$ref": "#/components/parameters/AscendingParam"
-          },
-          {
-            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -123,9 +120,6 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/EventIdPathParam"
-          },
-          {
-            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -158,9 +152,6 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/SlugPathParam"
-          },
-          {
-            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -229,9 +220,6 @@
           },
           {
             "$ref": "#/components/parameters/AscendingParam"
-          },
-          {
-            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -298,9 +286,6 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/MarketIdPathParam"
-          },
-          {
-            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -330,9 +315,6 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/SlugPathParam"
-          },
-          {
-            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -354,8 +336,8 @@
     },
     "/public-search": {
       "get": {
-        "summary": "Search markets, events, and profiles",
-        "description": "Searches synced Gamma events and tags. `search_profiles` is accepted for compatibility but profile results are not returned by this service.",
+        "summary": "Search markets and events",
+        "description": "Searches synced Gamma events and tags.",
         "tags": [
           "Search"
         ],
@@ -371,12 +353,6 @@
           },
           {
             "$ref": "#/components/parameters/SearchTagsParam"
-          },
-          {
-            "$ref": "#/components/parameters/SearchProfilesParam"
-          },
-          {
-            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -435,9 +411,6 @@
           },
           {
             "$ref": "#/components/parameters/OffsetParam"
-          },
-          {
-            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -470,9 +443,6 @@
           },
           {
             "$ref": "#/components/parameters/OffsetParam"
-          },
-          {
-            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -600,7 +570,7 @@
       "CreatorParam": {
         "name": "creator",
         "in": "query",
-        "description": "Optional creator filter. Accepts a wallet address or a site/domain whose `/api/allowed-market-creators` endpoint resolves allowed creator wallets.",
+        "description": "Optional creator filter. Use a creator wallet address or a site identifier to scope results to markets available on that site.",
         "schema": {
           "type": "string",
           "example": "kuest.com"
