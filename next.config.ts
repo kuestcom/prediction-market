@@ -84,6 +84,7 @@ const config: NextConfig = {
     SENTRY_DSN: process.env.SENTRY_DSN,
     REOWN_APPKIT_PROJECT_ID: process.env.REOWN_APPKIT_PROJECT_ID,
     CREATE_MARKET_URL: process.env.CREATE_MARKET_URL ?? 'https://create-market.kuest.com',
+    GAMMA_URL: process.env.GAMMA_URL ?? 'https://gamma-api.kuest.com',
     CLOB_URL: process.env.CLOB_URL ?? 'https://clob.kuest.com',
     RELAYER_URL: process.env.RELAYER_URL ?? 'https://relayer.kuest.com',
     DATA_URL: process.env.DATA_URL ?? 'https://data-api.kuest.com',
