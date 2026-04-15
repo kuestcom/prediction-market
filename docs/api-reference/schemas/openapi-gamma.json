@@ -55,6 +55,9 @@
           },
           {
             "$ref": "#/components/parameters/AscendingParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -120,6 +123,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/EventIdPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -152,6 +158,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/SlugPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -220,6 +229,9 @@
           },
           {
             "$ref": "#/components/parameters/AscendingParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -286,6 +298,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/MarketIdPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -315,6 +330,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/SlugPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -353,6 +371,9 @@
           },
           {
             "$ref": "#/components/parameters/SearchTagsParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -411,6 +432,9 @@
           },
           {
             "$ref": "#/components/parameters/OffsetParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -443,6 +467,9 @@
           },
           {
             "$ref": "#/components/parameters/OffsetParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
           }
         ],
         "responses": {
@@ -582,8 +609,8 @@
         "required": true,
         "description": "Numeric event id.",
         "schema": {
-          "type": "string",
-          "example": "23784"
+          "type": "integer",
+          "example": 23784
         }
       },
       "MarketIdPathParam": {
