@@ -333,7 +333,6 @@ function useEventUserPositionsData({
   isNegRiskAugmented,
   userId,
   normalizeOutcomeLabel,
-  t,
 }: {
   event: Event
   ownerAddress: `0x${string}`
@@ -342,8 +341,8 @@ function useEventUserPositionsData({
   isNegRiskAugmented: boolean
   userId: string | undefined
   normalizeOutcomeLabel: (value: string | null | undefined) => string
-  t: ReturnType<typeof useExtracted>
 }) {
+  const t = useExtracted()
   const { data: userPositions } = useQuery<UserPosition[]>({
     queryKey: ['event-user-positions', ownerAddress, event.id],
     enabled: Boolean(ownerAddress),
@@ -738,7 +737,6 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     isNegRiskAugmented,
     userId: user?.id,
     normalizeOutcomeLabel,
-    t,
   })
   const shouldShowOtherRow = isNegRiskAugmented && otherShares > 0
   const { cashOutPayload, handleCashOut, handleCashOutModalChange, handleCashOutSubmit, dismissCashOut } = useCashOutFlow({

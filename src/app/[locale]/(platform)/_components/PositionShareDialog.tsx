@@ -115,7 +115,8 @@ function useShareCardState(shareCardUrl: string) {
   return { shareCardStatus, setShareCardStatus, shareCardBlob }
 }
 
-function useShareOnXHandler(payload: ShareCardPayload | null, t: ReturnType<typeof useExtracted>) {
+function useShareOnXHandler(payload: ShareCardPayload | null) {
+  const t = useExtracted()
   const [isSharingOnX, setIsSharingOnX] = useState(false)
   const shareOnXTimeoutRef = useRef<number | null>(null)
 
@@ -167,12 +168,11 @@ function useShareOnXHandler(payload: ShareCardPayload | null, t: ReturnType<type
 function useCopyShareImage({
   shareCardBlob,
   shareCardUrl,
-  t,
 }: {
   shareCardBlob: Blob | null
   shareCardUrl: string
-  t: ReturnType<typeof useExtracted>
 }) {
+  const t = useExtracted()
   const [isCopyingShareImage, setIsCopyingShareImage] = useState(false)
 
   const handleCopyShareImage = useCallback(async () => {
@@ -224,7 +224,8 @@ function useCopyShareImage({
   return { isCopyingShareImage, handleCopyShareImage }
 }
 
-function useShareCardStatusHandlers(setShareCardStatus: (status: ShareCardStatus) => void, t: ReturnType<typeof useExtracted>) {
+function useShareCardStatusHandlers(setShareCardStatus: (status: ShareCardStatus) => void) {
+  const t = useExtracted()
   const handleShareCardLoaded = useCallback(() => {
     setShareCardStatus('ready')
   }, [setShareCardStatus])
@@ -243,9 +244,9 @@ function PositionShareDialogContent({
 }: PositionShareDialogContentProps) {
   const t = useExtracted()
   const { shareCardStatus, setShareCardStatus, shareCardBlob } = useShareCardState(shareCardUrl)
-  const { isCopyingShareImage, handleCopyShareImage } = useCopyShareImage({ shareCardBlob, shareCardUrl, t })
-  const { isSharingOnX, handleShareOnX } = useShareOnXHandler(payload, t)
-  const { handleShareCardLoaded, handleShareCardError } = useShareCardStatusHandlers(setShareCardStatus, t)
+  const { isCopyingShareImage, handleCopyShareImage } = useCopyShareImage({ shareCardBlob, shareCardUrl })
+  const { isSharingOnX, handleShareOnX } = useShareOnXHandler(payload)
+  const { handleShareCardLoaded, handleShareCardError } = useShareCardStatusHandlers(setShareCardStatus)
 
   const isShareReady = shareCardStatus === 'ready'
 

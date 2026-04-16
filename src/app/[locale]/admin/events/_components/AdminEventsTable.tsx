@@ -367,7 +367,6 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
   })
 
   return {
-    t,
     events,
     totalCount,
     isLoading,
@@ -434,8 +433,8 @@ export default function AdminEventsTable({
   initialAutoDeployNewEventsEnabled,
   mainCategoryOptions,
 }: AdminEventsTableProps) {
+  const t = useExtracted()
   const {
-    t,
     events,
     totalCount,
     isLoading,

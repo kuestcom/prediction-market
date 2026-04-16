@@ -287,7 +287,6 @@ function useGeneralSettingsFormState({
   )
 
   return {
-    t,
     router,
     state,
     formAction,
@@ -386,8 +385,8 @@ function AdminGeneralSettingsFormInner({
   initialTermsOfServicePdfUrl,
   openRouterSettings,
 }: AdminGeneralSettingsFormProps) {
+  const t = useExtracted()
   const {
-    t,
     router,
     state,
     formAction,

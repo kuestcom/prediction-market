@@ -278,7 +278,6 @@ function getRadiusPresetButtonStyle(presetValue: string): CSSProperties {
 }
 
 function useRadiusControlState(radiusValue: string) {
-  const t = useExtracted()
   const normalizedRadius = radiusValue.trim()
   const effectiveRadius = normalizedRadius || DEFAULT_RADIUS_VALUE
   const selectedPresetValue = useMemo(() => {
@@ -295,7 +294,7 @@ function useRadiusControlState(radiusValue: string) {
     return matchedPreset?.value ?? null
   }, [effectiveRadius])
 
-  return { t, normalizedRadius, selectedPresetValue }
+  return { normalizedRadius, selectedPresetValue }
 }
 
 function RadiusControl({
@@ -311,7 +310,8 @@ function RadiusControl({
   onRadiusReset: () => void
   error: string | null
 }) {
-  const { t, normalizedRadius, selectedPresetValue } = useRadiusControlState(radiusValue)
+  const t = useExtracted()
+  const { normalizedRadius, selectedPresetValue } = useRadiusControlState(radiusValue)
 
   return (
     <div className="grid gap-3 rounded-md border border-border p-3">
@@ -365,9 +365,8 @@ function RadiusControl({
 }
 
 function useThemePreviewCardState(overrides: ThemeOverrides, radius: string | null) {
-  const t = useExtracted()
   const style = useMemo(() => buildPreviewStyle(overrides, radius), [overrides, radius])
-  return { t, style }
+  return { style }
 }
 
 function ThemePreviewCard({
@@ -387,7 +386,8 @@ function ThemePreviewCard({
   logoSvg: string
   logoImageUrl: string | null
 }) {
-  const { t, style } = useThemePreviewCardState(overrides, radius)
+  const t = useExtracted()
+  const { style } = useThemePreviewCardState(overrides, radius)
 
   return (
     <div
@@ -613,7 +613,6 @@ function resolveBaseThemeValues(presetId: string) {
 }
 
 function useThemeTokenMatrixState(presetId: string) {
-  const t = useExtracted()
   const [baseThemeValues, setBaseThemeValues] = useState<{
     lightValues: ThemeOverrides
     darkValues: ThemeOverrides
@@ -635,7 +634,7 @@ function useThemeTokenMatrixState(presetId: string) {
     return initialState
   })
 
-  return { t, baseLightValues, baseDarkValues, openGroups, setOpenGroups }
+  return { baseLightValues, baseDarkValues, openGroups, setOpenGroups }
 }
 
 function ThemeTokenMatrix({
@@ -661,7 +660,8 @@ function ThemeTokenMatrix({
   lightParseError: string | null
   darkParseError: string | null
 }) {
-  const { t, baseLightValues, baseDarkValues, openGroups, setOpenGroups } = useThemeTokenMatrixState(presetId)
+  const t = useExtracted()
+  const { baseLightValues, baseDarkValues, openGroups, setOpenGroups } = useThemeTokenMatrixState(presetId)
 
   return (
     <div className="flex flex-col gap-3">
@@ -916,7 +916,6 @@ function useThemeSettingsForm(initialThemeSettings: AdminThemeSettingsInitialSta
   }, [draftCssText, isPending, parsedPreset, state.error, t])
 
   return {
-    t,
     state,
     formAction,
     isPending,
@@ -942,8 +941,8 @@ function AdminThemeSettingsFormInner({
   initialThemeSettings,
   initialThemeSiteSettings,
 }: AdminThemeSettingsFormProps) {
+  const t = useExtracted()
   const {
-    t,
     state,
     formAction,
     isPending,

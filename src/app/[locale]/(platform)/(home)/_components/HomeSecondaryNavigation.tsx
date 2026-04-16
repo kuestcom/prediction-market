@@ -23,10 +23,10 @@ interface TagItem {
 interface UseResolvedTagItemsParams {
   tag: Pick<PlatformNavigationTag, 'childs' | 'sidebarItems' | 'slug'>
   activeSubtagSlug: string
-  t: ReturnType<typeof useExtracted>
 }
 
-function useResolvedTagItems({ tag, activeSubtagSlug, t }: UseResolvedTagItemsParams) {
+function useResolvedTagItems({ tag, activeSubtagSlug }: UseResolvedTagItemsParams) {
+  const t = useExtracted()
   const tagItems = useMemo<TagItem[]>(() => {
     if (tag.sidebarItems) {
       return tag.sidebarItems
@@ -214,8 +214,7 @@ export default function HomeSecondaryNavigation({
   showCategoryTitle = false,
   hideOnDesktop = false,
 }: HomeSecondaryNavigationProps) {
-  const t = useExtracted()
-  const { tagItems, resolvedActiveSubtagSlug } = useResolvedTagItems({ tag, activeSubtagSlug, t })
+  const { tagItems, resolvedActiveSubtagSlug } = useResolvedTagItems({ tag, activeSubtagSlug })
   const {
     scrollContainerRef,
     buttonRef,

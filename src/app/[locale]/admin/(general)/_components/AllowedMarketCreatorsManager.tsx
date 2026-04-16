@@ -126,7 +126,6 @@ function useAllowedMarketCreatorsState(disabled: boolean) {
   }, [dialogMode, disabled, isSubmitting, siteUrl, walletAddress, walletName])
 
   return {
-    t,
     items,
     setItems,
     isLoading,
@@ -153,8 +152,8 @@ function useAllowedMarketCreatorsState(disabled: boolean) {
 export default function AllowedMarketCreatorsManager({
   disabled = false,
 }: AllowedMarketCreatorsManagerProps) {
+  const t = useExtracted()
   const {
-    t,
     items,
     setItems,
     isLoading,

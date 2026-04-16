@@ -144,7 +144,6 @@ function useMainCategorySortState({
   }, [handleOpenChange, onSaved, orderedCategories, queryClient, t])
 
   return {
-    t,
     isMobile,
     orderedCategories,
     error,
@@ -164,8 +163,8 @@ export default function MainCategorySortDialog({
   onOpenChange,
   onSaved,
 }: MainCategorySortDialogProps) {
+  const t = useExtracted()
   const {
-    t,
     isMobile,
     orderedCategories,
     error,

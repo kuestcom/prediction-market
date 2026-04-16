@@ -39,7 +39,7 @@ function useAffiliateSettingsForm() {
     wasPendingRef.current = isPending
   }, [isPending, state.error, t])
 
-  return { t, state, formAction, isPending }
+  return { state, formAction, isPending }
 }
 
 export default function AdminAffiliateSettingsForm({
@@ -48,7 +48,8 @@ export default function AdminAffiliateSettingsForm({
   minTradeFeeBps = 0,
   updatedAtLabel,
 }: AdminAffiliateSettingsFormProps) {
-  const { t, state, formAction, isPending } = useAffiliateSettingsForm()
+  const t = useExtracted()
+  const { state, formAction, isPending } = useAffiliateSettingsForm()
   const minTradeFeePercent = (minTradeFeeBps / 100).toFixed(2)
 
   return (

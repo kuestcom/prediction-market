@@ -65,7 +65,6 @@ function useLocalesSettingsForm(
   }, [isPending, state.error, t])
 
   return {
-    t,
     state,
     formAction,
     isPending,
@@ -82,8 +81,8 @@ function AdminLocalesSettingsFormInner({
   automaticTranslationsEnabled,
   isOpenRouterConfigured,
 }: AdminLocalesSettingsFormProps) {
+  const t = useExtracted()
   const {
-    t,
     state,
     formAction,
     isPending,

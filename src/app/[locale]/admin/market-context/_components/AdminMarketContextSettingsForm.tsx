@@ -65,7 +65,6 @@ function useMarketContextSettingsForm(defaultPrompt: string, isEnabled: boolean)
   }, [isPending, state.error, t])
 
   return {
-    t,
     textareaRef,
     highlightTimeoutRef,
     variableLiftTimeoutRef,
@@ -88,8 +87,8 @@ function AdminMarketContextSettingsFormInner({
   isEnabled,
   variables,
 }: AdminMarketContextSettingsFormProps) {
+  const t = useExtracted()
   const {
-    t,
     textareaRef,
     highlightTimeoutRef,
     variableLiftTimeoutRef,

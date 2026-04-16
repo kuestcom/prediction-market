@@ -276,7 +276,6 @@ function useAdminCategoriesTableState() {
   })
 
   return {
-    t,
     isMobile,
     categories,
     totalCount,
@@ -316,8 +315,8 @@ function useAdminCategoriesTableState() {
 }
 
 export default function AdminCategoriesTable() {
+  const t = useExtracted()
   const {
-    t,
     isMobile,
     categories,
     totalCount,
