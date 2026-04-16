@@ -93,6 +93,10 @@ function resolvePredictionResultsRewrite({
 
 export default async function proxy(request: NextRequest) {
   const url = new URL(request.url)
+  if (url.pathname === '/geoblock' || /^\/[a-z]{2}\/geoblock$/.test(url.pathname)) {
+    return NextResponse.next()
+  }
+
   const markdownPath = rewriteMarkdownExtensionWithLocale(url.pathname) || rewriteMarkdownExtensionDefaultLocale(url.pathname)
 
   if (markdownPath) {

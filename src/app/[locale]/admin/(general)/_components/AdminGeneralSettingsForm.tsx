@@ -27,6 +27,7 @@ import {
   MAX_CUSTOM_JAVASCRIPT_CODES,
   serializeCustomJavascriptCodes,
 } from '@/lib/custom-javascript-code'
+import { formatBlockedCountriesInput } from '@/lib/geoblock-settings'
 import { cn, sanitizeSvg } from '@/lib/utils'
 
 const initialState = {
@@ -60,6 +61,7 @@ interface InitialGlobalAnnouncementSettings {
 interface AdminGeneralSettingsFormProps {
   initialThemeSiteSettings: AdminThemeSiteSettingsInitialState
   initialGlobalAnnouncement: InitialGlobalAnnouncementSettings
+  initialBlockedCountries: string[]
   initialTermsOfServicePdfPath: string
   initialTermsOfServicePdfUrl: string | null
   openRouterSettings: OpenRouterGeneralSettings
@@ -158,11 +160,13 @@ function SettingsAccordionSection({
 function useGeneralSettingsFormState({
   initialThemeSiteSettings,
   initialGlobalAnnouncement,
+  initialBlockedCountries,
   initialTermsOfServicePdfPath,
   openRouterSettings,
 }: {
   initialThemeSiteSettings: AdminThemeSiteSettingsInitialState
   initialGlobalAnnouncement: InitialGlobalAnnouncementSettings
+  initialBlockedCountries: string[]
   initialTermsOfServicePdfPath: string
   openRouterSettings: OpenRouterGeneralSettings
 }) {
@@ -196,6 +200,7 @@ function useGeneralSettingsFormState({
   const [linkedinLink, setLinkedinLink] = useState(initialThemeSiteSettings.linkedinLink)
   const [youtubeLink, setYoutubeLink] = useState(initialThemeSiteSettings.youtubeLink)
   const [supportUrl, setSupportUrl] = useState(initialThemeSiteSettings.supportUrl)
+  const [blockedCountries, setBlockedCountries] = useState(formatBlockedCountriesInput(initialBlockedCountries))
   const [globalAnnouncementMessage, setGlobalAnnouncementMessage] = useState(initialGlobalAnnouncement.message)
   const [globalAnnouncementLinkUrl, setGlobalAnnouncementLinkUrl] = useState(initialGlobalAnnouncement.linkUrl)
   const [globalAnnouncementDisabledOn, setGlobalAnnouncementDisabledOn] = useState<CustomJavascriptCodeDisablePage[]>(
@@ -324,6 +329,8 @@ function useGeneralSettingsFormState({
     setYoutubeLink,
     supportUrl,
     setSupportUrl,
+    blockedCountries,
+    setBlockedCountries,
     globalAnnouncementMessage,
     setGlobalAnnouncementMessage,
     globalAnnouncementLinkUrl,
@@ -381,6 +388,7 @@ function useGeneralSettingsFormState({
 function AdminGeneralSettingsFormInner({
   initialThemeSiteSettings,
   initialGlobalAnnouncement,
+  initialBlockedCountries,
   initialTermsOfServicePdfPath,
   initialTermsOfServicePdfUrl,
   openRouterSettings,
@@ -424,6 +432,8 @@ function AdminGeneralSettingsFormInner({
     setYoutubeLink,
     supportUrl,
     setSupportUrl,
+    blockedCountries,
+    setBlockedCountries,
     globalAnnouncementMessage,
     setGlobalAnnouncementMessage,
     globalAnnouncementLinkUrl,
@@ -478,6 +488,7 @@ function AdminGeneralSettingsFormInner({
   } = useGeneralSettingsFormState({
     initialThemeSiteSettings,
     initialGlobalAnnouncement,
+    initialBlockedCountries,
     initialTermsOfServicePdfPath,
     openRouterSettings,
   })
@@ -1093,6 +1104,23 @@ function AdminGeneralSettingsFormInner({
         >
           <div className="grid gap-4">
             <div className="grid gap-2">
+              <Label htmlFor="legal-blocked-countries">{t('Blocked countries')}</Label>
+              <Textarea
+                id="legal-blocked-countries"
+                name="blocked_countries"
+                value={blockedCountries}
+                onChange={event => setBlockedCountries(event.target.value.toUpperCase())}
+                disabled={isPending || isRemovingTermsOfServicePdf}
+                placeholder="US, BR, FR"
+                spellCheck={false}
+                className="min-h-24 font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('Use ISO country codes separated by comma or line break. Leave empty to allow all regions.')}
+              </p>
+            </div>
+
+            <div className="grid gap-2">
               <Label htmlFor="terms-of-service-pdf">{t('Terms of Use PDF')}</Label>
               <Input
                 id="terms-of-service-pdf"
@@ -1484,6 +1512,7 @@ export default function AdminGeneralSettingsForm(props: AdminGeneralSettingsForm
   const formResetKey = JSON.stringify({
     initialThemeSiteSettings: props.initialThemeSiteSettings,
     initialGlobalAnnouncement: props.initialGlobalAnnouncement,
+    initialBlockedCountries: props.initialBlockedCountries,
     initialTermsOfServicePdfPath: props.initialTermsOfServicePdfPath,
     initialTermsOfServicePdfUrl: props.initialTermsOfServicePdfUrl,
     openRouterSettings: props.openRouterSettings,

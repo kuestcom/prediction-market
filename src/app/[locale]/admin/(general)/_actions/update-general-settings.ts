@@ -8,11 +8,16 @@ import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { encryptSecret } from '@/lib/encryption'
 import {
+  BLOCKED_COUNTRIES_SETTINGS_KEY,
+  validateBlockedCountriesInput,
+} from '@/lib/geoblock-settings'
+import {
   GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY,
   GLOBAL_ANNOUNCEMENT_LINK_URL_KEY,
   GLOBAL_ANNOUNCEMENT_MESSAGE_KEY,
   validateGlobalAnnouncementInput,
 } from '@/lib/global-announcement-settings'
+import siteUrlUtils from '@/lib/site-url'
 import { uploadPublicAsset } from '@/lib/storage'
 import { normalizeTermsOfServicePdfPath, TERMS_OF_SERVICE_PDF_PATH_KEY } from '@/lib/terms-of-service'
 import { validateThemeSiteSettingsInput } from '@/lib/theme-settings'
@@ -22,6 +27,8 @@ const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp
 const MAX_PWA_ICON_FILE_SIZE = 2 * 1024 * 1024
 const ACCEPTED_PWA_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
 const MAX_TERMS_OF_SERVICE_PDF_FILE_SIZE = 2 * 1024 * 1024
+const GEOBLOCK_SYNC_URL = 'https://geoblock.kuest.com/'
+const { resolveSiteUrl } = siteUrlUtils
 
 export interface GeneralSettingsActionState {
   error: string | null
@@ -137,6 +144,27 @@ function revalidateGeneralSettingsPaths() {
   revalidatePath('/[locale]', 'layout')
 }
 
+async function syncGeoblockSettings() {
+  const response = await fetch(GEOBLOCK_SYNC_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url: resolveSiteUrl(process.env),
+    }),
+    cache: 'no-store',
+  })
+
+  if (response.ok) {
+    return
+  }
+
+  const payload = await response.json().catch(() => null) as { error?: string, detail?: string } | null
+  const detail = payload?.detail || payload?.error
+  throw new Error(detail || `Geoblock sync failed with status ${response.status}.`)
+}
+
 export async function updateGeneralSettingsAction(
   _prevState: GeneralSettingsActionState,
   formData: FormData,
@@ -176,6 +204,7 @@ export async function updateGeneralSettingsAction(
   const lifiApiKeyRaw = formData.get('lifi_api_key')
   const openRouterModelRaw = formData.get('openrouter_model')
   const openRouterApiKeyRaw = formData.get('openrouter_api_key')
+  const blockedCountriesRaw = formData.get('blocked_countries')
 
   const siteName = typeof siteNameRaw === 'string' ? siteNameRaw : ''
   const siteDescription = typeof siteDescriptionRaw === 'string' ? siteDescriptionRaw : ''
@@ -205,6 +234,7 @@ export async function updateGeneralSettingsAction(
   const lifiApiKey = typeof lifiApiKeyRaw === 'string' ? lifiApiKeyRaw : ''
   const openRouterModel = typeof openRouterModelRaw === 'string' ? openRouterModelRaw.trim() : ''
   const openRouterApiKey = typeof openRouterApiKeyRaw === 'string' ? openRouterApiKeyRaw.trim() : ''
+  const blockedCountriesInput = typeof blockedCountriesRaw === 'string' ? blockedCountriesRaw : ''
 
   if (openRouterModel.length > 160) {
     return { error: 'OpenRouter model is too long.' }
@@ -221,6 +251,11 @@ export async function updateGeneralSettingsAction(
   })
   if (!validatedGlobalAnnouncement.data) {
     return { error: validatedGlobalAnnouncement.error ?? 'Invalid global announcement input.' }
+  }
+
+  const validatedBlockedCountries = validateBlockedCountriesInput(blockedCountriesInput)
+  if (!validatedBlockedCountries.data) {
+    return { error: validatedBlockedCountries.error ?? 'Invalid blocked countries input.' }
   }
 
   const normalizedTermsOfServicePdfPath = normalizeTermsOfServicePdfPath(tosPdfPath)
@@ -337,6 +372,7 @@ export async function updateGeneralSettingsAction(
     { group: 'general', key: 'site_linkedin_link', value: validated.data.linkedinLinkValue },
     { group: 'general', key: 'site_youtube_link', value: validated.data.youtubeLinkValue },
     { group: 'general', key: 'site_support_url', value: validated.data.supportUrlValue },
+    { group: 'general', key: BLOCKED_COUNTRIES_SETTINGS_KEY, value: validatedBlockedCountries.data.blockedCountriesValue },
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_MESSAGE_KEY, value: validatedGlobalAnnouncement.data.messageValue },
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_LINK_URL_KEY, value: validatedGlobalAnnouncement.data.linkUrlValue },
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY, value: validatedGlobalAnnouncement.data.disabledOnValue },
@@ -353,6 +389,14 @@ export async function updateGeneralSettingsAction(
 
   if (error) {
     return { error: DEFAULT_ERROR_MESSAGE }
+  }
+
+  try {
+    await syncGeoblockSettings()
+  }
+  catch (syncError) {
+    console.error('Failed to sync geoblock settings', syncError)
+    return { error: 'Settings saved, but geoblock sync failed. Please try again.' }
   }
 
   revalidateGeneralSettingsPaths()

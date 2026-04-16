@@ -6,6 +6,7 @@ import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
 import { SettingsRepository } from '@/lib/db/queries/settings'
+import { getBlockedCountriesFromSettings } from '@/lib/geoblock-settings'
 import { getGlobalAnnouncementSettingsFromSettings } from '@/lib/global-announcement-settings'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { getTermsOfServicePdfPath, getTermsOfServicePdfUrl } from '@/lib/terms-of-service'
@@ -54,6 +55,7 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
 
   const initialThemeSiteSettings = getThemeSiteSettingsFormState(allSettings ?? undefined)
   const initialGlobalAnnouncement = getGlobalAnnouncementSettingsFromSettings(allSettings ?? undefined)
+  const initialBlockedCountries = getBlockedCountriesFromSettings(allSettings ?? undefined)
   const initialThemeSiteImageUrl = initialThemeSiteSettings.logoMode === 'image'
     ? getPublicAssetUrl(initialThemeSiteSettings.logoImagePath || null)
     : null
@@ -82,6 +84,7 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
       <AdminGeneralSettingsForm
         initialThemeSiteSettings={initialThemeSiteSettingsWithImage}
         initialGlobalAnnouncement={initialGlobalAnnouncement}
+        initialBlockedCountries={initialBlockedCountries}
         initialTermsOfServicePdfPath={initialTermsOfServicePdfPath}
         initialTermsOfServicePdfUrl={initialTermsOfServicePdfUrl}
         openRouterSettings={{

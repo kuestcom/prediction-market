@@ -7,9 +7,11 @@ import type { User } from '@/types'
 import { createSIWEConfig, formatMessage, getAddressFromMessage } from '@reown/appkit-siwe'
 import { createAppKit, useAppKitTheme } from '@reown/appkit/react'
 import { generateRandomString } from 'better-auth/crypto'
+import { useExtracted } from 'next-intl'
 import { useTheme } from 'next-themes'
 import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { toast } from 'sonner'
 import { WagmiProvider } from 'wagmi'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -187,13 +189,46 @@ function useResolvedThemeMode() {
   return resolvedTheme
 }
 
-function createAppKitContextValue(instance: AppKit | null) {
+async function isCurrentRegionBlocked() {
+  try {
+    const response = await fetch('/api/geoblock-status', {
+      cache: 'no-store',
+      headers: {
+        accept: 'application/json',
+      },
+    })
+    if (!response.ok) {
+      return false
+    }
+
+    const payload = await response.json() as { blocked?: boolean }
+    return payload?.blocked === true
+  }
+  catch {
+    return false
+  }
+}
+
+function createAppKitContextValue({
+  instance,
+  hasAuthenticatedUser,
+  t,
+}: {
+  instance: AppKit | null
+  hasAuthenticatedUser: boolean
+  t: ReturnType<typeof useExtracted>
+}) {
   if (!instance) {
     return defaultAppKitValue
   }
 
   return {
     open: async (options: Parameters<AppKit['open']>[0]) => {
+      if (!hasAuthenticatedUser && await isCurrentRegionBlocked()) {
+        toast.warning(t('This platform is not currently available in your region.'))
+        return
+      }
+
       await instance.open(options)
     },
     close: async () => {
@@ -246,12 +281,26 @@ function useAppKitInstance({
   return instance
 }
 
-function useAppKitContextValue(instance: AppKit | null) {
-  return useMemo(() => createAppKitContextValue(instance), [instance])
+function useAppKitContextValue({
+  instance,
+  hasAuthenticatedUser,
+  t,
+}: {
+  instance: AppKit | null
+  hasAuthenticatedUser: boolean
+  t: ReturnType<typeof useExtracted>
+}) {
+  return useMemo(() => createAppKitContextValue({
+    instance,
+    hasAuthenticatedUser,
+    t,
+  }), [hasAuthenticatedUser, instance, t])
 }
 
 export default function AppKitProvider({ children }: { children: ReactNode }) {
+  const t = useExtracted()
   const site = useSiteIdentity()
+  const currentUser = useUser()
   const resolvedTheme = useResolvedThemeMode()
   const appKitThemeMode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light'
   const instance = useAppKitInstance({
@@ -260,7 +309,11 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
     siteDescription: site.description,
     siteLogoUrl: site.logoUrl,
   })
-  const appKitValue = useAppKitContextValue(instance)
+  const appKitValue = useAppKitContextValue({
+    instance,
+    hasAuthenticatedUser: Boolean(currentUser?.id),
+    t,
+  })
   const canSyncTheme = Boolean(instance)
 
   return (
