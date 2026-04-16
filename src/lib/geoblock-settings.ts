@@ -301,10 +301,6 @@ function normalizeCountryCodes(codes: Iterable<string>) {
   return { data: next, error: null as string | null }
 }
 
-export function formatBlockedCountriesInput(countries: string[]) {
-  return countries.join(', ')
-}
-
 export function parseBlockedCountriesFromSettingsValue(rawValue: string | null | undefined) {
   const normalizedRawValue = typeof rawValue === 'string' ? rawValue.trim() : ''
   if (!normalizedRawValue) {

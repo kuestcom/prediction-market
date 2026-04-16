@@ -27,7 +27,6 @@ import {
   MAX_CUSTOM_JAVASCRIPT_CODES,
   serializeCustomJavascriptCodes,
 } from '@/lib/custom-javascript-code'
-import { formatBlockedCountriesInput } from '@/lib/geoblock-settings'
 import { cn, sanitizeSvg } from '@/lib/utils'
 
 const initialState = {
@@ -37,6 +36,10 @@ const initialState = {
 const AUTOMATIC_MODEL_VALUE = '__AUTOMATIC__'
 const MAX_GLOBAL_ANNOUNCEMENT_MESSAGE_LENGTH = 220
 const MAX_GLOBAL_ANNOUNCEMENT_LINK_URL_LENGTH = 2048
+
+function formatBlockedCountriesInput(countries: string[]) {
+  return countries.join(', ')
+}
 
 interface ModelOption {
   id: string

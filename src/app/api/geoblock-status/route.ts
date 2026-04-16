@@ -6,8 +6,6 @@ import {
   loadBlockedCountries,
 } from '@/lib/geoblock-settings'
 
-export const dynamic = 'force-dynamic'
-
 export async function GET(request: NextRequest) {
   const blockedCountries = await loadBlockedCountries()
   const country = getRequestCountryCode(request.headers)
