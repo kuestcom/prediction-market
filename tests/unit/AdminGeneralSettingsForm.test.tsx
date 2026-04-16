@@ -80,6 +80,7 @@ describe('adminGeneralSettingsForm', () => {
           linkUrl: '',
           disabledOn: [],
         }}
+        initialBlockedCountries={[]}
         initialTermsOfServicePdfPath="legal/current-terms.pdf"
         initialTermsOfServicePdfUrl="https://cdn.example.com/legal/current-terms.pdf"
         openRouterSettings={{
@@ -136,6 +137,7 @@ describe('adminGeneralSettingsForm', () => {
           linkUrl: '',
           disabledOn: [],
         }}
+        initialBlockedCountries={[]}
         initialTermsOfServicePdfPath=""
         initialTermsOfServicePdfUrl={null}
         openRouterSettings={{

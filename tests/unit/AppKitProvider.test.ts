@@ -36,6 +36,10 @@ vi.mock('next-themes', () => ({
   useTheme: () => ({ resolvedTheme: 'dark' }),
 }))
 
+vi.mock('next-intl', () => ({
+  useExtracted: () => (value: string) => value,
+}))
+
 vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
 }))

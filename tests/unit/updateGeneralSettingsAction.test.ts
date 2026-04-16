@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   updateSettings: vi.fn(),
   encryptSecret: vi.fn(),
   upload: vi.fn(),
+  fetch: vi.fn(),
 }))
 
 vi.mock('next/cache', () => ({
@@ -35,15 +36,21 @@ vi.mock('@/lib/storage', () => ({
 describe('updateGeneralSettingsAction', () => {
   beforeEach(() => {
     vi.resetModules()
+    vi.stubGlobal('fetch', mocks.fetch)
     mocks.revalidatePath.mockReset()
     mocks.getCurrentUser.mockReset()
     mocks.getSettings.mockReset()
     mocks.updateSettings.mockReset()
     mocks.encryptSecret.mockReset()
     mocks.upload.mockReset()
+    mocks.fetch.mockReset()
     mocks.upload.mockResolvedValue({ error: null })
     mocks.getSettings.mockResolvedValue({ data: {}, error: null })
     mocks.encryptSecret.mockImplementation((value: string) => `enc.v1.${value}`)
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({}),
+    })
   })
 
   it('rejects unauthenticated users', async () => {
@@ -121,7 +128,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.encryptSecret).toHaveBeenCalledWith('openrouter-123')
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload).toHaveLength(26)
+    expect(savedPayload).toHaveLength(27)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
@@ -137,6 +144,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.find(entry => entry.key === 'site_linkedin_link')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'site_youtube_link')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'site_support_url')?.value).toBe('mailto:support@kuest.com')
+    expect(savedPayload.find(entry => entry.key === 'blocked_countries')?.value).toBe('[]')
     expect(savedPayload.find(entry => entry.key === 'global_announcement_message')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'global_announcement_link_url')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'global_announcement_disabled_on')?.value).toBe('[]')
