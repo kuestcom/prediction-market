@@ -9,13 +9,9 @@ import { getBlockedCountriesFromSettings } from '@/lib/geoblock-settings'
 import siteUrlUtils from '@/lib/site-url'
 
 const { resolveSiteUrl } = siteUrlUtils
-const SDK_DOWNLOAD_URL = process.env.SDK_DOWNLOAD_URL ?? 'https://sdk-download.kuest.com'
+const SDK_DOWNLOAD_URL = process.env.SDK_DOWNLOAD_URL!
 
-interface SdkDownloadsSettingsPageProps {
-  params: Promise<{ locale: string }>
-}
-
-export async function generateMetadata({ params }: SdkDownloadsSettingsPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<'/[locale]/settings/sdks'>): Promise<Metadata> {
   const { locale } = await params
   setRequestLocale(locale)
   const t = await getExtracted()
@@ -25,7 +21,7 @@ export async function generateMetadata({ params }: SdkDownloadsSettingsPageProps
   }
 }
 
-export default async function SdkDownloadsSettingsPage({ params }: SdkDownloadsSettingsPageProps) {
+export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[locale]/settings/sdks'>) {
   const { locale } = await params
   setRequestLocale(locale)
 
