@@ -91,6 +91,7 @@ const config: NextConfig = {
     DATA_URL: process.env.DATA_URL ?? 'https://data-api.kuest.com',
     USER_PNL_URL: process.env.USER_PNL_URL ?? 'https://user-pnl-api.kuest.com',
     COMMUNITY_URL: process.env.COMMUNITY_URL ?? 'https://community.kuest.com',
+    SDK_DOWNLOAD_URL: process.env.SDK_DOWNLOAD_URL ?? 'https://sdk-download.kuest.com',
     PRICE_REFERENCE_URL: process.env.PRICE_REFERENCE_URL ?? 'https://price-reference.kuest.com',
     WS_CLOB_URL: process.env.WS_CLOB_URL ?? 'wss://ws-subscriptions-clob.kuest.com',
     WS_LIVE_DATA_URL: process.env.WS_LIVE_DATA_URL ?? 'wss://ws-live-data.kuest.com',

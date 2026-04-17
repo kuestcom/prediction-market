@@ -1,6 +1,6 @@
 ---
 title: Clients & SDKs
-description: Official SDKs for interacting with Kuest CLOB services in Python and Rust
+description: Official SDKs for interacting with Kuest CLOB services in Python, Rust, and TypeScript
 ---
 
 ## Official SDKs
@@ -11,19 +11,26 @@ description: Official SDKs for interacting with Kuest CLOB services in Python an
     description="Typed CLOB client for Python bots and backend services."
   >
     <div><code>pip install kuest-py-clob-client</code></div>
-    <a href="https://github.com/kuestcom/py-clob-client" target="_blank" rel="noreferrer">kuestcom/py-clob-client</a>
+    <a href="/settings/sdks">Download your personalized Python SDK</a>
   </Card>
   <Card
     title="Rust SDK"
     description="Async Rust client with CLOB and optional module support."
   >
     <div><code>cargo add kuest-client-sdk</code></div>
-    <a href="https://github.com/kuestcom/rs-clob-client" target="_blank" rel="noreferrer">kuestcom/rs-clob-client</a>
+    <a href="/settings/sdks">Download your personalized Rust SDK</a>
+  </Card>
+  <Card
+    title="TypeScript SDK"
+    description="Web and Node.js client for automated CLOB trading flows."
+  >
+    <div><code>npm install @kuestcom/clob-client</code></div>
+    <a href="/settings/sdks">Download your personalized TypeScript SDK</a>
   </Card>
 </Cards>
 
 <Callout type="info">
-  Use the SDKs for production bots and integrations when you want typed requests, auth helpers, and less manual signing boilerplate.
+  Download personalized SDK packages from <a href="/settings/sdks">Settings → SDKs</a> to receive your site URL, fee settings, and geoblock behavior prefilled.
 </Callout>
 
 ## Python quickstart
@@ -38,8 +45,7 @@ print(client.get_ok())
 print(client.get_server_time())
 ```
 
-Trading usage (authenticated) is available in the SDK examples:
-<a href="https://github.com/kuestcom/py-clob-client" target="_blank" rel="noreferrer">Python SDK README and examples</a>.
+Use <a href="/settings/sdks">Settings → SDKs</a> to download the Python package already prepared for your site.
 
 ## Rust quickstart
 
@@ -56,11 +62,24 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-Authenticated CLOB, WebSocket streaming, and optional API modules are documented in:
-<a href="https://github.com/kuestcom/rs-clob-client" target="_blank" rel="noreferrer">Rust SDK README and examples</a>.
+Use <a href="/settings/sdks">Settings → SDKs</a> to download the Rust package already prepared for your site.
+
+## TypeScript quickstart
+
+Read-only usage:
+
+```ts
+import { ClobClient } from '@kuestcom/clob-client'
+
+const client = new ClobClient('https://clob.kuest.com')
+console.log(await client.getOk())
+console.log(await client.getServerTime())
+```
+
+Use <a href="/settings/sdks">Settings → SDKs</a> to download the TypeScript package already prepared for your site.
 
 ## Auth and wallet notes
 
 - Review [Authentication](/docs/api-reference/authentication) before placing orders.
 - EOA users may need to configure token allowances before trading.
-- Proxy/Safe wallet flows are supported by both SDKs with signature-type specific setup.
+- Proxy/Safe wallet flows are supported by all SDKs with signature-type specific setup.
