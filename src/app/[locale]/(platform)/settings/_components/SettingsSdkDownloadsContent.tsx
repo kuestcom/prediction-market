@@ -1,7 +1,9 @@
 'use client'
 
 import { DownloadIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 
 interface SdkCard {
@@ -49,6 +51,7 @@ export default function SettingsSdkDownloadsContent({
   downloadLabel,
   generatingLabel,
 }: SettingsSdkDownloadsContentProps) {
+  const t = useExtracted()
   const { loadingCardIds, startLoading, stopLoading } = useSdkDownloadState()
 
   async function handleDownload(card: SdkCard) {
@@ -70,6 +73,10 @@ export default function SettingsSdkDownloadsContent({
       anchor.click()
       anchor.remove()
       URL.revokeObjectURL(objectUrl)
+    }
+    catch (error) {
+      console.error('Failed to download sdk', error)
+      toast.error(t('An unexpected error occurred. Please try again.'))
     }
     finally {
       stopLoading(card.id)
@@ -123,7 +130,12 @@ function getFilenameFromResponse(response: Response, fallbackName: string) {
   const contentDisposition = response.headers.get('content-disposition')
   const utf8Filename = contentDisposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
   if (utf8Filename) {
-    return decodeURIComponent(utf8Filename)
+    try {
+      return decodeURIComponent(utf8Filename)
+    }
+    catch {
+      // Fall back to a safer filename when the header is malformed.
+    }
   }
 
   const plainFilename = contentDisposition?.match(/filename="?([^";]+)"?/i)?.[1]
