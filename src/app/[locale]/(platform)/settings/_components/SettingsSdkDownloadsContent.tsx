@@ -19,8 +19,29 @@ interface SettingsSdkDownloadsContentProps {
 }
 
 function useSdkDownloadState() {
-  const [loadingCardId, setLoadingCardId] = useState<string | null>(null)
-  return { loadingCardId, setLoadingCardId }
+  const [loadingCardIds, setLoadingCardIds] = useState<Set<string>>(() => new Set())
+
+  function startLoading(cardId: string) {
+    setLoadingCardIds((current) => {
+      const next = new Set(current)
+      next.add(cardId)
+      return next
+    })
+  }
+
+  function stopLoading(cardId: string) {
+    setLoadingCardIds((current) => {
+      if (!current.has(cardId)) {
+        return current
+      }
+
+      const next = new Set(current)
+      next.delete(cardId)
+      return next
+    })
+  }
+
+  return { loadingCardIds, startLoading, stopLoading }
 }
 
 export default function SettingsSdkDownloadsContent({
@@ -28,10 +49,10 @@ export default function SettingsSdkDownloadsContent({
   downloadLabel,
   generatingLabel,
 }: SettingsSdkDownloadsContentProps) {
-  const { loadingCardId, setLoadingCardId } = useSdkDownloadState()
+  const { loadingCardIds, startLoading, stopLoading } = useSdkDownloadState()
 
   async function handleDownload(card: SdkCard) {
-    setLoadingCardId(card.id)
+    startLoading(card.id)
 
     try {
       const response = await fetch(card.href)
@@ -51,14 +72,14 @@ export default function SettingsSdkDownloadsContent({
       URL.revokeObjectURL(objectUrl)
     }
     finally {
-      setLoadingCardId(null)
+      stopLoading(card.id)
     }
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       {cards.map(card => (
-        <div key={card.title} className="relative overflow-hidden rounded-lg border bg-background p-4 sm:p-6">
+        <div key={card.id} className="relative overflow-hidden rounded-lg border bg-background p-4 sm:p-6">
           <div
             aria-hidden
             className="pointer-events-none absolute top-4 right-4 size-16 bg-muted-foreground/10"
@@ -85,11 +106,11 @@ export default function SettingsSdkDownloadsContent({
               variant="outline"
               size="sm"
               className="w-full sm:w-fit"
-              disabled={loadingCardId === card.id}
+              disabled={loadingCardIds.has(card.id)}
               onClick={() => handleDownload(card)}
             >
               <DownloadIcon className="size-4" />
-              {loadingCardId === card.id ? generatingLabel : downloadLabel}
+              {loadingCardIds.has(card.id) ? generatingLabel : downloadLabel}
             </Button>
           </div>
         </div>
