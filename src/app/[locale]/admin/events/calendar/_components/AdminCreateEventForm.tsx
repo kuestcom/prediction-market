@@ -33,8 +33,10 @@ import type {
   AdminSportsCustomMarketState,
   AdminSportsFormState,
   AdminSportsPropState,
+  AdminSportsSlugCatalog,
   AdminSportsTeamHostStatus,
 } from '@/lib/admin-sports-create'
+import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import type { EventCreationAssetPayload, EventCreationRecurrenceUnit } from '@/lib/event-creation'
 import { useAppKitAccount } from '@reown/appkit/react'
 import {
@@ -1122,18 +1124,18 @@ function useAdminCreateEventForm({
     return map
   }, [currentStep, isStepValid, maxVisitedStep])
 
-  useEffect(() => {
+  useEffect(function revokeEventImagePreviewObjectUrl() {
     if (!eventImagePreviewUrl || !eventImagePreviewUrl.startsWith('blob:')) {
       return
     }
 
-    return () => {
+    return function cleanupEventImagePreviewObjectUrl() {
       URL.revokeObjectURL(eventImagePreviewUrl)
     }
   }, [eventImagePreviewUrl])
 
-  useEffect(() => {
-    return () => {
+  useEffect(function revokeOptionImagePreviewObjectUrls() {
+    return function cleanupOptionImagePreviewObjectUrls() {
       Object.values(optionImagePreviewUrls).forEach((url) => {
         if (url.startsWith('blob:')) {
           URL.revokeObjectURL(url)
@@ -1142,8 +1144,8 @@ function useAdminCreateEventForm({
     }
   }, [optionImagePreviewUrls])
 
-  useEffect(() => {
-    return () => {
+  useEffect(function revokeTeamLogoPreviewObjectUrls() {
+    return function cleanupTeamLogoPreviewObjectUrls() {
       Object.values(teamLogoPreviewUrls).forEach((url) => {
         if (url?.startsWith('blob:')) {
           URL.revokeObjectURL(url)
@@ -1152,8 +1154,8 @@ function useAdminCreateEventForm({
     }
   }, [teamLogoPreviewUrls])
 
-  useEffect(() => {
-    return () => {
+  useEffect(function cleanupPendingTimersOnUnmount() {
+    return function clearPendingTimers() {
       if (copyTimeoutRef.current !== null) {
         window.clearTimeout(copyTimeoutRef.current)
       }
@@ -1168,16 +1170,16 @@ function useAdminCreateEventForm({
     }
   }, [])
 
-  useEffect(() => {
+  useEffect(function runAuthChallengeCountdown() {
     if (!authChallengeExpiresAtMs) {
       return
     }
 
-    const timer = window.setInterval(() => {
+    const timer = window.setInterval(function tickSignatureCountdownNow() {
       setSignatureNowMs(Date.now())
     }, SIGNATURE_COUNTDOWN_INTERVAL_MS)
 
-    return () => {
+    return function clearAuthChallengeCountdownTimer() {
       window.clearInterval(timer)
     }
   }, [authChallengeExpiresAtMs])
@@ -1337,7 +1339,7 @@ function useAdminCreateEventForm({
     })
   }
 
-  useEffect(() => {
+  useEffect(function loadMainCategoriesOnMount() {
     async function loadMainCategories() {
       try {
         const response = await fetch('/admin/api/main-tags')
@@ -1358,8 +1360,8 @@ function useAdminCreateEventForm({
     void loadMainCategories()
   }, [])
 
-  useEffect(() => {
-    void (async () => {
+  useEffect(function loadSignerWalletsOnMount() {
+    async function loadSignerWallets() {
       try {
         setIsLoadingSigners(true)
         const response = await fetchAdminApi('/event-creations/signers', {
@@ -1381,7 +1383,9 @@ function useAdminCreateEventForm({
       finally {
         setIsLoadingSigners(false)
       }
-    })()
+    }
+
+    void loadSignerWallets()
   }, [])
 
   if (!automaticWalletAddress && signers.length === 1) {
@@ -1672,7 +1676,7 @@ function useAdminCreateEventForm({
     }
   }
 
-  useEffect(() => {
+  useEffect(function autosaveDraftPayload() {
     if (!draftId || typeof window === 'undefined') {
       return
     }
@@ -1754,7 +1758,7 @@ function useAdminCreateEventForm({
         })
     }, 800)
 
-    return () => {
+    return function clearDraftAutosaveTimeout() {
       if (draftAutosaveTimeoutRef.current !== null) {
         window.clearTimeout(draftAutosaveTimeoutRef.current)
         draftAutosaveTimeoutRef.current = null

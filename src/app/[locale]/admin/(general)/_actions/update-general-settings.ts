@@ -27,7 +27,7 @@ const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp
 const MAX_PWA_ICON_FILE_SIZE = 2 * 1024 * 1024
 const ACCEPTED_PWA_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
 const MAX_TERMS_OF_SERVICE_PDF_FILE_SIZE = 2 * 1024 * 1024
-const GEOBLOCK_SYNC_URL = 'https://geoblock.kuest.com/'
+const GEOBLOCK_SYNC_URL = process.env.GEOBLOCK_URL!
 const { resolveSiteUrl } = siteUrlUtils
 
 export interface GeneralSettingsActionState {
