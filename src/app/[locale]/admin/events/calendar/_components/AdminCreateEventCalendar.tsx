@@ -22,7 +22,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from '@/i18n/navigation'
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import { expandEventCreationOccurrences } from '@/lib/event-creation'
@@ -312,6 +321,7 @@ function useCreateEventCalendarState() {
 }
 
 export default function AdminCreateEventCalendar() {
+  const isMobile = useIsMobile()
   const {
     router,
     backendDrafts,
@@ -528,6 +538,223 @@ export default function AdminCreateEventCalendar() {
     }
   }
 
+  const newEventDialogDescription = (
+    <>
+      Selected resolution date:
+      {' '}
+      {formatStartAtLabel(selectedStartAt)}
+    </>
+  )
+
+  const newEventDialogActions = (
+    <div className="grid gap-3">
+      <Button
+        type="button"
+        className="h-auto w-full justify-start py-3 text-left whitespace-normal"
+        disabled={isCreatingDraft}
+        onClick={() => void createDraftAndOpen('single')}
+      >
+        <span>
+          <span className="block font-medium">Unique event</span>
+          <span className="block text-xs text-primary-foreground/80">
+            Use this date as the resolution date for a one-off event.
+          </span>
+        </span>
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        className="h-auto w-full justify-start py-3 text-left whitespace-normal"
+        disabled={isCreatingDraft || serverSignerAvailability === 'loading'}
+        onClick={() => {
+          if (serverSignerAvailability === 'missing') {
+            handleBlockedRecurringAccess()
+            return
+          }
+
+          void createDraftAndOpen('recurring')
+        }}
+      >
+        <span>
+          <span className="block font-medium">Recurring event</span>
+          <span className="block text-xs text-muted-foreground">
+            Use this date as the first resolution date for the recurring schedule.
+          </span>
+        </span>
+      </Button>
+    </div>
+  )
+
+  const recurringWalletDescription = (
+    <>
+      Recurring events require adding the creator wallet private key to
+      {' '}
+      <code>EVENT_CREATION_SIGNER_PRIVATE_KEYS</code>
+      {' '}
+      in Vercel Environment Variables or your project&apos;s
+      {' '}
+      <code>.env</code>
+      {' '}
+      before you can create or edit recurring drafts.
+    </>
+  )
+
+  const draftsDialogContent = (
+    <div className="grid gap-3">
+      {isLoadingDrafts && (
+        <p className="text-sm text-muted-foreground">
+          Loading drafts...
+        </p>
+      )}
+
+      {!isLoadingDrafts && (
+        <div className="grid max-h-[420px] gap-3 overflow-y-auto pr-1">
+          {backendDrafts.map((draft) => {
+            const displayTitle = getDraftDisplayTitle(draft)
+
+            return (
+              <Card key={draft.id} className="border bg-transparent shadow-none">
+                <CardContent className="flex items-center gap-3 p-3">
+                  {draft.imageUrl
+                    ? (
+                        <EventIconImage
+                          src={draft.imageUrl}
+                          alt={displayTitle}
+                          sizes="56px"
+                          containerClassName="size-14 shrink-0 rounded-lg border"
+                        />
+                      )
+                    : (
+                        <div className={COPY_EVENT_FALLBACK_ICON_CLASS_NAME}>
+                          <ImageIcon className="size-5" />
+                        </div>
+                      )}
+
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="truncate font-medium text-foreground">{displayTitle}</p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span>{draft.startAt ? formatDraftDateLabel(draft.startAt) : 'No calendar slot yet'}</span>
+                      <span className="rounded-sm border border-border/70 px-1.5 py-0.5">
+                        {getDraftModeLabel(draft.creationMode)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-md"
+                      aria-label="Edit draft"
+                      onClick={() => openServerDraft(draft.id, draft.creationMode, draft.startAt)}
+                    >
+                      <SquarePenIcon className="size-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-md text-destructive hover:text-destructive"
+                      aria-label="Delete draft"
+                      disabled={deletingDraftId === draft.id}
+                      onClick={() => void handleDeleteBackendDraft(draft.id)}
+                    >
+                      <Trash2Icon className="size-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      {!isLoadingDrafts && backendDrafts.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No drafts available yet.
+        </p>
+      )}
+    </div>
+  )
+
+  const copyDialogContent = (
+    <div className="grid gap-3">
+      <Input
+        value={copySearch}
+        onChange={event => setCopySearch(event.target.value)}
+        placeholder="Search by title or slug"
+      />
+
+      {isSearchingCopy && (
+        <p className="text-sm text-muted-foreground">
+          Searching...
+        </p>
+      )}
+
+      {!isSearchingCopy && copySearch.trim() && copyResults.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No events found.
+        </p>
+      )}
+
+      {!isSearchingCopy && copyResults.length > 0 && (
+        <div className="grid max-h-[280px] gap-2 overflow-y-auto pr-1">
+          {copyResults.map((result) => {
+            const eventIconUrl = result.icon_url?.trim() || ''
+
+            return (
+              <Card key={result.id} className="border bg-transparent shadow-none">
+                <CardContent className="flex items-center gap-3 p-3">
+                  <div className="shrink-0">
+                    {eventIconUrl
+                      ? (
+                          <EventIconImage
+                            src={eventIconUrl}
+                            alt={result.title}
+                            sizes="48px"
+                            containerClassName="size-12 rounded-lg border"
+                          />
+                        )
+                      : (
+                          <div className={cn(`
+                            flex size-12 items-center justify-center rounded-lg border text-muted-foreground
+                          `)}
+                          >
+                            <ImageIcon className="size-5" />
+                          </div>
+                        )}
+                  </div>
+
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="truncate text-sm font-medium text-foreground" title={result.title}>
+                      {result.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {result.end_date ? formatDraftDateLabel(result.end_date) : result.slug}
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-md"
+                    aria-label="Clone event into draft"
+                    disabled={isCreatingDraft}
+                    onClick={() => void createDraftAndOpen('single', result.end_date ?? undefined, result.id)}
+                  >
+                    <CopyIcon className="size-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <>
       <section className="grid gap-4">
@@ -594,255 +821,135 @@ export default function AdminCreateEventCalendar() {
         </div>
       </section>
 
-      <Dialog open={newEventDialogOpen} onOpenChange={setNewEventDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Event</DialogTitle>
-            <DialogDescription>
-              Selected resolution date:
-              {' '}
-              {formatStartAtLabel(selectedStartAt)}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3">
-            <Button
-              type="button"
-              className="h-auto justify-start py-3"
-              disabled={isCreatingDraft}
-              onClick={() => void createDraftAndOpen('single')}
-            >
-              <span className="text-left">
-                <span className="block font-medium">Unique event</span>
-                <span className="block text-xs text-primary-foreground/80">
-                  Use this date as the resolution date for a one-off event.
-                </span>
-              </span>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-auto justify-start py-3"
-              disabled={isCreatingDraft || serverSignerAvailability === 'loading'}
-              onClick={() => {
-                if (serverSignerAvailability === 'missing') {
-                  handleBlockedRecurringAccess()
-                  return
-                }
+      {isMobile
+        ? (
+            <Drawer open={newEventDialogOpen} onOpenChange={setNewEventDialogOpen}>
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <div className="grid gap-4">
+                  <DrawerHeader className="space-y-2 p-0 text-left">
+                    <DrawerTitle>Create Event</DrawerTitle>
+                    <DrawerDescription>{newEventDialogDescription}</DrawerDescription>
+                  </DrawerHeader>
+                  {newEventDialogActions}
+                  <DrawerFooter className="mt-2 p-0">
+                    <Button type="button" variant="ghost" onClick={() => setNewEventDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                  </DrawerFooter>
+                </div>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog open={newEventDialogOpen} onOpenChange={setNewEventDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Event</DialogTitle>
+                  <DialogDescription>{newEventDialogDescription}</DialogDescription>
+                </DialogHeader>
+                {newEventDialogActions}
+                <DialogFooter>
+                  <Button type="button" variant="ghost" onClick={() => setNewEventDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
 
-                void createDraftAndOpen('recurring')
-              }}
-            >
-              <span className="text-left">
-                <span className="block font-medium">Recurring event</span>
-                <span className="block text-xs text-muted-foreground">
-                  Use this date as the first resolution date for the recurring schedule.
-                </span>
-              </span>
-            </Button>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setNewEventDialogOpen(false)}>
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {isMobile
+        ? (
+            <Drawer open={recurringWalletSetupDialogOpen} onOpenChange={setRecurringWalletSetupDialogOpen}>
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <div className="grid gap-4">
+                  <DrawerHeader className="space-y-2 p-0 text-left">
+                    <DrawerTitle>Server Wallet Required</DrawerTitle>
+                    <DrawerDescription>{recurringWalletDescription}</DrawerDescription>
+                  </DrawerHeader>
+                  <DrawerFooter className="mt-2 p-0">
+                    <Button type="button" variant="outline" onClick={() => setRecurringWalletSetupDialogOpen(false)}>
+                      Close
+                    </Button>
+                  </DrawerFooter>
+                </div>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog open={recurringWalletSetupDialogOpen} onOpenChange={setRecurringWalletSetupDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Server Wallet Required</DialogTitle>
+                  <DialogDescription>{recurringWalletDescription}</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setRecurringWalletSetupDialogOpen(false)}>
+                    Close
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
 
-      <Dialog open={recurringWalletSetupDialogOpen} onOpenChange={setRecurringWalletSetupDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Server Wallet Required</DialogTitle>
-            <DialogDescription>
-              Recurring events require adding the creator wallet private key to
-              {' '}
-              <code>EVENT_CREATION_SIGNER_PRIVATE_KEYS</code>
-              {' '}
-              in Vercel Environment Variables or your project&apos;s
-              {' '}
-              <code>.env</code>
-              {' '}
-              before you can create or edit recurring drafts.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setRecurringWalletSetupDialogOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {isMobile
+        ? (
+            <Drawer open={draftsDialogOpen} onOpenChange={setDraftsDialogOpen}>
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <div className="grid gap-4">
+                  <DrawerHeader className="space-y-2 p-0 text-left">
+                    <DrawerTitle>Drafts</DrawerTitle>
+                    <DrawerDescription>
+                      Resume or delete saved drafts.
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  {draftsDialogContent}
+                </div>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog open={draftsDialogOpen} onOpenChange={setDraftsDialogOpen}>
+              <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Drafts</DialogTitle>
+                  <DialogDescription>
+                    Resume or delete saved drafts.
+                  </DialogDescription>
+                </DialogHeader>
+                {draftsDialogContent}
+              </DialogContent>
+            </Dialog>
+          )}
 
-      <Dialog open={draftsDialogOpen} onOpenChange={setDraftsDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Drafts</DialogTitle>
-            <DialogDescription>
-              Resume or delete saved drafts.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3">
-            {isLoadingDrafts && (
-              <p className="text-sm text-muted-foreground">
-                Loading drafts...
-              </p>
-            )}
-
-            {!isLoadingDrafts && (
-              <div className="grid max-h-[420px] gap-3 overflow-y-auto pr-1">
-                {backendDrafts.map((draft) => {
-                  const displayTitle = getDraftDisplayTitle(draft)
-
-                  return (
-                    <Card key={draft.id} className="border bg-transparent shadow-none">
-                      <CardContent className="flex items-center gap-3 p-3">
-                        {draft.imageUrl
-                          ? (
-                              <EventIconImage
-                                src={draft.imageUrl}
-                                alt={displayTitle}
-                                sizes="56px"
-                                containerClassName="size-14 shrink-0 rounded-lg border"
-                              />
-                            )
-                          : (
-                              <div className={COPY_EVENT_FALLBACK_ICON_CLASS_NAME}>
-                                <ImageIcon className="size-5" />
-                              </div>
-                            )}
-
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <p className="truncate font-medium text-foreground">{displayTitle}</p>
-                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            <span>{draft.startAt ? formatDraftDateLabel(draft.startAt) : 'No calendar slot yet'}</span>
-                            <span className="rounded-sm border border-border/70 px-1.5 py-0.5">
-                              {getDraftModeLabel(draft.creationMode)}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="rounded-md"
-                            aria-label="Edit draft"
-                            onClick={() => openServerDraft(draft.id, draft.creationMode, draft.startAt)}
-                          >
-                            <SquarePenIcon className="size-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="rounded-md text-destructive hover:text-destructive"
-                            aria-label="Delete draft"
-                            disabled={deletingDraftId === draft.id}
-                            onClick={() => void handleDeleteBackendDraft(draft.id)}
-                          >
-                            <Trash2Icon className="size-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            )}
-
-            {!isLoadingDrafts && backendDrafts.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No drafts available yet.
-              </p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Clone Existing Event</DialogTitle>
-            <DialogDescription>
-              Search an existing event and generate a new draft from it.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3">
-            <Input
-              value={copySearch}
-              onChange={event => setCopySearch(event.target.value)}
-              placeholder="Search by title or slug"
-            />
-
-            {isSearchingCopy && (
-              <p className="text-sm text-muted-foreground">
-                Searching...
-              </p>
-            )}
-
-            {!isSearchingCopy && copySearch.trim() && copyResults.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No events found.
-              </p>
-            )}
-
-            {!isSearchingCopy && copyResults.length > 0 && (
-              <div className="grid max-h-[280px] gap-2 overflow-y-auto pr-1">
-                {copyResults.map((result) => {
-                  const eventIconUrl = result.icon_url?.trim() || ''
-
-                  return (
-                    <Card key={result.id} className="border bg-transparent shadow-none">
-                      <CardContent className="flex items-center gap-3 p-3">
-                        <div className="shrink-0">
-                          {eventIconUrl
-                            ? (
-                                <EventIconImage
-                                  src={eventIconUrl}
-                                  alt={result.title}
-                                  sizes="48px"
-                                  containerClassName="size-12 rounded-lg border"
-                                />
-                              )
-                            : (
-                                <div className={cn(`
-                                  flex size-12 items-center justify-center rounded-lg border text-muted-foreground
-                                `)}
-                                >
-                                  <ImageIcon className="size-5" />
-                                </div>
-                              )}
-                        </div>
-
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <p className="truncate text-sm font-medium text-foreground" title={result.title}>
-                            {result.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {result.end_date ? formatDraftDateLabel(result.end_date) : result.slug}
-                          </p>
-                        </div>
-
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="rounded-md"
-                          aria-label="Clone event into draft"
-                          disabled={isCreatingDraft}
-                          onClick={() => void createDraftAndOpen('single', result.end_date ?? undefined, result.id)}
-                        >
-                          <CopyIcon className="size-4" />
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {isMobile
+        ? (
+            <Drawer open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <div className="grid gap-4">
+                  <DrawerHeader className="space-y-2 p-0 text-left">
+                    <DrawerTitle>Clone Existing Event</DrawerTitle>
+                    <DrawerDescription>
+                      Search an existing event and generate a new draft from it.
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  {copyDialogContent}
+                </div>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Clone Existing Event</DialogTitle>
+                  <DialogDescription>
+                    Search an existing event and generate a new draft from it.
+                  </DialogDescription>
+                </DialogHeader>
+                {copyDialogContent}
+              </DialogContent>
+            </Dialog>
+          )}
 
       <style jsx global>
         {`

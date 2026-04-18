@@ -23,12 +23,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface AdminEventsTableProps {
   initialAutoDeployNewEventsEnabled: boolean
@@ -434,6 +443,7 @@ export default function AdminEventsTable({
   mainCategoryOptions,
 }: AdminEventsTableProps) {
   const t = useExtracted()
+  const isMobile = useIsMobile()
   const {
     events,
     totalCount,
@@ -560,6 +570,176 @@ export default function AdminEventsTable({
   )
 
   const sportsFinalGameDateLabel = formatDayMonthLabel(resolveGameDateFromAdminEvent(sportsFinalEvent))
+  const sportsFinalTeams = sportsFinalEvent ? parseMatchTeamsFromTitle(sportsFinalEvent.title) : null
+
+  const filtersFormFields = (
+    <div className="grid gap-4 py-2">
+      <div className="grid gap-2">
+        <Label>{t('Main category')}</Label>
+        <Select value={draftMainCategorySlug} onValueChange={setDraftMainCategorySlug}>
+          <SelectTrigger className="h-10 w-full">
+            <SelectValue placeholder={t('Main category')} />
+          </SelectTrigger>
+          <SelectContent align="start" className="py-1">
+            <SelectItem value="all" className="mx-1 my-0.5 cursor-pointer rounded-md">{t('All categories')}</SelectItem>
+            {mainCategoryOptions.map(category => (
+              <SelectItem
+                key={category.slug}
+                value={category.slug}
+                className="mx-1 my-0.5 cursor-pointer rounded-md"
+              >
+                {category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {creatorOptions.length > 1 && (
+        <div className="grid gap-2">
+          <Label>{t('Creator')}</Label>
+          <Select value={draftCreator} onValueChange={setDraftCreator}>
+            <SelectTrigger className="h-10 w-full">
+              <SelectValue placeholder={t('Creator')} />
+            </SelectTrigger>
+            <SelectContent align="start" className="py-1">
+              <SelectItem value="all" className="mx-1 my-0.5 cursor-pointer rounded-md">{t('All creators')}</SelectItem>
+              {creatorOptions.map(creatorWallet => (
+                <SelectItem
+                  key={creatorWallet}
+                  value={creatorWallet}
+                  className="mx-1 my-0.5 cursor-pointer rounded-md font-mono text-xs"
+                >
+                  {creatorWallet}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {seriesOptions.length > 0 && (
+        <div className="grid gap-2">
+          <Label>{t('Series')}</Label>
+          <Select value={draftSeriesSlug} onValueChange={setDraftSeriesSlug}>
+            <SelectTrigger className="h-10 w-full">
+              <SelectValue placeholder={t('Series')} />
+            </SelectTrigger>
+            <SelectContent align="start" className="py-1">
+              <SelectItem value="all" className="mx-1 my-0.5 cursor-pointer rounded-md">{t('All series')}</SelectItem>
+              {seriesOptions.map(seriesOption => (
+                <SelectItem
+                  key={seriesOption}
+                  value={seriesOption}
+                  className="mx-1 my-0.5 cursor-pointer rounded-md"
+                >
+                  {seriesOption}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+    </div>
+  )
+
+  const settingsFormFields = (
+    <div className="grid gap-4 py-2">
+      <div className="grid gap-1">
+        <div className="flex items-center gap-2">
+          <Switch
+            id="auto-deploy-events"
+            checked={draftAutoDeployEnabled}
+            onCheckedChange={setDraftAutoDeployEnabled}
+            disabled={isSavingSettings}
+          />
+          <Label htmlFor="auto-deploy-events" className="text-sm font-medium">
+            {t('Auto-deploy new events')}
+          </Label>
+        </div>
+        <div className="grid gap-1">
+          <p className="text-xs text-muted-foreground">
+            {t('When disabled, new synced events stay hidden until manually enabled in this list.')}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+
+  const livestreamFormFields = (
+    <div className="grid gap-4 py-2">
+      <div className="grid gap-2">
+        <Label htmlFor="event-livestream-url">
+          {t('Livestream URL')}
+        </Label>
+        <Input
+          id="event-livestream-url"
+          type="url"
+          placeholder="https://example.com/live"
+          value={livestreamUrlValue}
+          onChange={event => setLivestreamUrlValue(event.target.value)}
+          disabled={isSavingLivestream}
+        />
+        {livestreamEvent && (
+          <p className="text-xs text-muted-foreground">
+            {livestreamEvent.title}
+          </p>
+        )}
+      </div>
+      {livestreamError && <InputError message={livestreamError} />}
+    </div>
+  )
+
+  const sportsFinalFormFields = (
+    <div className="grid gap-4 py-2">
+      <div className="grid gap-2">
+        <Label>{t('Score')}</Label>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+          <Input
+            id="event-sports-score-home"
+            type="number"
+            min={0}
+            step={1}
+            inputMode="numeric"
+            placeholder="0"
+            value={sportsScoreHomeValue}
+            onChange={event => setSportsScoreHomeValue(event.target.value)}
+            disabled={isSavingSportsFinal}
+          />
+          <span className="text-sm font-semibold text-muted-foreground">-</span>
+          <Input
+            id="event-sports-score-away"
+            type="number"
+            min={0}
+            step={1}
+            inputMode="numeric"
+            placeholder="0"
+            value={sportsScoreAwayValue}
+            onChange={event => setSportsScoreAwayValue(event.target.value)}
+            disabled={isSavingSportsFinal}
+          />
+        </div>
+        {sportsFinalTeams && (
+          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+            <span className="truncate">{sportsFinalTeams.home}</span>
+            <span className="truncate text-right">{sportsFinalTeams.away}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Switch
+          id="event-sports-ended"
+          checked={sportsEndedValue}
+          onCheckedChange={setSportsEndedValue}
+          disabled={isSavingSportsFinal}
+        />
+        <Label htmlFor="event-sports-ended">{t('Ended')}</Label>
+      </div>
+
+      {sportsFinalError && <InputError message={sportsFinalError} />}
+    </div>
+  )
 
   return (
     <>
@@ -601,305 +781,305 @@ export default function AdminEventsTable({
         searchLeadingIcon={<SearchIcon className="size-4" />}
       />
 
-      <Dialog
-        open={filtersOpen}
-        onOpenChange={(open) => {
-          if (open) {
-            setFiltersOpen(true)
-            return
-          }
-          setFiltersOpen(false)
-        }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t('Filters')}</DialogTitle>
-          </DialogHeader>
-
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-2">
-              <Label>{t('Main category')}</Label>
-              <Select value={draftMainCategorySlug} onValueChange={setDraftMainCategorySlug}>
-                <SelectTrigger className="h-10 w-full">
-                  <SelectValue placeholder={t('Main category')} />
-                </SelectTrigger>
-                <SelectContent align="start" className="py-1">
-                  <SelectItem value="all" className="mx-1 my-0.5 cursor-pointer rounded-md">{t('All categories')}</SelectItem>
-                  {mainCategoryOptions.map(category => (
-                    <SelectItem
-                      key={category.slug}
-                      value={category.slug}
-                      className="mx-1 my-0.5 cursor-pointer rounded-md"
-                    >
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {creatorOptions.length > 1 && (
-              <div className="grid gap-2">
-                <Label>{t('Creator')}</Label>
-                <Select value={draftCreator} onValueChange={setDraftCreator}>
-                  <SelectTrigger className="h-10 w-full">
-                    <SelectValue placeholder={t('Creator')} />
-                  </SelectTrigger>
-                  <SelectContent align="start" className="py-1">
-                    <SelectItem value="all" className="mx-1 my-0.5 cursor-pointer rounded-md">{t('All creators')}</SelectItem>
-                    {creatorOptions.map(creatorWallet => (
-                      <SelectItem
-                        key={creatorWallet}
-                        value={creatorWallet}
-                        className="mx-1 my-0.5 cursor-pointer rounded-md font-mono text-xs"
-                      >
-                        {creatorWallet}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {seriesOptions.length > 0 && (
-              <div className="grid gap-2">
-                <Label>{t('Series')}</Label>
-                <Select value={draftSeriesSlug} onValueChange={setDraftSeriesSlug}>
-                  <SelectTrigger className="h-10 w-full">
-                    <SelectValue placeholder={t('Series')} />
-                  </SelectTrigger>
-                  <SelectContent align="start" className="py-1">
-                    <SelectItem value="all" className="mx-1 my-0.5 cursor-pointer rounded-md">{t('All series')}</SelectItem>
-                    {seriesOptions.map(seriesOption => (
-                      <SelectItem
-                        key={seriesOption}
-                        value={seriesOption}
-                        className="mx-1 my-0.5 cursor-pointer rounded-md"
-                      >
-                        {seriesOption}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setFiltersOpen(false)}>
-              {t('Cancel')}
-            </Button>
-            <Button type="button" onClick={handleApplyFilters}>
-              {t('Apply')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={settingsOpen}
-        onOpenChange={(open) => {
-          if (open) {
-            setSettingsOpen(true)
-            return
-          }
-          handleCloseSettings()
-        }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t('Events settings')}</DialogTitle>
-          </DialogHeader>
-
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-1">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="auto-deploy-events"
-                  checked={draftAutoDeployEnabled}
-                  onCheckedChange={setDraftAutoDeployEnabled}
-                  disabled={isSavingSettings}
-                />
-                <Label htmlFor="auto-deploy-events" className="text-sm font-medium">
-                  {t('Auto-deploy new events')}
-                </Label>
-              </div>
-              <div className="grid gap-1">
-                <p className="text-xs text-muted-foreground">
-                  {t('When disabled, new synced events stay hidden until manually enabled in this list.')}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              onClick={() => {
-                void handleSaveSettings()
+      {isMobile
+        ? (
+            <Drawer
+              open={filtersOpen}
+              onOpenChange={(open) => {
+                if (open) {
+                  setFiltersOpen(true)
+                  return
+                }
+                setFiltersOpen(false)
               }}
-              disabled={isSavingSettings}
             >
-              {isSavingSettings ? t('Saving...') : t('Save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={Boolean(livestreamEvent)}
-        onOpenChange={(open) => {
-          if (open) {
-            return
-          }
-          handleCloseLivestreamModal()
-        }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {livestreamEvent?.livestream_url ? t('Edit livestream URL') : t('Add livestream URL')}
-            </DialogTitle>
-            <DialogDescription>
-              {t('Configure the livestream URL for this event. Leave empty to remove it.')}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-2">
-              <Label htmlFor="event-livestream-url">
-                {t('Livestream URL')}
-              </Label>
-              <Input
-                id="event-livestream-url"
-                type="url"
-                placeholder="https://example.com/live"
-                value={livestreamUrlValue}
-                onChange={event => setLivestreamUrlValue(event.target.value)}
-                disabled={isSavingLivestream}
-              />
-              {livestreamEvent && (
-                <p className="text-xs text-muted-foreground">
-                  {livestreamEvent.title}
-                </p>
-              )}
-            </div>
-            {livestreamError && <InputError message={livestreamError} />}
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCloseLivestreamModal}
-              disabled={isSavingLivestream}
-            >
-              {t('Cancel')}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                void handleSaveLivestreamUrl()
-              }}
-              disabled={isSavingLivestream}
-            >
-              {isSavingLivestream ? t('Saving...') : t('Save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={Boolean(sportsFinalEvent)}
-        onOpenChange={(open) => {
-          if (open) {
-            return
-          }
-          handleCloseSportsFinalModal()
-        }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t('Sports final status')}</DialogTitle>
-            {sportsFinalEvent && (
-              <p className="text-sm text-muted-foreground">
-                {sportsFinalEvent.title}
-                {sportsFinalGameDateLabel ? ` (${sportsFinalGameDateLabel})` : ''}
-              </p>
-            )}
-          </DialogHeader>
-
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-2">
-              <Label>{t('Score')}</Label>
-              <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-                <Input
-                  id="event-sports-score-home"
-                  type="number"
-                  min={0}
-                  step={1}
-                  inputMode="numeric"
-                  placeholder="0"
-                  value={sportsScoreHomeValue}
-                  onChange={event => setSportsScoreHomeValue(event.target.value)}
-                  disabled={isSavingSportsFinal}
-                />
-                <span className="text-sm font-semibold text-muted-foreground">-</span>
-                <Input
-                  id="event-sports-score-away"
-                  type="number"
-                  min={0}
-                  step={1}
-                  inputMode="numeric"
-                  placeholder="0"
-                  value={sportsScoreAwayValue}
-                  onChange={event => setSportsScoreAwayValue(event.target.value)}
-                  disabled={isSavingSportsFinal}
-                />
-              </div>
-              {sportsFinalEvent && (
-                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                  <span className="truncate">{parseMatchTeamsFromTitle(sportsFinalEvent.title).home}</span>
-                  <span className="truncate text-right">{parseMatchTeamsFromTitle(sportsFinalEvent.title).away}</span>
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <div className="grid gap-4">
+                  <DrawerHeader className="space-y-2 p-0 text-left">
+                    <DrawerTitle>{t('Filters')}</DrawerTitle>
+                  </DrawerHeader>
+                  {filtersFormFields}
+                  <DrawerFooter className="mt-2 p-0">
+                    <Button type="button" variant="outline" onClick={() => setFiltersOpen(false)}>
+                      {t('Cancel')}
+                    </Button>
+                    <Button type="button" onClick={handleApplyFilters}>
+                      {t('Apply')}
+                    </Button>
+                  </DrawerFooter>
                 </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Switch
-                id="event-sports-ended"
-                checked={sportsEndedValue}
-                onCheckedChange={setSportsEndedValue}
-                disabled={isSavingSportsFinal}
-              />
-              <Label htmlFor="event-sports-ended">{t('Ended')}</Label>
-            </div>
-
-            {sportsFinalError && <InputError message={sportsFinalError} />}
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCloseSportsFinalModal}
-              disabled={isSavingSportsFinal}
-            >
-              {t('Cancel')}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                void handleSaveSportsFinalState()
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog
+              open={filtersOpen}
+              onOpenChange={(open) => {
+                if (open) {
+                  setFiltersOpen(true)
+                  return
+                }
+                setFiltersOpen(false)
               }}
-              disabled={isSavingSportsFinal}
             >
-              {isSavingSportsFinal ? t('Saving...') : t('Save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{t('Filters')}</DialogTitle>
+                </DialogHeader>
+                {filtersFormFields}
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setFiltersOpen(false)}>
+                    {t('Cancel')}
+                  </Button>
+                  <Button type="button" onClick={handleApplyFilters}>
+                    {t('Apply')}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+
+      {isMobile
+        ? (
+            <Drawer
+              open={settingsOpen}
+              onOpenChange={(open) => {
+                if (open) {
+                  setSettingsOpen(true)
+                  return
+                }
+                handleCloseSettings()
+              }}
+            >
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <div className="grid gap-4">
+                  <DrawerHeader className="space-y-2 p-0 text-left">
+                    <DrawerTitle>{t('Events settings')}</DrawerTitle>
+                  </DrawerHeader>
+                  {settingsFormFields}
+                  <DrawerFooter className="mt-2 p-0">
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        void handleSaveSettings()
+                      }}
+                      disabled={isSavingSettings}
+                    >
+                      {isSavingSettings ? t('Saving...') : t('Save')}
+                    </Button>
+                  </DrawerFooter>
+                </div>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog
+              open={settingsOpen}
+              onOpenChange={(open) => {
+                if (open) {
+                  setSettingsOpen(true)
+                  return
+                }
+                handleCloseSettings()
+              }}
+            >
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{t('Events settings')}</DialogTitle>
+                </DialogHeader>
+                {settingsFormFields}
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      void handleSaveSettings()
+                    }}
+                    disabled={isSavingSettings}
+                  >
+                    {isSavingSettings ? t('Saving...') : t('Save')}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+
+      {isMobile
+        ? (
+            <Drawer
+              open={Boolean(livestreamEvent)}
+              onOpenChange={(open) => {
+                if (open) {
+                  return
+                }
+                handleCloseLivestreamModal()
+              }}
+            >
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <div className="grid gap-4">
+                  <DrawerHeader className="space-y-2 p-0 text-left">
+                    <DrawerTitle>
+                      {livestreamEvent?.livestream_url ? t('Edit livestream URL') : t('Add livestream URL')}
+                    </DrawerTitle>
+                    <DrawerDescription>
+                      {t('Configure the livestream URL for this event. Leave empty to remove it.')}
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  {livestreamFormFields}
+                  <DrawerFooter className="mt-2 p-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCloseLivestreamModal}
+                      disabled={isSavingLivestream}
+                    >
+                      {t('Cancel')}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        void handleSaveLivestreamUrl()
+                      }}
+                      disabled={isSavingLivestream}
+                    >
+                      {isSavingLivestream ? t('Saving...') : t('Save')}
+                    </Button>
+                  </DrawerFooter>
+                </div>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog
+              open={Boolean(livestreamEvent)}
+              onOpenChange={(open) => {
+                if (open) {
+                  return
+                }
+                handleCloseLivestreamModal()
+              }}
+            >
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>
+                    {livestreamEvent?.livestream_url ? t('Edit livestream URL') : t('Add livestream URL')}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {t('Configure the livestream URL for this event. Leave empty to remove it.')}
+                  </DialogDescription>
+                </DialogHeader>
+                {livestreamFormFields}
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCloseLivestreamModal}
+                    disabled={isSavingLivestream}
+                  >
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      void handleSaveLivestreamUrl()
+                    }}
+                    disabled={isSavingLivestream}
+                  >
+                    {isSavingLivestream ? t('Saving...') : t('Save')}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+
+      {isMobile
+        ? (
+            <Drawer
+              open={Boolean(sportsFinalEvent)}
+              onOpenChange={(open) => {
+                if (open) {
+                  return
+                }
+                handleCloseSportsFinalModal()
+              }}
+            >
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <div className="grid gap-4">
+                  <DrawerHeader className="space-y-2 p-0 text-left">
+                    <DrawerTitle>{t('Sports final status')}</DrawerTitle>
+                    {sportsFinalEvent && (
+                      <p className="text-sm text-muted-foreground">
+                        {sportsFinalEvent.title}
+                        {sportsFinalGameDateLabel ? ` (${sportsFinalGameDateLabel})` : ''}
+                      </p>
+                    )}
+                  </DrawerHeader>
+                  {sportsFinalFormFields}
+                  <DrawerFooter className="mt-2 p-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCloseSportsFinalModal}
+                      disabled={isSavingSportsFinal}
+                    >
+                      {t('Cancel')}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        void handleSaveSportsFinalState()
+                      }}
+                      disabled={isSavingSportsFinal}
+                    >
+                      {isSavingSportsFinal ? t('Saving...') : t('Save')}
+                    </Button>
+                  </DrawerFooter>
+                </div>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog
+              open={Boolean(sportsFinalEvent)}
+              onOpenChange={(open) => {
+                if (open) {
+                  return
+                }
+                handleCloseSportsFinalModal()
+              }}
+            >
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{t('Sports final status')}</DialogTitle>
+                  {sportsFinalEvent && (
+                    <p className="text-sm text-muted-foreground">
+                      {sportsFinalEvent.title}
+                      {sportsFinalGameDateLabel ? ` (${sportsFinalGameDateLabel})` : ''}
+                    </p>
+                  )}
+                </DialogHeader>
+                {sportsFinalFormFields}
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCloseSportsFinalModal}
+                    disabled={isSavingSportsFinal}
+                  >
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      void handleSaveSportsFinalState()
+                    }}
+                    disabled={isSavingSportsFinal}
+                  >
+                    {isSavingSportsFinal ? t('Saving...') : t('Save')}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
     </>
   )
 }
