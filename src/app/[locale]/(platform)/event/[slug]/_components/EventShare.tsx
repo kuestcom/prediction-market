@@ -1,4 +1,5 @@
 import type { Event } from '@/types'
+import { useQueryClient } from '@tanstack/react-query'
 import { CheckIcon, ShareIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getMarketSeriesLabel } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
@@ -125,17 +126,7 @@ function useAffiliateToastData({
   affiliateCode: string
   siteName: string
 }) {
-  const [affiliateSharePercent, setAffiliateSharePercent] = useState<number | null>(null)
-  const [tradeFeePercent, setTradeFeePercent] = useState<number | null>(null)
-  const [hasResolvedAffiliateToastData, setHasResolvedAffiliateToastData] = useState(false)
-  const affiliateToastDataRequestRef = useRef<Promise<AffiliateToastData> | null>(null)
-
-  useEffect(function resetAffiliateDataOnCodeChange() {
-    setAffiliateSharePercent(null)
-    setTradeFeePercent(null)
-    setHasResolvedAffiliateToastData(false)
-    affiliateToastDataRequestRef.current = null
-  }, [affiliateCode])
+  const queryClient = useQueryClient()
 
   const ensureAffiliateToastData = useCallback(async (): Promise<AffiliateToastData> => {
     if (!affiliateCode) {
@@ -145,41 +136,23 @@ function useAffiliateToastData({
       }
     }
 
-    if (hasResolvedAffiliateToastData) {
-      return {
-        affiliateSharePercent,
-        tradeFeePercent,
-      }
-    }
-
-    if (affiliateToastDataRequestRef.current) {
-      return affiliateToastDataRequestRef.current
-    }
-
-    const request = fetchAffiliateSettingsFromAPI()
-      .then((result) => {
-        const nextData = parseAffiliateToastData(result)
-        setAffiliateSharePercent(nextData.affiliateSharePercent)
-        setTradeFeePercent(nextData.tradeFeePercent)
-        setHasResolvedAffiliateToastData(result.success)
-        return nextData
-      })
-      .catch(() => {
-        const nextData = {
-          affiliateSharePercent: null,
-          tradeFeePercent: null,
+    return queryClient.fetchQuery({
+      queryKey: ['affiliate-toast-data', affiliateCode],
+      queryFn: async () => {
+        try {
+          const result = await fetchAffiliateSettingsFromAPI()
+          return parseAffiliateToastData(result)
         }
-        setAffiliateSharePercent(nextData.affiliateSharePercent)
-        setTradeFeePercent(nextData.tradeFeePercent)
-        return nextData
-      })
-      .finally(() => {
-        affiliateToastDataRequestRef.current = null
-      })
-
-    affiliateToastDataRequestRef.current = request
-    return request
-  }, [affiliateCode, affiliateSharePercent, hasResolvedAffiliateToastData, tradeFeePercent])
+        catch {
+          return {
+            affiliateSharePercent: null,
+            tradeFeePercent: null,
+          }
+        }
+      },
+      staleTime: Number.POSITIVE_INFINITY,
+    })
+  }, [affiliateCode, queryClient])
 
   function prefetchAffiliateToastData() {
     if (!affiliateCode) {

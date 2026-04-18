@@ -9,7 +9,7 @@ import { Group } from '@visx/group'
 import { scaleLinear, scaleTime } from '@visx/scale'
 import { AreaClosed, LinePath } from '@visx/shape'
 import { CircleHelpIcon, MinusIcon, TriangleIcon } from 'lucide-react'
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import ProfileOverviewCard from '@/app/[locale]/(platform)/_components/ProfileOverviewCard'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Card, CardContent } from '@/components/ui/card'
@@ -119,8 +119,14 @@ function usePnlSeries({
 function usePnlTimeframeIndicator(activeTimeframe: (typeof PNL_TIMEFRAMES)[number]) {
   const timeRangeContainerRef = useRef<HTMLDivElement | null>(null)
   const timeRangeRef = useRef<(HTMLButtonElement | null)[]>([])
-  const [timeRangeIndicator, setTimeRangeIndicator] = useState({ width: 0, left: 0 })
-  const [timeRangeIndicatorReady, setTimeRangeIndicatorReady] = useState(false)
+  const [timeRangeIndicator, setTimeRangeIndicator] = useReducer(
+    (_current: { width: number, left: number }, next: { width: number, left: number }) => next,
+    { width: 0, left: 0 },
+  )
+  const [timeRangeIndicatorReady, setTimeRangeIndicatorReady] = useReducer(
+    (_current: boolean, next: boolean) => next,
+    false,
+  )
 
   const updateIndicator = useCallback(() => {
     const activeIndex = PNL_TIMEFRAMES.findIndex(range => range === activeTimeframe)

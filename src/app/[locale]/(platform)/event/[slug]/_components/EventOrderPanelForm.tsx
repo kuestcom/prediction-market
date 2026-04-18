@@ -148,13 +148,12 @@ function useUserSharesStoreSync({
   makerAddress,
   sharesByCondition,
   aggregatedPositionShares,
-  setUserShares,
 }: {
   makerAddress: string | null
   sharesByCondition: ConditionSharesMap
   aggregatedPositionShares: ConditionSharesMap | null | undefined
-  setUserShares: (shares: ConditionSharesMap, options: { replace: boolean }) => void
 }) {
+  const setUserShares = useOrder(store => store.setUserShares)
   const mergedSharesByCondition = useMemo(() => {
     const merged: ConditionSharesMap = {}
     const keys = new Set([
@@ -761,7 +760,6 @@ export default function EventOrderPanelForm({
   const user = useUser()
   const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
   const state = useOrder()
-  const setUserShares = useOrder(store => store.setUserShares)
   const queryClient = useQueryClient()
   const liveYesPrice = useYesPrice()
   const liveNoPrice = useNoPrice()
@@ -907,7 +905,6 @@ export default function EventOrderPanelForm({
     makerAddress,
     sharesByCondition,
     aggregatedPositionShares,
-    setUserShares,
   })
 
   const conditionTokenShares = activeMarket ? state.userShares[activeMarket.condition_id] : undefined

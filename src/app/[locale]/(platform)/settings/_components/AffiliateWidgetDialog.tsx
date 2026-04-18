@@ -6,7 +6,7 @@ import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -204,47 +204,37 @@ function useSiteSlug(siteName: string) {
 }
 
 function useAffiliateFeeSettings(affiliateCode: string) {
-  const [affiliateSharePercent, setAffiliateSharePercent] = useState<number | null>(null)
-  const [tradeFeePercent, setTradeFeePercent] = useState<number | null>(null)
-
-  useEffect(function loadAffiliateFeeSettings() {
-    if (!affiliateCode) {
-      setAffiliateSharePercent(null)
-      setTradeFeePercent(null)
-      return
-    }
-
-    let isActive = true
-
-    fetchAffiliateSettingsFromAPI()
-      .then((result) => {
-        if (!isActive) {
-          return
+  const feeSettingsQuery = useQuery({
+    queryKey: ['affiliate-widget-fee-settings', affiliateCode],
+    enabled: Boolean(affiliateCode),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      try {
+        const result = await fetchAffiliateSettingsFromAPI()
+        if (!result.success) {
+          return { affiliateSharePercent: null, tradeFeePercent: null }
         }
-        if (result.success) {
-          const shareParsed = Number.parseFloat(result.data.affiliateSharePercent)
-          const feeParsed = Number.parseFloat(result.data.tradeFeePercent)
-          setAffiliateSharePercent(Number.isFinite(shareParsed) && shareParsed > 0 ? shareParsed : null)
-          setTradeFeePercent(Number.isFinite(feeParsed) && feeParsed > 0 ? feeParsed : null)
-        }
-        else {
-          setAffiliateSharePercent(null)
-          setTradeFeePercent(null)
-        }
-      })
-      .catch(() => {
-        if (isActive) {
-          setAffiliateSharePercent(null)
-          setTradeFeePercent(null)
-        }
-      })
 
-    return function cleanupAffiliateFeeSettings() {
-      isActive = false
-    }
-  }, [affiliateCode])
+        const shareParsed = Number.parseFloat(result.data.affiliateSharePercent)
+        const feeParsed = Number.parseFloat(result.data.tradeFeePercent)
 
-  return { affiliateSharePercent, tradeFeePercent }
+        return {
+          affiliateSharePercent: Number.isFinite(shareParsed) && shareParsed > 0 ? shareParsed : null,
+          tradeFeePercent: Number.isFinite(feeParsed) && feeParsed > 0 ? feeParsed : null,
+        }
+      }
+      catch {
+        return { affiliateSharePercent: null, tradeFeePercent: null }
+      }
+    },
+  })
+
+  if (!affiliateCode) {
+    return { affiliateSharePercent: null, tradeFeePercent: null }
+  }
+
+  return feeSettingsQuery.data ?? { affiliateSharePercent: null, tradeFeePercent: null }
 }
 
 function useCategoryMarkets({

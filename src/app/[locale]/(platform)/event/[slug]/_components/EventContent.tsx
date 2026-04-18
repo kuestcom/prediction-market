@@ -265,19 +265,17 @@ function useOrderBootstrapMarketSelection({
   orderBootstrapTargetMarket,
   currentEventId,
   currentMarketId,
-  setMarket,
-  setOutcome,
 }: {
   event: Event
   marketSlug: string | undefined
   orderBootstrapTargetMarket: Event['markets'][number] | null
   currentEventId: string | undefined
   currentMarketId: string | undefined
-  setMarket: (market: Event['markets'][number]) => void
-  setOutcome: (outcome: Event['markets'][number]['outcomes'][number]) => void
 }) {
   const appliedMarketSlugRef = useRef<string | null>(null)
   const appliedEventIdRef = useRef<string | null>(null)
+  const setMarket = useOrder(state => state.setMarket)
+  const setOutcome = useOrder(state => state.setOutcome)
 
   useEffect(function bootstrapOrderMarketSelection() {
     if (!orderBootstrapTargetMarket) {
@@ -400,25 +398,18 @@ function useBackToTopBounds({
 function useAppliedOrderQuerySync({
   resolvedQueryState,
   isMobile,
-  setMarket,
-  setOutcome,
-  setSide,
-  setType,
-  setAmount,
-  setLimitShares,
-  setIsMobileOrderPanelOpen,
 }: {
   resolvedQueryState: ResolvedEventOrderQueryState | null
   isMobile: boolean
-  setMarket: (market: Event['markets'][number]) => void
-  setOutcome: (outcome: Event['markets'][number]['outcomes'][number]) => void
-  setSide: (side: typeof ORDER_SIDE.BUY | typeof ORDER_SIDE.SELL) => void
-  setType: (type: typeof ORDER_TYPE.MARKET | typeof ORDER_TYPE.LIMIT) => void
-  setAmount: (value: string) => void
-  setLimitShares: (value: string) => void
-  setIsMobileOrderPanelOpen: (value: boolean) => void
 }) {
   const appliedOrderParamsRef = useRef<string | null>(null)
+  const setMarket = useOrder(state => state.setMarket)
+  const setOutcome = useOrder(state => state.setOutcome)
+  const setSide = useOrder(state => state.setSide)
+  const setType = useOrder(state => state.setType)
+  const setAmount = useOrder(state => state.setAmount)
+  const setLimitShares = useOrder(state => state.setLimitShares)
+  const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
 
   useEffect(function applyOrderQueryParamsToStore() {
     if (!resolvedQueryState) {
@@ -476,13 +467,6 @@ function useAppliedOrderQuerySync({
 
 function EventOrderQuerySync({ event, marketSlug, isMobile }: EventOrderQuerySyncProps) {
   const searchParams = useSearchParams()
-  const setMarket = useOrder(state => state.setMarket)
-  const setOutcome = useOrder(state => state.setOutcome)
-  const setSide = useOrder(state => state.setSide)
-  const setType = useOrder(state => state.setType)
-  const setAmount = useOrder(state => state.setAmount)
-  const setLimitShares = useOrder(state => state.setLimitShares)
-  const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
   const resolvedQueryState = useMemo(
     () => resolveEventOrderQueryState(event, marketSlug, searchParams),
     [event, marketSlug, searchParams],
@@ -491,13 +475,6 @@ function EventOrderQuerySync({ event, marketSlug, isMobile }: EventOrderQuerySyn
   useAppliedOrderQuerySync({
     resolvedQueryState,
     isMobile,
-    setMarket,
-    setOutcome,
-    setSide,
-    setType,
-    setAmount,
-    setLimitShares,
-    setIsMobileOrderPanelOpen,
   })
 
   return null
@@ -513,8 +490,6 @@ export default function EventContent({
   liveChartConfig = null,
 }: EventContentProps) {
   const t = useExtracted()
-  const setMarket = useOrder(state => state.setMarket)
-  const setOutcome = useOrder(state => state.setOutcome)
   const currentEventId = useOrder(state => state.event?.id)
   const currentMarketId = useOrder(state => state.market?.condition_id)
   const isMobile = useIsMobile()
@@ -559,8 +534,6 @@ export default function EventContent({
     orderBootstrapTargetMarket,
     currentEventId,
     currentMarketId,
-    setMarket,
-    setOutcome,
   })
 
   function handleBackToTop() {

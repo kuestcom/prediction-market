@@ -39,6 +39,10 @@ interface RowSummary {
   total_affiliate_fees: number
 }
 
+function formatIsoUtcFromTimestamp(timestamp: number) {
+  return new Date(timestamp).toISOString()
+}
+
 export default async function AdminSettingsPage({ params }: PageProps<'/[locale]/admin/affiliate'>) {
   const { locale } = await params
   setRequestLocale(locale)
@@ -63,17 +67,19 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
   let updatedAtLabel: string | undefined
   const tradeFeeUpdatedAt = affiliateSettings?.trade_fee_bps?.updated_at
   const shareUpdatedAt = affiliateSettings?.affiliate_share_bps?.updated_at
+  const tradeFeeUpdatedAtMs = tradeFeeUpdatedAt ? Date.parse(tradeFeeUpdatedAt) : Number.NaN
+  const shareUpdatedAtMs = shareUpdatedAt ? Date.parse(shareUpdatedAt) : Number.NaN
   const latestUpdatedAt
-    = tradeFeeUpdatedAt && shareUpdatedAt
-      ? new Date(tradeFeeUpdatedAt) > new Date(shareUpdatedAt)
+    = Number.isFinite(tradeFeeUpdatedAtMs) && Number.isFinite(shareUpdatedAtMs)
+      ? tradeFeeUpdatedAtMs > shareUpdatedAtMs
         ? tradeFeeUpdatedAt
         : shareUpdatedAt
       : tradeFeeUpdatedAt || shareUpdatedAt
 
   if (latestUpdatedAt) {
-    const date = new Date(latestUpdatedAt)
-    if (!Number.isNaN(date.getTime())) {
-      const iso = date.toISOString()
+    const latestUpdatedAtMs = Date.parse(latestUpdatedAt)
+    if (Number.isFinite(latestUpdatedAtMs)) {
+      const iso = formatIsoUtcFromTimestamp(latestUpdatedAtMs)
       updatedAtLabel = `${iso.replace('T', ' ').slice(0, 19)} UTC`
     }
   }

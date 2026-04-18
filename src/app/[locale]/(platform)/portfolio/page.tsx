@@ -13,12 +13,16 @@ export const metadata: Metadata = {
   title: 'Portfolio',
 }
 
+function getFallbackChartEndDate() {
+  return new Date().toISOString()
+}
+
 export default async function PortfolioPage({ params }: PageProps<'/[locale]/portfolio'>) {
   const { locale } = await params
   setRequestLocale(locale)
 
   await connection()
-  const fallbackChartEndDate = new Date().toISOString()
+  const fallbackChartEndDate = getFallbackChartEndDate()
 
   const user = await UserRepository.getCurrentUser()
   const userAddress = user?.proxy_wallet_address ?? ''

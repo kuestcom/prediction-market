@@ -4,7 +4,7 @@ import { useWalletInfo } from '@reown/appkit/react'
 import { Loader2Icon, WalletIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Dialog,
   DialogClose,
@@ -98,21 +98,26 @@ export function SignaturePrompt() {
 
 function useWalletIcon() {
   const { walletInfo } = useWalletInfo()
-  const [walletIconLoadFailed, setWalletIconLoadFailed] = useState(false)
   const walletName = typeof walletInfo?.name === 'string' ? walletInfo.name : undefined
   const walletIconUrl = typeof walletInfo?.icon === 'string' ? walletInfo.icon.trim() : ''
 
-  useEffect(function resetIconLoadFailedOnUrlChange() {
-    setWalletIconLoadFailed(false)
-  }, [walletIconUrl])
-
-  return { walletName, walletIconUrl, walletIconLoadFailed, setWalletIconLoadFailed }
+  return { walletName, walletIconUrl }
 }
 
 function SignatureWalletIcon() {
-  const { walletName, walletIconUrl, walletIconLoadFailed, setWalletIconLoadFailed } = useWalletIcon()
+  const { walletName, walletIconUrl } = useWalletIcon()
 
-  if (!walletIconUrl || walletIconLoadFailed) {
+  if (!walletIconUrl) {
+    return <WalletIcon className="size-16 text-primary" strokeWidth={1.8} />
+  }
+
+  return <WalletIconImage key={walletIconUrl} walletIconUrl={walletIconUrl} walletName={walletName} />
+}
+
+function WalletIconImage({ walletName, walletIconUrl }: { walletName?: string, walletIconUrl: string }) {
+  const [walletIconLoadFailed, setWalletIconLoadFailed] = useState(false)
+
+  if (walletIconLoadFailed) {
     return <WalletIcon className="size-16 text-primary" strokeWidth={1.8} />
   }
 

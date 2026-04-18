@@ -53,10 +53,7 @@ export default async function SportsContent({
       sportsSection: resolvedSportsSection,
     })
 
-    if (error) {
-      console.warn('Failed to fetch initial sports events for static generation:', error)
-    }
-    else {
+    if (!error) {
       initialEvents = events ?? []
     }
   }

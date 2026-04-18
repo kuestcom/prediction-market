@@ -200,7 +200,9 @@ export function formatCompactCurrency(value: number) {
   return formatCurrency(value)
 }
 
-export function formatDate(date: Date): string {
+export function formatDate(dateInput: Date | number): string {
+  const date = typeof dateInput === 'number' ? new Date(dateInput) : dateInput
+
   return date.toLocaleDateString(DEFAULT_LOCALE, {
     month: 'short',
     day: 'numeric',

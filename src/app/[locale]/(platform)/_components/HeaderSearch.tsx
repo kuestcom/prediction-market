@@ -241,7 +241,7 @@ export default function HeaderSearch({
       window.cancelAnimationFrame(blurFrameRef.current)
       blurFrameRef.current = null
     }
-  }, [])
+  }, [blurFrameRef])
 
   useSlashFocusShortcut(inputRef)
   useExternalFocusTrigger(focusTrigger, inputRef)

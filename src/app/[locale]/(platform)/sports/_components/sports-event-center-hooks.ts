@@ -19,7 +19,7 @@ import type { SportsVertical } from '@/lib/sports-vertical'
 import type { UserPosition } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import {
   EMPTY_QUERY_SELECTION,
@@ -76,6 +76,21 @@ import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { resolveOutcomePriceCents, resolveOutcomeSelectionPriceCents } from '@/lib/market-pricing'
 import { formatOddsFromCents } from '@/lib/odds-format'
 
+type ReducerStateAction<T> = T | ((current: T) => T)
+
+function resolveReducerStateAction<T>(current: T, action: ReducerStateAction<T>): T {
+  return typeof action === 'function'
+    ? (action as (value: T) => T)(current)
+    : action
+}
+
+function useReducerState<T>(initialState: T) {
+  return useReducer(
+    (current: T, action: ReducerStateAction<T>) => resolveReducerStateAction(current, action),
+    initialState,
+  )
+}
+
 export function useOddsFormat() {
   return useSyncExternalStore(
     subscribeToOddsFormatStorage,
@@ -95,8 +110,8 @@ export function useSportsSegmentNumberPicker({
 }) {
   const scrollerRef = useRef<HTMLDivElement | null>(null)
   const buttonRefsRef = useRef<Record<string, HTMLButtonElement | null>>({})
-  const [startSpacer, setStartSpacer] = useState(0)
-  const [endSpacer, setEndSpacer] = useState(0)
+  const [startSpacer, setStartSpacer] = useReducerState(0)
+  const [endSpacer, setEndSpacer] = useReducerState(0)
 
   const activeOptionIndex = useMemo(
     () => options.findIndex(option => option.number === activeNumber),
@@ -181,7 +196,7 @@ export function useSportsSegmentNumberPicker({
 
     setStartSpacer(startSpacerWidth)
     setEndSpacer(endSpacerWidth)
-  }, [options])
+  }, [options, setEndSpacer, setStartSpacer])
 
   useEffect(function alignOnActiveOptionChange() {
     if (activeOptionIndex < 0) {
@@ -360,13 +375,13 @@ export function useActiveMarketView({
       ?? normalizedMarketViewCards[0]?.key
       ?? 'gameLines'
   }, [initialMarketViewFromSlug, initialMarketViewKey, normalizedMarketViewCards])
-  const [activeMarketViewKey, setActiveMarketViewKey] = useState<SportsEventMarketViewKey>(resolvedInitialMarketViewKey)
+  const [activeMarketViewKey, setActiveMarketViewKey] = useReducerState<SportsEventMarketViewKey>(resolvedInitialMarketViewKey)
 
   useEffect(function resetActiveMarketViewWhenInitialChanges() {
     setActiveMarketViewKey(resolvedInitialMarketViewKey)
 
     return function noopResetActiveMarketViewCleanup() {}
-  }, [resolvedInitialMarketViewKey])
+  }, [resolvedInitialMarketViewKey, setActiveMarketViewKey])
 
   const activeMarketView = useMemo(
     () => normalizedMarketViewCards.find(view => view.key === activeMarketViewKey)
@@ -420,15 +435,15 @@ export function useEsportsSegmentTabState({
       ? resolveEsportsSegmentTabKey(mapNumber)
       : 'series'
   }, [activeCard.detailMarkets, esportsSegmentTabNumbers, hasEsportsSegmentedLayout, initialMarketSlug])
-  const [activeEsportsSegmentTabKey, setActiveEsportsSegmentTabKey] = useState<EsportsLayoutTabKey>(initialEsportsSegmentTabKey)
+  const [activeEsportsSegmentTabKey, setActiveEsportsSegmentTabKey] = useReducerState<EsportsLayoutTabKey>(initialEsportsSegmentTabKey)
   const activeEsportsSegmentNumber = useMemo(
     () => parseEsportsSegmentTabNumber(activeEsportsSegmentTabKey),
     [activeEsportsSegmentTabKey],
   )
-  const [activeSeriesPreviewSegmentNumber, setActiveSeriesPreviewSegmentNumber] = useState<number | null>(
+  const [activeSeriesPreviewSegmentNumber, setActiveSeriesPreviewSegmentNumber] = useReducerState<number | null>(
     esportsSegmentTabNumbers[0] ?? null,
   )
-  const [activeSeriesSpreadPickerNumber, setActiveSeriesSpreadPickerNumber] = useState<number | null>(
+  const [activeSeriesSpreadPickerNumber, setActiveSeriesSpreadPickerNumber] = useReducerState<number | null>(
     esportsSegmentTabNumbers[0] ?? null,
   )
 
@@ -436,7 +451,7 @@ export function useEsportsSegmentTabState({
     setActiveEsportsSegmentTabKey(initialEsportsSegmentTabKey)
 
     return function noopResetActiveEsportsSegmentTabKeyCleanup() {}
-  }, [initialEsportsSegmentTabKey])
+  }, [initialEsportsSegmentTabKey, setActiveEsportsSegmentTabKey])
 
   useEffect(function clampActiveSeriesPreviewSegmentNumber() {
     setActiveSeriesPreviewSegmentNumber(current => (
@@ -446,7 +461,7 @@ export function useEsportsSegmentTabState({
     ))
 
     return function noopClampActiveSeriesPreviewSegmentNumberCleanup() {}
-  }, [esportsSegmentTabNumbers])
+  }, [esportsSegmentTabNumbers, setActiveSeriesPreviewSegmentNumber])
 
   useEffect(function clampActiveSeriesSpreadPickerNumber() {
     setActiveSeriesSpreadPickerNumber(current => (
@@ -456,7 +471,7 @@ export function useEsportsSegmentTabState({
     ))
 
     return function noopClampActiveSeriesSpreadPickerNumberCleanup() {}
-  }, [esportsSegmentTabNumbers])
+  }, [esportsSegmentTabNumbers, setActiveSeriesSpreadPickerNumber])
 
   return {
     esportsSegmentTabNumbers,
@@ -488,9 +503,9 @@ export function useUserPositionsQuery({ ownerAddress, activeCardId }: { ownerAdd
 }
 
 export function useRedeemModalState(activeCardId: string) {
-  const [claimedConditionIds, setClaimedConditionIds] = useState<Record<string, true>>({})
-  const [redeemSectionKey, setRedeemSectionKey] = useState<EventSectionKey | null>(null)
-  const [redeemDefaultConditionId, setRedeemDefaultConditionId] = useState<string | null>(null)
+  const [claimedConditionIds, setClaimedConditionIds] = useReducerState<Record<string, true>>({})
+  const [redeemSectionKey, setRedeemSectionKey] = useReducerState<EventSectionKey | null>(null)
+  const [redeemDefaultConditionId, setRedeemDefaultConditionId] = useReducerState<string | null>(null)
 
   useEffect(function resetRedeemStateOnCardChange() {
     setClaimedConditionIds(() => (activeCardId ? {} : {}))
@@ -498,7 +513,7 @@ export function useRedeemModalState(activeCardId: string) {
     setRedeemDefaultConditionId(() => (activeCardId ? null : null))
 
     return function noopResetRedeemStateOnCardChangeCleanup() {}
-  }, [activeCardId])
+  }, [activeCardId, setClaimedConditionIds, setRedeemDefaultConditionId, setRedeemSectionKey])
 
   return {
     claimedConditionIds,
@@ -1066,25 +1081,25 @@ export function useSelectionState({
   marketSlugToButtonKey: string | null
   renderedAuxiliaryMarketCards: AuxiliaryMarketPanel[]
 }) {
-  const [selectedButtonBySection, setSelectedButtonBySection] = useState<Record<EventSectionKey, string | null>>({
+  const [selectedButtonBySection, setSelectedButtonBySection] = useReducerState<Record<EventSectionKey, string | null>>({
     moneyline: null,
     spread: null,
     total: null,
     btts: null,
   })
-  const [selectedAuxiliaryButtonByConditionId, setSelectedAuxiliaryButtonByConditionId] = useState<
+  const [selectedAuxiliaryButtonByConditionId, setSelectedAuxiliaryButtonByConditionId] = useReducerState<
     Record<string, string | null>
   >({})
-  const [activeTradeButtonKey, setActiveTradeButtonKey] = useState<string | null>(null)
-  const [openSectionKey, setOpenSectionKey] = useState<EventSectionKey | null>(null)
-  const [openAuxiliaryConditionId, setOpenAuxiliaryConditionId] = useState<string | null>(null)
+  const [activeTradeButtonKey, setActiveTradeButtonKey] = useReducerState<string | null>(null)
+  const [openSectionKey, setOpenSectionKey] = useReducerState<EventSectionKey | null>(null)
+  const [openAuxiliaryConditionId, setOpenAuxiliaryConditionId] = useReducerState<string | null>(null)
   const [tabBySection, setTabBySection] = useState<Record<EventSectionKey, DetailsTab>>({
     moneyline: 'orderBook',
     spread: 'orderBook',
     total: 'orderBook',
     btts: 'orderBook',
   })
-  const [tabByAuxiliaryConditionId, setTabByAuxiliaryConditionId] = useState<Record<string, DetailsTab>>({})
+  const [tabByAuxiliaryConditionId, setTabByAuxiliaryConditionId] = useReducerState<Record<string, DetailsTab>>({})
   const previousCardIdRef = useRef<string | null>(null)
   const appliedMarketSlugSelectionRef = useRef<string | null>(null)
 
@@ -1329,6 +1344,12 @@ export function useSelectionState({
     usesSectionLayout,
     marketSlugToButtonKey,
     renderedAuxiliaryMarketCards,
+    setActiveTradeButtonKey,
+    setOpenAuxiliaryConditionId,
+    setOpenSectionKey,
+    setSelectedAuxiliaryButtonByConditionId,
+    setSelectedButtonBySection,
+    setTabByAuxiliaryConditionId,
   ])
 
   return {

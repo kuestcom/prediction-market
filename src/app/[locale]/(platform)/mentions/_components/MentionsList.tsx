@@ -41,12 +41,11 @@ interface MentionsListItemProps {
 }
 
 function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
-  const parsedEndDate = event.end_date ? new Date(event.end_date) : null
-  const hasValidEndDate = parsedEndDate && !Number.isNaN(parsedEndDate.getTime())
-  const eventDate = hasValidEndDate ? parsedEndDate : null
-  const dayLabel = eventDate ? DAY_FORMATTER.format(eventDate) : 'TBD'
-  const monthLabel = eventDate ? MONTH_FORMATTER.format(eventDate).toUpperCase() : undefined
-  const scheduleLabel = eventDate ? SCHEDULE_FORMATTER.format(eventDate) : undefined
+  const parsedEndTimestamp = event.end_date ? Date.parse(event.end_date) : Number.NaN
+  const eventTimestamp = Number.isFinite(parsedEndTimestamp) ? parsedEndTimestamp : null
+  const dayLabel = eventTimestamp !== null ? DAY_FORMATTER.format(eventTimestamp) : 'TBD'
+  const monthLabel = eventTimestamp !== null ? MONTH_FORMATTER.format(eventTimestamp).toUpperCase() : undefined
+  const scheduleLabel = eventTimestamp !== null ? SCHEDULE_FORMATTER.format(eventTimestamp) : undefined
 
   const marketBadges = event.markets
     .map((market) => {

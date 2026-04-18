@@ -13,19 +13,23 @@ export function useCurrentTimestamp({
 }: UseCurrentTimestampOptions = {}) {
   const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(initialTimestamp)
 
-  useEffect(() => {
-    setCurrentTimestamp(Date.now())
-
+  useEffect(function bindCurrentTimestampInterval() {
     if (!intervalMs || intervalMs <= 0) {
       return
     }
 
-    const interval = window.setInterval(() => {
+    function updateCurrentTimestamp() {
       setCurrentTimestamp(Date.now())
-    }, intervalMs)
+    }
 
-    return () => window.clearInterval(interval)
-  }, [initialTimestamp, intervalMs])
+    const initialTimeout = window.setTimeout(updateCurrentTimestamp, 0)
+    const interval = window.setInterval(updateCurrentTimestamp, intervalMs)
+
+    return function clearCurrentTimestampInterval() {
+      window.clearTimeout(initialTimeout)
+      window.clearInterval(interval)
+    }
+  }, [intervalMs])
 
   return currentTimestamp
 }

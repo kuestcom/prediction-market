@@ -42,9 +42,7 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
         contextWindow: model.contextLength,
       }))
     }
-    catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      console.warn(`Failed to load OpenRouter models: ${errorMessage}`)
+    catch {
       openRouterModelsError = t('Unable to load models from OpenRouter. Please try again later.')
     }
   }

@@ -3,7 +3,7 @@
 import type { ThemeOverrides, ThemeToken } from '@/lib/theme'
 import { ChevronDown } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useLayoutEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { resolveBaseThemeValues, TOKEN_GROUPS } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
 import ColorPickerSwatch from '@/app/[locale]/admin/theme/_components/ColorPickerSwatch'
 import { cn } from '@/lib/utils'
@@ -32,18 +32,10 @@ function ThemeTokenMatrix({
   darkParseError: string | null
 }) {
   const t = useExtracted()
-  const [baseThemeValues, setBaseThemeValues] = useState<{
-    lightValues: ThemeOverrides
-    darkValues: ThemeOverrides
-  }>({
-    lightValues: {},
-    darkValues: {},
-  })
-  const { lightValues: baseLightValues, darkValues: baseDarkValues } = baseThemeValues
-
-  useLayoutEffect(() => {
-    setBaseThemeValues(resolveBaseThemeValues(presetId))
-  }, [presetId])
+  const { lightValues: baseLightValues, darkValues: baseDarkValues } = useMemo(
+    () => resolveBaseThemeValues(presetId),
+    [presetId],
+  )
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initialState: Record<string, boolean> = {}
     TOKEN_GROUPS.forEach((group) => {

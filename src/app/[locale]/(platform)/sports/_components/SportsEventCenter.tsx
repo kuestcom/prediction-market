@@ -418,19 +418,19 @@ export default function SportsEventCenter({
   }
 
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
-  const startDate = heroCard.startTime
-    ? new Date(heroCard.startTime)
+  const parsedStartTimestamp = heroCard.startTime
+    ? Date.parse(heroCard.startTime)
     : heroCard.event.sports_start_time
-      ? new Date(heroCard.event.sports_start_time)
+      ? Date.parse(heroCard.event.sports_start_time)
       : heroCard.event.start_date
-        ? new Date(heroCard.event.start_date)
-        : null
-  const hasValidStartDate = Boolean(startDate && !Number.isNaN(startDate.getTime()))
-  const timeLabel = hasValidStartDate
-    ? new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(startDate as Date)
+        ? Date.parse(heroCard.event.start_date)
+        : Number.NaN
+  const startTimestamp = Number.isFinite(parsedStartTimestamp) ? parsedStartTimestamp : null
+  const timeLabel = startTimestamp !== null
+    ? new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(startTimestamp)
     : 'TBD'
-  const dayLabel = hasValidStartDate
-    ? new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric' }).format(startDate as Date)
+  const dayLabel = startTimestamp !== null
+    ? new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric' }).format(startTimestamp)
     : 'Date TBD'
 
   const team1 = heroCard.teams[0] ?? null
@@ -463,8 +463,8 @@ export default function SportsEventCenter({
   const showFinalScore = heroCard.event.sports_ended === true
   const hasStarted = (
     currentTimestamp != null
-    && hasValidStartDate
-    && (startDate as Date).getTime() <= currentTimestamp
+    && startTimestamp !== null
+    && startTimestamp <= currentTimestamp
   )
   const showLiveScore = !showFinalScore && (heroCard.event.sports_live === true || hasStarted)
   const parsedScore = parseSportsScore(heroCard.event.sports_score)

@@ -3,7 +3,7 @@
 import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { useExtracted, useLocale } from 'next-intl'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSkeleton'
 import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
@@ -97,11 +97,14 @@ function useTabIndicator({
   buttonsWrapperRef: React.RefObject<HTMLDivElement | null>
   buttonRef: React.RefObject<(HTMLButtonElement | null)[]>
 }) {
-  const [backgroundStyle, setBackgroundStyle] = useState<BackgroundStyle>(INITIAL_BACKGROUND_STYLE)
+  const [backgroundStyle, dispatchBackgroundStyle] = useReducer(
+    (_current: BackgroundStyle, next: BackgroundStyle) => next,
+    INITIAL_BACKGROUND_STYLE,
+  )
 
   const updateBackgroundPosition = useCallback(() => {
     if (activeIndex === -1) {
-      setBackgroundStyle({ ...INITIAL_BACKGROUND_STYLE })
+      dispatchBackgroundStyle({ ...INITIAL_BACKGROUND_STYLE })
       return
     }
 
@@ -116,7 +119,7 @@ function useTabIndicator({
       const buttonRect = activeButton.getBoundingClientRect()
       const containerRect = container.getBoundingClientRect()
 
-      setBackgroundStyle({
+      dispatchBackgroundStyle({
         left: buttonRect.left - containerRect.left,
         width: buttonRect.width,
         height: buttonRect.height,

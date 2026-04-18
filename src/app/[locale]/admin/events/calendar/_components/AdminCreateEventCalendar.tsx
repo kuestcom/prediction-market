@@ -9,7 +9,7 @@ import listPlugin from '@fullcalendar/list'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import { CalendarPlusIcon, ClipboardListIcon, CopyIcon, ImageIcon, SquarePenIcon, Trash2Icon } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
@@ -137,8 +137,14 @@ function useCreateEventCalendarState() {
   const [draftsDialogOpen, setDraftsDialogOpen] = useState(false)
   const [copyDialogOpen, setCopyDialogOpen] = useState(false)
   const [copySearch, setCopySearch] = useState('')
-  const [copyResults, setCopyResults] = useState<AdminEventSearchResult[]>([])
-  const [isSearchingCopy, setIsSearchingCopy] = useState(false)
+  const [copyResults, setCopyResults] = useReducer(
+    (_current: AdminEventSearchResult[], next: AdminEventSearchResult[]) => next,
+    [],
+  )
+  const [isSearchingCopy, setIsSearchingCopy] = useReducer(
+    (_current: boolean, next: boolean) => next,
+    false,
+  )
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null)
   const latestCopySearchRequestIdRef = useRef(0)
   const [newEventDialogOpen, setNewEventDialogOpen] = useState(false)

@@ -467,10 +467,10 @@ function MarketOutcomeMetaInformation({ market, currentTimestamp }: { market: Ma
     'This is estimated end date.<br></br>See rules below for specific resolution details.',
     { br: () => ' ' },
   )
-  const maybeEndDate = market.end_time ? new Date(market.end_time) : null
-  const expiryDate = maybeEndDate && !Number.isNaN(maybeEndDate.getTime()) ? maybeEndDate : null
-  const remainingDays = expiryDate && currentTimestamp !== null
-    ? Math.max(0, Math.ceil((expiryDate.getTime() - currentTimestamp) / (24 * 60 * 60 * 1000)))
+  const parsedEndTimestamp = market.end_time ? Date.parse(market.end_time) : Number.NaN
+  const expiryTimestamp = Number.isFinite(parsedEndTimestamp) ? parsedEndTimestamp : null
+  const remainingDays = expiryTimestamp !== null && currentTimestamp !== null
+    ? Math.max(0, Math.ceil((expiryTimestamp - currentTimestamp) / (24 * 60 * 60 * 1000)))
     : null
   const remainingLabel = remainingDays !== null ? t('In {days} days', { days: String(remainingDays) }) : ''
 
@@ -488,15 +488,15 @@ function MarketOutcomeMetaInformation({ market, currentTimestamp }: { market: Ma
       <div className="flex items-center gap-2 text-foreground">
         <span className="text-sm font-semibold text-foreground">{volumeLabel}</span>
       </div>
-      {expiryDate && (
+      {expiryTimestamp !== null && (
         <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />
       )}
-      {expiryDate && (
+      {expiryTimestamp !== null && (
         <Tooltip>
           <TooltipTrigger>
             <div className="flex items-center gap-1.5 text-sm/tight font-semibold text-muted-foreground">
               <Clock3Icon className="size-4 text-muted-foreground" strokeWidth={2.5} />
-              <span>{formatDate(expiryDate)}</span>
+              <span>{formatDate(expiryTimestamp)}</span>
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-64 text-left">

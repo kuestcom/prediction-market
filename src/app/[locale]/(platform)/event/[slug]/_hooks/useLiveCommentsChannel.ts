@@ -2,7 +2,7 @@
 
 import type { Comment, User } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useReducer, useRef } from 'react'
 import { commentMetricsQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
 import { createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
@@ -104,7 +104,10 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
   const isEnabled = enabled ?? true
   const shouldConnect = Boolean(eventSlug && wsUrl && isEnabled)
   const userRef = useRef<User | null>(user)
-  const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>('connecting')
+  const [status, setStatus] = useReducer(
+    (_current: 'connecting' | 'live' | 'offline', next: 'connecting' | 'live' | 'offline') => next,
+    'connecting',
+  )
 
   useEffect(() => {
     userRef.current = user

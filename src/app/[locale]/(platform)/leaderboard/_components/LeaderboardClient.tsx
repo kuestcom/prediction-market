@@ -3,7 +3,7 @@
 import type { Route } from 'next'
 import type { LeaderboardFilters } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import type { BiggestWinEntry, LeaderboardEntry } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useReducer, useState } from 'react'
 import BiggestWinsSidebar from '@/app/[locale]/(platform)/leaderboard/_components/BiggestWinsSidebar'
 import LeaderboardFiltersBar from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardFiltersBar'
 import LeaderboardListRow from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardListRow'
@@ -64,8 +64,14 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
   const [userEntry, setUserEntry] = useState<LeaderboardEntry | null>(null)
   const initialBiggestWinsKey = `${resolveCategoryApiValue(initialFilters.category)}:${resolvePeriodApiValue(initialFilters.period)}`
   const initialBiggestWins = BIGGEST_WINS_CACHE.get(initialBiggestWinsKey) ?? []
-  const [biggestWins, setBiggestWins] = useState<BiggestWinEntry[]>(initialBiggestWins)
-  const [isBiggestWinsLoading, setIsBiggestWinsLoading] = useState(!BIGGEST_WINS_CACHE.has(initialBiggestWinsKey))
+  const [biggestWins, setBiggestWins] = useReducer(
+    (_current: BiggestWinEntry[], next: BiggestWinEntry[]) => next,
+    initialBiggestWins,
+  )
+  const [isBiggestWinsLoading, setIsBiggestWinsLoading] = useReducer(
+    (_current: boolean, next: boolean) => next,
+    !BIGGEST_WINS_CACHE.has(initialBiggestWinsKey),
+  )
   const userAddress = useMemo(
     () => (user?.proxy_wallet_address ?? user?.address ?? '').trim(),
     [user?.address, user?.proxy_wallet_address],

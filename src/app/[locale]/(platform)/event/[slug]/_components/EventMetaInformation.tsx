@@ -102,13 +102,13 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
     : '0.00'
   const volumeLabel = t('{amount} Vol.', { amount: `$${formattedVolume}` })
 
-  const maybeEndDate = event.end_date ? new Date(event.end_date) : null
-  const expiryDate = maybeEndDate && !Number.isNaN(maybeEndDate.getTime()) ? maybeEndDate : null
-  const remainingDays = expiryDate && currentTimestamp !== null
-    ? Math.max(0, Math.ceil((expiryDate.getTime() - currentTimestamp) / (24 * 60 * 60 * 1000)))
+  const parsedEndTimestamp = event.end_date ? Date.parse(event.end_date) : Number.NaN
+  const expiryTimestamp = Number.isFinite(parsedEndTimestamp) ? parsedEndTimestamp : null
+  const remainingDays = expiryTimestamp !== null && currentTimestamp !== null
+    ? Math.max(0, Math.ceil((expiryTimestamp - currentTimestamp) / (24 * 60 * 60 * 1000)))
     : null
   const remainingLabel = remainingDays !== null ? t('In {days} days', { days: String(remainingDays) }) : ''
-  const shouldShowDividerAfterNew = shouldShowNew && (shouldShowMetaBlock || Boolean(expiryDate))
+  const shouldShowDividerAfterNew = shouldShowNew && (shouldShowMetaBlock || expiryTimestamp !== null)
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -175,15 +175,15 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
           {shouldShowVolume && <span className="text-sm font-medium">{volumeLabel}</span>}
         </div>
       )}
-      {shouldShowMetaBlock && expiryDate && (
+      {shouldShowMetaBlock && expiryTimestamp !== null && (
         <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />
       )}
-      {expiryDate && (
+      {expiryTimestamp !== null && (
         <Tooltip>
           <TooltipTrigger>
             <span className="flex items-center gap-1.5 text-sm/tight text-muted-foreground">
               <Clock3Icon className="size-4 text-muted-foreground" strokeWidth={2.5} />
-              <span>{formatDate(expiryDate)}</span>
+              <span>{formatDate(expiryTimestamp)}</span>
             </span>
           </TooltipTrigger>
           <TooltipContent

@@ -2,7 +2,7 @@
 
 import type { Route } from 'next'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { startTransition, useMemo, useOptimistic } from 'react'
 import PortfolioOpenOrdersList from '@/app/[locale]/(platform)/portfolio/_components/PortfolioOpenOrdersList'
 import PublicActivityList from '@/app/[locale]/(platform)/profile/_components/PublicActivityList'
 import PublicPositionsList from '@/app/[locale]/(platform)/profile/_components/PublicPositionsList'
@@ -57,16 +57,17 @@ function usePortfolioTabs() {
     () => resolveTabFromQueryValue(searchParams.get(TAB_QUERY_PARAM)),
     [searchParams],
   )
-  const [activeTab, setActiveTab] = useState<TabType>(activeTabFromQuery)
+  const [activeTab, setOptimisticActiveTab] = useOptimistic<TabType, TabType>(
+    activeTabFromQuery,
+    (_currentTab, nextTab) => nextTab,
+  )
   const tabs = useMemo(() => baseTabs, [])
   const { tabRef, indicatorStyle, isInitialized } = useTabIndicatorPosition({ tabs, activeTab })
 
-  useEffect(function syncActiveTabFromQuery() {
-    setActiveTab(activeTabFromQuery)
-  }, [activeTabFromQuery])
-
   function handleTabChange(nextTab: TabType) {
-    setActiveTab(nextTab)
+    startTransition(() => {
+      setOptimisticActiveTab(nextTab)
+    })
 
     const nextParams = new URLSearchParams(searchParams.toString())
     nextParams.set(TAB_QUERY_PARAM, tabQueryValueByTab[nextTab])
