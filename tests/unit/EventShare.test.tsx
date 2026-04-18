@@ -222,7 +222,7 @@ describe('eventShare', () => {
     })
   })
 
-  it('does not refetch affiliate settings after a failed response', async () => {
+  it('retries affiliate settings after a failed response', async () => {
     const firstResponse = createDeferredPromise<{
       success: false
       error: {
@@ -230,7 +230,19 @@ describe('eventShare', () => {
       }
     }>()
 
-    mocks.fetchAffiliateSettingsFromAPI.mockReturnValueOnce(firstResponse.promise)
+    mocks.fetchAffiliateSettingsFromAPI
+      .mockReturnValueOnce(firstResponse.promise)
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          tradeFeePercent: '1.00',
+          affiliateSharePercent: '40.00',
+          platformSharePercent: '60.00',
+          tradeFeeDecimal: 0.01,
+          affiliateShareDecimal: 0.4,
+          platformShareDecimal: 0.6,
+        },
+      })
 
     renderWithQueryClient(<EventShare event={createEvent()} />)
 
@@ -262,11 +274,11 @@ describe('eventShare', () => {
     await userEvent.click(shareButton)
 
     await waitFor(() => {
-      expect(mocks.fetchAffiliateSettingsFromAPI).toHaveBeenCalledTimes(1)
+      expect(mocks.fetchAffiliateSettingsFromAPI).toHaveBeenCalledTimes(2)
       expect(mocks.maybeShowAffiliateToast).toHaveBeenNthCalledWith(2, {
         affiliateCode: 'abc123',
-        affiliateSharePercent: null,
-        tradeFeePercent: null,
+        affiliateSharePercent: 40,
+        tradeFeePercent: 1,
         siteName: 'Kuest',
         context: 'link',
       })

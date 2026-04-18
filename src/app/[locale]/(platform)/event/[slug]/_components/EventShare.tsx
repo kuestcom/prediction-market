@@ -29,16 +29,16 @@ interface AffiliateToastData {
   tradeFeePercent: number | null
 }
 
-function parseAffiliateToastData(result: Awaited<ReturnType<typeof fetchAffiliateSettingsFromAPI>>): AffiliateToastData {
-  if (!result.success) {
-    return {
-      affiliateSharePercent: null,
-      tradeFeePercent: null,
-    }
+function getEmptyAffiliateToastData(): AffiliateToastData {
+  return {
+    affiliateSharePercent: null,
+    tradeFeePercent: null,
   }
+}
 
-  const shareParsed = Number.parseFloat(result.data.affiliateSharePercent)
-  const feeParsed = Number.parseFloat(result.data.tradeFeePercent)
+function parseAffiliateToastData(result: { affiliateSharePercent: string, tradeFeePercent: string }): AffiliateToastData {
+  const shareParsed = Number.parseFloat(result.affiliateSharePercent)
+  const feeParsed = Number.parseFloat(result.tradeFeePercent)
 
   return {
     affiliateSharePercent: Number.isFinite(shareParsed) && shareParsed > 0 ? shareParsed : null,
@@ -130,28 +130,25 @@ function useAffiliateToastData({
 
   const ensureAffiliateToastData = useCallback(async (): Promise<AffiliateToastData> => {
     if (!affiliateCode) {
-      return {
-        affiliateSharePercent: null,
-        tradeFeePercent: null,
-      }
+      return getEmptyAffiliateToastData()
     }
 
-    return queryClient.fetchQuery({
-      queryKey: ['affiliate-toast-data', affiliateCode],
-      queryFn: async () => {
-        try {
+    try {
+      return await queryClient.fetchQuery({
+        queryKey: ['affiliate-toast-data', affiliateCode],
+        queryFn: async () => {
           const result = await fetchAffiliateSettingsFromAPI()
-          return parseAffiliateToastData(result)
-        }
-        catch {
-          return {
-            affiliateSharePercent: null,
-            tradeFeePercent: null,
+          if (!result.success) {
+            throw new Error(result.error.error)
           }
-        }
-      },
-      staleTime: Number.POSITIVE_INFINITY,
-    })
+          return parseAffiliateToastData(result.data)
+        },
+        staleTime: Number.POSITIVE_INFINITY,
+      })
+    }
+    catch {
+      return getEmptyAffiliateToastData()
+    }
   }, [affiliateCode, queryClient])
 
   function prefetchAffiliateToastData() {
