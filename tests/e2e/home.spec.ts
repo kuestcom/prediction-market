@@ -33,11 +33,11 @@ test.describe('desktop and mobile', () => {
     await docsLink.waitFor({ state: 'visible' })
 
     await Promise.all([
-      page.waitForURL('**/docs/users', { waitUntil: 'domcontentloaded' }),
+      page.waitForURL('**/docs', { waitUntil: 'domcontentloaded' }),
       docsLink.click(),
     ])
 
-    expect(page.url()).toContain('/docs/users')
+    expect(page.url()).toContain('/docs')
   })
 
   test('redirects to terms from header menu', async ({ page }) => {

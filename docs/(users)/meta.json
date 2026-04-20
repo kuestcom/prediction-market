@@ -5,17 +5,17 @@
   "root": true,
   "pages": [
     "index",
-    "---[BookOpen]Getting Started---",
+    "---Getting Started---",
     "...getting-started",
-    "---[ChartCandlestick]Trading Basics---",
+    "---Trading Basics---",
     "...exploring-markets",
-    "---[UserCircle]Portfolio & Settings---",
+    "---Portfolio & Settings---",
     "...my-account",
-    "---[Gavel]Resolution & Settlement---",
+    "---Resolution & Settlement---",
     "...resolution-settlement",
-    "---[Coins]Fees & Limits---",
+    "---Fees & Limits---",
     "...fees-limits",
-    "---[LifeBuoy]Help & Support---",
+    "---Help & Support---",
     "...help-support"
   ]
 }

@@ -176,7 +176,7 @@ describe('custom javascript code helpers', () => {
     expect(resolveCustomJavascriptCodePageBucket('/settings')).toBe('settings')
     expect(resolveCustomJavascriptCodePageBucket('/settings/trading')).toBe('settings')
     expect(resolveCustomJavascriptCodePageBucket('/docs')).toBe('docs')
-    expect(resolveCustomJavascriptCodePageBucket('/docs/users')).toBe('docs')
+    expect(resolveCustomJavascriptCodePageBucket('/docs/getting-started/how-to-sign-up')).toBe('docs')
     expect(resolveCustomJavascriptCodePageBucket('/admin/theme')).toBe('admin')
     expect(resolveCustomJavascriptCodePageBucket('/event')).toBe('other')
     expect(resolveCustomJavascriptCodePageBucket('/event/will-btc-rise')).toBe('event')
@@ -192,7 +192,7 @@ describe('custom javascript code helpers', () => {
     }, '/settings/trading')).toBe(false)
     expect(isCustomJavascriptCodeEnabledOnPathname({
       disabledOn: ['docs'],
-    }, '/docs/users')).toBe(false)
+    }, '/docs/getting-started/how-to-sign-up')).toBe(false)
     expect(isCustomJavascriptCodeEnabledOnPathname({
       disabledOn: ['portfolio'],
     }, '/')).toBe(true)

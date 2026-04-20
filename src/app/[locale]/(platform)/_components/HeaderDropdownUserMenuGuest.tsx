@@ -206,7 +206,7 @@ export default function HeaderDropdownUserMenuGuest() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <AppLink intentPrefetch href="/docs/users" data-testid="header-docs-link">{t('Documentation')}</AppLink>
+            <AppLink intentPrefetch href="/docs" data-testid="header-docs-link">{t('Documentation')}</AppLink>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
             <AppLink intentPrefetch href="/tos" data-testid="header-terms-link">{t('Terms of Use')}</AppLink>

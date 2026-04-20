@@ -320,7 +320,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
                 <DrawerClose asChild>
                   <AppLink
                     intentPrefetch
-                    href="/docs/users"
+                    href="/docs"
                     className="flex items-center gap-3 px-4 py-3 text-sm font-semibold"
                   >
                     <BookOpenIcon className="size-4 text-muted-foreground" />

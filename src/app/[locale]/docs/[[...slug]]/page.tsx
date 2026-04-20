@@ -69,7 +69,7 @@ export default async function Page(props: PageProps<'/[locale]/docs/[[...slug]]'
 
   const page = source.getPage(params.slug)
   if (!page) {
-    redirect('/docs/users')
+    redirect('/docs')
   }
 
   const localizedPageUrl = withLocalePrefix(page.url, params.locale as SupportedLocale)

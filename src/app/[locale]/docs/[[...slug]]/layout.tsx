@@ -63,7 +63,7 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
           {
             title: 'Documentation',
             description: 'For Users',
-            url: docsPath('/docs/users'),
+            url: docsPath('/docs'),
             icon: <BookOpenIcon className="size-4" />,
           },
           {
