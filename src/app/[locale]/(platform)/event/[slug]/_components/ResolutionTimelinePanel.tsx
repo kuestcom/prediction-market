@@ -2,7 +2,7 @@ import type { ResolutionTimelineItem, ResolutionTimelineOutcome } from '@/app/[l
 import type { Event } from '@/types'
 import { CheckIcon, GavelIcon, SquareArrowOutUpRightIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import {
   buildResolutionTimeline,
   formatResolutionCountdown,
@@ -20,6 +20,45 @@ interface ResolutionTimelinePanelProps {
   outcomeOverride?: ResolutionTimelineOutcome | null
   showLink?: boolean
   className?: string
+}
+
+const RESOLUTION_TIMELINE_TICK_INTERVAL_MS = 1000
+let resolutionTimelineNowMsStore = 0
+const resolutionTimelineNowMsListeners = new Set<() => void>()
+let resolutionTimelineNowMsInterval: number | null = null
+
+function subscribeToResolutionTimelineNowMs(onStoreChange: () => void) {
+  resolutionTimelineNowMsListeners.add(onStoreChange)
+  const nextNowTimestamp = Date.now()
+  if (nextNowTimestamp !== resolutionTimelineNowMsStore) {
+    resolutionTimelineNowMsStore = nextNowTimestamp
+    onStoreChange()
+  }
+
+  if (resolutionTimelineNowMsInterval === null) {
+    resolutionTimelineNowMsInterval = window.setInterval(() => {
+      resolutionTimelineNowMsStore = Date.now()
+      for (const listener of resolutionTimelineNowMsListeners) {
+        listener()
+      }
+    }, RESOLUTION_TIMELINE_TICK_INTERVAL_MS)
+  }
+
+  return () => {
+    resolutionTimelineNowMsListeners.delete(onStoreChange)
+    if (resolutionTimelineNowMsListeners.size === 0 && resolutionTimelineNowMsInterval !== null) {
+      window.clearInterval(resolutionTimelineNowMsInterval)
+      resolutionTimelineNowMsInterval = null
+    }
+  }
+}
+
+function getResolutionTimelineNowMsSnapshot() {
+  return resolutionTimelineNowMsStore
+}
+
+function getResolutionTimelineNowMsServerSnapshot() {
+  return 0
 }
 
 function TimelineIcon({ item }: { item: ResolutionTimelineItem }) {
@@ -164,35 +203,19 @@ function TimelineLabel({
 }
 
 function useResolutionTimeline(market: Event['markets'][number], siteName: string) {
-  const [nowMs, setNowMs] = useState(() => Date.now())
-
+  const nowMs = useSyncExternalStore(
+    subscribeToResolutionTimelineNowMs,
+    getResolutionTimelineNowMsSnapshot,
+    getResolutionTimelineNowMsServerSnapshot,
+  )
   const timeline = useMemo(
-    () => buildResolutionTimeline(market, { nowMs }),
+    () => (nowMs <= 0 ? null : buildResolutionTimeline(market, { nowMs })),
     [market, nowMs],
   )
   const disputeUrl = useMemo(
     () => buildUmaProposeUrl(market.condition, siteName),
     [market.condition, siteName],
   )
-
-  const hasActiveCountdown = timeline.items.some(item =>
-    (item.type === 'finalReview' || item.type === 'disputeWindow')
-    && item.state === 'active'
-    && (item.remainingSeconds ?? 0) > 0)
-
-  useEffect(function countdownTickEffect() {
-    if (!hasActiveCountdown) {
-      return
-    }
-
-    const interval = window.setInterval(() => {
-      setNowMs(Date.now())
-    }, 1000)
-
-    return function cleanupCountdownTick() {
-      window.clearInterval(interval)
-    }
-  }, [hasActiveCountdown])
 
   return { timeline, disputeUrl }
 }
@@ -213,7 +236,7 @@ export default function ResolutionTimelinePanel({
   const yesOutcomeLabel = (yesOutcomeText ? normalizeOutcomeLabel(yesOutcomeText) : '') || yesOutcomeText || t('Yes')
   const noOutcomeLabel = (noOutcomeText ? normalizeOutcomeLabel(noOutcomeText) : '') || noOutcomeText || t('No')
 
-  if (timeline.items.length === 0) {
+  if (!timeline || timeline.items.length === 0) {
     return null
   }
 
