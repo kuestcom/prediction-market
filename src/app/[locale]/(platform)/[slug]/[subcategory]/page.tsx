@@ -1,5 +1,3 @@
-'use cache'
-
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
@@ -14,10 +12,16 @@ import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export const generateStaticParams = generateDynamicHomeSubcategoryStaticParams
 
-export async function generateMetadata({ params }: PageProps<'/[locale]/[slug]/[subcategory]'>): Promise<Metadata> {
-  const { locale, slug, subcategory } = await params
-  const resolvedLocale = locale as SupportedLocale
-  setRequestLocale(resolvedLocale)
+async function generatePlatformSubcategoryMetadata({
+  locale,
+  slug,
+  subcategory,
+}: {
+  locale: SupportedLocale
+  slug: string
+  subcategory: string
+}): Promise<Metadata> {
+  'use cache'
 
   if (slug === STATIC_PARAMS_PLACEHOLDER || subcategory === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
@@ -27,7 +31,41 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/[slug]/[
     notFound()
   }
 
-  return buildDynamicHomeSubcategoryMetadata(resolvedLocale, slug, subcategory)
+  return buildDynamicHomeSubcategoryMetadata(locale, slug, subcategory)
+}
+
+async function renderPlatformSubcategoryPage({
+  locale,
+  slug,
+  subcategory,
+}: {
+  locale: SupportedLocale
+  slug: string
+  subcategory: string
+}) {
+  'use cache'
+
+  if (slug === STATIC_PARAMS_PLACEHOLDER || subcategory === STATIC_PARAMS_PLACEHOLDER) {
+    notFound()
+  }
+
+  if (normalizePublicProfileSlug(slug).type !== 'invalid' || isPlatformReservedRootSlug(slug)) {
+    notFound()
+  }
+
+  return <DynamicHomeSubcategoryPageContent locale={locale} slug={slug} subcategory={subcategory} />
+}
+
+export async function generateMetadata({ params }: PageProps<'/[locale]/[slug]/[subcategory]'>): Promise<Metadata> {
+  const { locale, slug, subcategory } = await params
+  const resolvedLocale = locale as SupportedLocale
+  setRequestLocale(resolvedLocale)
+
+  return await generatePlatformSubcategoryMetadata({
+    locale: resolvedLocale,
+    slug,
+    subcategory,
+  })
 }
 
 export default async function PlatformSubcategoryPage({ params }: PageProps<'/[locale]/[slug]/[subcategory]'>) {
@@ -35,13 +73,9 @@ export default async function PlatformSubcategoryPage({ params }: PageProps<'/[l
   const resolvedLocale = locale as SupportedLocale
   setRequestLocale(resolvedLocale)
 
-  if (slug === STATIC_PARAMS_PLACEHOLDER || subcategory === STATIC_PARAMS_PLACEHOLDER) {
-    notFound()
-  }
-
-  if (normalizePublicProfileSlug(slug).type !== 'invalid' || isPlatformReservedRootSlug(slug)) {
-    notFound()
-  }
-
-  return <DynamicHomeSubcategoryPageContent locale={resolvedLocale} slug={slug} subcategory={subcategory} />
+  return await renderPlatformSubcategoryPage({
+    locale: resolvedLocale,
+    slug,
+    subcategory,
+  })
 }
