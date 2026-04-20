@@ -3,7 +3,6 @@
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
-import { useSyncExternalStore } from 'react'
 import HeaderDropdownUserMenuGuest from '@/app/[locale]/(platform)/_components/HeaderDropdownUserMenuGuest'
 import HeaderNotifications from '@/app/[locale]/(platform)/_components/HeaderNotifications'
 import { useOptionalTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
@@ -11,6 +10,7 @@ import HeaderDropdownUserMenuAuth from '@/components/HeaderDropdownUserMenuAuth'
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import { Button } from '@/components/ui/button'
 import { useAppKit } from '@/hooks/useAppKit'
+import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { authClient } from '@/lib/auth-client'
 import { useUser } from '@/stores/useUser'
@@ -21,26 +21,6 @@ const HeaderDepositButton = dynamic(
   () => import('@/app/[locale]/(platform)/_components/HeaderDepositButton'),
   { ssr: false },
 )
-
-function subscribeToHydrationStore() {
-  return function unsubscribeFromHydrationStore() {}
-}
-
-function getHydratedClientSnapshot() {
-  return true
-}
-
-function getHydratedServerSnapshot() {
-  return false
-}
-
-function useHasHydrated() {
-  return useSyncExternalStore(
-    subscribeToHydrationStore,
-    getHydratedClientSnapshot,
-    getHydratedServerSnapshot,
-  )
-}
 
 export default function HeaderMenu() {
   return <HeaderMenuClient />

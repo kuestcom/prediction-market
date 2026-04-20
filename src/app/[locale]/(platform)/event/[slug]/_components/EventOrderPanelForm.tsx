@@ -7,7 +7,7 @@ import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted, useLocale } from 'next-intl'
 import Form from 'next/form'
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { hashTypedData } from 'viem'
 import { useSignMessage, useSignTypedData } from 'wagmi'
@@ -34,6 +34,7 @@ import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { SAFE_BALANCE_QUERY_KEY, useBalance } from '@/hooks/useBalance'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
+import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { defaultNetwork } from '@/lib/appkit'
@@ -130,18 +131,6 @@ function resolveEndOfDayTimestamp() {
   const now = new Date(Date.now())
   now.setHours(23, 59, 59, 0)
   return Math.floor(now.getTime() / 1000)
-}
-
-function subscribeToHydrationStore() {
-  return function unsubscribeFromHydrationStore() {}
-}
-
-function getHydratedClientSnapshot() {
-  return true
-}
-
-function getHydratedServerSnapshot() {
-  return false
 }
 
 function useUserSharesStoreSync({
@@ -807,11 +796,7 @@ export default function EventOrderPanelForm({
   } = useOrderValidationFeedback()
   const [isClaimSubmitting, setIsClaimSubmitting] = useState(false)
   const [claimedConditionIdsByEvent, setClaimedConditionIdsByEvent] = useState<Record<string, Record<string, true>>>({})
-  const hasMounted = useSyncExternalStore(
-    subscribeToHydrationStore,
-    getHydratedClientSnapshot,
-    getHydratedServerSnapshot,
-  )
+  const hasMounted = useHasHydrated()
   const limitSharesInputRef = useRef<HTMLInputElement | null>(null)
   const limitSharesNumber = Number.parseFloat(state.limitShares) || 0
   const { balance, isLoadingBalance } = useBalance()

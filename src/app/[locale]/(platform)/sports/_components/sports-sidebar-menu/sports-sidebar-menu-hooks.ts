@@ -3,7 +3,7 @@
 import type { GroupExpansionOverride } from './sports-sidebar-menu-utils'
 import type { SportsMenuEntry, SportsMenuLinkEntry } from '@/lib/sports-menu-types'
 import type { SportsVertical } from '@/lib/sports-vertical'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 import {
   findActiveGroupId,
   isFutureMenuLinkHref,
@@ -86,50 +86,48 @@ export function useMobileQuickMenuSizing({
 }: {
   primaryTopLevelLinks: SportsMenuLinkEntry[]
 }) {
-  const mobileQuickMenuContainerRef = useRef<HTMLDivElement | null>(null)
+  const [mobileQuickMenuContainer, setMobileQuickMenuContainer] = useState<HTMLDivElement | null>(null)
   const [isMobileMoreMenuOpen, setIsMobileMoreMenuOpen] = useState(false)
-  const [mobileVisiblePrimaryLinkCount, setMobileVisiblePrimaryLinkCount] = useState(() => {
-    if (typeof window === 'undefined') {
-      return MOBILE_MENU_DEFAULT_VISIBLE_LINKS
-    }
-    return resolveMobileVisiblePrimaryLinkCount(window.innerWidth)
-  })
 
-  useEffect(function observeMobileQuickMenuContainerWidth() {
-    const container = mobileQuickMenuContainerRef.current
-    if (!container) {
-      return
-    }
+  const mobileQuickMenuContainerRef = useCallback((nextContainer: HTMLDivElement | null) => {
+    setMobileQuickMenuContainer(nextContainer)
+  }, [])
 
-    function updateVisibleLinkCount() {
-      const nextContainer = mobileQuickMenuContainerRef.current
-      if (!nextContainer) {
-        return
-      }
-
-      const width = nextContainer.clientWidth
-      if (width <= 0) {
-        return
-      }
-
-      const nextCount = resolveMobileVisiblePrimaryLinkCount(width)
-      setMobileVisiblePrimaryLinkCount(current => (current === nextCount ? current : nextCount))
+  const subscribeToMobileQuickMenuContainerWidth = useCallback((onStoreChange: () => void) => {
+    if (!mobileQuickMenuContainer) {
+      return function noopUnsubscribe() {}
     }
 
     if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', updateVisibleLinkCount)
+      window.addEventListener('resize', onStoreChange)
       return function removeMobileQuickMenuResizeListener() {
-        window.removeEventListener('resize', updateVisibleLinkCount)
+        window.removeEventListener('resize', onStoreChange)
       }
     }
 
-    const resizeObserver = new ResizeObserver(updateVisibleLinkCount)
-    resizeObserver.observe(container)
+    const resizeObserver = new ResizeObserver(() => onStoreChange())
+    resizeObserver.observe(mobileQuickMenuContainer)
 
     return function disconnectMobileQuickMenuResizeObserver() {
       resizeObserver.disconnect()
     }
-  }, [])
+  }, [mobileQuickMenuContainer])
+
+  const getMobileQuickMenuContainerWidth = useCallback(() => {
+    return mobileQuickMenuContainer?.clientWidth ?? 0
+  }, [mobileQuickMenuContainer])
+
+  const mobileQuickMenuContainerWidth = useSyncExternalStore(
+    subscribeToMobileQuickMenuContainerWidth,
+    getMobileQuickMenuContainerWidth,
+    () => 0,
+  )
+  const mobileVisiblePrimaryLinkCount = useMemo(() => {
+    if (mobileQuickMenuContainerWidth <= 0) {
+      return MOBILE_MENU_DEFAULT_VISIBLE_LINKS
+    }
+    return resolveMobileVisiblePrimaryLinkCount(mobileQuickMenuContainerWidth)
+  }, [mobileQuickMenuContainerWidth])
 
   const mobileVisiblePrimaryLinks = useMemo(
     () => primaryTopLevelLinks.slice(0, mobileVisiblePrimaryLinkCount),
