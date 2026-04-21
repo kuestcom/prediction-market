@@ -30,13 +30,13 @@ export function useEventMarketChanceData({
     [event],
   )
   const yesMarketTargets = useMemo(
-    () => (enabled ? buildMarketTargets(event.markets) : []),
-    [enabled, event.markets],
+    () => buildMarketTargets(event.markets),
+    [event.markets],
   )
   const yesPriceHistory = useEventPriceHistory({
     eventId: event.id,
     range,
-    targets: includePriceHistory ? yesMarketTargets : [],
+    targets: includePriceHistory && enabled ? yesMarketTargets : [],
     eventCreatedAt: event.created_at,
     eventResolvedAt: eventHistoryEndAt,
   })

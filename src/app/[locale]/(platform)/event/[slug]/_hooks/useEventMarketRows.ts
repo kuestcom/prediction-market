@@ -122,23 +122,6 @@ export function useEventMarketRows(event: Event): EventMarketRowsResult {
     range: 'ALL',
     includePriceHistory: false,
   })
-  const outcomeChances = useMemo(() => {
-    const entries = event.markets.map((market) => {
-      const liveChance = displayChanceByMarket[market.condition_id]
-      const fallbackChance = Number.isFinite(market.probability)
-        ? market.probability
-        : 0
-
-      return [
-        market.condition_id,
-        typeof liveChance === 'number' && Number.isFinite(liveChance)
-          ? liveChance
-          : fallbackChance,
-      ] as const
-    })
-
-    return Object.fromEntries(entries)
-  }, [displayChanceByMarket, event.markets])
   const chanceChangeByMarket = useMemo(() => {
     if (Object.keys(historicalChanceChangeByMarket).length > 0) {
       return historicalChanceChangeByMarket
@@ -166,10 +149,10 @@ export function useEventMarketRows(event: Event): EventMarketRowsResult {
 
   return useMemo(
     () => buildEventMarketRows(event, {
-      outcomeChances,
+      outcomeChances: displayChanceByMarket,
       outcomeChanceChanges: chanceChangeByMarket,
       marketYesPrices: yesPriceHistory.latestRawPrices,
     }),
-    [chanceChangeByMarket, event, outcomeChances, yesPriceHistory.latestRawPrices],
+    [chanceChangeByMarket, displayChanceByMarket, event, yesPriceHistory.latestRawPrices],
   )
 }
