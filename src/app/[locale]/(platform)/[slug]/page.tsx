@@ -21,8 +21,6 @@ async function generatePlatformSlugMetadata({
   locale: SupportedLocale
   slug: string
 }): Promise<Metadata> {
-  'use cache'
-
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }
@@ -49,8 +47,6 @@ async function renderPlatformSlugPage({
   locale: SupportedLocale
   slug: string
 }) {
-  'use cache'
-
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     notFound()
   }

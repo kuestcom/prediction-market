@@ -141,10 +141,6 @@ export async function loadEventPageShellData(
   eventSlug: string,
   locale: SupportedLocale,
 ): Promise<EventPageShellData> {
-  'use cache'
-  cacheTag(cacheTags.event(eventSlug))
-  cacheTag(cacheTags.settings)
-
   const [route, title, runtimeTheme] = await Promise.all([
     getEventRouteBySlug(eventSlug),
     getEventTitleBySlug(eventSlug, locale),

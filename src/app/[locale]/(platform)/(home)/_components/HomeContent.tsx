@@ -1,8 +1,6 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
-import { cacheTag } from 'next/cache'
 import HomeClient from '@/app/[locale]/(platform)/(home)/_components/HomeClient'
-import { cacheTags } from '@/lib/cache-tags'
 import { listHomeEventsPage } from '@/lib/home-events-page'
 
 interface HomeContentProps {
@@ -11,21 +9,15 @@ interface HomeContentProps {
   initialMainTag?: string
 }
 
-function getServerCurrentTimestamp() {
-  return Date.now()
-}
-
 export default async function HomeContent({
   locale,
   initialTag,
   initialMainTag,
 }: HomeContentProps) {
-  cacheTag(cacheTags.eventsList)
   const resolvedLocale = locale as SupportedLocale
   const initialTagSlug = initialTag ?? 'trending'
   const initialMainTagSlug = initialMainTag ?? initialTagSlug
-  const serverCurrentTimestamp = getServerCurrentTimestamp()
-  let initialCurrentTimestamp: number | null = serverCurrentTimestamp
+  let initialCurrentTimestamp: number | null = null
 
   let initialEvents: Event[] = []
 
@@ -37,10 +29,10 @@ export default async function HomeContent({
       userId: '',
       bookmarked: false,
       locale: resolvedLocale,
-      currentTimestamp: serverCurrentTimestamp,
+      currentTimestamp: null,
     })
 
-    initialCurrentTimestamp = currentTimestamp ?? serverCurrentTimestamp
+    initialCurrentTimestamp = currentTimestamp ?? null
 
     if (!error) {
       initialEvents = events ?? []
