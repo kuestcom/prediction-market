@@ -15,28 +15,32 @@ import { resolveDisplayPrice } from '@/lib/market-chance'
 interface UseEventMarketChanceDataParams {
   event: Event
   range: TimeRange
+  enabled?: boolean
+  includePriceHistory?: boolean
 }
 
 export function useEventMarketChanceData({
   event,
   range,
+  enabled = true,
+  includePriceHistory = true,
 }: UseEventMarketChanceDataParams) {
   const eventHistoryEndAt = useMemo(
     () => resolveEventHistoryEndAt(event),
     [event],
   )
   const yesMarketTargets = useMemo(
-    () => buildMarketTargets(event.markets),
-    [event.markets],
+    () => (enabled ? buildMarketTargets(event.markets) : []),
+    [enabled, event.markets],
   )
   const yesPriceHistory = useEventPriceHistory({
     eventId: event.id,
     range,
-    targets: yesMarketTargets,
+    targets: includePriceHistory ? yesMarketTargets : [],
     eventCreatedAt: event.created_at,
     eventResolvedAt: eventHistoryEndAt,
   })
-  const marketQuotesByMarket = useEventMarketQuotes(yesMarketTargets)
+  const marketQuotesByMarket = useEventMarketQuotes(yesMarketTargets, { enabled })
   const displayChanceByMarket = useMemo(() => {
     const marketIds = new Set([
       ...Object.keys(marketQuotesByMarket),
@@ -61,10 +65,13 @@ export function useEventMarketChanceData({
 
     return Object.fromEntries(entries)
   }, [marketQuotesByMarket, yesPriceHistory.latestRawPrices])
-  const chanceChangeByMarket = useMemo(
-    () => computeChanceChanges(yesPriceHistory.normalizedHistory),
-    [yesPriceHistory.normalizedHistory],
-  )
+  const chanceChangeByMarket = useMemo(() => {
+    if (!includePriceHistory) {
+      return {}
+    }
+
+    return computeChanceChanges(yesPriceHistory.normalizedHistory)
+  }, [includePriceHistory, yesPriceHistory.normalizedHistory])
 
   return {
     displayChanceByMarket,

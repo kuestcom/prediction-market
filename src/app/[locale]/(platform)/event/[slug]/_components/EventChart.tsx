@@ -72,6 +72,7 @@ function EventChartComponent({
   const isSingleMarket = useIsSingleMarket()
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const shouldHideChart = !isSingleMarket && !isNegRiskEnabled
+  const shouldFetchChartData = !shouldHideChart
   const chartSettings = useSyncExternalStore(
     subscribeToChartSettings,
     loadStoredChartSettings,
@@ -153,6 +154,7 @@ function EventChartComponent({
   } = useEventMarketChanceData({
     event,
     range: activeTimeRange,
+    enabled: shouldFetchChartData,
   })
   const noMarketTargets = useMemo(
     () => (shouldHideChart || !isSingleMarket ? [] : buildMarketTargets(event.markets, OUTCOME_INDEX.NO)),

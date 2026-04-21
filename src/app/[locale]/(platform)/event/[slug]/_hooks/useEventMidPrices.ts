@@ -113,7 +113,15 @@ async function fetchQuotesByMarket(targets: MarketTokenTarget[]): Promise<Market
   }, {})
 }
 
-export function useEventMarketQuotes(targets: MarketTokenTarget[]) {
+interface UseEventMarketQuotesOptions {
+  enabled?: boolean
+}
+
+export function useEventMarketQuotes(
+  targets: MarketTokenTarget[],
+  options: UseEventMarketQuotesOptions = {},
+) {
+  const { enabled = true } = options
   const tokenSignature = useMemo(
     () => targets.map(target => `${target.conditionId}:${target.tokenId}`).sort().join(','),
     [targets],
@@ -122,7 +130,7 @@ export function useEventMarketQuotes(targets: MarketTokenTarget[]) {
   const { data } = useQuery({
     queryKey: ['event-market-quotes', tokenSignature],
     queryFn: () => fetchQuotesByMarket(targets),
-    enabled: targets.length > 0,
+    enabled: enabled && targets.length > 0,
     staleTime: 'static',
     gcTime: PRICE_REFRESH_INTERVAL_MS,
     refetchInterval: PRICE_REFRESH_INTERVAL_MS,
