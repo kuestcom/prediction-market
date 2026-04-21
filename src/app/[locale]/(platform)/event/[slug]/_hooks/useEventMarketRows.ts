@@ -141,10 +141,14 @@ export function useEventMarketRows(event: Event): EventMarketRowsResult {
     const mergedDisplayChanceByMarket = { ...displayChanceCacheRef.current.values }
 
     event.markets.forEach((market) => {
+      const conditionId = market.condition_id
       const chance = displayChanceByMarket[market.condition_id]
       if (typeof chance === 'number' && Number.isFinite(chance)) {
-        mergedDisplayChanceByMarket[market.condition_id] = chance
+        mergedDisplayChanceByMarket[conditionId] = chance
+        return
       }
+
+      delete mergedDisplayChanceByMarket[conditionId]
     })
 
     displayChanceCacheRef.current = {
@@ -173,9 +177,7 @@ export function useEventMarketRows(event: Event): EventMarketRowsResult {
         || typeof liveChance !== 'number'
         || !Number.isFinite(liveChance)
       ) {
-        if (!(market.condition_id in mergedChanceChangeByMarket)) {
-          mergedChanceChangeByMarket[market.condition_id] = 0
-        }
+        mergedChanceChangeByMarket[market.condition_id] = 0
         return
       }
 
