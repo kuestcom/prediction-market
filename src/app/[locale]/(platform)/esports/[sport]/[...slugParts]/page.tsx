@@ -1,5 +1,3 @@
-'use cache'
-
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import {
@@ -85,14 +83,12 @@ export async function generateMetadata({
   notFound()
 }
 
-export default async function EsportsSlugPartsPage({
-  params,
-}: PageProps<'/[locale]/esports/[sport]/[...slugParts]'>) {
-  const { locale, sport, slugParts } = await params
-
-  if (sport === STATIC_PARAMS_PLACEHOLDER || slugParts.includes(STATIC_PARAMS_PLACEHOLDER)) {
-    notFound()
-  }
+async function CachedEsportsSlugPartsPageContent({
+  locale,
+  sport,
+  slugParts,
+}: Awaited<PageProps<'/[locale]/esports/[sport]/[...slugParts]'>['params']>) {
+  'use cache'
 
   if (slugParts.length === 1) {
     return await renderSportsVerticalEventPage({
@@ -136,4 +132,17 @@ export default async function EsportsSlugPartsPage({
   }
 
   notFound()
+}
+
+export default async function EsportsSlugPartsPage({
+  params,
+}: PageProps<'/[locale]/esports/[sport]/[...slugParts]'>) {
+  const resolvedParams = await params
+  const { sport, slugParts } = resolvedParams
+
+  if (sport === STATIC_PARAMS_PLACEHOLDER || slugParts.includes(STATIC_PARAMS_PLACEHOLDER)) {
+    notFound()
+  }
+
+  return <CachedEsportsSlugPartsPageContent {...resolvedParams} />
 }

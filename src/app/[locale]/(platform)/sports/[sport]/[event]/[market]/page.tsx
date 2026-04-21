@@ -1,5 +1,3 @@
-'use cache'
-
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
@@ -65,19 +63,16 @@ export async function generateMetadata({
   })
 }
 
-export default async function SportsEventMarketPage({
-  params,
-}: PageProps<'/[locale]/sports/[sport]/[event]/[market]'>) {
-  const { locale, sport, event, market } = await params
-  setRequestLocale(locale)
+async function CachedSportsEventMarketPageContent({
+  locale,
+  sport,
+  event,
+  market,
+}: Awaited<PageProps<'/[locale]/sports/[sport]/[event]/[market]'>['params']>) {
+  'use cache'
+
   const resolvedLocale = locale as SupportedLocale
-  if (
-    sport === STATIC_PARAMS_PLACEHOLDER
-    || event === STATIC_PARAMS_PLACEHOLDER
-    || market === STATIC_PARAMS_PLACEHOLDER
-  ) {
-    notFound()
-  }
+
   const canonicalEventSlug = await resolveCanonicalEventSlugFromSportsPath(sport, event)
   if (!canonicalEventSlug) {
     notFound()
@@ -164,4 +159,21 @@ export default async function SportsEventMarketPage({
       </EventMarketChannelProvider>
     </>
   )
+}
+
+export default async function SportsEventMarketPage({
+  params,
+}: PageProps<'/[locale]/sports/[sport]/[event]/[market]'>) {
+  const resolvedParams = await params
+  const { locale, sport, event, market } = resolvedParams
+  setRequestLocale(locale)
+  if (
+    sport === STATIC_PARAMS_PLACEHOLDER
+    || event === STATIC_PARAMS_PLACEHOLDER
+    || market === STATIC_PARAMS_PLACEHOLDER
+  ) {
+    notFound()
+  }
+
+  return <CachedSportsEventMarketPageContent {...resolvedParams} />
 }
