@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { loadEventPageShellData } from '@/lib/event-page-data'
@@ -122,6 +123,8 @@ export async function buildEventPageMetadata({
   locale,
   marketSlug,
 }: BuildEventPageMetadataOptions): Promise<Metadata> {
+  await connection()
+
   const shellData = await loadEventPageShellData(eventSlug, locale)
   const title = shellData.title
 
