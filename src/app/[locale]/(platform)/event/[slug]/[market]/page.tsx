@@ -3,6 +3,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
+import RequestTimeDynamicMarker from '@/components/RequestTimeDynamicMarker'
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
@@ -93,5 +94,10 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
     notFound()
   }
 
-  return <CachedEventMarketPageContent locale={resolvedLocale} slug={slug} market={market} />
+  return (
+    <>
+      <RequestTimeDynamicMarker />
+      <CachedEventMarketPageContent locale={resolvedLocale} slug={slug} market={market} />
+    </>
+  )
 }
