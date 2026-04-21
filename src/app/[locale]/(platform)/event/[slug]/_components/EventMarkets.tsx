@@ -725,8 +725,9 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     range: 'ALL',
     targets: rowChartDeltaTargets,
     eventCreatedAt: event.created_at,
+    refetchIntervalMs: false,
   })
-  const rowChartDeltaQuotesByMarket = useEventMarketQuotes(rowChartDeltaTargets)
+  const rowChartDeltaQuotesByMarket = useEventMarketQuotes(rowChartDeltaTargets, { refetchIntervalMs: false })
   const rowChartDeltaLiveYesChanceByMarket = useMemo(() => {
     if (!shouldHydrateChartDeltas) {
       return {}

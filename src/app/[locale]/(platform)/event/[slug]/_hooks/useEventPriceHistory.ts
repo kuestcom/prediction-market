@@ -310,6 +310,8 @@ interface UseEventPriceHistoryParams {
   targets: MarketTokenTarget[]
   eventCreatedAt: string
   eventResolvedAt?: string | null
+  enabled?: boolean
+  refetchIntervalMs?: number | false
 }
 
 export function useEventPriceHistory({
@@ -318,6 +320,8 @@ export function useEventPriceHistory({
   targets,
   eventCreatedAt,
   eventResolvedAt,
+  enabled = true,
+  refetchIntervalMs = PRICE_REFRESH_INTERVAL_MS,
 }: UseEventPriceHistoryParams) {
   const tokenSignature = useMemo(
     () => targets.map(target => `${target.conditionId}:${target.tokenId}`).sort().join(','),
@@ -327,11 +331,11 @@ export function useEventPriceHistory({
   const { data: priceHistoryByMarket } = useQuery({
     queryKey: ['event-price-history', eventId, range, tokenSignature, eventResolvedAt ?? ''],
     queryFn: () => fetchEventPriceHistory(targets, range, eventCreatedAt, eventResolvedAt),
-    enabled: targets.length > 0,
+    enabled: enabled && targets.length > 0,
     staleTime: PRICE_REFRESH_INTERVAL_MS,
     gcTime: PRICE_REFRESH_INTERVAL_MS,
-    refetchInterval: PRICE_REFRESH_INTERVAL_MS,
-    refetchIntervalInBackground: true,
+    refetchInterval: refetchIntervalMs,
+    refetchIntervalInBackground: refetchIntervalMs !== false,
     placeholderData: keepPreviousData,
   })
 

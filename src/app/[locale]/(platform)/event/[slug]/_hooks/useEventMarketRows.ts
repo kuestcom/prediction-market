@@ -114,7 +114,6 @@ export function buildEventMarketRows(
 
 export function useEventMarketRows(event: Event): EventMarketRowsResult {
   const {
-    chanceChangeByMarket: historicalChanceChangeByMarket,
     displayChanceByMarket,
     yesPriceHistory,
   } = useEventMarketChanceData({
@@ -160,10 +159,6 @@ export function useEventMarketRows(event: Event): EventMarketRowsResult {
   }, [displayChanceByMarket, event.id, event.markets])
 
   const chanceChangeByMarket = useMemo(() => {
-    if (Object.keys(historicalChanceChangeByMarket).length > 0) {
-      return historicalChanceChangeByMarket
-    }
-
     const mergedChanceChangeByMarket = { ...chanceChangeCacheRef.current.values }
 
     event.markets.forEach((market) => {
@@ -190,7 +185,7 @@ export function useEventMarketRows(event: Event): EventMarketRowsResult {
     }
 
     return mergedChanceChangeByMarket
-  }, [event.id, event.markets, historicalChanceChangeByMarket, stableDisplayChanceByMarket])
+  }, [event.id, event.markets, stableDisplayChanceByMarket])
 
   return useMemo(
     () => buildEventMarketRows(event, {

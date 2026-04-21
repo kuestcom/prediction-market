@@ -115,13 +115,14 @@ async function fetchQuotesByMarket(targets: MarketTokenTarget[]): Promise<Market
 
 interface UseEventMarketQuotesOptions {
   enabled?: boolean
+  refetchIntervalMs?: number | false
 }
 
 export function useEventMarketQuotes(
   targets: MarketTokenTarget[],
   options: UseEventMarketQuotesOptions = {},
 ) {
-  const { enabled = true } = options
+  const { enabled = true, refetchIntervalMs = PRICE_REFRESH_INTERVAL_MS } = options
   const tokenSignature = useMemo(
     () => targets.map(target => `${target.conditionId}:${target.tokenId}`).sort().join(','),
     [targets],
@@ -133,8 +134,8 @@ export function useEventMarketQuotes(
     enabled: enabled && targets.length > 0,
     staleTime: 'static',
     gcTime: PRICE_REFRESH_INTERVAL_MS,
-    refetchInterval: PRICE_REFRESH_INTERVAL_MS,
-    refetchIntervalInBackground: true,
+    refetchInterval: refetchIntervalMs,
+    refetchIntervalInBackground: refetchIntervalMs !== false,
     placeholderData: keepPreviousData,
   })
 
