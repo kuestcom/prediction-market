@@ -82,10 +82,10 @@ export default function EventFaq({ event, commentsCount }: EventFaqProps) {
       {items.length > DEFAULT_VISIBLE_ITEMS && (
         <button
           type="button"
-          className="
+          className={cn(`
             mt-4 flex cursor-pointer items-center gap-2 text-[14px] text-muted-foreground transition-colors
             hover:text-foreground
-          "
+          `)}
           onClick={() => setIsExpanded(current => !current)}
         >
           <span>{isExpanded ? t('View less') : t('View more')}</span>

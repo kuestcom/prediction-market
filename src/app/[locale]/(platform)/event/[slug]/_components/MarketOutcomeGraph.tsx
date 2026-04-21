@@ -14,6 +14,7 @@ import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_compo
 import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'
 import EventChartHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartHeader'
 import EventChartLayout from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartLayout'
+import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
 import {
   buildMarketTargets,
   TIME_RANGES,
@@ -32,6 +33,7 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { formatDate } from '@/lib/formatters'
+import { resolveDisplayPrice } from '@/lib/market-chance'
 import { isMarketNew } from '@/lib/utils'
 
 interface MarketOutcomeGraphProps {
@@ -228,7 +230,7 @@ export default function MarketOutcomeGraph({
   const [activeTimeRange, setActiveTimeRange] = useState<TimeRange>('ALL')
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
-  const marketTargets = useMemo(() => buildMarketTargets(allMarkets), [allMarkets])
+  const marketTargets = useMemo(() => buildMarketTargets([market]), [market])
   const { width: windowWidth } = useWindowSize()
   const chartWidth = isMobile ? ((windowWidth || 400) * 0.84) : Math.min((windowWidth ?? 1440) * 0.55, 900)
   const { chartSettings, handleChartSettingsChange } = useChartSettingsStore()
@@ -243,20 +245,95 @@ export default function MarketOutcomeGraph({
     market.outcomes.find(item => item.outcome_index === OUTCOME_INDEX.NO)?.outcome_text,
   ) ?? t('No')
 
-  const { normalizedHistory } = useEventPriceHistory({
+  const {
+    normalizedHistory,
+    latestRawPrices,
+  } = useEventPriceHistory({
     eventId: market.event_id,
     range: activeTimeRange,
     targets: marketTargets,
     eventCreatedAt,
   })
-  const leadingGapStart = normalizedHistory[0]?.date ?? null
+  const marketQuotesByMarket = useEventMarketQuotes(marketTargets)
+  const liveYesChance = useMemo(() => {
+    const quote = marketQuotesByMarket[market.condition_id]
+    const lastTrade = latestRawPrices[market.condition_id]
+    const displayPrice = resolveDisplayPrice({
+      bid: quote?.bid ?? null,
+      ask: quote?.ask ?? null,
+      midpoint: quote?.mid ?? null,
+      lastTrade,
+    })
+
+    return typeof displayPrice === 'number' && Number.isFinite(displayPrice)
+      ? displayPrice * 100
+      : null
+  }, [latestRawPrices, market.condition_id, marketQuotesByMarket])
+  const normalizedHistoryForChart = useMemo(() => {
+    if (typeof liveYesChance !== 'number' || !Number.isFinite(liveYesChance)) {
+      return normalizedHistory
+    }
+
+    const clampedLiveYesChance = Math.max(0, Math.min(100, liveYesChance))
+    const fallbackTimestamp = normalizedHistory.at(-1)?.date.getTime()
+    if (!Number.isFinite(currentTimestamp) && !Number.isFinite(fallbackTimestamp)) {
+      return normalizedHistory
+    }
+    const nextTimestamp = Number.isFinite(currentTimestamp)
+      ? (currentTimestamp as number)
+      : (fallbackTimestamp as number)
+    const nextDate = new Date(nextTimestamp)
+
+    if (normalizedHistory.length === 0) {
+      return [{
+        date: nextDate,
+        [market.condition_id]: clampedLiveYesChance,
+      }]
+    }
+
+    const lastPoint = normalizedHistory.at(-1)
+    if (!lastPoint) {
+      return normalizedHistory
+    }
+
+    const lastTimestamp = lastPoint.date.getTime()
+    const lastPointValue = lastPoint[market.condition_id]
+    const hasSameLatestValue = (
+      typeof lastPointValue === 'number'
+      && Number.isFinite(lastPointValue)
+      && Math.abs(lastPointValue - clampedLiveYesChance) < 0.0001
+    )
+
+    if (hasSameLatestValue) {
+      return normalizedHistory
+    }
+
+    if (Number.isFinite(lastTimestamp) && lastTimestamp >= nextTimestamp) {
+      return [
+        ...normalizedHistory.slice(0, -1),
+        {
+          ...lastPoint,
+          [market.condition_id]: clampedLiveYesChance,
+        },
+      ]
+    }
+
+    return [
+      ...normalizedHistory,
+      {
+        date: nextDate,
+        [market.condition_id]: clampedLiveYesChance,
+      },
+    ]
+  }, [currentTimestamp, liveYesChance, market.condition_id, normalizedHistory])
+  const leadingGapStart = normalizedHistoryForChart[0]?.date ?? null
 
   const activeSeriesKey: 'yes' | 'no' | 'value' = showBothOutcomes
     ? (activeOutcomeIndex === OUTCOME_INDEX.NO ? 'no' : 'yes')
     : 'value'
 
   const { chartData, series, chartSignature, latestValue, baselineValue } = useChartDataValues({
-    normalizedHistory,
+    normalizedHistory: normalizedHistoryForChart,
     conditionId: market.condition_id,
     activeOutcomeIndex,
     activeTimeRange,
@@ -280,10 +357,26 @@ export default function MarketOutcomeGraph({
   const primarySeriesColor = showBothOutcomes
     ? (activeOutcomeIndex === OUTCOME_INDEX.NO ? NO_SERIES_COLOR : YES_SERIES_COLOR)
     : (series[0]?.color ?? YES_SERIES_COLOR)
+  const liveActiveChance = useMemo(() => {
+    if (typeof liveYesChance !== 'number' || !Number.isFinite(liveYesChance)) {
+      return null
+    }
+
+    const normalizedYesChance = Math.max(0, Math.min(100, liveYesChance))
+    if (showBothOutcomes) {
+      return activeSeriesKey === 'no'
+        ? Math.max(0, Math.min(100, 100 - normalizedYesChance))
+        : normalizedYesChance
+    }
+
+    return activeOutcomeIndex === OUTCOME_INDEX.NO
+      ? Math.max(0, Math.min(100, 100 - normalizedYesChance))
+      : normalizedYesChance
+  }, [activeOutcomeIndex, activeSeriesKey, liveYesChance, showBothOutcomes])
   const hoveredValue = cursorSnapshot?.values?.[activeSeriesKey]
   const resolvedValue = typeof hoveredValue === 'number' && Number.isFinite(hoveredValue)
     ? hoveredValue
-    : latestValue
+    : (liveActiveChance ?? latestValue)
   const currentValue = resolvedValue
 
   return (

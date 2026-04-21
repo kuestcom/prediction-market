@@ -57,7 +57,7 @@ export default function EventMarketChance({
           key={`${layout}-chance-${highlightKey}`}
           className={cn(
             baseClass,
-            chanceMeta.isSubOnePercent ? 'text-muted-foreground' : 'text-foreground',
+            chanceMeta.isSubOnePercent ? 'text-muted-foreground opacity-25' : 'text-foreground',
             'motion-safe:animate-[pulse_0.8s_ease-out] motion-reduce:animate-none',
             'inline-block w-[4ch] text-right tabular-nums',
           )}

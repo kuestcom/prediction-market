@@ -1,6 +1,7 @@
 import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { Event } from '@/types'
 import { useMemo } from 'react'
+import { useEventLastTrades } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventLastTrades'
 import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
 import {
   buildMarketTargets,
@@ -40,17 +41,23 @@ export function useEventMarketChanceData({
     eventCreatedAt: event.created_at,
     eventResolvedAt: eventHistoryEndAt,
   })
+  const fallbackLastTradesByMarket = useEventLastTrades(
+    enabled && !includePriceHistory ? yesMarketTargets : [],
+  )
+  const marketLastTradesByMarket = includePriceHistory
+    ? yesPriceHistory.latestRawPrices
+    : fallbackLastTradesByMarket
   const marketQuotesByMarket = useEventMarketQuotes(yesMarketTargets, { enabled })
   const displayChanceByMarket = useMemo(() => {
     const marketIds = new Set([
       ...Object.keys(marketQuotesByMarket),
-      ...Object.keys(yesPriceHistory.latestRawPrices),
+      ...Object.keys(marketLastTradesByMarket),
     ])
     const entries: Array<[string, number]> = []
 
     marketIds.forEach((marketId) => {
       const quote = marketQuotesByMarket[marketId]
-      const lastTrade = yesPriceHistory.latestRawPrices[marketId]
+      const lastTrade = marketLastTradesByMarket[marketId]
       const displayPrice = resolveDisplayPrice({
         bid: quote?.bid ?? null,
         ask: quote?.ask ?? null,
@@ -64,7 +71,7 @@ export function useEventMarketChanceData({
     })
 
     return Object.fromEntries(entries)
-  }, [marketQuotesByMarket, yesPriceHistory.latestRawPrices])
+  }, [marketLastTradesByMarket, marketQuotesByMarket])
   const chanceChangeByMarket = useMemo(() => {
     if (!includePriceHistory) {
       return {}

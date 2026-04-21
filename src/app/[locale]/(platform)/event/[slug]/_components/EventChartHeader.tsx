@@ -103,6 +103,11 @@ export default function EventChartHeader({
       </div>
     )
   })()
+  const roundedYesChanceValue = (
+    typeof yesChanceValue === 'number' && Number.isFinite(yesChanceValue)
+      ? Math.round(yesChanceValue)
+      : null
+  )
 
   return (
     <div className="flex flex-col gap-2">
@@ -124,7 +129,7 @@ export default function EventChartHeader({
               {typeof yesChanceValue === 'number'
                 ? (
                     <AnimatedCounter
-                      value={yesChanceValue}
+                      value={roundedYesChanceValue ?? 0}
                       color="currentColor"
                       fontSize="24px"
                       includeCommas={false}
