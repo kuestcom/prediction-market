@@ -1,12 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
-  cacheTag: vi.fn(),
   listHomeEventsPage: vi.fn(),
-}))
-
-vi.mock('next/cache', () => ({
-  cacheTag: (...args: any[]) => mocks.cacheTag(...args),
 }))
 
 vi.mock('@/lib/home-events-page', () => ({
@@ -19,7 +14,6 @@ vi.mock('@/app/[locale]/(platform)/(home)/_components/HomeClient', () => ({
 
 describe('homeContent', () => {
   beforeEach(() => {
-    mocks.cacheTag.mockReset()
     mocks.listHomeEventsPage.mockReset()
   })
 
@@ -37,7 +31,7 @@ describe('homeContent', () => {
       tag: 'ai',
       mainTag: 'tech',
       locale: 'en',
-      currentTimestamp: expect.any(Number),
+      currentTimestamp: null,
     }))
   })
 })
