@@ -1,5 +1,5 @@
 import type { Event, Outcome } from '@/types'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { useEventMarketChanceData } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketChanceData'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { toCents } from '@/lib/formatters'
@@ -122,37 +122,80 @@ export function useEventMarketRows(event: Event): EventMarketRowsResult {
     range: 'ALL',
     includePriceHistory: false,
   })
+  const displayChanceCacheRef = useRef<{ eventId: string, values: Record<string, number> }>({
+    eventId: event.id,
+    values: {},
+  })
+  const chanceChangeCacheRef = useRef<{ eventId: string, values: Record<string, number> }>({
+    eventId: event.id,
+    values: {},
+  })
+  if (displayChanceCacheRef.current.eventId !== event.id) {
+    displayChanceCacheRef.current = { eventId: event.id, values: {} }
+  }
+  if (chanceChangeCacheRef.current.eventId !== event.id) {
+    chanceChangeCacheRef.current = { eventId: event.id, values: {} }
+  }
+
+  const stableDisplayChanceByMarket = useMemo(() => {
+    const mergedDisplayChanceByMarket = { ...displayChanceCacheRef.current.values }
+
+    event.markets.forEach((market) => {
+      const chance = displayChanceByMarket[market.condition_id]
+      if (typeof chance === 'number' && Number.isFinite(chance)) {
+        mergedDisplayChanceByMarket[market.condition_id] = chance
+      }
+    })
+
+    displayChanceCacheRef.current = {
+      eventId: event.id,
+      values: mergedDisplayChanceByMarket,
+    }
+
+    return mergedDisplayChanceByMarket
+  }, [displayChanceByMarket, event.id, event.markets])
+
   const chanceChangeByMarket = useMemo(() => {
     if (Object.keys(historicalChanceChangeByMarket).length > 0) {
       return historicalChanceChangeByMarket
     }
 
-    const entries = event.markets.map((market) => {
+    const mergedChanceChangeByMarket = { ...chanceChangeCacheRef.current.values }
+
+    event.markets.forEach((market) => {
       const baselineChance = Number.isFinite(market.probability)
         ? market.probability
         : null
-      const liveChance = displayChanceByMarket[market.condition_id]
+      const liveChance = stableDisplayChanceByMarket[market.condition_id]
 
       if (
         baselineChance == null
         || typeof liveChance !== 'number'
         || !Number.isFinite(liveChance)
       ) {
-        return [market.condition_id, 0] as const
+        if (!(market.condition_id in mergedChanceChangeByMarket)) {
+          mergedChanceChangeByMarket[market.condition_id] = 0
+        }
+        return
       }
 
-      return [market.condition_id, liveChance - baselineChance] as const
+      mergedChanceChangeByMarket[market.condition_id] = liveChance - baselineChance
     })
 
-    return Object.fromEntries(entries)
-  }, [displayChanceByMarket, event.markets, historicalChanceChangeByMarket])
+    chanceChangeCacheRef.current = {
+      eventId: event.id,
+      values: mergedChanceChangeByMarket,
+    }
+
+    return mergedChanceChangeByMarket
+  }, [event.id, event.markets, historicalChanceChangeByMarket, stableDisplayChanceByMarket])
 
   return useMemo(
     () => buildEventMarketRows(event, {
-      outcomeChances: displayChanceByMarket,
+      outcomeChances: stableDisplayChanceByMarket,
       outcomeChanceChanges: chanceChangeByMarket,
       marketYesPrices: yesPriceHistory.latestRawPrices,
     }),
-    [chanceChangeByMarket, displayChanceByMarket, event, yesPriceHistory.latestRawPrices],
+    [chanceChangeByMarket, event, stableDisplayChanceByMarket, yesPriceHistory.latestRawPrices],
   )
 }
