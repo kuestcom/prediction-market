@@ -1,16 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
-  getLocale: vi.fn(),
   loadMarketContextSettings: vi.fn(),
   getEventBySlug: vi.fn(),
   generateMarketContext: vi.fn(),
   getValidContext: vi.fn(),
   upsertContext: vi.fn(),
-}))
-
-vi.mock('next-intl/server', () => ({
-  getLocale: mocks.getLocale,
 }))
 
 vi.mock('@/lib/ai/market-context-config', () => ({
@@ -50,17 +45,14 @@ function makeEvent() {
   } as any
 }
 
-describe('generateMarketContextAction', () => {
+describe('resolveMarketContextRequest', () => {
   beforeEach(() => {
     vi.resetModules()
-    mocks.getLocale.mockReset()
     mocks.loadMarketContextSettings.mockReset()
     mocks.getEventBySlug.mockReset()
     mocks.generateMarketContext.mockReset()
     mocks.getValidContext.mockReset()
     mocks.upsertContext.mockReset()
-
-    mocks.getLocale.mockResolvedValue('en')
   })
 
   it('returns cached context when a valid cache entry exists', async () => {
@@ -75,12 +67,15 @@ describe('generateMarketContextAction', () => {
       error: null,
     })
 
-    const { generateMarketContextAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/generate-market-context')
+    const { resolveMarketContextRequest } = await import('@/lib/market-context-service')
 
-    const result = await generateMarketContextAction({
-      slug: 'event-slug',
-      marketConditionId: 'condition-1',
-    })
+    const result = await resolveMarketContextRequest(
+      {
+        slug: 'event-slug',
+        marketConditionId: 'condition-1',
+      },
+      'en',
+    )
 
     expect(result).toEqual({
       context: 'cached market summary',
@@ -96,13 +91,16 @@ describe('generateMarketContextAction', () => {
     mocks.getEventBySlug.mockResolvedValue({ data: makeEvent(), error: null })
     mocks.getValidContext.mockResolvedValue({ data: null, error: null })
 
-    const { generateMarketContextAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/generate-market-context')
+    const { resolveMarketContextRequest } = await import('@/lib/market-context-service')
 
-    const result = await generateMarketContextAction({
-      slug: 'event-slug',
-      marketConditionId: 'condition-1',
-      readOnly: true,
-    })
+    const result = await resolveMarketContextRequest(
+      {
+        slug: 'event-slug',
+        marketConditionId: 'condition-1',
+        readOnly: true,
+      },
+      'en',
+    )
 
     expect(result).toEqual({
       context: null,
@@ -129,12 +127,15 @@ describe('generateMarketContextAction', () => {
       error: null,
     })
 
-    const { generateMarketContextAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/generate-market-context')
+    const { resolveMarketContextRequest } = await import('@/lib/market-context-service')
 
-    const result = await generateMarketContextAction({
-      slug: 'event-slug',
-      marketConditionId: 'condition-1',
-    })
+    const result = await resolveMarketContextRequest(
+      {
+        slug: 'event-slug',
+        marketConditionId: 'condition-1',
+      },
+      'en',
+    )
 
     expect(result).toEqual({
       context: 'fresh market summary',
