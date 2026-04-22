@@ -507,6 +507,7 @@ export function useLocaleDateTimeFormatters(locale: string) {
       weekday: 'short',
       month: 'long',
       day: 'numeric',
+      timeZone: 'UTC',
     }),
     [locale],
   )
@@ -515,6 +516,7 @@ export function useLocaleDateTimeFormatters(locale: string) {
     () => new Intl.DateTimeFormat(locale, {
       hour: 'numeric',
       minute: '2-digit',
+      timeZone: 'UTC',
     }),
     [locale],
   )

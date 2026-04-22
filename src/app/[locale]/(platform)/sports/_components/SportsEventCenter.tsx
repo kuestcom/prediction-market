@@ -427,10 +427,10 @@ export default function SportsEventCenter({
         : Number.NaN
   const startTimestamp = Number.isFinite(parsedStartTimestamp) ? parsedStartTimestamp : null
   const timeLabel = startTimestamp !== null
-    ? new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(startTimestamp)
+    ? new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' }).format(startTimestamp)
     : 'TBD'
   const dayLabel = startTimestamp !== null
-    ? new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric' }).format(startTimestamp)
+    ? new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric', timeZone: 'UTC' }).format(startTimestamp)
     : 'Date TBD'
 
   const team1 = heroCard.teams[0] ?? null
