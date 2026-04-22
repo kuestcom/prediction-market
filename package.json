@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1004.0",
+    "lru-cache": "^11.1.0",
     "@better-auth/drizzle-adapter": "^1.5.6",
     "@bprogress/next": "^3.2.12",
     "@fullcalendar/core": "^6.1.20",

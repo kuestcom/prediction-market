@@ -16,6 +16,11 @@ function isExternalHttpUrl(value: string) {
   return value.startsWith('https://') || value.startsWith('http://')
 }
 
+// only allow safe URL schemes — blocks javascript:, data:, vbscript:, etc.
+function isSafeUrl(value: string) {
+  return value.startsWith('https://') || value.startsWith('http://') || value.startsWith('/')
+}
+
 function stripLocalePrefix(pathname: string | null, locale: string) {
   if (!pathname) {
     return pathname
@@ -56,7 +61,7 @@ export default function GlobalAnnouncementBanner({
     </div>
   )
 
-  if (!linkUrl) {
+  if (!linkUrl || !isSafeUrl(linkUrl)) {
     return content
   }
 

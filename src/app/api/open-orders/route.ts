@@ -41,7 +41,7 @@ export async function GET(request: Request) {
   try {
     const user = await UserRepository.getCurrentUser()
     if (!user) {
-      return NextResponse.json({ data: [], next_cursor: 'LTE=' })
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
     }
 
     if (!CLOB_URL) {

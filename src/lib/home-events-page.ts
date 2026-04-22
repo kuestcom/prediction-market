@@ -48,7 +48,14 @@ export async function listHomeEventsPage({
   const accumulatedEvents: Event[] = []
   let visibleEvents: Event[] = []
 
-  while (true) {
+  // cap the number of DB round-trips so a large catalog with aggressive tag
+  // filters can't turn a single page load into a full-table scan
+  const MAX_ITERATIONS = 10
+  let iterations = 0
+
+  while (iterations < MAX_ITERATIONS) {
+    iterations++
+
     const { data: rawEvents, error } = await EventRepository.listEvents({
       tag,
       mainTag,
@@ -83,7 +90,9 @@ export async function listHomeEventsPage({
       status,
     })
 
-    if (status === 'resolved' && visibleEvents.length >= targetVisibleCount) {
+    // stop as soon as we have gathered enough visible events for the requested page,
+    // regardless of status — previously this early-exit only applied to 'resolved'
+    if (visibleEvents.length >= targetVisibleCount) {
       break
     }
 
