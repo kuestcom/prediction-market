@@ -32,8 +32,7 @@ export const SettingsRepository = {
 
         return { data: settingsByGroup, error: null }
       }
-      catch (error) {
-        console.error('Failed to fetch settings:', error)
+      catch {
         return { data: null, error: 'Failed to fetch settings.' }
       }
     })
