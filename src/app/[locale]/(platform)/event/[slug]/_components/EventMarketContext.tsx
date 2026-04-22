@@ -1,8 +1,7 @@
 import type { Event } from '@/types'
 import { LoaderIcon, SparkleIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
-import { generateMarketContextAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/generate-market-context'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
 
@@ -62,8 +61,58 @@ interface EventMarketContextContentProps {
   resolvedMarketConditionId?: string
 }
 
+interface MarketContextResponse {
+  error?: string
+  context?: string | null
+  expiresAt?: string | null
+  updatedAt?: string | null
+}
+
+async function requestMarketContext({
+  slug,
+  marketConditionId,
+  readOnly = false,
+  locale,
+  signal,
+}: {
+  slug: string
+  marketConditionId: string
+  readOnly?: boolean
+  locale: string
+  signal?: AbortSignal
+}): Promise<MarketContextResponse> {
+  const response = await fetch('/api/market-context', {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'X-Kuest-Locale': locale,
+    },
+    body: JSON.stringify({
+      slug,
+      marketConditionId,
+      readOnly,
+      locale,
+    }),
+    signal,
+  })
+
+  const payload = await response.json().catch(() => null) as MarketContextResponse | null
+
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid market context response payload.')
+  }
+
+  if (!response.ok && !payload.error) {
+    throw new Error(`Failed to fetch market context (${response.status}).`)
+  }
+
+  return payload
+}
+
 function useMarketContextState(event: Event, resolvedMarketConditionId: string | undefined) {
   const t = useExtracted()
+  const locale = useLocale()
   const [isExpanded, setIsExpanded] = useState(false)
   const [context, setContext] = useState<string | null>(null)
   const [displayedContext, setDisplayedContext] = useState('')
@@ -82,13 +131,16 @@ function useMarketContextState(event: Event, resolvedMarketConditionId: string |
     }
 
     let isActive = true
+    const abortController = new AbortController()
 
     async function preloadCachedContext() {
       try {
-        const response = await generateMarketContextAction({
+        const response = await requestMarketContext({
           slug: event.slug,
-          marketConditionId: resolvedMarketConditionId,
+          marketConditionId: `${resolvedMarketConditionId}`,
           readOnly: true,
+          locale,
+          signal: abortController.signal,
         })
 
         if (!isActive || response?.error || !response?.context) {
@@ -101,6 +153,10 @@ function useMarketContextState(event: Event, resolvedMarketConditionId: string |
         setContextUpdatedAtMs(parseTimestamp(response.updatedAt) ?? Date.now())
       }
       catch (caughtError) {
+        if (caughtError instanceof DOMException && caughtError.name === 'AbortError') {
+          return
+        }
+
         console.error('Failed to fetch cached market context.', caughtError)
       }
     }
@@ -109,8 +165,9 @@ function useMarketContextState(event: Event, resolvedMarketConditionId: string |
 
     return function cleanupPreload() {
       isActive = false
+      abortController.abort()
     }
-  }, [event.slug, resolvedMarketConditionId])
+  }, [event.slug, locale, resolvedMarketConditionId])
 
   useEffect(function cacheExpirationEffect() {
     if (!cacheExpiresAtMs) {
@@ -238,9 +295,10 @@ function useMarketContextState(event: Event, resolvedMarketConditionId: string |
       setError(null)
 
       try {
-        const response = await generateMarketContextAction({
+        const response = await requestMarketContext({
           slug: event.slug,
           marketConditionId: resolvedMarketConditionId,
+          locale,
         })
 
         if (response?.error) {

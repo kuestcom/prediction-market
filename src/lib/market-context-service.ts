@@ -1,7 +1,4 @@
-'use server'
-
 import type { SupportedLocale } from '@/i18n/locales'
-import { getLocale } from 'next-intl/server'
 import { z } from 'zod'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { generateMarketContext } from '@/lib/ai/market-context'
@@ -12,27 +9,44 @@ import { MarketContextCacheRepository } from '@/lib/db/queries/market-context-ca
 
 const MARKET_CONTEXT_CACHE_WINDOW_MS = 30 * 60 * 1000
 
-const GenerateMarketContextSchema = z.object({
+export const MarketContextRequestSchema = z.object({
   slug: z.string(),
   marketConditionId: z.string().optional(),
   readOnly: z.boolean().optional(),
+  locale: z.string().optional(),
 })
 
-type GenerateMarketContextInput = z.infer<typeof GenerateMarketContextSchema>
+export interface MarketContextResponse {
+  error?: string
+  context?: string | null
+  expiresAt?: string | null
+  updatedAt?: string | null
+  cached?: boolean
+}
 
-export async function generateMarketContextAction(input: GenerateMarketContextInput) {
-  const parsed = GenerateMarketContextSchema.safeParse(input)
+function resolveSupportedLocale(locale: string | null | undefined): SupportedLocale {
+  const normalizedLocale = locale?.trim().toLowerCase()
+
+  if (normalizedLocale && SUPPORTED_LOCALES.includes(normalizedLocale as SupportedLocale)) {
+    return normalizedLocale as SupportedLocale
+  }
+
+  return DEFAULT_LOCALE
+}
+
+export async function resolveMarketContextRequest(
+  input: unknown,
+  fallbackLocale?: string | null,
+): Promise<MarketContextResponse> {
+  const parsed = MarketContextRequestSchema.safeParse(input)
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? 'Invalid request.' }
   }
 
   try {
-    const { slug, marketConditionId, readOnly = false } = parsed.data
-    const locale = await getLocale()
-    const resolvedLocale = SUPPORTED_LOCALES.includes(locale as SupportedLocale)
-      ? locale as SupportedLocale
-      : DEFAULT_LOCALE
+    const { slug, marketConditionId, readOnly = false, locale } = parsed.data
+    const resolvedLocale = resolveSupportedLocale(locale ?? fallbackLocale)
     const { data: event, error } = await EventRepository.getEventBySlug(slug, '', resolvedLocale)
 
     if (error || !event) {
@@ -74,7 +88,7 @@ export async function generateMarketContextAction(input: GenerateMarketContextIn
       return { error: 'Market context generation is not configured.' }
     }
 
-    const context = await generateMarketContext(event, market, settings, locale)
+    const context = await generateMarketContext(event, market, settings, resolvedLocale)
     const expiresAt = new Date(Date.now() + MARKET_CONTEXT_CACHE_WINDOW_MS)
     const persistedCache = await MarketContextCacheRepository.upsertContext(
       market.condition_id,
