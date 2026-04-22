@@ -713,12 +713,25 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
       values: {},
     }
   }
-  const shouldHydrateChartDeltas = true
+  const shouldHydrateChartDeltas = Boolean(expandedMarketId)
   const rowChartDeltaTargets = useMemo(
-    () => (shouldHydrateChartDeltas
-      ? buildMarketTargets(event.markets.filter(market => !isMarketResolved(market)))
-      : []),
-    [event.markets, shouldHydrateChartDeltas],
+    () => {
+      if (!shouldHydrateChartDeltas || !expandedMarketId) {
+        return []
+      }
+
+      const expandedMarket = event.markets.find(market => market.condition_id === expandedMarketId)
+      if (!expandedMarket || isMarketResolved(expandedMarket)) {
+        return []
+      }
+
+      return buildMarketTargets([expandedMarket])
+    },
+    [event.markets, expandedMarketId, shouldHydrateChartDeltas],
+  )
+  const rowChartDeltaTargetConditionIds = useMemo(
+    () => new Set(rowChartDeltaTargets.map(target => target.conditionId)),
+    [rowChartDeltaTargets],
   )
   const rowChartDeltaPriceHistory = useEventPriceHistory({
     eventId: event.id,
@@ -895,7 +908,9 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
         {primaryMarketRows
           .map((row, index, orderedMarkets) => {
             const { market } = row
-            const chartDeltaForMarket = stableRowChartDeltaYesByMarket[market.condition_id] ?? null
+            const chartDeltaForMarket = rowChartDeltaTargetConditionIds.has(market.condition_id)
+              ? (stableRowChartDeltaYesByMarket[market.condition_id] ?? null)
+              : null
             const resolvedChanceMeta = shouldHydrateChartDeltas
               ? resolveChanceMetaForOpenedChart(row.chanceMeta, chartDeltaForMarket)
               : row.chanceMeta
