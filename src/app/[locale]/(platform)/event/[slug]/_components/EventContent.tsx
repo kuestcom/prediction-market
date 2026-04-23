@@ -11,7 +11,6 @@ import EventCategoryNote from '@/app/[locale]/(platform)/event/[slug]/_component
 import EventHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventHeader'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventMarkets from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarkets'
-import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
 import EventOrderPanelTermsDisclaimer from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
 import { EventOutcomeChanceProvider } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOutcomeChanceProvider'
 import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSkeleton'
@@ -53,6 +52,11 @@ const EventRelated = dynamic(
 const EventMarketPositions = dynamic(
   () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventMarketPositions'),
   { ssr: false, loading: () => <Skeleton className="h-52" /> },
+)
+
+const EventOrderPanelDesktop = dynamic(
+  () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'),
+  { ssr: false, loading: () => <Skeleton className="h-136 w-full rounded-xl" /> },
 )
 
 const EventMarketOpenOrders = dynamic(
@@ -638,7 +642,7 @@ export default function EventContent({
             `}
           >
             <div className="grid gap-6">
-              <EventOrderPanelForm
+              <EventOrderPanelDesktop
                 event={event}
                 isMobile={false}
                 initialMarket={initialMarket}
