@@ -484,6 +484,9 @@ function useTokenApprovalsFlow({
   refreshSessionUserState,
   setApprovalsStep,
   setTokenApprovalError,
+  setRequiresTradingAuthRefresh,
+  setTradingAuthStep,
+  setTradingAuthError,
 }: {
   user: User | null
   tradingAuthSatisfied: boolean
@@ -491,6 +494,9 @@ function useTokenApprovalsFlow({
   refreshSessionUserState: () => Promise<void>
   setApprovalsStep: (value: ApprovalsStep) => void
   setTokenApprovalError: (value: string | null) => void
+  setRequiresTradingAuthRefresh: (value: boolean) => void
+  setTradingAuthStep: (value: TradingAuthStep) => void
+  setTradingAuthError: (value: string | null) => void
 }) {
   const { signMessageAsync } = useSignMessage()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
@@ -513,6 +519,15 @@ function useTokenApprovalsFlow({
       setApprovalsStep('signing')
       const nonceResult = await getSafeNonceAction()
       if (nonceResult.error || !nonceResult.nonce) {
+        if (isTradingAuthRequiredError(nonceResult.error)) {
+          setRequiresTradingAuthRefresh(true)
+          setTradingAuthStep('idle')
+          setTradingAuthError(null)
+          setTokenApprovalError(null)
+          setApprovalsStep('idle')
+          void refreshSessionUserState()
+          return
+        }
         setTokenApprovalError(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
         setApprovalsStep('idle')
         return
@@ -575,6 +590,15 @@ function useTokenApprovalsFlow({
 
       const submitResult = await submitSafeTransactionAction(requestPayload)
       if (submitResult.error) {
+        if (isTradingAuthRequiredError(submitResult.error)) {
+          setRequiresTradingAuthRefresh(true)
+          setTradingAuthStep('idle')
+          setTradingAuthError(null)
+          setTokenApprovalError(null)
+          setApprovalsStep('idle')
+          void refreshSessionUserState()
+          return
+        }
         setTokenApprovalError(submitResult.error)
         setApprovalsStep('idle')
         return
@@ -617,7 +641,10 @@ function useTokenApprovalsFlow({
     resolveReferralExchanges,
     runWithSignaturePrompt,
     setApprovalsStep,
+    setRequiresTradingAuthRefresh,
     setTokenApprovalError,
+    setTradingAuthError,
+    setTradingAuthStep,
     signMessageAsync,
     tradingAuthSatisfied,
     user,
@@ -962,6 +989,9 @@ function TradingOnboardingProviderContent({
     refreshSessionUserState,
     setApprovalsStep,
     setTokenApprovalError,
+    setRequiresTradingAuthRefresh,
+    setTradingAuthStep,
+    setTradingAuthError,
   })
 
   const { ensureTradingReady, openTradeRequirements, openAppKit } = useTradingReadyGate({
