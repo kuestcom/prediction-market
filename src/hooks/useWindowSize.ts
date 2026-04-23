@@ -14,27 +14,33 @@ function subscribeToWindowSizeStore(onStoreChange: () => void) {
     return function unsubscribeFromWindowSizeStore() {}
   }
 
-  window.addEventListener('resize', onStoreChange)
+  function publishWindowSizeIfChanged() {
+    const nextWindowSize = {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    }
+
+    if (
+      cachedWindowSize.width === nextWindowSize.width
+      && cachedWindowSize.height === nextWindowSize.height
+    ) {
+      return
+    }
+
+    cachedWindowSize = nextWindowSize
+    onStoreChange()
+  }
+
+  window.addEventListener('resize', publishWindowSizeIfChanged)
+  const initialFrame = window.requestAnimationFrame(publishWindowSizeIfChanged)
 
   return function unsubscribeFromWindowSizeStore() {
-    window.removeEventListener('resize', onStoreChange)
+    window.cancelAnimationFrame(initialFrame)
+    window.removeEventListener('resize', publishWindowSizeIfChanged)
   }
 }
 
 function getWindowSizeClientSnapshot() {
-  const nextWindowSize = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-  }
-
-  if (
-    cachedWindowSize.width === nextWindowSize.width
-    && cachedWindowSize.height === nextWindowSize.height
-  ) {
-    return cachedWindowSize
-  }
-
-  cachedWindowSize = nextWindowSize
   return cachedWindowSize
 }
 

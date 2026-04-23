@@ -129,6 +129,7 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+      timeZone: 'UTC',
     }).format(date)
   }
 
