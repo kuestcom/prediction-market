@@ -21,10 +21,6 @@ function buildLocalizedPagePath(path: string, locale: SupportedLocale) {
   return `/${locale}${path}`
 }
 
-function getFallbackChartEndDate() {
-  return new Date().toISOString()
-}
-
 function buildPublicProfileOgImageUrl({
   locale,
   slug,
@@ -143,7 +139,6 @@ export async function buildPublicProfileMetadata({
 }
 
 export async function PublicProfilePageContent({ slug }: { slug: string }) {
-  const fallbackChartEndDate = getFallbackChartEndDate()
   const normalized = normalizePublicProfileSlug(slug)
   if (normalized.type === 'invalid') {
     notFound()
@@ -157,6 +152,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
     }
 
     const snapshot = await fetchPortfolioSnapshot(normalized.value)
+    const fallbackChartEndDate = new Date().toISOString()
 
     return (
       <>
@@ -177,6 +173,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
 
   const userAddress = profile.proxy_wallet_address!
   const snapshot = await fetchPortfolioSnapshot(userAddress)
+  const fallbackChartEndDate = new Date().toISOString()
 
   return (
     <>
