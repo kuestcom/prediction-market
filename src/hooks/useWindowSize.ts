@@ -8,35 +8,61 @@ interface WindowSize {
 const INITIAL_WINDOW_SIZE: WindowSize = { width: 0, height: 0 }
 
 let cachedWindowSize = INITIAL_WINDOW_SIZE
+const subscribers = new Set<() => void>()
+let isListeningForWindowResize = false
+let initialWindowSizeFrame: number | null = null
+
+function readWindowSize() {
+  return {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }
+}
+
+function publishWindowSizeIfChanged() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const nextWindowSize = readWindowSize()
+  if (
+    cachedWindowSize.width === nextWindowSize.width
+    && cachedWindowSize.height === nextWindowSize.height
+  ) {
+    return
+  }
+
+  cachedWindowSize = nextWindowSize
+  subscribers.forEach(subscriber => subscriber())
+}
 
 function subscribeToWindowSizeStore(onStoreChange: () => void) {
   if (typeof window === 'undefined') {
     return function unsubscribeFromWindowSizeStore() {}
   }
 
-  function publishWindowSizeIfChanged() {
-    const nextWindowSize = {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    }
+  subscribers.add(onStoreChange)
 
-    if (
-      cachedWindowSize.width === nextWindowSize.width
-      && cachedWindowSize.height === nextWindowSize.height
-    ) {
+  if (!isListeningForWindowResize) {
+    isListeningForWindowResize = true
+    window.addEventListener('resize', publishWindowSizeIfChanged)
+    initialWindowSizeFrame = window.requestAnimationFrame(publishWindowSizeIfChanged)
+  }
+
+  return function unsubscribeFromWindowSizeStore() {
+    subscribers.delete(onStoreChange)
+
+    if (subscribers.size > 0 || !isListeningForWindowResize) {
       return
     }
 
-    cachedWindowSize = nextWindowSize
-    onStoreChange()
-  }
+    if (initialWindowSizeFrame != null) {
+      window.cancelAnimationFrame(initialWindowSizeFrame)
+      initialWindowSizeFrame = null
+    }
 
-  window.addEventListener('resize', publishWindowSizeIfChanged)
-  const initialFrame = window.requestAnimationFrame(publishWindowSizeIfChanged)
-
-  return function unsubscribeFromWindowSizeStore() {
-    window.cancelAnimationFrame(initialFrame)
     window.removeEventListener('resize', publishWindowSizeIfChanged)
+    isListeningForWindowResize = false
   }
 }
 
