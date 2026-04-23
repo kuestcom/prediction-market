@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a Security Vulnerability
+    url: https://github.com/kuestcom/prediction-market/blob/main/.github/SECURITY.md
+    about: Follow the private reporting process in SECURITY.md
+  - name: Feature Request
+    url: https://github.com/orgs/kuestcom/discussions
+    about: Share ideas and feature requests in Kuest Discussions.
+  - name: Support Questions & Other
+    url: https://discord.gg/kuest
+    about: Ask questions and get community support on Discord.
