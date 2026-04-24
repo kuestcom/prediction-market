@@ -17,15 +17,17 @@ import ResolvedMarketRow from '@/app/[locale]/(platform)/event/[slug]/_component
 import { useChanceRefresh } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useChanceRefresh'
 import { useEventMarketRows } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
-import { buildMarketTargets, useEventPriceHistory } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+import { useEventPriceHistory } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { useMarketDetailController } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useMarketDetailController'
 import { useUserOpenOrdersQuery } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import { useXTrackerTweetCount } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useXTrackerTweetCount'
+import { applyCachedChartDeltaToEventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketChanceMeta'
 import { isMarketResolved, POSITION_VISIBILITY_THRESHOLD } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketUtils'
 import {
   resolveEventResolvedOutcomeIndex,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventResolvedOutcome'
+import { buildRowChartDeltaTargets } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventRowChartDeltaTargets'
 import { isTweetMarketsEvent } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
 import { isResolutionReviewActive } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
@@ -46,26 +48,6 @@ export { resolveWinningOutcomeIndex } from '@/app/[locale]/(platform)/event/[slu
 interface EventMarketsProps {
   event: Event
   isMobile: boolean
-}
-
-function resolveChanceMetaForOpenedChart(
-  chanceMeta: EventMarketRow['chanceMeta'],
-  chanceDelta: number | null,
-) {
-  if (typeof chanceDelta !== 'number' || !Number.isFinite(chanceDelta)) {
-    return chanceMeta
-  }
-
-  const roundedChanceDelta = Math.round(chanceDelta)
-  const absoluteChanceDelta = Math.abs(roundedChanceDelta)
-  const shouldShowChanceChange = absoluteChanceDelta >= 1
-
-  return {
-    ...chanceMeta,
-    shouldShowChanceChange,
-    chanceChangeLabel: shouldShowChanceChange ? `${absoluteChanceDelta}%` : '',
-    isChanceChangePositive: roundedChanceDelta > 0,
-  }
 }
 
 function toNumber(value: unknown) {
@@ -713,26 +695,11 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
       values: {},
     }
   }
-  const shouldHydrateChartDeltas = Boolean(expandedMarketId)
   const rowChartDeltaTargets = useMemo(
-    () => {
-      if (!shouldHydrateChartDeltas || !expandedMarketId) {
-        return []
-      }
-
-      const expandedMarket = event.markets.find(market => market.condition_id === expandedMarketId)
-      if (!expandedMarket || isMarketResolved(expandedMarket)) {
-        return []
-      }
-
-      return buildMarketTargets([expandedMarket])
-    },
-    [event.markets, expandedMarketId, shouldHydrateChartDeltas],
+    () => buildRowChartDeltaTargets(event.markets),
+    [event.markets],
   )
-  const rowChartDeltaTargetConditionIds = useMemo(
-    () => new Set(rowChartDeltaTargets.map(target => target.conditionId)),
-    [rowChartDeltaTargets],
-  )
+  const shouldHydrateChartDeltas = rowChartDeltaTargets.length > 0
   const rowChartDeltaPriceHistory = useEventPriceHistory({
     eventId: event.id,
     range: 'ALL',
@@ -908,15 +875,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
         {primaryMarketRows
           .map((row, index, orderedMarkets) => {
             const { market } = row
-            const chartDeltaForMarket = rowChartDeltaTargetConditionIds.has(market.condition_id)
-              ? (stableRowChartDeltaYesByMarket[market.condition_id] ?? null)
-              : null
-            const resolvedChanceMeta = shouldHydrateChartDeltas
-              ? resolveChanceMetaForOpenedChart(row.chanceMeta, chartDeltaForMarket)
-              : row.chanceMeta
-            const resolvedRow = resolvedChanceMeta === row.chanceMeta
-              ? row
-              : { ...row, chanceMeta: resolvedChanceMeta }
+            const resolvedRow = applyCachedChartDeltaToEventMarketRow(row, stableRowChartDeltaYesByMarket)
             const isExpanded = expandedMarketId === market.condition_id
             const activeOutcomeForMarket = selectedOutcome && selectedOutcome.condition_id === market.condition_id
               ? selectedOutcome

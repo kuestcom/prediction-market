@@ -1,32 +1,22 @@
+import type {
+  PriceHistoryByKey as PriceHistoryByMarket,
+  RangeFilters,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/priceHistoryApi'
 import type { Market } from '@/types'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import {
+  fetchBatchPriceHistoryByTokenIds,
+  mapTokenHistoryToConditionHistory,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/priceHistoryApi'
 import { OUTCOME_INDEX } from '@/lib/constants'
 
 export type TimeRange = '1H' | '6H' | '1D' | '1W' | '1M' | 'ALL'
-
-interface PriceHistoryPoint {
-  t: number
-  p: number
-}
-
-interface PriceHistoryResponse {
-  history?: PriceHistoryPoint[]
-}
 
 export interface MarketTokenTarget {
   conditionId: string
   tokenId: string
 }
-
-interface RangeFilters {
-  fidelity: string
-  interval?: string
-  startTs?: string
-  endTs?: string
-}
-
-type PriceHistoryByMarket = Record<string, PriceHistoryPoint[]>
 
 interface NormalizedHistoryResult {
   points: Array<Record<string, number | Date> & { date: Date }>
@@ -153,30 +143,6 @@ function buildTimeRangeFilters(range: TimeRange, createdAt: string, resolvedAt?:
   }
 }
 
-async function fetchTokenPriceHistory(tokenId: string, filters: RangeFilters): Promise<PriceHistoryPoint[]> {
-  const url = new URL(`${process.env.CLOB_URL!}/prices-history`)
-  url.searchParams.set('market', tokenId)
-
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined) {
-      url.searchParams.set(key, value)
-    }
-  })
-
-  const response = await fetch(url.toString())
-  if (!response.ok) {
-    throw new Error('Failed to fetch price history')
-  }
-
-  const payload = await response.json() as PriceHistoryResponse
-  return (payload.history ?? [])
-    .map(point => ({
-      t: Number(point.t),
-      p: Number(point.p),
-    }))
-    .filter(point => Number.isFinite(point.t) && Number.isFinite(point.p))
-}
-
 async function fetchEventPriceHistory(
   targets: MarketTokenTarget[],
   range: TimeRange,
@@ -188,19 +154,12 @@ async function fetchEventPriceHistory(
   }
 
   const filters = buildTimeRangeFilters(range, eventCreatedAt, eventResolvedAt)
-  const entries = await Promise.all(
-    targets.map(async (target) => {
-      try {
-        const history = await fetchTokenPriceHistory(target.tokenId, filters)
-        return [target.conditionId, history] as const
-      }
-      catch {
-        return [target.conditionId, []] as const
-      }
-    }),
+  const historyByToken = await fetchBatchPriceHistoryByTokenIds(
+    targets.map(target => target.tokenId),
+    filters,
   )
 
-  return Object.fromEntries(entries)
+  return mapTokenHistoryToConditionHistory(targets, historyByToken)
 }
 
 function clampPrice(value: number) {

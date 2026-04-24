@@ -43,7 +43,7 @@ export default function EventIconImage({
         alt={alt}
         fill
         sizes={sizes}
-        className={cn('object-cover object-center', imageClassName)}
+        className={cn('shrink-0 object-cover object-center', imageClassName)}
       />
     </div>
   )

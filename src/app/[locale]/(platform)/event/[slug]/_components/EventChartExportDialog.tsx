@@ -1,9 +1,17 @@
 'use client'
 
+import type {
+  PriceHistoryPoint,
+  RangeFilters,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/priceHistoryApi'
 import type { Market } from '@/types'
 import { CalendarIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useId, useMemo, useState, useSyncExternalStore } from 'react'
+import {
+  fetchBatchPriceHistoryByTokenIds,
+  mapTokenHistoryToConditionHistory,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/priceHistoryApi'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -45,15 +53,6 @@ const FREQUENCY_FIDELITY_MINUTES: Record<Frequency, number> = {
   daily: 1440,
   weekly: 10080,
   monthly: 43200,
-}
-
-interface PriceHistoryPoint {
-  t: number
-  p: number
-}
-
-interface PriceHistoryResponse {
-  history?: PriceHistoryPoint[]
 }
 
 interface MarketTarget {
@@ -127,27 +126,6 @@ function buildMarketTarget(market: Market): MarketTarget | null {
     tokenId: String(yesOutcome.token_id),
     label: sanitizeTsvValue(market.short_title ?? ''),
   }
-}
-
-async function fetchTokenPriceHistory(
-  tokenId: string,
-  filters: Record<string, string>,
-): Promise<PriceHistoryPoint[]> {
-  const url = new URL(`${process.env.CLOB_URL!}/prices-history`)
-  url.searchParams.set('market', tokenId)
-  Object.entries(filters).forEach(([key, value]) => {
-    url.searchParams.set(key, value)
-  })
-
-  const response = await fetch(url.toString())
-  if (!response.ok) {
-    throw new Error('Failed to fetch price history')
-  }
-
-  const payload = await response.json() as PriceHistoryResponse
-  return (payload.history ?? [])
-    .map(point => ({ t: Number(point.t), p: Number(point.p) }))
-    .filter(point => Number.isFinite(point.t) && Number.isFinite(point.p))
 }
 
 function buildCsvContent(
@@ -331,7 +309,7 @@ function EventChartExportDialogBody({
       const toSeconds = Math.floor(toDate.getTime() / 1000)
       const startTs = Math.min(fromSeconds, toSeconds)
       const endTs = Math.max(fromSeconds, toSeconds)
-      const filters = {
+      const filters: RangeFilters = {
         fidelity: String(FREQUENCY_FIDELITY_MINUTES[frequency]),
         startTs: String(startTs),
         endTs: String(endTs),
@@ -355,18 +333,11 @@ function EventChartExportDialogBody({
         return
       }
 
-      const entries = await Promise.all(
-        targets.map(async (target) => {
-          try {
-            const history = await fetchTokenPriceHistory(target.tokenId, filters)
-            return [target.conditionId, history] as const
-          }
-          catch {
-            return [target.conditionId, []] as const
-          }
-        }),
+      const historyByToken = await fetchBatchPriceHistoryByTokenIds(
+        targets.map(target => target.tokenId),
+        filters,
       )
-      const historyByMarket = Object.fromEntries(entries)
+      const historyByMarket = mapTokenHistoryToConditionHistory(targets, historyByToken)
       const csv = buildCsvContent(historyByMarket, targets, isMultiMarket)
       const siteName = buildSiteSlug(site.name ?? '', { fallback: 'market' })
       const filename = `${siteName}-price-data-${formatFilenameDate(fromDate, locale)}-${formatFilenameDate(toDate, locale)}-${Date.now()}.csv`
