@@ -11,6 +11,7 @@
     "get-market-by-id",
     "get-market-by-slug",
     "get-prices-history",
+    "get-batch-prices-history",
     "get-sampling-markets",
     "get-sampling-simplified-markets",
     "get-simplified-markets",

@@ -865,6 +865,40 @@
         }
       }
     },
+    "/batch-prices-history": {
+      "post": {
+        "tags": [
+          "Pricing"
+        ],
+        "summary": "Get historical midpoint prices for many markets",
+        "operationId": "postBatchPriceHistory",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchPriceHistoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Time series of midpoint prices per market",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchPriceHistoryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
     "/spreads": {
       "post": {
         "tags": [
@@ -5019,6 +5053,72 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PriceHistoryPoint"
+            }
+          }
+        }
+      },
+      "BatchPriceHistoryRequest": {
+        "type": "object",
+        "required": [
+          "markets"
+        ],
+        "properties": {
+          "markets": {
+            "type": "array",
+            "description": "Token identifiers (markets) to query. Maximum 20.",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "type": "string"
+            }
+          },
+          "start_ts": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Start of the time range (unix timestamp in seconds). Required when interval is absent."
+          },
+          "end_ts": {
+            "type": "integer",
+            "format": "int64",
+            "description": "End of the time range (unix timestamp in seconds). Defaults to now when omitted."
+          },
+          "interval": {
+            "type": "string",
+            "description": "Preset time window to query. Cannot be used with start_ts/end_ts. `all` is accepted as an alias for `max` and uses 12h buckets aligned to 00:00/12:00 UTC.",
+            "enum": [
+              "1m",
+              "5m",
+              "15m",
+              "1h",
+              "6h",
+              "1d",
+              "1w",
+              "max",
+              "all"
+            ]
+          },
+          "fidelity": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "description": "Bucket size in minutes when using explicit timestamps. Auto-calculated when omitted and rounded up to the nearest supported step (1m, 5m, 30m, 3h, 12h)."
+          }
+        }
+      },
+      "BatchPriceHistoryResponse": {
+        "type": "object",
+        "required": [
+          "history"
+        ],
+        "properties": {
+          "history": {
+            "type": "object",
+            "description": "Map of token identifier to historical midpoint price series.",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/PriceHistoryPoint"
+              }
             }
           }
         }
