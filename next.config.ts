@@ -16,9 +16,11 @@ const config: NextConfig = {
   reactStrictMode: false,
   reactCompiler: true,
   experimental: {
+    optimizePackageImports: ['radix-ui'],
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    typedEnv: true,
   },
   images: {
     unoptimized: process.env.DISABLE_IMAGE_OPTIMIZATION === 'true',

@@ -56,7 +56,7 @@ const EventMarketPositions = dynamic(
 
 const EventOrderPanelDesktop = dynamic(
   () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'),
-  { ssr: false, loading: () => <Skeleton className="h-136 w-full rounded-xl" /> },
+  { ssr: false, loading: () => <Skeleton className="h-80 w-full rounded-xl" /> },
 )
 
 const EventMarketOpenOrders = dynamic(
