@@ -1264,19 +1264,19 @@ export default function SportsEventCenter({
       <Suspense fallback={null}>
         <SportsEventQuerySync onSelectionChange={handleQuerySelectionChange} />
       </Suspense>
-      <div className="
+      <div className={cn(`
         min-[1200px]:grid min-[1200px]:h-full min-[1200px]:min-h-0 min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem]
         min-[1200px]:[align-content:start] min-[1200px]:[align-items:start] min-[1200px]:gap-6
-      "
+      `)}
       >
         <section
           data-sports-scroll-pane="center"
-          className="
+          className={cn(`
             min-w-0
             min-[1200px]:min-h-0 min-[1200px]:self-stretch min-[1200px]:overflow-y-auto min-[1200px]:overscroll-contain
             min-[1200px]:pr-1
             lg:ml-4
-          "
+          `)}
         >
           <div className="mb-4">
             <div className="relative mb-1 flex min-h-9 items-center justify-center">
@@ -1292,10 +1292,10 @@ export default function SportsEventCenter({
               </AppLink>
 
               <div
-                className="
+                className={cn(`
                   flex min-w-0 items-center justify-center gap-1 px-14 text-center text-sm text-muted-foreground
                   sm:px-22
-                "
+                `)}
               >
                 <AppLink href={verticalConfig.livePath} className="hover:text-foreground">
                   {verticalConfig.label}
@@ -1425,7 +1425,7 @@ export default function SportsEventCenter({
             {showFinalScore || showLiveScore
               ? (
                   <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-2 text-3xl leading-none font-semibold tabular-nums">
+                    <div className="flex items-center gap-2 text-3xl/none font-semibold tabular-nums">
                       <span
                         className={team1Won
                           ? 'text-foreground'

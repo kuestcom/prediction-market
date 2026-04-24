@@ -28,14 +28,44 @@ export const SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY = 'sports:event:odds-format'
 export const SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY = 'sports:games:show-spreads-totals'
 export const SPORTS_LIVE_FALLBACK_WINDOW_MS = 2 * 60 * 60 * 1000
 
-export const HERO_LEGEND_LABEL_GAP_PX = 8
-export const HERO_LEGEND_RIGHT_INSET_PX = 4
-export const HERO_LEGEND_MIN_WIDTH_PX = 72
-export const HERO_LEGEND_NAME_PADDING_PX = 10
-export const HERO_LEGEND_NAME_LINE_HEIGHT_PX = 18
-export const HERO_LEGEND_VALUE_LINE_HEIGHT_PX = 32
-export const HERO_LEGEND_MIN_HEIGHT_PX = 56
-export const HERO_LEGEND_VERTICAL_GAP_PX = 10
+export interface SportsPositionedLegendLayout {
+  labelGapPx: number
+  rightInsetPx: number
+  minWidthPx: number
+  horizontalPaddingPx: number
+  nameLineHeightPx: number
+  valueLineHeightPx: number
+  minHeightPx: number
+  verticalGapPx: number
+  nameFont: string
+  valueFont: string
+}
+
+export const SPORTS_CARD_POSITIONED_LEGEND_LAYOUT: SportsPositionedLegendLayout = {
+  labelGapPx: 8,
+  rightInsetPx: 4,
+  minWidthPx: 72,
+  horizontalPaddingPx: 10,
+  nameLineHeightPx: 18,
+  valueLineHeightPx: 32,
+  minHeightPx: 56,
+  verticalGapPx: 10,
+  nameFont: '500 13px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+  valueFont: '600 24px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+}
+
+export const SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT: SportsPositionedLegendLayout = {
+  labelGapPx: 12,
+  rightInsetPx: 6,
+  minWidthPx: 84,
+  horizontalPaddingPx: 10,
+  nameLineHeightPx: 15,
+  valueLineHeightPx: 24,
+  minHeightPx: 40,
+  verticalGapPx: 8,
+  nameFont: '600 12px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+  valueFont: '600 24px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+}
 
 export const TRADE_FLOW_MAX_ITEMS = 6
 export const TRADE_FLOW_TTL_MS = 8000

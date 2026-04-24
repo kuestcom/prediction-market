@@ -1,3 +1,4 @@
+import type { SportsPositionedLegendLayout } from './sports-games-center-constants'
 import type { SportsGameGraphVariant, SportsGraphSeriesTarget, SportsTradeFlowLabelItem } from './sports-games-center-types'
 import type { TIME_RANGES } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -9,14 +10,8 @@ import { loadStoredChartSettings, storeChartSettings } from '@/app/[locale]/(pla
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { calculateYAxisBounds } from '@/lib/prediction-chart'
 import {
-  HERO_LEGEND_LABEL_GAP_PX,
-  HERO_LEGEND_MIN_HEIGHT_PX,
-  HERO_LEGEND_MIN_WIDTH_PX,
-  HERO_LEGEND_NAME_LINE_HEIGHT_PX,
-  HERO_LEGEND_NAME_PADDING_PX,
-  HERO_LEGEND_RIGHT_INSET_PX,
-  HERO_LEGEND_VALUE_LINE_HEIGHT_PX,
-  HERO_LEGEND_VERTICAL_GAP_PX,
+  SPORTS_CARD_POSITIONED_LEGEND_LAYOUT,
+  SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT,
   TRADE_FLOW_CLEANUP_INTERVAL_MS,
 } from './sports-games-center-constants'
 import {
@@ -44,20 +39,29 @@ export function useSportsGameGraphChartSettings() {
 }
 
 export function useSportsGameGraphChartDimensions({
+  containerWidth,
   windowWidth,
   variant,
 }: {
+  containerWidth?: number | null
   windowWidth: number | undefined
   variant: SportsGameGraphVariant
 }) {
   const isSportsEventHeroVariant = variant === 'sportsEventHero'
   const usesPositionedSeriesLegend = variant === 'sportsEventHero' || variant === 'sportsCardLegend'
+  const positionedLegendLayout = isSportsEventHeroVariant
+    ? SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT
+    : SPORTS_CARD_POSITIONED_LEGEND_LAYOUT
   const chartHeight = isSportsEventHeroVariant ? 332 : 300
   const chartMargin = usesPositionedSeriesLegend
     ? { top: 12, right: 46, bottom: 40, left: 0 }
     : { top: 12, right: 30, bottom: 40, left: 0 }
 
   const chartWidth = useMemo(() => {
+    if (typeof containerWidth === 'number' && Number.isFinite(containerWidth) && containerWidth > 0) {
+      return Math.max(1, Math.round(containerWidth))
+    }
+
     const viewportWidth = windowWidth ?? 1200
 
     if (viewportWidth < 768) {
@@ -65,12 +69,13 @@ export function useSportsGameGraphChartDimensions({
     }
 
     return Math.min(860, viewportWidth - 520)
-  }, [windowWidth])
+  }, [containerWidth, windowWidth])
 
   return {
     isSportsEventHeroVariant,
     usesPositionedSeriesLegend,
     canRenderPositionedSeriesLegend: usesPositionedSeriesLegend,
+    positionedLegendLayout,
     chartHeight,
     chartMargin,
     chartWidth,
@@ -381,6 +386,7 @@ export function useSportsGameGraphHeroLegend({
   chartMargin,
   cursorSnapshot,
   latestSnapshot,
+  positionedLegendLayout,
   usesPositionedSeriesLegend,
 }: {
   canRenderPositionedSeriesLegend: boolean
@@ -391,80 +397,9 @@ export function useSportsGameGraphHeroLegend({
   chartMargin: { top: number, right: number, bottom: number, left: number }
   cursorSnapshot: PredictionChartCursorSnapshot | null
   latestSnapshot: Record<string, number>
+  positionedLegendLayout: SportsPositionedLegendLayout
   usesPositionedSeriesLegend: boolean
 }) {
-  const heroLegendRenderedWidth = useMemo(() => {
-    if (!canRenderPositionedSeriesLegend || chartSeries.length === 0) {
-      return HERO_LEGEND_MIN_WIDTH_PX
-    }
-
-    if (typeof document === 'undefined') {
-      return HERO_LEGEND_MIN_WIDTH_PX
-    }
-
-    const context = document.createElement('canvas').getContext('2d')
-    if (!context) {
-      return HERO_LEGEND_MIN_WIDTH_PX
-    }
-
-    context.font = '500 13px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif'
-
-    const longestLabelWidth = chartSeries.reduce((maxWidth, seriesItem) => {
-      const label = seriesItem.name.trim()
-      if (!label) {
-        return maxWidth
-      }
-
-      return Math.max(maxWidth, context.measureText(label).width)
-    }, 0)
-
-    const targetWidth = Math.ceil(longestLabelWidth + HERO_LEGEND_NAME_PADDING_PX)
-    return Math.max(HERO_LEGEND_MIN_WIDTH_PX, targetWidth)
-  }, [canRenderPositionedSeriesLegend, chartSeries])
-
-  const chartXDomain = useMemo(() => {
-    if (!usesPositionedSeriesLegend || chartData.length < 2) {
-      return undefined
-    }
-
-    const firstPoint = chartData[0]
-    const lastPoint = chartData.at(-1)
-    if (!firstPoint || !lastPoint) {
-      return undefined
-    }
-
-    const firstTimestamp = firstPoint.date.getTime()
-    const lastTimestamp = lastPoint.date.getTime()
-    if (!Number.isFinite(firstTimestamp) || !Number.isFinite(lastTimestamp) || lastTimestamp <= firstTimestamp) {
-      return undefined
-    }
-
-    const dataSpanMs = Math.max(1, lastTimestamp - firstTimestamp)
-    const plotWidthPx = Math.max(1, chartWidth - chartMargin.left - chartMargin.right)
-    const reservedRightPx = Math.max(0, heroLegendRenderedWidth + HERO_LEGEND_LABEL_GAP_PX + HERO_LEGEND_RIGHT_INSET_PX)
-
-    // Keep enough fixed room on the right for legend so the plotted line ends before chart edge.
-    if (reservedRightPx >= plotWidthPx - 1) {
-      return {
-        start: firstTimestamp,
-        end: lastTimestamp,
-      }
-    }
-
-    const domainSpanMs = Math.round((dataSpanMs * plotWidthPx) / (plotWidthPx - reservedRightPx))
-    return {
-      start: firstTimestamp,
-      end: firstTimestamp + domainSpanMs,
-    }
-  }, [
-    chartData,
-    chartMargin.left,
-    chartMargin.right,
-    chartWidth,
-    heroLegendRenderedWidth,
-    usesPositionedSeriesLegend,
-  ])
-
   const heroLegendSeriesWithValues = useMemo(
     () => {
       if (!canRenderPositionedSeriesLegend) {
@@ -488,6 +423,93 @@ export function useSportsGameGraphHeroLegend({
     [canRenderPositionedSeriesLegend, chartSeries, cursorSnapshot, latestSnapshot],
   )
 
+  const heroLegendRenderedWidth = useMemo(() => {
+    if (!canRenderPositionedSeriesLegend || chartSeries.length === 0) {
+      return positionedLegendLayout.minWidthPx
+    }
+
+    if (typeof document === 'undefined') {
+      return positionedLegendLayout.minWidthPx
+    }
+
+    const context = document.createElement('canvas').getContext('2d')
+    if (!context) {
+      return positionedLegendLayout.minWidthPx
+    }
+
+    context.font = positionedLegendLayout.nameFont
+
+    const longestLabelWidth = chartSeries.reduce((maxWidth, seriesItem) => {
+      const label = seriesItem.name.trim()
+      if (!label) {
+        return maxWidth
+      }
+
+      return Math.max(maxWidth, context.measureText(label).width)
+    }, 0)
+
+    context.font = positionedLegendLayout.valueFont
+    const widestValueWidth = heroLegendSeriesWithValues.reduce((maxWidth, entry) => {
+      const label = `${Math.round(entry.value)}%`
+      return Math.max(maxWidth, context.measureText(label).width)
+    }, context.measureText('100%').width)
+
+    const targetWidth = Math.ceil(
+      Math.max(longestLabelWidth, widestValueWidth)
+      + positionedLegendLayout.horizontalPaddingPx,
+    )
+    return Math.max(positionedLegendLayout.minWidthPx, targetWidth)
+  }, [canRenderPositionedSeriesLegend, chartSeries, heroLegendSeriesWithValues, positionedLegendLayout])
+
+  const chartXDomain = useMemo(() => {
+    if (!usesPositionedSeriesLegend || chartData.length < 2) {
+      return undefined
+    }
+
+    const firstPoint = chartData[0]
+    const lastPoint = chartData.at(-1)
+    if (!firstPoint || !lastPoint) {
+      return undefined
+    }
+
+    const firstTimestamp = firstPoint.date.getTime()
+    const lastTimestamp = lastPoint.date.getTime()
+    if (!Number.isFinite(firstTimestamp) || !Number.isFinite(lastTimestamp) || lastTimestamp <= firstTimestamp) {
+      return undefined
+    }
+
+    const dataSpanMs = Math.max(1, lastTimestamp - firstTimestamp)
+    const plotWidthPx = Math.max(1, chartWidth - chartMargin.left - chartMargin.right)
+    const reservedRightPx = Math.max(
+      0,
+      heroLegendRenderedWidth
+      + positionedLegendLayout.labelGapPx
+      + positionedLegendLayout.rightInsetPx,
+    )
+
+    // Keep enough fixed room on the right for legend so the plotted line ends before chart edge.
+    if (reservedRightPx >= plotWidthPx - 1) {
+      return {
+        start: firstTimestamp,
+        end: lastTimestamp,
+      }
+    }
+
+    const domainSpanMs = Math.round((dataSpanMs * plotWidthPx) / (plotWidthPx - reservedRightPx))
+    return {
+      start: firstTimestamp,
+      end: firstTimestamp + domainSpanMs,
+    }
+  }, [
+    chartData,
+    chartMargin.left,
+    chartMargin.right,
+    chartWidth,
+    heroLegendRenderedWidth,
+    positionedLegendLayout,
+    usesPositionedSeriesLegend,
+  ])
+
   const heroLegendPositionedEntries = useMemo(
     () => {
       if (!canRenderPositionedSeriesLegend || heroLegendSeriesWithValues.length === 0 || chartData.length === 0) {
@@ -498,6 +520,8 @@ export function useSportsGameGraphHeroLegend({
           value: number
           left: number
           top: number
+          width: number
+          height: number
         }>
       }
 
@@ -525,29 +549,30 @@ export function useSportsGameGraphHeroLegend({
       const hoveredTimestampRaw = cursorSnapshot?.date.getTime() ?? lastTimestamp
       const hoveredTimestamp = Math.max(firstTimestamp, Math.min(lastTimestamp, hoveredTimestampRaw))
 
-      const yBounds = calculateYAxisBounds(chartData, chartSeries)
-      const ySpan = Math.max(1, yBounds.max - yBounds.min)
       const xSpan = Math.max(1, domainEnd - domainStart)
       const plotWidth = Math.max(1, chartWidth - chartMargin.left - chartMargin.right)
       const plotHeight = Math.max(1, chartHeight - chartMargin.top - chartMargin.bottom)
+      const yAxisMinTicks = Math.max(3, Math.min(5, Math.round(plotHeight / 56)))
       const chartTop = chartMargin.top
       const chartBottom = chartMargin.top + plotHeight
       const dotX = chartMargin.left + ((hoveredTimestamp - domainStart) / xSpan) * plotWidth
       const plotLeft = chartMargin.left
       const plotRight = chartWidth - chartMargin.right
-      const availableFullWidth = plotRight - plotLeft - HERO_LEGEND_RIGHT_INSET_PX
+      const availableFullWidth = plotRight - plotLeft - positionedLegendLayout.rightInsetPx
       const effectiveLabelWidth = Math.max(0, Math.min(heroLegendRenderedWidth, availableFullWidth))
-      const maxLeft = plotRight - effectiveLabelWidth - HERO_LEGEND_RIGHT_INSET_PX
-      const labelLeft = Math.max(plotLeft, Math.min(maxLeft, dotX + HERO_LEGEND_LABEL_GAP_PX))
-      const availableLabelWidth = Math.max(1, chartWidth - labelLeft - HERO_LEGEND_RIGHT_INSET_PX)
+      const maxLeft = plotRight - effectiveLabelWidth - positionedLegendLayout.rightInsetPx
+      const labelLeft = Math.max(plotLeft, Math.min(maxLeft, dotX + positionedLegendLayout.labelGapPx))
+      const availableLabelWidth = Math.max(1, chartWidth - labelLeft - positionedLegendLayout.rightInsetPx)
 
       const labelMeasureContext = typeof document !== 'undefined'
         ? document.createElement('canvas').getContext('2d')
         : null
       if (labelMeasureContext) {
-        labelMeasureContext.font = '500 13px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif'
+        labelMeasureContext.font = positionedLegendLayout.nameFont
       }
 
+      const yBounds = calculateYAxisBounds(chartData, chartSeries, yAxisMinTicks, 6)
+      const ySpan = Math.max(1, yBounds.max - yBounds.min)
       const preferredEntries = heroLegendSeriesWithValues.map((entry) => {
         const clampedValue = Math.max(yBounds.min, Math.min(yBounds.max, entry.value))
         const dotY = chartMargin.top + ((yBounds.max - clampedValue) / ySpan) * plotHeight
@@ -557,8 +582,8 @@ export function useSportsGameGraphHeroLegend({
           : 0
         const wrappedNameLineCount = Math.max(1, Math.ceil(measuredNameWidth / availableLabelWidth))
         const labelHeight = Math.max(
-          HERO_LEGEND_MIN_HEIGHT_PX,
-          (wrappedNameLineCount * HERO_LEGEND_NAME_LINE_HEIGHT_PX) + HERO_LEGEND_VALUE_LINE_HEIGHT_PX,
+          positionedLegendLayout.minHeightPx,
+          (wrappedNameLineCount * positionedLegendLayout.nameLineHeightPx) + positionedLegendLayout.valueLineHeightPx,
         )
         const anchorOffset = labelHeight / 2
         const preferredTop = dotY - anchorOffset
@@ -568,6 +593,8 @@ export function useSportsGameGraphHeroLegend({
           ...entry,
           dotY,
           left: labelLeft,
+          width: effectiveLabelWidth,
+          height: labelHeight,
           labelHeight,
           preferredTop: Math.max(chartTop, Math.min(maxTopForEntry, preferredTop)),
         }
@@ -583,7 +610,7 @@ export function useSportsGameGraphHeroLegend({
           : null
         const top = previousBottom == null
           ? entry.preferredTop
-          : Math.max(entry.preferredTop, previousBottom + HERO_LEGEND_VERTICAL_GAP_PX)
+          : Math.max(entry.preferredTop, previousBottom + positionedLegendLayout.verticalGapPx)
         const maxTopForEntry = chartBottom - entry.labelHeight
         stacked.push({ ...entry, top: Math.max(chartTop, Math.min(maxTopForEntry, top)) })
       })
@@ -592,7 +619,7 @@ export function useSportsGameGraphHeroLegend({
         const entry = stacked[index]!
         const next = stacked[index + 1]!
         const maxTopForEntry = chartBottom - entry.labelHeight
-        const highestTopAllowedByNext = next.top - HERO_LEGEND_VERTICAL_GAP_PX - entry.labelHeight
+        const highestTopAllowedByNext = next.top - positionedLegendLayout.verticalGapPx - entry.labelHeight
         entry.top = Math.max(
           chartTop,
           Math.min(maxTopForEntry, Math.min(entry.top, highestTopAllowedByNext)),
@@ -619,6 +646,7 @@ export function useSportsGameGraphHeroLegend({
       cursorSnapshot?.date,
       heroLegendSeriesWithValues,
       canRenderPositionedSeriesLegend,
+      positionedLegendLayout,
     ],
   )
 

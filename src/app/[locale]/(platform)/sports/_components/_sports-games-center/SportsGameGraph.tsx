@@ -4,6 +4,7 @@ import type { SportsGameGraphVariant, SportsGamesMarketType } from './sports-gam
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { PredictionChartProps } from '@/types/PredictionChartTypes'
 import dynamic from 'next/dynamic'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 import EventChartControls from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
 import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'
@@ -26,6 +27,56 @@ const PredictionChart = dynamic<PredictionChartProps>(
   { ssr: false },
 )
 
+function useElementWidth<T extends HTMLElement>() {
+  const [element, setElement] = useState<T | null>(null)
+
+  const subscribe = useCallback((onStoreChange: () => void) => {
+    if (!element) {
+      return function noopElementWidthSubscription() {}
+    }
+
+    function notifyElementWidthChange() {
+      onStoreChange()
+    }
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', notifyElementWidthChange)
+
+      return function removeElementWidthResizeListener() {
+        window.removeEventListener('resize', notifyElementWidthChange)
+      }
+    }
+
+    const observer = new ResizeObserver(notifyElementWidthChange)
+    observer.observe(element)
+
+    return function disconnectElementWidthObserver() {
+      observer.disconnect()
+    }
+  }, [element])
+
+  const getSnapshot = useCallback(() => {
+    if (!element) {
+      return undefined
+    }
+
+    const nextWidth = Math.round(element.getBoundingClientRect().width)
+    if (!Number.isFinite(nextWidth) || nextWidth <= 0) {
+      return undefined
+    }
+
+    return nextWidth
+  }, [element])
+
+  const width = useSyncExternalStore(subscribe, getSnapshot, () => undefined)
+
+  const ref = useCallback((node: T | null) => {
+    setElement(currentElement => currentElement === node ? currentElement : node)
+  }, [])
+
+  return [ref, width] as const
+}
+
 export default function SportsGameGraph({
   card,
   selectedMarketType,
@@ -40,6 +91,7 @@ export default function SportsGameGraph({
   variant?: SportsGameGraphVariant
 }) {
   const { width: windowWidth } = useWindowSize()
+  const [chartContainerRef, chartContainerWidth] = useElementWidth<HTMLDivElement>()
   const {
     cursorSnapshot,
     setCursorSnapshot,
@@ -58,10 +110,15 @@ export default function SportsGameGraph({
     isSportsEventHeroVariant,
     usesPositionedSeriesLegend,
     canRenderPositionedSeriesLegend,
+    positionedLegendLayout,
     chartHeight,
     chartMargin,
     chartWidth,
-  } = useSportsGameGraphChartDimensions({ windowWidth, variant })
+  } = useSportsGameGraphChartDimensions({
+    containerWidth: chartContainerWidth,
+    windowWidth,
+    variant,
+  })
 
   const { graphSeriesTargets, tradeFlowSeriesByTokenId, marketTargets, chartSeries } = useSportsGameGraphSeries({
     card,
@@ -92,6 +149,7 @@ export default function SportsGameGraph({
     chartMargin,
     cursorSnapshot,
     latestSnapshot,
+    positionedLegendLayout,
     usesPositionedSeriesLegend,
   })
 
@@ -134,7 +192,7 @@ export default function SportsGameGraph({
   return (
     <>
       <div style={usesPositionedSeriesLegend ? { minHeight: `${chartHeight + 56}px` } : undefined}>
-        <div className="relative">
+        <div ref={chartContainerRef} className="relative">
           <PredictionChart
             data={chartData}
             series={chartSeries}
@@ -151,9 +209,9 @@ export default function SportsGameGraph({
             showTooltipSeriesLabels={!usesPositionedSeriesLegend}
             disableCursorSplit={false}
             clampCursorToDataExtent={usesPositionedSeriesLegend}
-            markerOuterRadius={usesPositionedSeriesLegend ? 10 : undefined}
-            markerInnerRadius={usesPositionedSeriesLegend ? 4.2 : undefined}
-            markerPulseStyle={usesPositionedSeriesLegend ? 'ring' : undefined}
+            markerOuterRadius={usesPositionedSeriesLegend ? (isSportsEventHeroVariant ? 15 : 10) : undefined}
+            markerInnerRadius={usesPositionedSeriesLegend ? (isSportsEventHeroVariant ? 5.2 : 4.2) : undefined}
+            markerPulseStyle={usesPositionedSeriesLegend ? (isSportsEventHeroVariant ? 'filled' : 'ring') : undefined}
             lineCurve="monotoneX"
             tooltipValueFormatter={value => `${Math.round(value)}%`}
             autoscale={chartSettings.autoscale}
@@ -166,31 +224,69 @@ export default function SportsGameGraph({
           />
 
           {canRenderPositionedSeriesLegend && heroLegendPositionedEntries.length > 0 && (
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div
+              className={cn(
+                'pointer-events-none absolute inset-0',
+                isSportsEventHeroVariant ? 'overflow-visible' : 'overflow-hidden',
+              )}
+            >
               {heroLegendPositionedEntries.map(entry => (
                 <div
                   key={entry.key}
-                  className="absolute"
+                  className={cn(
+                    'absolute flex flex-col',
+                    isSportsEventHeroVariant ? 'overflow-visible' : 'overflow-hidden',
+                  )}
                   style={{
                     top: `${entry.top}px`,
-                    left: `${entry.left}px`,
+                    left: `${(entry.left / chartWidth) * 100}%`,
+                    width: `${(entry.width / chartWidth) * 100}%`,
+                    height: `${entry.height}px`,
                   }}
                 >
-                  <p
+                  <div
                     className={cn(
-                      'text-[13px] leading-snug font-medium tracking-tight',
-                      (windowWidth ?? 1024) >= 768 && 'truncate',
+                      isSportsEventHeroVariant ? 'whitespace-nowrap' : 'truncate',
+                      isSportsEventHeroVariant
+                        ? undefined
+                        : 'text-[13px] leading-snug font-medium tracking-tight',
                     )}
-                    style={{ color: entry.color }}
+                    style={{
+                      color: entry.color,
+                      lineHeight: isSportsEventHeroVariant
+                        ? `${positionedLegendLayout.nameLineHeightPx}px`
+                        : undefined,
+                      font: isSportsEventHeroVariant
+                        ? positionedLegendLayout.nameFont
+                        : undefined,
+                      letterSpacing: isSportsEventHeroVariant ? '0' : undefined,
+                      margin: 0,
+                    }}
                   >
                     {entry.name}
-                  </p>
-                  <p
-                    className="text-2xl/tight font-semibold tabular-nums"
-                    style={{ color: entry.color }}
+                  </div>
+                  <div
+                    className={cn(
+                      'whitespace-nowrap tabular-nums',
+                      isSportsEventHeroVariant
+                        ? undefined
+                        : 'text-2xl/tight',
+                    )}
+                    style={{
+                      color: entry.color,
+                      lineHeight: isSportsEventHeroVariant
+                        ? `${positionedLegendLayout.valueLineHeightPx}px`
+                        : undefined,
+                      font: isSportsEventHeroVariant
+                        ? positionedLegendLayout.valueFont
+                        : undefined,
+                      letterSpacing: isSportsEventHeroVariant ? '0' : undefined,
+                      marginTop: `${Math.max(0, positionedLegendLayout.nameLineHeightPx - 14)}px`,
+                      marginBottom: 0,
+                    }}
                   >
                     {`${Math.round(entry.value)}%`}
-                  </p>
+                  </div>
                 </div>
               ))}
             </div>
