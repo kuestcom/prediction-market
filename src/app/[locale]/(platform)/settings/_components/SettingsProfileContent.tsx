@@ -45,6 +45,10 @@ function useAvatarPreview() {
   return { previewImage, setPreviewImage }
 }
 
+function isSelectedImageFile(value: FormDataEntryValue | null): value is File {
+  return typeof File !== 'undefined' && value instanceof File && value.size > 0
+}
+
 export default function SettingsProfileContent({ user }: { user: User }) {
   const t = useExtracted()
   const queryClient = useQueryClient()
@@ -89,14 +93,14 @@ export default function SettingsProfileContent({ user }: { user: User }) {
     const email = (formData.get('email') as string | null)?.trim() ?? ''
     const emailValue = email.length > 0 ? email : undefined
     const username = (formData.get('username') as string | null)?.trim() || ''
-    const imageFile = formData.get('image') as File | null
+    const imageFile = formData.get('image')
+    const selectedImageFile = isSelectedImageFile(imageFile) ? imageFile : null
+    const hasUsernameChange = username.length > 0 && username !== user.username
 
-    const shouldUpdateCommunity = Boolean(
-      (username && username !== user.username) || (imageFile && imageFile.size > 0),
-    )
+    const shouldUpdateCommunity = hasUsernameChange || Boolean(selectedImageFile)
 
     let communityUsername = username
-    let avatarUrl: string | undefined
+    let updatedAvatarUrl: string | undefined
 
     try {
       if (shouldUpdateCommunity) {
@@ -108,11 +112,11 @@ export default function SettingsProfileContent({ user }: { user: User }) {
         })
 
         const communityForm = new FormData()
-        if (username && username !== user.username) {
+        if (hasUsernameChange) {
           communityForm.append('username', username)
         }
-        if (imageFile && imageFile.size > 0) {
-          communityForm.append('image', imageFile)
+        if (selectedImageFile) {
+          communityForm.append('image', selectedImageFile)
         }
 
         const response = await fetch(`${communityApiUrl}/profile`, {
@@ -139,7 +143,9 @@ export default function SettingsProfileContent({ user }: { user: User }) {
           avatar_url?: string
         }
         communityUsername = payload.username || username
-        avatarUrl = payload.avatar_url
+        if (selectedImageFile) {
+          updatedAvatarUrl = payload.avatar_url?.trim() || undefined
+        }
       }
 
       const localForm = new FormData()
@@ -147,8 +153,8 @@ export default function SettingsProfileContent({ user }: { user: User }) {
         localForm.set('email', emailValue)
       }
       localForm.set('username', communityUsername)
-      if (avatarUrl) {
-        localForm.set('avatar_url', avatarUrl)
+      if (updatedAvatarUrl) {
+        localForm.set('avatar_url', updatedAvatarUrl)
       }
 
       const result = await updateUserAction(localForm)
@@ -162,7 +168,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
         ...user,
         email: emailValue ?? user.email,
         username: communityUsername,
-        image: avatarUrl ?? user.image,
+        image: updatedAvatarUrl ?? user.image,
       })
       await queryClient.invalidateQueries({
         predicate: (query) => {
