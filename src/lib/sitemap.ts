@@ -10,6 +10,7 @@ import { db } from '@/lib/drizzle'
 import { buildPublicEventListVisibilityCondition } from '@/lib/event-visibility'
 import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
 import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
+import { source } from '@/lib/source'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 import { resolveCanonicalSportsSportSlug } from '@/lib/sports-slug-mapping'
 
@@ -18,6 +19,7 @@ const STATIC_SITEMAP_IDS = [
 ] as const
 
 const CATEGORIES_SITEMAP_ID = 'categories'
+export const DOCS_SITEMAP_ID = 'docs'
 const PREDICTIONS_SITEMAP_PREFIX = 'predictions-'
 const PREDICTIONS_SITEMAP_PATTERN = /^predictions-(\d{3})$/
 const ACTIVE_EVENTS_SITEMAP_PREFIX = 'events-active-'
@@ -73,6 +75,10 @@ interface PredictionSitemapRow {
   sports_tags: unknown
 }
 
+interface DocsSitemapPage {
+  url: string
+}
+
 function shouldIgnoreSportsSitemapSlug(slug: string | null | undefined) {
   return isSportsAuxiliaryEventSlug(slug)
 }
@@ -100,11 +106,16 @@ export async function getSitemapIds(): Promise<string[]> {
 export async function getSitemapIndexEntries(): Promise<SitemapIndexEntry[]> {
   const fallbackDate = formatDateForSitemap(new Date())
   const categoryEntries = await getCategorySitemapEntries()
+  const docsEntries = getDocsSitemapEntries(fallbackDate)
   const dynamicSitemaps = await getDynamicEventSitemaps()
   const predictionEntries = await getPredictionSitemapEntries()
   const chunkSize = await resolveLocalizedSitemapChunkSize()
   const entries: SitemapIndexEntry[] = [
     ...STATIC_SITEMAP_IDS.map(id => ({ id, lastmod: fallbackDate })),
+    {
+      id: DOCS_SITEMAP_ID,
+      lastmod: getLatestLastModified(docsEntries, fallbackDate),
+    },
     {
       id: CATEGORIES_SITEMAP_ID,
       lastmod: getLatestLastModified(categoryEntries, fallbackDate),
@@ -155,6 +166,10 @@ export async function getSitemapIndexEntries(): Promise<SitemapIndexEntry[]> {
 }
 
 export async function getDynamicSitemapEntriesById(id: string): Promise<SitemapRouteEntry[]> {
+  if (id === DOCS_SITEMAP_ID) {
+    return getDocsSitemapEntries(formatDateForSitemap(new Date()))
+  }
+
   if (id === CATEGORIES_SITEMAP_ID) {
     return getCategorySitemapEntries()
   }
@@ -183,6 +198,47 @@ export async function getDynamicSitemapEntriesById(id: string): Promise<SitemapR
   const monthEntries = dynamicSitemaps.closedByMonth[closedSitemapId.monthKey] ?? []
   const monthChunks = chunkSitemapEntries(monthEntries, chunkSize)
   return monthChunks[closedSitemapId.chunkIndex - 1] ?? []
+}
+
+export function buildDocsSitemapEntries(
+  pages: readonly DocsSitemapPage[],
+  lastModified: string,
+): SitemapRouteEntry[] {
+  const docsPathMap = new Map<string, SitemapRouteEntry>()
+
+  for (const page of pages) {
+    const path = normalizeDocsSitemapPath(page.url)
+    if (!path) {
+      continue
+    }
+
+    docsPathMap.set(path, {
+      path,
+      lastModified,
+    })
+  }
+
+  return Array.from(docsPathMap.values()).sort((a, b) => a.path.localeCompare(b.path))
+}
+
+function getDocsSitemapEntries(lastModified: string): SitemapRouteEntry[] {
+  return buildDocsSitemapEntries(source.getPages(), lastModified)
+}
+
+function normalizeDocsSitemapPath(url: string): string | null {
+  const normalizedUrl = url.trim()
+
+  if (normalizedUrl === '/docs') {
+    return normalizedUrl
+  }
+
+  if (!normalizedUrl.startsWith('/docs/')) {
+    return null
+  }
+
+  return normalizedUrl.endsWith('/')
+    ? normalizedUrl.slice(0, -1)
+    : normalizedUrl
 }
 
 async function getCategorySitemapEntries(): Promise<SitemapRouteEntry[]> {

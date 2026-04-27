@@ -4,7 +4,7 @@ import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { withLocalePrefix } from '@/lib/locale-path'
 import siteUrlUtils from '@/lib/site-url'
-import { formatDateForSitemap, getDynamicSitemapEntriesById, getSitemapIds } from '@/lib/sitemap'
+import { DOCS_SITEMAP_ID, formatDateForSitemap, getDynamicSitemapEntriesById, getSitemapIds } from '@/lib/sitemap'
 
 const { resolveSiteUrl } = siteUrlUtils
 
@@ -44,6 +44,11 @@ async function buildSitemapEntries(
 ): Promise<MetadataRoute.Sitemap> {
   if (sitemapId === 'base') {
     return buildPathEntries(BASE_PATHS, siteUrl, lastModified, enabledLocales)
+  }
+
+  if (sitemapId === DOCS_SITEMAP_ID) {
+    const dynamicEntries = await getDynamicSitemapEntriesById(sitemapId)
+    return buildDynamicEntries(dynamicEntries, siteUrl, enabledLocales)
   }
 
   if (sitemapId === 'categories') {
