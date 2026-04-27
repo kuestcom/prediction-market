@@ -1,7 +1,7 @@
 import type { SupportedLocale } from '@/i18n/locales'
+import type { EventFaqItem } from '@/lib/event-faq'
 import type { ThemeSiteIdentity } from '@/lib/theme-site-identity'
 import type { Event } from '@/types'
-import { buildEventFaqItems } from '@/lib/event-faq'
 import { buildEventOgImageUrl } from '@/lib/event-open-graph'
 import { withLocalePrefix } from '@/lib/locale-path'
 import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
@@ -27,6 +27,7 @@ interface BuildEventStructuredDataOptions {
   site: ThemeSiteIdentity
   marketSlug?: string | null
   includeFaq?: boolean
+  faqItems?: EventFaqItem[]
 }
 
 interface StructuredDataBreadcrumbTarget {
@@ -219,6 +220,7 @@ export function buildEventStructuredData({
   site,
   marketSlug,
   includeFaq = true,
+  faqItems,
 }: BuildEventStructuredDataOptions) {
   const siteUrl = resolveSiteUrl(process.env)
   const pageUrl = buildAbsolutePageUrl(pagePath, locale, siteUrl)
@@ -286,18 +288,15 @@ export function buildEventStructuredData({
     })),
   }
 
-  const faqItems = includeFaq
-    ? buildEventFaqItems({
-        event,
-        siteName: site.name,
-      })
+  const resolvedFaqItems = includeFaq
+    ? faqItems ?? []
     : []
 
-  const faqPage = faqItems.length > 0
+  const faqPage = resolvedFaqItems.length > 0
     ? {
         '@context': 'https://schema.org',
         '@type': 'FAQPage',
-        'mainEntity': faqItems.map(item => ({
+        'mainEntity': resolvedFaqItems.map(item => ({
           '@type': 'Question',
           'name': item.question,
           'acceptedAnswer': {

@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReadonlyURLSearchParams } from 'next/navigation'
+import type { EventFaqItem } from '@/lib/event-faq'
 import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, User } from '@/types'
 import { ArrowUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -72,6 +73,7 @@ const EventMarketHistory = dynamic(
 interface EventContentProps {
   event: Event
   user: User | null
+  faqItems: EventFaqItem[]
   marketContextEnabled: boolean
   changeLogEntries: ConditionChangeLogEntry[]
   marketSlug?: string
@@ -487,6 +489,7 @@ function EventOrderQuerySync({ event, marketSlug, isMobile }: EventOrderQuerySyn
 export default function EventContent({
   event,
   user,
+  faqItems,
   marketContextEnabled,
   changeLogEntries: _changeLogEntries,
   marketSlug,
@@ -630,7 +633,7 @@ export default function EventContent({
                 <EventRelated event={event} />
               </div>
             )}
-            <EventTabs event={event} user={currentUser} />
+            <EventTabs event={event} user={currentUser} faqItems={faqItems} />
           </div>
         </div>
 

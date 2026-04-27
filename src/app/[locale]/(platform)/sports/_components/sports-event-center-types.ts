@@ -4,6 +4,7 @@ import type {
   SportsGamesCard,
   SportsGamesCardMarketView,
 } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import type { EventFaqItem } from '@/lib/event-faq'
 import type { SportsEventMarketViewKey } from '@/lib/sports-event-slugs'
 import type { SportsVertical } from '@/lib/sports-vertical'
 
@@ -18,6 +19,7 @@ export interface SportsEventCenterProps {
   marketContextEnabled?: boolean
   sportSlug: string
   sportLabel: string
+  faqItems: EventFaqItem[]
   initialMarketSlug?: string | null
   initialMarketViewKey?: SportsEventMarketViewKey | null
   vertical?: SportsVertical

@@ -1,6 +1,59 @@
 import type { Event, Market, Outcome } from '@/types'
 import { describe, expect, it } from 'vitest'
-import { buildEventFaqItems } from '@/lib/event-faq'
+import {
+  buildEventFaqItems,
+  createEventFaqTranslator,
+  type EventFaqTranslatedMessages,
+} from '@/lib/event-faq'
+
+const TEST_FAQ_MESSAGES: EventFaqTranslatedMessages = {
+  thisMarket: 'this market',
+  thisOutcome: 'this outcome',
+  yesOutcome: 'Yes',
+  choiceSummary: '{label} at {price} ({probability})',
+  siteAccuracySentence: ' accuracy {siteName}',
+  whatIsBinaryAnswer: 'binary {eventTitle} {siteName} {probability} {price}',
+  leadingOutcomeSentence: ' lead {choice}.',
+  nextClosestOutcomeSentence: ' next {choice}.',
+  whatIsMultiAnswer: 'multi {eventTitle} {siteName} outcomes={outcomesCount}{leaderSentence}{runnerUpSentence} price={price} probability={probability}',
+  launchedOnDate: ', launched {date}',
+  lowVolumeAnswer: 'low-volume {eventTitle}{launchedText}',
+  sinceMarketLaunchedOnDate: ' since {date}',
+  standardVolumeAnswer: 'standard-volume {eventTitle} volume={volume}{launchedText} site={siteName}',
+  tradeBinaryAnswer: 'trade-binary {eventTitle}',
+  tradeMultiAnswer: 'trade-multi {eventTitle} outcomes={outcomesCount}',
+  currentOddsBinaryAnswer: 'current-binary {eventTitle} probability={probability} site={siteName}',
+  currentFrontrunnerSentence: 'frontrunner {eventTitle} {choice} probability={probability}',
+  currentPricesUpdateSentence: 'prices-update {eventTitle}',
+  currentOddsMultiAnswer: 'current-multi {leaderSentence}{runnerUpSentence}',
+  resolutionAnswer: 'resolution {eventTitle}',
+  followAnswer: 'follow {eventTitle}',
+  reliabilityAnswer: 'reliable {siteName} {volume} {eventTitle}{accuracySentence}',
+  startTradingAnswer: 'start {eventTitle} {siteName}',
+  priceMeaningBinaryAnswer: 'price-binary {siteName} {price} {eventTitle} {probability} {profit}',
+  priceMeaningMultiAnswer: 'price-multi {siteName} {price} {selectionLabel} {eventTitle} {probability} {profit}',
+  resolvedCloseAnswer: 'resolved {eventTitle}',
+  openCloseAnswer: 'open {eventTitle}',
+  scheduledCloseAnswer: 'scheduled {eventTitle} {closeDate}',
+  activeCommentsAnswer: 'active-comments {eventTitle} {commentsCount}',
+  lowCommentsAnswer: 'low-comments {eventTitle}',
+  whatIsSiteAnswer: 'site {siteName} {eventTitle}',
+  whatIsQuestion: 'what-is {eventTitle}',
+  tradingActivityQuestion: 'activity {eventTitle} {siteName}',
+  howToTradeQuestion: 'trade-question {eventTitle}',
+  currentOddsQuestion: 'odds-question {eventTitle}',
+  resolutionQuestion: 'resolution-question {eventTitle}',
+  followQuestion: 'follow-question {eventTitle}',
+  reliabilityQuestion: 'reliability-question {siteName} {eventTitle}',
+  startTradingQuestion: 'start-question {eventTitle}',
+  priceMeaningBinaryQuestion: 'price-question-binary {price}',
+  priceMeaningMultiQuestion: 'price-question-multi {price} {selectionLabel}',
+  closeTimeQuestion: 'close-question {eventTitle}',
+  tradersSayingQuestion: 'comments-question {eventTitle}',
+  whatIsSiteQuestion: 'site-question {siteName}',
+}
+
+const testFaqTranslator = createEventFaqTranslator(TEST_FAQ_MESSAGES)
 
 function createOutcome(overrides: Partial<Outcome> = {}): Outcome {
   return {
@@ -137,15 +190,16 @@ describe('buildEventFaqItems', () => {
       event,
       siteName: 'Kuest',
       commentsCount: 3655,
+      translate: testFaqTranslator,
     })
 
     expect(items).toHaveLength(12)
-    expect(items[0]?.answer).toContain('with 11 possible outcomes')
-    expect(items[0]?.answer).toContain('The current leading outcome is "56,000" at 100¢')
-    expect(items[1]?.answer).toContain('$4.9 million')
-    expect(items[3]?.answer).toContain('The current frontrunner for "Bitcoin above ___ on March 7?" is "56,000" at 100¢')
-    expect(items[8]?.question).toBe('What does a price of 100¢ for "56,000" mean?')
-    expect(items[10]?.answer).toContain('3,655 comments')
+    expect(items[0]?.answer).toContain('outcomes=11')
+    expect(items[0]?.answer).toContain('lead "56,000" at 100¢ (100%).')
+    expect(items[1]?.answer).toContain('volume=$4.9 million')
+    expect(items[3]?.answer).toContain('frontrunner "Bitcoin above ___ on March 7?" "56,000" at 100¢ (100%)')
+    expect(items[8]?.question).toBe('price-question-multi 100¢ "56,000"')
+    expect(items[10]?.answer).toContain('3,655')
   })
 
   it('builds a binary FAQ', () => {
@@ -170,15 +224,15 @@ describe('buildEventFaqItems', () => {
       event,
       siteName: 'Kuest',
       commentsCount: 16,
+      translate: testFaqTranslator,
     })
 
-    expect(items[0]?.answer).toContain('buy and sell "Yes" or "No" shares')
-    expect(items[0]?.answer).toContain('The current crowd-sourced probability is 63% for "Yes."')
-    expect(items[1]?.answer).toContain('$17.2K')
-    expect(items[3]?.answer).toContain('The current probability for "Nothing Ever Happens: 2026" is 63% for "Yes."')
-    expect(items[8]?.question).toBe('What does a price of 63¢ for "Yes" mean?')
-    expect(items[8]?.answer).toContain('On Kuest, the price of "Yes" or "No" represents the market\'s implied probability.')
-    expect(items[10]?.answer).toContain('16 comments')
+    expect(items[0]?.answer).toContain('binary "Nothing Ever Happens: 2026" Kuest 63% 63¢')
+    expect(items[1]?.answer).toContain('volume=$17.2K')
+    expect(items[3]?.answer).toContain('current-binary "Nothing Ever Happens: 2026" probability=63%')
+    expect(items[8]?.question).toBe('price-question-binary 63¢')
+    expect(items[8]?.answer).toContain('price-binary Kuest 63¢ "Nothing Ever Happens: 2026" 63% 37¢')
+    expect(items[10]?.answer).toContain('16')
   })
 
   it('uses the low-volume, low-comments, and resolved branches', () => {
@@ -216,13 +270,14 @@ describe('buildEventFaqItems', () => {
       event,
       siteName: 'Kuest',
       commentsCount: 2,
+      translate: testFaqTranslator,
     })
 
-    expect(items[1]?.answer).toContain('newly created market')
-    expect(items[1]?.answer).toContain('opportunity to be among the first traders')
-    expect(items[6]?.answer).toContain('real traders putting real money behind their beliefs')
-    expect(items[9]?.answer).toContain('has been resolved')
-    expect(items[10]?.answer).toContain('Be one of the first to share your analysis')
+    expect(items[1]?.answer).toContain('low-volume')
+    expect(items[1]?.answer).toContain('launched')
+    expect(items[6]?.answer).toContain('reliable Kuest')
+    expect(items[9]?.answer).toContain('resolved')
+    expect(items[10]?.answer).toContain('low-comments')
   })
 
   it('uses the generic multi-outcome template for sports events too', () => {
@@ -264,12 +319,13 @@ describe('buildEventFaqItems', () => {
       event,
       siteName: 'Kuest',
       commentsCount: 1238,
+      translate: testFaqTranslator,
     })
 
-    expect(items[0]?.answer).toContain('with 12 possible outcomes')
+    expect(items[0]?.answer).toContain('outcomes=12')
     expect(items[0]?.answer).not.toContain('moneyline')
-    expect(items[3]?.answer).toContain('The current frontrunner for "RCD Mallorca vs. CA Osasuna" is "MAL" at 86¢')
-    expect(items[8]?.question).toBe('What does a price of 86¢ for "MAL" mean?')
-    expect(items[10]?.answer).toContain('1,238 comments')
+    expect(items[3]?.answer).toContain('frontrunner "RCD Mallorca vs. CA Osasuna" "MAL" at 86¢ (86%)')
+    expect(items[8]?.question).toBe('price-question-multi 86¢ "MAL"')
+    expect(items[10]?.answer).toContain('1,238')
   })
 })

@@ -1,4 +1,5 @@
 import type { EventTabKey } from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabSelector'
+import type { EventFaqItem } from '@/lib/event-faq'
 import type { Event, User } from '@/types'
 import { useMemo, useState } from 'react'
 import EventActivity from '@/app/[locale]/(platform)/event/[slug]/_components/EventActivity'
@@ -13,6 +14,7 @@ import { useLiveCommentsChannel } from '@/app/[locale]/(platform)/event/[slug]/_
 interface EventTabsProps {
   event: Event
   user: User | null
+  faqItems: EventFaqItem[]
   initialTab?: EventTabKey
 }
 
@@ -33,6 +35,7 @@ function useCommentsCount(commentMetrics: ReturnType<typeof useCommentMetrics>['
 export default function EventTabs({
   event,
   user,
+  faqItems,
   initialTab = 'comments',
 }: EventTabsProps) {
   const { activeTab, setActiveTab } = useActiveTab(initialTab)
@@ -57,7 +60,7 @@ export default function EventTabs({
       {activeTab === 'comments' && (
         <>
           <EventComments event={event} user={user} />
-          <EventFaq event={event} commentsCount={commentsCount} />
+          <EventFaq items={faqItems} />
         </>
       )}
       {activeTab === 'holders' && <EventTopHolders event={event} />}

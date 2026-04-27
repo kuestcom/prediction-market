@@ -142,6 +142,13 @@ describe('structuredData', () => {
         name: 'Kuest',
         description: 'Prediction markets',
       },
+      faqItems: [
+        {
+          id: 'what-is',
+          question: 'FAQ question',
+          answer: 'FAQ answer',
+        },
+      ],
     })
 
     expect(structuredData.event.url).toBe('https://kuest.example/event/will-the-iranian-regime-fall-by-june-30')
@@ -184,7 +191,7 @@ describe('structuredData', () => {
       expect.arrayContaining([
         expect.objectContaining({
           '@type': 'Question',
-          'name': 'What is the "Will the Iranian regime fall by June 30?" prediction market?',
+          'name': 'FAQ question',
         }),
       ]),
     )

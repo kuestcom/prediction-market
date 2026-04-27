@@ -16,6 +16,7 @@ import { redirect } from '@/i18n/navigation'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
+import { buildTranslatedEventFaqItems } from '@/lib/event-faq-server'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
 import { getEventRouteBySlug, resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
 import { resolveEventBasePath, resolveEventMarketPath } from '@/lib/events-routing'
@@ -140,6 +141,12 @@ export default async function SportsEventMarketPage({
 
   const sportLabel = layoutData?.h1TitleBySlug[resolvedSportSlug] ?? resolvedSportSlug.toUpperCase()
   const marketContextEnabled = marketContextSettings.enabled && Boolean(marketContextSettings.apiKey)
+  const faqItems = await buildTranslatedEventFaqItems({
+    event: targetCard.event,
+    siteName: runtimeTheme.site.name,
+    locale: resolvedLocale,
+  })
+
   return (
     <>
       <EventStructuredData
@@ -148,6 +155,7 @@ export default async function SportsEventMarketPage({
         pagePath={resolveEventMarketPath(targetCard.event, market)}
         marketSlug={market}
         site={runtimeTheme.site}
+        faqItems={faqItems}
       />
       <EventMarketChannelProvider markets={allMarkets}>
         <SportsEventCenter
@@ -156,6 +164,7 @@ export default async function SportsEventMarketPage({
           relatedCards={relatedCards}
           sportSlug={resolvedSportSlug}
           sportLabel={sportLabel}
+          faqItems={faqItems}
           initialMarketSlug={market}
           initialMarketViewKey={resolveSportsEventMarketViewKey(canonicalEventSlug)}
           marketContextEnabled={marketContextEnabled}

@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
+import { buildTranslatedEventFaqItems } from '@/lib/event-faq-server'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
 import { getEventRouteBySlug, loadEventPagePublicContentData } from '@/lib/event-page-data'
 import { resolveEventBasePath, resolveEventPagePath } from '@/lib/events-routing'
@@ -58,6 +59,12 @@ async function CachedEventPageContent({
     notFound()
   }
 
+  const faqItems = await buildTranslatedEventFaqItems({
+    event: eventPageData.event,
+    siteName: runtimeTheme.site.name,
+    locale,
+  })
+
   return (
     <>
       <EventStructuredData
@@ -65,11 +72,13 @@ async function CachedEventPageContent({
         locale={locale}
         pagePath={resolveEventPagePath(eventPageData.event)}
         site={runtimeTheme.site}
+        faqItems={faqItems}
       />
       <EventContent
         event={eventPageData.event}
         changeLogEntries={eventPageData.changeLogEntries}
         user={null}
+        faqItems={faqItems}
         marketContextEnabled={eventPageData.marketContextEnabled}
         seriesEvents={eventPageData.seriesEvents}
         liveChartConfig={eventPageData.liveChartConfig}

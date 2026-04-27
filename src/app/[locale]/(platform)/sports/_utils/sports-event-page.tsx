@@ -15,6 +15,7 @@ import { redirect } from '@/i18n/navigation'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
+import { buildTranslatedEventFaqItems } from '@/lib/event-faq-server'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
 import { getEventRouteBySlug, resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
 import { resolveEventBasePath, resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
@@ -148,6 +149,11 @@ export async function renderSportsVerticalEventPage({
   ])
   const sportLabel = layoutData?.h1TitleBySlug[resolvedSportSlug] ?? resolvedSportSlug.toUpperCase()
   const marketContextEnabled = marketContextSettings.enabled && Boolean(marketContextSettings.apiKey)
+  const faqItems = await buildTranslatedEventFaqItems({
+    event: targetCard.event,
+    siteName: runtimeTheme.site.name,
+    locale: resolvedLocale,
+  })
 
   return (
     <>
@@ -156,6 +162,7 @@ export async function renderSportsVerticalEventPage({
         locale={resolvedLocale}
         pagePath={resolveEventPagePath(targetCard.event)}
         site={runtimeTheme.site}
+        faqItems={faqItems}
       />
       <EventMarketChannelProvider markets={allMarkets}>
         <SportsEventCenter
@@ -163,6 +170,7 @@ export async function renderSportsVerticalEventPage({
           marketViewCards={targetGroup.marketViewCards}
           sportSlug={resolvedSportSlug}
           sportLabel={sportLabel}
+          faqItems={faqItems}
           initialMarketViewKey={resolveSportsEventMarketViewKey(canonicalEventSlug)}
           marketContextEnabled={marketContextEnabled}
           vertical={vertical}
@@ -260,6 +268,12 @@ export async function renderSportsVerticalEventMarketPage({
 
   const sportLabel = layoutData?.h1TitleBySlug[resolvedSportSlug] ?? resolvedSportSlug.toUpperCase()
   const marketContextEnabled = marketContextSettings.enabled && Boolean(marketContextSettings.apiKey)
+  const faqItems = await buildTranslatedEventFaqItems({
+    event: targetCard.event,
+    siteName: runtimeTheme.site.name,
+    locale: resolvedLocale,
+  })
+
   return (
     <>
       <EventStructuredData
@@ -268,6 +282,7 @@ export async function renderSportsVerticalEventMarketPage({
         pagePath={resolveEventMarketPath(targetCard.event, market)}
         marketSlug={market}
         site={runtimeTheme.site}
+        faqItems={faqItems}
       />
       <EventMarketChannelProvider markets={allMarkets}>
         <SportsEventCenter
@@ -276,6 +291,7 @@ export async function renderSportsVerticalEventMarketPage({
           relatedCards={relatedCards}
           sportSlug={resolvedSportSlug}
           sportLabel={sportLabel}
+          faqItems={faqItems}
           initialMarketSlug={market}
           initialMarketViewKey={resolveSportsEventMarketViewKey(canonicalEventSlug)}
           marketContextEnabled={marketContextEnabled}

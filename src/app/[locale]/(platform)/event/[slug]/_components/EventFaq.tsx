@@ -1,42 +1,33 @@
 'use client'
 
-import type { Event } from '@/types'
+import type { EventFaqItem } from '@/lib/event-faq'
 import { ChevronDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { useSiteIdentity } from '@/hooks/useSiteIdentity'
-import { buildEventFaqItems } from '@/lib/event-faq'
 import { cn } from '@/lib/utils'
 
 interface EventFaqProps {
-  event: Event
-  commentsCount?: number | null
+  items: EventFaqItem[]
 }
 
 const DEFAULT_VISIBLE_ITEMS = 6
 
-function useEventFaqState(event: Event, siteName: string, commentsCount?: number | null) {
+function useEventFaqState() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [openItemId, setOpenItemId] = useState('')
-  const items = useMemo(() => buildEventFaqItems({
-    event,
-    siteName,
-    commentsCount,
-  }), [commentsCount, event, siteName])
 
-  return { isExpanded, setIsExpanded, openItemId, setOpenItemId, items }
+  return { isExpanded, setIsExpanded, openItemId, setOpenItemId }
 }
 
-export default function EventFaq({ event, commentsCount }: EventFaqProps) {
+export default function EventFaq({ items }: EventFaqProps) {
   const t = useExtracted()
-  const site = useSiteIdentity()
-  const { isExpanded, setIsExpanded, openItemId, setOpenItemId, items } = useEventFaqState(event, site.name, commentsCount)
+  const { isExpanded, setIsExpanded, openItemId, setOpenItemId } = useEventFaqState()
 
   const visibleItems = isExpanded
     ? items
