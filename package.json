@@ -102,7 +102,7 @@
     "husky": "^9.1.7",
     "jsdom": "^29.0.2",
     "lint-staged": "^16.3.1",
-    "tailwindcss": "^4.1.13",
+    "tailwindcss": "^4.2.4",
     "tw-animate-css": "^1.3.8",
     "typescript": "^5.9.3",
     "vitest": "^4.1.2"
