@@ -330,8 +330,6 @@ export const TagRepository = {
     'use cache'
     cacheTag(cacheTags.mainTags(locale))
 
-    console.log('DB HIT TagRepository.getMainTags')
-
     const { data: mainTagsResult, error } = await runQuery(async () => {
       const result = await db
         .select({
