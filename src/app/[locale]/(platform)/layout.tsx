@@ -7,7 +7,7 @@ import NavigationTabs from '@/app/[locale]/(platform)/_components/NavigationTabs
 import PlatformViewerState from '@/app/[locale]/(platform)/_components/PlatformViewerState'
 import { FilterProvider } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import PlatformNavigationProvider from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
-import { TagRepository } from '@/lib/db/queries/tag'
+import { loadPlatformMainTags } from '@/lib/platform-main-tags'
 import { buildChildParentMap, buildPlatformNavigationTags } from '@/lib/platform-navigation'
 import AppKitProvider from '@/providers/AppKitProvider'
 
@@ -16,7 +16,7 @@ export default async function PlatformLayout({ params, children }: LayoutProps<'
   const resolvedLocale = locale as SupportedLocale
   setRequestLocale(resolvedLocale)
   const t = await getExtracted()
-  const { data: mainTags, globalChilds = [] } = await TagRepository.getMainTags(resolvedLocale)
+  const { data: mainTags, globalChilds = [] } = await loadPlatformMainTags(resolvedLocale)
   const tags = buildPlatformNavigationTags({
     mainTags: mainTags ?? [],
     globalChilds,

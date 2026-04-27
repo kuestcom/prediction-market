@@ -6,7 +6,7 @@ import {
   buildLocalizedPagePath,
   buildPredictionResultsOgImageUrl,
 } from '@/app/[locale]/(platform)/_lib/prediction-results-metadata'
-import { TagRepository } from '@/lib/db/queries/tag'
+import { loadPlatformMainTags } from '@/lib/platform-main-tags'
 import {
   findDynamicHomeCategoryBySlug,
   findDynamicHomeSubcategoryBySlug,
@@ -18,7 +18,7 @@ import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 const { resolveSiteUrl } = siteUrlUtils
 
 async function getMainTags(locale: SupportedLocale) {
-  const { data: mainTags } = await TagRepository.getMainTags(locale)
+  const { data: mainTags } = await loadPlatformMainTags(locale)
   return mainTags ?? []
 }
 

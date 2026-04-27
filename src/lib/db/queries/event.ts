@@ -1445,6 +1445,8 @@ export const EventRepository = {
     cacheTag(cacheTags.events(userId || 'guest'))
     cacheTag(cacheTags.eventsList)
 
+    console.log('DB HIT EventRepository.listEvents')
+
     return await runQuery(async () => {
       const safeLimit = normalizeEventListLimit(limit)
       const validOffset = normalizeEventListOffset(offset)
@@ -1830,6 +1832,8 @@ export const EventRepository = {
   }: ListEventMarketSlugsProps): Promise<QueryResult<string[]>> {
     'use cache'
     cacheTag(cacheTags.eventsList)
+
+    console.log('DB HIT EventRepository.listEventMarketSlugs')
 
     return await runQuery(async () => {
       const { baseWhere, empty } = await buildEventListQueryContext({
@@ -2538,6 +2542,8 @@ export const EventRepository = {
   ): Promise<QueryResult<{ title: string }>> {
     'use cache'
     cacheTag(cacheTags.event(slug))
+
+    console.log('DB HIT  EventRepository.getEventTitleBySlug')
 
     return runQuery(async () => {
       const result = await db

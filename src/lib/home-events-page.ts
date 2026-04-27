@@ -1,8 +1,12 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-filters'
 import type { Event } from '@/types'
+import { cacheTag } from 'next/cache'
+import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 import { filterHomeEvents, HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
+
+const HOME_EVENTS_QUERY_BATCH_SIZE = 128
 
 interface ListHomeEventsPageOptions {
   bookmarked: boolean
@@ -23,9 +27,10 @@ interface ListHomeEventsPageOptions {
   userId: string
 }
 
-export async function listHomeEventsPage({
+interface LoadHomeEventCandidatesOptions extends Omit<ListHomeEventsPageOptions, 'currentTimestamp'> {}
+
+async function loadHomeEventCandidates({
   bookmarked,
-  currentTimestamp,
   frequency = 'all',
   hideCrypto = false,
   hideEarnings = false,
@@ -40,13 +45,15 @@ export async function listHomeEventsPage({
   status = 'active',
   tag,
   userId,
-}: ListHomeEventsPageOptions) {
+}: LoadHomeEventCandidatesOptions) {
+  'use cache'
+  cacheTag(cacheTags.events(userId || 'guest'))
+  cacheTag(cacheTags.eventsList)
+
   const targetOffset = Math.max(0, offset)
   const targetVisibleCount = targetOffset + HOME_EVENTS_PAGE_SIZE
-  const resolvedCurrentTimestamp = currentTimestamp ?? null
   let rawOffset = 0
   const accumulatedEvents: Event[] = []
-  let visibleEvents: Event[] = []
 
   while (true) {
     const { data: rawEvents, error } = await EventRepository.listEvents({
@@ -59,13 +66,14 @@ export async function listHomeEventsPage({
       frequency,
       status,
       offset: rawOffset,
+      limit: HOME_EVENTS_QUERY_BATCH_SIZE,
       locale,
       sportsSportSlug,
       sportsSection,
     })
 
     if (error) {
-      return { data: [], error, currentTimestamp: resolvedCurrentTimestamp ?? null }
+      return { data: [], error }
     }
 
     const batch = rawEvents ?? []
@@ -75,24 +83,67 @@ export async function listHomeEventsPage({
 
     accumulatedEvents.push(...batch)
 
-    visibleEvents = filterHomeEvents(accumulatedEvents, {
-      currentTimestamp: resolvedCurrentTimestamp ?? null,
-      hideSports,
-      hideCrypto,
-      hideEarnings,
-      status,
-    })
+    if (status === 'resolved') {
+      const visibleResolvedEvents = filterHomeEvents(accumulatedEvents, {
+        currentTimestamp: null,
+        hideSports,
+        hideCrypto,
+        hideEarnings,
+        status,
+      })
 
-    if (status === 'resolved' && visibleEvents.length >= targetVisibleCount) {
+      if (visibleResolvedEvents.length >= targetVisibleCount) {
+        break
+      }
+    }
+
+    if (batch.length < HOME_EVENTS_QUERY_BATCH_SIZE) {
       break
     }
 
-    if (batch.length < HOME_EVENTS_PAGE_SIZE) {
-      break
-    }
-
-    rawOffset += HOME_EVENTS_PAGE_SIZE
+    rawOffset += HOME_EVENTS_QUERY_BATCH_SIZE
   }
+
+  return {
+    data: accumulatedEvents,
+    error: null,
+  }
+}
+
+export async function listHomeEventsPage({
+  currentTimestamp,
+  hideCrypto = false,
+  hideEarnings = false,
+  hideSports = false,
+  offset = 0,
+  status = 'active',
+  ...options
+}: ListHomeEventsPageOptions) {
+  const targetOffset = Math.max(0, offset)
+  const resolvedCurrentTimestamp = currentTimestamp ?? null
+
+  const { data: rawEvents, error } = await loadHomeEventCandidates({
+    ...options,
+    hideCrypto,
+    hideEarnings,
+    hideSports,
+    offset,
+    status,
+  })
+
+  if (error) {
+    return { data: [], error, currentTimestamp: resolvedCurrentTimestamp ?? null }
+  }
+
+  const visibleEvents = (rawEvents?.length ?? 0) > 0
+    ? filterHomeEvents(rawEvents ?? [], {
+        currentTimestamp: resolvedCurrentTimestamp,
+        hideSports,
+        hideCrypto,
+        hideEarnings,
+        status,
+      })
+    : []
 
   return {
     data: visibleEvents.slice(targetOffset, targetOffset + HOME_EVENTS_PAGE_SIZE),
