@@ -121,7 +121,7 @@ function useCancelAllOpenOrders({
       else {
         toast.error(t(
           'Could not cancel {count} order{count, plural, one {} other {s}}.',
-          { count: failedCount },
+          { count: failedCount as never },
         ))
       }
 
