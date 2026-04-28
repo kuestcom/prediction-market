@@ -281,13 +281,7 @@ export default function PendingDepositBanner() {
 
           {step === 'prompt' && (
             <p className="mt-6 text-base font-semibold text-foreground">
-              {t('Activate your funds')}
-              {' '}
-              (
-              {formattedAmount}
-              )
-              {' '}
-              {t('to begin trading.')}
+              {t('Activate your funds ({amount}) to begin trading.', { amount: formattedAmount })}
             </p>
           )}
 

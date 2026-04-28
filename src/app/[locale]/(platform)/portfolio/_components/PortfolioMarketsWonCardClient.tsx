@@ -124,14 +124,13 @@ function useMarketsWonShareOnX({
   totalProceeds,
   userUsername,
   userProxyWalletAddress,
-  t,
 }: {
   siteName: string
   totalProceeds: number
   userUsername: string | null | undefined
   userProxyWalletAddress: string | null | undefined
-  t: ReturnType<typeof useExtracted>
 }) {
+  const t = useExtracted()
   const [isSharingOnX, setIsSharingOnX] = useState(false)
 
   const handleShareOnX = useCallback(() => {
@@ -146,7 +145,10 @@ function useMarketsWonShareOnX({
         ? new URL(buildPublicProfilePath(profileSlug) ?? '/', window.location.origin).toString()
         : window.location.origin
       const shareText = [
-        `${t('I just won')} ${formatCurrency(totalProceeds)} ${t('on')} ${siteName}!`,
+        t('I just won {amount} on {siteName}!', {
+          amount: formatCurrency(totalProceeds),
+          siteName,
+        }),
         '',
         t('Join me and put your money where your mouth is:'),
       ].join('\n')
@@ -185,7 +187,6 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     totalProceeds: summary.totalProceeds,
     userUsername: user?.username,
     userProxyWalletAddress: user?.proxy_wallet_address,
-    t,
   })
 
   async function handleClaimAll() {

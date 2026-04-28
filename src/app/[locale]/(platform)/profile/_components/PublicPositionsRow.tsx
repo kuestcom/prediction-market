@@ -145,7 +145,7 @@ export default function PublicPositionsRow({
                 variant="outline"
                 className="shrink-0"
                 onClick={() => onShareClick(position)}
-                aria-label={`${t('Share')} ${position.title}`}
+                aria-label={t('Share {title}', { title: position.title })}
               >
                 <ShareIcon className="size-4" />
               </Button>

@@ -75,15 +75,14 @@ function useCancelAllOpenOrders({
   queryClient,
   openOrdersQueryKey,
   openTradeRequirements,
-  t,
 }: {
   userAddress: string
   orders: PortfolioUserOpenOrder[]
   queryClient: QueryClient
   openOrdersQueryKey: (string | undefined)[]
   openTradeRequirements: ReturnType<typeof useTradingOnboarding>['openTradeRequirements']
-  t: ReturnType<typeof useExtracted>
 }) {
+  const t = useExtracted()
   const [isCancellingAll, setIsCancellingAll] = useState(false)
 
   const removeOrdersFromCache = useCallback((orderIds: string[]) => {
@@ -120,7 +119,10 @@ function useCancelAllOpenOrders({
         toast.success(t('All open orders cancelled'))
       }
       else {
-        toast.error(`${t('Could not cancel')} ${failedCount} ${failedCount > 1 ? t('orders') : t('order')}.`)
+        toast.error(t(
+          'Could not cancel {count} order{count, plural, one {} other {s}}.',
+          { count: failedCount },
+        ))
       }
 
       if (result.cancelled.length) {
@@ -221,7 +223,6 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
     queryClient,
     openOrdersQueryKey,
     openTradeRequirements,
-    t,
   })
 
   const { loadMoreRef } = useInfiniteScrollSentinel({
