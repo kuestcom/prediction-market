@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
-import { connection } from 'next/server'
 import SettingsAffiliateContent from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateContent'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes } from '@/lib/data-api/fees'
@@ -27,8 +26,6 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
   const resolvedLocale = SUPPORTED_LOCALES.includes(locale as SupportedLocale)
     ? locale as SupportedLocale
     : DEFAULT_LOCALE
-
-  await connection()
 
   const t = await getExtracted()
 

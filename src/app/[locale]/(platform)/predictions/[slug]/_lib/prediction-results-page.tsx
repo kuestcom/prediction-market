@@ -6,7 +6,6 @@ import type {
 } from '@/lib/prediction-results-filters'
 import type { Event } from '@/types'
 import { getExtracted } from 'next-intl/server'
-import { connection } from 'next/server'
 import {
   buildPredictionResultsOgImageUrl,
   buildPredictionResultsPageUrl,
@@ -42,7 +41,6 @@ export async function generatePredictionResultsMetadata({
   locale: SupportedLocale
   slug: string
 }): Promise<Metadata> {
-  await connection()
   const t = await getExtracted({ locale })
   const [context, runtimeTheme] = await Promise.all([
     getPredictionPageContext(locale, slug),

@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import { connection } from 'next/server'
 import SettingsSdkDownloadsContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkDownloadsContent'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -24,8 +23,6 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/settings
 export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[locale]/settings/sdks'>) {
   const { locale } = await params
   setRequestLocale(locale)
-
-  await connection()
 
   const t = await getExtracted()
 

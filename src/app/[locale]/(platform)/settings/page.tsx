@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import { connection } from 'next/server'
 import SettingsProfilePanel from '@/app/[locale]/(platform)/settings/_components/SettingsProfilePanel'
 import { UserRepository } from '@/lib/db/queries/user'
 
@@ -18,8 +17,6 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/settings
 export default async function SettingsPage({ params }: PageProps<'/[locale]/settings'>) {
   const { locale } = await params
   setRequestLocale(locale)
-
-  await connection()
 
   const t = await getExtracted()
 
