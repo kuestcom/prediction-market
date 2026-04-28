@@ -1,5 +1,6 @@
 import type { SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import { ArrowDownNarrowWideIcon, MergeIcon, SearchIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -22,6 +23,8 @@ export default function PublicPositionsFilters({
   showMergeButton,
   onMergeClick,
 }: PublicPositionsFiltersProps) {
+  const t = useExtracted()
+
   return (
     <div className="space-y-3 px-2 pt-2 sm:px-3">
       <div className="flex items-center gap-2 sm:gap-3">
@@ -29,7 +32,7 @@ export default function PublicPositionsFilters({
           <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
           <Input
             type="text"
-            placeholder="Search markets..."
+            placeholder={t('Search markets...')}
             value={searchQuery}
             onChange={event => onSearchChange(event.target.value)}
             className="w-full min-w-0 pr-3 pl-8 text-sm sm:pl-9"
@@ -39,7 +42,7 @@ export default function PublicPositionsFilters({
         <div className="flex shrink-0 items-center gap-2">
           <Select value={sortBy} onValueChange={value => onSortChange(value as SortOption)}>
             <SelectTrigger
-              aria-label="Sort positions"
+              aria-label={t('Sort positions')}
               className="
                 w-9 justify-center gap-0 px-0
                 *:data-[slot=select-value]:hidden
@@ -53,16 +56,16 @@ export default function PublicPositionsFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="currentValue">Current value</SelectItem>
-              <SelectItem value="trade">Trade</SelectItem>
-              <SelectItem value="pnlPercent">Profit &amp; Loss %</SelectItem>
-              <SelectItem value="pnlValue">Profit &amp; Loss $</SelectItem>
-              <SelectItem value="shares">Shares</SelectItem>
-              <SelectItem value="alpha">Alphabetically</SelectItem>
-              <SelectItem value="endingSoon">Ending soon</SelectItem>
-              <SelectItem value="payout">Payout</SelectItem>
-              <SelectItem value="latestPrice">Latest Price</SelectItem>
-              <SelectItem value="avgCost">Average cost per share</SelectItem>
+              <SelectItem value="currentValue">{t('Current value')}</SelectItem>
+              <SelectItem value="trade">{t('Trade')}</SelectItem>
+              <SelectItem value="pnlPercent">{t('Profit & Loss %')}</SelectItem>
+              <SelectItem value="pnlValue">{t('Profit & Loss $')}</SelectItem>
+              <SelectItem value="shares">{t('Shares')}</SelectItem>
+              <SelectItem value="alpha">{t('Alphabetically')}</SelectItem>
+              <SelectItem value="endingSoon">{t('Ending soon')}</SelectItem>
+              <SelectItem value="payout">{t('Payout')}</SelectItem>
+              <SelectItem value="latestPrice">{t('Latest Price')}</SelectItem>
+              <SelectItem value="avgCost">{t('Average cost per share')}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -75,12 +78,12 @@ export default function PublicPositionsFilters({
                   size="icon"
                   className="rounded-md dark:bg-transparent"
                   onClick={onMergeClick}
-                  aria-label="Merge positions"
+                  aria-label={t('Merge positions')}
                 >
                   <MergeIcon className="size-4 rotate-90" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Merge</TooltipContent>
+              <TooltipContent>{t('Merge')}</TooltipContent>
             </Tooltip>
           )}
         </div>

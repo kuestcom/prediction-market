@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import type { PortfolioSnapshot } from '@/lib/portfolio'
 import { CheckIcon, EyeIcon, EyeOffIcon, FocusIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
@@ -54,6 +55,7 @@ export default function ProfileOverviewCard({
   useDefaultUserWallet = true,
   enableLiveValue = true,
 }: ProfileOverviewCardProps) {
+  const t = useExtracted()
   const { copied, copy } = useClipboard()
   const liveWalletAddress = enableLiveValue ? profile.portfolioAddress : null
   const { value: livePositionsValue, isLoading } = usePortfolioValue(
@@ -92,9 +94,9 @@ export default function ProfileOverviewCard({
     : formatCurrency(snapshot.biggestWin, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
   const stats = [
-    { label: 'Positions Value', value: positionsValueLabel },
-    { label: 'Biggest Win', value: biggestWinLabel },
-    { label: 'Predictions', value: formatCompactCount(snapshot.predictions) },
+    { label: t('Positions Value'), value: positionsValueLabel },
+    { label: t('Biggest Win'), value: biggestWinLabel },
+    { label: t('Predictions'), value: formatCompactCount(snapshot.predictions) },
   ]
 
   return (
@@ -107,7 +109,7 @@ export default function ProfileOverviewCard({
                   ? (
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-col gap-1">
-                          <span className="text-sm font-semibold tracking-wide text-muted-foreground">Portfolio</span>
+                          <span className="text-sm font-semibold tracking-wide text-muted-foreground">{t('Portfolio')}</span>
                           <div className="flex items-center gap-2">
                             <p className="text-3xl/tight font-bold text-foreground sm:text-4xl">
                               {areValuesHidden ? '****' : formattedTotalValue}
@@ -117,7 +119,7 @@ export default function ProfileOverviewCard({
                               variant="ghost"
                               size="icon"
                               className="size-8 rounded-full text-muted-foreground hover:text-foreground"
-                              aria-label={areValuesHidden ? 'Show portfolio value' : 'Hide portfolio value'}
+                              aria-label={areValuesHidden ? t('Show portfolio value') : t('Hide portfolio value')}
                               onClick={toggleValuesHidden}
                             >
                               {areValuesHidden ? <EyeIcon className="size-4" /> : <EyeOffIcon className="size-4" />}
@@ -152,12 +154,12 @@ export default function ProfileOverviewCard({
                                 )
                               </span>
                             )}
-                            <span className="text-muted-foreground">past day</span>
+                            <span className="text-muted-foreground">{t('past day')}</span>
                           </div>
                         </div>
 
                         <div className="flex shrink-0 flex-col items-end text-right">
-                          <span className="text-xs font-medium text-muted-foreground">Available to trade</span>
+                          <span className="text-xs font-medium text-muted-foreground">{t('Available to trade')}</span>
                           <span className="text-xl font-semibold text-foreground sm:text-2xl">
                             {areValuesHidden
                               ? '****'
@@ -185,7 +187,7 @@ export default function ProfileOverviewCard({
                               ? (
                                   <Image
                                     src={avatarUrl}
-                                    alt={`${profile.username} avatar`}
+                                    alt={`${profile.username} ${t('avatar')}`}
                                     fill
                                     sizes="48px"
                                     className="object-cover"
@@ -200,7 +202,7 @@ export default function ProfileOverviewCard({
                             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                               {joinedText && (
                                 <span className="inline-flex items-center gap-1">
-                                  Joined
+                                  {t('Joined')}
                                   {' '}
                                   {joinedText}
                                 </span>
@@ -212,7 +214,7 @@ export default function ProfileOverviewCard({
                                     <EyeIcon className="size-4" />
                                     {formatCompactCount(profile.viewsCount)}
                                     {' '}
-                                    views
+                                    {t('views')}
                                   </span>
                                 </>
                               )}
@@ -230,7 +232,7 @@ export default function ProfileOverviewCard({
                               hover:bg-background
                             `}
                             onClick={() => profile.portfolioAddress && copy(profile.portfolioAddress)}
-                            aria-label="Copy portfolio address"
+                            aria-label={t('Copy portfolio address')}
                           >
                             {copied ? <CheckIcon className="size-4 text-yes" /> : <FocusIcon className="size-4" />}
                           </Button>

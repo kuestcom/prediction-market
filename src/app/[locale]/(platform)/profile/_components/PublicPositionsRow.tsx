@@ -1,6 +1,7 @@
 import type { Route } from 'next'
 import type { PublicPosition } from './PublicPositionItem'
 import { ArrowRightIcon, ShareIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { formatCurrencyValue, getLatestPrice, getValue } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
@@ -20,6 +21,7 @@ export default function PublicPositionsRow({
   onShareClick,
   onSellClick,
 }: PublicPositionsRowProps) {
+  const t = useExtracted()
   const imageSrc = position.icon ? `https://gateway.irys.xyz/${position.icon}` : null
   const avgPrice = position.avgPrice ?? 0
   const nowPrice = getLatestPrice(position)
@@ -54,7 +56,7 @@ export default function PublicPositionsRow({
                   />
                 )
               : (
-                  <div className="grid size-full place-items-center text-sm text-muted-foreground">No image</div>
+                  <div className="grid size-full place-items-center text-sm text-muted-foreground">{t('No image')}</div>
                 )}
           </AppLink>
           <div className="min-w-0 flex-1 space-y-1">
@@ -79,7 +81,7 @@ export default function PublicPositionsRow({
                 <span className="text-muted-foreground">
                   {formatSharesLabel(position.size ?? 0)}
                   {' '}
-                  shares
+                  {t('shares')}
                 </span>
               )}
             </div>
@@ -133,7 +135,7 @@ export default function PublicPositionsRow({
               className="w-18 shrink-0"
               onClick={() => onSellClick(position)}
             >
-              Sell
+              {t('Sell')}
             </Button>
           )}
           <Tooltip>
@@ -143,12 +145,12 @@ export default function PublicPositionsRow({
                 variant="outline"
                 className="shrink-0"
                 onClick={() => onShareClick(position)}
-                aria-label={`Share ${position.title}`}
+                aria-label={`${t('Share')} ${position.title}`}
               >
                 <ShareIcon className="size-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Share</TooltipContent>
+            <TooltipContent>{t('Share')}</TooltipContent>
           </Tooltip>
         </div>
       </td>

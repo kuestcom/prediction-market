@@ -1,5 +1,6 @@
 import type { ActivitySort, ActivityTypeFilter } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
 import { ArrowDownNarrowWideIcon, DownloadIcon, ListFilterIcon, SearchIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -25,6 +26,8 @@ export default function PublicActivityFilters({
   onExport,
   disableExport,
 }: PublicActivityFiltersProps) {
+  const t = useExtracted()
+
   return (
     <div className="space-y-3 px-2 pt-2 sm:px-3">
       <div className="flex items-center gap-2 sm:gap-3">
@@ -32,7 +35,7 @@ export default function PublicActivityFilters({
           <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
           <Input
             type="text"
-            placeholder="Search activity..."
+            placeholder={t('Search activity...')}
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
             className="w-full min-w-0 pr-3 pl-8 text-sm sm:pl-9"
@@ -42,7 +45,7 @@ export default function PublicActivityFilters({
         <div className="flex shrink-0 items-center gap-2">
           <Select value={typeFilter} onValueChange={value => onTypeChange(value as ActivityTypeFilter)}>
             <SelectTrigger
-              aria-label="Filter activity type"
+              aria-label={t('Filter activity type')}
               className="
                 w-9 justify-center gap-0 px-0
                 *:data-[slot=select-value]:hidden
@@ -56,17 +59,17 @@ export default function PublicActivityFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="trades">Trades</SelectItem>
-              <SelectItem value="buy">Buy</SelectItem>
-              <SelectItem value="merge">Merge</SelectItem>
-              <SelectItem value="redeem">Redeem</SelectItem>
+              <SelectItem value="all">{t('All')}</SelectItem>
+              <SelectItem value="trades">{t('Trades')}</SelectItem>
+              <SelectItem value="buy">{t('Buy')}</SelectItem>
+              <SelectItem value="merge">{t('Merge')}</SelectItem>
+              <SelectItem value="redeem">{t('Redeem')}</SelectItem>
             </SelectContent>
           </Select>
 
           <Select value={sortFilter} onValueChange={value => onSortChange(value as ActivitySort)}>
             <SelectTrigger
-              aria-label="Sort activity"
+              aria-label={t('Sort activity')}
               className="
                 w-9 justify-center gap-0 px-0
                 *:data-[slot=select-value]:hidden
@@ -80,10 +83,10 @@ export default function PublicActivityFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="oldest">Oldest</SelectItem>
-              <SelectItem value="value">Value</SelectItem>
-              <SelectItem value="shares">Shares</SelectItem>
+              <SelectItem value="newest">{t('Newest')}</SelectItem>
+              <SelectItem value="oldest">{t('Oldest')}</SelectItem>
+              <SelectItem value="value">{t('Value')}</SelectItem>
+              <SelectItem value="shares">{t('Shares')}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -94,7 +97,7 @@ export default function PublicActivityFilters({
             onClick={onExport}
             disabled={disableExport}
             className="rounded-md dark:bg-transparent"
-            aria-label="Export activity"
+            aria-label={t('Export activity')}
           >
             <DownloadIcon className="size-4" />
           </Button>

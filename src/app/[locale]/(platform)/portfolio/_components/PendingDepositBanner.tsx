@@ -2,6 +2,7 @@
 
 import type { SafeOperationType } from '@/lib/safe/transactions'
 import { ArrowDownToLineIcon, CheckIcon, Loader2Icon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { hashTypedData } from 'viem'
@@ -80,6 +81,7 @@ function usePendingDepositSwap({
   openTradeRequirements,
   runWithSignaturePrompt,
   signMessageAsync,
+  t,
 }: {
   step: PendingDepositStep
   setStep: (step: PendingDepositStep) => void
@@ -92,6 +94,7 @@ function usePendingDepositSwap({
   openTradeRequirements: ReturnType<typeof useTradingOnboarding>['openTradeRequirements']
   runWithSignaturePrompt: ReturnType<typeof useSignaturePromptRunner>['runWithSignaturePrompt']
   signMessageAsync: ReturnType<typeof useSignMessage>['signMessageAsync']
+  t: ReturnType<typeof useExtracted>
 }) {
   const handleConfirm = useCallback(async () => {
     if (step === 'signing') {
@@ -99,17 +102,17 @@ function usePendingDepositSwap({
     }
 
     if (IS_TEST_MODE) {
-      setStatusMessage('Swap is disabled on test Mode.')
+      setStatusMessage(t('Swap is disabled on test Mode.'))
       return
     }
 
     if (!userAddress || !userProxyWalletAddress) {
-      toast.error('Connect your wallet to continue.')
+      toast.error(t('Connect your wallet to continue.'))
       return
     }
 
     if (!pendingBalanceRawBase || pendingBalanceRawBase === '0') {
-      toast.error('No pending deposit found.')
+      toast.error(t('No pending deposit found.'))
       return
     }
 
@@ -201,6 +204,7 @@ function usePendingDepositSwap({
     setStatusMessage,
     setStep,
     signMessageAsync,
+    t,
     step,
     userAddress,
     userProxyWalletAddress,
@@ -210,6 +214,7 @@ function usePendingDepositSwap({
 }
 
 export default function PendingDepositBanner() {
+  const t = useExtracted()
   const { pendingBalance, hasPendingDeposit, refetchPendingDeposit } = usePendingUsdcDeposit()
   const { signMessageAsync } = useSignMessage()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
@@ -240,6 +245,7 @@ export default function PendingDepositBanner() {
     openTradeRequirements,
     runWithSignaturePrompt,
     signMessageAsync,
+    t,
   })
 
   const formattedAmount = formatCurrency(pendingBalance.raw, {
@@ -257,7 +263,7 @@ export default function PendingDepositBanner() {
         className="h-11 w-full justify-between px-4 text-left"
         onClick={openDialog}
       >
-        <span className="text-sm font-semibold">Confirm pending deposit</span>
+        <span className="text-sm font-semibold">{t('Confirm pending deposit')}</span>
         <ArrowDownToLineIcon className="size-4" />
       </Button>
 
@@ -270,24 +276,28 @@ export default function PendingDepositBanner() {
           </div>
 
           {step === 'signing' && (
-            <p className="mt-6 text-base font-semibold text-foreground">Waiting for signature...</p>
+            <p className="mt-6 text-base font-semibold text-foreground">{t('Waiting for signature...')}</p>
           )}
 
           {step === 'prompt' && (
             <p className="mt-6 text-base font-semibold text-foreground">
-              Activate your funds (
+              {t('Activate your funds')}
+              {' '}
+              (
               {formattedAmount}
-              ) to begin trading.
+              )
+              {' '}
+              {t('to begin trading.')}
             </p>
           )}
 
           {step === 'success' && (
-            <p className="mt-6 text-base font-semibold text-foreground">Your funds are available to trade!</p>
+            <p className="mt-6 text-base font-semibold text-foreground">{t('Your funds are available to trade!')}</p>
           )}
 
           {step === 'prompt' && (
             <Button className="mt-6 h-11 w-full text-base" onClick={handleConfirm}>
-              Continue
+              {t('Continue')}
             </Button>
           )}
 
@@ -299,7 +309,7 @@ export default function PendingDepositBanner() {
 
           {step === 'signing' && (
             <div className="mt-6 text-sm text-muted-foreground">
-              Confirm the signature in your wallet.
+              {t('Confirm the signature in your wallet.')}
             </div>
           )}
 
@@ -311,7 +321,7 @@ export default function PendingDepositBanner() {
                 router.push('/')
               }}
             >
-              Start Trading
+              {t('Start Trading')}
             </Button>
           )}
         </DialogContent>

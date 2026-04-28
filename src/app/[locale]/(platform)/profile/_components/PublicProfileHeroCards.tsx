@@ -9,6 +9,7 @@ import { Group } from '@visx/group'
 import { scaleLinear, scaleTime } from '@visx/scale'
 import { AreaClosed, LinePath } from '@visx/shape'
 import { CircleHelpIcon, MinusIcon, TriangleIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import ProfileOverviewCard from '@/app/[locale]/(platform)/_components/ProfileOverviewCard'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
@@ -448,6 +449,7 @@ function ProfitLossCard({
   portfolioAddress?: string | null
   fallbackChartEndDate?: string
 }) {
+  const t = useExtracted()
   const site = useSiteIdentity()
   const platformName = site.name ?? ''
   const { activeTimeframe, setActiveTimeframe } = usePnlActiveTimeframe()
@@ -526,11 +528,11 @@ function ProfitLossCard({
   const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
   const [gainTotal, lossTotal] = usePnlGainLoss({ chartData, cursorDate, endDate, activeTimeframe })
   const timeframeLabel = ({
-    'ALL': 'All-Time',
-    '1D': 'Past Day',
-    '1W': 'Past Week',
-    '1M': 'Past Month',
-  } as const)[activeTimeframe] || 'All-Time'
+    'ALL': t('All-Time'),
+    '1D': t('Past Day'),
+    '1W': t('Past Week'),
+    '1M': t('Past Month'),
+  } as const)[activeTimeframe] || t('All-Time')
   const hoverDateLabel = cursorDate
     ? `${cursorDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} ${
       cursorDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
@@ -546,7 +548,7 @@ function ProfitLossCard({
             {isDeltaNegative && <TriangleIcon className="size-4 translate-y-px rotate-180 fill-no text-no" />}
             {!isDeltaPositive && !isDeltaNegative && <MinusIcon className="size-4 text-muted-foreground" />}
             <span className="text-base font-semibold text-foreground">
-              Profit/Loss
+              {t('Profit/Loss')}
             </span>
           </div>
 
@@ -616,7 +618,7 @@ function ProfitLossCard({
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span>Gain</span>
+                        <span>{t('Gain')}</span>
                         <span>
                           {areValuesHidden
                             ? '****'
@@ -629,7 +631,7 @@ function ProfitLossCard({
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span>Loss</span>
+                        <span>{t('Loss')}</span>
                         <span>
                           {areValuesHidden
                             ? '****'
@@ -643,7 +645,7 @@ function ProfitLossCard({
                       </div>
                       <div className="h-px w-full bg-border/60" />
                       <div className="flex items-center justify-between">
-                        <span>Net total</span>
+                        <span>{t('Net total')}</span>
                         <span>
                           {areValuesHidden
                             ? '****'
@@ -675,7 +677,7 @@ function ProfitLossCard({
             <SiteLogoIcon
               logoSvg={logoSvg}
               logoImageUrl={site.logoImageUrl}
-              alt={`${platformName} logo`}
+              alt={`${platformName} ${t('logo')}`}
               className="size-[1em] text-current [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
               imageClassName="size-[1em] object-contain"
               size={20}

@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+import { useExtracted } from 'next-intl'
 import { tableHeaderClass } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import PortfolioOpenOrdersRow from './PortfolioOpenOrdersRow'
@@ -19,6 +20,7 @@ export default function PortfolioOpenOrdersTable({
   isFetchingNextPage,
   loadMoreRef,
 }: PortfolioOpenOrdersTableProps) {
+  const t = useExtracted()
   const hasOrders = orders.length > 0
   const colSpan = 8
   let body = null
@@ -54,7 +56,7 @@ export default function PortfolioOpenOrdersTable({
         {isFetchingNextPage && (
           <tr>
             <td colSpan={colSpan} className="py-3 text-center text-xs text-muted-foreground">
-              Loading more...
+              {t('Loading more...')}
             </td>
           </tr>
         )}
@@ -72,15 +74,15 @@ export default function PortfolioOpenOrdersTable({
       <table className="w-full min-w-[980px] table-fixed border-collapse">
         <thead>
           <tr className="border-b bg-background">
-            <th className={cn(tableHeaderClass, 'w-[34%] text-left')}>Market</th>
-            <th className={cn(tableHeaderClass, 'w-22 text-center')}>Side</th>
-            <th className={cn(tableHeaderClass, 'w-28 text-left')}>Outcome</th>
-            <th className={cn(tableHeaderClass, 'w-20 text-center')}>Price</th>
-            <th className={cn(tableHeaderClass, 'w-32 text-center')}>Filled</th>
-            <th className={cn(tableHeaderClass, 'w-28 text-center')}>Total</th>
-            <th className={cn(tableHeaderClass, 'w-32 text-left sm:text-center')}>Expiration</th>
+            <th className={cn(tableHeaderClass, 'w-[34%] text-left')}>{t('Market')}</th>
+            <th className={cn(tableHeaderClass, 'w-22 text-center')}>{t('Side')}</th>
+            <th className={cn(tableHeaderClass, 'w-28 text-left')}>{t('Outcome')}</th>
+            <th className={cn(tableHeaderClass, 'w-20 text-center')}>{t('Price')}</th>
+            <th className={cn(tableHeaderClass, 'w-32 text-center')}>{t('Filled')}</th>
+            <th className={cn(tableHeaderClass, 'w-28 text-center')}>{t('Total')}</th>
+            <th className={cn(tableHeaderClass, 'w-32 text-left sm:text-center')}>{t('Expiration')}</th>
             <th className={cn(tableHeaderClass, 'w-16 text-right')}>
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t('Actions')}</span>
             </th>
           </tr>
         </thead>

@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 import PublicActivityList from '@/app/[locale]/(platform)/profile/_components/PublicActivityList'
 import PublicPositionsList from '@/app/[locale]/(platform)/profile/_components/PublicPositionsList'
@@ -9,8 +10,8 @@ import { cn } from '@/lib/utils'
 type TabType = 'positions' | 'activity'
 
 const baseTabs = [
-  { id: 'positions' as const, label: 'Positions' },
-  { id: 'activity' as const, label: 'Activity' },
+  { id: 'positions' as const },
+  { id: 'activity' as const },
 ]
 
 interface PublicProfileTabsProps {
@@ -26,6 +27,7 @@ function usePublicProfileTabs() {
 }
 
 export default function PublicProfileTabs({ userAddress }: PublicProfileTabsProps) {
+  const t = useExtracted()
   const { tabs, activeTab, setActiveTab, tabRef, indicatorStyle, isInitialized } = usePublicProfileTabs()
 
   return (
@@ -47,7 +49,7 @@ export default function PublicProfileTabs({ userAddress }: PublicProfileTabsProp
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              {tab.label}
+              {tab.id === 'positions' ? t('Positions') : t('Activity')}
             </button>
           ))}
         </div>

@@ -5,6 +5,7 @@ import type { RefObject } from 'react'
 import type { PortfolioOpenOrdersSort, PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 import type { UserOpenOrder } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
+import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
@@ -74,12 +75,14 @@ function useCancelAllOpenOrders({
   queryClient,
   openOrdersQueryKey,
   openTradeRequirements,
+  t,
 }: {
   userAddress: string
   orders: PortfolioUserOpenOrder[]
   queryClient: QueryClient
   openOrdersQueryKey: (string | undefined)[]
   openTradeRequirements: ReturnType<typeof useTradingOnboarding>['openTradeRequirements']
+  t: ReturnType<typeof useExtracted>
 }) {
   const [isCancellingAll, setIsCancellingAll] = useState(false)
 
@@ -114,10 +117,10 @@ function useCancelAllOpenOrders({
 
       const failedCount = Object.keys(result.notCanceled ?? {}).length
       if (failedCount === 0) {
-        toast.success('All open orders cancelled')
+        toast.success(t('All open orders cancelled'))
       }
       else {
-        toast.error(`Could not cancel ${failedCount} order${failedCount > 1 ? 's' : ''}.`)
+        toast.error(`${t('Could not cancel')} ${failedCount} ${failedCount > 1 ? t('orders') : t('order')}.`)
       }
 
       if (result.cancelled.length) {
@@ -129,7 +132,7 @@ function useCancelAllOpenOrders({
     catch (error: any) {
       const message = typeof error?.message === 'string'
         ? error.message
-        : 'Failed to cancel open orders.'
+        : t('Failed to cancel open orders.')
       if (isTradingAuthRequiredError(message)) {
         openTradeRequirements({ forceTradingAuth: true })
       }
@@ -140,7 +143,7 @@ function useCancelAllOpenOrders({
     finally {
       setIsCancellingAll(false)
     }
-  }, [isCancellingAll, openTradeRequirements, orders.length, queryClient, removeOrdersFromCache, userAddress])
+  }, [isCancellingAll, openTradeRequirements, orders.length, queryClient, removeOrdersFromCache, t, userAddress])
 
   return { isCancellingAll, handleCancelAll }
 }
@@ -179,6 +182,7 @@ function useInfiniteScrollSentinel({
 
 export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOrdersListProps) {
   const user = useUser()
+  const t = useExtracted()
   const queryClient = useQueryClient()
   const { openTradeRequirements } = useTradingOnboarding()
   const {
@@ -217,6 +221,7 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
     queryClient,
     openOrdersQueryKey,
     openTradeRequirements,
+    t,
   })
 
   const { loadMoreRef } = useInfiniteScrollSentinel({
@@ -226,8 +231,8 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
   })
 
   const emptyText = userAddress
-    ? (searchQuery.trim() ? 'No open orders match your search.' : 'No open orders found.')
-    : 'Connect to view your open orders.'
+    ? (searchQuery.trim() ? t('No open orders match your search.') : t('No open orders found.'))
+    : t('Connect to view your open orders.')
   const loading = status === 'pending'
 
   return (
@@ -247,7 +252,7 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
                 onClick={handleCancelAll}
                 disabled={isCancellingAll || orders.length === 0}
               >
-                {isCancellingAll ? 'Cancelling...' : 'Cancel all'}
+                {isCancellingAll ? t('Cancelling...') : t('Cancel all')}
               </Button>
             )
           : null}

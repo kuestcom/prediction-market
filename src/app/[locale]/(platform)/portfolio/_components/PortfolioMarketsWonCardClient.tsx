@@ -7,6 +7,7 @@ import { DialogTitle } from '@radix-ui/react-dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useQueryClient } from '@tanstack/react-query'
 import { BanknoteArrowDownIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
@@ -123,11 +124,13 @@ function useMarketsWonShareOnX({
   totalProceeds,
   userUsername,
   userProxyWalletAddress,
+  t,
 }: {
   siteName: string
   totalProceeds: number
   userUsername: string | null | undefined
   userProxyWalletAddress: string | null | undefined
+  t: ReturnType<typeof useExtracted>
 }) {
   const [isSharingOnX, setIsSharingOnX] = useState(false)
 
@@ -143,9 +146,9 @@ function useMarketsWonShareOnX({
         ? new URL(buildPublicProfilePath(profileSlug) ?? '/', window.location.origin).toString()
         : window.location.origin
       const shareText = [
-        `I just won ${formatCurrency(totalProceeds)} on ${siteName}!`,
+        `${t('I just won')} ${formatCurrency(totalProceeds)} ${t('on')} ${siteName}!`,
         '',
-        'Join me and put your money where your mouth is:',
+        t('Join me and put your money where your mouth is:'),
       ].join('\n')
 
       const shareUrl = new URL('https://x.com/intent/post')
@@ -157,12 +160,13 @@ function useMarketsWonShareOnX({
     finally {
       window.setTimeout(setIsSharingOnX, 200, false)
     }
-  }, [siteName, totalProceeds, userProxyWalletAddress, userUsername])
+  }, [siteName, t, totalProceeds, userProxyWalletAddress, userUsername])
 
   return { isSharingOnX, handleShareOnX }
 }
 
 export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarketsWonCardClientProps) {
+  const t = useExtracted()
   const { summary, markets } = data
   const { isSubmitting, setIsSubmitting, hiddenClaimSignature, setHiddenClaimSignature } = useMarketsWonClaimState()
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
@@ -181,6 +185,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     totalProceeds: summary.totalProceeds,
     userUsername: user?.username,
     userProxyWalletAddress: user?.proxy_wallet_address,
+    t,
   })
 
   async function handleClaimAll() {
@@ -189,7 +194,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     }
 
     if (!markets.length) {
-      toast.info('No claimable markets available right now.')
+      toast.info(t('No claimable markets available right now.'))
       return
     }
 
@@ -198,13 +203,13 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     }
 
     if (!user?.proxy_wallet_address || !user?.address) {
-      toast.error('Deploy your proxy wallet before claiming.')
+      toast.error(t('Deploy your proxy wallet before claiming.'))
       return
     }
 
     const claimTargets = markets.filter(market => market.indexSets.length > 0)
     if (claimTargets.length === 0) {
-      toast.info('No claimable markets available right now.')
+      toast.info(t('No claimable markets available right now.'))
       return
     }
 
@@ -281,10 +286,10 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
         return
       }
 
-      toast.success('Claim submitted', {
+      toast.success(t('Claim submitted'), {
         description: claimTargets.length > 1
-          ? 'We sent a claim for your winning markets.'
-          : 'We sent your claim transaction.',
+          ? t('We sent a claim for your winning markets.')
+          : t('We sent your claim transaction.'),
       })
 
       const claimedConditionIds = claimTargets.map(market => market.conditionId)
@@ -323,7 +328,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     }
     catch (error) {
       console.error('Failed to submit claim.', error)
-      toast.error('We could not submit your claim. Please try again.')
+      toast.error(t('We could not submit your claim. Please try again.'))
     }
     finally {
       setIsSubmitting(false)
@@ -411,7 +416,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
                   sm:gap-2 sm:text-base
                 "
               >
-                <span>You won</span>
+                <span>{t('You won')}</span>
                 <span className="text-lg leading-none font-semibold text-foreground tabular-nums sm:text-2xl">
                   {formatCurrency(summary.totalProceeds)}
                 </span>
@@ -425,7 +430,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
               disabled={!hasClaimableMarkets}
             >
               <BanknoteArrowDownIcon className="size-4" />
-              Claim
+              {t('Claim')}
             </Button>
           </DialogTrigger>
         </CardContent>
@@ -433,7 +438,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
       <DialogContent className="max-w-88 space-y-4 p-5 text-center sm:p-6">
         <VisuallyHidden>
-          <DialogTitle>You Won</DialogTitle>
+          <DialogTitle>{t('You Won')}</DialogTitle>
         </VisuallyHidden>
 
         <div className="flex justify-center">
@@ -444,7 +449,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
             <SiteLogoIcon
               logoSvg={site.logoSvg}
               logoImageUrl={site.logoImageUrl}
-              alt={`${site.name} logo`}
+              alt={`${site.name} ${t('logo')}`}
               className="size-8 text-current [&_svg]:size-8 [&_svg_*]:fill-current [&_svg_*]:stroke-current"
               imageClassName="size-8 object-contain"
               size={32}
@@ -455,13 +460,13 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
         <div className="space-y-1.5">
           <p className="inline-flex items-center gap-2 text-foreground dark:text-white">
-            <span className="text-xl font-semibold">You won</span>
+            <span className="text-xl font-semibold">{t('You won')}</span>
             <span className="text-3xl leading-none font-semibold tabular-nums">
               {formatCurrency(summary.totalProceeds)}
             </span>
           </p>
           <p className="text-sm text-muted-foreground">
-            Great job predicting the future!
+            {t('Great job predicting the future!')}
           </p>
         </div>
 
@@ -488,18 +493,20 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
                       )
                     : (
                         <div className="grid size-full place-items-center text-2xs text-muted-foreground">
-                          No image
+                          {t('No image')}
                         </div>
                       )}
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-semibold text-foreground">{market.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    Invested
+                    {t('Invested')}
                     {' '}
                     {formatCurrency(market.invested)}
                     {' '}
-                    • Won
+                    •
+                    {' '}
+                    {t('Won')}
                     {' '}
                     {formatCurrency(market.proceeds)}
                     {' '}
@@ -540,12 +547,12 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
               className="size-3.5 dark:invert"
               aria-hidden="true"
             />
-            {isSharingOnX ? 'Opening...' : 'Share'}
+            {isSharingOnX ? t('Opening...') : t('Share')}
           </Button>
           <Button className="h-10 flex-1" onClick={handleClaimAll} disabled={isSubmitting || !hasClaimableMarkets}>
             {isSubmitting
-              ? 'Submitting...'
-              : `Claim ${formatCurrency(summary.totalProceeds)}`}
+              ? t('Submitting...')
+              : `${t('Claim')} ${formatCurrency(summary.totalProceeds)}`}
           </Button>
         </div>
       </DialogContent>

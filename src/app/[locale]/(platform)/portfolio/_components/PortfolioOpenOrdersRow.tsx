@@ -30,12 +30,14 @@ export default function PortfolioOpenOrdersRow({ order }: PortfolioOpenOrdersRow
     ? microToUnit(order.maker_amount)
     : microToUnit(order.taker_amount)
   const filledLabel = `${filledShares.toLocaleString(undefined, { maximumFractionDigits: 3 })} / ${totalShares.toLocaleString(undefined, { maximumFractionDigits: 3 })}`
-  const outcomeText = normalizeOutcomeLabel(order.outcome.text || (order.outcome.index === 0 ? 'Yes' : 'No'))
-    || (order.outcome.index === 0 ? 'Yes' : 'No')
+  const defaultOutcomeText = order.outcome.index === 0 ? t('Yes') : t('No')
+  const outcomeText = normalizeOutcomeLabel(order.outcome.text || defaultOutcomeText)
+    || defaultOutcomeText
   const outcomeIsYes = order.outcome.index === 0
   const outcomeColor = outcomeIsYes ? 'bg-yes/15 text-yes' : 'bg-no/15 text-no'
   const priceLabel = formatCents(order.price)
-  const expirationLabel = formatExpirationLabel(order)
+  const rawExpirationLabel = formatExpirationLabel(order)
+  const expirationLabel = rawExpirationLabel === 'Until Cancelled' ? t('Until Cancelled') : rawExpirationLabel
   const marketIcon = order.market.icon_url || undefined
   const eventSlug = order.market.event_slug || order.market.slug
   const marketSlug = order.market.event_slug ? order.market.slug : null
@@ -61,7 +63,7 @@ export default function PortfolioOpenOrdersRow({ order }: PortfolioOpenOrdersRow
                 )
               : (
                   <div className="grid size-full place-items-center text-2xs text-muted-foreground">
-                    No image
+                    {t('No image')}
                   </div>
                 )}
           </AppLink>
@@ -112,12 +114,12 @@ export default function PortfolioOpenOrdersRow({ order }: PortfolioOpenOrdersRow
                 type="button"
                 variant="outline"
                 size="sm"
-                aria-label="Cancel"
+                aria-label={t('Cancel')}
               >
                 <XIcon className="size-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Cancel</TooltipContent>
+            <TooltipContent>{t('Cancel')}</TooltipContent>
           </Tooltip>
         </div>
       </td>

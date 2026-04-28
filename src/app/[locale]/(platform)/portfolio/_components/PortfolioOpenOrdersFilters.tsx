@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { PortfolioOpenOrdersSort } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 import { ArrowDownNarrowWideIcon, SearchIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -19,6 +20,8 @@ export default function PortfolioOpenOrdersFilters({
   onSortChange,
   action,
 }: PortfolioOpenOrdersFiltersProps) {
+  const t = useExtracted()
+
   return (
     <div className="space-y-3 px-2 pt-2 sm:px-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
@@ -27,7 +30,7 @@ export default function PortfolioOpenOrdersFilters({
             <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
             <Input
               type="text"
-              placeholder="Search open orders..."
+              placeholder={t('Search open orders...')}
               value={searchQuery}
               onChange={e => onSearchChange(e.target.value)}
               className="w-full min-w-0 pr-3 pl-8 text-sm sm:pl-9"
@@ -36,7 +39,7 @@ export default function PortfolioOpenOrdersFilters({
 
           <Select value={sortBy} onValueChange={value => onSortChange(value as PortfolioOpenOrdersSort)}>
             <SelectTrigger
-              aria-label="Sort open orders"
+              aria-label={t('Sort open orders')}
               className="
                 w-9 justify-center gap-0 px-0
                 *:data-[slot=select-value]:hidden
@@ -50,11 +53,11 @@ export default function PortfolioOpenOrdersFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="market">Market</SelectItem>
-              <SelectItem value="filled">Filled Quantity</SelectItem>
-              <SelectItem value="total">Total Quantity</SelectItem>
-              <SelectItem value="date">Order Date</SelectItem>
-              <SelectItem value="resolving">Resolving Soonest</SelectItem>
+              <SelectItem value="market">{t('Market')}</SelectItem>
+              <SelectItem value="filled">{t('Filled Quantity')}</SelectItem>
+              <SelectItem value="total">{t('Total Quantity')}</SelectItem>
+              <SelectItem value="date">{t('Order Date')}</SelectItem>
+              <SelectItem value="resolving">{t('Resolving Soonest')}</SelectItem>
             </SelectContent>
           </Select>
         </div>

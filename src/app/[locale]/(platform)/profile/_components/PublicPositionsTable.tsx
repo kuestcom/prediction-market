@@ -2,6 +2,7 @@ import type { RefObject } from 'react'
 import type { PublicPosition } from './PublicPositionItem'
 import type { PositionsTotals, SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { formatCurrencyValue } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import { tableHeaderClass } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
@@ -84,6 +85,7 @@ export default function PublicPositionsTable({
   onSellClick,
   loadMoreRef,
 }: PublicPositionsTableProps) {
+  const t = useExtracted()
   const hasPositions = positions.length > 0
 
   return (
@@ -93,7 +95,7 @@ export default function PublicPositionsTable({
           <tr className="border-b">
             <th className={cn(tableHeaderClass, 'w-[32%] text-left')}>
               <SortHeaderButton
-                label="Market"
+                label={t('Market')}
                 sortKey="alpha"
                 sortBy={sortBy}
                 sortDirection={sortDirection}
@@ -102,7 +104,7 @@ export default function PublicPositionsTable({
             </th>
             <th className={cn(tableHeaderClass, 'w-[14%] text-center')}>
               <SortHeaderButton
-                label="Avg → Now"
+                label={t('Avg → Now')}
                 sortKey="latestPrice"
                 sortBy={sortBy}
                 sortDirection={sortDirection}
@@ -111,7 +113,7 @@ export default function PublicPositionsTable({
             </th>
             <th className={cn(tableHeaderClass, 'w-[11%] text-center')}>
               <SortHeaderButton
-                label="Trade"
+                label={t('Trade')}
                 sortKey="trade"
                 sortBy={sortBy}
                 sortDirection={sortDirection}
@@ -120,7 +122,7 @@ export default function PublicPositionsTable({
             </th>
             <th className={cn(tableHeaderClass, 'w-[11%] text-center')}>
               <SortHeaderButton
-                label="To win"
+                label={t('To win')}
                 sortKey="payout"
                 sortBy={sortBy}
                 sortDirection={sortDirection}
@@ -130,7 +132,7 @@ export default function PublicPositionsTable({
             <th className={cn(tableHeaderClass, 'w-[12%] text-right')}>
               <div className="flex justify-end">
                 <SortHeaderButton
-                  label="Value"
+                  label={t('Value')}
                   sortKey="currentValue"
                   sortBy={sortBy}
                   sortDirection={sortDirection}
@@ -139,7 +141,7 @@ export default function PublicPositionsTable({
               </div>
             </th>
             <th className={cn(tableHeaderClass, 'w-35 text-right')}>
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t('Actions')}</span>
             </th>
           </tr>
         </thead>
@@ -158,7 +160,7 @@ export default function PublicPositionsTable({
             </tbody>
             <tfoot>
               <tr className="border-t text-sm font-semibold">
-                <td className="px-2 py-3 text-left sm:px-3">Total</td>
+                <td className="px-2 py-3 text-left sm:px-3">{t('Total')}</td>
                 <td className="px-2 py-3 text-center text-muted-foreground sm:px-3" />
                 <td className="px-2 py-3 text-center tabular-nums sm:px-3">
                   {formatCurrencyValue(totals.trade)}
@@ -206,7 +208,7 @@ export default function PublicPositionsTable({
 
       {!isLoading && !hasPositions && !hasInitialError && (
         <div className="py-12 text-center text-sm text-muted-foreground">
-          {marketStatusFilter === 'active' ? 'No positions found.' : 'No closed positions found.'}
+          {marketStatusFilter === 'active' ? t('No positions found.') : t('No closed positions found.')}
         </div>
       )}
 

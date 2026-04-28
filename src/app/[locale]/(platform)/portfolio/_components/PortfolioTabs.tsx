@@ -1,6 +1,7 @@
 'use client'
 
 import type { Route } from 'next'
+import { useExtracted } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { startTransition, useMemo, useOptimistic } from 'react'
 import PortfolioOpenOrdersList from '@/app/[locale]/(platform)/portfolio/_components/PortfolioOpenOrdersList'
@@ -40,9 +41,9 @@ function resolveTabFromQueryValue(value: string | null): TabType {
 }
 
 const baseTabs = [
-  { id: 'positions' as const, label: 'Positions' },
-  { id: 'openOrders' as const, label: 'Open Orders' },
-  { id: 'history' as const, label: 'History' },
+  { id: 'positions' as const },
+  { id: 'openOrders' as const },
+  { id: 'history' as const },
 ]
 
 interface PortfolioTabsProps {
@@ -81,6 +82,7 @@ function usePortfolioTabs() {
 }
 
 export default function PortfolioTabs({ userAddress }: PortfolioTabsProps) {
+  const t = useExtracted()
   const { tabs, activeTab, tabRef, indicatorStyle, isInitialized, handleTabChange } = usePortfolioTabs()
 
   return (
@@ -102,7 +104,11 @@ export default function PortfolioTabs({ userAddress }: PortfolioTabsProps) {
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              {tab.label}
+              {tab.id === 'positions'
+                ? t('Positions')
+                : tab.id === 'openOrders'
+                  ? t('Open Orders')
+                  : t('History')}
             </button>
           ))}
         </div>

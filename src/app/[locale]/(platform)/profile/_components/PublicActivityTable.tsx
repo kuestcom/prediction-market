@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import type { ActivityOrder } from '@/types'
+import { useExtracted } from 'next-intl'
 import { tableHeaderClass } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import PublicActivityRow from './PublicActivityRow'
@@ -27,6 +28,7 @@ export default function PublicActivityTable({
   onRetryLoadMore,
   loadMoreRef,
 }: PublicActivityTableProps) {
+  const t = useExtracted()
   const hasNoData = !isLoading && activities.length === 0
   const colSpan = 4
   let body = null
@@ -51,14 +53,14 @@ export default function PublicActivityTable({
     body = (
       <tr>
         <td colSpan={colSpan} className="py-10 text-center text-sm text-muted-foreground">
-          Could not load activity.
+          {t('Could not load activity.')}
           {' '}
           <button
             type="button"
             onClick={onRetry}
             className="underline underline-offset-2"
           >
-            Retry
+            {t('Retry')}
           </button>
         </td>
       </tr>
@@ -68,7 +70,7 @@ export default function PublicActivityTable({
     body = (
       <tr>
         <td colSpan={colSpan} className="py-12 text-center text-sm text-muted-foreground">
-          No activity found.
+          {t('No activity found.')}
         </td>
       </tr>
     )
@@ -85,7 +87,7 @@ export default function PublicActivityTable({
         {(isFetchingNextPage || isLoadingMore) && (
           <tr>
             <td colSpan={colSpan} className="py-3 text-center text-xs text-muted-foreground">
-              Loading more...
+              {t('Loading more...')}
             </td>
           </tr>
         )}
@@ -104,7 +106,7 @@ export default function PublicActivityTable({
                 onClick={onRetryLoadMore}
                 className="underline underline-offset-2"
               >
-                Retry
+                {t('Retry')}
               </button>
             </td>
           </tr>
@@ -118,11 +120,11 @@ export default function PublicActivityTable({
       <table className="w-full min-w-[860px] table-fixed border-collapse">
         <thead>
           <tr className="border-b bg-background">
-            <th className={cn(tableHeaderClass, 'w-48 text-left')}>Activity</th>
-            <th className={cn(tableHeaderClass, 'w-[46%] text-left')}>Market</th>
-            <th className={cn(tableHeaderClass, 'w-32 text-right')}>Value</th>
+            <th className={cn(tableHeaderClass, 'w-48 text-left')}>{t('Activity')}</th>
+            <th className={cn(tableHeaderClass, 'w-[46%] text-left')}>{t('Market')}</th>
+            <th className={cn(tableHeaderClass, 'w-32 text-right')}>{t('Value')}</th>
             <th className={cn(tableHeaderClass, 'w-32 text-right')}>
-              <span className="sr-only">Time</span>
+              <span className="sr-only">{t('Time')}</span>
             </th>
           </tr>
         </thead>
