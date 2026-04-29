@@ -13,11 +13,10 @@ export function getEnglishDocsStaticParams() {
     }))
 }
 
-export function getEnglishDocsLlmStaticParams() {
+export function getDocsLlmStaticParams() {
   return source.getPages()
     .map(page => page.slugs)
     .map(slug => ({
-      locale: DEFAULT_LOCALE,
       slug,
     }))
 }

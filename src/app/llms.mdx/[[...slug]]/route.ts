@@ -1,12 +1,8 @@
-import { getEnglishDocsLlmStaticParams } from '@/lib/docs-static-params'
+import { getDocsLlmStaticParams } from '@/lib/docs-static-params'
 import { getLLMText } from '@/lib/get-llm-text'
 import { source } from '@/lib/source'
 
-interface RouteProps {
-  params: Promise<{ locale: string, slug?: string[] }>
-}
-
-export async function GET(_request: Request, { params }: RouteProps) {
+export async function GET(_request: Request, { params }: RouteContext<'/llms.mdx/[[...slug]]'>) {
   const { slug } = await params
   const page = source.getPage(slug)
 
@@ -22,5 +18,5 @@ export async function GET(_request: Request, { params }: RouteProps) {
 }
 
 export function generateStaticParams() {
-  return getEnglishDocsLlmStaticParams()
+  return getDocsLlmStaticParams()
 }

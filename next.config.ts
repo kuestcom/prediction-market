@@ -60,11 +60,11 @@ const config: NextConfig = {
     return [
       {
         source: '/docs/:path*.mdx',
-        destination: '/en/llms.mdx/docs/:path*',
+        destination: '/llms.mdx/:path*',
       },
       {
         source: '/:locale/docs/:path*.mdx',
-        destination: '/:locale/llms.mdx/docs/:path*',
+        destination: '/llms.mdx/:path*',
       },
       {
         source: '/sitemaps/:id.xml',
