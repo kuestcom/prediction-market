@@ -55,19 +55,6 @@ const PredictionChart = dynamic<PredictionChartProps>(
   { ssr: false, loading: () => <div className="h-83 w-full" /> },
 )
 
-export function shouldUseLiveSeriesChart(event: Event, config: EventLiveChartConfig | null | undefined) {
-  if (!config?.enabled) {
-    return false
-  }
-
-  if (event.total_markets_count !== 1) {
-    return false
-  }
-
-  const seriesSlug = event.series_slug?.trim()
-  return Boolean(seriesSlug && seriesSlug === config.series_slug)
-}
-
 interface EventLiveSeriesChartProps {
   event: Event
   isMobile: boolean

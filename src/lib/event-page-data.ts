@@ -1,7 +1,6 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { ThemeSiteIdentity } from '@/lib/theme-site-identity'
 import type {
-  ConditionChangeLogEntry,
   Event,
   EventLiveChartConfig,
   EventSeriesEntry,
@@ -16,7 +15,6 @@ import 'server-only'
 export interface EventPageContentData {
   event: Event
   marketContextEnabled: boolean
-  changeLogEntries: ConditionChangeLogEntry[]
   seriesEvents: EventSeriesEntry[]
   liveChartConfig: EventLiveChartConfig | null
 }
@@ -69,18 +67,11 @@ export async function loadEventPagePublicContentData(
 
   const marketContextEnabled = marketContextSettings.enabled && Boolean(marketContextSettings.apiKey)
 
-  const [eventResult, changeLogResult] = await Promise.all([
-    EventRepository.getEventBySlug(eventSlug, '', locale),
-    EventRepository.getEventConditionChangeLogBySlug(eventSlug),
-  ])
+  const eventResult = await EventRepository.getEventBySlug(eventSlug, '', locale)
 
   const { data: event, error } = eventResult
   if (error || !event) {
     return null
-  }
-
-  if (changeLogResult.error) {
-    console.warn('Failed to load event change log:', changeLogResult.error)
   }
 
   let seriesEvents: EventSeriesEntry[] = []
@@ -125,7 +116,6 @@ export async function loadEventPagePublicContentData(
   return {
     event,
     marketContextEnabled,
-    changeLogEntries: changeLogResult.data ?? [],
     seriesEvents,
     liveChartConfig,
   }

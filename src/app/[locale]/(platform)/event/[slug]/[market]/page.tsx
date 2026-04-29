@@ -81,8 +81,6 @@ async function CachedEventMarketPageContent({
       />
       <EventContent
         event={eventPageData.event}
-        changeLogEntries={eventPageData.changeLogEntries}
-        user={null}
         faqItems={faqItems}
         marketContextEnabled={eventPageData.marketContextEnabled}
         marketSlug={market}

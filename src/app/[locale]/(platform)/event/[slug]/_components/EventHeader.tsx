@@ -1,3 +1,5 @@
+'use client'
+
 import type { PlatformNavigationTag } from '@/lib/platform-navigation'
 import type { Event } from '@/types'
 import { useEffect, useMemo, useState } from 'react'

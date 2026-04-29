@@ -1,3 +1,5 @@
+'use client'
+
 import type { ResolutionTimelineItem, ResolutionTimelineOutcome } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import type { Event } from '@/types'
 import { CheckIcon, GavelIcon, SquareArrowOutUpRightIcon } from 'lucide-react'

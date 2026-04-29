@@ -1,3 +1,5 @@
+'use client'
+
 import type { EventTabKey } from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabSelector'
 import type { EventFaqItem } from '@/lib/event-faq'
 import type { Event, User } from '@/types'

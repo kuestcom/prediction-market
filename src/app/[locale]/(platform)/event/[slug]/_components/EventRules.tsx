@@ -1,3 +1,5 @@
+'use client'
+
 import type { Event } from '@/types'
 import { LinkIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
