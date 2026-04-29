@@ -1,11 +1,9 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
-import type { SupportedLocale } from '@/i18n/locales'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { BookOpenIcon, CodeIcon, HomeIcon } from 'lucide-react'
 import { setRequestLocale } from 'next-intl/server'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
-import { withLocalePrefix } from '@/lib/locale-path'
 import { source } from '@/lib/source'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -31,11 +29,6 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
   setRequestLocale(locale)
   const runtimeTheme = await loadRuntimeThemeState()
   const site = runtimeTheme.site
-  const currentLocale = locale as SupportedLocale
-
-  function docsPath(pathname: string) {
-    return withLocalePrefix(pathname, currentLocale)
-  }
 
   return (
     <DocsLayout
@@ -63,13 +56,13 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
           {
             title: 'Documentation',
             description: 'For Users',
-            url: docsPath('/docs'),
+            url: '/docs',
             icon: <BookOpenIcon className="size-4" />,
           },
           {
             title: 'API Reference',
             description: 'For Developers',
-            url: docsPath('/docs/api-reference'),
+            url: '/docs/api-reference',
             icon: <CodeIcon className="size-4" />,
           },
         ],
