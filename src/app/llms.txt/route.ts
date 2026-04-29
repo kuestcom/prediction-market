@@ -105,7 +105,7 @@ const ROUTE_PATTERNS = [
     description: 'Dynamic subcategory landing page.',
   },
   {
-    pattern: '/docs/{docPath}.mdx',
+    pattern: '/docs/{docPath}.md',
     description: 'Machine-readable markdown version of a documentation page.',
   },
 ] as const
@@ -238,7 +238,7 @@ export async function GET() {
     `${site.name} is a prediction market for trading on real-world events. It supports market discovery, event pages, sports and esports views, public trader profiles, portfolio management, wallet funding, CLOB trading, SDK downloads, and developer documentation.`,
     '',
     '## LLM Usage Notes',
-    '- Prefer documentation links ending in `.mdx` when loading reference material into an LLM.',
+    '- Prefer documentation links ending in `.md` when loading reference material into an LLM.',
     `- Public app pages may be localized with ${NON_DEFAULT_LOCALE_PREFIXES.map(prefix => `\`${prefix}\``).join(', ')} prefixes; docs content is canonical in English.`,
     '- Authenticated routes such as `/portfolio`, `/settings`, and SDK downloads require a signed-in user.',
     '- Do not treat public API examples as financial, legal, or trading advice.',
@@ -275,7 +275,7 @@ export async function GET() {
     '',
     ...pages.map((page) => {
       const title = page.data.title ?? page.url
-      return formatLink(title, `${page.url}.mdx`, page.data.description)
+      return formatLink(title, `${page.url}.md`, page.data.description)
     }),
   ]
 

@@ -73,7 +73,7 @@ export default async function Page(props: PageProps<'/[locale]/docs/[[...slug]]'
   }
 
   const localizedPageUrl = withLocalePrefix(page.url, params.locale as SupportedLocale)
-  const markdownUrl = `${localizedPageUrl}.mdx`
+  const markdownUrl = `${localizedPageUrl}.md`
   const MDX = page.data.body
   const useFullLayout = Boolean(page.data.full)
 

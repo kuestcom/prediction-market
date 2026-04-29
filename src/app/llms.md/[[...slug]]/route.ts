@@ -2,7 +2,7 @@ import { getDocsLlmStaticParams } from '@/lib/docs-static-params'
 import { getLLMText } from '@/lib/get-llm-text'
 import { source } from '@/lib/source'
 
-export async function GET(_request: Request, { params }: RouteContext<'/llms.mdx/[[...slug]]'>) {
+export async function GET(_request: Request, { params }: RouteContext<'/llms.md/[[...slug]]'>) {
   const { slug } = await params
   const page = source.getPage(slug)
 
