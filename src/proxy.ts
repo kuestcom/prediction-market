@@ -1,5 +1,4 @@
 import type { NextRequest } from 'next/server'
-import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation'
 import createMiddleware from 'next-intl/middleware'
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
@@ -15,22 +14,6 @@ import { routing } from './i18n/routing'
 const intlMiddleware = createMiddleware(routing)
 const protectedPrefixes = ['/settings', '/portfolio', '/admin']
 type Locale = (typeof routing.locales)[number]
-const { rewrite: rewriteMarkdownExtensionWithLocale } = rewritePath(
-  '/:locale/docs{/*path}.mdx',
-  '/:locale/llms.mdx/docs{/*path}',
-)
-const { rewrite: rewriteMarkdownExtensionDefaultLocale } = rewritePath(
-  '/docs{/*path}.mdx',
-  '/en/llms.mdx/docs{/*path}',
-)
-const { rewrite: rewriteMarkdownWithLocale } = rewritePath(
-  '/:locale/docs{/*path}',
-  '/:locale/llms.mdx/docs{/*path}',
-)
-const { rewrite: rewriteMarkdownDefaultLocale } = rewritePath(
-  '/docs{/*path}',
-  '/en/llms.mdx/docs{/*path}',
-)
 
 function getLocaleFromPathname(pathname: string): Locale | null {
   for (const locale of routing.locales) {
@@ -97,23 +80,6 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const markdownPath = rewriteMarkdownExtensionWithLocale(url.pathname) || rewriteMarkdownExtensionDefaultLocale(url.pathname)
-
-  if (markdownPath) {
-    const rewrittenUrl = new URL(markdownPath, request.url)
-    rewrittenUrl.search = url.search
-    return NextResponse.rewrite(rewrittenUrl)
-  }
-
-  if (isMarkdownPreferred(request)) {
-    const rewrittenPath = rewriteMarkdownWithLocale(url.pathname) || rewriteMarkdownDefaultLocale(url.pathname)
-    if (rewrittenPath) {
-      const rewrittenUrl = new URL(rewrittenPath, request.url)
-      rewrittenUrl.search = url.search
-      return NextResponse.rewrite(rewrittenUrl)
-    }
-  }
-
   const pathnameLocale = getLocaleFromPathname(url.pathname)
   const pathname = stripLocale(url.pathname, pathnameLocale)
   const locale = resolveRequestLocale(pathnameLocale)
@@ -156,9 +122,5 @@ export default async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     '/((?!api|trpc|_next|_vercel|.*\\..*).*)',
-    '/docs.mdx',
-    '/docs/:path*.mdx',
-    '/:locale/docs.mdx',
-    '/:locale/docs/:path*.mdx',
   ],
 }

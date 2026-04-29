@@ -11,7 +11,6 @@ export function GET() {
     '# Documentation',
     '',
     '> Index of the documentation pages available on this site.',
-    '> Use /llms-full.txt for the full page contents.',
     '',
     '## Pages',
     ...pages.map((page) => {
@@ -19,10 +18,10 @@ export function GET() {
       const description = normalizeDescription(page.data.description)
 
       if (!description) {
-        return `- [${title}](${page.url})`
+        return `- [${title}](${page.url}.mdx)`
       }
 
-      return `- [${title}](${page.url}): ${description}`
+      return `- [${title}](${page.url}.mdx): ${description}`
     }),
   ]
 
