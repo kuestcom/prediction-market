@@ -2,7 +2,8 @@
 
 import { ArrowUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useMemo, useSyncExternalStore } from 'react'
+import { usePathname } from 'next/navigation'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { cn } from '@/lib/utils'
 
 const DEFAULT_WINDOW_VIEWPORT_SNAPSHOT = {
@@ -52,15 +53,40 @@ function useWindowViewport() {
   )
 }
 
+function useNavigationViewportReady() {
+  const pathname = usePathname()
+  const [settledPathname, setSettledPathname] = useState<string | null>(null)
+
+  useEffect(function markNavigationViewportReady() {
+    let firstFrameId = 0
+    let secondFrameId = 0
+
+    firstFrameId = window.requestAnimationFrame(function waitForNavigationScrollFrame() {
+      secondFrameId = window.requestAnimationFrame(function markNavigationViewportSettled() {
+        setSettledPathname(pathname)
+      })
+    })
+
+    return function cancelNavigationViewportReady() {
+      window.cancelAnimationFrame(firstFrameId)
+      window.cancelAnimationFrame(secondFrameId)
+    }
+  }, [pathname])
+
+  return settledPathname === pathname
+}
+
 function useBackToTopBounds({
+  enabled,
   scrollY,
   viewportWidth,
 }: {
+  enabled: boolean
   scrollY: number
   viewportWidth: number
 }) {
   return useMemo(() => {
-    if (typeof document === 'undefined' || viewportWidth < DESKTOP_BACK_TO_TOP_BREAKPOINT) {
+    if (!enabled || typeof document === 'undefined' || viewportWidth < DESKTOP_BACK_TO_TOP_BREAKPOINT) {
       return null
     }
 
@@ -81,13 +107,18 @@ function useBackToTopBounds({
       left: rect.left,
       width: boundedWidth,
     }
-  }, [scrollY, viewportWidth])
+  }, [enabled, scrollY, viewportWidth])
 }
 
 export default function EventBackToTopButton() {
   const t = useExtracted()
+  const isNavigationViewportReady = useNavigationViewportReady()
   const { scrollY, viewportWidth } = useWindowViewport()
-  const bounds = useBackToTopBounds({ scrollY, viewportWidth })
+  const bounds = useBackToTopBounds({
+    enabled: isNavigationViewportReady,
+    scrollY,
+    viewportWidth,
+  })
 
   function handleBackToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
