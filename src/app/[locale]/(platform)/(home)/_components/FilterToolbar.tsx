@@ -1,25 +1,23 @@
 'use client'
 
-import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import type { FilterSettings, FilterSettingsRowProps } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { useAppKitAccount } from '@reown/appkit/react'
-import { BookmarkIcon, ClockIcon, DropletIcon, FlameIcon, HandFistIcon, Settings2Icon, SparkleIcon, TrendingUpIcon } from 'lucide-react'
+import { BookmarkIcon, Settings2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import dynamic from 'next/dynamic'
 import { useCallback, useMemo, useState } from 'react'
+import { BASE_FILTER_SETTINGS, createDefaultFilters } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
 import FilterToolbarSearchInput from '@/app/[locale]/(platform)/(home)/_components/FilterToolbarSearchInput'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useAppKit } from '@/hooks/useAppKit'
 import { cn } from '@/lib/utils'
+
+const FilterSettingsRow = dynamic<FilterSettingsRowProps>(
+  () => import('@/app/[locale]/(platform)/(home)/_components/FilterSettingsRow'),
+)
 
 interface FilterToolbarProps {
   filters: FilterState
@@ -43,37 +41,6 @@ interface SettingsToggleProps {
   onToggle: () => void
 }
 
-type SortOption = '24h-volume' | 'total-volume' | 'liquidity' | 'newest' | 'ending-soon' | 'competitive'
-type FrequencyOption = FilterState['frequency']
-type StatusOption = FilterState['status']
-
-type FilterCheckboxKey = 'hideSports' | 'hideCrypto' | 'hideEarnings'
-
-interface FilterSettings {
-  sortBy: SortOption
-  frequency: FrequencyOption
-  status: StatusOption
-  hideSports: boolean
-  hideCrypto: boolean
-  hideEarnings: boolean
-}
-
-const BASE_FILTER_SETTINGS = {
-  sortBy: '24h-volume',
-  frequency: 'all',
-  status: 'active',
-  hideSports: false,
-  hideCrypto: false,
-  hideEarnings: false,
-} as const satisfies FilterSettings
-
-function createDefaultFilters(overrides: Partial<FilterSettings> = {}): FilterSettings {
-  return {
-    ...BASE_FILTER_SETTINGS,
-    ...overrides,
-  }
-}
-
 function useFilterToolbarState({
   filters,
   onFiltersChange,
@@ -84,7 +51,7 @@ function useFilterToolbarState({
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [sortBy, setSortBy] = useState<SortOption>(BASE_FILTER_SETTINGS.sortBy)
+  const [sortBy, setSortBy] = useState<FilterSettings['sortBy']>(BASE_FILTER_SETTINGS.sortBy)
 
   const filterSettings = useMemo(() => createDefaultFilters({
     sortBy,
@@ -253,6 +220,7 @@ export default function FilterToolbar({
             onChange={handleFilterChange}
             onClear={handleClearFilters}
             hasActiveFilters={hasActiveFilters}
+            idPrefix="filter-mobile"
             showFilterCheckboxes={showFilterCheckboxes}
           />
         )}
@@ -283,6 +251,7 @@ export default function FilterToolbar({
           onChange={handleFilterChange}
           onClear={handleClearFilters}
           hasActiveFilters={hasActiveFilters}
+          idPrefix="filter-desktop"
           showFilterCheckboxes={showFilterCheckboxes}
         />
       )}
@@ -341,217 +310,5 @@ function SettingsToggle({ isActive, isOpen, onToggle }: SettingsToggleProps) {
     >
       <Settings2Icon className="size-6 md:size-5" />
     </Button>
-  )
-}
-
-interface FilterSettingsRowProps {
-  filters: FilterSettings
-  onChange: (updates: Partial<FilterSettings>) => void
-  onClear: () => void
-  hasActiveFilters: boolean
-  className?: string
-  showFilterCheckboxes?: boolean
-}
-
-function useFilterSettingsRowOptions() {
-  const t = useExtracted()
-
-  const sortOptions: ReadonlyArray<{ value: SortOption, label: string, icon: LucideIcon }> = useMemo(() => [
-    { value: '24h-volume', label: t('24h Volume'), icon: TrendingUpIcon },
-    { value: 'total-volume', label: t('Total Volume'), icon: FlameIcon },
-    { value: 'liquidity', label: t('Liquidity'), icon: DropletIcon },
-    { value: 'newest', label: t('Newest'), icon: SparkleIcon },
-    { value: 'ending-soon', label: t('Ending Soon'), icon: ClockIcon },
-    { value: 'competitive', label: t('Competitive'), icon: HandFistIcon },
-  ], [t])
-
-  const frequencyOptions: ReadonlyArray<{ value: FrequencyOption, label: string }> = useMemo(() => [
-    { value: 'all', label: t('All') },
-    { value: 'daily', label: t('Daily') },
-    { value: 'weekly', label: t('Weekly') },
-    { value: 'monthly', label: t('Monthly') },
-  ], [t])
-
-  const statusOptions: ReadonlyArray<{ value: StatusOption, label: string }> = useMemo(() => [
-    { value: 'active', label: t('Active') },
-    { value: 'resolved', label: t('Resolved') },
-  ], [t])
-
-  const filterCheckboxes: ReadonlyArray<{ key: FilterCheckboxKey, label: string }> = useMemo(() => [
-    { key: 'hideSports', label: t('Hide sports?') },
-    { key: 'hideCrypto', label: t('Hide crypto?') },
-    { key: 'hideEarnings', label: t('Hide earnings?') },
-  ], [t])
-
-  return {
-    clearFiltersLabel: t('Clear filters'),
-    filterCheckboxes,
-    frequencyLabel: t('Frequency:'),
-    frequencyOptions,
-    sortByLabel: t('Sort by:'),
-    sortOptions,
-    statusLabel: t('Status:'),
-    statusOptions,
-  }
-}
-
-function FilterSettingsRow({
-  filters,
-  onChange,
-  onClear,
-  hasActiveFilters,
-  className,
-  showFilterCheckboxes = true,
-}: FilterSettingsRowProps) {
-  const {
-    clearFiltersLabel,
-    filterCheckboxes,
-    frequencyLabel,
-    frequencyOptions,
-    sortByLabel,
-    sortOptions,
-    statusLabel,
-    statusOptions,
-  } = useFilterSettingsRowOptions()
-
-  return (
-    <div
-      className={cn(
-        `
-          flex w-full max-w-full min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]
-          [&::-webkit-scrollbar]:hidden
-        `,
-        className,
-      )}
-    >
-      <FilterSettingsSelect
-        label={sortByLabel}
-        value={filters.sortBy}
-        options={sortOptions}
-        showActiveIcon
-        triggerClassName="min-w-[9.5rem]"
-        onChange={value => onChange({ sortBy: value as SortOption })}
-      />
-
-      <FilterSettingsSelect
-        label={frequencyLabel}
-        value={filters.frequency}
-        options={frequencyOptions}
-        triggerClassName="min-w-[7rem]"
-        onChange={value => onChange({ frequency: value as FrequencyOption })}
-      />
-
-      <FilterSettingsSelect
-        label={statusLabel}
-        value={filters.status}
-        options={statusOptions}
-        triggerClassName="min-w-[8rem]"
-        onChange={value => onChange({ status: value as StatusOption })}
-      />
-
-      {showFilterCheckboxes && filterCheckboxes.map(({ key, label }) => (
-        <Label
-          key={key}
-          htmlFor={`filter-${key}`}
-          className={cn('flex shrink-0 items-center gap-2 text-xs font-medium text-foreground')}
-        >
-          <Checkbox
-            id={`filter-${key}`}
-            checked={filters[key]}
-            onCheckedChange={checked => onChange({
-              [key]: Boolean(checked),
-            } as Partial<FilterSettings>)}
-          />
-          <span className="whitespace-nowrap">{label}</span>
-        </Label>
-      ))}
-
-      {hasActiveFilters && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onClear}
-        >
-          {clearFiltersLabel}
-        </Button>
-      )}
-    </div>
-  )
-}
-
-interface FilterSettingsSelectOption {
-  value: string
-  label: string
-  icon?: LucideIcon
-}
-
-interface FilterSettingsSelectProps {
-  label: string
-  value: string
-  options: ReadonlyArray<FilterSettingsSelectOption>
-  showActiveIcon?: boolean
-  triggerClassName?: string
-  onChange: (value: string) => void
-}
-
-function FilterSettingsSelect({
-  label,
-  value,
-  options,
-  showActiveIcon = false,
-  triggerClassName,
-  onChange,
-}: FilterSettingsSelectProps) {
-  const activeOption = options.find(option => option.value === value)
-  const ActiveIcon = showActiveIcon ? activeOption?.icon : undefined
-
-  return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger
-        aria-label={label}
-        size="sm"
-        className={cn(
-          `
-            h-12 shrink-0 cursor-pointer gap-3 rounded-full border border-border/80 bg-background px-4 text-sm
-            font-semibold text-foreground shadow-none transition-colors
-            hover:bg-muted/25
-            focus-visible:ring-0 focus-visible:ring-offset-0
-            data-[state=open]:bg-muted/25
-            [&>svg]:size-4 [&>svg]:text-foreground/80
-          `,
-          triggerClassName,
-        )}
-      >
-        <span className="flex min-w-0 items-center gap-2.5 truncate">
-          {ActiveIcon && <ActiveIcon className="size-4 shrink-0 text-foreground" />}
-          <span className="truncate">{activeOption?.label ?? ''}</span>
-        </span>
-      </SelectTrigger>
-      <SelectContent
-        align="start"
-        position="popper"
-        side="bottom"
-        sideOffset={8}
-        className="p-1"
-      >
-        {options.map((option) => {
-          const OptionIcon = option.icon
-
-          return (
-            <SelectItem
-              key={option.value}
-              value={option.value}
-              className="my-0.5 cursor-pointer rounded-lg py-2 pl-2.5 text-sm font-medium"
-            >
-              <span className="flex items-center gap-2">
-                {OptionIcon && <OptionIcon className="size-4 text-muted-foreground" />}
-                <span>{option.label}</span>
-              </span>
-            </SelectItem>
-          )
-        })}
-      </SelectContent>
-    </Select>
   )
 }
