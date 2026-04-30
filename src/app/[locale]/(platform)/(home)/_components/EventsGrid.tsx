@@ -511,21 +511,7 @@ export default function EventsGrid({
     && queryUserScope === 'guest'
   const shouldAutoRefreshEvents = filters.status === 'active'
   const resolvedCurrentTimestamp = currentTimestamp ?? initialCurrentTimestamp
-  const queryRunKey = [
-    locale,
-    routeMainTag,
-    routeTag,
-    filters.tag,
-    filters.mainTag,
-    filters.search,
-    filters.bookmarked ? 'bookmarked' : 'all-events',
-    queryUserScope,
-    filters.frequency,
-    filters.status,
-    filters.hideSports ? 'hide-sports' : 'show-sports',
-    filters.hideCrypto ? 'hide-crypto' : 'show-crypto',
-    filters.hideEarnings ? 'hide-earnings' : 'show-earnings',
-  ].join(':')
+  const queryRunKey = snapshotKey
   const loadMoreStateKey = [
     filters.tag,
     filters.mainTag,
