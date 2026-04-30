@@ -1,0 +1,5 @@
+@reference '../../globals.css';
+@import 'fumadocs-ui/css/shadcn.css';
+@import 'fumadocs-ui/css/preset.css';
+@import 'fumadocs-openapi/css/preset.css';
+@import 'tailwindcss/utilities.css' source(none);
