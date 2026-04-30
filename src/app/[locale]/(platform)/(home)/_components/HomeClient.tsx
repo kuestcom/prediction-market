@@ -3,8 +3,8 @@
 import type { Route } from 'next'
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import type { Event } from '@/types'
+import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import CategorySidebar from '@/app/[locale]/(platform)/(home)/_components/CategorySidebar'
 import EventsGrid from '@/app/[locale]/(platform)/(home)/_components/EventsGrid'
 import FilterToolbar from '@/app/[locale]/(platform)/(home)/_components/FilterToolbar'
 import HomeSecondaryNavigation from '@/app/[locale]/(platform)/(home)/_components/HomeSecondaryNavigation'
@@ -13,6 +13,10 @@ import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { parsePlatformPathname, resolvePlatformNavigationSelection } from '@/lib/platform-navigation'
 import { buildDynamicHomeCategorySlugSet } from '@/lib/platform-routing'
+
+const CategorySidebar = dynamic(
+  () => import('@/app/[locale]/(platform)/(home)/_components/CategorySidebar'),
+)
 
 interface HomeClientProps {
   initialEvents: Event[]

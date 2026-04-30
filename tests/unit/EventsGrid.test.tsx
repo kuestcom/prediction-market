@@ -1,5 +1,5 @@
 import { act, render } from '@testing-library/react'
-import HydratedEventsGrid from '@/app/[locale]/(platform)/(home)/_components/HydratedEventsGrid'
+import EventsGrid from '@/app/[locale]/(platform)/(home)/_components/EventsGrid'
 
 const mocks = vi.hoisted(() => ({
   filterHomeEvents: vi.fn((events: any[], _options?: any) => events),
@@ -76,7 +76,7 @@ vi.mock('@/stores/useUser', () => ({
   useUser: () => mocks.useUser(),
 }))
 
-describe('hydratedEventsGrid', () => {
+describe('eventsGrid', () => {
   beforeEach(() => {
     mocks.filterHomeEvents.mockClear()
     mocks.refetch.mockClear()
@@ -112,7 +112,7 @@ describe('hydratedEventsGrid', () => {
     } as const
 
     const { rerender } = render(
-      <HydratedEventsGrid
+      <EventsGrid
         filters={filters}
         initialEvents={[]}
         initialCurrentTimestamp={Date.parse('2026-03-16T12:00:00.000Z')}
@@ -127,7 +127,7 @@ describe('hydratedEventsGrid', () => {
     mocks.useUser.mockReturnValue({ id: 'user-1' })
 
     rerender(
-      <HydratedEventsGrid
+      <EventsGrid
         filters={filters}
         initialEvents={[]}
         initialCurrentTimestamp={Date.parse('2026-03-16T12:00:00.000Z')}
@@ -144,7 +144,7 @@ describe('hydratedEventsGrid', () => {
     mocks.useUser.mockReturnValue({ id: 'user-1' })
 
     render(
-      <HydratedEventsGrid
+      <EventsGrid
         filters={{
           tag: 'trending',
           mainTag: 'trending',
@@ -181,7 +181,7 @@ describe('hydratedEventsGrid', () => {
     }))
 
     const view = render(
-      <HydratedEventsGrid
+      <EventsGrid
         filters={{
           tag: 'trending',
           mainTag: 'trending',
@@ -219,7 +219,7 @@ describe('hydratedEventsGrid', () => {
     } as const
 
     const { rerender } = render(
-      <HydratedEventsGrid
+      <EventsGrid
         filters={filters}
         initialEvents={[]}
         initialCurrentTimestamp={initialCurrentTimestamp}
@@ -232,7 +232,7 @@ describe('hydratedEventsGrid', () => {
 
     await act(async () => {
       rerender(
-        <HydratedEventsGrid
+        <EventsGrid
           filters={filters}
           initialEvents={[]}
           initialCurrentTimestamp={initialCurrentTimestamp}
@@ -262,7 +262,7 @@ describe('hydratedEventsGrid', () => {
     mocks.useCurrentTimestamp.mockReturnValueOnce(null).mockReturnValue(hydratedTimestamp)
 
     const { rerender } = render(
-      <HydratedEventsGrid
+      <EventsGrid
         filters={filters}
         initialEvents={[]}
         initialCurrentTimestamp={null}
@@ -273,7 +273,7 @@ describe('hydratedEventsGrid', () => {
 
     await act(async () => {
       rerender(
-        <HydratedEventsGrid
+        <EventsGrid
           filters={filters}
           initialEvents={[]}
           initialCurrentTimestamp={null}
