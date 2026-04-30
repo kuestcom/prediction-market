@@ -174,6 +174,7 @@ function useAppliedOrderQuerySync({
   isMobile: boolean
 }) {
   const appliedOrderParamsRef = useRef<string | null>(null)
+  const openedMobileOrderPanelParamsRef = useRef<string | null>(null)
   const setMarket = useOrder(state => state.setMarket)
   const setOutcome = useOrder(state => state.setOutcome)
   const setSide = useOrder(state => state.setSide)
@@ -187,40 +188,40 @@ function useAppliedOrderQuerySync({
       return
     }
 
-    if (appliedOrderParamsRef.current === resolvedQueryState.appliedKey) {
-      return
-    }
-    appliedOrderParamsRef.current = resolvedQueryState.appliedKey
+    if (appliedOrderParamsRef.current !== resolvedQueryState.appliedKey) {
+      appliedOrderParamsRef.current = resolvedQueryState.appliedKey
 
-    setMarket(resolvedQueryState.market)
-    if (resolvedQueryState.targetOutcome) {
-      setOutcome(resolvedQueryState.targetOutcome)
-    }
+      setMarket(resolvedQueryState.market)
+      if (resolvedQueryState.targetOutcome) {
+        setOutcome(resolvedQueryState.targetOutcome)
+      }
 
-    if (resolvedQueryState.normalizedSide === 'SELL') {
-      setSide(ORDER_SIDE.SELL)
-    }
-    else if (resolvedQueryState.normalizedSide === 'BUY') {
-      setSide(ORDER_SIDE.BUY)
-    }
+      if (resolvedQueryState.normalizedSide === 'SELL') {
+        setSide(ORDER_SIDE.SELL)
+      }
+      else if (resolvedQueryState.normalizedSide === 'BUY') {
+        setSide(ORDER_SIDE.BUY)
+      }
 
-    if (resolvedQueryState.normalizedOrderType === 'LIMIT') {
-      setType(ORDER_TYPE.LIMIT)
-    }
-    else if (resolvedQueryState.normalizedOrderType === 'MARKET') {
-      setType(ORDER_TYPE.MARKET)
-    }
-
-    if (resolvedQueryState.sharesValue) {
       if (resolvedQueryState.normalizedOrderType === 'LIMIT') {
-        setLimitShares(resolvedQueryState.sharesValue)
+        setType(ORDER_TYPE.LIMIT)
       }
-      else if (resolvedQueryState.normalizedSide === 'SELL') {
-        setAmount(resolvedQueryState.sharesValue)
+      else if (resolvedQueryState.normalizedOrderType === 'MARKET') {
+        setType(ORDER_TYPE.MARKET)
+      }
+
+      if (resolvedQueryState.sharesValue) {
+        if (resolvedQueryState.normalizedOrderType === 'LIMIT') {
+          setLimitShares(resolvedQueryState.sharesValue)
+        }
+        else if (resolvedQueryState.normalizedSide === 'SELL') {
+          setAmount(resolvedQueryState.sharesValue)
+        }
       }
     }
 
-    if (isMobile) {
+    if (isMobile && openedMobileOrderPanelParamsRef.current !== resolvedQueryState.appliedKey) {
+      openedMobileOrderPanelParamsRef.current = resolvedQueryState.appliedKey
       setIsMobileOrderPanelOpen(true)
     }
   }, [
