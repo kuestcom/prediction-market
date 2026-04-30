@@ -41,6 +41,24 @@ function resolveQuote(
   return { bid, ask, mid }
 }
 
+async function parseMidpointsResponse(response: Response | null): Promise<MidpointsApiResponse> {
+  if (!response?.ok) {
+    return {}
+  }
+
+  try {
+    const payload = await response.json() as unknown
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return {}
+    }
+
+    return payload as MidpointsApiResponse
+  }
+  catch {
+    return {}
+  }
+}
+
 async function fetchQuotesByMarket(targets: MarketTokenTarget[]): Promise<MarketQuotesByMarket> {
   const uniqueTokenIds = Array.from(
     new Set(targets.map(target => target.tokenId).filter(Boolean)),
@@ -75,9 +93,7 @@ async function fetchQuotesByMarket(targets: MarketTokenTarget[]): Promise<Market
   }
 
   const data = await pricesResponse.json() as PriceApiResponse
-  const midpoints = midpointsResponse?.ok
-    ? await midpointsResponse.json() as MidpointsApiResponse
-    : {}
+  const midpoints = await parseMidpointsResponse(midpointsResponse)
   const quotesByToken = new Map<string, MarketQuote>()
 
   uniqueTokenIds.forEach((tokenId) => {
