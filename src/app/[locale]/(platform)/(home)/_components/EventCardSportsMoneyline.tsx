@@ -15,7 +15,7 @@ import { resolveHomeSportsButtonChance, resolveResolvedHomeSportsMoneylineWinner
 import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
 import { cn } from '@/lib/utils'
 
-interface EventCardSportsMoneylineProps {
+export interface EventCardSportsMoneylineProps {
   event: Event
   model: HomeSportsMoneylineModel
   getDisplayChance: (marketId: string) => number

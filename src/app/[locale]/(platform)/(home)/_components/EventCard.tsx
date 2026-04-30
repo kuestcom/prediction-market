@@ -1,13 +1,14 @@
 'use client'
 
+import type { EventCardSportsMoneylineProps } from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
 import type { Market } from '@/types'
 import type { EventCardProps } from '@/types/EventCardTypes'
+import dynamic from 'next/dynamic'
 import { useMemo } from 'react'
 import EventCardFooter from '@/app/[locale]/(platform)/(home)/_components/EventCardFooter'
 import EventCardHeader from '@/app/[locale]/(platform)/(home)/_components/EventCardHeader'
 import EventCardMarketsList from '@/app/[locale]/(platform)/(home)/_components/EventCardMarketsList'
 import EventCardSingleMarketActions from '@/app/[locale]/(platform)/(home)/_components/EventCardSingleMarketActions'
-import EventCardSportsMoneyline from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
 import {
   resolveEventCardResolvedOutcomeIndex,
   shouldUseResolvedXTracker,
@@ -23,6 +24,10 @@ import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import { cn } from '@/lib/utils'
 
 const EMPTY_PRICE_OVERRIDES: Record<string, number> = {}
+
+const EventCardSportsMoneyline = dynamic<EventCardSportsMoneylineProps>(
+  () => import('@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'),
+)
 
 function isMarketResolved(market: Market) {
   return Boolean(market.is_resolved || market.condition?.resolved)
