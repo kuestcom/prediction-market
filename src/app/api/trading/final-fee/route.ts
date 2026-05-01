@@ -76,6 +76,15 @@ export async function GET(request: Request) {
     })
   }
   catch (error) {
+    if (
+      typeof error === 'object'
+      && error !== null
+      && 'digest' in error
+      && (error as { digest?: string }).digest === 'NEXT_PRERENDER_INTERRUPTED'
+    ) {
+      throw error
+    }
+
     console.error('Failed to fetch final fee preview.', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }
