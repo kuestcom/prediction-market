@@ -22,6 +22,7 @@ interface SubmitSafeTransactionResult {
   approvals?: {
     enabled: boolean
     updatedAt: string
+    version: string
   }
   txHash?: string
 }

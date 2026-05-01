@@ -428,7 +428,7 @@
                     "transactionID": "01JAA0Y2Q9M5T8M6P5HAX7F1RM",
                     "transactionHash": "0xaabc8230e2bf9c5f5d514b8a9be4739fce8c17b1d0a4b8d9ae8ea7e7da65e021",
                     "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
-                    "to": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                    "to": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
                     "proxyAddress": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
                     "data": "0x095ea7b30000000000000000000000004d97dcd97ec945f40cf65f87097ace5ea0476045ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
                     "nonce": "7",
@@ -496,7 +496,7 @@
                     "transactionID": "01JAA0Y2Q9M5T8M6P5HAX7F1RM",
                     "transactionHash": "0xaabc8230e2bf9c5f5d514b8a9be4739fce8c17b1d0a4b8d9ae8ea7e7da65e021",
                     "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
-                    "to": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                    "to": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
                     "proxyAddress": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
                     "data": "0x095ea7b30000000000000000000000004d97dcd97ec945f40cf65f87097ace5ea0476045ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
                     "nonce": "7",
@@ -546,7 +546,7 @@
               "example": {
                 "type": "SAFE",
                 "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
-                "to": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                "to": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
                 "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
                 "data": "0x095ea7b30000000000000000000000004d97dcd97ec945f40cf65f87097ace5ea0476045ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
                 "nonce": "7",
@@ -664,7 +664,7 @@
                 "$ref": "#/components/schemas/RelayerApproveRequest"
               },
               "example": {
-                "token": "0x2791Bca1F2de4661ED88A30C99A7a9449Aa84174",
+                "token": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
                 "spender": "0x4d97dcd97ec945f40cf65f87097ace5ea0476045",
                 "amount": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
               }
@@ -910,7 +910,7 @@
               "example": {
                 "type": "SAFE",
                 "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
-                "to": "0x724259Fe88100FE18C134324C4853975FBDa4d76",
+                "to": "0xd9416E904e1ab925ad72F03F6D6ce0Aa80fd2dC5",
                 "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
                 "data": "0x2c8c5d2e...",
                 "nonce": "10",
@@ -1033,8 +1033,8 @@
         "tags": [
           "Swaps"
         ],
-        "summary": "Build USDC → USDC.e swap",
-        "description": "Build a Safe multisend payload that approves native USDC and swaps into USDC.e via Uniswap V3.",
+        "summary": "Build legacy USDC → USDC.e swap",
+        "description": "Legacy endpoint: build a Safe multisend payload that approves native USDC and swaps into USDC.e via Uniswap V3. This is isolated from the main USDC Circle trading flow.",
         "operationId": "buildUsdcESwap",
         "requestBody": {
           "required": true,
@@ -1105,7 +1105,7 @@
         "tags": [
           "Swaps"
         ],
-        "summary": "Submit USDC → USDC.e swap",
+        "summary": "Submit legacy USDC → USDC.e swap",
         "description": "Submit a signed Safe multisend payload returned by `/swap/usdc-e/build`.",
         "operationId": "submitUsdcESwap",
         "requestBody": {
@@ -1299,7 +1299,7 @@
           },
           "paymentToken": {
             "type": "string",
-            "description": "Token used to pay deployment fees (zero address represents POL, the native Polygon gas token). Defaults to `0x000...000`.",
+            "description": "Token used to pay deployment fees (zero address represents MATIC). Defaults to `0x000...000`.",
             "example": "0x0000000000000000000000000000000000000000"
           },
           "payment": {
@@ -1389,10 +1389,8 @@
             "type": "string"
           },
           "transactionHash": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "from": {
             "type": "string"
@@ -1401,10 +1399,8 @@
             "type": "string"
           },
           "proxyAddress": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "data": {
             "type": "string"
@@ -1428,20 +1424,16 @@
             ]
           },
           "failureReason": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "type": {
             "type": "string",
             "description": "Operation type such as SAFE, SAFE-CREATE, or PROXY."
           },
           "metadata": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "createdAt": {
             "type": "string",
@@ -1539,11 +1531,9 @@
             "description": "Contract to execute."
           },
           "proxyWallet": {
+            "type": "string",
             "description": "Proxy address tied to the request (required for SAFE and PROXY).",
-            "type": [
-              "string",
-              "null"
-            ]
+            "nullable": true
           },
           "data": {
             "type": "string"
@@ -1563,10 +1553,8 @@
             "$ref": "#/components/schemas/RelayerSignatureParams"
           },
           "metadata": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
@@ -1617,10 +1605,8 @@
             "$ref": "#/components/schemas/RelayerSignatureParams"
           },
           "metadata": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
@@ -1636,7 +1622,7 @@
       },
       "RelayerUsdcESwapBuildRequest": {
         "type": "object",
-        "description": "Request payload for building a USDC → USDC.e swap multisend.",
+        "description": "Request payload for the legacy isolated USDC → USDC.e swap multisend.",
         "properties": {
           "from": {
             "type": "string",
@@ -1743,16 +1729,12 @@
             ]
           },
           "transactionHash": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "hash": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [

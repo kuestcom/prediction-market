@@ -65,7 +65,7 @@
                   ],
                   "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
                   "umaAdapter": "0x08Ce1f626Ef319fAB728F8b4cE3D8875C2C9Ce66",
-                  "ctfExchange": "0xB5592f7CccA122558D2201e190826276f3a661cb",
+                  "ctfExchange": "0x41a02c3c3E1883baF66C4F1706DAb3C07AbedDe1",
                   "negRiskOperator": "0x6538FC1837Ffb577f9f02355E2dBd73410E66D9",
                   "negRiskCtfExchange": "0xef02d1Ea5B42432C4E99C2785d1a4020d2F2bB31",
                   "negRiskUmaAdapter": "0xD6fa9B2bE6E345Ee357658Fd980d48f1bEF2D1B7",
@@ -84,7 +84,7 @@
                       "chainId": 80002,
                       "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
                       "umaAdapter": "0x08Ce1f626Ef319fAB728F8b4cE3D8875C2C9Ce66",
-                      "ctfExchange": "0xB5592f7CccA122558D2201e190826276f3a661cb",
+                      "ctfExchange": "0x41a02c3c3E1883baF66C4F1706DAb3C07AbedDe1",
                       "negRiskOperator": "0x6538FC1837Ffb577f9f02355E2dBd73410E66D9",
                       "negRiskCtfExchange": "0xef02d1Ea5B42432C4E99C2785d1a4020d2F2bB31",
                       "negRiskUmaAdapter": "0xD6fa9B2bE6E345Ee357658Fd980d48f1bEF2D1B7"
@@ -491,7 +491,7 @@
         },
         "responses": {
           "200": {
-            "description": "Finalized request and registerToken execution result.",
+            "description": "Finalized request and token derivation result.",
             "content": {
               "application/json": {
                 "schema": {
@@ -505,7 +505,7 @@
                     {
                       "key": "binary",
                       "conditionId": "0x8169d94703726c1312976a3f408a15184334d95dcadc78e4e9f96d3b0f0df8df",
-                      "exchange": "0xB5592f7CccA122558D2201e190826276f3a661cb",
+                      "exchange": "0x41a02c3c3E1883baF66C4F1706DAb3C07AbedDe1",
                       "tokenA": "78849133110239156497695610160414324368604052631638211845571054319779561887178",
                       "tokenB": "74971562590235665669963598240180085947836206808199917948309517561307482247352",
                       "alreadyRegistered": false,
@@ -717,6 +717,156 @@
           }
         }
       },
+      "SportsTeamPayload": {
+        "type": "object",
+        "required": [
+          "name",
+          "host_status"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "abbreviation": {
+            "type": "string"
+          },
+          "host_status": {
+            "type": "string",
+            "enum": [
+              "home",
+              "away"
+            ]
+          }
+        }
+      },
+      "SportsTemplatePayload": {
+        "type": "object",
+        "properties": {
+          "includeDraw": {
+            "type": "boolean"
+          },
+          "includeBothTeamsToScore": {
+            "type": "boolean"
+          },
+          "includeSpreads": {
+            "type": "boolean"
+          },
+          "includeTotals": {
+            "type": "boolean"
+          },
+          "spreadLines": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "totalLines": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "SportsPropPayload": {
+        "type": "object",
+        "required": [
+          "id",
+          "playerName",
+          "statType",
+          "line",
+          "teamHostStatus"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "playerName": {
+            "type": "string"
+          },
+          "statType": {
+            "type": "string",
+            "enum": [
+              "points",
+              "rebounds",
+              "assists"
+            ]
+          },
+          "line": {
+            "type": "number"
+          },
+          "teamHostStatus": {
+            "type": "string",
+            "enum": [
+              "home",
+              "away"
+            ]
+          }
+        }
+      },
+      "SportsPayload": {
+        "type": "object",
+        "required": [
+          "section",
+          "eventVariant",
+          "sportSlug",
+          "leagueSlug",
+          "eventDate",
+          "startTime",
+          "teams",
+          "template",
+          "props"
+        ],
+        "properties": {
+          "section": {
+            "type": "string",
+            "enum": [
+              "games",
+              "props"
+            ]
+          },
+          "eventVariant": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "more_markets",
+              "exact_score",
+              "halftime_result"
+            ]
+          },
+          "sportSlug": {
+            "type": "string"
+          },
+          "leagueSlug": {
+            "type": "string"
+          },
+          "eventDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "teams": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "$ref": "#/components/schemas/SportsTeamPayload"
+            }
+          },
+          "template": {
+            "$ref": "#/components/schemas/SportsTemplatePayload"
+          },
+          "props": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SportsPropPayload"
+            }
+          }
+        }
+      },
       "PreparePayload": {
         "type": "object",
         "required": [
@@ -781,8 +931,7 @@
           },
           "options": {
             "type": "array",
-            "description": "Required when marketMode=multi_multiple or marketMode=multi_unique.",
-            "minItems": 2,
+            "description": "Required when marketMode=multi_multiple or marketMode=multi_unique. For sports payloads, backend can regenerate markets from sports and the frontend may send generated preview options.",
             "items": {
               "$ref": "#/components/schemas/PrepareOption"
             }
@@ -798,6 +947,9 @@
           "resolutionRules": {
             "type": "string",
             "minLength": 60
+          },
+          "sports": {
+            "$ref": "#/components/schemas/SportsPayload"
           }
         }
       },
@@ -837,6 +989,16 @@
               "type": "string",
               "format": "binary"
             }
+          },
+          "teamLogo:home": {
+            "type": "string",
+            "format": "binary",
+            "description": "Optional for standard flows. Required for sports payloads when the home team logo is not already embedded in payload.sports."
+          },
+          "teamLogo:away": {
+            "type": "string",
+            "format": "binary",
+            "description": "Optional for standard flows. Required for sports payloads when the away team logo is not already embedded in payload.sports."
           }
         },
         "additionalProperties": true

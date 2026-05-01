@@ -27,7 +27,6 @@ import {
   matchesPositionsSearchQuery,
   sortPositions,
 } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
-import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
@@ -631,7 +630,6 @@ function useSellPositionFlow({
   openWalletModal,
   queryClient,
   router,
-  affiliateMetadata,
   ensureTradingReady,
   openTradeRequirements,
   runWithSignaturePrompt,
@@ -647,7 +645,6 @@ function useSellPositionFlow({
   openWalletModal: ReturnType<typeof useAppKit>['open']
   queryClient: QueryClient
   router: ReturnType<typeof useRouter>
-  affiliateMetadata: ReturnType<typeof useAffiliateOrderMetadata>
   ensureTradingReady: () => boolean
   openTradeRequirements: (options?: { forceTradingAuth?: boolean }) => void
   runWithSignaturePrompt: ReturnType<typeof useSignaturePromptRunner>['runWithSignaturePrompt']
@@ -873,7 +870,6 @@ function useSellPositionFlow({
       limitPrice: '0',
       limitShares: '0',
       marketPriceCents,
-      feeRateBps: affiliateMetadata.tradeFeeBps,
     })
 
     let signature: string
@@ -970,7 +966,6 @@ function useSellPositionFlow({
       setIsCashOutSubmitting(false)
     }
   }, [
-    affiliateMetadata.tradeFeeBps,
     ensureTradingReady,
     handleEditOrder,
     openTradeRequirements,
@@ -1006,7 +1001,6 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
-  const affiliateMetadata = useAffiliateOrderMetadata()
   const { signMessageAsync } = useSignMessage()
   const {
     user,
@@ -1125,7 +1119,6 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     openWalletModal: open,
     queryClient,
     router,
-    affiliateMetadata,
     ensureTradingReady,
     openTradeRequirements,
     runWithSignaturePrompt,

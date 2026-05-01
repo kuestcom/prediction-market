@@ -1,3 +1,5 @@
+import { TOKEN_APPROVALS_VERSION } from '@/lib/trading-auth/approvals'
+
 export function sanitizeTradingAuthSettings(settings: Record<string, any> | null | undefined) {
   if (!settings?.tradingAuth) {
     return settings
@@ -22,8 +24,12 @@ export function sanitizeTradingAuthSettings(settings: Record<string, any> | null
 
   if (tradingAuth.approvals) {
     normalized.approvals = {
-      enabled: Boolean(tradingAuth.approvals.completed),
+      enabled: Boolean(
+        tradingAuth.approvals.completed
+        && tradingAuth.approvals.version === TOKEN_APPROVALS_VERSION,
+      ),
       updatedAt: tradingAuth.approvals.updatedAt,
+      version: tradingAuth.approvals.version,
     }
   }
 

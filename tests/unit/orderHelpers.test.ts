@@ -60,16 +60,16 @@ describe('buildOrderPayload', () => {
       limitPrice: '0',
       limitShares: '0',
       marketPriceCents: 50,
-      feeRateBps: 150,
     })
 
     expect(payload.maker_amount).toBe(15000000n)
     expect(payload.taker_amount).toBeGreaterThan(0n)
     expect(payload.token_id).toBe(42n)
-    expect(payload.fee_rate_bps).toBe(150n)
+    expect(payload.fee_rate_bps).toBe(0n)
+    expect(payload.timestamp).toBeGreaterThan(0n)
   })
 
-  it('falls back to default fee rate when not provided', () => {
+  it('defaults metadata and builder to zero bytes32', () => {
     const payload = buildOrderPayload({
       userAddress: '0xUser',
       outcome: { token_id: '1' } as any,
@@ -81,7 +81,9 @@ describe('buildOrderPayload', () => {
       marketPriceCents: 50,
     })
 
-    expect(payload.fee_rate_bps).toBe(200n)
+    expect(payload.fee_rate_bps).toBe(0n)
+    expect(payload.metadata).toBe('0x0000000000000000000000000000000000000000000000000000000000000000')
+    expect(payload.builder).toBe('0x0000000000000000000000000000000000000000000000000000000000000000')
   })
 })
 
@@ -103,6 +105,9 @@ describe('submitOrder', () => {
       fee_rate_bps: 6n,
       side: ORDER_SIDE.BUY,
       signature_type: 0,
+      timestamp: 7n,
+      metadata: '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`,
+      builder: '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`,
     }
 
     await submitOrder({

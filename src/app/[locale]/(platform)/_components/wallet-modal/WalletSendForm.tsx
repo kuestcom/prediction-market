@@ -54,7 +54,7 @@ function WalletSendForm({
   const trimmedRecipient = sendTo.trim()
   const isRecipientAddress = /^0x[a-fA-F0-9]{40}$/.test(trimmedRecipient)
   const parsedAmount = Number(sendAmount)
-  const [receiveToken, setReceiveToken] = useState<string>('USDC.e')
+  const [receiveToken, setReceiveToken] = useState<string>('USDC')
   const [receiveChain, setReceiveChain] = useState<string>('Polygon')
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false)
   const inputValue = formatDisplayAmount(sendAmount)
@@ -89,7 +89,6 @@ function WalletSendForm({
     : formattedBalance
   const selectedToken = WITHDRAW_TOKEN_OPTIONS.find(option => option.value === receiveToken)
   const selectedChain = WITHDRAW_CHAIN_OPTIONS.find(option => option.value === receiveChain)
-  const isUsdcESelected = receiveToken === 'USDC.e'
   const visiblePendingWithdrawals = pendingWithdrawals.slice(0, 2)
 
   function handleAmountChange(rawValue: string) {
@@ -364,22 +363,6 @@ function WalletSendForm({
             </TooltipProvider>
           )}
         </div>
-
-        {isUsdcESelected && (
-          <div className="rounded-lg bg-muted/60 p-4">
-            <div className="flex items-start gap-3 text-xs text-foreground">
-              <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-destructive">
-                <InfoIcon className="size-4 text-background" />
-              </div>
-              <div className="space-y-1">
-                <p className="font-semibold">USDCe is not widely supported by most exchanges</p>
-                <p className="text-muted-foreground">
-                  Sending USDCe to an unsupported platform may result in a permanent loss of funds. Always double-check token compatibility before transferring.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {visiblePendingWithdrawals.length > 0 && (
           <div className="rounded-lg border bg-muted/50 p-4">

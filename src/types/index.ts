@@ -185,6 +185,7 @@ interface Condition {
 interface TradingAuthStatus {
   enabled: boolean
   updatedAt?: string
+  version?: string
 }
 
 interface UserSettings {
@@ -434,6 +435,9 @@ export interface BlockchainOrder {
   fee_rate_bps: bigint
   side: number
   signature_type: number
+  timestamp: bigint
+  metadata: `0x${string}`
+  builder: `0x${string}`
 }
 
 export interface UserPosition {

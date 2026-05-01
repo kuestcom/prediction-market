@@ -8,7 +8,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
-import { fetchMaxExchangeBaseFeeRate } from '@/lib/exchange'
 import { usdFormatter } from '@/lib/formatters'
 import { getPublicAssetUrl } from '@/lib/storage'
 
@@ -51,11 +50,9 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
   const [
     { data: allSettings },
     { data: overviewData },
-    exchangeBaseFeeBps,
   ] = await Promise.all([
     SettingsRepository.getSettings(),
     AffiliateRepository.listAffiliateOverview(),
-    fetchMaxExchangeBaseFeeRate(),
   ])
   const affiliateSettings = allSettings?.affiliate
 
@@ -150,7 +147,6 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
         <AdminAffiliateSettingsForm
           tradeFeeBps={Number.parseInt(affiliateSettings?.trade_fee_bps?.value || '100', 10)}
           affiliateShareBps={Number.parseInt(affiliateSettings?.affiliate_share_bps?.value || '5000', 10)}
-          minTradeFeeBps={exchangeBaseFeeBps ?? 0}
           updatedAtLabel={updatedAtLabel}
         />
         <div className="grid gap-4 rounded-lg border p-6">
@@ -191,7 +187,7 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-64 text-left">
-                    {t('Commission is taken from the trading fee at execution, not from volume. The exchange base fee comes out first.')}
+                    {t('Commission is taken from the builder fee at execution, not from volume.')}
                   </TooltipContent>
                 </Tooltip>
               </div>

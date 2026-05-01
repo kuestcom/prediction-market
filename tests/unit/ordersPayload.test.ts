@@ -13,7 +13,7 @@ describe('buildOrderPayload money-safety defaults', () => {
     vi.unstubAllEnvs()
   })
 
-  it('normalizes feeRateBps and expirationTimestamp defensively', () => {
+  it('keeps fee fields unsigned and normalizes expiration defensively', () => {
     const payload = buildOrderPayload({
       userAddress,
       outcome: { token_id: '1' } as any,
@@ -22,7 +22,6 @@ describe('buildOrderPayload money-safety defaults', () => {
       amount: '1',
       limitPrice: '0',
       limitShares: '0',
-      feeRateBps: -10,
       expirationTimestamp: -50,
     })
 
@@ -37,9 +36,8 @@ describe('buildOrderPayload money-safety defaults', () => {
       amount: '1',
       limitPrice: '0',
       limitShares: '0',
-      feeRateBps: Number.NaN,
     })
-    expect(payloadDefault.fee_rate_bps).toBe(200n)
+    expect(payloadDefault.fee_rate_bps).toBe(0n)
 
     const payloadTrunc = buildOrderPayload({
       userAddress,
@@ -49,11 +47,10 @@ describe('buildOrderPayload money-safety defaults', () => {
       amount: '1',
       limitPrice: '0',
       limitShares: '0',
-      feeRateBps: 150.9,
       expirationTimestamp: 123.9,
     })
 
-    expect(payloadTrunc.fee_rate_bps).toBe(150n)
+    expect(payloadTrunc.fee_rate_bps).toBe(0n)
     expect(payloadTrunc.expiration).toBe(123n)
   })
 })

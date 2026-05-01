@@ -8,6 +8,7 @@ import {
   size,
   zeroAddress,
 } from 'viem'
+import { addressToBuilderCode } from '@/lib/builder-code'
 import {
   COLLATERAL_TOKEN_ADDRESS,
   CONDITIONAL_TOKENS_CONTRACT,
@@ -104,10 +105,20 @@ const exchangeReferralAbi = [
     type: 'function',
     stateMutability: 'nonpayable',
     inputs: [
-      { name: 'referrer', type: 'address' },
+      { name: 'builder', type: 'bytes32' },
       { name: 'affiliate', type: 'address' },
       { name: 'affiliatePercentage', type: 'uint256' },
     ],
+    outputs: [],
+  },
+] as const
+
+const exchangeFeeAbi = [
+  {
+    name: 'claim',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [],
     outputs: [],
   },
 ] as const
@@ -251,8 +262,8 @@ interface ReferralOptions {
 }
 
 export function buildSetReferralTransactions(options: ReferralOptions): SafeTransaction[] {
-  const referrer = options.referrer
-  if (!referrer || referrer === zeroAddress) {
+  const builder = addressToBuilderCode(options.referrer)
+  if (builder === ZERO_COLLECTION_ID) {
     return []
   }
 
@@ -268,7 +279,28 @@ export function buildSetReferralTransactions(options: ReferralOptions): SafeTran
     data: encodeFunctionData({
       abi: exchangeReferralAbi,
       functionName: 'setReferral',
-      args: [referrer, affiliate, affiliatePercentage],
+      args: [builder, affiliate, affiliatePercentage],
+    }),
+    operation: SafeOperationType.Call,
+  }))
+}
+
+interface ClaimFeesOptions {
+  exchanges?: `0x${string}`[]
+}
+
+export function buildClaimFeesTransactions(options?: ClaimFeesOptions): SafeTransaction[] {
+  const exchanges = options?.exchanges?.length
+    ? options.exchanges
+    : [CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS]
+
+  return exchanges.map(exchange => ({
+    to: exchange,
+    value: '0',
+    data: encodeFunctionData({
+      abi: exchangeFeeAbi,
+      functionName: 'claim',
+      args: [],
     }),
     operation: SafeOperationType.Call,
   }))

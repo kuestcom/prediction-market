@@ -28,6 +28,9 @@ const StoreOrderSchema = z.object({
   fee_rate_bps: z.string(),
   side: z.union([z.literal(0), z.literal(1)]),
   signature_type: z.number(),
+  timestamp: z.string(),
+  metadata: z.string(),
+  builder: z.string(),
   signature: z.string(),
   // end blockchain data
 
@@ -78,7 +81,7 @@ const CLOB_ERROR_PATTERNS: Array<{ pattern: RegExp, message: string }> = [
     message: 'This order expiration is invalid. Refresh prices and try again.',
   },
   {
-    pattern: /\b(tokenid is required|conditionid is required|tokenid not found for conditionid lookup|maker is required|signer is required|taker is required)\b/i,
+    pattern: /\b(tokenid is required|conditionid is required|tokenid not found for conditionid lookup|maker is required|signer is required)\b/i,
     message: 'Market data is out of date. Please refresh and try again.',
   },
   {
@@ -283,16 +286,16 @@ export async function storeOrderAction(payload: StoreOrderInput) {
         salt: validated.data.salt,
         maker: validated.data.maker,
         signer: validated.data.signer,
-        taker: validated.data.taker,
         conditionId: validated.data.condition_id,
         tokenId: validated.data.token_id,
         makerAmount: validated.data.maker_amount,
         takerAmount: validated.data.taker_amount,
         expiration: validated.data.expiration,
-        nonce: validated.data.nonce,
-        feeRateBps: validated.data.fee_rate_bps,
         side: validated.data.side === 0 ? 'BUY' : 'SELL',
         signatureType: validated.data.signature_type,
+        timestamp: validated.data.timestamp,
+        metadata: validated.data.metadata,
+        builder: validated.data.builder,
         signature: validated.data.signature,
       },
       orderType: clobOrderType,

@@ -5,6 +5,7 @@ import { BadgePercentIcon, CheckIcon, CopyIcon, InfoIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useState } from 'react'
 import AffiliateWidgetDialog from '@/app/[locale]/(platform)/settings/_components/AffiliateWidgetDialog'
+import SettingsAffiliateFeeClaim from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateFeeClaim'
 import ProfileLink from '@/components/ProfileLink'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -139,6 +140,8 @@ export default function SettingsAffiliateContent({ affiliateData, mainCategories
           </div>
         </div>
       </div>
+
+      <SettingsAffiliateFeeClaim />
 
       <div className="rounded-lg border">
         <div className="border-b p-4 sm:px-6">

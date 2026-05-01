@@ -2,7 +2,7 @@ import type { CLOB_ORDER_TYPE } from '@/lib/constants'
 import type { BlockchainOrder, OrderSide, OrderType, Outcome } from '@/types'
 import { storeOrderAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/store-order'
 import { MICRO_UNIT, ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
-import { ZERO_ADDRESS } from '@/lib/contracts'
+import { ZERO_ADDRESS, ZERO_BYTES32 } from '@/lib/contracts'
 import { toMicro } from '@/lib/formatters'
 
 export interface CalculateOrderAmountsArgs {
@@ -19,8 +19,9 @@ export interface BuildOrderPayloadArgs extends CalculateOrderAmountsArgs {
   outcome: Outcome
   makerAddress?: `0x${string}`
   signatureType?: number
-  feeRateBps?: number
   expirationTimestamp?: number
+  metadata?: `0x${string}`
+  builder?: `0x${string}`
 }
 
 export interface SubmitOrderArgs {
@@ -36,8 +37,10 @@ const DEFAULT_ORDER_FIELDS = {
   salt: 0n,
   expiration: 0n,
   nonce: 0n,
-  fee_rate_bps: 200n,
+  fee_rate_bps: 0n,
   signature_type: 0,
+  metadata: ZERO_BYTES32,
+  builder: ZERO_BYTES32,
 } as const
 
 function generateOrderSalt() {
@@ -109,17 +112,15 @@ export function buildOrderPayload({
   outcome,
   makerAddress,
   signatureType,
-  feeRateBps,
   expirationTimestamp,
+  metadata,
+  builder,
   ...rest
 }: BuildOrderPayloadArgs): BlockchainOrder {
   const { makerAmount, takerAmount } = calculateOrderAmounts(rest)
   const salt = generateOrderSalt()
   const maker = makerAddress ?? userAddress
   const signatureTypeValue = typeof signatureType === 'number' ? signatureType : DEFAULT_ORDER_FIELDS.signature_type
-  const feeRateBpsValue = typeof feeRateBps === 'number' && Number.isFinite(feeRateBps)
-    ? BigInt(Math.max(0, Math.trunc(feeRateBps)))
-    : DEFAULT_ORDER_FIELDS.fee_rate_bps
   const expirationValue = typeof expirationTimestamp === 'number' && Number.isFinite(expirationTimestamp)
     ? BigInt(Math.max(0, Math.trunc(expirationTimestamp)))
     : DEFAULT_ORDER_FIELDS.expiration
@@ -135,8 +136,11 @@ export function buildOrderPayload({
     taker_amount: takerAmount,
     expiration: expirationValue,
     side: rest.side,
-    fee_rate_bps: feeRateBpsValue,
+    fee_rate_bps: DEFAULT_ORDER_FIELDS.fee_rate_bps,
     signature_type: signatureTypeValue,
+    timestamp: BigInt(Date.now()),
+    metadata: metadata ?? DEFAULT_ORDER_FIELDS.metadata,
+    builder: builder ?? DEFAULT_ORDER_FIELDS.builder,
   }
 }
 
@@ -150,6 +154,9 @@ function serializeOrder(order: BlockchainOrder) {
     expiration: order.expiration.toString(),
     nonce: order.nonce.toString(),
     fee_rate_bps: order.fee_rate_bps.toString(),
+    timestamp: order.timestamp.toString(),
+    metadata: order.metadata,
+    builder: order.builder,
   }
 }
 

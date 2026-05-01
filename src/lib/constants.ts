@@ -32,14 +32,14 @@ export const MICRO_UNIT = 1_000_000
 
 export const EIP712_DOMAIN = {
   name: 'CTF Exchange',
-  version: '1',
+  version: '2',
   chainId: defaultNetwork.id,
   verifyingContract: CTF_EXCHANGE_ADDRESS,
 } as const
 
 export const NEG_RISK_EIP712_DOMAIN = {
   name: 'CTF Exchange',
-  version: '1',
+  version: '2',
   chainId: defaultNetwork.id,
   verifyingContract: NEG_RISK_CTF_EXCHANGE_ADDRESS,
 } as const
@@ -49,15 +49,14 @@ export const EIP712_TYPES = {
     { name: 'salt', type: 'uint256' },
     { name: 'maker', type: 'address' },
     { name: 'signer', type: 'address' },
-    { name: 'taker', type: 'address' },
     { name: 'tokenId', type: 'uint256' },
     { name: 'makerAmount', type: 'uint256' },
     { name: 'takerAmount', type: 'uint256' },
-    { name: 'expiration', type: 'uint256' },
-    { name: 'nonce', type: 'uint256' },
-    { name: 'feeRateBps', type: 'uint256' },
     { name: 'side', type: 'uint8' },
     { name: 'signatureType', type: 'uint8' },
+    { name: 'timestamp', type: 'uint256' },
+    { name: 'metadata', type: 'bytes32' },
+    { name: 'builder', type: 'bytes32' },
   ],
 }
 

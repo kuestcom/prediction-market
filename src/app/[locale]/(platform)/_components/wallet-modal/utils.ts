@@ -19,8 +19,7 @@ export const TRANSFER_PAYMENT_METHODS = [
 export const TEST_MODE_DISCORD_URL = 'https://discord.gg/kuest'
 
 export const WITHDRAW_TOKEN_OPTIONS = [
-  { value: 'USDC', label: 'USDC', icon: '/images/withdraw/token/usdc.svg', enabled: false },
-  { value: 'USDC.e', label: 'USDC.e', icon: '/images/withdraw/token/usdc.svg', enabled: true },
+  { value: 'USDC', label: 'USDC', icon: '/images/withdraw/token/usdc.svg', enabled: true },
   { value: 'ARB', label: 'ARB', icon: '/images/withdraw/token/arb.svg', enabled: false },
   { value: 'BNB', label: 'BNB', icon: '/images/withdraw/token/bsc.svg', enabled: false },
   { value: 'BTCB', label: 'BTCB', icon: '/images/withdraw/token/btc.svg', enabled: false },

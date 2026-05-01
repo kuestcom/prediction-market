@@ -24,15 +24,14 @@ export async function signOrderPayload({
       salt: payload.salt,
       maker: payload.maker,
       signer: payload.signer,
-      taker: payload.taker,
       tokenId: payload.token_id,
       makerAmount: payload.maker_amount,
       takerAmount: payload.taker_amount,
-      expiration: payload.expiration,
-      nonce: payload.nonce,
-      feeRateBps: payload.fee_rate_bps,
       side: payload.side,
       signatureType: payload.signature_type,
+      timestamp: payload.timestamp,
+      metadata: payload.metadata,
+      builder: payload.builder,
     },
   })
 }

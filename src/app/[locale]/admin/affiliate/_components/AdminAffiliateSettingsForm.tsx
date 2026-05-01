@@ -17,7 +17,6 @@ const initialState = {
 interface AdminAffiliateSettingsFormProps {
   tradeFeeBps: number
   affiliateShareBps: number
-  minTradeFeeBps?: number
   updatedAtLabel?: string
 }
 
@@ -45,12 +44,10 @@ function useAffiliateSettingsForm() {
 export default function AdminAffiliateSettingsForm({
   tradeFeeBps,
   affiliateShareBps,
-  minTradeFeeBps = 0,
   updatedAtLabel,
 }: AdminAffiliateSettingsFormProps) {
   const t = useExtracted()
   const { state, formAction, isPending } = useAffiliateSettingsForm()
-  const minTradeFeePercent = (minTradeFeeBps / 100).toFixed(2)
 
   return (
     <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
@@ -74,13 +71,13 @@ export default function AdminAffiliateSettingsForm({
             name="trade_fee_percent"
             type="number"
             step="0.01"
-            min={minTradeFeePercent}
+            min="0"
             max="9"
             defaultValue={(tradeFeeBps / 100).toFixed(2)}
             disabled={isPending}
           />
           <p className="text-xs text-muted-foreground">
-            {t('Minimum {value}% (onchain base fee)', { value: minTradeFeePercent })}
+            {t('Builder fee used by the CLOB; affiliate share is split from this amount onchain.')}
           </p>
         </div>
         <div className="grid gap-2">

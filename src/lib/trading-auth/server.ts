@@ -15,6 +15,7 @@ import {
   L2_AUTH_CONTEXT_MAX_PER_USER,
   normalizeL2AuthContextRecords,
 } from '@/lib/l2-auth-context'
+import { TOKEN_APPROVALS_VERSION } from '@/lib/trading-auth/approvals'
 import { getBetterAuthSecretHash } from '@/lib/trading-auth/secret-hash'
 
 interface TradingAuthSecretEntry {
@@ -32,6 +33,7 @@ interface TradingAuthSecretSettings {
   approvals?: {
     completed?: boolean
     updatedAt?: string
+    version?: string
   }
 }
 
@@ -315,6 +317,7 @@ export async function markTokenApprovalsCompleted(userId: string) {
     tradingAuth.approvals = {
       completed: true,
       updatedAt,
+      version: TOKEN_APPROVALS_VERSION,
     }
 
     settings.tradingAuth = tradingAuth
@@ -328,5 +331,6 @@ export async function markTokenApprovalsCompleted(userId: string) {
   return {
     enabled: true,
     updatedAt,
+    version: TOKEN_APPROVALS_VERSION,
   }
 }
