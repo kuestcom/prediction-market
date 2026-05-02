@@ -133,7 +133,6 @@
                 "example": {
                   "requestId": "8b583ebd-1f8f-46fa-b31b-06643f58d457",
                   "nonce": "0x4f7f7ec0db1ebce7db6f0c8b9426fe2fd836682fef5f50013ad0dbb37412de11",
-                  "expiresAt": 1771292548580,
                   "creator": "0x1111111111111111111111111111111111111111",
                   "chainId": 80002,
                   "payloadHash": "0x80f7bf1a2f8c6d6fc0b4537437d1c8f0f1d9ed9d622f5af7e253d45c0f8f2a31",
@@ -160,10 +159,6 @@
                       {
                         "name": "nonce",
                         "type": "bytes32"
-                      },
-                      {
-                        "name": "expiresAt",
-                        "type": "uint256"
                       },
                       {
                         "name": "chainId",
@@ -201,7 +196,7 @@
                   "summary": "Binary market",
                   "value": {
                     "payload": "{\"chainId\":80002,\"creator\":\"0x1111111111111111111111111111111111111111\",\"title\":\"Will BTC close above $110k on March 31, 2028?\",\"slug\":\"will-btc-close-above-110k-on-march-31-2028\",\"endDateIso\":\"2028-03-31T23:00:00Z\",\"mainCategorySlug\":\"crypto\",\"categories\":[{\"label\":\"Crypto\",\"slug\":\"crypto\"},{\"label\":\"Bitcoin\",\"slug\":\"bitcoin\"},{\"label\":\"Price Action\",\"slug\":\"price-action\"},{\"label\":\"March\",\"slug\":\"march\"},{\"label\":\"Macro\",\"slug\":\"macro\"}],\"marketMode\":\"binary\",\"binaryQuestion\":\"Will BTC close above $110k on March 31, 2028?\",\"binaryOutcomeYes\":\"Yes\",\"binaryOutcomeNo\":\"No\",\"resolutionSource\":\"https://www.reuters.com/\",\"resolutionRules\":\"Resolve YES if BTC/USD spot closes strictly above 110000.00 at 23:00:00 UTC on March 31, 2028 using the listed source and fallback source when unavailable.\"}",
-                    "auth": "{\"requestId\":\"8b583ebd-1f8f-46fa-b31b-06643f58d457\",\"nonce\":\"0x4f7f7ec0db1ebce7db6f0c8b9426fe2fd836682fef5f50013ad0dbb37412de11\",\"expiresAt\":1771292548580,\"payloadHash\":\"0x80f7bf1a2f8c6d6fc0b4537437d1c8f0f1d9ed9d622f5af7e253d45c0f8f2a31\",\"signature\":\"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+                    "auth": "{\"requestId\":\"8b583ebd-1f8f-46fa-b31b-06643f58d457\",\"nonce\":\"0x4f7f7ec0db1ebce7db6f0c8b9426fe2fd836682fef5f50013ad0dbb37412de11\",\"payloadHash\":\"0x80f7bf1a2f8c6d6fc0b4537437d1c8f0f1d9ed9d622f5af7e253d45c0f8f2a31\",\"signature\":\"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
                     "eventImage": "(binary)"
                   }
                 }
@@ -370,7 +365,6 @@
                     "status": "prepared",
                     "creator": "0x1111111111111111111111111111111111111111",
                     "chainId": 80002,
-                    "expiresAt": 1771292548580,
                     "updatedAt": 1771290202392,
                     "errorMessage": null,
                     "prepared": {
@@ -584,7 +578,6 @@
         "required": [
           "requestId",
           "nonce",
-          "expiresAt",
           "creator",
           "chainId",
           "payloadHash",
@@ -598,9 +591,6 @@
           },
           "nonce": {
             "$ref": "#/components/schemas/Hex32"
-          },
-          "expiresAt": {
-            "type": "integer"
           },
           "creator": {
             "$ref": "#/components/schemas/Address"
@@ -657,7 +647,6 @@
         "required": [
           "requestId",
           "nonce",
-          "expiresAt",
           "payloadHash",
           "signature"
         ],
@@ -667,9 +656,6 @@
           },
           "nonce": {
             "$ref": "#/components/schemas/Hex32"
-          },
-          "expiresAt": {
-            "type": "integer"
           },
           "payloadHash": {
             "$ref": "#/components/schemas/Hex32"
@@ -1387,7 +1373,6 @@
           "status",
           "creator",
           "chainId",
-          "expiresAt",
           "updatedAt",
           "errorMessage",
           "prepared",
@@ -1404,9 +1389,6 @@
             "$ref": "#/components/schemas/Address"
           },
           "chainId": {
-            "type": "integer"
-          },
-          "expiresAt": {
             "type": "integer"
           },
           "updatedAt": {

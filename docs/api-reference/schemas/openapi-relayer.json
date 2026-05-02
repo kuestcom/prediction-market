@@ -26,10 +26,6 @@
     {
       "name": "Operations",
       "description": "Custodial conditional token operations executed by the relayer."
-    },
-    {
-      "name": "Swaps",
-      "description": "Swap helpers executed via Safe multisend transactions."
     }
   ],
   "paths": {
@@ -892,74 +888,6 @@
         }
       }
     },
-    "/operations/convert-position": {
-      "post": {
-        "tags": [
-          "Operations"
-        ],
-        "summary": "Convert position",
-        "description": "Call convertPositions on the Negative Risk adapter via a Safe execution.",
-        "operationId": "relayerConvertPosition",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RelayerSafeOperationRequest"
-              },
-              "example": {
-                "type": "SAFE",
-                "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
-                "to": "0xd9416E904e1ab925ad72F03F6D6ce0Aa80fd2dC5",
-                "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
-                "data": "0x2c8c5d2e...",
-                "nonce": "10",
-                "value": "0",
-                "signature": "0xf368488355b0566e99eff3bccc35e98b77d8f3a6e6866176188488c34f0305b07e4a4c600c7a1592e4ac1e96b5887ebff2cb26987a3ad501006b39944df098c21f",
-                "signatureParams": {
-                  "operation": "0",
-                  "safeTxnGas": "0",
-                  "baseGas": "0",
-                  "gasPrice": "0",
-                  "gasToken": "0x0000000000000000000000000000000000000000",
-                  "refundReceiver": "0x0000000000000000000000000000000000000000"
-                },
-                "metadata": "convert position"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Transaction broadcast by the relayer.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RelayerOperationResponse"
-                },
-                "example": {
-                  "txHash": "0x0123...",
-                  "confirmations": 1
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid payload or missing fields.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RelayerError"
-                },
-                "example": {
-                  "error": "invalid_field contract"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/operations/redeem-position": {
       "post": {
         "tags": [
@@ -1021,146 +949,6 @@
                 },
                 "example": {
                   "error": "invalid_field contract"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/swap/usdc-e/build": {
-      "post": {
-        "tags": [
-          "Swaps"
-        ],
-        "summary": "Build legacy USDC → USDC.e swap",
-        "description": "Legacy endpoint: build a Safe multisend payload that approves native USDC and swaps into USDC.e via Uniswap V3. This is isolated from the main USDC Circle trading flow.",
-        "operationId": "buildUsdcESwap",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RelayerUsdcESwapBuildRequest"
-              },
-              "example": {
-                "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
-                "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
-                "amount": "1000000",
-                "slippageBps": 50
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Swap payload built and ready for signing.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RelayerUsdcESwapBuildResponse"
-                },
-                "example": {
-                  "nonce": "12",
-                  "transaction": {
-                    "to": "0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761",
-                    "value": "0",
-                    "data": "0x8d80ff0a0000000000000000000000000000000000000000000000000000000000000040",
-                    "operation": 1
-                  },
-                  "signatureParams": {
-                    "operation": "1",
-                    "safeTxnGas": "0",
-                    "baseGas": "0",
-                    "gasPrice": "0",
-                    "gasToken": "0x0000000000000000000000000000000000000000",
-                    "refundReceiver": "0x0000000000000000000000000000000000000000"
-                  },
-                  "amountIn": "1000000",
-                  "amountOutMinimum": "999000",
-                  "fee": 100,
-                  "deadline": 1711990000
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid payload or Safe mismatch.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RelayerError"
-                },
-                "example": {
-                  "error": "invalid_field amount"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/swap/usdc-e/submit": {
-      "post": {
-        "tags": [
-          "Swaps"
-        ],
-        "summary": "Submit legacy USDC → USDC.e swap",
-        "description": "Submit a signed Safe multisend payload returned by `/swap/usdc-e/build`.",
-        "operationId": "submitUsdcESwap",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RelayerSafeOperationRequest"
-              },
-              "example": {
-                "type": "SAFE",
-                "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
-                "to": "0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761",
-                "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
-                "data": "0x8d80ff0a0000000000000000000000000000000000000000000000000000000000000040",
-                "nonce": "12",
-                "value": "0",
-                "signature": "0xf368488355b0566e99eff3bccc35e98b77d8f3a6e6866176188488c34f0305b07e4a4c600c7a1592e4ac1e96b5887ebff2cb26987a3ad501006b39944df098c21f",
-                "signatureParams": {
-                  "operation": "1",
-                  "safeTxnGas": "0",
-                  "baseGas": "0",
-                  "gasPrice": "0",
-                  "gasToken": "0x0000000000000000000000000000000000000000",
-                  "refundReceiver": "0x0000000000000000000000000000000000000000"
-                },
-                "metadata": "swap_usdc_e"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Swap transaction broadcast by the relayer.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RelayerOperationResponse"
-                },
-                "example": {
-                  "txHash": "0x61a1b449f2b534d08a2f807cd5de867f9013e44e2df421a1d8c5b7f467ff3154",
-                  "confirmations": 1
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid payload or mismatched Safe data.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RelayerError"
-                },
-                "example": {
-                  "error": "invalid_swap_target"
                 }
               }
             }
@@ -1329,7 +1117,7 @@
         "properties": {
           "txHash": {
             "type": "string",
-            "description": "SafeProxyFactory transaction hash. Zero hash (`0x000\u2026000`) means the Safe already existed and no new transaction was submitted.",
+            "description": "SafeProxyFactory transaction hash. Zero hash (`0x000…000`) means the Safe already existed and no new transaction was submitted.",
             "example": "0x4c7f2d9c57e7cf1b1d2c75dae053086eba7a0a44a404f4b1aede2140b9406e0a"
           },
           "confirmations": {
@@ -1632,97 +1420,6 @@
           "nonce",
           "signature",
           "signatureParams"
-        ]
-      },
-      "RelayerUsdcESwapBuildRequest": {
-        "type": "object",
-        "description": "Request payload for the legacy isolated USDC → USDC.e swap multisend.",
-        "properties": {
-          "from": {
-            "type": "string",
-            "description": "Safe owner address that must match the authenticated account."
-          },
-          "proxyWallet": {
-            "type": "string",
-            "description": "Safe proxy that will execute the swap."
-          },
-          "amount": {
-            "type": "string",
-            "description": "USDC amount in base units (6 decimals)."
-          },
-          "slippageBps": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Optional slippage tolerance in basis points."
-          }
-        },
-        "required": [
-          "from",
-          "proxyWallet",
-          "amount"
-        ]
-      },
-      "RelayerSwapTransaction": {
-        "type": "object",
-        "description": "Safe transaction payload returned by swap build endpoints.",
-        "properties": {
-          "to": {
-            "type": "string"
-          },
-          "value": {
-            "type": "string"
-          },
-          "data": {
-            "type": "string"
-          },
-          "operation": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "required": [
-          "to",
-          "value",
-          "data",
-          "operation"
-        ]
-      },
-      "RelayerUsdcESwapBuildResponse": {
-        "type": "object",
-        "description": "Built swap payload plus quote metadata.",
-        "properties": {
-          "nonce": {
-            "type": "string"
-          },
-          "transaction": {
-            "$ref": "#/components/schemas/RelayerSwapTransaction"
-          },
-          "signatureParams": {
-            "$ref": "#/components/schemas/RelayerSignatureParams"
-          },
-          "amountIn": {
-            "type": "string"
-          },
-          "amountOutMinimum": {
-            "type": "string"
-          },
-          "fee": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "deadline": {
-            "type": "integer",
-            "format": "int64"
-          }
-        },
-        "required": [
-          "nonce",
-          "transaction",
-          "signatureParams",
-          "amountIn",
-          "amountOutMinimum",
-          "fee",
-          "deadline"
         ]
       },
       "RelayerSubmitResponse": {
