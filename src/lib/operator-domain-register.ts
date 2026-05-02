@@ -1,7 +1,7 @@
 import siteUrlUtils from '@/lib/site-url'
 
-const DEFAULT_REGISTER_ENDPOINT = ['https://', 'ku', 'est.com', '/domain-register'].join('')
-const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '0.0.0.0'])
+const DEFAULT_REGISTER_ENDPOINT = 'https://kuest.com/domain-register'
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1'])
 const REQUEST_TIMEOUT_MS = 2_500
 const { resolveSiteUrl } = siteUrlUtils
 

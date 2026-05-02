@@ -7,7 +7,6 @@ function isLocalhostHost(hostname: string) {
     || hostname === '127.0.0.1'
     || hostname === '::1'
     || hostname === '[::1]'
-    || hostname === '0.0.0.0'
 }
 
 function useServiceWorkerRegistration() {
