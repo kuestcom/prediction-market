@@ -4,7 +4,9 @@ import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
-import { users } from '@/lib/db/schema/auth/tables'
+import { affiliate_referrals } from '@/lib/db/schema/affiliates/tables'
+import { accounts, sessions, two_factors, users, verifications, wallets } from '@/lib/db/schema/auth/tables'
+import { orders } from '@/lib/db/schema/orders/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { getSafeProxyWalletAddress, isProxyWalletDeployed } from '@/lib/safe-proxy'
@@ -153,6 +155,37 @@ export const UserRepository = {
       }
 
       return { data, error: null }
+    })
+  },
+
+  async deleteUserAccountById(userId: string) {
+    return await runQuery(async () => {
+      await db.transaction(async (tx) => {
+        await tx
+          .update(orders)
+          .set({ affiliate_user_id: null })
+          .where(eq(orders.affiliate_user_id, userId))
+
+        await tx.delete(orders).where(eq(orders.user_id, userId))
+        await tx
+          .delete(affiliate_referrals)
+          .where(or(
+            eq(affiliate_referrals.user_id, userId),
+            eq(affiliate_referrals.affiliate_user_id, userId),
+          ))
+        await tx.delete(two_factors).where(eq(two_factors.user_id, userId))
+        await tx.delete(wallets).where(eq(wallets.user_id, userId))
+        await tx.delete(accounts).where(eq(accounts.user_id, userId))
+        await tx.delete(sessions).where(eq(sessions.user_id, userId))
+        await tx.delete(verifications).where(eq(verifications.value, userId))
+        await tx
+          .update(users)
+          .set({ referred_by_user_id: null })
+          .where(eq(users.referred_by_user_id, userId))
+        await tx.delete(users).where(eq(users.id, userId))
+      })
+
+      return { data: { id: userId }, error: null }
     })
   },
 

@@ -21,11 +21,11 @@ export default function SettingsSidebar() {
   const pathname = usePathname()
   const menuItems: MenuItem[] = [
     { id: 'profile', label: t('Profile'), href: '/settings' as Route, icon: UserIcon },
+    { id: 'account', label: t('Account'), href: '/settings/account' as Route, icon: FingerprintIcon },
     { id: 'notifications', label: t('Notifications'), href: '/settings/notifications' as Route, icon: BellIcon },
     { id: 'trading', label: t('Trading'), href: '/settings/trading' as Route, icon: CoinsIcon },
     { id: 'affiliate', label: t('Affiliate'), href: '/settings/affiliate' as Route, icon: BadgePercentIcon },
     { id: 'sdks', label: t('SDKs'), href: '/settings/sdks' as Route, icon: PackageIcon },
-    { id: 'two-factor', label: t('Two-Factor Auth'), href: '/settings/two-factor' as Route, icon: FingerprintIcon },
   ]
   const activeItem = menuItems.find(item => pathname === item.href)
   const active = activeItem?.id ?? 'profile'
