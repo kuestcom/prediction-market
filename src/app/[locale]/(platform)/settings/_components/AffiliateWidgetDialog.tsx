@@ -213,28 +213,28 @@ function useAffiliateFeeSettings(affiliateCode: string) {
       try {
         const result = await fetchAffiliateSettingsFromAPI()
         if (!result.success) {
-          return { affiliateSharePercent: null, tradeFeePercent: null }
+          return { affiliateSharePercent: null, builderTakerFeePercent: null }
         }
 
         const shareParsed = Number.parseFloat(result.data.affiliateSharePercent)
-        const feeParsed = Number.parseFloat(result.data.tradeFeePercent)
+        const feeParsed = Number.parseFloat(result.data.builderTakerFeePercent)
 
         return {
           affiliateSharePercent: Number.isFinite(shareParsed) && shareParsed > 0 ? shareParsed : null,
-          tradeFeePercent: Number.isFinite(feeParsed) && feeParsed > 0 ? feeParsed : null,
+          builderTakerFeePercent: Number.isFinite(feeParsed) && feeParsed > 0 ? feeParsed : null,
         }
       }
       catch {
-        return { affiliateSharePercent: null, tradeFeePercent: null }
+        return { affiliateSharePercent: null, builderTakerFeePercent: null }
       }
     },
   })
 
   if (!affiliateCode) {
-    return { affiliateSharePercent: null, tradeFeePercent: null }
+    return { affiliateSharePercent: null, builderTakerFeePercent: null }
   }
 
-  return feeSettingsQuery.data ?? { affiliateSharePercent: null, tradeFeePercent: null }
+  return feeSettingsQuery.data ?? { affiliateSharePercent: null, builderTakerFeePercent: null }
 }
 
 function useCategoryMarkets({
@@ -403,7 +403,7 @@ export default function AffiliateWidgetDialog({
   const { copied, setCopied } = useCopyFlashState()
   const { selectedCategory, setSelectedCategoryState } = useEmbedCategorySelection(categories)
   const siteSlug = useSiteSlug(site.name)
-  const { affiliateSharePercent, tradeFeePercent } = useAffiliateFeeSettings(affiliateCode)
+  const { affiliateSharePercent, builderTakerFeePercent } = useAffiliateFeeSettings(affiliateCode)
   const {
     data: currentMarkets = [],
     isFetching: isFetchingCategory,
@@ -461,7 +461,7 @@ export default function AffiliateWidgetDialog({
       maybeShowAffiliateToast({
         affiliateCode,
         affiliateSharePercent,
-        tradeFeePercent,
+        builderTakerFeePercent,
         siteName: site.name,
         context: 'embed',
       })

@@ -6,14 +6,16 @@ interface AffiliateInfoResponse {
   referrerAddress: `0x${string}`
   affiliateAddress: `0x${string}`
   affiliateSharePercent: number
-  tradeFeeBps: number
+  builderTakerFeeBps: number
+  builderMakerFeeBps: number
 }
 
 const DEFAULT_RESPONSE: AffiliateInfoResponse = {
   referrerAddress: ZERO_ADDRESS,
   affiliateAddress: ZERO_ADDRESS,
   affiliateSharePercent: 0,
-  tradeFeeBps: 200,
+  builderTakerFeeBps: 100,
+  builderMakerFeeBps: 0,
 }
 
 async function fetchAffiliateInfo(): Promise<AffiliateInfoResponse> {

@@ -6,9 +6,9 @@ describe('fetchAffiliateSettingsFromAPI', () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        tradeFeePercent: 1,
+        builderTakerFeePercent: 1,
+        builderMakerFeePercent: 0,
         affiliateSharePercent: 40,
-        platformSharePercent: 60,
       }),
     })
     globalThis.fetch = fetchMock as any
@@ -17,8 +17,8 @@ describe('fetchAffiliateSettingsFromAPI', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/affiliate-settings', expect.any(Object))
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.tradeFeePercent).toBe('1.00')
-      expect(result.data.tradeFeeDecimal).toBe(0.01)
+      expect(result.data.builderTakerFeePercent).toBe('1.00')
+      expect(result.data.builderTakerFeeDecimal).toBe(0.01)
       expect(result.data.affiliateShareDecimal).toBe(0.4)
     }
   })

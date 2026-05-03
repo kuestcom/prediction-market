@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { AFFILIATE_SHARE_BPS_KEY, getAffiliateFeeSettings } from '@/lib/affiliate-fee-settings'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { ZERO_ADDRESS } from '@/lib/contracts'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -19,15 +20,7 @@ export async function GET() {
     const { data: settings } = await SettingsRepository.getSettings()
     const referrerAddress = getFeeRecipientAddress(settings ?? undefined)
     const affiliateSettings = settings?.affiliate
-
-    const tradeFeeBps = (() => {
-      const raw = affiliateSettings?.trade_fee_bps?.value
-      const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN
-      if (Number.isFinite(parsed) && parsed >= 0) {
-        return parsed
-      }
-      return 100
-    })()
+    const { builderTakerFeeBps, builderMakerFeeBps } = getAffiliateFeeSettings(settings)
 
     const user = await UserRepository.getCurrentUser()
 
@@ -36,7 +29,8 @@ export async function GET() {
         referrerAddress,
         affiliateAddress: ZERO_ADDRESS,
         affiliateSharePercent: 0,
-        tradeFeeBps,
+        builderTakerFeeBps,
+        builderMakerFeeBps,
       })
     }
 
@@ -50,7 +44,7 @@ export async function GET() {
       const candidate = affiliateUser?.proxy_wallet_address || affiliateUser?.address
       if (candidate && /^0x[0-9a-fA-F]{40}$/.test(candidate)) {
         affiliateAddress = candidate as `0x${string}`
-        const shareBps = affiliateSettings?.affiliate_share_bps?.value
+        const shareBps = affiliateSettings?.[AFFILIATE_SHARE_BPS_KEY]?.value
 
         if (shareBps) {
           const parsed = Number.parseInt(shareBps, 10)
@@ -65,7 +59,8 @@ export async function GET() {
       referrerAddress,
       affiliateAddress,
       affiliateSharePercent,
-      tradeFeeBps,
+      builderTakerFeeBps,
+      builderMakerFeeBps,
     })
   }
   catch (error) {

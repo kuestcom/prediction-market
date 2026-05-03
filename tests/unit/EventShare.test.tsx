@@ -168,12 +168,14 @@ describe('eventShare', () => {
     mocks.fetchAffiliateSettingsFromAPI.mockResolvedValue({
       success: true,
       data: {
-        tradeFeePercent: '1.00',
+        builderTakerFeePercent: '1.00',
+        builderMakerFeePercent: '0.00',
         affiliateSharePercent: '40.00',
-        platformSharePercent: '60.00',
-        tradeFeeDecimal: 0.01,
+        operatorSharePercent: '60.00',
+        builderTakerFeeDecimal: 0.01,
+        builderMakerFeeDecimal: 0,
         affiliateShareDecimal: 0.4,
-        platformShareDecimal: 0.6,
+        operatorShareDecimal: 0.6,
       },
     })
 
@@ -190,7 +192,7 @@ describe('eventShare', () => {
       expect(mocks.maybeShowAffiliateToast).toHaveBeenCalledWith({
         affiliateCode: 'abc123',
         affiliateSharePercent: 40,
-        tradeFeePercent: 1,
+        builderTakerFeePercent: 1,
         siteName: 'Kuest',
         context: 'link',
       })
@@ -201,12 +203,14 @@ describe('eventShare', () => {
     mocks.fetchAffiliateSettingsFromAPI.mockResolvedValue({
       success: true,
       data: {
-        tradeFeePercent: '0.00',
+        builderTakerFeePercent: '0.00',
+        builderMakerFeePercent: '0.00',
         affiliateSharePercent: '0.00',
-        platformSharePercent: '100.00',
-        tradeFeeDecimal: 0,
+        operatorSharePercent: '100.00',
+        builderTakerFeeDecimal: 0,
+        builderMakerFeeDecimal: 0,
         affiliateShareDecimal: 0,
-        platformShareDecimal: 1,
+        operatorShareDecimal: 1,
       },
     })
 
@@ -235,12 +239,14 @@ describe('eventShare', () => {
       .mockResolvedValueOnce({
         success: true,
         data: {
-          tradeFeePercent: '1.00',
+          builderTakerFeePercent: '1.00',
+          builderMakerFeePercent: '0.00',
           affiliateSharePercent: '40.00',
-          platformSharePercent: '60.00',
-          tradeFeeDecimal: 0.01,
+          operatorSharePercent: '60.00',
+          builderTakerFeeDecimal: 0.01,
+          builderMakerFeeDecimal: 0,
           affiliateShareDecimal: 0.4,
-          platformShareDecimal: 0.6,
+          operatorShareDecimal: 0.6,
         },
       })
 
@@ -265,7 +271,7 @@ describe('eventShare', () => {
       expect(mocks.maybeShowAffiliateToast).toHaveBeenNthCalledWith(1, {
         affiliateCode: 'abc123',
         affiliateSharePercent: null,
-        tradeFeePercent: null,
+        builderTakerFeePercent: null,
         siteName: 'Kuest',
         context: 'link',
       })
@@ -278,7 +284,7 @@ describe('eventShare', () => {
       expect(mocks.maybeShowAffiliateToast).toHaveBeenNthCalledWith(2, {
         affiliateCode: 'abc123',
         affiliateSharePercent: 40,
-        tradeFeePercent: 1,
+        builderTakerFeePercent: 1,
         siteName: 'Kuest',
         context: 'link',
       })

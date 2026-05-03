@@ -1,19 +1,21 @@
 import { formatCurrency, formatPercent } from '@/lib/formatters'
 
 export interface AffiliateSettingsResponse {
-  tradeFeePercent: number
+  builderTakerFeePercent: number
+  builderMakerFeePercent: number
   affiliateSharePercent: number
-  platformSharePercent: number
   lastUpdated?: string
 }
 
 export interface FormattedAffiliateSettings {
-  tradeFeePercent: string
+  builderTakerFeePercent: string
+  builderMakerFeePercent: string
   affiliateSharePercent: string
-  platformSharePercent: string
-  tradeFeeDecimal: number
+  operatorSharePercent: string
+  builderTakerFeeDecimal: number
+  builderMakerFeeDecimal: number
   affiliateShareDecimal: number
-  platformShareDecimal: number
+  operatorShareDecimal: number
 }
 
 export interface AffiliateDataError {
@@ -42,14 +44,17 @@ export async function fetchAffiliateSettingsFromAPI(): Promise<AffiliateDataResu
     }
 
     const apiData: AffiliateSettingsResponse = await response.json()
+    const operatorSharePercent = 100 - apiData.affiliateSharePercent
 
     const formattedData: FormattedAffiliateSettings = {
-      tradeFeePercent: formatPercent(apiData.tradeFeePercent, { includeSymbol: false }),
+      builderTakerFeePercent: formatPercent(apiData.builderTakerFeePercent, { includeSymbol: false }),
+      builderMakerFeePercent: formatPercent(apiData.builderMakerFeePercent, { includeSymbol: false }),
       affiliateSharePercent: formatPercent(apiData.affiliateSharePercent, { includeSymbol: false }),
-      platformSharePercent: formatPercent(apiData.platformSharePercent, { includeSymbol: false }),
-      tradeFeeDecimal: apiData.tradeFeePercent / 100,
+      operatorSharePercent: formatPercent(operatorSharePercent, { includeSymbol: false }),
+      builderTakerFeeDecimal: apiData.builderTakerFeePercent / 100,
+      builderMakerFeeDecimal: apiData.builderMakerFeePercent / 100,
       affiliateShareDecimal: apiData.affiliateSharePercent / 100,
-      platformShareDecimal: apiData.platformSharePercent / 100,
+      operatorShareDecimal: operatorSharePercent / 100,
     }
 
     return {
@@ -76,25 +81,25 @@ export function calculateAffiliateCommission(feeAmount: number, affiliateShareDe
   return feeAmount * affiliateShareDecimal
 }
 
-export function calculatePlatformShare(feeAmount: number, platformShareDecimal: number): number {
-  return feeAmount * platformShareDecimal
+export function calculateOperatorShare(feeAmount: number, operatorShareDecimal: number): number {
+  return feeAmount * operatorShareDecimal
 }
 
 export function createFeeCalculationExample(
   tradeAmount: number,
   affiliateSettings: FormattedAffiliateSettings,
 ) {
-  const tradingFee = calculateTradingFee(tradeAmount, affiliateSettings.tradeFeeDecimal)
-  const affiliateCommission = calculateAffiliateCommission(tradingFee, affiliateSettings.affiliateShareDecimal)
-  const platformShare = calculatePlatformShare(tradingFee, affiliateSettings.platformShareDecimal)
+  const operatorTakerFee = calculateTradingFee(tradeAmount, affiliateSettings.builderTakerFeeDecimal)
+  const affiliateCommission = calculateAffiliateCommission(operatorTakerFee, affiliateSettings.affiliateShareDecimal)
+  const operatorShare = calculateOperatorShare(operatorTakerFee, affiliateSettings.operatorShareDecimal)
 
   return {
     tradeAmount: formatCurrency(tradeAmount, { includeSymbol: false }),
-    tradingFee: formatCurrency(tradingFee, { includeSymbol: false }),
+    operatorTakerFee: formatCurrency(operatorTakerFee, { includeSymbol: false }),
     affiliateCommission: formatCurrency(affiliateCommission, { includeSymbol: false }),
-    platformShare: formatCurrency(platformShare, { includeSymbol: false }),
-    tradeFeePercent: affiliateSettings.tradeFeePercent,
+    operatorShare: formatCurrency(operatorShare, { includeSymbol: false }),
+    builderTakerFeePercent: affiliateSettings.builderTakerFeePercent,
     affiliateSharePercent: affiliateSettings.affiliateSharePercent,
-    platformSharePercent: affiliateSettings.platformSharePercent,
+    operatorSharePercent: affiliateSettings.operatorSharePercent,
   }
 }

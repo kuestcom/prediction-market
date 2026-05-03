@@ -1,10 +1,12 @@
-'use cache'
-
 import { InfoIcon } from 'lucide-react'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { connection } from 'next/server'
+import { Suspense } from 'react'
 import AdminAffiliateOverview from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateOverview'
 import AdminAffiliateSettingsForm from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { getAffiliateFeeSettings, getAffiliateFeeSettingsUpdatedAt } from '@/lib/affiliate-fee-settings'
+import { fetchKuestFeeSettings } from '@/lib/clob-fees'
 import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -42,19 +44,32 @@ function formatIsoUtcFromTimestamp(timestamp: number) {
   return new Date(timestamp).toISOString()
 }
 
-export default async function AdminSettingsPage({ params }: PageProps<'/[locale]/admin/affiliate'>) {
-  const { locale } = await params
-  setRequestLocale(locale)
+function AdminAffiliateFallback() {
+  return (
+    <>
+      <section className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+        <div className="min-h-96 rounded-lg border bg-background" />
+        <div className="min-h-64 rounded-lg border bg-background" />
+      </section>
+      <div className="min-h-80 rounded-lg border bg-background" />
+    </>
+  )
+}
+
+async function AdminAffiliateContent() {
+  await connection()
   const t = await getExtracted()
 
   const [
     { data: allSettings },
     { data: overviewData },
+    kuestFeeSettings,
   ] = await Promise.all([
     SettingsRepository.getSettings(),
     AffiliateRepository.listAffiliateOverview(),
+    fetchKuestFeeSettings(),
   ])
-  const affiliateSettings = allSettings?.affiliate
+  const affiliateFeeSettings = getAffiliateFeeSettings(allSettings)
 
   const overview = (overviewData ?? []) as AffiliateOverviewRow[]
   const userIds = overview.map(row => row.affiliate_user_id)
@@ -62,16 +77,7 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
   const profiles = (profilesData ?? []) as AffiliateProfile[]
 
   let updatedAtLabel: string | undefined
-  const tradeFeeUpdatedAt = affiliateSettings?.trade_fee_bps?.updated_at
-  const shareUpdatedAt = affiliateSettings?.affiliate_share_bps?.updated_at
-  const tradeFeeUpdatedAtMs = tradeFeeUpdatedAt ? Date.parse(tradeFeeUpdatedAt) : Number.NaN
-  const shareUpdatedAtMs = shareUpdatedAt ? Date.parse(shareUpdatedAt) : Number.NaN
-  const latestUpdatedAt
-    = Number.isFinite(tradeFeeUpdatedAtMs) && Number.isFinite(shareUpdatedAtMs)
-      ? tradeFeeUpdatedAtMs > shareUpdatedAtMs
-        ? tradeFeeUpdatedAt
-        : shareUpdatedAt
-      : tradeFeeUpdatedAt || shareUpdatedAt
+  const latestUpdatedAt = getAffiliateFeeSettingsUpdatedAt(allSettings)
 
   if (latestUpdatedAt) {
     const latestUpdatedAtMs = Date.parse(latestUpdatedAt)
@@ -145,8 +151,10 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
     <>
       <section className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         <AdminAffiliateSettingsForm
-          tradeFeeBps={Number.parseInt(affiliateSettings?.trade_fee_bps?.value || '100', 10)}
-          affiliateShareBps={Number.parseInt(affiliateSettings?.affiliate_share_bps?.value || '5000', 10)}
+          builderTakerFeeBps={affiliateFeeSettings.builderTakerFeeBps}
+          builderMakerFeeBps={affiliateFeeSettings.builderMakerFeeBps}
+          affiliateShareBps={affiliateFeeSettings.affiliateShareBps}
+          kuestFeeSettings={kuestFeeSettings}
           updatedAtLabel={updatedAtLabel}
         />
         <div className="grid gap-4 rounded-lg border p-6">
@@ -187,7 +195,7 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-64 text-left">
-                    {t('Commission is taken from the builder fee at execution, not from volume.')}
+                    {t('Commission is taken from operator fees at execution, not from volume.')}
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -197,5 +205,16 @@ export default async function AdminSettingsPage({ params }: PageProps<'/[locale]
       </section>
       <AdminAffiliateOverview rows={rows} />
     </>
+  )
+}
+
+export default async function AdminSettingsPage({ params }: PageProps<'/[locale]/admin/affiliate'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
+  return (
+    <Suspense fallback={<AdminAffiliateFallback />}>
+      <AdminAffiliateContent />
+    </Suspense>
   )
 }

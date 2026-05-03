@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import SettingsSdkDownloadsContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkDownloadsContent'
+import { getAffiliateFeeSettings } from '@/lib/affiliate-fee-settings'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { getBlockedCountriesFromSettings } from '@/lib/geoblock-settings'
@@ -33,7 +34,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
 
   const { data: allSettings } = await SettingsRepository.getSettings()
   const siteUrl = resolveSiteUrl(process.env)
-  const feeBps = Number.parseInt(allSettings?.affiliate?.trade_fee_bps?.value || '100', 10)
+  const affiliateFeeSettings = getAffiliateFeeSettings(allSettings)
   const feeReceiver = allSettings?.general?.fee_recipient_wallet?.value || ''
   const geoblock = getBlockedCountriesFromSettings(allSettings ?? undefined).length > 0
 
@@ -41,7 +42,8 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
     const url = new URL('/download', SDK_DOWNLOAD_URL)
     url.searchParams.set('language', language)
     url.searchParams.set('site_url', siteUrl)
-    url.searchParams.set('fee_bps', Number.isNaN(feeBps) ? '0' : feeBps.toString())
+    url.searchParams.set('builder_taker_fee_bps', affiliateFeeSettings.builderTakerFeeBps.toString())
+    url.searchParams.set('builder_maker_fee_bps', affiliateFeeSettings.builderMakerFeeBps.toString())
     url.searchParams.set('fee_receiver', feeReceiver)
     url.searchParams.set('geoblock', geoblock ? 'true' : 'false')
     return url.toString()

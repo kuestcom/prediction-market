@@ -86,7 +86,7 @@ export default function SettingsAffiliateContent({ affiliateData, mainCategories
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-64 text-left">
-                  {t('Commission is taken from the trading fee at execution, not from volume. The exchange base fee comes out first.')}
+                  {t('Commission is taken from operator fees at execution, not from volume.')}
                 </TooltipContent>
               </Tooltip>
             </div>

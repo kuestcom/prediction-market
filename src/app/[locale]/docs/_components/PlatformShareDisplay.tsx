@@ -32,13 +32,13 @@ export function PlatformShareDisplay({
     )
   }
 
-  const platformSharePercent = data?.success
-    ? data.data.platformSharePercent
+  const operatorSharePercent = data?.success
+    ? data.data.operatorSharePercent
     : 'N/A'
 
   return (
     <span className={className}>
-      {platformSharePercent}
+      {operatorSharePercent}
       {showSymbol ? '%' : ''}
     </span>
   )

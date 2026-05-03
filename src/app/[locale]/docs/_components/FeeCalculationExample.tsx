@@ -56,10 +56,10 @@ export function FeeCalculationExample({ amount, className = '', format = 'table'
         {calculation.tradeAmount}
         {' '}
         trade: $
-        {calculation.tradingFee}
+        {calculation.operatorTakerFee}
         {' '}
-        fee (
-        {calculation.tradeFeePercent}
+        operator taker fee (
+        {calculation.builderTakerFeePercent}
         %),
         $
         {calculation.affiliateCommission}
@@ -68,10 +68,10 @@ export function FeeCalculationExample({ amount, className = '', format = 'table'
         {calculation.affiliateSharePercent}
         %),
         $
-        {calculation.platformShare}
+        {calculation.operatorShare}
         {' '}
-        platform share (
-        {calculation.platformSharePercent}
+        operator share (
+        {calculation.operatorSharePercent}
         %)
       </span>
     )
@@ -92,13 +92,13 @@ export function FeeCalculationExample({ amount, className = '', format = 'table'
             </div>
             <div className="flex justify-between">
               <span>
-                Trading Fee (
-                {calculation.tradeFeePercent}
+                Operator Taker Fee (
+                {calculation.builderTakerFeePercent}
                 %):
               </span>
               <span className="font-mono">
                 $
-                {calculation.tradingFee}
+                {calculation.operatorTakerFee}
               </span>
             </div>
             <hr className="my-2" />
@@ -115,13 +115,13 @@ export function FeeCalculationExample({ amount, className = '', format = 'table'
             </div>
             <div className="flex justify-between">
               <span>
-                Platform Share (
-                {calculation.platformSharePercent}
+                Operator Share (
+                {calculation.operatorSharePercent}
                 %):
               </span>
               <span className="font-mono text-blue-600">
                 $
-                {calculation.platformShare}
+                {calculation.operatorShare}
               </span>
             </div>
           </div>

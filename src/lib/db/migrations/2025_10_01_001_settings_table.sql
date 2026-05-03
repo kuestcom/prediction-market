@@ -45,7 +45,8 @@ EXECUTE FUNCTION set_updated_at();
 -- ===========================================
 
 INSERT INTO settings ("group", key, value)
-VALUES ('affiliate', 'trade_fee_bps', '200'),
+VALUES ('affiliate', 'builder_taker_fee_bps', '100'),
+       ('affiliate', 'builder_maker_fee_bps', '0'),
        ('affiliate', 'affiliate_share_bps', '5000')
 ON CONFLICT ("group", key) DO NOTHING;
 

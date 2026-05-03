@@ -3,30 +3,30 @@ title: Trading Fees
 description: How fees are calculated and where to verify them in the UI
 ---
 
-## Current trading fee
+## Current operator fee
 
-- Current configured rate: <strong><TradingFeeDisplay /></strong>
+- Current configured taker rate: <strong><TradingFeeDisplay /></strong>
 - Source: live affiliate settings configured by the platform admin
 - Display: fee estimate appears in the order flow before you submit
 
 <Callout type="info" title="Fee formula">
-  Trading fee (USDC) = order notional × <TradingFeeDisplay />.
+  Operator taker fee (USDC) = order notional × <TradingFeeDisplay />.
 </Callout>
 
 ## Market vs limit orders
 
-- <strong>Market orders</strong> execute immediately and apply the configured trading fee.
-- <strong>Limit orders</strong> apply fee when fills happen.
+- <strong>Market orders</strong> execute immediately and apply the configured taker fee.
+- <strong>Limit orders</strong> apply maker or taker fees when fills happen.
 - There is no guaranteed maker rebate in this platform flow unless explicitly configured.
 
 ## Affiliate split
 
 When a valid referral is attached to the order:
 
-- Affiliate receives: <strong><AffiliateShareDisplay /></strong> of trading fee
-- Platform retains: <strong><PlatformShareDisplay /></strong> of trading fee
+- Affiliate receives: <strong><AffiliateShareDisplay /></strong> of operator fee
+- Operator retains: <strong><PlatformShareDisplay /></strong> of operator fee
 
-If no referral is attached, the platform retains the full fee.
+If no referral is attached, the operator retains the full fee.
 
 <FeeCalculationExample amount={100} />
 

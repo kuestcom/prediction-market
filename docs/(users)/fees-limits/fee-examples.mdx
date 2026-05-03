@@ -5,7 +5,7 @@ description: Practical examples using the live trading-fee configuration
 
 ## Example A: market buy
 
-A $100 notional market buy applies the current fee rate of <TradingFeeDisplay />.
+A $100 notional market buy applies the current taker fee rate of <TradingFeeDisplay />.
 
 <FeeCalculationExample amount={100} />
 
@@ -18,6 +18,6 @@ If a $300 limit order fills in 3 parts, each fill is charged separately and the 
 When a referral is present, the fee is split automatically:
 
 - Affiliate share: <AffiliateShareDisplay />
-- Platform share: <PlatformShareDisplay />
+- Operator share: <PlatformShareDisplay />
 
 <FeeCalculationExample amount={300} />

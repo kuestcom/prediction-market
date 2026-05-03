@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   calculateAffiliateCommission,
-  calculatePlatformShare,
+  calculateOperatorShare,
   calculateTradingFee,
   createFeeCalculationExample,
 } from '@/lib/affiliate-data'
@@ -13,24 +13,26 @@ describe('affiliate fee calculations', () => {
     expect(fee).toBe(1)
 
     expect(calculateAffiliateCommission(fee, 0.4)).toBe(0.4)
-    expect(calculatePlatformShare(fee, 0.6)).toBe(0.6)
+    expect(calculateOperatorShare(fee, 0.6)).toBe(0.6)
   })
 
   it('builds a formatted example with consistent percents', () => {
     const example = createFeeCalculationExample(250, {
-      tradeFeePercent: '1.00',
+      builderTakerFeePercent: '1.00',
+      builderMakerFeePercent: '0.00',
       affiliateSharePercent: '40.00',
-      platformSharePercent: '60.00',
-      tradeFeeDecimal: 0.01,
+      operatorSharePercent: '60.00',
+      builderTakerFeeDecimal: 0.01,
+      builderMakerFeeDecimal: 0,
       affiliateShareDecimal: 0.4,
-      platformShareDecimal: 0.6,
+      operatorShareDecimal: 0.6,
     })
 
-    expect(example.tradeFeePercent).toBe('1.00')
+    expect(example.builderTakerFeePercent).toBe('1.00')
     expect(example.affiliateSharePercent).toBe('40.00')
-    expect(example.platformSharePercent).toBe('60.00')
-    expect(example.tradingFee).toBe('2.50')
+    expect(example.operatorSharePercent).toBe('60.00')
+    expect(example.operatorTakerFee).toBe('2.50')
     expect(example.affiliateCommission).toBe('1.00')
-    expect(example.platformShare).toBe('1.50')
+    expect(example.operatorShare).toBe('1.50')
   })
 })

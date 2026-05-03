@@ -32,13 +32,13 @@ export function TradingFeeDisplay({
     )
   }
 
-  const tradeFeePercent = data?.success
-    ? data.data.tradeFeePercent
+  const builderTakerFeePercent = data?.success
+    ? data.data.builderTakerFeePercent
     : 'N/A'
 
   return (
     <span className={className}>
-      {tradeFeePercent}
+      {builderTakerFeePercent}
       {showSymbol ? '%' : ''}
     </span>
   )

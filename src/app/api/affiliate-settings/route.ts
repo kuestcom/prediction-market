@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
+import { bpsToPercent, getAffiliateFeeSettings, getAffiliateFeeSettingsUpdatedAt } from '@/lib/affiliate-fee-settings'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 
 interface AffiliateSettingsResponse {
-  tradeFeePercent: number
+  builderTakerFeePercent: number
+  builderMakerFeePercent: number
   affiliateSharePercent: number
-  platformSharePercent: number
   lastUpdated?: string
 }
 
@@ -13,36 +14,30 @@ export async function GET() {
   try {
     const { data: settings, error } = await SettingsRepository.getSettings()
 
-    if (error || !settings?.affiliate) {
+    if (error || !settings) {
       return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
     }
 
-    const affiliateSettings = settings.affiliate
-    const tradeFeeBps = affiliateSettings.trade_fee_bps?.value
-    const affiliateShareBps = affiliateSettings.affiliate_share_bps?.value
+    const affiliateFeeSettings = getAffiliateFeeSettings(settings)
+    const builderTakerFeePercent = bpsToPercent(affiliateFeeSettings.builderTakerFeeBps)
+    const builderMakerFeePercent = bpsToPercent(affiliateFeeSettings.builderMakerFeeBps)
+    const affiliateSharePercent = bpsToPercent(affiliateFeeSettings.affiliateShareBps)
 
-    if (!tradeFeeBps || !affiliateShareBps) {
+    if (
+      Number.isNaN(builderTakerFeePercent)
+      || Number.isNaN(builderMakerFeePercent)
+      || Number.isNaN(affiliateSharePercent)
+    ) {
       return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
     }
 
-    const tradeFeePercent = Number.parseFloat(tradeFeeBps) / 100
-    const affiliateSharePercent = Number.parseFloat(affiliateShareBps) / 100
-    const platformSharePercent = 100 - affiliateSharePercent
-
-    if (Number.isNaN(tradeFeePercent) || Number.isNaN(affiliateSharePercent)) {
-      return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
-    }
-
-    const lastUpdated = Math.max(
-      new Date(affiliateSettings.trade_fee_bps?.updated_at || 0).getTime(),
-      new Date(affiliateSettings.affiliate_share_bps?.updated_at || 0).getTime(),
-    )
+    const latestUpdatedAt = getAffiliateFeeSettingsUpdatedAt(settings)
 
     const response: AffiliateSettingsResponse = {
-      tradeFeePercent,
+      builderTakerFeePercent,
+      builderMakerFeePercent,
       affiliateSharePercent,
-      platformSharePercent,
-      lastUpdated: new Date(lastUpdated).toISOString(),
+      lastUpdated: latestUpdatedAt,
     }
 
     return NextResponse.json(response, {

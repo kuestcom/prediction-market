@@ -896,47 +896,6 @@
         }
       }
     },
-    "/fee-rate": {
-      "get": {
-        "tags": [
-          "Markets"
-        ],
-        "summary": "Get fee rate",
-        "operationId": "getFeeRate",
-        "parameters": [
-          {
-            "name": "token_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token identifier to inspect."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Fee rate payload.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeeRateResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ErrorResponse"
-          },
-          "404": {
-            "$ref": "#/components/responses/ErrorResponse"
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
     "/markets": {
       "get": {
         "tags": [
@@ -1792,19 +1751,6 @@
           "neg_risk": {
             "type": "boolean",
             "description": "Whether the market is marked as negative risk."
-          }
-        }
-      },
-      "FeeRateResponse": {
-        "type": "object",
-        "required": [
-          "base_fee"
-        ],
-        "properties": {
-          "base_fee": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Base fee rate in basis points."
           }
         }
       },

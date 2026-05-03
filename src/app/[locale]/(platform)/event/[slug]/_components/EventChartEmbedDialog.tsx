@@ -59,7 +59,7 @@ interface EditorState {
 
 interface AffiliateSettingsState {
   affiliateSharePercent: number | null
-  tradeFeePercent: number | null
+  builderTakerFeePercent: number | null
 }
 
 type EmbedType = 'iframe' | 'web-component'
@@ -70,7 +70,7 @@ const IFRAME_HEIGHT_WITH_FILTERS = 440
 const IFRAME_HEIGHT_NO_CHART = 180
 const EMPTY_AFFILIATE_SETTINGS: AffiliateSettingsState = {
   affiliateSharePercent: null,
-  tradeFeePercent: null,
+  builderTakerFeePercent: null,
 }
 
 function buildMarketLabel(market: Market) {
@@ -107,11 +107,11 @@ function useAffiliateSettings(affiliateCode: string) {
 
         if (result.success) {
           const shareParsed = Number.parseFloat(result.data.affiliateSharePercent)
-          const feeParsed = Number.parseFloat(result.data.tradeFeePercent)
+          const feeParsed = Number.parseFloat(result.data.builderTakerFeePercent)
 
           setAffiliateSettings({
             affiliateSharePercent: Number.isFinite(shareParsed) && shareParsed > 0 ? shareParsed : null,
-            tradeFeePercent: Number.isFinite(feeParsed) && feeParsed > 0 ? feeParsed : null,
+            builderTakerFeePercent: Number.isFinite(feeParsed) && feeParsed > 0 ? feeParsed : null,
           })
           return
         }
@@ -131,7 +131,7 @@ function useAffiliateSettings(affiliateCode: string) {
 
   return {
     affiliateSharePercent: affiliateCode ? affiliateSettings.affiliateSharePercent : null,
-    tradeFeePercent: affiliateCode ? affiliateSettings.tradeFeePercent : null,
+    builderTakerFeePercent: affiliateCode ? affiliateSettings.builderTakerFeePercent : null,
   }
 }
 
@@ -254,7 +254,7 @@ function EventChartEmbedDialogEditor({
   const user = useUser()
   const [editorState, setEditorState] = useState(() => createInitialEditorState(markets, initialMarketId))
   const affiliateCode = user?.affiliate_code?.trim() ?? ''
-  const { affiliateSharePercent, tradeFeePercent } = useAffiliateSettings(affiliateCode)
+  const { affiliateSharePercent, builderTakerFeePercent } = useAffiliateSettings(affiliateCode)
   const {
     copied,
     embedType,
@@ -364,7 +364,7 @@ function EventChartEmbedDialogEditor({
       maybeShowAffiliateToast({
         affiliateCode,
         affiliateSharePercent,
-        tradeFeePercent,
+        builderTakerFeePercent,
         siteName: site.name,
         context: 'embed',
       })

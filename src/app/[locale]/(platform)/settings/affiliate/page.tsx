@@ -4,6 +4,7 @@ import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import SettingsAffiliateContent from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateContent'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
+import { getAffiliateFeeSettings } from '@/lib/affiliate-fee-settings'
 import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -57,7 +58,7 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
     TagRepository.getMainTags(resolvedLocale),
     feeTotalsPromise,
   ])
-  const affiliateSettings = allSettings?.affiliate
+  const affiliateFeeSettings = getAffiliateFeeSettings(allSettings)
   let totalAffiliateFees = 0
   let referredVolume = 0
 
@@ -68,9 +69,7 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
     referredVolume = baseUnitsToNumber(volumeTotal, 6)
   }
 
-  const tradeFeeBps = Number.parseInt(affiliateSettings?.trade_fee_bps?.value || '100', 10)
-  const affiliateShareBps = Number.parseInt(affiliateSettings?.affiliate_share_bps?.value || '5000', 10)
-  const commissionPercent = Number(tradeFeeBps * affiliateShareBps) / 1000000
+  const commissionPercent = Number(affiliateFeeSettings.builderTakerFeeBps * affiliateFeeSettings.affiliateShareBps) / 1000000
 
   function resolveBaseUrl() {
     const raw = process.env.SITE_URL!
