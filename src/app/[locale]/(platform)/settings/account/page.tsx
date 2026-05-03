@@ -8,9 +8,10 @@ import { UserRepository } from '@/lib/db/queries/user'
 export async function generateMetadata({ params }: PageProps<'/[locale]/settings/account'>): Promise<Metadata> {
   const { locale } = await params
   setRequestLocale(locale)
+  const t = await getExtracted()
 
   return {
-    title: 'Account',
+    title: t('Account'),
   }
 }
 
@@ -28,9 +29,9 @@ export default async function AccountSettingsPage({ params }: PageProps<'/[local
   return (
     <section className="grid gap-8">
       <div className="grid gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Account</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t('Account')}</h1>
         <p className="text-muted-foreground">
-          Manage account security and deletion settings.
+          {t('Manage account security and deletion settings.')}
         </p>
       </div>
 

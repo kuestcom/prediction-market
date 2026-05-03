@@ -20,10 +20,6 @@ vi.mock('sonner', () => ({
   },
 }))
 
-vi.mock('@/i18n/navigation', () => ({
-  usePathname: () => '/settings/account',
-}))
-
 vi.mock('@/hooks/useIsMobile', () => ({
   useIsMobile: mocks.useIsMobile,
 }))
@@ -46,6 +42,7 @@ describe('SettingsDeleteAccountContent', () => {
     mocks.useIsMobile.mockReturnValue(false)
     mocks.deleteAccountAction.mockResolvedValue({})
     mocks.signOutAndRedirect.mockResolvedValue(undefined)
+    window.history.pushState({}, 'test', '/es/settings/account')
   })
 
   it('renders delete warning copy in the confirmation surface', async () => {
@@ -87,7 +84,36 @@ describe('SettingsDeleteAccountContent', () => {
 
     await waitFor(() => {
       expect(mocks.signOutAndRedirect).toHaveBeenCalledWith({
-        currentPathname: '/settings/account',
+        currentPathname: '/es/settings/account',
+      })
+    })
+  })
+
+  it('keeps dialog controls disabled while delete action is pending', async () => {
+    const user = userEvent.setup()
+    let resolveDelete: ((value: {}) => void) | null = null
+    mocks.deleteAccountAction.mockImplementationOnce(() => (
+      new Promise((resolve) => {
+        resolveDelete = resolve as (value: {}) => void
+      })
+    ))
+
+    render(<SettingsDeleteAccountContent />)
+
+    await user.click(screen.getByRole('button', { name: 'Delete account' }))
+    await user.type(screen.getByPlaceholderText('DELETE'), 'DELETE')
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Deleting...' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Never mind' })).toBeDisabled()
+    })
+
+    resolveDelete?.({})
+
+    await waitFor(() => {
+      expect(mocks.signOutAndRedirect).toHaveBeenCalledWith({
+        currentPathname: '/es/settings/account',
       })
     })
   })

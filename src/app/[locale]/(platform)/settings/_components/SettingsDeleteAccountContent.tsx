@@ -10,7 +10,6 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, D
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { usePathname } from '@/i18n/navigation'
 import { signOutAndRedirect } from '@/lib/logout'
 
 function useDeleteAccountState() {
@@ -32,7 +31,6 @@ function useDeleteAccountState() {
 
 export default function SettingsDeleteAccountContent() {
   const t = useExtracted()
-  const pathname = usePathname()
   const isMobile = useIsMobile()
   const {
     isDialogOpen,
@@ -59,8 +57,8 @@ export default function SettingsDeleteAccountContent() {
   function handleDeleteAccount() {
     setError(null)
 
-    startTransition(() => {
-      void (async () => {
+    startTransition(async () => {
+      try {
         const result = await deleteAccountAction()
 
         if (result.error) {
@@ -70,13 +68,14 @@ export default function SettingsDeleteAccountContent() {
         }
 
         await signOutAndRedirect({
-          currentPathname: pathname,
+          currentPathname: window.location.pathname,
         })
-      })().catch(() => {
+      }
+      catch {
         const errorMessage = t('Failed to delete account. Please try again.')
         setError(errorMessage)
         toast.error(errorMessage)
-      })
+      }
     })
   }
 
