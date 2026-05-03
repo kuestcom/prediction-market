@@ -1,0 +1,94 @@
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import SettingsDeleteAccountContent from '@/app/[locale]/(platform)/settings/_components/SettingsDeleteAccountContent'
+
+const mocks = vi.hoisted(() => ({
+  deleteAccountAction: vi.fn(),
+  signOutAndRedirect: vi.fn(),
+  toastError: vi.fn(),
+  useIsMobile: vi.fn(() => false),
+}))
+
+vi.mock('next-intl', () => ({
+  useExtracted: () => (value: string) => value,
+}))
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: mocks.toastError,
+  },
+}))
+
+vi.mock('@/i18n/navigation', () => ({
+  usePathname: () => '/settings/account',
+}))
+
+vi.mock('@/hooks/useIsMobile', () => ({
+  useIsMobile: mocks.useIsMobile,
+}))
+
+vi.mock('@/app/[locale]/(platform)/settings/_actions/delete-account', () => ({
+  deleteAccountAction: () => mocks.deleteAccountAction(),
+}))
+
+vi.mock('@/lib/logout', () => ({
+  signOutAndRedirect: (args: { currentPathname: string }) => mocks.signOutAndRedirect(args),
+}))
+
+describe('SettingsDeleteAccountContent', () => {
+  beforeEach(() => {
+    mocks.deleteAccountAction.mockReset()
+    mocks.signOutAndRedirect.mockReset()
+    mocks.toastError.mockReset()
+    mocks.useIsMobile.mockReset()
+
+    mocks.useIsMobile.mockReturnValue(false)
+    mocks.deleteAccountAction.mockResolvedValue({})
+    mocks.signOutAndRedirect.mockResolvedValue(undefined)
+  })
+
+  it('renders delete warning copy in the confirmation surface', async () => {
+    const user = userEvent.setup()
+    render(<SettingsDeleteAccountContent />)
+
+    await user.click(screen.getByRole('button', { name: 'Delete account' }))
+
+    expect(screen.getByText('This will permanently delete your account. All your data will be removed and you will be logged out of all devices. This action cannot be undone.')).toBeInTheDocument()
+    expect(screen.getByText('Type DELETE to confirm')).toBeInTheDocument()
+  })
+
+  it('only triggers delete action after typing DELETE exactly', async () => {
+    const user = userEvent.setup()
+    render(<SettingsDeleteAccountContent />)
+
+    await user.click(screen.getByRole('button', { name: 'Delete account' }))
+
+    const confirmationInput = screen.getByPlaceholderText('DELETE')
+    const confirmButton = screen.getByRole('button', { name: 'Confirm' })
+
+    expect(confirmButton).toBeDisabled()
+
+    await user.click(confirmButton)
+    expect(mocks.deleteAccountAction).not.toHaveBeenCalled()
+
+    await user.type(confirmationInput, 'delete')
+    expect(confirmButton).toBeDisabled()
+
+    await user.clear(confirmationInput)
+    await user.type(confirmationInput, 'DELETE')
+    expect(confirmButton).toBeEnabled()
+
+    await user.click(confirmButton)
+
+    await waitFor(() => {
+      expect(mocks.deleteAccountAction).toHaveBeenCalledTimes(1)
+    })
+
+    await waitFor(() => {
+      expect(mocks.signOutAndRedirect).toHaveBeenCalledWith({
+        currentPathname: '/settings/account',
+      })
+    })
+  })
+})
