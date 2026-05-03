@@ -16,10 +16,30 @@ export interface ForkSettingsActionState {
   error: string | null
 }
 
+function parseRequiredPercentInput(value: unknown) {
+  if (typeof value !== 'string') {
+    return Number.NaN
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return Number.NaN
+  }
+
+  return Number(trimmed)
+}
+
+function requiredPercent(max: number) {
+  return z.preprocess(
+    parseRequiredPercentInput,
+    z.number({ error: 'Invalid input.' }).min(0).max(max),
+  )
+}
+
 const UpdateForkSettingsSchema = z.object({
-  builder_taker_fee_percent: z.coerce.number().min(0).max(9),
-  builder_maker_fee_percent: z.coerce.number().min(0).max(9),
-  affiliate_share_percent: z.coerce.number().min(0).max(100),
+  builder_taker_fee_percent: requiredPercent(9),
+  builder_maker_fee_percent: requiredPercent(9),
+  affiliate_share_percent: requiredPercent(100),
 })
 
 export async function updateForkSettingsAction(

@@ -28,6 +28,14 @@ function readNumberField(payload: unknown, key: string): number | null {
   return null
 }
 
+function hasField(payload: unknown, key: string) {
+  return Boolean(
+    payload
+    && typeof payload === 'object'
+    && Object.hasOwn(payload, key),
+  )
+}
+
 function normalizeFeeBps(value: number | null) {
   if (value === null || !Number.isFinite(value) || value < 0) {
     return null
@@ -37,9 +45,19 @@ function normalizeFeeBps(value: number | null) {
 }
 
 function parseKuestFeeSettings(payload: unknown): KuestFeeSettings {
+  const takerFeeBps = normalizeFeeBps(readNumberField(payload, 'base_fee'))
+  if (takerFeeBps === null) {
+    return {
+      takerFeeBps: null,
+      makerFeeBps: null,
+    }
+  }
+
   return {
-    takerFeeBps: normalizeFeeBps(readNumberField(payload, 'base_fee')),
-    makerFeeBps: normalizeFeeBps(readNumberField(payload, 'maker_fee')) ?? 0,
+    takerFeeBps,
+    makerFeeBps: hasField(payload, 'maker_fee')
+      ? normalizeFeeBps(readNumberField(payload, 'maker_fee'))
+      : 0,
   }
 }
 

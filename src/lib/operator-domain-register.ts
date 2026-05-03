@@ -6,8 +6,10 @@ const REQUEST_TIMEOUT_MS = 2_500
 const { resolveSiteUrl } = siteUrlUtils
 
 function isLocalHostname(hostname: string) {
-  const normalized = hostname.toLowerCase()
+  const normalized = hostname.toLowerCase().replace(/^\[(.*)\]$/, '$1')
   return LOCAL_HOSTNAMES.has(normalized)
+    || normalized === '::1'
+    || normalized === '0:0:0:0:0:0:0:1'
     || normalized.endsWith('.localhost')
     || normalized.endsWith('.local')
 }
