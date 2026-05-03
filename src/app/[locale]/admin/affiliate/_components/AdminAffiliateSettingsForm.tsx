@@ -56,8 +56,12 @@ export default function AdminAffiliateSettingsForm({
 }: AdminAffiliateSettingsFormProps) {
   const t = useExtracted()
   const { state, formAction, isPending } = useAffiliateSettingsForm()
-  const hasKuestFees = kuestFeeSettings
-    && (kuestFeeSettings.takerFeeBps !== null || kuestFeeSettings.makerFeeBps !== null)
+  const takerKuestFeeLabel = kuestFeeSettings?.takerFeeBps === null || kuestFeeSettings?.takerFeeBps === undefined
+    ? null
+    : formatBpsPercent(kuestFeeSettings.takerFeeBps)
+  const makerKuestFeeLabel = kuestFeeSettings?.makerFeeBps === null || kuestFeeSettings?.makerFeeBps === undefined
+    ? null
+    : formatBpsPercent(kuestFeeSettings.makerFeeBps)
 
   return (
     <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
@@ -88,7 +92,9 @@ export default function AdminAffiliateSettingsForm({
               disabled={isPending}
             />
             <p className="text-xs text-muted-foreground">
-              {t('Your fee on taking liquidity.')}
+              {takerKuestFeeLabel
+                ? t('Your fee plus Kuest {kuestFee}% fee.', { kuestFee: takerKuestFeeLabel })
+                : t('Kuest fees unavailable.')}
             </p>
           </div>
           <div className="grid gap-2">
@@ -104,35 +110,11 @@ export default function AdminAffiliateSettingsForm({
               disabled={isPending}
             />
             <p className="text-xs text-muted-foreground">
-              {t('Your fee on making liquidity.')}
+              {makerKuestFeeLabel
+                ? t('Your fee plus Kuest {kuestFee}% fee.', { kuestFee: makerKuestFeeLabel })
+                : t('Kuest fees unavailable.')}
             </p>
           </div>
-        </div>
-
-        <div className="grid gap-2 rounded-md bg-muted/40 p-3 text-sm">
-          <p className="font-medium">{t('Kuest fees')}</p>
-          {hasKuestFees
-            ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">{t('Taker')}</span>
-                    <span className="font-mono">
-                      {kuestFeeSettings.takerFeeBps === null ? '-' : `${formatBpsPercent(kuestFeeSettings.takerFeeBps)}%`}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">{t('Maker')}</span>
-                    <span className="font-mono">
-                      {kuestFeeSettings.makerFeeBps === null ? '-' : `${formatBpsPercent(kuestFeeSettings.makerFeeBps)}%`}
-                    </span>
-                  </div>
-                </div>
-              )
-            : (
-                <p className="text-xs text-muted-foreground">
-                  {t('Kuest fees unavailable.')}
-                </p>
-              )}
         </div>
 
         <div className="grid gap-2">

@@ -1,6 +1,6 @@
 import siteUrlUtils from '@/lib/site-url'
 
-const DEFAULT_REGISTER_ENDPOINT = 'https://kuest.com/domain-register'
+const DEFAULT_REGISTER_ENDPOINT = 'https://kuest.com/api/domain-register'
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '0.0.0.0'])
 const REQUEST_TIMEOUT_MS = 2_500
 const { resolveSiteUrl } = siteUrlUtils
@@ -51,7 +51,7 @@ export async function reportOperatorDomainSnapshot() {
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
   try {
-    await fetch(endpoint, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -62,6 +62,13 @@ export async function reportOperatorDomainSnapshot() {
       cache: 'no-store',
       signal: controller.signal,
     })
+
+    if (!response.ok) {
+      console.warn(
+        '[operator-domain-register] Failed to report domain snapshot.',
+        `status=${response.status}`,
+      )
+    }
   }
   catch (error) {
     console.warn(
