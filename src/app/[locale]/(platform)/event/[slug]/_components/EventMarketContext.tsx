@@ -191,15 +191,32 @@ function useMarketContextState(event: Event, resolvedMarketConditionId: string |
   useEffect(function typewriterAnimationEffect() {
     let isActive = true
     let animationFrame = 0
+    let contextDisplayFrame = 0
+
+    function cancelScheduledFrames() {
+      if (contextDisplayFrame) {
+        window.cancelAnimationFrame(contextDisplayFrame)
+        contextDisplayFrame = 0
+      }
+
+      if (animationFrame) {
+        window.cancelAnimationFrame(animationFrame)
+        animationFrame = 0
+      }
+    }
 
     function scheduleContextDisplay(nextContext: string, nextIsTyping: boolean) {
-      queueMicrotask(() => {
+      if (contextDisplayFrame) {
+        window.cancelAnimationFrame(contextDisplayFrame)
+      }
+
+      contextDisplayFrame = window.requestAnimationFrame(() => {
         if (!isActive) {
           return
         }
 
-        setDisplayedContext(nextContext)
-        setIsTyping(nextIsTyping)
+        setDisplayedContext(current => (current === nextContext ? current : nextContext))
+        setIsTyping(current => (current === nextIsTyping ? current : nextIsTyping))
       })
     }
 
@@ -212,6 +229,7 @@ function useMarketContextState(event: Event, resolvedMarketConditionId: string |
       scheduleContextDisplay('', false)
       return function cleanupNoContext() {
         isActive = false
+        cancelScheduledFrames()
       }
     }
 
@@ -219,12 +237,14 @@ function useMarketContextState(event: Event, resolvedMarketConditionId: string |
       scheduleContextDisplay(context, false)
       return function cleanupNotExpanded() {
         isActive = false
+        cancelScheduledFrames()
       }
     }
 
     if (hasAnimatedRef.current) {
       return function cleanupAlreadyAnimated() {
         isActive = false
+        cancelScheduledFrames()
       }
     }
 
@@ -233,6 +253,7 @@ function useMarketContextState(event: Event, resolvedMarketConditionId: string |
       hasAnimatedRef.current = true
       return function cleanupReducedMotion() {
         isActive = false
+        cancelScheduledFrames()
       }
     }
 
@@ -264,9 +285,7 @@ function useMarketContextState(event: Event, resolvedMarketConditionId: string |
 
     return function cleanupAnimation() {
       isActive = false
-      if (animationFrame) {
-        window.cancelAnimationFrame(animationFrame)
-      }
+      cancelScheduledFrames()
     }
   }, [context, isExpanded])
 
