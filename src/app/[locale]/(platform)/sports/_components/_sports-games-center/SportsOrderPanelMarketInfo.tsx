@@ -58,7 +58,7 @@ function TeamLogoBadge({
                     width={44}
                     height={44}
                     sizes="44px"
-                    className="h-[92%] w-[92%] object-contain object-center"
+                    className="size-[92%] object-contain object-center"
                   />
                 )
           )

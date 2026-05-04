@@ -81,6 +81,10 @@ function resolveProfileTitleLabel(slug: string, profileUsername: string | null |
   return slug
 }
 
+function buildFallbackChartEndDate() {
+  return new Date().toISOString()
+}
+
 export async function buildPublicProfileMetadata({
   slug,
   locale = DEFAULT_LOCALE,
@@ -152,7 +156,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
     }
 
     const snapshot = await fetchPortfolioSnapshot(normalized.value)
-    const fallbackChartEndDate = new Date().toISOString()
+    const fallbackChartEndDate = buildFallbackChartEndDate()
 
     return (
       <>
@@ -173,7 +177,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
 
   const userAddress = profile.proxy_wallet_address!
   const snapshot = await fetchPortfolioSnapshot(userAddress)
-  const fallbackChartEndDate = new Date().toISOString()
+  const fallbackChartEndDate = buildFallbackChartEndDate()
 
   return (
     <>

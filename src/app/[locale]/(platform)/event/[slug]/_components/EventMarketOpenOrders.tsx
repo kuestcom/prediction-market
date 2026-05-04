@@ -614,7 +614,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
       }
       setInfiniteScrollError(error?.message || t('Failed to load more open orders'))
     })
-  }, [fetchNextPage, t])
+  }, [fetchNextPage, setInfiniteScrollError, t])
 
   useOpenOrdersPolling({
     hasOrders,

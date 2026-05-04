@@ -636,7 +636,7 @@ export default function SportsGamesCenter({
                                       width={24}
                                       height={24}
                                       sizes="20px"
-                                      className="h-[92%] w-[92%] object-contain object-center"
+                                      className="size-[92%] object-contain object-center"
                                     />
                                   )
                             )
@@ -702,7 +702,7 @@ export default function SportsGamesCenter({
                                     width={24}
                                     height={24}
                                     sizes="20px"
-                                    className="h-[92%] w-[92%] object-contain object-center"
+                                    className="size-[92%] object-contain object-center"
                                   />
                                 )
                           )

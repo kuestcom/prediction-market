@@ -428,7 +428,7 @@ export default function EventOrderBook({
                   <button
                     type="button"
                     className={`
-                      inline-flex size-6 -translate-y-[1.5px] items-center justify-center rounded-sm
+                      inline-flex size-6 translate-y-[-1.5px] items-center justify-center rounded-sm
                       text-muted-foreground transition-colors
                       hover:bg-muted/70 hover:text-foreground
                     `}
@@ -448,7 +448,7 @@ export default function EventOrderBook({
                 <button
                   type="button"
                   className={`
-                    inline-flex size-6 -translate-y-[1.5px] items-center justify-center rounded-sm text-muted-foreground
+                    inline-flex size-6 translate-y-[-1.5px] items-center justify-center rounded-sm text-muted-foreground
                     transition-colors
                     hover:bg-muted/70 hover:text-foreground
                   `}
