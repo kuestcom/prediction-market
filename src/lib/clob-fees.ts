@@ -1,4 +1,3 @@
-import { getClobBaseUrl } from '@/lib/clob'
 import 'server-only'
 
 export interface KuestFeeSettings {
@@ -63,7 +62,7 @@ function parseKuestFeeSettings(payload: unknown): KuestFeeSettings {
 
 export async function fetchKuestFeeSettings(): Promise<KuestFeeSettings | null> {
   try {
-    const response = await fetch(`${getClobBaseUrl()}${CLOB_FEE_RATE_PATH}`, {
+    const response = await fetch(`${process.env.CLOB_URL}${CLOB_FEE_RATE_PATH}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json',
