@@ -1,7 +1,8 @@
 import type { Address, TypedDataDomain } from 'viem'
 import { createPublicClient, http } from 'viem'
-import { defaultNetwork } from '@/lib/appkit'
 import { SAFE_PROXY_FACTORY_ADDRESS, ZERO_ADDRESS } from '@/lib/contracts'
+import { DEFAULT_CHAIN_ID } from '@/lib/network'
+import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 
 export const SAFE_PROXY_DOMAIN_NAME = 'Contract Proxy Factory'
 export const SAFE_PROXY_PRIMARY_TYPE = 'CreateProxy'
@@ -38,8 +39,8 @@ function getSafeProxyClient() {
   }
 
   client = createPublicClient({
-    chain: defaultNetwork,
-    transport: http(defaultNetwork.rpcUrls.default.http[0]),
+    chain: defaultViemNetwork,
+    transport: http(defaultViemRpcUrl),
   })
 
   return client
@@ -48,7 +49,7 @@ function getSafeProxyClient() {
 export function getSafeProxyDomain(): TypedDataDomain {
   return {
     name: SAFE_PROXY_DOMAIN_NAME,
-    chainId: defaultNetwork.id,
+    chainId: DEFAULT_CHAIN_ID,
     verifyingContract: SAFE_PROXY_FACTORY_ADDRESS,
   }
 }

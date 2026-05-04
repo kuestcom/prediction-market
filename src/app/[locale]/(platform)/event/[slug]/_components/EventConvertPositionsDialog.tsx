@@ -32,9 +32,9 @@ import { Input } from '@/components/ui/input'
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_ERROR_MESSAGE, MICRO_UNIT } from '@/lib/constants'
 import { formatAmountInputValue, formatCurrency, formatSharesLabel } from '@/lib/formatters'
+import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { applyPositionDeltasToUserPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import {
   aggregateSafeTransactions,
@@ -368,7 +368,7 @@ function EventConvertPositionsDialogContent({
 
       const aggregated = aggregateSafeTransactions(transactions)
       const typedData = getSafeTxTypedData({
-        chainId: defaultNetwork.id,
+        chainId: DEFAULT_CHAIN_ID,
         safeAddress: user.proxy_wallet_address as `0x${string}`,
         transaction: aggregated,
         nonce: nonceResult.nonce,

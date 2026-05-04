@@ -3,9 +3,9 @@ import { useAppKitAccount } from '@reown/appkit/react'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { createPublicClient, formatUnits, getContract, http } from 'viem'
-import { defaultNetwork } from '@/lib/appkit'
 import { NATIVE_USDC_TOKEN_ADDRESS } from '@/lib/contracts'
 import { IS_TEST_MODE } from '@/lib/network'
+import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 import { normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
 
@@ -39,15 +39,12 @@ export function usePendingUsdcDeposit(options: UsePendingUsdcDepositOptions = {}
   const { isConnected } = useAppKitAccount()
   const user = useUser()
 
-  const rpcUrl = useMemo(
-    () => defaultNetwork.rpcUrls.default.http[0],
-    [],
-  )
+  const rpcUrl = useMemo(() => defaultViemRpcUrl, [])
 
   const client = useMemo(
     () =>
       createPublicClient({
-        chain: defaultNetwork,
+        chain: defaultViemNetwork,
         transport: http(rpcUrl),
       }),
     [rpcUrl],

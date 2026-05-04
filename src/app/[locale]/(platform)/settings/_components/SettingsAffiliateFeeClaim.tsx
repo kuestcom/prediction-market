@@ -11,10 +11,10 @@ import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/Tradi
 import { Button } from '@/components/ui/button'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS } from '@/lib/contracts'
 import { formatCurrency } from '@/lib/formatters'
+import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import {
   aggregateSafeTransactions,
   buildClaimFeesTransactions,
@@ -123,7 +123,7 @@ export default function SettingsAffiliateFeeClaim() {
 
     const aggregated = aggregateSafeTransactions(buildClaimFeesTransactions({ exchanges }))
     const typedData = getSafeTxTypedData({
-      chainId: defaultNetwork.id,
+      chainId: DEFAULT_CHAIN_ID,
       safeAddress: proxyWalletAddress,
       transaction: aggregated,
       nonce: nonceResult.nonce,

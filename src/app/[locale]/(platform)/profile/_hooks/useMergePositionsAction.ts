@@ -12,10 +12,10 @@ import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/
 import { fetchLockedSharesByCondition } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_CONDITION_PARTITION, DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UMA_NEG_RISK_ADAPTER_ADDRESS, ZERO_COLLECTION_ID } from '@/lib/contracts'
 import { toMicro } from '@/lib/formatters'
+import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { applyConditionReductionsToPublicPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { aggregateSafeTransactions, buildMergePositionTransaction, getSafeTxTypedData, packSafeSignature } from '@/lib/safe/transactions'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
@@ -145,7 +145,7 @@ export function useMergePositionsAction({
 
       const aggregated = aggregateSafeTransactions(transactions)
       const typedData = getSafeTxTypedData({
-        chainId: defaultNetwork.id,
+        chainId: DEFAULT_CHAIN_ID,
         safeAddress: user.proxy_wallet_address as `0x${string}`,
         transaction: aggregated,
         nonce: nonceResult.nonce,

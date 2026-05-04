@@ -1,5 +1,5 @@
 import { createPublicClient, http } from 'viem'
-import { defaultNetwork } from '@/lib/appkit'
+import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 
 const exchangeReferralAbi = [
   {
@@ -21,8 +21,8 @@ let exchangeClient: ReturnType<typeof createPublicClient> | null = null
 function getExchangeClient() {
   if (!exchangeClient) {
     exchangeClient = createPublicClient({
-      chain: defaultNetwork,
-      transport: http(defaultNetwork.rpcUrls.default.http[0]),
+      chain: defaultViemNetwork,
+      transport: http(defaultViemRpcUrl),
     })
   }
   return exchangeClient

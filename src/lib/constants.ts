@@ -1,5 +1,5 @@
-import { defaultNetwork } from '@/lib/appkit'
 import { CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS } from '@/lib/contracts'
+import { DEFAULT_CHAIN_ID } from '@/lib/network'
 
 export const DEFAULT_ERROR_MESSAGE = 'Internal server error. Try again in a few moments.'
 export const IS_BROWSER = typeof window !== 'undefined'
@@ -33,14 +33,14 @@ export const MICRO_UNIT = 1_000_000
 export const EIP712_DOMAIN = {
   name: 'CTF Exchange',
   version: '2',
-  chainId: defaultNetwork.id,
+  chainId: DEFAULT_CHAIN_ID,
   verifyingContract: CTF_EXCHANGE_ADDRESS,
 } as const
 
 export const NEG_RISK_EIP712_DOMAIN = {
   name: 'CTF Exchange',
   version: '2',
-  chainId: defaultNetwork.id,
+  chainId: DEFAULT_CHAIN_ID,
   verifyingContract: NEG_RISK_CTF_EXCHANGE_ADDRESS,
 } as const
 

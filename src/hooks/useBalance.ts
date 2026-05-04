@@ -2,8 +2,8 @@ import type { Address, PublicClient } from 'viem'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { createPublicClient, getContract, http } from 'viem'
-import { defaultNetwork } from '@/lib/appkit'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
+import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 import { normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
 
@@ -32,14 +32,14 @@ interface UseBalanceOptions {
   enabled?: boolean
 }
 
-const RPC_URL = defaultNetwork.rpcUrls.default.http[0]
+const RPC_URL = defaultViemRpcUrl
 
 export function useBalance(options: UseBalanceOptions = {}) {
   const user = useUser()
 
   const client = useMemo<PublicClient>(() => {
     return createPublicClient({
-      chain: defaultNetwork,
+      chain: defaultViemNetwork,
       transport: http(RPC_URL),
     })
   }, [])

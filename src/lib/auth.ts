@@ -9,9 +9,9 @@ import { nextCookies } from 'better-auth/next-js'
 import { customSession, siwe, twoFactor } from 'better-auth/plugins'
 import { createPublicClient, http } from 'viem'
 import { isAdminWallet } from '@/lib/admin'
-import { projectId } from '@/lib/appkit'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { db } from '@/lib/drizzle'
+import { reownProjectId } from '@/lib/reown-project-id'
 import siteUrlUtils from '@/lib/site-url'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { DEFAULT_THEME_SITE_NAME } from '@/lib/theme-site-identity'
@@ -251,7 +251,7 @@ export const auth = betterAuth({
         const publicClient = createPublicClient(
           {
             transport: http(
-              `https://rpc.walletconnect.org/v1/?chainId=${chainId}&projectId=${projectId}`,
+              `https://rpc.walletconnect.org/v1/?chainId=${chainId}&projectId=${reownProjectId}`,
             ),
           },
         )

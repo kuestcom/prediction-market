@@ -29,10 +29,10 @@ import { Input } from '@/components/ui/input'
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_CONDITION_PARTITION, DEFAULT_ERROR_MESSAGE, MICRO_UNIT } from '@/lib/constants'
 import { UMA_NEG_RISK_ADAPTER_ADDRESS, ZERO_COLLECTION_ID } from '@/lib/contracts'
 import { formatAmountInputValue, toMicro } from '@/lib/formatters'
+import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { applyPositionDeltasToUserPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import {
   aggregateSafeTransactions,
@@ -217,7 +217,7 @@ export default function EventMergeSharesDialog({
 
       const aggregated = aggregateSafeTransactions(transactions)
       const typedData = getSafeTxTypedData({
-        chainId: defaultNetwork.id,
+        chainId: DEFAULT_CHAIN_ID,
         safeAddress: user.proxy_wallet_address as `0x${string}`,
         transaction: aggregated,
         nonce: nonceResult.nonce,

@@ -15,10 +15,10 @@ import { useLiFiWalletUsdBalance } from '@/hooks/useLiFiWalletUsdBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { MAX_AMOUNT_INPUT } from '@/lib/amount-input'
-import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { formatAmountInputValue } from '@/lib/formatters'
+import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { buildSendErc20Transaction, getSafeTxTypedData, packSafeSignature } from '@/lib/safe/transactions'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 
@@ -181,7 +181,7 @@ function useWalletSendHandler({
       })
 
       const typedData = getSafeTxTypedData({
-        chainId: defaultNetwork.id,
+        chainId: DEFAULT_CHAIN_ID,
         safeAddress: user.proxy_wallet_address as `0x${string}`,
         transaction,
         nonce: nonceResult.nonce,

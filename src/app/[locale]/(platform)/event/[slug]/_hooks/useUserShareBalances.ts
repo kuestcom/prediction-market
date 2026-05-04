@@ -2,9 +2,9 @@ import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { createPublicClient, erc1155Abi, http } from 'viem'
-import { defaultNetwork } from '@/lib/appkit'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { CONDITIONAL_TOKENS_CONTRACT } from '@/lib/contracts'
+import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 
 export interface SharesByCondition {
   [conditionId: string]: {
@@ -28,12 +28,12 @@ function normalizeSharesFromBalance(balance: bigint): number {
 }
 
 export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalancesOptions) {
-  const rpcUrl = useMemo(() => defaultNetwork.rpcUrls.default.http[0], [])
+  const rpcUrl = useMemo(() => defaultViemRpcUrl, [])
 
   const client = useMemo(
     () =>
       createPublicClient({
-        chain: defaultNetwork,
+        chain: defaultViemNetwork,
         transport: http(rpcUrl),
       }),
     [rpcUrl],

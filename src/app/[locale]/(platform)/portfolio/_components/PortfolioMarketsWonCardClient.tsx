@@ -25,9 +25,9 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
-import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
+import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { removeClaimedPublicPositions, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import {
@@ -244,7 +244,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
       const aggregated = aggregateSafeTransactions(transactions)
       const typedData = getSafeTxTypedData({
-        chainId: defaultNetwork.id,
+        chainId: DEFAULT_CHAIN_ID,
         safeAddress: user.proxy_wallet_address as `0x${string}`,
         transaction: aggregated,
         nonce: nonceResult.nonce,

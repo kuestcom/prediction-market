@@ -14,10 +14,9 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { usePendingUsdcDeposit } from '@/hooks/usePendingUsdcDeposit'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useRouter } from '@/i18n/navigation'
-import { defaultNetwork } from '@/lib/appkit'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
-import { IS_TEST_MODE } from '@/lib/network'
+import { DEFAULT_CHAIN_ID, IS_TEST_MODE } from '@/lib/network'
 import { getSafeTxTypedData, packSafeSignature } from '@/lib/safe/transactions'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { triggerConfettiColorful } from '@/lib/utils'
@@ -138,7 +137,7 @@ function usePendingDepositSwap({
 
       const { transaction, nonce, signatureParams } = buildResult.payload
       const typedData = getSafeTxTypedData({
-        chainId: defaultNetwork.id,
+        chainId: DEFAULT_CHAIN_ID,
         safeAddress: userProxyWalletAddress as `0x${string}`,
         transaction: {
           to: transaction.to as `0x${string}`,

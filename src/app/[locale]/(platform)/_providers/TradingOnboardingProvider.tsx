@@ -13,7 +13,6 @@ import { generateTradingAuthAction } from '@/app/[locale]/(platform)/_actions/tr
 import TradingOnboardingDialogs from '@/app/[locale]/(platform)/_components/TradingOnboardingDialogs'
 import {
   TradingOnboardingContext,
-
   useOptionalTradingOnboarding,
   useTradingOnboarding,
 } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
@@ -21,7 +20,6 @@ import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useProxyWalletPolling } from '@/hooks/useProxyWalletPolling'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { defaultNetwork } from '@/lib/appkit'
 import { authClient } from '@/lib/auth-client'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import {
@@ -31,6 +29,7 @@ import {
   UMA_NEG_RISK_ADAPTER_ADDRESS,
 } from '@/lib/contracts'
 import { fetchReferralLocked } from '@/lib/exchange'
+import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import {
   getSafeProxyDomain,
   SAFE_PROXY_CREATE_PROXY_MESSAGE,
@@ -559,7 +558,7 @@ function useTokenApprovalsFlow({
       )
       const aggregated = aggregateSafeTransactions(transactions)
       const typedData = getSafeTxTypedData({
-        chainId: defaultNetwork.id,
+        chainId: DEFAULT_CHAIN_ID,
         safeAddress: user.proxy_wallet_address as `0x${string}`,
         transaction: aggregated,
         nonce: nonceResult.nonce,

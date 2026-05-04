@@ -99,7 +99,6 @@ import {
   isSportsMainCategory,
   resolveAdminSportsMarketTypeOption,
 } from '@/lib/admin-sports-create'
-import { defaultNetwork } from '@/lib/appkit'
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import {
   addRecurrenceInterval,
@@ -117,6 +116,7 @@ import {
 } from '@/lib/event-creation'
 import { AMOY_CHAIN_ID } from '@/lib/network'
 import { cn } from '@/lib/utils'
+import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
 import {
   APPROVE_GAS_UNITS_ESTIMATE,
@@ -2784,8 +2784,8 @@ function useAdminCreateEventForm({
       }
 
       const client = createPublicClient({
-        chain: defaultNetwork,
-        transport: http(defaultNetwork.rpcUrls.default.http[0]),
+        chain: defaultViemNetwork,
+        transport: http(defaultViemRpcUrl),
       })
 
       const balanceRaw = await client.readContract({
@@ -2824,8 +2824,8 @@ function useAdminCreateEventForm({
       }
 
       const client = publicClient ?? createPublicClient({
-        chain: defaultNetwork,
-        transport: http(defaultNetwork.rpcUrls.default.http[0]),
+        chain: defaultViemNetwork,
+        transport: http(defaultViemRpcUrl),
       })
 
       const [balanceRaw, feeEstimate] = await Promise.all([
