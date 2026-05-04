@@ -56,20 +56,6 @@ function useOpenOrdersQueryKeys({
   return { openOrdersQueryKey, eventOpenOrdersQueryKey }
 }
 
-function useClearInfiniteScrollErrorOnMarketChange({
-  conditionId,
-  eventSlug,
-  clearError,
-}: {
-  conditionId?: string
-  eventSlug: string
-  clearError: () => void
-}) {
-  useEffect(function clearInfiniteScrollErrorOnMarketChange() {
-    queueMicrotask(clearError)
-  }, [conditionId, eventSlug, clearError])
-}
-
 function useOpenOrdersPolling({
   hasOrders,
   queryClient,
@@ -544,19 +530,31 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
   const queryClient = useQueryClient()
   const { openTradeRequirements } = useTradingOnboarding()
   const isSingleMarket = useIsSingleMarket()
-  const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
+  const [infiniteScrollErrorState, setInfiniteScrollErrorState] = useState<{
+    conditionId: string | undefined
+    eventSlug: string
+    error: string | null
+  }>({
+    conditionId: market.condition_id,
+    eventSlug,
+    error: null,
+  })
   const [isCancelAllDialogOpen, setIsCancelAllDialogOpen] = useState(false)
   const [sortState, setSortState] = useState<{ column: SortColumn, direction: SortDirection } | null>(null)
 
-  const clearInfiniteScrollError = useCallback(function clearInfiniteScrollError() {
-    setInfiniteScrollError(null)
-  }, [])
-
-  useClearInfiniteScrollErrorOnMarketChange({
-    conditionId: market.condition_id,
-    eventSlug,
-    clearError: clearInfiniteScrollError,
-  })
+  const infiniteScrollError = (
+    infiniteScrollErrorState.conditionId === market.condition_id
+    && infiniteScrollErrorState.eventSlug === eventSlug
+  )
+    ? infiniteScrollErrorState.error
+    : null
+  const setInfiniteScrollError = useCallback((value: string | null) => {
+    setInfiniteScrollErrorState({
+      conditionId: market.condition_id,
+      eventSlug,
+      error: value,
+    })
+  }, [eventSlug, market.condition_id])
 
   const { openOrdersQueryKey, eventOpenOrdersQueryKey } = useOpenOrdersQueryKeys({
     userId: user?.id,
