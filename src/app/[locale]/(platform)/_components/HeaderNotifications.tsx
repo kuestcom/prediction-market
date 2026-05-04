@@ -96,7 +96,7 @@ function useLoadNotificationsOnMount() {
   const setNotifications = useNotifications(state => state.setNotifications)
 
   useEffect(function loadNotificationsOnMount() {
-    queueMicrotask(() => setNotifications())
+    void setNotifications()
   }, [setNotifications])
 }
 
@@ -126,9 +126,7 @@ export default function HeaderNotifications() {
       window.open(notification.link_url, '_blank', 'noopener,noreferrer')
     }
 
-    queueMicrotask(() => {
-      void removeNotification(notification.id)
-    })
+    void removeNotification(notification.id)
   }
 
   return (

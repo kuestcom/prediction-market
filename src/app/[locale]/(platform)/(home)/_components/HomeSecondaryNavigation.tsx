@@ -106,10 +106,14 @@ function useTagNavigation({ tagItems, resolvedActiveSubtagSlug }: UseTagNavigati
       cancelIndicatorRetry()
 
       const { offsetLeft, offsetWidth } = activeButton
-      queueMicrotask(() => {
-        setIndicatorStyle({ left: offsetLeft, width: offsetWidth })
-        setIndicatorReady(true)
+      setIndicatorStyle((current) => {
+        if (current.left === offsetLeft && current.width === offsetWidth) {
+          return current
+        }
+
+        return { left: offsetLeft, width: offsetWidth }
       })
+      setIndicatorReady(current => current || true)
     }
 
     applyIndicatorPosition()
