@@ -1,6 +1,6 @@
-import type { MutableRefObject } from 'react'
+import type { RefObject } from 'react'
 import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { INITIAL_REVEAL_DURATION, runRevealAnimation, stopRevealAnimation } from '@/lib/prediction-chart'
 import { areSeriesKeyListsEqual } from '@/lib/prediction-chart-helpers'
 
@@ -12,9 +12,9 @@ export function usePredictionChartAnimation(params: {
   series: SeriesConfig[]
   disableResetAnimation: boolean
   tooltipActive: boolean
-  lastDataUpdateTypeRef: MutableRefObject<'reset' | 'append' | 'none'>
-  previousDataRef: MutableRefObject<DataPoint[] | null>
-  seriesPathRef: MutableRefObject<Record<string, SVGPathElement | null>>
+  lastDataUpdateTypeRef: RefObject<'reset' | 'append' | 'none'>
+  previousDataRef: RefObject<DataPoint[] | null>
+  seriesPathRef: RefObject<Record<string, SVGPathElement | null>>
 }) {
   const {
     data,
@@ -39,6 +39,22 @@ export function usePredictionChartAnimation(params: {
   const previousSeriesKeysRef = useRef<string[]>([])
   const hasPointerInteractionRef = useRef(false)
   const lastCursorProgressRef = useRef(0)
+  const scheduledStateFrameIdsRef = useRef<Set<number>>(new Set())
+
+  const cancelScheduledStateUpdates = useCallback(function cancelScheduledStateUpdates() {
+    scheduledStateFrameIdsRef.current.forEach((frameId) => {
+      window.cancelAnimationFrame(frameId)
+    })
+    scheduledStateFrameIdsRef.current.clear()
+  }, [])
+
+  const scheduleStateUpdate = useCallback(function scheduleStateUpdate(applyUpdate: () => void) {
+    const frameId = window.requestAnimationFrame(() => {
+      scheduledStateFrameIdsRef.current.delete(frameId)
+      applyUpdate()
+    })
+    scheduledStateFrameIdsRef.current.add(frameId)
+  }, [])
 
   useLayoutEffect(
     function cleanupRevealAnimation() {
@@ -66,12 +82,20 @@ export function usePredictionChartAnimation(params: {
     }
   }, [])
 
+  useLayoutEffect(function cleanupScheduledStateUpdates() {
+    return function cancelScheduledStateUpdatesOnUnmount() {
+      cancelScheduledStateUpdates()
+    }
+  }, [cancelScheduledStateUpdates])
+
   useLayoutEffect(function orchestrateAnimations() {
+    cancelScheduledStateUpdates()
+
     if (data.length === 0) {
       stopRevealAnimation(revealAnimationFrameRef)
       stopRevealAnimation(crossFadeFrameRef)
       surgePendingRef.current = false
-      queueMicrotask(() => {
+      scheduleStateUpdate(() => {
         setRevealProgress(0)
         setCrossFadeProgress(1)
         setCrossFadeData(null)
@@ -102,7 +126,7 @@ export function usePredictionChartAnimation(params: {
     const shouldPartialReveal = seriesChanged && addedSeries.length > 0 && hasPreviousSeries
     const nextRevealSeries = currentSeriesKeys
 
-    queueMicrotask(() => {
+    scheduleStateUpdate(() => {
       setRevealSeriesKeys((previousKeys) => {
         if (areSeriesKeyListsEqual(previousKeys, nextRevealSeries)) {
           return previousKeys
@@ -125,7 +149,7 @@ export function usePredictionChartAnimation(params: {
       hasPointerInteractionRef.current = false
       lastCursorProgressRef.current = 0
       stopRevealAnimation(revealAnimationFrameRef)
-      queueMicrotask(() => {
+      scheduleStateUpdate(() => {
         setRevealProgress(1)
         setCrossFadeData(previousData)
       })
@@ -139,7 +163,7 @@ export function usePredictionChartAnimation(params: {
     }
     else {
       stopRevealAnimation(crossFadeFrameRef)
-      queueMicrotask(() => {
+      scheduleStateUpdate(() => {
         setCrossFadeProgress(1)
         setCrossFadeData(null)
       })
@@ -157,7 +181,7 @@ export function usePredictionChartAnimation(params: {
       }
       else {
         stopRevealAnimation(revealAnimationFrameRef)
-        queueMicrotask(() => {
+        scheduleStateUpdate(() => {
           setRevealProgress(1)
         })
       }
@@ -165,15 +189,25 @@ export function usePredictionChartAnimation(params: {
 
     lastDataUpdateTypeRef.current = 'none'
     previousDataRef.current = data
-  }, [data, series, revealAnimationFrameRef, crossFadeFrameRef, disableResetAnimation, lastDataUpdateTypeRef, previousDataRef])
+  }, [
+    data,
+    series,
+    revealAnimationFrameRef,
+    crossFadeFrameRef,
+    disableResetAnimation,
+    lastDataUpdateTypeRef,
+    previousDataRef,
+    cancelScheduledStateUpdates,
+    scheduleStateUpdate,
+  ])
 
   useLayoutEffect(function clearFinishedCrossFade() {
     if (crossFadeData && crossFadeProgress >= 0.999) {
-      queueMicrotask(() => {
+      scheduleStateUpdate(() => {
         setCrossFadeData(null)
       })
     }
-  }, [crossFadeData, crossFadeProgress])
+  }, [crossFadeData, crossFadeProgress, scheduleStateUpdate])
 
   const crossFadeAnimating = Boolean(crossFadeData && crossFadeProgress < 0.999)
   const revealSeriesSet = useMemo(() => new Set(revealSeriesKeys), [revealSeriesKeys])
@@ -205,7 +239,7 @@ export function usePredictionChartAnimation(params: {
       return
     }
 
-    queueMicrotask(() => {
+    scheduleStateUpdate(() => {
       setSurgeLengths(nextLengths)
       setSurgeActive(true)
     })
@@ -217,7 +251,7 @@ export function usePredictionChartAnimation(params: {
     surgeTimeoutRef.current = window.setTimeout(() => {
       setSurgeActive(false)
     }, SURGE_DURATION)
-  }, [revealProgress, crossFadeAnimating, tooltipActive, data.length, series, revealSeriesKeys, seriesPathRef])
+  }, [revealProgress, crossFadeAnimating, tooltipActive, data.length, series, revealSeriesKeys, seriesPathRef, scheduleStateUpdate])
 
   return {
     revealProgress,
