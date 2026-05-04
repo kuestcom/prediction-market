@@ -5,7 +5,7 @@ import { polygon, polygonAmoy } from '@reown/appkit/networks'
 import { DEFAULT_NETWORK_KEY } from '@/lib/network'
 import { reownProjectId } from '@/lib/reown-project-id'
 
-export const projectId = reownProjectId
+const projectId = reownProjectId
 
 const APPKIT_NETWORKS_BY_KEY = {
   amoy: polygonAmoy,
