@@ -1,4 +1,4 @@
-import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
+import type { Dispatch, RefObject, SetStateAction } from 'react'
 import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
 
 export const DEFAULT_X_AXIS_TICKS = 6
@@ -66,11 +66,11 @@ interface RevealAnimationOptions {
   from: number
   to: number
   duration?: number
-  frameRef: MutableRefObject<number | null>
+  frameRef: RefObject<number | null>
   setProgress: Dispatch<SetStateAction<number>>
 }
 
-export function stopRevealAnimation(frameRef: MutableRefObject<number | null>) {
+export function stopRevealAnimation(frameRef: RefObject<number | null>) {
   if (frameRef.current !== null) {
     cancelAnimationFrame(frameRef.current)
     frameRef.current = null

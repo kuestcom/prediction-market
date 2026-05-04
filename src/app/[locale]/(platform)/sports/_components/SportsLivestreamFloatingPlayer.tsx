@@ -1,6 +1,6 @@
 'use client'
 
-import type { MutableRefObject } from 'react'
+import type { RefObject } from 'react'
 import { ExternalLinkIcon, GripVerticalIcon, RadioIcon, XIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { resolveLivestreamEmbedTarget } from '@/lib/livestream-embed'
@@ -39,7 +39,7 @@ function useResizablePlayerWidth(): {
   minWidth: number
   maxWidth: number
   setRequestedWidth: (value: number) => void
-  dragCleanupRef: MutableRefObject<(() => void) | null>
+  dragCleanupRef: RefObject<(() => void) | null>
 } {
   const viewportWidth = useSyncExternalStore(
     subscribeToViewportWidth,
