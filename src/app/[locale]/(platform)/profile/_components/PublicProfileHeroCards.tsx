@@ -120,6 +120,7 @@ function usePnlSeries({
 function usePnlTimeframeIndicator(activeTimeframe: (typeof PNL_TIMEFRAMES)[number]) {
   const timeRangeContainerRef = useRef<HTMLDivElement | null>(null)
   const timeRangeRef = useRef<(HTMLButtonElement | null)[]>([])
+  const indicatorFrameRef = useRef<number | null>(null)
   const [timeRangeIndicator, setTimeRangeIndicator] = useReducer(
     (_current: { width: number, left: number }, next: { width: number, left: number }) => next,
     { width: 0, left: 0 },
@@ -128,6 +129,13 @@ function usePnlTimeframeIndicator(activeTimeframe: (typeof PNL_TIMEFRAMES)[numbe
     (_current: boolean, next: boolean) => next,
     false,
   )
+
+  const cancelQueuedIndicatorFrame = useCallback(() => {
+    if (indicatorFrameRef.current != null) {
+      window.cancelAnimationFrame(indicatorFrameRef.current)
+      indicatorFrameRef.current = null
+    }
+  }, [])
 
   const updateIndicator = useCallback(() => {
     const activeIndex = PNL_TIMEFRAMES.findIndex(range => range === activeTimeframe)
@@ -138,23 +146,30 @@ function usePnlTimeframeIndicator(activeTimeframe: (typeof PNL_TIMEFRAMES)[numbe
     }
 
     const { offsetLeft, offsetWidth } = activeButton
-    queueMicrotask(() => {
+    cancelQueuedIndicatorFrame()
+    indicatorFrameRef.current = window.requestAnimationFrame(() => {
+      indicatorFrameRef.current = null
       setTimeRangeIndicator({ left: offsetLeft, width: offsetWidth })
       setTimeRangeIndicatorReady(true)
     })
-  }, [activeTimeframe])
+  }, [activeTimeframe, cancelQueuedIndicatorFrame])
 
   useLayoutEffect(function runIndicatorLayoutSync() {
     updateIndicator()
-  }, [updateIndicator])
+
+    return function cleanupIndicatorLayoutSync() {
+      cancelQueuedIndicatorFrame()
+    }
+  }, [cancelQueuedIndicatorFrame, updateIndicator])
 
   useEffect(function bindIndicatorResizeListener() {
     updateIndicator()
     window.addEventListener('resize', updateIndicator)
     return function unbindIndicatorResizeListener() {
       window.removeEventListener('resize', updateIndicator)
+      cancelQueuedIndicatorFrame()
     }
-  }, [updateIndicator])
+  }, [cancelQueuedIndicatorFrame, updateIndicator])
 
   return {
     timeRangeContainerRef,
