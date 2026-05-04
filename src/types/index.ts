@@ -360,20 +360,6 @@ export interface ActivityOrder {
   tx_hash?: string
 }
 
-export interface TopHolder {
-  user: {
-    id: string
-    username: string
-    address: string
-    proxy_wallet_address?: string | null
-    image: string
-    created_at?: string
-  }
-  net_position: string
-  outcome_index: number
-  outcome_text: string
-}
-
 export type OrderSide = 0 | 1 // 0 = BUY, 1 = SELL
 export type OrderType = 'MARKET' | 'LIMIT'
 export type ClobOrderType = 'FOK' | 'FAK' | 'GTC' | 'GTD'
@@ -474,19 +460,4 @@ export interface UserPosition {
   opposite_outcome_text?: string
   order_count: number
   last_activity_at: string
-}
-
-export interface PublicActivity {
-  id: string
-  title: string
-  slug: string
-  eventSlug: string
-  icon?: string
-  type: string
-  outcomeText?: string
-  price?: number
-  shares?: number
-  usdcValue: number
-  timestamp: number
-  txHash?: string
 }

@@ -1,8 +1,7 @@
 'use client'
 
 import type { EventCardSportsMoneylineProps } from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
-import type { Market } from '@/types'
-import type { EventCardProps } from '@/types/EventCardTypes'
+import type { Event, Market } from '@/types'
 import dynamic from 'next/dynamic'
 import { useMemo } from 'react'
 import EventCardFooter from '@/app/[locale]/(platform)/(home)/_components/EventCardFooter'
@@ -79,6 +78,13 @@ function useResolvedOutcomeIndexByConditionId({
         .filter((entry): entry is readonly [string, 0 | 1] => entry != null),
     )
   }, [canUseXTrackerResolvedOutcomes, event.markets, isResolvedEvent, totalCount])
+}
+
+interface EventCardProps {
+  event: Event
+  priceOverridesByMarket?: Record<string, number>
+  enableHomeSportsMoneylineLayout?: boolean
+  currentTimestamp?: number | null
 }
 
 export default function EventCard({

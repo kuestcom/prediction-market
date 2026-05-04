@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
 import { sanitizeLiFiAmount } from '@/lib/lifi-amount'
 
-export const LIFI_QUOTE_QUERY_KEY = 'lifi-quote'
+const LIFI_QUOTE_QUERY_KEY = 'lifi-quote'
 
 interface UseLiFiQuoteParams {
   fromToken?: LiFiWalletTokenItem | null

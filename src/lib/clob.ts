@@ -1,19 +1,18 @@
-import type { OrderBookSummaryResponse } from '@/types/EventCardTypes'
-
-const CLOB_BASE_URL = process.env.CLOB_URL
 const MAX_LIMIT_PRICE = 99.9
 const PRICE_EPSILON = 1e-8
 
-export function getClobBaseUrl() {
-  if (!CLOB_BASE_URL) {
-    throw new Error('CLOB URL is not configured.')
-  }
+interface OrderbookLevelSummary {
+  price?: string
+  size?: string
+}
 
-  return CLOB_BASE_URL
+interface OrderBookSummaryResponse {
+  bids?: OrderbookLevelSummary[]
+  asks?: OrderbookLevelSummary[]
 }
 
 export async function fetchClobJson<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(`${getClobBaseUrl()}${path}`, {
+  const response = await fetch(`${process.env.CLOB_URL}${path}`, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',

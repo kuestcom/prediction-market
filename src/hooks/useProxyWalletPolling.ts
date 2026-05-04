@@ -61,7 +61,7 @@ export function useProxyWalletPolling({
           }
 
           if (!data) {
-            scheduleRetry(10000)
+            scheduleRetry(10_000)
             return
           }
 
@@ -99,11 +99,11 @@ export function useProxyWalletPolling({
           })
 
           if (!cancelled && data.proxy_wallet_address && data.proxy_wallet_status !== 'deployed') {
-            timeoutId = setTimeout(fetchProxyDetails, 6000)
+            timeoutId = setTimeout(fetchProxyDetails, 6_000)
           }
         })
         .catch(() => {
-          scheduleRetry(10000)
+          scheduleRetry(10_000)
         })
     }
 

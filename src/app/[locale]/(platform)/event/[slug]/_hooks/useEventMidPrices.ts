@@ -68,10 +68,6 @@ async function fetchQuotesByMarket(targets: MarketTokenTarget[]): Promise<Market
     return {}
   }
 
-  if (!CLOB_BASE_URL) {
-    throw new Error('CLOB URL is not configured.')
-  }
-
   const payload = uniqueTokenIds.map(tokenId => ({ token_id: tokenId }))
   const requestInit = {
     method: 'POST',

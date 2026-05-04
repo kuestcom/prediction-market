@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-
 import { ZERO_ADDRESS } from '@/lib/contracts'
 
 interface AffiliateInfoResponse {

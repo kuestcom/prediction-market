@@ -2,7 +2,7 @@ import type { TokensExtendedResponse, WalletTokenExtended } from '@lifi/types'
 import { useQuery } from '@tanstack/react-query'
 import { formatUnits } from 'viem'
 
-export const LIFI_WALLET_USD_BALANCE_QUERY_KEY = 'lifi-wallet-usd-balance'
+const LIFI_WALLET_USD_BALANCE_QUERY_KEY = 'lifi-wallet-usd-balance'
 
 const USD_FORMATTER = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 2,

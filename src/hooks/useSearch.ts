@@ -142,7 +142,6 @@ export function useSearch(): UseSearch {
       return
     }
 
-    // Execute both searches in parallel
     await Promise.all([
       searchEvents(normalizedQuery, requestId),
       searchProfiles(normalizedQuery, requestId),

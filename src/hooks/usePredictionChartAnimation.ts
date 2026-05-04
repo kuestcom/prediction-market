@@ -1,11 +1,7 @@
 import type { MutableRefObject } from 'react'
 import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
-import {
-  INITIAL_REVEAL_DURATION,
-  runRevealAnimation,
-  stopRevealAnimation,
-} from '@/lib/prediction-chart'
+import { INITIAL_REVEAL_DURATION, runRevealAnimation, stopRevealAnimation } from '@/lib/prediction-chart'
 import { areSeriesKeyListsEqual } from '@/lib/prediction-chart-helpers'
 
 const CROSS_FADE_DURATION = 320
@@ -116,8 +112,7 @@ export function usePredictionChartAnimation(params: {
       })
     })
     previousSeriesKeysRef.current = currentSeriesKeys
-    const shouldRunSurge = updateType === 'reset' && !disableResetAnimation
-    surgePendingRef.current = shouldRunSurge
+    surgePendingRef.current = updateType === 'reset' && !disableResetAnimation
 
     const canUseCrossFade = updateType === 'reset'
       && !disableResetAnimation
