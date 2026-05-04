@@ -123,14 +123,9 @@ export function PredictionChart({
   })
   const seriesPathRef = useRef<Record<string, SVGPathElement | null>>({})
 
-  if (annotationHoverState.scopeKey !== annotationHoverScopeKey) {
-    setAnnotationHoverState({
-      scopeKey: annotationHoverScopeKey,
-      clusterId: null,
-    })
-  }
-
-  const hoveredAnnotationClusterId = annotationHoverState.clusterId
+  const hoveredAnnotationClusterId = annotationHoverState.scopeKey === annotationHoverScopeKey
+    ? annotationHoverState.clusterId
+    : null
   const setHoveredAnnotationClusterId = useCallback((nextClusterId: SetStateAction<string | null>) => {
     setAnnotationHoverState((current) => {
       const resolvedNextClusterId = typeof nextClusterId === 'function'
