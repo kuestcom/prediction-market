@@ -53,20 +53,6 @@ function getEventTokenIds(event: Event) {
 const WS_REFRESH_THROTTLE_MS = 2000
 const ACTIVITY_POLL_INTERVAL_MS = 60_000
 
-function useClearInfiniteScrollErrorOnFilterChange({
-  minAmountFilter,
-  setInfiniteScrollError,
-}: {
-  minAmountFilter: string
-  setInfiniteScrollError: (value: string | null) => void
-}) {
-  useEffect(function clearInfiniteScrollErrorOnFilterChange() {
-    queueMicrotask(function clearErrorNow() {
-      setInfiniteScrollError(null)
-    })
-  }, [minAmountFilter, setInfiniteScrollError])
-}
-
 function useInfiniteScrollSentinel({
   sentinelRef,
   hasMarkets,
@@ -241,11 +227,6 @@ export default function EventActivity({ event }: EventActivityProps) {
   const normalizeOutcomeLabel = useOutcomeLabel()
   const isSportsEvent = Boolean(event.sports_sport_slug?.trim())
 
-  useClearInfiniteScrollErrorOnFilterChange({
-    minAmountFilter,
-    setInfiniteScrollError,
-  })
-
   const marketIds = useMemo(
     () => event.markets.map(market => market.condition_id).filter(Boolean),
     [event.markets],
@@ -331,6 +312,11 @@ export default function EventActivity({ event }: EventActivityProps) {
     })
   }
 
+  function handleMinAmountFilterChange(nextValue: string) {
+    setInfiniteScrollError(null)
+    setMinAmountFilter(nextValue)
+  }
+
   if (!hasMarkets) {
     return (
       <div className="mt-2">
@@ -363,7 +349,7 @@ export default function EventActivity({ event }: EventActivityProps) {
   return (
     <div className="mt-2 grid gap-6">
       <div className="flex items-center justify-between gap-2">
-        <Select value={minAmountFilter} onValueChange={setMinAmountFilter}>
+        <Select value={minAmountFilter} onValueChange={handleMinAmountFilterChange}>
           <SelectTrigger className="dark:bg-transparent">
             <SelectValue placeholder={t('Min Amount:')} />
           </SelectTrigger>
