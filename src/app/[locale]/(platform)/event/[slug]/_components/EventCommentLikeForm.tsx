@@ -27,7 +27,7 @@ export default function EventCommentLikeForm({
       return
     }
     if (!user) {
-      queueMicrotask(() => open())
+      void open()
       return
     }
     onLikeToggled()

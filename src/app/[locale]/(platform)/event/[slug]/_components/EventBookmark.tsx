@@ -156,7 +156,7 @@ function useBookmarkState({
       if (response.error) {
         setBookmarkOverride(createBookmarkOverrideState(event.id, event.is_bookmarked, previousState))
         if (response.error === 'Unauthenticated.') {
-          queueMicrotask(() => open())
+          void open()
         }
         return
       }

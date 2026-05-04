@@ -38,11 +38,11 @@ export function handleValidationError(reason: OrderValidationError, { openWallet
       break
     case 'NOT_CONNECTED':
       toast.error('Connect your wallet to continue.')
-      queueMicrotask(() => openWalletModal())
+      void openWalletModal()
       break
     case 'MISSING_USER':
       toast.error('Sign in to place orders.')
-      queueMicrotask(() => openWalletModal())
+      void openWalletModal()
       break
     case 'MISSING_MARKET':
     case 'MISSING_OUTCOME':

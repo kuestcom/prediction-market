@@ -673,9 +673,7 @@ function useTradingReadyGate({
 
   const ensureTradingReady = useCallback(() => {
     if (!user) {
-      queueMicrotask(() => {
-        void open()
-      })
+      void open()
       return false
     }
 
@@ -691,9 +689,7 @@ function useTradingReadyGate({
 
   const openTradeRequirements = useCallback((options?: { forceTradingAuth?: boolean }) => {
     if (!user) {
-      queueMicrotask(() => {
-        void open()
-      })
+      void open()
       return
     }
 
@@ -748,7 +744,7 @@ function useWalletFlowControls({
 }) {
   const openWalletModal = useCallback(() => {
     if (!user) {
-      queueMicrotask(() => void openAppKit())
+      void openAppKit()
       return
     }
     if (!hasDeployedProxyWallet) {
@@ -760,9 +756,7 @@ function useWalletFlowControls({
 
   const startDepositFlow = useCallback(() => {
     if (!user) {
-      queueMicrotask(() => {
-        void openAppKit()
-      })
+      void openAppKit()
       return
     }
 
@@ -788,9 +782,7 @@ function useWalletFlowControls({
 
   const startWithdrawFlow = useCallback(() => {
     if (!user) {
-      queueMicrotask(() => {
-        void openAppKit()
-      })
+      void openAppKit()
       return
     }
 

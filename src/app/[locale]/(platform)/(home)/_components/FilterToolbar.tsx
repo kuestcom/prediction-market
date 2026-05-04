@@ -86,7 +86,7 @@ function useFilterToolbarState({
   }, [filters.bookmarked, onFiltersChange])
 
   const handleConnect = useCallback(() => {
-    queueMicrotask(() => open())
+    void open()
   }, [open])
 
   const handleSettingsToggle = useCallback(() => {

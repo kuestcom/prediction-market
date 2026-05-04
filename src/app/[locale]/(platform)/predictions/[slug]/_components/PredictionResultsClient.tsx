@@ -634,7 +634,7 @@ export default function PredictionResultsClient({
 
   function handleBookmarkToggle() {
     if (!isConnected) {
-      queueMicrotask(() => open())
+      void open()
       return
     }
 

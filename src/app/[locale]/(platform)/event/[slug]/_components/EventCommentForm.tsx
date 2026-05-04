@@ -38,7 +38,7 @@ export default function EventCommentForm({
     }
 
     if (!user) {
-      queueMicrotask(() => open())
+      void open()
       return
     }
 

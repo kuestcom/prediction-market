@@ -59,7 +59,7 @@ function useCommentItemHandlers({
 
   const handleReplyClick = useCallback(() => {
     if (!user) {
-      queueMicrotask(() => open())
+      void open()
       return
     }
     const shouldOpen = replyingTo !== comment.id
