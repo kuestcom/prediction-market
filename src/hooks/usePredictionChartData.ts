@@ -1,6 +1,5 @@
-import type { MutableRefObject } from 'react'
 import type { DataPoint } from '@/types/PredictionChartTypes'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { arePointsEqual } from '@/lib/prediction-chart'
 
 export function usePredictionChartData(
@@ -12,12 +11,37 @@ export function usePredictionChartData(
   const dataSignatureRef = useRef<string | number | null>(null)
   const lastDataUpdateTypeRef = useRef<'reset' | 'append' | 'none'>('reset')
   const previousDataRef = useRef<DataPoint[] | null>(null)
+  const scheduledStateFrameRef = useRef<number | null>(null)
+
+  const cancelScheduledStateUpdate = useCallback(function cancelScheduledStateUpdate() {
+    if (scheduledStateFrameRef.current == null) {
+      return
+    }
+
+    window.cancelAnimationFrame(scheduledStateFrameRef.current)
+    scheduledStateFrameRef.current = null
+  }, [])
+
+  const scheduleStateUpdate = useCallback(function scheduleStateUpdate(applyUpdate: () => void) {
+    cancelScheduledStateUpdate()
+
+    scheduledStateFrameRef.current = window.requestAnimationFrame(() => {
+      scheduledStateFrameRef.current = null
+      applyUpdate()
+    })
+  }, [cancelScheduledStateUpdate])
+
+  useLayoutEffect(function cleanupScheduledStateUpdate() {
+    return function cancelScheduledStateUpdateOnUnmount() {
+      cancelScheduledStateUpdate()
+    }
+  }, [cancelScheduledStateUpdate])
 
   useLayoutEffect(function initializeClient() {
-    queueMicrotask(() => {
+    scheduleStateUpdate(() => {
       setIsClient(true)
     })
-  }, [])
+  }, [scheduleStateUpdate])
 
   useLayoutEffect(function syncProvidedData() {
     if (!isClient) {
@@ -26,7 +50,7 @@ export function usePredictionChartData(
 
     if (!providedData || providedData.length === 0) {
       dataSignatureRef.current = normalizedSignature
-      queueMicrotask(() => {
+      scheduleStateUpdate(() => {
         setData([])
       })
       lastDataUpdateTypeRef.current = 'reset'
@@ -143,13 +167,13 @@ export function usePredictionChartData(
       lastDataUpdateTypeRef.current = 'none'
       return previousData
     })
-  }, [providedData, normalizedSignature, isClient])
+  }, [providedData, normalizedSignature, isClient, scheduleStateUpdate])
 
   return {
     data,
     isClient,
-    lastDataUpdateTypeRef: lastDataUpdateTypeRef as MutableRefObject<'reset' | 'append' | 'none'>,
-    previousDataRef: previousDataRef as MutableRefObject<DataPoint[] | null>,
+    lastDataUpdateTypeRef,
+    previousDataRef,
   }
 }
 
