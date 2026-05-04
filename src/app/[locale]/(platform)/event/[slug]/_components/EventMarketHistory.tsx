@@ -4,7 +4,7 @@ import type { Event } from '@/types'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Loader2Icon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
@@ -19,20 +19,6 @@ import { useUser } from '@/stores/useUser'
 
 interface EventMarketHistoryProps {
   market: Event['markets'][number]
-}
-
-function useClearInfiniteScrollErrorOnMarketChange({
-  conditionId,
-  setInfiniteScrollError,
-}: {
-  conditionId: string | undefined
-  setInfiniteScrollError: (value: string | null) => void
-}) {
-  useEffect(function clearInfiniteScrollErrorOnMarketChange() {
-    queueMicrotask(function clearErrorNow() {
-      setInfiniteScrollError(null)
-    })
-  }, [conditionId, setInfiniteScrollError])
 }
 
 function useInfiniteScrollSentinel({
@@ -76,16 +62,27 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
   const t = useExtracted()
   const locale = useLocale()
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
-  const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
+  const [infiniteScrollErrorState, setInfiniteScrollErrorState] = useState<{
+    conditionId: string | undefined
+    error: string | null
+  }>({
+    conditionId: market.condition_id,
+    error: null,
+  })
   const user = useUser()
   const isSingleMarket = useIsSingleMarket()
   const userAddress = getUserPublicAddress(user)
   const normalizeOutcomeLabel = useOutcomeLabel()
 
-  useClearInfiniteScrollErrorOnMarketChange({
-    conditionId: market.condition_id,
-    setInfiniteScrollError,
-  })
+  const infiniteScrollError = infiniteScrollErrorState.conditionId === market.condition_id
+    ? infiniteScrollErrorState.error
+    : null
+  const setInfiniteScrollError = useCallback((value: string | null) => {
+    setInfiniteScrollErrorState({
+      conditionId: market.condition_id,
+      error: value,
+    })
+  }, [market.condition_id])
 
   const {
     status,
