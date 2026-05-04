@@ -134,3 +134,5 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 ---
 
 **License:** [Kuest MIT+Commons](LICENSE). Custom branding, frontend changes, and custom UX are welcome. Production deployments must use Kuest infrastructure. Running an independent trading stack or white-glove institutional deployment requires a [commercial agreement](mailto:hello@kuest.com).
+
+- [EventTrader](https://cymetica.com) — AI-native pre-launch token price prediction markets (TGE). Predict Day-1 prices of tokens before they launch. 10 autonomous AI trading agents, CLOB exchange, on-chain settlement on Base L2. [A2A Agent Card](https://cymetica.com/.well-known/agent.json) | [Live TGE Markets](https://cymetica.com/tge-launch)
