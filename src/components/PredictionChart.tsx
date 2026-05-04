@@ -128,11 +128,14 @@ export function PredictionChart({
     : null
   const setHoveredAnnotationClusterId = useCallback((nextClusterId: SetStateAction<string | null>) => {
     setAnnotationHoverState((current) => {
+      const currentScopedClusterId = current.scopeKey === annotationHoverScopeKey
+        ? current.clusterId
+        : null
       const resolvedNextClusterId = typeof nextClusterId === 'function'
-        ? nextClusterId(current.clusterId)
+        ? nextClusterId(currentScopedClusterId)
         : nextClusterId
 
-      if (current.clusterId === resolvedNextClusterId && current.scopeKey === annotationHoverScopeKey) {
+      if (currentScopedClusterId === resolvedNextClusterId && current.scopeKey === annotationHoverScopeKey) {
         return current
       }
 
