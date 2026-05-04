@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactElement } from 'react'
+import type { ReactElement, SetStateAction } from 'react'
 import type {
   DataPoint,
   PredictionChartCursorSnapshot,
@@ -14,7 +14,7 @@ import { Group } from '@visx/group'
 import { scaleLinear, scaleTime } from '@visx/scale'
 import { useTooltip } from '@visx/tooltip'
 import { bisector } from 'd3-array'
-import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import { clusterAnnotationMarkers, PredictionChartAnnotationDots, PredictionChartAnnotationTooltip, resolveAnnotationMarkers } from '@/components/PredictionChartAnnotations'
 import PredictionChartGrid from '@/components/PredictionChartGrid'
 import PredictionChartHeader from '@/components/PredictionChartHeader'
@@ -113,8 +113,40 @@ export function PredictionChart({
     normalizedSignature,
   )
   const isDarkMode = useDarkMode()
-  const [hoveredAnnotationClusterId, setHoveredAnnotationClusterId] = useState<string | null>(null)
+  const annotationHoverScopeKey = `${normalizedSignature}:${showAnnotations ? '1' : '0'}`
+  const [annotationHoverState, setAnnotationHoverState] = useState<{
+    scopeKey: string
+    clusterId: string | null
+  }>({
+    scopeKey: annotationHoverScopeKey,
+    clusterId: null,
+  })
   const seriesPathRef = useRef<Record<string, SVGPathElement | null>>({})
+
+  if (annotationHoverState.scopeKey !== annotationHoverScopeKey) {
+    setAnnotationHoverState({
+      scopeKey: annotationHoverScopeKey,
+      clusterId: null,
+    })
+  }
+
+  const hoveredAnnotationClusterId = annotationHoverState.clusterId
+  const setHoveredAnnotationClusterId = useCallback((nextClusterId: SetStateAction<string | null>) => {
+    setAnnotationHoverState((current) => {
+      const resolvedNextClusterId = typeof nextClusterId === 'function'
+        ? nextClusterId(current.clusterId)
+        : nextClusterId
+
+      if (current.clusterId === resolvedNextClusterId && current.scopeKey === annotationHoverScopeKey) {
+        return current
+      }
+
+      return {
+        scopeKey: annotationHoverScopeKey,
+        clusterId: resolvedNextClusterId,
+      }
+    })
+  }, [annotationHoverScopeKey])
 
   const {
     tooltipData,
@@ -531,12 +563,6 @@ export function PredictionChart({
       seriesPathRef.current[seriesKey] = node
     }
   }, [])
-
-  useLayoutEffect(function resetAnnotationHoverOnSignatureChange() {
-    queueMicrotask(() => {
-      setHoveredAnnotationClusterId(null)
-    })
-  }, [normalizedSignature, showAnnotations])
 
   const surgeFilter = isDarkMode
     ? 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.75))'
