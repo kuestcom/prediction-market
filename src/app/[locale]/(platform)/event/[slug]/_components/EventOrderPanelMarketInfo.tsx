@@ -7,7 +7,7 @@ interface EventOrderPanelMarketInfoProps {
 
 export default function EventOrderPanelMarketInfo({ market }: EventOrderPanelMarketInfoProps) {
   if (!market) {
-    return <></>
+    return null
   }
 
   return (

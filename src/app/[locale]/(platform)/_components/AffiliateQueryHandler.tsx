@@ -22,5 +22,5 @@ function useAffiliateQueryRedirect() {
 export default function AffiliateQueryHandler() {
   useAffiliateQueryRedirect()
 
-  return <></>
+  return null
 }

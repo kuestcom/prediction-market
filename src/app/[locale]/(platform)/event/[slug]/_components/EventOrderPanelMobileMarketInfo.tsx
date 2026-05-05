@@ -23,7 +23,7 @@ export default function EventOrderPanelMobileMarketInfo({
   const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
 
   if (!market) {
-    return <></>
+    return null
   }
 
   return (

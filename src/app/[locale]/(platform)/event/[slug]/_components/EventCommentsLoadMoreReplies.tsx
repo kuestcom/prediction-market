@@ -21,7 +21,7 @@ export default function EventCommentsLoadMoreReplies({
   }
 
   if (comment.replies_count <= 3) {
-    return <></>
+    return null
   }
 
   if (error) {

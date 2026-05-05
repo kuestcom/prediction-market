@@ -169,7 +169,7 @@ export default function HeaderDropdownUserMenuAuth() {
   }
 
   if (!user) {
-    return <></>
+    return null
   }
 
   return (

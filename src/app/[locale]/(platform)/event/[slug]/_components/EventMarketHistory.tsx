@@ -140,7 +140,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
   }
 
   if (!userAddress) {
-    return <></>
+    return null
   }
 
   if (hasInitialError) {
@@ -186,7 +186,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
   if (isLoadingInitial || activities.length === 0) {
     return (
       isSingleMarket
-        ? <></>
+        ? null
         : (
             <div className="text-sm text-muted-foreground">
               {t('No activity for this outcome.')}

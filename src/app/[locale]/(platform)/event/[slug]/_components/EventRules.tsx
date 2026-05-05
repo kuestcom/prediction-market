@@ -294,7 +294,7 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
           </div>
         </div>
       )
-    : <></>
+    : null
 
   const content = (
     <div className={cn('space-y-2', { 'p-3': !isInline })}>

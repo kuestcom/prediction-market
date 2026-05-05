@@ -13,7 +13,7 @@ export default function UserInfoSection() {
   const { copied, copy } = useClipboard()
 
   if (!user) {
-    return <></>
+    return null
   }
 
   const proxyWalletAddress = user.proxy_wallet_address!

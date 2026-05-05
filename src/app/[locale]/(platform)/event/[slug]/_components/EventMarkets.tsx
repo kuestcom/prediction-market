@@ -867,7 +867,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   const shouldShowResolvedSection = !showResolvedInline && sortedResolvedDisplayRows.length > 0
 
   if (isSingleMarket) {
-    return <></>
+    return null
   }
 
   return (

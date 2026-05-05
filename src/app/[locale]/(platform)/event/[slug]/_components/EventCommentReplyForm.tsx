@@ -57,7 +57,7 @@ export default function EventCommentReplyForm({
   }
 
   if (!user) {
-    return <></>
+    return null
   }
 
   const avatarUrl = user.image?.trim() ?? ''

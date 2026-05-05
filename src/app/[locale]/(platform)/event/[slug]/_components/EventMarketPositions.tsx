@@ -955,7 +955,7 @@ export default function EventMarketPositions({
   }, [resolvedConvertOptions.length])
 
   if (!userAddress) {
-    return <></>
+    return null
   }
 
   if (hasInitialError) {

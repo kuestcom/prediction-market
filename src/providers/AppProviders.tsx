@@ -35,17 +35,13 @@ export function AppProviders({ children }: AppProvidersProps) {
     </div>
   )
 
-  const providersContent = (
-    <ThemeProvider attribute="class">
-      <QueryClientProvider client={queryClient}>
-        {content}
-      </QueryClientProvider>
-    </ThemeProvider>
-  )
-
   return (
     <ProgressIndicatorProvider>
-      {providersContent}
+      <ThemeProvider attribute="class">
+        <QueryClientProvider client={queryClient}>
+          {content}
+        </QueryClientProvider>
+      </ThemeProvider>
     </ProgressIndicatorProvider>
   )
 }
