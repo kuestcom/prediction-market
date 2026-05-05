@@ -17,6 +17,7 @@ locals {
 
 resource "null_resource" "deploy" {
   triggers = {
+    repo_root          = var.repo_root
     railway_project_id  = var.railway_project_id
     railway_environment = var.railway_environment
     railway_service     = var.railway_service
