@@ -1,0 +1,6 @@
+# Requires Railway CLI auth (for example via RAILWAY_TOKEN or `railway login`).
+railway_project_id  = "replace-with-railway-project-id"
+railway_environment = "production"
+railway_service     = "web"
+deploy_path         = "."
+path_as_root        = false
