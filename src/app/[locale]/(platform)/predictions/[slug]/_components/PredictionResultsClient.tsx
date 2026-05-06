@@ -897,18 +897,18 @@ function PredictionResultRow({
         className="absolute inset-0 z-0 rounded-2xl"
       />
 
-      <div className="
+      <div className={cn(`
         pointer-events-none absolute -inset-x-4 inset-y-0 rounded-2xl bg-accent/35 opacity-0 transition-opacity
         duration-150
         group-hover:opacity-100
-      "
+      `)}
       />
 
       <div className="relative z-10 flex items-center gap-4">
-        <div className="
+        <div className={cn(`
           relative size-12 shrink-0 overflow-hidden rounded-md border border-border/70 bg-muted
           md:size-13
-        "
+        `)}
         >
           <EventIconImage
             src={event.icon_url}
@@ -921,9 +921,9 @@ function PredictionResultRow({
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <div className="min-w-0 flex-1">
             {supportingTags.length > 0 && (
-              <div className="
+              <div className={cn(`
                 pointer-events-auto mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground
-              "
+              `)}
               >
                 {supportingTags.map((tag, index) => {
                   const tagPath = buildPredictionResultsPath(tag.slug)
@@ -973,10 +973,10 @@ function PredictionResultRow({
               </span>
               <a
                 href={`${eventPath}#commentsInner`}
-                className="
+                className={cn(`
                   pointer-events-auto flex items-center gap-1 whitespace-nowrap transition-colors
                   hover:text-foreground
-                "
+                `)}
               >
                 <MessageCircleIcon className="size-3.5 text-muted-foreground" />
                 <span>{commentsCount == null ? '—' : Number(commentsCount).toLocaleString(locale)}</span>
@@ -1020,10 +1020,10 @@ function PredictionResultRow({
                 )
               : (
                   <div className="flex min-w-0 flex-1 flex-col items-end justify-center text-right">
-                    <p className="
+                    <p className={cn(`
                       truncate text-xl leading-none font-semibold tracking-tight text-foreground
                       md:text-[26px]
-                    "
+                    `)}
                     >
                       {Math.round(primaryProbability)}
                       %
@@ -1035,10 +1035,10 @@ function PredictionResultRow({
                     )}
                   </div>
                 )}
-            <ChevronRightIcon className="
+            <ChevronRightIcon className={cn(`
               size-4 shrink-0 text-muted-foreground transition-transform duration-150
               group-hover:translate-x-0.5
-            "
+            `)}
             />
           </div>
         </div>

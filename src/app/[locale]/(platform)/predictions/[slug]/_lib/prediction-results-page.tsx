@@ -46,17 +46,11 @@ export async function generatePredictionResultsMetadata({
     getPredictionPageContext(locale, slug),
     loadRuntimeThemeState(),
   ])
-  const dateLabel = new Intl.DateTimeFormat(locale, {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date())
   const title = t('{slug} Predictions & Real-Time Odds', {
     slug: context.label,
   })
-  const description = t('Explore live {slug} prediction markets as of {date}.', {
+  const description = t('Explore live {slug} prediction markets.', {
     slug: context.label,
-    date: dateLabel,
   })
   const siteName = runtimeTheme.site.name
   const pageUrl = buildPredictionResultsPageUrl({
