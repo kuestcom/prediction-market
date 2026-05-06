@@ -1,6 +1,7 @@
+import type { PublicClient } from 'viem'
 import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { createPublicClient, erc1155Abi, http } from 'viem'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { CONDITIONAL_TOKENS_CONTRACT } from '@/lib/contracts'
@@ -18,6 +19,13 @@ interface UseUserShareBalancesOptions {
   ownerAddress?: `0x${string}` | null
 }
 
+function createBrowserPublicClient(): PublicClient {
+  return createPublicClient({
+    chain: defaultViemNetwork,
+    transport: http(defaultViemRpcUrl),
+  })
+}
+
 function normalizeSharesFromBalance(balance: bigint): number {
   if (balance <= 0n) {
     return 0
@@ -28,16 +36,11 @@ function normalizeSharesFromBalance(balance: bigint): number {
 }
 
 export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalancesOptions) {
-  const rpcUrl = useMemo(() => defaultViemRpcUrl, [])
-
-  const client = useMemo(
-    () =>
-      createPublicClient({
-        chain: defaultViemNetwork,
-        transport: http(rpcUrl),
-      }),
-    [rpcUrl],
-  )
+  const clientRef = useRef<PublicClient | null>(null)
+  if (clientRef.current === null && typeof window !== 'undefined') {
+    clientRef.current = createBrowserPublicClient()
+  }
+  const client = clientRef.current
 
   const outcomeDescriptors = useMemo(() => {
     if (!event?.markets?.length) {
@@ -57,13 +60,13 @@ export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalanc
 
   const query = useQuery({
     queryKey: ['user-conditional-shares', ownerAddress, event?.slug, descriptorKey],
-    enabled: Boolean(ownerAddress && outcomeDescriptors.length),
+    enabled: Boolean(client && ownerAddress && outcomeDescriptors.length),
     staleTime: 10_000,
     gcTime: 5 * 60 * 1000,
     refetchInterval: 10_000,
     refetchIntervalInBackground: true,
     queryFn: async (): Promise<SharesByCondition> => {
-      if (!ownerAddress || !outcomeDescriptors.length) {
+      if (!client || !ownerAddress || !outcomeDescriptors.length) {
         return {}
       }
 

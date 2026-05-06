@@ -1,6 +1,6 @@
 import type { Address, PublicClient } from 'viem'
 import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { createPublicClient, getContract, http } from 'viem'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
@@ -32,24 +32,27 @@ interface UseBalanceOptions {
   enabled?: boolean
 }
 
-const RPC_URL = defaultViemRpcUrl
+function createBrowserPublicClient(): PublicClient {
+  return createPublicClient({
+    chain: defaultViemNetwork,
+    transport: http(defaultViemRpcUrl),
+  })
+}
 
 export function useBalance(options: UseBalanceOptions = {}) {
   const user = useUser()
-
-  const client = useMemo<PublicClient>(() => {
-    return createPublicClient({
-      chain: defaultViemNetwork,
-      transport: http(RPC_URL),
-    })
-  }, [])
+  const clientRef = useRef<PublicClient | null>(null)
+  if (clientRef.current === null && typeof window !== 'undefined') {
+    clientRef.current = createBrowserPublicClient()
+  }
+  const client = clientRef.current
 
   const proxyWalletAddress: Address | null = user?.proxy_wallet_address
     ? normalizeAddress(user.proxy_wallet_address) as Address | null
     : null
 
   const contract = useMemo(() => {
-    if (!proxyWalletAddress) {
+    if (!client || !proxyWalletAddress) {
       return null
     }
 
@@ -76,7 +79,7 @@ export function useBalance(options: UseBalanceOptions = {}) {
     refetchInterval: 10_000,
     refetchIntervalInBackground: true,
     queryFn: async (): Promise<Balance> => {
-      if (!proxyWalletAddress || !contract) {
+      if (!client || !proxyWalletAddress || !contract) {
         return INITIAL_STATE
       }
 

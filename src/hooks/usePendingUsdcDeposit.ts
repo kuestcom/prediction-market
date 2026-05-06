@@ -1,7 +1,7 @@
-import type { Address } from 'viem'
+import type { Address, PublicClient } from 'viem'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { createPublicClient, formatUnits, getContract, http } from 'viem'
 import { NATIVE_USDC_TOKEN_ADDRESS } from '@/lib/contracts'
 import { IS_TEST_MODE } from '@/lib/network'
@@ -35,30 +35,36 @@ interface UsePendingUsdcDepositOptions {
   enabled?: boolean
 }
 
+function createBrowserPublicClient(): PublicClient {
+  return createPublicClient({
+    chain: defaultViemNetwork,
+    transport: http(defaultViemRpcUrl),
+  })
+}
+
 export function usePendingUsdcDeposit(options: UsePendingUsdcDepositOptions = {}) {
   const { isConnected } = useAppKitAccount()
   const user = useUser()
-
-  const rpcUrl = useMemo(() => defaultViemRpcUrl, [])
-
-  const client = useMemo(
-    () =>
-      createPublicClient({
-        chain: defaultViemNetwork,
-        transport: http(rpcUrl),
-      }),
-    [rpcUrl],
-  )
+  const clientRef = useRef<PublicClient | null>(null)
+  if (clientRef.current === null && typeof window !== 'undefined') {
+    clientRef.current = createBrowserPublicClient()
+  }
+  const client = clientRef.current
 
   const tokenAddress = NATIVE_USDC_TOKEN_ADDRESS
 
   const contract = useMemo(
-    () =>
-      getContract({
+    () => {
+      if (!client) {
+        return null
+      }
+
+      return getContract({
         address: tokenAddress as Address,
         abi: ERC20_ABI,
         client,
-      }),
+      })
+    },
     [client, tokenAddress],
   )
 
@@ -68,7 +74,7 @@ export function usePendingUsdcDeposit(options: UsePendingUsdcDepositOptions = {}
 
   const isOptionsEnabled = (options.enabled ?? true) && !IS_TEST_MODE
   const isAwaitingConnection = Boolean(user && isOptionsEnabled && !isConnected)
-  const isQueryEnabled = Boolean(isConnected && proxyWalletAddress && isOptionsEnabled)
+  const isQueryEnabled = Boolean(client && isConnected && proxyWalletAddress && isOptionsEnabled)
 
   const {
     data,
@@ -83,7 +89,7 @@ export function usePendingUsdcDeposit(options: UsePendingUsdcDepositOptions = {}
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     queryFn: async (): Promise<Balance> => {
-      if (!proxyWalletAddress) {
+      if (!client || !proxyWalletAddress || !contract) {
         return INITIAL_STATE
       }
 
