@@ -11,7 +11,7 @@ import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSignMessage, useSignTypedData } from 'wagmi'
+import { useSignTypedData } from 'wagmi'
 import { PositionShareDialog } from '@/app/[locale]/(platform)/_components/PositionShareDialog'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
@@ -70,9 +70,7 @@ function useUserTradingContext(userAddress: string) {
   const user = useUser()
   const hasDeployedProxyWallet = Boolean(user?.proxy_wallet_address && user?.proxy_wallet_status === 'deployed')
   const proxyWalletAddress = hasDeployedProxyWallet ? normalizeAddress(user?.proxy_wallet_address) : null
-  const userAddressNormalized = normalizeAddress(user?.address)
   const makerAddress = proxyWalletAddress ?? null
-  const signatureType: 0 | 2 = proxyWalletAddress ? 2 : 0
   const canSell = Boolean(
     hasDeployedProxyWallet
     && user?.proxy_wallet_address
@@ -81,9 +79,7 @@ function useUserTradingContext(userAddress: string) {
 
   return {
     user,
-    userAddressNormalized,
     makerAddress,
-    signatureType,
     canSell,
   }
 }
@@ -622,9 +618,7 @@ function useResolveOutcomeIndex() {
 
 function useSellPositionFlow({
   userAddress,
-  userAddressNormalized,
   makerAddress,
-  signatureType,
   user,
   isConnected,
   openWalletModal,
@@ -637,9 +631,7 @@ function useSellPositionFlow({
   resolveOutcomeIndex,
 }: {
   userAddress: string
-  userAddressNormalized: `0x${string}` | null
   makerAddress: `0x${string}` | null
-  signatureType: 0 | 2
   user: User | null
   isConnected: boolean
   openWalletModal: ReturnType<typeof useAppKit>['open']
@@ -826,7 +818,7 @@ function useSellPositionFlow({
       return
     }
 
-    if (!userAddressNormalized || !makerAddress) {
+    if (!makerAddress) {
       handleOrderErrorFeedback('Trade failed', 'Wallet not ready for trading.')
       return
     }
@@ -860,9 +852,7 @@ function useSellPositionFlow({
 
     const orderDomain = getExchangeEip712Domain(isNegRisk)
     const payload = buildOrderPayload({
-      userAddress: userAddressNormalized,
       makerAddress,
-      signatureType,
       outcome: outcomePayload,
       side: ORDER_SIDE.SELL,
       orderType: ORDER_TYPE.MARKET,
@@ -977,11 +967,9 @@ function useSellPositionFlow({
     resolveOutcomeIndex,
     runWithSignaturePrompt,
     sellModalPayload,
-    signatureType,
     signTypedDataAsync,
     user,
     userAddress,
-    userAddressNormalized,
   ])
 
   return {
@@ -1001,12 +989,9 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
-  const { signMessageAsync } = useSignMessage()
   const {
     user,
-    userAddressNormalized,
     makerAddress,
-    signatureType,
     canSell,
   } = useUserTradingContext(userAddress)
 
@@ -1095,7 +1080,6 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     ensureTradingReady,
     openTradeRequirements,
     queryClient,
-    signMessageAsync,
     onSuccess: () => setMergeSuccess(true),
   })
 
@@ -1111,9 +1095,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     handleCashOut,
   } = useSellPositionFlow({
     userAddress,
-    userAddressNormalized,
     makerAddress,
-    signatureType,
     user,
     isConnected,
     openWalletModal: open,

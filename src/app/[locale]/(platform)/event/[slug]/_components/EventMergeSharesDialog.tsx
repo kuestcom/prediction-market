@@ -1,14 +1,11 @@
 import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
-import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { UserPosition } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { CheckIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { hashTypedData } from 'viem'
-import { useSignMessage } from 'wagmi'
-import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
+import { useSignTypedData } from 'wagmi'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,23 +23,17 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
-import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
+import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { DEFAULT_CONDITION_PARTITION, DEFAULT_ERROR_MESSAGE, MICRO_UNIT } from '@/lib/constants'
+import { DEFAULT_CONDITION_PARTITION, MICRO_UNIT } from '@/lib/constants'
 import { UMA_NEG_RISK_ADAPTER_ADDRESS, ZERO_COLLECTION_ID } from '@/lib/contracts'
 import { formatAmountInputValue, toMicro } from '@/lib/formatters'
-import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { applyPositionDeltasToUserPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
-import {
-  aggregateSafeTransactions,
-  buildMergePositionTransaction,
-  getSafeTxTypedData,
-  packSafeSignature,
-
-} from '@/lib/safe/transactions'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
+import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
+import { buildMergePositionCall } from '@/lib/wallet/transactions'
 import { useNotifications } from '@/stores/useNotifications'
 import { useUser } from '@/stores/useUser'
 
@@ -93,7 +84,7 @@ export default function EventMergeSharesDialog({
   const user = useUser()
   const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
   const isMobile = useIsMobile()
-  const { signMessageAsync } = useSignMessage()
+  const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { amount, setAmount, error, setError, isSubmitting, setIsSubmitting, resetFormState } = useMergeSharesFormState()
 
@@ -184,7 +175,7 @@ export default function EventMergeSharesDialog({
     }
 
     if (!user?.proxy_wallet_address) {
-      toast.error(t('Deploy your proxy wallet before merging shares.'))
+      toast.error(t('Set up your Deposit Wallet before merging shares.'))
       return
     }
 
@@ -192,21 +183,8 @@ export default function EventMergeSharesDialog({
     setIsSubmitting(true)
 
     try {
-      const nonceResult = await getSafeNonceAction()
-      if (nonceResult.error || !nonceResult.nonce) {
-        if (isTradingAuthRequiredError(nonceResult.error)) {
-          closeDialog()
-          openTradeRequirements({ forceTradingAuth: true })
-        }
-        else {
-          toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
-        }
-        setIsSubmitting(false)
-        return
-      }
-
-      const transactions = [
-        buildMergePositionTransaction({
+      const calls = [
+        buildMergePositionCall({
           conditionId: conditionId as `0x${string}`,
           partition: [...DEFAULT_CONDITION_PARTITION],
           amount: toMicro(numericAmount),
@@ -215,39 +193,12 @@ export default function EventMergeSharesDialog({
         }),
       ]
 
-      const aggregated = aggregateSafeTransactions(transactions)
-      const typedData = getSafeTxTypedData({
-        chainId: DEFAULT_CHAIN_ID,
-        safeAddress: user.proxy_wallet_address as `0x${string}`,
-        transaction: aggregated,
-        nonce: nonceResult.nonce,
-      })
-
-      const { signatureParams, ...safeTypedData } = typedData
-      const structHash = hashTypedData({
-        domain: safeTypedData.domain,
-        types: safeTypedData.types,
-        primaryType: safeTypedData.primaryType,
-        message: safeTypedData.message,
-      }) as `0x${string}`
-
-      const signature = await runWithSignaturePrompt(() => signMessageAsync({
-        message: { raw: structHash },
-      }))
-
-      const payload: SafeTransactionRequestPayload = {
-        type: 'SAFE',
-        from: user.address,
-        to: aggregated.to,
-        proxyWallet: user.proxy_wallet_address,
-        data: aggregated.data,
-        nonce: nonceResult.nonce,
-        signature: packSafeSignature(signature as `0x${string}`),
-        signatureParams,
+      const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCalls({
+        user,
+        calls,
         metadata: 'merge_position',
-      }
-
-      const response = await submitSafeTransactionAction(payload)
+        signTypedDataAsync,
+      }))
 
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
@@ -340,7 +291,7 @@ export default function EventMergeSharesDialog({
         ]),
       )
 
-      void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+      void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       closeDialog()
     }
     catch (error) {

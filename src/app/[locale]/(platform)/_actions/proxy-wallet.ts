@@ -129,7 +129,7 @@ export async function saveProxyWalletSignature({ signature }: SaveProxyWalletSig
     }
   }
   catch (error) {
-    console.error('Failed to save proxy wallet signature', error)
+    console.error('Failed to save Deposit Wallet signature', error)
     const message = error instanceof Error && error.message ? error.message : DEFAULT_ERROR_MESSAGE
     return { data: null, error: message }
   }

@@ -5,29 +5,23 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ChevronDownIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { hashTypedData } from 'viem'
-import { useSignMessage } from 'wagmi'
-import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
+import { useSignTypedData } from 'wagmi'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
-import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
+import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { formatCurrency, formatSharesLabel } from '@/lib/formatters'
-import { DEFAULT_CHAIN_ID } from '@/lib/network'
-import {
-  aggregateSafeTransactions,
-  buildNegRiskRedeemPositionTransaction,
-  buildRedeemPositionTransaction,
-  getSafeTxTypedData,
-  packSafeSignature,
-} from '@/lib/safe/transactions'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
+import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
+import {
+  buildNegRiskRedeemPositionCall,
+  buildRedeemPositionCall,
+} from '@/lib/wallet/transactions'
 import { useUser } from '@/stores/useUser'
 
 export interface SportsRedeemModalPosition {
@@ -278,7 +272,7 @@ function useRedeemClaimSubmission({
 }) {
   const user = useUser()
   const queryClient = useQueryClient()
-  const { signMessageAsync } = useSignMessage()
+  const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -298,70 +292,32 @@ function useRedeemClaimSubmission({
     }
 
     if (!user?.proxy_wallet_address || !user?.address) {
-      toast.error('Deploy your proxy wallet before claiming.')
+      toast.error('Set up your Deposit Wallet before claiming.')
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      const nonceResult = await getSafeNonceAction()
-      if (nonceResult.error || !nonceResult.nonce) {
-        if (isTradingAuthRequiredError(nonceResult.error)) {
-          openTradeRequirements({ forceTradingAuth: true })
-        }
-        else {
-          toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
-        }
-        return
-      }
-
-      const transactions = selectedGroups.map(group =>
+      const calls = selectedGroups.map(group =>
         group.isNegRisk
-          ? buildNegRiskRedeemPositionTransaction({
+          ? buildNegRiskRedeemPositionCall({
               conditionId: group.conditionId as `0x${string}`,
               yesAmount: group.yesShares ?? 0,
               noAmount: group.noShares ?? 0,
             })
-          : buildRedeemPositionTransaction({
+          : buildRedeemPositionCall({
               conditionId: group.conditionId as `0x${string}`,
               indexSets: group.indexSets,
             }),
       )
 
-      const aggregated = aggregateSafeTransactions(transactions)
-      const typedData = getSafeTxTypedData({
-        chainId: DEFAULT_CHAIN_ID,
-        safeAddress: user.proxy_wallet_address as `0x${string}`,
-        transaction: aggregated,
-        nonce: nonceResult.nonce,
-      })
-
-      const { signatureParams, ...safeTypedData } = typedData
-      const structHash = hashTypedData({
-        domain: safeTypedData.domain,
-        types: safeTypedData.types,
-        primaryType: safeTypedData.primaryType,
-        message: safeTypedData.message,
-      }) as `0x${string}`
-
-      const signature = await runWithSignaturePrompt(() => signMessageAsync({
-        message: { raw: structHash },
-      }))
-
-      const payload = {
-        type: 'SAFE' as const,
-        from: user.address,
-        to: aggregated.to,
-        proxyWallet: user.proxy_wallet_address,
-        data: aggregated.data,
-        nonce: nonceResult.nonce,
-        signature: packSafeSignature(signature as `0x${string}`),
-        signatureParams,
+      const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCalls({
+        user,
+        calls,
         metadata: 'redeem_positions',
-      }
-
-      const response = await submitSafeTransactionAction(payload)
+        signTypedDataAsync,
+      }))
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
           openTradeRequirements({ forceTradingAuth: true })
@@ -399,7 +355,7 @@ function useRedeemClaimSubmission({
       void queryClient.invalidateQueries({ queryKey: ['sports-card-user-positions'] })
       void queryClient.invalidateQueries({ queryKey: ['sports-event-user-positions'] })
       void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
-      void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+      void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
 
       onClaimSuccess?.(Array.from(claimedConditionIds))

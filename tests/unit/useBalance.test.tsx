@@ -62,7 +62,7 @@ describe('useBalance', () => {
     useUser.setState(null)
   })
 
-  it('loads the proxy wallet balance without requiring a live wallet connection', async () => {
+  it('loads the Deposit Wallet balance without requiring a live wallet connection', async () => {
     const balanceOf = vi.fn().mockResolvedValue(123_450_000n)
     mocks.getContract.mockReturnValue({
       read: {
@@ -96,7 +96,7 @@ describe('useBalance', () => {
     expect(result.current.balance.text).toBe('123.45')
   })
 
-  it('stops loading when there is no proxy wallet to query yet', async () => {
+  it('stops loading when there is no Deposit Wallet to query yet', async () => {
     mocks.getContract.mockReturnValue({
       read: {
         balanceOf: vi.fn(),

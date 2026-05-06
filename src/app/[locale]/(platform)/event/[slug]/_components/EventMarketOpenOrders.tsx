@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
+import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { MICRO_UNIT, OUTCOME_INDEX, tableHeaderClass } from '@/lib/constants'
 import { formatCurrency, formatSharePriceLabel, formatSharesLabel } from '@/lib/formatters'
@@ -197,9 +197,9 @@ function useOpenOrdersCancellation({
       await queryClient.invalidateQueries({ queryKey: openOrdersQueryKey })
       void queryClient.invalidateQueries({ queryKey: eventOpenOrdersQueryKey })
       void queryClient.invalidateQueries({ queryKey: ['orderbook-summary'] })
-      void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+      void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       }, 3000)
       scheduleOpenOrdersRefresh()
     }
@@ -262,9 +262,9 @@ function useOpenOrdersCancellation({
       await queryClient.invalidateQueries({ queryKey: openOrdersQueryKey })
       void queryClient.invalidateQueries({ queryKey: eventOpenOrdersQueryKey })
       void queryClient.invalidateQueries({ queryKey: ['orderbook-summary'] })
-      void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+      void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       }, 3000)
       scheduleOpenOrdersRefresh()
     }

@@ -2,6 +2,7 @@
 
 import type { ComponentProps } from 'react'
 import { CheckIcon, CircleDollarSignIcon, Loader2Icon, WalletIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -60,6 +61,7 @@ export function EnableTradingDialog({
   onOpenChange,
   ...stepsProps
 }: EnableTradingDialogProps) {
+  const t = useExtracted()
   const site = useSiteIdentity()
   const isMobile = useIsMobile()
 
@@ -72,9 +74,9 @@ export function EnableTradingDialog({
               <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <WalletIcon className="size-8" />
               </div>
-              <DrawerTitle className="text-center text-2xl font-bold">Enable Trading</DrawerTitle>
+              <DrawerTitle className="text-center text-2xl font-bold">{t('Enable Trading')}</DrawerTitle>
               <DrawerDescription className="text-center text-base text-muted-foreground">
-                {`Let's set up your wallet to trade on ${site.name}.`}
+                {t('Let\'s set up your wallet to trade on {siteName}.', { siteName: site.name })}
               </DrawerDescription>
             </DrawerHeader>
 
@@ -92,9 +94,9 @@ export function EnableTradingDialog({
           <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <WalletIcon className="size-8" />
           </div>
-          <DialogTitle className="text-center text-2xl font-bold">Enable Trading</DialogTitle>
+          <DialogTitle className="text-center text-2xl font-bold">{t('Enable Trading')}</DialogTitle>
           <DialogDescription className="text-center text-base text-muted-foreground">
-            {`Let's set up your wallet to trade on ${site.name}.`}
+            {t('Let\'s set up your wallet to trade on {siteName}.', { siteName: site.name })}
           </DialogDescription>
         </DialogHeader>
 
@@ -110,6 +112,7 @@ export function FundAccountDialog({
   onDeposit,
   onSkip,
 }: FundAccountDialogProps) {
+  const t = useExtracted()
   const isMobile = useIsMobile()
 
   if (isMobile) {
@@ -121,12 +124,12 @@ export function FundAccountDialog({
               <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <CircleDollarSignIcon className="size-8" />
               </div>
-              <DrawerTitle className="text-center text-2xl font-bold">Fund Your Account</DrawerTitle>
+              <DrawerTitle className="text-center text-2xl font-bold">{t('Fund Your Account')}</DrawerTitle>
             </DrawerHeader>
 
             <div className="space-y-4">
               <Button className="h-12 w-full text-base" onClick={onDeposit}>
-                Deposit Funds
+                {t('Deposit Funds')}
               </Button>
 
               <button
@@ -137,7 +140,7 @@ export function FundAccountDialog({
                 "
                 onClick={onSkip}
               >
-                Skip for now
+                {t('Skip for now')}
               </button>
             </div>
           </div>
@@ -153,12 +156,12 @@ export function FundAccountDialog({
           <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <CircleDollarSignIcon className="size-8" />
           </div>
-          <DialogTitle className="text-center text-2xl font-bold">Fund Your Account</DialogTitle>
+          <DialogTitle className="text-center text-2xl font-bold">{t('Fund Your Account')}</DialogTitle>
         </DialogHeader>
 
         <div className="mt-6 space-y-4">
           <Button className="h-12 w-full text-base" onClick={onDeposit}>
-            Deposit Funds
+            {t('Deposit Funds')}
           </Button>
 
           <button
@@ -166,7 +169,7 @@ export function FundAccountDialog({
             className="mx-auto block text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             onClick={onSkip}
           >
-            Skip for now
+            {t('Skip for now')}
           </button>
         </div>
       </DialogContent>
@@ -188,15 +191,16 @@ function TradingStepsList({
   onTradingAuthAction,
   onApprovalsAction,
 }: TradingStepsListProps) {
+  const t = useExtracted()
   const tradingAuthSatisfied = hasTradingAuth || tradingAuthStep === 'completed'
   const proxyReadyForTrading = hasDeployedProxyWallet || proxyStep === 'deploying' || proxyStep === 'completed'
 
   return (
     <div className="mt-6 space-y-6 text-left">
       <TradingRequirementStep
-        title="Deploy Proxy Wallet"
-        description={`Deploy your proxy wallet to trade on ${siteName}.`}
-        actionLabel={proxyStep === 'signing' ? 'Signing…' : proxyStep === 'deploying' ? 'Deploying' : 'Deploy'}
+        title={t('Create Deposit Wallet')}
+        description={t('Create your Deposit Wallet to trade on {siteName}.', { siteName })}
+        actionLabel={proxyStep === 'signing' ? t('Signing...') : proxyStep === 'deploying' ? t('Creating') : t('Create')}
         isLoading={proxyStep === 'signing'}
         disabled={proxyStep === 'signing' || proxyStep === 'deploying'}
         isComplete={proxyStep === 'completed'}
@@ -207,9 +211,9 @@ function TradingStepsList({
       <Separator className="bg-border/70" />
 
       <TradingRequirementStep
-        title="Enable Trading"
-        description="You need to sign this each time you trade on a new browser."
-        actionLabel={tradingAuthStep === 'signing' ? 'Signing…' : 'Sign'}
+        title={t('Enable Trading')}
+        description={t('You need to sign this each time you trade on a new browser.')}
+        actionLabel={tradingAuthStep === 'signing' ? t('Signing...') : t('Sign')}
         isLoading={tradingAuthStep === 'signing'}
         disabled={!proxyReadyForTrading || tradingAuthStep === 'completed' || tradingAuthStep === 'signing'}
         isComplete={tradingAuthStep === 'completed'}
@@ -220,9 +224,9 @@ function TradingStepsList({
       <Separator className="bg-border/70" />
 
       <TradingRequirementStep
-        title="Approve Tokens"
-        description="Approve USDC and position permissions for trading."
-        actionLabel={approvalsStep === 'signing' ? 'Signing…' : 'Sign'}
+        title={t('Approve Tokens')}
+        description={t('Approve USDC and position permissions for trading.')}
+        actionLabel={approvalsStep === 'signing' ? t('Signing...') : t('Sign')}
         isLoading={approvalsStep === 'signing'}
         disabled={
           !tradingAuthSatisfied

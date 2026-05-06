@@ -15,10 +15,8 @@ export interface CalculateOrderAmountsArgs {
 }
 
 export interface BuildOrderPayloadArgs extends CalculateOrderAmountsArgs {
-  userAddress: `0x${string}`
   outcome: Outcome
-  makerAddress?: `0x${string}`
-  signatureType?: number
+  makerAddress: `0x${string}`
   expirationTimestamp?: number
   metadata?: `0x${string}`
   builder?: `0x${string}`
@@ -38,7 +36,7 @@ const DEFAULT_ORDER_FIELDS = {
   expiration: 0n,
   nonce: 0n,
   fee_rate_bps: 0n,
-  signature_type: 0,
+  signature_type: 3,
   metadata: ZERO_BYTES32,
   builder: ZERO_BYTES32,
 } as const
@@ -108,10 +106,8 @@ export function calculateOrderAmounts({
 }
 
 export function buildOrderPayload({
-  userAddress,
   outcome,
   makerAddress,
-  signatureType,
   expirationTimestamp,
   metadata,
   builder,
@@ -119,8 +115,7 @@ export function buildOrderPayload({
 }: BuildOrderPayloadArgs): BlockchainOrder {
   const { makerAmount, takerAmount } = calculateOrderAmounts(rest)
   const salt = generateOrderSalt()
-  const maker = makerAddress ?? userAddress
-  const signatureTypeValue = typeof signatureType === 'number' ? signatureType : DEFAULT_ORDER_FIELDS.signature_type
+  const maker = makerAddress
   const expirationValue = typeof expirationTimestamp === 'number' && Number.isFinite(expirationTimestamp)
     ? BigInt(Math.max(0, Math.trunc(expirationTimestamp)))
     : DEFAULT_ORDER_FIELDS.expiration
@@ -129,7 +124,7 @@ export function buildOrderPayload({
     ...DEFAULT_ORDER_FIELDS,
     salt,
     maker,
-    signer: userAddress,
+    signer: maker,
     taker: ZERO_ADDRESS,
     token_id: BigInt(outcome.token_id),
     maker_amount: makerAmount,
@@ -137,7 +132,7 @@ export function buildOrderPayload({
     expiration: expirationValue,
     side: rest.side,
     fee_rate_bps: DEFAULT_ORDER_FIELDS.fee_rate_bps,
-    signature_type: signatureTypeValue,
+    signature_type: DEFAULT_ORDER_FIELDS.signature_type,
     timestamp: BigInt(Date.now()),
     metadata: metadata ?? DEFAULT_ORDER_FIELDS.metadata,
     builder: builder ?? DEFAULT_ORDER_FIELDS.builder,

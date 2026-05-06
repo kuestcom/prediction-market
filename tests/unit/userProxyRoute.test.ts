@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
-  isProxyWalletDeployed: vi.fn(),
+  isDepositWalletDeployed: vi.fn(),
   update: vi.fn(),
   set: vi.fn(),
   where: vi.fn(),
@@ -13,8 +13,8 @@ vi.mock('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args) },
 }))
 
-vi.mock('@/lib/safe-proxy', () => ({
-  isProxyWalletDeployed: (...args: any[]) => mocks.isProxyWalletDeployed(...args),
+vi.mock('@/lib/deposit-wallet', () => ({
+  isDepositWalletDeployed: (...args: any[]) => mocks.isDepositWalletDeployed(...args),
 }))
 
 vi.mock('drizzle-orm', () => ({
@@ -53,7 +53,7 @@ describe('user proxy route', () => {
       proxy_wallet_signed_at: 1,
       proxy_wallet_tx_hash: '0xtx',
     })
-    mocks.isProxyWalletDeployed.mockResolvedValueOnce(true)
+    mocks.isDepositWalletDeployed.mockResolvedValueOnce(true)
 
     const response = await GET()
     expect(response.status).toBe(200)
@@ -72,7 +72,7 @@ describe('user proxy route', () => {
       proxy_wallet_signed_at: null,
       proxy_wallet_tx_hash: null,
     })
-    mocks.isProxyWalletDeployed.mockResolvedValueOnce(false)
+    mocks.isDepositWalletDeployed.mockResolvedValueOnce(false)
 
     const response = await GET()
     const body = await response.json()

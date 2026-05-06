@@ -1,13 +1,10 @@
 import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
-import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { UserPosition } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { hashTypedData } from 'viem'
-import { useSignMessage } from 'wagmi'
-import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
+import { useSignTypedData } from 'wagmi'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,24 +22,20 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
-import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
+import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { DEFAULT_CONDITION_PARTITION, DEFAULT_ERROR_MESSAGE, MICRO_UNIT } from '@/lib/constants'
+import { DEFAULT_CONDITION_PARTITION, MICRO_UNIT } from '@/lib/constants'
 import { ZERO_COLLECTION_ID } from '@/lib/contracts'
 import { formatAmountInputValue, toMicro } from '@/lib/formatters'
-import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { applyPositionDeltasToUserPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
-import {
-  aggregateSafeTransactions,
-  buildNegRiskSplitPositionTransaction,
-  buildSplitPositionTransaction,
-  getSafeTxTypedData,
-  packSafeSignature,
-
-} from '@/lib/safe/transactions'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
+import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
+import {
+  buildNegRiskSplitPositionCall,
+  buildSplitPositionCall,
+} from '@/lib/wallet/transactions'
 import { useNotifications } from '@/stores/useNotifications'
 import { useUser } from '@/stores/useUser'
 
@@ -106,7 +99,7 @@ export default function EventSplitSharesDialog({
   const user = useUser()
   const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
   const isMobile = useIsMobile()
-  const { signMessageAsync } = useSignMessage()
+  const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { amount, setAmount, error, setError, isSubmitting, setIsSubmitting } = useSplitFormState()
 
@@ -183,7 +176,7 @@ export default function EventSplitSharesDialog({
     }
 
     if (!user?.proxy_wallet_address) {
-      toast.error(t('Deploy your proxy wallet before splitting shares.'))
+      toast.error(t('Set up your Deposit Wallet before splitting shares.'))
       return
     }
 
@@ -191,26 +184,13 @@ export default function EventSplitSharesDialog({
     setIsSubmitting(true)
 
     try {
-      const nonceResult = await getSafeNonceAction()
-      if (nonceResult.error || !nonceResult.nonce) {
-        if (isTradingAuthRequiredError(nonceResult.error)) {
-          closeDialog()
-          openTradeRequirements({ forceTradingAuth: true })
-        }
-        else {
-          toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
-        }
-        setIsSubmitting(false)
-        return
-      }
-
-      const transactions = [
+      const calls = [
         isNegRiskMarket
-          ? buildNegRiskSplitPositionTransaction({
+          ? buildNegRiskSplitPositionCall({
               conditionId: conditionId as `0x${string}`,
               amount: toMicro(numericAmount),
             })
-          : buildSplitPositionTransaction({
+          : buildSplitPositionCall({
               conditionId: conditionId as `0x${string}`,
               partition: [...DEFAULT_CONDITION_PARTITION],
               amount: toMicro(numericAmount),
@@ -218,39 +198,12 @@ export default function EventSplitSharesDialog({
             }),
       ]
 
-      const aggregated = aggregateSafeTransactions(transactions)
-      const typedData = getSafeTxTypedData({
-        chainId: DEFAULT_CHAIN_ID,
-        safeAddress: user.proxy_wallet_address as `0x${string}`,
-        transaction: aggregated,
-        nonce: nonceResult.nonce,
-      })
-
-      const { signatureParams, ...safeTypedData } = typedData
-      const structHash = hashTypedData({
-        domain: safeTypedData.domain,
-        types: safeTypedData.types,
-        primaryType: safeTypedData.primaryType,
-        message: safeTypedData.message,
-      }) as `0x${string}`
-
-      const signature = await runWithSignaturePrompt(() => signMessageAsync({
-        message: { raw: structHash },
-      }))
-
-      const payload: SafeTransactionRequestPayload = {
-        type: 'SAFE',
-        from: user.address,
-        to: aggregated.to,
-        proxyWallet: user.proxy_wallet_address,
-        data: aggregated.data,
-        nonce: nonceResult.nonce,
-        signature: packSafeSignature(signature as `0x${string}`),
-        signatureParams,
+      const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCalls({
+        user,
+        calls,
         metadata: 'split_position',
-      }
-
-      const response = await submitSafeTransactionAction(payload)
+        signTypedDataAsync,
+      }))
 
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
@@ -344,7 +297,7 @@ export default function EventSplitSharesDialog({
         ]),
       )
 
-      void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+      void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       setAmount('')
       closeDialog()
     }

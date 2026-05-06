@@ -1,12 +1,11 @@
 'use client'
 
-import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { ProxyWalletStatus } from '@/types'
+import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { hashTypedData, isAddress } from 'viem'
-import { useSignMessage } from 'wagmi'
-import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
+import { isAddress } from 'viem'
+import { useSignTypedData } from 'wagmi'
 import { WalletDepositModal, WalletWithdrawModal } from '@/app/[locale]/(platform)/_components/WalletModal'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { useBalance } from '@/hooks/useBalance'
@@ -18,9 +17,9 @@ import { MAX_AMOUNT_INPUT } from '@/lib/amount-input'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { formatAmountInputValue } from '@/lib/formatters'
-import { DEFAULT_CHAIN_ID } from '@/lib/network'
-import { buildSendErc20Transaction, getSafeTxTypedData, packSafeSignature } from '@/lib/safe/transactions'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
+import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
+import { buildSendErc20Call } from '@/lib/wallet/transactions'
 
 type DepositView = 'fund' | 'receive' | 'wallets' | 'amount' | 'confirm' | 'success'
 
@@ -129,7 +128,8 @@ function useWalletSendHandler({
   handleWithdrawModalChange,
   openTradeRequirements,
   runWithSignaturePrompt,
-  signMessageAsync,
+  signTypedDataAsync,
+  t,
 }: {
   user: WalletFlowProps['user']
   walletSendTo: string
@@ -141,74 +141,40 @@ function useWalletSendHandler({
   handleWithdrawModalChange: (next: boolean) => void
   openTradeRequirements: ReturnType<typeof useTradingOnboarding>['openTradeRequirements']
   runWithSignaturePrompt: ReturnType<typeof useSignaturePromptRunner>['runWithSignaturePrompt']
-  signMessageAsync: ReturnType<typeof useSignMessage>['signMessageAsync']
+  signTypedDataAsync: ReturnType<typeof useSignTypedData>['signTypedDataAsync']
+  t: ReturnType<typeof useExtracted>
 }) {
   return useCallback(async (event?: React.FormEvent<HTMLFormElement>) => {
     event?.preventDefault()
     if (!user?.proxy_wallet_address) {
-      toast.error('Deploy your proxy wallet first.')
+      toast.error(t('Set up your Deposit Wallet first.'))
       return
     }
     if (!isAddress(walletSendTo)) {
-      toast.error('Enter a valid recipient address.')
+      toast.error(t('Enter a valid recipient address.'))
       return
     }
     const amountNumber = Number(walletSendAmount)
     if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
-      toast.error('Enter a valid amount.')
+      toast.error(t('Enter a valid amount.'))
       return
     }
 
     setIsWalletSending(true)
     try {
-      const nonceResult = await getSafeNonceAction()
-      if (nonceResult.error || !nonceResult.nonce) {
-        if (isTradingAuthRequiredError(nonceResult.error)) {
-          handleWithdrawModalChange(false)
-          openTradeRequirements({ forceTradingAuth: true })
-        }
-        else {
-          toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
-        }
-        return
-      }
-
-      const transaction = buildSendErc20Transaction({
+      const call = buildSendErc20Call({
         token: COLLATERAL_TOKEN_ADDRESS,
         to: walletSendTo as `0x${string}`,
         amount: walletSendAmount,
         decimals: 6,
       })
 
-      const typedData = getSafeTxTypedData({
-        chainId: DEFAULT_CHAIN_ID,
-        safeAddress: user.proxy_wallet_address as `0x${string}`,
-        transaction,
-        nonce: nonceResult.nonce,
-      })
-
-      const structHash = hashTypedData({
-        domain: typedData.domain,
-        types: typedData.types,
-        primaryType: typedData.primaryType,
-        message: typedData.message,
-      }) as `0x${string}`
-
-      const signature = await runWithSignaturePrompt(() => signMessageAsync({ message: { raw: structHash } }))
-
-      const payload: SafeTransactionRequestPayload = {
-        type: 'SAFE',
-        from: user.address,
-        to: transaction.to,
-        proxyWallet: user.proxy_wallet_address,
-        data: transaction.data,
-        nonce: nonceResult.nonce,
-        signature: packSafeSignature(signature as `0x${string}`),
-        signatureParams: typedData.signatureParams,
+      const result = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCalls({
+        user,
+        calls: [call],
         metadata: 'send_tokens',
-      }
-
-      const result = await submitSafeTransactionAction(payload)
+        signTypedDataAsync,
+      }))
       if (result.error) {
         if (isTradingAuthRequiredError(result.error)) {
           handleWithdrawModalChange(false)
@@ -220,8 +186,8 @@ function useWalletSendHandler({
         return
       }
 
-      toast.success('Withdrawal submitted', {
-        description: 'We sent your withdrawal transaction.',
+      toast.success(t('Withdrawal submitted'), {
+        description: t('We sent your withdrawal transaction.'),
       })
       setPendingWithdrawals((current) => {
         const next = [
@@ -255,9 +221,9 @@ function useWalletSendHandler({
     setPendingWithdrawals,
     setWalletSendAmount,
     setWalletSendTo,
-    signMessageAsync,
-    user?.address,
-    user?.proxy_wallet_address,
+    signTypedDataAsync,
+    t,
+    user,
     walletSendAmount,
     walletSendTo,
   ])
@@ -329,7 +295,8 @@ export function WalletFlow({
   meldUrl,
 }: WalletFlowProps) {
   const isMobile = useIsMobile()
-  const { signMessageAsync } = useSignMessage()
+  const t = useExtracted()
+  const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { depositView, setDepositView, handleDepositModalChange } = useDepositViewState(onDepositOpenChange)
   const {
@@ -364,7 +331,8 @@ export function WalletFlow({
     handleWithdrawModalChange,
     openTradeRequirements,
     runWithSignaturePrompt,
-    signMessageAsync,
+    signTypedDataAsync,
+    t,
   })
 
   const handleBuy = useBuyHandler({ meldUrl, handleDepositModalChange })

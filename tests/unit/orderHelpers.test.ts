@@ -51,8 +51,9 @@ describe('calculateOrderAmounts', () => {
 
 describe('buildOrderPayload', () => {
   it('returns payload with bigint fields', () => {
+    const depositWallet = '0x0000000000000000000000000000000000000003'
     const payload = buildOrderPayload({
-      userAddress: '0xUser',
+      makerAddress: depositWallet,
       outcome: { token_id: '42' } as any,
       side: ORDER_SIDE.BUY,
       orderType: ORDER_TYPE.MARKET,
@@ -63,6 +64,9 @@ describe('buildOrderPayload', () => {
     })
 
     expect(payload.maker_amount).toBe(15000000n)
+    expect(payload.maker).toBe(depositWallet)
+    expect(payload.signer).toBe(depositWallet)
+    expect(payload.signature_type).toBe(3)
     expect(payload.taker_amount).toBeGreaterThan(0n)
     expect(payload.token_id).toBe(42n)
     expect(payload.fee_rate_bps).toBe(0n)
@@ -71,7 +75,7 @@ describe('buildOrderPayload', () => {
 
   it('defaults metadata and builder to zero bytes32', () => {
     const payload = buildOrderPayload({
-      userAddress: '0xUser',
+      makerAddress: '0x0000000000000000000000000000000000000003',
       outcome: { token_id: '1' } as any,
       side: ORDER_SIDE.SELL,
       orderType: ORDER_TYPE.MARKET,
@@ -104,7 +108,7 @@ describe('submitOrder', () => {
       nonce: 5n,
       fee_rate_bps: 6n,
       side: ORDER_SIDE.BUY,
-      signature_type: 0,
+      signature_type: 3,
       timestamp: 7n,
       metadata: '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`,
       builder: '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`,

@@ -102,7 +102,7 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 - [x] CLOB engine + relayer
 - [x] Matching engine
 - [x] UMA oracle resolution
-- [x] Safe-compatible proxy wallet flows
+- [x] Deposit Wallet trading flows
 - [x] Public bot SDK (Python / Rust)
 - [x] PnL system + trader leaderboard
 - [x] Multi-language UI + theme customization

@@ -49,7 +49,7 @@ export async function buildPendingUsdcSwapAction(params: {
   }
 
   if (!user.proxy_wallet_address) {
-    return { error: 'Deploy your proxy wallet first.' }
+    return { error: 'Set up your Deposit Wallet first.' }
   }
 
   const auth = await getUserTradingAuthSecrets(user.id)
@@ -124,7 +124,7 @@ export async function submitPendingUsdcSwapAction(
   }
 
   if (!user.proxy_wallet_address) {
-    return { error: 'Deploy your proxy wallet first.' }
+    return { error: 'Set up your Deposit Wallet first.' }
   }
 
   if (request.type !== 'SAFE') {

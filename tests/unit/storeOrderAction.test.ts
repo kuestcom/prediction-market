@@ -74,7 +74,7 @@ describe('storeOrderAction', () => {
       nonce: '0',
       fee_rate_bps: '200',
       side: 0,
-      signature_type: 0,
+      signature_type: 3,
       timestamp: '1700000000000',
       metadata: '0x0000000000000000000000000000000000000000000000000000000000000000',
       builder: '0x0000000000000000000000000000000000000000000000000000000000000000',
@@ -95,7 +95,7 @@ describe('storeOrderAction', () => {
     expect(result).toEqual({ error: 'Unauthenticated.' })
   })
 
-  it('requires trading auth and proxy wallet', async () => {
+  it('requires trading auth and Deposit Wallet', async () => {
     process.env.CLOB_URL = 'https://clob.local'
     const baseUser = {
       id: 'user-1',
@@ -115,7 +115,7 @@ describe('storeOrderAction', () => {
       clob: { key: 'k', passphrase: 'p', secret: 's' },
     })
     const result2 = await storeOrderAction(basePayload())
-    expect(result2?.error).toBe('Deploy your proxy wallet before trading.')
+    expect(result2?.error).toBe('Set up your Deposit Wallet before trading.')
   })
 
   it('returns schema validation errors', async () => {
@@ -156,6 +156,7 @@ describe('storeOrderAction', () => {
     const result = await storeOrderAction(basePayload({
       side: 1,
       maker: proxy,
+      signer: proxy,
       maker_amount: '10',
       type: 'MARKET',
     }))

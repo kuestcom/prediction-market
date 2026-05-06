@@ -8,8 +8,8 @@ import { affiliate_referrals } from '@/lib/db/schema/affiliates/tables'
 import { accounts, sessions, two_factors, users, verifications, wallets } from '@/lib/db/schema/auth/tables'
 import { orders } from '@/lib/db/schema/orders/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
+import { isDepositWalletDeployed } from '@/lib/deposit-wallet'
 import { db } from '@/lib/drizzle'
-import { getSafeProxyWalletAddress, isProxyWalletDeployed } from '@/lib/safe-proxy'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { sanitizeTradingAuthSettings } from '@/lib/trading-auth/utils'
 import { normalizeAddress } from '@/lib/wallet'
@@ -230,7 +230,7 @@ export const UserRepository = {
         }
       }
 
-      const proxyAddress = await ensureUserProxyWallet(user)
+      const proxyAddress = await ensureUserDepositWallet(user)
 
       if (proxyAddress && !user.username) {
         const generatedUsername = generateUsername(proxyAddress)
@@ -434,40 +434,20 @@ function generateUsername(proxyAddress: string) {
   return `${proxyAddress}-${timestamp}`
 }
 
-async function ensureUserProxyWallet(user: any): Promise<string | null> {
-  const owner = typeof user?.address === 'string' ? user.address : ''
-  if (!owner || !owner.startsWith('0x')) {
+async function ensureUserDepositWallet(user: any): Promise<string | null> {
+  const hasProxyAddress = typeof user?.proxy_wallet_address === 'string' && user.proxy_wallet_address.startsWith('0x')
+  if (!hasProxyAddress) {
     return null
   }
 
-  const hasProxyAddress = typeof user?.proxy_wallet_address === 'string' && user.proxy_wallet_address.startsWith('0x')
-
   try {
-    const expectedProxyAddress = await getSafeProxyWalletAddress(owner as `0x${string}`)
-
-    if (!expectedProxyAddress) {
-      return null
-    }
-
-    const normalizedExpected = expectedProxyAddress.toLowerCase()
-    const normalizedCurrent = hasProxyAddress ? user.proxy_wallet_address.toLowerCase() : null
-    const addressChanged = !normalizedCurrent || normalizedCurrent !== normalizedExpected
-    const proxyAddress = addressChanged
-      ? expectedProxyAddress
-      : (user.proxy_wallet_address as `0x${string}`)
-
+    const proxyAddress = user.proxy_wallet_address as `0x${string}`
     let nextStatus: ProxyWalletStatus = (user.proxy_wallet_status as ProxyWalletStatus | null) ?? 'not_started'
     const updates: Record<string, any> = {}
 
-    if (addressChanged) {
-      updates.proxy_wallet_address = proxyAddress
-    }
-
-    const shouldCheckDeployment = addressChanged
-      || !hasProxyAddress
-      || user.proxy_wallet_status !== 'deployed'
+    const shouldCheckDeployment = user.proxy_wallet_status !== 'deployed'
     if (shouldCheckDeployment) {
-      const deployed = await isProxyWalletDeployed(proxyAddress as `0x${string}`)
+      const deployed = await isDepositWalletDeployed(proxyAddress)
       if (deployed) {
         nextStatus = 'deployed'
       }
@@ -496,7 +476,7 @@ async function ensureUserProxyWallet(user: any): Promise<string | null> {
     return proxyAddress
   }
   catch (error) {
-    console.error('Failed to ensure proxy wallet metadata', error)
+    console.error('Failed to ensure Deposit Wallet metadata', error)
   }
 
   return null

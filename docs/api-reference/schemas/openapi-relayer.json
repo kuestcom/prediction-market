@@ -278,14 +278,14 @@
           "Relayer core"
         ],
         "summary": "Get relayer nonce",
-        "description": "Retrieve the next SAFE or SAFE-CREATE nonce recognized by the relayer.",
+        "description": "Retrieve the next nonce recognized by the relayer for SAFE, SAFE-CREATE, WALLET-CREATE, or WALLET flows.",
         "operationId": "getRelayerNonce",
         "parameters": [
           {
             "name": "address",
             "in": "query",
             "required": true,
-            "description": "Safe or owner address tied to your credentials.",
+            "description": "Owner, Safe, or Deposit Wallet owner address tied to your credentials.",
             "schema": {
               "type": "string"
             },
@@ -300,10 +300,12 @@
               "type": "string",
               "enum": [
                 "SAFE",
-                "SAFE-CREATE"
+                "SAFE-CREATE",
+                "WALLET-CREATE",
+                "WALLET"
               ]
             },
-            "example": "SAFE"
+            "example": "WALLET"
           }
         ],
         "responses": {
@@ -530,7 +532,7 @@
           "Relayer core"
         ],
         "summary": "Submit relayer transaction",
-        "description": "Persist a SAFE, SAFE-CREATE, or PROXY payload and let the relayer broadcast it on-chain.",
+        "description": "Persist a SAFE, SAFE-CREATE, PROXY, WALLET-CREATE, or WALLET payload and let the relayer broadcast it on-chain.",
         "operationId": "submitRelayerTransaction",
         "requestBody": {
           "required": true,
@@ -540,23 +542,38 @@
                 "$ref": "#/components/schemas/RelayerSubmitRequest"
               },
               "example": {
-                "type": "SAFE",
+                "type": "WALLET",
                 "from": "0x0B2B3E6B323C0Cd7bEaf4B7cC73b983D4E9B12c7",
-                "to": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
-                "proxyWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
-                "data": "0x095ea7b30000000000000000000000004d97dcd97ec945f40cf65f87097ace5ea0476045ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-                "nonce": "7",
+                "to": "0x3DaBe8f032833CE42CC26d9149660E6f596759C5",
+                "data": "0x",
                 "value": "0",
+                "nonce": "7",
                 "signature": "0xf368488355b0566e99eff3bccc35e98b77d8f3a6e6866176188488c34f0305b07e4a4c600c7a1592e4ac1e96b5887ebff2cb26987a3ad501006b39944df098c21f",
                 "signatureParams": {
-                  "operation": "0",
-                  "safeTxnGas": "0",
-                  "baseGas": "0",
-                  "gasPrice": "0",
-                  "gasToken": "0x0000000000000000000000000000000000000000",
-                  "refundReceiver": "0x0000000000000000000000000000000000000000"
+                  "depositWalletParams": {
+                    "depositWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
+                    "deadline": "1710000240",
+                    "calls": [
+                      {
+                        "target": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+                        "value": "0",
+                        "data": "0x095ea7b3"
+                      }
+                    ]
+                  }
                 },
-                "metadata": "usdc approval ctf"
+                "depositWalletParams": {
+                  "depositWallet": "0x3f8Be6FC21f4a5127A42CE1aF58d8bCb8A94F3c1",
+                  "deadline": "1710000240",
+                  "calls": [
+                    {
+                      "target": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+                      "value": "0",
+                      "data": "0x095ea7b3"
+                    }
+                  ]
+                },
+                "metadata": "approve_tokens"
               }
             }
           }
@@ -1223,7 +1240,7 @@
           },
           "type": {
             "type": "string",
-            "description": "Operation type such as SAFE, SAFE-CREATE, or PROXY."
+            "description": "Operation type such as SAFE, SAFE-CREATE, PROXY, WALLET-CREATE, or WALLET."
           },
           "metadata": {
             "type": [
@@ -1303,31 +1320,36 @@
           },
           "paymentReceiver": {
             "type": "string"
+          },
+          "depositWalletParams": {
+            "$ref": "#/components/schemas/RelayerDepositWalletParams"
           }
         }
       },
       "RelayerSubmitRequest": {
         "type": "object",
-        "description": "Signed SAFE, SAFE-CREATE, or PROXY payload that the relayer should persist and broadcast.",
+        "description": "Signed SAFE, SAFE-CREATE, PROXY, WALLET-CREATE, or WALLET payload that the relayer should persist and broadcast.",
         "properties": {
           "type": {
             "type": "string",
             "enum": [
               "SAFE",
               "SAFE-CREATE",
-              "PROXY"
+              "PROXY",
+              "WALLET-CREATE",
+              "WALLET"
             ]
           },
           "from": {
             "type": "string",
-            "description": "Safe owner submitting the request."
+            "description": "Owner submitting the request."
           },
           "to": {
             "type": "string",
             "description": "Contract to execute."
           },
           "proxyWallet": {
-            "description": "Proxy address tied to the request (required for SAFE and PROXY).",
+            "description": "Proxy/Safe address tied to legacy SAFE or PROXY requests.",
             "type": [
               "string",
               "null"
@@ -1355,6 +1377,9 @@
               "string",
               "null"
             ]
+          },
+          "depositWalletParams": {
+            "$ref": "#/components/schemas/RelayerDepositWalletParams"
           }
         },
         "required": [
@@ -1524,6 +1549,52 @@
         "required": [
           "txHash",
           "confirmations"
+        ]
+      },
+      "RelayerDepositWalletCall": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Contract called by the Deposit Wallet."
+          },
+          "value": {
+            "type": "string",
+            "default": "0"
+          },
+          "data": {
+            "type": "string",
+            "description": "Calldata for the target contract."
+          }
+        },
+        "required": [
+          "target",
+          "value",
+          "data"
+        ]
+      },
+      "RelayerDepositWalletParams": {
+        "type": "object",
+        "description": "Deposit Wallet batch parameters signed with EIP-712 domain DepositWallet version 1.",
+        "properties": {
+          "depositWallet": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "string",
+            "description": "Unix timestamp deadline for the signed batch."
+          },
+          "calls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelayerDepositWalletCall"
+            }
+          }
+        },
+        "required": [
+          "depositWallet",
+          "deadline",
+          "calls"
         ]
       }
     }

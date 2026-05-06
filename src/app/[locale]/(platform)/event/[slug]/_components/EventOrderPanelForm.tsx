@@ -1,7 +1,6 @@
 import type { InfiniteData } from '@tanstack/react-query'
 import type { ConditionSharesMap, EventOrderPanelFormProps, ResolveDisplayOutcomeLabel } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderPanelTypes'
 import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
-import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { Event, Market, Outcome, UserPosition } from '@/types'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -9,9 +8,7 @@ import { useExtracted, useLocale } from 'next-intl'
 import Form from 'next/form'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { hashTypedData } from 'viem'
-import { useSignMessage, useSignTypedData } from 'wagmi'
-import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
+import { useSignTypedData } from 'wagmi'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import EventOrderPanelBuySellTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelBuySellTabs'
@@ -32,17 +29,16 @@ import {
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
-import { SAFE_BALANCE_QUERY_KEY, useBalance } from '@/hooks/useBalance'
+import { DEPOSIT_WALLET_BALANCE_QUERY_KEY, useBalance } from '@/hooks/useBalance'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { addressToBuilderCode } from '@/lib/builder-code'
-import { CLOB_ORDER_TYPE, DEFAULT_ERROR_MESSAGE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
+import { CLOB_ORDER_TYPE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { formatCentsLabel, formatCurrency, formatSharesLabel, toCents } from '@/lib/formatters'
 import { resolveFallbackOutcomeUnitPrice, resolveMarketOutcome } from '@/lib/market-pricing'
-import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import {
   applyPositionDeltasToUserPositions,
   buildOptimisticOpenOrder,
@@ -56,16 +52,14 @@ import {
 import { buildOrderPayload, submitOrder } from '@/lib/orders'
 import { signOrderPayload } from '@/lib/orders/signing'
 import { MIN_LIMIT_ORDER_SHARES, validateOrder } from '@/lib/orders/validation'
-import {
-  aggregateSafeTransactions,
-  buildNegRiskRedeemPositionTransaction,
-  buildRedeemPositionTransaction,
-  getSafeTxTypedData,
-  packSafeSignature,
-} from '@/lib/safe/transactions'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
+import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
+import {
+  buildNegRiskRedeemPositionCall,
+  buildRedeemPositionCall,
+} from '@/lib/wallet/transactions'
 import { useNotifications } from '@/stores/useNotifications'
 import { useAmountAsNumber, useIsLimitOrder, useNoPrice, useOrder, useYesPrice } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
@@ -741,7 +735,6 @@ export default function EventOrderPanelForm({
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const { signTypedDataAsync } = useSignTypedData()
-  const { signMessageAsync } = useSignMessage()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const t = useExtracted()
   const locale = useLocale()
@@ -832,8 +825,7 @@ export default function EventOrderPanelForm({
   const hasDeployedProxyWallet = Boolean(user?.proxy_wallet_address && user?.proxy_wallet_status === 'deployed')
   const proxyWalletAddress = hasDeployedProxyWallet ? normalizeAddress(user?.proxy_wallet_address) : null
   const userAddress = normalizeAddress(user?.address)
-  const makerAddress = proxyWalletAddress ?? userAddress ?? null
-  const signatureType = proxyWalletAddress ? 2 : 0
+  const makerAddress = proxyWalletAddress
   const { sharesByCondition } = useUserShareBalances({ event, ownerAddress: makerAddress })
   const { openOrdersQueryKey, openSellSharesByCondition } = useEventOrderPanelOpenOrders({
     userId: user?.id,
@@ -1230,9 +1222,7 @@ export default function EventOrderPanelForm({
     })()
 
     const payload = buildOrderPayload({
-      userAddress,
       makerAddress,
-      signatureType,
       outcome: activeOutcome,
       side: state.side,
       orderType: state.type,
@@ -1485,10 +1475,10 @@ export default function EventOrderPanelForm({
         }, 60_000)
       }
 
-      void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+      void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
 
       setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
         void queryClient.refetchQueries({ queryKey: ['event-activity'] })
         void queryClient.refetchQueries({ queryKey: ['event-holders'] })
       }, 3000)
@@ -1518,67 +1508,29 @@ export default function EventOrderPanelForm({
     }
 
     if (!user?.proxy_wallet_address || !user?.address) {
-      toast.error(t('Deploy your proxy wallet before claiming.'))
+      toast.error(t('Set up your Deposit Wallet before claiming.'))
       return
     }
 
     setIsClaimSubmitting(true)
 
     try {
-      const nonceResult = await getSafeNonceAction()
-      if (nonceResult.error || !nonceResult.nonce) {
-        if (isTradingAuthRequiredError(nonceResult.error)) {
-          openTradeRequirements({ forceTradingAuth: true })
-        }
-        else {
-          toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
-        }
-        return
-      }
-
-      const transaction = isNegRiskMarket
-        ? buildNegRiskRedeemPositionTransaction({
+      const call = isNegRiskMarket
+        ? buildNegRiskRedeemPositionCall({
             conditionId: conditionId as `0x${string}`,
             yesAmount: claimableNegRiskAmounts.yesShares,
             noAmount: claimableNegRiskAmounts.noShares,
           })
-        : buildRedeemPositionTransaction({
+        : buildRedeemPositionCall({
             conditionId: conditionId as `0x${string}`,
             indexSets: claimIndexSets,
           })
-      const aggregated = aggregateSafeTransactions([transaction])
-      const typedData = getSafeTxTypedData({
-        chainId: DEFAULT_CHAIN_ID,
-        safeAddress: user.proxy_wallet_address as `0x${string}`,
-        transaction: aggregated,
-        nonce: nonceResult.nonce,
-      })
-
-      const { signatureParams, ...safeTypedData } = typedData
-      const structHash = hashTypedData({
-        domain: safeTypedData.domain,
-        types: safeTypedData.types,
-        primaryType: safeTypedData.primaryType,
-        message: safeTypedData.message,
-      }) as `0x${string}`
-
-      const signature = await runWithSignaturePrompt(() => signMessageAsync({
-        message: { raw: structHash },
-      }))
-
-      const payload: SafeTransactionRequestPayload = {
-        type: 'SAFE',
-        from: user.address,
-        to: aggregated.to,
-        proxyWallet: user.proxy_wallet_address,
-        data: aggregated.data,
-        nonce: nonceResult.nonce,
-        signature: packSafeSignature(signature as `0x${string}`),
-        signatureParams,
+      const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCalls({
+        user,
+        calls: [call],
         metadata: 'redeem_positions',
-      }
-
-      const response = await submitSafeTransactionAction(payload)
+        signTypedDataAsync,
+      }))
 
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
@@ -1619,7 +1571,7 @@ export default function EventOrderPanelForm({
       queryClient.setQueriesData({ queryKey: ['sports-card-user-positions'] }, current =>
         markConditionAsClaimedInPositions(current as any[] | undefined, conditionId))
 
-      void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+      void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       setTimeout(() => {
         void queryClient.invalidateQueries({ queryKey: ['order-panel-user-positions'] })
         void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
@@ -1627,7 +1579,7 @@ export default function EventOrderPanelForm({
         void queryClient.invalidateQueries({ queryKey: ['user-event-positions'] })
         void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
         void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
-        void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       }, 4_000)
       setTimeout(() => {
         void queryClient.invalidateQueries({ queryKey: ['order-panel-user-positions'] })
@@ -1636,7 +1588,7 @@ export default function EventOrderPanelForm({
         void queryClient.invalidateQueries({ queryKey: ['user-event-positions'] })
         void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
         void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
-        void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       }, 12_000)
     }
     catch (error) {

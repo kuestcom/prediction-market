@@ -246,7 +246,7 @@ export async function storeOrderAction(payload: StoreOrderInput) {
     return { error: TRADING_AUTH_REQUIRED_ERROR }
   }
   if (!user.proxy_wallet_address) {
-    return { error: 'Deploy your proxy wallet before trading.' }
+    return { error: 'Set up your Deposit Wallet before trading.' }
   }
 
   const validated = StoreOrderSchema.safeParse(payload)
@@ -264,6 +264,22 @@ export async function storeOrderAction(payload: StoreOrderInput) {
       : CLOB_ORDER_TYPE.GTC)
 
   try {
+    const expectedMaker = normalizeAddress(user.proxy_wallet_address)
+    const maker = normalizeAddress(validated.data.maker)
+    const signer = normalizeAddress(validated.data.signer)
+
+    if (!expectedMaker || !maker || !signer) {
+      return { error: 'Invalid Deposit Wallet address for this order.' }
+    }
+
+    if (validated.data.signature_type !== 3) {
+      return { error: 'Orders must use Deposit Wallet signature type.' }
+    }
+
+    if (maker.toLowerCase() !== expectedMaker.toLowerCase() || signer.toLowerCase() !== expectedMaker.toLowerCase()) {
+      return { error: 'Invalid Deposit Wallet maker or signer for this order.' }
+    }
+
     if (validated.data.side === ORDER_SIDE.SELL) {
       const shareCheck = await ensureSufficientSellShares(
         validated.data.maker,
@@ -274,11 +290,6 @@ export async function storeOrderAction(payload: StoreOrderInput) {
       if (!shareCheck.ok) {
         return { error: shareCheck.error }
       }
-    }
-
-    const expectedMaker = user.proxy_wallet_address.toLowerCase()
-    if (validated.data.maker.toLowerCase() !== expectedMaker) {
-      return { error: 'Invalid maker address for this order.' }
     }
 
     const clobPayload = {

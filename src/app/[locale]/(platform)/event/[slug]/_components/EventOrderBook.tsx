@@ -23,7 +23,7 @@ import {
   microToUnit,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
+import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { ORDER_SIDE, ORDER_TYPE, tableHeaderClass } from '@/lib/constants'
@@ -249,9 +249,9 @@ function useOrderBookUserOrderCancellation({
       await queryClient.invalidateQueries({ queryKey: openOrdersQueryKey })
       void queryClient.invalidateQueries({ queryKey: eventOpenOrdersQueryKey })
       void queryClient.invalidateQueries({ queryKey: ['orderbook-summary'] })
-      void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+      void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       }, 3000)
       scheduleOpenOrdersRefresh()
     }

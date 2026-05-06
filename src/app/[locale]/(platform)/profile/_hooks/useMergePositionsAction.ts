@@ -3,23 +3,21 @@ import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_
 import type { MergeableMarket } from '@/app/[locale]/(platform)/profile/_components/MergePositionsDialog'
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 import type { ConditionShares } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
-import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { User } from '@/types'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
-import { hashTypedData } from 'viem'
-import { getSafeNonceAction, submitSafeTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
+import { useSignTypedData } from 'wagmi'
 import { fetchLockedSharesByCondition } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
-import { SAFE_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
+import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { DEFAULT_CONDITION_PARTITION, DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
+import { DEFAULT_CONDITION_PARTITION } from '@/lib/constants'
 import { UMA_NEG_RISK_ADAPTER_ADDRESS, ZERO_COLLECTION_ID } from '@/lib/contracts'
 import { toMicro } from '@/lib/formatters'
-import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { applyConditionReductionsToPublicPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
-import { aggregateSafeTransactions, buildMergePositionTransaction, getSafeTxTypedData, packSafeSignature } from '@/lib/safe/transactions'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { normalizeAddress } from '@/lib/wallet'
+import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
+import { buildMergePositionCall } from '@/lib/wallet/transactions'
 import { useNotifications } from '@/stores/useNotifications'
 
 interface UseMergePositionsActionOptions {
@@ -30,7 +28,6 @@ interface UseMergePositionsActionOptions {
   ensureTradingReady: () => boolean
   openTradeRequirements: (options?: { forceTradingAuth?: boolean }) => void
   queryClient: QueryClient
-  signMessageAsync: (args: { message: { raw: `0x${string}` } }) => Promise<`0x${string}`>
   onSuccess?: () => void
 }
 
@@ -42,13 +39,13 @@ export function useMergePositionsAction({
   ensureTradingReady,
   openTradeRequirements,
   queryClient,
-  signMessageAsync,
   onSuccess,
 }: UseMergePositionsActionOptions) {
   const [isMergeProcessing, setIsMergeProcessing] = useState(false)
   const [mergeBatchCount, setMergeBatchCount] = useState(0)
   const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
+  const { signTypedDataAsync } = useSignTypedData()
 
   const handleMergeAll = useCallback(async () => {
     if (!hasMergeableMarkets) {
@@ -63,7 +60,7 @@ export function useMergePositionsAction({
     }
 
     if (!user?.proxy_wallet_address || !user?.address) {
-      toast.error('Deploy your proxy wallet before merging shares.')
+      toast.error('Set up your Deposit Wallet before merging shares.')
       setMergeBatchCount(0)
       return
     }
@@ -71,10 +68,7 @@ export function useMergePositionsAction({
     try {
       setIsMergeProcessing(true)
 
-      const [availabilityByCondition, nonceResult] = await Promise.all([
-        fetchLockedSharesByCondition(mergeableMarkets),
-        getSafeNonceAction(),
-      ])
+      const availabilityByCondition = await fetchLockedSharesByCondition(mergeableMarkets)
 
       const preparedMerges = mergeableMarkets
         .filter(market =>
@@ -121,8 +115,8 @@ export function useMergePositionsAction({
         return
       }
 
-      const transactions = preparedMerges.map(entry =>
-        buildMergePositionTransaction({
+      const calls = preparedMerges.map(entry =>
+        buildMergePositionCall({
           conditionId: entry.conditionId as `0x${string}`,
           partition: [...DEFAULT_CONDITION_PARTITION],
           amount: toMicro(entry.mergeAmount),
@@ -133,49 +127,12 @@ export function useMergePositionsAction({
 
       setMergeBatchCount(preparedMerges.length)
 
-      if (nonceResult.error || !nonceResult.nonce) {
-        if (isTradingAuthRequiredError(nonceResult.error)) {
-          openTradeRequirements({ forceTradingAuth: true })
-        }
-        else {
-          toast.error(nonceResult.error ?? DEFAULT_ERROR_MESSAGE)
-        }
-        return
-      }
-
-      const aggregated = aggregateSafeTransactions(transactions)
-      const typedData = getSafeTxTypedData({
-        chainId: DEFAULT_CHAIN_ID,
-        safeAddress: user.proxy_wallet_address as `0x${string}`,
-        transaction: aggregated,
-        nonce: nonceResult.nonce,
-      })
-
-      const { signatureParams, ...safeTypedData } = typedData
-      const structHash = hashTypedData({
-        domain: safeTypedData.domain,
-        types: safeTypedData.types,
-        primaryType: safeTypedData.primaryType,
-        message: safeTypedData.message,
-      }) as `0x${string}`
-
-      const signature = await runWithSignaturePrompt(() => signMessageAsync({
-        message: { raw: structHash },
-      }))
-
-      const payload: SafeTransactionRequestPayload = {
-        type: 'SAFE',
-        from: user.address,
-        to: aggregated.to,
-        proxyWallet: user.proxy_wallet_address,
-        data: aggregated.data,
-        nonce: nonceResult.nonce,
-        signature: packSafeSignature(signature as `0x${string}`),
-        signatureParams,
+      const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCalls({
+        user,
+        calls,
         metadata: 'merge_position',
-      }
-
-      const response = await submitSafeTransactionAction(payload)
+        signTypedDataAsync,
+      }))
 
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
@@ -249,13 +206,13 @@ export function useMergePositionsAction({
 
       setTimeout(() => {
         void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
-        void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
         void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
       }, 4_000)
 
       setTimeout(() => {
         void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
-        void queryClient.invalidateQueries({ queryKey: [SAFE_BALANCE_QUERY_KEY] })
+        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
         void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
       }, 12_000)
     }
@@ -276,11 +233,9 @@ export function useMergePositionsAction({
     positionsByCondition,
     queryClient,
     runWithSignaturePrompt,
-    signMessageAsync,
+    signTypedDataAsync,
     addLocalOrderFillNotification,
-    user?.address,
-    user?.proxy_wallet_address,
-    user?.settings?.notifications?.inapp_order_fills,
+    user,
   ])
 
   return {

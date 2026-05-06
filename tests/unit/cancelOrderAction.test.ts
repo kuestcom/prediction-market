@@ -35,7 +35,7 @@ describe('cancelOrderAction', () => {
     expect(await cancelOrderAction('order-1')).toEqual({ error: 'Unauthenticated.' })
   })
 
-  it('requires trading auth and proxy wallet', async () => {
+  it('requires trading auth and Deposit Wallet', async () => {
     process.env.CLOB_URL = 'https://clob.local'
     mocks.getCurrentUser.mockResolvedValue({
       id: 'user-1',
@@ -48,7 +48,7 @@ describe('cancelOrderAction', () => {
     expect(await cancelOrderAction('order-1')).toEqual({ error: TRADING_AUTH_REQUIRED_ERROR })
 
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({ clob: { key: 'k', passphrase: 'p', secret: 's' } })
-    expect(await cancelOrderAction('order-1')).toEqual({ error: 'Deploy your proxy wallet before trading.' })
+    expect(await cancelOrderAction('order-1')).toEqual({ error: 'Set up your Deposit Wallet before trading.' })
   })
 
   it('maps CLOB HTTP errors to user-facing messages', async () => {

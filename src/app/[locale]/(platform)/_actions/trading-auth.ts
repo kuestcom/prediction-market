@@ -74,9 +74,6 @@ export async function generateTradingAuthAction(input: z.input<typeof GenerateTr
   if (!user) {
     return { error: 'Unauthenticated.', data: null }
   }
-  if (!user.proxy_wallet_address) {
-    return { error: 'Deploy your proxy wallet before enabling trading.', data: null }
-  }
 
   const parsed = GenerateTradingAuthSchema.safeParse(input)
   if (!parsed.success) {

@@ -29,7 +29,7 @@ const INITIAL_STATE: Balance = {
   text: '0.00',
   symbol: 'USDC',
 }
-export const PENDING_USDC_QUERY_KEY = 'safe-native-usdc-balance'
+export const PENDING_USDC_QUERY_KEY = 'deposit-wallet-native-usdc-balance'
 
 interface UsePendingUsdcDepositOptions {
   enabled?: boolean
@@ -113,8 +113,8 @@ export function usePendingUsdcDeposit(options: UsePendingUsdcDepositOptions = {}
   })
 
   const pendingBalance = isQueryEnabled && data ? data : INITIAL_STATE
-  const isWaitingForProxy = Boolean(isConnected && isOptionsEnabled && !proxyWalletAddress)
-  const isLoadingPendingDeposit = isAwaitingConnection || isWaitingForProxy || (isQueryEnabled ? (isLoading || (!data && isFetching)) : false)
+  const isWaitingForDepositWallet = Boolean(isConnected && isOptionsEnabled && !proxyWalletAddress)
+  const isLoadingPendingDeposit = isAwaitingConnection || isWaitingForDepositWallet || (isQueryEnabled ? (isLoading || (!data && isFetching)) : false)
   const hasPendingDeposit = pendingBalance.rawBase !== '0'
 
   return {

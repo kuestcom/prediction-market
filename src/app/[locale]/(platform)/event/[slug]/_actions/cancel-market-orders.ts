@@ -52,7 +52,7 @@ export async function cancelMarketOrdersAction(payload: { market?: string, asset
     return { cancelled: [], notCanceled: {}, error: TRADING_AUTH_REQUIRED_ERROR }
   }
   if (!user.proxy_wallet_address) {
-    return { cancelled: [], notCanceled: {}, error: 'Deploy your proxy wallet before trading.' }
+    return { cancelled: [], notCanceled: {}, error: 'Set up your Deposit Wallet before trading.' }
   }
 
   const parsed = CancelMarketOrdersSchema.safeParse(payload)

@@ -13,7 +13,7 @@ interface Balance {
   symbol: string
 }
 
-export const SAFE_BALANCE_QUERY_KEY = 'safe-usdc-balance'
+export const DEPOSIT_WALLET_BALANCE_QUERY_KEY = 'deposit-wallet-usdc-balance'
 
 const USDC_DECIMALS = 6
 const ERC20_ABI = [
@@ -72,7 +72,7 @@ export function useBalance(options: UseBalanceOptions = {}) {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: [SAFE_BALANCE_QUERY_KEY, proxyWalletAddress],
+    queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY, proxyWalletAddress],
     enabled: isQueryEnabled,
     staleTime: 'static',
     gcTime: 5 * 60 * 1000,
