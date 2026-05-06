@@ -65,7 +65,7 @@
                   ],
                   "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
                   "umaAdapter": "0x08Ce1f626Ef319fAB728F8b4cE3D8875C2C9Ce66",
-                  "ctfExchange": "0x41a02c3c3E1883baF66C4F1706DAb3C07AbedDe1",
+                  "ctfExchange": "0x4bB1871fdaE80331ce5fF87547b8ff886D1695a5",
                   "negRiskOperator": "0x6538FC1837Ffb577f9f02355E2dBd73410E66D9",
                   "negRiskCtfExchange": "0xef02d1Ea5B42432C4E99C2785d1a4020d2F2bB31",
                   "negRiskUmaAdapter": "0xD6fa9B2bE6E345Ee357658Fd980d48f1bEF2D1B7",
@@ -84,7 +84,7 @@
                       "chainId": 80002,
                       "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
                       "umaAdapter": "0x08Ce1f626Ef319fAB728F8b4cE3D8875C2C9Ce66",
-                      "ctfExchange": "0x41a02c3c3E1883baF66C4F1706DAb3C07AbedDe1",
+                      "ctfExchange": "0x4bB1871fdaE80331ce5fF87547b8ff886D1695a5",
                       "negRiskOperator": "0x6538FC1837Ffb577f9f02355E2dBd73410E66D9",
                       "negRiskCtfExchange": "0xef02d1Ea5B42432C4E99C2785d1a4020d2F2bB31",
                       "negRiskUmaAdapter": "0xD6fa9B2bE6E345Ee357658Fd980d48f1bEF2D1B7"
@@ -499,7 +499,7 @@
                     {
                       "key": "binary",
                       "conditionId": "0x8169d94703726c1312976a3f408a15184334d95dcadc78e4e9f96d3b0f0df8df",
-                      "exchange": "0x41a02c3c3E1883baF66C4F1706DAb3C07AbedDe1",
+                      "exchange": "0x4bB1871fdaE80331ce5fF87547b8ff886D1695a5",
                       "tokenA": "78849133110239156497695610160414324368604052631638211845571054319779561887178",
                       "tokenB": "74971562590235665669963598240180085947836206808199917948309517561307482247352",
                       "alreadyRegistered": false,
