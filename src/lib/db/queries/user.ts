@@ -14,22 +14,6 @@ import { getPublicAssetUrl } from '@/lib/storage'
 import { sanitizeTradingAuthSettings } from '@/lib/trading-auth/utils'
 import { normalizeAddress } from '@/lib/wallet'
 
-const WALLET_FIELD_ALIASES = [
-  ['deposit_wallet_address', 'proxy_wallet_address'],
-  ['deposit_wallet_signature', 'proxy_wallet_signature'],
-  ['deposit_wallet_signed_at', 'proxy_wallet_signed_at'],
-  ['deposit_wallet_status', 'proxy_wallet_status'],
-  ['deposit_wallet_tx_hash', 'proxy_wallet_tx_hash'],
-] as const
-
-function normalizeDepositWalletFields(user: Record<string, any>) {
-  for (const [depositField, legacyField] of WALLET_FIELD_ALIASES) {
-    if (user[depositField] === undefined && user[legacyField] !== undefined) {
-      user[depositField] = user[legacyField]
-    }
-  }
-}
-
 export const UserRepository = {
   async getProfileByUsernameOrDepositWalletAddress(username: string) {
     return await runQuery(async () => {
@@ -224,7 +208,6 @@ export const UserRepository = {
       }
 
       const user: any = session.user
-      normalizeDepositWalletFields(user)
       const rawEmail = typeof user.email === 'string' ? user.email : ''
       const shouldRedactEmail = Boolean(rawEmail && rawEmail.startsWith('0x') && rawEmail.split('@')[0].length === 42)
 
