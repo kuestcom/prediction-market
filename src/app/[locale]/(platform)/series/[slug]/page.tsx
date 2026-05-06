@@ -7,6 +7,10 @@ import { EventRepository } from '@/lib/db/queries/event'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
+export async function generateStaticParams() {
+  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
+}
+
 const LIVE_TRADING_WINDOW_MS = 24 * 60 * 60 * 1000
 
 function parseSeriesEventTimestamp(event: EventSeriesEntry) {
@@ -70,10 +74,6 @@ function pickMostCurrentSeriesEvent(events: EventSeriesEntry[], nowTimestamp = D
 
 interface SeriesPageProps {
   params: Promise<{ locale: string, slug: string }>
-}
-
-export async function generateStaticParams() {
-  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
 }
 
 export default async function SeriesPage({ params }: SeriesPageProps) {

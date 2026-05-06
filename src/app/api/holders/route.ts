@@ -8,7 +8,7 @@ import { normalizeAddress } from '@/lib/wallet'
 interface HolderUser {
   id: string
   username: string
-  proxy_wallet_address?: string | null
+  deposit_wallet_address?: string | null
   image: string
   created_at?: string
 }
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
     const addressSet = new Set<string>()
     function collectAddresses(holders: Holder[]) {
       holders.forEach(({ user }) => {
-        const proxy = normalizeAddressKey(user.proxy_wallet_address)
+        const proxy = normalizeAddressKey(user.deposit_wallet_address)
 
         if (proxy) {
           addressSet.add(proxy)
@@ -77,9 +77,9 @@ export async function GET(request: Request) {
       }
 
       for (const profile of profiles || []) {
-        const fallbackAddress = profile.proxy_wallet_address ?? profile.address
+        const fallbackAddress = profile.deposit_wallet_address ?? profile.address
         const normalizedAddress = normalizeAddressKey(profile.address)
-        const normalizedProxyAddress = normalizeAddressKey(profile.proxy_wallet_address)
+        const normalizedProxyAddress = normalizeAddressKey(profile.deposit_wallet_address)
         const imageUrl = normalizeAvatarUrl(profile.image)
         const createdAt = profile.created_at
           ? new Date(profile.created_at).toISOString()
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
         const profileData: HolderUser = {
           id: profile.id,
           username: profile.username || fallbackAddress,
-          proxy_wallet_address: profile.proxy_wallet_address ?? null,
+          deposit_wallet_address: profile.deposit_wallet_address ?? null,
           image: imageUrl,
           created_at: createdAt,
         }
@@ -104,7 +104,7 @@ export async function GET(request: Request) {
     function hydrateHolders(holders: Holder[]) {
       return holders.map((holder) => {
         const lookupKeys = [
-          normalizeAddressKey(holder.user.proxy_wallet_address),
+          normalizeAddressKey(holder.user.deposit_wallet_address),
         ].filter(Boolean) as string[]
 
         const matchedProfile = lookupKeys
@@ -119,7 +119,7 @@ export async function GET(request: Request) {
             ...holder.user,
             id: matchedProfile?.id ?? holder.user.id,
             username: matchedProfile?.username || holder.user.username,
-            proxy_wallet_address: matchedProfile?.proxy_wallet_address ?? holder.user.proxy_wallet_address,
+            deposit_wallet_address: matchedProfile?.deposit_wallet_address ?? holder.user.deposit_wallet_address,
             image: hydratedImage,
             created_at: matchedProfile?.created_at ?? holder.user.created_at,
           },

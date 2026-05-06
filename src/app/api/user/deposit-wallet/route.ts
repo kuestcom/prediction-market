@@ -12,32 +12,32 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
   }
 
-  const depositWalletAddress = user.proxy_wallet_address ?? null
-  let depositWalletStatus = user.proxy_wallet_status ?? null
+  const depositWalletAddress = user.deposit_wallet_address ?? null
+  let depositWalletStatus = user.deposit_wallet_status ?? null
 
   if (depositWalletAddress) {
     const deployed = await isDepositWalletDeployed(depositWalletAddress as `0x${string}`)
     if (deployed && depositWalletStatus !== 'deployed') {
       await db
         .update(users)
-        .set({ proxy_wallet_status: 'deployed', proxy_wallet_tx_hash: null })
+        .set({ deposit_wallet_status: 'deployed', deposit_wallet_tx_hash: null })
         .where(eq(users.id, user.id))
       depositWalletStatus = 'deployed'
     }
     else if (!deployed && depositWalletStatus === 'deployed') {
       await db
         .update(users)
-        .set({ proxy_wallet_status: 'deploying' })
+        .set({ deposit_wallet_status: 'deploying' })
         .where(eq(users.id, user.id))
       depositWalletStatus = 'deploying'
     }
   }
 
   return NextResponse.json({
-    proxy_wallet_address: depositWalletAddress,
-    proxy_wallet_signature: user.proxy_wallet_signature ?? null,
-    proxy_wallet_signed_at: user.proxy_wallet_signed_at ?? null,
-    proxy_wallet_status: depositWalletStatus,
-    proxy_wallet_tx_hash: user.proxy_wallet_tx_hash ?? null,
+    deposit_wallet_address: depositWalletAddress,
+    deposit_wallet_signature: user.deposit_wallet_signature ?? null,
+    deposit_wallet_signed_at: user.deposit_wallet_signed_at ?? null,
+    deposit_wallet_status: depositWalletStatus,
+    deposit_wallet_tx_hash: user.deposit_wallet_tx_hash ?? null,
   })
 }

@@ -12,6 +12,10 @@ import {
 } from '@/lib/prediction-results-filters'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
+export async function generateStaticParams() {
+  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
+}
+
 export async function generateMetadata({ params }: PageProps<'/[locale]/predictions/[slug]'>): Promise<Metadata> {
   const { locale, slug } = await params
   const resolvedLocale = locale as SupportedLocale
@@ -21,10 +25,6 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/predicti
     locale: resolvedLocale,
     slug,
   })
-}
-
-export async function generateStaticParams() {
-  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
 }
 
 export default async function PredictionResultsPage({

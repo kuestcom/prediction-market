@@ -33,7 +33,7 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
 
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   const affiliateCode = user.affiliate_code
-  const receiverAddress = user.proxy_wallet_address ?? user.address
+  const receiverAddress = user.deposit_wallet_address ?? user.address
 
   const feeTotalsPromise = receiverAddress
     ? fetchFeeReceiverTotals({
@@ -91,14 +91,14 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
           const userInfo = (Array.isArray(referral.users) ? referral.users[0] : referral.users) as {
             username: string
             address?: string
-            proxy_wallet_address?: string
+            deposit_wallet_address?: string
             image?: string | null
           }
           return {
             user_id: referral.user_id as string,
             username: userInfo.username,
             address: (userInfo?.address as string | undefined) ?? referral.user_id as string,
-            proxy_wallet_address: userInfo?.proxy_wallet_address as string | undefined,
+            deposit_wallet_address: userInfo?.deposit_wallet_address as string | undefined,
             image: getPublicAssetUrl(userInfo?.image ?? null) ?? '',
             created_at: referral.created_at as string,
           }

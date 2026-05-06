@@ -13,7 +13,7 @@ interface AdminUserRow {
   username: string
   email: string
   address: string
-  proxy_wallet_address?: string | null
+  deposit_wallet_address?: string | null
   created_label: string
   affiliate_code?: string | null
   referred_by_display?: string | null
@@ -68,13 +68,13 @@ export function useAdminUsersColumns(): ColumnDef<AdminUserRow>[] {
       },
       cell: ({ row }) => {
         const user = row.original
-        const profileSlug = user.username || user.proxy_wallet_address || user.address
+        const profileSlug = user.username || user.deposit_wallet_address || user.address
         return (
           <div className="min-w-44">
             <ProfileLink
               user={{
                 address: user.address,
-                proxy_wallet_address: user.proxy_wallet_address,
+                deposit_wallet_address: user.deposit_wallet_address,
                 image: user.avatarUrl,
                 username: user.username,
               }}

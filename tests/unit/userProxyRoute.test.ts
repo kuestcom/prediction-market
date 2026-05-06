@@ -35,9 +35,9 @@ vi.mock('@/lib/drizzle', () => {
   }
 })
 
-const { GET } = await import('@/app/api/user/proxy/route')
+const { GET } = await import('@/app/api/user/deposit-wallet/route')
 
-describe('user proxy route', () => {
+describe('user deposit wallet route', () => {
   it('returns 401 when unauthenticated', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce(null)
     const response = await GET()
@@ -47,36 +47,36 @@ describe('user proxy route', () => {
   it('updates status to deployed when contract is deployed', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 'user-1',
-      proxy_wallet_address: '0x0000000000000000000000000000000000000002',
-      proxy_wallet_status: 'deploying',
-      proxy_wallet_signature: 'sig',
-      proxy_wallet_signed_at: 1,
-      proxy_wallet_tx_hash: '0xtx',
+      deposit_wallet_address: '0x0000000000000000000000000000000000000002',
+      deposit_wallet_status: 'deploying',
+      deposit_wallet_signature: 'sig',
+      deposit_wallet_signed_at: 1,
+      deposit_wallet_tx_hash: '0xtx',
     })
     mocks.isDepositWalletDeployed.mockResolvedValueOnce(true)
 
     const response = await GET()
     expect(response.status).toBe(200)
     const body = await response.json()
-    expect(body.proxy_wallet_status).toBe('deployed')
+    expect(body.deposit_wallet_status).toBe('deployed')
     expect(mocks.update).toHaveBeenCalled()
-    expect(mocks.set).toHaveBeenCalledWith({ proxy_wallet_status: 'deployed', proxy_wallet_tx_hash: null })
+    expect(mocks.set).toHaveBeenCalledWith({ deposit_wallet_status: 'deployed', deposit_wallet_tx_hash: null })
   })
 
   it('downgrades status to deploying when contract is not deployed', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 'user-1',
-      proxy_wallet_address: '0x0000000000000000000000000000000000000002',
-      proxy_wallet_status: 'deployed',
-      proxy_wallet_signature: null,
-      proxy_wallet_signed_at: null,
-      proxy_wallet_tx_hash: null,
+      deposit_wallet_address: '0x0000000000000000000000000000000000000002',
+      deposit_wallet_status: 'deployed',
+      deposit_wallet_signature: null,
+      deposit_wallet_signed_at: null,
+      deposit_wallet_tx_hash: null,
     })
     mocks.isDepositWalletDeployed.mockResolvedValueOnce(false)
 
     const response = await GET()
     const body = await response.json()
-    expect(body.proxy_wallet_status).toBe('deploying')
-    expect(mocks.set).toHaveBeenCalledWith({ proxy_wallet_status: 'deploying' })
+    expect(body.deposit_wallet_status).toBe('deploying')
+    expect(mocks.set).toHaveBeenCalledWith({ deposit_wallet_status: 'deploying' })
   })
 })

@@ -1,4 +1,4 @@
-import type { ProxyWalletStatus } from '@/types'
+import type { DepositWalletStatus } from '@/types'
 import { useEffect } from 'react'
 import { useUser } from '@/stores/useUser'
 
@@ -27,7 +27,7 @@ export function useDepositWalletPolling({
 
     function shouldContinuePolling() {
       const current = useUser.getState()
-      return Boolean(current?.proxy_wallet_address && current.proxy_wallet_status !== 'deployed')
+      return Boolean(current?.deposit_wallet_address && current.deposit_wallet_status !== 'deployed')
     }
 
     function scheduleRetry(delay: number) {
@@ -43,11 +43,11 @@ export function useDepositWalletPolling({
             return null
           }
           return await response.json() as {
-            proxy_wallet_address?: string | null
-            proxy_wallet_signature?: string | null
-            proxy_wallet_signed_at?: string | null
-            proxy_wallet_status?: string | null
-            proxy_wallet_tx_hash?: string | null
+            deposit_wallet_address?: string | null
+            deposit_wallet_signature?: string | null
+            deposit_wallet_signed_at?: string | null
+            deposit_wallet_status?: string | null
+            deposit_wallet_tx_hash?: string | null
           }
         })
         .then((data) => {
@@ -65,18 +65,18 @@ export function useDepositWalletPolling({
               return previous
             }
 
-            const nextAddress = data.proxy_wallet_address ?? previous.proxy_wallet_address
-            const nextSignature = data.proxy_wallet_signature ?? previous.proxy_wallet_signature
-            const nextSignedAt = data.proxy_wallet_signed_at ?? previous.proxy_wallet_signed_at
-            const nextStatus = (data.proxy_wallet_status as ProxyWalletStatus | null | undefined) ?? previous.proxy_wallet_status
-            const nextTxHash = data.proxy_wallet_tx_hash ?? previous.proxy_wallet_tx_hash
+            const nextAddress = data.deposit_wallet_address ?? previous.deposit_wallet_address
+            const nextSignature = data.deposit_wallet_signature ?? previous.deposit_wallet_signature
+            const nextSignedAt = data.deposit_wallet_signed_at ?? previous.deposit_wallet_signed_at
+            const nextStatus = (data.deposit_wallet_status as DepositWalletStatus | null | undefined) ?? previous.deposit_wallet_status
+            const nextTxHash = data.deposit_wallet_tx_hash ?? previous.deposit_wallet_tx_hash
 
             const nothingChanged = (
-              nextAddress === previous.proxy_wallet_address
-              && nextSignature === previous.proxy_wallet_signature
-              && nextSignedAt === previous.proxy_wallet_signed_at
-              && nextStatus === previous.proxy_wallet_status
-              && nextTxHash === previous.proxy_wallet_tx_hash
+              nextAddress === previous.deposit_wallet_address
+              && nextSignature === previous.deposit_wallet_signature
+              && nextSignedAt === previous.deposit_wallet_signed_at
+              && nextStatus === previous.deposit_wallet_status
+              && nextTxHash === previous.deposit_wallet_tx_hash
             )
 
             if (nothingChanged) {
@@ -85,15 +85,15 @@ export function useDepositWalletPolling({
 
             return {
               ...previous,
-              proxy_wallet_address: nextAddress,
-              proxy_wallet_signature: nextSignature,
-              proxy_wallet_signed_at: nextSignedAt,
-              proxy_wallet_status: nextStatus,
-              proxy_wallet_tx_hash: nextTxHash,
+              deposit_wallet_address: nextAddress,
+              deposit_wallet_signature: nextSignature,
+              deposit_wallet_signed_at: nextSignedAt,
+              deposit_wallet_status: nextStatus,
+              deposit_wallet_tx_hash: nextTxHash,
             }
           })
 
-          if (!cancelled && data.proxy_wallet_address && data.proxy_wallet_status !== 'deployed') {
+          if (!cancelled && data.deposit_wallet_address && data.deposit_wallet_status !== 'deployed') {
             timeoutId = setTimeout(fetchDepositWalletDetails, 6_000)
           }
         })

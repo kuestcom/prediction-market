@@ -3,7 +3,7 @@ import type { ResolvedThemeConfig, ThemeOverrides, ThemePresetId, ThemeRadius } 
 import type { ThemeSiteIdentity, ThemeSiteLogoMode } from '@/lib/theme-site-identity'
 import { cacheTag } from 'next/cache'
 import { cacheTags } from '@/lib/cache-tags'
-import { DEFAULT_FEE_RECEIVER_SAFE_ADDRESS, ZERO_ADDRESS } from '@/lib/contracts'
+import { DEFAULT_FEE_RECEIVER_WALLET_ADDRESS, ZERO_ADDRESS } from '@/lib/contracts'
 import { validateCustomJavascriptCodesJson } from '@/lib/custom-javascript-code'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getPublicAssetUrl } from '@/lib/storage'
@@ -627,7 +627,7 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
     supportUrlValue: generalSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value ?? defaultSite.supportUrl,
     customJavascriptCodesJsonValue: generalSettings?.[THEME_SITE_CUSTOM_JAVASCRIPT_CODES_KEY]?.value,
     feeRecipientWalletValue:
-      generalSettings?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value ?? DEFAULT_FEE_RECEIVER_SAFE_ADDRESS,
+      generalSettings?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value ?? DEFAULT_FEE_RECEIVER_WALLET_ADDRESS,
     siteNameErrorLabel: 'Site name',
     siteDescriptionErrorLabel: 'Site description',
     logoModeErrorLabel: 'Logo mode',
@@ -834,7 +834,7 @@ export async function loadRuntimeThemeState(): Promise<RuntimeThemeState> {
         supportUrlValue: generalSettings?.[THEME_SITE_SUPPORT_URL_KEY]?.value,
         customJavascriptCodesJsonValue: generalSettings?.[THEME_SITE_CUSTOM_JAVASCRIPT_CODES_KEY]?.value,
         feeRecipientWalletValue:
-          generalSettings?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value ?? DEFAULT_FEE_RECEIVER_SAFE_ADDRESS,
+          generalSettings?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value ?? DEFAULT_FEE_RECEIVER_WALLET_ADDRESS,
         siteNameErrorLabel: 'Site name in settings',
         siteDescriptionErrorLabel: 'Site description in settings',
         logoModeErrorLabel: 'Logo mode in settings',

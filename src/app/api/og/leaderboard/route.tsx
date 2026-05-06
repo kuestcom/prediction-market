@@ -229,7 +229,7 @@ async function fetchLeaderboardRows({
       const name = normalizeText(
         resolveString(entry, ['userName', 'username', 'xUsername']),
         28,
-      ) ?? normalizeText(truncateAddress(resolveString(entry, ['proxyWallet', 'proxy_wallet_address'])), 28)
+      ) ?? normalizeText(truncateAddress(resolveString(entry, ['proxyWallet', 'deposit_wallet_address'])), 28)
       ?? `Trader ${index + 1}`
 
       const pnl = parseNumber(entry.pnl)

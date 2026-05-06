@@ -1,6 +1,6 @@
 'use client'
 
-import type { ProxyWalletStatus } from '@/types'
+import type { DepositWalletStatus } from '@/types'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -38,8 +38,8 @@ interface WalletFlowProps {
   user: {
     id: string
     address: string
-    proxy_wallet_address?: string | null
-    proxy_wallet_status?: ProxyWalletStatus | null
+    deposit_wallet_address?: string | null
+    deposit_wallet_status?: DepositWalletStatus | null
   } | null
   meldUrl: string | null
 }
@@ -113,8 +113,8 @@ function usePendingWithdrawals() {
 
 function useHasDeployedProxyWallet(user: WalletFlowProps['user']) {
   return useMemo(() => (
-    Boolean(user?.proxy_wallet_address && user?.proxy_wallet_status === 'deployed')
-  ), [user?.proxy_wallet_address, user?.proxy_wallet_status])
+    Boolean(user?.deposit_wallet_address && user?.deposit_wallet_status === 'deployed')
+  ), [user?.deposit_wallet_address, user?.deposit_wallet_status])
 }
 
 function useWalletSendHandler({
@@ -146,7 +146,7 @@ function useWalletSendHandler({
 }) {
   return useCallback(async (event?: React.FormEvent<HTMLFormElement>) => {
     event?.preventDefault()
-    if (!user?.proxy_wallet_address) {
+    if (!user?.deposit_wallet_address) {
       toast.error(t('Set up your Deposit Wallet first.'))
       return
     }
@@ -345,7 +345,7 @@ export function WalletFlow({
         open={depositOpen}
         onOpenChange={handleDepositModalChange}
         isMobile={isMobile}
-        walletAddress={user?.proxy_wallet_address ?? null}
+        walletAddress={user?.deposit_wallet_address ?? null}
         walletEoaAddress={user?.address ?? null}
         siteName={site.name}
         meldUrl={meldUrl}

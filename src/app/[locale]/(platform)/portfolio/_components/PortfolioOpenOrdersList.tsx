@@ -212,9 +212,9 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
   const { orders, visibleOrders } = useVisibleOpenOrders({ data, searchQuery, sortBy })
 
   const canCancelAll = Boolean(
-    user?.proxy_wallet_address
+    user?.deposit_wallet_address
     && userAddress
-    && user.proxy_wallet_address.toLowerCase() === userAddress.toLowerCase(),
+    && user.deposit_wallet_address.toLowerCase() === userAddress.toLowerCase(),
   )
 
   const { isCancellingAll, handleCancelAll } = useCancelAllOpenOrders({

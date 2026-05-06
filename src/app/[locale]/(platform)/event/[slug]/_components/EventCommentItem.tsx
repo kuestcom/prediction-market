@@ -144,7 +144,7 @@ export default function EventCommentItem({
           image: comment.user_avatar,
           username: displayName,
           address: comment.user_address,
-          proxy_wallet_address: comment.user_proxy_wallet_address ?? null,
+          deposit_wallet_address: comment.user_proxy_wallet_address ?? null,
         }}
         profileSlug={profileSlug}
         date={comment.created_at}

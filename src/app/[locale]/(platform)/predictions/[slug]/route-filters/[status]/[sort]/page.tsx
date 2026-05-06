@@ -14,6 +14,14 @@ import {
 } from '@/lib/prediction-results-filters'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
+export async function generateStaticParams() {
+  return [{
+    slug: STATIC_PARAMS_PLACEHOLDER,
+    sort: DEFAULT_PREDICTION_RESULTS_SORT,
+    status: DEFAULT_PREDICTION_RESULTS_STATUS,
+  }]
+}
+
 interface PredictionResultsFilteredPageParams {
   locale: string
   slug: string
@@ -34,14 +42,6 @@ export async function generateMetadata({
     locale: resolvedLocale,
     slug,
   })
-}
-
-export async function generateStaticParams() {
-  return [{
-    slug: STATIC_PARAMS_PLACEHOLDER,
-    sort: DEFAULT_PREDICTION_RESULTS_SORT,
-    status: DEFAULT_PREDICTION_RESULTS_STATUS,
-  }]
 }
 
 export default async function PredictionResultsFilteredPage({

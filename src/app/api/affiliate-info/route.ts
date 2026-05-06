@@ -41,7 +41,7 @@ export async function GET() {
       const { data: affiliateUsers } = await UserRepository.getUsersByIds([user.referred_by_user_id])
       const affiliateUser = affiliateUsers?.[0]
 
-      const candidate = affiliateUser?.proxy_wallet_address || affiliateUser?.address
+      const candidate = affiliateUser?.deposit_wallet_address || affiliateUser?.address
       if (candidate && /^0x[0-9a-fA-F]{40}$/.test(candidate)) {
         affiliateAddress = candidate as `0x${string}`
         const shareBps = affiliateSettings?.[AFFILIATE_SHARE_BPS_KEY]?.value

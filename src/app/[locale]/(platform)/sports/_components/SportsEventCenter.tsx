@@ -118,8 +118,8 @@ export default function SportsEventCenter({
     setActiveMarketViewKey,
   } = useActiveMarketView({ card, marketViewCards, initialMarketSlug, initialMarketViewKey })
 
-  const ownerAddress = user?.proxy_wallet_address && user.proxy_wallet_status === 'deployed'
-    ? user.proxy_wallet_address
+  const ownerAddress = user?.deposit_wallet_address && user.deposit_wallet_status === 'deployed'
+    ? user.deposit_wallet_address
     : null
   const heroCard = card
   const hasMultipleMarketViews = normalizedMarketViewCards.length > 1

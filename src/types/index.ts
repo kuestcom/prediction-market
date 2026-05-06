@@ -206,7 +206,7 @@ interface UserSettings {
   [key: string]: any
 }
 
-export type ProxyWalletStatus = 'not_started' | 'signed' | 'deploying' | 'deployed'
+export type DepositWalletStatus = 'not_started' | 'signed' | 'deploying' | 'deployed'
 
 export interface User {
   id: string
@@ -219,11 +219,11 @@ export interface User {
   affiliate_code?: string | null
   referred_by_user_id?: string | null
   is_admin: boolean
-  proxy_wallet_address?: string | null
-  proxy_wallet_signature?: string | null
-  proxy_wallet_signed_at?: string | null
-  proxy_wallet_status?: ProxyWalletStatus | null
-  proxy_wallet_tx_hash?: string | null
+  deposit_wallet_address?: string | null
+  deposit_wallet_signature?: string | null
+  deposit_wallet_signed_at?: string | null
+  deposit_wallet_status?: DepositWalletStatus | null
+  deposit_wallet_tx_hash?: string | null
 }
 
 export interface PublicProfileStats {
@@ -235,7 +235,7 @@ export interface PublicProfileStats {
 
 export interface PublicProfile {
   address: string
-  proxy_wallet_address?: string | null
+  deposit_wallet_address?: string | null
   username: string
   image: string
   created_at: Date
@@ -321,7 +321,7 @@ export interface AffiliateData {
     user_id: string
     username: string
     address: string
-    proxy_wallet_address?: string | null
+    deposit_wallet_address?: string | null
     image?: string | null
     created_at: string
   }[]

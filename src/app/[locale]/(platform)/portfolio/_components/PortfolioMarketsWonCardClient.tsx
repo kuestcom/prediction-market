@@ -180,7 +180,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     siteName,
     totalProceeds: summary.totalProceeds,
     userUsername: user?.username,
-    userProxyWalletAddress: user?.proxy_wallet_address,
+    userProxyWalletAddress: user?.deposit_wallet_address,
   })
 
   async function handleClaimAll() {
@@ -197,7 +197,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
       return
     }
 
-    if (!user?.proxy_wallet_address || !user?.address) {
+    if (!user?.deposit_wallet_address || !user?.address) {
       toast.error(t('Set up your Deposit Wallet before claiming.'))
       return
     }

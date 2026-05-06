@@ -39,11 +39,12 @@ import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import {
   buildApproveTokenCalls,
+  buildAutoRedeemAllowanceCalls,
   buildSetReferralCalls,
 } from '@/lib/wallet/transactions'
 import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
-type OnboardingModal = 'username' | 'email' | 'enable' | 'approve' | null
+type OnboardingModal = 'username' | 'email' | 'enable' | 'enable-status' | 'approve' | 'auto-redeem' | null
 type EnableTradingStep = 'idle' | 'enabling' | 'deploying' | 'completed'
 type ApprovalsStep = 'idle' | 'signing' | 'completed'
 
@@ -121,11 +122,11 @@ function useOnboardingStatus(user: User | null, requiresTradingAuthRefresh: bool
       && !onboardingSettings.emailSkippedAt
       && !onboardingSettings.emailCompletedAt,
     )
-    const hasDepositWalletAddress = Boolean(user?.proxy_wallet_address)
-    const hasDeployedDepositWallet = Boolean(user?.proxy_wallet_address && user?.proxy_wallet_status === 'deployed')
+    const hasDepositWalletAddress = Boolean(user?.deposit_wallet_address)
+    const hasDeployedDepositWallet = Boolean(user?.deposit_wallet_address && user?.deposit_wallet_status === 'deployed')
     const isDepositWalletDeploying = Boolean(
-      user?.proxy_wallet_address
-      && (user.proxy_wallet_status === 'deploying' || user.proxy_wallet_status === 'signed'),
+      user?.deposit_wallet_address
+      && (user.deposit_wallet_status === 'deploying' || user.deposit_wallet_status === 'signed'),
     )
     const hasTradingAuth = Boolean(
       tradingAuthSettings?.relayer?.enabled
@@ -152,12 +153,14 @@ function resolveNextOnboardingModal({
   needsUsername,
   needsEmail,
   hasDeployedDepositWallet,
+  hasDepositWalletAddress,
   hasTradingAuth,
   hasTokenApprovals,
 }: {
   needsUsername: boolean
   needsEmail: boolean
   hasDeployedDepositWallet: boolean
+  hasDepositWalletAddress: boolean
   hasTradingAuth: boolean
   hasTokenApprovals: boolean
 }): Exclude<OnboardingModal, null> | null {
@@ -168,7 +171,7 @@ function resolveNextOnboardingModal({
     return 'email'
   }
   if (!hasDeployedDepositWallet || !hasTradingAuth) {
-    return 'enable'
+    return hasDepositWalletAddress ? 'enable-status' : 'enable'
   }
   if (!hasTokenApprovals) {
     return 'approve'
@@ -190,10 +193,12 @@ function TradingOnboardingProviderContent({
   const [emailError, setEmailError] = useState<string | null>(null)
   const [enableTradingError, setEnableTradingError] = useState<string | null>(null)
   const [tokenApprovalError, setTokenApprovalError] = useState<string | null>(null)
+  const [autoRedeemError, setAutoRedeemError] = useState<string | null>(null)
   const [isUsernameSubmitting, setIsUsernameSubmitting] = useState(false)
   const [isEmailSubmitting, setIsEmailSubmitting] = useState(false)
   const [enableTradingStep, setEnableTradingStep] = useState<EnableTradingStep>('idle')
   const [approvalsStep, setApprovalsStep] = useState<ApprovalsStep>('idle')
+  const [autoRedeemStep, setAutoRedeemStep] = useState<ApprovalsStep>('idle')
   const [requiresTradingAuthRefresh, setRequiresTradingAuthRefresh] = useState(false)
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
@@ -206,8 +211,8 @@ function TradingOnboardingProviderContent({
 
   useDepositWalletPolling({
     userId: user?.id,
-    depositWalletAddress: user?.proxy_wallet_address,
-    depositWalletStatus: user?.proxy_wallet_status,
+    depositWalletAddress: user?.deposit_wallet_address,
+    depositWalletStatus: user?.deposit_wallet_status,
     hasDeployedDepositWallet: status.hasDeployedDepositWallet,
     hasDepositWalletAddress: status.hasDepositWalletAddress,
   })
@@ -260,6 +265,7 @@ function TradingOnboardingProviderContent({
     setEmailError(null)
     setEnableTradingError(null)
     setTokenApprovalError(null)
+    setAutoRedeemError(null)
     void refreshSessionUserState()
 
     const forcedStatus = options?.forceTradingAuth
@@ -275,6 +281,13 @@ function TradingOnboardingProviderContent({
       setActiveModal(modal)
       return
     }
+    if (modal === 'auto-redeem') {
+      setDismissedModal(modal)
+      setActiveModal(null)
+      setShouldShowFundAfterTradingReady(false)
+      setFundModalOpen(true)
+      return
+    }
     setDismissedModal(modal)
     setActiveModal(null)
   }, [])
@@ -288,7 +301,11 @@ function TradingOnboardingProviderContent({
     try {
       const result = await updateOnboardingUsernameAction({ username, termsAccepted })
       if (result.error || !result.data) {
-        setUsernameError(result.error ?? DEFAULT_ERROR_MESSAGE)
+        setUsernameError(
+          result.code === 'username_taken'
+            ? t('That username is already taken.')
+            : result.error ?? DEFAULT_ERROR_MESSAGE,
+        )
         return
       }
       const data = result.data
@@ -314,7 +331,7 @@ function TradingOnboardingProviderContent({
     finally {
       setIsUsernameSubmitting(false)
     }
-  }, [isUsernameSubmitting, refreshSessionUserState, status])
+  }, [isUsernameSubmitting, refreshSessionUserState, status, t])
 
   const handleEmailSubmit = useCallback(async (email: string) => {
     if (isEmailSubmitting) {
@@ -433,10 +450,10 @@ function TradingOnboardingProviderContent({
       void refreshSessionUserState()
       setRequiresTradingAuthRefresh(false)
 
-      if (data.proxy_wallet_status === 'deployed') {
+      if (data.deposit_wallet_status === 'deployed') {
         setEnableTradingStep('completed')
         setDismissedModal(null)
-        setActiveModal(status.hasTokenApprovals ? null : 'approve')
+        setActiveModal(activeModal === 'enable-status' || status.hasTokenApprovals ? null : 'approve')
       }
       else {
         setEnableTradingStep('deploying')
@@ -456,6 +473,7 @@ function TradingOnboardingProviderContent({
     }
   }, [
     enableTradingStep,
+    activeModal,
     refreshSessionUserState,
     runWithSignaturePrompt,
     signTypedDataAsync,
@@ -479,7 +497,7 @@ function TradingOnboardingProviderContent({
   }, [])
 
   const handleApproveTokens = useCallback(async () => {
-    if (!user?.proxy_wallet_address || approvalsStep === 'signing') {
+    if (!user?.deposit_wallet_address || approvalsStep === 'signing') {
       return
     }
     if (!status.hasTradingAuth) {
@@ -491,7 +509,7 @@ function TradingOnboardingProviderContent({
     setTokenApprovalError(null)
 
     try {
-      const referralExchanges = await resolveReferralExchanges(user.proxy_wallet_address as `0x${string}`)
+      const referralExchanges = await resolveReferralExchanges(user.deposit_wallet_address as `0x${string}`)
       const calls = [
         ...buildApproveTokenCalls(),
         ...buildSetReferralCalls({
@@ -545,11 +563,10 @@ function TradingOnboardingProviderContent({
 
       setApprovalsStep('completed')
       setDismissedModal(null)
-      setActiveModal(null)
-      if (shouldShowFundAfterTradingReady) {
-        setShouldShowFundAfterTradingReady(false)
-        setFundModalOpen(true)
-      }
+      setAutoRedeemStep('idle')
+      setAutoRedeemError(null)
+      setActiveModal('auto-redeem')
+      setShouldShowFundAfterTradingReady(false)
     }
     catch (error) {
       if (error instanceof UserRejectedRequestError) {
@@ -569,7 +586,71 @@ function TradingOnboardingProviderContent({
     openNextRequirement,
     refreshSessionUserState,
     resolveReferralExchanges,
-    shouldShowFundAfterTradingReady,
+    signTypedDataAsync,
+    status.hasTradingAuth,
+    t,
+    user,
+  ])
+
+  const handleApproveAutoRedeem = useCallback(async () => {
+    if (!user?.deposit_wallet_address || autoRedeemStep === 'signing') {
+      return
+    }
+    if (!status.hasTradingAuth) {
+      openNextRequirement({ forceTradingAuth: true })
+      return
+    }
+
+    setAutoRedeemStep('signing')
+    setAutoRedeemError(null)
+
+    try {
+      const result = await signAndSubmitDepositWalletCalls({
+        user,
+        calls: buildAutoRedeemAllowanceCalls(),
+        metadata: 'auto_redeem_approval',
+        signTypedDataAsync,
+      })
+
+      if (result.error) {
+        if (isTradingAuthRequiredError(result.error)) {
+          setRequiresTradingAuthRefresh(true)
+          setAutoRedeemStep('idle')
+          setAutoRedeemError(null)
+          openNextRequirement({ forceTradingAuth: true })
+          return
+        }
+        if (result.code === 'deadline_expired') {
+          setAutoRedeemError(t('Your signature expired. Click Sign again to create a fresh request.'))
+        }
+        else {
+          setAutoRedeemError(result.error)
+        }
+        setAutoRedeemStep('idle')
+        return
+      }
+
+      setAutoRedeemStep('completed')
+      setDismissedModal(null)
+      setActiveModal(null)
+      setShouldShowFundAfterTradingReady(false)
+      setFundModalOpen(true)
+    }
+    catch (error) {
+      if (error instanceof UserRejectedRequestError) {
+        setAutoRedeemError(t('You rejected the signature request.'))
+      }
+      else if (error instanceof Error) {
+        setAutoRedeemError(error.message || DEFAULT_ERROR_MESSAGE)
+      }
+      else {
+        setAutoRedeemError(DEFAULT_ERROR_MESSAGE)
+      }
+      setAutoRedeemStep('idle')
+    }
+  }, [
+    autoRedeemStep,
+    openNextRequirement,
     signTypedDataAsync,
     status.hasTradingAuth,
     t,
@@ -647,7 +728,7 @@ function TradingOnboardingProviderContent({
     startWithdrawFlow,
     ensureTradingReady,
     openTradeRequirements,
-    hasProxyWallet: status.hasDeployedDepositWallet,
+    hasDepositWallet: status.hasDeployedDepositWallet,
     openWalletModal,
   }), [
     ensureTradingReady,
@@ -659,15 +740,15 @@ function TradingOnboardingProviderContent({
   ])
 
   const meldUrl = useMemo(() => {
-    if (!status.hasDeployedDepositWallet || !user?.proxy_wallet_address) {
+    if (!status.hasDeployedDepositWallet || !user?.deposit_wallet_address) {
       return null
     }
     const params = new URLSearchParams({
       destinationCurrencyCodeLocked: 'USDC_POLYGON',
-      walletAddressLocked: user.proxy_wallet_address,
+      walletAddressLocked: user.deposit_wallet_address,
     })
     return `https://meldcrypto.com/?${params.toString()}`
-  }, [status.hasDeployedDepositWallet, user?.proxy_wallet_address])
+  }, [status.hasDeployedDepositWallet, user?.deposit_wallet_address])
 
   return (
     <TradingOnboardingContext value={contextValue}>
@@ -688,16 +769,21 @@ function TradingOnboardingProviderContent({
         enableTradingStep={status.isDepositWalletDeploying ? 'deploying' : enableTradingStep}
         enableTradingError={enableTradingError}
         onEnableTrading={handleEnableTrading}
+        hasDeployedDepositWallet={status.hasDeployedDepositWallet}
+        hasTradingAuth={status.hasTradingAuth}
+        hasTokenApprovals={status.hasTokenApprovals}
         approvalsStep={approvalsStep}
         tokenApprovalError={tokenApprovalError}
         onApproveTokens={handleApproveTokens}
+        autoRedeemStep={autoRedeemStep}
+        autoRedeemError={autoRedeemError}
+        onApproveAutoRedeem={handleApproveAutoRedeem}
         fundModalOpen={fundModalOpen}
         onFundOpenChange={closeFundModal}
         onFundDeposit={() => {
           closeFundModal(false)
           openWalletModal()
         }}
-        onFundSkip={() => closeFundModal(false)}
         depositModalOpen={depositModalOpen}
         onDepositOpenChange={setDepositModalOpen}
         withdrawModalOpen={withdrawModalOpen}

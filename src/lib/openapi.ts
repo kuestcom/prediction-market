@@ -46,32 +46,41 @@ async function readSchema(schemaFileName: string): Promise<OpenApiSchema> {
   return JSON.parse(schemaContents) as OpenApiSchema
 }
 
-export const openapi = createOpenAPI({
-  input: async () => {
-    const [
-      clobSchema,
-      createMarketSchema,
-      dataApiSchema,
-      gammaSchema,
-      priceReferenceSchema,
-      relayerSchema,
-    ] = await Promise.all([
-      readSchema('openapi-clob.json'),
-      readSchema('openapi-create-market.json'),
-      readSchema('openapi-data-api.json'),
-      readSchema('openapi-gamma.json'),
-      readSchema('openapi-price-reference.json'),
-      readSchema('openapi-relayer.json'),
-    ])
+async function loadOpenApiSchemas() {
+  const [
+    clobSchema,
+    createMarketSchema,
+    dataApiSchema,
+    gammaSchema,
+    priceReferenceSchema,
+    relayerSchema,
+  ] = await Promise.all([
+    readSchema('openapi-clob.json'),
+    readSchema('openapi-create-market.json'),
+    readSchema('openapi-data-api.json'),
+    readSchema('openapi-gamma.json'),
+    readSchema('openapi-price-reference.json'),
+    readSchema('openapi-relayer.json'),
+  ])
 
-    return {
-      'clob': applyServerUrl(clobSchema, OPENAPI_SERVER_URLS.clob),
-      'create-market': applyServerUrl(createMarketSchema, OPENAPI_SERVER_URLS.createMarket),
-      'data-api': applyServerUrl(dataApiSchema, OPENAPI_SERVER_URLS.dataApi),
-      'gamma': applyServerUrl(gammaSchema, OPENAPI_SERVER_URLS.gamma),
-      'price-reference': applyServerUrl(priceReferenceSchema, OPENAPI_SERVER_URLS.priceReference),
-      'relayer': applyServerUrl(relayerSchema, OPENAPI_SERVER_URLS.relayer),
-    }
-  },
+  return {
+    'clob': applyServerUrl(clobSchema, OPENAPI_SERVER_URLS.clob),
+    'create-market': applyServerUrl(createMarketSchema, OPENAPI_SERVER_URLS.createMarket),
+    'data-api': applyServerUrl(dataApiSchema, OPENAPI_SERVER_URLS.dataApi),
+    'gamma': applyServerUrl(gammaSchema, OPENAPI_SERVER_URLS.gamma),
+    'price-reference': applyServerUrl(priceReferenceSchema, OPENAPI_SERVER_URLS.priceReference),
+    'relayer': applyServerUrl(relayerSchema, OPENAPI_SERVER_URLS.relayer),
+  }
+}
+
+let openApiSchemasPromise: ReturnType<typeof loadOpenApiSchemas> | null = null
+
+function getOpenApiSchemas() {
+  openApiSchemasPromise ??= loadOpenApiSchemas()
+  return openApiSchemasPromise
+}
+
+export const openapi = createOpenAPI({
+  input: getOpenApiSchemas,
   proxyUrl: '/docs/api/proxy',
 })

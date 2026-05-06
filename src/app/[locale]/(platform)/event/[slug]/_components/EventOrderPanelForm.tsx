@@ -822,8 +822,8 @@ export default function EventOrderPanelForm({
     { enabled: shouldLoadOrderBookSummary },
   )
   const { ensureTradingReady, openTradeRequirements, startDepositFlow } = useTradingOnboarding()
-  const hasDeployedProxyWallet = Boolean(user?.proxy_wallet_address && user?.proxy_wallet_status === 'deployed')
-  const proxyWalletAddress = hasDeployedProxyWallet ? normalizeAddress(user?.proxy_wallet_address) : null
+  const hasDeployedProxyWallet = Boolean(user?.deposit_wallet_address && user?.deposit_wallet_status === 'deployed')
+  const proxyWalletAddress = hasDeployedProxyWallet ? normalizeAddress(user?.deposit_wallet_address) : null
   const userAddress = normalizeAddress(user?.address)
   const makerAddress = proxyWalletAddress
   const { sharesByCondition } = useUserShareBalances({ event, ownerAddress: makerAddress })
@@ -1507,7 +1507,7 @@ export default function EventOrderPanelForm({
       return
     }
 
-    if (!user?.proxy_wallet_address || !user?.address) {
+    if (!user?.deposit_wallet_address || !user?.address) {
       toast.error(t('Set up your Deposit Wallet before claiming.'))
       return
     }

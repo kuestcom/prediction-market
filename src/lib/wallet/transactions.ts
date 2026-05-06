@@ -9,6 +9,7 @@ import { addressToBuilderCode } from '@/lib/builder-code'
 import {
   COLLATERAL_TOKEN_ADDRESS,
   CONDITIONAL_TOKENS_CONTRACT,
+  CTF_AUTO_REDEEM_ADDRESS,
   CTF_EXCHANGE_ADDRESS,
   DEPOSIT_WALLET_FACTORY_ADDRESS,
   NEG_RISK_CTF_EXCHANGE_ADDRESS,
@@ -300,6 +301,16 @@ export function buildApproveTokenCalls(): WalletCall[] {
       abi: erc1155Abi,
       functionName: 'setApprovalForAll',
       args: [UMA_NEG_RISK_ADAPTER_ADDRESS, true],
+    })),
+  ]
+}
+
+export function buildAutoRedeemAllowanceCalls(): WalletCall[] {
+  return [
+    createWalletCall(CONDITIONAL_TOKENS_CONTRACT, encodeFunctionData({
+      abi: erc1155Abi,
+      functionName: 'setApprovalForAll',
+      args: [CTF_AUTO_REDEEM_ADDRESS, true],
     })),
   ]
 }

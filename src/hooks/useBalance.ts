@@ -47,8 +47,8 @@ export function useBalance(options: UseBalanceOptions = {}) {
   }
   const client = clientRef.current
 
-  const proxyWalletAddress: Address | null = user?.proxy_wallet_address
-    ? normalizeAddress(user.proxy_wallet_address) as Address | null
+  const proxyWalletAddress: Address | null = user?.deposit_wallet_address
+    ? normalizeAddress(user.deposit_wallet_address) as Address | null
     : null
 
   const contract = useMemo(() => {

@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import QRCode from 'react-qr-code'
 import WalletAddressCard from '@/app/[locale]/(platform)/_components/wallet-modal/WalletAddressCard'
@@ -18,6 +19,7 @@ function WalletReceiveView({
 }) {
   const site = useSiteIdentity()
   const siteLabel = siteName ?? site.name
+  const t = useExtracted()
 
   return (
     <div className="space-y-4">
@@ -59,7 +61,7 @@ function WalletReceiveView({
           <div className="rounded-lg border bg-white p-2 transition">
             {walletAddress
               ? <QRCode value={walletAddress} size={200} />
-              : <p className="text-sm">Proxy wallet not ready yet.</p>}
+              : <p className="text-sm">{t('Deposit Wallet not ready yet.')}</p>}
           </div>
         </div>
       </div>
@@ -67,7 +69,7 @@ function WalletReceiveView({
         walletAddress={walletAddress}
         onCopy={onCopy}
         copied={copied}
-        label=""
+        label={t('Deposit Wallet')}
       />
     </div>
   )

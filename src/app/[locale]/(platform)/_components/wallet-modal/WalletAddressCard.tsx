@@ -6,7 +6,7 @@ function WalletAddressCard({
   walletAddress,
   onCopy,
   copied,
-  label = 'Proxy wallet',
+  label = 'Deposit Wallet',
 }: {
   walletAddress?: string | null
   onCopy: () => void

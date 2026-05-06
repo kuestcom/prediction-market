@@ -773,11 +773,11 @@ export function useSportsDetailsTabs({
 export function useSportsOwnerAddress() {
   const user = useUser()
   const ownerAddress = useMemo(() => {
-    if (user?.proxy_wallet_address && user.proxy_wallet_status === 'deployed') {
-      return user.proxy_wallet_address
+    if (user?.deposit_wallet_address && user.deposit_wallet_status === 'deployed') {
+      return user.deposit_wallet_address
     }
     return null
-  }, [user?.proxy_wallet_address, user?.proxy_wallet_status])
+  }, [user?.deposit_wallet_address, user?.deposit_wallet_status])
 
   return ownerAddress
 }

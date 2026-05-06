@@ -108,7 +108,7 @@ export default function HeaderDropdownUserMenuAuth() {
   const enableHoverOpen = !isMobile
   const { menuOpen, setMenuOpen, wrapperRef, clearCloseTimeout, handleWrapperPointerEnter, handleWrapperPointerLeave, handleMenuClose } = useHoverMenu(enableHoverOpen)
   const avatarUrl = user?.image?.trim() ?? ''
-  const avatarSeed = user?.proxy_wallet_address || user?.address || user?.username || 'user'
+  const avatarSeed = user?.deposit_wallet_address || user?.address || user?.username || 'user'
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
   const placeholderStyle = showPlaceholder
     ? getAvatarPlaceholderStyle(avatarSeed)

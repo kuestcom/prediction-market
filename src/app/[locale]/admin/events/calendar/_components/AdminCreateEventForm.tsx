@@ -5184,7 +5184,7 @@ export default function AdminCreateEventForm({
                                     {teamLogoPreviewUrls[team.hostStatus]
                                       ? (
                                           <EventIconImage
-                                            src={teamLogoPreviewUrls[team.hostStatus] ?? ''}
+                                            src={teamLogoPreviewUrls[team.hostStatus]!}
                                             alt={`${team.name || team.hostStatus} logo preview`}
                                             sizes="256px"
                                             unoptimized

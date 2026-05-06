@@ -291,7 +291,7 @@ function useRedeemClaimSubmission({
       return
     }
 
-    if (!user?.proxy_wallet_address || !user?.address) {
+    if (!user?.deposit_wallet_address || !user?.address) {
       toast.error('Set up your Deposit Wallet before claiming.')
       return
     }

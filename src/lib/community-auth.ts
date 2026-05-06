@@ -4,7 +4,7 @@ interface StoredCommunityAuth {
   token: string
   address: string
   expires_at: string
-  proxy_wallet_address?: string | null
+  deposit_wallet_address?: string | null
 }
 
 type SignMessageFn = (args: { message: string }) => Promise<string>
@@ -20,7 +20,7 @@ interface AuthVerifyResponse {
   expires_at: string
 }
 
-function normalizeProxyAddress(value?: string | null) {
+function normalizeDepositWalletAddress(value?: string | null) {
   if (!value) {
     return null
   }
@@ -97,18 +97,18 @@ export async function ensureCommunityToken({
   address,
   signMessageAsync,
   communityApiUrl = process.env.COMMUNITY_URL!,
-  proxyWalletAddress,
+  depositWalletAddress,
 }: {
   address: string
   signMessageAsync: SignMessageFn
   communityApiUrl?: string
-  proxyWalletAddress?: string | null
+  depositWalletAddress?: string | null
 }) {
-  const normalizedProxy = normalizeProxyAddress(proxyWalletAddress)
+  const normalizedDepositWallet = normalizeDepositWalletAddress(depositWalletAddress)
   const existing = loadCommunityAuth(address)
   if (existing?.token) {
-    const storedProxy = normalizeProxyAddress(existing.proxy_wallet_address)
-    if (!normalizedProxy || storedProxy === normalizedProxy) {
+    const storedDepositWallet = normalizeDepositWalletAddress(existing.deposit_wallet_address)
+    if (!normalizedDepositWallet || storedDepositWallet === normalizedDepositWallet) {
       return existing.token
     }
   }
@@ -136,7 +136,7 @@ export async function ensureCommunityToken({
     body: JSON.stringify({
       address,
       signature,
-      proxy_wallet_address: normalizedProxy ?? undefined,
+      deposit_wallet_address: normalizedDepositWallet ?? undefined,
     }),
   })
 
@@ -150,7 +150,7 @@ export async function ensureCommunityToken({
     token: verifyPayload.token,
     address,
     expires_at: verifyPayload.expires_at,
-    proxy_wallet_address: normalizedProxy,
+    deposit_wallet_address: normalizedDepositWallet,
   })
 
   return verifyPayload.token

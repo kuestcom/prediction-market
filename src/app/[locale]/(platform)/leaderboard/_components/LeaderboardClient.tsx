@@ -73,8 +73,8 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     !BIGGEST_WINS_CACHE.has(initialBiggestWinsKey),
   )
   const userAddress = useMemo(
-    () => (user?.proxy_wallet_address ?? user?.address ?? '').trim(),
-    [user?.address, user?.proxy_wallet_address],
+    () => (user?.deposit_wallet_address ?? user?.address ?? '').trim(),
+    [user?.address, user?.deposit_wallet_address],
   )
   const currentFilters = useMemo<LeaderboardFilters>(
     () => ({

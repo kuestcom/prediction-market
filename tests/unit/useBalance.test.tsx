@@ -79,8 +79,8 @@ describe('useBalance', () => {
       image: '',
       settings: {},
       is_admin: false,
-      proxy_wallet_address: '0x00000000000000000000000000000000000000aa',
-      proxy_wallet_status: 'deployed',
+      deposit_wallet_address: '0x00000000000000000000000000000000000000aa',
+      deposit_wallet_status: 'deployed',
     })
 
     const { result } = renderHook(() => useBalance(), {
@@ -112,8 +112,8 @@ describe('useBalance', () => {
       image: '',
       settings: {},
       is_admin: false,
-      proxy_wallet_address: null,
-      proxy_wallet_status: 'not_started',
+      deposit_wallet_address: null,
+      deposit_wallet_status: 'not_started',
     })
 
     const { result } = renderHook(() => useBalance(), {

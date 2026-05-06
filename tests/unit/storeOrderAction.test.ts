@@ -100,7 +100,7 @@ describe('storeOrderAction', () => {
     const baseUser = {
       id: 'user-1',
       address: address('aa'),
-      proxy_wallet_address: null,
+      deposit_wallet_address: null,
       settings: {},
     }
     mocks.getCurrentUser.mockResolvedValueOnce(baseUser)
@@ -123,7 +123,7 @@ describe('storeOrderAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 'user-1',
       address: address('aa'),
-      proxy_wallet_address: address('01'),
+      deposit_wallet_address: address('01'),
       settings: {},
     })
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
@@ -142,7 +142,7 @@ describe('storeOrderAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 'user-1',
       address: address('aa'),
-      proxy_wallet_address: proxy,
+      deposit_wallet_address: proxy,
       settings: {},
     })
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
@@ -173,7 +173,7 @@ describe('storeOrderAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 'user-1',
       address: address('aa'),
-      proxy_wallet_address: proxy,
+      deposit_wallet_address: proxy,
       referred_by_user_id: null,
       settings: { trading: { market_order_type: 'FAK' } },
     })
@@ -225,7 +225,7 @@ describe('storeOrderAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 'user-1',
       address: address('aa'),
-      proxy_wallet_address: proxy,
+      deposit_wallet_address: proxy,
       referred_by_user_id: null,
       settings: { trading: { market_order_type: 'FAK' } },
     })

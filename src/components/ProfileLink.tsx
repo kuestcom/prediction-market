@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 interface ProfileLinkProps {
   user: {
     address: string
-    proxy_wallet_address?: string | null
+    deposit_wallet_address?: string | null
     image: string
     username: string
   }
@@ -56,8 +56,8 @@ function useProfileTooltipStats(user: ProfileLinkProps['user']) {
   const [stats, setStats] = useState<Awaited<ReturnType<typeof fetchProfileLinkStats>>>(null)
   const [loadedStatsAddress, setLoadedStatsAddress] = useState<string | null>(null)
   const statsAddress = useMemo(
-    () => user.proxy_wallet_address ?? user.address,
-    [user.address, user.proxy_wallet_address],
+    () => user.deposit_wallet_address ?? user.address,
+    [user.address, user.deposit_wallet_address],
   )
   const normalizedStatsAddress = statsAddress ?? null
   const hasLoaded = normalizedStatsAddress === null || loadedStatsAddress === normalizedStatsAddress
@@ -144,7 +144,7 @@ export default function ProfileLink({
 
   const medalTextColor = medalColor === '#000000' ? '#ffffff' : '#1a1a1a'
   const normalizedUsername = user.username.trim()
-  const addressSlug = user.proxy_wallet_address ?? user.address ?? ''
+  const addressSlug = user.deposit_wallet_address ?? user.address ?? ''
   const displayUsername = normalizedUsername || (addressSlug ? truncateAddress(addressSlug) : 'Anonymous')
   const titleValue = normalizedUsername || addressSlug || displayUsername
   const resolvedProfileSlug = profileSlug ?? (normalizedUsername || addressSlug)

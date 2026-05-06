@@ -9,6 +9,10 @@ import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
+export async function generateStaticParams() {
+  return [{ sport: STATIC_PARAMS_PLACEHOLDER }]
+}
+
 async function resolveEsportsSportContext(sport: string) {
   const [{ data: canonicalSportSlug }, { data: layoutData }] = await Promise.all([
     SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
@@ -56,10 +60,6 @@ export async function generateMetadata({
     title: t('{sportTitle} Props Prediction Markets & Live Odds', { sportTitle: sportContext.sportTitle }),
     description: t('Trade on live {sportTitle} esports player props in real time on {siteName}. Bet on kills, assists, maps, rounds, and more specialty markets while you watch.', { sportTitle: sportContext.sportTitle, siteName }),
   }
-}
-
-export async function generateStaticParams() {
-  return [{ sport: STATIC_PARAMS_PLACEHOLDER }]
 }
 
 export default async function EsportsPropsBySportPage({

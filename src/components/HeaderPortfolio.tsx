@@ -1,16 +1,13 @@
-import { ArrowDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
-import { usePendingUsdcDeposit } from '@/hooks/usePendingUsdcDeposit'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
 import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 
 export default function HeaderPortfolio() {
   const { balance, isLoadingBalance } = useBalance()
-  const { hasPendingDeposit } = usePendingUsdcDeposit()
   const { isLoading, value: positionsValue } = usePortfolioValue()
   const isLoadingValue = isLoadingBalance || isLoading
   const totalPortfolioValue = (positionsValue ?? 0) + (balance?.raw ?? 0)
@@ -57,11 +54,6 @@ export default function HeaderPortfolio() {
         <AppLink intentPrefetch href="/portfolio">
           <div className="flex translate-y-px items-center gap-1 text-xs/tight font-medium text-muted-foreground">
             <span>{t('Cash')}</span>
-            {hasPendingDeposit && (
-              <span className="inline-flex size-4 items-center justify-center rounded-full bg-primary">
-                <ArrowDownIcon className="size-3 text-background" />
-              </span>
-            )}
           </div>
           <div className="-translate-y-px text-base/tight font-semibold text-yes">
             {isLoadingValue

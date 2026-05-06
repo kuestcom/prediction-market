@@ -179,7 +179,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
               : (
                   data.yesHolders.map(holder => (
                     <ProfileLink
-                      key={holder.user.proxy_wallet_address!}
+                      key={holder.user.deposit_wallet_address!}
                       user={holder.user}
                       joinedAt={holder.user.created_at}
                       usernameClassName="font-semibold text-foreground hover:underline underline-offset-2"
@@ -214,7 +214,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
               : (
                   data.noHolders.map(holder => (
                     <ProfileLink
-                      key={holder.user.proxy_wallet_address!}
+                      key={holder.user.deposit_wallet_address!}
                       user={holder.user}
                       joinedAt={holder.user.created_at}
                       usernameClassName="font-semibold text-foreground hover:underline underline-offset-2"

@@ -28,7 +28,7 @@ function MarketFeeSection({
 }: MarketFeeSectionProps) {
   const t = useExtracted()
   const user = useUser()
-  const depositWalletAddress = user?.proxy_wallet_address ?? null
+  const depositWalletAddress = user?.deposit_wallet_address ?? null
   const canUseDepositWallet = Boolean(depositWalletAddress)
 
   return (

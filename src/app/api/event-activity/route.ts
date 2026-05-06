@@ -115,7 +115,7 @@ export async function GET(request: Request) {
 
       for (const profile of profiles || []) {
         const normalizedAddress = normalizeAddress(profile.address)?.toLowerCase()
-        const normalizedProxy = normalizeAddress(profile.proxy_wallet_address)?.toLowerCase()
+        const normalizedProxy = normalizeAddress(profile.deposit_wallet_address)?.toLowerCase()
         const imageUrl = normalizeAvatarUrl(profile.image)
 
         const createdAt = profile.created_at

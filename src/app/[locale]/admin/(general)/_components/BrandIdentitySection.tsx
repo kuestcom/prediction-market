@@ -136,9 +136,9 @@ function BrandIdentitySection({
                   group-hover:bg-foreground/5
                 `}
                 />
-                {showImagePreview && (
+                {imagePreview && (
                   <Image
-                    src={imagePreview ?? ''}
+                    src={imagePreview}
                     alt={t('Platform logo')}
                     fill
                     sizes="160px"
@@ -252,14 +252,16 @@ function BrandIdentitySection({
                   group-hover:bg-foreground/5
                 `}
                 />
-                <Image
-                  src={pwaIcon192Preview}
-                  alt={t('PWA icon 192x192')}
-                  fill
-                  sizes="112px"
-                  className="object-contain"
-                  unoptimized
-                />
+                {pwaIcon192Preview && (
+                  <Image
+                    src={pwaIcon192Preview}
+                    alt={t('PWA icon 192x192')}
+                    fill
+                    sizes="112px"
+                    className="object-contain"
+                    unoptimized
+                  />
+                )}
                 <ImageUp
                   className={cn(
                     `
@@ -315,14 +317,16 @@ function BrandIdentitySection({
                   group-hover:bg-foreground/5
                 `}
                 />
-                <Image
-                  src={pwaIcon512Preview}
-                  alt={t('PWA icon 512x512')}
-                  fill
-                  sizes="112px"
-                  className="object-contain"
-                  unoptimized
-                />
+                {pwaIcon512Preview && (
+                  <Image
+                    src={pwaIcon512Preview}
+                    alt={t('PWA icon 512x512')}
+                    fill
+                    sizes="112px"
+                    className="object-contain"
+                    unoptimized
+                  />
+                )}
                 <ImageUp
                   className={cn(
                     `

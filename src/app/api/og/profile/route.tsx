@@ -292,7 +292,7 @@ export async function GET(request: Request) {
   try {
     const [runtimeTheme, profileResult] = await Promise.all([
       loadRuntimeThemeState(),
-      UserRepository.getProfileByUsernameOrProxyAddress(normalized.value),
+      UserRepository.getProfileByUsernameOrDepositWalletAddress(normalized.value),
     ])
     const profile = profileResult.data
     const profileUsername = normalizeText(profile?.username ?? null, 28)
@@ -300,7 +300,7 @@ export async function GET(request: Request) {
       ?? (normalized.type === 'username' ? normalized.value : truncateAddress(normalized.value))
     const siteUrl = resolveSiteUrl(process.env)
     const avatarUrl = resolveProfileAvatarUrl(profile?.image, siteUrl)
-    const resolvedAddress = profile?.proxy_wallet_address
+    const resolvedAddress = profile?.deposit_wallet_address
       ?? (normalized.type === 'address' ? normalized.value : null)
 
     const [snapshot, positions] = await Promise.all([

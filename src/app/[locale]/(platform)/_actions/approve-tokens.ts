@@ -1,10 +1,10 @@
 'use server'
 
-import type { SafeTransactionRequestPayload } from '@/lib/safe/transactions'
 import type { WalletTransactionRequestPayload } from '@/lib/wallet/transactions'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { DEPOSIT_WALLET_FACTORY_ADDRESS } from '@/lib/contracts'
 import { UserRepository } from '@/lib/db/queries/user'
+import { captureDepositWalletError, captureDepositWalletEvent } from '@/lib/deposit-wallet-observability'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets, markTokenApprovalsCompleted } from '@/lib/trading-auth/server'
@@ -14,13 +14,13 @@ import {
   readTradingFlowErrorResponse,
 } from '@/lib/trading-flow-errors'
 
-interface SafeNonceResult {
+interface RelayerNonceResult {
   error: string | null
   code?: string
   nonce?: string
 }
 
-interface SubmitSafeTransactionResult {
+interface SubmitWalletTransactionResult {
   error: string | null
   code?: string
   approvals?: {
@@ -106,15 +106,15 @@ async function syncClobCollateralBalanceAllowanceSignatureType3(user: {
   }
 }
 
-export async function getDepositWalletNonceAction(): Promise<SafeNonceResult> {
+export async function getDepositWalletNonceAction(): Promise<RelayerNonceResult> {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
     return { error: 'Unauthenticated.' }
   }
-  if (!user.proxy_wallet_address) {
+  if (!user.deposit_wallet_address) {
     return { error: 'Set up your Deposit Wallet before signing.', code: 'missing_deposit_wallet' }
   }
-  if (user.proxy_wallet_status !== 'deployed') {
+  if (user.deposit_wallet_status !== 'deployed') {
     return { error: 'Your Deposit Wallet is still being created. Try again in a moment.', code: 'deposit_wallet_not_deployed' }
   }
 
@@ -132,6 +132,7 @@ export async function getDepositWalletNonceAction(): Promise<SafeNonceResult> {
   const path = `/nonce?${query}`
   const timestamp = Math.floor(Date.now() / 1000)
   const signature = buildClobHmacSignature(auth.relayer.secret, timestamp, 'GET', path)
+  const startedAt = Date.now()
 
   try {
     const response = await fetch(`${relayerUrl}${path}`, {
@@ -149,10 +150,20 @@ export async function getDepositWalletNonceAction(): Promise<SafeNonceResult> {
 
     const { payload, rawError, contentType } = await readTradingFlowErrorResponse(response)
     if (!response.ok || typeof payload?.nonce !== 'string') {
+      const durationMs = Date.now() - startedAt
       console.error('Failed to fetch Deposit Wallet nonce response.', {
         status: response.status,
         contentType,
         rawError: getTradingFlowErrorPreview(rawError),
+        durationMs,
+      })
+      captureDepositWalletEvent('Deposit Wallet nonce request failed', {
+        operation: 'wallet_nonce',
+        userAddress: user.address,
+        depositWallet: user.deposit_wallet_address,
+        errorCode: resolveWalletSubmitErrorCode(rawError) ?? rawError,
+        durationMs,
+        status: response.status,
       })
       const message = mapApproveTokensError(rawError, {
         status: response.status,
@@ -166,13 +177,18 @@ export async function getDepositWalletNonceAction(): Promise<SafeNonceResult> {
   }
   catch (error) {
     console.error('Failed to fetch Deposit Wallet nonce', error)
+    captureDepositWalletError(error, {
+      operation: 'wallet_nonce',
+      userAddress: user.address,
+      depositWallet: user.deposit_wallet_address,
+    })
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 }
 
 export async function submitDepositWalletTransactionAction(
   request: WalletTransactionRequestPayload,
-): Promise<SubmitSafeTransactionResult> {
+): Promise<SubmitWalletTransactionResult> {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
     return { error: 'Unauthenticated.' }
@@ -183,7 +199,7 @@ export async function submitDepositWalletTransactionAction(
     return { error: TRADING_AUTH_REQUIRED_ERROR }
   }
 
-  if (!user.proxy_wallet_address) {
+  if (!user.deposit_wallet_address) {
     return { error: 'Set up your Deposit Wallet first.', code: 'missing_deposit_wallet' }
   }
 
@@ -198,7 +214,7 @@ export async function submitDepositWalletTransactionAction(
   const depositWallet = request.depositWalletParams?.depositWallet
     ?? request.signatureParams?.depositWalletParams?.depositWallet
 
-  if (!depositWallet || depositWallet.toLowerCase() !== user.proxy_wallet_address.toLowerCase()) {
+  if (!depositWallet || depositWallet.toLowerCase() !== user.deposit_wallet_address.toLowerCase()) {
     return { error: 'Deposit Wallet mismatch.' }
   }
 
@@ -215,6 +231,7 @@ export async function submitDepositWalletTransactionAction(
   const body = JSON.stringify(request)
   const timestamp = Math.floor(Date.now() / 1000)
   const signature = buildClobHmacSignature(auth.relayer.secret, timestamp, 'POST', path, body)
+  const startedAt = Date.now()
 
   try {
     const response = await fetch(`${relayerUrl}${path}`, {
@@ -234,10 +251,12 @@ export async function submitDepositWalletTransactionAction(
 
     const { payload, rawError, contentType } = await readTradingFlowErrorResponse(response)
     if (!response.ok || !payload) {
+      const durationMs = Date.now() - startedAt
       console.error('Failed to submit Deposit Wallet transaction response.', {
         status: response.status,
         contentType,
         rawError: getTradingFlowErrorPreview(rawError),
+        durationMs,
       })
       const fallback = mapApproveTokensError(rawError, {
         status: response.status,
@@ -245,6 +264,15 @@ export async function submitDepositWalletTransactionAction(
         forceFallback: response.ok,
       })
       const code = resolveWalletSubmitErrorCode(rawError)
+      captureDepositWalletEvent('Deposit Wallet submit failed', {
+        operation: 'wallet_submit',
+        userAddress: user.address,
+        depositWallet: user.deposit_wallet_address,
+        errorCode: code ?? rawError,
+        durationMs,
+        metadata: request.metadata,
+        status: response.status,
+      })
       return {
         error: friendlyWalletSubmitError(rawError, fallback),
         code,
@@ -267,162 +295,25 @@ export async function submitDepositWalletTransactionAction(
             ? payload.hash
             : undefined
 
+    captureDepositWalletEvent('Deposit Wallet submit accepted', {
+      operation: 'wallet_submit',
+      userAddress: user.address,
+      depositWallet: user.deposit_wallet_address,
+      txHash,
+      durationMs: Date.now() - startedAt,
+      metadata: request.metadata,
+    })
+
     return { error: null, approvals, txHash }
   }
   catch (error) {
     console.error('Failed to submit Deposit Wallet transaction', error)
-    return { error: DEFAULT_ERROR_MESSAGE }
-  }
-}
-
-export async function getSafeNonceAction(): Promise<SafeNonceResult> {
-  const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
-  if (!user) {
-    return { error: 'Unauthenticated.' }
-  }
-  if (!user.proxy_wallet_address) {
-    return { error: 'Set up your Deposit Wallet before approving tokens.' }
-  }
-
-  const auth = await getUserTradingAuthSecrets(user.id)
-  if (!auth?.relayer) {
-    return { error: TRADING_AUTH_REQUIRED_ERROR }
-  }
-
-  const relayerUrl = process.env.RELAYER_URL
-  if (!relayerUrl) {
-    return { error: DEFAULT_ERROR_MESSAGE }
-  }
-
-  const query = `address=${encodeURIComponent(user.address)}&type=SAFE`
-  const path = `/nonce?${query}`
-  const timestamp = Math.floor(Date.now() / 1000)
-  const signature = buildClobHmacSignature(auth.relayer.secret, timestamp, 'GET', path)
-
-  try {
-    const response = await fetch(`${relayerUrl}${path}`, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        KUEST_ADDRESS: user.address,
-        KUEST_API_KEY: auth.relayer.key,
-        KUEST_PASSPHRASE: auth.relayer.passphrase,
-        KUEST_TIMESTAMP: timestamp.toString(),
-        KUEST_SIGNATURE: signature,
-      },
-      signal: AbortSignal.timeout(10_000),
+    captureDepositWalletError(error, {
+      operation: 'wallet_submit',
+      userAddress: user.address,
+      depositWallet: user.deposit_wallet_address,
+      metadata: request.metadata,
     })
-
-    const { payload, rawError, contentType } = await readTradingFlowErrorResponse(response)
-    if (!response.ok || typeof payload?.nonce !== 'string') {
-      console.error('Failed to fetch safe nonce response.', {
-        status: response.status,
-        contentType,
-        rawError: getTradingFlowErrorPreview(rawError),
-      })
-      const message = mapApproveTokensError(rawError, {
-        status: response.status,
-        contentType,
-        forceFallback: response.ok,
-      })
-      return { error: message }
-    }
-
-    return { error: null, nonce: payload.nonce }
-  }
-  catch (error) {
-    console.error('Failed to fetch safe nonce', error)
-    return { error: DEFAULT_ERROR_MESSAGE }
-  }
-}
-
-export async function submitSafeTransactionAction(request: SafeTransactionRequestPayload): Promise<SubmitSafeTransactionResult> {
-  const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
-  if (!user) {
-    return { error: 'Unauthenticated.' }
-  }
-
-  const auth = await getUserTradingAuthSecrets(user.id)
-  if (!auth?.relayer) {
-    return { error: TRADING_AUTH_REQUIRED_ERROR }
-  }
-
-  if (!user.proxy_wallet_address) {
-    return { error: 'Set up your Deposit Wallet first.' }
-  }
-
-  if (request.type !== 'SAFE') {
-    return { error: 'Invalid transaction type.' }
-  }
-
-  if (request.from.toLowerCase() !== user.address.toLowerCase()) {
-    return { error: 'Signer mismatch.' }
-  }
-
-  if (request.proxyWallet.toLowerCase() !== user.proxy_wallet_address.toLowerCase()) {
-    return { error: 'Deposit Wallet mismatch.' }
-  }
-
-  const relayerUrl = process.env.RELAYER_URL
-  if (!relayerUrl) {
-    return { error: DEFAULT_ERROR_MESSAGE }
-  }
-
-  const path = '/submit'
-  const body = JSON.stringify(request)
-  const timestamp = Math.floor(Date.now() / 1000)
-  const signature = buildClobHmacSignature(auth.relayer.secret, timestamp, 'POST', path, body)
-
-  try {
-    const response = await fetch(`${relayerUrl}${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'KUEST_ADDRESS': user.address,
-        'KUEST_API_KEY': auth.relayer.key,
-        'KUEST_PASSPHRASE': auth.relayer.passphrase,
-        'KUEST_TIMESTAMP': timestamp.toString(),
-        'KUEST_SIGNATURE': signature,
-      },
-      body,
-      signal: AbortSignal.timeout(15000),
-    })
-
-    const { payload, rawError, contentType } = await readTradingFlowErrorResponse(response)
-    if (!response.ok || !payload) {
-      console.error('Failed to submit safe transaction response.', {
-        status: response.status,
-        contentType,
-        rawError: getTradingFlowErrorPreview(rawError),
-      })
-      const message = mapApproveTokensError(rawError, {
-        status: response.status,
-        contentType,
-        forceFallback: response.ok,
-      })
-      return { error: message }
-    }
-
-    let approvals
-    if (request.metadata === 'approve_tokens') {
-      approvals = await markTokenApprovalsCompleted(user.id)
-    }
-
-    const txHash = typeof payload?.txHash === 'string'
-      ? payload.txHash
-      : typeof payload?.tx_hash === 'string'
-        ? payload.tx_hash
-        : typeof payload?.transactionHash === 'string'
-          ? payload.transactionHash
-          : typeof payload?.hash === 'string'
-            ? payload.hash
-            : undefined
-
-    return { error: null, approvals, txHash }
-  }
-  catch (error) {
-    console.error('Failed to submit safe transaction', error)
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 }

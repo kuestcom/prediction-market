@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE,
-  DEFAULT_PROXY_WALLET_DEPLOY_ERROR_MESSAGE,
+  DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE,
   DEFAULT_TRADING_AUTH_ERROR_MESSAGE,
   getTradingFlowErrorPreview,
   mapApproveTokensError,
-  mapProxyWalletDeployError,
+  mapDepositWalletCreateError,
   mapTradingAuthError,
 } from '@/lib/trading-flow-errors'
 
@@ -14,10 +14,10 @@ describe('trading flow errors', () => {
     const html = '<!DOCTYPE html> <!--[if lt IE 7]> <html class="no-js ie6 oldie" lang="en-US">'
 
     expect(getTradingFlowErrorPreview(html)).toBe(null)
-    expect(mapProxyWalletDeployError(html, {
+    expect(mapDepositWalletCreateError(html, {
       status: 502,
       contentType: 'text/html; charset=utf-8',
-    })).toBe(DEFAULT_PROXY_WALLET_DEPLOY_ERROR_MESSAGE)
+    })).toBe(DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE)
     expect(mapTradingAuthError(html, {
       status: 502,
       contentType: 'text/html; charset=utf-8',
@@ -29,7 +29,7 @@ describe('trading flow errors', () => {
   })
 
   it('maps known trading session errors to user-facing messages', () => {
-    expect(mapProxyWalletDeployError('owner_address_mismatch', {
+    expect(mapDepositWalletCreateError('owner_address_mismatch', {
       status: 400,
       contentType: 'application/json',
     })).toBe('Your trading session is out of sync. Reconnect and try again.')
@@ -43,10 +43,10 @@ describe('trading flow errors', () => {
   it('maps gas pricing transport errors to retry-later messages', () => {
     const rawError = 'wallet_transport_error: transaction gas price below minimum: gas tip cap 3000000000, minimum needed 25000000000'
 
-    expect(mapProxyWalletDeployError(rawError, {
+    expect(mapDepositWalletCreateError(rawError, {
       status: 502,
       contentType: 'application/json',
-    })).toBe(DEFAULT_PROXY_WALLET_DEPLOY_ERROR_MESSAGE)
+    })).toBe(DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE)
     expect(mapApproveTokensError(rawError, {
       status: 502,
       contentType: 'application/json',

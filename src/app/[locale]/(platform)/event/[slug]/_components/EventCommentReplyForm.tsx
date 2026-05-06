@@ -61,7 +61,7 @@ export default function EventCommentReplyForm({
   }
 
   const avatarUrl = user.image?.trim() ?? ''
-  const avatarSeed = user.proxy_wallet_address || user.address || user.username || 'user'
+  const avatarSeed = user.deposit_wallet_address || user.address || user.username || 'user'
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
   const placeholderStyle = showPlaceholder
     ? getAvatarPlaceholderStyle(avatarSeed)

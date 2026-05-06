@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { connection } from 'next/server'
-import PendingDepositBanner from '@/app/[locale]/(platform)/portfolio/_components/PendingDepositBanner'
 import PortfolioMarketsWonCard from '@/app/[locale]/(platform)/portfolio/_components/PortfolioMarketsWonCard'
 import PortfolioTabs from '@/app/[locale]/(platform)/portfolio/_components/PortfolioTabs'
 import PortfolioWalletActions from '@/app/[locale]/(platform)/portfolio/_components/PortfolioWalletActions'
@@ -25,14 +24,13 @@ export default async function PortfolioPage({ params }: PageProps<'/[locale]/por
   const fallbackChartEndDate = getFallbackChartEndDate()
 
   const user = await UserRepository.getCurrentUser()
-  const userAddress = user?.proxy_wallet_address ?? ''
-  const snapshotAddress = user?.proxy_wallet_address
-  const publicAddress = user?.proxy_wallet_address ?? null
+  const userAddress = user?.deposit_wallet_address ?? ''
+  const snapshotAddress = user?.deposit_wallet_address
+  const publicAddress = user?.deposit_wallet_address ?? null
   const snapshot = await fetchPortfolioSnapshot(snapshotAddress)
 
   return (
     <>
-      <PendingDepositBanner />
       <PublicProfileHeroCards
         profile={{
           username: user?.username ?? 'Your portfolio',

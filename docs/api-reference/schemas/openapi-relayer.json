@@ -596,14 +596,34 @@
             }
           },
           "400": {
-            "description": "Invalid payload or nonce conflict.",
+            "description": "Invalid payload, expired deadline, missing Deposit Wallet deployment, or nonce conflict.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RelayerError"
                 },
-                "example": {
-                  "error": "invalid_field data"
+                "examples": {
+                  "nonceMismatch": {
+                    "summary": "Wallet nonce mismatch",
+                    "value": {
+                      "error": "wallet nonce mismatch",
+                      "code": "wallet_nonce_mismatch"
+                    }
+                  },
+                  "deadlineExpired": {
+                    "summary": "Deadline expired",
+                    "value": {
+                      "error": "deadline expired",
+                      "code": "deadline_expired"
+                    }
+                  },
+                  "walletNotDeployed": {
+                    "summary": "Deposit Wallet not deployed",
+                    "value": {
+                      "error": "deposit wallet not deployed",
+                      "code": "deposit_wallet_not_deployed"
+                    }
+                  }
                 }
               }
             }
@@ -1150,7 +1170,10 @@
         "properties": {
           "error": {
             "type": "string",
-            "description": "Human-readable explanation of the failure"
+            "description": "Human-readable explanation of the failure. Deposit Wallet clients should branch on `code` when present."
+          },
+          "code": {
+            "$ref": "#/components/schemas/RelayerWalletErrorCode"
           }
         },
         "required": [
@@ -1575,7 +1598,7 @@
       },
       "RelayerDepositWalletParams": {
         "type": "object",
-        "description": "Deposit Wallet batch parameters signed with EIP-712 domain DepositWallet version 1.",
+        "description": "Deposit Wallet batch parameters signed with EIP-712 domain DepositWallet version 1. Front-end batches use a deadline of now + 240 seconds.",
         "properties": {
           "depositWallet": {
             "type": "string"
@@ -1589,6 +1612,37 @@
             "items": {
               "$ref": "#/components/schemas/RelayerDepositWalletCall"
             }
+          },
+          "allowlist": {
+            "type": "object",
+            "description": "Mainnet v2 Kuest WALLET allowlist used by the front-end integration.",
+            "properties": {
+              "targets": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "example": [
+                  "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+                  "0x4682048725865bf17067bd85fF518527A262A9C7",
+                  "0x4bB1871fdaE80331ce5fF87547b8ff886D1695a5",
+                  "0xdb1E374a05130d7DE3F16677066553F225D2eE53",
+                  "0xd9416E904e1ab925ad72F03F6D6ce0Aa80fd2dC5",
+                  "0xB0D97D33efcA240b0764c0127E5AC6e877A8fE7A",
+                  "0x3DaBe8f032833CE42CC26d9149660E6f596759C5"
+                ]
+              },
+              "selectors": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "example": [
+                  "0x095ea7b3",
+                  "0xa22cb465"
+                ]
+              }
+            }
           }
         },
         "required": [
@@ -1596,6 +1650,15 @@
           "deadline",
           "calls"
         ]
+      },
+      "RelayerWalletErrorCode": {
+        "type": "string",
+        "enum": [
+          "deadline_expired",
+          "wallet_nonce_mismatch",
+          "deposit_wallet_not_deployed"
+        ],
+        "description": "Stable error codes handled by the Deposit Wallet front-end flow."
       }
     }
   }

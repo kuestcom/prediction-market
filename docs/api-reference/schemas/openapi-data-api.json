@@ -1716,6 +1716,71 @@
           }
         }
       }
+    },
+    "/profile/username-availability": {
+      "get": {
+        "tags": [
+          "Profiles"
+        ],
+        "summary": "Check username availability",
+        "description": "Return whether a username can be used for a profile. Checks are case-insensitive.",
+        "operationId": "getUsernameAvailability",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 42
+            },
+            "description": "Username candidate."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Availability result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsernameAvailabilityResponse"
+                },
+                "example": {
+                  "username": "bruno",
+                  "available": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid username format.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataApiError"
+                },
+                "example": {
+                  "error": "invalid_username"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Username already taken.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataApiError"
+                },
+                "example": {
+                  "error": "username_taken"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2372,6 +2437,32 @@
             "nullable": true
           }
         }
+      },
+      "UsernameAvailabilityResponse": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "username",
+          "available"
+        ]
+      },
+      "DataApiError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
       }
     }
   }

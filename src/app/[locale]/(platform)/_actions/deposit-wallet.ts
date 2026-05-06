@@ -1,6 +1,6 @@
 'use server'
 
-import type { ProxyWalletStatus } from '@/types'
+import type { DepositWalletStatus } from '@/types'
 import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
@@ -9,6 +9,7 @@ import { DEPOSIT_WALLET_FACTORY_ADDRESS } from '@/lib/contracts'
 import { UserRepository } from '@/lib/db/queries/user'
 import { users } from '@/lib/db/schema/auth/tables'
 import { getDepositWalletAddress, isDepositWalletDeployed } from '@/lib/deposit-wallet'
+import { captureDepositWalletError, captureDepositWalletEvent } from '@/lib/deposit-wallet-observability'
 import { db } from '@/lib/drizzle'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import {
@@ -19,6 +20,7 @@ import {
 import { saveUserTradingAuthCredentials } from '@/lib/trading-auth/server'
 import {
   getTradingFlowErrorPreview,
+  mapDepositWalletCreateError,
   mapTradingAuthError,
   readTradingFlowErrorResponse,
 } from '@/lib/trading-flow-errors'
@@ -54,11 +56,11 @@ const TradingAuthSignatureSchema = z.object({
 })
 
 interface DepositWalletActionUserData {
-  proxy_wallet_address: string | null
-  proxy_wallet_signature: string | null
-  proxy_wallet_signed_at: string | null
-  proxy_wallet_status: ProxyWalletStatus | null
-  proxy_wallet_tx_hash: string | null
+  deposit_wallet_address: string | null
+  deposit_wallet_signature: string | null
+  deposit_wallet_signed_at: string | null
+  deposit_wallet_status: DepositWalletStatus | null
+  deposit_wallet_tx_hash: string | null
   settings?: Record<string, any>
 }
 
@@ -72,8 +74,71 @@ interface EnableDepositWalletTradingActionResult {
   }) | null
 }
 
+interface UsernameAvailabilityResult {
+  available: boolean | null
+  code?: 'username_taken' | 'availability_unavailable'
+}
+
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function resolveUsernameAvailability(payload: unknown): boolean | null {
+  if (!payload || typeof payload !== 'object') {
+    return null
+  }
+
+  const record = payload as Record<string, any>
+  if (typeof record.available === 'boolean') {
+    return record.available
+  }
+  if (typeof record.isAvailable === 'boolean') {
+    return record.isAvailable
+  }
+  if (typeof record.data?.available === 'boolean') {
+    return record.data.available
+  }
+  if (typeof record.data?.isAvailable === 'boolean') {
+    return record.data.isAvailable
+  }
+
+  return null
+}
+
+async function fetchUsernameAvailability(username: string): Promise<UsernameAvailabilityResult> {
+  const dataUrl = process.env.DATA_URL
+  if (!dataUrl) {
+    return { available: null, code: 'availability_unavailable' }
+  }
+
+  const url = new URL('/profile/username-availability', dataUrl)
+  url.searchParams.set('username', username)
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(8_000),
+    })
+    const payload = await response.json().catch(() => null)
+
+    if (response.status === 409) {
+      return { available: false, code: 'username_taken' }
+    }
+
+    if (!response.ok) {
+      return { available: null, code: 'availability_unavailable' }
+    }
+
+    const available = resolveUsernameAvailability(payload)
+    return available === null
+      ? { available: null, code: 'availability_unavailable' }
+      : { available }
+  }
+  catch (error) {
+    console.error('Failed to check username availability', error)
+    return { available: null, code: 'availability_unavailable' }
+  }
 }
 
 async function updateOnboardingSettings(userId: string, patch: Record<string, unknown>) {
@@ -162,9 +227,11 @@ async function persistL2AuthCookie(l2AuthContextId: string) {
 async function submitWalletCreate({
   userAddress,
   auth,
+  depositWallet,
 }: {
   userAddress: string
   auth: { key: string, secret: string, passphrase: string }
+  depositWallet: string
 }) {
   const relayerUrl = process.env.RELAYER_URL
   if (!relayerUrl) {
@@ -184,6 +251,7 @@ async function submitWalletCreate({
   })
   const timestamp = Math.floor(Date.now() / 1000)
   const signature = buildClobHmacSignature(auth.secret, timestamp, 'POST', path, body)
+  const startedAt = Date.now()
 
   const response = await fetch(`${relayerUrl}${path}`, {
     method: 'POST',
@@ -202,12 +270,22 @@ async function submitWalletCreate({
 
   const { payload, rawError, contentType } = await readTradingFlowErrorResponse(response)
   if (!response.ok || !payload || typeof payload.transactionID !== 'string') {
+    const durationMs = Date.now() - startedAt
     console.error('Deposit Wallet create submit failed.', {
       status: response.status,
       contentType,
       rawError: getTradingFlowErrorPreview(rawError),
+      durationMs,
     })
-    throw new Error(mapTradingAuthError(rawError, {
+    captureDepositWalletEvent('Deposit Wallet create submit failed', {
+      operation: 'wallet_create_submit',
+      userAddress,
+      depositWallet,
+      errorCode: rawError,
+      durationMs,
+      status: response.status,
+    })
+    throw new Error(mapDepositWalletCreateError(rawError, {
       status: response.status,
       contentType,
       forceFallback: response.ok,
@@ -259,18 +337,37 @@ async function fetchRelayerTransactionState(transactionId: string) {
   }
 }
 
-async function pollWalletCreate(transactionId: string) {
+async function pollWalletCreate(
+  transactionId: string,
+  context: { userAddress: string, depositWallet: string },
+) {
+  const startedAt = Date.now()
   for (let attempt = 0; attempt < WALLET_CREATE_POLL_ATTEMPTS; attempt += 1) {
     const transaction = await fetchRelayerTransactionState(transactionId)
     if (transaction?.state === 'STATE_MINED' || transaction?.state === 'STATE_CONFIRMED') {
       return transaction
     }
     if (transaction?.state === 'STATE_FAILED' || transaction?.state === 'STATE_INVALID') {
+      captureDepositWalletEvent('Deposit Wallet create polling failed', {
+        operation: 'wallet_create_poll',
+        userAddress: context.userAddress,
+        depositWallet: context.depositWallet,
+        txHash: transaction.txHash,
+        errorCode: transaction.failureReason ?? transaction.state,
+        durationMs: Date.now() - startedAt,
+      })
       throw new Error(transaction.failureReason ?? DEFAULT_ERROR_MESSAGE)
     }
     await sleep(WALLET_CREATE_POLL_DELAY_MS)
   }
 
+  captureDepositWalletEvent('Deposit Wallet create polling timed out', {
+    operation: 'wallet_create_poll',
+    userAddress: context.userAddress,
+    depositWallet: context.depositWallet,
+    errorCode: 'polling_timeout',
+    durationMs: Date.now() - startedAt,
+  })
   return null
 }
 
@@ -289,11 +386,20 @@ export async function updateOnboardingUsernameAction(input: {
   }
 
   try {
+    const availability = await fetchUsernameAvailability(parsed.data.username)
+    if (availability.available === false) {
+      return { error: 'username_taken', code: 'username_taken', data: null }
+    }
+
     const { error } = await UserRepository.updateUserProfileById(user.id, {
       username: parsed.data.username,
     })
     if (error) {
-      return { error, data: null }
+      return {
+        error,
+        code: error.toLowerCase().includes('username') ? 'username_taken' : undefined,
+        data: null,
+      }
     }
     const settings = await updateOnboardingSettings(user.id, {
       usernameCompletedAt: new Date().toISOString(),
@@ -311,6 +417,24 @@ export async function updateOnboardingUsernameAction(input: {
   catch (error) {
     console.error('Failed to update onboarding username', error)
     return { error: DEFAULT_ERROR_MESSAGE, data: null }
+  }
+}
+
+export async function checkUsernameAvailabilityAction(input: { username: string }) {
+  const parsed = OnboardingUsernameSchema.pick({ username: true }).safeParse(input)
+  if (!parsed.success) {
+    return {
+      available: false,
+      code: 'invalid_username' as const,
+      error: parsed.error.issues[0]?.message ?? DEFAULT_ERROR_MESSAGE,
+    }
+  }
+
+  const result = await fetchUsernameAvailability(parsed.data.username)
+  return {
+    available: result.available,
+    code: result.code,
+    error: result.code === 'availability_unavailable' ? DEFAULT_ERROR_MESSAGE : null,
   }
 }
 
@@ -417,8 +541,8 @@ export async function enableDepositWalletTradingAction(
     await persistL2AuthCookie(l2AuthContextId)
 
     const depositWalletAddress = await getDepositWalletAddress(user.address as `0x${string}`)
-    let status = user.proxy_wallet_status ?? 'not_started'
-    let txHash: string | null = user.proxy_wallet_tx_hash ?? null
+    let status = user.deposit_wallet_status ?? 'not_started'
+    let txHash: string | null = user.deposit_wallet_tx_hash ?? null
 
     const alreadyDeployed = await isDepositWalletDeployed(depositWalletAddress)
     if (alreadyDeployed) {
@@ -429,6 +553,7 @@ export async function enableDepositWalletTradingAction(
       const submitResult = await submitWalletCreate({
         userAddress: user.address,
         auth: relayerCreds,
+        depositWallet: depositWalletAddress,
       })
       txHash = submitResult.txHash
       status = submitResult.state === 'STATE_CONFIRMED' || submitResult.state === 'STATE_MINED'
@@ -438,16 +563,19 @@ export async function enableDepositWalletTradingAction(
       await db
         .update(users)
         .set({
-          proxy_wallet_address: depositWalletAddress,
-          proxy_wallet_signature: parsed.data.signature,
-          proxy_wallet_signed_at: new Date(),
-          proxy_wallet_status: status,
-          proxy_wallet_tx_hash: txHash,
+          deposit_wallet_address: depositWalletAddress,
+          deposit_wallet_signature: parsed.data.signature,
+          deposit_wallet_signed_at: new Date(),
+          deposit_wallet_status: status,
+          deposit_wallet_tx_hash: txHash,
         })
         .where(eq(users.id, user.id))
 
       if (status !== 'deployed') {
-        const mined = await pollWalletCreate(submitResult.transactionId)
+        const mined = await pollWalletCreate(submitResult.transactionId, {
+          userAddress: user.address,
+          depositWallet: depositWalletAddress,
+        })
         if (mined?.state === 'STATE_MINED' || mined?.state === 'STATE_CONFIRMED') {
           status = 'deployed'
           txHash = null
@@ -458,11 +586,11 @@ export async function enableDepositWalletTradingAction(
     await db
       .update(users)
       .set({
-        proxy_wallet_address: depositWalletAddress,
-        proxy_wallet_signature: parsed.data.signature,
-        proxy_wallet_signed_at: new Date(),
-        proxy_wallet_status: status,
-        proxy_wallet_tx_hash: status === 'deployed' ? null : txHash,
+        deposit_wallet_address: depositWalletAddress,
+        deposit_wallet_signature: parsed.data.signature,
+        deposit_wallet_signed_at: new Date(),
+        deposit_wallet_status: status,
+        deposit_wallet_tx_hash: status === 'deployed' ? null : txHash,
       })
       .where(eq(users.id, user.id))
 
@@ -470,11 +598,11 @@ export async function enableDepositWalletTradingAction(
     return {
       error: null,
       data: {
-        proxy_wallet_address: depositWalletAddress,
-        proxy_wallet_signature: parsed.data.signature,
-        proxy_wallet_signed_at: new Date().toISOString(),
-        proxy_wallet_status: status,
-        proxy_wallet_tx_hash: status === 'deployed' ? null : txHash,
+        deposit_wallet_address: depositWalletAddress,
+        deposit_wallet_signature: parsed.data.signature,
+        deposit_wallet_signed_at: new Date().toISOString(),
+        deposit_wallet_status: status,
+        deposit_wallet_tx_hash: status === 'deployed' ? null : txHash,
         tradingAuth: {
           relayer: { enabled: true, updatedAt },
           clob: { enabled: true, updatedAt },
@@ -484,6 +612,11 @@ export async function enableDepositWalletTradingAction(
   }
   catch (error) {
     console.error('Failed to enable Deposit Wallet trading', error)
+    captureDepositWalletError(error, {
+      operation: 'enable_trading',
+      userAddress: user.address,
+      depositWallet: user.deposit_wallet_address,
+    })
     const message = error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE
     return { error: message, data: null }
   }

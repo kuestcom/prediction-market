@@ -16,12 +16,12 @@ export default function UserInfoSection() {
     return null
   }
 
-  const proxyWalletAddress = user.proxy_wallet_address!
+  const proxyWalletAddress = user.deposit_wallet_address!
   const displayUsername = user.username?.length > 12
     ? `${user.username.slice(0, 12)}...`
     : user.username
   const avatarUrl = user.image?.trim() ?? ''
-  const avatarSeed = user.proxy_wallet_address || user.address || user.username || 'user'
+  const avatarSeed = user.deposit_wallet_address || user.address || user.username || 'user'
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
   const placeholderStyle = showPlaceholder
     ? getAvatarPlaceholderStyle(avatarSeed)
@@ -29,7 +29,7 @@ export default function UserInfoSection() {
 
   const polygonscanUrl = `https://polygonscan.com/address/${proxyWalletAddress}`
   const profileHref = buildUsernameProfilePath(user.username || '')
-    ?? buildPublicProfilePath(user.proxy_wallet_address || user.address || '')
+    ?? buildPublicProfilePath(user.deposit_wallet_address || user.address || '')
 
   function handleCopyWallet() {
     void copy(proxyWalletAddress)

@@ -23,7 +23,7 @@ interface AffiliateProfile {
   id: string
   username: string
   address: string
-  proxy_wallet_address?: string | null
+  deposit_wallet_address?: string | null
   image?: string | null
   affiliate_code?: string | null
 }
@@ -32,7 +32,7 @@ interface RowSummary {
   id: string
   username: string
   address: string
-  proxy_wallet_address?: string | null
+  deposit_wallet_address?: string | null
   image: string
   affiliate_code: string | null
   total_referrals: number
@@ -94,7 +94,7 @@ async function AdminAffiliateContent() {
     const uniqueReceivers = Array.from(
       new Set(
         profiles
-          .map(profile => profile.proxy_wallet_address || profile.address || '')
+          .map(profile => profile.deposit_wallet_address || profile.address || '')
           .map(address => address.trim())
           .filter(Boolean),
       ),
@@ -124,14 +124,14 @@ async function AdminAffiliateContent() {
   const rows: RowSummary[] = overview.map((item) => {
     const profile = profileMap.get(item.affiliate_user_id)
 
-    const receiverAddress = (profile?.proxy_wallet_address || profile?.address || '').toLowerCase()
+    const receiverAddress = (profile?.deposit_wallet_address || profile?.address || '').toLowerCase()
     const onchainData = receiverAddress ? feeTotalsByAddress.get(receiverAddress) : undefined
 
     return {
       id: item.affiliate_user_id,
       username: profile?.username as string,
       address: profile?.address ?? '',
-      proxy_wallet_address: profile?.proxy_wallet_address ?? null,
+      deposit_wallet_address: profile?.deposit_wallet_address ?? null,
       image: profile?.image ? getPublicAssetUrl(profile.image) : '',
       affiliate_code: profile?.affiliate_code ?? null,
       total_referrals: Number(item.total_referrals ?? 0),

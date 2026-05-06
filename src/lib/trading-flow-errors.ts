@@ -1,6 +1,6 @@
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 
-export const DEFAULT_PROXY_WALLET_DEPLOY_ERROR_MESSAGE = 'Could not create your Deposit Wallet right now. Please try again in a few moments.'
+export const DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE = 'Could not create your Deposit Wallet right now. Please try again in a few moments.'
 export const DEFAULT_TRADING_AUTH_ERROR_MESSAGE = 'Could not enable trading right now. Please try again in a few moments.'
 export const DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE = 'Could not approve tokens right now. Please try again in a few moments.'
 
@@ -123,13 +123,13 @@ function mapTradingFlowError(
   return normalized ?? DEFAULT_ERROR_MESSAGE
 }
 
-export function mapProxyWalletDeployError(
+export function mapDepositWalletCreateError(
   rawError: string | null | undefined,
   options: { status?: number | null, contentType?: string | null, forceFallback?: boolean } = {},
 ) {
   return mapTradingFlowError(rawError, {
     ...options,
-    fallbackMessage: DEFAULT_PROXY_WALLET_DEPLOY_ERROR_MESSAGE,
+    fallbackMessage: DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE,
     exactMessages: {
       wallet_service_disabled: 'Deposit Wallet creation is temporarily unavailable right now.',
     },

@@ -20,6 +20,10 @@ export default function EventIconImage({
   imageClassName,
   ...props
 }: EventIconImageProps) {
+  if (typeof src === 'string' && !src.trim()) {
+    return null
+  }
+
   return (
     <div className={cn('relative overflow-hidden', containerClassName)}>
       <Image

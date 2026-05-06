@@ -151,10 +151,10 @@ function useEventTokenIds(markets: Event['markets']) {
   }, [markets])
 }
 
-function useOwnerAddress(user: { proxy_wallet_address?: string | null, proxy_wallet_status?: string | null } | null) {
+function useOwnerAddress(user: { deposit_wallet_address?: string | null, deposit_wallet_status?: string | null } | null) {
   return useMemo(() => {
-    if (user && user.proxy_wallet_address && user.proxy_wallet_status === 'deployed') {
-      return user.proxy_wallet_address as `0x${string}`
+    if (user && user.deposit_wallet_address && user.deposit_wallet_status === 'deployed') {
+      return user.deposit_wallet_address as `0x${string}`
     }
     return '' as `0x${string}`
   }, [user])

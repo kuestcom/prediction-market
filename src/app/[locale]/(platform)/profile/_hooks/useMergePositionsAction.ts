@@ -59,7 +59,7 @@ export function useMergePositionsAction({
       return
     }
 
-    if (!user?.proxy_wallet_address || !user?.address) {
+    if (!user?.deposit_wallet_address || !user?.address) {
       toast.error('Set up your Deposit Wallet before merging shares.')
       setMergeBatchCount(0)
       return
@@ -157,7 +157,7 @@ export function useMergePositionsAction({
 
       onSuccess?.()
 
-      const normalizedProxyWallet = normalizeAddress(user.proxy_wallet_address)
+      const normalizedProxyWallet = normalizeAddress(user.deposit_wallet_address)
       const publicPositionReductions = preparedMerges.map(entry => ({
         conditionId: entry.conditionId,
         sharesDelta: -entry.mergeAmount,

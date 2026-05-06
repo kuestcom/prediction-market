@@ -163,7 +163,7 @@ export default function SettingsAffiliateContent({ affiliateData, mainCategories
                     image: referral.image ?? '',
                     username: referral.username,
                     address: referral.address,
-                    proxy_wallet_address: referral.proxy_wallet_address ?? null,
+                    deposit_wallet_address: referral.deposit_wallet_address ?? null,
                   }}
                   profileHref={profileSlug ? buildPublicProfilePath(profileSlug) ?? undefined : undefined}
                   layout="stacked"

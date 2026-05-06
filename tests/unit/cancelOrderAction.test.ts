@@ -40,7 +40,7 @@ describe('cancelOrderAction', () => {
     mocks.getCurrentUser.mockResolvedValue({
       id: 'user-1',
       address: '0x0000000000000000000000000000000000000001',
-      proxy_wallet_address: null,
+      deposit_wallet_address: null,
     })
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({ clob: null })
 
@@ -56,7 +56,7 @@ describe('cancelOrderAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 'user-1',
       address: '0x0000000000000000000000000000000000000001',
-      proxy_wallet_address: '0x0000000000000000000000000000000000000002',
+      deposit_wallet_address: '0x0000000000000000000000000000000000000002',
     })
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({ clob: { key: 'k', passphrase: 'p', secret: 's' } })
 
@@ -75,7 +75,7 @@ describe('cancelOrderAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 'user-1',
       address: '0x0000000000000000000000000000000000000001',
-      proxy_wallet_address: '0x0000000000000000000000000000000000000002',
+      deposit_wallet_address: '0x0000000000000000000000000000000000000002',
     })
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({ clob: { key: 'k', passphrase: 'p', secret: 's' } })
 

@@ -96,7 +96,7 @@ export async function buildPublicProfileMetadata({
   const [runtimeTheme, profileResult] = await Promise.all([
     loadRuntimeThemeState(),
     normalized.type !== 'invalid'
-      ? UserRepository.getProfileByUsernameOrProxyAddress(normalized.value)
+      ? UserRepository.getProfileByUsernameOrDepositWalletAddress(normalized.value)
       : Promise.resolve({ data: null, error: null }),
   ])
   const profile = profileResult.data
@@ -148,7 +148,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
     notFound()
   }
 
-  const { data: profile } = await UserRepository.getProfileByUsernameOrProxyAddress(normalized.value)
+  const { data: profile } = await UserRepository.getProfileByUsernameOrDepositWalletAddress(normalized.value)
 
   if (!profile) {
     if (normalized.type === 'username') {
@@ -175,7 +175,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
     )
   }
 
-  const userAddress = profile.proxy_wallet_address!
+  const userAddress = profile.deposit_wallet_address!
   const snapshot = await fetchPortfolioSnapshot(userAddress)
   const fallbackChartEndDate = buildFallbackChartEndDate()
 

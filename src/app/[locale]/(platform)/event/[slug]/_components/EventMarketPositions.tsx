@@ -866,8 +866,8 @@ export default function EventMarketPositions({
     positionStatus,
   })
 
-  const loading = status === 'pending' && Boolean(user?.proxy_wallet_address)
-  const hasInitialError = status === 'error' && Boolean(user?.proxy_wallet_address)
+  const loading = status === 'pending' && Boolean(user?.deposit_wallet_address)
+  const hasInitialError = status === 'error' && Boolean(user?.deposit_wallet_address)
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
   const [sharePosition, setSharePosition] = useState<UserPosition | null>(null)
   const [isConvertDialogOpen, setIsConvertDialogOpen] = useState(false)

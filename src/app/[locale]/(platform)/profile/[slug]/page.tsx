@@ -6,16 +6,16 @@ import { buildPublicProfileMetadata, PublicProfilePageContent } from '@/app/[loc
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { normalizeAddress } from '@/lib/wallet'
 
+export async function generateStaticParams() {
+  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
+}
+
 function resolveProfileNamespaceSlug(slug: string) {
   if (slug.startsWith('@')) {
     return slug
   }
 
   return normalizeAddress(slug) ? slug : `@${slug}`
-}
-
-export async function generateStaticParams() {
-  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
 }
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/profile/[slug]'>): Promise<Metadata> {

@@ -245,7 +245,7 @@ export async function storeOrderAction(payload: StoreOrderInput) {
   if (!auth?.clob) {
     return { error: TRADING_AUTH_REQUIRED_ERROR }
   }
-  if (!user.proxy_wallet_address) {
+  if (!user.deposit_wallet_address) {
     return { error: 'Set up your Deposit Wallet before trading.' }
   }
 
@@ -264,7 +264,7 @@ export async function storeOrderAction(payload: StoreOrderInput) {
       : CLOB_ORDER_TYPE.GTC)
 
   try {
-    const expectedMaker = normalizeAddress(user.proxy_wallet_address)
+    const expectedMaker = normalizeAddress(user.deposit_wallet_address)
     const maker = normalizeAddress(validated.data.maker)
     const signer = normalizeAddress(validated.data.signer)
 

@@ -46,7 +46,7 @@ export function useInfiniteComments(
   const [loadingRepliesForComment, setLoadingRepliesForComment] = useState<string | null>(null)
   const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(() => new Set())
   const userAddress = user?.address ?? null
-  const userProxyWalletAddress = user?.proxy_wallet_address ?? null
+  const userDepositWalletAddress = user?.deposit_wallet_address ?? null
   const commentsQueryKey = ['event-comments', eventSlug, sortBy, holdersOnly, userAddress]
   const communityApiUrl = process.env.COMMUNITY_URL!
 
@@ -59,9 +59,9 @@ export function useInfiniteComments(
       address: userAddress,
       signMessageAsync: args => runWithSignaturePrompt(() => signMessageAsync(args)),
       communityApiUrl,
-      proxyWalletAddress: userProxyWalletAddress,
+      depositWalletAddress: userDepositWalletAddress,
     })
-  }, [communityApiUrl, runWithSignaturePrompt, signMessageAsync, userAddress, userProxyWalletAddress])
+  }, [communityApiUrl, runWithSignaturePrompt, signMessageAsync, userAddress, userDepositWalletAddress])
 
   const fetchCommentsPage = useCallback(async ({ pageParam = 0 }: { pageParam: number }) => {
     const offset = pageParam * COMMENTS_PAGE_SIZE
@@ -200,7 +200,7 @@ export function useInfiniteComments(
         username: user.username || 'Anonymous',
         user_avatar: user.image || '',
         user_address: user.address || '0x0000...0000',
-        user_proxy_wallet_address: user.proxy_wallet_address || null,
+        user_proxy_wallet_address: user.deposit_wallet_address || null,
         likes_count: 0,
         replies_count: 0,
         created_at: new Date().toISOString(),

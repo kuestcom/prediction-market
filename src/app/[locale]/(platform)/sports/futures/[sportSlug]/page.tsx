@@ -8,12 +8,12 @@ import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sp
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
-export const metadata: Metadata = {
-  title: 'Sports Futures',
-}
-
 export async function generateStaticParams() {
   return [{ sportSlug: STATIC_PARAMS_PLACEHOLDER }]
+}
+
+export const metadata: Metadata = {
+  title: 'Sports Futures',
 }
 
 export default async function SportsFuturesBySportPage({

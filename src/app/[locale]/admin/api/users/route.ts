@@ -48,11 +48,11 @@ export async function GET(request: NextRequest) {
     const { data: referredUsers } = await UserRepository.getUsersByIds(referredIds)
     const referredEntries = (referredUsers ?? []).filter((ref): ref is typeof ref & { username: string } => Boolean(ref.username))
 
-    const referredMap = new Map<string, { username: string, address: string, proxy_wallet_address?: string | null, image?: string | null }>(
+    const referredMap = new Map<string, { username: string, address: string, deposit_wallet_address?: string | null, image?: string | null }>(
       referredEntries.map(referred => [referred.id, {
         username: referred.username,
         address: referred.address,
-        proxy_wallet_address: referred.proxy_wallet_address,
+        deposit_wallet_address: referred.deposit_wallet_address,
         image: referred.image,
       }]),
     )
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
             year: 'numeric',
           })
 
-      const proxyWalletAddress = user.proxy_wallet_address
+      const proxyWalletAddress = user.deposit_wallet_address
       const profilePath = buildPublicProfilePath(user.username || proxyWalletAddress || user.address || '')
 
       const referredSource = user.referred_by_user_id

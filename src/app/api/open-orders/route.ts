@@ -63,7 +63,7 @@ export async function GET(request: Request) {
     const { data: clobOrders, next_cursor } = await fetchClobOpenOrders({
       auth: tradingAuth.clob,
       userAddress: user.address,
-      makerAddress: user.proxy_wallet_address as string,
+      makerAddress: user.deposit_wallet_address as string,
       id: idFilter,
       market: marketFilter,
       assetId: assetIdFilter,

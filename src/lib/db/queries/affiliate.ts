@@ -45,7 +45,7 @@ interface AffiliateProfile {
   id: string
   username: string
   address: string
-  proxy_wallet_address: string | null
+  deposit_wallet_address: string | null
   image: string | null
   affiliate_code: string | null
 }
@@ -56,7 +56,7 @@ interface ReferralList {
   users: {
     username: string
     address: string
-    proxy_wallet_address: string | null
+    deposit_wallet_address: string | null
     image: string | null
   }
 }
@@ -300,7 +300,7 @@ export const AffiliateRepository = {
           id: users.id,
           username: users.username,
           address: users.address,
-          proxy_wallet_address: users.proxy_wallet_address,
+          deposit_wallet_address: users.deposit_wallet_address,
           image: users.image,
           affiliate_code: users.affiliate_code,
         })
@@ -311,7 +311,7 @@ export const AffiliateRepository = {
         id: user.id,
         username: user.username!,
         address: user.address,
-        proxy_wallet_address: user.proxy_wallet_address,
+        deposit_wallet_address: user.deposit_wallet_address,
         image: user.image,
         affiliate_code: user.affiliate_code,
       }))
@@ -330,7 +330,7 @@ export const AffiliateRepository = {
           created_at: affiliate_referrals.created_at,
           username: users.username,
           address: users.address,
-          proxy_wallet_address: users.proxy_wallet_address,
+          deposit_wallet_address: users.deposit_wallet_address,
           image: users.image,
         })
         .from(affiliate_referrals)
@@ -345,7 +345,7 @@ export const AffiliateRepository = {
         users: {
           username: row.username!,
           address: row.address,
-          proxy_wallet_address: row.proxy_wallet_address,
+          deposit_wallet_address: row.deposit_wallet_address,
           image: row.image,
         },
       }))

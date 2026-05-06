@@ -174,7 +174,7 @@ export default function EventMergeSharesDialog({
       return
     }
 
-    if (!user?.proxy_wallet_address) {
+    if (!user?.deposit_wallet_address) {
       toast.error(t('Set up your Deposit Wallet before merging shares.'))
       return
     }

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import {
   boolean,
   integer,
@@ -5,37 +6,44 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { CLOB_ORDER_TYPE } from '@/lib/constants'
 
-export const users = pgTable('users', {
-  id: text().primaryKey(),
-  address: text().notNull(),
-  email: text().notNull().unique(),
-  email_verified: boolean().default(false).notNull(),
-  image: text('image'),
-  created_at: timestamp().defaultNow().notNull(),
-  updated_at: timestamp()
-    .defaultNow()
-    .$onUpdate(() => /* @__PURE__ */ new Date())
-    .notNull(),
-  two_factor_enabled: boolean().default(false),
-  username: text().unique(),
-  settings: jsonb()
-    .$type<Record<string, any>>()
-    .default({
-      trading: {
-        market_order_type: CLOB_ORDER_TYPE.FAK,
-      },
-    }),
-  proxy_wallet_address: text('proxy_wallet_address'),
-  proxy_wallet_signature: text('proxy_wallet_signature'),
-  proxy_wallet_signed_at: timestamp('proxy_wallet_signed_at'),
-  proxy_wallet_status: text('proxy_wallet_status').default('not_started').notNull(),
-  proxy_wallet_tx_hash: text('proxy_wallet_tx_hash'),
-  affiliate_code: text(),
-  referred_by_user_id: text().references((): any => users.id, { onDelete: 'set null' }),
-})
+export const users = pgTable(
+  'users',
+  {
+    id: text().primaryKey(),
+    address: text().notNull(),
+    email: text().notNull().unique(),
+    email_verified: boolean().default(false).notNull(),
+    image: text('image'),
+    created_at: timestamp().defaultNow().notNull(),
+    updated_at: timestamp()
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    two_factor_enabled: boolean().default(false),
+    username: text(),
+    settings: jsonb()
+      .$type<Record<string, any>>()
+      .default({
+        trading: {
+          market_order_type: CLOB_ORDER_TYPE.FAK,
+        },
+      }),
+    deposit_wallet_address: text('deposit_wallet_address'),
+    deposit_wallet_signature: text('deposit_wallet_signature'),
+    deposit_wallet_signed_at: timestamp('deposit_wallet_signed_at'),
+    deposit_wallet_status: text('deposit_wallet_status'),
+    deposit_wallet_tx_hash: text('deposit_wallet_tx_hash'),
+    affiliate_code: text(),
+    referred_by_user_id: text().references((): any => users.id, { onDelete: 'set null' }),
+  },
+  table => ({
+    usernameLowerUniqueIdx: uniqueIndex('idx_users_username').on(sql`LOWER(${table.username})`),
+  }),
+)
 
 export const sessions = pgTable('sessions', {
   id: text().primaryKey(),

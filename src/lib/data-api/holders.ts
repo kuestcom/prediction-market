@@ -28,7 +28,7 @@ export interface TopHoldersResult {
       id: string
       username: string
       address: string
-      proxy_wallet_address?: string | null
+      deposit_wallet_address?: string | null
       image: string
       created_at?: string
     }
@@ -41,7 +41,7 @@ export interface TopHoldersResult {
       id: string
       username: string
       address: string
-      proxy_wallet_address?: string | null
+      deposit_wallet_address?: string | null
       image: string
       created_at?: string
     }
@@ -63,7 +63,7 @@ function mapHolder(holder: DataApiHolder, outcomeHint: 'yes' | 'no' | null) {
       id: address,
       username: holder.pseudonym || holder.name || address,
       address,
-      proxy_wallet_address: address,
+      deposit_wallet_address: address,
       image: getAvatar(holder),
     },
     net_position: amount.toString(),

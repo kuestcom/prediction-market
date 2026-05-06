@@ -11,7 +11,7 @@ interface AffiliateRow {
   id: string
   username: string
   address: string
-  proxy_wallet_address?: string | null
+  deposit_wallet_address?: string | null
   image: string
   affiliate_code?: string | null
   total_referrals: number
@@ -57,7 +57,7 @@ export default async function AdminAffiliateOverview({ rows }: AdminAffiliateOve
           <tbody>
             {rows.map((row) => {
               const avatarUrl = row.image?.trim() ?? ''
-              const avatarSeed = row.proxy_wallet_address || row.address || row.username || row.id
+              const avatarSeed = row.deposit_wallet_address || row.address || row.username || row.id
               const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
               const placeholderStyle = showPlaceholder
                 ? getAvatarPlaceholderStyle(avatarSeed)
@@ -120,7 +120,7 @@ export default async function AdminAffiliateOverview({ rows }: AdminAffiliateOve
       <div className="divide-y md:hidden">
         {rows.map((row) => {
           const avatarUrl = row.image?.trim() ?? ''
-          const avatarSeed = row.proxy_wallet_address || row.address || row.username || row.id
+          const avatarSeed = row.deposit_wallet_address || row.address || row.username || row.id
           const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
           const placeholderStyle = showPlaceholder
             ? getAvatarPlaceholderStyle(avatarSeed)

@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     const profiles: PublicProfile[] = (data || []).map((user) => {
       return {
         address: getUserPublicAddress(user as unknown as User) || '',
-        proxy_wallet_address: user.proxy_wallet_address ?? null,
+        deposit_wallet_address: user.deposit_wallet_address ?? null,
         username: user.username!,
         image: user.image ? getPublicAssetUrl(user.image) : '',
         created_at: new Date(user.created_at),

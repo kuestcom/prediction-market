@@ -304,19 +304,19 @@ export const auth = betterAuth({
       settings: {
         type: 'json',
       },
-      proxy_wallet_address: {
+      deposit_wallet_address: {
         type: 'string',
       },
-      proxy_wallet_signature: {
+      deposit_wallet_signature: {
         type: 'string',
       },
-      proxy_wallet_status: {
+      deposit_wallet_status: {
         type: 'string',
       },
-      proxy_wallet_signed_at: {
+      deposit_wallet_signed_at: {
         type: 'date',
       },
-      proxy_wallet_tx_hash: {
+      deposit_wallet_tx_hash: {
         type: 'string',
       },
       affiliate_code: {

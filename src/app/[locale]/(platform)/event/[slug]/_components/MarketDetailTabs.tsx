@@ -85,7 +85,7 @@ export default function MarketDetailTabs({
   const yesShares = marketShares?.[OUTCOME_INDEX.YES] ?? 0
   const noShares = marketShares?.[OUTCOME_INDEX.NO] ?? 0
   const hasPositions = Boolean(
-    user?.proxy_wallet_address
+    user?.deposit_wallet_address
     && marketShares
     && (yesShares >= positionSizeThreshold || noShares >= positionSizeThreshold),
   )
@@ -105,15 +105,15 @@ export default function MarketDetailTabs({
   }, [isResolvedContext, openOrdersData?.pages])
 
   const { data: historyPreview } = useQuery<DataApiActivity[]>({
-    queryKey: ['user-market-activity-preview', user?.proxy_wallet_address, market.condition_id],
+    queryKey: ['user-market-activity-preview', user?.deposit_wallet_address, market.condition_id],
     queryFn: ({ signal }) =>
       fetchUserActivityData({
         pageParam: 0,
-        userAddress: user?.proxy_wallet_address ?? '',
+        userAddress: user?.deposit_wallet_address ?? '',
         conditionId: market.condition_id,
         signal,
       }),
-    enabled: Boolean(user?.proxy_wallet_address && market.condition_id) && !isResolvedContext,
+    enabled: Boolean(user?.deposit_wallet_address && market.condition_id) && !isResolvedContext,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
   })

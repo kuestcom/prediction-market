@@ -58,7 +58,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
   const { errors, setErrors, formError, setFormError, isPending, setIsPending, fileInputRef } = useProfileFormState()
   const { previewImage, setPreviewImage } = useAvatarPreview()
   const avatarUrl = user.image?.trim() ?? ''
-  const avatarSeed = user.proxy_wallet_address || user.address || user.username || 'user'
+  const avatarSeed = user.deposit_wallet_address || user.address || user.username || 'user'
   const showPlaceholder = !previewImage && shouldUseAvatarPlaceholder(avatarUrl)
   const placeholderStyle = showPlaceholder
     ? getAvatarPlaceholderStyle(avatarSeed)
@@ -108,7 +108,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
           address: user.address,
           signMessageAsync: args => runWithSignaturePrompt(() => signMessageAsync(args)),
           communityApiUrl,
-          proxyWalletAddress: user.proxy_wallet_address ?? null,
+          depositWalletAddress: user.deposit_wallet_address ?? null,
         })
 
         const communityForm = new FormData()
@@ -302,7 +302,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
 
         <div className="flex items-center justify-between gap-3">
           <AppLink
-            href={buildPublicProfilePath(user.username || user.proxy_wallet_address || '') || '#'}
+            href={buildPublicProfilePath(user.username || user.deposit_wallet_address || '') || '#'}
             className="text-sm font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
           >
             {t('View Public Profile')}

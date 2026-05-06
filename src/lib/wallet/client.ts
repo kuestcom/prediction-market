@@ -33,12 +33,12 @@ export async function signAndSubmitDepositWalletCalls({
   metadata,
   signTypedDataAsync,
 }: {
-  user: Pick<User, 'address' | 'proxy_wallet_address'>
+  user: Pick<User, 'address' | 'deposit_wallet_address'>
   calls: WalletCall[]
   metadata?: string
   signTypedDataAsync: SignTypedDataFn
 }): Promise<SignAndSubmitDepositWalletCallsResult> {
-  if (!user.proxy_wallet_address) {
+  if (!user.deposit_wallet_address) {
     return { error: DEFAULT_ERROR_MESSAGE, code: 'missing_deposit_wallet' }
   }
 
@@ -53,7 +53,7 @@ export async function signAndSubmitDepositWalletCalls({
 
     const typedData = getDepositWalletBatchTypedData({
       chainId: DEFAULT_CHAIN_ID,
-      depositWallet: user.proxy_wallet_address as `0x${string}`,
+      depositWallet: user.deposit_wallet_address as `0x${string}`,
       calls,
       nonce: nonceResult.nonce,
     })
