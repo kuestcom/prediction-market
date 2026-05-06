@@ -347,7 +347,7 @@ function ProfileResults({ profiles, isLoading, query, onResultClick }: ProfileRe
     <div className="max-h-96 overflow-y-auto">
       {profiles.map(profile => (
         <div
-          key={profile.id}
+          key={`${profile.address}-${profile.username}`}
           onClick={onResultClick}
           className="cursor-pointer px-3 transition-colors last:rounded-b-lg hover:bg-accent"
         >
