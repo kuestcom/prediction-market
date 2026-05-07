@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
-import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 
 function useStartDepositFlowOnRequest(requestId: number) {
   const { startDepositFlow } = useTradingOnboarding()
@@ -33,9 +32,5 @@ interface HeaderDepositFlowProps {
 }
 
 export default function HeaderDepositFlow({ requestId }: HeaderDepositFlowProps) {
-  return (
-    <TradingOnboardingProvider>
-      <HeaderDepositFlowInner requestId={requestId} />
-    </TradingOnboardingProvider>
-  )
+  return <HeaderDepositFlowInner requestId={requestId} />
 }

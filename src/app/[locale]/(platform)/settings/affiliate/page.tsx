@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
-import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import SettingsAffiliateContent from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateContent'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { getAffiliateFeeSettings } from '@/lib/affiliate-fee-settings'
@@ -116,15 +115,13 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
       </div>
 
       <div className="mx-auto w-full max-w-5xl lg:mx-0">
-        <TradingOnboardingProvider>
-          <SettingsAffiliateContent
-            affiliateData={affiliateData}
-            mainCategories={(mainTags ?? []).map(tag => ({
-              slug: tag.slug,
-              name: tag.name,
-            }))}
-          />
-        </TradingOnboardingProvider>
+        <SettingsAffiliateContent
+          affiliateData={affiliateData}
+          mainCategories={(mainTags ?? []).map(tag => ({
+            slug: tag.slug,
+            name: tag.name,
+          }))}
+        />
       </div>
     </section>
   )
