@@ -128,8 +128,9 @@ function UsernameDialog({
   const canSubmit = (
     !isSubmitting
     && termsAccepted
+    && trimmedUsername.length > 0
     && !localFormatError
-    && availabilityState === 'available'
+    && availabilityState !== 'taken'
   )
 
   /* eslint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react/set-state-in-effect -- Debounced username availability is derived from input and an async data-api response. */

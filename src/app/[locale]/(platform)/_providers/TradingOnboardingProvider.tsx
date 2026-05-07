@@ -47,6 +47,7 @@ import { mergeSessionUserState, useUser } from '@/stores/useUser'
 type OnboardingModal = 'username' | 'email' | 'enable' | 'enable-status' | 'approve' | 'auto-redeem' | null
 type EnableTradingStep = 'idle' | 'enabling' | 'deploying' | 'completed'
 type ApprovalsStep = 'idle' | 'signing' | 'completed'
+const REQUIRED_TRADING_MODALS = new Set<Exclude<OnboardingModal, null>>(['enable', 'enable-status', 'approve'])
 
 export function TradingOnboardingProvider({ children }: { children: ReactNode }) {
   const user = useUser()
@@ -224,7 +225,10 @@ function TradingOnboardingProviderContent({
     if (!user || activeModal || fundModalOpen || depositModalOpen || withdrawModalOpen) {
       return
     }
-    if (!nextModal || dismissedModal === nextModal) {
+    if (!nextModal) {
+      return
+    }
+    if (dismissedModal === nextModal && !REQUIRED_TRADING_MODALS.has(nextModal)) {
       return
     }
     setActiveModal(nextModal)
@@ -288,7 +292,9 @@ function TradingOnboardingProviderContent({
       setFundModalOpen(true)
       return
     }
-    setDismissedModal(modal)
+    if (!REQUIRED_TRADING_MODALS.has(modal)) {
+      setDismissedModal(modal)
+    }
     setActiveModal(null)
   }, [])
 
