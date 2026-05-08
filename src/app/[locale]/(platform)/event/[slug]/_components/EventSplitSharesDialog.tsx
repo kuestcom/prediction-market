@@ -50,6 +50,7 @@ interface EventSplitSharesDialogProps {
   marketTitle?: string
   marketIconUrl?: string | null
   isNegRiskMarket?: boolean
+  negRiskAdapterAddress?: `0x${string}` | null
   onOpenChange: (open: boolean) => void
 }
 
@@ -91,6 +92,7 @@ export default function EventSplitSharesDialog({
   marketTitle,
   marketIconUrl,
   isNegRiskMarket = false,
+  negRiskAdapterAddress = null,
   onOpenChange,
 }: EventSplitSharesDialogProps) {
   const t = useExtracted()
@@ -189,6 +191,7 @@ export default function EventSplitSharesDialog({
           ? buildNegRiskSplitPositionCall({
               conditionId: conditionId as `0x${string}`,
               amount: toMicro(numericAmount),
+              contract: negRiskAdapterAddress ?? undefined,
             })
           : buildSplitPositionCall({
               conditionId: conditionId as `0x${string}`,

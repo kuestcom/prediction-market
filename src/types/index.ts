@@ -202,6 +202,7 @@ interface UserSettings {
     relayer?: TradingAuthStatus
     clob?: TradingAuthStatus
     approvals?: TradingAuthStatus
+    autoRedeem?: TradingAuthStatus
   }
   [key: string]: any
 }

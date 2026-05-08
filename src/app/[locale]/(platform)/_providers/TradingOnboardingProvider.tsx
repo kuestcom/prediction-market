@@ -4,11 +4,15 @@ import type { ReactNode } from 'react'
 import type { TradingOnboardingContextValue } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import type { User } from '@/types'
 import { useExtracted } from 'next-intl'
+import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { UserRejectedRequestError } from 'viem'
+import { createPublicClient, erc20Abi, erc1155Abi, http, UserRejectedRequestError } from 'viem'
 import { useSignTypedData } from 'wagmi'
+import { markApprovalStateWithoutTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
 import {
-  enableDepositWalletTradingAction,
+  createDepositWalletAction,
+  enableTradingAuthAction,
+  markAutoRedeemApprovalCompletedAction,
   updateOnboardingEmailAction,
   updateOnboardingUsernameAction,
 } from '@/app/[locale]/(platform)/_actions/deposit-wallet'
@@ -25,8 +29,13 @@ import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { authClient } from '@/lib/auth-client'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import {
+  COLLATERAL_TOKEN_ADDRESS,
+  CONDITIONAL_TOKENS_CONTRACT,
+  CTF_AUTO_REDEEM_ADDRESS,
   CTF_EXCHANGE_ADDRESS,
   NEG_RISK_CTF_EXCHANGE_ADDRESS,
+  UMA_NEG_RISK_ADAPTER_ADDRESS,
+  UMA_NEG_RISK_ADAPTER_LEGACY_ADDRESS,
 } from '@/lib/contracts'
 import { fetchReferralLocked } from '@/lib/exchange'
 import {
@@ -36,18 +45,20 @@ import {
   TRADING_AUTH_TYPES,
 } from '@/lib/trading-auth/client'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
+import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import {
-  buildApproveTokenCalls,
   buildAutoRedeemAllowanceCalls,
+  buildCollateralApproveCall,
+  buildConditionalSetApprovalForAllCall,
   buildSetReferralCalls,
+  MAX_ALLOWANCE,
 } from '@/lib/wallet/transactions'
 import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
 type OnboardingModal = 'username' | 'email' | 'enable' | 'enable-status' | 'approve' | 'auto-redeem' | null
 type EnableTradingStep = 'idle' | 'enabling' | 'deploying' | 'completed'
 type ApprovalsStep = 'idle' | 'signing' | 'completed'
-const REQUIRED_TRADING_MODALS = new Set<Exclude<OnboardingModal, null>>(['enable', 'enable-status', 'approve'])
 
 export function TradingOnboardingProvider({ children }: { children: ReactNode }) {
   const user = useUser()
@@ -135,6 +146,7 @@ function useOnboardingStatus(user: User | null, requiresTradingAuthRefresh: bool
       && !requiresTradingAuthRefresh,
     )
     const hasTokenApprovals = Boolean(tradingAuthSettings?.approvals?.enabled)
+    const hasAutoRedeemApproval = Boolean(tradingAuthSettings?.autoRedeem?.enabled)
     const tradingReady = hasDeployedDepositWallet && hasTradingAuth && hasTokenApprovals
 
     return {
@@ -145,6 +157,7 @@ function useOnboardingStatus(user: User | null, requiresTradingAuthRefresh: bool
       isDepositWalletDeploying,
       hasTradingAuth,
       hasTokenApprovals,
+      hasAutoRedeemApproval,
       tradingReady,
     }
   }, [requiresTradingAuthRefresh, user])
@@ -154,16 +167,16 @@ function resolveNextOnboardingModal({
   needsUsername,
   needsEmail,
   hasDeployedDepositWallet,
-  hasDepositWalletAddress,
   hasTradingAuth,
   hasTokenApprovals,
+  allowTradingAuthPrompt,
 }: {
   needsUsername: boolean
   needsEmail: boolean
   hasDeployedDepositWallet: boolean
-  hasDepositWalletAddress: boolean
   hasTradingAuth: boolean
   hasTokenApprovals: boolean
+  allowTradingAuthPrompt: boolean
 }): Exclude<OnboardingModal, null> | null {
   if (needsUsername) {
     return 'username'
@@ -171,8 +184,11 @@ function resolveNextOnboardingModal({
   if (needsEmail) {
     return 'email'
   }
-  if (!hasDeployedDepositWallet || !hasTradingAuth) {
-    return hasDepositWalletAddress ? 'enable-status' : 'enable'
+  if (!hasDeployedDepositWallet) {
+    return 'enable'
+  }
+  if (allowTradingAuthPrompt && !hasTradingAuth) {
+    return 'enable-status'
   }
   if (!hasTokenApprovals) {
     return 'approve'
@@ -204,6 +220,7 @@ function TradingOnboardingProviderContent({
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const t = useExtracted()
+  const pathname = usePathname()
   const affiliateMetadata = useAffiliateOrderMetadata()
   const { open: openAppKit } = useAppKit()
   const refreshSessionUserState = useSessionRefresher()
@@ -218,7 +235,11 @@ function TradingOnboardingProviderContent({
     hasDepositWalletAddress: status.hasDepositWalletAddress,
   })
 
-  const nextModal = resolveNextOnboardingModal(status)
+  const isEventRoute = pathname.includes('/event/')
+  const nextModal = resolveNextOnboardingModal({
+    ...status,
+    allowTradingAuthPrompt: isEventRoute,
+  })
 
   /* eslint-disable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-chain-state-updates, react/set-state-in-effect -- These effects coordinate onboarding modal transitions from async wallet/auth state. */
   useEffect(() => {
@@ -228,7 +249,7 @@ function TradingOnboardingProviderContent({
     if (!nextModal) {
       return
     }
-    if (dismissedModal === nextModal && !REQUIRED_TRADING_MODALS.has(nextModal)) {
+    if (dismissedModal === nextModal) {
       return
     }
     setActiveModal(nextModal)
@@ -247,11 +268,11 @@ function TradingOnboardingProviderContent({
   }, [enableTradingStep, status.hasDeployedDepositWallet, status.hasTokenApprovals])
 
   useEffect(() => {
-    if (status.tradingReady && shouldShowFundAfterTradingReady) {
+    if (status.hasDeployedDepositWallet && status.hasTokenApprovals && shouldShowFundAfterTradingReady) {
       setShouldShowFundAfterTradingReady(false)
       setFundModalOpen(true)
     }
-  }, [shouldShowFundAfterTradingReady, status.tradingReady])
+  }, [shouldShowFundAfterTradingReady, status.hasDeployedDepositWallet, status.hasTokenApprovals])
   /* eslint-enable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-chain-state-updates, react/set-state-in-effect */
 
   const openNextRequirement = useCallback((options?: { forceTradingAuth?: boolean }) => {
@@ -275,9 +296,12 @@ function TradingOnboardingProviderContent({
     const forcedStatus = options?.forceTradingAuth
       ? { ...status, hasTradingAuth: false, tradingReady: false }
       : status
-    const modal = resolveNextOnboardingModal(forcedStatus)
+    const modal = resolveNextOnboardingModal({
+      ...forcedStatus,
+      allowTradingAuthPrompt: Boolean(options?.forceTradingAuth) || isEventRoute,
+    })
     setActiveModal(modal)
-  }, [openAppKit, refreshSessionUserState, status, user])
+  }, [isEventRoute, openAppKit, refreshSessionUserState, status, user])
 
   const handleModalOpenChange = useCallback((modal: Exclude<OnboardingModal, null>, open: boolean) => {
     if (open) {
@@ -292,9 +316,7 @@ function TradingOnboardingProviderContent({
       setFundModalOpen(true)
       return
     }
-    if (!REQUIRED_TRADING_MODALS.has(modal)) {
-      setDismissedModal(modal)
-    }
+    setDismissedModal(modal)
     setActiveModal(null)
   }, [])
 
@@ -332,6 +354,7 @@ function TradingOnboardingProviderContent({
         : resolveNextOnboardingModal({
             ...status,
             needsUsername: false,
+            allowTradingAuthPrompt: false,
           }))
     }
     finally {
@@ -367,6 +390,7 @@ function TradingOnboardingProviderContent({
       setActiveModal(resolveNextOnboardingModal({
         ...status,
         needsEmail: false,
+        allowTradingAuthPrompt: false,
       }))
     }
     finally {
@@ -401,6 +425,7 @@ function TradingOnboardingProviderContent({
       setActiveModal(resolveNextOnboardingModal({
         ...status,
         needsEmail: false,
+        allowTradingAuthPrompt: false,
       }))
     }
     finally {
@@ -408,7 +433,60 @@ function TradingOnboardingProviderContent({
     }
   }, [isEmailSubmitting, refreshSessionUserState, status])
 
-  const handleEnableTrading = useCallback(async () => {
+  const handleCreateDepositWallet = useCallback(async () => {
+    if (!user?.address || enableTradingStep === 'enabling') {
+      return
+    }
+    setEnableTradingError(null)
+
+    try {
+      setEnableTradingStep('enabling')
+      const result = await createDepositWalletAction()
+
+      if (result.error || !result.data) {
+        setEnableTradingError(result.error ?? DEFAULT_ERROR_MESSAGE)
+        setEnableTradingStep('idle')
+        return
+      }
+      const data = result.data
+
+      useUser.setState((previous) => {
+        if (!previous) {
+          return previous
+        }
+        return {
+          ...previous,
+          ...data,
+        }
+      })
+      void refreshSessionUserState()
+
+      if (data.deposit_wallet_status === 'deployed') {
+        setEnableTradingStep('completed')
+        setDismissedModal(null)
+        setActiveModal(status.hasTokenApprovals ? null : 'approve')
+      }
+      else {
+        setEnableTradingStep('deploying')
+      }
+    }
+    catch (error) {
+      if (error instanceof Error) {
+        setEnableTradingError(error.message || DEFAULT_ERROR_MESSAGE)
+      }
+      else {
+        setEnableTradingError(DEFAULT_ERROR_MESSAGE)
+      }
+      setEnableTradingStep('idle')
+    }
+  }, [
+    enableTradingStep,
+    refreshSessionUserState,
+    status.hasTokenApprovals,
+    user?.address,
+  ])
+
+  const handleEnableTradingAuth = useCallback(async () => {
     if (!user?.address || enableTradingStep === 'enabling') {
       return
     }
@@ -428,7 +506,7 @@ function TradingOnboardingProviderContent({
         message,
       }))
 
-      const result = await enableDepositWalletTradingAction({
+      const result = await enableTradingAuthAction({
         signature,
         timestamp,
         nonce: message.nonce.toString(),
@@ -447,7 +525,6 @@ function TradingOnboardingProviderContent({
         }
         return {
           ...previous,
-          ...data,
           settings: mergeUserSettings(previous, {
             tradingAuth: data.tradingAuth,
           }),
@@ -455,15 +532,9 @@ function TradingOnboardingProviderContent({
       })
       void refreshSessionUserState()
       setRequiresTradingAuthRefresh(false)
-
-      if (data.deposit_wallet_status === 'deployed') {
-        setEnableTradingStep('completed')
-        setDismissedModal(null)
-        setActiveModal(activeModal === 'enable-status' || status.hasTokenApprovals ? null : 'approve')
-      }
-      else {
-        setEnableTradingStep('deploying')
-      }
+      setEnableTradingStep('completed')
+      setDismissedModal(null)
+      setActiveModal(status.hasTokenApprovals ? null : 'approve')
     }
     catch (error) {
       if (error instanceof UserRejectedRequestError) {
@@ -479,7 +550,6 @@ function TradingOnboardingProviderContent({
     }
   }, [
     enableTradingStep,
-    activeModal,
     refreshSessionUserState,
     runWithSignaturePrompt,
     signTypedDataAsync,
@@ -502,12 +572,96 @@ function TradingOnboardingProviderContent({
     return exchanges.filter((_, index) => results[index] === false)
   }, [])
 
+  const resolveMissingApprovalCalls = useCallback(async (depositWalletAddress: `0x${string}`) => {
+    const client = createPublicClient({
+      chain: defaultViemNetwork,
+      transport: http(defaultViemRpcUrl),
+    })
+
+    const collateralSpenders = [
+      CONDITIONAL_TOKENS_CONTRACT,
+      CTF_EXCHANGE_ADDRESS,
+      NEG_RISK_CTF_EXCHANGE_ADDRESS,
+      UMA_NEG_RISK_ADAPTER_ADDRESS,
+      UMA_NEG_RISK_ADAPTER_LEGACY_ADDRESS,
+    ] as const
+    const conditionalOperators = [
+      CTF_EXCHANGE_ADDRESS,
+      NEG_RISK_CTF_EXCHANGE_ADDRESS,
+      UMA_NEG_RISK_ADAPTER_ADDRESS,
+      UMA_NEG_RISK_ADAPTER_LEGACY_ADDRESS,
+    ] as const
+
+    const [allowances, operatorApprovals] = await Promise.all([
+      Promise.all(collateralSpenders.map(spender =>
+        client.readContract({
+          address: COLLATERAL_TOKEN_ADDRESS,
+          abi: erc20Abi,
+          functionName: 'allowance',
+          args: [depositWalletAddress, spender],
+        }) as Promise<bigint>,
+      )),
+      Promise.all(conditionalOperators.map(operator =>
+        client.readContract({
+          address: CONDITIONAL_TOKENS_CONTRACT,
+          abi: erc1155Abi,
+          functionName: 'isApprovedForAll',
+          args: [depositWalletAddress, operator],
+        }) as Promise<boolean>,
+      )),
+    ])
+
+    const approvalCalls = collateralSpenders.flatMap((spender, index) =>
+      allowances[index] >= MAX_ALLOWANCE ? [] : [buildCollateralApproveCall(spender)],
+    )
+    const operatorCalls = conditionalOperators.flatMap((operator, index) =>
+      operatorApprovals[index] ? [] : [buildConditionalSetApprovalForAllCall(operator)],
+    )
+
+    return [...approvalCalls, ...operatorCalls]
+  }, [])
+
+  const ensureAutoRedeemStatusFromChain = useCallback(async (depositWalletAddress: `0x${string}`) => {
+    const client = createPublicClient({
+      chain: defaultViemNetwork,
+      transport: http(defaultViemRpcUrl),
+    })
+    const approved = await client.readContract({
+      address: CONDITIONAL_TOKENS_CONTRACT,
+      abi: erc1155Abi,
+      functionName: 'isApprovedForAll',
+      args: [depositWalletAddress, CTF_AUTO_REDEEM_ADDRESS],
+    }) as boolean
+
+    if (!approved) {
+      return false
+    }
+
+    const result = await markAutoRedeemApprovalCompletedAction()
+    const autoRedeem = result.data?.autoRedeem
+    if (result.error || !autoRedeem) {
+      return true
+    }
+
+    useUser.setState((previous) => {
+      if (!previous) {
+        return previous
+      }
+      return {
+        ...previous,
+        settings: mergeUserSettings(previous, {
+          tradingAuth: {
+            autoRedeem,
+          },
+        }),
+      }
+    })
+    void refreshSessionUserState()
+    return true
+  }, [refreshSessionUserState])
+
   const handleApproveTokens = useCallback(async () => {
     if (!user?.deposit_wallet_address || approvalsStep === 'signing') {
-      return
-    }
-    if (!status.hasTradingAuth) {
-      openNextRequirement({ forceTradingAuth: true })
       return
     }
 
@@ -516,8 +670,9 @@ function TradingOnboardingProviderContent({
 
     try {
       const referralExchanges = await resolveReferralExchanges(user.deposit_wallet_address as `0x${string}`)
+      const missingApprovalCalls = await resolveMissingApprovalCalls(user.deposit_wallet_address as `0x${string}`)
       const calls = [
-        ...buildApproveTokenCalls(),
+        ...missingApprovalCalls,
         ...buildSetReferralCalls({
           referrer: affiliateMetadata.referrerAddress,
           affiliate: affiliateMetadata.affiliateAddress,
@@ -525,12 +680,14 @@ function TradingOnboardingProviderContent({
           exchanges: referralExchanges,
         }),
       ]
-      const result = await signAndSubmitDepositWalletCalls({
-        user,
-        calls,
-        metadata: 'approve_tokens',
-        signTypedDataAsync,
-      })
+      const result = calls.length > 0
+        ? await signAndSubmitDepositWalletCalls({
+            user,
+            calls,
+            metadata: 'approve_tokens',
+            signTypedDataAsync,
+          })
+        : await markApprovalStateWithoutTransactionAction('approve_tokens')
 
       if (result.error) {
         if (isTradingAuthRequiredError(result.error)) {
@@ -571,8 +728,16 @@ function TradingOnboardingProviderContent({
       setDismissedModal(null)
       setAutoRedeemStep('idle')
       setAutoRedeemError(null)
-      setActiveModal('auto-redeem')
-      setShouldShowFundAfterTradingReady(false)
+      const hasAutoRedeemOnChain = await ensureAutoRedeemStatusFromChain(user.deposit_wallet_address as `0x${string}`)
+      if (hasAutoRedeemOnChain) {
+        setActiveModal(null)
+        setShouldShowFundAfterTradingReady(false)
+        setFundModalOpen(true)
+      }
+      else {
+        setActiveModal('auto-redeem')
+        setShouldShowFundAfterTradingReady(false)
+      }
     }
     catch (error) {
       if (error instanceof UserRejectedRequestError) {
@@ -591,19 +756,16 @@ function TradingOnboardingProviderContent({
     approvalsStep,
     openNextRequirement,
     refreshSessionUserState,
+    resolveMissingApprovalCalls,
     resolveReferralExchanges,
     signTypedDataAsync,
-    status.hasTradingAuth,
+    ensureAutoRedeemStatusFromChain,
     t,
     user,
   ])
 
   const handleApproveAutoRedeem = useCallback(async () => {
     if (!user?.deposit_wallet_address || autoRedeemStep === 'signing') {
-      return
-    }
-    if (!status.hasTradingAuth) {
-      openNextRequirement({ forceTradingAuth: true })
       return
     }
 
@@ -636,6 +798,23 @@ function TradingOnboardingProviderContent({
         return
       }
 
+      if (result.autoRedeem) {
+        useUser.setState((previous) => {
+          if (!previous) {
+            return previous
+          }
+          return {
+            ...previous,
+            settings: mergeUserSettings(previous, {
+              tradingAuth: {
+                autoRedeem: result.autoRedeem,
+              },
+            }),
+          }
+        })
+        void refreshSessionUserState()
+      }
+
       setAutoRedeemStep('completed')
       setDismissedModal(null)
       setActiveModal(null)
@@ -657,8 +836,8 @@ function TradingOnboardingProviderContent({
   }, [
     autoRedeemStep,
     openNextRequirement,
+    refreshSessionUserState,
     signTypedDataAsync,
-    status.hasTradingAuth,
     t,
     user,
   ])
@@ -699,14 +878,14 @@ function TradingOnboardingProviderContent({
       return
     }
 
-    if (status.tradingReady) {
+    if (status.hasDeployedDepositWallet) {
       setDepositModalOpen(true)
       return
     }
 
     setShouldShowFundAfterTradingReady(true)
     openNextRequirement()
-  }, [openAppKit, openNextRequirement, status.tradingReady, user])
+  }, [openAppKit, openNextRequirement, status.hasDeployedDepositWallet, user])
 
   const startWithdrawFlow = useCallback(() => {
     if (!user) {
@@ -774,7 +953,8 @@ function TradingOnboardingProviderContent({
         onEmailSkip={handleEmailSkip}
         enableTradingStep={status.isDepositWalletDeploying ? 'deploying' : enableTradingStep}
         enableTradingError={enableTradingError}
-        onEnableTrading={handleEnableTrading}
+        onCreateDepositWallet={handleCreateDepositWallet}
+        onEnableTradingAuth={handleEnableTradingAuth}
         hasDeployedDepositWallet={status.hasDeployedDepositWallet}
         hasTradingAuth={status.hasTradingAuth}
         hasTokenApprovals={status.hasTokenApprovals}

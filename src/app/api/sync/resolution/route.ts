@@ -15,7 +15,7 @@ import { db } from '@/lib/drizzle'
 
 export const maxDuration = 300
 
-const RESOLUTION_SUBGRAPH_URL = 'https://api.goldsky.com/api/public/project_cmkeqj653po3801t6ajbv1wcv/subgraphs/resolution-subgraph/1.0.0/gn'
+const RESOLUTION_SUBGRAPH_URL = 'https://subgraphs.kuest.com/resolution-subgraph'
 const SYNC_TIME_LIMIT_MS = 250_000
 const RESOLUTION_PAGE_SIZE = 200
 const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000

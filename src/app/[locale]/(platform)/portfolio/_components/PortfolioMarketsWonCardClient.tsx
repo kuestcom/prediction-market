@@ -28,6 +28,7 @@ import { removeClaimedPublicPositions, updateQueryDataWhere } from '@/lib/optimi
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { triggerConfetti } from '@/lib/utils'
+import { normalizeAddress } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import {
   buildNegRiskRedeemPositionCall,
@@ -49,6 +50,7 @@ export interface PortfolioClaimMarket {
   timestamp?: number
   indexSets: number[]
   isNegRisk?: boolean
+  negRiskAdapterAddress?: `0x${string}`
   yesShares?: number
   noShares?: number
 }
@@ -208,6 +210,18 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
       return
     }
 
+    for (const market of claimTargets) {
+      if (!market.isNegRisk) {
+        continue
+      }
+
+      const adapterAddress = normalizeAddress(market.negRiskAdapterAddress)
+      if (!adapterAddress) {
+        toast.error(t('Could not resolve the market adapter for claim. Refresh and try again.'))
+        return
+      }
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -217,6 +231,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
               conditionId: market.conditionId as `0x${string}`,
               yesAmount: market.yesShares ?? 0,
               noAmount: market.noShares ?? 0,
+              contract: normalizeAddress(market.negRiskAdapterAddress) as `0x${string}`,
             })
           : buildRedeemPositionCall({
               conditionId: market.conditionId as `0x${string}`,

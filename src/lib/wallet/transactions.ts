@@ -14,6 +14,7 @@ import {
   DEPOSIT_WALLET_FACTORY_ADDRESS,
   NEG_RISK_CTF_EXCHANGE_ADDRESS,
   UMA_NEG_RISK_ADAPTER_ADDRESS,
+  UMA_NEG_RISK_ADAPTER_LEGACY_ADDRESS,
   ZERO_COLLECTION_ID,
 } from '@/lib/contracts'
 import {
@@ -119,7 +120,7 @@ interface NegRiskRedeemArgs {
   contract?: `0x${string}`
 }
 
-const MAX_ALLOWANCE = (1n << 256n) - 1n
+export const MAX_ALLOWANCE = (1n << 256n) - 1n
 
 export const DEPOSIT_WALLET_BATCH_TYPES = {
   Call: [
@@ -265,53 +266,39 @@ export function getDepositWalletDeadline(now = Date.now()) {
   return Math.floor(now / 1000) + DEPOSIT_WALLET_BATCH_DEADLINE_SECONDS
 }
 
+export function buildCollateralApproveCall(spender: `0x${string}`): WalletCall {
+  return createWalletCall(COLLATERAL_TOKEN_ADDRESS, encodeFunctionData({
+    abi: erc20Abi,
+    functionName: 'approve',
+    args: [spender, MAX_ALLOWANCE],
+  }))
+}
+
+export function buildConditionalSetApprovalForAllCall(operator: `0x${string}`): WalletCall {
+  return createWalletCall(CONDITIONAL_TOKENS_CONTRACT, encodeFunctionData({
+    abi: erc1155Abi,
+    functionName: 'setApprovalForAll',
+    args: [operator, true],
+  }))
+}
+
 export function buildApproveTokenCalls(): WalletCall[] {
   return [
-    createWalletCall(COLLATERAL_TOKEN_ADDRESS, encodeFunctionData({
-      abi: erc20Abi,
-      functionName: 'approve',
-      args: [CONDITIONAL_TOKENS_CONTRACT, MAX_ALLOWANCE],
-    })),
-    createWalletCall(COLLATERAL_TOKEN_ADDRESS, encodeFunctionData({
-      abi: erc20Abi,
-      functionName: 'approve',
-      args: [CTF_EXCHANGE_ADDRESS, MAX_ALLOWANCE],
-    })),
-    createWalletCall(CONDITIONAL_TOKENS_CONTRACT, encodeFunctionData({
-      abi: erc1155Abi,
-      functionName: 'setApprovalForAll',
-      args: [CTF_EXCHANGE_ADDRESS, true],
-    })),
-    createWalletCall(COLLATERAL_TOKEN_ADDRESS, encodeFunctionData({
-      abi: erc20Abi,
-      functionName: 'approve',
-      args: [NEG_RISK_CTF_EXCHANGE_ADDRESS, MAX_ALLOWANCE],
-    })),
-    createWalletCall(COLLATERAL_TOKEN_ADDRESS, encodeFunctionData({
-      abi: erc20Abi,
-      functionName: 'approve',
-      args: [UMA_NEG_RISK_ADAPTER_ADDRESS, MAX_ALLOWANCE],
-    })),
-    createWalletCall(CONDITIONAL_TOKENS_CONTRACT, encodeFunctionData({
-      abi: erc1155Abi,
-      functionName: 'setApprovalForAll',
-      args: [NEG_RISK_CTF_EXCHANGE_ADDRESS, true],
-    })),
-    createWalletCall(CONDITIONAL_TOKENS_CONTRACT, encodeFunctionData({
-      abi: erc1155Abi,
-      functionName: 'setApprovalForAll',
-      args: [UMA_NEG_RISK_ADAPTER_ADDRESS, true],
-    })),
+    buildCollateralApproveCall(CONDITIONAL_TOKENS_CONTRACT),
+    buildCollateralApproveCall(CTF_EXCHANGE_ADDRESS),
+    buildConditionalSetApprovalForAllCall(CTF_EXCHANGE_ADDRESS),
+    buildCollateralApproveCall(NEG_RISK_CTF_EXCHANGE_ADDRESS),
+    buildCollateralApproveCall(UMA_NEG_RISK_ADAPTER_ADDRESS),
+    buildCollateralApproveCall(UMA_NEG_RISK_ADAPTER_LEGACY_ADDRESS),
+    buildConditionalSetApprovalForAllCall(NEG_RISK_CTF_EXCHANGE_ADDRESS),
+    buildConditionalSetApprovalForAllCall(UMA_NEG_RISK_ADAPTER_ADDRESS),
+    buildConditionalSetApprovalForAllCall(UMA_NEG_RISK_ADAPTER_LEGACY_ADDRESS),
   ]
 }
 
 export function buildAutoRedeemAllowanceCalls(): WalletCall[] {
   return [
-    createWalletCall(CONDITIONAL_TOKENS_CONTRACT, encodeFunctionData({
-      abi: erc1155Abi,
-      functionName: 'setApprovalForAll',
-      args: [CTF_AUTO_REDEEM_ADDRESS, true],
-    })),
+    buildConditionalSetApprovalForAllCall(CTF_AUTO_REDEEM_ADDRESS),
   ]
 }
 

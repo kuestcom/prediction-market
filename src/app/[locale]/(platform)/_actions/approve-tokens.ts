@@ -7,7 +7,11 @@ import { UserRepository } from '@/lib/db/queries/user'
 import { captureDepositWalletError, captureDepositWalletEvent } from '@/lib/deposit-wallet-observability'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
-import { getUserTradingAuthSecrets, markTokenApprovalsCompleted } from '@/lib/trading-auth/server'
+import {
+  getUserTradingAuthSecrets,
+  markAutoRedeemApprovalCompleted,
+  markTokenApprovalsCompleted,
+} from '@/lib/trading-auth/server'
 import {
   getTradingFlowErrorPreview,
   mapApproveTokensError,
@@ -28,7 +32,19 @@ interface SubmitWalletTransactionResult {
     updatedAt: string
     version: string
   }
+  autoRedeem?: {
+    enabled: boolean
+    updatedAt: string
+    version: string
+  }
   txHash?: string
+}
+
+const WALLET_TX_POLL_ATTEMPTS = 45
+const WALLET_TX_POLL_DELAY_MS = 2_000
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 function resolveWalletSubmitErrorCode(rawError: string | null | undefined) {
@@ -60,6 +76,62 @@ function friendlyWalletSubmitError(rawError: string | null | undefined, fallback
     default:
       return fallback
   }
+}
+
+interface RelayerTransactionState {
+  state: string | null
+  txHash: string | null
+  failureReason: string | null
+}
+
+async function fetchRelayerTransactionState(transactionId: string): Promise<RelayerTransactionState | null> {
+  const relayerUrl = process.env.RELAYER_URL
+  if (!relayerUrl) {
+    return null
+  }
+
+  const query = `id=${encodeURIComponent(transactionId)}`
+  const response = await fetch(`${relayerUrl}/transaction?${query}`, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+    signal: AbortSignal.timeout(10_000),
+  })
+
+  const payload = await response.json().catch(() => null)
+  const transaction = Array.isArray(payload) ? payload[0] : null
+  if (!response.ok || !transaction) {
+    return null
+  }
+
+  return {
+    state: typeof transaction.state === 'string' ? transaction.state : null,
+    txHash: typeof transaction.transactionHash === 'string'
+      ? transaction.transactionHash
+      : typeof transaction.hash === 'string'
+        ? transaction.hash
+        : null,
+    failureReason: typeof transaction.failureReason === 'string'
+      ? transaction.failureReason
+      : null,
+  }
+}
+
+async function waitForRelayerTransactionFinalState(
+  transactionId: string,
+): Promise<RelayerTransactionState | null> {
+  for (let attempt = 0; attempt < WALLET_TX_POLL_ATTEMPTS; attempt += 1) {
+    const transaction = await fetchRelayerTransactionState(transactionId)
+    if (transaction?.state === 'STATE_MINED' || transaction?.state === 'STATE_CONFIRMED') {
+      return transaction
+    }
+    if (transaction?.state === 'STATE_FAILED' || transaction?.state === 'STATE_INVALID') {
+      return transaction
+    }
+    await sleep(WALLET_TX_POLL_DELAY_MS)
+  }
+  return null
 }
 
 async function syncClobCollateralBalanceAllowanceSignatureType3(user: {
@@ -118,11 +190,6 @@ export async function getDepositWalletNonceAction(): Promise<RelayerNonceResult>
     return { error: 'Your Deposit Wallet is still being created. Try again in a moment.', code: 'deposit_wallet_not_deployed' }
   }
 
-  const auth = await getUserTradingAuthSecrets(user.id)
-  if (!auth?.relayer) {
-    return { error: TRADING_AUTH_REQUIRED_ERROR }
-  }
-
   const relayerUrl = process.env.RELAYER_URL
   if (!relayerUrl) {
     return { error: DEFAULT_ERROR_MESSAGE }
@@ -130,8 +197,6 @@ export async function getDepositWalletNonceAction(): Promise<RelayerNonceResult>
 
   const query = `address=${encodeURIComponent(user.address)}&type=WALLET`
   const path = `/nonce?${query}`
-  const timestamp = Math.floor(Date.now() / 1000)
-  const signature = buildClobHmacSignature(auth.relayer.secret, timestamp, 'GET', path)
   const startedAt = Date.now()
 
   try {
@@ -139,11 +204,6 @@ export async function getDepositWalletNonceAction(): Promise<RelayerNonceResult>
       method: 'GET',
       headers: {
         Accept: 'application/json',
-        KUEST_ADDRESS: user.address,
-        KUEST_API_KEY: auth.relayer.key,
-        KUEST_PASSPHRASE: auth.relayer.passphrase,
-        KUEST_TIMESTAMP: timestamp.toString(),
-        KUEST_SIGNATURE: signature,
       },
       signal: AbortSignal.timeout(10_000),
     })
@@ -195,7 +255,8 @@ export async function submitDepositWalletTransactionAction(
   }
 
   const auth = await getUserTradingAuthSecrets(user.id)
-  if (!auth?.relayer) {
+  const canUsePublicWalletSubmit = request.metadata === 'approve_tokens' || request.metadata === 'auto_redeem_approval'
+  if (!auth?.relayer && !canUsePublicWalletSubmit) {
     return { error: TRADING_AUTH_REQUIRED_ERROR }
   }
 
@@ -227,24 +288,30 @@ export async function submitDepositWalletTransactionAction(
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 
-  const path = '/submit'
+  const path = auth?.relayer ? '/submit' : '/submit/wallet'
   const body = JSON.stringify(request)
-  const timestamp = Math.floor(Date.now() / 1000)
-  const signature = buildClobHmacSignature(auth.relayer.secret, timestamp, 'POST', path, body)
+  const timestamp = auth?.relayer ? Math.floor(Date.now() / 1000) : null
+  const signature = auth?.relayer && timestamp !== null
+    ? buildClobHmacSignature(auth.relayer.secret, timestamp, 'POST', path, body)
+    : null
   const startedAt = Date.now()
 
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    }
+    if (auth?.relayer && timestamp !== null && signature) {
+      headers.KUEST_ADDRESS = user.address
+      headers.KUEST_API_KEY = auth.relayer.key
+      headers.KUEST_PASSPHRASE = auth.relayer.passphrase
+      headers.KUEST_TIMESTAMP = timestamp.toString()
+      headers.KUEST_SIGNATURE = signature
+    }
+
     const response = await fetch(`${relayerUrl}${path}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'KUEST_ADDRESS': user.address,
-        'KUEST_API_KEY': auth.relayer.key,
-        'KUEST_PASSPHRASE': auth.relayer.passphrase,
-        'KUEST_TIMESTAMP': timestamp.toString(),
-        'KUEST_SIGNATURE': signature,
-      },
+      headers,
       body,
       signal: AbortSignal.timeout(15_000),
     })
@@ -279,13 +346,7 @@ export async function submitDepositWalletTransactionAction(
       }
     }
 
-    let approvals
-    if (request.metadata === 'approve_tokens') {
-      approvals = await markTokenApprovalsCompleted(user.id)
-      await syncClobCollateralBalanceAllowanceSignatureType3(user)
-    }
-
-    const txHash = typeof payload?.txHash === 'string'
+    const responseTxHash = typeof payload?.txHash === 'string'
       ? payload.txHash
       : typeof payload?.tx_hash === 'string'
         ? payload.tx_hash
@@ -294,6 +355,62 @@ export async function submitDepositWalletTransactionAction(
           : typeof payload?.hash === 'string'
             ? payload.hash
             : undefined
+    const transactionId = typeof payload?.transactionID === 'string'
+      ? payload.transactionID
+      : typeof payload?.transactionId === 'string'
+        ? payload.transactionId
+        : typeof payload?.id === 'string'
+          ? payload.id
+          : null
+    const responseState = typeof payload?.state === 'string'
+      ? payload.state
+      : null
+
+    let txHash = responseTxHash
+    let finalState: RelayerTransactionState | null = null
+    if (transactionId) {
+      finalState = await waitForRelayerTransactionFinalState(transactionId)
+      if (!finalState) {
+        return { error: 'Could not confirm transaction success. Please check your activity and try again.' }
+      }
+      if (finalState?.txHash) {
+        txHash = finalState.txHash
+      }
+      if (finalState?.state === 'STATE_FAILED' || finalState?.state === 'STATE_INVALID') {
+        const failureReason = finalState.failureReason?.trim() || DEFAULT_ERROR_MESSAGE
+        captureDepositWalletEvent('Deposit Wallet submit mined failed', {
+          operation: 'wallet_submit',
+          userAddress: user.address,
+          depositWallet: user.deposit_wallet_address,
+          txHash,
+          durationMs: Date.now() - startedAt,
+          metadata: request.metadata,
+          errorCode: failureReason,
+        })
+        return { error: friendlyWalletSubmitError(failureReason, failureReason) }
+      }
+    }
+    else if (responseState === 'STATE_MINED' || responseState === 'STATE_CONFIRMED') {
+      finalState = {
+        state: responseState,
+        txHash: txHash ?? null,
+        failureReason: null,
+      }
+    }
+
+    if (finalState?.state !== 'STATE_MINED' && finalState?.state !== 'STATE_CONFIRMED') {
+      return { error: 'Could not confirm transaction success. Please check your activity and try again.' }
+    }
+
+    let approvals
+    let autoRedeem
+    if (request.metadata === 'approve_tokens') {
+      approvals = await markTokenApprovalsCompleted(user.id)
+      await syncClobCollateralBalanceAllowanceSignatureType3(user)
+    }
+    if (request.metadata === 'auto_redeem_approval') {
+      autoRedeem = await markAutoRedeemApprovalCompleted(user.id)
+    }
 
     captureDepositWalletEvent('Deposit Wallet submit accepted', {
       operation: 'wallet_submit',
@@ -304,7 +421,7 @@ export async function submitDepositWalletTransactionAction(
       metadata: request.metadata,
     })
 
-    return { error: null, approvals, txHash }
+    return { error: null, approvals, autoRedeem, txHash }
   }
   catch (error) {
     console.error('Failed to submit Deposit Wallet transaction', error)
@@ -316,4 +433,16 @@ export async function submitDepositWalletTransactionAction(
     })
     return { error: DEFAULT_ERROR_MESSAGE }
   }
+}
+
+export async function markApprovalStateWithoutTransactionAction(
+  _metadata: 'approve_tokens',
+): Promise<SubmitWalletTransactionResult> {
+  const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
+  if (!user) {
+    return { error: 'Unauthenticated.' }
+  }
+
+  const approvals = await markTokenApprovalsCompleted(user.id)
+  return { error: null, approvals }
 }

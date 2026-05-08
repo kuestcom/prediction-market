@@ -23,7 +23,7 @@ import { uploadPublicAsset } from '@/lib/storage'
 
 export const maxDuration = 300
 
-const PNL_SUBGRAPH_URL = 'https://api.goldsky.com/api/public/project_cmfbr456t4gud01w483uu2d9d/subgraphs/pnl-subgraph/1.0.0/gn'
+const PNL_SUBGRAPH_URL = 'https://subgraphs.kuest.com/pnl-subgraph'
 const IRYS_GATEWAY = process.env.IRYS_GATEWAY || 'https://gateway.irys.xyz'
 const SYNC_TIME_LIMIT_MS = 250_000
 const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000

@@ -32,6 +32,7 @@ interface EventOrderPanelBuySellTabsProps {
   eventId: string
   eventSlug: string
   isNegRiskMarket?: boolean
+  negRiskAdapterAddress?: `0x${string}` | null
   conditionId?: string
   marketSlug?: string | null
   eventPath?: string | null
@@ -104,6 +105,7 @@ export default function EventOrderPanelBuySellTabs({
   eventId,
   eventSlug,
   isNegRiskMarket = false,
+  negRiskAdapterAddress = null,
   conditionId,
   marketSlug,
   eventPath,
@@ -287,6 +289,7 @@ export default function EventOrderPanelBuySellTabs({
         marketTitle={marketTitle ?? undefined}
         marketIconUrl={marketIconUrl}
         isNegRiskMarket={isNegRiskMarket}
+        negRiskAdapterAddress={negRiskAdapterAddress}
       />
       <EventSplitSharesDialog
         open={isSplitDialogOpen}
@@ -300,6 +303,7 @@ export default function EventOrderPanelBuySellTabs({
         marketTitle={marketTitle ?? undefined}
         marketIconUrl={marketIconUrl}
         isNegRiskMarket={isNegRiskMarket}
+        negRiskAdapterAddress={negRiskAdapterAddress}
       />
     </div>
   )
