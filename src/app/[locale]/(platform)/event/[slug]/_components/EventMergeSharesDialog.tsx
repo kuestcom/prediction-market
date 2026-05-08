@@ -190,6 +190,7 @@ export default function EventMergeSharesDialog({
         setIsSubmitting(false)
         return
       }
+      const mergeContract = isNegRiskMarket ? (negRiskAdapterAddress ?? undefined) : undefined
 
       const calls = [
         buildMergePositionCall({
@@ -197,7 +198,7 @@ export default function EventMergeSharesDialog({
           partition: [...DEFAULT_CONDITION_PARTITION],
           amount: toMicro(numericAmount),
           parentCollectionId: ZERO_COLLECTION_ID,
-          contract: isNegRiskMarket ? negRiskAdapterAddress : undefined,
+          contract: mergeContract,
         }),
       ]
 
