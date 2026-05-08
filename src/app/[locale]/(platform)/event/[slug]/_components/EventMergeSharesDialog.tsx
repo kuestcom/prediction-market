@@ -185,13 +185,19 @@ export default function EventMergeSharesDialog({
     setIsSubmitting(true)
 
     try {
+      if (isNegRiskMarket && !negRiskAdapterAddress) {
+        setError(t('Could not resolve the market adapter for claim. Refresh and try again.'))
+        setIsSubmitting(false)
+        return
+      }
+
       const calls = [
         buildMergePositionCall({
           conditionId: conditionId as `0x${string}`,
           partition: [...DEFAULT_CONDITION_PARTITION],
           amount: toMicro(numericAmount),
           parentCollectionId: ZERO_COLLECTION_ID,
-          contract: isNegRiskMarket ? (negRiskAdapterAddress ?? undefined) : undefined,
+          contract: isNegRiskMarket ? negRiskAdapterAddress : undefined,
         }),
       ]
 
