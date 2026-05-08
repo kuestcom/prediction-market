@@ -74,6 +74,44 @@ function resolveIndexSetFromOutcomeIndex(outcomeIndex: number | undefined) {
   return null
 }
 
+function resolveNegRiskAdapterAddressFromMarket(
+  market: Market | null | undefined,
+): `0x${string}` | null {
+  if (!market) {
+    return null
+  }
+
+  const oracle = normalizeAddress(market.condition?.oracle)
+  if (oracle) {
+    return oracle
+  }
+
+  function readAdapter(source: unknown) {
+    if (!source || typeof source !== 'object') {
+      return null
+    }
+
+    const value = (source as Record<string, unknown>).adapter_address
+    if (typeof value !== 'string') {
+      return null
+    }
+
+    return normalizeAddress(value)
+  }
+
+  if (typeof market.metadata === 'string') {
+    try {
+      const parsed = JSON.parse(market.metadata) as unknown
+      return readAdapter(parsed)
+    }
+    catch {
+      return null
+    }
+  }
+
+  return readAdapter(market.metadata)
+}
+
 function markConditionAsClaimedInPositions<T extends {
   market?: { condition_id?: string | null } | null
   redeemable?: boolean
@@ -822,10 +860,10 @@ export default function EventOrderPanelForm({
     { enabled: shouldLoadOrderBookSummary },
   )
   const { ensureTradingReady, openTradeRequirements, startDepositFlow } = useTradingOnboarding()
-  const hasDeployedProxyWallet = Boolean(user?.deposit_wallet_address && user?.deposit_wallet_status === 'deployed')
-  const proxyWalletAddress = hasDeployedProxyWallet ? normalizeAddress(user?.deposit_wallet_address) : null
+  const hasDeployedDepositWallet = Boolean(user?.deposit_wallet_address && user?.deposit_wallet_status === 'deployed')
+  const depositWalletAddress = hasDeployedDepositWallet ? normalizeAddress(user?.deposit_wallet_address) : null
   const userAddress = normalizeAddress(user?.address)
-  const makerAddress = proxyWalletAddress
+  const makerAddress = depositWalletAddress
   const { sharesByCondition } = useUserShareBalances({ event, ownerAddress: makerAddress })
   const { openOrdersQueryKey, openSellSharesByCondition } = useEventOrderPanelOpenOrders({
     userId: user?.id,
@@ -836,10 +874,13 @@ export default function EventOrderPanelForm({
     () => buildUserOpenOrdersQueryKey(user?.id, event.slug),
     [event.slug, user?.id],
   )
-  const isNegRiskEnabled = Boolean(event.enable_neg_risk)
   const isNegRiskMarket = typeof activeMarket?.neg_risk === 'boolean'
     ? activeMarket.neg_risk
     : Boolean(event.enable_neg_risk || event.neg_risk)
+  const negRiskAdapterAddress = useMemo(
+    () => resolveNegRiskAdapterAddressFromMarket(activeMarket),
+    [activeMarket],
+  )
 
   const resolveDisplayOutcomeLabel = useCallback((
     outcomeIndex: number | null | undefined,
@@ -870,7 +911,7 @@ export default function EventOrderPanelForm({
     currentTimestamp,
     resolveDisplayOutcomeLabel,
   })
-  const orderDomain = useMemo(() => getExchangeEip712Domain(isNegRiskEnabled), [isNegRiskEnabled])
+  const orderDomain = useMemo(() => getExchangeEip712Domain(isNegRiskMarket), [isNegRiskMarket])
   const { positionsQuery, aggregatedPositionShares } = useEventOrderPanelPositions({
     makerAddress,
     conditionId: activeMarket?.condition_id,
@@ -911,14 +952,7 @@ export default function EventOrderPanelForm({
     : outcomeIndex === OUTCOME_INDEX.YES
       ? availableYesTokenShares
       : availableNoTokenShares
-  const selectedPositionShares = outcomeIndex === undefined
-    ? 0
-    : outcomeIndex === OUTCOME_INDEX.YES
-      ? availableYesPositionShares
-      : availableNoPositionShares
-  const selectedShares = state.side === ORDER_SIDE.SELL
-    ? (isLimitOrder ? selectedTokenShares : selectedPositionShares)
-    : selectedTokenShares
+  const selectedShares = selectedTokenShares
   const selectedShareLabel = outcomeIndex === undefined
     ? undefined
     : resolveDisplayOutcomeLabel(
@@ -1520,6 +1554,7 @@ export default function EventOrderPanelForm({
             conditionId: conditionId as `0x${string}`,
             yesAmount: claimableNegRiskAmounts.yesShares,
             noAmount: claimableNegRiskAmounts.noShares,
+            contract: negRiskAdapterAddress ?? undefined,
           })
         : buildRedeemPositionCall({
             conditionId: conditionId as `0x${string}`,
@@ -1714,6 +1749,7 @@ export default function EventOrderPanelForm({
                 eventId={event.id}
                 eventSlug={event.slug}
                 isNegRiskMarket={isNegRiskMarket}
+                negRiskAdapterAddress={negRiskAdapterAddress}
                 conditionId={activeMarket?.condition_id}
                 marketSlug={activeMarket?.slug}
                 eventPath={resolveEventPagePath(event)}

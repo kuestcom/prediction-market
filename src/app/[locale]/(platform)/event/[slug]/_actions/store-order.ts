@@ -1,17 +1,14 @@
 'use server'
 
 import { updateTag } from 'next/cache'
-import { createPublicClient, erc1155Abi, http } from 'viem'
 import { z } from 'zod'
 import { cacheTags } from '@/lib/cache-tags'
-import { CLOB_ORDER_TYPE, ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
-import { CONDITIONAL_TOKENS_CONTRACT } from '@/lib/contracts'
+import { CLOB_ORDER_TYPE, ORDER_TYPE } from '@/lib/constants'
 import { OrderRepository } from '@/lib/db/queries/order'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
-import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 import { normalizeAddress } from '@/lib/wallet'
 
 const StoreOrderSchema = z.object({
@@ -44,7 +41,6 @@ type StoreOrderInput = z.infer<typeof StoreOrderSchema>
 
 const DEFAULT_ERROR_MESSAGE = 'Something went wrong while processing your order. Please try again.'
 const CLOB_REQUEST_TIMEOUT_MS = 20_000
-const RPC_TRANSPORT = http(defaultViemRpcUrl)
 const CLOB_ERROR_MESSAGES: Record<string, string> = {
   'condition_paused': 'Trading is paused for this market.',
   'system_paused': 'Trading is temporarily paused. Please try again shortly.',
@@ -113,18 +109,6 @@ const CLOB_ERROR_PATTERNS: Array<{ pattern: RegExp, message: string }> = [
     message: 'Order execution failed. Please try again shortly.',
   },
 ]
-
-let conditionalTokensClient: ReturnType<typeof createPublicClient> | null = null
-
-function getConditionalTokensClient() {
-  if (!conditionalTokensClient) {
-    conditionalTokensClient = createPublicClient({
-      chain: defaultViemNetwork,
-      transport: RPC_TRANSPORT,
-    })
-  }
-  return conditionalTokensClient
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -206,35 +190,6 @@ async function readClobResponsePayload(response: {
   return { responseText, payload }
 }
 
-async function ensureSufficientSellShares(maker: string, tokenId: string, makerAmount: string) {
-  const normalizedMaker = normalizeAddress(maker)
-  if (!normalizedMaker) {
-    return { ok: false, error: 'Invalid maker address.' }
-  }
-
-  try {
-    const balance = await getConditionalTokensClient().readContract({
-      address: CONDITIONAL_TOKENS_CONTRACT,
-      abi: erc1155Abi,
-      functionName: 'balanceOf',
-      args: [normalizedMaker, BigInt(tokenId)],
-    }) as bigint
-
-    if (balance < BigInt(makerAmount)) {
-      return {
-        ok: false,
-        error: 'Insufficient shares available. Reduce the sell amount or split more shares.',
-      }
-    }
-
-    return { ok: true }
-  }
-  catch (error) {
-    console.error('Failed to verify conditional token balance.', error)
-    return { ok: false, error: DEFAULT_ERROR_MESSAGE }
-  }
-}
-
 export async function storeOrderAction(payload: StoreOrderInput) {
   const user = await UserRepository.getCurrentUser()
   if (!user) {
@@ -278,18 +233,6 @@ export async function storeOrderAction(payload: StoreOrderInput) {
 
     if (maker.toLowerCase() !== expectedMaker.toLowerCase() || signer.toLowerCase() !== expectedMaker.toLowerCase()) {
       return { error: 'Invalid Deposit Wallet maker or signer for this order.' }
-    }
-
-    if (validated.data.side === ORDER_SIDE.SELL) {
-      const shareCheck = await ensureSufficientSellShares(
-        validated.data.maker,
-        validated.data.token_id,
-        validated.data.maker_amount,
-      )
-
-      if (!shareCheck.ok) {
-        return { error: shareCheck.error }
-      }
     }
 
     const clobPayload = {
