@@ -11,14 +11,17 @@ import { users } from '@/lib/db/schema/auth/tables'
 import { getDepositWalletAddress, isDepositWalletDeployed } from '@/lib/deposit-wallet'
 import { captureDepositWalletError, captureDepositWalletEvent } from '@/lib/deposit-wallet-observability'
 import { db } from '@/lib/drizzle'
-import { buildClobHmacSignature } from '@/lib/hmac'
 import {
   L2_AUTH_CONTEXT_COOKIE_NAME,
   L2_AUTH_CONTEXT_COOKIE_NAME_SECURE,
   L2_AUTH_CONTEXT_TTL_SECONDS,
 } from '@/lib/l2-auth-context'
-import { saveUserTradingAuthCredentials } from '@/lib/trading-auth/server'
 import {
+  markAutoRedeemApprovalCompleted,
+  saveUserTradingAuthCredentials,
+} from '@/lib/trading-auth/server'
+import {
+  DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE,
   getTradingFlowErrorPreview,
   mapDepositWalletCreateError,
   mapTradingAuthError,
@@ -72,6 +75,27 @@ interface EnableDepositWalletTradingActionResult {
       clob?: { enabled: boolean, updatedAt: string }
     }
   }) | null
+}
+
+interface EnableTradingAuthActionResult {
+  error: string | null
+  data: {
+    tradingAuth: {
+      relayer: { enabled: boolean, updatedAt: string }
+      clob: { enabled: boolean, updatedAt: string }
+    }
+  } | null
+}
+
+interface MarkAutoRedeemApprovalActionResult {
+  error: string | null
+  data: {
+    autoRedeem: {
+      enabled: boolean
+      updatedAt: string
+      version: string
+    }
+  } | null
 }
 
 interface UsernameAvailabilityResult {
@@ -226,19 +250,17 @@ async function persistL2AuthCookie(l2AuthContextId: string) {
 
 async function submitWalletCreate({
   userAddress,
-  auth,
   depositWallet,
 }: {
   userAddress: string
-  auth: { key: string, secret: string, passphrase: string }
   depositWallet: string
 }) {
   const relayerUrl = process.env.RELAYER_URL
   if (!relayerUrl) {
-    throw new Error(DEFAULT_ERROR_MESSAGE)
+    throw new Error(DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE)
   }
 
-  const path = '/submit'
+  const path = '/submit/wallet'
   const body = JSON.stringify({
     type: 'WALLET-CREATE',
     from: userAddress,
@@ -249,8 +271,6 @@ async function submitWalletCreate({
     signatureParams: {},
     metadata: 'wallet_create',
   })
-  const timestamp = Math.floor(Date.now() / 1000)
-  const signature = buildClobHmacSignature(auth.secret, timestamp, 'POST', path, body)
   const startedAt = Date.now()
 
   const response = await fetch(`${relayerUrl}${path}`, {
@@ -258,11 +278,6 @@ async function submitWalletCreate({
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'KUEST_ADDRESS': userAddress,
-      'KUEST_API_KEY': auth.key,
-      'KUEST_PASSPHRASE': auth.passphrase,
-      'KUEST_TIMESTAMP': timestamp.toString(),
-      'KUEST_SIGNATURE': signature,
     },
     body,
     signal: AbortSignal.timeout(15_000),
@@ -497,9 +512,96 @@ export async function updateOnboardingEmailAction(input: {
   }
 }
 
-export async function enableDepositWalletTradingAction(
+export async function createDepositWalletAction(): Promise<EnableDepositWalletTradingActionResult> {
+  const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
+  if (!user) {
+    return { error: 'Unauthenticated.', data: null }
+  }
+
+  if (!process.env.RELAYER_URL) {
+    return { error: DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE, data: null }
+  }
+
+  try {
+    const depositWalletAddress = await getDepositWalletAddress(user.address as `0x${string}`)
+    let status = user.deposit_wallet_status ?? 'not_started'
+    let txHash: string | null = user.deposit_wallet_tx_hash ?? null
+
+    const alreadyDeployed = await isDepositWalletDeployed(depositWalletAddress)
+    if (alreadyDeployed) {
+      status = 'deployed'
+      txHash = null
+    }
+    else {
+      const submitResult = await submitWalletCreate({
+        userAddress: user.address,
+        depositWallet: depositWalletAddress,
+      })
+      txHash = submitResult.txHash
+      status = submitResult.state === 'STATE_CONFIRMED' || submitResult.state === 'STATE_MINED'
+        ? 'deployed'
+        : 'deploying'
+
+      await db
+        .update(users)
+        .set({
+          deposit_wallet_address: depositWalletAddress,
+          deposit_wallet_signature: null,
+          deposit_wallet_signed_at: null,
+          deposit_wallet_status: status,
+          deposit_wallet_tx_hash: txHash,
+        })
+        .where(eq(users.id, user.id))
+
+      if (status !== 'deployed') {
+        const mined = await pollWalletCreate(submitResult.transactionId, {
+          userAddress: user.address,
+          depositWallet: depositWalletAddress,
+        })
+        if (mined?.state === 'STATE_MINED' || mined?.state === 'STATE_CONFIRMED') {
+          status = 'deployed'
+          txHash = null
+        }
+      }
+    }
+
+    await db
+      .update(users)
+      .set({
+        deposit_wallet_address: depositWalletAddress,
+        deposit_wallet_signature: null,
+        deposit_wallet_signed_at: null,
+        deposit_wallet_status: status,
+        deposit_wallet_tx_hash: status === 'deployed' ? null : txHash,
+      })
+      .where(eq(users.id, user.id))
+
+    return {
+      error: null,
+      data: {
+        deposit_wallet_address: depositWalletAddress,
+        deposit_wallet_signature: null,
+        deposit_wallet_signed_at: null,
+        deposit_wallet_status: status,
+        deposit_wallet_tx_hash: status === 'deployed' ? null : txHash,
+      },
+    }
+  }
+  catch (error) {
+    console.error('Failed to create Deposit Wallet', error)
+    captureDepositWalletError(error, {
+      operation: 'wallet_create',
+      userAddress: user.address,
+      depositWallet: user.deposit_wallet_address,
+    })
+    const message = error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE
+    return { error: message, data: null }
+  }
+}
+
+export async function enableTradingAuthAction(
   input: z.input<typeof TradingAuthSignatureSchema>,
-): Promise<EnableDepositWalletTradingActionResult> {
+): Promise<EnableTradingAuthActionResult> {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
     return { error: 'Unauthenticated.', data: null }
@@ -508,6 +610,10 @@ export async function enableDepositWalletTradingAction(
   const parsed = TradingAuthSignatureSchema.safeParse(input)
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? 'Invalid signature.', data: null }
+  }
+
+  if (user.deposit_wallet_status !== 'deployed') {
+    return { error: 'Create your Deposit Wallet before enabling trading.', data: null }
   }
 
   const relayerUrl = process.env.RELAYER_URL
@@ -540,69 +646,10 @@ export async function enableDepositWalletTradingAction(
     }
     await persistL2AuthCookie(l2AuthContextId)
 
-    const depositWalletAddress = await getDepositWalletAddress(user.address as `0x${string}`)
-    let status = user.deposit_wallet_status ?? 'not_started'
-    let txHash: string | null = user.deposit_wallet_tx_hash ?? null
-
-    const alreadyDeployed = await isDepositWalletDeployed(depositWalletAddress)
-    if (alreadyDeployed) {
-      status = 'deployed'
-      txHash = null
-    }
-    else {
-      const submitResult = await submitWalletCreate({
-        userAddress: user.address,
-        auth: relayerCreds,
-        depositWallet: depositWalletAddress,
-      })
-      txHash = submitResult.txHash
-      status = submitResult.state === 'STATE_CONFIRMED' || submitResult.state === 'STATE_MINED'
-        ? 'deployed'
-        : 'deploying'
-
-      await db
-        .update(users)
-        .set({
-          deposit_wallet_address: depositWalletAddress,
-          deposit_wallet_signature: parsed.data.signature,
-          deposit_wallet_signed_at: new Date(),
-          deposit_wallet_status: status,
-          deposit_wallet_tx_hash: txHash,
-        })
-        .where(eq(users.id, user.id))
-
-      if (status !== 'deployed') {
-        const mined = await pollWalletCreate(submitResult.transactionId, {
-          userAddress: user.address,
-          depositWallet: depositWalletAddress,
-        })
-        if (mined?.state === 'STATE_MINED' || mined?.state === 'STATE_CONFIRMED') {
-          status = 'deployed'
-          txHash = null
-        }
-      }
-    }
-
-    await db
-      .update(users)
-      .set({
-        deposit_wallet_address: depositWalletAddress,
-        deposit_wallet_signature: parsed.data.signature,
-        deposit_wallet_signed_at: new Date(),
-        deposit_wallet_status: status,
-        deposit_wallet_tx_hash: status === 'deployed' ? null : txHash,
-      })
-      .where(eq(users.id, user.id))
-
     const updatedAt = new Date().toISOString()
     return {
       error: null,
       data: {
-        deposit_wallet_address: depositWalletAddress,
-        deposit_wallet_signature: parsed.data.signature,
-        deposit_wallet_signed_at: new Date().toISOString(),
-        deposit_wallet_status: status,
-        deposit_wallet_tx_hash: status === 'deployed' ? null : txHash,
         tradingAuth: {
           relayer: { enabled: true, updatedAt },
           clob: { enabled: true, updatedAt },
@@ -611,13 +658,35 @@ export async function enableDepositWalletTradingAction(
     }
   }
   catch (error) {
-    console.error('Failed to enable Deposit Wallet trading', error)
+    console.error('Failed to enable trading auth', error)
     captureDepositWalletError(error, {
-      operation: 'enable_trading',
+      operation: 'enable_trading_auth',
       userAddress: user.address,
       depositWallet: user.deposit_wallet_address,
     })
     const message = error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE
     return { error: message, data: null }
+  }
+}
+
+export async function markAutoRedeemApprovalCompletedAction(): Promise<MarkAutoRedeemApprovalActionResult> {
+  const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
+  if (!user) {
+    return { error: 'Unauthenticated.', data: null }
+  }
+
+  try {
+    const autoRedeem = await markAutoRedeemApprovalCompleted(user.id)
+    return {
+      error: null,
+      data: { autoRedeem },
+    }
+  }
+  catch (error) {
+    console.error('Failed to mark auto redeem approval', error)
+    return {
+      error: DEFAULT_ERROR_MESSAGE,
+      data: null,
+    }
   }
 }

@@ -21,6 +21,7 @@ interface MarketMetadata {
   eventSlug?: string
   iconUrl?: string
   negRisk?: boolean
+  negRiskAdapterAddress?: `0x${string}`
 }
 
 interface MarketAggregate {
@@ -35,6 +36,7 @@ interface MarketAggregate {
   outcomeIndices: Set<number>
   outcomeLabels: Set<string>
   isNegRisk: boolean
+  negRiskAdapterAddress?: `0x${string}`
   yesShares: number
   noShares: number
 }
@@ -72,6 +74,34 @@ function resolveDataApiIcon(icon?: string | null): string | undefined {
     return trimmed
   }
   return `https://gateway.irys.xyz/${trimmed}`
+}
+
+function readAdapterAddressFromMetadata(source: unknown): `0x${string}` | undefined {
+  if (!source) {
+    return undefined
+  }
+
+  const parsed = typeof source === 'string'
+    ? (() => {
+        try {
+          return JSON.parse(source) as unknown
+        }
+        catch {
+          return null
+        }
+      })()
+    : source
+
+  if (!parsed || typeof parsed !== 'object') {
+    return undefined
+  }
+
+  const value = (parsed as Record<string, unknown>).adapter_address
+  if (typeof value !== 'string') {
+    return undefined
+  }
+
+  return normalizeAddress(value) as `0x${string}` | undefined
 }
 
 function normalizeValueByPrice(value: number, size: number): number {
@@ -174,12 +204,18 @@ async function fetchMarketMetadata(conditionIds: string[]): Promise<Map<string, 
       slug: true,
       icon_url: true,
       neg_risk: true,
+      metadata: true,
     },
     with: {
       event: {
         columns: {
           slug: true,
           icon_url: true,
+        },
+      },
+      condition: {
+        columns: {
+          oracle: true,
         },
       },
     },
@@ -200,6 +236,8 @@ async function fetchMarketMetadata(conditionIds: string[]): Promise<Map<string, 
       eventSlug: pickString(row.event?.slug ?? undefined),
       iconUrl,
       negRisk: Boolean(row.neg_risk),
+      negRiskAdapterAddress: (normalizeAddress(row.condition?.oracle) as `0x${string}` | undefined)
+        ?? readAdapterAddressFromMetadata(row.metadata),
     })
   }
 
@@ -251,6 +289,7 @@ function buildClaimData(
       outcomeIndices: new Set<number>(),
       outcomeLabels: new Set<string>(),
       isNegRisk: Boolean(meta?.negRisk || position.mergeable),
+      negRiskAdapterAddress: meta?.negRiskAdapterAddress,
       yesShares: 0,
       noShares: 0,
     }
@@ -263,6 +302,7 @@ function buildClaimData(
     aggregate.proceeds += proceeds
     aggregate.latestTimestamp = Math.max(aggregate.latestTimestamp, timestamp)
     aggregate.isNegRisk = aggregate.isNegRisk || Boolean(meta?.negRisk || position.mergeable)
+    aggregate.negRiskAdapterAddress = aggregate.negRiskAdapterAddress ?? meta?.negRiskAdapterAddress
 
     if (typeof outcomeIndex === 'number') {
       aggregate.outcomeIndices.add(outcomeIndex)
@@ -309,6 +349,7 @@ function buildClaimData(
       outcome,
       indexSets,
       isNegRisk: aggregate.isNegRisk,
+      negRiskAdapterAddress: aggregate.negRiskAdapterAddress,
       yesShares: aggregate.yesShares,
       noShares: aggregate.noShares,
     }

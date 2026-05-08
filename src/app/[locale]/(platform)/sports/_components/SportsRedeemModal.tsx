@@ -17,6 +17,7 @@ import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { formatCurrency, formatSharesLabel } from '@/lib/formatters'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
+import { normalizeAddress } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import {
   buildNegRiskRedeemPositionCall,
@@ -40,6 +41,7 @@ export interface SportsRedeemModalGroup {
   amount: number
   indexSets: number[]
   isNegRisk?: boolean
+  negRiskAdapterAddress?: `0x${string}`
   yesShares?: number
   noShares?: number
   positions: SportsRedeemModalPosition[]
@@ -296,6 +298,17 @@ function useRedeemClaimSubmission({
       return
     }
 
+    for (const group of selectedGroups) {
+      if (!group.isNegRisk) {
+        continue
+      }
+
+      if (!normalizeAddress(group.negRiskAdapterAddress)) {
+        toast.error('Could not resolve the market adapter for claim. Refresh and try again.')
+        return
+      }
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -305,6 +318,7 @@ function useRedeemClaimSubmission({
               conditionId: group.conditionId as `0x${string}`,
               yesAmount: group.yesShares ?? 0,
               noAmount: group.noShares ?? 0,
+              contract: normalizeAddress(group.negRiskAdapterAddress) as `0x${string}`,
             })
           : buildRedeemPositionCall({
               conditionId: group.conditionId as `0x${string}`,

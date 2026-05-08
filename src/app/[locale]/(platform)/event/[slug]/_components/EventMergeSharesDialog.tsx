@@ -27,7 +27,7 @@ import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_CONDITION_PARTITION, MICRO_UNIT } from '@/lib/constants'
-import { UMA_NEG_RISK_ADAPTER_ADDRESS, ZERO_COLLECTION_ID } from '@/lib/contracts'
+import { ZERO_COLLECTION_ID } from '@/lib/contracts'
 import { formatAmountInputValue, toMicro } from '@/lib/formatters'
 import { applyPositionDeltasToUserPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
@@ -48,6 +48,7 @@ interface EventMergeSharesDialogProps {
   marketTitle?: string
   marketIconUrl?: string | null
   isNegRiskMarket?: boolean
+  negRiskAdapterAddress?: `0x${string}` | null
   onOpenChange: (open: boolean) => void
 }
 
@@ -76,6 +77,7 @@ export default function EventMergeSharesDialog({
   marketTitle,
   marketIconUrl,
   isNegRiskMarket = false,
+  negRiskAdapterAddress = null,
   onOpenChange,
 }: EventMergeSharesDialogProps) {
   const t = useExtracted()
@@ -189,7 +191,7 @@ export default function EventMergeSharesDialog({
           partition: [...DEFAULT_CONDITION_PARTITION],
           amount: toMicro(numericAmount),
           parentCollectionId: ZERO_COLLECTION_ID,
-          contract: isNegRiskMarket ? UMA_NEG_RISK_ADAPTER_ADDRESS : undefined,
+          contract: isNegRiskMarket ? (negRiskAdapterAddress ?? undefined) : undefined,
         }),
       ]
 

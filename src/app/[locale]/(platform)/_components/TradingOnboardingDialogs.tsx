@@ -49,7 +49,8 @@ interface TradingOnboardingDialogsProps {
   onEmailSkip: () => void
   enableTradingStep: EnableTradingStep
   enableTradingError: string | null
-  onEnableTrading: () => void
+  onCreateDepositWallet: () => void
+  onEnableTradingAuth: () => void
   hasDeployedDepositWallet: boolean
   hasTradingAuth: boolean
   hasTokenApprovals: boolean
@@ -388,13 +389,13 @@ function EnableTradingDialog({
   onOpenChange,
   step,
   error,
-  onEnableTrading,
+  onCreateDepositWallet,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   step: EnableTradingStep
   error: string | null
-  onEnableTrading: () => void
+  onCreateDepositWallet: () => void
 }) {
   const t = useExtracted()
   const site = useSiteIdentity()
@@ -417,7 +418,7 @@ function EnableTradingDialog({
         <Button
           className="h-12 w-full text-base"
           disabled={isLoading || step === 'completed'}
-          onClick={onEnableTrading}
+          onClick={onCreateDepositWallet}
         >
           {isLoading
             ? (
@@ -441,7 +442,7 @@ function EnableTradingStatusDialog({
   hasDeployedDepositWallet,
   hasTradingAuth,
   hasTokenApprovals,
-  onEnableTrading,
+  onEnableTradingAuth,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -450,7 +451,7 @@ function EnableTradingStatusDialog({
   hasDeployedDepositWallet: boolean
   hasTradingAuth: boolean
   hasTokenApprovals: boolean
-  onEnableTrading: () => void
+  onEnableTradingAuth: () => void
 }) {
   const t = useExtracted()
   const isSigning = step === 'enabling'
@@ -480,7 +481,7 @@ function EnableTradingStatusDialog({
               ? {
                   label: t('Sign'),
                   loading: isSigning,
-                  onClick: onEnableTrading,
+                  onClick: onEnableTradingAuth,
                 }
               : undefined}
             error={!hasTradingAuth ? error : null}
@@ -712,7 +713,8 @@ export default function TradingOnboardingDialogs({
   onEmailSkip,
   enableTradingStep,
   enableTradingError,
-  onEnableTrading,
+  onCreateDepositWallet,
+  onEnableTradingAuth,
   hasDeployedDepositWallet,
   hasTradingAuth,
   hasTokenApprovals,
@@ -758,7 +760,7 @@ export default function TradingOnboardingDialogs({
         onOpenChange={open => onModalOpenChange('enable', open)}
         step={enableTradingStep}
         error={enableTradingError}
-        onEnableTrading={onEnableTrading}
+        onCreateDepositWallet={onCreateDepositWallet}
       />
 
       <EnableTradingStatusDialog
@@ -769,7 +771,7 @@ export default function TradingOnboardingDialogs({
         hasDeployedDepositWallet={hasDeployedDepositWallet}
         hasTradingAuth={hasTradingAuth}
         hasTokenApprovals={hasTokenApprovals}
-        onEnableTrading={onEnableTrading}
+        onEnableTradingAuth={onEnableTradingAuth}
       />
 
       <ApproveTokensDialog

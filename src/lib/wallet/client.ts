@@ -25,6 +25,11 @@ export interface SignAndSubmitDepositWalletCallsResult {
     updatedAt: string
     version: string
   }
+  autoRedeem?: {
+    enabled: boolean
+    updatedAt: string
+    version: string
+  }
 }
 
 export async function signAndSubmitDepositWalletCalls({
@@ -40,6 +45,9 @@ export async function signAndSubmitDepositWalletCalls({
 }): Promise<SignAndSubmitDepositWalletCallsResult> {
   if (!user.deposit_wallet_address) {
     return { error: DEFAULT_ERROR_MESSAGE, code: 'missing_deposit_wallet' }
+  }
+  if (calls.length === 0) {
+    return { error: DEFAULT_ERROR_MESSAGE, code: 'empty_wallet_calls' }
   }
 
   async function attempt(): Promise<SignAndSubmitDepositWalletCallsResult> {

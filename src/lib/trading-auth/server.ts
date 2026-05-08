@@ -15,7 +15,10 @@ import {
   L2_AUTH_CONTEXT_MAX_PER_USER,
   normalizeL2AuthContextRecords,
 } from '@/lib/l2-auth-context'
-import { TOKEN_APPROVALS_VERSION } from '@/lib/trading-auth/approvals'
+import {
+  AUTO_REDEEM_APPROVALS_VERSION,
+  TOKEN_APPROVALS_VERSION,
+} from '@/lib/trading-auth/approvals'
 import { getBetterAuthSecretHash } from '@/lib/trading-auth/secret-hash'
 
 interface TradingAuthSecretEntry {
@@ -332,5 +335,30 @@ export async function markTokenApprovalsCompleted(userId: string) {
     enabled: true,
     updatedAt,
     version: TOKEN_APPROVALS_VERSION,
+  }
+}
+
+export async function markAutoRedeemApprovalCompleted(userId: string) {
+  const updatedAt = new Date().toISOString()
+  await withLockedUserSettings(userId, async ({ settings, tx }) => {
+    const tradingAuth = (settings.tradingAuth ?? {}) as Record<string, any>
+    tradingAuth.autoRedeem = {
+      completed: true,
+      updatedAt,
+      version: AUTO_REDEEM_APPROVALS_VERSION,
+    }
+
+    settings.tradingAuth = tradingAuth
+
+    await tx
+      .update(users)
+      .set({ settings })
+      .where(eq(users.id, userId))
+  })
+
+  return {
+    enabled: true,
+    updatedAt,
+    version: AUTO_REDEEM_APPROVALS_VERSION,
   }
 }
