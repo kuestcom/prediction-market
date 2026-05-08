@@ -136,7 +136,7 @@ describe('storeOrderAction', () => {
     expect(result?.error?.length).toBeGreaterThan(0)
   })
 
-  it('blocks SELL orders with insufficient shares', async () => {
+  it('returns friendly error for SELL orders with insufficient shares', async () => {
     process.env.CLOB_URL = 'https://clob.local'
     const proxy = address('01')
     mocks.getCurrentUser.mockResolvedValueOnce({
@@ -148,9 +148,15 @@ describe('storeOrderAction', () => {
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
       clob: { key: 'k', passphrase: 'p', secret: 's' },
     })
-    mocks.createPublicClient.mockReturnValueOnce({
-      readContract: vi.fn().mockResolvedValue(0n),
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      status: 422,
+      statusText: 'Unprocessable Entity',
+      ok: false,
+      text: async () => JSON.stringify({
+        errorMsg: 'not enough unlocked balance',
+      }),
     })
+    globalThis.fetch = fetchMock as any
 
     const { storeOrderAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
     const result = await storeOrderAction(basePayload({
@@ -162,7 +168,7 @@ describe('storeOrderAction', () => {
     }))
 
     expect(result).toEqual({
-      error: 'Insufficient shares available. Reduce the sell amount or split more shares.',
+      error: 'Insufficient available balance for this order.',
     })
   })
 
