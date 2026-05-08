@@ -186,7 +186,7 @@ export default function EventMergeSharesDialog({
 
     try {
       if (isNegRiskMarket && !negRiskAdapterAddress) {
-        setError(t('Could not resolve the market adapter for claim. Refresh and try again.'))
+        setError(t('Could not resolve the market adapter for merge. Refresh and try again.'))
         setIsSubmitting(false)
         return
       }
