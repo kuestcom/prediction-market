@@ -1,16 +1,16 @@
 {
-  "title": "Portfolio & Settings",
-  "description": "Track performance, update preferences, and secure your account.",
+  "title": "Account",
+  "description": "Manage account security, profile settings, trading preferences, and portfolio activity.",
   "icon": "UserCircle",
   "pages": [
-    "portfolio-open-positions",
-    "transaction-history",
     "profile-settings",
     "public-profile",
+    "account",
+    "account-security",
     "notifications",
     "trading-preferences",
-    "two-factor-auth",
     "affiliate-program",
-    "account-security"
+    "portfolio-open-positions",
+    "transaction-history"
   ]
 }

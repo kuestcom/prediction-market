@@ -1,0 +1,54 @@
+---
+title: Account
+description: Manage two-factor authentication and account deletion
+---
+
+import { Steps, Step } from 'fumadocs-ui/components/steps'
+
+## Account settings
+
+Open <strong>/settings/account</strong> to manage account-level security and deletion settings.
+
+The Account page contains:
+
+- <strong>Two-Factor Authentication</strong>: add or remove authenticator-app verification
+- <strong>Delete account</strong>: permanently remove your account after confirmation
+
+## Two-factor authentication
+
+2FA uses a 6-digit code from an authenticator app such as Google Authenticator or Authy.
+
+<Steps>
+  <Step>
+    ### Open Account
+
+    Go to <strong>Settings → Account</strong>.
+  </Step>
+  <Step>
+    ### Start setup
+
+    Click <strong>Enable 2FA</strong>.
+  </Step>
+  <Step>
+    ### Add the authenticator entry
+
+    Scan the QR code, open the authenticator link on mobile, or copy the setup secret into your authenticator app.
+  </Step>
+  <Step>
+    ### Verify the code
+
+    Enter the 6-digit code shown by your authenticator app. You can also choose to trust the current device for 30 days after activation.
+  </Step>
+</Steps>
+
+After 2FA is enabled, sign-in may redirect you to <strong>/2fa</strong> to enter your authenticator code before continuing.
+
+## Delete account
+
+Account deletion is permanent. The confirmation dialog asks you to type <strong>DELETE</strong> before the final action is enabled.
+
+Deleting your account removes your platform account, sessions, linked wallet records, 2FA setup, order records, and referral relationships. You are signed out after deletion completes.
+
+<Callout type="warning" title="Permanent action">
+  Account deletion cannot be undone. Export any records you need before deleting your account.
+</Callout>
