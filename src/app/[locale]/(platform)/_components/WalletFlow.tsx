@@ -44,6 +44,14 @@ interface WalletFlowProps {
   meldUrl: string | null
 }
 
+interface WalletSendMessages {
+  depositWalletRequired: string
+  invalidRecipient: string
+  invalidAmount: string
+  withdrawalSubmitted: string
+  withdrawalSubmittedDescription: string
+}
+
 function useDepositViewState(onDepositOpenChange: (open: boolean) => void) {
   const [depositView, setDepositView] = useState<DepositView>('fund')
 
@@ -129,7 +137,7 @@ function useWalletSendHandler({
   openTradeRequirements,
   runWithSignaturePrompt,
   signTypedDataAsync,
-  t,
+  messages,
 }: {
   user: WalletFlowProps['user']
   walletSendTo: string
@@ -142,21 +150,21 @@ function useWalletSendHandler({
   openTradeRequirements: ReturnType<typeof useTradingOnboarding>['openTradeRequirements']
   runWithSignaturePrompt: ReturnType<typeof useSignaturePromptRunner>['runWithSignaturePrompt']
   signTypedDataAsync: ReturnType<typeof useSignTypedData>['signTypedDataAsync']
-  t: ReturnType<typeof useExtracted>
+  messages: WalletSendMessages
 }) {
   return useCallback(async (event?: React.FormEvent<HTMLFormElement>) => {
     event?.preventDefault()
     if (!user?.deposit_wallet_address) {
-      toast.error(t('Set up your Deposit Wallet first.'))
+      toast.error(messages.depositWalletRequired)
       return
     }
     if (!isAddress(walletSendTo)) {
-      toast.error(t('Enter a valid recipient address.'))
+      toast.error(messages.invalidRecipient)
       return
     }
     const amountNumber = Number(walletSendAmount)
     if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
-      toast.error(t('Enter a valid amount.'))
+      toast.error(messages.invalidAmount)
       return
     }
 
@@ -186,8 +194,8 @@ function useWalletSendHandler({
         return
       }
 
-      toast.success(t('Withdrawal submitted'), {
-        description: t('We sent your withdrawal transaction.'),
+      toast.success(messages.withdrawalSubmitted, {
+        description: messages.withdrawalSubmittedDescription,
       })
       setPendingWithdrawals((current) => {
         const next = [
@@ -215,6 +223,7 @@ function useWalletSendHandler({
     }
   }, [
     handleWithdrawModalChange,
+    messages,
     openTradeRequirements,
     runWithSignaturePrompt,
     setIsWalletSending,
@@ -222,7 +231,6 @@ function useWalletSendHandler({
     setWalletSendAmount,
     setWalletSendTo,
     signTypedDataAsync,
-    t,
     user,
     walletSendAmount,
     walletSendTo,
@@ -319,6 +327,13 @@ export function WalletFlow({
   const { openTradeRequirements } = useTradingOnboarding()
 
   const hasDeployedProxyWallet = useHasDeployedProxyWallet(user)
+  const walletSendMessages = useMemo<WalletSendMessages>(() => ({
+    depositWalletRequired: t('Set up your Deposit Wallet first.'),
+    invalidRecipient: t('Enter a valid recipient address.'),
+    invalidAmount: t('Enter a valid amount.'),
+    withdrawalSubmitted: t('Withdrawal submitted'),
+    withdrawalSubmittedDescription: t('We sent your withdrawal transaction.'),
+  }), [t])
 
   const handleWalletSend = useWalletSendHandler({
     user,
@@ -332,7 +347,7 @@ export function WalletFlow({
     openTradeRequirements,
     runWithSignaturePrompt,
     signTypedDataAsync,
-    t,
+    messages: walletSendMessages,
   })
 
   const handleBuy = useBuyHandler({ meldUrl, handleDepositModalChange })

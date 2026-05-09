@@ -49,7 +49,7 @@ function MarketFeeSection({
                 <InfoIcon className="size-4 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent>
-                {t('Usando a Deposit Wallet para claim, você não precisa pagar gás diretamente.')}
+                {t('Using Deposit Wallet for claim means you don\'t need to pay gas directly.')}
               </TooltipContent>
             </Tooltip>
           </div>

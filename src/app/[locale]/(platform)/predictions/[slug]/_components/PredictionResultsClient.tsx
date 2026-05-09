@@ -411,14 +411,14 @@ function useResolvedResultDisplay({
   event,
   isResolvedEvent,
   normalizeOutcomeLabel,
+  resolvedLabel,
   showResolvedOutcomeLayout,
-  t,
 }: {
   event: Event
   isResolvedEvent: boolean
   normalizeOutcomeLabel: (label: string) => string | null
+  resolvedLabel: string
   showResolvedOutcomeLayout: boolean
-  t: (key: string) => string
 }) {
   return useMemo(() => {
     if (!showResolvedOutcomeLayout || !isResolvedEvent) {
@@ -430,10 +430,10 @@ function useResolvedResultDisplay({
 
     const resolvedDisplay = resolveResolvedPredictionResultLabel(event)
     return {
-      label: resolvedDisplay.label ? (normalizeOutcomeLabel(resolvedDisplay.label) || resolvedDisplay.label) : t('Resolved'),
+      label: resolvedDisplay.label ? (normalizeOutcomeLabel(resolvedDisplay.label) || resolvedDisplay.label) : resolvedLabel,
       outcomeIndex: resolvedDisplay.outcomeIndex,
     }
-  }, [event, isResolvedEvent, normalizeOutcomeLabel, showResolvedOutcomeLayout, t])
+  }, [event, isResolvedEvent, normalizeOutcomeLabel, resolvedLabel, showResolvedOutcomeLayout])
 }
 
 export default function PredictionResultsClient({
@@ -872,15 +872,16 @@ function PredictionResultRow({
   const recentVolume = getEventRecentVolume(event)
   const commentsCount = commentMetrics?.comments_count ?? null
   const eventPath = resolveEventPagePath(event)
+  const resolvedLabel = t('Resolved')
   const selectedMarketLabel = primaryMarket?.short_title?.trim()
     || primaryMarket?.title?.trim()
-    || (event.status === 'resolved' ? t('Resolved') : t('Market'))
+    || (event.status === 'resolved' ? resolvedLabel : t('Market'))
   const resolvedResultDisplay = useResolvedResultDisplay({
     event,
     isResolvedEvent,
     normalizeOutcomeLabel,
+    resolvedLabel,
     showResolvedOutcomeLayout,
-    t,
   })
   const resolvedBadgeOutcome = resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.NO
     ? 'no'

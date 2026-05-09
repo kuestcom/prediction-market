@@ -34,6 +34,7 @@ type OnboardingModal = 'username' | 'email' | 'enable' | 'enable-status' | 'appr
 type EnableTradingStep = 'idle' | 'enabling' | 'deploying' | 'completed'
 type ApprovalsStep = 'idle' | 'signing' | 'completed'
 type UsernameAvailabilityState = 'idle' | 'checking' | 'available' | 'taken' | 'error'
+type UsernameFormatErrorCode = 'too_short' | 'too_long' | 'invalid_characters' | 'starts_with_separator' | 'ends_with_separator'
 
 interface TradingOnboardingDialogsProps {
   activeModal: OnboardingModal
@@ -125,7 +126,8 @@ function UsernameDialog({
   const [availabilityState, setAvailabilityState] = useState<UsernameAvailabilityState>('idle')
   const [availabilityMessage, setAvailabilityMessage] = useState<string | null>(null)
   const trimmedUsername = username.trim()
-  const localFormatError = resolveUsernameFormatError(trimmedUsername, t)
+  const localFormatErrorCode = resolveUsernameFormatErrorCode(trimmedUsername)
+  const localFormatError = formatLocalUsernameFormatError(localFormatErrorCode)
   const canSubmit = (
     !isSubmitting
     && termsAccepted
@@ -205,6 +207,25 @@ function UsernameDialog({
       return
     }
     onSubmit(trimmedUsername, termsAccepted)
+  }
+
+  function formatLocalUsernameFormatError(code: UsernameFormatErrorCode | null) {
+    if (code === 'too_short') {
+      return t('Username must be at least 3 characters long.')
+    }
+    if (code === 'too_long') {
+      return t('Username must be at most 42 characters long.')
+    }
+    if (code === 'invalid_characters') {
+      return t('Only letters, numbers, dots, and hyphens are allowed.')
+    }
+    if (code === 'starts_with_separator') {
+      return t('Username cannot start with a dot or hyphen.')
+    }
+    if (code === 'ends_with_separator') {
+      return t('Username cannot end with a dot or hyphen.')
+    }
+    return null
   }
 
   return (
@@ -288,27 +309,24 @@ function UsernameDialog({
   )
 }
 
-function resolveUsernameFormatError(
-  username: string,
-  t: ReturnType<typeof useExtracted>,
-) {
+function resolveUsernameFormatErrorCode(username: string): UsernameFormatErrorCode | null {
   if (!username) {
     return null
   }
   if (username.length < 3) {
-    return t('Username must be at least 3 characters long.')
+    return 'too_short'
   }
   if (username.length > 42) {
-    return t('Username must be at most 42 characters long.')
+    return 'too_long'
   }
   if (!/^[A-Z0-9.-]+$/i.test(username)) {
-    return t('Only letters, numbers, dots, and hyphens are allowed.')
+    return 'invalid_characters'
   }
   if (/^[.-]/.test(username)) {
-    return t('Username cannot start with a dot or hyphen.')
+    return 'starts_with_separator'
   }
   if (/[.-]$/.test(username)) {
-    return t('Username cannot end with a dot or hyphen.')
+    return 'ends_with_separator'
   }
   return null
 }
