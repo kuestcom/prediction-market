@@ -22,7 +22,7 @@ export async function GET() {
     const affiliateSettings = settings?.affiliate
     const { builderTakerFeeBps, builderMakerFeeBps } = getAffiliateFeeSettings(settings)
 
-    const user = await UserRepository.getCurrentUser({ minimal: true })
+    const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
 
     if (!user) {
       return NextResponse.json({

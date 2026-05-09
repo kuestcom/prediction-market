@@ -438,7 +438,7 @@ export async function submitDepositWalletTransactionAction(
 export async function markApprovalStateWithoutTransactionAction(
   _metadata: 'approve_tokens',
 ): Promise<SubmitWalletTransactionResult> {
-  const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
+  const user = await UserRepository.getCurrentUser({ minimal: true })
   if (!user) {
     return { error: 'Unauthenticated.' }
   }

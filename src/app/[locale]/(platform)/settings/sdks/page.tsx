@@ -27,7 +27,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
 
   const t = await getExtracted()
 
-  const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
+  const user = await UserRepository.getCurrentUser({ minimal: true })
   if (!user) {
     notFound()
   }

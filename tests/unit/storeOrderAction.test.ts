@@ -93,6 +93,7 @@ describe('storeOrderAction', () => {
     const { storeOrderAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
     const result = await storeOrderAction(basePayload())
     expect(result).toEqual({ error: 'Unauthenticated.' })
+    expect(mocks.getCurrentUser).toHaveBeenCalledWith({ disableCookieCache: true, minimal: true })
   })
 
   it('requires trading auth and Deposit Wallet', async () => {
