@@ -13,7 +13,7 @@ export async function updateNotificationSettingsAction(formData: FormData) {
       inapp_resolutions: formData.get('inapp_resolutions') === 'on',
     }
 
-    const user = await UserRepository.getCurrentUser({ minimal: true })
+    const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
     if (!user) {
       return { error: 'Unauthenticated.' }
     }

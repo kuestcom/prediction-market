@@ -390,7 +390,7 @@ export async function updateOnboardingUsernameAction(input: {
   username: string
   termsAccepted: boolean
 }) {
-  const user = await UserRepository.getCurrentUser({ minimal: true })
+  const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
     return { error: 'Unauthenticated.', data: null }
   }
@@ -670,7 +670,7 @@ export async function enableTradingAuthAction(
 }
 
 export async function markAutoRedeemApprovalCompletedAction(): Promise<MarkAutoRedeemApprovalActionResult> {
-  const user = await UserRepository.getCurrentUser({ minimal: true })
+  const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
     return { error: 'Unauthenticated.', data: null }
   }
