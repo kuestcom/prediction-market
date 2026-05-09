@@ -2,6 +2,7 @@
 
 import type { ChangeEventHandler, FormEventHandler } from 'react'
 import type { PendingWithdrawalItem } from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
+import { useAppKitAccount } from '@reown/appkit/react'
 import {
   ArrowLeftIcon,
   ChevronRightIcon,
@@ -58,6 +59,7 @@ function WalletSendForm({
   const [receiveChain, setReceiveChain] = useState<string>('Polygon')
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false)
   const inputValue = formatDisplayAmount(sendAmount)
+  const appKitAccount = useAppKitAccount()
   const isSubmitDisabled = (
     isSending
     || !trimmedRecipient
@@ -144,7 +146,7 @@ function WalletSendForm({
                 variant="default"
                 size="sm"
                 onClick={onUseConnectedWallet}
-                disabled={!connectedWalletAddress}
+                disabled={!connectedWalletAddress || !!appKitAccount.embeddedWalletInfo?.authProvider}
                 className="absolute inset-y-2 right-2 text-xs"
               >
                 <WalletIcon className="size-3.5 shrink-0" />
