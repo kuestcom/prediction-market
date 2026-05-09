@@ -76,6 +76,7 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
         {
           type: 'main',
           url: '/',
+          external: true,
           text: 'Main site',
           icon: <HomeIcon />,
         },
@@ -84,6 +85,7 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
               {
                 type: 'main' as const,
                 url: site.discordLink,
+                external: true,
                 text: 'Get Help',
                 icon: (
                   <svg
