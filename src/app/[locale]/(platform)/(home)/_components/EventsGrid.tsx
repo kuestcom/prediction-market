@@ -119,100 +119,31 @@ async function fetchEvents({
   })
 }
 
-interface UseEventsRefetchOnTimestampParams {
-  queryRunKey: string
-  resolvedCurrentTimestamp: number | null
-  status: string
-  isFetching: boolean
-  isFetchingNextPage: boolean
-  refetch: () => Promise<unknown>
-  shouldAutoRefreshEvents: boolean
-}
-
-function useEventsRefetchOnTimestamp({
-  queryRunKey,
-  resolvedCurrentTimestamp,
-  status,
-  isFetching,
-  isFetchingNextPage,
-  refetch,
-  shouldAutoRefreshEvents,
-}: UseEventsRefetchOnTimestampParams) {
-  const queryTimestampRef = useRef<{
-    key: string
-    timestamp: number | null
-  }>({
-    key: queryRunKey,
-    timestamp: resolvedCurrentTimestamp,
-  })
-
-  useEffect(function syncQueryTimestampForCurrentQueryKey() {
-    if (queryTimestampRef.current.key === queryRunKey) {
-      return
-    }
-
-    queryTimestampRef.current = {
-      key: queryRunKey,
-      timestamp: resolvedCurrentTimestamp,
-    }
-  }, [queryRunKey, resolvedCurrentTimestamp])
-
-  useEffect(function refetchEventsWhenTimestampWindowElapses() {
-    if (!shouldAutoRefreshEvents || status !== 'success') {
-      return
-    }
-
-    if (resolvedCurrentTimestamp == null) {
-      return
-    }
-
-    if (queryTimestampRef.current.timestamp == null) {
-      queryTimestampRef.current = {
-        key: queryRunKey,
-        timestamp: resolvedCurrentTimestamp,
-      }
-
-      if (!isFetching && !isFetchingNextPage) {
-        void refetch()
-      }
-
-      return
-    }
-
-    if (resolvedCurrentTimestamp <= queryTimestampRef.current.timestamp) {
-      return
-    }
-
-    if ((resolvedCurrentTimestamp - queryTimestampRef.current.timestamp) < HOME_FEED_REFRESH_INTERVAL_MS) {
-      return
-    }
-
-    if (isFetching || isFetchingNextPage) {
-      return
-    }
-
-    queryTimestampRef.current = {
-      key: queryRunKey,
-      timestamp: resolvedCurrentTimestamp,
-    }
-
-    void refetch()
-  }, [
-    isFetching,
-    isFetchingNextPage,
-    queryRunKey,
-    refetch,
-    resolvedCurrentTimestamp,
-    shouldAutoRefreshEvents,
-    status,
-  ])
-}
-
 interface UseEventsListParams {
   data: InfiniteData<Event[], unknown> | undefined
   snapshotKey: string
   status: string
   initialSnapshotEvents: Event[]
+}
+
+function syncVisibleEventsSnapshotCache(snapshotKey: string, visibleEvents: Event[]) {
+  if (visibleEvents.length === 0) {
+    return
+  }
+
+  setEventsSnapshot(snapshotKey, visibleEvents)
+}
+
+function deleteEmptySuccessEventsSnapshot(
+  snapshotKey: string,
+  status: string,
+  visibleEventsLength: number,
+) {
+  if (status !== 'success' || visibleEventsLength > 0) {
+    return
+  }
+
+  eventsSnapshotCache.delete(snapshotKey)
 }
 
 function useEventsList({
@@ -232,19 +163,11 @@ function useEventsList({
   )
 
   useEffect(function persistVisibleEventsSnapshot() {
-    if (visibleEvents.length === 0) {
-      return
-    }
-
-    setEventsSnapshot(snapshotKey, visibleEvents)
+    syncVisibleEventsSnapshotCache(snapshotKey, visibleEvents)
   }, [snapshotKey, visibleEvents])
 
   useEffect(function clearStaleEventsSnapshotOnEmptySuccess() {
-    if (status !== 'success' || visibleEvents.length > 0) {
-      return
-    }
-
-    eventsSnapshotCache.delete(snapshotKey)
+    deleteEmptySuccessEventsSnapshot(snapshotKey, status, visibleEvents.length)
   }, [snapshotKey, status, visibleEvents.length])
 
   return { allEvents, visibleEvents, cachedSnapshotEvents }
@@ -405,14 +328,10 @@ function useInfiniteScrollLoadMore({
     ? infiniteScrollErrorState.value
     : null
 
-  useEffect(function resetLoadMoreRetryStateOnQueryScopeChange() {
-    if (previousLoadMoreStateKeyRef.current === loadMoreStateKey) {
-      return
-    }
-
+  if (previousLoadMoreStateKeyRef.current !== loadMoreStateKey) {
     previousLoadMoreStateKeyRef.current = loadMoreStateKey
     canRetryLoadMoreAfterErrorRef.current = true
-  }, [loadMoreStateKey])
+  }
 
   useEffect(function observeLoadMoreSentinelForFetch() {
     if (!loadMoreRef.current || !hasNextPage) {
@@ -511,7 +430,6 @@ export default function EventsGrid({
     && queryUserScope === 'guest'
   const shouldAutoRefreshEvents = filters.status === 'active'
   const resolvedCurrentTimestamp = currentTimestamp ?? initialCurrentTimestamp
-  const queryRunKey = snapshotKey
   const loadMoreStateKey = [
     filters.tag,
     filters.mainTag,
@@ -550,7 +468,6 @@ export default function EventsGrid({
     fetchNextPage,
     hasNextPage,
     isPending,
-    refetch,
   } = useInfiniteQuery({
     queryKey: eventsQueryKey,
     queryFn: ({ pageParam }) => fetchEvents({
@@ -565,18 +482,10 @@ export default function EventsGrid({
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     staleTime: 'static',
+    refetchInterval: shouldAutoRefreshEvents ? HOME_FEED_REFRESH_INTERVAL_MS : false,
+    refetchIntervalInBackground: true,
     initialDataUpdatedAt: 0,
     placeholderData: keepPreviousData,
-  })
-
-  useEventsRefetchOnTimestamp({
-    queryRunKey,
-    resolvedCurrentTimestamp,
-    status,
-    isFetching,
-    isFetchingNextPage,
-    refetch,
-    shouldAutoRefreshEvents,
   })
 
   const { allEvents, visibleEvents, cachedSnapshotEvents } = useEventsList({
