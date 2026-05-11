@@ -1,6 +1,7 @@
 import type { Route } from 'next'
 import type { PublicActivityRowProps } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
 import { CircleDollarSignIcon } from 'lucide-react'
+import { createElement } from 'react'
 import { activityIcon, formatPriceCents, formatShares, resolveVariant } from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
 import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
@@ -10,7 +11,7 @@ import { cn } from '@/lib/utils'
 
 export default function PublicActivityRow({ activity }: PublicActivityRowProps) {
   const variant = resolveVariant(activity)
-  const { Icon, label, className } = activityIcon(variant)
+  const icon = activityIcon(variant)
   const sharesText = formatShares(activity.amount)
   const priceText = formatPriceCents(activity.price)
   const eventSlug = activity.market.event?.slug || activity.market.slug
@@ -106,8 +107,8 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
     <tr className="border-b transition-colors hover:bg-muted/50">
       <td className="px-2 py-3 text-sm font-semibold text-foreground sm:px-3">
         <div className="flex items-center gap-2">
-          <Icon className={cn('size-4 text-muted-foreground', className)} />
-          <span>{label}</span>
+          {createElement(icon.Icon, { className: cn('size-4 text-muted-foreground', icon.className) })}
+          <span>{icon.label}</span>
         </div>
       </td>
 
