@@ -19,7 +19,7 @@ export default antfu({
     'prefer-arrow-callback': ['error', { allowNamedFunctions: true }],
     'curly': ['error', 'all'],
     'react/no-array-index-key': 'off',
-    'react-dom/no-dangerously-set-innerhtml': 'off',
+    'react/dom-no-dangerously-set-innerhtml': 'off',
     'react-refresh/only-export-components': 'off',
     'func-style': ['error', 'declaration', { allowArrowFunctions: false }],
     'better-tailwindcss/enforce-consistent-line-wrapping': ['error', {

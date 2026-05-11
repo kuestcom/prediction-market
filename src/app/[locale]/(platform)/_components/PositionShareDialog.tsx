@@ -87,8 +87,9 @@ function useShareCardState(shareCardUrl: string) {
     }
 
     let isCancelled = false
+    const abortController = new AbortController()
 
-    fetch(shareCardUrl)
+    fetch(shareCardUrl, { signal: abortController.signal })
       .then(async (response) => {
         if (!response.ok) {
           throw new Error('Share card fetch failed.')
@@ -109,6 +110,7 @@ function useShareCardState(shareCardUrl: string) {
 
     return function cancelShareCardBlobPreload() {
       isCancelled = true
+      abortController.abort()
     }
   }, [shareCardStatus, shareCardUrl])
 
