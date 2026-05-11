@@ -30,6 +30,12 @@ describe('authClient', () => {
       const args = pluginMocks.createAuthClient.mock.calls[0]?.[0]
       expect(args.plugins).toHaveLength(2)
 
+      const siwePlugin = args.plugins[0]
+      expect(siwePlugin.atomListeners).toHaveLength(1)
+      expect(siwePlugin.atomListeners[0].signal).toBe('$sessionSignal')
+      expect(siwePlugin.atomListeners[0].matcher('/siwe/verify')).toBe(true)
+      expect(siwePlugin.atomListeners[0].matcher('/siwe/nonce')).toBe(false)
+
       const twoFactorPlugin = args.plugins[1]
       expect(twoFactorPlugin.name).toBe('2fa')
 
