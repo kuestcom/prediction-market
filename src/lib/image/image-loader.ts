@@ -26,7 +26,7 @@ function isIrysUrl(src: string) {
   }
 }
 
-export default function wsrvImageLoader({
+export default function imageLoader({
   src,
   width,
   quality,

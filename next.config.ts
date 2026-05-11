@@ -2,7 +2,7 @@ import type { NextConfig } from 'next'
 import { withSentryConfig } from '@sentry/nextjs'
 import { createMDX } from 'fumadocs-mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
-import { getOptimizedImageHostPatterns } from '@/lib/image-optimization'
+import { getOptimizedImageHostPatterns } from '@/lib/image/image-optimization'
 import siteUrlUtils from './src/lib/site-url'
 
 const { resolveSiteUrl } = siteUrlUtils
@@ -28,7 +28,7 @@ const config: NextConfig = {
   images: {
     unoptimized: process.env.DISABLE_IMAGE_OPTIMIZATION === 'true',
     loader: 'custom',
-    loaderFile: './src/lib/wsrv-image-loader.ts',
+    loaderFile: './src/lib/image/image-loader.ts',
     deviceSizes: [256],
     imageSizes: [16, 20, 24, 32, 36, 40, 42, 44, 48, 56, 64, 96, 128],
     remotePatterns: optimizedImageHostPatterns.map(hostname => ({
