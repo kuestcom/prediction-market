@@ -31,6 +31,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useBalance } from '@/hooks/useBalance'
+import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
 import { LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
@@ -88,6 +89,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
   const { open } = useAppKit()
   const { data: session } = useSession()
   const user = useUser()
+  const hasHydrated = useHasHydrated()
   const { canShowInstallUi, isIos, isPrompting, requestInstall } = usePwaInstall()
   const {
     isSearchOpen,
@@ -100,7 +102,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
     setIsHowItWorksOpen,
   } = useMobileBottomNavState()
 
-  const isAuthenticated = Boolean(session?.user) || Boolean(user)
+  const isAuthenticated = hasHydrated && (Boolean(session?.user) || Boolean(user))
 
   function focusMobileSearchInput() {
     const input = document.querySelector<HTMLInputElement>(
