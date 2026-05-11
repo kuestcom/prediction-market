@@ -1,6 +1,5 @@
 'use client'
 
-import { useAppKitAccount } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import HeaderDropdownUserMenuGuest from '@/app/[locale]/(platform)/_components/HeaderDropdownUserMenuGuest'
@@ -29,14 +28,13 @@ export default function HeaderMenu() {
 function HeaderMenuClient() {
   const t = useExtracted()
   const { open } = useAppKit()
-  const { isConnected } = useAppKitAccount()
   const { data: session, isPending: isSessionPending } = useSession()
   const hasHydrated = useHasHydrated()
   const isMobile = useIsMobile()
   const tradingOnboarding = useOptionalTradingOnboarding()
   const user = useUser()
 
-  const isAuthenticated = hasHydrated && (Boolean(session?.user) || Boolean(user) || isConnected)
+  const isAuthenticated = hasHydrated && (Boolean(session?.user) || Boolean(user))
   const shouldShowGuestActions = hasHydrated && !isAuthenticated && !isSessionPending
   const startDepositFlow = tradingOnboarding?.startDepositFlow
 

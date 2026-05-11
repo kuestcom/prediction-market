@@ -1,9 +1,8 @@
 'use client'
 
 import type { Route } from 'next'
-import type { ComponentProps, ReactNode, PointerEvent as ReactPointerEvent } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 import type { SupportedLocale } from '@/i18n/locales'
-import { useAppKitAccount } from '@reown/appkit/react'
 import {
   BookOpenIcon,
   ChartLineIcon,
@@ -21,6 +20,7 @@ import {
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 import SearchDiscoveryContent from '@/app/[locale]/(platform)/_components/SearchDiscoveryContent'
 import { MOBILE_BOTTOM_NAV_OFFSET } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
@@ -87,7 +87,6 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
   const t = useExtracted()
   const router = useRouter()
   const { open } = useAppKit()
-  const { isConnected } = useAppKitAccount()
   const { data: session } = useSession()
   const user = useUser()
   const { canShowInstallUi, isIos, isPrompting, requestInstall } = usePwaInstall()
@@ -102,7 +101,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
     setIsHowItWorksOpen,
   } = useMobileBottomNavState()
 
-  const isAuthenticated = Boolean(session?.user) || Boolean(user) || isConnected
+  const isAuthenticated = Boolean(session?.user) || Boolean(user)
 
   function focusMobileSearchInput() {
     const input = document.querySelector<HTMLInputElement>(
@@ -117,27 +116,19 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
     return document.activeElement === input
   }
 
-  function focusMobileSearchDrawerInputOrRetry() {
+  function handleSearchAction() {
+    // iOS only opens the keyboard if the input focus stays inside the tap gesture.
+    // eslint-disable-next-line react-dom/no-flush-sync
+    flushSync(() => {
+      setIsSearchOpen(true)
+    })
+
     if (focusMobileSearchInput()) {
       setSearchFocusTrigger(0)
       return
     }
 
     setSearchFocusTrigger(prev => prev + 1)
-  }
-
-  function handleSearchPointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
-    if (event.button !== 0) {
-      return
-    }
-
-    setIsSearchOpen(true)
-    window.queueMicrotask(focusMobileSearchDrawerInputOrRetry)
-  }
-
-  function handleSearchAction() {
-    setIsSearchOpen(true)
-    focusMobileSearchDrawerInputOrRetry()
   }
 
   function resetSearchDrawerInteractionState() {
@@ -376,13 +367,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
         >
           <div className="grid h-16.5 grid-cols-4">
             <MobileNavLink href="/" label={t('Home')} active={pathname === '/'} icon={HouseIcon} />
-            <MobileNavButton
-              label={t('Search')}
-              active={isSearchOpen}
-              onClick={handleSearchAction}
-              onPointerDown={handleSearchPointerDown}
-              icon={SearchIcon}
-            />
+            <MobileNavButton label={t('Search')} active={isSearchOpen} onClick={handleSearchAction} icon={SearchIcon} />
             <MobileNavLink href="/new" label={t('New')} active={pathname === '/new'} icon={SparkleIcon} />
             {isAuthenticated
               ? (
@@ -472,15 +457,13 @@ interface MobileNavButtonProps {
   icon: typeof HouseIcon
   label: string
   onClick: () => void
-  onPointerDown?: ComponentProps<'button'>['onPointerDown']
 }
 
-function MobileNavButton({ active, icon: Icon, label, onClick, onPointerDown }: MobileNavButtonProps) {
+function MobileNavButton({ active, icon: Icon, label, onClick }: MobileNavButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      onPointerDown={onPointerDown}
       className={cn(
         `
           flex size-full flex-col items-center justify-center gap-1 px-2 text-[11px] leading-none font-semibold

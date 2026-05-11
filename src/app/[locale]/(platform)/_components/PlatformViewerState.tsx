@@ -15,6 +15,10 @@ function useSyncViewerUserState() {
       return
     }
 
+    if (typeof session === 'undefined') {
+      return
+    }
+
     if (!session?.user) {
       useUser.setState(null)
       return
@@ -23,7 +27,7 @@ function useSyncViewerUserState() {
     useUser.setState((previous) => {
       return mergeSessionUserState(previous, session.user as unknown as User)
     })
-  }, [isPending, session?.user])
+  }, [isPending, session, session?.user])
 }
 
 export default function PlatformViewerState() {
