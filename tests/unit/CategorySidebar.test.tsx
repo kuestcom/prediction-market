@@ -1,4 +1,5 @@
 import type { AnchorHTMLAttributes } from 'react'
+import { createElement } from 'react'
 import { render, screen } from '@testing-library/react'
 import CategorySidebar from '@/app/[locale]/(platform)/(home)/_components/CategorySidebar'
 
@@ -8,8 +9,7 @@ vi.mock('next-intl', () => ({
 
 vi.mock('next/image', () => ({
   default: function MockImage({ unoptimized: _unoptimized, ...props }: any) {
-    // eslint-disable-next-line next/no-img-element
-    return <img {...props} />
+    return createElement('img', props)
   },
 }))
 

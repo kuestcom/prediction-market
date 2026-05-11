@@ -3,6 +3,7 @@
 import type { Event } from '@/types'
 import { LinkIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
+import Image from 'next/image'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -220,10 +221,13 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
         `}
       >
         {isUmaResolver && (
-          // eslint-disable-next-line next/no-img-element
-          <img
+          <Image
             src="/images/resolver/uma.svg"
             alt="UMA"
+            width={40}
+            height={40}
+            loading="eager"
+            unoptimized
             className="h-auto w-full max-w-10"
           />
         )}

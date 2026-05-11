@@ -3,6 +3,7 @@
 import type { ShareCardPayload } from '@/lib/share-card'
 import { CopyIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -256,13 +257,16 @@ function PositionShareDialogContent({
     <div className="space-y-3">
       <div className="relative flex min-h-55 items-center justify-center rounded-lg border bg-muted/30 p-3">
         {shareCardUrl && (
-          // eslint-disable-next-line next/no-img-element
-          <img
+          <Image
             key={shareCardUrl}
             src={shareCardUrl}
             alt={t('{title} share card', { title: payload?.title ?? t('Position') })}
+            width={1200}
+            height={630}
+            loading="eager"
+            unoptimized
             className={cn(
-              'w-full max-w-md rounded-md shadow-sm transition-opacity',
+              'h-auto w-full max-w-md rounded-md shadow-sm transition-opacity',
               isShareReady ? 'opacity-100' : 'opacity-0',
             )}
             onLoad={handleShareCardLoaded}

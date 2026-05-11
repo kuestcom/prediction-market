@@ -1,10 +1,10 @@
+import { createElement } from 'react'
 import { render, screen } from '@testing-library/react'
 import EventIconImage from '@/components/EventIconImage'
 
 vi.mock('next/image', () => ({
   default: function MockNextImage({ fill: _fill, ...props }: any) {
-    // eslint-disable-next-line next/no-img-element
-    return <img {...props} />
+    return createElement('img', props)
   },
 }))
 

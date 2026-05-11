@@ -12,6 +12,7 @@ import {
   resolveOrderApiValue,
   resolvePeriodApiValue,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
+import OgImage from '@/app/api/og/_components/OgImage'
 import { oklchToRenderableColor } from '@/lib/color'
 import { truncateAddress } from '@/lib/formatters'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
@@ -307,8 +308,7 @@ export async function GET(request: Request) {
             >
               {siteLogoSrc
                 ? (
-                    // eslint-disable-next-line next/no-img-element
-                    <img
+                    <OgImage
                       src={siteLogoSrc}
                       alt=""
                       width={34}
