@@ -196,6 +196,80 @@ function resolveNextOnboardingModal({
   return null
 }
 
+function openNextModalWhenAvailable({
+  activeModal,
+  depositModalOpen,
+  dismissedModal,
+  fundModalOpen,
+  nextModal,
+  setActiveModal,
+  user,
+  withdrawModalOpen,
+}: {
+  activeModal: OnboardingModal
+  depositModalOpen: boolean
+  dismissedModal: OnboardingModal
+  fundModalOpen: boolean
+  nextModal: Exclude<OnboardingModal, null> | null
+  setActiveModal: (modal: OnboardingModal) => void
+  user: User | null
+  withdrawModalOpen: boolean
+}) {
+  if (!user || activeModal || fundModalOpen || depositModalOpen || withdrawModalOpen) {
+    return
+  }
+  if (!nextModal) {
+    return
+  }
+  if (dismissedModal === nextModal) {
+    return
+  }
+  setActiveModal(nextModal)
+}
+
+function completeDepositWalletDeployment({
+  enableTradingStep,
+  hasDeployedDepositWallet,
+  hasTokenApprovals,
+  setActiveModal,
+  setEnableTradingStep,
+}: {
+  enableTradingStep: EnableTradingStep
+  hasDeployedDepositWallet: boolean
+  hasTokenApprovals: boolean
+  setActiveModal: (modal: OnboardingModal) => void
+  setEnableTradingStep: (step: EnableTradingStep) => void
+}) {
+  if (hasDeployedDepositWallet && enableTradingStep === 'deploying') {
+    setEnableTradingStep('completed')
+    if (!hasTokenApprovals) {
+      setActiveModal('approve')
+    }
+    else {
+      setActiveModal(null)
+    }
+  }
+}
+
+function openFundModalAfterTradingReady({
+  hasDeployedDepositWallet,
+  hasTokenApprovals,
+  setFundModalOpen,
+  setShouldShowFundAfterTradingReady,
+  shouldShowFundAfterTradingReady,
+}: {
+  hasDeployedDepositWallet: boolean
+  hasTokenApprovals: boolean
+  setFundModalOpen: (open: boolean) => void
+  setShouldShowFundAfterTradingReady: (shouldShow: boolean) => void
+  shouldShowFundAfterTradingReady: boolean
+}) {
+  if (hasDeployedDepositWallet && hasTokenApprovals && shouldShowFundAfterTradingReady) {
+    setShouldShowFundAfterTradingReady(false)
+    setFundModalOpen(true)
+  }
+}
+
 function TradingOnboardingProviderContent({
   children,
   user,
@@ -241,39 +315,38 @@ function TradingOnboardingProviderContent({
     allowTradingAuthPrompt: isEventRoute,
   })
 
-  /* eslint-disable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-chain-state-updates, react/set-state-in-effect -- These effects coordinate onboarding modal transitions from async wallet/auth state. */
-  useEffect(() => {
-    if (!user || activeModal || fundModalOpen || depositModalOpen || withdrawModalOpen) {
-      return
-    }
-    if (!nextModal) {
-      return
-    }
-    if (dismissedModal === nextModal) {
-      return
-    }
-    setActiveModal(nextModal)
+  useEffect(function syncNextOnboardingModal() {
+    openNextModalWhenAvailable({
+      activeModal,
+      depositModalOpen,
+      dismissedModal,
+      fundModalOpen,
+      nextModal,
+      setActiveModal,
+      user,
+      withdrawModalOpen,
+    })
   }, [activeModal, depositModalOpen, dismissedModal, fundModalOpen, nextModal, user, withdrawModalOpen])
 
-  useEffect(() => {
-    if (status.hasDeployedDepositWallet && enableTradingStep === 'deploying') {
-      setEnableTradingStep('completed')
-      if (!status.hasTokenApprovals) {
-        setActiveModal('approve')
-      }
-      else {
-        setActiveModal(null)
-      }
-    }
+  useEffect(function syncDepositWalletDeploymentCompletion() {
+    completeDepositWalletDeployment({
+      enableTradingStep,
+      hasDeployedDepositWallet: status.hasDeployedDepositWallet,
+      hasTokenApprovals: status.hasTokenApprovals,
+      setActiveModal,
+      setEnableTradingStep,
+    })
   }, [enableTradingStep, status.hasDeployedDepositWallet, status.hasTokenApprovals])
 
-  useEffect(() => {
-    if (status.hasDeployedDepositWallet && status.hasTokenApprovals && shouldShowFundAfterTradingReady) {
-      setShouldShowFundAfterTradingReady(false)
-      setFundModalOpen(true)
-    }
+  useEffect(function syncFundModalAfterTradingReady() {
+    openFundModalAfterTradingReady({
+      hasDeployedDepositWallet: status.hasDeployedDepositWallet,
+      hasTokenApprovals: status.hasTokenApprovals,
+      setFundModalOpen,
+      setShouldShowFundAfterTradingReady,
+      shouldShowFundAfterTradingReady,
+    })
   }, [shouldShowFundAfterTradingReady, status.hasDeployedDepositWallet, status.hasTokenApprovals])
-  /* eslint-enable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-chain-state-updates, react/set-state-in-effect */
 
   const openNextRequirement = useCallback((options?: { forceTradingAuth?: boolean }) => {
     if (!user) {
