@@ -1,15 +1,4 @@
 -- Legacy cleanup for pre-cutover markets in existing forks/environments.
--- NOTE: this schema does not persist the CTF exchange address per market.
--- We therefore cut by market creation timestamp (pre-cutover) instead.
---
--- Cutover chosen from production deploy evidence:
---   - last legacy-market registration observed in poly-syncer:
---     2026-05-01T08:06:09.707Z (legacy NegRisk CTF exchange)
---   - no market registrations found on the new exchanges before that timestamp.
---   - this migration uses the same timestamp as the legacy/new boundary.
---
---   markets created before this timestamp are treated as legacy
---   markets created at/after this timestamp are treated as post-cutover
 
 WITH legacy_markets AS (
   SELECT m.condition_id, m.event_id
@@ -38,10 +27,18 @@ updated_markets AS (
 event_rollup AS (
   SELECT
     m.event_id,
-    COUNT(*) FILTER (WHERE m.is_active = TRUE) AS active_markets_count,
+    COUNT(*) FILTER (
+      WHERE m.is_active = TRUE
+        AND lm.condition_id IS NULL
+    ) AS active_markets_count,
     COUNT(*) AS total_markets_count,
-    COUNT(*) FILTER (WHERE m.is_resolved = FALSE) AS unresolved_count
+    COUNT(*) FILTER (
+      WHERE m.is_resolved = FALSE
+        AND lm.condition_id IS NULL
+    ) AS unresolved_count
   FROM markets m
+  LEFT JOIN legacy_markets lm
+    ON lm.condition_id = m.condition_id
   WHERE m.event_id IN (SELECT DISTINCT lm.event_id FROM legacy_markets lm)
   GROUP BY m.event_id
 )
