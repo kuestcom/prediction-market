@@ -1,5 +1,9 @@
 import type { InfiniteData } from '@tanstack/react-query'
-import type { ConditionSharesMap, EventOrderPanelFormProps, ResolveDisplayOutcomeLabel } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderPanelTypes'
+import type {
+  ConditionSharesMap,
+  EventOrderPanelFormProps,
+  ResolveDisplayOutcomeLabel,
+} from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderPanelTypes'
 import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 import type { Event, Market, Outcome, UserPosition } from '@/types'
 import { useAppKitAccount } from '@reown/appkit/react'
@@ -13,17 +17,28 @@ import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/Tradi
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import EventOrderPanelBuySellTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelBuySellTabs'
 import EventOrderPanelMarketInfo from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMarketInfo'
-import EventOrderPanelMobileMarketInfo from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobileMarketInfo'
+import EventOrderPanelMobileMarketInfo
+  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobileMarketInfo'
 import EventOrderPanelOrderInput from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOrderInput'
-import EventOrderPanelOutcomeSelector from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeSelector'
-import EventOrderPanelResolvedMarketDisplay from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelResolvedMarketDisplay'
-import { handleOrderCancelledFeedback, handleOrderErrorFeedback, handleOrderSuccessFeedback, handleValidationError } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
+import EventOrderPanelOutcomeSelector
+  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeSelector'
+import EventOrderPanelResolvedMarketDisplay
+  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelResolvedMarketDisplay'
+import {
+  handleOrderCancelledFeedback,
+  handleOrderErrorFeedback,
+  handleOrderSuccessFeedback,
+  handleValidationError,
+} from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { useEventOrderPanelOpenOrders } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventOrderPanelOpenOrders'
 import { useEventOrderPanelPositions } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventOrderPanelPositions'
 import { buildUserOpenOrdersQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import { useXTrackerTweetCount } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useXTrackerTweetCount'
-import { inferResolvedTweetMarketOutcome, isTweetMarketsEvent } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
+import {
+  inferResolvedTweetMarketOutcome,
+  isTweetMarketsEvent,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
 import {
   resolveResolvedOrderPanelDisplay,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
@@ -45,10 +60,7 @@ import {
   prependOpenOrderToInfiniteData,
   updateQueryDataWhere,
 } from '@/lib/optimistic-trading'
-import {
-  calculateMarketFill,
-  normalizeBookLevels,
-} from '@/lib/order-panel-utils'
+import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { buildOrderPayload, submitOrder } from '@/lib/orders'
 import { signOrderPayload } from '@/lib/orders/signing'
 import { MIN_LIMIT_ORDER_SHARES, validateOrder } from '@/lib/orders/validation'
@@ -56,13 +68,12 @@ import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
-import {
-  buildNegRiskRedeemPositionCall,
-  buildRedeemPositionCall,
-} from '@/lib/wallet/transactions'
+import { buildNegRiskRedeemPositionCall, buildRedeemPositionCall } from '@/lib/wallet/transactions'
 import { useNotifications } from '@/stores/useNotifications'
 import { useAmountAsNumber, useIsLimitOrder, useNoPrice, useOrder, useYesPrice } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
+
+type SetUserShares = ReturnType<typeof useOrder.getState>['setUserShares']
 
 function resolveIndexSetFromOutcomeIndex(outcomeIndex: number | undefined) {
   if (outcomeIndex === OUTCOME_INDEX.YES) {
@@ -166,6 +177,54 @@ function resolveEndOfDayTimestamp() {
   return Math.floor(now.getTime() / 1000)
 }
 
+function mergeUserSharesByCondition(
+  sharesByCondition: ConditionSharesMap,
+  aggregatedPositionShares: ConditionSharesMap | null | undefined,
+) {
+  const merged: ConditionSharesMap = {}
+  const keys = new Set([
+    ...Object.keys(sharesByCondition),
+    ...Object.keys(aggregatedPositionShares ?? {}),
+  ])
+
+  keys.forEach((conditionId) => {
+    merged[conditionId] = {
+      [OUTCOME_INDEX.YES]: Math.max(
+        sharesByCondition[conditionId]?.[OUTCOME_INDEX.YES] ?? 0,
+        aggregatedPositionShares?.[conditionId]?.[OUTCOME_INDEX.YES] ?? 0,
+      ),
+      [OUTCOME_INDEX.NO]: Math.max(
+        sharesByCondition[conditionId]?.[OUTCOME_INDEX.NO] ?? 0,
+        aggregatedPositionShares?.[conditionId]?.[OUTCOME_INDEX.NO] ?? 0,
+      ),
+    }
+  })
+
+  return merged
+}
+
+function writeMergedUserSharesToOrderStore({
+  makerAddress,
+  mergedSharesByCondition,
+  setUserShares,
+}: {
+  makerAddress: string | null
+  mergedSharesByCondition: ConditionSharesMap
+  setUserShares: SetUserShares
+}) {
+  if (!makerAddress) {
+    setUserShares({}, { replace: true })
+    return
+  }
+
+  if (!Object.keys(mergedSharesByCondition).length) {
+    setUserShares({}, { replace: true })
+    return
+  }
+
+  setUserShares(mergedSharesByCondition, { replace: true })
+}
+
 function useUserSharesStoreSync({
   makerAddress,
   sharesByCondition,
@@ -176,41 +235,17 @@ function useUserSharesStoreSync({
   aggregatedPositionShares: ConditionSharesMap | null | undefined
 }) {
   const setUserShares = useOrder(store => store.setUserShares)
-  const mergedSharesByCondition = useMemo(() => {
-    const merged: ConditionSharesMap = {}
-    const keys = new Set([
-      ...Object.keys(sharesByCondition),
-      ...Object.keys(aggregatedPositionShares ?? {}),
-    ])
-
-    keys.forEach((conditionId) => {
-      merged[conditionId] = {
-        [OUTCOME_INDEX.YES]: Math.max(
-          sharesByCondition[conditionId]?.[OUTCOME_INDEX.YES] ?? 0,
-          aggregatedPositionShares?.[conditionId]?.[OUTCOME_INDEX.YES] ?? 0,
-        ),
-        [OUTCOME_INDEX.NO]: Math.max(
-          sharesByCondition[conditionId]?.[OUTCOME_INDEX.NO] ?? 0,
-          aggregatedPositionShares?.[conditionId]?.[OUTCOME_INDEX.NO] ?? 0,
-        ),
-      }
-    })
-
-    return merged
-  }, [aggregatedPositionShares, sharesByCondition])
+  const mergedSharesByCondition = useMemo(
+    () => mergeUserSharesByCondition(sharesByCondition, aggregatedPositionShares),
+    [aggregatedPositionShares, sharesByCondition],
+  )
 
   useEffect(function syncMergedUserSharesToStore() {
-    if (!makerAddress) {
-      setUserShares({}, { replace: true })
-      return
-    }
-
-    if (!Object.keys(mergedSharesByCondition).length) {
-      setUserShares({}, { replace: true })
-      return
-    }
-
-    setUserShares(mergedSharesByCondition, { replace: true })
+    writeMergedUserSharesToOrderStore({
+      makerAddress,
+      mergedSharesByCondition,
+      setUserShares,
+    })
   }, [makerAddress, mergedSharesByCondition, setUserShares])
 }
 
@@ -751,7 +786,6 @@ function useOrderValidationFeedback() {
     setShouldShakeInput,
     shouldShakeLimitShares,
     setShouldShakeLimitShares,
-    clearValidationWarnings,
     clearValidationFeedback,
   }
 }
@@ -947,12 +981,11 @@ export default function EventOrderPanelForm({
   const availableMergeShares = Math.max(0, Math.min(mergeableYesShares, mergeableNoShares))
   const availableSplitBalance = Math.max(0, balance.raw)
   const outcomeIndex = activeOutcome?.outcome_index as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO | undefined
-  const selectedTokenShares = outcomeIndex === undefined
+  const selectedShares = outcomeIndex === undefined
     ? 0
     : outcomeIndex === OUTCOME_INDEX.YES
       ? availableYesTokenShares
       : availableNoTokenShares
-  const selectedShares = selectedTokenShares
   const selectedShareLabel = outcomeIndex === undefined
     ? undefined
     : resolveDisplayOutcomeLabel(
