@@ -31,6 +31,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useBalance } from '@/hooks/useBalance'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
 import { LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
@@ -85,6 +86,7 @@ function useMobileBottomNavState() {
 function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
   const t = useExtracted()
   const router = useRouter()
+  const isMobile = useIsMobile()
   const { open } = useAppKit()
   const { data: session } = useSession()
   const user = useUser()
@@ -192,6 +194,10 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
     window.setTimeout(() => {
       setIsHowItWorksOpen(true)
     }, 120)
+  }
+
+  if (!isMobile) {
+    return null
   }
 
   return (
