@@ -41,6 +41,10 @@ const HOME_LIVE_PRICE_OBSERVER_ROOT_MARGIN = '200px 0px'
 const HOME_LIVE_OVERRIDE_SETTLE_DELAY_MS = 2_000
 const HOME_FEED_REFRESH_INTERVAL_MS = 60_000
 
+function hasFiniteTimestamp(value: number | null | undefined) {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
 function resolveCardMarkets(event: Event) {
   const activeMarkets = isHomeEventResolvedLike(event)
     ? event.markets
@@ -425,11 +429,18 @@ export default function EventsGrid({
     && !filters.hideEarnings
   const initialSnapshotEvents = isRouteInitialState ? initialEvents : EMPTY_EVENTS
   const PAGE_SIZE = HOME_EVENTS_PAGE_SIZE
+  const shouldAutoRefreshEvents = filters.status === 'active'
+  const resolvedCurrentTimestamp = currentTimestamp ?? initialCurrentTimestamp
+  const hasResolvedCurrentTimestamp = hasFiniteTimestamp(resolvedCurrentTimestamp)
+  const hasInitialCurrentTimestamp = hasFiniteTimestamp(initialCurrentTimestamp)
+  const homeFeedClockState = shouldAutoRefreshEvents
+    ? (hasResolvedCurrentTimestamp ? 'clock-ready' : 'clock-pending')
+    : 'clock-static'
   const shouldUseInitialData = isRouteInitialState
     && initialEvents.length > 0
     && queryUserScope === 'guest'
-  const shouldAutoRefreshEvents = filters.status === 'active'
-  const resolvedCurrentTimestamp = currentTimestamp ?? initialCurrentTimestamp
+    && (!shouldAutoRefreshEvents || !hasResolvedCurrentTimestamp || hasInitialCurrentTimestamp)
+  const shouldEnableEventsQuery = !shouldAutoRefreshEvents || hasResolvedCurrentTimestamp
   const loadMoreStateKey = [
     filters.tag,
     filters.mainTag,
@@ -457,6 +468,7 @@ export default function EventsGrid({
     filters.hideEarnings,
     locale,
     queryUserScope,
+    homeFeedClockState,
   ]
 
   const {
@@ -479,6 +491,7 @@ export default function EventsGrid({
     getNextPageParam: (lastPage, allPages) => lastPage.length === PAGE_SIZE ? allPages.length * PAGE_SIZE : undefined,
     initialPageParam: 0,
     initialData: shouldUseInitialData ? { pages: [initialEvents], pageParams: [0] } : undefined,
+    enabled: shouldEnableEventsQuery,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     staleTime: 'static',

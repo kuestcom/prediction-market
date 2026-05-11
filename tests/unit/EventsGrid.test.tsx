@@ -245,7 +245,7 @@ describe('eventsGrid', () => {
     expect(mocks.refetch).not.toHaveBeenCalled()
   })
 
-  it('keeps interval refresh active when the client timestamp hydrates from null', async () => {
+  it('starts a fresh active feed query when the client timestamp hydrates from null', async () => {
     const filters = {
       tag: 'trending',
       mainTag: 'trending',
@@ -264,18 +264,26 @@ describe('eventsGrid', () => {
     const { rerender } = render(
       <EventsGrid
         filters={filters}
-        initialEvents={[]}
+        initialEvents={[{ id: 'server-seeded-event' } as any]}
         initialCurrentTimestamp={null}
         routeMainTag="trending"
         routeTag="trending"
       />,
     )
 
+    const pendingClockOptions = mocks.useInfiniteQuery.mock.calls.at(-1)?.[0]
+    expect(pendingClockOptions.queryKey).toContain('clock-pending')
+    expect(pendingClockOptions.enabled).toBe(false)
+    expect(pendingClockOptions.initialData).toEqual({
+      pages: [[{ id: 'server-seeded-event' }]],
+      pageParams: [0],
+    })
+
     await act(async () => {
       rerender(
         <EventsGrid
           filters={filters}
-          initialEvents={[]}
+          initialEvents={[{ id: 'server-seeded-event' } as any]}
           initialCurrentTimestamp={null}
           routeMainTag="trending"
           routeTag="trending"
@@ -283,7 +291,11 @@ describe('eventsGrid', () => {
       )
     })
 
+    const readyClockOptions = mocks.useInfiniteQuery.mock.calls.at(-1)?.[0]
     expect(mocks.refetch).not.toHaveBeenCalled()
-    expect(mocks.useInfiniteQuery.mock.calls.at(-1)?.[0].refetchInterval).toBe(60_000)
+    expect(readyClockOptions.queryKey).toContain('clock-ready')
+    expect(readyClockOptions.enabled).toBe(true)
+    expect(readyClockOptions.initialData).toBeUndefined()
+    expect(readyClockOptions.refetchInterval).toBe(60_000)
   })
 })

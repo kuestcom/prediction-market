@@ -34,4 +34,19 @@ describe('homeContent', () => {
       currentTimestamp: null,
     }))
   })
+
+  it('uses the provided current timestamp for initial home events', async () => {
+    const currentTimestamp = Date.parse('2026-05-11T12:34:00.000Z')
+    mocks.listHomeEventsPage.mockResolvedValueOnce({ data: [], error: null, currentTimestamp })
+
+    const HomeContent = (await import('@/app/[locale]/(platform)/(home)/_components/HomeContent')).default
+    await HomeContent({
+      locale: 'en',
+      currentTimestamp,
+    })
+
+    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(expect.objectContaining({
+      currentTimestamp,
+    }))
+  })
 })

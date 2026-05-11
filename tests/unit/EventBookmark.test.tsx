@@ -195,7 +195,7 @@ describe('eventBookmark', () => {
 
   it('only rewrites the acting user event caches', async () => {
     const cachedQueries = [
-      [['events', 'trending', 'trending', '', false, 'all', 'active', false, false, false, 'en', 'user-1'], { pages: [[{ id: 'event-1', is_bookmarked: false }]], pageParams: [0] }],
+      [['events', 'trending', 'trending', '', false, 'all', 'active', false, false, false, 'en', 'user-1', 'clock-ready'], { pages: [[{ id: 'event-1', is_bookmarked: false }]], pageParams: [0] }],
       [['events', 'trending', 'trending', '', false, 'all', 'active', false, false, false, 'en', 'guest'], { pages: [[{ id: 'event-1', is_bookmarked: false }]], pageParams: [0] }],
       [['events', '', true, 'all', 'active', false, false, false, 'en', 'user-2', null, null], { pages: [[{ id: 'event-1', is_bookmarked: false }]], pageParams: [0] }],
     ] as const

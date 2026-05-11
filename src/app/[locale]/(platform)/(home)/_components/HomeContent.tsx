@@ -5,12 +5,14 @@ import { listHomeEventsPage } from '@/lib/home-events-page'
 
 interface HomeContentProps {
   locale: string
+  currentTimestamp?: number | null
   initialTag?: string
   initialMainTag?: string
 }
 
 export default async function HomeContent({
   locale,
+  currentTimestamp = null,
   initialTag,
   initialMainTag,
 }: HomeContentProps) {
@@ -22,17 +24,21 @@ export default async function HomeContent({
   let initialEvents: Event[] = []
 
   try {
-    const { data: events, error, currentTimestamp } = await listHomeEventsPage({
+    const {
+      data: events,
+      error,
+      currentTimestamp: resolvedCurrentTimestamp,
+    } = await listHomeEventsPage({
       tag: initialTagSlug,
       mainTag: initialMainTagSlug,
       search: '',
       userId: '',
       bookmarked: false,
       locale: resolvedLocale,
-      currentTimestamp: null,
+      currentTimestamp,
     })
 
-    initialCurrentTimestamp = currentTimestamp ?? null
+    initialCurrentTimestamp = resolvedCurrentTimestamp ?? null
 
     if (!error) {
       initialEvents = events ?? []
