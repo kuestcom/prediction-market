@@ -20,7 +20,6 @@ import {
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
-import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 import SearchDiscoveryContent from '@/app/[locale]/(platform)/_components/SearchDiscoveryContent'
 import { MOBILE_BOTTOM_NAV_OFFSET } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
@@ -117,11 +116,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
   }
 
   function handleSearchAction() {
-    // iOS only opens the keyboard if the input focus stays inside the tap gesture.
-    // eslint-disable-next-line react-dom/no-flush-sync
-    flushSync(() => {
-      setIsSearchOpen(true)
-    })
+    setIsSearchOpen(true)
 
     if (focusMobileSearchInput()) {
       setSearchFocusTrigger(0)
