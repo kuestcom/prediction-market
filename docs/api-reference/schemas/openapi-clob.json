@@ -2742,12 +2742,9 @@
             "type": "integer",
             "format": "int32",
             "enum": [
-              0,
-              1,
-              2,
               3
             ],
-            "description": "Signature type (0 = EOA, 1 = FactoryProxy, 2 = GnosisSafe, 3 = EIP-1271)."
+            "description": "Signature type 3 (EIP-1271 Deposit Wallet)."
           },
           "signature": {
             "type": "string",
