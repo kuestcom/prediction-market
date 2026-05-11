@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import OgImage from '@/app/api/og/_components/OgImage'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 interface ShareCardPayload {
@@ -255,8 +256,7 @@ export async function GET(request: Request) {
             }}
           >
             {payload.userImage && (
-              // eslint-disable-next-line next/no-img-element
-              <img
+              <OgImage
                 src={payload.userImage}
                 alt=""
                 width={40}
@@ -344,8 +344,7 @@ export async function GET(request: Request) {
               >
                 {payload.imageUrl
                   ? (
-                      // eslint-disable-next-line next/no-img-element
-                      <img
+                      <OgImage
                         src={payload.imageUrl}
                         alt=""
                         width={160}
@@ -528,8 +527,7 @@ export async function GET(request: Request) {
               width: '100%',
             }}
           >
-            {/* eslint-disable-next-line next/no-img-element */}
-            <img
+            <OgImage
               src={siteLogoSrc}
               alt=""
               width={64}

@@ -236,11 +236,7 @@ export function useSportsSegmentNumberPicker({
   }, [options, setEndSpacer, setStartSpacer])
 
   useEffect(function alignOnActiveOptionChange() {
-    if (activeOptionIndex < 0) {
-      return
-    }
-
-    alignActiveOption('auto')
+    alignActiveSportsSegmentOption(activeOptionIndex, alignActiveOption)
   }, [activeOptionIndex, alignActiveOption, endSpacer, startSpacer])
 
   useEffect(function scheduleSpacerAndAlignmentUpdate() {
@@ -290,6 +286,17 @@ export function useSportsSegmentNumberPicker({
     handlePickPrevious,
     handlePickNext,
   }
+}
+
+function alignActiveSportsSegmentOption(
+  activeOptionIndex: number,
+  alignActiveOption: (behavior?: ScrollBehavior) => void,
+) {
+  if (activeOptionIndex < 0) {
+    return
+  }
+
+  alignActiveOption('auto')
 }
 
 export function useSportsEventQuerySync(onSelectionChange: (selection: SportsEventQuerySelection) => void) {

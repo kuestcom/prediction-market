@@ -55,6 +55,16 @@ export interface MarketDetailTabsProps {
   sharesByCondition: SharesByCondition
 }
 
+function syncControlledMarketDetailTab(
+  selectedTab: MarketDetailTab,
+  controlledTab: MarketDetailTab | undefined,
+  select: (tabId: MarketDetailTab) => void,
+) {
+  if (selectedTab !== controlledTab) {
+    select(selectedTab)
+  }
+}
+
 export default function MarketDetailTabs({
   currentTimestamp,
   market,
@@ -177,10 +187,8 @@ export default function MarketDetailTabs({
     [market.condition, siteName],
   )
 
-  useEffect(() => {
-    if (selectedTab !== controlledTab) {
-      select(selectedTab)
-    }
+  useEffect(function syncSelectedMarketDetailTab() {
+    syncControlledMarketDetailTab(selectedTab, controlledTab, select)
   }, [controlledTab, select, selectedTab])
 
   return (

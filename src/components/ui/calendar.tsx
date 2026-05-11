@@ -1,6 +1,5 @@
 'use client'
 
-/* eslint-disable react/component-hook-factories */
 /* eslint-disable react/no-nested-component-definitions */
 
 import type { DayButton } from 'react-day-picker'
@@ -198,6 +197,7 @@ function CalendarDayButton({
 
   const ref = React.useRef<HTMLButtonElement>(null)
   React.useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-event-handler
     if (modifiers.focused) {
       ref.current?.focus()
     }

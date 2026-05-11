@@ -3,17 +3,33 @@
 import { useEffect, useRef } from 'react'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 
+interface StartDepositFlowForRequestOptions {
+  lastRequestIdRef: {
+    current: number
+  }
+  requestId: number
+  startDepositFlow: () => void
+}
+
+function startDepositFlowForRequest({
+  lastRequestIdRef,
+  requestId,
+  startDepositFlow,
+}: StartDepositFlowForRequestOptions) {
+  if (requestId === 0 || lastRequestIdRef.current === requestId) {
+    return
+  }
+
+  lastRequestIdRef.current = requestId
+  startDepositFlow()
+}
+
 function useStartDepositFlowOnRequest(requestId: number) {
   const { startDepositFlow } = useTradingOnboarding()
   const lastRequestIdRef = useRef(0)
 
   useEffect(function startDepositFlowWhenRequestIdChanges() {
-    if (requestId === 0 || lastRequestIdRef.current === requestId) {
-      return
-    }
-
-    lastRequestIdRef.current = requestId
-    startDepositFlow()
+    startDepositFlowForRequest({ lastRequestIdRef, requestId, startDepositFlow })
   }, [requestId, startDepositFlow])
 }
 

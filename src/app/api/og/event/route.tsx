@@ -2,6 +2,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
 import { Buffer } from 'node:buffer'
 import { ImageResponse } from 'next/og'
+import OgImage from '@/app/api/og/_components/OgImage'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { oklchToRenderableColor } from '@/lib/color'
 import { OUTCOME_INDEX } from '@/lib/constants'
@@ -639,8 +640,7 @@ export async function GET(request: Request) {
           >
             {eventImageUrl
               ? (
-                  // eslint-disable-next-line next/no-img-element
-                  <img
+                  <OgImage
                     src={eventImageUrl}
                     alt=""
                     width={494}

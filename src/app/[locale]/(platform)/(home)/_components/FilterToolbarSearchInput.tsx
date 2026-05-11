@@ -3,7 +3,7 @@
 import type { ChangeEvent } from 'react'
 import { SearchIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useRef } from 'react'
 import { Input } from '@/components/ui/input'
 
 interface FilterToolbarSearchInputProps {
@@ -25,58 +25,51 @@ interface FilterToolbarSearchInputFieldProps {
   onSearchChange: (search: string) => void
 }
 
+interface SearchDebounceTimeoutRef {
+  current: ReturnType<typeof setTimeout> | null
+}
+
+function clearPendingSearchDebounce(debounceTimeoutRef: SearchDebounceTimeoutRef) {
+  if (debounceTimeoutRef.current) {
+    clearTimeout(debounceTimeoutRef.current)
+    debounceTimeoutRef.current = null
+  }
+}
+
 function useFilterToolbarSearchInputFieldState({
   search,
   onSearchChange,
 }: FilterToolbarSearchInputFieldProps) {
-  const inputRef = useRef<HTMLInputElement | null>(null)
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSubmittedSearchRef = useRef(search)
   const t = useExtracted()
 
-  useEffect(function clearPendingSearchDebounceEffect() {
-    function clearPendingSearchDebounce() {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current)
-      }
+  const inputRef = useCallback(function syncInputRef(inputElement: HTMLInputElement | null) {
+    if (!inputElement) {
+      clearPendingSearchDebounce(debounceTimeoutRef)
+      return
     }
 
-    return clearPendingSearchDebounce
-  }, [])
+    if (search === lastSubmittedSearchRef.current) {
+      return
+    }
 
-  const handleInputChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    clearPendingSearchDebounce(debounceTimeoutRef)
+    inputElement.value = search
+    lastSubmittedSearchRef.current = search
+  }, [search])
+
+  const handleInputChange = useCallback(function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
     const nextSearch = event.target.value
     lastSubmittedSearchRef.current = nextSearch
 
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current)
-    }
+    clearPendingSearchDebounce(debounceTimeoutRef)
 
     debounceTimeoutRef.current = setTimeout(() => {
       debounceTimeoutRef.current = null
       onSearchChange(nextSearch)
     }, 150)
   }, [onSearchChange])
-
-  useEffect(function syncInputValueFromExternalSearchEffect() {
-    if (search === lastSubmittedSearchRef.current) {
-      return
-    }
-
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current)
-      debounceTimeoutRef.current = null
-    }
-
-    const inputElement = inputRef.current
-
-    if (!inputElement) {
-      return
-    }
-
-    inputElement.value = search
-    lastSubmittedSearchRef.current = search
-  }, [search])
 
   return {
     inputRef,

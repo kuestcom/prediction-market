@@ -197,13 +197,21 @@ function useRefetchEventsOnUserChange({
   const previousUserKeyRef = useRef(userCacheKey)
 
   useEffect(function refetchSportsEventsOnUserChange() {
-    if (previousUserKeyRef.current === userCacheKey) {
-      return
-    }
-
-    previousUserKeyRef.current = userCacheKey
-    void refetch()
+    refetchSportsEventsWhenUserChanges(userCacheKey, previousUserKeyRef, refetch)
   }, [refetch, userCacheKey])
+}
+
+function refetchSportsEventsWhenUserChanges(
+  userCacheKey: string,
+  previousUserKeyRef: { current: string },
+  refetch: () => Promise<unknown>,
+) {
+  if (previousUserKeyRef.current === userCacheKey) {
+    return
+  }
+
+  previousUserKeyRef.current = userCacheKey
+  void refetch()
 }
 
 function useSportsVisibleEvents({

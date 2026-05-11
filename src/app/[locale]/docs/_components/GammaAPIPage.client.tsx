@@ -21,20 +21,27 @@ function resolveCreatorHostname(siteUrl: string | undefined): string {
 
 const creatorHostname = resolveCreatorHostname(process.env.SITE_URL)
 
+function syncCreatorControllerValue(
+  paramName: string,
+  controller: ReturnType<typeof Custom.useController>,
+) {
+  if (paramName !== 'creator') {
+    return
+  }
+
+  if (controller.value !== creatorHostname) {
+    controller.setValue(creatorHostname)
+  }
+}
+
 function GammaParameterField({ fieldName, param }: { fieldName: (string | number)[], param: any }) {
   const schema = param.schema ?? {}
   const controller = Custom.useController(fieldName, {
     defaultValue: param.name === 'creator' ? creatorHostname : schema.default,
   })
 
-  useEffect(() => {
-    if (param.name !== 'creator') {
-      return
-    }
-
-    if (controller.value !== creatorHostname) {
-      controller.setValue(creatorHostname)
-    }
+  useEffect(function syncFixedCreatorParameter() {
+    syncCreatorControllerValue(param.name, controller)
   }, [controller, param.name])
 
   const label = (

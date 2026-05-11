@@ -103,6 +103,133 @@ function resolveBootstrapTargetMarket(event: Event, marketSlug?: string) {
   return resolveDefaultMarket(event.markets) ?? null
 }
 
+interface ApplyOrderBootstrapMarketSelectionParams {
+  event: Event
+  marketSlug: string | undefined
+  orderBootstrapTargetMarket: Event['markets'][number] | null
+  currentEventId: string | undefined
+  currentMarketId: string | undefined
+  appliedMarketSlugRef: { current: string | null }
+  appliedEventIdRef: { current: string | null }
+  setMarket: (market: Event['markets'][number]) => void
+  setOutcome: (outcome: Event['markets'][number]['outcomes'][number]) => void
+}
+
+function applyOrderBootstrapMarketSelection({
+  event,
+  marketSlug,
+  orderBootstrapTargetMarket,
+  currentEventId,
+  currentMarketId,
+  appliedMarketSlugRef,
+  appliedEventIdRef,
+  setMarket,
+  setOutcome,
+}: ApplyOrderBootstrapMarketSelectionParams) {
+  if (!orderBootstrapTargetMarket) {
+    return
+  }
+
+  const shouldApplyMarket = marketSlug
+    ? appliedMarketSlugRef.current !== marketSlug
+    || appliedEventIdRef.current !== event.id
+    || !currentMarketId
+    : currentEventId !== event.id
+      || !currentMarketId
+
+  if (!shouldApplyMarket) {
+    return
+  }
+
+  const currentOrderState = useOrder.getState()
+  const nextSelection = resolveEventOrderBootstrapSelection({
+    event,
+    targetMarket: orderBootstrapTargetMarket,
+    preserveSnapshotMarket: !marketSlug,
+    snapshot: {
+      eventId: currentOrderState.event?.id,
+      market: currentOrderState.market,
+      outcome: currentOrderState.outcome,
+    },
+  })
+
+  setMarket(nextSelection.market)
+  if (nextSelection.outcome) {
+    setOutcome(nextSelection.outcome)
+  }
+  appliedMarketSlugRef.current = marketSlug ?? null
+  appliedEventIdRef.current = event.id
+}
+
+interface ApplyOrderQueryParamsToStoreParams {
+  resolvedQueryState: ResolvedEventOrderQueryState | null
+  isMobile: boolean
+  appliedOrderParamsRef: { current: string | null }
+  openedMobileOrderPanelParamsRef: { current: string | null }
+  setMarket: (market: Event['markets'][number]) => void
+  setOutcome: (outcome: Event['markets'][number]['outcomes'][number]) => void
+  setSide: (side: typeof ORDER_SIDE.SELL | typeof ORDER_SIDE.BUY) => void
+  setType: (type: typeof ORDER_TYPE.LIMIT | typeof ORDER_TYPE.MARKET) => void
+  setAmount: (amount: string) => void
+  setLimitShares: (shares: string) => void
+  setIsMobileOrderPanelOpen: (open: boolean) => void
+}
+
+function applyOrderQueryParamsToStore({
+  resolvedQueryState,
+  isMobile,
+  appliedOrderParamsRef,
+  openedMobileOrderPanelParamsRef,
+  setMarket,
+  setOutcome,
+  setSide,
+  setType,
+  setAmount,
+  setLimitShares,
+  setIsMobileOrderPanelOpen,
+}: ApplyOrderQueryParamsToStoreParams) {
+  if (!resolvedQueryState) {
+    return
+  }
+
+  if (appliedOrderParamsRef.current !== resolvedQueryState.appliedKey) {
+    appliedOrderParamsRef.current = resolvedQueryState.appliedKey
+
+    setMarket(resolvedQueryState.market)
+    if (resolvedQueryState.targetOutcome) {
+      setOutcome(resolvedQueryState.targetOutcome)
+    }
+
+    if (resolvedQueryState.normalizedSide === 'SELL') {
+      setSide(ORDER_SIDE.SELL)
+    }
+    else if (resolvedQueryState.normalizedSide === 'BUY') {
+      setSide(ORDER_SIDE.BUY)
+    }
+
+    if (resolvedQueryState.normalizedOrderType === 'LIMIT') {
+      setType(ORDER_TYPE.LIMIT)
+    }
+    else if (resolvedQueryState.normalizedOrderType === 'MARKET') {
+      setType(ORDER_TYPE.MARKET)
+    }
+
+    if (resolvedQueryState.sharesValue) {
+      if (resolvedQueryState.normalizedOrderType === 'LIMIT') {
+        setLimitShares(resolvedQueryState.sharesValue)
+      }
+      else if (resolvedQueryState.normalizedSide === 'SELL') {
+        setAmount(resolvedQueryState.sharesValue)
+      }
+    }
+  }
+
+  if (isMobile && openedMobileOrderPanelParamsRef.current !== resolvedQueryState.appliedKey) {
+    openedMobileOrderPanelParamsRef.current = resolvedQueryState.appliedKey
+    setIsMobileOrderPanelOpen(true)
+  }
+}
+
 function useSetEventInOrderStore(event: Event) {
   const setEvent = useOrder(state => state.setEvent)
 
@@ -130,39 +257,17 @@ function useOrderBootstrapMarketSelection({
   const setOutcome = useOrder(state => state.setOutcome)
 
   useEffect(function bootstrapOrderMarketSelection() {
-    if (!orderBootstrapTargetMarket) {
-      return
-    }
-
-    const shouldApplyMarket = marketSlug
-      ? appliedMarketSlugRef.current !== marketSlug
-      || appliedEventIdRef.current !== event.id
-      || !currentMarketId
-      : currentEventId !== event.id
-        || !currentMarketId
-
-    if (!shouldApplyMarket) {
-      return
-    }
-
-    const currentOrderState = useOrder.getState()
-    const nextSelection = resolveEventOrderBootstrapSelection({
+    applyOrderBootstrapMarketSelection({
       event,
-      targetMarket: orderBootstrapTargetMarket,
-      preserveSnapshotMarket: !marketSlug,
-      snapshot: {
-        eventId: currentOrderState.event?.id,
-        market: currentOrderState.market,
-        outcome: currentOrderState.outcome,
-      },
+      marketSlug,
+      orderBootstrapTargetMarket,
+      currentEventId,
+      currentMarketId,
+      appliedMarketSlugRef,
+      appliedEventIdRef,
+      setMarket,
+      setOutcome,
     })
-
-    setMarket(nextSelection.market)
-    if (nextSelection.outcome) {
-      setOutcome(nextSelection.outcome)
-    }
-    appliedMarketSlugRef.current = marketSlug ?? null
-    appliedEventIdRef.current = event.id
   }, [currentEventId, currentMarketId, event, marketSlug, orderBootstrapTargetMarket, setMarket, setOutcome])
 }
 
@@ -183,47 +288,20 @@ function useAppliedOrderQuerySync({
   const setLimitShares = useOrder(state => state.setLimitShares)
   const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
 
-  useEffect(function applyOrderQueryParamsToStore() {
-    if (!resolvedQueryState) {
-      return
-    }
-
-    if (appliedOrderParamsRef.current !== resolvedQueryState.appliedKey) {
-      appliedOrderParamsRef.current = resolvedQueryState.appliedKey
-
-      setMarket(resolvedQueryState.market)
-      if (resolvedQueryState.targetOutcome) {
-        setOutcome(resolvedQueryState.targetOutcome)
-      }
-
-      if (resolvedQueryState.normalizedSide === 'SELL') {
-        setSide(ORDER_SIDE.SELL)
-      }
-      else if (resolvedQueryState.normalizedSide === 'BUY') {
-        setSide(ORDER_SIDE.BUY)
-      }
-
-      if (resolvedQueryState.normalizedOrderType === 'LIMIT') {
-        setType(ORDER_TYPE.LIMIT)
-      }
-      else if (resolvedQueryState.normalizedOrderType === 'MARKET') {
-        setType(ORDER_TYPE.MARKET)
-      }
-
-      if (resolvedQueryState.sharesValue) {
-        if (resolvedQueryState.normalizedOrderType === 'LIMIT') {
-          setLimitShares(resolvedQueryState.sharesValue)
-        }
-        else if (resolvedQueryState.normalizedSide === 'SELL') {
-          setAmount(resolvedQueryState.sharesValue)
-        }
-      }
-    }
-
-    if (isMobile && openedMobileOrderPanelParamsRef.current !== resolvedQueryState.appliedKey) {
-      openedMobileOrderPanelParamsRef.current = resolvedQueryState.appliedKey
-      setIsMobileOrderPanelOpen(true)
-    }
+  useEffect(function syncOrderQueryParamsToStore() {
+    applyOrderQueryParamsToStore({
+      resolvedQueryState,
+      isMobile,
+      appliedOrderParamsRef,
+      openedMobileOrderPanelParamsRef,
+      setMarket,
+      setOutcome,
+      setSide,
+      setType,
+      setAmount,
+      setLimitShares,
+      setIsMobileOrderPanelOpen,
+    })
   }, [
     isMobile,
     setAmount,

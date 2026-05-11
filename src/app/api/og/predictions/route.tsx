@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import OgImage from '@/app/api/og/_components/OgImage'
 import { oklchToRenderableColor } from '@/lib/color'
 import { humanizePredictionSearchSlug } from '@/lib/prediction-search'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
@@ -186,8 +187,7 @@ export async function GET(request: Request) {
           >
             {siteLogoSrc
               ? (
-                  // eslint-disable-next-line next/no-img-element
-                  <img
+                  <OgImage
                     src={siteLogoSrc}
                     alt=""
                     width={56}

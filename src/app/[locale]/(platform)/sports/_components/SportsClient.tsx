@@ -19,6 +19,30 @@ interface SportsClientProps {
   sportsSection?: SportsSection | null
 }
 
+interface SyncInitialTagToFiltersOptions {
+  effectiveMainTag: string
+  initialTag: string | undefined
+  lastAppliedInitialTagRef: {
+    current: string | null
+  }
+  updateFilters: ReturnType<typeof useFilters>['updateFilters']
+}
+
+function syncInitialTagToFilters({
+  effectiveMainTag,
+  initialTag,
+  lastAppliedInitialTagRef,
+  updateFilters,
+}: SyncInitialTagToFiltersOptions) {
+  const targetTag = initialTag ?? 'sports'
+  if (lastAppliedInitialTagRef.current === targetTag) {
+    return
+  }
+
+  lastAppliedInitialTagRef.current = targetTag
+  updateFilters({ tag: targetTag, mainTag: effectiveMainTag })
+}
+
 function useInitialTagFilterSync({
   initialTag,
   effectiveMainTag,
@@ -30,14 +54,8 @@ function useInitialTagFilterSync({
 }) {
   const lastAppliedInitialTagRef = useRef<string | null>(null)
 
-  useEffect(function syncInitialTagToFilters() {
-    const targetTag = initialTag ?? 'sports'
-    if (lastAppliedInitialTagRef.current === targetTag) {
-      return
-    }
-
-    lastAppliedInitialTagRef.current = targetTag
-    updateFilters({ tag: targetTag, mainTag: effectiveMainTag })
+  useEffect(function runInitialTagFilterSync() {
+    syncInitialTagToFilters({ effectiveMainTag, initialTag, lastAppliedInitialTagRef, updateFilters })
   }, [effectiveMainTag, initialTag, updateFilters])
 }
 

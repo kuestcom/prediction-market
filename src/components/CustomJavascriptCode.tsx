@@ -180,6 +180,28 @@ function executeCustomJavascriptCodes(codes: CustomJavascriptCodeConfig[]) {
   }
 }
 
+function reloadOnCustomJavascriptCodeChange(
+  activeCodeSignature: string,
+  previousActiveCodeSignatureRef: { current: string | null },
+) {
+  const previousActiveCodeSignature = previousActiveCodeSignatureRef.current
+  previousActiveCodeSignatureRef.current = activeCodeSignature
+
+  if (previousActiveCodeSignature === null) {
+    return
+  }
+
+  if (previousActiveCodeSignature === activeCodeSignature) {
+    return
+  }
+
+  if (!hasExecutedCustomJavascriptCode()) {
+    return
+  }
+
+  window.location.reload()
+}
+
 function useCustomJavascriptCodeExecution(locale: string, codes: CustomJavascriptCodeConfig[]) {
   const pathname = usePathname()
   const localizedPathname = useMemo(() => stripLocalePrefix(pathname, locale), [locale, pathname])
@@ -195,22 +217,7 @@ function useCustomJavascriptCodeExecution(locale: string, codes: CustomJavascrip
   const [interactionSignature, setInteractionSignature] = useState<string | null>(null)
 
   useEffect(function reloadOnCodeChange() {
-    const previousActiveCodeSignature = previousActiveCodeSignatureRef.current
-    previousActiveCodeSignatureRef.current = activeCodeSignature
-
-    if (previousActiveCodeSignature === null) {
-      return
-    }
-
-    if (previousActiveCodeSignature === activeCodeSignature) {
-      return
-    }
-
-    if (!hasExecutedCustomJavascriptCode()) {
-      return
-    }
-
-    window.location.reload()
+    reloadOnCustomJavascriptCodeChange(activeCodeSignature, previousActiveCodeSignatureRef)
   }, [activeCodeSignature])
 
   useEffect(function executeCodesOnFirstInteraction() {

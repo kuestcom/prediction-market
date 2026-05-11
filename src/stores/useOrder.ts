@@ -237,6 +237,52 @@ export function useAmountAsNumber() {
   return useOrder(state => Number.parseFloat(state.amount) || 0)
 }
 
+interface SyncLimitPriceWithOutcomeParams {
+  syncKey: string
+  lastSyncKeyRef: { current: string }
+  hasSyncedRef: { current: boolean }
+  outcomeIndex: number | null | undefined
+  noPrice: number | null | undefined
+  yesPrice: number | null | undefined
+  setLimitPrice: (price: string) => void
+}
+
+function syncLimitPriceWithOutcome({
+  syncKey,
+  lastSyncKeyRef,
+  hasSyncedRef,
+  outcomeIndex,
+  noPrice,
+  yesPrice,
+  setLimitPrice,
+}: SyncLimitPriceWithOutcomeParams) {
+  if (syncKey !== lastSyncKeyRef.current) {
+    lastSyncKeyRef.current = syncKey
+    hasSyncedRef.current = false
+  }
+
+  if (outcomeIndex === undefined || outcomeIndex === null) {
+    return
+  }
+
+  if (hasSyncedRef.current) {
+    return
+  }
+
+  const nextPrice = outcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
+  if (nextPrice === null || nextPrice === undefined) {
+    return
+  }
+
+  const cents = toCents(nextPrice)
+  if (cents === null) {
+    return
+  }
+
+  setLimitPrice(cents.toFixed(1))
+  hasSyncedRef.current = true
+}
+
 export function useSyncLimitPriceWithOutcome() {
   const outcomeIndex = useOrder(state => state.outcome?.outcome_index)
   const syncKey = useOrder(state => [
@@ -250,31 +296,15 @@ export function useSyncLimitPriceWithOutcome() {
   const lastSyncKeyRef = useRef(syncKey)
   const hasSyncedRef = useRef(false)
 
-  useEffect(() => {
-    if (syncKey !== lastSyncKeyRef.current) {
-      lastSyncKeyRef.current = syncKey
-      hasSyncedRef.current = false
-    }
-
-    if (outcomeIndex === undefined || outcomeIndex === null) {
-      return
-    }
-
-    if (hasSyncedRef.current) {
-      return
-    }
-
-    const nextPrice = outcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
-    if (nextPrice === null || nextPrice === undefined) {
-      return
-    }
-
-    const cents = toCents(nextPrice)
-    if (cents === null) {
-      return
-    }
-
-    setLimitPrice(cents.toFixed(1))
-    hasSyncedRef.current = true
+  useEffect(function syncLimitPriceWithSelectedOutcome() {
+    syncLimitPriceWithOutcome({
+      syncKey,
+      lastSyncKeyRef,
+      hasSyncedRef,
+      outcomeIndex,
+      noPrice,
+      yesPrice,
+      setLimitPrice,
+    })
   }, [noPrice, outcomeIndex, setLimitPrice, syncKey, yesPrice])
 }

@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import OgImage from '@/app/api/og/_components/OgImage'
 import { UserRepository } from '@/lib/db/queries/user'
 import { truncateAddress } from '@/lib/formatters'
 import { normalizePublicProfileSlug } from '@/lib/platform-routing'
@@ -354,8 +355,7 @@ export async function GET(request: Request) {
             >
               {runtimeTheme.site.logoUrl
                 ? (
-                    // eslint-disable-next-line next/no-img-element
-                    <img
+                    <OgImage
                       src={runtimeTheme.site.logoUrl}
                       alt=""
                       width={36}
@@ -388,8 +388,7 @@ export async function GET(request: Request) {
             >
               {avatarUrl
                 ? (
-                    // eslint-disable-next-line next/no-img-element
-                    <img
+                    <OgImage
                       src={avatarUrl}
                       alt=""
                       width={94}
@@ -520,8 +519,7 @@ export async function GET(request: Request) {
                     >
                       {position.iconUrl
                         ? (
-                            // eslint-disable-next-line next/no-img-element
-                            <img
+                            <OgImage
                               src={position.iconUrl}
                               alt=""
                               width={38}
