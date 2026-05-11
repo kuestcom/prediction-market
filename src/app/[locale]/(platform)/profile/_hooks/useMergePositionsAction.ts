@@ -11,7 +11,7 @@ import { fetchLockedSharesByCondition } from '@/app/[locale]/(platform)/profile/
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_CONDITION_PARTITION } from '@/lib/constants'
-import { UMA_NEG_RISK_ADAPTER_ADDRESS, ZERO_COLLECTION_ID } from '@/lib/contracts'
+import { UMA_NEG_RISK_ADAPTER_ADDRESS, ZERO_BYTES32 } from '@/lib/contracts'
 import { toMicro } from '@/lib/formatters'
 import { applyConditionReductionsToPublicPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
@@ -120,7 +120,7 @@ export function useMergePositionsAction({
           conditionId: entry.conditionId as `0x${string}`,
           partition: [...DEFAULT_CONDITION_PARTITION],
           amount: toMicro(entry.mergeAmount),
-          parentCollectionId: ZERO_COLLECTION_ID,
+          parentCollectionId: ZERO_BYTES32,
           contract: entry.isNegRisk ? UMA_NEG_RISK_ADAPTER_ADDRESS : undefined,
         }),
       )

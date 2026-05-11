@@ -27,7 +27,7 @@ import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_CONDITION_PARTITION, MICRO_UNIT } from '@/lib/constants'
-import { isCurrentNegRiskAdapterAddress, ZERO_COLLECTION_ID } from '@/lib/contracts'
+import { isCurrentNegRiskAdapterAddress, ZERO_BYTES32 } from '@/lib/contracts'
 import { formatAmountInputValue, toMicro } from '@/lib/formatters'
 import { applyPositionDeltasToUserPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
@@ -197,7 +197,7 @@ export default function EventMergeSharesDialog({
           conditionId: conditionId as `0x${string}`,
           partition: [...DEFAULT_CONDITION_PARTITION],
           amount: toMicro(numericAmount),
-          parentCollectionId: ZERO_COLLECTION_ID,
+          parentCollectionId: ZERO_BYTES32,
           contract: mergeContract,
         }),
       ]

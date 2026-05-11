@@ -15,7 +15,7 @@ import {
   DEPOSIT_WALLET_FACTORY_ADDRESS,
   NEG_RISK_CTF_EXCHANGE_ADDRESS,
   UMA_NEG_RISK_ADAPTER_ADDRESS,
-  ZERO_COLLECTION_ID,
+  ZERO_BYTES32,
 } from '@/lib/contracts'
 import {
   DEPOSIT_WALLET_BATCH_DEADLINE_SECONDS,
@@ -316,7 +316,7 @@ export function buildAutoRedeemAllowanceCalls(): WalletCall[] {
 
 export function buildSetReferralCalls(options: ReferralOptions): WalletCall[] {
   const builder = addressToBuilderCode(options.referrer)
-  if (builder === ZERO_COLLECTION_ID) {
+  if (builder === ZERO_BYTES32) {
     return []
   }
 
@@ -390,7 +390,7 @@ export function buildSplitPositionCall(args: ConditionalPositionArgs): WalletCal
     functionName: 'splitPosition',
     args: [
       (args.collateralToken ?? COLLATERAL_TOKEN_ADDRESS) as `0x${string}`,
-      (args.parentCollectionId ?? ZERO_COLLECTION_ID) as `0x${string}`,
+      (args.parentCollectionId ?? ZERO_BYTES32) as `0x${string}`,
       args.conditionId,
       normalizePartition(args.partition),
       BigInt(args.amount),
@@ -404,7 +404,7 @@ export function buildMergePositionCall(args: ConditionalPositionArgs): WalletCal
     functionName: 'mergePositions',
     args: [
       (args.collateralToken ?? COLLATERAL_TOKEN_ADDRESS) as `0x${string}`,
-      (args.parentCollectionId ?? ZERO_COLLECTION_ID) as `0x${string}`,
+      (args.parentCollectionId ?? ZERO_BYTES32) as `0x${string}`,
       args.conditionId,
       normalizePartition(args.partition),
       BigInt(args.amount),
@@ -430,7 +430,7 @@ export function buildRedeemPositionCall(args: ConditionalRedeemArgs): WalletCall
     functionName: 'redeemPositions',
     args: [
       (args.collateralToken ?? COLLATERAL_TOKEN_ADDRESS) as `0x${string}`,
-      (args.parentCollectionId ?? ZERO_COLLECTION_ID) as `0x${string}`,
+      (args.parentCollectionId ?? ZERO_BYTES32) as `0x${string}`,
       args.conditionId,
       normalizePartition(args.indexSets),
     ],
