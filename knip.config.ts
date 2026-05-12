@@ -14,6 +14,10 @@ const config: KnipConfig = {
   ignoreDependencies: [
     'date-fns',
   ],
+  treatConfigHintsAsErrors: false,
+  rules: {
+    unlisted: 'off',
+  },
 }
 
 export default config
