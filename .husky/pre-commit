@@ -1,1 +1,2 @@
+npx knip --fix --no-config-hints
 npx lint-staged
