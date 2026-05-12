@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 
 type RawPosition = NonNullable<Comment['positions']>[number]
 
-export interface CommentPositionEntry {
+interface CommentPositionEntry {
   id: string
   amount: number
   amountLabel: string
@@ -96,7 +96,7 @@ function resolvePositionId(conditionId: string, outcomeIndex: number | null, ind
   return `position-${index}`
 }
 
-export function getCommentPositionEntries(
+function getCommentPositionEntries(
   positions: Comment['positions'] | undefined,
   marketsByConditionId?: Map<string, Market>,
   isSingleMarket = false,
@@ -162,7 +162,7 @@ function CommentPositionBadgeContent({
 
 const badgeBaseClassName = 'inline-flex max-w-64 items-center rounded-sm px-2 py-0.5 text-xs font-semibold'
 
-export function CommentPositionBadge({
+function CommentPositionBadge({
   position,
   label,
   className,

@@ -3,7 +3,7 @@ import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 
 export const SPORTS_SIDEBAR_LIVE_COUNT_KEY = '__live__'
 export const SPORTS_SIDEBAR_FUTURE_COUNT_KEY = '__future__'
-export const SPORTS_SIDEBAR_SECTION_DELIMITER = '::'
+const SPORTS_SIDEBAR_SECTION_DELIMITER = '::'
 
 function resolveSportsSidebarSoonPath(vertical: SportsVertical) {
   return vertical === 'sports' ? '/sports/soon' : '/esports/soon'
@@ -13,7 +13,7 @@ function normalizeComparableValue(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? ''
 }
 
-export function resolveSportsSidebarHrefSection(value: string | null | undefined) {
+function resolveSportsSidebarHrefSection(value: string | null | undefined) {
   const normalizedValue = normalizeComparableValue(value)
 
   if (normalizedValue.endsWith('/games')) {

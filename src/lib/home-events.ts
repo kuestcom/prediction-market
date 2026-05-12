@@ -79,11 +79,9 @@ export function isEventResolvedLike<T extends Pick<HomeVisibleEventCandidate, 's
   return event.markets.every(market => market.is_resolved || market.condition?.resolved === true)
 }
 
-export const isHomeEventResolvedLike = isEventResolvedLike
-
 function isOverdueUnresolved<T extends HomeVisibleEventCandidate>(event: T, nowMs: number) {
   const endTimestamp = toTimestamp(event.end_date)
-  return !isHomeEventResolvedLike(event) && Number.isFinite(endTimestamp) && endTimestamp < nowMs
+  return !isEventResolvedLike(event) && Number.isFinite(endTimestamp) && endTimestamp < nowMs
 }
 
 function isPreferredSeriesEvent<T extends HomeVisibleEventCandidate>(candidate: T, current: T, nowMs: number) {
@@ -91,8 +89,8 @@ function isPreferredSeriesEvent<T extends HomeVisibleEventCandidate>(candidate: 
   const currentEnd = toTimestamp(current.end_date)
   const candidateHasFutureEnd = candidateEnd >= nowMs
   const currentHasFutureEnd = currentEnd >= nowMs
-  const candidateResolved = isHomeEventResolvedLike(candidate)
-  const currentResolved = isHomeEventResolvedLike(current)
+  const candidateResolved = isEventResolvedLike(candidate)
+  const currentResolved = isEventResolvedLike(current)
   const candidateOverdueUnresolved = isOverdueUnresolved(candidate, nowMs)
   const currentOverdueUnresolved = isOverdueUnresolved(current, nowMs)
 

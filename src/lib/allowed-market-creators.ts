@@ -173,7 +173,7 @@ export function groupAllowedMarketCreatorItems(records: AllowedMarketCreatorReco
   return [...siteItems.values(), ...walletItems]
 }
 
-export function isAllowedMarketCreatorItem(payload: unknown): payload is AllowedMarketCreatorItem {
+function isAllowedMarketCreatorItem(payload: unknown): payload is AllowedMarketCreatorItem {
   if (!payload || typeof payload !== 'object') {
     return false
   }

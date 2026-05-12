@@ -15,7 +15,7 @@ import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { resolveOutcomeSelectionPriceCents } from '@/lib/market-pricing'
 import { ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 
-export function resolveInitialOddsFormat(): OddsFormat {
+function resolveInitialOddsFormat(): OddsFormat {
   if (typeof window === 'undefined') {
     return 'price'
   }
@@ -88,7 +88,7 @@ export function resolveMoneylineButtonGridClass(buttonCount: number) {
   return 'grid-cols-3'
 }
 
-export function parseEsportsSegmentDescriptor(market: SportsGamesCard['detailMarkets'][number] | null | undefined) {
+function parseEsportsSegmentDescriptor(market: SportsGamesCard['detailMarkets'][number] | null | undefined) {
   if (!market) {
     return null
   }
@@ -148,11 +148,11 @@ export function isSegmentedEsportsChildMoneylineMarket(market: SportsGamesCard['
   return normalizeSportsMarketType(market?.sports_market_type) === 'child_moneyline'
 }
 
-export function isSegmentedEsportsBinaryMarket(market: SportsGamesCard['detailMarkets'][number] | null | undefined) {
+function isSegmentedEsportsBinaryMarket(market: SportsGamesCard['detailMarkets'][number] | null | undefined) {
   return parseEsportsSegmentNumber(market) != null && !isSegmentedEsportsChildMoneylineMarket(market)
 }
 
-export function isSegmentedEsportsPrimaryMoneylineMarket(market: SportsGamesCard['detailMarkets'][number] | null | undefined) {
+function isSegmentedEsportsPrimaryMoneylineMarket(market: SportsGamesCard['detailMarkets'][number] | null | undefined) {
   if (!market || isSegmentedEsportsChildMoneylineMarket(market)) {
     return false
   }
@@ -269,7 +269,7 @@ export function resolveTeamShortLabel(team: SportsGamesCard['teams'][number] | n
   return initials || name.slice(0, 3).toUpperCase()
 }
 
-export function shouldUseFullCompetitorHeroLabels(sportSlug: string | null | undefined) {
+function shouldUseFullCompetitorHeroLabels(sportSlug: string | null | undefined) {
   return FULL_COMPETITOR_NAME_HERO_LABEL_SPORT_SLUGS.has(
     normalizeComparableToken(sportSlug),
   )
@@ -325,7 +325,7 @@ export function formatRelatedOddsLabel(cents: number | null) {
   return `${cents}¢`
 }
 
-export function normalizeComparableToken(value: string | null | undefined) {
+function normalizeComparableToken(value: string | null | undefined) {
   return value
     ?.normalize('NFKD')
     .replace(/[\u0300-\u036F]/g, '')
@@ -335,7 +335,7 @@ export function normalizeComparableToken(value: string | null | undefined) {
     ?? ''
 }
 
-export function tokenizeComparableText(value: string | null | undefined) {
+function tokenizeComparableText(value: string | null | undefined) {
   return value
     ?.normalize('NFKD')
     .replace(/[\u0300-\u036F]/g, '')
@@ -345,7 +345,7 @@ export function tokenizeComparableText(value: string | null | undefined) {
     ?? []
 }
 
-export function doesTextMatchSportsTeam(
+function doesTextMatchSportsTeam(
   value: string | null | undefined,
   team: SportsGamesCard['teams'][number] | null | undefined,
 ) {
@@ -371,7 +371,7 @@ export function doesTextMatchSportsTeam(
   return new Set(tokenizeComparableText(value)).has(normalizedTeamAbbreviation)
 }
 
-export function resolveSegmentedEsportsButtonMarketType(
+function resolveSegmentedEsportsButtonMarketType(
   market: SportsGamesCard['detailMarkets'][number],
 ): SportsGamesButton['marketType'] {
   const normalizedType = normalizeSportsMarketType(market.sports_market_type)
@@ -407,7 +407,7 @@ export function resolveSegmentedEsportsButtonMarketType(
   return 'binary'
 }
 
-export function buildSegmentedEsportsButtonsFromOutcomes(
+function buildSegmentedEsportsButtonsFromOutcomes(
   card: SportsGamesCard,
   market: SportsGamesCard['detailMarkets'][number],
 ) {
@@ -476,7 +476,7 @@ export function buildSegmentedEsportsButtonsFromOutcomes(
     })
 }
 
-export function shouldNormalizeSegmentedEsportsMarketButtons(
+function shouldNormalizeSegmentedEsportsMarketButtons(
   market: SportsGamesCard['detailMarkets'][number],
   currentButtons: SportsGamesButton[],
 ) {
@@ -569,7 +569,7 @@ export function resolveNormalizedSegmentedEsportsCard(
   }
 }
 
-export function resolveTeamByTone(card: SportsGamesCard, tone: SportsGamesButton['tone']) {
+function resolveTeamByTone(card: SportsGamesCard, tone: SportsGamesButton['tone']) {
   if (tone === 'team1') {
     return card.teams[0] ?? null
   }
@@ -621,7 +621,7 @@ export function resolveRedeemOptionLabel(
     || rawLabel
 }
 
-export function normalizeHexColor(value: string | null | undefined) {
+function normalizeHexColor(value: string | null | undefined) {
   if (!value) {
     return null
   }
@@ -642,7 +642,7 @@ export function normalizeHexColor(value: string | null | undefined) {
   return null
 }
 
-export function resolveHexToRgbComponents(value: string) {
+function resolveHexToRgbComponents(value: string) {
   const hex = value.replace('#', '')
   const expandedHex = hex.length === 3
     ? hex.split('').map(char => `${char}${char}`).join('')
@@ -760,7 +760,7 @@ export function sortAuxiliaryButtons(buttons: SportsGamesButton[]) {
   return [...buttons].sort((a, b) => (order[a.tone] ?? 99) - (order[b.tone] ?? 99))
 }
 
-export function isEventSectionKey(value: SportsGamesButton['marketType']): value is EventSectionKey {
+function isEventSectionKey(value: SportsGamesButton['marketType']): value is EventSectionKey {
   return value === 'moneyline' || value === 'spread' || value === 'total' || value === 'btts'
 }
 

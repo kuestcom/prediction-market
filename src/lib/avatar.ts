@@ -130,7 +130,7 @@ export function shouldUseAvatarPlaceholder(url?: string | null) {
   return !url || !url.trim()
 }
 
-export function buildAvatarBackgroundStyle(seed: string): CSSProperties {
+function buildAvatarBackgroundStyle(seed: string): CSSProperties {
   const paletteIndex = hashString(`${seed}-palette`) % AVATAR_PALETTES.length
   const paletteRotation = hashString(`${seed}-rotation`) % AVATAR_PALETTES[paletteIndex].length
   const palette = rotatePalette(AVATAR_PALETTES[paletteIndex], paletteRotation)

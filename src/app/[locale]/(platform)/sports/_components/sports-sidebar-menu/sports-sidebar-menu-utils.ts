@@ -22,13 +22,13 @@ export interface SportsSidebarMenuProps {
   independentScroll?: boolean
 }
 
-export type SportsMenuChildLinkEntry = SportsMenuGroupEntry['links'][number]
+type SportsMenuChildLinkEntry = SportsMenuGroupEntry['links'][number]
 export type SportsMenuRenderableLinkEntry = SportsMenuLinkEntry | SportsMenuChildLinkEntry
 export type SportsMenuNavigableEntry = SportsMenuRenderableLinkEntry | SportsMenuGroupEntry
 
-export const MOBILE_MENU_ITEM_MIN_WIDTH = 56
+const MOBILE_MENU_ITEM_MIN_WIDTH = 56
 export const MOBILE_MENU_ITEM_GAP = 4
-export const MOBILE_MENU_MIN_VISIBLE_LINKS = 1
+const MOBILE_MENU_MIN_VISIBLE_LINKS = 1
 export const MOBILE_MENU_DEFAULT_VISIBLE_LINKS = 5
 
 export type GroupExpansionOverride = { type: 'none' } | { type: 'group', groupId: string } | null
@@ -85,7 +85,7 @@ export function isLinkEntry(entry: SportsMenuEntry): entry is SportsMenuLinkEntr
   return entry.type === 'link'
 }
 
-export function isGroupEntry(entry: SportsMenuEntry): entry is SportsMenuGroupEntry {
+function isGroupEntry(entry: SportsMenuEntry): entry is SportsMenuGroupEntry {
   return entry.type === 'group'
 }
 

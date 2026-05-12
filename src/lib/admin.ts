@@ -23,7 +23,7 @@ function parseAdminWalletsEnv(value: string): string[] {
 
 let cachedAdminWallets: string[] | null = null
 
-export function getAdminWallets(): string[] {
+function getAdminWallets(): string[] {
   if (cachedAdminWallets) {
     return cachedAdminWallets
   }

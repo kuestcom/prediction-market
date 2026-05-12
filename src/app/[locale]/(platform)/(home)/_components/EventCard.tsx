@@ -17,7 +17,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
 import { formatDate } from '@/lib/formatters'
-import { isHomeEventResolvedLike } from '@/lib/home-events'
+import { isEventResolvedLike } from '@/lib/home-events'
 import { buildChanceByMarket } from '@/lib/market-chance'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import { cn } from '@/lib/utils'
@@ -93,7 +93,7 @@ export default function EventCard({
   enableHomeSportsMoneylineLayout = false,
   currentTimestamp = null,
 }: EventCardProps) {
-  const isResolvedEvent = isHomeEventResolvedLike(event)
+  const isResolvedEvent = isEventResolvedLike(event)
   const canUseXTrackerResolvedOutcomes = useCanUseXTrackerResolvedOutcomes(event)
   const xtrackerTweetCountQuery = useXTrackerTweetCount(event, isResolvedEvent && canUseXTrackerResolvedOutcomes)
   const marketsToDisplay = isResolvedEvent

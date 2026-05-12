@@ -9,7 +9,7 @@ import {
   stripSportsAuxiliaryEventSuffix,
 } from '@/lib/sports-event-slugs'
 
-export interface SportsGamesTeam {
+interface SportsGamesTeam {
   name: string
   abbreviation: string
   record: string | null
@@ -234,7 +234,7 @@ function resolveMarketViewKeyForMarket(market: Market): SportsEventMarketViewKey
   return resolveAuxiliaryMarketKind(market) ?? 'gameLines'
 }
 
-export function resolveSportsMarketTypeLabel(value: string | null | undefined) {
+function resolveSportsMarketTypeLabel(value: string | null | undefined) {
   const normalized = value?.trim().toLowerCase()
   if (!normalized) {
     return null

@@ -11,7 +11,7 @@ interface BuildEventMarketRowsOptions {
   marketYesPrices: Record<string, number>
 }
 
-export interface EventMarketRowChanceMeta {
+interface EventMarketRowChanceMeta {
   chanceDisplay: string
   normalizedChance: number
   isSubOnePercent: boolean

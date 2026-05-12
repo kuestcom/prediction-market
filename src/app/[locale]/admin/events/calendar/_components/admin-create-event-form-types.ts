@@ -118,7 +118,7 @@ export interface OpenRouterStatusResponse {
   configured: boolean
 }
 
-export interface PreparePayloadOption {
+interface PreparePayloadOption {
   id: string
   question: string
   title: string

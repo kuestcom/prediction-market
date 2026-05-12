@@ -10,7 +10,7 @@ export const GLOBAL_ANNOUNCEMENT_MESSAGE_KEY = 'global_announcement_message'
 export const GLOBAL_ANNOUNCEMENT_LINK_URL_KEY = 'global_announcement_link_url'
 export const GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY = 'global_announcement_disabled_on'
 export const MAX_GLOBAL_ANNOUNCEMENT_MESSAGE_LENGTH = 220
-export const MAX_GLOBAL_ANNOUNCEMENT_LINK_URL_LENGTH = 2048
+const MAX_GLOBAL_ANNOUNCEMENT_LINK_URL_LENGTH = 2048
 export const DEFAULT_GLOBAL_ANNOUNCEMENT_DISABLED_ON: CustomJavascriptCodeDisablePage[] = []
 
 const GLOBAL_ANNOUNCEMENT_DISABLED_ON_SET = new Set<string>(CUSTOM_JAVASCRIPT_CODE_DISABLE_PAGE_OPTIONS)

@@ -2,13 +2,13 @@ import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import { slugifyText } from '@/lib/slug'
 import { normalizeDateTimeLocalValue } from './datetime-local'
 
-export type AdminSportsSection = 'games' | 'props'
-export type AdminSportsEventVariant = 'standard' | 'more_markets' | 'exact_score' | 'halftime_result' | 'custom'
+type AdminSportsSection = 'games' | 'props'
+type AdminSportsEventVariant = 'standard' | 'more_markets' | 'exact_score' | 'halftime_result' | 'custom'
 export type AdminSportsTeamHostStatus = 'home' | 'away'
-export type AdminSportsPropStatType = 'points' | 'rebounds' | 'assists' | 'receiving_yards' | 'rushing_yards'
-export type AdminSportsIconAssetKey = '' | AdminSportsTeamHostStatus
+type AdminSportsPropStatType = 'points' | 'rebounds' | 'assists' | 'receiving_yards' | 'rushing_yards'
+type AdminSportsIconAssetKey = '' | AdminSportsTeamHostStatus
 
-export interface AdminSportsTeamState {
+interface AdminSportsTeamState {
   hostStatus: AdminSportsTeamHostStatus
   name: string
   abbreviation: string
@@ -51,7 +51,7 @@ export interface AdminSportsFormState {
   customMarkets: AdminSportsCustomMarketState[]
 }
 
-export interface AdminSportsPreparePayload {
+interface AdminSportsPreparePayload {
   section: AdminSportsSection
   eventVariant: AdminSportsEventVariant
   sportSlug?: string
@@ -94,7 +94,7 @@ export interface AdminSportsPreparePayload {
 }
 
 export type AdminSportsMarketTypeSection = AdminSportsSection
-export type AdminSportsMarketOutcomePreset = 'yes_no' | 'over_under' | 'odd_even' | 'home_away'
+type AdminSportsMarketOutcomePreset = 'yes_no' | 'over_under' | 'odd_even' | 'home_away'
 
 export interface AdminSportsMarketTypeOption {
   value: string
@@ -105,7 +105,7 @@ export interface AdminSportsMarketTypeOption {
   requiresLine?: boolean
 }
 
-export interface AdminSportsSlugOption {
+interface AdminSportsSlugOption {
   label: string
   value: string
 }
@@ -116,12 +116,12 @@ export interface AdminSportsSlugCatalog {
   allLeagueOptions: AdminSportsSlugOption[]
 }
 
-export interface SportsDerivedCategory {
+interface SportsDerivedCategory {
   label: string
   slug: string
 }
 
-export interface SportsDerivedOption {
+interface SportsDerivedOption {
   id: string
   question: string
   title: string
@@ -536,7 +536,7 @@ function buildTeamPair(teams: AdminSportsFormState['teams']) {
   }
 }
 
-export function buildSportsEventSlug(baseSlug: string, eventVariant: AdminSportsFormState['eventVariant']) {
+function buildSportsEventSlug(baseSlug: string, eventVariant: AdminSportsFormState['eventVariant']) {
   const normalizedBaseSlug = slugify(baseSlug)
   if (!normalizedBaseSlug) {
     return ''

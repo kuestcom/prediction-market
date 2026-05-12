@@ -2,24 +2,10 @@ import type { EventListSortBy } from '@/lib/event-list-filters'
 
 export const PREDICTION_RESULTS_SORT_PARAM = '_sort'
 export const PREDICTION_RESULTS_STATUS_PARAM = '_status'
-export const PREDICTION_RESULTS_INTERNAL_ROUTE_SEGMENT = 'route-filters'
+const PREDICTION_RESULTS_INTERNAL_ROUTE_SEGMENT = 'route-filters'
 
-export const PREDICTION_RESULTS_SORT_OPTIONS = [
-  'trending',
-  'volume',
-  'newest',
-  'ending-soon',
-  'competitive',
-] as const
-
-export const PREDICTION_RESULTS_STATUS_OPTIONS = [
-  'active',
-  'resolved',
-  'all',
-] as const
-
-export type PredictionResultsSortOption = typeof PREDICTION_RESULTS_SORT_OPTIONS[number]
-export type PredictionResultsStatusOption = typeof PREDICTION_RESULTS_STATUS_OPTIONS[number]
+export type PredictionResultsSortOption = 'trending' | 'volume' | 'newest' | 'ending-soon' | 'competitive'
+export type PredictionResultsStatusOption = 'active' | 'resolved' | 'all'
 
 export const DEFAULT_PREDICTION_RESULTS_SORT: PredictionResultsSortOption = 'trending'
 export const DEFAULT_PREDICTION_RESULTS_STATUS: PredictionResultsStatusOption = 'active'

@@ -216,7 +216,7 @@ function resolveExplicitOutcomeForTeam(
   return null
 }
 
-export interface HomeSportsTeam {
+interface HomeSportsTeam {
   name: string
   abbreviation: string
   color: string | null

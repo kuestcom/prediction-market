@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveEventOutcomePath } from '@/lib/events-routing'
 import { formatDate, formatVolume } from '@/lib/formatters'
-import { isHomeEventResolvedLike } from '@/lib/home-events'
+import { isEventResolvedLike } from '@/lib/home-events'
 import { resolveHomeSportsButtonChance, resolveResolvedHomeSportsMoneylineWinner } from '@/lib/sports-home-card'
 import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
 import { cn } from '@/lib/utils'
@@ -173,7 +173,7 @@ export default function EventCardSportsMoneyline({
       outcomeIndex: button.outcomeIndex,
     })
   }
-  const isResolvedEvent = isHomeEventResolvedLike(event)
+  const isResolvedEvent = isEventResolvedLike(event)
   const sportsCompetitionLabel = resolveSportsCompetitionLabel(event)
   const startTimeLabel = formatSportsStartTime(event.sports_start_time ?? event.start_date, currentTimestamp)
   const endedLabel = isResolvedEvent && event.resolved_at

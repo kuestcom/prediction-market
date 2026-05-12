@@ -41,16 +41,6 @@ const RANGE_WINDOW_SECONDS: Record<Exclude<TimeRange, 'ALL'>, number> = {
 }
 
 export const TIME_RANGES: TimeRange[] = ['1H', '6H', '1D', '1W', '1M', 'ALL']
-export const MINUTE_MS = 60 * 1000
-export const HOUR_MS = 60 * MINUTE_MS
-export const CURSOR_STEP_MS: Record<TimeRange, number> = {
-  'ALL': 12 * HOUR_MS,
-  '1M': 3 * HOUR_MS,
-  '1W': 30 * MINUTE_MS,
-  '1D': 5 * MINUTE_MS,
-  '6H': MINUTE_MS,
-  '1H': MINUTE_MS,
-}
 const PRICE_REFRESH_INTERVAL_MS = 60_000
 
 function parseResolvedAtSeconds(resolvedAt?: string | null) {
@@ -175,7 +165,7 @@ function clampPrice(value: number) {
   return value
 }
 
-export function buildNormalizedHistory(historyByMarket: PriceHistoryByMarket): NormalizedHistoryResult {
+function buildNormalizedHistory(historyByMarket: PriceHistoryByMarket): NormalizedHistoryResult {
   const timeline = new Map<number, Map<string, number>>()
   Object.entries(historyByMarket).forEach(([conditionId, history]) => {
     history.forEach((point) => {

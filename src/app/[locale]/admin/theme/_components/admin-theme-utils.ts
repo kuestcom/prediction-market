@@ -1,4 +1,9 @@
 import type { CSSProperties } from 'react'
+import type {
+  AdminThemePresetOption,
+  AdminThemeSettingsInitialState,
+  AdminThemeSiteSettingsInitialState,
+} from '../_types/theme-form-state'
 import type { ThemeOverrides } from '@/lib/theme'
 import { THEME_TOKENS } from '@/lib/theme'
 
@@ -61,9 +66,9 @@ export const TOKEN_GROUPS: { id: string, tokens: import('@/lib/theme').ThemeToke
 ]
 
 export interface AdminThemeSettingsFormProps {
-  presetOptions: import('@/app/[locale]/admin/theme/_types/theme-form-state').AdminThemePresetOption[]
-  initialThemeSettings: import('@/app/[locale]/admin/theme/_types/theme-form-state').AdminThemeSettingsInitialState
-  initialThemeSiteSettings: import('@/app/[locale]/admin/theme/_types/theme-form-state').AdminThemeSiteSettingsInitialState
+  presetOptions: AdminThemePresetOption[]
+  initialThemeSettings: AdminThemeSettingsInitialState
+  initialThemeSiteSettings: AdminThemeSiteSettingsInitialState
 }
 
 export function buildPreviewStyle(variables: ThemeOverrides, radius: string | null): CSSProperties {

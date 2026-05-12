@@ -19,7 +19,7 @@ export interface PredictionSearchContext {
   tag: string
 }
 
-export function normalizePredictionSearchValue(value: string) {
+function normalizePredictionSearchValue(value: string) {
   return value
     .normalize('NFKD')
     .replace(/[\u0300-\u036F]/g, '')
@@ -27,7 +27,7 @@ export function normalizePredictionSearchValue(value: string) {
     .trim()
 }
 
-export function slugifyPredictionSearchValue(value: string) {
+function slugifyPredictionSearchValue(value: string) {
   return normalizePredictionSearchValue(value)
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')

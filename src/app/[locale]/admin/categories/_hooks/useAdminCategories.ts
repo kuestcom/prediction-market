@@ -69,7 +69,7 @@ async function fetchAdminCategories(params: UseAdminCategoriesParams): Promise<A
   return response.json()
 }
 
-export function useAdminCategories(params: UseAdminCategoriesParams = {}) {
+function useAdminCategories(params: UseAdminCategoriesParams = {}) {
   const {
     limit = 50,
     search,

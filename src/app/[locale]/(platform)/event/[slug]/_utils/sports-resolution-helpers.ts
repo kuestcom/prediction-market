@@ -24,7 +24,7 @@ function normalizeSportsTeams(teams: SportsTeam[] | null | undefined) {
 
 export { normalizeComparableText, parseSportsScore }
 
-export function resolveSportsTeams(teams: SportsTeam[] | null | undefined) {
+function resolveSportsTeams(teams: SportsTeam[] | null | undefined) {
   const normalizedTeams = normalizeSportsTeams(teams)
   const homeTeam = normalizedTeams.find(team => team.hostStatus === 'home') ?? normalizedTeams[0] ?? null
   const awayTeam = normalizedTeams.find(team => team.hostStatus === 'away')

@@ -7,7 +7,7 @@ import { areSeriesKeyListsEqual } from '@/lib/prediction-chart-helpers'
 const CROSS_FADE_DURATION = 320
 const SURGE_DURATION = 760
 
-export function usePredictionChartAnimation(params: {
+function usePredictionChartAnimation(params: {
   data: DataPoint[]
   series: SeriesConfig[]
   disableResetAnimation: boolean

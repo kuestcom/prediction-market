@@ -61,7 +61,7 @@ function hasSportsContext(market: Market | null | undefined) {
   )
 }
 
-export function isExactScoreSportsMarket(market: Market | null | undefined) {
+function isExactScoreSportsMarket(market: Market | null | undefined) {
   const normalizedType = normalizeComparableText(market?.sports_market_type)
   if (normalizedType.includes('exact score')) {
     return true

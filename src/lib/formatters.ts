@@ -3,12 +3,12 @@ import { MICRO_UNIT } from '@/lib/constants'
 const DEFAULT_LOCALE = 'en-US'
 const DEFAULT_CURRENCY = 'USD'
 
-export const priceFormatter = new Intl.NumberFormat(DEFAULT_LOCALE, {
+const priceFormatter = new Intl.NumberFormat(DEFAULT_LOCALE, {
   minimumFractionDigits: 0,
   maximumFractionDigits: 1,
 })
 
-export const sharesFormatter = new Intl.NumberFormat(DEFAULT_LOCALE, {
+const sharesFormatter = new Intl.NumberFormat(DEFAULT_LOCALE, {
   minimumFractionDigits: 0,
   maximumFractionDigits: 2,
 })

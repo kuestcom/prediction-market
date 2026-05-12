@@ -1,8 +1,8 @@
 import type { TypedDataDomain } from 'viem'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 
-export const TRADING_AUTH_DOMAIN_NAME = 'ClobAuthDomain'
-export const TRADING_AUTH_DOMAIN_VERSION = '1'
+const TRADING_AUTH_DOMAIN_NAME = 'ClobAuthDomain'
+const TRADING_AUTH_DOMAIN_VERSION = '1'
 export const TRADING_AUTH_PRIMARY_TYPE = 'ClobAuth'
 
 export const TRADING_AUTH_TYPES = {
@@ -14,7 +14,7 @@ export const TRADING_AUTH_TYPES = {
   ],
 } as const
 
-export const TRADING_AUTH_NONCE = '0'
+const TRADING_AUTH_NONCE = '0'
 
 export function getTradingAuthDomain(chainId: number = DEFAULT_CHAIN_ID): TypedDataDomain {
   return {

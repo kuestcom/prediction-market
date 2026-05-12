@@ -1,4 +1,4 @@
-export type XTrackerPlatform = 'X' | 'TRUTH_SOCIAL'
+type XTrackerPlatform = 'X' | 'TRUTH_SOCIAL'
 
 export interface XTrackerSource {
   handle: string

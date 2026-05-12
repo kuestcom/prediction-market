@@ -1,4 +1,4 @@
-export type LivestreamProvider = 'youtube' | 'twitch' | 'kick' | 'unknown'
+type LivestreamProvider = 'youtube' | 'twitch' | 'kick' | 'unknown'
 
 export interface LivestreamEmbedTarget {
   provider: LivestreamProvider

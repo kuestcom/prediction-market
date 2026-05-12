@@ -7,7 +7,7 @@ import type {
 type SportsMenuChildLinkEntry = Extract<SportsMenuEntry, { type: 'group' }>['links'][number]
 type SportsMenuResolvedEntry = SportsMenuLinkEntry | SportsMenuGroupEntry | SportsMenuChildLinkEntry
 
-export function findSportsMenuEntryBySlug(params: {
+function findSportsMenuEntryBySlug(params: {
   menuEntries: SportsMenuEntry[] | undefined
   canonicalSportSlug: string
   hrefPrefix?: string

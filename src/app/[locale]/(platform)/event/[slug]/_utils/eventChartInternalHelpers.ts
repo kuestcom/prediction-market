@@ -11,13 +11,13 @@ export interface TradeFlowLabelItem {
   createdAt: number
 }
 
-export const tradeFlowMaxItems = 6
-export const tradeFlowTtlMs = 8000
+const tradeFlowMaxItems = 6
+const tradeFlowTtlMs = 8000
 export const tradeFlowCleanupIntervalMs = 500
-export const CHART_MARKER_ACTIVITY_PAGE_SIZE = 50
-export const CHART_MARKER_MAX_PAGES_PER_MARKET = 10
+const CHART_MARKER_ACTIVITY_PAGE_SIZE = 50
+const CHART_MARKER_MAX_PAGES_PER_MARKET = 10
 export const EVENT_PLOT_CLIP_RIGHT_PADDING = 18
-export const TWEET_COUNT_METADATA_KEYS = [
+const TWEET_COUNT_METADATA_KEYS = [
   'tweet_count',
   'tweetCount',
   'tweets_count',
@@ -164,7 +164,7 @@ export function parseTimestampToMs(value: string | null | undefined): number | n
   return Number.isFinite(parsed) ? parsed : null
 }
 
-export function parseCountValue(value: unknown): number | null {
+function parseCountValue(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value >= 0 ? value : null
   }
@@ -184,7 +184,7 @@ export function parseCountValue(value: unknown): number | null {
   return null
 }
 
-export function resolveTweetCountFromRecord(record: Record<string, unknown> | null | undefined): number | null {
+function resolveTweetCountFromRecord(record: Record<string, unknown> | null | undefined): number | null {
   if (!record) {
     return null
   }

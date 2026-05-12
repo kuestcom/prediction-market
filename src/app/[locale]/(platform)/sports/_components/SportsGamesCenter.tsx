@@ -86,7 +86,7 @@ import {
 } from './_sports-games-center/useSportsGamesCenter'
 
 // Re-export types and values consumed by SportsEventCenter and other external files
-export type { SportsGameGraphVariant, SportsGamesMarketType, SportsLinePickerOption } from './_sports-games-center/sports-games-center-types'
+export type { SportsGamesMarketType, SportsLinePickerOption } from './_sports-games-center/sports-games-center-types'
 export {
   buildLinePickerOptions,
   groupButtonsByMarketType,

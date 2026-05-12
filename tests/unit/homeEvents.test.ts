@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterHomeEvents, isHomeEventResolvedLike } from '@/lib/home-events'
+import { filterHomeEvents, isEventResolvedLike } from '@/lib/home-events'
 
 describe('home-events', () => {
   it('treats active events with unresolved markets as not resolved-like', () => {
@@ -22,7 +22,7 @@ describe('home-events', () => {
       tags: [],
     } as any
 
-    expect(isHomeEventResolvedLike(event)).toBe(false)
+    expect(isEventResolvedLike(event)).toBe(false)
   })
 
   it('keeps only fully resolved events in the resolved home filter', () => {

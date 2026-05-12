@@ -56,7 +56,7 @@ const MIN_Y_AXIS_TICKS = 3
 const PREFERRED_MAX_Y_AXIS_TICKS = 5
 const MAX_Y_AXIS_TICKS = 6
 
-export function PredictionChart({
+export default function PredictionChart({
   data: providedData,
   series: providedSeries,
   width = 800,
@@ -162,10 +162,8 @@ export function PredictionChart({
     crossFadeProgress,
     surgeActive,
     surgeLengths,
-    revealSeriesKeys: _revealSeriesKeys,
     revealSeriesSet,
     revealAnimationFrameRef,
-    crossFadeAnimating: _crossFadeAnimating,
     hasPointerInteractionRef,
     lastCursorProgressRef,
   } = usePredictionChartAnimation({
@@ -1190,5 +1188,3 @@ export function PredictionChart({
     </div>
   )
 }
-
-export default PredictionChart

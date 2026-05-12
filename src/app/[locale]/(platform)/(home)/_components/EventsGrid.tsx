@@ -18,7 +18,7 @@ import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { fetchEventsApi } from '@/lib/events-api'
-import { HOME_EVENTS_PAGE_SIZE, isHomeEventResolvedLike } from '@/lib/home-events'
+import { HOME_EVENTS_PAGE_SIZE, isEventResolvedLike } from '@/lib/home-events'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import { useUser } from '@/stores/useUser'
@@ -46,7 +46,7 @@ function hasFiniteTimestamp(value: number | null | undefined) {
 }
 
 function resolveCardMarkets(event: Event) {
-  const activeMarkets = isHomeEventResolvedLike(event)
+  const activeMarkets = isEventResolvedLike(event)
     ? event.markets
     : event.markets.filter(market => !market.is_resolved && !market.condition?.resolved)
 

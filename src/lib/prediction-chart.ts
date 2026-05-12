@@ -23,7 +23,7 @@ export function clamp01(value: number) {
   return value
 }
 
-export function easeOutCubic(t: number) {
+function easeOutCubic(t: number) {
   return 1 - (1 - t) ** 3
 }
 

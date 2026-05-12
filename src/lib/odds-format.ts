@@ -88,7 +88,7 @@ function toFractionString(value: number) {
   return `${reducedNumerator}/${reducedDenominator}`
 }
 
-export function normalizeProbabilityFromPrice(value: number | null | undefined) {
+function normalizeProbabilityFromPrice(value: number | null | undefined) {
   if (value == null) {
     return null
   }
@@ -109,7 +109,7 @@ export function normalizeProbabilityFromPrice(value: number | null | undefined) 
   return null
 }
 
-export function formatOddsFromProbability(probability: number | null | undefined, oddsFormat: OddsFormat) {
+function formatOddsFromProbability(probability: number | null | undefined, oddsFormat: OddsFormat) {
   if (probability == null || !Number.isFinite(probability) || probability <= 0 || probability >= 1) {
     return '—'
   }

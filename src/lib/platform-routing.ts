@@ -27,7 +27,7 @@ interface PlatformMainTagWithChildrenLike extends PlatformMainTagLike {
   childs: { name: string, slug: string }[]
 }
 
-export function normalizePlatformRootSlug(slug: string) {
+function normalizePlatformRootSlug(slug: string) {
   return slug.trim().toLowerCase()
 }
 

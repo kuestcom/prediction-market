@@ -1,6 +1,6 @@
 import { formatCurrency, formatPercent } from '@/lib/formatters'
 
-export interface AffiliateSettingsResponse {
+interface AffiliateSettingsResponse {
   builderTakerFeePercent: number
   builderMakerFeePercent: number
   affiliateSharePercent: number

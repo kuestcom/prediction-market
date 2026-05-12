@@ -1,9 +1,9 @@
-export interface SportsMenuDividerEntry {
+interface SportsMenuDividerEntry {
   type: 'divider'
   id: string
 }
 
-export interface SportsMenuHeaderEntry {
+interface SportsMenuHeaderEntry {
   type: 'header'
   id: string
   label: string

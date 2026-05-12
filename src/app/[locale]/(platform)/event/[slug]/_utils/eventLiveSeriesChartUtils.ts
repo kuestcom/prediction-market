@@ -7,12 +7,12 @@ import {
 
 export const SERIES_KEY = 'live_price'
 export const LIVE_WINDOW_MS = 40 * 1000
-export const LIVE_HISTORY_BUFFER_MS = 8 * 1000
+const LIVE_HISTORY_BUFFER_MS = 8 * 1000
 export const LIVE_DATA_RETENTION_MS = LIVE_WINDOW_MS + LIVE_HISTORY_BUFFER_MS
 export const LIVE_CLOCK_FRAME_MS = 1000 / 30
 export const LIVE_X_AXIS_STEP_MS = 10 * 1000
 export const LIVE_X_AXIS_LEFT_LABEL_GUARD_MS = 3600
-export const LIVE_MAX_Y_AXIS_TICKS = 6
+const LIVE_MAX_Y_AXIS_TICKS = 6
 export const MAX_POINTS = 4000
 export const LIVE_WS_USE_ONLY_LAST_UPDATE_PER_MESSAGE = true
 export const LIVE_CHART_HEIGHT = 332
@@ -24,7 +24,7 @@ export const LIVE_CURSOR_GUIDE_TOP = 10
 export const LIVE_TARGET_MAX_BOTTOM_OFFSET = 10
 export const LIVE_CURRENT_MARKER_OFFSET_X = 0
 export const LIVE_PLOT_CLIP_RIGHT_PADDING = 22
-export const LIVE_PRICE_STORAGE_PREFIX = 'kuest-live-last-price'
+const LIVE_PRICE_STORAGE_PREFIX = 'kuest-live-last-price'
 
 export interface PersistedLivePrice {
   price: number
@@ -47,7 +47,7 @@ export interface LiveSeriesPriceSnapshot {
   is_event_closed: boolean
 }
 
-export function normalizeTimestamp(value: unknown, fallbackTimestamp = 0) {
+function normalizeTimestamp(value: unknown, fallbackTimestamp = 0) {
   const numeric = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(numeric)) {
     return fallbackTimestamp
@@ -55,7 +55,7 @@ export function normalizeTimestamp(value: unknown, fallbackTimestamp = 0) {
   return numeric < 1e12 ? numeric * 1000 : numeric
 }
 
-export function buildLivePriceStorageKey(topic: string, symbol: string) {
+function buildLivePriceStorageKey(topic: string, symbol: string) {
   return `${LIVE_PRICE_STORAGE_PREFIX}:${topic.trim().toLowerCase()}:${symbol.trim().toUpperCase()}`
 }
 

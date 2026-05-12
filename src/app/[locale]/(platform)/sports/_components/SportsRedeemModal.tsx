@@ -26,7 +26,7 @@ import {
 } from '@/lib/wallet/transactions'
 import { useUser } from '@/stores/useUser'
 
-export interface SportsRedeemModalPosition {
+interface SportsRedeemModalPosition {
   key: string
   label: string
   shares: number

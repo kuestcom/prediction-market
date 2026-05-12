@@ -1,7 +1,7 @@
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { formatCentsLabel, formatCurrency, formatPercent } from '@/lib/formatters'
 
-export type ShareCardVariant = 'yes' | 'no'
+type ShareCardVariant = 'yes' | 'no'
 
 export interface ShareCardPayload {
   title: string

@@ -89,7 +89,7 @@ async function fetchAdminEvents(params: UseAdminEventsParams): Promise<AdminEven
   return response.json()
 }
 
-export function useAdminEvents(params: UseAdminEventsParams = {}) {
+function useAdminEvents(params: UseAdminEventsParams = {}) {
   const {
     limit = 50,
     search,

@@ -1,10 +1,10 @@
 import type { CustomJavascriptCodeConfig } from '@/lib/custom-javascript-code'
 import { sanitizeSvg } from '@/lib/utils'
 
-export const THEME_SITE_LOGO_MODES = ['svg', 'image'] as const
+const THEME_SITE_LOGO_MODES = ['svg', 'image'] as const
 export type ThemeSiteLogoMode = typeof THEME_SITE_LOGO_MODES[number]
 
-export const THEME_SITE_SOCIAL_LINK_FIELDS = [
+const THEME_SITE_SOCIAL_LINK_FIELDS = [
   'discordLink',
   'twitterLink',
   'facebookLink',
@@ -76,7 +76,7 @@ function sanitizeDefaultLogo() {
 }
 
 export const DEFAULT_THEME_SITE_NAME = DEFAULT_SITE_NAME_FALLBACK
-export const DEFAULT_THEME_SITE_DESCRIPTION = DEFAULT_SITE_DESCRIPTION_FALLBACK
+const DEFAULT_THEME_SITE_DESCRIPTION = DEFAULT_SITE_DESCRIPTION_FALLBACK
 export const DEFAULT_THEME_SITE_LOGO_SVG = sanitizeDefaultLogo()
 export const DEFAULT_THEME_SITE_PWA_ICON_192_URL = '/images/pwa/default-icon-192.png'
 export const DEFAULT_THEME_SITE_PWA_ICON_512_URL = '/images/pwa/default-icon-512.png'
@@ -307,7 +307,7 @@ export function validateThemeSiteDescription(value: string | null | undefined, s
   return { value: normalized, error: null }
 }
 
-export function isThemeSiteLogoMode(value: string): value is ThemeSiteLogoMode {
+function isThemeSiteLogoMode(value: string): value is ThemeSiteLogoMode {
   return THEME_SITE_LOGO_MODE_SET.has(value)
 }
 

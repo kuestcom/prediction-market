@@ -19,7 +19,6 @@ import {
 import TradingOnboardingDialogs from '@/app/[locale]/(platform)/_components/TradingOnboardingDialogs'
 import {
   TradingOnboardingContext,
-  useOptionalTradingOnboarding,
   useTradingOnboarding,
 } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
@@ -1051,4 +1050,4 @@ function TradingOnboardingProviderContent({
   )
 }
 
-export { useOptionalTradingOnboarding, useTradingOnboarding }
+export { useTradingOnboarding }

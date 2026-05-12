@@ -7,7 +7,7 @@ import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { toCents } from '@/lib/formatters'
 import { normalizeBookLevels } from '@/lib/order-panel-utils'
 
-export function clampUnitPrice(value: number | null | undefined) {
+function clampUnitPrice(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) {
     return null
   }
@@ -23,7 +23,7 @@ export function clampUnitPrice(value: number | null | undefined) {
   return value
 }
 
-export function normalizeMarketUnitPrice(market: Market | null | undefined) {
+function normalizeMarketUnitPrice(market: Market | null | undefined) {
   if (!market) {
     return null
   }
@@ -74,7 +74,7 @@ export function resolveFallbackOutcomeUnitPrice(
     : marketPrice
 }
 
-export function resolveOutcomeSelectionUnitPrice(
+function resolveOutcomeSelectionUnitPrice(
   market: Market | null | undefined,
   outcome: Outcome | null | undefined,
   options?: {
@@ -105,7 +105,7 @@ export function resolveOutcomeSelectionUnitPrice(
   return options?.fallbackIsNoOutcome ? clampUnitPrice(1 - marketPrice) : marketPrice
 }
 
-export function getTopOfBookUnitPrice(
+function getTopOfBookUnitPrice(
   summary: OrderBookSummaryResponse | null | undefined,
   side: 'ask' | 'bid',
 ) {

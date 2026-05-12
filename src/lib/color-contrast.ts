@@ -10,7 +10,7 @@ function toHex(channel: number) {
   return channel.toString(16).padStart(2, '0')
 }
 
-export function hexToRgb(color: string) {
+function hexToRgb(color: string) {
   const normalized = normalizeHex(color)
   if (!/^[0-9a-f]{6}$/i.test(normalized)) {
     return null
@@ -31,7 +31,7 @@ function toLinearChannel(channel: number) {
   return ((normalized + 0.055) / 1.055) ** 2.4
 }
 
-export function getRelativeLuminance(color: string) {
+function getRelativeLuminance(color: string) {
   const rgb = hexToRgb(color)
   if (!rgb) {
     return null
@@ -43,7 +43,7 @@ export function getRelativeLuminance(color: string) {
   return (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
 }
 
-export function mixWithWhite(color: string, ratio: number) {
+function mixWithWhite(color: string, ratio: number) {
   const rgb = hexToRgb(color)
   if (!rgb) {
     return color

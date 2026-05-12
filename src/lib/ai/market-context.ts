@@ -158,7 +158,7 @@ export async function generateMarketContext(
   return normalizeModelOutput(raw)
 }
 
-export function normalizeModelOutput(content: string) {
+function normalizeModelOutput(content: string) {
   return content
     .replace(/<\|begin[^>]*\|>/g, '')
     .replace(/<\|end[^>]*\|>/g, '')

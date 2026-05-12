@@ -172,7 +172,7 @@ export function addRecurrenceInterval(date: Date, unit: EventCreationRecurrenceU
   return shiftRecurrenceInterval(date, unit, safeInterval)
 }
 
-export function subtractRecurrenceInterval(date: Date, unit: EventCreationRecurrenceUnit, interval: number) {
+function subtractRecurrenceInterval(date: Date, unit: EventCreationRecurrenceUnit, interval: number) {
   const safeInterval = Math.max(1, Math.floor(interval || 1))
   return shiftRecurrenceInterval(date, unit, safeInterval * -1)
 }
@@ -280,7 +280,7 @@ export function applyEventCreationTemplate(template: string, date: Date, fallbac
   })
 }
 
-export function buildOccurrenceTitle(input: {
+function buildOccurrenceTitle(input: {
   title: string
   titleTemplate?: string | null
   slug?: string | null

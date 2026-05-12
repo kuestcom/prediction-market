@@ -55,7 +55,7 @@ async function fetchAdminUsers(params: UseAdminUsersParams): Promise<AdminUsersR
   return response.json()
 }
 
-export function useAdminUsers(params: UseAdminUsersParams = {}) {
+function useAdminUsers(params: UseAdminUsersParams = {}) {
   const { limit = 50, search, sortBy = 'created_at', sortOrder = 'desc', pageIndex = 0 } = params
 
   const queryKey = useMemo(() => [

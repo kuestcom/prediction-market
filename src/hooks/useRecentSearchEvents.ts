@@ -98,7 +98,7 @@ export function saveRecentSearchEvent(item: RecentSearchEvent) {
   writeRecentSearchEvents(nextItems)
 }
 
-export function removeRecentSearchEvent(id: string) {
+function removeRecentSearchEvent(id: string) {
   const normalizedId = id.trim()
   if (!normalizedId) {
     return

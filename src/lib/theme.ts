@@ -74,7 +74,7 @@ const OKLCH_COLOR_PATTERN = new RegExp(
   'i',
 )
 
-export interface ThemePreset {
+interface ThemePreset {
   id: ThemePresetId
   label: string
   description: string
@@ -144,7 +144,7 @@ function normalizeThemeTokenKey(value: string): ThemeToken | null {
   return normalized as ThemeToken
 }
 
-export function isThemePresetId(value: string): value is ThemePresetId {
+function isThemePresetId(value: string): value is ThemePresetId {
   return THEME_PRESET_ID_SET.has(value)
 }
 

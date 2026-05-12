@@ -42,7 +42,7 @@ function compareAscending(left: number, right: number) {
   return left - right
 }
 
-export function compareSearchResultEvents(left: Event, right: Event) {
+function compareSearchResultEvents(left: Event, right: Event) {
   const leftResolved = isEventResolvedLike(left)
   const rightResolved = isEventResolvedLike(right)
 

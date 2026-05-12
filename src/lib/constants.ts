@@ -30,14 +30,14 @@ export const OUTCOME_INDEX = {
 
 export const MICRO_UNIT = 1_000_000
 
-export const EIP712_DOMAIN = {
+const EIP712_DOMAIN = {
   name: 'CTF Exchange',
   version: '2',
   chainId: DEFAULT_CHAIN_ID,
   verifyingContract: CTF_EXCHANGE_ADDRESS,
 } as const
 
-export const NEG_RISK_EIP712_DOMAIN = {
+const NEG_RISK_EIP712_DOMAIN = {
   name: 'CTF Exchange',
   version: '2',
   chainId: DEFAULT_CHAIN_ID,

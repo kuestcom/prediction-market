@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import 'server-only'
 
-export function sha256Hex(value: string) {
+function sha256Hex(value: string) {
   return createHash('sha256').update(value).digest('hex')
 }
 

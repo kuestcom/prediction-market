@@ -19,7 +19,6 @@ import { useLiFiWalletTokens } from '@/hooks/useLiFiWalletTokens'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 
 export type { WalletDepositModalProps, WalletWithdrawModalProps }
-export type { PendingWithdrawalItem, WalletDepositView } from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
 
 export function WalletDepositModal(props: WalletDepositModalProps) {
   const {

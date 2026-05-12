@@ -1,11 +1,11 @@
-export const EVENT_LIST_SORT_OPTIONS = [
+const EVENT_LIST_SORT_OPTIONS = [
   'trending',
   'volume',
   'created_at',
   'end_date',
 ] as const
 
-export const EVENT_LIST_STATUS_OPTIONS = [
+const EVENT_LIST_STATUS_OPTIONS = [
   'active',
   'resolved',
   'all',

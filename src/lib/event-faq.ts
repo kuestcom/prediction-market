@@ -21,7 +21,7 @@ interface FaqSelection {
 }
 
 type EventFaqTranslationValues = Record<string, string | number>
-export type EventFaqMessageKey
+type EventFaqMessageKey
   = | 'thisMarket'
     | 'thisOutcome'
     | 'yesOutcome'

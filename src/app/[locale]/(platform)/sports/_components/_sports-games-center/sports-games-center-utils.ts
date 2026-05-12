@@ -204,7 +204,7 @@ export function formatCompactCentsLabel(cents: number | null) {
     : `${rounded.toFixed(1)}c`
 }
 
-export function normalizeHexColor(value: string | null | undefined) {
+function normalizeHexColor(value: string | null | undefined) {
   if (!value) {
     return null
   }
@@ -476,17 +476,17 @@ export function resolveStableSpreadPrimaryOutcomeIndex(card: SportsGamesCard, co
   return null
 }
 
-export function extractLineValue(value: string) {
+function extractLineValue(value: string) {
   const match = value.match(/([+-]?\d+(?:\.\d+)?)/)
   return match?.[1] ?? null
 }
 
-export function formatLineValue(value: number) {
+function formatLineValue(value: number) {
   const rounded = Math.round(value * 10) / 10
   return Number.isInteger(rounded) ? `${rounded}` : `${rounded}`
 }
 
-export function toLineNumber(value: string | null) {
+function toLineNumber(value: string | null) {
   if (!value) {
     return null
   }
@@ -495,7 +495,7 @@ export function toLineNumber(value: string | null) {
   return Number.isFinite(parsed) ? Math.abs(parsed) : null
 }
 
-export function resolveMarketLineValue(market: Market | null, marketType: LinePickerMarketType) {
+function resolveMarketLineValue(market: Market | null, marketType: LinePickerMarketType) {
   if (!market) {
     return null
   }
@@ -701,7 +701,7 @@ export function buildCompositeMoneylineGraphTargets(card: SportsGamesCard) {
   }, [])
 }
 
-export function resolveTotalButtonLabel(button: SportsGamesButton, selectedOutcome: Outcome | null) {
+function resolveTotalButtonLabel(button: SportsGamesButton, selectedOutcome: Outcome | null) {
   const line = extractLineValue(button.label)
   const outcomeText = selectedOutcome?.outcome_text?.trim() ?? ''
 
@@ -742,7 +742,7 @@ export function resolveSelectedTradeLabel(
   return button.label.trim().toUpperCase()
 }
 
-export function resolveMarketDescriptor(market: Market | null) {
+function resolveMarketDescriptor(market: Market | null) {
   if (!market) {
     return null
   }
@@ -764,7 +764,7 @@ export function normalizeComparableText(value: string | null | undefined) {
     ?? ''
 }
 
-export function toFiniteTimestamp(value: string | null | undefined) {
+function toFiniteTimestamp(value: string | null | undefined) {
   if (!value) {
     return Number.NaN
   }
@@ -781,7 +781,7 @@ export function resolveCardStartTimestamp(card: SportsGamesCard) {
   )
 }
 
-export function resolveCardEndTimestamp(card: SportsGamesCard) {
+function resolveCardEndTimestamp(card: SportsGamesCard) {
   const explicitEnd = toFiniteTimestamp(card.event.end_date)
   if (Number.isFinite(explicitEnd)) {
     return explicitEnd
@@ -798,7 +798,7 @@ export function resolveCardEndTimestamp(card: SportsGamesCard) {
   return Number.NaN
 }
 
-export function resolveCardLiveFallbackEndTimestamp(card: SportsGamesCard) {
+function resolveCardLiveFallbackEndTimestamp(card: SportsGamesCard) {
   const startMs = resolveCardStartTimestamp(card)
   if (!Number.isFinite(startMs)) {
     return Number.NaN
@@ -863,7 +863,7 @@ export function isCardFuture(card: SportsGamesCard, nowMs: number) {
   return Number.isFinite(startMs) && startMs > nowMs
 }
 
-export function formatCategoryFromSlug(value: string) {
+function formatCategoryFromSlug(value: string) {
   return value
     .split('-')
     .filter(Boolean)
@@ -871,7 +871,7 @@ export function formatCategoryFromSlug(value: string) {
     .join(' ')
 }
 
-export function resolveCategoryFromSportSlugs(card: SportsGamesCard) {
+function resolveCategoryFromSportSlugs(card: SportsGamesCard) {
   const categorySlug = card.event.sports_sport_slug?.trim() || card.event.sports_series_slug?.trim()
   if (!categorySlug) {
     return null
@@ -880,7 +880,7 @@ export function resolveCategoryFromSportSlugs(card: SportsGamesCard) {
   return formatCategoryFromSlug(categorySlug)
 }
 
-export function resolveCategoryFromEventSlug(card: SportsGamesCard) {
+function resolveCategoryFromEventSlug(card: SportsGamesCard) {
   const eventSlug = card.event.sports_event_slug?.trim() || card.event.series_slug?.trim()
   if (!eventSlug) {
     return null
@@ -904,7 +904,7 @@ export function resolveCategoryFromEventSlug(card: SportsGamesCard) {
   return candidate ? formatCategoryFromSlug(candidate) : null
 }
 
-export function isGenericSportsCategoryLabel(label: string, sportSlug: string | null | undefined) {
+function isGenericSportsCategoryLabel(label: string, sportSlug: string | null | undefined) {
   const normalized = normalizeComparableText(label)
   if (!normalized) {
     return true
@@ -984,7 +984,7 @@ export function resolveSwitchTooltip(market: Market | null, nextOutcome: Outcome
   return `Switch to ${nextOutcomeLabel} - ${marketDescriptor}`
 }
 
-export function resolveTeamShortLabel(name: string | null | undefined, abbreviation: string | null | undefined) {
+function resolveTeamShortLabel(name: string | null | undefined, abbreviation: string | null | undefined) {
   const normalizedAbbreviation = abbreviation
     ?.trim()
     .replace(/[^a-z0-9]/gi, '')
@@ -1004,7 +1004,7 @@ export function resolveTeamShortLabel(name: string | null | undefined, abbreviat
   return compactName.slice(0, 3)
 }
 
-export function resolveFranchiseTradeHeaderTeamLabel(
+function resolveFranchiseTradeHeaderTeamLabel(
   name: string | null | undefined,
   abbreviation: string | null | undefined,
 ) {
@@ -1034,7 +1034,7 @@ export function resolveFranchiseTradeHeaderTeamLabel(
   return lastToken
 }
 
-export function resolveEsportsTradeHeaderTeamLabel(
+function resolveEsportsTradeHeaderTeamLabel(
   name: string | null | undefined,
   abbreviation: string | null | undefined,
 ) {
@@ -1051,7 +1051,7 @@ export function resolveEsportsTradeHeaderTeamLabel(
   return resolveTeamShortLabel(name, abbreviation)
 }
 
-export function resolveTradeHeaderSportSlugCandidates(card: SportsGamesCard) {
+function resolveTradeHeaderSportSlugCandidates(card: SportsGamesCard) {
   return [
     card.event.sports_sport_slug,
     card.event.sports_series_slug,
@@ -1060,21 +1060,21 @@ export function resolveTradeHeaderSportSlugCandidates(card: SportsGamesCard) {
     .filter((value): value is string => Boolean(value))
 }
 
-export function isCompactCricketTradeHeaderSportSlug(slug: string) {
+function isCompactCricketTradeHeaderSportSlug(slug: string) {
   return slug === 'cricket' || slug === 'crint' || slug.startsWith('cric')
 }
 
-export function shouldUseFranchiseTradeHeaderTeamLabels(sportSlugs: string[]) {
+function shouldUseFranchiseTradeHeaderTeamLabels(sportSlugs: string[]) {
   return sportSlugs.some(slug => COMPACT_FRANCHISE_TRADE_HEADER_SPORT_SLUGS.has(slug))
 }
 
-export function hasDrawMoneylineOption(card: SportsGamesCard) {
+function hasDrawMoneylineOption(card: SportsGamesCard) {
   return card.buttons.some(button =>
     button.marketType === 'moneyline' && button.tone === 'draw',
   )
 }
 
-export function resolveCompactTradeHeaderTitle(
+function resolveCompactTradeHeaderTitle(
   card: SportsGamesCard,
   resolveTeamLabel: (
     name: string | null | undefined,
@@ -1093,7 +1093,7 @@ export function resolveCompactTradeHeaderTitle(
   return `${leftLabel} vs ${rightLabel}`
 }
 
-export function shouldUseCompactTradeHeaderTitle(card: SportsGamesCard, vertical: SportsVertical | null) {
+function shouldUseCompactTradeHeaderTitle(card: SportsGamesCard, vertical: SportsVertical | null) {
   if (vertical === 'esports') {
     return true
   }
@@ -1110,7 +1110,7 @@ export function shouldUseCompactTradeHeaderTitle(card: SportsGamesCard, vertical
     || isCompactCricketTradeHeaderSportSlug(slug))
 }
 
-export function escapeRegExp(value: string) {
+function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
@@ -1192,7 +1192,7 @@ export function resolveTradeHeaderTitle({
   return selectedButton.label.trim().toUpperCase() || card.title
 }
 
-export function resolveHexToRgbComponents(value: string) {
+function resolveHexToRgbComponents(value: string) {
   const hex = value.replace('#', '')
   const expandedHex = hex.length === 3
     ? hex.split('').map(char => `${char}${char}`).join('')
@@ -1244,7 +1244,7 @@ export function resolveTradeHeaderBadgeAccent(button: SportsGamesButton) {
   }
 }
 
-export function normalizeComparableToken(value: string | null | undefined) {
+function normalizeComparableToken(value: string | null | undefined) {
   return value
     ?.normalize('NFKD')
     .replace(/[\u0300-\u036F]/g, '')

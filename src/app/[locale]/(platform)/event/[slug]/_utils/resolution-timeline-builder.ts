@@ -11,11 +11,11 @@ type ResolutionStatusValue = typeof RESOLUTION_STATUS_VALUES[number]
 
 type TimelineMarket = Event['markets'][number]
 
-export type ResolutionTimelineStatus = ResolutionStatusValue | 'unknown'
+type ResolutionTimelineStatus = ResolutionStatusValue | 'unknown'
 
 export type ResolutionTimelineOutcome = 'yes' | 'no' | 'invalid'
 
-export type ResolutionTimelineItemType
+type ResolutionTimelineItemType
   = | 'outcomeProposed'
     | 'noDispute'
     | 'disputed'
@@ -23,9 +23,9 @@ export type ResolutionTimelineItemType
     | 'finalReview'
     | 'finalOutcome'
 
-export type ResolutionTimelineItemIcon = 'check' | 'gavel' | 'open'
+type ResolutionTimelineItemIcon = 'check' | 'gavel' | 'open'
 
-export type ResolutionTimelineItemState = 'done' | 'active' | 'pending'
+type ResolutionTimelineItemState = 'done' | 'active' | 'pending'
 
 export interface ResolutionTimelineItem {
   id: string

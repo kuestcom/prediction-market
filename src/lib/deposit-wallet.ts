@@ -8,8 +8,8 @@ import {
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 
-export const DEPOSIT_WALLET_DOMAIN_NAME = 'DepositWallet'
-export const DEPOSIT_WALLET_DOMAIN_VERSION = '1'
+const DEPOSIT_WALLET_DOMAIN_NAME = 'DepositWallet'
+const DEPOSIT_WALLET_DOMAIN_VERSION = '1'
 export const DEPOSIT_WALLET_BATCH_DEADLINE_SECONDS = 240
 
 const DEPOSIT_WALLET_FACTORY_ABI = [
@@ -49,7 +49,7 @@ export function getDepositWalletDomain(depositWallet: Address): TypedDataDomain 
   }
 }
 
-export function getDepositWalletId(owner: Address): `0x${string}` {
+function getDepositWalletId(owner: Address): `0x${string}` {
   const normalized = owner.toLowerCase().replace(/^0x/, '')
   return `0x${'0'.repeat(24)}${normalized}` as `0x${string}`
 }

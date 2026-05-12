@@ -48,7 +48,7 @@ export function getOutcomeLabel(position: PublicPosition) {
   return position.outcomeIndex === OUTCOME_INDEX.NO ? 'No' : 'Yes'
 }
 
-export function getTradeValue(position: PublicPosition) {
+function getTradeValue(position: PublicPosition) {
   const avgPrice = normalizePositionPrice(position.avgPrice)
   return (position.size ?? 0) * (avgPrice ?? 0)
 }
@@ -101,16 +101,16 @@ export function getLatestPrice(position: PublicPosition) {
   return 0
 }
 
-export function getPnlValue(position: PublicPosition) {
+function getPnlValue(position: PublicPosition) {
   return getValue(position) - getTradeValue(position)
 }
 
-export function getPnlPercent(position: PublicPosition) {
+function getPnlPercent(position: PublicPosition) {
   const trade = getTradeValue(position)
   return trade > 0 ? (getPnlValue(position) / trade) * 100 : 0
 }
 
-export function parseNumber(value?: number | string | null) {
+function parseNumber(value?: number | string | null) {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : Number.NaN
   }
@@ -138,7 +138,7 @@ function normalizePositionPrice(value?: number | null) {
   return normalized
 }
 
-export const DEFAULT_SORT_DIRECTION: Record<SortOption, SortDirection> = {
+const DEFAULT_SORT_DIRECTION: Record<SortOption, SortDirection> = {
   currentValue: 'desc',
   trade: 'desc',
   pnlPercent: 'desc',
@@ -387,7 +387,7 @@ export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMar
   return markets
 }
 
-export function normalizeOrderShares(value: number) {
+function normalizeOrderShares(value: number) {
   const numeric = Number(value)
   if (!Number.isFinite(numeric) || numeric <= 0) {
     return 0

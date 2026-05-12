@@ -2,7 +2,7 @@ import type { DataPoint } from '@/types/PredictionChartTypes'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { arePointsEqual } from '@/lib/prediction-chart'
 
-export function usePredictionChartData(
+function usePredictionChartData(
   providedData: DataPoint[] | undefined,
   normalizedSignature: string | number,
 ) {

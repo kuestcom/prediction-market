@@ -3,7 +3,7 @@ import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
 const PATH_SEARCH_STEPS = 22
 const PATH_X_EPSILON = 0.35
 
-export function resolvePathPointAtX(path: SVGPathElement, targetX: number) {
+function resolvePathPointAtX(path: SVGPathElement, targetX: number) {
   const totalLength = path.getTotalLength()
   if (!Number.isFinite(totalLength) || totalLength <= 0) {
     return null

@@ -21,7 +21,7 @@ export interface OpenOrderOutcomeMeta {
   text: string
 }
 
-export function normalizeClobOrderType(value?: string | null): ClobOrderType {
+function normalizeClobOrderType(value?: string | null): ClobOrderType {
   switch (value) {
     case 'FAK':
     case 'FOK':
@@ -72,7 +72,7 @@ export function mapClobOpenOrder<TMarket extends UserOpenOrder['market'], TOrder
   }
 }
 
-export function resolveClobOrderOutcome<TOrder extends Pick<ClobOpenOrderLike, 'asset_id' | 'outcome'>>(
+function resolveClobOrderOutcome<TOrder extends Pick<ClobOpenOrderLike, 'asset_id' | 'outcome'>>(
   order: TOrder,
   outcomeMap: Map<string, OpenOrderOutcomeMeta>,
 ) {
@@ -99,7 +99,7 @@ export function resolveClobOrderOutcome<TOrder extends Pick<ClobOpenOrderLike, '
   return undefined
 }
 
-export function calculateClobAmounts(totalShares: number, price: number, side: 'buy' | 'sell') {
+function calculateClobAmounts(totalShares: number, price: number, side: 'buy' | 'sell') {
   const sharesMicro = Math.round(totalShares * MICRO_UNIT)
   const valueMicro = Math.round(totalShares * price * MICRO_UNIT)
 
@@ -120,7 +120,7 @@ export function normalizeClobId(value?: string | null) {
   return typeof value === 'string' ? value.trim().toLowerCase() : ''
 }
 
-export function parseClobNumber(value?: string | number | null) {
+function parseClobNumber(value?: string | number | null) {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : 0
   }
@@ -133,7 +133,7 @@ export function parseClobNumber(value?: string | number | null) {
   return 0
 }
 
-export function clampClobNumber(value: number, min: number, max: number) {
+function clampClobNumber(value: number, min: number, max: number) {
   if (!Number.isFinite(value)) {
     return min
   }

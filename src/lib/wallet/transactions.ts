@@ -47,7 +47,7 @@ export interface DepositWalletTypedDataPayload {
   depositWalletParams: DepositWalletParams
 }
 
-export interface DepositWalletParams {
+interface DepositWalletParams {
   depositWallet: string
   deadline: string
   calls: {
@@ -122,7 +122,7 @@ interface NegRiskRedeemArgs {
 
 export const MAX_ALLOWANCE = (1n << 256n) - 1n
 
-export const DEPOSIT_WALLET_BATCH_TYPES = {
+const DEPOSIT_WALLET_BATCH_TYPES = {
   Call: [
     { name: 'target', type: 'address' },
     { name: 'value', type: 'uint256' },
@@ -276,7 +276,7 @@ function resolveConditionalPositionContract(contract?: `0x${string}`): `0x${stri
   return resolveNegRiskAdapterContract(contract)
 }
 
-export function getDepositWalletDeadline(now = Date.now()) {
+function getDepositWalletDeadline(now = Date.now()) {
   return Math.floor(now / 1000) + DEPOSIT_WALLET_BATCH_DEADLINE_SECONDS
 }
 
@@ -294,18 +294,6 @@ export function buildConditionalSetApprovalForAllCall(operator: `0x${string}`): 
     functionName: 'setApprovalForAll',
     args: [operator, true],
   }))
-}
-
-export function buildApproveTokenCalls(): WalletCall[] {
-  return [
-    buildCollateralApproveCall(CONDITIONAL_TOKENS_CONTRACT),
-    buildCollateralApproveCall(CTF_EXCHANGE_ADDRESS),
-    buildConditionalSetApprovalForAllCall(CTF_EXCHANGE_ADDRESS),
-    buildCollateralApproveCall(NEG_RISK_CTF_EXCHANGE_ADDRESS),
-    buildCollateralApproveCall(UMA_NEG_RISK_ADAPTER_ADDRESS),
-    buildConditionalSetApprovalForAllCall(NEG_RISK_CTF_EXCHANGE_ADDRESS),
-    buildConditionalSetApprovalForAllCall(UMA_NEG_RISK_ADAPTER_ADDRESS),
-  ]
 }
 
 export function buildAutoRedeemAllowanceCalls(): WalletCall[] {

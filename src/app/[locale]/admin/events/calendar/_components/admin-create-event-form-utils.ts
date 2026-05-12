@@ -168,7 +168,7 @@ export function isOpenRouterStatusResponse(payload: unknown): payload is OpenRou
   return typeof (payload as Partial<OpenRouterStatusResponse>).configured === 'boolean'
 }
 
-export function isPrepareTxPlanItem(payload: unknown): payload is PrepareTxPlanItem {
+function isPrepareTxPlanItem(payload: unknown): payload is PrepareTxPlanItem {
   if (!payload || typeof payload !== 'object') {
     return false
   }
@@ -181,7 +181,7 @@ export function isPrepareTxPlanItem(payload: unknown): payload is PrepareTxPlanI
     && typeof candidate.description === 'string'
 }
 
-export function isPrepareResponse(payload: unknown): payload is PrepareResponse {
+function isPrepareResponse(payload: unknown): payload is PrepareResponse {
   if (!payload || typeof payload !== 'object') {
     return false
   }
@@ -241,7 +241,7 @@ export function isFinalizeResponse(payload: unknown): payload is FinalizeRespons
   return typeof candidate.requestId === 'string' && typeof candidate.status === 'string'
 }
 
-export function isPrepareFinalizeRequestTx(payload: unknown): payload is PrepareFinalizeRequestTx {
+function isPrepareFinalizeRequestTx(payload: unknown): payload is PrepareFinalizeRequestTx {
   if (!payload || typeof payload !== 'object') {
     return false
   }
@@ -353,7 +353,7 @@ export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
-export function isValidUrl(value: string) {
+function isValidUrl(value: string) {
   try {
     const parsed = new URL(value)
     return Boolean(parsed.protocol)

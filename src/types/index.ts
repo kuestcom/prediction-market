@@ -227,7 +227,7 @@ export interface User {
   deposit_wallet_tx_hash?: string | null
 }
 
-export interface PublicProfileStats {
+interface PublicProfileStats {
   positions_value: number
   profit_loss: number
   volume_traded: number
@@ -243,19 +243,7 @@ export interface PublicProfile {
   stats?: PublicProfileStats
 }
 
-export interface Tag {
-  id: number
-  name: string
-  slug: string
-  is_main_category: boolean
-  is_hidden: boolean
-  display_order: number
-  active_markets_count: number
-  created_at: string
-  updated_at: string
-}
-
-export interface CommentPosition {
+interface CommentPosition {
   condition_id?: string
   outcome_index?: number
   amount?: number | string

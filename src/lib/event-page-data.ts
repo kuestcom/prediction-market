@@ -42,7 +42,7 @@ export async function resolveCanonicalEventSlugFromSportsPath(
   return data.slug
 }
 
-export async function getEventTitleBySlug(eventSlug: string, locale: SupportedLocale) {
+async function getEventTitleBySlug(eventSlug: string, locale: SupportedLocale) {
   const { data } = await EventRepository.getEventTitleBySlug(eventSlug, locale)
   return data?.title ?? null
 }

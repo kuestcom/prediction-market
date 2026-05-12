@@ -18,8 +18,6 @@ const config: NextConfig = {
   staticPageGenerationTimeout: 180,
   experimental: {
     optimizePackageImports: ['radix-ui'],
-    staticGenerationMaxConcurrency: 2,
-    staticGenerationMinPagesPerWorker: 8,
     serverActions: {
       bodySizeLimit: '2mb',
     },

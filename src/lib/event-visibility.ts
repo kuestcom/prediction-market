@@ -8,7 +8,7 @@ const HIDE_FROM_NEW_TAG_NAME = 'Hide From New'
 
 let cachedHideFromNewTagId: number | null = null
 
-export async function ensureHideFromNewTagId(): Promise<number> {
+async function ensureHideFromNewTagId(): Promise<number> {
   if (cachedHideFromNewTagId !== null) {
     return cachedHideFromNewTagId
   }

@@ -212,4 +212,3 @@ function PredictionChartAnnotationTooltip({
 }
 
 export { PredictionChartAnnotationDots, PredictionChartAnnotationTooltip }
-export default PredictionChartAnnotationDots

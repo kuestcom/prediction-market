@@ -17,7 +17,6 @@ import { normalizeComparableValue, slugifyText } from '@/lib/slug'
 import { SPORTS_AUXILIARY_SLUG_SQL_REGEX } from '@/lib/sports-event-slugs'
 import {
   buildSportsMenuCountsBySlug,
-
 } from '@/lib/sports-menu-counts'
 import { buildSportsSidebarEntries } from '@/lib/sports-sidebar-entries'
 import {
@@ -312,16 +311,6 @@ export async function getSportsSlugResolverFromDb() {
   const rows = await getCachedSportsMenuRows()
   const mappingEntries = toMappingEntries(rows)
   return buildSportsSlugResolver(mappingEntries)
-}
-
-export async function getSportsCountsBySlugFromDb(vertical: SportsVertical = 'sports') {
-  const [rows, activeCountRows] = await Promise.all([
-    getCachedSportsMenuRows(),
-    getCachedActiveSportsCountRows(),
-  ])
-  const resolver = buildSportsSlugResolver(toMappingEntries(rows))
-  const menuEntries = buildSportsSidebarEntries(rows, vertical)
-  return buildSportsMenuCountsBySlug(resolver, activeCountRows, menuEntries)
 }
 
 export const SportsMenuRepository = {

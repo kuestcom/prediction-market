@@ -3,9 +3,9 @@ export const BUILDER_TAKER_FEE_BPS_KEY = 'builder_taker_fee_bps'
 export const BUILDER_MAKER_FEE_BPS_KEY = 'builder_maker_fee_bps'
 export const AFFILIATE_SHARE_BPS_KEY = 'affiliate_share_bps'
 
-export const DEFAULT_BUILDER_TAKER_FEE_BPS = 100
-export const DEFAULT_BUILDER_MAKER_FEE_BPS = 0
-export const DEFAULT_AFFILIATE_SHARE_BPS = 5000
+const DEFAULT_BUILDER_TAKER_FEE_BPS = 100
+const DEFAULT_BUILDER_MAKER_FEE_BPS = 0
+const DEFAULT_AFFILIATE_SHARE_BPS = 5000
 
 interface SettingsValue {
   value: string

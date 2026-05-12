@@ -1,12 +1,12 @@
 import type { SportsGamesMarketType } from './sports-games-center-types'
 
-export const MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: string }> = [
+const MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: string }> = [
   { key: 'moneyline', label: 'Moneyline' },
   { key: 'spread', label: 'Spread' },
   { key: 'total', label: 'Total' },
 ]
 
-export const COLLAPSED_MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: string }> = [
+const COLLAPSED_MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: string }> = [
   { key: 'moneyline', label: 'Moneyline' },
   { key: 'binary', label: 'Market' },
   { key: 'btts', label: 'Both Teams to Score' },

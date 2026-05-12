@@ -4,9 +4,9 @@ const MS_IN_MINUTE = 60_000
 const MS_IN_HOUR = 3_600_000
 const MS_IN_DAY = 86_400_000
 
-export const EVENT_NEW_BADGE_WINDOW_MS_DEFAULT = 24 * MS_IN_HOUR
-export const EVENT_NEW_BADGE_WINDOW_MS_DAILY = 2 * MS_IN_HOUR
-export const EVENT_NEW_BADGE_WINDOW_MS_SUB_HOURLY = 10 * MS_IN_MINUTE
+const EVENT_NEW_BADGE_WINDOW_MS_DEFAULT = 24 * MS_IN_HOUR
+const EVENT_NEW_BADGE_WINDOW_MS_DAILY = 2 * MS_IN_HOUR
+const EVENT_NEW_BADGE_WINDOW_MS_SUB_HOURLY = 10 * MS_IN_MINUTE
 
 type EventNewBadgeInput = Pick<Event, 'status' | 'series_recurrence' | 'created_at'> & {
   markets: Array<Pick<Event['markets'][number], 'created_at'>>

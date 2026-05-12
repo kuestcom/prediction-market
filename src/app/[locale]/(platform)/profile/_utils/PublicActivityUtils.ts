@@ -123,14 +123,14 @@ export function activityIcon(variant: ActivityVariant) {
   }
 }
 
-export function formatCsvNumber(value: number) {
+function formatCsvNumber(value: number) {
   if (!Number.isFinite(value)) {
     return ''
   }
   return value.toFixed(6).replace(/\.?0+$/, '')
 }
 
-export function formatCsvValue(value: string | number | null | undefined) {
+function formatCsvValue(value: string | number | null | undefined) {
   const text = value == null ? '' : String(value)
   return `"${text.replace(/"/g, '""')}"`
 }
@@ -181,7 +181,7 @@ export function matchesSearchQuery(activity: ActivityOrder, searchQuery: string)
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const
 
-export function formatExportFilename(siteName: string, date: Date) {
+function formatExportFilename(siteName: string, date: Date) {
   const weekday = WEEKDAY_LABELS[date.getDay()] ?? 'Sun'
   const month = MONTH_LABELS[date.getMonth()] ?? 'Jan'
   const day = String(date.getDate()).padStart(2, '0')

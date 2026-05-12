@@ -1,4 +1,3 @@
-import type { MarketQuote } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
 import type { Event } from '@/types'
 
 const CHART_COLOR_VARIABLES = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
@@ -7,33 +6,6 @@ const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000
 
 export function getMaxSeriesCount() {
   return MAX_SERIES
-}
-
-export function areNumberMapsEqual(a: Record<string, number>, b: Record<string, number>) {
-  const aKeys = Object.keys(a)
-  const bKeys = Object.keys(b)
-  if (aKeys.length !== bKeys.length) {
-    return false
-  }
-  return aKeys.every(key => Object.is(a[key], b[key]))
-}
-
-export function areQuoteMapsEqual(a: Record<string, MarketQuote>, b: Record<string, MarketQuote>) {
-  const aKeys = Object.keys(a)
-  const bKeys = Object.keys(b)
-  if (aKeys.length !== bKeys.length) {
-    return false
-  }
-  return aKeys.every((key) => {
-    const aQuote = a[key]
-    const bQuote = b[key]
-    if (!aQuote || !bQuote) {
-      return false
-    }
-    return Object.is(aQuote.bid, bQuote.bid)
-      && Object.is(aQuote.ask, bQuote.ask)
-      && Object.is(aQuote.mid, bQuote.mid)
-  })
 }
 
 export function buildMarketSignature(event: Event) {

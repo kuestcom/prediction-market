@@ -84,12 +84,12 @@ export function getOrderFilledShares(order: PortfolioUserOpenOrder) {
   return microToUnit(order.size_matched)
 }
 
-export function getOrderCreatedAtMs(order: PortfolioUserOpenOrder) {
+function getOrderCreatedAtMs(order: PortfolioUserOpenOrder) {
   const parsed = Date.parse(order.created_at)
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-export function getOrderExpirationSeconds(order: PortfolioUserOpenOrder) {
+function getOrderExpirationSeconds(order: PortfolioUserOpenOrder) {
   if (order.type === 'GTC') {
     return Number.POSITIVE_INFINITY
   }

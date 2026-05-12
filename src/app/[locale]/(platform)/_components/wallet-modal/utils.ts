@@ -58,7 +58,7 @@ export function getSelectedWalletTokenId(items: LiFiWalletTokenItem[], preferred
   return firstEnabledItem?.id ?? ''
 }
 
-export type WalletDepositView = 'fund' | 'receive' | 'wallets' | 'amount' | 'confirm' | 'success'
+type WalletDepositView = 'fund' | 'receive' | 'wallets' | 'amount' | 'confirm' | 'success'
 
 export interface PendingWithdrawalItem {
   id: string

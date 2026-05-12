@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { generateRandomString } from 'better-auth/crypto'
 
-export const L2_AUTH_CONTEXT_PREFIX = 'l2_'
+const L2_AUTH_CONTEXT_PREFIX = 'l2_'
 export const L2_AUTH_CONTEXT_COOKIE_NAME = 'kuest_l2_auth_context'
 export const L2_AUTH_CONTEXT_COOKIE_NAME_SECURE = '__Secure-kuest_l2_auth_context'
 export const L2_AUTH_CONTEXT_COOKIE_NAMES = [
@@ -9,11 +9,8 @@ export const L2_AUTH_CONTEXT_COOKIE_NAMES = [
   L2_AUTH_CONTEXT_COOKIE_NAME,
 ] as const
 
-// Keep it fixed as requested: 30 days
-export const L2_AUTH_CONTEXT_TTL_MS = 30 * 24 * 60 * 60 * 1000
+const L2_AUTH_CONTEXT_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export const L2_AUTH_CONTEXT_TTL_SECONDS = Math.floor(L2_AUTH_CONTEXT_TTL_MS / 1000)
-
-// Avoid unbounded growth in users.settings.tradingAuth
 export const L2_AUTH_CONTEXT_MAX_PER_USER = 20
 
 export interface L2AuthContextRecord {
@@ -42,7 +39,7 @@ export function createL2AuthContextRecord(contextId: string, now = Date.now()): 
   }
 }
 
-export function isL2AuthContextRecordExpired(record: { expiresAt?: unknown }, now = Date.now()) {
+function isL2AuthContextRecordExpired(record: { expiresAt?: unknown }, now = Date.now()) {
   if (typeof record.expiresAt !== 'string') {
     return true
   }

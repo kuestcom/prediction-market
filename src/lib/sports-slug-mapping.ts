@@ -1,6 +1,6 @@
 import { normalizeAliasKey, normalizeComparableValue, stripDiacritics } from '@/lib/slug'
 
-export interface SportsSlugSectionConfig {
+interface SportsSlugSectionConfig {
   gamesEnabled: boolean
   propsEnabled: boolean
 }

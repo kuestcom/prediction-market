@@ -317,7 +317,7 @@ export async function fetchUserOtherBalance({
   }))
 }
 
-export function mapDataApiPositionToUserPosition(
+function mapDataApiPositionToUserPosition(
   position: DataApiPosition,
   status: 'active' | 'closed',
 ): UserPosition {

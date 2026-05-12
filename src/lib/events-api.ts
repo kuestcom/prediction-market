@@ -2,7 +2,7 @@ import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-fi
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { Event } from '@/types'
 
-export type EventListFrequency = 'all' | 'daily' | 'weekly' | 'monthly'
+type EventListFrequency = 'all' | 'daily' | 'weekly' | 'monthly'
 
 export interface BuildEventsApiSearchParamsOptions {
   tag: string
@@ -24,7 +24,7 @@ export interface BuildEventsApiSearchParamsOptions {
   status?: EventListStatusFilter
 }
 
-export function buildEventsApiSearchParams({
+function buildEventsApiSearchParams({
   tag,
   locale,
   bookmarked = false,

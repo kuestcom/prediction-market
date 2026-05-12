@@ -12,23 +12,6 @@ export type SortOption
 
 export type SortDirection = 'asc' | 'desc'
 
-export type ShareCardVariant = 'yes' | 'no'
-
-export interface ShareCardPayload {
-  title: string
-  outcome: string
-  avgPrice: string
-  odds: string
-  cost: string
-  invested: string
-  toWin: string
-  imageUrl?: string
-  userName?: string
-  userImage?: string
-  variant: ShareCardVariant
-  eventSlug: string
-}
-
 export interface PositionsTotals {
   trade: number
   value: number

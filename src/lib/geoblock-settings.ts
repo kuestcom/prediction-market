@@ -2,7 +2,7 @@ import { SettingsRepository } from '@/lib/db/queries/settings'
 
 const GENERAL_SETTINGS_GROUP = 'general'
 export const BLOCKED_COUNTRIES_SETTINGS_KEY = 'blocked_countries'
-export const MAX_BLOCKED_COUNTRIES = 260
+const MAX_BLOCKED_COUNTRIES = 260
 
 const COUNTRY_INPUT_SPLIT_PATTERN = /[\s,;]+/
 const ALLOWED_COUNTRY_CODES = new Set([
@@ -301,7 +301,7 @@ function normalizeCountryCodes(codes: Iterable<string>) {
   return { data: next, error: null as string | null }
 }
 
-export function parseBlockedCountriesFromSettingsValue(rawValue: string | null | undefined) {
+function parseBlockedCountriesFromSettingsValue(rawValue: string | null | undefined) {
   const normalizedRawValue = typeof rawValue === 'string' ? rawValue.trim() : ''
   if (!normalizedRawValue) {
     return []

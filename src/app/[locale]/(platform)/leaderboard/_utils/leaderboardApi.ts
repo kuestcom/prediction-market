@@ -35,7 +35,7 @@ export function normalizeLeaderboardResponse(payload: unknown): LeaderboardEntry
   return []
 }
 
-export function normalizeBiggestWinsResponse(payload: unknown): BiggestWinEntry[] {
+function normalizeBiggestWinsResponse(payload: unknown): BiggestWinEntry[] {
   if (Array.isArray(payload)) {
     return payload as BiggestWinEntry[]
   }
@@ -57,7 +57,7 @@ export function normalizeBiggestWinsResponse(payload: unknown): BiggestWinEntry[
   return []
 }
 
-export function getNestedValue(entry: Record<string, unknown>, path: string) {
+function getNestedValue(entry: Record<string, unknown>, path: string) {
   return path.split('.').reduce<unknown>((acc, key) => {
     if (!acc || typeof acc !== 'object') {
       return undefined
@@ -121,7 +121,7 @@ export async function fetchBiggestWins(category: string, period: string) {
   return normalizeBiggestWinsResponse(result_2)
 }
 
-export async function fetchTimeframePnlBatch(
+async function fetchTimeframePnlBatch(
   userAddresses: string[],
   period: LeaderboardFilters['period'],
   signal: AbortSignal,

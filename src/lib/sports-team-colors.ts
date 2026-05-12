@@ -16,13 +16,13 @@ export function resolveSportsTeamFallbackColor(tone: SportsTeamTone) {
     : 'color-mix(in oklch, var(--primary) 60%, transparent)'
 }
 
-export function resolveSportsTeamFallbackDepthColor(tone: SportsTeamTone) {
+function resolveSportsTeamFallbackDepthColor(tone: SportsTeamTone) {
   return tone === 'team1'
     ? 'color-mix(in oklch, var(--primary) 80%, transparent)'
     : 'color-mix(in oklch, var(--primary) 48%, transparent)'
 }
 
-export function resolveSportsTeamFallbackForegroundColor() {
+function resolveSportsTeamFallbackForegroundColor() {
   return 'var(--primary-foreground)'
 }
 

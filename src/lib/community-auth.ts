@@ -79,7 +79,7 @@ export function loadCommunityAuth(address?: string) {
   }
 }
 
-export function storeCommunityAuth(auth: StoredCommunityAuth) {
+function storeCommunityAuth(auth: StoredCommunityAuth) {
   if (typeof window === 'undefined') {
     return
   }

@@ -1,4 +1,4 @@
-export const EMBED_CODE_TOKEN_STYLES = {
+const EMBED_CODE_TOKEN_STYLES = {
   tag: 'text-muted-foreground',
   attr: 'text-red-500',
   value: 'text-rose-500',
@@ -12,7 +12,7 @@ export interface EmbedCodeToken {
 
 export type EmbedCodeLine = EmbedCodeToken[]
 
-export function embedCodeToken(text: string, className?: string): EmbedCodeToken {
+function embedCodeToken(text: string, className?: string): EmbedCodeToken {
   return { text, className }
 }
 

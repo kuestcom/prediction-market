@@ -45,8 +45,6 @@ import { cn } from '@/lib/utils'
 import { useIsSingleMarket, useOrder } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
 
-export { resolveWinningOutcomeIndex } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketUtils'
-
 interface EventMarketsProps {
   event: Event
   isMobile: boolean

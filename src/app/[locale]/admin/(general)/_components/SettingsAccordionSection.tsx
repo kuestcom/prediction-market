@@ -76,4 +76,3 @@ function SettingsAccordionSection({
 }
 
 export default SettingsAccordionSection
-export type { SettingsAccordionSectionProps }
