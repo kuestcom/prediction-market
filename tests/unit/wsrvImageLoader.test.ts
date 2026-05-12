@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import wsrvImageLoader from '@/lib/wsrv-image-loader'
+import wsrvImageLoader from '@/lib/image/image-loader'
 
 describe('wsrvImageLoader', () => {
   it('keeps root-relative local assets on the app origin while encoding width', () => {
