@@ -14,6 +14,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "knip": "knip --fix --no-config-hints",
     "lint": "eslint . --fix",
     "test": "vitest run",
     "test:e2e": "npx playwright test",
