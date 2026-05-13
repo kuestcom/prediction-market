@@ -94,11 +94,7 @@ function isPreferredSeriesEvent<T extends HomeVisibleEventCandidate>(candidate: 
   const candidateOverdueUnresolved = isOverdueUnresolved(candidate, nowMs)
   const currentOverdueUnresolved = isOverdueUnresolved(current, nowMs)
 
-  if (candidateOverdueUnresolved || currentOverdueUnresolved) {
-    if (candidateOverdueUnresolved !== currentOverdueUnresolved) {
-      return candidateOverdueUnresolved
-    }
-
+  if (candidateOverdueUnresolved && currentOverdueUnresolved) {
     if (candidateEnd !== currentEnd) {
       return candidateEnd > currentEnd
     }
@@ -120,6 +116,10 @@ function isPreferredSeriesEvent<T extends HomeVisibleEventCandidate>(candidate: 
 
   if (candidateHasFutureEnd !== currentHasFutureEnd) {
     return candidateHasFutureEnd
+  }
+
+  if (candidateOverdueUnresolved !== currentOverdueUnresolved) {
+    return candidateOverdueUnresolved
   }
 
   if (candidateResolved !== currentResolved) {

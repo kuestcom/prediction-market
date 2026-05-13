@@ -125,4 +125,45 @@ describe('home-events', () => {
       },
     )).toEqual([soonerActiveEvent, resolvedEvent])
   })
+
+  it('prefers the current active series event over an overdue unresolved entry', () => {
+    const overdueEvent = {
+      id: 'overdue-event',
+      slug: 'meta-up-or-down-on-may-11-2026',
+      series_slug: 'meta-daily-up-down',
+      status: 'active' as const,
+      end_date: '2026-05-11T20:00:00.000Z',
+      created_at: '2026-05-08T12:00:00.000Z',
+      updated_at: '2026-05-10T12:00:00.000Z',
+      markets: [{ is_resolved: false }],
+    }
+    const currentEvent = {
+      id: 'current-event',
+      slug: 'meta-up-or-down-on-may-12-2026',
+      series_slug: 'meta-daily-up-down',
+      status: 'active' as const,
+      end_date: '2026-05-12T20:00:00.000Z',
+      created_at: '2026-05-11T12:00:00.000Z',
+      updated_at: '2026-05-11T12:00:00.000Z',
+      markets: [{ is_resolved: false }],
+    }
+    const futureEvent = {
+      id: 'future-event',
+      slug: 'meta-up-or-down-on-may-13-2026',
+      series_slug: 'meta-daily-up-down',
+      status: 'active' as const,
+      end_date: '2026-05-13T20:00:00.000Z',
+      created_at: '2026-05-12T12:00:00.000Z',
+      updated_at: '2026-05-12T12:00:00.000Z',
+      markets: [{ is_resolved: false }],
+    }
+
+    expect(filterHomeEvents(
+      [overdueEvent, futureEvent, currentEvent],
+      {
+        currentTimestamp: Date.parse('2026-05-12T17:30:00.000Z'),
+        status: 'active',
+      },
+    )).toEqual([currentEvent])
+  })
 })
