@@ -227,7 +227,6 @@ export const auth = betterAuth({
         session,
       }
     }),
-    nextCookies(),
     siwe({
       schema: {
         walletAddress: {
@@ -283,6 +282,7 @@ export const auth = betterAuth({
         },
       },
     }),
+    nextCookies(),
   ],
   user: {
     modelName: 'users',
