@@ -44,7 +44,7 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 - **Your own branded prediction market** — custom domain, logo, categories, fee rate
 - **Shared liquidity from day one** — mirrored Polymarket markets with live order flow
 - **Trading fees go directly to you** — no revenue share, no intermediary
-- **Full Web3 stack, zero backend work** — Polygon, USDC, UMA resolution, Vercel deploy
+- **Full web3 stack, zero backend work** — Polygon, USDC, UMA resolution, Vercel deploy
 - **Bot-ready APIs and SDKs** — Python / Rust, compatible with existing Polymarket tooling
 - **Multi-language UI** — built-in i18n, theme customization, mobile-ready
 
