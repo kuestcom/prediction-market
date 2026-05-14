@@ -1,6 +1,8 @@
 const STORAGE_KEY = 'community_auth'
+const STORAGE_VERSION = 2
 
 interface StoredCommunityAuth {
+  version?: number
   token: string
   address: string
   expires_at: string
@@ -63,6 +65,10 @@ export function loadCommunityAuth(address?: string) {
   try {
     const parsed = JSON.parse(raw) as StoredCommunityAuth
     if (!parsed?.token || !parsed?.address || !parsed?.expires_at) {
+      return null
+    }
+    if (parsed.version !== STORAGE_VERSION) {
+      window.localStorage.removeItem(STORAGE_KEY)
       return null
     }
     if (address && parsed.address.toLowerCase() !== address.toLowerCase()) {
@@ -147,6 +153,7 @@ export async function ensureCommunityToken({
   const verifyPayload = await verifyResponse.json() as AuthVerifyResponse
 
   storeCommunityAuth({
+    version: STORAGE_VERSION,
     token: verifyPayload.token,
     address,
     expires_at: verifyPayload.expires_at,

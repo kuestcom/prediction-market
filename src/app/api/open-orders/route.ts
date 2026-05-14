@@ -15,6 +15,7 @@ import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { getPublicAssetUrl } from '@/lib/storage'
+import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 
 const CLOB_URL = process.env.CLOB_URL
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
 
     const tradingAuth = await getUserTradingAuthSecrets(user.id)
     if (!tradingAuth?.clob) {
-      return NextResponse.json({ data: [], next_cursor: 'LTE=' })
+      return NextResponse.json({ error: TRADING_AUTH_REQUIRED_ERROR }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -115,7 +116,7 @@ async function fetchClobOpenOrders({
 }): Promise<{ data: ClobOpenOrder[], next_cursor: string }> {
   const params = new URLSearchParams()
   if (makerAddress) {
-    params.set('maker', makerAddress)
+    params.set('maker_address', makerAddress)
   }
   if (id) {
     params.set('id', id)

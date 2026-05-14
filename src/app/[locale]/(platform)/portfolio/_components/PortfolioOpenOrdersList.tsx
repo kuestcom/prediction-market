@@ -199,6 +199,7 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
 
   const {
     status,
+    error,
     data,
     fetchNextPage,
     hasNextPage,
@@ -210,6 +211,22 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
   })
 
   const { orders, visibleOrders } = useVisibleOpenOrders({ data, searchQuery, sortBy })
+  const hasPromptedTradingAuthRef = useRef(false)
+
+  useEffect(() => {
+    if (status !== 'error') {
+      hasPromptedTradingAuthRef.current = false
+      return
+    }
+
+    const message = error instanceof Error ? error.message : ''
+    if (hasPromptedTradingAuthRef.current || !isTradingAuthRequiredError(message)) {
+      return
+    }
+
+    hasPromptedTradingAuthRef.current = true
+    openTradeRequirements({ forceTradingAuth: true })
+  }, [error, openTradeRequirements, status])
 
   const canCancelAll = Boolean(
     user?.deposit_wallet_address
