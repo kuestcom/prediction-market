@@ -24,6 +24,8 @@ interface PortfolioOpenOrdersListProps {
   userAddress: string
 }
 
+type OpenTradeRequirements = ReturnType<typeof useTradingOnboarding>['openTradeRequirements']
+
 function useOpenOrdersFilterState(userAddress: string) {
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -80,7 +82,7 @@ function useCancelAllOpenOrders({
   orders: PortfolioUserOpenOrder[]
   queryClient: QueryClient
   openOrdersQueryKey: (string | undefined)[]
-  openTradeRequirements: ReturnType<typeof useTradingOnboarding>['openTradeRequirements']
+  openTradeRequirements: OpenTradeRequirements
 }) {
   const t = useExtracted()
   const [isCancellingAll, setIsCancellingAll] = useState(false)
@@ -182,6 +184,31 @@ function useInfiniteScrollSentinel({
   return { loadMoreRef }
 }
 
+function promptTradingAuthForOpenOrdersError({
+  error,
+  hasPromptedTradingAuthRef,
+  openTradeRequirements,
+  status,
+}: {
+  error: Error | null
+  hasPromptedTradingAuthRef: RefObject<boolean>
+  openTradeRequirements: OpenTradeRequirements
+  status: 'error' | 'pending' | 'success'
+}) {
+  if (status !== 'error') {
+    hasPromptedTradingAuthRef.current = false
+    return
+  }
+
+  const message = error instanceof Error ? error.message : ''
+  if (hasPromptedTradingAuthRef.current || !isTradingAuthRequiredError(message)) {
+    return
+  }
+
+  hasPromptedTradingAuthRef.current = true
+  openTradeRequirements({ forceTradingAuth: true })
+}
+
 export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOrdersListProps) {
   const user = useUser()
   const t = useExtracted()
@@ -213,19 +240,13 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
   const { orders, visibleOrders } = useVisibleOpenOrders({ data, searchQuery, sortBy })
   const hasPromptedTradingAuthRef = useRef(false)
 
-  useEffect(() => {
-    if (status !== 'error') {
-      hasPromptedTradingAuthRef.current = false
-      return
-    }
-
-    const message = error instanceof Error ? error.message : ''
-    if (hasPromptedTradingAuthRef.current || !isTradingAuthRequiredError(message)) {
-      return
-    }
-
-    hasPromptedTradingAuthRef.current = true
-    openTradeRequirements({ forceTradingAuth: true })
+  useEffect(function handleOpenOrdersTradingAuthError() {
+    promptTradingAuthForOpenOrdersError({
+      error,
+      hasPromptedTradingAuthRef,
+      openTradeRequirements,
+      status,
+    })
   }, [error, openTradeRequirements, status])
 
   const canCancelAll = Boolean(
