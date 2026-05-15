@@ -2,14 +2,13 @@ import type { ReactNode } from 'react'
 import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { Event, Market, Outcome } from '@/types'
-import { DialogTitle } from '@radix-ui/react-dialog'
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useExtracted } from 'next-intl'
 import { MOBILE_BOTTOM_NAV_OFFSET } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
 import EventOrderPanelTermsDisclaimer
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
 import { Button } from '@/components/ui/button'
+import { DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
@@ -152,9 +151,7 @@ export default function EventOrderPanelMobile({
       )}
 
       <DrawerContent className="max-h-[95vh] w-full">
-        <VisuallyHidden>
-          <DialogTitle>{event.title}</DialogTitle>
-        </VisuallyHidden>
+        <DialogTitle className="sr-only">{event.title}</DialogTitle>
 
         <EventOrderPanelForm
           event={event}

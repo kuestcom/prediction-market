@@ -3,7 +3,6 @@
 import type { EmbedCodeLine } from '@/lib/embed-code'
 import type { EmbedTheme } from '@/lib/embed-widget'
 import type { Market } from '@/types'
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
@@ -510,9 +509,7 @@ export default function EventChartEmbedDialog({
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[90vh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
-          <VisuallyHidden>
-            <DrawerTitle>{t('Embed')}</DrawerTitle>
-          </VisuallyHidden>
+          <DrawerTitle className="sr-only">{t('Embed')}</DrawerTitle>
 
           <div className="min-h-0 space-y-4 overflow-y-auto pr-1 sm:space-y-6">
             {dialogBody}
@@ -530,9 +527,7 @@ export default function EventChartEmbedDialog({
           'sm:w-full sm:max-w-4xl sm:p-8',
         )}
       >
-        <VisuallyHidden>
-          <DialogTitle>{t('Embed')}</DialogTitle>
-        </VisuallyHidden>
+        <DialogTitle className="sr-only">{t('Embed')}</DialogTitle>
 
         <div className="space-y-4 sm:space-y-6">
           {dialogBody}

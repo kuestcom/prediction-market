@@ -1,6 +1,6 @@
 'use client'
 
-import { useDisconnect } from '@reown/appkit-controllers/react'
+import { useDisconnect } from '@reown/appkit/react'
 import { BadgePercentIcon, ChevronDownIcon, DownloadIcon, SettingsIcon, ShieldIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'

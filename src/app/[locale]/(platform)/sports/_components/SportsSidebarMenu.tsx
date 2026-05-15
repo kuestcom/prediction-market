@@ -2,7 +2,6 @@
 
 import type { Route } from 'next'
 import type { SportsSidebarMenuProps } from './sports-sidebar-menu/sports-sidebar-menu-utils'
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { ChevronDownIcon, MoreHorizontalIcon } from 'lucide-react'
 import Image from 'next/image'
 import AppLink from '@/components/AppLink'
@@ -343,9 +342,7 @@ export default function SportsSidebarMenu({
         </nav>
 
         <DrawerContent className="max-h-[88vh] w-full border-border/70 bg-background px-0 pt-2 pb-4">
-          <VisuallyHidden>
-            <DrawerTitle>{verticalConfig.label}</DrawerTitle>
-          </VisuallyHidden>
+          <DrawerTitle className="sr-only">{verticalConfig.label}</DrawerTitle>
           <div className="mt-4 max-h-[72dvh] overflow-y-auto px-2">
             {renderMobileSheetMenuEntries()}
           </div>

@@ -591,7 +591,7 @@ export default function EventSeriesPills({
             <DropdownMenuContent
               align="start"
               className="
-                z-20 max-h-80 min-w-44 overflow-y-auto p-1 [-ms-overflow-style:none] [scrollbar-width:none]
+                z-20 max-h-80 min-w-44 scrollbar-none overflow-y-auto p-1 [-ms-overflow-style:none]
                 [&::-webkit-scrollbar]:hidden
               "
             >

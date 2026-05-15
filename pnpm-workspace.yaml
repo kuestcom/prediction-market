@@ -1,0 +1,14 @@
+minimumReleaseAge: 14400
+shellEmulator: true
+trustPolicy: no-downgrade
+allowBuilds:
+  '@parcel/watcher@2.5.6': false
+  '@reown/appkit@1.8.19': false
+  '@sentry/cli@2.58.5': true
+  '@swc/core@1.15.33': true
+  bufferutil@4.1.0: false
+  esbuild@0.28.0: true
+  keccak@3.0.4: false
+  sharp@0.34.5: true
+  utf-8-validate@5.0.10: false
+  utf-8-validate@6.0.6: false

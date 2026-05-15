@@ -319,7 +319,7 @@ export default function CategorySidebar({
     <nav
       aria-label={`${categoryTitle} subcategories`}
       className={`
-        hidden h-[calc(100vh-9rem)] w-47.5 shrink-0 flex-col overflow-y-auto py-5 [scrollbar-width:none]
+        hidden h-[calc(100vh-9rem)] w-47.5 shrink-0 scrollbar-none flex-col overflow-y-auto py-5
         lg:sticky lg:top-32 lg:flex lg:py-0
         [&::-webkit-scrollbar]:hidden
       `}

@@ -2,16 +2,23 @@ FROM node:24-bookworm-slim AS build
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN corepack enable \
+  && corepack install
+
+RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN npm run build
+RUN pnpm build
+RUN mkdir -p /tmp/runtime-node_modules \
+  && cp -aL node_modules/postgres /tmp/runtime-node_modules/postgres
 
 FROM node:24-bookworm-slim AS runner
 WORKDIR /app
@@ -20,15 +27,19 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
 
 RUN groupadd --gid 1001 nodejs
 RUN useradd --uid 1001 --gid nodejs --create-home nextjs
+COPY --from=build --chown=nextjs:nodejs /app/package.json ./package.json
+RUN corepack enable \
+  && corepack install
 
 COPY --from=build --chown=nextjs:nodejs /app/public ./public
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=build --chown=nextjs:nodejs /app/node_modules/postgres ./node_modules/postgres
-COPY --from=build --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=build --chown=nextjs:nodejs /tmp/runtime-node_modules/postgres ./node_modules/postgres
 COPY --from=build --chown=nextjs:nodejs /app/scripts/migrate.js ./scripts/migrate.js
 COPY --from=build --chown=nextjs:nodejs /app/src/lib/site-url.js ./src/lib/site-url.js
 COPY --from=build --chown=nextjs:nodejs /app/src/lib/db/migrations ./src/lib/db/migrations

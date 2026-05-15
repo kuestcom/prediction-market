@@ -246,8 +246,7 @@ export default function SportsGameDetailsPanel({
                   <div
                     ref={linePickerScrollerRef}
                     className={`
-                      flex min-w-0 snap-x snap-mandatory items-center gap-2 overflow-x-auto scroll-smooth
-                      [scrollbar-width:none]
+                      flex min-w-0 snap-x snap-mandatory scrollbar-none items-center gap-2 overflow-x-auto scroll-smooth
                       [&::-webkit-scrollbar]:hidden
                     `}
                   >

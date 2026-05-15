@@ -3,39 +3,48 @@ name: Fork Auto-Sync
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/30 * * * *'
 
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
   sync:
     if: github.repository != 'kuestcom/prediction-market'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: true
 
       - name: Configure git author/committer
         run: |
-          git config user.name  "${{ github.actor }}"
-          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Sync with upstream
+        shell: bash
         run: |
           git remote get-url upstream || git remote add upstream https://github.com/kuestcom/prediction-market.git
-          git fetch upstream
+          git fetch upstream main
           UPSTREAM_HASH=$(git rev-parse upstream/main)
-          LOCAL_HASH=$(git rev-parse HEAD)
-          if [ "$UPSTREAM_HASH" = "$LOCAL_HASH" ]; then
-            echo "Already synced with upstream. Skipping."
+          if git diff --quiet HEAD upstream/main -- . ':(exclude).github/workflows/**'; then
+            echo "Already synced with upstream outside .github/workflows. Skipping."
             exit 0
           fi
           echo "Syncing with upstream..."
           LATEST_COMMIT_MSG=$(git log upstream/main -1 --pretty=format:"%s")
-          git reset --hard upstream/main
-          git push --force origin main
+          git diff --binary HEAD upstream/main -- . ':(exclude).github/workflows/**' | git apply --index
+          git commit \
+            -m "chore: sync fork with upstream" \
+            -m "Upstream: $UPSTREAM_HASH" \
+            -m "Latest upstream commit: $LATEST_COMMIT_MSG"
+          git push origin HEAD:main

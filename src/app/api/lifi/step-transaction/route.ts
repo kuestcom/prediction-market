@@ -1,4 +1,4 @@
-import type { LiFiStep } from '@lifi/types'
+import type { LiFiStep } from '@lifi/sdk'
 import { getStepTransaction } from '@lifi/sdk'
 import { NextResponse } from 'next/server'
 import { ensureLiFiServerConfig } from '@/lib/lifi'
