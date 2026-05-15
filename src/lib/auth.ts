@@ -8,7 +8,7 @@ import { generateRandomString } from 'better-auth/crypto'
 import { nextCookies } from 'better-auth/next-js'
 import { customSession, siwe, twoFactor } from 'better-auth/plugins'
 import { createPublicClient, http } from 'viem'
-import { isAdminSessionUser } from '@/lib/admin'
+import { isAdminWallet } from '@/lib/admin'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { db } from '@/lib/drizzle'
 import { reownProjectId } from '@/lib/reown-project-id'
@@ -222,7 +222,7 @@ export const auth = betterAuth({
           ...user,
           settings,
           image: user.image ? getPublicAssetUrl(user.image) : '',
-          is_admin: isAdminSessionUser(user),
+          is_admin: isAdminWallet(user.name),
         },
         session,
       }

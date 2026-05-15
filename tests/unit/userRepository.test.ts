@@ -52,7 +52,6 @@ describe('userRepository.getCurrentUser', () => {
     expect(user).toEqual({
       id: 'user-1',
       email: 'user@example.com',
-      is_admin: false,
       settings: {
         tradingAuth: {
           relayer: {

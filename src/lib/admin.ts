@@ -1,12 +1,3 @@
-function normalizeAdminWallet(value: unknown): string | null {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const address = value.trim().toLowerCase()
-  return /^0x[a-f0-9]{40}$/.test(address) ? address : null
-}
-
 function parseAdminWalletsEnv(value: string): string[] {
   const trimmed = value.trim()
 
@@ -14,25 +5,20 @@ function parseAdminWalletsEnv(value: string): string[] {
     return []
   }
 
-  const rawValues: unknown[] = (() => {
-    try {
-      const parsed = JSON.parse(trimmed)
-      if (Array.isArray(parsed)) {
-        return parsed
-      }
+  try {
+    const parsed = JSON.parse(trimmed)
+    if (Array.isArray(parsed)) {
+      return parsed.map(item => String(item).toLowerCase())
     }
-    catch {
-      // Fall back to comma-separated env values.
-    }
+  }
+  catch {
+    //
+  }
 
-    return trimmed.split(',')
-  })()
-
-  return Array.from(
-    new Set(rawValues
-      .map(normalizeAdminWallet)
-      .filter((address): address is string => Boolean(address))),
-  )
+  return trimmed
+    .split(',')
+    .map(item => item.trim().toLowerCase())
+    .filter(Boolean)
 }
 
 let cachedAdminWallets: string[] | null = null
@@ -53,24 +39,9 @@ function getAdminWallets(): string[] {
 }
 
 export function isAdminWallet(address?: string | null): boolean {
-  const normalizedAddress = normalizeAdminWallet(address)
-  if (!normalizedAddress) {
+  if (!address) {
     return false
   }
 
-  return getAdminWallets().includes(normalizedAddress)
+  return getAdminWallets().includes(address.toLowerCase())
 }
-
-export function isAdminSessionUser(user?: { address?: string | null, name?: string | null } | null): boolean {
-  return isAdminWallet(user?.address ?? user?.name ?? null)
-}
-
-export const adminWalletsInternals = process.env.NODE_ENV === 'test'
-  ? {
-      normalizeAdminWallet,
-      parseAdminWalletsEnv,
-      resetAdminWalletCache() {
-        cachedAdminWallets = null
-      },
-    }
-  : undefined

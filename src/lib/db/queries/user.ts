@@ -1,7 +1,6 @@
 import type { DepositWalletStatus, MarketOrderType, User } from '@/types'
 import { asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { headers } from 'next/headers'
-import { isAdminSessionUser } from '@/lib/admin'
 import { auth } from '@/lib/auth'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
@@ -213,7 +212,6 @@ export const UserRepository = {
       const shouldRedactEmail = Boolean(rawEmail && rawEmail.startsWith('0x') && rawEmail.split('@')[0].length === 42)
 
       user.email = shouldRedactEmail ? '' : rawEmail
-      user.is_admin = isAdminSessionUser(user)
       if (user.settings) {
         user.settings = sanitizeTradingAuthSettings(user.settings)
       }

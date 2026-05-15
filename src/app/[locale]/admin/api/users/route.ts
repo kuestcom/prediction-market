@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import { isAdminSessionUser } from '@/lib/admin'
+import { isAdminWallet } from '@/lib/admin'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildPublicProfilePath, buildUsernameProfilePath } from '@/lib/platform-routing'
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 
       return {
         ...user,
-        is_admin: isAdminSessionUser(user),
+        is_admin: isAdminWallet(user.address),
         avatarUrl: user.image ? getPublicAssetUrl(user.image) : '',
         referred_by_display: referredDisplay,
         referred_by_profile_url: referredProfile,
