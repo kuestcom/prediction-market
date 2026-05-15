@@ -18,8 +18,7 @@ import {
   UnplugIcon,
 } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
-import dynamic from 'next/dynamic'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SearchDiscoveryContent from '@/app/[locale]/(platform)/_components/SearchDiscoveryContent'
 import { MOBILE_BOTTOM_NAV_OFFSET } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
@@ -43,15 +42,8 @@ import { cn } from '@/lib/utils'
 import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 import { useUser } from '@/stores/useUser'
 
-const HeaderSearch = dynamic(
-  () => import('@/app/[locale]/(platform)/_components/HeaderSearch'),
-  { ssr: false },
-)
-
-const HowItWorks = dynamic(
-  () => import('@/app/[locale]/(platform)/_components/HowItWorks'),
-  { ssr: false },
-)
+const HeaderSearch = lazy(() => import('@/app/[locale]/(platform)/_components/HeaderSearch'))
+const HowItWorks = lazy(() => import('@/app/[locale]/(platform)/_components/HowItWorks'))
 
 const { useSession } = authClient
 
@@ -200,14 +192,18 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
     <>
       <div aria-hidden="true" className="lg:hidden" style={{ height: MOBILE_BOTTOM_NAV_OFFSET }} />
 
-      <div className="lg:hidden">
-        <HowItWorks
-          open={isHowItWorksOpen}
-          onOpenChange={setIsHowItWorksOpen}
-          hideTrigger
-          displayMode="mobile"
-        />
-      </div>
+      {isHowItWorksOpen && (
+        <div className="lg:hidden">
+          <Suspense fallback={null}>
+            <HowItWorks
+              open={isHowItWorksOpen}
+              onOpenChange={setIsHowItWorksOpen}
+              hideTrigger
+              displayMode="mobile"
+            />
+          </Suspense>
+        </div>
+      )}
 
       <Drawer
         open={isSearchOpen}
@@ -226,12 +222,16 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
             <DrawerTitle>{t('Search')}</DrawerTitle>
           </DrawerHeader>
           <div className="mt-4">
-            <HeaderSearch
-              onNavigate={handleSearchNavigate}
-              onPredictionResultsNavigate={handlePredictionResultsNavigate}
-              emptyState={<SearchDiscoveryContent onNavigate={handleSearchNavigate} />}
-              focusTrigger={searchFocusTrigger}
-            />
+            {isSearchOpen && (
+              <Suspense fallback={null}>
+                <HeaderSearch
+                  onNavigate={handleSearchNavigate}
+                  onPredictionResultsNavigate={handlePredictionResultsNavigate}
+                  emptyState={<SearchDiscoveryContent onNavigate={handleSearchNavigate} />}
+                  focusTrigger={searchFocusTrigger}
+                />
+              </Suspense>
+            )}
           </div>
         </DrawerContent>
       </Drawer>

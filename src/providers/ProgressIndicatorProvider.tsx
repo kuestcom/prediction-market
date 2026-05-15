@@ -2,17 +2,23 @@
 
 import type { ReactNode } from 'react'
 import { ProgressProvider } from '@bprogress/next/app'
+import { useHasHydrated } from '@/hooks/useHasHydrated'
 
 function ProgressIndicatorProvider({ children }: { children: ReactNode }) {
+  const hasHydrated = useHasHydrated()
+
   return (
-    <ProgressProvider
-      height="2px"
-      color="var(--primary)"
-      options={{ showSpinner: false }}
-      shallowRouting
-    >
+    <>
       {children}
-    </ProgressProvider>
+      {hasHydrated && (
+        <ProgressProvider
+          height="2px"
+          color="var(--primary)"
+          options={{ showSpinner: false }}
+          shallowRouting
+        />
+      )}
+    </>
   )
 }
 

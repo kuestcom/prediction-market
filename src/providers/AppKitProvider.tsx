@@ -9,11 +9,11 @@ import { createAppKit, useAppKitTheme } from '@reown/appkit/react'
 import { generateRandomString } from 'better-auth/crypto'
 import { useExtracted } from 'next-intl'
 import { useTheme } from 'next-themes'
-import dynamic from 'next/dynamic'
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 import { WagmiProvider } from 'wagmi'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
+import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { defaultNetwork, networks, wagmiAdapter, wagmiConfig } from '@/lib/appkit'
 import { authClient } from '@/lib/auth-client'
@@ -27,10 +27,10 @@ let appKitInstance: AppKit | null = null
 const appKitStateListeners = new Set<() => void>()
 const APPKIT_INIT_RETRY_DELAY_MS = 3000
 
-const SignaturePrompt = dynamic(
-  () => import('@/components/SignaturePrompt').then(mod => mod.SignaturePrompt),
-  { ssr: false },
-)
+const SignaturePrompt = lazy(async () => {
+  const mod = await import('@/components/SignaturePrompt')
+  return { default: mod.SignaturePrompt }
+})
 
 function clearAppKitState() {
   if (!IS_BROWSER) {
@@ -308,6 +308,7 @@ function useAppKitContextValue({
 export default function AppKitProvider({ children }: { children: ReactNode }) {
   const t = useExtracted()
   const site = useSiteIdentity()
+  const hasHydrated = useHasHydrated()
   const currentUser = useUser()
   const resolvedTheme = useResolvedThemeMode()
   const appKitThemeMode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light'
@@ -328,7 +329,11 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
     <WagmiProvider config={wagmiConfig}>
       <AppKitContext value={appKitValue}>
         {children}
-        <SignaturePrompt />
+        {hasHydrated && (
+          <Suspense fallback={null}>
+            <SignaturePrompt />
+          </Suspense>
+        )}
         {canSyncTheme && <AppKitThemeSynchronizer themeMode={appKitThemeMode} />}
       </AppKitContext>
     </WagmiProvider>
