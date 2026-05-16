@@ -195,7 +195,7 @@ function resolveNextOnboardingModal({
   if (allowTradingAuthPrompt && !hasTradingAuth) {
     return 'enable-status'
   }
-  if (!hasTokenApprovals) {
+  if (allowTradingAuthPrompt && !hasTokenApprovals) {
     return 'approve'
   }
   return null

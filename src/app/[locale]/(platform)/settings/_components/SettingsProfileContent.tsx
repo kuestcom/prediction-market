@@ -185,11 +185,14 @@ export default function SettingsProfileContent({ user }: { user: User }) {
         return
       }
 
-      useUser.setState({
-        ...user,
-        email: emailValue ?? user.email,
-        username: communityUsername,
-        image: updatedAvatarUrl ?? user.image,
+      useUser.setState((previous) => {
+        const baseUser = previous ?? user
+        return {
+          ...baseUser,
+          email: emailValue ?? baseUser.email,
+          username: communityUsername,
+          image: updatedAvatarUrl ?? baseUser.image,
+        }
       })
       await queryClient.invalidateQueries({
         predicate: (query) => {

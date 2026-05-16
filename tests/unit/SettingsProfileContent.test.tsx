@@ -140,9 +140,23 @@ describe('SettingsProfileContent', () => {
     expect(communityForm.get('image')).toBeNull()
     expect(localForm.get('username')).toBe('newname')
     expect(localForm.get('avatar_url')).toBeNull()
-    expect(mocks.setUserState).toHaveBeenCalledWith(expect.objectContaining({
-      image: '',
+    const updateUserState = mocks.setUserState.mock.calls[0][0] as (previous: User | null) => User | null
+    const previousUser = createUser({
+      image: 'https://local.example/avatar.png',
+      settings: {
+        tradingAuth: {
+          approvals: {
+            enabled: true,
+            updatedAt: '2026-05-16T00:00:00.000Z',
+            version: 'current',
+          },
+        },
+      },
+    })
+    expect(updateUserState(previousUser)).toEqual(expect.objectContaining({
+      image: 'https://local.example/avatar.png',
       username: 'newname',
     }))
+    expect(updateUserState(previousUser)?.settings).toBe(previousUser.settings)
   })
 })
