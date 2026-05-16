@@ -303,26 +303,27 @@ export async function fetchAdminApi(pathname: string, init?: RequestInit) {
   return fetch(`/${maybeLocale}/admin/api${normalizedPath}`, init)
 }
 
+function isAbortException(error: unknown) {
+  return error instanceof DOMException && (error.name === 'AbortError' || error.name === 'TimeoutError')
+}
+
 export async function fetchAdminApiWithTimeout(pathname: string, timeoutMs: number, init?: RequestInit) {
-  const controller = new AbortController()
-  const timeoutId = window.setTimeout(() => {
-    controller.abort()
-  }, timeoutMs)
+  const timeoutSignal = AbortSignal.timeout(timeoutMs)
+  const requestSignal = init?.signal
+    ? AbortSignal.any([init.signal, timeoutSignal])
+    : timeoutSignal
 
   try {
     return await fetchAdminApi(pathname, {
       ...init,
-      signal: controller.signal,
+      signal: requestSignal,
     })
   }
   catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
+    if (requestSignal.reason === timeoutSignal.reason && isAbortException(error)) {
       throw new Error('Request timed out. Try again in a few moments.')
     }
     throw error
-  }
-  finally {
-    window.clearTimeout(timeoutId)
   }
 }
 

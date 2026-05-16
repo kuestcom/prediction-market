@@ -47,9 +47,6 @@ export async function reportOperatorDomainSnapshot() {
     return
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -60,7 +57,7 @@ export async function reportOperatorDomainSnapshot() {
         url: siteUrl,
       }),
       cache: 'no-store',
-      signal: controller.signal,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -75,8 +72,5 @@ export async function reportOperatorDomainSnapshot() {
       '[operator-domain-register] Failed to report domain snapshot.',
       error instanceof Error ? error.message : error,
     )
-  }
-  finally {
-    clearTimeout(timeout)
   }
 }
