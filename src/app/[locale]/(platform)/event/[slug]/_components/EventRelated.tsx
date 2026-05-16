@@ -233,6 +233,10 @@ export default function EventRelated({ event }: EventRelatedProps) {
           continue
         }
 
+        if (tag.slug === 'rewards-automation-50-4-5-50') {
+          continue
+        }
+
         const label = tag.name?.trim() || tag.slug
         uniqueTags.set(tag.slug, label)
       }

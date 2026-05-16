@@ -10,10 +10,14 @@ import { resolveCategorySidebarData } from '@/lib/category-sidebar-config'
 import { event_tags, events, tag_translations, tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
-import { buildPublicEventListVisibilityCondition, HIDE_FROM_NEW_TAG_SLUG } from '@/lib/event-visibility'
+import {
+  buildPublicEventListVisibilityCondition,
+  HIDE_FROM_NEW_TAG_SLUG,
+  REWARDS_AUTOMATION_TAG_SLUG,
+} from '@/lib/event-visibility'
 import { filterHomeEvents } from '@/lib/home-events'
 
-const EXCLUDED_SUB_SLUGS = new Set([HIDE_FROM_NEW_TAG_SLUG])
+const EXCLUDED_SUB_SLUGS = new Set([HIDE_FROM_NEW_TAG_SLUG, REWARDS_AUTOMATION_TAG_SLUG])
 
 interface ListTagsParams {
   limit?: number

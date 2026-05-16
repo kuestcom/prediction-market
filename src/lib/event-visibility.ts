@@ -4,6 +4,7 @@ import { event_tags, tags } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
 
 export const HIDE_FROM_NEW_TAG_SLUG = 'hide-from-new'
+export const REWARDS_AUTOMATION_TAG_SLUG = 'rewards-automation-50-4-5-50'
 const HIDE_FROM_NEW_TAG_NAME = 'Hide From New'
 
 let cachedHideFromNewTagId: number | null = null
