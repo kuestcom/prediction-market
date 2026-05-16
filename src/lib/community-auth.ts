@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'community_auth'
-const STORAGE_VERSION = 2
+const STORAGE_VERSION = 3
 
 interface StoredCommunityAuth {
   version?: number
@@ -20,6 +20,9 @@ interface AuthNonceResponse {
 interface AuthVerifyResponse {
   token: string
   expires_at: string
+  profile?: {
+    deposit_wallet_address?: string | null
+  }
 }
 
 function normalizeDepositWalletAddress(value?: string | null) {
@@ -30,7 +33,7 @@ function normalizeDepositWalletAddress(value?: string | null) {
   if (!trimmed) {
     return null
   }
-  return trimmed
+  return trimmed.toLowerCase()
 }
 
 function isExpired(expiresAt: string) {
@@ -104,14 +107,16 @@ export async function ensureCommunityToken({
   signMessageAsync,
   communityApiUrl = process.env.COMMUNITY_URL!,
   depositWalletAddress,
+  forceRefresh = false,
 }: {
   address: string
   signMessageAsync: SignMessageFn
   communityApiUrl?: string
   depositWalletAddress?: string | null
+  forceRefresh?: boolean
 }) {
   const normalizedDepositWallet = normalizeDepositWalletAddress(depositWalletAddress)
-  const existing = loadCommunityAuth(address)
+  const existing = forceRefresh ? null : loadCommunityAuth(address)
   if (existing?.token) {
     const storedDepositWallet = normalizeDepositWalletAddress(existing.deposit_wallet_address)
     if (!normalizedDepositWallet || storedDepositWallet === normalizedDepositWallet) {
@@ -151,13 +156,16 @@ export async function ensureCommunityToken({
   }
 
   const verifyPayload = await verifyResponse.json() as AuthVerifyResponse
+  const verifiedDepositWallet = normalizeDepositWalletAddress(
+    verifyPayload.profile?.deposit_wallet_address ?? normalizedDepositWallet,
+  )
 
   storeCommunityAuth({
     version: STORAGE_VERSION,
     token: verifyPayload.token,
     address,
     expires_at: verifyPayload.expires_at,
-    deposit_wallet_address: normalizedDepositWallet,
+    deposit_wallet_address: verifiedDepositWallet,
   })
 
   return verifyPayload.token

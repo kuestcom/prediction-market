@@ -1,5 +1,9 @@
 import { ImageResponse } from 'next/og'
 import OgImage from '@/app/api/og/_components/OgImage'
+import {
+  fetchCommunityProfileByAddress,
+  fetchCommunityProfileByUsername,
+} from '@/lib/community-profile'
 import { UserRepository } from '@/lib/db/queries/user'
 import { truncateAddress } from '@/lib/formatters'
 import { normalizePublicProfileSlug } from '@/lib/platform-routing'
@@ -32,6 +36,41 @@ function normalizeText(value: string | null | undefined, maxLength: number) {
   }
 
   return `${trimmed.slice(0, maxLength - 1)}…`
+}
+
+async function fetchProfileForOg(normalized: ReturnType<typeof normalizePublicProfileSlug>) {
+  const communityApiUrl = process.env.COMMUNITY_URL
+  if (communityApiUrl) {
+    try {
+      const communityProfile = normalized.type === 'address'
+        ? await fetchCommunityProfileByAddress({
+            communityApiUrl,
+            address: normalized.value,
+            signal: AbortSignal.timeout(8_000),
+          })
+        : await fetchCommunityProfileByUsername({
+            communityApiUrl,
+            username: normalized.value,
+            signal: AbortSignal.timeout(8_000),
+          })
+
+      const depositWalletAddress = communityProfile?.deposit_wallet_address?.trim()
+        || communityProfile?.address?.trim()
+      if (communityProfile && depositWalletAddress) {
+        return {
+          username: communityProfile.username ?? '',
+          image: communityProfile.avatar_url ?? '',
+          deposit_wallet_address: depositWalletAddress,
+        }
+      }
+    }
+    catch (error) {
+      console.error('Failed to load community profile for OG image', error)
+    }
+  }
+
+  const { data: localProfile } = await UserRepository.getProfileByUsernameOrDepositWalletAddress(normalized.value)
+  return localProfile
 }
 
 function parseNumber(value: unknown) {
@@ -293,9 +332,9 @@ export async function GET(request: Request) {
   try {
     const [runtimeTheme, profileResult] = await Promise.all([
       loadRuntimeThemeState(),
-      UserRepository.getProfileByUsernameOrDepositWalletAddress(normalized.value),
+      fetchProfileForOg(normalized),
     ])
-    const profile = profileResult.data
+    const profile = profileResult
     const profileUsername = normalizeText(profile?.username ?? null, 28)
     const displayName = profileUsername
       ?? (normalized.type === 'username' ? normalized.value : truncateAddress(normalized.value))

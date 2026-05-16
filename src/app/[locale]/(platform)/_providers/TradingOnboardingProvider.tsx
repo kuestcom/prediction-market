@@ -7,7 +7,7 @@ import { useExtracted } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPublicClient, erc20Abi, erc1155Abi, http, UserRejectedRequestError } from 'viem'
-import { useSignTypedData } from 'wagmi'
+import { useSignMessage, useSignTypedData } from 'wagmi'
 import { markApprovalStateWithoutTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
 import {
   createDepositWalletAction,
@@ -26,6 +26,12 @@ import { useAppKit } from '@/hooks/useAppKit'
 import { useDepositWalletPolling } from '@/hooks/useDepositWalletPolling'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { authClient } from '@/lib/auth-client'
+import {
+  clearCommunityAuth,
+  ensureCommunityToken,
+  parseCommunityError,
+} from '@/lib/community-auth'
+import { updateCommunityProfile } from '@/lib/community-profile'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import {
   COLLATERAL_TOKEN_ADDRESS,
@@ -290,12 +296,14 @@ function TradingOnboardingProviderContent({
   const [autoRedeemStep, setAutoRedeemStep] = useState<ApprovalsStep>('idle')
   const [requiresTradingAuthRefresh, setRequiresTradingAuthRefresh] = useState(false)
   const { signTypedDataAsync } = useSignTypedData()
+  const { signMessageAsync } = useSignMessage()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const t = useExtracted()
   const pathname = usePathname()
   const affiliateMetadata = useAffiliateOrderMetadata()
   const { open: openAppKit } = useAppKit()
   const refreshSessionUserState = useSessionRefresher()
+  const communityApiUrl = process.env.COMMUNITY_URL!
 
   const status = useOnboardingStatus(user, requiresTradingAuthRefresh)
 
@@ -395,15 +403,51 @@ function TradingOnboardingProviderContent({
     if (isUsernameSubmitting) {
       return
     }
+    if (!user?.address) {
+      setUsernameError(DEFAULT_ERROR_MESSAGE)
+      return
+    }
     setIsUsernameSubmitting(true)
     setUsernameError(null)
     try {
-      const result = await updateOnboardingUsernameAction({ username, termsAccepted })
+      const token = await ensureCommunityToken({
+        address: user.address,
+        signMessageAsync: args => runWithSignaturePrompt(() => signMessageAsync(args)),
+        communityApiUrl,
+        depositWalletAddress: user.deposit_wallet_address ?? null,
+      })
+
+      const response = await updateCommunityProfile({
+        communityApiUrl,
+        token,
+        username,
+      })
+
+      if (response.status === 401) {
+        clearCommunityAuth()
+      }
+      if (!response.ok) {
+        setUsernameError(
+          response.status === 409
+            ? t('That username is already taken.')
+            : await parseCommunityError(response, DEFAULT_ERROR_MESSAGE),
+        )
+        return
+      }
+
+      const payload = await response.json() as { username?: string }
+      const communityUsername = payload.username?.trim() || username
+      const result = await updateOnboardingUsernameAction({
+        username: communityUsername,
+        termsAccepted,
+      })
       if (result.error || !result.data) {
         setUsernameError(
           result.code === 'username_taken'
             ? t('That username is already taken.')
-            : result.error ?? DEFAULT_ERROR_MESSAGE,
+            : result.error === 'community_profile_not_synced'
+              ? DEFAULT_ERROR_MESSAGE
+              : result.error ?? DEFAULT_ERROR_MESSAGE,
         )
         return
       }
@@ -431,7 +475,17 @@ function TradingOnboardingProviderContent({
     finally {
       setIsUsernameSubmitting(false)
     }
-  }, [isUsernameSubmitting, refreshSessionUserState, status, t])
+  }, [
+    communityApiUrl,
+    isUsernameSubmitting,
+    refreshSessionUserState,
+    runWithSignaturePrompt,
+    signMessageAsync,
+    status,
+    t,
+    user?.address,
+    user?.deposit_wallet_address,
+  ])
 
   const handleEmailSubmit = useCallback(async (email: string) => {
     if (isEmailSubmitting) {

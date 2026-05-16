@@ -1,9 +1,14 @@
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
+import type { CommunityProfile } from '@/lib/community-profile'
 import { notFound } from 'next/navigation'
 import PublicProfileHeroCards from '@/app/[locale]/(platform)/profile/_components/PublicProfileHeroCards'
 import PublicProfileTabs from '@/app/[locale]/(platform)/profile/_components/PublicProfileTabs'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
+import {
+  fetchCommunityProfileByAddress,
+  fetchCommunityProfileByUsername,
+} from '@/lib/community-profile'
 import { UserRepository } from '@/lib/db/queries/user'
 import { truncateAddress } from '@/lib/formatters'
 import { normalizePublicProfileSlug } from '@/lib/platform-routing'
@@ -85,6 +90,63 @@ function buildFallbackChartEndDate() {
   return new Date().toISOString()
 }
 
+async function fetchCommunityProfileForSlug(
+  normalized: ReturnType<typeof normalizePublicProfileSlug>,
+) {
+  const communityApiUrl = process.env.COMMUNITY_URL
+  if (!communityApiUrl || normalized.type === 'invalid') {
+    return null
+  }
+
+  try {
+    return normalized.type === 'address'
+      ? await fetchCommunityProfileByAddress({
+          communityApiUrl,
+          address: normalized.value,
+          signal: AbortSignal.timeout(8_000),
+        })
+      : await fetchCommunityProfileByUsername({
+          communityApiUrl,
+          username: normalized.value,
+          signal: AbortSignal.timeout(8_000),
+        })
+  }
+  catch (error) {
+    console.error('Failed to load community public profile', error)
+    return null
+  }
+}
+
+function mapCommunityPublicProfile(profile: CommunityProfile | null) {
+  if (!profile) {
+    return null
+  }
+
+  const depositWalletAddress = profile.deposit_wallet_address?.trim() || profile.address?.trim()
+  if (!depositWalletAddress) {
+    return null
+  }
+
+  return {
+    username: profile.username?.trim() || '',
+    image: profile.avatar_url?.trim() || '',
+    created_at: profile.created_at ?? null,
+    deposit_wallet_address: depositWalletAddress,
+  }
+}
+
+async function resolvePublicProfileForSlug(
+  normalized: ReturnType<typeof normalizePublicProfileSlug>,
+) {
+  const communityProfile = mapCommunityPublicProfile(await fetchCommunityProfileForSlug(normalized))
+  if (communityProfile || normalized.type === 'invalid') {
+    return communityProfile
+  }
+
+  const { data: localProfile } = await UserRepository.getProfileByUsernameOrDepositWalletAddress(normalized.value)
+  return localProfile
+}
+
 export async function buildPublicProfileMetadata({
   slug,
   locale = DEFAULT_LOCALE,
@@ -96,10 +158,10 @@ export async function buildPublicProfileMetadata({
   const [runtimeTheme, profileResult] = await Promise.all([
     loadRuntimeThemeState(),
     normalized.type !== 'invalid'
-      ? UserRepository.getProfileByUsernameOrDepositWalletAddress(normalized.value)
-      : Promise.resolve({ data: null, error: null }),
+      ? resolvePublicProfileForSlug(normalized)
+      : Promise.resolve(null),
   ])
-  const profile = profileResult.data
+  const profile = profileResult
   const siteName = runtimeTheme.site.name
 
   const titleLabel = resolveProfileTitleLabel(slug, profile?.username ?? null)
@@ -148,7 +210,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
     notFound()
   }
 
-  const { data: profile } = await UserRepository.getProfileByUsernameOrDepositWalletAddress(normalized.value)
+  const profile = await resolvePublicProfileForSlug(normalized)
 
   if (!profile) {
     if (normalized.type === 'username') {

@@ -20,6 +20,10 @@ import {
   ensureCommunityToken,
   parseCommunityError,
 } from '@/lib/community-auth'
+import {
+  fetchCommunityProfileByAddress,
+  updateCommunityProfile,
+} from '@/lib/community-profile'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { useUser } from '@/stores/useUser'
 
@@ -95,36 +99,53 @@ export default function SettingsProfileContent({ user }: { user: User }) {
     const username = (formData.get('username') as string | null)?.trim() || ''
     const imageFile = formData.get('image')
     const selectedImageFile = isSelectedImageFile(imageFile) ? imageFile : null
-    const hasUsernameChange = username.length > 0 && username !== user.username
+    const currentUsername = user.username?.trim() ?? ''
+    const hasUsernameChange = username.length > 0 && username !== currentUsername
 
-    const shouldUpdateCommunity = hasUsernameChange || Boolean(selectedImageFile)
+    let shouldUpdateCommunity = hasUsernameChange || Boolean(selectedImageFile)
+    let forceCommunityAuthRefresh = false
 
     let communityUsername = username
     let updatedAvatarUrl: string | undefined
 
     try {
+      if (!shouldUpdateCommunity && username.length > 0) {
+        try {
+          const communityProfile = await fetchCommunityProfileByAddress({
+            communityApiUrl,
+            address: user.address,
+            signal: AbortSignal.timeout(8_000),
+          })
+          const remoteUsername = communityProfile?.username?.trim() ?? ''
+          const remoteDepositWallet = communityProfile?.deposit_wallet_address?.trim().toLowerCase() ?? ''
+          const localDepositWallet = user.deposit_wallet_address?.trim().toLowerCase() ?? ''
+          const usernameOutOfSync = remoteUsername.toLowerCase() !== username.toLowerCase()
+          const walletOutOfSync = Boolean(localDepositWallet && remoteDepositWallet !== localDepositWallet)
+
+          if (!communityProfile || usernameOutOfSync || walletOutOfSync) {
+            shouldUpdateCommunity = true
+            forceCommunityAuthRefresh = walletOutOfSync
+          }
+        }
+        catch (error) {
+          console.error('Failed to inspect community profile before settings save', error)
+        }
+      }
+
       if (shouldUpdateCommunity) {
         const token = await ensureCommunityToken({
           address: user.address,
           signMessageAsync: args => runWithSignaturePrompt(() => signMessageAsync(args)),
           communityApiUrl,
           depositWalletAddress: user.deposit_wallet_address ?? null,
+          forceRefresh: forceCommunityAuthRefresh,
         })
 
-        const communityForm = new FormData()
-        if (hasUsernameChange) {
-          communityForm.append('username', username)
-        }
-        if (selectedImageFile) {
-          communityForm.append('image', selectedImageFile)
-        }
-
-        const response = await fetch(`${communityApiUrl}/profile`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: communityForm,
+        const response = await updateCommunityProfile({
+          communityApiUrl,
+          token,
+          username,
+          image: selectedImageFile,
         })
 
         if (response.status === 401) {
@@ -173,7 +194,11 @@ export default function SettingsProfileContent({ user }: { user: User }) {
       await queryClient.invalidateQueries({
         predicate: (query) => {
           const [key] = query.queryKey
-          return key === 'event-comments' || key === 'event-activity' || key === 'event-holders'
+          return key === 'event-comments'
+            || key === 'event-activity'
+            || key === 'event-holders'
+            || key === 'user-market-activity'
+            || key === 'profile-link-stats'
         },
       })
       toast.success(t('Profile updated successfully!'))
