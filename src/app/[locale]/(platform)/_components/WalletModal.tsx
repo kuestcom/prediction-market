@@ -33,6 +33,8 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
     view,
     onViewChange,
     onBuy,
+    depositWalletBalance,
+    isDepositWalletBalanceLoading = false,
     walletBalance,
     isBalanceLoading = false,
   } = props
@@ -45,10 +47,10 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
   const [preferredSelectedTokenId, setPreferredSelectedTokenId] = useState('')
   const [amountValue, setAmountValue] = useState('')
   const [confirmRefreshIndex, setConfirmRefreshIndex] = useState(0)
-  const formattedBalance = walletBalance && walletBalance !== ''
-    ? walletBalance
+  const formattedDepositWalletBalance = depositWalletBalance && depositWalletBalance !== ''
+    ? depositWalletBalance
     : '0.00'
-  const balanceDisplay = isBalanceLoading
+  const balanceDisplay = isDepositWalletBalanceLoading
     ? (
         <span className="inline-flex align-middle">
           <span className="h-3 w-12 animate-pulse rounded-md bg-accent" />
@@ -57,7 +59,7 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
     : (
         <>
           $
-          {formattedBalance}
+          {formattedDepositWalletBalance}
         </>
       )
 

@@ -64,6 +64,10 @@ import { mergeSessionUserState, useUser } from '@/stores/useUser'
 type OnboardingModal = 'username' | 'email' | 'enable' | 'enable-status' | 'approve' | 'auto-redeem' | null
 type EnableTradingStep = 'idle' | 'enabling' | 'deploying' | 'completed'
 type ApprovalsStep = 'idle' | 'signing' | 'completed'
+interface OpenNextRequirementOptions {
+  forceTradingAuth?: boolean
+  allowTradingAuthPrompt?: boolean
+}
 
 export function TradingOnboardingProvider({ children }: { children: ReactNode }) {
   const user = useUser()
@@ -371,7 +375,7 @@ function TradingOnboardingProviderContent({
     })
   }, [shouldShowFundAfterTradingReady, status.hasDeployedDepositWallet, status.hasTokenApprovals])
 
-  const openNextRequirement = useCallback((options?: { forceTradingAuth?: boolean }) => {
+  const openNextRequirement = useCallback((options?: OpenNextRequirementOptions) => {
     if (!user) {
       void openAppKit()
       return
@@ -394,7 +398,9 @@ function TradingOnboardingProviderContent({
       : status
     const modal = resolveNextOnboardingModal({
       ...forcedStatus,
-      allowTradingAuthPrompt: Boolean(options?.forceTradingAuth) || isEventRoute,
+      allowTradingAuthPrompt: Boolean(options?.allowTradingAuthPrompt)
+        || Boolean(options?.forceTradingAuth)
+        || isEventRoute,
     })
     setActiveModal(modal)
   }, [isEventRoute, openAppKit, refreshSessionUserState, status, user])
@@ -1026,12 +1032,15 @@ function TradingOnboardingProviderContent({
       return true
     }
 
-    openNextRequirement()
+    openNextRequirement({ allowTradingAuthPrompt: true })
     return false
   }, [openAppKit, openNextRequirement, status.tradingReady, user])
 
   const openTradeRequirements = useCallback((options?: { forceTradingAuth?: boolean }) => {
-    openNextRequirement(options)
+    openNextRequirement({
+      ...options,
+      allowTradingAuthPrompt: true,
+    })
   }, [openNextRequirement])
 
   const openWalletModal = useCallback(() => {

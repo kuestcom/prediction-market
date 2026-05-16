@@ -79,6 +79,8 @@ export interface WalletDepositModalProps {
   view: WalletDepositView
   onViewChange: (view: WalletDepositView) => void
   onBuy: (url: string) => void
+  depositWalletBalance?: string | null
+  isDepositWalletBalanceLoading?: boolean
   walletBalance?: string | null
   isBalanceLoading?: boolean
 }
