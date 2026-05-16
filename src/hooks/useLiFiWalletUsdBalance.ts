@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { formatUnits } from 'viem'
 
 const LIFI_WALLET_USD_BALANCE_QUERY_KEY = 'lifi-wallet-usd-balance'
+const LIFI_WALLET_USD_BALANCE_TOKENS_QUERY_KEY = 'lifi-wallet-usd-balance-tokens'
 
 const USD_FORMATTER = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 2,
@@ -59,9 +60,31 @@ export function useLiFiWalletUsdBalance(walletAddress?: string | null, options: 
   const isEnabled = Boolean(options.enabled ?? true)
   const hasAddress = Boolean(walletAddress)
 
+  const acceptedTokensQuery = useQuery({
+    queryKey: [LIFI_WALLET_USD_BALANCE_TOKENS_QUERY_KEY],
+    enabled: isEnabled && hasAddress,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnMount: 'always',
+    queryFn: async () => {
+      const tokensResult = await fetch('/api/lifi/tokens', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+
+      if (!tokensResult.ok) {
+        return new Map<number, Set<string>>()
+      }
+
+      const tokensJson = await tokensResult.json()
+      return buildAcceptedTokenMap(tokensJson.tokens as TokensExtendedResponse)
+    },
+  })
+
   const query = useQuery({
     queryKey: [LIFI_WALLET_USD_BALANCE_QUERY_KEY, walletAddress],
-    enabled: isEnabled && hasAddress,
+    enabled: isEnabled && hasAddress && Boolean(acceptedTokensQuery.data),
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     refetchOnMount: 'always',
@@ -71,29 +94,19 @@ export function useLiFiWalletUsdBalance(walletAddress?: string | null, options: 
       }
 
       try {
-        const [tokensResult, balancesResult] = await Promise.all([
-          fetch('/api/lifi/tokens', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({}),
-          }),
-          fetch('/api/lifi/balances', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ walletAddress }),
-          }),
-        ])
+        const balancesResult = await fetch('/api/lifi/balances', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ walletAddress }),
+        })
 
-        if (!tokensResult.ok || !balancesResult.ok) {
+        if (!balancesResult.ok) {
           return 0
         }
 
-        const tokensJson = await tokensResult.json()
         const balancesJson = await balancesResult.json()
-        const tokensResponse = tokensJson.tokens as TokensExtendedResponse
         const balancesByChain = balancesJson.balances as Record<number, WalletTokenExtended[]>
-
-        const acceptedByChain = buildAcceptedTokenMap(tokensResponse)
+        const acceptedByChain = acceptedTokensQuery.data ?? new Map<number, Set<string>>()
 
         let totalUsd = 0
 
@@ -130,7 +143,9 @@ export function useLiFiWalletUsdBalance(walletAddress?: string | null, options: 
     ? query.data
     : 0
   const formattedUsdBalance = USD_FORMATTER.format(usdBalance)
-  const isLoadingUsdBalance = query.isLoading || (query.isFetching && query.data === undefined)
+  const isLoadingUsdBalance = acceptedTokensQuery.isLoading
+    || query.isLoading
+    || ((acceptedTokensQuery.isFetching || query.isFetching) && query.data === undefined)
 
   return {
     usdBalance,

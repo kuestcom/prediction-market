@@ -316,6 +316,7 @@ function TradingOnboardingProviderContent({
   const [approvalsStep, setApprovalsStep] = useState<ApprovalsStep>('idle')
   const [autoRedeemStep, setAutoRedeemStep] = useState<ApprovalsStep>('idle')
   const [requiresTradingAuthRefresh, setRequiresTradingAuthRefresh] = useState(false)
+  const [shouldContinueTradingAuthPrompt, setShouldContinueTradingAuthPrompt] = useState(false)
   const { signTypedDataAsync } = useSignTypedData()
   const { signMessageAsync } = useSignMessage()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
@@ -393,14 +394,19 @@ function TradingOnboardingProviderContent({
     setAutoRedeemError(null)
     void refreshSessionUserState()
 
+    const allowTradingAuthPrompt = Boolean(options?.allowTradingAuthPrompt)
+      || Boolean(options?.forceTradingAuth)
+      || isEventRoute
+    if (allowTradingAuthPrompt) {
+      setShouldContinueTradingAuthPrompt(true)
+    }
+
     const forcedStatus = options?.forceTradingAuth
       ? { ...status, hasTradingAuth: false, tradingReady: false }
       : status
     const modal = resolveNextOnboardingModal({
       ...forcedStatus,
-      allowTradingAuthPrompt: Boolean(options?.allowTradingAuthPrompt)
-        || Boolean(options?.forceTradingAuth)
-        || isEventRoute,
+      allowTradingAuthPrompt,
     })
     setActiveModal(modal)
   }, [isEventRoute, openAppKit, refreshSessionUserState, status, user])
@@ -431,12 +437,14 @@ function TradingOnboardingProviderContent({
     if (modal === 'auto-redeem') {
       setDismissedModal(modal)
       setActiveModal(null)
+      setShouldContinueTradingAuthPrompt(false)
       setShouldShowFundAfterTradingReady(false)
       void openFundModalIfBalanceEmpty()
       return
     }
     setDismissedModal(modal)
     setActiveModal(null)
+    setShouldContinueTradingAuthPrompt(false)
   }, [openFundModalIfBalanceEmpty])
 
   const handleUsernameSubmit = useCallback(async (username: string, termsAccepted: boolean) => {
@@ -510,13 +518,18 @@ function TradingOnboardingProviderContent({
       })
       void refreshSessionUserState()
       setDismissedModal(null)
-      setActiveModal(status.needsEmail
+      const allowTradingAuthPrompt = shouldContinueTradingAuthPrompt || isEventRoute
+      const nextModal = status.needsEmail
         ? 'email'
         : resolveNextOnboardingModal({
             ...status,
             needsUsername: false,
-            allowTradingAuthPrompt: false,
-          }))
+            allowTradingAuthPrompt,
+          })
+      setActiveModal(nextModal)
+      if (!nextModal) {
+        setShouldContinueTradingAuthPrompt(false)
+      }
     }
     catch (error) {
       setUsernameError(
@@ -536,10 +549,12 @@ function TradingOnboardingProviderContent({
     refreshSessionUserState,
     runWithSignaturePrompt,
     signMessageAsync,
+    shouldContinueTradingAuthPrompt,
     status,
     t,
     user?.address,
     user?.deposit_wallet_address,
+    isEventRoute,
   ])
 
   const handleEmailSubmit = useCallback(async (email: string) => {
@@ -567,16 +582,21 @@ function TradingOnboardingProviderContent({
       })
       void refreshSessionUserState()
       setDismissedModal(null)
-      setActiveModal(resolveNextOnboardingModal({
+      const allowTradingAuthPrompt = shouldContinueTradingAuthPrompt || isEventRoute
+      const nextModal = resolveNextOnboardingModal({
         ...status,
         needsEmail: false,
-        allowTradingAuthPrompt: false,
-      }))
+        allowTradingAuthPrompt,
+      })
+      setActiveModal(nextModal)
+      if (!nextModal) {
+        setShouldContinueTradingAuthPrompt(false)
+      }
     }
     finally {
       setIsEmailSubmitting(false)
     }
-  }, [isEmailSubmitting, refreshSessionUserState, status])
+  }, [isEmailSubmitting, refreshSessionUserState, shouldContinueTradingAuthPrompt, status, isEventRoute])
 
   const handleEmailSkip = useCallback(async () => {
     if (isEmailSubmitting) {
@@ -602,16 +622,21 @@ function TradingOnboardingProviderContent({
       })
       void refreshSessionUserState()
       setDismissedModal(null)
-      setActiveModal(resolveNextOnboardingModal({
+      const allowTradingAuthPrompt = shouldContinueTradingAuthPrompt || isEventRoute
+      const nextModal = resolveNextOnboardingModal({
         ...status,
         needsEmail: false,
-        allowTradingAuthPrompt: false,
-      }))
+        allowTradingAuthPrompt,
+      })
+      setActiveModal(nextModal)
+      if (!nextModal) {
+        setShouldContinueTradingAuthPrompt(false)
+      }
     }
     finally {
       setIsEmailSubmitting(false)
     }
-  }, [isEmailSubmitting, refreshSessionUserState, status])
+  }, [isEmailSubmitting, refreshSessionUserState, shouldContinueTradingAuthPrompt, status, isEventRoute])
 
   const handleCreateDepositWallet = useCallback(async () => {
     if (!user?.address || enableTradingStep === 'enabling') {
