@@ -1,3 +1,5 @@
+import { buildCommunityApiUrl } from '@/lib/community-url'
+
 const STORAGE_KEY = 'community_auth'
 const STORAGE_VERSION = 3
 
@@ -124,7 +126,7 @@ export async function ensureCommunityToken({
     }
   }
 
-  const nonceResponse = await fetch(`${communityApiUrl}/auth/nonce`, {
+  const nonceResponse = await fetch(buildCommunityApiUrl(communityApiUrl, '/auth/nonce'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -139,7 +141,7 @@ export async function ensureCommunityToken({
   const noncePayload = await nonceResponse.json() as AuthNonceResponse
   const signature = await signMessageAsync({ message: noncePayload.message })
 
-  const verifyResponse = await fetch(`${communityApiUrl}/auth/verify`, {
+  const verifyResponse = await fetch(buildCommunityApiUrl(communityApiUrl, '/auth/verify'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -156,9 +158,9 @@ export async function ensureCommunityToken({
   }
 
   const verifyPayload = await verifyResponse.json() as AuthVerifyResponse
-  const verifiedDepositWallet = normalizeDepositWalletAddress(
-    verifyPayload.profile?.deposit_wallet_address ?? normalizedDepositWallet,
-  )
+  const verifiedDepositWallet = verifyPayload.profile && 'deposit_wallet_address' in verifyPayload.profile
+    ? normalizeDepositWalletAddress(verifyPayload.profile.deposit_wallet_address)
+    : normalizedDepositWallet
 
   storeCommunityAuth({
     version: STORAGE_VERSION,

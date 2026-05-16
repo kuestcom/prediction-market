@@ -122,13 +122,13 @@ function mapCommunityPublicProfile(profile: CommunityProfile | null) {
     return null
   }
 
-  const depositWalletAddress = profile.deposit_wallet_address?.trim() || profile.address?.trim()
+  const depositWalletAddress = profile.deposit_wallet_address?.trim()
   if (!depositWalletAddress) {
     return null
   }
 
   return {
-    username: profile.username?.trim() || '',
+    username: profile.username?.trim() || truncateAddress(depositWalletAddress),
     image: profile.avatar_url?.trim() || '',
     created_at: profile.created_at ?? null,
     deposit_wallet_address: depositWalletAddress,

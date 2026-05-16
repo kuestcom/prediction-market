@@ -1,3 +1,5 @@
+import { buildCommunityApiUrl } from '@/lib/community-url'
+
 export interface CommunityProfile {
   id?: string
   address?: string
@@ -16,7 +18,7 @@ export async function fetchCommunityProfileByAddress({
   address: string
   signal?: AbortSignal
 }): Promise<CommunityProfile | null> {
-  const url = new URL('/profile', communityApiUrl)
+  const url = buildCommunityApiUrl(communityApiUrl, '/profile')
   url.searchParams.set('address', address)
   return await fetchCommunityProfile(url, signal)
 }
@@ -30,7 +32,7 @@ export async function fetchCommunityProfileByUsername({
   username: string
   signal?: AbortSignal
 }): Promise<CommunityProfile | null> {
-  const url = new URL('/profile', communityApiUrl)
+  const url = buildCommunityApiUrl(communityApiUrl, '/profile')
   url.searchParams.set('username', username)
   return await fetchCommunityProfile(url, signal)
 }
@@ -72,7 +74,7 @@ export async function updateCommunityProfile({
     communityForm.append('image', image)
   }
 
-  return await fetch(`${communityApiUrl}/profile`, {
+  return await fetch(buildCommunityApiUrl(communityApiUrl, '/profile'), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

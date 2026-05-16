@@ -39,6 +39,7 @@ function normalizeText(value: string | null | undefined, maxLength: number) {
 }
 
 async function fetchProfileForOg(normalized: ReturnType<typeof normalizePublicProfileSlug>) {
+  const localProfilePromise = UserRepository.getProfileByUsernameOrDepositWalletAddress(normalized.value)
   const communityApiUrl = process.env.COMMUNITY_URL
   if (communityApiUrl) {
     try {
@@ -46,16 +47,15 @@ async function fetchProfileForOg(normalized: ReturnType<typeof normalizePublicPr
         ? await fetchCommunityProfileByAddress({
             communityApiUrl,
             address: normalized.value,
-            signal: AbortSignal.timeout(8_000),
+            signal: AbortSignal.timeout(1_500),
           })
         : await fetchCommunityProfileByUsername({
             communityApiUrl,
             username: normalized.value,
-            signal: AbortSignal.timeout(8_000),
+            signal: AbortSignal.timeout(1_500),
           })
 
       const depositWalletAddress = communityProfile?.deposit_wallet_address?.trim()
-        || communityProfile?.address?.trim()
       if (communityProfile && depositWalletAddress) {
         return {
           username: communityProfile.username ?? '',
@@ -69,7 +69,7 @@ async function fetchProfileForOg(normalized: ReturnType<typeof normalizePublicPr
     }
   }
 
-  const { data: localProfile } = await UserRepository.getProfileByUsernameOrDepositWalletAddress(normalized.value)
+  const { data: localProfile } = await localProfilePromise
   return localProfile
 }
 

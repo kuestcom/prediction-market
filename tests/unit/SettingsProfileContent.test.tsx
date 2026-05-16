@@ -129,8 +129,11 @@ describe('SettingsProfileContent', () => {
       expect(mocks.updateUserAction).toHaveBeenCalledTimes(1)
     })
 
-    const communityRequest = mocks.fetch.mock.calls[0][1] as RequestInit
-    const communityForm = communityRequest.body as FormData
+    const communityRequest = mocks.fetch.mock.calls.find(([, init]) => {
+      return (init as RequestInit | undefined)?.method === 'POST'
+    })?.[1] as RequestInit | undefined
+    expect(communityRequest).toBeDefined()
+    const communityForm = communityRequest!.body as FormData
     const localForm = mocks.updateUserAction.mock.calls[0][0] as FormData
 
     expect(communityForm.get('username')).toBe('newname')

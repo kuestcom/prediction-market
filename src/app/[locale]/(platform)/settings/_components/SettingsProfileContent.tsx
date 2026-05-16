@@ -109,7 +109,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
     let updatedAvatarUrl: string | undefined
 
     try {
-      if (!shouldUpdateCommunity && username.length > 0) {
+      if (username.length > 0) {
         try {
           const communityProfile = await fetchCommunityProfileByAddress({
             communityApiUrl,
@@ -119,7 +119,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
           const remoteUsername = communityProfile?.username?.trim() ?? ''
           const remoteDepositWallet = communityProfile?.deposit_wallet_address?.trim().toLowerCase() ?? ''
           const localDepositWallet = user.deposit_wallet_address?.trim().toLowerCase() ?? ''
-          const usernameOutOfSync = remoteUsername.toLowerCase() !== username.toLowerCase()
+          const usernameOutOfSync = remoteUsername !== username
           const walletOutOfSync = Boolean(localDepositWallet && remoteDepositWallet !== localDepositWallet)
 
           if (!communityProfile || usernameOutOfSync || walletOutOfSync) {

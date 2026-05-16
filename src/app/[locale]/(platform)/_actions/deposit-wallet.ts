@@ -4,7 +4,6 @@ import type { DepositWalletStatus } from '@/types'
 import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
-import { fetchCommunityProfileByAddress } from '@/lib/community-profile'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { DEPOSIT_WALLET_FACTORY_ADDRESS } from '@/lib/contracts'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -402,23 +401,8 @@ export async function updateOnboardingUsernameAction(input: {
   }
 
   try {
-    const communityApiUrl = process.env.COMMUNITY_URL
-    if (!communityApiUrl) {
-      return { error: DEFAULT_ERROR_MESSAGE, data: null }
-    }
-
-    const communityProfile = await fetchCommunityProfileByAddress({
-      communityApiUrl,
-      address: user.address,
-      signal: AbortSignal.timeout(8_000),
-    })
-    const communityUsername = communityProfile?.username?.trim() ?? ''
-    if (communityUsername.toLowerCase() !== parsed.data.username.toLowerCase()) {
-      return { error: 'community_profile_not_synced', data: null }
-    }
-
     const { error } = await UserRepository.updateUserProfileById(user.id, {
-      username: communityUsername,
+      username: parsed.data.username,
     })
     if (error) {
       return {
@@ -435,7 +419,7 @@ export async function updateOnboardingUsernameAction(input: {
     return {
       error: null,
       data: {
-        username: communityUsername,
+        username: parsed.data.username,
         settings,
       },
     }

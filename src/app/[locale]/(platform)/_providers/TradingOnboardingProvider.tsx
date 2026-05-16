@@ -445,9 +445,7 @@ function TradingOnboardingProviderContent({
         setUsernameError(
           result.code === 'username_taken'
             ? t('That username is already taken.')
-            : result.error === 'community_profile_not_synced'
-              ? DEFAULT_ERROR_MESSAGE
-              : result.error ?? DEFAULT_ERROR_MESSAGE,
+            : result.error ?? DEFAULT_ERROR_MESSAGE,
         )
         return
       }
@@ -471,6 +469,15 @@ function TradingOnboardingProviderContent({
             needsUsername: false,
             allowTradingAuthPrompt: false,
           }))
+    }
+    catch (error) {
+      setUsernameError(
+        error instanceof UserRejectedRequestError
+          ? t('You rejected the signature request.')
+          : error instanceof Error
+            ? error.message
+            : DEFAULT_ERROR_MESSAGE,
+      )
     }
     finally {
       setIsUsernameSubmitting(false)

@@ -107,13 +107,14 @@ const withMDX = createMDX({
 
 const withNextIntl = createNextIntlPlugin({
   experimental: {
-    extract: true,
+    extract: {
+      sourceLocale: 'en',
+    },
     srcPath: './src',
     messages: {
       path: './src/i18n/messages',
       format: 'json',
       locales: 'infer',
-      sourceLocale: 'en',
     },
   },
 })
