@@ -158,9 +158,10 @@ export async function ensureCommunityToken({
   }
 
   const verifyPayload = await verifyResponse.json() as AuthVerifyResponse
-  const verifiedDepositWallet = verifyPayload.profile && 'deposit_wallet_address' in verifyPayload.profile
+  const profileDepositWallet = verifyPayload.profile && 'deposit_wallet_address' in verifyPayload.profile
     ? normalizeDepositWalletAddress(verifyPayload.profile.deposit_wallet_address)
-    : normalizedDepositWallet
+    : undefined
+  const verifiedDepositWallet = profileDepositWallet ?? normalizedDepositWallet
 
   storeCommunityAuth({
     version: STORAGE_VERSION,

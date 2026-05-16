@@ -33,16 +33,22 @@ const USERNAME_MAX_LENGTH = 42
 const WALLET_CREATE_POLL_ATTEMPTS = 45
 const WALLET_CREATE_POLL_DELAY_MS = 2_000
 
+const UsernameSchema = z
+  .string()
+  .trim()
+  .min(USERNAME_MIN_LENGTH, 'Username must be at least 3 character long')
+  .max(USERNAME_MAX_LENGTH, 'Username must be at most 42 characters long')
+  .regex(/^[A-Z0-9.-]+$/i, 'Only letters, numbers, dots and hyphens are allowed')
+  .regex(/^(?![.-])/, 'Cannot start with a dot or hyphen')
+  .regex(/(?<![.-])$/, 'Cannot end with a dot or hyphen')
+
 const OnboardingUsernameSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .min(USERNAME_MIN_LENGTH, 'Username must be at least 3 character long')
-    .max(USERNAME_MAX_LENGTH, 'Username must be at most 42 characters long')
-    .regex(/^[A-Z0-9.-]+$/i, 'Only letters, numbers, dots and hyphens are allowed')
-    .regex(/^(?![.-])/, 'Cannot start with a dot or hyphen')
-    .regex(/(?<![.-])$/, 'Cannot end with a dot or hyphen'),
+  username: UsernameSchema,
   termsAccepted: z.literal(true),
+})
+
+const OnboardingUsernameCompletionSchema = OnboardingUsernameSchema.extend({
+  communityUsername: UsernameSchema,
 })
 
 const OnboardingEmailSchema = z.object({
@@ -388,6 +394,7 @@ async function pollWalletCreate(
 
 export async function updateOnboardingUsernameAction(input: {
   username: string
+  communityUsername: string
   termsAccepted: boolean
 }) {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
@@ -395,14 +402,22 @@ export async function updateOnboardingUsernameAction(input: {
     return { error: 'Unauthenticated.', data: null }
   }
 
-  const parsed = OnboardingUsernameSchema.safeParse(input)
+  const parsed = OnboardingUsernameCompletionSchema.safeParse(input)
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? DEFAULT_ERROR_MESSAGE, data: null }
   }
 
+  if (parsed.data.username !== parsed.data.communityUsername) {
+    return {
+      error: 'Community profile did not confirm the username.',
+      code: 'community_profile_not_synced',
+      data: null,
+    }
+  }
+
   try {
     const { error } = await UserRepository.updateUserProfileById(user.id, {
-      username: parsed.data.username,
+      username: parsed.data.communityUsername,
     })
     if (error) {
       return {
@@ -419,7 +434,7 @@ export async function updateOnboardingUsernameAction(input: {
     return {
       error: null,
       data: {
-        username: parsed.data.username,
+        username: parsed.data.communityUsername,
         settings,
       },
     }

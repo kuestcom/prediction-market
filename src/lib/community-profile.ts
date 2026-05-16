@@ -1,5 +1,7 @@
 import { buildCommunityApiUrl } from '@/lib/community-url'
 
+export const COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS = 8_000
+
 export interface CommunityProfile {
   id?: string
   address?: string

@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og'
 import OgImage from '@/app/api/og/_components/OgImage'
 import {
+  COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS,
   fetchCommunityProfileByAddress,
   fetchCommunityProfileByUsername,
 } from '@/lib/community-profile'
@@ -47,12 +48,12 @@ async function fetchProfileForOg(normalized: ReturnType<typeof normalizePublicPr
         ? await fetchCommunityProfileByAddress({
             communityApiUrl,
             address: normalized.value,
-            signal: AbortSignal.timeout(1_500),
+            signal: AbortSignal.timeout(COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS),
           })
         : await fetchCommunityProfileByUsername({
             communityApiUrl,
             username: normalized.value,
-            signal: AbortSignal.timeout(1_500),
+            signal: AbortSignal.timeout(COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS),
           })
 
       const depositWalletAddress = communityProfile?.deposit_wallet_address?.trim()

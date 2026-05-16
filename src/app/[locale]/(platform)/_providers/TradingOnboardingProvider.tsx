@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { TradingOnboardingContextValue } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
+import type { CommunityProfile } from '@/lib/community-profile'
 import type { User } from '@/types'
 import { useExtracted } from 'next-intl'
 import { usePathname } from 'next/navigation'
@@ -435,17 +436,25 @@ function TradingOnboardingProviderContent({
         return
       }
 
-      const payload = await response.json() as { username?: string }
-      const communityUsername = payload.username?.trim() || username
+      const payload = await response.json() as CommunityProfile
+      const communityUsername = payload.username?.trim()
+      if (!communityUsername) {
+        setUsernameError(t('Community profile did not confirm the username.'))
+        return
+      }
+
       const result = await updateOnboardingUsernameAction({
-        username: communityUsername,
+        username,
+        communityUsername,
         termsAccepted,
       })
       if (result.error || !result.data) {
         setUsernameError(
           result.code === 'username_taken'
             ? t('That username is already taken.')
-            : result.error ?? DEFAULT_ERROR_MESSAGE,
+            : result.code === 'community_profile_not_synced'
+              ? t('Community profile did not confirm the username.')
+              : result.error ?? DEFAULT_ERROR_MESSAGE,
         )
         return
       }

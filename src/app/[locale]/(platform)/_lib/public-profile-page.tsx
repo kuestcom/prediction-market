@@ -6,6 +6,7 @@ import PublicProfileHeroCards from '@/app/[locale]/(platform)/profile/_component
 import PublicProfileTabs from '@/app/[locale]/(platform)/profile/_components/PublicProfileTabs'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import {
+  COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS,
   fetchCommunityProfileByAddress,
   fetchCommunityProfileByUsername,
 } from '@/lib/community-profile'
@@ -103,12 +104,12 @@ async function fetchCommunityProfileForSlug(
       ? await fetchCommunityProfileByAddress({
           communityApiUrl,
           address: normalized.value,
-          signal: AbortSignal.timeout(8_000),
+          signal: AbortSignal.timeout(COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS),
         })
       : await fetchCommunityProfileByUsername({
           communityApiUrl,
           username: normalized.value,
-          signal: AbortSignal.timeout(8_000),
+          signal: AbortSignal.timeout(COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS),
         })
   }
   catch (error) {
@@ -128,11 +129,24 @@ function mapCommunityPublicProfile(profile: CommunityProfile | null) {
   }
 
   return {
-    username: profile.username?.trim() || truncateAddress(depositWalletAddress),
+    username: profile.username?.trim() || null,
     image: profile.avatar_url?.trim() || '',
     created_at: profile.created_at ?? null,
     deposit_wallet_address: depositWalletAddress,
   }
+}
+
+function resolvePublicProfileDisplayUsername(profile: {
+  username?: string | null
+  deposit_wallet_address?: string | null
+}) {
+  const username = profile.username?.trim()
+  if (username) {
+    return username
+  }
+
+  const depositWalletAddress = profile.deposit_wallet_address?.trim()
+  return depositWalletAddress ? truncateAddress(depositWalletAddress) : 'Anon'
 }
 
 async function resolvePublicProfileForSlug(
@@ -245,7 +259,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
     <>
       <PublicProfileHeroCards
         profile={{
-          username: profile.username,
+          username: resolvePublicProfileDisplayUsername(profile),
           avatarUrl: profile.image,
           joinedAt: profile.created_at?.toString(),
           portfolioAddress: userAddress,
