@@ -397,9 +397,7 @@ function TradingOnboardingProviderContent({
     const allowTradingAuthPrompt = Boolean(options?.allowTradingAuthPrompt)
       || Boolean(options?.forceTradingAuth)
       || isEventRoute
-    if (allowTradingAuthPrompt) {
-      setShouldContinueTradingAuthPrompt(true)
-    }
+    setShouldContinueTradingAuthPrompt(allowTradingAuthPrompt)
 
     const forcedStatus = options?.forceTradingAuth
       ? { ...status, hasTradingAuth: false, tradingReady: false }
