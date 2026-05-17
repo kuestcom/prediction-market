@@ -30,7 +30,10 @@ import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { triggerConfetti } from '@/lib/utils'
 import { normalizeAddress } from '@/lib/wallet'
-import { signAndSubmitDepositWalletCallItemsWithSplitFallback } from '@/lib/wallet/client'
+import {
+  DepositWalletCallItemsSplitFallbackError,
+  signAndSubmitDepositWalletCallItemsWithSplitFallback,
+} from '@/lib/wallet/client'
 import {
   buildNegRiskRedeemPositionCall,
   buildRedeemPositionCall,
@@ -186,6 +189,41 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     userDepositWalletAddress: user?.deposit_wallet_address,
   })
 
+  function syncClaimedMarkets(claimedConditionIds: string[]) {
+    if (claimedConditionIds.length === 0) {
+      return
+    }
+
+    updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
+      queryClient,
+      ['user-positions'],
+      currentQueryKey => currentQueryKey[2] === 'active',
+      current => current
+        ? {
+            ...current,
+            pages: current.pages.map(page => removeClaimedPublicPositions(page, claimedConditionIds) ?? page),
+          }
+        : current,
+    )
+
+    setTimeout(() => {
+      void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
+      void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
+      void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
+      void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
+      void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
+    }, 4_000)
+    setTimeout(() => {
+      void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
+      void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
+      void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
+      void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
+      void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
+    }, 12_000)
+
+    router.refresh()
+  }
+
   async function handleClaimAll() {
     if (isSubmitting) {
       return
@@ -262,48 +300,40 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           : t('We sent your claim transaction.'),
       })
 
-      if (response.partialFailure) {
-        toast.error(t('We could not submit your claim. Please try again.'))
-      }
-
       const claimedConditionIds = response.successfulItems.map(market => market.conditionId)
+      syncClaimedMarkets(claimedConditionIds)
 
       if (response.failedItems.length === 0) {
         setHiddenClaimSignature(claimableSignature)
       }
+
+      if (response.partialFailure) {
+        toast.error(t('We could not submit your claim. Please try again.'))
+
+        const failureError = response.failure?.error
+        if (failureError && isTradingAuthRequiredError(failureError)) {
+          setIsDialogOpen(false)
+          openTradeRequirements({ forceTradingAuth: true })
+        }
+        return
+      }
+
       setIsDialogOpen(false)
       promptAutoRedeem()
-
-      updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
-        queryClient,
-        ['user-positions'],
-        currentQueryKey => currentQueryKey[2] === 'active',
-        current => current
-          ? {
-              ...current,
-              pages: current.pages.map(page => removeClaimedPublicPositions(page, claimedConditionIds) ?? page),
-            }
-          : current,
-      )
-
-      setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
-        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
-        void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
-      }, 4_000)
-      setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
-        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
-        void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
-      }, 12_000)
-
-      router.refresh()
     }
     catch (error) {
+      if (error instanceof DepositWalletCallItemsSplitFallbackError) {
+        const claimedConditionIds = (error.successfulItems as PortfolioClaimMarket[]).map(market => market.conditionId)
+        syncClaimedMarkets(claimedConditionIds)
+        if (claimedConditionIds.length > 0) {
+          toast.success(t('Claim submitted'), {
+            description: claimedConditionIds.length > 1
+              ? t('We sent a claim for your winning markets.')
+              : t('We sent your claim transaction.'),
+          })
+        }
+      }
+
       console.error('Failed to submit claim.', error)
       toast.error(t('We could not submit your claim. Please try again.'))
     }

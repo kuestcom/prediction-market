@@ -37,6 +37,21 @@ export interface SignAndSubmitDepositWalletCallItemsResult<T> extends SignAndSub
   successfulItems: T[]
   failedItems: T[]
   partialFailure: boolean
+  failure?: SignAndSubmitDepositWalletCallsResult
+}
+
+export class DepositWalletCallItemsSplitFallbackError<T> extends Error {
+  readonly successfulItems: T[]
+  readonly failedItems: T[]
+  readonly originalError: unknown
+
+  constructor(error: unknown, successfulItems: T[], failedItems: T[]) {
+    super(error instanceof Error && error.message ? error.message : DEFAULT_ERROR_MESSAGE)
+    this.name = 'DepositWalletCallItemsSplitFallbackError'
+    this.successfulItems = successfulItems
+    this.failedItems = failedItems
+    this.originalError = error
+  }
 }
 
 export async function signAndSubmitDepositWalletCalls({
@@ -109,12 +124,19 @@ function shouldSplitDepositWalletCallFailure(result: SignAndSubmitDepositWalletC
     || normalized.includes('transaction failed')
 }
 
-function walletCallExceptionToResult(error: unknown): SignAndSubmitDepositWalletCallsResult {
-  if (error instanceof Error && error.message) {
-    return { error: error.message }
+function getPreferredFailure(
+  current: SignAndSubmitDepositWalletCallsResult | null,
+  next: SignAndSubmitDepositWalletCallsResult,
+) {
+  if (!current) {
+    return next
   }
 
-  return { error: DEFAULT_ERROR_MESSAGE }
+  if (next.error && isTradingAuthRequiredError(next.error) && !isTradingAuthRequiredError(current.error)) {
+    return next
+  }
+
+  return current
 }
 
 export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
@@ -146,7 +168,13 @@ export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
       })
     }
     catch (error) {
-      result = walletCallExceptionToResult(error)
+      if (successfulItems.length > 0) {
+        throw new DepositWalletCallItemsSplitFallbackError(error, successfulItems, [
+          ...failedItems,
+          ...chunk,
+        ])
+      }
+      throw error
     }
 
     if (!result.error) {
@@ -155,7 +183,7 @@ export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
       return
     }
 
-    firstFailure ??= result
+    firstFailure = getPreferredFailure(firstFailure, result)
     if (chunk.length <= 1 || !shouldSplitDepositWalletCallFailure(result)) {
       failedItems.push(...chunk)
       return
@@ -174,6 +202,7 @@ export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
       successfulItems,
       failedItems: failedItems.length ? failedItems : items,
       partialFailure: false,
+      failure: firstFailure ?? undefined,
     }
   }
 
@@ -183,5 +212,6 @@ export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
     successfulItems,
     failedItems,
     partialFailure: failedItems.length > 0,
+    failure: firstFailure ?? undefined,
   }
 }
