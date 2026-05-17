@@ -1,5 +1,5 @@
 import type { VolumeResponseItem, VolumeWorkItem } from '@/app/api/sync/volume/helpers'
-import { and, asc, desc, eq, gt, inArray, lt, ne, notInArray, or, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, lt, ne, notInArray, or, sql } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import {
@@ -199,11 +199,17 @@ async function buildVolumeWorklist(limit: number, cursor: string | null): Promis
   nextCursor: string | null
   wrappedAround: boolean
 }> {
-  const priorityLimit = Math.max(0, Math.min(limit - 1, ZERO_VOLUME_PRIORITY_LIMIT))
-  const priorityRows = await fetchZeroVolumeMarketRows(priorityLimit)
+  const priorityLimit = Math.min(limit, ZERO_VOLUME_PRIORITY_LIMIT)
+  let priorityRows = await fetchZeroVolumeMarketRows(priorityLimit, cursor)
+  let wrappedAround = false
+
+  if (priorityRows.length === 0 && cursor && priorityLimit > 0) {
+    priorityRows = await fetchZeroVolumeMarketRows(priorityLimit, null)
+    wrappedAround = true
+  }
+
   const priorityConditionIds = priorityRows.map(market => market.condition_id)
   const remainingLimit = Math.max(0, limit - priorityRows.length)
-  let wrappedAround = false
   let cursorRows = remainingLimit > 0
     ? await fetchMarketRows(remainingLimit, cursor, priorityConditionIds)
     : []
@@ -214,7 +220,7 @@ async function buildVolumeWorklist(limit: number, cursor: string | null): Promis
   }
 
   const marketRows = [...priorityRows, ...cursorRows]
-  const nextCursor = cursorRows.at(-1)?.condition_id ?? cursor
+  const nextCursor = cursorRows.at(-1)?.condition_id ?? priorityRows.at(-1)?.condition_id ?? cursor
   const conditionIds = marketRows.map(market => market.condition_id)
 
   let outcomesMap = new Map<string, string[]>()
@@ -277,10 +283,15 @@ function buildBaseMarketPredicate(excludedConditionIds: string[] = []) {
   return and(...predicates)
 }
 
-async function fetchZeroVolumeMarketRows(limit: number) {
+async function fetchZeroVolumeMarketRows(limit: number, cursor: string | null) {
   if (limit <= 0) {
     return []
   }
+
+  const basePredicate = buildBaseMarketPredicate()
+  const predicate = cursor
+    ? and(basePredicate, gt(markets.condition_id, cursor))
+    : basePredicate
 
   return db
     .select({
@@ -292,10 +303,10 @@ async function fetchZeroVolumeMarketRows(limit: number) {
     .from(markets)
     .innerJoin(events, eq(events.id, markets.event_id))
     .where(and(
-      buildBaseMarketPredicate(),
+      predicate,
       sql`${markets.volume} = 0`,
     ))
-    .orderBy(desc(markets.created_at), asc(markets.condition_id))
+    .orderBy(asc(markets.condition_id))
     .limit(limit)
 }
 

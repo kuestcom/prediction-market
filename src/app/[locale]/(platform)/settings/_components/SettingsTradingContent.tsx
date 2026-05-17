@@ -5,7 +5,9 @@ import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { startTransition, useOptimistic, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import { updateTradingSettingsAction } from '@/app/[locale]/(platform)/settings/_actions/update-trading-settings'
+import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
 import { CLOB_ORDER_TYPE } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -19,8 +21,11 @@ function useTradingFormState() {
 
 export default function SettingsTradingContent({ user }: { user: User }) {
   const t = useExtracted()
+  const currentUser = useUser() ?? user
+  const { promptAutoRedeem } = useTradingOnboarding()
   const { error, setError, formRef } = useTradingFormState()
   const initialOrderType = (user.settings?.trading?.market_order_type as MarketOrderType) ?? CLOB_ORDER_TYPE.FAK
+  const autoRedeemEnabled = Boolean(currentUser.settings?.tradingAuth?.autoRedeem?.enabled)
   const orderTypeOptions = [
     {
       value: CLOB_ORDER_TYPE.FAK as MarketOrderType,
@@ -141,6 +146,36 @@ export default function SettingsTradingContent({ user }: { user: User }) {
           })}
         </div>
       </Form>
+
+      <section className="grid gap-3">
+        <h2 className="text-xl font-semibold tracking-tight">{t('Auto-Redeem')}</h2>
+
+        <div className="
+          flex flex-col gap-4 rounded-md border border-border p-4
+          sm:flex-row sm:items-center sm:justify-between
+        "
+        >
+          <div className="grid gap-1.5">
+            <h3 className="text-sm font-medium">{t('Auto-redeem your wins')}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t('Automatically redeem your winnings from markets when they close. One-time approval, always on.')}
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            disabled={autoRedeemEnabled}
+            onClick={() => {
+              if (!autoRedeemEnabled) {
+                promptAutoRedeem()
+              }
+            }}
+            className="w-full sm:w-auto"
+          >
+            {autoRedeemEnabled ? t('Enabled') : t('Enable')}
+          </Button>
+        </div>
+      </section>
     </div>
   )
 }
