@@ -1,5 +1,6 @@
 import type { VolumeResponseItem, VolumeWorkItem } from '@/app/api/sync/volume/helpers'
-import { and, asc, eq, gt, inArray, lt, ne, or } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, lt, ne, notInArray, or, sql } from 'drizzle-orm'
+import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import {
   chunkVolumeWork,
@@ -13,7 +14,8 @@ import {
   VOLUME_REQUEST_TIMEOUT_MS,
 } from '@/app/api/sync/volume/helpers'
 import { isCronAuthorized } from '@/lib/auth-cron'
-import { markets, outcomes, subgraph_syncs } from '@/lib/db/schema'
+import { cacheTags } from '@/lib/cache-tags'
+import { events, markets, outcomes, subgraph_syncs } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
 
 export const maxDuration = 300
@@ -22,6 +24,7 @@ const CLOB_URL = process.env.CLOB_URL!
 const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000
 const VOLUME_SYNC_SERVICE = 'volume_sync'
 const VOLUME_SYNC_SUBGRAPH = 'volume'
+const ZERO_VOLUME_PRIORITY_LIMIT = 50
 
 interface VolumeSyncStats {
   scanned: number
@@ -31,6 +34,7 @@ interface VolumeSyncStats {
   timeLimitReached: boolean
   nextCursor: string | null
   wrappedAround: boolean
+  updatedEventSlugs: string[]
 }
 
 interface OutcomeRow {
@@ -93,6 +97,7 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
     timeLimitReached: false,
     nextCursor: worklist.nextCursor,
     wrappedAround: worklist.wrappedAround,
+    updatedEventSlugs: [],
   }
 
   if (worklist.items.length === 0) {
@@ -100,6 +105,7 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
   }
 
   const batches = chunkVolumeWork(worklist.items, VOLUME_BATCH_SIZE)
+  const updatedEventSlugs = new Set<string>()
 
   for (const batch of batches) {
     if (hasReachedTimeLimit(startedAt, Date.now(), SYNC_TIME_LIMIT_MS)) {
@@ -148,6 +154,7 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
         try {
           await updateMarketVolume(workItem.conditionId, totalVolume, volume24h)
           stats.updated++
+          updatedEventSlugs.add(workItem.eventSlug)
         }
         catch (error: any) {
           stats.errors.push({
@@ -165,6 +172,11 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
         error: error?.message ?? 'volume_batch_failed',
       })
     }
+  }
+
+  stats.updatedEventSlugs = Array.from(updatedEventSlugs)
+  if (stats.updated > 0) {
+    revalidateVolumeCaches(stats.updatedEventSlugs)
   }
 
   return stats
@@ -187,14 +199,21 @@ async function buildVolumeWorklist(limit: number, cursor: string | null): Promis
   nextCursor: string | null
   wrappedAround: boolean
 }> {
+  const priorityRows = await fetchZeroVolumeMarketRows(Math.min(limit, ZERO_VOLUME_PRIORITY_LIMIT))
+  const priorityConditionIds = priorityRows.map(market => market.condition_id)
+  const remainingLimit = Math.max(0, limit - priorityRows.length)
   let wrappedAround = false
-  let marketRows = await fetchMarketRows(limit, cursor)
-  if (marketRows.length === 0 && cursor) {
-    marketRows = await fetchMarketRows(limit, null)
+  let cursorRows = remainingLimit > 0
+    ? await fetchMarketRows(remainingLimit, cursor, priorityConditionIds)
+    : []
+
+  if (cursorRows.length === 0 && cursor && remainingLimit > 0) {
+    cursorRows = await fetchMarketRows(remainingLimit, null, priorityConditionIds)
     wrappedAround = true
   }
 
-  const nextCursor = marketRows.at(-1)?.condition_id ?? null
+  const marketRows = [...priorityRows, ...cursorRows]
+  const nextCursor = cursorRows.at(-1)?.condition_id ?? cursor
   const conditionIds = marketRows.map(market => market.condition_id)
 
   let outcomesMap = new Map<string, string[]>()
@@ -227,6 +246,7 @@ async function buildVolumeWorklist(limit: number, cursor: string | null): Promis
 
     items.push({
       conditionId: market.condition_id,
+      eventSlug: market.event_slug,
       tokenIds: [uniqueTokens[0], uniqueTokens[1]],
       previousTotalVolume: market.volume ?? '0',
       previousVolume24h: market.volume_24h ?? '0',
@@ -243,12 +263,47 @@ async function buildVolumeWorklist(limit: number, cursor: string | null): Promis
   }
 }
 
-async function fetchMarketRows(limit: number, cursor: string | null) {
-  const basePredicate = and(
+function buildBaseMarketPredicate(excludedConditionIds: string[] = []) {
+  const predicates = [
     eq(markets.is_active, true),
     eq(markets.is_resolved, false),
-  )
+  ]
 
+  if (excludedConditionIds.length > 0) {
+    predicates.push(notInArray(markets.condition_id, excludedConditionIds))
+  }
+
+  return and(...predicates)
+}
+
+async function fetchZeroVolumeMarketRows(limit: number) {
+  if (limit <= 0) {
+    return []
+  }
+
+  return db
+    .select({
+      condition_id: markets.condition_id,
+      event_slug: events.slug,
+      volume_24h: markets.volume_24h,
+      volume: markets.volume,
+    })
+    .from(markets)
+    .innerJoin(events, eq(events.id, markets.event_id))
+    .where(and(
+      buildBaseMarketPredicate(),
+      sql`${markets.volume} = 0`,
+    ))
+    .orderBy(desc(markets.created_at), asc(markets.condition_id))
+    .limit(limit)
+}
+
+async function fetchMarketRows(limit: number, cursor: string | null, excludedConditionIds: string[] = []) {
+  if (limit <= 0) {
+    return []
+  }
+
+  const basePredicate = buildBaseMarketPredicate(excludedConditionIds)
   const predicate = cursor
     ? and(basePredicate, gt(markets.condition_id, cursor))
     : basePredicate
@@ -256,10 +311,12 @@ async function fetchMarketRows(limit: number, cursor: string | null) {
   return db
     .select({
       condition_id: markets.condition_id,
+      event_slug: events.slug,
       volume_24h: markets.volume_24h,
       volume: markets.volume,
     })
     .from(markets)
+    .innerJoin(events, eq(events.id, markets.event_id))
     .where(predicate)
     .orderBy(asc(markets.condition_id))
     .limit(limit)
@@ -330,6 +387,14 @@ async function updateMarketVolume(conditionId: string, totalVolume: string, volu
       volume_24h: volume24h,
     })
     .where(eq(markets.condition_id, conditionId))
+}
+
+function revalidateVolumeCaches(eventSlugs: string[]) {
+  revalidateTag(cacheTags.eventsList, 'max')
+
+  for (const slug of eventSlugs) {
+    revalidateTag(cacheTags.event(slug), 'max')
+  }
 }
 
 async function getStoredCursor(): Promise<string | null> {
