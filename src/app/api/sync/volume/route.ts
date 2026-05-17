@@ -199,7 +199,8 @@ async function buildVolumeWorklist(limit: number, cursor: string | null): Promis
   nextCursor: string | null
   wrappedAround: boolean
 }> {
-  const priorityRows = await fetchZeroVolumeMarketRows(Math.min(limit, ZERO_VOLUME_PRIORITY_LIMIT))
+  const priorityLimit = Math.max(0, Math.min(limit - 1, ZERO_VOLUME_PRIORITY_LIMIT))
+  const priorityRows = await fetchZeroVolumeMarketRows(priorityLimit)
   const priorityConditionIds = priorityRows.map(market => market.condition_id)
   const remainingLimit = Math.max(0, limit - priorityRows.length)
   let wrappedAround = false
