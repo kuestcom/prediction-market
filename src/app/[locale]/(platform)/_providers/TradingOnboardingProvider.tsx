@@ -1066,6 +1066,54 @@ function TradingOnboardingProviderContent({
     })
   }, [openNextRequirement])
 
+  const promptAutoRedeem = useCallback(() => {
+    if (!user) {
+      void openAppKit()
+      return false
+    }
+    if (status.hasAutoRedeemApproval) {
+      return false
+    }
+    if (!status.tradingReady) {
+      openNextRequirement({ allowTradingAuthPrompt: true })
+      return false
+    }
+    if (!user.deposit_wallet_address) {
+      return false
+    }
+
+    void ensureAutoRedeemStatusFromChain(user.deposit_wallet_address as `0x${string}`)
+      .then((hasAutoRedeemOnChain) => {
+        if (hasAutoRedeemOnChain) {
+          return
+        }
+
+        setDismissedModal(null)
+        setAutoRedeemStep('idle')
+        setAutoRedeemError(null)
+        setShouldContinueTradingAuthPrompt(false)
+        setShouldShowFundAfterTradingReady(false)
+        setActiveModal('auto-redeem')
+      })
+      .catch((error) => {
+        console.warn('Failed to verify auto-redeem approval before prompting.', error)
+        setDismissedModal(null)
+        setAutoRedeemStep('idle')
+        setAutoRedeemError(null)
+        setShouldContinueTradingAuthPrompt(false)
+        setShouldShowFundAfterTradingReady(false)
+        setActiveModal('auto-redeem')
+      })
+    return true
+  }, [
+    ensureAutoRedeemStatusFromChain,
+    openAppKit,
+    openNextRequirement,
+    status.hasAutoRedeemApproval,
+    status.tradingReady,
+    user,
+  ])
+
   const openWalletModal = useCallback(() => {
     if (!user) {
       void openAppKit()
@@ -1119,12 +1167,14 @@ function TradingOnboardingProviderContent({
     startWithdrawFlow,
     ensureTradingReady,
     openTradeRequirements,
+    promptAutoRedeem,
     hasDepositWallet: status.hasDeployedDepositWallet,
     openWalletModal,
   }), [
     ensureTradingReady,
     openTradeRequirements,
     openWalletModal,
+    promptAutoRedeem,
     startDepositFlow,
     startWithdrawFlow,
     status.hasDeployedDepositWallet,

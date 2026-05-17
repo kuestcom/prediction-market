@@ -859,7 +859,7 @@ export default function EventOrderPanelForm({
     outcomeTokenId ? [outcomeTokenId] : [],
     { enabled: shouldLoadOrderBookSummary },
   )
-  const { ensureTradingReady, openTradeRequirements, startDepositFlow } = useTradingOnboarding()
+  const { ensureTradingReady, openTradeRequirements, promptAutoRedeem, startDepositFlow } = useTradingOnboarding()
   const hasDeployedDepositWallet = Boolean(user?.deposit_wallet_address && user?.deposit_wallet_status === 'deployed')
   const depositWalletAddress = hasDeployedDepositWallet ? normalizeAddress(user?.deposit_wallet_address) : null
   const userAddress = normalizeAddress(user?.address)
@@ -1589,6 +1589,7 @@ export default function EventOrderPanelForm({
       toast.success(t('Claim submitted'), {
         description: t('We sent your claim transaction.'),
       })
+      promptAutoRedeem()
       setClaimedConditionIdsByEvent((current) => {
         const currentEventClaims = current[event.id] ?? {}
         if (currentEventClaims[conditionId]) {

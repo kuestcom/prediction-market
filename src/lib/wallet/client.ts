@@ -9,6 +9,7 @@ import {
 } from '@/app/[locale]/(platform)/_actions/approve-tokens'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
+import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import {
   buildWalletTransactionRequestPayload,
   getDepositWalletBatchTypedData,
@@ -30,6 +31,12 @@ export interface SignAndSubmitDepositWalletCallsResult {
     updatedAt: string
     version: string
   }
+}
+
+export interface SignAndSubmitDepositWalletCallItemsResult<T> extends SignAndSubmitDepositWalletCallsResult {
+  successfulItems: T[]
+  failedItems: T[]
+  partialFailure: boolean
 }
 
 export async function signAndSubmitDepositWalletCalls({
@@ -90,4 +97,91 @@ export async function signAndSubmitDepositWalletCalls({
   }
 
   return await attempt()
+}
+
+function shouldSplitDepositWalletCallFailure(result: SignAndSubmitDepositWalletCallsResult) {
+  if (!result.error || result.code || isTradingAuthRequiredError(result.error)) {
+    return false
+  }
+
+  const normalized = result.error.toLowerCase()
+  return normalized.includes('revert')
+    || normalized.includes('transaction failed')
+}
+
+function walletCallExceptionToResult(error: unknown): SignAndSubmitDepositWalletCallsResult {
+  if (error instanceof Error && error.message) {
+    return { error: error.message }
+  }
+
+  return { error: DEFAULT_ERROR_MESSAGE }
+}
+
+export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
+  user,
+  items,
+  getCall,
+  metadata,
+  signTypedDataAsync,
+}: {
+  user: Pick<User, 'address' | 'deposit_wallet_address'>
+  items: T[]
+  getCall: (item: T) => WalletCall
+  metadata?: string
+  signTypedDataAsync: SignTypedDataFn
+}): Promise<SignAndSubmitDepositWalletCallItemsResult<T>> {
+  const successfulItems: T[] = []
+  const failedItems: T[] = []
+  let lastSuccess: SignAndSubmitDepositWalletCallsResult | null = null
+  let firstFailure: SignAndSubmitDepositWalletCallsResult | null = null
+
+  async function submitChunk(chunk: T[]): Promise<void> {
+    let result: SignAndSubmitDepositWalletCallsResult
+    try {
+      result = await signAndSubmitDepositWalletCalls({
+        user,
+        calls: chunk.map(getCall),
+        metadata,
+        signTypedDataAsync,
+      })
+    }
+    catch (error) {
+      result = walletCallExceptionToResult(error)
+    }
+
+    if (!result.error) {
+      successfulItems.push(...chunk)
+      lastSuccess = result
+      return
+    }
+
+    firstFailure ??= result
+    if (chunk.length <= 1 || !shouldSplitDepositWalletCallFailure(result)) {
+      failedItems.push(...chunk)
+      return
+    }
+
+    const midpoint = Math.ceil(chunk.length / 2)
+    await submitChunk(chunk.slice(0, midpoint))
+    await submitChunk(chunk.slice(midpoint))
+  }
+
+  await submitChunk(items)
+
+  if (successfulItems.length === 0) {
+    return {
+      ...(firstFailure ?? { error: DEFAULT_ERROR_MESSAGE }),
+      successfulItems,
+      failedItems: failedItems.length ? failedItems : items,
+      partialFailure: false,
+    }
+  }
+
+  return {
+    ...(lastSuccess ?? { error: null }),
+    error: null,
+    successfulItems,
+    failedItems,
+    partialFailure: failedItems.length > 0,
+  }
 }

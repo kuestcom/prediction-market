@@ -30,7 +30,7 @@ import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { triggerConfetti } from '@/lib/utils'
 import { normalizeAddress } from '@/lib/wallet'
-import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
+import { signAndSubmitDepositWalletCallItemsWithSplitFallback } from '@/lib/wallet/client'
 import {
   buildNegRiskRedeemPositionCall,
   buildRedeemPositionCall,
@@ -168,7 +168,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
   const t = useExtracted()
   const { summary, markets } = data
   const { isSubmitting, setIsSubmitting, hiddenClaimSignature, setHiddenClaimSignature } = useMarketsWonClaimState()
-  const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
+  const { ensureTradingReady, openTradeRequirements, promptAutoRedeem } = useTradingOnboarding()
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const queryClient = useQueryClient()
@@ -226,23 +226,21 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     setIsSubmitting(true)
 
     try {
-      const calls = claimTargets.map(market =>
-        market.isNegRisk
-          ? buildNegRiskRedeemPositionCall({
-              conditionId: market.conditionId as `0x${string}`,
-              yesAmount: market.yesShares ?? 0,
-              noAmount: market.noShares ?? 0,
-              contract: normalizeAddress(market.negRiskAdapterAddress) as `0x${string}`,
-            })
-          : buildRedeemPositionCall({
-              conditionId: market.conditionId as `0x${string}`,
-              indexSets: market.indexSets,
-            }),
-      )
-
-      const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCalls({
+      const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCallItemsWithSplitFallback({
         user,
-        calls,
+        items: claimTargets,
+        getCall: market =>
+          market.isNegRisk
+            ? buildNegRiskRedeemPositionCall({
+                conditionId: market.conditionId as `0x${string}`,
+                yesAmount: market.yesShares ?? 0,
+                noAmount: market.noShares ?? 0,
+                contract: normalizeAddress(market.negRiskAdapterAddress) as `0x${string}`,
+              })
+            : buildRedeemPositionCall({
+                conditionId: market.conditionId as `0x${string}`,
+                indexSets: market.indexSets,
+              }),
         metadata: 'redeem_positions',
         signTypedDataAsync,
       }))
@@ -264,10 +262,17 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           : t('We sent your claim transaction.'),
       })
 
-      const claimedConditionIds = claimTargets.map(market => market.conditionId)
+      if (response.partialFailure) {
+        toast.error(t('We could not submit your claim. Please try again.'))
+      }
 
-      setHiddenClaimSignature(claimableSignature)
+      const claimedConditionIds = response.successfulItems.map(market => market.conditionId)
+
+      if (response.failedItems.length === 0) {
+        setHiddenClaimSignature(claimableSignature)
+      }
       setIsDialogOpen(false)
+      promptAutoRedeem()
 
       updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
         queryClient,
