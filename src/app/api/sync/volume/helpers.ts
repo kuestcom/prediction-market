@@ -6,6 +6,7 @@ export const SYNC_TIME_LIMIT_MS = 250_000
 
 export interface VolumeWorkItem {
   conditionId: string
+  eventSlug: string
   tokenIds: [string, string]
   previousTotalVolume: string
   previousVolume24h: string
