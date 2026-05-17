@@ -434,6 +434,15 @@ function useRedeemClaimSubmission({
         )
         syncClaimedConditionIds(claimedConditionIds)
         onPartialClaimSuccess(Array.from(claimedConditionIds))
+        if (claimedConditionIds.size > 0) {
+          toast.success('Claim submitted', {
+            description: claimedConditionIds.size > 1
+              ? 'We sent claims for your selected markets.'
+              : 'We sent your claim transaction.',
+          })
+          toast.error('We could not submit your claim. Please try again.')
+          return
+        }
       }
       console.error('Failed to submit claim.', error)
       toast.error('We could not submit your claim. Please try again.')
