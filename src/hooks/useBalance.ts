@@ -30,6 +30,7 @@ const INITIAL_STATE: Balance = {
 
 interface UseBalanceOptions {
   enabled?: boolean
+  depositWalletAddress?: string | null
 }
 
 function createBrowserPublicClient(): PublicClient {
@@ -47,8 +48,12 @@ export function useBalance(options: UseBalanceOptions = {}) {
   }
   const client = clientRef.current
 
-  const depositWalletAddress: Address | null = user?.deposit_wallet_address
-    ? normalizeAddress(user.deposit_wallet_address) as Address | null
+  const sourceDepositWalletAddress = Object.hasOwn(options, 'depositWalletAddress')
+    ? options.depositWalletAddress
+    : user?.deposit_wallet_address
+
+  const depositWalletAddress: Address | null = sourceDepositWalletAddress
+    ? normalizeAddress(sourceDepositWalletAddress) as Address | null
     : null
 
   const contract = useMemo(() => {

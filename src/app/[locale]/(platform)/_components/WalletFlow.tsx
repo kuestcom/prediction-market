@@ -317,9 +317,9 @@ export function WalletFlow({
     handleWithdrawModalChange,
   } = useWithdrawFormState(onWithdrawOpenChange)
   const { pendingWithdrawals: visiblePendingWithdrawals, setPendingWithdrawals } = usePendingWithdrawals()
-  const { balance, isLoadingBalance } = useBalance()
   const hasDeployedDepositWallet = useHasDeployedDepositWallet(user)
   const depositWalletAddress = user?.deposit_wallet_address ?? null
+  const { balance, isLoadingBalance } = useBalance({ depositWalletAddress })
   const {
     formattedUsdBalance: formattedConnectedWalletUsdBalance,
     isLoadingUsdBalance: isLoadingConnectedWalletUsdBalance,

@@ -96,6 +96,75 @@ describe('useBalance', () => {
     expect(result.current.balance.text).toBe('123.45')
   })
 
+  it('uses an explicit Deposit Wallet address instead of the global user state', async () => {
+    const balanceOf = vi.fn().mockResolvedValue(75_000_000n)
+    mocks.getContract.mockReturnValue({
+      read: {
+        balanceOf,
+      },
+    })
+
+    useUser.setState({
+      id: 'user-override',
+      address: '0x00000000000000000000000000000000000000cc',
+      email: 'user@example.com',
+      twoFactorEnabled: null,
+      username: 'override-user',
+      image: '',
+      settings: {},
+      is_admin: false,
+      deposit_wallet_address: '0x00000000000000000000000000000000000000aa',
+      deposit_wallet_status: 'deployed',
+    })
+
+    const { result } = renderHook(() => useBalance({
+      depositWalletAddress: '0x00000000000000000000000000000000000000dd',
+    }), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoadingBalance).toBe(false)
+    })
+
+    expect(balanceOf).toHaveBeenCalledWith(['0x00000000000000000000000000000000000000dd'])
+    expect(result.current.balance.raw).toBe(75)
+    expect(result.current.balance.text).toBe('75.00')
+  })
+
+  it('does not fall back to the global user state when the explicit Deposit Wallet address is null', async () => {
+    mocks.getContract.mockReturnValue({
+      read: {
+        balanceOf: vi.fn(),
+      },
+    })
+
+    useUser.setState({
+      id: 'user-null-override',
+      address: '0x00000000000000000000000000000000000000ee',
+      email: 'user@example.com',
+      twoFactorEnabled: null,
+      username: 'null-override-user',
+      image: '',
+      settings: {},
+      is_admin: false,
+      deposit_wallet_address: '0x00000000000000000000000000000000000000aa',
+      deposit_wallet_status: 'deployed',
+    })
+
+    const { result } = renderHook(() => useBalance({ depositWalletAddress: null }), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoadingBalance).toBe(false)
+    })
+
+    expect(mocks.getContract).not.toHaveBeenCalled()
+    expect(result.current.balance.raw).toBe(0)
+    expect(result.current.balance.text).toBe('0.00')
+  })
+
   it('stops loading when there is no Deposit Wallet to query yet', async () => {
     mocks.getContract.mockReturnValue({
       read: {
