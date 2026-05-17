@@ -74,8 +74,8 @@ import {
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { resolveOutcomePriceCents, resolveOutcomeSelectionPriceCents } from '@/lib/market-pricing'
+import { resolveNegRiskAdapterAddressFromMetadata } from '@/lib/neg-risk-adapter'
 import { formatOddsFromCents } from '@/lib/odds-format'
-import { normalizeAddress } from '@/lib/wallet'
 
 type ReducerStateAction<T> = T | ((current: T) => T)
 
@@ -90,42 +90,6 @@ function useReducerState<T>(initialState: T) {
     (current: T, action: ReducerStateAction<T>) => resolveReducerStateAction(current, action),
     initialState,
   )
-}
-
-function resolveNegRiskAdapterAddressFromMarket(
-  market: SportsGamesCard['detailMarkets'][number] | null | undefined,
-): `0x${string}` | undefined {
-  if (!market) {
-    return undefined
-  }
-
-  const oracle = normalizeAddress(market.condition?.oracle)
-  if (oracle) {
-    return oracle as `0x${string}`
-  }
-
-  const source = market.metadata
-  const parsed = typeof source === 'string'
-    ? (() => {
-        try {
-          return JSON.parse(source) as unknown
-        }
-        catch {
-          return null
-        }
-      })()
-    : source
-
-  if (!parsed || typeof parsed !== 'object') {
-    return undefined
-  }
-
-  const adapterAddress = (parsed as Record<string, unknown>).adapter_address
-  if (typeof adapterAddress !== 'string') {
-    return undefined
-  }
-
-  return normalizeAddress(adapterAddress) as `0x${string}` | undefined
 }
 
 export function useOddsFormat() {
@@ -787,7 +751,8 @@ export function useClaimGroupsBySection({
             amount: 0,
             indexSets: [],
             isNegRisk: Boolean(market.neg_risk),
-            negRiskAdapterAddress: resolveNegRiskAdapterAddressFromMarket(market),
+            negRiskAdapterAddress: resolveNegRiskAdapterAddressFromMetadata(market.metadata, market.condition?.oracle)
+              ?? undefined,
             yesShares: 0,
             noShares: 0,
             positions: [],
@@ -800,7 +765,8 @@ export function useClaimGroupsBySection({
         bucket.group.isNegRisk = true
       }
       bucket.group.negRiskAdapterAddress = bucket.group.negRiskAdapterAddress
-        ?? resolveNegRiskAdapterAddressFromMarket(market)
+        ?? resolveNegRiskAdapterAddressFromMetadata(market.metadata, market.condition?.oracle)
+        ?? undefined
 
       const outcomeIndex = resolveOutcomeIndexFromPosition(position)
       const indexSet = resolveIndexSetFromOutcomeIndex(outcomeIndex)

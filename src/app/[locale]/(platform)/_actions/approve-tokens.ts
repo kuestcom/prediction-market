@@ -42,6 +42,10 @@ interface SubmitWalletTransactionResult {
 
 const WALLET_TX_POLL_ATTEMPTS = 45
 const WALLET_TX_POLL_DELAY_MS = 2_000
+const PUBLIC_WALLET_SUBMIT_METADATA = new Set([
+  'approve_tokens',
+  'auto_redeem_approval',
+])
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -255,7 +259,8 @@ export async function submitDepositWalletTransactionAction(
   }
 
   const auth = await getUserTradingAuthSecrets(user.id)
-  const canUsePublicWalletSubmit = request.metadata === 'approve_tokens' || request.metadata === 'auto_redeem_approval'
+  const canUsePublicWalletSubmit = typeof request.metadata === 'string'
+    && PUBLIC_WALLET_SUBMIT_METADATA.has(request.metadata)
   if (!auth?.relayer && !canUsePublicWalletSubmit) {
     return { error: TRADING_AUTH_REQUIRED_ERROR }
   }

@@ -11,21 +11,10 @@ export const UMA_CTF_ADAPTER_POLYMARKET_ADDRESS = '0x65070BE91477460D8A7AeEb94ef
 export const UMA_NEG_RISK_ADAPTER_POLYMARKET_ADDRESS = '0x2F5e3684cb1F318ec51b00Edba38d79Ac2c0aA9d' as `0x${string}`
 export const UMA_CTF_ADAPTER_ADDRESS = '0x08Ce1f626Ef319fAB728F8b4cE3D8875C2CEcFEB' as `0x${string}`
 export const UMA_NEG_RISK_ADAPTER_ADDRESS = '0xd9416E904e1ab925ad72F03F6D6ce0Aa80fd2dC5' as `0x${string}`
+export const NEGRISK_UMA_CTF_ADAPTER_ADDRESS = '0x4b8D05583085716A684E50c2861333d88D85Bbd6' as `0x${string}`
 export const CTF_AUTO_REDEEM_ADDRESS = '0xB0D97D33efcA240b0764c0127E5AC6e877A8fE7A' as `0x${string}`
 export const DEPOSIT_WALLET_IMPLEMENTATION_ADDRESS = '0xFB2f5D822Ecb062dE63a7B830C5e83C994698851' as `0x${string}`
 export const DEPOSIT_WALLET_FACTORY_ADDRESS = '0x3DaBe8f032833CE42CC26d9149660E6f596759C5' as `0x${string}`
 export const DEFAULT_FEE_RECEIVER_WALLET_ADDRESS = '0x645E67CC15DAE4F312dc941fA190c52E7d598c67' as `0x${string}`
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`
 export const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`
-
-export function isCurrentNegRiskAdapterAddress(value: string | null | undefined): value is `0x${string}` {
-  return typeof value === 'string'
-    && value.toLowerCase() === UMA_NEG_RISK_ADAPTER_ADDRESS.toLowerCase()
-}
-
-export function assertCurrentNegRiskAdapterAddress(value: string | null | undefined): `0x${string}` {
-  if (!isCurrentNegRiskAdapterAddress(value)) {
-    throw new Error('UNSUPPORTED_NEG_RISK_ADAPTER')
-  }
-  return UMA_NEG_RISK_ADAPTER_ADDRESS
-}

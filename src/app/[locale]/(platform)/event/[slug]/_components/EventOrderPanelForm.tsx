@@ -51,10 +51,13 @@ import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { addressToBuilderCode } from '@/lib/builder-code'
 import { CLOB_ORDER_TYPE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
-import { isCurrentNegRiskAdapterAddress } from '@/lib/contracts'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { formatCentsLabel, formatCurrency, formatSharesLabel, toCents } from '@/lib/formatters'
 import { resolveFallbackOutcomeUnitPrice, resolveMarketOutcome } from '@/lib/market-pricing'
+import {
+  isCurrentNegRiskAdapterAddress,
+  resolveNegRiskAdapterAddressFromMetadata,
+} from '@/lib/neg-risk-adapter'
 import {
   applyPositionDeltasToUserPositions,
   buildOptimisticOpenOrder,
@@ -84,44 +87,6 @@ function resolveIndexSetFromOutcomeIndex(outcomeIndex: number | undefined) {
     return 2
   }
   return null
-}
-
-function resolveNegRiskAdapterAddressFromMarket(
-  market: Market | null | undefined,
-): `0x${string}` | null {
-  if (!market) {
-    return null
-  }
-
-  const oracle = normalizeAddress(market.condition?.oracle)
-  if (oracle) {
-    return oracle
-  }
-
-  function readAdapter(source: unknown) {
-    if (!source || typeof source !== 'object') {
-      return null
-    }
-
-    const value = (source as Record<string, unknown>).adapter_address
-    if (typeof value !== 'string') {
-      return null
-    }
-
-    return normalizeAddress(value)
-  }
-
-  if (typeof market.metadata === 'string') {
-    try {
-      const parsed = JSON.parse(market.metadata) as unknown
-      return readAdapter(parsed)
-    }
-    catch {
-      return null
-    }
-  }
-
-  return readAdapter(market.metadata)
 }
 
 function markConditionAsClaimedInPositions<T extends {
@@ -913,8 +878,8 @@ export default function EventOrderPanelForm({
     ? activeMarket.neg_risk
     : Boolean(event.enable_neg_risk || event.neg_risk)
   const negRiskAdapterAddress = useMemo(
-    () => resolveNegRiskAdapterAddressFromMarket(activeMarket),
-    [activeMarket],
+    () => resolveNegRiskAdapterAddressFromMetadata(activeMarket?.metadata, activeMarket?.condition?.oracle),
+    [activeMarket?.condition?.oracle, activeMarket?.metadata],
   )
 
   const resolveDisplayOutcomeLabel = useCallback((

@@ -7,7 +7,6 @@ import {
 } from 'viem'
 import { addressToBuilderCode } from '@/lib/builder-code'
 import {
-  assertCurrentNegRiskAdapterAddress,
   COLLATERAL_TOKEN_ADDRESS,
   CONDITIONAL_TOKENS_CONTRACT,
   CTF_AUTO_REDEEM_ADDRESS,
@@ -21,6 +20,7 @@ import {
   DEPOSIT_WALLET_BATCH_DEADLINE_SECONDS,
   getDepositWalletDomain,
 } from '@/lib/deposit-wallet'
+import { assertCurrentNegRiskAdapterAddress } from '@/lib/neg-risk-adapter'
 
 export interface WalletCall {
   target: `0x${string}`

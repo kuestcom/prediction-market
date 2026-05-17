@@ -4,6 +4,7 @@ import { inArray } from 'drizzle-orm'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { markets } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
+import { resolveNegRiskAdapterAddressFromMetadata } from '@/lib/neg-risk-adapter'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { normalizeAddress } from '@/lib/wallet'
 import PortfolioMarketsWonCardClient from './PortfolioMarketsWonCardClient'
@@ -74,34 +75,6 @@ function resolveDataApiIcon(icon?: string | null): string | undefined {
     return trimmed
   }
   return `https://gateway.irys.xyz/${trimmed}`
-}
-
-function readAdapterAddressFromMetadata(source: unknown): `0x${string}` | undefined {
-  if (!source) {
-    return undefined
-  }
-
-  const parsed = typeof source === 'string'
-    ? (() => {
-        try {
-          return JSON.parse(source) as unknown
-        }
-        catch {
-          return null
-        }
-      })()
-    : source
-
-  if (!parsed || typeof parsed !== 'object') {
-    return undefined
-  }
-
-  const value = (parsed as Record<string, unknown>).adapter_address
-  if (typeof value !== 'string') {
-    return undefined
-  }
-
-  return normalizeAddress(value) as `0x${string}` | undefined
 }
 
 function normalizeValueByPrice(value: number, size: number): number {
@@ -236,8 +209,8 @@ async function fetchMarketMetadata(conditionIds: string[]): Promise<Map<string, 
       eventSlug: pickString(row.event?.slug ?? undefined),
       iconUrl,
       negRisk: Boolean(row.neg_risk),
-      negRiskAdapterAddress: (normalizeAddress(row.condition?.oracle) as `0x${string}` | undefined)
-        ?? readAdapterAddressFromMetadata(row.metadata),
+      negRiskAdapterAddress: resolveNegRiskAdapterAddressFromMetadata(row.metadata, row.condition?.oracle)
+        ?? undefined,
     })
   }
 
