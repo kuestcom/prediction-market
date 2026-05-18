@@ -10,6 +10,7 @@ export interface VolumeWorkItem {
   tokenIds: [string, string]
   previousTotalVolume: string
   previousVolume24h: string
+  advancesCursor: boolean
 }
 
 export interface VolumeResponseItem {

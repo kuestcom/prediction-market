@@ -106,10 +106,12 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
 
   const batches = chunkVolumeWork(worklist.items, VOLUME_BATCH_SIZE)
   const updatedEventSlugs = new Set<string>()
+  let lastCompletedCursor = currentCursor
 
   for (const batch of batches) {
     if (hasReachedTimeLimit(startedAt, Date.now(), SYNC_TIME_LIMIT_MS)) {
       stats.timeLimitReached = true
+      stats.nextCursor = lastCompletedCursor
       break
     }
 
@@ -163,6 +165,11 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
           })
         }
       }
+
+      const lastCursorItem = findLastCursorItem(batch)
+      if (lastCursorItem) {
+        lastCompletedCursor = lastCursorItem.conditionId
+      }
     }
     catch (error: any) {
       const firstId = batch[0]?.conditionId ?? 'unknown'
@@ -172,7 +179,8 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
         context: `batch:${firstId}-${lastId}`,
         error: message,
       })
-      throw new Error(`Volume batch ${firstId}-${lastId} failed: ${message}`)
+      stats.nextCursor = lastCompletedCursor
+      break
     }
   }
 
@@ -182,6 +190,16 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
   }
 
   return stats
+}
+
+function findLastCursorItem(batch: VolumeWorkItem[]) {
+  for (let index = batch.length - 1; index >= 0; index -= 1) {
+    const item = batch[index]
+    if (item?.advancesCursor) {
+      return item
+    }
+  }
+  return null
 }
 
 function normalizeCursorParam(value: string | null): string | null {
@@ -219,6 +237,7 @@ async function buildVolumeWorklist(limit: number, cursor: string | null): Promis
   const marketRows = [...priorityRows, ...cursorRows]
   const nextCursor = cursorRows.at(-1)?.condition_id ?? cursor
   const conditionIds = marketRows.map(market => market.condition_id)
+  const cursorConditionIds = new Set(cursorRows.map(market => market.condition_id))
 
   let outcomesMap = new Map<string, string[]>()
   if (conditionIds.length > 0) {
@@ -254,6 +273,7 @@ async function buildVolumeWorklist(limit: number, cursor: string | null): Promis
       tokenIds: [uniqueTokens[0], uniqueTokens[1]],
       previousTotalVolume: market.volume ?? '0',
       previousVolume24h: market.volume_24h ?? '0',
+      advancesCursor: cursorConditionIds.has(market.condition_id),
     })
   }
 
