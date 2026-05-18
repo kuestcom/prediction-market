@@ -3,7 +3,7 @@
 import type { MarketOrderType, User } from '@/types'
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
-import { startTransition, useOptimistic, useRef, useState } from 'react'
+import { startTransition, useEffect, useOptimistic, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import { updateTradingSettingsAction } from '@/app/[locale]/(platform)/settings/_actions/update-trading-settings'
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
 import { CLOB_ORDER_TYPE } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import { useUser } from '@/stores/useUser'
+import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
 function useTradingFormState() {
   const [error, setError] = useState<string | null>(null)
@@ -38,6 +38,12 @@ export default function SettingsTradingContent({ user }: { user: User }) {
       description: t('Executes the entire order immediately at the specified price or cancels it completely'),
     },
   ]
+
+  useEffect(function syncFreshSettingsUserState() {
+    useUser.setState((previous) => {
+      return mergeSessionUserState(previous, user)
+    })
+  }, [user])
 
   const [optimisticOrderType, setOptimisticOrderType] = useOptimistic<MarketOrderType, MarketOrderType>(
     initialOrderType,

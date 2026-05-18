@@ -542,7 +542,7 @@ function TimelineStep({
     <div className="grid grid-cols-[1.5rem_1fr_auto] gap-x-3">
       <div className="flex flex-col items-center">
         <div className={`
-          flex size-6 items-center justify-center rounded-full border text-xs
+          flex size-6 shrink-0 items-center justify-center rounded-full border text-xs
           ${complete
       ? 'border-primary bg-primary text-primary-foreground'
       : `border-muted-foreground/30 bg-muted text-muted-foreground`}

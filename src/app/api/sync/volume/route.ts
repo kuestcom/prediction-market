@@ -20,7 +20,7 @@ import { db } from '@/lib/drizzle'
 
 export const maxDuration = 300
 
-const CLOB_URL = process.env.CLOB_URL!
+const CLOB_URL = (process.env.CLOB_URL ?? 'https://clob.kuest.com').replace(/\/+$/, '')
 const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000
 const VOLUME_SYNC_SERVICE = 'volume_sync'
 const VOLUME_SYNC_SUBGRAPH = 'volume'
@@ -106,6 +106,7 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
 
   const batches = chunkVolumeWork(worklist.items, VOLUME_BATCH_SIZE)
   const updatedEventSlugs = new Set<string>()
+  let completedBatches = 0
 
   for (const batch of batches) {
     if (hasReachedTimeLimit(startedAt, Date.now(), SYNC_TIME_LIMIT_MS)) {
@@ -115,6 +116,7 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
 
     try {
       const responses = await fetchVolumeBatch(batch)
+      completedBatches++
       const responseMap = new Map<string, VolumeResponseItem>()
       for (const item of responses) {
         responseMap.set(item.condition_id, item)
@@ -172,6 +174,11 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
         error: error?.message ?? 'volume_batch_failed',
       })
     }
+  }
+
+  if (completedBatches === 0 && batches.length > 0 && stats.errors.length > 0) {
+    const firstError = stats.errors.find(item => item.context.startsWith('batch:')) ?? stats.errors[0]
+    throw new Error(firstError?.error ?? 'volume_batch_failed')
   }
 
   stats.updatedEventSlugs = Array.from(updatedEventSlugs)
