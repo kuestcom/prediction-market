@@ -106,7 +106,6 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
 
   const batches = chunkVolumeWork(worklist.items, VOLUME_BATCH_SIZE)
   const updatedEventSlugs = new Set<string>()
-  let completedBatches = 0
 
   for (const batch of batches) {
     if (hasReachedTimeLimit(startedAt, Date.now(), SYNC_TIME_LIMIT_MS)) {
@@ -116,7 +115,6 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
 
     try {
       const responses = await fetchVolumeBatch(batch)
-      completedBatches++
       const responseMap = new Map<string, VolumeResponseItem>()
       for (const item of responses) {
         responseMap.set(item.condition_id, item)
@@ -169,16 +167,13 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
     catch (error: any) {
       const firstId = batch[0]?.conditionId ?? 'unknown'
       const lastId = batch.at(-1)?.conditionId ?? 'unknown'
+      const message = error?.message ?? 'volume_batch_failed'
       stats.errors.push({
         context: `batch:${firstId}-${lastId}`,
-        error: error?.message ?? 'volume_batch_failed',
+        error: message,
       })
+      throw new Error(`Volume batch ${firstId}-${lastId} failed: ${message}`)
     }
-  }
-
-  if (completedBatches === 0 && batches.length > 0 && stats.errors.length > 0) {
-    const firstError = stats.errors.find(item => item.context.startsWith('batch:')) ?? stats.errors[0]
-    throw new Error(firstError?.error ?? 'volume_batch_failed')
   }
 
   stats.updatedEventSlugs = Array.from(updatedEventSlugs)
@@ -206,14 +201,9 @@ async function buildVolumeWorklist(limit: number, cursor: string | null): Promis
   nextCursor: string | null
   wrappedAround: boolean
 }> {
-  const priorityLimit = Math.min(limit, ZERO_VOLUME_PRIORITY_LIMIT)
-  let priorityRows = await fetchZeroVolumeMarketRows(priorityLimit, cursor)
+  const priorityLimit = Math.min(Math.max(0, limit - 1), ZERO_VOLUME_PRIORITY_LIMIT)
+  const priorityRows = await fetchZeroVolumeMarketRows(priorityLimit)
   let wrappedAround = false
-
-  if (priorityRows.length === 0 && cursor && priorityLimit > 0) {
-    priorityRows = await fetchZeroVolumeMarketRows(priorityLimit, null)
-    wrappedAround = true
-  }
 
   const priorityConditionIds = priorityRows.map(market => market.condition_id)
   const remainingLimit = Math.max(0, limit - priorityRows.length)
@@ -227,7 +217,7 @@ async function buildVolumeWorklist(limit: number, cursor: string | null): Promis
   }
 
   const marketRows = [...priorityRows, ...cursorRows]
-  const nextCursor = cursorRows.at(-1)?.condition_id ?? priorityRows.at(-1)?.condition_id ?? cursor
+  const nextCursor = cursorRows.at(-1)?.condition_id ?? cursor
   const conditionIds = marketRows.map(market => market.condition_id)
 
   let outcomesMap = new Map<string, string[]>()
@@ -290,15 +280,12 @@ function buildBaseMarketPredicate(excludedConditionIds: string[] = []) {
   return and(...predicates)
 }
 
-async function fetchZeroVolumeMarketRows(limit: number, cursor: string | null) {
+async function fetchZeroVolumeMarketRows(limit: number) {
   if (limit <= 0) {
     return []
   }
 
   const basePredicate = buildBaseMarketPredicate()
-  const predicate = cursor
-    ? and(basePredicate, gt(markets.condition_id, cursor))
-    : basePredicate
 
   return db
     .select({
@@ -310,7 +297,7 @@ async function fetchZeroVolumeMarketRows(limit: number, cursor: string | null) {
     .from(markets)
     .innerJoin(events, eq(events.id, markets.event_id))
     .where(and(
-      predicate,
+      basePredicate,
       sql`${markets.volume} = 0`,
     ))
     .orderBy(asc(markets.condition_id))

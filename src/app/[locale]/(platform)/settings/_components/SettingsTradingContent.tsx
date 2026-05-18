@@ -21,11 +21,13 @@ function useTradingFormState() {
 
 export default function SettingsTradingContent({ user }: { user: User }) {
   const t = useExtracted()
-  const currentUser = useUser() ?? user
+  const sessionUser = useUser()
+  const currentUser = sessionUser ?? user
   const { promptAutoRedeem } = useTradingOnboarding()
   const { error, setError, formRef } = useTradingFormState()
   const initialOrderType = (user.settings?.trading?.market_order_type as MarketOrderType) ?? CLOB_ORDER_TYPE.FAK
   const autoRedeemEnabled = Boolean(currentUser.settings?.tradingAuth?.autoRedeem?.enabled)
+  const canPromptAutoRedeem = Boolean(sessionUser) && !autoRedeemEnabled
   const orderTypeOptions = [
     {
       value: CLOB_ORDER_TYPE.FAK as MarketOrderType,
@@ -170,9 +172,9 @@ export default function SettingsTradingContent({ user }: { user: User }) {
 
           <Button
             type="button"
-            disabled={autoRedeemEnabled}
+            disabled={!canPromptAutoRedeem}
             onClick={() => {
-              if (!autoRedeemEnabled) {
+              if (canPromptAutoRedeem) {
                 promptAutoRedeem()
               }
             }}
