@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
+import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 
 interface StartDepositFlowForRequestOptions {
   lastRequestIdRef: {
@@ -48,5 +49,9 @@ interface HeaderDepositFlowProps {
 }
 
 export default function HeaderDepositFlow({ requestId }: HeaderDepositFlowProps) {
-  return <HeaderDepositFlowInner requestId={requestId} />
+  return (
+    <TradingOnboardingProvider>
+      <HeaderDepositFlowInner requestId={requestId} />
+    </TradingOnboardingProvider>
+  )
 }
