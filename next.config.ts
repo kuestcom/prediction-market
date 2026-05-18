@@ -21,15 +21,16 @@ const config: NextConfig = {
     '@coinbase',
     '@metamask',
     '@phosphor-icons',
+    '@reown/appkit-ui',
     '@reown/appkit-scaffold-ui',
     '@sentry',
     '@walletconnect',
     'cbw-sdk',
+    'porto',
     'viem',
     'zod',
   ],
   experimental: {
-    optimizePackageImports: ['radix-ui'],
     serverActions: {
       bodySizeLimit: '2mb',
     },
