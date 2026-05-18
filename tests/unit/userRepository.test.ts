@@ -26,7 +26,7 @@ describe('userRepository.getCurrentUser', () => {
     mocks.headers.mockResolvedValue(new Headers())
   })
 
-  it('sanitizes trading auth settings before returning minimal users', async () => {
+  it('returns the normalized session user for minimal requests', async () => {
     mocks.getSession.mockResolvedValueOnce({
       user: {
         id: 'user-1',
@@ -34,11 +34,11 @@ describe('userRepository.getCurrentUser', () => {
         settings: {
           tradingAuth: {
             relayer: {
-              key: 'secret-relayer-key',
+              enabled: true,
               updatedAt: '2026-03-23T00:00:00.000Z',
             },
             clob: {
-              key: '',
+              enabled: false,
               updatedAt: '2026-03-23T00:00:00.000Z',
             },
           },
@@ -49,6 +49,12 @@ describe('userRepository.getCurrentUser', () => {
 
     const user = await UserRepository.getCurrentUser({ minimal: true })
 
+    expect(mocks.getSession).toHaveBeenCalledWith({
+      query: {
+        disableCookieCache: false,
+      },
+      headers: expect.any(Headers),
+    })
     expect(user).toEqual({
       id: 'user-1',
       email: 'user@example.com',
