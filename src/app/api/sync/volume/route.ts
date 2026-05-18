@@ -107,16 +107,9 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
   const batches = chunkVolumeWork(worklist.items, VOLUME_BATCH_SIZE)
   const updatedEventSlugs = new Set<string>()
   let lastCompletedCursor = currentCursor
-  let cursorBlocked = false
 
-  function markCursorItemProcessed(workItem: VolumeWorkItem, hadError: boolean) {
-    if (!workItem.advancesCursor || cursorBlocked) {
-      return
-    }
-
-    if (hadError) {
-      cursorBlocked = true
-      stats.nextCursor = lastCompletedCursor
+  function markCursorItemAttempted(workItem: VolumeWorkItem) {
+    if (!workItem.advancesCursor) {
       return
     }
 
@@ -141,7 +134,7 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
         const response = responseMap.get(workItem.conditionId)
         if (!response) {
           stats.errors.push({ context: `volume:${workItem.conditionId}`, error: 'missing_response' })
-          markCursorItemProcessed(workItem, true)
+          markCursorItemAttempted(workItem)
           continue
         }
 
@@ -150,13 +143,13 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
             context: `volume:${workItem.conditionId}`,
             error: response.error ?? `status_${response.status}`,
           })
-          markCursorItemProcessed(workItem, true)
+          markCursorItemAttempted(workItem)
           continue
         }
 
         if (response.volume == null) {
           stats.errors.push({ context: `volume:${workItem.conditionId}`, error: 'missing_volume_value' })
-          markCursorItemProcessed(workItem, true)
+          markCursorItemAttempted(workItem)
           continue
         }
 
@@ -168,7 +161,7 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
 
         if (!hasVolumeChanged) {
           stats.skipped++
-          markCursorItemProcessed(workItem, false)
+          markCursorItemAttempted(workItem)
           continue
         }
 
@@ -176,14 +169,14 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
           await updateMarketVolume(workItem.conditionId, totalVolume, volume24h)
           stats.updated++
           updatedEventSlugs.add(workItem.eventSlug)
-          markCursorItemProcessed(workItem, false)
+          markCursorItemAttempted(workItem)
         }
         catch (error: any) {
           stats.errors.push({
             context: `update:${workItem.conditionId}`,
             error: error?.message ?? 'failed_to_update_market',
           })
-          markCursorItemProcessed(workItem, true)
+          markCursorItemAttempted(workItem)
         }
       }
     }
