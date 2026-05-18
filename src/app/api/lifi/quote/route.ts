@@ -1,4 +1,4 @@
-import type { TokenExtended } from '@lifi/types'
+import type { TokenExtended } from '@lifi/sdk'
 import { getQuote, getTokens } from '@lifi/sdk'
 import { NextResponse } from 'next/server'
 import { parseUnits } from 'viem'

@@ -16,6 +16,16 @@ const config: NextConfig = {
   reactStrictMode: false,
   reactCompiler: true,
   staticPageGenerationTimeout: 180,
+  serverExternalPackages: [
+    '@coinbase',
+    '@metamask',
+    '@phosphor-icons',
+    '@reown/appkit-scaffold-ui',
+    '@sentry',
+    '@walletconnect',
+    'viem',
+    'zod',
+  ],
   experimental: {
     optimizePackageImports: ['radix-ui'],
     serverActions: {

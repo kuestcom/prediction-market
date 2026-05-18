@@ -1,4 +1,4 @@
-import type { ChainId, ExtendedChain, TokensExtendedResponse, WalletTokenExtended } from '@lifi/types'
+import type { ChainId, ExtendedChain, TokensExtendedResponse, WalletTokenExtended } from '@lifi/sdk'
 import { useQuery } from '@tanstack/react-query'
 import { formatUnits } from 'viem'
 
