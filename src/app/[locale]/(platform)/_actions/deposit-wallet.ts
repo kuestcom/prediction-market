@@ -499,7 +499,6 @@ export async function updateOnboardingEmailAction(input: {
   try {
     const { error } = await UserRepository.updateUserProfileById(user.id, {
       email: parsed.data.email,
-      username: user.username,
     })
     if (error) {
       return { error, data: null }

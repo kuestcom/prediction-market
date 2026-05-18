@@ -81,6 +81,10 @@ function convertAffiliateStats(rawData: any): AffiliateStats {
   }
 }
 
+function getDisplayUsername(username: string | null, address: string) {
+  return username?.trim() || address
+}
+
 function convertAffiliateOverview(rawData: any[]): AffiliateOverview[] {
   return rawData.map(item => ({
     affiliate_user_id: item.affiliate_user_id,
@@ -174,7 +178,7 @@ export const AffiliateRepository = {
           ? {
               id: result[0].id,
               affiliate_code: result[0].affiliate_code,
-              username: result[0].username!,
+              username: getDisplayUsername(result[0].username, result[0].address),
               address: result[0].address,
               image: result[0].image,
             }
@@ -309,7 +313,7 @@ export const AffiliateRepository = {
 
       const data = result.map(user => ({
         id: user.id,
-        username: user.username!,
+        username: getDisplayUsername(user.username, user.address),
         address: user.address,
         deposit_wallet_address: user.deposit_wallet_address,
         image: user.image,
@@ -343,7 +347,7 @@ export const AffiliateRepository = {
         user_id: row.user_id,
         created_at: row.created_at,
         users: {
-          username: row.username!,
+          username: getDisplayUsername(row.username, row.address),
           address: row.address,
           deposit_wallet_address: row.deposit_wallet_address,
           image: row.image,

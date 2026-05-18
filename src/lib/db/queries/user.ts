@@ -224,29 +224,7 @@ export const UserRepository = {
         }
       }
 
-      const proxyAddress = await ensureUserDepositWallet(user)
-
-      if (proxyAddress && !user.username) {
-        const generatedUsername = generateUsername(proxyAddress)
-
-        if (generatedUsername) {
-          try {
-            const result = await db
-              .update(users)
-              .set({ username: generatedUsername })
-              .where(eq(users.id, user.id))
-              .returning({ username: users.username })
-
-            const updatedUsername = result[0]?.username
-            if (updatedUsername) {
-              user.username = updatedUsername
-            }
-          }
-          catch (error) {
-            console.error('Failed to set deterministic username', error)
-          }
-        }
-      }
+      await ensureUserDepositWallet(user)
 
       return user
     }
@@ -420,12 +398,6 @@ export const UserRepository = {
       return { data: result, error: null }
     })
   },
-}
-
-function generateUsername(proxyAddress: string) {
-  const timestamp = Date.now()
-
-  return `${proxyAddress}-${timestamp}`
 }
 
 async function ensureUserDepositWallet(user: any): Promise<string | null> {

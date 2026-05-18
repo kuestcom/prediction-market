@@ -88,6 +88,40 @@ interface TradingOnboardingProviderContentProps {
   user: User | null
 }
 
+function isGeneratedDepositWalletUsername(username?: string | null, depositWalletAddress?: string | null) {
+  const trimmedUsername = username?.trim()
+  const trimmedDepositWalletAddress = depositWalletAddress?.trim()
+  if (!trimmedUsername || !trimmedDepositWalletAddress) {
+    return false
+  }
+
+  const prefix = `${trimmedDepositWalletAddress.toLowerCase()}-`
+  const normalizedUsername = trimmedUsername.toLowerCase()
+  if (!normalizedUsername.startsWith(prefix)) {
+    return false
+  }
+
+  return /^\d+$/.test(normalizedUsername.slice(prefix.length))
+}
+
+function hasUserProvidedUsername(user: User) {
+  const username = user.username?.trim()
+  return Boolean(
+    username
+    && !isGeneratedDepositWalletUsername(username, user.deposit_wallet_address),
+  )
+}
+
+function getUsernameDefaultValue(user: User | null) {
+  if (!user?.username) {
+    return ''
+  }
+  if (isGeneratedDepositWalletUsername(user.username, user.deposit_wallet_address)) {
+    return ''
+  }
+  return user.username
+}
+
 function useSessionRefresher() {
   return useCallback(async () => {
     try {
@@ -132,7 +166,7 @@ function useOnboardingStatus(user: User | null, requiresTradingAuthRefresh: bool
   return useMemo(() => {
     const onboardingSettings = user?.settings?.onboarding ?? {}
     const tradingAuthSettings = user?.settings?.tradingAuth ?? null
-    const hasUsername = Boolean(user?.username?.trim())
+    const hasUsername = Boolean(user && hasUserProvidedUsername(user))
     const needsUsername = Boolean(user && !hasUsername)
     const needsEmail = Boolean(
       user
@@ -1221,7 +1255,7 @@ function TradingOnboardingProviderContent({
       <TradingOnboardingDialogs
         activeModal={activeModal}
         onModalOpenChange={handleModalOpenChange}
-        usernameDefaultValue={user?.username ?? ''}
+        usernameDefaultValue={getUsernameDefaultValue(user)}
         usernameError={usernameError}
         isUsernameSubmitting={isUsernameSubmitting}
         onUsernameSubmit={handleUsernameSubmit}
