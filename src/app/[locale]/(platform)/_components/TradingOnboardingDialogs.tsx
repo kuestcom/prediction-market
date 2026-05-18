@@ -88,14 +88,24 @@ function OnboardingDialogShell({
   description,
   children,
   dismissible = true,
+  dialogContentClassName = 'max-w-md border bg-background p-8',
+  drawerContentClassName = 'max-h-[90vh] w-full bg-background px-4 pt-4 pb-6',
+  headerClassName = 'space-y-3 text-center',
+  titleClassName = 'text-center text-2xl font-bold text-foreground',
+  descriptionClassName = 'text-center text-base text-muted-foreground',
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   icon?: ReactNode
   title: string
-  description: string
+  description?: string | null
   children: ReactNode
   dismissible?: boolean
+  dialogContentClassName?: string
+  drawerContentClassName?: string
+  headerClassName?: string
+  titleClassName?: string
+  descriptionClassName?: string
 }) {
   const isMobile = useIsMobile()
 
@@ -113,15 +123,17 @@ function OnboardingDialogShell({
         onOpenChange={handleOpenChange}
         dismissible={dismissible}
       >
-        <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-          <DrawerHeader className="space-y-3 text-center">
+        <DrawerContent className={drawerContentClassName}>
+          <DrawerHeader className={headerClassName}>
             {icon}
-            <DrawerTitle className="text-center text-2xl font-bold text-foreground">
+            <DrawerTitle className={titleClassName}>
               {title}
             </DrawerTitle>
-            <DrawerDescription className="text-center text-base text-muted-foreground">
-              {description}
-            </DrawerDescription>
+            {description && (
+              <DrawerDescription className={descriptionClassName}>
+                {description}
+              </DrawerDescription>
+            )}
           </DrawerHeader>
           {children}
         </DrawerContent>
@@ -132,7 +144,7 @@ function OnboardingDialogShell({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-w-md border bg-background p-8"
+        className={dialogContentClassName}
         showCloseButton={dismissible}
         onEscapeKeyDown={(event) => {
           if (!dismissible) {
@@ -145,14 +157,16 @@ function OnboardingDialogShell({
           }
         }}
       >
-        <DialogHeader className="space-y-3 text-center">
+        <DialogHeader className={headerClassName}>
           {icon}
-          <DialogTitle className="text-center text-2xl font-bold text-foreground">
+          <DialogTitle className={titleClassName}>
             {title}
           </DialogTitle>
-          <DialogDescription className="text-center text-base text-muted-foreground">
-            {description}
-          </DialogDescription>
+          {description && (
+            <DialogDescription className={descriptionClassName}>
+              {description}
+            </DialogDescription>
+          )}
         </DialogHeader>
         {children}
       </DialogContent>
@@ -533,14 +547,6 @@ function EnableTradingStatusDialog({
   const t = useExtracted()
   const isSigning = step === 'enabling'
   const dismissible = Boolean(error)
-  const isMobile = useIsMobile()
-
-  function handleOpenChange(nextOpen: boolean) {
-    if (!dismissible && !nextOpen) {
-      return
-    }
-    onOpenChange(nextOpen)
-  }
 
   const timeline = (
     <div className="mt-5 space-y-0">
@@ -574,51 +580,19 @@ function EnableTradingStatusDialog({
     </div>
   )
 
-  if (isMobile) {
-    return (
-      <Drawer
-        open={open}
-        onOpenChange={handleOpenChange}
-        dismissible={dismissible}
-      >
-        <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-          <DrawerHeader className="space-y-2 text-center">
-            <DrawerTitle className="text-center text-xl font-bold text-foreground">
-              {t('Enable Trading')}
-            </DrawerTitle>
-          </DrawerHeader>
-
-          {timeline}
-        </DrawerContent>
-      </Drawer>
-    )
-  }
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="max-w-sm border bg-background p-6"
-        showCloseButton={dismissible}
-        onEscapeKeyDown={(event) => {
-          if (!dismissible) {
-            event.preventDefault()
-          }
-        }}
-        onInteractOutside={(event) => {
-          if (!dismissible) {
-            event.preventDefault()
-          }
-        }}
-      >
-        <DialogHeader className="space-y-2 text-center">
-          <DialogTitle className="text-center text-xl font-bold text-foreground">
-            {t('Enable Trading')}
-          </DialogTitle>
-        </DialogHeader>
-
-        {timeline}
-      </DialogContent>
-    </Dialog>
+    <OnboardingDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t('Enable Trading')}
+      description={null}
+      dismissible={dismissible}
+      dialogContentClassName="max-w-sm border bg-background p-6"
+      headerClassName="space-y-2 text-center"
+      titleClassName="text-center text-xl font-bold text-foreground"
+    >
+      {timeline}
+    </OnboardingDialogShell>
   )
 }
 

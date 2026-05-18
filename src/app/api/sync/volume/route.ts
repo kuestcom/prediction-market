@@ -20,7 +20,7 @@ import { db } from '@/lib/drizzle'
 
 export const maxDuration = 300
 
-const CLOB_URL = (process.env.CLOB_URL ?? 'https://clob.kuest.com').replace(/\/+$/, '')
+const CLOB_URL = process.env.CLOB_URL!
 const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000
 const VOLUME_SYNC_SERVICE = 'volume_sync'
 const VOLUME_SYNC_SUBGRAPH = 'volume'

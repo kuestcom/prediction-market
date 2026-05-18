@@ -210,7 +210,7 @@ export const auth = betterAuth({
   plugins: [
     customSession(async ({ user, session }) => {
       const userId = String((user as any).id ?? '')
-      const email = isWalletPlaceholderEmail(user.email) ? '' : user.email
+      const email = isWalletPlaceholderEmail(user.email, [SIWE_EMAIL_DOMAIN]) ? '' : user.email
       const rawSettings = (user as any).settings as Record<string, any> | undefined
       const hydratedSettings = rawSettings && userId
         ? await ensureUserTradingAuthSecretFingerprint(userId, rawSettings)
