@@ -3,6 +3,7 @@
 import { Custom } from 'fumadocs-openapi/playground/client'
 import { defineClientConfig } from 'fumadocs-openapi/ui/client'
 import { useEffect } from 'react'
+import { OpenAPIPlaygroundResult } from '@/app/[locale]/docs/_components/OpenAPIPlaygroundResult'
 import { Input } from '@/components/ui/input'
 
 function resolveCreatorHostname(siteUrl: string | undefined): string {
@@ -153,6 +154,9 @@ function GammaParameterField({ fieldName, param }: { fieldName: (string | number
 
 export default defineClientConfig({
   playground: {
+    components: {
+      ResultDisplay: OpenAPIPlaygroundResult,
+    },
     renderParameterField(fieldName, param) {
       return <GammaParameterField fieldName={fieldName} param={param} />
     },
