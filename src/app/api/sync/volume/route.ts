@@ -65,7 +65,7 @@ export async function GET(request: Request) {
     const syncFailed = hasFatalVolumeSyncErrors(stats.errors)
     if (syncFailed) {
       const errorMessage = summarizeVolumeSyncErrors(stats.errors)
-      await updateSyncStatus('error', errorMessage, stats.updated, stats.nextCursor)
+      await updateSyncStatus('error', errorMessage, stats.updated)
       return NextResponse.json({ success: false, ...stats }, { status: 502 })
     }
 
