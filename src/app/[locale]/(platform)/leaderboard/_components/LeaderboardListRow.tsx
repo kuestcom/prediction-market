@@ -3,6 +3,7 @@
 import type { LeaderboardFilters } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import type { LeaderboardEntry } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
 import Image from 'next/image'
+import { resolveLeaderboardProxyWallet } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
 import {
   formatSignedCurrency,
   formatVolumeCurrency,
@@ -30,7 +31,7 @@ export default function LeaderboardListRow({
   volumeColumnClass,
 }: LeaderboardListRowProps) {
   const rank = entry.rank ?? index + 1
-  const address = entry.proxyWallet || ''
+  const address = resolveLeaderboardProxyWallet(entry)
   const rawUsername = entry.userName || entry.xUsername || ''
   const isWalletAlias = rawUsername.startsWith('0x') && rawUsername.includes('...')
   const username = (isWalletAlias && address ? address : rawUsername) || address || ''

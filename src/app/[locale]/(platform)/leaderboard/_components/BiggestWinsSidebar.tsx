@@ -4,7 +4,11 @@ import type { Route } from 'next'
 import type { BiggestWinEntry } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
 import { MoveRightIcon } from 'lucide-react'
 import { BiggestWinsSkeleton } from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardSkeletons'
-import { resolveNumber, resolveString } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
+import {
+  resolveLeaderboardProxyWallet,
+  resolveNumber,
+  resolveString,
+} from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
 import { formatValueOrDash } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFormatters'
 import AppLink from '@/components/AppLink'
 import ProfileLink from '@/components/ProfileLink'
@@ -39,9 +43,19 @@ export default function BiggestWinsSidebar({
         <div className="w-full px-5">
           {isBiggestWinsLoading && <BiggestWinsSkeleton count={6} />}
 
-          {!isBiggestWinsLoading && biggestWins.map((entry, index) => (
-            <BiggestWinRow key={`${entry.proxyWallet || entry.userName || ''}-${entry.winRank ?? entry.rank ?? index}`} entry={entry} index={index} />
-          ))}
+          {!isBiggestWinsLoading && biggestWins.map((entry, index) => {
+            const rowKey = [
+              resolveLeaderboardProxyWallet(entry) || entry.userName || '',
+              entry.winRank ?? entry.rank ?? index,
+            ].join('-')
+            return (
+              <BiggestWinRow
+                key={rowKey}
+                entry={entry}
+                index={index}
+              />
+            )
+          })}
         </div>
       </div>
     </aside>
@@ -51,16 +65,7 @@ export default function BiggestWinsSidebar({
 function BiggestWinRow({ entry, index }: { entry: BiggestWinEntry, index: number }) {
   const record = entry as Record<string, unknown>
   const rank = entry.winRank ?? entry.rank ?? index + 1
-  const address = resolveString(record, [
-    'user.proxyWallet',
-    'user.proxy_wallet',
-    'user.address',
-    'proxyWallet',
-    'proxy_wallet',
-    'address',
-    'walletAddress',
-    'wallet',
-  ])
+  const address = resolveLeaderboardProxyWallet(entry)
   const rawUsername = resolveString(record, [
     'user.userName',
     'user.username',

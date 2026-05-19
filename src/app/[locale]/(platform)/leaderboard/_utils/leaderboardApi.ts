@@ -96,6 +96,31 @@ export function normalizeWalletAddress(value?: string) {
   return (value ?? '').trim().toLowerCase()
 }
 
+export function resolveLeaderboardProxyWallet(entry: object | null | undefined) {
+  if (!entry || typeof entry !== 'object') {
+    return ''
+  }
+
+  return resolveString(entry as Record<string, unknown>, [
+    'proxyWallet',
+    'proxy_wallet',
+    'proxyAddress',
+    'proxy_address',
+    'proxyWalletAddress',
+    'proxy_wallet_address',
+    'user.proxyWallet',
+    'user.proxy_wallet',
+    'user.proxyAddress',
+    'user.proxy_address',
+    'user.proxyWalletAddress',
+    'user.proxy_wallet_address',
+    'user.address',
+    'address',
+    'walletAddress',
+    'wallet',
+  ])
+}
+
 export function buildFiltersKey(filters: LeaderboardFilters) {
   return `${filters.category}:${filters.period}:${filters.order}`
 }
@@ -177,7 +202,7 @@ export async function hydrateEntriesWithPortfolioPnl(
   const addresses = Array.from(
     new Set(
       entries
-        .map(entry => normalizeWalletAddress(entry.proxyWallet))
+        .map(entry => normalizeWalletAddress(resolveLeaderboardProxyWallet(entry)))
         .filter(address => address.length > 0),
     ),
   )
@@ -193,7 +218,7 @@ export async function hydrateEntriesWithPortfolioPnl(
   }
 
   return entries.map((entry) => {
-    const address = normalizeWalletAddress(entry.proxyWallet)
+    const address = normalizeWalletAddress(resolveLeaderboardProxyWallet(entry))
     const pnl = pnlByAddress.get(address)
     if (typeof pnl !== 'number') {
       return entry
@@ -218,7 +243,8 @@ export function sortEntriesForDisplay(
       return rightPnl - leftPnl
     }
 
-    return normalizeWalletAddress(left.proxyWallet).localeCompare(normalizeWalletAddress(right.proxyWallet))
+    return normalizeWalletAddress(resolveLeaderboardProxyWallet(left))
+      .localeCompare(normalizeWalletAddress(resolveLeaderboardProxyWallet(right)))
   })
 
   const rankOffset = (page - 1) * PAGE_SIZE

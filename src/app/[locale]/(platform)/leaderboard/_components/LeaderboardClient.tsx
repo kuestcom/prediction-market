@@ -22,6 +22,7 @@ import {
   normalizeLeaderboardResponse,
   normalizeWalletAddress,
   PAGE_SIZE,
+  resolveLeaderboardProxyWallet,
   sortEntriesForDisplay,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
 import {
@@ -306,9 +307,11 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     }
 
     const normalizedUserAddress = normalizeWalletAddress(userAddress)
-    const visibleEntry = entries.find(entry => normalizeWalletAddress(entry.proxyWallet) === normalizedUserAddress)
+    const visibleEntry = entries.find((entry) => {
+      return normalizeWalletAddress(resolveLeaderboardProxyWallet(entry)) === normalizedUserAddress
+    })
     const sourceEntry = visibleEntry ?? userEntry
-    const address = sourceEntry?.proxyWallet || userAddress
+    const address = resolveLeaderboardProxyWallet(sourceEntry) || userAddress
     const rawUsername = sourceEntry?.userName || sourceEntry?.xUsername || user?.username || ''
     const username = rawUsername || address
     const rankNumber = Number(sourceEntry?.rank ?? Number.NaN)
@@ -362,17 +365,23 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
             <div className={listContainerClassName}>
               {isLoading && <LeaderboardListSkeleton count={10} rowClassName={rowClassName} />}
 
-              {!isLoading && entries.map((entry, index) => (
-                <LeaderboardListRow
-                  key={`${entry.proxyWallet || entry.userName || entry.xUsername || ''}-${entry.rank ?? index + 1}`}
-                  entry={entry}
-                  index={index}
-                  filters={filters}
-                  rowClassName={rowClassName}
-                  profitColumnClass={profitColumnClass}
-                  volumeColumnClass={volumeColumnClass}
-                />
-              ))}
+              {!isLoading && entries.map((entry, index) => {
+                const rowKey = [
+                  resolveLeaderboardProxyWallet(entry) || entry.userName || entry.xUsername || '',
+                  entry.rank ?? index + 1,
+                ].join('-')
+                return (
+                  <LeaderboardListRow
+                    key={rowKey}
+                    entry={entry}
+                    index={index}
+                    filters={filters}
+                    rowClassName={rowClassName}
+                    profitColumnClass={profitColumnClass}
+                    volumeColumnClass={volumeColumnClass}
+                  />
+                )
+              })}
             </div>
             {pinnedEntry && (
               <PinnedUserRow
