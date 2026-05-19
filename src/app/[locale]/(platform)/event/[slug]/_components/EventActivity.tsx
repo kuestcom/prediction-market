@@ -6,6 +6,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { ExternalLinkIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { resolveEventActivityOutcomeColorClass } from '@/app/[locale]/(platform)/event/[slug]/_components/event-activity-utils'
 import {
   useMarketChannelSubscription,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
@@ -410,11 +411,7 @@ export default function EventActivity({ event }: EventActivityProps) {
               const priceLabel = formatSharePriceLabel(Number(activity.price))
               const valueLabel = formatTotalValue(activity.total_value)
               const amountLabel = fromMicro(activity.amount)
-              const outcomeColorClass = isSportsEvent
-                ? 'text-primary'
-                : (activity.outcome.text || '').toLowerCase() === 'yes'
-                    ? 'text-yes'
-                    : 'text-no'
+              const outcomeColorClass = resolveEventActivityOutcomeColorClass(activity, isSportsEvent)
               const rawUsername = activity.user.username
                 || activity.user.address
                 || 'trader'
