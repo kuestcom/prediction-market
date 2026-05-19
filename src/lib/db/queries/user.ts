@@ -11,7 +11,6 @@ import { runQuery } from '@/lib/db/utils/run-query'
 import { isDepositWalletDeployed } from '@/lib/deposit-wallet'
 import { db } from '@/lib/drizzle'
 import { getPublicAssetUrl } from '@/lib/storage'
-import { sanitizeTradingAuthSettings } from '@/lib/trading-auth/utils'
 import { normalizeAddress } from '@/lib/wallet'
 
 export const UserRepository = {
@@ -208,13 +207,6 @@ export const UserRepository = {
       }
 
       const user: any = session.user
-      const rawEmail = typeof user.email === 'string' ? user.email : ''
-      const shouldRedactEmail = Boolean(rawEmail && rawEmail.startsWith('0x') && rawEmail.split('@')[0].length === 42)
-
-      user.email = shouldRedactEmail ? '' : rawEmail
-      if (user.settings) {
-        user.settings = sanitizeTradingAuthSettings(user.settings)
-      }
 
       if (minimal) {
         return user
@@ -232,29 +224,7 @@ export const UserRepository = {
         }
       }
 
-      const depositWalletAddress = await ensureUserDepositWallet(user)
-
-      if (depositWalletAddress && !user.username) {
-        const generatedUsername = generateUsername(depositWalletAddress)
-
-        if (generatedUsername) {
-          try {
-            const result = await db
-              .update(users)
-              .set({ username: generatedUsername })
-              .where(eq(users.id, user.id))
-              .returning({ username: users.username })
-
-            const updatedUsername = result[0]?.username
-            if (updatedUsername) {
-              user.username = updatedUsername
-            }
-          }
-          catch (error) {
-            console.error('Failed to set deterministic username', error)
-          }
-        }
-      }
+      await ensureUserDepositWallet(user)
 
       return user
     }
@@ -428,12 +398,6 @@ export const UserRepository = {
       return { data: result, error: null }
     })
   },
-}
-
-function generateUsername(depositWalletAddress: string) {
-  const timestamp = Date.now()
-
-  return `${depositWalletAddress}-${timestamp}`
 }
 
 async function ensureUserDepositWallet(user: any): Promise<string | null> {
