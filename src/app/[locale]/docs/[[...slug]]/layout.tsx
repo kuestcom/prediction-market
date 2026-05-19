@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
-import { BookOpenIcon, CodeIcon, HomeIcon } from 'lucide-react'
+import { BookOpenIcon, HomeIcon, SquareTerminalIcon } from 'lucide-react'
 import { setRequestLocale } from 'next-intl/server'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { source } from '@/lib/source'
@@ -64,7 +64,7 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
             title: 'API Reference',
             description: 'For Developers',
             url: '/docs/api-reference',
-            icon: <CodeIcon className="size-4" />,
+            icon: <SquareTerminalIcon className="size-4" />,
           },
         ],
       }}
