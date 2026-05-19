@@ -35,6 +35,7 @@ interface EventTranslationJobPayload {
   locale: NonDefaultLocale
   source_title?: string
   source_hash?: string
+  provider_signature?: string
 }
 
 interface TagTranslationJobPayload {
@@ -42,6 +43,7 @@ interface TagTranslationJobPayload {
   locale: NonDefaultLocale
   source_name?: string
   source_hash?: string
+  provider_signature?: string
 }
 
 interface TranslationJobRow {
@@ -220,6 +222,7 @@ function parseEventJobPayload(payload: unknown, dedupeKey: string): EventTransla
     locale,
     source_title: typeof value.source_title === 'string' ? value.source_title : undefined,
     source_hash: typeof value.source_hash === 'string' ? value.source_hash : undefined,
+    provider_signature: typeof value.provider_signature === 'string' ? value.provider_signature : undefined,
   }
 }
 
@@ -250,6 +253,7 @@ function parseTagJobPayload(payload: unknown, dedupeKey: string): TagTranslation
     locale,
     source_name: typeof value.source_name === 'string' ? value.source_name : undefined,
     source_hash: typeof value.source_hash === 'string' ? value.source_hash : undefined,
+    provider_signature: typeof value.provider_signature === 'string' ? value.provider_signature : undefined,
   }
 }
 
@@ -295,6 +299,10 @@ function getSourceHashFromUpsertPayload(payload: JobUpsertRow['payload']) {
   return typeof payload.source_hash === 'string' ? payload.source_hash : null
 }
 
+function getProviderSignatureFromUpsertPayload(payload: JobUpsertRow['payload']) {
+  return typeof payload.provider_signature === 'string' ? payload.provider_signature : null
+}
+
 function getSourceHashFromStoredJobPayload(job: Pick<TranslationJobRow, 'job_type' | 'payload' | 'dedupe_key'>) {
   try {
     if (job.job_type === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
@@ -312,6 +320,29 @@ function getSourceHashFromStoredJobPayload(job: Pick<TranslationJobRow, 'job_typ
   }
 
   return null
+}
+
+function getProviderSignatureFromStoredJobPayload(job: Pick<TranslationJobRow, 'job_type' | 'payload' | 'dedupe_key'>) {
+  try {
+    if (job.job_type === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
+      const parsed = parseEventJobPayload(job.payload, job.dedupe_key)
+      return parsed.provider_signature ?? null
+    }
+
+    if (job.job_type === TAG_NAME_TRANSLATION_JOB_TYPE) {
+      const parsed = parseTagJobPayload(job.payload, job.dedupe_key)
+      return parsed.provider_signature ?? null
+    }
+  }
+  catch {
+    // Treat malformed payload as unknown provider signature.
+  }
+
+  return null
+}
+
+function buildProviderSignature(model: string | undefined) {
+  return `openrouter:${model?.trim() || 'automatic'}`
 }
 
 function shouldUpsertDiscoveryRow(existing: ExistingDiscoveryJobRow | undefined, next: JobUpsertRow) {
@@ -335,7 +366,11 @@ function shouldUpsertDiscoveryRow(existing: ExistingDiscoveryJobRow | undefined,
       return true
     }
 
-    return existingSourceHash !== nextSourceHash
+    if (existingSourceHash !== nextSourceHash) {
+      return true
+    }
+
+    return getProviderSignatureFromStoredJobPayload(existing) !== getProviderSignatureFromUpsertPayload(next.payload)
   }
 
   return true
@@ -438,6 +473,7 @@ async function enqueueEventDiscoveryJobs(
   startedAtMs: number,
   maxJobs: number,
   locales: NonDefaultLocale[],
+  providerSignature: string,
 ): Promise<number> {
   if (maxJobs <= 0) {
     return 0
@@ -521,6 +557,7 @@ async function enqueueEventDiscoveryJobs(
               locale,
               source_title: sourceRow.title,
               source_hash: sourceHash,
+              provider_signature: providerSignature,
             },
             status: 'pending',
             attempts: 0,
@@ -551,6 +588,7 @@ async function enqueueTagDiscoveryJobs(
   startedAtMs: number,
   maxJobs: number,
   locales: NonDefaultLocale[],
+  providerSignature: string,
 ): Promise<number> {
   if (maxJobs <= 0) {
     return 0
@@ -634,6 +672,7 @@ async function enqueueTagDiscoveryJobs(
               locale,
               source_name: sourceRow.name,
               source_hash: sourceHash,
+              provider_signature: providerSignature,
             },
             status: 'pending',
             attempts: 0,
@@ -660,10 +699,14 @@ async function enqueueTagDiscoveryJobs(
   return enqueued
 }
 
-async function enqueueMissingOrOutdatedTranslationJobs(startedAtMs: number, locales: NonDefaultLocale[]) {
+async function enqueueMissingOrOutdatedTranslationJobs(
+  startedAtMs: number,
+  locales: NonDefaultLocale[],
+  providerSignature: string,
+) {
   const perTypeTarget = Math.max(1, Math.floor(DISCOVERY_ENQUEUE_TARGET / 2))
-  const enqueuedEventJobs = await enqueueEventDiscoveryJobs(startedAtMs, perTypeTarget, locales)
-  const enqueuedTagJobs = await enqueueTagDiscoveryJobs(startedAtMs, perTypeTarget, locales)
+  const enqueuedEventJobs = await enqueueEventDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
+  const enqueuedTagJobs = await enqueueTagDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
 
   return {
     enqueuedEventJobs,
@@ -1128,6 +1171,7 @@ async function processPendingTranslationJobs(
 
 async function preparePendingTranslationJobs(
   claimedJobs: ClaimedTranslationJob[],
+  providerSignature: string,
   stats: TranslationJobStats,
 ) {
   const pendingJobs: PendingTranslationJob[] = []
@@ -1165,6 +1209,7 @@ async function preparePendingTranslationJobs(
           locale: claimedJob.payload.locale,
           source_title: sourceTitle,
           source_hash: sourceHash,
+          provider_signature: providerSignature,
         }
         const currentTranslation = eventMetaMap.get(`${claimedJob.payload.event_id}:${claimedJob.payload.locale}`)
         if (currentTranslation?.is_manual) {
@@ -1202,6 +1247,7 @@ async function preparePendingTranslationJobs(
         locale: claimedJob.payload.locale,
         source_name: sourceName,
         source_hash: sourceHash,
+        provider_signature: providerSignature,
       }
       const currentTranslation = tagMetaMap.get(`${claimedJob.payload.tag_id}:${claimedJob.payload.locale}`)
       if (currentTranslation?.is_manual) {
@@ -1260,6 +1306,7 @@ export async function GET(request: Request) {
       loadEnabledLocales(),
     ])
     const enabledTranslationLocales = enabledLocales.filter(isNonDefaultLocale)
+    const providerSignature = buildProviderSignature(openRouterSettings.model)
 
     if (!openRouterSettings.configured || !openRouterSettings.apiKey) {
       return NextResponse.json({
@@ -1295,7 +1342,11 @@ export async function GET(request: Request) {
       const candidates = await fetchCandidateJobs(nowIso, enabledTranslationLocales)
 
       if (!candidates.length) {
-        const discovery = await enqueueMissingOrOutdatedTranslationJobs(startedAt, enabledTranslationLocales)
+        const discovery = await enqueueMissingOrOutdatedTranslationJobs(
+          startedAt,
+          enabledTranslationLocales,
+          providerSignature,
+        )
         stats.enqueuedEventJobs += discovery.enqueuedEventJobs
         stats.enqueuedTagJobs += discovery.enqueuedTagJobs
 
@@ -1376,7 +1427,7 @@ export async function GET(request: Request) {
       }
 
       try {
-        const pendingTranslations = await preparePendingTranslationJobs(claimedJobs, stats)
+        const pendingTranslations = await preparePendingTranslationJobs(claimedJobs, providerSignature, stats)
         await processPendingTranslationJobs(
           pendingTranslations,
           openRouterSettings.model,
