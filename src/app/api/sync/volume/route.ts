@@ -62,6 +62,13 @@ export async function GET(request: Request) {
     }
 
     const stats = await syncMarketVolumes(request)
+    const syncFailed = hasFatalVolumeSyncErrors(stats.errors)
+    if (syncFailed) {
+      const errorMessage = summarizeVolumeSyncErrors(stats.errors)
+      await updateSyncStatus('error', errorMessage, stats.updated, stats.nextCursor)
+      return NextResponse.json({ success: false, ...stats }, { status: 502 })
+    }
+
     await updateSyncStatus('completed', null, stats.updated, stats.nextCursor)
     return NextResponse.json({ success: true, ...stats })
   }
@@ -208,6 +215,21 @@ function normalizeCursorParam(value: string | null): string | null {
 
   const trimmed = value.trim()
   return trimmed || null
+}
+
+function hasFatalVolumeSyncErrors(errors: VolumeSyncStats['errors']): boolean {
+  return errors.some(error =>
+    error.context.startsWith('batch:')
+    || error.context.startsWith('update:')
+    || error.context.startsWith('volume:'),
+  )
+}
+
+function summarizeVolumeSyncErrors(errors: VolumeSyncStats['errors']): string {
+  return errors
+    .slice(0, 5)
+    .map(error => `${error.context}:${error.error}`)
+    .join('; ')
 }
 
 async function buildVolumeWorklist(limit: number, cursor: string | null): Promise<{
@@ -410,6 +432,7 @@ async function updateMarketVolume(conditionId: string, totalVolume: string, volu
     .set({
       volume: totalVolume,
       volume_24h: volume24h,
+      updated_at: new Date(),
     })
     .where(eq(markets.condition_id, conditionId))
 }
