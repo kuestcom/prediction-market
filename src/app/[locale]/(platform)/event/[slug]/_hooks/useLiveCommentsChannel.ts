@@ -8,10 +8,10 @@ import { createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
 interface LiveCommentProfile {
   baseAddress?: string
-  depositWallet?: string
   displayUsernamePublic?: boolean
   name?: string
   profileImage?: string
+  proxyWallet?: string
   pseudonym?: string
 }
 
@@ -56,7 +56,7 @@ function buildLiveComment(payload: LiveCommentPayload, user: User | null): Comme
     username,
     user_avatar: profileImage,
     user_address: userAddress,
-    user_deposit_wallet_address: profile.depositWallet ?? null,
+    user_proxy_wallet_address: profile.proxyWallet ?? null,
     likes_count: Number(payload.reactionCount ?? 0),
     replies_count: 0,
     created_at: createdAt,

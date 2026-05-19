@@ -1,7 +1,7 @@
 import { buildDataApiUrl } from '@/lib/data-api/client'
 
 interface DataApiHolder {
-  depositWallet: string
+  proxyWallet: string
   amount: number
   outcomeIndex?: number
   asset?: string
@@ -52,7 +52,7 @@ export interface TopHoldersResult {
 }
 
 function mapHolder(holder: DataApiHolder, outcomeHint: 'yes' | 'no' | null) {
-  const address = holder.depositWallet
+  const address = holder.proxyWallet
   const outcomeIndex = outcomeHint
     ? (outcomeHint === 'yes' ? 0 : 1)
     : (typeof holder.outcomeIndex === 'number' ? holder.outcomeIndex : 0)

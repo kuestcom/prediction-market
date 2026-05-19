@@ -2041,7 +2041,7 @@
           "userAddress": {
             "type": "string"
           },
-          "depositWallet": {
+          "proxyAddress": {
             "type": "string",
             "nullable": true
           },
@@ -2111,7 +2111,7 @@
           "userAddress": {
             "type": "string"
           },
-          "depositWallet": {
+          "proxyAddress": {
             "type": "string",
             "nullable": true
           },

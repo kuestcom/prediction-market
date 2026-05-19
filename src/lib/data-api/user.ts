@@ -9,7 +9,7 @@ interface DataApiRequestParams {
 }
 
 export interface DataApiActivity {
-  depositWallet?: string
+  proxyWallet?: string
   timestamp?: number
   conditionId?: string
   type?: string
@@ -33,7 +33,7 @@ export interface DataApiActivity {
 }
 
 export interface DataApiPosition {
-  depositWallet?: string
+  proxyWallet?: string
   asset?: string
   conditionId?: string
   size?: number
@@ -206,7 +206,7 @@ export function mapDataApiActivityToActivityOrder(activity: DataApiActivity): Ac
     ? 'Yes / No'
     : (activity.outcome || 'Outcome')
   const outcomeIndex = isSplit ? undefined : activity.outcomeIndex ?? 0
-  const address = activity.depositWallet || ''
+  const address = activity.proxyWallet || ''
   const displayName = activity.pseudonym || activity.name || address || 'Trader'
   const avatarUrl = activity.profileImageOptimized
     || activity.profileImage

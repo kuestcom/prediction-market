@@ -6,7 +6,7 @@ import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
 
 export interface DataApiPosition {
-  depositWallet?: string
+  proxyWallet?: string
   asset?: string
   conditionId?: string
   size?: number

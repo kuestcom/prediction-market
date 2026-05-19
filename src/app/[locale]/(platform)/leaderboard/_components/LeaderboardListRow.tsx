@@ -30,7 +30,7 @@ export default function LeaderboardListRow({
   volumeColumnClass,
 }: LeaderboardListRowProps) {
   const rank = entry.rank ?? index + 1
-  const address = entry.depositWallet || ''
+  const address = entry.proxyWallet || ''
   const rawUsername = entry.userName || entry.xUsername || ''
   const isWalletAlias = rawUsername.startsWith('0x') && rawUsername.includes('...')
   const username = (isWalletAlias && address ? address : rawUsername) || address || ''

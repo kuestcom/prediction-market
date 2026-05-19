@@ -306,9 +306,9 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     }
 
     const normalizedUserAddress = normalizeWalletAddress(userAddress)
-    const visibleEntry = entries.find(entry => normalizeWalletAddress(entry.depositWallet) === normalizedUserAddress)
+    const visibleEntry = entries.find(entry => normalizeWalletAddress(entry.proxyWallet) === normalizedUserAddress)
     const sourceEntry = visibleEntry ?? userEntry
-    const address = sourceEntry?.depositWallet || userAddress
+    const address = sourceEntry?.proxyWallet || userAddress
     const rawUsername = sourceEntry?.userName || sourceEntry?.xUsername || user?.username || ''
     const username = rawUsername || address
     const rankNumber = Number(sourceEntry?.rank ?? Number.NaN)
@@ -364,7 +364,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
 
               {!isLoading && entries.map((entry, index) => (
                 <LeaderboardListRow
-                  key={`${entry.depositWallet || entry.userName || entry.xUsername || ''}-${entry.rank ?? index + 1}`}
+                  key={`${entry.proxyWallet || entry.userName || entry.xUsername || ''}-${entry.rank ?? index + 1}`}
                   entry={entry}
                   index={index}
                   filters={filters}

@@ -11,7 +11,7 @@ import { normalizeAddress } from '@/lib/wallet'
 const DATA_API_URL = process.env.DATA_URL!
 
 interface DataApiActivity {
-  depositWallet?: string
+  proxyWallet?: string
   timestamp?: number
   conditionId?: string
   type?: string

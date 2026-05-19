@@ -340,7 +340,7 @@ function useLiveActivityStream({
 
         const hasTitle = hasText(rawPayload.title)
         const hasMarketSlug = hasText(rawPayload.slug)
-        const hasUser = hasText(rawPayload.pseudonym) || hasText(rawPayload.name) || hasText(rawPayload.depositWallet)
+        const hasUser = hasText(rawPayload.pseudonym) || hasText(rawPayload.name) || hasText(rawPayload.proxyWallet)
         const hasSide = hasText(rawPayload.side)
         const hasOutcomeText = hasText(rawPayload.outcome)
         const hasOutcomeIndex = typeof rawPayload.outcomeIndex === 'number'

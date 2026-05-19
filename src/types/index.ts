@@ -258,7 +258,7 @@ export interface Comment {
   username: string
   user_avatar: string
   user_address: string
-  user_deposit_wallet_address?: string | null
+  user_proxy_wallet_address?: string | null
   user_created_at?: string
   likes_count: number
   replies_count: number

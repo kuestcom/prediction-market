@@ -200,7 +200,7 @@ export function useInfiniteComments(
         username: user.username || 'Anonymous',
         user_avatar: user.image || '',
         user_address: user.address || '0x0000...0000',
-        user_deposit_wallet_address: user.deposit_wallet_address || null,
+        user_proxy_wallet_address: user.deposit_wallet_address || null,
         likes_count: 0,
         replies_count: 0,
         created_at: new Date().toISOString(),

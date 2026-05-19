@@ -177,7 +177,7 @@ export async function hydrateEntriesWithPortfolioPnl(
   const addresses = Array.from(
     new Set(
       entries
-        .map(entry => normalizeWalletAddress(entry.depositWallet))
+        .map(entry => normalizeWalletAddress(entry.proxyWallet))
         .filter(address => address.length > 0),
     ),
   )
@@ -193,7 +193,7 @@ export async function hydrateEntriesWithPortfolioPnl(
   }
 
   return entries.map((entry) => {
-    const address = normalizeWalletAddress(entry.depositWallet)
+    const address = normalizeWalletAddress(entry.proxyWallet)
     const pnl = pnlByAddress.get(address)
     if (typeof pnl !== 'number') {
       return entry
@@ -218,7 +218,7 @@ export function sortEntriesForDisplay(
       return rightPnl - leftPnl
     }
 
-    return normalizeWalletAddress(left.depositWallet).localeCompare(normalizeWalletAddress(right.depositWallet))
+    return normalizeWalletAddress(left.proxyWallet).localeCompare(normalizeWalletAddress(right.proxyWallet))
   })
 
   const rankOffset = (page - 1) * PAGE_SIZE

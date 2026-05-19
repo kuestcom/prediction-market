@@ -140,7 +140,7 @@ export default function EventCommentReplyItem({
           image: reply.user_avatar,
           username: displayName,
           address: reply.user_address,
-          deposit_wallet_address: reply.user_deposit_wallet_address ?? null,
+          deposit_wallet_address: reply.user_proxy_wallet_address ?? null,
         }}
         profileSlug={profileSlug}
         date={reply.created_at}

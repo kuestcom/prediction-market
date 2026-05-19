@@ -152,7 +152,7 @@
                   "sample": {
                     "value": [
                       {
-                        "depositWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
                         "asset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
                         "conditionId": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917",
                         "size": 1185.42,
@@ -180,7 +180,7 @@
                         "negativeRisk": true
                       },
                       {
-                        "depositWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
                         "asset": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5:1",
                         "conditionId": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5",
                         "size": 940.11,
@@ -375,7 +375,7 @@
                   "sample": {
                     "value": [
                       {
-                        "depositWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
                         "asset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
                         "conditionId": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917",
                         "size": 610.2,
@@ -402,7 +402,7 @@
                         "endDate": "2024-09-18T18:00:00Z"
                       },
                       {
-                        "depositWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
                         "asset": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5:1",
                         "conditionId": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5",
                         "size": 980.5,
@@ -722,7 +722,7 @@
                         "token": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
                         "holders": [
                           {
-                            "depositWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                            "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
                             "bio": "Macro strategist backing major economic events.",
                             "asset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
                             "pseudonym": "macro.whale",
@@ -734,7 +734,7 @@
                             "profileImageOptimized": "https://cdn.domain.com/users/macro-whale@2x.jpg"
                           },
                           {
-                            "depositWallet": "0x94d37B9c164888FbA4d4b3D4639a65f8AC54a1B6",
+                            "proxyWallet": "0x94d37B9c164888FbA4d4b3D4639a65f8AC54a1B6",
                             "bio": "On-chain analyst seeding liquidity.",
                             "asset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
                             "pseudonym": "liquidity.lab",
@@ -861,7 +861,7 @@
                   "sample": {
                     "value": [
                       {
-                        "depositWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
                         "timestamp": 1718125200,
                         "conditionId": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917",
                         "type": "TRADE",
@@ -884,7 +884,7 @@
                         "profileImageOptimized": "https://cdn.domain.com/users/macro-whale@2x.jpg"
                       },
                       {
-                        "depositWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
                         "timestamp": 1717664400,
                         "conditionId": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5",
                         "type": "TRADE",
@@ -1076,7 +1076,7 @@
                   "sample": {
                     "value": [
                       {
-                        "depositWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
                         "side": "BUY",
                         "asset": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917:0",
                         "conditionId": "0xdd22472e552920b8438158ea7238bfadfa4f736aa4cee91a6b86c39ead110917",
@@ -1098,7 +1098,7 @@
                         "transactionHash": "0xa8b1be184ad6b5a219d121935e7b4f6a1cb5df38e7b74d2880aed672541da831"
                       },
                       {
-                        "depositWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
+                        "proxyWallet": "0x56687bF447db6fFa42FfE2204a05edAa20f55839",
                         "side": "SELL",
                         "asset": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5:1",
                         "conditionId": "0x8eee3789813eead2d47db3bdf6a1c5021f564ef18e2aefc8b80b9dcd5d6f8ac5",
@@ -1666,7 +1666,7 @@
                     "value": [
                       {
                         "rank": "1",
-                        "depositWallet": "0x1234567890abcdef1234567890abcdef12345678",
+                        "proxyWallet": "0x1234567890abcdef1234567890abcdef12345678",
                         "userName": "Theo4",
                         "vol": 22862194,
                         "pnl": 8499002,
@@ -1805,7 +1805,7 @@
       "Position": {
         "type": "object",
         "properties": {
-          "depositWallet": {
+          "proxyWallet": {
             "$ref": "#/components/schemas/Address"
           },
           "asset": {
@@ -1890,7 +1890,7 @@
       "ClosedPosition": {
         "type": "object",
         "properties": {
-          "depositWallet": {
+          "proxyWallet": {
             "$ref": "#/components/schemas/Address"
           },
           "asset": {
@@ -2043,7 +2043,7 @@
       "Activity": {
         "type": "object",
         "properties": {
-          "depositWallet": {
+          "proxyWallet": {
             "$ref": "#/components/schemas/Address"
           },
           "conditionId": {
@@ -2148,7 +2148,7 @@
       "Trade": {
         "type": "object",
         "properties": {
-          "depositWallet": {
+          "proxyWallet": {
             "$ref": "#/components/schemas/Address"
           },
           "side": {
@@ -2259,7 +2259,7 @@
       "Holder": {
         "type": "object",
         "properties": {
-          "depositWallet": {
+          "proxyWallet": {
             "$ref": "#/components/schemas/Address"
           },
           "bio": {
@@ -2302,7 +2302,7 @@
           "rank": {
             "type": "string"
           },
-          "depositWallet": {
+          "proxyWallet": {
             "$ref": "#/components/schemas/Address"
           },
           "userName": {
@@ -2335,7 +2335,7 @@
           "winRank": {
             "type": "string"
           },
-          "depositWallet": {
+          "proxyWallet": {
             "$ref": "#/components/schemas/Address"
           },
           "userName": {
