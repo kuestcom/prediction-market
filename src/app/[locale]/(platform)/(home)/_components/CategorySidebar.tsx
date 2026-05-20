@@ -318,11 +318,11 @@ export default function CategorySidebar({
   return (
     <nav
       aria-label={`${categoryTitle} subcategories`}
-      className={`
+      className={cn(`
         hidden h-[calc(100vh-9rem)] w-47.5 shrink-0 flex-col overflow-y-auto py-5 [scrollbar-width:none]
         lg:sticky lg:top-32 lg:flex lg:py-0
         [&::-webkit-scrollbar]:hidden
-      `}
+      `)}
     >
       {items.map((item) => {
         if (item.type === 'divider') {

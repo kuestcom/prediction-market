@@ -158,9 +158,9 @@ export default function EventLiveSeriesChartHeader({
                     <div className="inline-flex items-center gap-2 text-red-500">
                       <span className="relative inline-flex size-2.5 items-center justify-center">
                         <span
-                          className="
+                          className={cn(`
                             absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45
-                          "
+                          `)}
                         />
                         <span
                           className="relative inline-flex size-2 rounded-full bg-red-500"
@@ -179,10 +179,10 @@ export default function EventLiveSeriesChartHeader({
                   <div className="grid gap-2 text-sm text-foreground">
                     <div className="flex items-center gap-2">
                       <span
-                        className="
+                        className={cn(`
                           inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs
                           font-semibold
-                        "
+                        `)}
                       >
                         ET
                       </span>
@@ -191,10 +191,10 @@ export default function EventLiveSeriesChartHeader({
                     </div>
                     <div className="flex items-center gap-2">
                       <span
-                        className="
+                        className={cn(`
                           inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs
                           font-semibold
-                        "
+                        `)}
                       >
                         UTC
                       </span>

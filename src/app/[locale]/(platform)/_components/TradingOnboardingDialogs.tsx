@@ -37,6 +37,7 @@ import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { cn } from '@/lib/utils'
 
 type OnboardingModal = 'username' | 'email' | 'enable' | 'enable-status' | 'approve' | 'auto-redeem' | null
 type EnableTradingStep = 'idle' | 'enabling' | 'deploying' | 'completed'
@@ -307,9 +308,9 @@ function UsernameDialog({
     >
       <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
         <div className="relative">
-          <AtSignIcon className="
+          <AtSignIcon className={cn(`
             pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground
-          "
+          `)}
           />
           <Input
             value={username}
@@ -620,12 +621,12 @@ function TimelineStep({
   return (
     <div className="grid grid-cols-[1.5rem_1fr_auto] gap-x-3">
       <div className="flex flex-col items-center">
-        <div className={`
+        <div className={cn(`
           flex size-6 shrink-0 items-center justify-center rounded-full border text-xs
           ${complete
       ? 'border-primary bg-primary text-primary-foreground'
       : `border-muted-foreground/30 bg-muted text-muted-foreground`}
-        `}
+        `)}
         >
           {complete ? <CheckIcon className="size-3.5" /> : null}
         </div>

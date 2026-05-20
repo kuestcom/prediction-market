@@ -141,10 +141,10 @@ export default function ProfileActivityTooltipCard({
         <div className="min-w-0 flex-1 text-left">
           <AppLink
             href={profileHref}
-            className="
+            className={cn(`
               block truncate text-left text-sm font-semibold text-foreground transition-colors
               hover:text-foreground
-            "
+            `)}
             title={profile.username}
           >
             {profile.username}

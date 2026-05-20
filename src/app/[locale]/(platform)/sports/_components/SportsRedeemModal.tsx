@@ -536,11 +536,11 @@ export default function SportsRedeemModal({
                             </button>
                             <button
                               type="button"
-                              className="
+                              className={cn(`
                                 inline-flex size-6 items-center justify-center rounded-sm bg-muted text-muted-foreground
                                 transition-colors
                                 hover:bg-muted/80 hover:text-foreground
-                              "
+                              `)}
                               onClick={() => toggleConditionExpansion(group.conditionId)}
                             >
                               <ChevronDownIcon
@@ -558,9 +558,9 @@ export default function SportsRedeemModal({
                                 {group.positions.map(position => (
                                   <div key={position.key} className="flex items-center justify-between gap-2">
                                     <span
-                                      className="
+                                      className={cn(`
                                         inline-flex min-w-0 items-center rounded-sm px-2.5 py-1 text-xs font-semibold
-                                      "
+                                      `)}
                                       style={position.badgeStyle}
                                     >
                                       <span className={cn('truncate', position.badgeClassName)}>

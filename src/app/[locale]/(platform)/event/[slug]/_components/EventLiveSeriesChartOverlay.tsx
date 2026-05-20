@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronsDownIcon, ChevronsUpIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface TargetLine {
   badgeTop: number
@@ -50,10 +51,10 @@ export default function EventLiveSeriesChartOverlay({
               style={{ backgroundColor: targetBadgeColor }}
             />
             <span
-              className="
+              className={cn(`
                 relative z-1 inline-flex items-center gap-0.5 rounded-[4px] px-2 py-1 pl-2 text-xs font-semibold
                 text-white
-              "
+              `)}
               style={{ backgroundColor: targetBadgeColor }}
             >
               <span>Target</span>

@@ -90,9 +90,9 @@ function TotalBadge({ button }: { button: SportsGamesButton }) {
 
   return (
     <div
-      className={`
+      className={cn(`
         relative inline-flex size-11 items-center justify-center overflow-hidden rounded-lg text-white shadow-sm
-      `}
+      `)}
     >
       <span
         className={cn(
@@ -130,9 +130,9 @@ function BttsBadge({ button }: { button: SportsGamesButton }) {
 
   return (
     <div
-      className={`
+      className={cn(`
         relative inline-flex size-11 items-center justify-center overflow-hidden rounded-lg text-white shadow-sm
-      `}
+      `)}
     >
       <span
         className={cn(

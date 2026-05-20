@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { sanitizeSvg } from '@/lib/utils'
+import { cn, sanitizeSvg } from '@/lib/utils'
 
 interface PredictionChartHeaderProps {
   shouldRenderLegend: boolean
@@ -25,10 +25,10 @@ export default function PredictionChartHeader({
       </div>
 
       {shouldRenderWatermark && (
-        <div className={`
+        <div className={cn(`
           mr-2 flex items-center gap-1 self-end text-xl text-muted-foreground opacity-50 select-none
           lg:self-auto
-        `}
+        `)}
         >
           {watermark?.iconSvg
             ? (

@@ -67,11 +67,11 @@ export default function EventMarketChance({
         {showInReviewTag && (
           <button
             type="button"
-            className={`
+            className={cn(`
               inline-flex shrink-0 items-center rounded-sm px-1.5 py-0.5 text-xs/tight font-semibold whitespace-nowrap
               text-primary transition-colors
               hover:bg-primary/15
-            `}
+            `)}
             onClick={(event) => {
               event.stopPropagation()
               setIsResolutionDialogOpen(true)

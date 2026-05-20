@@ -341,10 +341,10 @@ function PositionTags({
   return (
     <div className="flex flex-wrap gap-1">
       {hasOpenOrders && (
-        <div className={`
+        <div className={cn(`
           inline-flex items-center rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-xs/tight font-semibold text-amber-700
           dark:text-amber-200
-        `}
+        `)}
         >
           {openOrdersLabel}
         </div>

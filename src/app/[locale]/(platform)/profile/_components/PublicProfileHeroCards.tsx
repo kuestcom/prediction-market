@@ -683,9 +683,9 @@ function ProfitLossCard({
           </div>
 
           <div
-            className="
+            className={cn(`
               pointer-events-none flex items-center gap-2 text-xl text-muted-foreground/50 opacity-80 select-none
-            "
+            `)}
             aria-hidden="true"
             draggable={false}
           >

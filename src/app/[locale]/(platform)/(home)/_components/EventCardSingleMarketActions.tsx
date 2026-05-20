@@ -45,12 +45,12 @@ export default function EventCardSingleMarketActions({
       <div className="mt-auto mb-0">
         {resolvedOutcome
           ? (
-              <div className={`
+              <div className={cn(`
                 flex h-12 w-full cursor-default items-center justify-center gap-2 rounded-md border px-3 text-sm
                 font-semibold text-foreground transition-colors
                 dark:border-none dark:bg-secondary
                 dark:group-hover:bg-card
-              `}
+              `)}
               >
                 <span className={cn(`flex size-4 items-center justify-center rounded-full ${isYesOutcome
                   ? 'bg-yes'
@@ -64,11 +64,11 @@ export default function EventCardSingleMarketActions({
               </div>
             )
           : (
-              <div className={`
+              <div className={cn(`
                 flex h-10 w-full cursor-default items-center justify-center rounded-md px-3 text-sm font-semibold
                 text-muted-foreground transition-colors
                 dark:group-hover:bg-card
-              `}
+              `)}
               >
                 Resolved
               </div>

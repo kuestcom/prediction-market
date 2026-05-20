@@ -228,10 +228,10 @@ export default function EventOrderPanelInput({
                       : (
                           <button
                             type="button"
-                            className={`
+                            className={cn(`
                               cursor-pointer bg-transparent p-0 text-left transition-colors
                               hover:text-foreground
-                            `}
+                            `)}
                             onClick={handleBalanceClick}
                           >
                             {t('Balance')}

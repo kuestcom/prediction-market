@@ -136,10 +136,10 @@ export default function HeaderNotifications() {
           <BellIcon className="size-[1.35rem]" />
           {unreadCount > 0 && (
             <span
-              className={`
+              className={cn(`
                 absolute top-0.5 right-1.5 flex size-3 items-center justify-center rounded-full bg-primary text-xs
                 font-medium text-destructive-foreground
-              `}
+              `)}
             />
           )}
         </Button>
@@ -197,9 +197,9 @@ export default function HeaderNotifications() {
                   ? (
                       <div
                         aria-hidden="true"
-                        className={`
+                        className={cn(`
                           flex size-10.5 items-center justify-center rounded-md bg-muted text-muted-foreground
-                        `}
+                        `)}
                       >
                         <MergeIcon className="size-4 rotate-90" />
                       </div>

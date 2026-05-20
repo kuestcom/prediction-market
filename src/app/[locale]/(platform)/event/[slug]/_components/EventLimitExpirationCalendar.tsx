@@ -9,6 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 
 interface EventLimitExpirationCalendarProps {
   value?: Date
@@ -105,10 +106,10 @@ export default function EventLimitExpirationCalendar({
                 const nextTime = event.target.value || '00:00'
                 handleChange(selectedDate, nextTime)
               }}
-              className={`
+              className={cn(`
                 appearance-none pl-8
                 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none
-              `}
+              `)}
             />
           </div>
         </div>

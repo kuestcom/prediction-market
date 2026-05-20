@@ -38,6 +38,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { cn } from '@/lib/utils'
 
 interface AdminEventsTableProps {
   initialAutoDeployNewEventsEnabled: boolean
@@ -544,10 +545,10 @@ export default function AdminEventsTable({
             event.stopPropagation()
             handleClearFilters()
           }}
-          className={`
+          className={cn(`
             absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full border border-background
             bg-foreground text-background
-          `}
+          `)}
           aria-label={t('Clear filters')}
         >
           <XIcon className="size-2.5" />

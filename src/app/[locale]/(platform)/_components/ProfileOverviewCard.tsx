@@ -177,10 +177,10 @@ export default function ProfileOverviewCard({
                       <div className="flex items-start justify-between gap-3 sm:gap-4">
                         <div className="flex min-w-0 flex-1 items-start gap-3">
                           <div
-                            className={`
+                            className={cn(`
                               relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full
                               border bg-muted/40
-                            `}
+                            `)}
                             style={avatarFallbackStyle}
                           >
                             {!showPlaceholder && avatarUrl
@@ -226,11 +226,11 @@ export default function ProfileOverviewCard({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className={`
+                            className={cn(`
                               size-9 rounded-full border bg-background/60 text-muted-foreground shadow-sm
                               transition-colors
                               hover:bg-background
-                            `}
+                            `)}
                             onClick={() => profile.portfolioAddress && copy(profile.portfolioAddress)}
                             aria-label={t('Copy portfolio address')}
                           >

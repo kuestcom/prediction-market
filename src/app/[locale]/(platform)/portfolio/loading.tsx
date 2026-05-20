@@ -1,4 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 export default function Loading() {
   return (
@@ -62,9 +63,9 @@ export default function Loading() {
           <div className="overflow-x-auto">
             <div className="min-w-[920px]">
               <div
-                className={`
+                className={cn(`
                   grid grid-cols-[2.2fr_1fr_1fr_1fr_1fr_auto] items-center gap-3 border-b px-2 pb-3 text-xs uppercase
-                `}
+                `)}
               >
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-4 w-16 justify-self-center" />

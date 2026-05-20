@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 
 interface PublicPositionsFiltersProps {
   searchQuery: string
@@ -43,14 +44,14 @@ export default function PublicPositionsFilters({
           <Select value={sortBy} onValueChange={value => onSortChange(value as SortOption)}>
             <SelectTrigger
               aria-label={t('Sort positions')}
-              className="
+              className={cn(`
                 w-9 justify-center gap-0 px-0
                 *:data-[slot=select-value]:hidden
                 sm:w-fit sm:justify-between sm:gap-1.5 sm:px-2.5
                 sm:*:data-[slot=select-value]:flex
                 dark:bg-transparent
                 [&>svg:last-of-type]:hidden
-              "
+              `)}
             >
               <ArrowDownNarrowWideIcon className="size-4 text-muted-foreground" />
               <SelectValue />

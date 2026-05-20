@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAppKit } from '@/hooks/useAppKit'
+import { cn } from '@/lib/utils'
 
 interface EventCommentFormProps {
   user: User | null
@@ -71,11 +72,11 @@ export default function EventCommentForm({
       >
         <Input
           name="content"
-          className={`
+          className={cn(`
             h-11 pr-16
             focus:border-primary focus:ring-primary/20
             focus-visible:border-primary focus-visible:ring-primary/20
-          `}
+          `)}
           placeholder={t('Add a comment')}
           required
           value={content}
@@ -86,10 +87,10 @@ export default function EventCommentForm({
           type="submit"
           size="sm"
           variant="ghost"
-          className={`
+          className={cn(`
             absolute top-1/2 right-2 -translate-y-1/2 bg-transparent text-xs font-medium text-primary
             hover:bg-accent/70 hover:text-primary
-          `}
+          `)}
           disabled={isCreatingComment || !content.trim()}
         >
           {isCreatingComment ? t('Posting...') : user ? t('Post') : t('Connect to Post')}

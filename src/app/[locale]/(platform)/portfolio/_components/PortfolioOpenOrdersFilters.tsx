@@ -4,6 +4,7 @@ import { ArrowDownNarrowWideIcon, SearchIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
 interface PortfolioOpenOrdersFiltersProps {
   searchQuery: string
@@ -40,14 +41,14 @@ export default function PortfolioOpenOrdersFilters({
           <Select value={sortBy} onValueChange={value => onSortChange(value as PortfolioOpenOrdersSort)}>
             <SelectTrigger
               aria-label={t('Sort open orders')}
-              className="
+              className={cn(`
                 w-9 justify-center gap-0 px-0
                 *:data-[slot=select-value]:hidden
                 sm:w-fit sm:justify-between sm:gap-1.5 sm:px-2.5
                 sm:*:data-[slot=select-value]:flex
                 dark:bg-transparent
                 [&>svg:last-of-type]:hidden
-              "
+              `)}
             >
               <ArrowDownNarrowWideIcon className="size-4 text-muted-foreground" />
               <SelectValue />

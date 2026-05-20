@@ -4,6 +4,7 @@ import type { RefObject } from 'react'
 import { ExternalLinkIcon, GripVerticalIcon, RadioIcon, XIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { resolveLivestreamEmbedTarget } from '@/lib/livestream-embed'
+import { cn } from '@/lib/utils'
 import { useSportsLivestream } from '@/stores/useSportsLivestream'
 
 const MIN_PLAYER_WIDTH = 280
@@ -104,10 +105,10 @@ export default function SportsLivestreamFloatingPlayer() {
 
   return (
     <div
-      className={`
+      className={cn(`
         fixed right-3 bottom-3 z-55 overflow-hidden rounded-xl border bg-card shadow-2xl shadow-black/40
         md:right-4 md:bottom-4
-      `}
+      `)}
       style={{ width: `${effectiveWidth}px` }}
     >
       <div className="group/stream-header relative flex items-center gap-2 border-b bg-secondary/40 px-2.5 py-2">
@@ -138,17 +139,17 @@ export default function SportsLivestreamFloatingPlayer() {
             window.addEventListener('pointerup', stopResize)
             dragCleanupRef.current = stopResize
           }}
-          className={`
+          className={cn(`
             absolute top-0 left-0 z-10 size-6 cursor-nwse-resize bg-linear-to-br from-border/90 via-border/35
             to-transparent
-          `}
+          `)}
         >
           <GripVerticalIcon
-            className={`
+            className={cn(`
               pointer-events-none absolute top-0.5 left-0.5 size-3 rotate-45 text-muted-foreground/70 opacity-0
               transition-all
               group-hover/stream-header:text-foreground/80 group-hover/stream-header:opacity-100
-            `}
+            `)}
           />
         </button>
 
@@ -163,10 +164,10 @@ export default function SportsLivestreamFloatingPlayer() {
               dragCleanupRef.current?.()
               closeStream()
             }}
-            className={`
+            className={cn(`
               inline-flex size-6 items-center justify-center rounded-sm text-muted-foreground transition-colors
               hover:bg-muted/80 hover:text-foreground
-            `}
+            `)}
             aria-label="Close stream"
             title="Close stream"
           >
@@ -196,11 +197,11 @@ export default function SportsLivestreamFloatingPlayer() {
                 href={embedTarget.externalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="
+                className={cn(`
                   inline-flex items-center gap-1.5 rounded-md bg-white/10 px-3 py-1.5 text-xs font-semibold text-white
                   transition-colors
                   hover:bg-white/20
-                "
+                `)}
               >
                 <ExternalLinkIcon className="size-3.5" />
                 Open stream

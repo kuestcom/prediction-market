@@ -181,10 +181,10 @@ function LegalSection({
 
         {hasUploadedTermsOfServicePdf
           && (
-            <div className="
+            <div className={cn(`
               flex flex-col gap-3 rounded-xl border border-border/60 bg-muted/10 p-4
               sm:flex-row sm:items-center sm:justify-between
-            "
+            `)}
             >
               <div className="grid gap-1">
                 <p className="text-sm font-medium">{t('An uploaded Terms of Use PDF is currently active on /tos.')}</p>

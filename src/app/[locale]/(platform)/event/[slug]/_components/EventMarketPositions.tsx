@@ -748,10 +748,10 @@ function NetPositionsDialog({
       </div>
 
       <div className="space-y-2">
-        <div className={`
+        <div className={cn(`
           grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4 text-sm font-semibold text-muted-foreground
           uppercase
-        `}
+        `)}
         >
           <span>{t('Outcome')}</span>
           <span className="text-right">{t('Payout')}</span>
@@ -779,10 +779,10 @@ function NetPositionsDialog({
                         />
                       )
                     : (
-                        <div className={`
+                        <div className={cn(`
                           flex size-9 items-center justify-center rounded-md bg-muted text-sm font-semibold
                           text-muted-foreground
-                        `}
+                        `)}
                         >
                           {row.outcomeLabel.slice(0, 1)}
                         </div>

@@ -30,6 +30,7 @@ import {
 import { InputError } from '@/components/ui/input-error'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { cn } from '@/lib/utils'
 
 interface MainCategorySortDialogProps {
   open: boolean
@@ -223,10 +224,10 @@ export default function MainCategorySortDialog({
                 <ul className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
                   {orderedCategories.map((category, index) => (
                     <li key={category.id} className="flex items-center gap-3 rounded-xl border bg-background p-3">
-                      <div className="
+                      <div className={cn(`
                         flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold
                         text-foreground
-                      "
+                      `)}
                       >
                         {index + 1}
                       </div>

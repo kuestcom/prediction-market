@@ -262,9 +262,9 @@ function ResolutionTimeTooltipRows({ event }: { event: EventSeriesEntry }) {
   return (
     <div className="grid gap-2 text-sm text-foreground">
       <div className="flex items-center gap-2">
-        <span className="
+        <span className={cn(`
           inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs font-semibold
-        "
+        `)}
         >
           ET
         </span>
@@ -272,9 +272,9 @@ function ResolutionTimeTooltipRows({ event }: { event: EventSeriesEntry }) {
         <span className="ml-auto tabular-nums">{etTimeLabel}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="
+        <span className={cn(`
           inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs font-semibold
-        "
+        `)}
         >
           UTC
         </span>
@@ -578,11 +578,11 @@ export default function EventSeriesPills({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className={`
+                className={cn(`
                   inline-flex h-8 items-center gap-1.5 rounded-full bg-muted px-3 text-xs leading-none font-semibold
                   text-foreground transition-colors
                   hover:bg-muted/80
-                `}
+                `)}
               >
                 <span>Past</span>
                 <ChevronDownIcon className={cn('size-4 transition-transform', isPastMenuOpen && 'rotate-180')} />
@@ -590,10 +590,10 @@ export default function EventSeriesPills({
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="start"
-              className="
+              className={cn(`
                 z-20 max-h-80 min-w-44 overflow-y-auto p-1 [-ms-overflow-style:none] [scrollbar-width:none]
                 [&::-webkit-scrollbar]:hidden
-              "
+              `)}
             >
               {pastResolvedEvents.map((event) => {
                 const isCurrentEvent = event.slug === currentEventSlug
@@ -603,10 +603,10 @@ export default function EventSeriesPills({
                     <DropdownMenuItem
                       key={event.id}
                       disabled
-                      className={`
+                      className={cn(`
                         cursor-default bg-muted/70 py-1.5 text-xs font-medium text-muted-foreground
                         data-disabled:opacity-100
-                      `}
+                      `)}
                     >
                       <span className="flex w-full items-center gap-2">
                         <GavelIcon className="size-3.5 shrink-0 text-muted-foreground" />
@@ -635,10 +635,10 @@ export default function EventSeriesPills({
 
         {hasSeriesNavigation && currentResolvedEvent && (
           <span
-            className={`
+            className={cn(`
               inline-flex h-8 items-center rounded-full bg-foreground px-3 text-xs leading-none font-semibold
               text-background
-            `}
+            `)}
           >
             Ended:
             {' '}

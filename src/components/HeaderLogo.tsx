@@ -3,6 +3,7 @@
 import AppLink from '@/components/AppLink'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { cn } from '@/lib/utils'
 
 interface HeaderLogoProps {
   labelSuffix?: string
@@ -16,10 +17,10 @@ export default function HeaderLogo({ labelSuffix }: HeaderLogoProps) {
     <AppLink
       intentPrefetch
       href="/"
-      className={`
+      className={cn(`
         flex h-10 shrink-0 items-center gap-2 text-2xl font-medium text-foreground transition-opacity
         hover:opacity-80
-      `}
+      `)}
     >
       <SiteLogoIcon
         logoSvg={site.logoSvg}

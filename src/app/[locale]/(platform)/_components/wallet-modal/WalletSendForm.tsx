@@ -166,11 +166,11 @@ function WalletSendForm({
               onChange={event => handleAmountChange(event.target.value)}
               onBlur={event => handleAmountBlur(event.target.value)}
               placeholder="0.00"
-              className={`
+              className={cn(`
                 h-12 [appearance:textfield] pr-36 text-sm
                 [&::-webkit-inner-spin-button]:appearance-none
                 [&::-webkit-outer-spin-button]:appearance-none
-              `}
+              `)}
               required
             />
             <div className="absolute inset-y-2 right-2 flex items-center gap-2">

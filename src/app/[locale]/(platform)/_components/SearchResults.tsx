@@ -44,9 +44,9 @@ export function SearchResults({
 
   if ((isLoading.events && isLoading.profiles) && events.length === 0 && profiles.length === 0) {
     return (
-      <div className={`
+      <div className={cn(`
         absolute inset-x-0 top-full z-50 mt-0 w-full rounded-lg rounded-t-none border border-t-0 bg-background shadow-lg
-      `}
+      `)}
       >
         {showTabs && (
           <SearchTabs
@@ -70,9 +70,9 @@ export function SearchResults({
   return (
     <div
       data-testid="search-results"
-      className={`
+      className={cn(`
         absolute inset-x-0 top-full z-50 mt-0 rounded-lg rounded-t-none border border-t-0 bg-background shadow-lg
-      `}
+      `)}
     >
       {showTabs && (
         <SearchTabs
@@ -282,11 +282,11 @@ function EventResults({
               <button
                 type="button"
                 onClick={() => navigateToHref(allResultsHref)}
-                className={`
+                className={cn(`
                   flex w-full items-center justify-between gap-2 rounded-b-lg border-t p-3 text-left text-sm font-medium
                   text-primary transition-colors
                   hover:bg-accent hover:text-primary
-                `}
+                `)}
               >
                 <span>{t('See all results')}</span>
                 <ArrowRightIcon className="size-4" />
@@ -297,11 +297,11 @@ function EventResults({
                 intentPrefetch
                 href={allResultsHref}
                 onClick={onResultClick}
-                className={`
+                className={cn(`
                   flex items-center justify-between gap-2 rounded-b-lg border-t p-3 text-sm font-medium text-primary
                   transition-colors
                   hover:bg-accent hover:text-primary
-                `}
+                `)}
               >
                 <span>{t('See all results')}</span>
                 <ArrowRightIcon className="size-4" />

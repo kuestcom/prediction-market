@@ -77,11 +77,11 @@ export default function NavigationMoreMenu() {
       >
         <DropdownMenuItem
           asChild
-          className={`
+          className={cn(`
             group flex w-full items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-muted-foreground
             transition-colors
             hover:text-foreground
-          `}
+          `)}
         >
           <AppLink intentPrefetch href="/activity">
             <ActivityIcon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
@@ -90,11 +90,11 @@ export default function NavigationMoreMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem
           asChild
-          className={`
+          className={cn(`
             group flex w-full items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-muted-foreground
             transition-colors
             hover:text-foreground
-          `}
+          `)}
         >
           <AppLink intentPrefetch href="/leaderboard">
             <TrophyIcon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />

@@ -33,10 +33,10 @@ export default function SettingsSidebar() {
   return (
     <aside className="min-w-0 lg:sticky lg:top-28 lg:self-start">
       <nav
-        className={`
+        className={cn(`
           flex w-full max-w-full snap-x snap-mandatory gap-2 overflow-x-auto rounded-sm
           lg:grid lg:gap-1 lg:overflow-visible lg:rounded-none lg:bg-transparent
-        `}
+        `)}
       >
         {menuItems.map(item => (
           <Button

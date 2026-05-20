@@ -427,11 +427,11 @@ export default function EventOrderBook({
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    className={`
+                    className={cn(`
                       inline-flex size-6 translate-y-[-1.5px] items-center justify-center rounded-sm
                       text-muted-foreground transition-colors
                       hover:bg-muted/70 hover:text-foreground
-                    `}
+                    `)}
                     onClick={onToggleOutcome}
                     aria-label={toggleOutcomeTooltip}
                   >
@@ -447,11 +447,11 @@ export default function EventOrderBook({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  className={`
+                  className={cn(`
                     inline-flex size-6 translate-y-[-1.5px] items-center justify-center rounded-sm text-muted-foreground
                     transition-colors
                     hover:bg-muted/70 hover:text-foreground
-                  `}
+                  `)}
                   onClick={() => recenterOrderBook()}
                   aria-label={t('Recenter order book')}
                 >

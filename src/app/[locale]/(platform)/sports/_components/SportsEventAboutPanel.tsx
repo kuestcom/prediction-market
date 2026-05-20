@@ -151,11 +151,11 @@ export default function SportsEventAboutPanel({
                 href={resolutionDetailsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="
+                className={cn(`
                   inline-flex items-center gap-1.5 justify-self-start text-sm font-medium text-muted-foreground
                   hover:underline
                   sm:justify-self-end
-                "
+                `)}
               >
                 <span>{t('View details')}</span>
                 <ExternalLinkIcon className="size-3.5" />

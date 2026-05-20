@@ -1,6 +1,7 @@
 'use client'
 
 import type { SeriesConfig } from '@/types/PredictionChartTypes'
+import { cn } from '@/lib/utils'
 
 interface EventChartLegendProps {
   entries: Array<SeriesConfig & { value: number | null }>
@@ -26,15 +27,15 @@ export default function EventChartLegend({ entries }: EventChartLegendProps) {
               style={{ backgroundColor: entry.color }}
             />
             <span
-              className="
+              className={cn(`
                 inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs font-medium text-muted-foreground
-              "
+              `)}
             >
               <span className="min-w-0 wrap-break-word">{entry.name}</span>
-              <span className={`
+              <span className={cn(`
                 inline-flex min-w-8 shrink-0 items-baseline justify-end text-sm font-semibold whitespace-nowrap
                 text-foreground tabular-nums
-              `}
+              `)}
               >
                 {resolvedValue.toFixed(0)}
                 <span className="ml-0.5 text-sm text-foreground">%</span>

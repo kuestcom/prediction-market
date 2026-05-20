@@ -38,12 +38,12 @@ function SettingsAccordionSection({
         aria-controls={contentId}
         aria-expanded={isOpen}
         onClick={() => onToggle(value)}
-        className="
+        className={cn(`
           flex h-18 w-full items-center justify-between gap-4 px-4 py-0 text-left transition-colors
           hover:bg-muted/50 hover:no-underline
           focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
           focus-visible:outline-none
-        "
+        `)}
       >
         {header}
         <ChevronDownIcon

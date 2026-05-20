@@ -121,11 +121,11 @@ export default function EventChartControls({
             <button
               type="button"
               className={
-                `
+                cn(`
                   flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground
                   transition-colors
                   hover:text-foreground
-                `
+                `)
               }
               aria-label={t('Show outcomes on chart')}
             >
@@ -235,11 +235,11 @@ export default function EventChartControls({
             <button
               type="button"
               className={
-                `
+                cn(`
                   flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground
                   transition-colors
                   hover:text-foreground
-                `
+                `)
               }
               onClick={onShuffle}
               aria-label={t('Switch to {outcome}', { outcome: normalizeOutcomeLabel(oppositeOutcomeLabel) })}
@@ -257,11 +257,11 @@ export default function EventChartControls({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className={`
+            className={cn(`
               flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground
               transition-colors
               hover:text-foreground
-            `}
+            `)}
             aria-label={t('Chart settings')}
           >
             <SettingsIcon className="size-4" />
@@ -307,10 +307,10 @@ export default function EventChartControls({
                   <label
                     key={item.key}
                     htmlFor={settingId}
-                    className={`
+                    className={cn(`
                       flex items-center justify-between gap-4 text-foreground transition-colors
                       hover:text-foreground/80
-                    `}
+                    `)}
                   >
                     <span>{item.label}</span>
                     <Switch

@@ -28,7 +28,7 @@ import { isCurrentNegRiskAdapterAddress } from '@/lib/neg-risk-adapter'
 import { removeClaimedPublicPositions, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
-import { triggerConfetti } from '@/lib/utils'
+import { cn, triggerConfetti } from '@/lib/utils'
 import { normalizeAddress } from '@/lib/wallet'
 import {
   DepositWalletCallItemsSplitFallbackError,
@@ -401,11 +401,11 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
       <Card className="relative z-0 w-full rounded-lg border bg-transparent">
         <CardContent
-          className={`
+          className={cn(`
             flex flex-nowrap items-center justify-between gap-2 p-3
             sm:gap-4 sm:pl-4
             md:gap-6 md:py-4 md:pr-4 md:pl-6
-          `}
+          `)}
         >
           <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
             <div className="relative isolate h-10 w-14 shrink-0 sm:ml-2 sm:h-12 sm:w-17">
@@ -423,13 +423,13 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
                 return (
                   <div
                     key={market.conditionId}
-                    className={`
+                    className={cn(`
                       absolute size-9 overflow-hidden rounded-lg border-2 border-foreground bg-muted shadow-sm
                       motion-safe:animate-in motion-safe:duration-300 motion-safe:fade-in-0 motion-safe:zoom-in-95
                       motion-reduce:animate-none
                       sm:size-11
                       ${stackClass}
-                    `}
+                    `)}
                     style={{ animationDelay: `${index * 55}ms` }}
                   >
                     {market?.imageUrl
@@ -448,10 +448,10 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
                         )}
                     {showOverflowCount && (
                       <div
-                        className="
+                        className={cn(`
                           absolute inset-0 grid place-items-center bg-black/40 text-xs font-bold text-white
                           sm:text-sm
-                        "
+                        `)}
                       >
                         +
                         {previewExtraCount}
@@ -464,11 +464,11 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
             <div className="min-w-0 flex-1 text-left sm:pl-2">
               <p
-                className="
+                className={cn(`
                   inline-flex max-w-full items-center gap-1.5 text-sm font-semibold whitespace-nowrap
                   text-muted-foreground
                   sm:gap-2 sm:text-base
-                "
+                `)}
               >
                 <span>{t('You won')}</span>
                 <span className="text-lg leading-none font-semibold text-foreground tabular-nums sm:text-2xl">
@@ -496,9 +496,9 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
         </VisuallyHidden>
 
         <div className="flex justify-center">
-          <div className="
+          <div className={cn(`
             pointer-events-none inline-flex items-center gap-2 text-2xl font-semibold text-foreground select-none
-          "
+          `)}
           >
             <SiteLogoIcon
               logoSvg={site.logoSvg}

@@ -91,11 +91,11 @@ function WalletAmountStep({
             handleBlur(event.target.value)
           }}
           placeholder={placeholderText}
-          className={`
+          className={cn(`
             min-h-[1.2em] bg-transparent pb-1 text-center leading-tight font-semibold text-foreground outline-none
             placeholder:leading-tight
             ${amountSizeClass}
-          `}
+          `)}
           style={{ width: `${Math.max(inputValue.length, minChWidth)}ch`, maxWidth: '70vw' }}
         />
         {selectedTokenSymbol && (

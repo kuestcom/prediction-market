@@ -26,6 +26,7 @@ import { usePwaInstall } from '@/hooks/usePwaInstall'
 import { usePathname } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { signOutAndRedirect } from '@/lib/logout'
+import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
 function useHoverMenu(enableHoverOpen: boolean) {
@@ -194,11 +195,11 @@ export default function HeaderDropdownUserMenuAuth() {
             variant="ghost"
             size="header"
             aria-label="User menu"
-            className={`
+            className={cn(`
               group flex cursor-pointer items-center gap-2 px-2 transition-colors
               hover:bg-accent/70 hover:text-accent-foreground
               data-[state=open]:bg-accent/70 data-[state=open]:text-accent-foreground
-            `}
+            `)}
             data-testid="header-menu-button"
           >
             {showPlaceholder
@@ -218,11 +219,11 @@ export default function HeaderDropdownUserMenuAuth() {
                     className="aspect-square shrink-0 rounded-full object-cover"
                   />
                 )}
-            <ChevronDownIcon className={`
+            <ChevronDownIcon className={cn(`
               size-4 transition-transform duration-150
               group-hover:rotate-180
               group-data-[state=open]:rotate-180
-            `}
+            `)}
             />
           </Button>
         </DropdownMenuTrigger>

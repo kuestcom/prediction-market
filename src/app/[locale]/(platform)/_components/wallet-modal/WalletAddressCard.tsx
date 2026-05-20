@@ -1,6 +1,7 @@
 'use client'
 
 import { CheckIcon, CopyIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 function WalletAddressCard({
   walletAddress,
@@ -24,11 +25,11 @@ function WalletAddressCard({
           onCopy()
         }
       }}
-      className={`
+      className={cn(`
         cursor-pointer rounded-md border p-1.5 text-sm transition
         hover:bg-muted/40
         focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-      `}
+      `)}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-1">

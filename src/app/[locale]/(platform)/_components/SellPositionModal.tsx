@@ -165,9 +165,9 @@ export default function SellPositionModal({
               />
             )
           : (
-              <div className={`
+              <div className={cn(`
                 flex size-16 items-center justify-center rounded-md bg-muted text-sm font-semibold text-muted-foreground
-              `}
+              `)}
               >
                 {outcomeLabel.slice(0, 1)}
               </div>
@@ -223,9 +223,9 @@ export default function SellPositionModal({
               )
             })}
             <span
-              className={`
+              className={cn(`
                 absolute top-1/2 block size-5 -translate-1/2 rounded-full border-2 border-primary bg-primary shadow-sm
-              `}
+              `)}
               style={{ left: `${sellPercent}%` }}
             />
             <input

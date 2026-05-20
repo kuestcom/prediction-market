@@ -363,11 +363,11 @@ export default function HeaderSearch({
           ? (
               <button
                 type="button"
-                className={`
+                className={cn(`
                   absolute top-1/2 right-3 inline-flex -translate-y-1/2 items-center justify-center rounded-sm p-1
                   text-muted-foreground transition-colors
                   hover:text-foreground
-                `}
+                `)}
                 onClick={() => {
                   clearSearch()
                   setIsResultsDismissed(false)
@@ -379,10 +379,10 @@ export default function HeaderSearch({
               </button>
             )
           : (
-              <span className={`
+              <span className={cn(`
                 absolute top-1/2 right-3 hidden -translate-y-1/2 font-mono text-xs text-muted-foreground
                 lg:inline-flex
-              `}
+              `)}
               >
                 /
               </span>
@@ -400,9 +400,9 @@ export default function HeaderSearch({
         )}
         {showDiscoveryDropdown && (
           <div
-            className={`
+            className={cn(`
               absolute inset-x-0 top-full z-50 mt-0 rounded-lg rounded-t-none border border-t-0 bg-background shadow-lg
-            `}
+            `)}
           >
             <SearchDiscoveryContent variant="desktop" onNavigate={handleNavigate} />
           </div>

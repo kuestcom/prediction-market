@@ -63,10 +63,10 @@ export default function PublicPositionsRow({
             <AppLink
               intentPrefetch
               href={eventHref}
-              className={`
+              className={cn(`
                 block max-w-full truncate text-[13px] leading-tight font-semibold text-foreground underline-offset-2
                 hover:underline
-              `}
+              `)}
               title={position.title}
             >
               {position.title}
@@ -97,18 +97,18 @@ export default function PublicPositionsRow({
         </div>
       </td>
 
-      <td className={`
+      <td className={cn(`
         px-2 py-3 text-center align-middle text-sm font-semibold text-muted-foreground tabular-nums
         sm:px-3
-      `}
+      `)}
       >
         {formatCurrencyValue(tradeValue)}
       </td>
 
-      <td className={`
+      <td className={cn(`
         px-2 py-3 text-center align-middle text-sm font-semibold text-muted-foreground tabular-nums
         sm:px-3
-      `}
+      `)}
       >
         {formatCurrencyValue(toWinValue)}
       </td>

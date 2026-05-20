@@ -42,10 +42,10 @@ export default function EventCommentLikeForm({
       disabled={isSubmitting}
       aria-pressed={comment.user_has_liked}
       title={comment.user_has_liked ? 'Remove like' : 'Like'}
-      className={`
+      className={cn(`
         flex size-auto items-center gap-1 rounded-sm px-1.5 py-0.5 text-sm text-muted-foreground
         hover:bg-accent hover:text-foreground
-      `}
+      `)}
     >
       <HeartIcon className={cn({
         'fill-current text-destructive': comment.user_has_liked,

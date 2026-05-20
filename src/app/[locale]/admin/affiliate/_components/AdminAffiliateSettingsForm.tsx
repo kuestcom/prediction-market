@@ -13,6 +13,7 @@ import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatBpsPercent } from '@/lib/affiliate-fee-settings'
+import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
 const initialState = {
@@ -42,11 +43,11 @@ function AdminInfoTooltip({ content }: AdminInfoTooltipProps) {
       <TooltipTrigger asChild>
         <button
           type="button"
-          className={`
+          className={cn(`
             inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors
             hover:text-foreground
             focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none
-          `}
+          `)}
           aria-label={content}
         >
           <InfoIcon className="size-4" aria-hidden />

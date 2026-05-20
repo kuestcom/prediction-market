@@ -717,10 +717,10 @@ export default function SportsEventCenter({
 
           {shouldShowRedeemButton && (
             <div
-              className="
+              className={cn(`
                 min-w-0 flex-1
                 min-[1200px]:ml-auto min-[1200px]:w-[calc((248px-0.5rem)/2)] min-[1200px]:flex-none
-              "
+              `)}
             >
               <div className="relative min-w-0 overflow-hidden rounded-lg pb-1.25">
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg bg-primary" />
@@ -732,12 +732,12 @@ export default function SportsEventCenter({
                     setRedeemDefaultConditionId(singleConditionId)
                     setRedeemSectionKey('moneyline')
                   }}
-                  className={`
+                  className={cn(`
                     relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg bg-primary px-3
                     text-xs font-semibold text-primary-foreground shadow-sm transition-transform duration-150 ease-out
                     hover:translate-y-px hover:bg-primary
                     active:translate-y-0.5
-                  `}
+                  `)}
                 >
                   Redeem
                 </button>
@@ -1041,10 +1041,10 @@ export default function SportsEventCenter({
                                     return (
                                       <div
                                         key={`${section.key}-${button.key}`}
-                                        className="
+                                        className={cn(`
                                           relative w-full min-w-0 overflow-hidden rounded-lg pb-1.25
                                           sm:w-[118px] sm:shrink-0
-                                        "
+                                        `)}
                                       >
                                         <div
                                           className={cn(
@@ -1160,10 +1160,10 @@ export default function SportsEventCenter({
 
                       {shouldShowRedeemButton && (
                         <div
-                          className="
+                          className={cn(`
                             min-w-0 flex-1
                             min-[1200px]:ml-auto min-[1200px]:w-[calc((372px-1rem)/3)] min-[1200px]:flex-none
-                          "
+                          `)}
                         >
                           <div className="relative min-w-0 overflow-hidden rounded-lg pb-1.25">
                             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg bg-primary" />
@@ -1178,13 +1178,13 @@ export default function SportsEventCenter({
                                 setRedeemDefaultConditionId(sectionDefaultConditionId)
                                 setRedeemSectionKey(section.key)
                               }}
-                              className={`
+                              className={cn(`
                                 relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg bg-primary
                                 px-3 text-xs font-semibold text-primary-foreground shadow-sm transition-transform
                                 duration-150 ease-out
                                 hover:translate-y-px hover:bg-primary
                                 active:translate-y-0.5
-                              `}
+                              `)}
                             >
                               Redeem
                             </button>
@@ -1328,11 +1328,11 @@ export default function SportsEventCenter({
                 logoSvg={site.logoSvg}
                 logoImageUrl={site.logoImageUrl}
                 alt={`${site.name} logo`}
-                className="
+                className={cn(`
                   pointer-events-none size-4 text-current select-none
                   [&_svg]:size-4
                   [&_svg_*]:fill-current [&_svg_*]:stroke-current
-                "
+                `)}
                 imageClassName="pointer-events-none size-4 object-contain select-none"
                 size={16}
               />
@@ -1349,11 +1349,11 @@ export default function SportsEventCenter({
                   url: heroCard.event.livestream_url!,
                   title: heroCard.event.title || heroCard.title,
                 })}
-                className={`
+                className={cn(`
                   inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border/80 bg-background px-3
                   py-1.5 text-xs font-medium text-muted-foreground transition-colors
                   hover:bg-secondary/50 hover:text-foreground
-                `}
+                `)}
               >
                 <SportsEventLiveStatusIcon
                   className="size-3.5"
@@ -1538,11 +1538,11 @@ export default function SportsEventCenter({
                   logoSvg={site.logoSvg}
                   logoImageUrl={site.logoImageUrl}
                   alt={`${site.name} logo`}
-                  className="
+                  className={cn(`
                     pointer-events-none size-4 text-current select-none
                     [&_svg]:size-4
                     [&_svg_*]:fill-current [&_svg_*]:stroke-current
-                  "
+                  `)}
                   imageClassName="pointer-events-none size-4 object-contain select-none"
                   size={16}
                 />
@@ -1576,11 +1576,11 @@ export default function SportsEventCenter({
 
         <aside
           data-sports-scroll-pane="aside"
-          className={`
+          className={cn(`
             hidden gap-4
             min-[1200px]:sticky min-[1200px]:top-0 min-[1200px]:block min-[1200px]:h-fit min-[1200px]:max-h-full
             min-[1200px]:self-start min-[1200px]:overflow-y-auto
-          `}
+          `)}
         >
           {activeTradeContext
             ? (

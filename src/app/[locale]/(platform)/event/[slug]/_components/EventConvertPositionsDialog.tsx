@@ -486,9 +486,9 @@ function EventConvertPositionsDialogContent({
                 />
                 <div className="flex flex-1 items-center gap-2">
                   <span className="text-sm font-semibold text-foreground">{option.label}</span>
-                  <span className={`
+                  <span className={cn(`
                     inline-flex size-5 items-center justify-center rounded-sm bg-no/20 text-2xs font-semibold text-no
-                  `}
+                  `)}
                   >
                     {t('No')}
                   </span>
@@ -554,10 +554,10 @@ function EventConvertPositionsDialogContent({
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">{option.label}</span>
-                    <span className={`
+                    <span className={cn(`
                       inline-flex h-5 min-w-5 items-center justify-center rounded-sm bg-no/20 px-1 text-2xs
                       font-semibold text-no
-                    `}
+                    `)}
                     >
                       {t('No')}
                     </span>
@@ -588,10 +588,10 @@ function EventConvertPositionsDialogContent({
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">{outcome.label}</span>
-                    <span className={`
+                    <span className={cn(`
                       inline-flex h-5 min-w-5 items-center justify-center rounded-sm bg-yes/20 px-1 text-2xs
                       font-semibold text-yes
-                    `}
+                    `)}
                     >
                       {t('Yes')}
                     </span>
@@ -608,10 +608,10 @@ function EventConvertPositionsDialogContent({
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">Other</span>
-                    <span className={`
+                    <span className={cn(`
                       inline-flex h-5 min-w-5 items-center justify-center gap-1 rounded-sm bg-yes/20 px-1 text-2xs
                       font-semibold text-yes
-                    `}
+                    `)}
                     >
                       <LockKeyholeIcon className="size-3" />
                       {t('Yes')}
@@ -661,10 +661,10 @@ function EventConvertPositionsDialogContent({
   const reviewHeader = (
     <button
       type="button"
-      className={`
+      className={cn(`
         inline-flex items-center gap-2 text-sm font-semibold text-foreground transition-colors
         hover:text-foreground/80
-      `}
+      `)}
       onClick={() => setStep('select')}
     >
       <MoveLeftIcon className="size-4" />

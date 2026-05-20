@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
 interface DataTablePaginationProps<TData> {
   table: Table<TData>
@@ -61,10 +62,10 @@ export function DataTablePagination<TData>({
 
   return (
     <div className="flex flex-col space-y-2 px-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-      <div className={`
+      <div className={cn(`
         flex flex-col space-y-1 text-sm text-muted-foreground
         sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4
-      `}
+      `)}
       >
         <div>
           {t('{selected} of {total} row(s) selected.', {

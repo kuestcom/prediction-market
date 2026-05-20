@@ -75,9 +75,9 @@ function TimelineIcon({ item }: { item: ResolutionTimelineItem }) {
   if (item.icon === 'open') {
     return (
       <span
-        className={`
+        className={cn(`
           relative flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-background
-        `}
+        `)}
       />
     )
   }

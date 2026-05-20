@@ -5,6 +5,7 @@ import { useExtracted } from 'next-intl'
 import { useMemo } from 'react'
 import { DEFAULT_RADIUS_VALUE, getRadiusPresetButtonStyle, parseRadiusPixels, RADIUS_PRESETS } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 function RadiusControl({
   radiusValue,
@@ -49,11 +50,11 @@ function RadiusControl({
           type="button"
           onClick={onRadiusReset}
           disabled={disabled || !normalizedRadius}
-          className={`
+          className={cn(`
             text-muted-foreground transition
             hover:text-foreground
             disabled:cursor-not-allowed disabled:opacity-40
-          `}
+          `)}
           title={t('Use default')}
           aria-label={t('Use default roundness')}
         >

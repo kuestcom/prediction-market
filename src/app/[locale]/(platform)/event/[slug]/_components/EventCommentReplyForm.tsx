@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
+import { cn } from '@/lib/utils'
 
 interface EventCommentReplyFormProps {
   user: User | null
@@ -92,12 +93,12 @@ export default function EventCommentReplyForm({
             ref={inputRef}
             value={content}
             onChange={e => setContent(e.target.value)}
-            className={`
+            className={cn(`
               h-11 pr-16 text-sm
               placeholder:text-muted-foreground/70
               focus:border-primary focus:ring-primary/20
               focus-visible:border-primary focus-visible:ring-primary/20
-            `}
+            `)}
             placeholder={placeholder}
             required
           />

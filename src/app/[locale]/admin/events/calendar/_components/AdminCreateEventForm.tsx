@@ -4720,10 +4720,10 @@ export default function AdminCreateEventForm({
                   <div className="mt-0.5 flex items-center justify-between gap-2">
                     <p className="text-base font-medium text-foreground">{label}</p>
                     {done && (
-                      <span className="
+                      <span className={cn(`
                         flex size-5 shrink-0 items-center justify-center rounded-full border border-emerald-600
                         bg-emerald-600 text-background
-                      "
+                      `)}
                       >
                         <CheckIcon className="size-3" />
                       </span>
@@ -4758,16 +4758,16 @@ export default function AdminCreateEventForm({
                   />
                   <label
                     htmlFor="event-image"
-                    className={`
+                    className={cn(`
                       group relative flex size-56 cursor-pointer items-center justify-center overflow-hidden rounded-xl
                       border border-dashed border-border bg-muted/20 text-muted-foreground transition
                       hover:border-primary/60
-                    `}
+                    `)}
                   >
-                    <span className={`
+                    <span className={cn(`
                       pointer-events-none absolute inset-0 bg-foreground/0 transition
                       group-hover:bg-foreground/5
-                    `}
+                    `)}
                     />
                     {eventImagePreviewUrl
                       ? (
@@ -4783,11 +4783,11 @@ export default function AdminCreateEventForm({
                           <div className="text-sm text-muted-foreground">256 × 256 preview</div>
                         )}
                     <ImageUp
-                      className={`
+                      className={cn(`
                         pointer-events-none absolute top-1/2 left-1/2 z-10 size-7 -translate-1/2 text-foreground/70
                         opacity-0 transition
                         group-hover:opacity-100
-                      `}
+                      `)}
                     />
                   </label>
                 </div>
@@ -5169,17 +5169,17 @@ export default function AdminCreateEventForm({
                                   />
                                   <label
                                     htmlFor={`sports-team-logo-${team.hostStatus}`}
-                                    className={`
+                                    className={cn(`
                                       group relative flex size-28 cursor-pointer items-center justify-center
                                       overflow-hidden rounded-xl border border-dashed border-border bg-muted/20
                                       text-muted-foreground transition
                                       hover:border-primary/60
-                                    `}
+                                    `)}
                                   >
-                                    <span className={`
+                                    <span className={cn(`
                                       pointer-events-none absolute inset-0 bg-foreground/0 transition
                                       group-hover:bg-foreground/5
-                                    `}
+                                    `)}
                                     />
                                     {teamLogoPreviewUrls[team.hostStatus]
                                       ? (
@@ -5195,11 +5195,11 @@ export default function AdminCreateEventForm({
                                           <div className="text-sm text-muted-foreground">Upload logo</div>
                                         )}
                                     <ImageUp
-                                      className={`
+                                      className={cn(`
                                         pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2
                                         text-foreground/70 opacity-0 transition
                                         group-hover:opacity-100
-                                      `}
+                                      `)}
                                     />
                                   </label>
                                 </div>
@@ -5817,10 +5817,10 @@ export default function AdminCreateEventForm({
 
                         <div className="space-y-2">
                           <Label>Outcomes</Label>
-                          <div className="
+                          <div className={cn(`
                             grid grid-cols-1 items-center gap-2
                             md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem]
-                          "
+                          `)}
                           >
                             <Input
                               id="binary-outcome-yes"
@@ -5907,10 +5907,10 @@ export default function AdminCreateEventForm({
                                 </div>
                                 <div className="space-y-2 md:col-span-2">
                                   <Label>Outcomes</Label>
-                                  <div className="
+                                  <div className={cn(`
                                     grid grid-cols-1 items-center gap-2
                                     md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem]
-                                  "
+                                  `)}
                                   >
                                     <Input
                                       value={option.outcomeYes}
@@ -5949,17 +5949,17 @@ export default function AdminCreateEventForm({
                                 />
                                 <label
                                   htmlFor={`option-image-${option.id}`}
-                                  className={`
+                                  className={cn(`
                                     group relative flex size-28 cursor-pointer items-center justify-center
                                     overflow-hidden rounded-xl border border-dashed border-border bg-muted/20
                                     text-muted-foreground transition
                                     hover:border-primary/60
-                                  `}
+                                  `)}
                                 >
-                                  <span className={`
+                                  <span className={cn(`
                                     pointer-events-none absolute inset-0 bg-foreground/0 transition
                                     group-hover:bg-foreground/5
-                                  `}
+                                  `)}
                                   />
                                   {optionImagePreviewUrls[option.id]
                                     ? (
@@ -5975,11 +5975,11 @@ export default function AdminCreateEventForm({
                                         <div className="text-xs text-muted-foreground">No image</div>
                                       )}
                                   <ImageUp
-                                    className={`
+                                    className={cn(`
                                       pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2
                                       text-foreground/70 opacity-0 transition
                                       group-hover:opacity-100
-                                    `}
+                                    `)}
                                   />
                                 </label>
                               </div>
@@ -6258,10 +6258,10 @@ export default function AdminCreateEventForm({
 
           <div className="flex max-h-[90vh] flex-col">
             <div className="border-b px-6 py-3">
-              <div className="
+              <div className={cn(`
                 mx-auto w-full max-w-2xl rounded-md border bg-muted/20 px-3 py-2 text-center font-mono text-xs
                 text-muted-foreground
-              "
+              `)}
               >
                 {previewEventUrl}
               </div>
@@ -6314,34 +6314,34 @@ export default function AdminCreateEventForm({
                               <p className="text-xs text-muted-foreground">{market.question || 'Question pending'}</p>
                             </div>
                             <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
-                              <span className="
+                              <span className={cn(`
                                 rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1.5 text-sm
                                 font-semibold text-emerald-600
-                              "
+                              `)}
                               >
                                 {market.outcomeYes}
                               </span>
-                              <span className="
+                              <span className={cn(`
                                 rounded-md border border-red-500/40 bg-red-500/15 px-2.5 py-1.5 text-sm font-semibold
                                 text-red-500
-                              "
+                              `)}
                               >
                                 {market.outcomeNo}
                               </span>
                             </div>
                           </div>
                           <div className="mt-2 flex items-center gap-1.5 sm:hidden">
-                            <span className="
+                            <span className={cn(`
                               rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1.5 text-sm
                               font-semibold text-emerald-600
-                            "
+                            `)}
                             >
                               {market.outcomeYes}
                             </span>
-                            <span className="
+                            <span className={cn(`
                               rounded-md border border-red-500/40 bg-red-500/15 px-2.5 py-1.5 text-sm font-semibold
                               text-red-500
-                            "
+                            `)}
                             >
                               {market.outcomeNo}
                             </span>
@@ -6387,19 +6387,19 @@ export default function AdminCreateEventForm({
                     <button
                       type="button"
                       disabled
-                      className="
+                      className={cn(`
                         rounded-md border border-emerald-500/40 bg-emerald-500/15 px-3 py-2 text-sm font-semibold
                         text-emerald-600
-                      "
+                      `)}
                     >
                       {tradePreviewMarket?.outcomeYes || 'Yes'}
                     </button>
                     <button
                       type="button"
                       disabled
-                      className="
+                      className={cn(`
                         rounded-md border border-red-500/40 bg-red-500/15 px-3 py-2 text-sm font-semibold text-red-500
-                      "
+                      `)}
                     >
                       {tradePreviewMarket?.outcomeNo || 'No'}
                     </button>
@@ -6416,17 +6416,17 @@ export default function AdminCreateEventForm({
                   <p className="text-xs font-semibold text-muted-foreground uppercase">Categories</p>
                   {selectedCategoryChips.length > 0
                     ? (
-                        <div className="
+                        <div className={cn(`
                           flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none]
                           [&::-webkit-scrollbar]:hidden
-                        "
+                        `)}
                         >
                           {selectedCategoryChips.map(item => (
                             <span
                               key={item.slug}
-                              className="
+                              className={cn(`
                                 shrink-0 rounded-full border bg-background px-2.5 py-1 text-xs text-muted-foreground
-                              "
+                              `)}
                             >
                               {item.label}
                             </span>
@@ -7142,10 +7142,10 @@ export default function AdminCreateEventForm({
             <Button
               type="button"
               variant="outline"
-              className="
+              className={cn(`
                 border-destructive/30 text-destructive
                 hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive
-              "
+              `)}
               onClick={handleResetFormClick}
               disabled={
                 isLoadingPendingRequest

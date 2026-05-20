@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useClipboard } from '@/hooks/useClipboard'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
+import { cn } from '@/lib/utils'
 
 interface AffiliateMainCategory {
   slug: string
@@ -75,11 +76,11 @@ export default function SettingsAffiliateContent({ affiliateData, mainCategories
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    className={`
+                    className={cn(`
                       inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors
                       hover:text-foreground
                       focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none
-                    `}
+                    `)}
                     aria-label={t('Commission info')}
                   >
                     <InfoIcon className="size-3" aria-hidden />

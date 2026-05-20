@@ -77,13 +77,13 @@ export default function LeaderboardFiltersBar({
           value={filters.category}
           onValueChange={value => onUpdateFilters({ ...filters, category: value as LeaderboardFilters['category'] })}
         >
-          <SelectTrigger className={`
+          <SelectTrigger className={cn(`
             h-10 min-w-40 bg-transparent px-4 text-sm font-medium text-foreground
             hover:bg-transparent
             data-[size=default]:h-10
             dark:bg-transparent
             dark:hover:bg-transparent
-          `}
+          `)}
           >
             <SelectValue asChild>
               <span className="line-clamp-1">{categoryLabel}</span>
@@ -110,9 +110,9 @@ export default function LeaderboardFiltersBar({
         )}
       >
         <div className="relative w-full">
-          <SearchIcon className={`
+          <SearchIcon className={cn(`
             pointer-events-none absolute top-1/2 left-0 size-4 -translate-y-1/2 text-muted-foreground
-          `}
+          `)}
           />
           <input
             type="text"
@@ -120,11 +120,11 @@ export default function LeaderboardFiltersBar({
             onChange={event => onSearchInputChange(event.target.value)}
             placeholder="Search by name"
             aria-label="Search by name"
-            className={`
+            className={cn(`
               h-7 w-full bg-transparent pr-2 pl-6 text-sm text-foreground
               placeholder:text-muted-foreground
               focus:ring-0 focus:outline-none
-            `}
+            `)}
           />
         </div>
         <div className="flex items-center justify-end md:hidden">
@@ -133,13 +133,13 @@ export default function LeaderboardFiltersBar({
             onValueChange={value => onUpdateFilters({ ...filters, order: value as LeaderboardFilters['order'] })}
           >
             <SelectTrigger
-              className={`
+              className={cn(`
                 h-7 border-0 bg-transparent px-0 text-sm font-medium text-muted-foreground shadow-none
                 hover:bg-transparent
                 data-[size=default]:h-7
                 dark:bg-transparent
                 dark:hover:bg-transparent
-              `}
+              `)}
             >
               <SelectValue />
             </SelectTrigger>

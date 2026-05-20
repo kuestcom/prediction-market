@@ -445,10 +445,10 @@ function EventMarketContextContent({ event, resolvedMarketConditionId }: EventMa
             >
               <span className="text-base font-medium">{t('Market Context')}</span>
               <span
-                className={`
+                className={cn(`
                   flex items-center gap-1 rounded-md border bg-background px-3 py-1 text-sm font-medium text-foreground
                   shadow-sm transition
-                `}
+                `)}
               >
                 {isPending ? <LoaderIcon className="size-3 animate-spin" /> : <SparkleIcon className="size-3" />}
                 {isPending ? t('Generating...') : t('Generate')}

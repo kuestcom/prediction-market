@@ -274,9 +274,9 @@ function PositionShareDialogContent({
           />
         )}
         {!isShareReady && (
-          <div className={`
+          <div className={cn(`
             absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground
-          `}
+          `)}
           >
             {shareCardStatus === 'error'
               ? (

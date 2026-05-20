@@ -759,11 +759,11 @@ export default function PredictionResultsClient({
                   <button
                     type="button"
                     onClick={handleClearFilters}
-                    className="
+                    className={cn(`
                       mt-4 inline-flex h-10 w-full items-center justify-center text-[13px] font-medium
                       tracking-[-0.09px] text-muted-foreground transition-colors
                       hover:text-foreground
-                    "
+                    `)}
                   >
                     {t('Clear filters')}
                   </button>
@@ -797,9 +797,9 @@ export default function PredictionResultsClient({
                 )}
 
             {error && (
-              <div className="
+              <div className={cn(`
                 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive
-              "
+              `)}
               >
                 {t('Could not load prediction results. Please try again.')}
               </div>
@@ -824,10 +824,10 @@ export default function PredictionResultsClient({
 
       <aside
         data-testid="prediction-filters-aside"
-        className="
+        className={cn(`
           hidden w-full self-start
           lg:sticky lg:top-[150px] lg:flex lg:w-[350px] lg:shrink-0 lg:flex-col lg:gap-4
-        "
+        `)}
       >
         <div className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-md">
           <div className="w-full shrink-0 bg-card">
@@ -838,11 +838,11 @@ export default function PredictionResultsClient({
         <button
           type="button"
           onClick={handleClearFilters}
-          className="
+          className={cn(`
             inline-flex h-10 w-full items-center justify-center text-[13px] font-medium tracking-[-0.09px]
             text-muted-foreground transition-colors
             hover:text-foreground
-          "
+          `)}
         >
           {t('Clear filters')}
         </button>

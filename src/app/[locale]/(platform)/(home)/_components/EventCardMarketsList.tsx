@@ -139,11 +139,11 @@ export default function EventCardMarketsList({
                 ? (
                     resolvedOutcome
                       ? (
-                          <span className={`
+                          <span className={cn(`
                             inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-sm font-semibold text-foreground
                             transition-colors
                             group-hover:bg-card
-                          `}
+                          `)}
                           >
                             <span className={cn(`flex size-4 items-center justify-center rounded-full ${isYesOutcome
                               ? `bg-yes`
@@ -157,11 +157,11 @@ export default function EventCardMarketsList({
                           </span>
                         )
                       : (
-                          <span className={`
+                          <span className={cn(`
                             inline-flex items-center rounded-md px-2.5 py-1 text-sm font-semibold text-muted-foreground
                             transition-colors
                             group-hover:bg-card
-                          `}
+                          `)}
                           >
                             Resolved
                           </span>

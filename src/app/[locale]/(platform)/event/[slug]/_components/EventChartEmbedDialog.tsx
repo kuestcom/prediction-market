@@ -403,12 +403,12 @@ function EventChartEmbedDialogEditor({
               <div className="space-y-3">
                 <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('MARKET')}</Label>
                 <Select value={selectedMarketId} onValueChange={handleMarketChange}>
-                  <SelectTrigger className={`
+                  <SelectTrigger className={cn(`
                     w-full bg-transparent text-sm
                     hover:bg-transparent
                     dark:bg-transparent
                     dark:hover:bg-transparent
-                  `}
+                  `)}
                   >
                     <SelectValue />
                   </SelectTrigger>

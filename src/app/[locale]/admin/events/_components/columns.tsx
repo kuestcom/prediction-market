@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatCompactCurrency, formatDate } from '@/lib/formatters'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
+import { cn } from '@/lib/utils'
 
 interface EventColumnOptions {
   onToggleHidden: (event: AdminEventRow, nextValue: boolean) => void
@@ -84,9 +85,9 @@ export function useAdminEventsColumns({
                       />
                     )
                   : (
-                      <div className="
+                      <div className={cn(`
                         flex size-full items-center justify-center text-xs font-semibold text-muted-foreground
-                      "
+                      `)}
                       >
                         {event.title.slice(0, 1).toUpperCase()}
                       </div>
@@ -98,11 +99,11 @@ export function useAdminEventsColumns({
                   <AppLink
                     intentPrefetch
                     href={`/event/${event.slug}`}
-                    className={`
+                    className={cn(`
                       line-clamp-2 text-sm font-medium text-wrap underline-offset-4
                       hover:underline
                       ${event.is_hidden ? 'text-muted-foreground' : 'text-foreground'}
-                    `}
+                    `)}
                   >
                     {event.title}
                   </AppLink>
@@ -112,10 +113,10 @@ export function useAdminEventsColumns({
                   <span className="min-w-0 truncate">{event.slug}</span>
                   {event.series_slug && (
                     <span
-                      className="
+                      className={cn(`
                         inline-flex items-center gap-1 rounded-sm border border-border/70 bg-background px-1.5 py-0.5
                         text-2xs font-medium text-muted-foreground
-                      "
+                      `)}
                     >
                       <RepeatIcon className="size-3" />
                       <span>{formatSeriesRecurrenceLabel(event.series_recurrence ?? event.series_slug) ?? t('Series')}</span>

@@ -738,10 +738,10 @@ export default function ActivityFeed() {
                       intentPrefetch
                       href={eventHref}
                       onClick={event => event.stopPropagation()}
-                      className={`
+                      className={cn(`
                         block max-w-[64ch] truncate text-sm text-muted-foreground underline-offset-2
                         hover:underline
-                      `}
+                      `)}
                       title={activity.market.title}
                     >
                       {activity.market.title}
@@ -790,10 +790,10 @@ export default function ActivityFeed() {
                   </div>
                 </div>
 
-                <div className={`
+                <div className={cn(`
                   flex w-full shrink-0 items-center justify-end gap-1.5 text-xs text-muted-foreground
                   sm:w-auto
-                `}
+                `)}
                 >
                   {txUrl
                     ? (

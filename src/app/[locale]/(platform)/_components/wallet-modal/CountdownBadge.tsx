@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { cn } from '@/lib/utils'
 
 interface CountdownBadgeContentProps {
   seconds: number
@@ -84,10 +85,10 @@ function CountdownBadgeContent({
             className="text-primary"
           />
         </svg>
-        <div className={`
+        <div className={cn(`
           absolute inset-0.75 flex items-center justify-center rounded-full bg-background text-[9px] font-semibold
           text-foreground ring-1 ring-border/60
-        `}
+        `)}
         >
           {remaining}
         </div>

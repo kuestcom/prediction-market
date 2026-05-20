@@ -6,6 +6,7 @@ import { useClipboard } from '@/hooks/useClipboard'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { truncateAddress } from '@/lib/formatters'
 import { buildPublicProfilePath, buildUsernameProfilePath } from '@/lib/platform-routing'
+import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
 export default function UserInfoSection() {
@@ -52,11 +53,11 @@ export default function UserInfoSection() {
                 alt="User avatar"
                 width={48}
                 height={48}
-                className={`
+                className={cn(`
                   aspect-square rounded-full object-cover object-center ring-2 ring-border/20 transition-all
                   duration-200
                   hover:ring-border/40
-                `}
+                `)}
               />
             )}
       </div>
@@ -65,11 +66,11 @@ export default function UserInfoSection() {
           ? (
               <AppLink
                 href={profileHref as any}
-                className={`
+                className={cn(`
                   truncate text-base/tight font-semibold text-foreground underline-offset-2 transition-colors
                   duration-200
                   hover:underline
-                `}
+                `)}
               >
                 {displayUsername}
               </AppLink>

@@ -255,10 +255,10 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
                       href={txUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`
+                      className={cn(`
                         text-xs whitespace-nowrap text-muted-foreground transition-colors
                         hover:text-foreground
-                      `}
+                      `)}
                       title={fullDateLabel}
                     >
                       {timeAgoLabel}

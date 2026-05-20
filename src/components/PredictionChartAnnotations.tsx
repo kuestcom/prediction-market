@@ -2,6 +2,7 @@
 
 import type { Dispatch, ReactElement, SetStateAction } from 'react'
 import type { PredictionChartAnnotationMarker } from '@/types/PredictionChartTypes'
+import { cn } from '@/lib/utils'
 
 const ANNOTATION_CLUSTER_DISTANCE_PX = 10
 
@@ -184,10 +185,10 @@ function PredictionChartAnnotationTooltip({
 }: PredictionChartAnnotationTooltipProps): ReactElement {
   return (
     <div
-      className="
+      className={cn(`
         pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-lg border border-border bg-popover
         px-2.5 py-1.5 shadow-md
-      "
+      `)}
       style={{
         left: position.left,
         top: position.top,

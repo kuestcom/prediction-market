@@ -39,9 +39,9 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
   const marketContent = isFundsFlow
     ? (
         <div className="flex min-w-0 items-center gap-2.5 pl-1">
-          <div className="
+          <div className={cn(`
             grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm bg-primary/10 text-primary
-          "
+          `)}
           >
             <CircleDollarSignIcon className="size-5" />
           </div>
@@ -80,10 +80,10 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
               intentPrefetch
               href={eventHref}
               className={
-                `
+                cn(`
                   block max-w-full truncate text-sm/tight font-semibold text-foreground underline-offset-2
                   hover:underline
-                `
+                `)
               }
               title={activity.market.title}
             >

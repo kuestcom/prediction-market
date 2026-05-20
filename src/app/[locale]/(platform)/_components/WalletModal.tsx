@@ -17,6 +17,7 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import { useLiFiQuote } from '@/hooks/useLiFiQuote'
 import { useLiFiWalletTokens } from '@/hooks/useLiFiWalletTokens'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { cn } from '@/lib/utils'
 
 export type { WalletDepositModalProps, WalletWithdrawModalProps }
 
@@ -173,14 +174,14 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
                 ? (
                     <button
                       type="button"
-                      className={`
+                      className={cn(`
                         rounded-md p-2 opacity-70 ring-offset-background transition
                         hover:bg-muted hover:opacity-100
                         focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden
                         disabled:pointer-events-none
                         [&_svg]:pointer-events-none [&_svg]:shrink-0
                         [&_svg:not([class*='size-'])]:size-4
-                      `}
+                      `)}
                       onClick={() => onViewChange('fund')}
                     >
                       <ChevronLeftIcon />
@@ -234,14 +235,14 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
               ? (
                   <button
                     type="button"
-                    className={`
+                    className={cn(`
                       rounded-md p-2 opacity-70 ring-offset-background transition
                       hover:bg-muted hover:opacity-100
                       focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden
                       disabled:pointer-events-none
                       [&_svg]:pointer-events-none [&_svg]:shrink-0
                       [&_svg:not([class*='size-'])]:size-4
-                    `}
+                    `)}
                     onClick={() => onViewChange('fund')}
                   >
                     <ChevronLeftIcon />

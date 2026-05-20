@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { formatCompactCount } from '@/lib/formatters'
+import { cn } from '@/lib/utils'
 
 interface EventTweetMarketsPanelProps {
   tweetCount: number | null
@@ -137,19 +138,19 @@ export default function EventTweetMarketsPanel({
     : '--'
 
   return (
-    <div className={`
+    <div className={cn(`
       w-full rounded-xl border border-border bg-background px-4 py-3 transition-transform duration-200
       hover:scale-[1.01]
       sm:px-5 sm:py-4
-    `}
+    `)}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="grid gap-2">
           {isResolved
             ? (
-                <span className={`
+                <span className={cn(`
                   inline-flex w-fit text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase
-                `}
+                `)}
                 >
                   FINAL
                 </span>
@@ -162,16 +163,16 @@ export default function EventTweetMarketsPanel({
                   className="group inline-flex w-fit items-center gap-2 text-red-500"
                 >
                   <span className="relative inline-flex size-2.5 items-center justify-center">
-                    <span className={`
+                    <span className={cn(`
                       absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45
-                    `}
+                    `)}
                     />
                     <span className="relative inline-flex size-2 rounded-full bg-red-500" />
                   </span>
-                  <span className={`
+                  <span className={cn(`
                     text-xs font-semibold tracking-[0.12em] uppercase
                     group-hover:underline group-hover:decoration-red-500 group-hover:underline-offset-3
-                  `}
+                  `)}
                   >
                     TWEET COUNT
                   </span>

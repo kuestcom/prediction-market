@@ -7,6 +7,7 @@ import ProfileLink from '@/components/ProfileLink'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
 
 interface AdminUserRow {
   id: string
@@ -109,10 +110,10 @@ export function useAdminUsersColumns(): ColumnDef<AdminUserRow>[] {
               ? (
                   <a
                     href={`mailto:${user.email}`}
-                    className={`
+                    className={cn(`
                       inline-flex touch-manipulation items-center gap-1 text-muted-foreground
                       hover:text-primary
-                    `}
+                    `)}
                   >
                     <MailIcon className="size-4 shrink-0" />
                     <span className="sr-only">
@@ -149,11 +150,11 @@ export function useAdminUsersColumns(): ColumnDef<AdminUserRow>[] {
                     href={user.referred_by_profile_url ?? '#'}
                     target={user.referred_by_profile_url ? '_blank' : undefined}
                     rel={user.referred_by_profile_url ? 'noreferrer' : undefined}
-                    className={`
+                    className={cn(`
                       block max-w-15 touch-manipulation truncate text-xs font-medium text-foreground
                       hover:text-primary
                       sm:max-w-25
-                    `}
+                    `)}
                   >
                     {user.referred_by_display}
                   </a>

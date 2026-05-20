@@ -15,6 +15,7 @@ import { CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS } from '@/lib/contr
 import { baseUnitsToNumber } from '@/lib/data-api/fees'
 import { usdFormatter } from '@/lib/formatters'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
+import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import { buildClaimFeesCalls } from '@/lib/wallet/transactions'
@@ -297,11 +298,11 @@ export default function AdminAffiliateClaimableFeesCard({
               <Button
                 type="button"
                 size="icon"
-                className="
+                className={cn(`
                   size-8 rounded-md bg-primary text-primary-foreground
                   hover:bg-primary/90
                   disabled:bg-primary disabled:text-primary-foreground disabled:opacity-100
-                "
+                `)}
                 disabled={isButtonDisabled}
                 onClick={() => void handleClaim()}
                 aria-label={buttonTooltip ?? buttonAriaLabel}

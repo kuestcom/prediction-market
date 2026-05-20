@@ -8,6 +8,7 @@ import { CommentPositionsIndicator } from '@/app/[locale]/(platform)/event/[slug
 import ProfileLink from '@/components/ProfileLink'
 import { DropdownMenu, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAppKit } from '@/hooks/useAppKit'
+import { cn } from '@/lib/utils'
 import EventCommentLikeForm from './EventCommentLikeForm'
 import EventCommentMenu from './EventCommentMenu'
 import EventCommentReplyForm from './EventCommentReplyForm'
@@ -172,10 +173,10 @@ export default function EventCommentItem({
               />
               <button
                 type="button"
-                className={`
+                className={cn(`
                   rounded-sm px-1.5 py-0.5 text-sm text-muted-foreground transition-colors
                   hover:bg-accent hover:text-foreground
-                `}
+                `)}
                 onClick={handleReplyClick}
               >
                 {t('Reply')}

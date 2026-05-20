@@ -14,9 +14,9 @@ export default function EventChartTradeFlow({ items }: EventChartTradeFlowProps)
   }
 
   return (
-    <div className={`
+    <div className={cn(`
       pointer-events-none absolute bottom-6 left-4 flex flex-col gap-1 text-sm font-semibold tabular-nums
-    `}
+    `)}
     >
       {items.map(item => (
         <span

@@ -475,9 +475,9 @@ export default function SportsGamesCenter({
               {options.topBadgeMode === 'live'
                 ? isFinalizedCard
                   ? (
-                      <span className="
+                      <span className={cn(`
                         rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-foreground uppercase
-                      "
+                      `)}
                       >
                         FINAL
                       </span>
@@ -493,9 +493,9 @@ export default function SportsGamesCenter({
                     )
                 : isFinalizedCard
                   ? (
-                      <span className="
+                      <span className={cn(`
                         rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-foreground uppercase
-                      "
+                      `)}
                       >
                         FINAL
                       </span>

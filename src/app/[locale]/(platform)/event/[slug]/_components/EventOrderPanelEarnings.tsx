@@ -115,10 +115,10 @@ export default function EventOrderPanelEarnings({
                 </TooltipTrigger>
                 <TooltipContent
                   side="top"
-                  className={`
+                  className={cn(`
                     w-52 border border-border bg-background px-4 py-3 text-sm font-semibold text-muted-foreground
                     shadow-xl
-                  `}
+                  `)}
                 >
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-3">

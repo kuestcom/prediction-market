@@ -210,10 +210,10 @@ export default function EventOrderPanelOrderInput({
               </div>
               {shouldShowResolvedMarketMinimumWarning && (
                 <div
-                  className={`
+                  className={cn(`
                     mt-3 flex animate-order-shake items-center justify-center gap-2 pb-1 text-sm font-semibold
                     text-orange-500
-                  `}
+                  `)}
                 >
                   <TriangleAlertIcon className="size-4" />
                   {t('Market buys must be at least $1')}
@@ -221,10 +221,10 @@ export default function EventOrderPanelOrderInput({
               )}
               {shouldShowResolvedNoLiquidityWarning && (
                 <div
-                  className={`
+                  className={cn(`
                     mt-3 flex animate-order-shake items-center justify-center gap-2 pb-1 text-sm font-semibold
                     text-orange-500
-                  `}
+                  `)}
                 >
                   <TriangleAlertIcon className="size-4" />
                   {t('No liquidity for this market order')}
@@ -235,9 +235,9 @@ export default function EventOrderPanelOrderInput({
 
       {(showInsufficientSharesWarning || showInsufficientBalanceWarning || showAmountTooLowWarning) && (
         <div
-          className={`
+          className={cn(`
             mt-2 mb-3 flex animate-order-shake items-center justify-center gap-2 text-sm font-semibold text-orange-500
-          `}
+          `)}
         >
           <TriangleAlertIcon className="size-4" />
           {showAmountTooLowWarning

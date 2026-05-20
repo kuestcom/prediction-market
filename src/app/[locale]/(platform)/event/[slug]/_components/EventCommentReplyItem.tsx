@@ -10,6 +10,7 @@ import ProfileLink from '@/components/ProfileLink'
 import { DropdownMenu, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAppKit } from '@/hooks/useAppKit'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
+import { cn } from '@/lib/utils'
 import EventCommentLikeForm from './EventCommentLikeForm'
 import EventCommentMenu from './EventCommentMenu'
 import EventCommentReplyForm from './EventCommentReplyForm'
@@ -160,10 +161,10 @@ export default function EventCommentReplyItem({
           <div className="flex-1">
             <AppLink
               href={parentHref}
-              className={`
+              className={cn(`
                 text-sm font-semibold text-primary underline-offset-2 transition-colors
                 hover:text-primary/80 hover:underline
-              `}
+              `)}
             >
               @
               {parentDisplayName}
@@ -178,10 +179,10 @@ export default function EventCommentReplyItem({
               />
               <button
                 type="button"
-                className={`
+                className={cn(`
                   rounded-sm px-1.5 py-0.5 text-sm text-muted-foreground transition-colors
                   hover:bg-accent hover:text-foreground
-                `}
+                `)}
                 onClick={handleReplyClick}
               >
                 {t('Reply')}

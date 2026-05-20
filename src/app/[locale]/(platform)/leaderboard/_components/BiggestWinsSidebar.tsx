@@ -27,10 +27,10 @@ export default function BiggestWinsSidebar({
   biggestWinsPeriodLabel,
 }: BiggestWinsSidebarProps) {
   return (
-    <aside className={`
+    <aside className={cn(`
       w-full overflow-hidden rounded-2xl border bg-background shadow-md
       lg:sticky lg:top-35 lg:h-fit lg:self-start
-    `}
+    `)}
     >
       <div className="max-h-152 min-h-88 overflow-y-auto">
         <div className="sticky top-0 z-10 bg-background px-6 pt-6 pb-2">
@@ -182,10 +182,10 @@ function BiggestWinRow({ entry, index }: { entry: BiggestWinEntry, index: number
                     ? (
                         <AppLink
                           href={eventHref as Route}
-                          className={`
+                          className={cn(`
                             block max-w-[20ch] truncate text-muted-foreground transition-colors
                             hover:text-foreground hover:underline
-                          `}
+                          `)}
                           title={eventTitle}
                         >
                           {eventTitle}

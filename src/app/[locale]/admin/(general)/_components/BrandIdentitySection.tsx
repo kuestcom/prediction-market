@@ -131,10 +131,10 @@ function BrandIdentitySection({
                   { 'cursor-not-allowed opacity-60 hover:border-border hover:bg-muted/20': isPending },
                 )}
               >
-                <span className={`
+                <span className={cn(`
                   pointer-events-none absolute inset-0 bg-foreground/0 transition
                   group-hover:bg-foreground/5
-                `}
+                `)}
                 />
                 {imagePreview && (
                   <Image
@@ -166,12 +166,12 @@ function BrandIdentitySection({
                   )}
                 />
                 <span
-                  className={`
+                  className={cn(`
                     pointer-events-none absolute bottom-2 left-1/2 z-10 w-30 -translate-x-1/2 rounded-md
                     bg-background/80 px-2 py-1 text-center text-2xs leading-tight font-medium text-muted-foreground
                     opacity-0 transition
                     group-hover:opacity-100
-                  `}
+                  `)}
                 >
                   {t('SVG, PNG, JPG or WebP')}
                 </span>
@@ -247,10 +247,10 @@ function BrandIdentitySection({
                   { 'cursor-not-allowed opacity-60 hover:border-border hover:bg-muted/20': isPending },
                 )}
               >
-                <span className={`
+                <span className={cn(`
                   pointer-events-none absolute inset-0 bg-foreground/0 transition
                   group-hover:bg-foreground/5
-                `}
+                `)}
                 />
                 {pwaIcon192Preview && (
                   <Image
@@ -272,12 +272,12 @@ function BrandIdentitySection({
                   )}
                 />
                 <span
-                  className={`
+                  className={cn(`
                     pointer-events-none absolute bottom-1.5 left-1/2 z-10 w-20 -translate-x-1/2 rounded-md
                     bg-background/80 px-1.5 py-0.5 text-center text-2xs leading-tight font-medium text-muted-foreground
                     opacity-0 transition
                     group-hover:opacity-100
-                  `}
+                  `)}
                 >
                   {t('PNG, JPG, WebP or SVG')}
                 </span>
@@ -312,10 +312,10 @@ function BrandIdentitySection({
                   { 'cursor-not-allowed opacity-60 hover:border-border hover:bg-muted/20': isPending },
                 )}
               >
-                <span className={`
+                <span className={cn(`
                   pointer-events-none absolute inset-0 bg-foreground/0 transition
                   group-hover:bg-foreground/5
-                `}
+                `)}
                 />
                 {pwaIcon512Preview && (
                   <Image
@@ -337,12 +337,12 @@ function BrandIdentitySection({
                   )}
                 />
                 <span
-                  className={`
+                  className={cn(`
                     pointer-events-none absolute bottom-1.5 left-1/2 z-10 w-20 -translate-x-1/2 rounded-md
                     bg-background/80 px-1.5 py-0.5 text-center text-2xs leading-tight font-medium text-muted-foreground
                     opacity-0 transition
                     group-hover:opacity-100
-                  `}
+                  `)}
                 >
                   {t('PNG, JPG, WebP or SVG')}
                 </span>

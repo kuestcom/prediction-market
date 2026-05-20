@@ -1,6 +1,7 @@
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
 
 interface TestModeBannerProps {
   persistKey?: string
@@ -46,11 +47,11 @@ export default function TestModeBanner({
           <button
             type="button"
             onClick={closeBanner}
-            className={`
+            className={cn(`
               absolute -top-2 -right-2 inline-flex size-7 items-center justify-center rounded-full border bg-background
               text-sm text-foreground/80 shadow-md transition-colors
               hover:text-foreground
-            `}
+            `)}
             aria-label="Dismiss test mode banner"
           >
             &times;
@@ -71,11 +72,11 @@ export default function TestModeBanner({
                 href={discordUrl}
                 target="_blank"
                 rel="noreferrer"
-                className={`
+                className={cn(`
                   inline-flex w-fit items-center gap-2 rounded-md bg-[#5865F2] px-3 py-1.5 text-xs font-semibold
                   text-white transition
                   hover:bg-[#4752C4]
-                `}
+                `)}
               >
                 <Image
                   src="/images/deposit/social-media/discord.svg"

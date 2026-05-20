@@ -511,12 +511,12 @@ export default function AffiliateWidgetDialog({
                   onValueChange={handleSelectedCategoryChange}
                   disabled={categories.length === 0}
                 >
-                  <SelectTrigger className={`
+                  <SelectTrigger className={cn(`
                     w-full bg-transparent text-sm
                     hover:bg-transparent
                     dark:bg-transparent
                     dark:hover:bg-transparent
-                  `}
+                  `)}
                   >
                     <SelectValue placeholder={t('Categories')} />
                   </SelectTrigger>

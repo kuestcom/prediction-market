@@ -53,11 +53,11 @@ export default function EventFaq({ items }: EventFaqProps) {
         {visibleItems.map(item => (
           <AccordionItem key={item.id} value={item.id}>
             <AccordionTrigger
-              className="
+              className={cn(`
                 w-full cursor-pointer py-5 text-[14px] text-foreground
                 hover:text-muted-foreground hover:no-underline
                 lg:py-6
-              "
+              `)}
             >
               {item.question}
             </AccordionTrigger>

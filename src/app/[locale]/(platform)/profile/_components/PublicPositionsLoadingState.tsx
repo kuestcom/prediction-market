@@ -2,6 +2,7 @@
 
 import { SearchIcon } from 'lucide-react'
 import { useSyncExternalStore } from 'react'
+import { cn } from '@/lib/utils'
 import PublicPositionItemSkeleton from './PublicPositionItemSkeleton'
 
 interface PositionsLoadingStateProps {
@@ -62,10 +63,10 @@ export default function PublicPositionsLoadingState({
           </div>
 
           {isSearchActive && searchQuery.trim() && retryCount === 0 && (
-            <div className={`
+            <div className={cn(`
               inline-flex items-center gap-2 rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-800
               dark:bg-orange-900/30 dark:text-orange-300
-            `}
+            `)}
             >
               <SearchIcon className="size-3" />
               Active search

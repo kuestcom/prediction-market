@@ -216,9 +216,9 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
   const resolverDetails = (
     <div className="flex items-start gap-3">
       <div
-        className={`size-10 ${resolverBadgeClassName}
+        className={cn(`size-10 ${resolverBadgeClassName}
           flex shrink-0 items-center justify-center rounded-sm
-        `}
+        `)}
       >
         {isUmaResolver && (
           <Image

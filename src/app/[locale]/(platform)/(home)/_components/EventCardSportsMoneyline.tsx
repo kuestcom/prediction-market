@@ -199,12 +199,12 @@ export default function EventCardSportsMoneyline({
 
   return (
     <Card
-      className={`
+      className={cn(`
         group relative flex h-45 cursor-pointer flex-col overflow-hidden rounded-xl shadow-md shadow-black/4
         transition-all
         hover:-translate-y-0.5 hover:shadow-black/8
         dark:hover:bg-secondary
-      `}
+      `)}
     >
       <CardContent
         className={cn(`
@@ -275,12 +275,12 @@ export default function EventCardSportsMoneyline({
           <div className={cn(isResolvedEvent ? 'mt-auto mb-3' : 'mt-auto mb-2')}>
             {isResolvedEvent && resolvedWinner
               ? (
-                  <div className={`
+                  <div className={cn(`
                     flex h-12 w-full cursor-default items-center justify-center gap-2 rounded-md border px-3 text-sm
                     font-semibold text-foreground transition-colors
                     dark:border-none dark:bg-secondary
                     dark:group-hover:bg-card
-                  `}
+                  `)}
                   >
                     <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-yes">
                       <CheckIcon className="size-3 text-background" strokeWidth={2.5} />

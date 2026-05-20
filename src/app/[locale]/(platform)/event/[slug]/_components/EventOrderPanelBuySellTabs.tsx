@@ -210,21 +210,21 @@ export default function EventOrderPanelBuySellTabs({
               <DropdownMenuRadioGroup value={type} onValueChange={value => onTypeChange(value as OrderType)}>
                 <DropdownMenuRadioItem
                   value={ORDER_TYPE.MARKET}
-                  className={`
+                  className={cn(`
                     cursor-pointer pl-2
                     data-[state=checked]:font-semibold data-[state=checked]:text-foreground
                     [&>span:first-of-type]:hidden
-                  `}
+                  `)}
                 >
                   {t('Market')}
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem
                   value={ORDER_TYPE.LIMIT}
-                  className={`
+                  className={cn(`
                     cursor-pointer pl-2
                     data-[state=checked]:font-semibold data-[state=checked]:text-foreground
                     [&>span:first-of-type]:hidden
-                  `}
+                  `)}
                 >
                   {t('Limit')}
                 </DropdownMenuRadioItem>
@@ -234,12 +234,12 @@ export default function EventOrderPanelBuySellTabs({
 
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger
-                  className="
+                  className={cn(`
                     cursor-pointer text-muted-foreground
                     focus:text-muted-foreground
                     data-[state=open]:text-muted-foreground
                     [&_svg]:text-muted-foreground
-                  "
+                  `)}
                 >
                   {t('More')}
                 </DropdownMenuSubTrigger>

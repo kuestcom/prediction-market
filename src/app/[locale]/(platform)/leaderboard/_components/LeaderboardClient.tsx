@@ -345,11 +345,11 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
 
   return (
     <div className="relative w-full">
-      <div className={`
+      <div className={cn(`
         grid w-full gap-8
         lg:grid-cols-[minmax(0,1fr)_380px]
         xl:grid-cols-[minmax(0,54.5rem)_23.75rem] xl:justify-between xl:gap-6
-      `}
+      `)}
       >
         <section className="flex min-w-0 flex-col gap-6">
           <h1 className="text-2xl font-semibold text-foreground md:text-3xl">Leaderboard</h1>

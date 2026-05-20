@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
 
 interface ViewOptionsProps {
   markdownUrl: string
@@ -215,10 +216,10 @@ export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
 
   return (
     <div
-      className="
+      className={cn(`
         inline-flex items-center overflow-hidden rounded-sm border bg-background shadow-xs
         dark:border-input dark:bg-input/30
-      "
+      `)}
     >
       <Button
         type="button"

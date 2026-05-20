@@ -5,6 +5,7 @@ import { useExtracted } from 'next-intl'
 import { useMemo } from 'react'
 import { buildPreviewStyle } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
+import { cn } from '@/lib/utils'
 
 function ThemePreviewCard({
   presetId,
@@ -51,9 +52,9 @@ function ThemePreviewCard({
           <span className="inline-flex rounded-sm bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
             {t('Primary')}
           </span>
-          <span className={`
+          <span className={cn(`
             inline-flex rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-secondary-foreground
-          `}
+          `)}
           >
             {t('Secondary')}
           </span>
@@ -70,11 +71,11 @@ function ThemePreviewCard({
             <input
               type="text"
               placeholder={t('Type here')}
-              className={`
+              className={cn(`
                 h-8 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground shadow-none
                 ring-offset-background outline-none
                 focus-visible:ring-2 focus-visible:ring-ring
-              `}
+              `)}
             />
           </div>
           <div className="rounded-md border border-border bg-popover p-2 text-xs">

@@ -57,9 +57,9 @@ export default function PredictionResultsFilters({
   return (
     <div className={cn('flex flex-col', className)}>
       <div className="relative">
-        <SearchIcon className="
+        <SearchIcon className={cn(`
           pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground
-        "
+        `)}
         />
         <Input
           type="text"
@@ -67,10 +67,10 @@ export default function PredictionResultsFilters({
           onChange={event => onSearchValueChange(event.target.value)}
           placeholder={t('Search predictions')}
           data-testid="prediction-search-input"
-          className="
+          className={cn(`
             h-12 rounded-none border-0 bg-transparent px-10 shadow-none
             focus-visible:ring-2 focus-visible:ring-ring/30
-          "
+          `)}
         />
       </div>
 

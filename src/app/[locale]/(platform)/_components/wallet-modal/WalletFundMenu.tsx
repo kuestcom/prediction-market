@@ -13,6 +13,7 @@ import { MELD_PAYMENT_METHODS, TEST_MODE_DISCORD_URL, TRANSFER_PAYMENT_METHODS }
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { IS_TEST_MODE } from '@/lib/network'
+import { cn } from '@/lib/utils'
 
 function WalletFundMenu({
   onBuy,
@@ -50,11 +51,11 @@ function WalletFundMenu({
           href={TEST_MODE_DISCORD_URL}
           target="_blank"
           rel="noreferrer"
-          className={`
+          className={cn(`
             group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left
             transition
             hover:bg-muted/50
-          `}
+          `)}
         >
           <div className="flex items-center gap-3">
             <div className="flex size-12 items-center justify-center text-foreground">
@@ -79,10 +80,10 @@ function WalletFundMenu({
               </div>
             </div>
           </div>
-          <span className="
+          <span className={cn(`
             inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors
             group-hover:text-foreground
-          "
+          `)}
           >
             <span>Open Discord</span>
             <ExternalLinkIcon className="size-3.5" />
@@ -92,11 +93,11 @@ function WalletFundMenu({
 
       <button
         type="button"
-        className={`
+        className={cn(`
           group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left
           transition
           ${IS_TEST_MODE ? 'cursor-not-allowed opacity-50' : 'hover:bg-muted/50'}
-        `}
+        `)}
         onClick={() => {
           if (IS_TEST_MODE) {
             return
@@ -118,9 +119,9 @@ function WalletFundMenu({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className={`
+                      <span className={cn(`
                         ml-2 inline-flex size-4 items-center justify-center rounded-full text-muted-foreground
-                      `}
+                      `)}
                       >
                         <InfoIcon className="size-3" />
                       </span>
@@ -156,12 +157,12 @@ function WalletFundMenu({
 
       <button
         type="button"
-        className={`
+        className={cn(`
           group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left
           transition
           hover:bg-muted/50
           disabled:cursor-not-allowed disabled:opacity-50
-        `}
+        `)}
         onClick={() => {
           if (!meldUrl) {
             return
@@ -203,12 +204,12 @@ function WalletFundMenu({
 
       <button
         type="button"
-        className={`
+        className={cn(`
           group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left
           transition
           hover:bg-muted/50
           disabled:cursor-not-allowed disabled:opacity-50
-        `}
+        `)}
         onClick={onReceive}
         disabled={disabledReceive}
       >

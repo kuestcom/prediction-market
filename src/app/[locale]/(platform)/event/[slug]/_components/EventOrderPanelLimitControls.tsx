@@ -392,10 +392,10 @@ export default function EventOrderPanelLimitControls({
             <Tooltip>
               <TooltipTrigger asChild>
                 <span
-                  className={`
+                  className={cn(`
                     inline-flex items-center gap-1 rounded-md bg-yes/15 p-1 text-xs font-semibold text-yes-foreground
                     transition-colors
-                  `}
+                  `)}
                 >
                   <InfoIcon className="size-3" aria-hidden />
                   <span>{t('{shares} matching', { shares: matchingSharesLabel })}</span>
@@ -452,9 +452,9 @@ export default function EventOrderPanelLimitControls({
             </Select>
 
             {limitExpirationOption === 'custom' && (
-              <div className={`
+              <div className={cn(`
                 flex items-center justify-between rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground
-              `}
+              `)}
               >
                 <div className="flex flex-col">
                   <span className="font-semibold text-foreground">{t('Custom expiration')}</span>

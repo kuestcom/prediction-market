@@ -671,10 +671,10 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
               <th className={cn(tableHeaderClass, 'text-right')}>
                 <button
                   type="button"
-                  className={`
+                  className={cn(`
                     text-2xs font-semibold tracking-wide whitespace-nowrap text-destructive uppercase transition-opacity
                     disabled:opacity-40
-                  `}
+                  `)}
                   onClick={() => setIsCancelAllDialogOpen(true)}
                   disabled={isCancellingAll || !hasOrders}
                 >

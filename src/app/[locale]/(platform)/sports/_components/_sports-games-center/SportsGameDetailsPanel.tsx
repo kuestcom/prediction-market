@@ -237,19 +237,19 @@ export default function SportsGameDetailsPanel({
                 >
                   <span
                     aria-hidden
-                    className="
+                    className={cn(`
                       pointer-events-none absolute -top-2 left-1/2 h-2 w-3 -translate-x-1/2 bg-primary
                       [clip-path:polygon(50%_100%,0_0,100%_0)]
-                    "
+                    `)}
                   />
 
                   <div
                     ref={linePickerScrollerRef}
-                    className={`
+                    className={cn(`
                       flex min-w-0 snap-x snap-mandatory items-center gap-2 overflow-x-auto scroll-smooth
                       [scrollbar-width:none]
                       [&::-webkit-scrollbar]:hidden
-                    `}
+                    `)}
                   >
                     <span aria-hidden className="shrink-0" style={{ width: linePickerSpacerWidth }} />
                     {linePickerOptions.map((option, index) => (
@@ -587,11 +587,11 @@ export default function SportsGameDetailsPanel({
                                   <button
                                     type="button"
                                     data-sports-card-control="true"
-                                    className={`
+                                    className={cn(`
                                       inline-flex h-7 items-center justify-center rounded-sm bg-secondary/70 px-2
                                       text-xs font-semibold text-foreground transition-colors
                                       hover:bg-secondary
-                                    `}
+                                    `)}
                                     onClick={event => handleOpenConvert(tag, event)}
                                   >
                                     Convert
@@ -602,11 +602,11 @@ export default function SportsGameDetailsPanel({
                                       <button
                                         type="button"
                                         data-sports-card-control="true"
-                                        className={`
+                                        className={cn(`
                                           inline-flex h-7 items-center justify-center rounded-sm border border-border/70
                                           bg-background px-2 text-xs font-semibold text-foreground transition-colors
                                           hover:bg-secondary/35
-                                        `}
+                                        `)}
                                         onClick={(event) => {
                                           event.stopPropagation()
                                           onOpenRedeemForCondition?.(tag.conditionId)
@@ -619,11 +619,11 @@ export default function SportsGameDetailsPanel({
                                       <button
                                         type="button"
                                         data-sports-card-control="true"
-                                        className={`
+                                        className={cn(`
                                           inline-flex h-7 items-center justify-center rounded-sm border border-border/70
                                           bg-background/40 px-2 text-xs font-semibold text-foreground transition-colors
                                           hover:bg-secondary/40
-                                        `}
+                                        `)}
                                         onClick={event => void handleCashOutTag(tag, event)}
                                       >
                                         Sell

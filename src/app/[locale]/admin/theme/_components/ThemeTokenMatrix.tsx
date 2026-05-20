@@ -105,10 +105,10 @@ function ThemeTokenMatrix({
                 {isOpen && (
                   <div id={`theme-group-${group.id}`} className="p-2">
                     <div className="grid gap-1">
-                      <div className={`
+                      <div className={cn(`
                         grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 px-2 text-2xs
                         text-muted-foreground uppercase
-                      `}
+                      `)}
                       >
                         <span>{t('Token')}</span>
                         <span className="text-left">{t('Light')}</span>
@@ -124,10 +124,10 @@ function ThemeTokenMatrix({
                           return (
                             <div
                               key={token}
-                              className={`
+                              className={cn(`
                                 grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 rounded-md border
                                 border-border px-2 py-1.5
-                              `}
+                              `)}
                             >
                               <code className="text-xs font-medium text-foreground">{token}</code>
                               <ColorPickerSwatch

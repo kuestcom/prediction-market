@@ -327,9 +327,9 @@ export default function EventRelated({ event }: EventRelatedProps) {
           <div ref={buttonsWrapperRef} className="relative flex flex-nowrap items-center gap-2">
             {backgroundStyle.isInitialized && (
               <div
-                className={`
+                className={cn(`
                   pointer-events-none absolute z-0 rounded-md bg-muted shadow-sm transition-all duration-300 ease-out
-                `}
+                `)}
                 style={{
                   left: `${backgroundStyle.left}px`,
                   width: `${backgroundStyle.width}px`,
@@ -396,9 +396,9 @@ export default function EventRelated({ event }: EventRelatedProps) {
                           <strong className="line-clamp-2 text-sm font-medium text-foreground">
                             {relatedEvent.title}
                           </strong>
-                          <span className={`
+                          <span className={cn(`
                             min-w-13 text-right text-xl leading-none font-semibold text-foreground tabular-nums
-                          `}
+                          `)}
                           >
                             {Number.isFinite(relatedEvent.chance)
                               ? `${Math.round(relatedEvent.chance ?? 0)}%`

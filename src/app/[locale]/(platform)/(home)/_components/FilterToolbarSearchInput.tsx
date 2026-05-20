@@ -5,6 +5,7 @@ import { SearchIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useRef } from 'react'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 interface FilterToolbarSearchInputProps {
   search: string
@@ -98,11 +99,11 @@ function FilterToolbarSearchInputField({
         placeholder={searchPlaceholder}
         defaultValue={search}
         onChange={handleInputChange}
-        className={`
+        className={cn(`
           border-transparent bg-accent pl-10 shadow-none transition-colors
           hover:bg-secondary
           focus-visible:border-border focus-visible:bg-background focus-visible:ring-0 focus-visible:ring-offset-0
-        `}
+        `)}
       />
     </div>
   )

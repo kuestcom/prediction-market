@@ -1,5 +1,6 @@
 import type { DataPoint } from '@/types/PredictionChartTypes'
 import { TOOLTIP_LABEL_MAX_WIDTH } from '@/lib/prediction-chart'
+import { cn } from '@/lib/utils'
 
 interface TooltipEntry {
   key: string
@@ -167,10 +168,10 @@ export default function PredictionChartTooltipOverlay({
         <div
           key={`${entry.key}-label`}
           className={
-            `
+            cn(`
               absolute inline-flex h-5 w-fit items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px]/5 font-semibold
               text-background
-            `
+            `)
           }
           style={{
             top: entry.top,

@@ -21,6 +21,7 @@ import {
   DEMO_ALLOWED_MARKET_CREATOR_DISPLAY_NAME,
   isAdminAllowedMarketCreatorsResponse,
 } from '@/lib/allowed-market-creators'
+import { cn } from '@/lib/utils'
 
 type CreatorInputMode = 'site' | 'wallet'
 
@@ -294,9 +295,9 @@ export default function AllowedMarketCreatorsManager({
         {isLoading
           ? (
               <div
-                className="
+                className={cn(`
                   flex items-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground
-                "
+                `)}
               >
                 <Loader2Icon className="size-4 animate-spin" />
                 {t('Loading sources...')}
@@ -327,10 +328,10 @@ export default function AllowedMarketCreatorsManager({
                         : null}
                       <button
                         type="button"
-                        className="
+                        className={cn(`
                           rounded-sm p-0.5 text-muted-foreground transition
                           hover:bg-muted hover:text-foreground
-                        "
+                        `)}
                         onClick={() => handleRemoveClick(item)}
                         disabled={disabled || isRemoving}
                         aria-label={`Remove ${item.displayName}`}

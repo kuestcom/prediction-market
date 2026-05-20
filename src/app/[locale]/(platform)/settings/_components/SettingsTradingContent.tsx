@@ -158,10 +158,10 @@ export default function SettingsTradingContent({ user }: { user: User }) {
       <section className="grid gap-3">
         <h2 className="text-xl font-semibold tracking-tight">{t('Auto-Redeem')}</h2>
 
-        <div className="
+        <div className={cn(`
           flex flex-col gap-4 rounded-md border border-border p-4
           sm:flex-row sm:items-center sm:justify-between
-        "
+        `)}
         >
           <div className="grid gap-1.5">
             <h3 className="text-sm font-medium">{t('Auto-redeem your wins')}</h3>

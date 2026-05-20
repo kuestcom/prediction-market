@@ -38,10 +38,10 @@ export default function EventOrderBookRow({
   return (
     <div
       className={
-        `
+        cn(`
           relative grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center pr-4 pl-0 transition-colors
           ${hoverClass}
-        `
+        `)
       }
       onClick={() => onSelect?.(level)}
     >

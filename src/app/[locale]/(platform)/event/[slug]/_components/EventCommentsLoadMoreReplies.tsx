@@ -1,5 +1,6 @@
 import type { Comment } from '@/types'
 import { AlertCircleIcon, LoaderIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface EventCommentsLoadMoreRepliesProps {
   comment: Comment
@@ -43,11 +44,11 @@ export default function EventCommentsLoadMoreReplies({
   return (
     <button
       type="button"
-      className={`
+      className={cn(`
         flex items-center gap-2 text-left text-xs text-muted-foreground transition-colors
         hover:text-foreground
         disabled:cursor-not-allowed disabled:opacity-50
-      `}
+      `)}
       onClick={handleLoadMoreReplies}
       disabled={isLoading}
     >

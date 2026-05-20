@@ -166,10 +166,10 @@ export default function SportsGameGraph({
               <div className="size-2 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
               <span className="inline-flex w-fit items-center gap-2 text-xs font-medium text-muted-foreground">
                 <span>{entry.name}</span>
-                <span className={`
+                <span className={cn(`
                   inline-flex min-w-8 shrink-0 items-baseline justify-end text-sm font-semibold text-foreground
                   tabular-nums
-                `}
+                `)}
                 >
                   {entry.value.toFixed(0)}
                   <span className="ml-0.5 text-sm text-foreground">%</span>
@@ -293,9 +293,9 @@ export default function SportsGameGraph({
           )}
 
           {isSportsEventHeroVariant && hasTradeFlowLabels && (
-            <div className={`
+            <div className={cn(`
               pointer-events-none absolute bottom-6 left-4 flex flex-col gap-1 text-sm font-semibold tabular-nums
-            `}
+            `)}
             >
               {tradeFlowItems.map(item => (
                 <span

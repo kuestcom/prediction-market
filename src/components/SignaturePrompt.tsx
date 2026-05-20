@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useAppKit } from '@/hooks/useAppKit'
+import { cn } from '@/lib/utils'
 import { useSignaturePrompt } from '@/stores/useSignaturePrompt'
 
 export function SignaturePrompt() {
@@ -42,20 +43,20 @@ export function SignaturePrompt() {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="
+        className={cn(`
           w-[320px] max-w-[calc(100%-2rem)] rounded-2xl border border-border/80 bg-background p-6 shadow-2xl
           sm:w-[340px]
-        "
+        `)}
         onEscapeKeyDown={event => event.preventDefault()}
         onInteractOutside={event => event.preventDefault()}
       >
         <DialogClose
-          className="
+          className={cn(`
             absolute top-5 right-5 z-20 inline-flex size-9 items-center justify-center rounded-md p-2
             text-muted-foreground/80 transition
             hover:bg-muted hover:text-foreground
             focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none
-          "
+          `)}
           aria-label={t('Close')}
         >
           <XIcon className="size-4" aria-hidden="true" />
@@ -68,10 +69,10 @@ export function SignaturePrompt() {
         <div className="mt-3 flex flex-col items-center gap-5">
           <div className="relative size-32 overflow-hidden rounded-[28px] bg-background text-primary">
             <div
-              className="
+              className={cn(`
                 pointer-events-none absolute inset-0 animate-[spin_1400ms_linear_infinite]
                 bg-[conic-gradient(from_0deg,transparent_0deg,transparent_292deg,currentColor_315deg,currentColor_350deg,transparent_360deg)]
-              "
+              `)}
             />
             <div className="absolute inset-[3px] rounded-[23px] bg-background" />
             <div className="relative flex size-full items-center justify-center">
