@@ -270,7 +270,7 @@ async function fetchProfilePositions(userAddress: string, siteUrl: string): Prom
   try {
     const response = await fetch(`${DATA_API_URL}/positions?${params.toString()}`, {
       next: {
-        revalidate: 60,
+        revalidate: 900,
       },
     })
 

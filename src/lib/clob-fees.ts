@@ -68,7 +68,7 @@ export async function fetchKuestFeeSettings(): Promise<KuestFeeSettings | null> 
         Accept: 'application/json',
       },
       next: {
-        revalidate: 300,
+        revalidate: 900,
       },
       signal: AbortSignal.timeout(8_000),
     })

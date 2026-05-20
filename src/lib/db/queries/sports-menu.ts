@@ -215,7 +215,7 @@ const getCachedActiveSportsCountRows = unstable_cache(
   },
   ['sports-menu-active-count-rows-v4'],
   {
-    revalidate: 300,
+    revalidate: 900,
     tags: [cacheTags.sportsMenu],
   },
 )

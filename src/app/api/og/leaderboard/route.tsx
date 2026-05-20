@@ -212,7 +212,7 @@ async function fetchLeaderboardRows({
   try {
     const response = await fetch(`${LEADERBOARD_API_URL}/leaderboard?${params.toString()}`, {
       next: {
-        revalidate: 60,
+        revalidate: 900,
       },
     })
 

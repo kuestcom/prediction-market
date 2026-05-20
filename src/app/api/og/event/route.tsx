@@ -122,7 +122,7 @@ async function fetchImageDataUrl(url: string) {
         Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
       },
       next: {
-        revalidate: 300,
+        revalidate: 900,
       },
       signal: AbortSignal.timeout(SOCIAL_IMAGE_FETCH_TIMEOUT_MS),
     })
@@ -362,7 +362,7 @@ async function fetchMarketPriceHistory(tokenId: string, createdAt: string, resol
   try {
     const response = await fetch(url.toString(), {
       next: {
-        revalidate: 300,
+        revalidate: 900,
       },
       signal: AbortSignal.timeout(SOCIAL_HISTORY_FETCH_TIMEOUT_MS),
     })
