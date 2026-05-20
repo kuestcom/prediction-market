@@ -314,7 +314,7 @@ export async function storeOrderAction(payload: StoreOrderInput) {
       return { error: DEFAULT_ERROR_MESSAGE }
     }
 
-    void OrderRepository.createOrder({
+    const persistResult = await OrderRepository.createOrder({
       ...validated.data,
       salt: BigInt(validated.data.salt),
       maker_amount: BigInt(validated.data.maker_amount),
@@ -328,6 +328,15 @@ export async function storeOrderAction(payload: StoreOrderInput) {
       clob_order_id: clobOrderId,
     })
 
+
+    if (persistResult.error) {
+      console.error(
+        'CLOB accepted the order but local persistence failed.',
+        persistResult.error,
+        clobOrderId,
+      )
+      return { error: DEFAULT_ERROR_MESSAGE }
+    }
     updateTag(cacheTags.activity(validated.data.slug))
     updateTag(cacheTags.holders(validated.data.condition_id))
 
