@@ -41,22 +41,15 @@ vi.mock('@/stores/useUser', () => ({
 }))
 
 function renderForm(initialWallet = '') {
-  function TestHarness() {
-    const [feeRecipientWallet, setFeeRecipientWallet] = React.useState(initialWallet)
-
-    return (
-      <AdminAffiliateSettingsForm
-        builderTakerFeeBps={250}
-        builderMakerFeeBps={125}
-        affiliateShareBps={1500}
-        feeRecipientWallet={feeRecipientWallet}
-        onFeeRecipientWalletChange={setFeeRecipientWallet}
-        kuestFeeSettings={null}
-      />
-    )
-  }
-
-  return render(<TestHarness />)
+  return render(
+    <AdminAffiliateSettingsForm
+      builderTakerFeeBps={250}
+      builderMakerFeeBps={125}
+      affiliateShareBps={1500}
+      initialFeeRecipientWallet={initialWallet}
+      kuestFeeSettings={null}
+    />,
+  )
 }
 
 describe('AdminAffiliateSettingsForm', () => {

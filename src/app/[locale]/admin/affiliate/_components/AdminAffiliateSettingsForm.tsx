@@ -1,10 +1,10 @@
 'use client'
 
-import { InfoIcon, WalletIcon } from 'lucide-react'
+import { InfoIcon, RepeatIcon, WalletIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useRouter } from 'next/navigation'
-import { useActionState, useEffect, useRef } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { updateForkSettingsAction } from '@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings'
 import { Button } from '@/components/ui/button'
@@ -24,8 +24,7 @@ interface AdminAffiliateSettingsFormProps {
   builderTakerFeeBps: number
   builderMakerFeeBps: number
   affiliateShareBps: number
-  feeRecipientWallet: string
-  onFeeRecipientWalletChange: (value: string) => void
+  initialFeeRecipientWallet: string
   kuestFeeSettings: {
     takerFeeBps: number | null
     makerFeeBps: number | null
@@ -87,14 +86,14 @@ export default function AdminAffiliateSettingsForm({
   builderTakerFeeBps,
   builderMakerFeeBps,
   affiliateShareBps,
-  feeRecipientWallet,
-  onFeeRecipientWalletChange,
+  initialFeeRecipientWallet,
   kuestFeeSettings,
   updatedAtLabel,
 }: AdminAffiliateSettingsFormProps) {
   const t = useExtracted()
   const user = useUser()
   const { state, formAction, isPending } = useAffiliateSettingsForm()
+  const [feeRecipientWallet, setFeeRecipientWallet] = useState(initialFeeRecipientWallet)
   const depositWalletAddress = user?.deposit_wallet_address ?? null
   const canUseDepositWallet = Boolean(depositWalletAddress)
   const takerKuestFeeLabel = kuestFeeSettings?.takerFeeBps === null || kuestFeeSettings?.takerFeeBps === undefined
@@ -107,8 +106,21 @@ export default function AdminAffiliateSettingsForm({
     ? t('Last fees updated {timestamp}', { timestamp: updatedAtLabel })
     : null
   const affiliateShareTooltip = t('Commission paid to your affiliates, deducted from your operator fee.')
-  const feeRecipientWalletTooltip = t('Transaction fees will be sent here. Using your deposit wallet avoids direct gas payments.')
-  const shouldShowDepositWalletButton = feeRecipientWallet.trim().length === 0
+  const normalizedSavedFeeRecipientWallet = initialFeeRecipientWallet.trim().toLowerCase()
+  const normalizedDraftFeeRecipientWallet = feeRecipientWallet.trim().toLowerCase()
+  const normalizedDepositWalletAddress = depositWalletAddress?.trim().toLowerCase() ?? ''
+  const hasSavedFeeRecipientWallet = normalizedSavedFeeRecipientWallet.length > 0
+  const shouldShowDepositWalletButton = (
+    !hasSavedFeeRecipientWallet
+    && canUseDepositWallet
+    && normalizedDraftFeeRecipientWallet !== normalizedDepositWalletAddress
+  )
+  const shouldShowChangeWalletButton = (
+    hasSavedFeeRecipientWallet
+    && canUseDepositWallet
+    && normalizedSavedFeeRecipientWallet !== normalizedDepositWalletAddress
+    && normalizedDraftFeeRecipientWallet !== normalizedDepositWalletAddress
+  )
 
   return (
     <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
@@ -122,20 +134,17 @@ export default function AdminAffiliateSettingsForm({
 
       <div className="grid gap-4">
         <div className="grid gap-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="fee_recipient_wallet">
-              {t('Fee Wallet Address (Polygon)')}
-            </Label>
-            <AdminInfoTooltip content={feeRecipientWalletTooltip} />
-          </div>
+          <Label htmlFor="fee_recipient_wallet">
+            {t('Fee Wallet Address (Polygon)')}
+          </Label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               id="fee_recipient_wallet"
               name="fee_recipient_wallet"
               maxLength={42}
               value={feeRecipientWallet}
-              onChange={event => onFeeRecipientWalletChange(event.target.value)}
               disabled={isPending}
+              readOnly
               placeholder={t('0xabc')}
               className="sm:flex-1"
             />
@@ -147,13 +156,37 @@ export default function AdminAffiliateSettingsForm({
                 disabled={isPending || !canUseDepositWallet}
                 onClick={() => {
                   if (depositWalletAddress) {
-                    onFeeRecipientWalletChange(depositWalletAddress)
+                    setFeeRecipientWallet(depositWalletAddress)
                   }
                 }}
               >
                 <WalletIcon className="size-4" />
                 {t('Add my Deposit Wallet')}
               </Button>
+            )}
+            {shouldShowChangeWalletButton && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    disabled={isPending}
+                    aria-label={t('Change wallet')}
+                    onClick={() => {
+                      if (depositWalletAddress) {
+                        setFeeRecipientWallet(depositWalletAddress)
+                      }
+                    }}
+                  >
+                    <RepeatIcon className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {t('Change wallet')}
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
         </div>
@@ -171,7 +204,7 @@ export default function AdminAffiliateSettingsForm({
               defaultValue={(builderTakerFeeBps / 100).toFixed(2)}
               disabled={isPending}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {takerKuestFeeLabel
                 ? t('Your fee plus Kuest {kuestFee}% fee.', { kuestFee: takerKuestFeeLabel })
                 : t('Kuest fees unavailable.')}
@@ -189,7 +222,7 @@ export default function AdminAffiliateSettingsForm({
               defaultValue={(builderMakerFeeBps / 100).toFixed(2)}
               disabled={isPending}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {makerKuestFeeLabel
                 ? t('Your fee plus Kuest {kuestFee}% fee.', { kuestFee: makerKuestFeeLabel })
                 : t('Kuest fees unavailable.')}

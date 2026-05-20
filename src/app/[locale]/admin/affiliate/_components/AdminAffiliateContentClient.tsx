@@ -2,7 +2,6 @@
 
 import { InfoIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useEffect, useState } from 'react'
 import AdminAffiliateClaimableFeesCard from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateClaimableFeesCard'
 import AdminAffiliateSettingsForm from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -36,20 +35,15 @@ export default function AdminAffiliateContentClient({
   aggregate,
 }: AdminAffiliateContentClientProps) {
   const t = useExtracted()
-  const [draftFeeRecipientWallet, setDraftFeeRecipientWallet] = useState(initialFeeRecipientWallet)
-
-  useEffect(() => {
-    setDraftFeeRecipientWallet(initialFeeRecipientWallet)
-  }, [initialFeeRecipientWallet])
 
   return (
     <section className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
       <AdminAffiliateSettingsForm
+        key={initialFeeRecipientWallet}
         builderTakerFeeBps={builderTakerFeeBps}
         builderMakerFeeBps={builderMakerFeeBps}
         affiliateShareBps={affiliateShareBps}
-        feeRecipientWallet={draftFeeRecipientWallet}
-        onFeeRecipientWalletChange={setDraftFeeRecipientWallet}
+        initialFeeRecipientWallet={initialFeeRecipientWallet}
         kuestFeeSettings={kuestFeeSettings}
         updatedAtLabel={updatedAtLabel}
       />
@@ -62,15 +56,15 @@ export default function AdminAffiliateContentClient({
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-lg bg-muted/40 p-4">
-            <p className="text-xs text-muted-foreground uppercase">{t('Total referrals')}</p>
+            <p className="text-sm text-muted-foreground uppercase">{t('Total referrals')}</p>
             <p className="mt-1 text-2xl font-semibold">{aggregate.totalReferrals}</p>
           </div>
           <div className="rounded-lg bg-muted/40 p-4">
-            <p className="text-xs text-muted-foreground uppercase">{t('Volume')}</p>
+            <p className="text-sm text-muted-foreground uppercase">{t('Volume')}</p>
             <p className="mt-1 text-2xl font-semibold">{usdFormatter.format(aggregate.totalVolume)}</p>
           </div>
           <div className="rounded-lg bg-muted/40 p-4">
-            <p className="text-xs text-muted-foreground uppercase">{t('Affiliate fees')}</p>
+            <p className="text-sm text-muted-foreground uppercase">{t('Affiliate fees')}</p>
             <div className="mt-1 flex items-center gap-1 text-2xl font-semibold">
               <span>{usdFormatter.format(aggregate.totalAffiliateFees)}</span>
               <Tooltip>

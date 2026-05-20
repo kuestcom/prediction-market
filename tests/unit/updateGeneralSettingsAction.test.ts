@@ -103,6 +103,17 @@ describe('updateGeneralSettingsAction', () => {
 
   it('saves normalized SVG site settings for valid payloads', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.getSettings.mockResolvedValueOnce({
+      data: {
+        general: {
+          fee_recipient_wallet: {
+            value: '0x1111111111111111111111111111111111111111',
+            updated_at: '2026-05-01T00:00:00.000Z',
+          },
+        },
+      },
+      error: null,
+    })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
     const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')

@@ -316,8 +316,12 @@ export function buildSetReferralCalls(options: ReferralOptions): WalletCall[] {
   }
 
   const affiliate = options.affiliate ?? zeroAddress
+  if (affiliate === zeroAddress) {
+    return []
+  }
+
   const sharePercent = Math.max(0, Math.min(100, Math.trunc(options.affiliateSharePercent ?? 0)))
-  const affiliatePercentage = affiliate === zeroAddress ? 0n : BigInt(sharePercent)
+  const affiliatePercentage = BigInt(sharePercent)
   const exchanges = options.exchanges ?? [CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS]
 
   return exchanges.map(exchange => createWalletCall(exchange, encodeFunctionData({

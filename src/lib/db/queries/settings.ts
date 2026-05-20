@@ -1,5 +1,5 @@
 import type { QueryResult } from '@/types'
-import { sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { cacheTag, updateTag } from 'next/cache'
 import { cacheTags } from '@/lib/cache-tags'
 import { settings } from '@/lib/db/schema/settings/tables'
@@ -57,6 +57,119 @@ export const SettingsRepository = {
           created_at: settings.created_at,
           updated_at: settings.updated_at,
         })
+
+      updateTag(cacheTags.settings)
+
+      return { data, error: null }
+    })
+  },
+
+  async upsertSettingsWithUpdatedAt(
+    settingsArray: Array<{ group: string, key: string, value: string, updated_at: Date }>,
+  ): Promise<QueryResult<Array<typeof settings.$inferSelect>>> {
+    return runQuery(async () => {
+      if (settingsArray.length === 0) {
+        return { data: [], error: null }
+      }
+
+      const data = await db
+        .insert(settings)
+        .values(settingsArray)
+        .onConflictDoUpdate({
+          target: [settings.group, settings.key],
+          set: {
+            value: sql`EXCLUDED.value`,
+            updated_at: sql`EXCLUDED.updated_at`,
+          },
+        })
+        .returning({
+          id: settings.id,
+          group: settings.group,
+          key: settings.key,
+          value: settings.value,
+          created_at: settings.created_at,
+          updated_at: settings.updated_at,
+        })
+
+      updateTag(cacheTags.settings)
+
+      return { data, error: null }
+    })
+  },
+
+  async touchSettings(
+    settingsArray: Array<{ group: string, key: string }>,
+    updatedAt = new Date(),
+  ): Promise<QueryResult<Array<typeof settings.$inferSelect>>> {
+    return runQuery(async () => {
+      if (settingsArray.length === 0) {
+        return { data: [], error: null }
+      }
+
+      const data = await db.transaction(async (tx) => {
+        const touchedRows: Array<typeof settings.$inferSelect> = []
+
+        for (const entry of settingsArray) {
+          const rows = await tx
+            .update(settings)
+            .set({ updated_at: updatedAt })
+            .where(and(
+              eq(settings.group, entry.group),
+              eq(settings.key, entry.key),
+            ))
+            .returning({
+              id: settings.id,
+              group: settings.group,
+              key: settings.key,
+              value: settings.value,
+              created_at: settings.created_at,
+              updated_at: settings.updated_at,
+            })
+
+          touchedRows.push(...rows)
+        }
+
+        return touchedRows
+      })
+
+      updateTag(cacheTags.settings)
+
+      return { data, error: null }
+    })
+  },
+
+  async deleteSettings(
+    settingsArray: Array<{ group: string, key: string }>,
+  ): Promise<QueryResult<Array<typeof settings.$inferSelect>>> {
+    return runQuery(async () => {
+      if (settingsArray.length === 0) {
+        return { data: [], error: null }
+      }
+
+      const data = await db.transaction(async (tx) => {
+        const deletedRows: Array<typeof settings.$inferSelect> = []
+
+        for (const entry of settingsArray) {
+          const rows = await tx
+            .delete(settings)
+            .where(and(
+              eq(settings.group, entry.group),
+              eq(settings.key, entry.key),
+            ))
+            .returning({
+              id: settings.id,
+              group: settings.group,
+              key: settings.key,
+              value: settings.value,
+              created_at: settings.created_at,
+              updated_at: settings.updated_at,
+            })
+
+          deletedRows.push(...rows)
+        }
+
+        return deletedRows
+      })
 
       updateTag(cacheTags.settings)
 
