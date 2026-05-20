@@ -538,7 +538,12 @@ function getGeneralSettingsGroup(allSettings?: SettingsMap): SettingsGroup | und
 }
 
 export function getFeeRecipientWalletFormValue(allSettings?: SettingsMap): string {
-  const rawValue = getGeneralSettingsGroup(allSettings)?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value ?? null
+  const rawValue = getGeneralSettingsGroup(allSettings)?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value
+
+  if (rawValue == null) {
+    return DEFAULT_FEE_RECEIVER_WALLET_ADDRESS
+  }
+
   const normalized = normalizeFeeRecipientWalletAddress(rawValue, 'Fee recipient wallet')
 
   if (normalized.error) {

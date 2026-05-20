@@ -119,4 +119,39 @@ describe('updateForkSettingsAction', () => {
       { group: 'general', key: 'fee_recipient_wallet', value: '0x2222222222222222222222222222222222222222' },
     ])
   })
+
+  it('repairs a missing affiliate share setting row even when the submitted value matches the default', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.getSettings.mockResolvedValueOnce({
+      data: {
+        affiliate: {
+          builder_taker_fee_bps: { value: '100', updated_at: '2026-05-01T00:00:00.000Z' },
+          builder_maker_fee_bps: { value: '0', updated_at: '2026-05-01T00:00:00.000Z' },
+        },
+        general: {
+          fee_recipient_wallet: {
+            value: '0x1111111111111111111111111111111111111111',
+            updated_at: '2026-05-01T00:00:00.000Z',
+          },
+        },
+      },
+      error: null,
+    })
+    mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
+
+    const { updateForkSettingsAction } = await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
+    const formData = new FormData()
+    formData.set('builder_taker_fee_percent', '1')
+    formData.set('builder_maker_fee_percent', '0')
+    formData.set('affiliate_share_percent', '50')
+    formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
+
+    const result = await updateForkSettingsAction({ error: null }, formData)
+
+    expect(result).toEqual({ error: null })
+    expect(mocks.updateSettings).toHaveBeenCalledTimes(1)
+    expect(mocks.updateSettings.mock.calls[0][0]).toEqual([
+      { group: 'affiliate', key: 'affiliate_share_bps', value: '5000' },
+    ])
+  })
 })

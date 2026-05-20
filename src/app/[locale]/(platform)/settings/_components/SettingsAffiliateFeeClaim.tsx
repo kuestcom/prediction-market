@@ -1,6 +1,7 @@
 'use client'
 
 import { useAppKitAccount } from '@reown/appkit/react'
+import { ArrowDownToLineIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -175,18 +176,13 @@ export default function SettingsAffiliateFeeClaim() {
 
   return (
     <div className="rounded-lg border p-4 sm:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <h3 className="text-lg font-semibold">{t('Onchain fee claim')}</h3>
           <p className="text-sm text-muted-foreground">
-            {t('Claim your accrued fees.')}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">
-              {t('Total claimable: {amount}', {
-                amount: formatCurrency(fromBaseUnits(totalClaimable)),
-              })}
-            </span>
+            {t('Total claimable: {amount}', {
+              amount: formatCurrency(fromBaseUnits(totalClaimable)),
+            })}
           </p>
         </div>
         <Button
@@ -194,6 +190,15 @@ export default function SettingsAffiliateFeeClaim() {
           onClick={() => void handleClaim()}
           disabled={isLoading || isClaiming}
         >
+          {isClaiming || isLoading
+            ? (
+                <Loader2Icon className="size-4 animate-spin" />
+              )
+            : isConnected && depositWalletAddress
+              ? (
+                  <ArrowDownToLineIcon className="size-4" />
+                )
+              : null}
           {!isConnected
             ? t('Connect wallet')
             : !depositWalletAddress
@@ -202,7 +207,7 @@ export default function SettingsAffiliateFeeClaim() {
                   ? t('Claiming...')
                   : isLoading
                     ? t('Refreshing...')
-                    : t('Claim fees')}
+                    : t('Claim')}
         </Button>
       </div>
     </div>

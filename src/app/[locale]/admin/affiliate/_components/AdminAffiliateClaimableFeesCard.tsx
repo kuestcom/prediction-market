@@ -37,6 +37,8 @@ const exchangeFeeAbi = [
   },
 ] as const
 
+const MINIMUM_CLAIMABLE_FEES = 1_000_000n
+
 function toLowerCaseAddress(value: `0x${string}` | null) {
   return value?.toLowerCase() ?? null
 }
@@ -149,7 +151,7 @@ export default function AdminAffiliateClaimableFeesCard({
     return exchanges
   }, [mainClaimable, negRiskClaimable])
 
-  const hasClaimableBalance = claimableExchanges.length > 0
+  const hasMinimumClaimableBalance = totalClaimable >= MINIMUM_CLAIMABLE_FEES
   const isWrongConnectedWallet = Boolean(
     requiresConnectedEoa
     && connectedWalletAddress
@@ -170,17 +172,17 @@ export default function AdminAffiliateClaimableFeesCard({
           ? null
           : isWrongConnectedWallet
             ? connectWalletTooltip
-            : !hasClaimableBalance
-                ? t('No claimable fees found for this wallet.')
+            : !hasMinimumClaimableBalance
+                ? t('Claim fees')
                 : null
 
   const isButtonDisabled = isLoading
     || isClaiming
     || !normalizedFeeRecipientWallet
-    || !hasClaimableBalance
     || isWrongConnectedWallet
+    || !hasMinimumClaimableBalance
 
-  const buttonLabel = isClaiming
+  const buttonAriaLabel = isClaiming
     ? t('Claiming...')
     : isLoading
       ? t('Refreshing...')
@@ -253,8 +255,8 @@ export default function AdminAffiliateClaimableFeesCard({
       return
     }
 
-    if (!claimableExchanges.length) {
-      toast.info(t('No claimable fees found for this wallet.'))
+    if (!hasMinimumClaimableBalance || !claimableExchanges.length) {
+      toast.info(t('Claim fees'))
       return
     }
 
@@ -294,16 +296,19 @@ export default function AdminAffiliateClaimableFeesCard({
             <span className="inline-flex">
               <Button
                 type="button"
-                size="sm"
-                className="rounded-md disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
+                size="icon"
+                className="
+                  rounded-md bg-primary text-primary-foreground
+                  hover:bg-primary/90
+                  disabled:bg-primary disabled:text-primary-foreground disabled:opacity-100
+                "
                 disabled={isButtonDisabled}
                 onClick={() => void handleClaim()}
-                aria-label={buttonTooltip ?? buttonLabel}
+                aria-label={buttonTooltip ?? buttonAriaLabel}
               >
                 {isLoading || isClaiming
                   ? <Loader2Icon className="size-4 animate-spin" />
                   : <ArrowDownToLineIcon className="size-4" />}
-                {buttonLabel}
               </Button>
             </span>
           </TooltipTrigger>

@@ -7,7 +7,6 @@ import {
   AFFILIATE_SHARE_BPS_KEY,
   BUILDER_MAKER_FEE_BPS_KEY,
   BUILDER_TAKER_FEE_BPS_KEY,
-  getAffiliateFeeSettings,
 } from '@/lib/affiliate-fee-settings'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -43,6 +42,11 @@ const UpdateForkSettingsSchema = z.object({
   builder_maker_fee_percent: requiredPercent(9),
   affiliate_share_percent: requiredPercent(100),
 })
+
+function shouldUpdateAffiliateBpsSetting(currentValue: string | undefined, nextValue: number) {
+  const parsedCurrentValue = currentValue ? Number.parseInt(currentValue, 10) : Number.NaN
+  return !Number.isFinite(parsedCurrentValue) || parsedCurrentValue !== nextValue
+}
 
 export async function updateForkSettingsAction(
   _prevState: ForkSettingsActionState,
@@ -81,7 +85,7 @@ export async function updateForkSettingsAction(
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 
-  const currentAffiliateFeeSettings = getAffiliateFeeSettings(currentSettings.data)
+  const currentAffiliateSettings = currentSettings.data?.affiliate
   const currentFeeRecipientWalletRaw = currentSettings.data?.general?.fee_recipient_wallet?.value ?? null
   const currentFeeRecipientWalletNormalized = normalizeFeeRecipientWalletAddress(
     currentFeeRecipientWalletRaw,
@@ -93,7 +97,10 @@ export async function updateForkSettingsAction(
 
   const updates: Array<{ group: string, key: string, value: string }> = []
 
-  if (currentAffiliateFeeSettings.builderTakerFeeBps !== builderTakerFeeBps) {
+  if (shouldUpdateAffiliateBpsSetting(
+    currentAffiliateSettings?.[BUILDER_TAKER_FEE_BPS_KEY]?.value,
+    builderTakerFeeBps,
+  )) {
     updates.push({
       group: AFFILIATE_SETTINGS_GROUP,
       key: BUILDER_TAKER_FEE_BPS_KEY,
@@ -101,7 +108,10 @@ export async function updateForkSettingsAction(
     })
   }
 
-  if (currentAffiliateFeeSettings.builderMakerFeeBps !== builderMakerFeeBps) {
+  if (shouldUpdateAffiliateBpsSetting(
+    currentAffiliateSettings?.[BUILDER_MAKER_FEE_BPS_KEY]?.value,
+    builderMakerFeeBps,
+  )) {
     updates.push({
       group: AFFILIATE_SETTINGS_GROUP,
       key: BUILDER_MAKER_FEE_BPS_KEY,
@@ -109,7 +119,10 @@ export async function updateForkSettingsAction(
     })
   }
 
-  if (currentAffiliateFeeSettings.affiliateShareBps !== affiliateShareBps) {
+  if (shouldUpdateAffiliateBpsSetting(
+    currentAffiliateSettings?.[AFFILIATE_SHARE_BPS_KEY]?.value,
+    affiliateShareBps,
+  )) {
     updates.push({
       group: AFFILIATE_SETTINGS_GROUP,
       key: AFFILIATE_SHARE_BPS_KEY,
