@@ -5,6 +5,10 @@ const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   getSettings: vi.fn(),
   updateSettings: vi.fn(),
+  upsertSettingsWithUpdatedAt: vi.fn(),
+  touchSettings: vi.fn(),
+  deleteSettings: vi.fn(),
+  syncBuilderFeesForAdmin: vi.fn(),
 }))
 
 vi.mock('next/cache', () => ({
@@ -19,7 +23,14 @@ vi.mock('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     getSettings: (...args: any[]) => mocks.getSettings(...args),
     updateSettings: (...args: any[]) => mocks.updateSettings(...args),
+    upsertSettingsWithUpdatedAt: (...args: any[]) => mocks.upsertSettingsWithUpdatedAt(...args),
+    touchSettings: (...args: any[]) => mocks.touchSettings(...args),
+    deleteSettings: (...args: any[]) => mocks.deleteSettings(...args),
   },
+}))
+
+vi.mock('@/lib/affiliate-fee-sync', () => ({
+  syncBuilderFeesForAdmin: (...args: any[]) => mocks.syncBuilderFeesForAdmin(...args),
 }))
 
 describe('updateForkSettingsAction', () => {
@@ -29,6 +40,14 @@ describe('updateForkSettingsAction', () => {
     mocks.getCurrentUser.mockReset()
     mocks.getSettings.mockReset()
     mocks.updateSettings.mockReset()
+    mocks.upsertSettingsWithUpdatedAt.mockReset()
+    mocks.touchSettings.mockReset()
+    mocks.deleteSettings.mockReset()
+    mocks.syncBuilderFeesForAdmin.mockReset()
+    mocks.upsertSettingsWithUpdatedAt.mockResolvedValue({ data: [], error: null })
+    mocks.touchSettings.mockResolvedValue({ data: [], error: null })
+    mocks.deleteSettings.mockResolvedValue({ data: [], error: null })
+    mocks.syncBuilderFeesForAdmin.mockResolvedValue(undefined)
   })
 
   it('rejects unauthenticated users', async () => {
@@ -42,7 +61,12 @@ describe('updateForkSettingsAction', () => {
   })
 
   it('validates the fee recipient wallet', async () => {
-    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'admin-1',
+      address: '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa',
+      deposit_wallet_address: '0x1111111111111111111111111111111111111111',
+      is_admin: true,
+    })
 
     const { updateForkSettingsAction } = await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
     const formData = new FormData()
@@ -58,9 +82,13 @@ describe('updateForkSettingsAction', () => {
   })
 
   it('saves affiliate fees and fee recipient wallet together', async () => {
-    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'admin-1',
+      address: '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa',
+      deposit_wallet_address: '0x1111111111111111111111111111111111111111',
+      is_admin: true,
+    })
     mocks.getSettings.mockResolvedValueOnce({ data: {}, error: null })
-    mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
     const { updateForkSettingsAction } = await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
     const formData = new FormData()
@@ -72,20 +100,47 @@ describe('updateForkSettingsAction', () => {
     const result = await updateForkSettingsAction({ error: null }, formData)
 
     expect(result).toEqual({ error: null })
-    expect(mocks.updateSettings).toHaveBeenCalledTimes(1)
+    expect(mocks.updateSettings).not.toHaveBeenCalled()
+    expect(mocks.upsertSettingsWithUpdatedAt).toHaveBeenCalledTimes(1)
+    expect(mocks.syncBuilderFeesForAdmin).toHaveBeenCalledWith({
+      id: 'admin-1',
+      address: '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa',
+    }, {
+      feeRecipientWallet: '0x1111111111111111111111111111111111111111',
+      builderTakerFeeBps: 250,
+      builderMakerFeeBps: 125,
+    })
+    expect(mocks.touchSettings).toHaveBeenCalledTimes(1)
 
-    const payload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(payload).toEqual([
-      { group: 'affiliate', key: 'builder_taker_fee_bps', value: '250' },
-      { group: 'affiliate', key: 'builder_maker_fee_bps', value: '125' },
-      { group: 'affiliate', key: 'affiliate_share_bps', value: '1550' },
-      { group: 'general', key: 'fee_recipient_wallet', value: '0x1111111111111111111111111111111111111111' },
+    const stagedPayload = mocks.upsertSettingsWithUpdatedAt.mock.calls[0][0] as Array<{
+      group: string
+      key: string
+      value: string
+      updated_at: Date
+    }>
+    expect(stagedPayload).toEqual(expect.arrayContaining([
+      expect.objectContaining({ group: 'affiliate', key: 'builder_taker_fee_bps', value: '250', updated_at: expect.any(Date) }),
+      expect.objectContaining({ group: 'affiliate', key: 'builder_maker_fee_bps', value: '125', updated_at: expect.any(Date) }),
+      expect.objectContaining({ group: 'affiliate', key: 'affiliate_share_bps', value: '1550', updated_at: expect.any(Date) }),
+      expect.objectContaining({ group: 'general', key: 'fee_recipient_wallet', value: '0x1111111111111111111111111111111111111111', updated_at: expect.any(Date) }),
+    ]))
+
+    expect(mocks.touchSettings.mock.calls[0][0]).toEqual([
+      { group: 'affiliate', key: 'builder_taker_fee_bps' },
+      { group: 'affiliate', key: 'builder_maker_fee_bps' },
+      { group: 'affiliate', key: 'affiliate_share_bps' },
+      { group: 'general', key: 'fee_recipient_wallet' },
     ])
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/admin/affiliate')
   })
 
-  it('only updates the wallet when fee values are unchanged', async () => {
-    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+  it('syncs only the wallet when fee values are unchanged', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'admin-1',
+      address: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+      deposit_wallet_address: '0x2222222222222222222222222222222222222222',
+      is_admin: true,
+    })
     mocks.getSettings.mockResolvedValueOnce({
       data: {
         affiliate: {
@@ -102,7 +157,6 @@ describe('updateForkSettingsAction', () => {
       },
       error: null,
     })
-    mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
     const { updateForkSettingsAction } = await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
     const formData = new FormData()
@@ -114,14 +168,36 @@ describe('updateForkSettingsAction', () => {
     const result = await updateForkSettingsAction({ error: null }, formData)
 
     expect(result).toEqual({ error: null })
-    expect(mocks.updateSettings).toHaveBeenCalledTimes(1)
-    expect(mocks.updateSettings.mock.calls[0][0]).toEqual([
-      { group: 'general', key: 'fee_recipient_wallet', value: '0x2222222222222222222222222222222222222222' },
+    expect(mocks.updateSettings).not.toHaveBeenCalled()
+    expect(mocks.upsertSettingsWithUpdatedAt).toHaveBeenCalledTimes(1)
+    expect(mocks.upsertSettingsWithUpdatedAt.mock.calls[0][0]).toEqual([
+      expect.objectContaining({
+        group: 'general',
+        key: 'fee_recipient_wallet',
+        value: '0x2222222222222222222222222222222222222222',
+        updated_at: expect.any(Date),
+      }),
     ])
+    expect(mocks.touchSettings).toHaveBeenCalledWith([
+      { group: 'general', key: 'fee_recipient_wallet' },
+    ], expect.any(Date))
+    expect(mocks.syncBuilderFeesForAdmin).toHaveBeenCalledWith({
+      id: 'admin-1',
+      address: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+    }, {
+      feeRecipientWallet: '0x2222222222222222222222222222222222222222',
+      builderTakerFeeBps: 250,
+      builderMakerFeeBps: 125,
+    })
   })
 
   it('repairs a missing affiliate share setting row even when the submitted value matches the default', async () => {
-    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'admin-1',
+      address: '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa',
+      deposit_wallet_address: '0x1111111111111111111111111111111111111111',
+      is_admin: true,
+    })
     mocks.getSettings.mockResolvedValueOnce({
       data: {
         affiliate: {
@@ -153,5 +229,7 @@ describe('updateForkSettingsAction', () => {
     expect(mocks.updateSettings.mock.calls[0][0]).toEqual([
       { group: 'affiliate', key: 'affiliate_share_bps', value: '5000' },
     ])
+    expect(mocks.syncBuilderFeesForAdmin).not.toHaveBeenCalled()
+    expect(mocks.upsertSettingsWithUpdatedAt).not.toHaveBeenCalled()
   })
 })

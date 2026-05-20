@@ -4,7 +4,7 @@ import { InfoIcon, WalletIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useRouter } from 'next/navigation'
-import { useActionState, useEffect, useRef } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { updateForkSettingsAction } from '@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings'
 import { Button } from '@/components/ui/button'
@@ -24,8 +24,7 @@ interface AdminAffiliateSettingsFormProps {
   builderTakerFeeBps: number
   builderMakerFeeBps: number
   affiliateShareBps: number
-  feeRecipientWallet: string
-  onFeeRecipientWalletChange: (value: string) => void
+  initialFeeRecipientWallet: string
   kuestFeeSettings: {
     takerFeeBps: number | null
     makerFeeBps: number | null
@@ -87,8 +86,7 @@ export default function AdminAffiliateSettingsForm({
   builderTakerFeeBps,
   builderMakerFeeBps,
   affiliateShareBps,
-  feeRecipientWallet,
-  onFeeRecipientWalletChange,
+  initialFeeRecipientWallet,
   kuestFeeSettings,
   updatedAtLabel,
 }: AdminAffiliateSettingsFormProps) {
@@ -96,7 +94,7 @@ export default function AdminAffiliateSettingsForm({
   const user = useUser()
   const { state, formAction, isPending } = useAffiliateSettingsForm()
   const depositWalletAddress = user?.deposit_wallet_address ?? null
-  const canUseDepositWallet = Boolean(depositWalletAddress)
+  const [feeRecipientWallet, setFeeRecipientWallet] = useState(initialFeeRecipientWallet)
   const takerKuestFeeLabel = kuestFeeSettings?.takerFeeBps === null || kuestFeeSettings?.takerFeeBps === undefined
     ? null
     : formatBpsPercent(kuestFeeSettings.takerFeeBps)
@@ -107,8 +105,16 @@ export default function AdminAffiliateSettingsForm({
     ? t('Last fees updated {timestamp}', { timestamp: updatedAtLabel })
     : null
   const affiliateShareTooltip = t('Commission paid to your affiliates, deducted from your operator fee.')
-  const feeRecipientWalletTooltip = t('Transaction fees will be sent here. Using your deposit wallet avoids direct gas payments.')
-  const shouldShowDepositWalletButton = feeRecipientWallet.trim().length === 0
+  const normalizedFeeRecipientWallet = feeRecipientWallet.trim().toLowerCase()
+  const normalizedDepositWallet = depositWalletAddress?.trim().toLowerCase() ?? null
+  const shouldShowDepositWalletButton = Boolean(normalizedDepositWallet)
+    && normalizedFeeRecipientWallet !== normalizedDepositWallet
+
+  function handleUseDepositWallet() {
+    if (depositWalletAddress) {
+      setFeeRecipientWallet(depositWalletAddress)
+    }
+  }
 
   return (
     <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
@@ -122,37 +128,30 @@ export default function AdminAffiliateSettingsForm({
 
       <div className="grid gap-4">
         <div className="grid gap-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="fee_recipient_wallet">
-              {t('Fee Wallet Address (Polygon)')}
-            </Label>
-            <AdminInfoTooltip content={feeRecipientWalletTooltip} />
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <Label htmlFor="fee_recipient_wallet">
+            {t('Fee Wallet Address (Polygon)')}
+          </Label>
+          <div className="flex w-full items-stretch">
             <Input
               id="fee_recipient_wallet"
               name="fee_recipient_wallet"
               maxLength={42}
               value={feeRecipientWallet}
-              onChange={event => onFeeRecipientWalletChange(event.target.value)}
               disabled={isPending}
+              readOnly
               placeholder={t('0xabc')}
-              className="sm:flex-1"
+              className={shouldShowDepositWalletButton ? 'rounded-r-none border-r-0' : ''}
             />
             {shouldShowDepositWalletButton && (
               <Button
                 type="button"
                 variant="outline"
-                className="shrink-0"
-                disabled={isPending || !canUseDepositWallet}
-                onClick={() => {
-                  if (depositWalletAddress) {
-                    onFeeRecipientWalletChange(depositWalletAddress)
-                  }
-                }}
+                className="rounded-l-none border-l-0 px-3"
+                disabled={isPending}
+                onClick={handleUseDepositWallet}
               >
-                <WalletIcon className="size-4" />
-                {t('Add my Deposit Wallet')}
+                <WalletIcon className="size-4" aria-hidden />
+                {t('Use my deposit wallet')}
               </Button>
             )}
           </div>
@@ -171,7 +170,7 @@ export default function AdminAffiliateSettingsForm({
               defaultValue={(builderTakerFeeBps / 100).toFixed(2)}
               disabled={isPending}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {takerKuestFeeLabel
                 ? t('Your fee plus Kuest {kuestFee}% fee.', { kuestFee: takerKuestFeeLabel })
                 : t('Kuest fees unavailable.')}
@@ -189,7 +188,7 @@ export default function AdminAffiliateSettingsForm({
               defaultValue={(builderMakerFeeBps / 100).toFixed(2)}
               disabled={isPending}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {makerKuestFeeLabel
                 ? t('Your fee plus Kuest {kuestFee}% fee.', { kuestFee: makerKuestFeeLabel })
                 : t('Kuest fees unavailable.')}

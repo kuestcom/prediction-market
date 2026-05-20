@@ -10,15 +10,19 @@ vi.mock('next-intl', () => ({
 
 vi.mock('@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm', () => ({
   __esModule: true,
-  default: ({ feeRecipientWallet, onFeeRecipientWalletChange }: any) => React.createElement(
-    'div',
-    null,
-    React.createElement('span', { 'data-testid': 'draft-wallet' }, feeRecipientWallet),
-    React.createElement('button', {
-      type: 'button',
-      onClick: () => onFeeRecipientWalletChange('0x2222222222222222222222222222222222222222'),
-    }, 'Change draft wallet'),
-  ),
+  default: ({ initialFeeRecipientWallet }: any) => {
+    const [draftWallet, setDraftWallet] = React.useState(initialFeeRecipientWallet)
+
+    return React.createElement(
+      'div',
+      null,
+      React.createElement('span', { 'data-testid': 'draft-wallet' }, draftWallet),
+      React.createElement('button', {
+        type: 'button',
+        onClick: () => setDraftWallet('0x2222222222222222222222222222222222222222'),
+      }, 'Change draft wallet'),
+    )
+  },
 }))
 
 vi.mock('@/app/[locale]/admin/affiliate/_components/AdminAffiliateClaimableFeesCard', () => ({

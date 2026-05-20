@@ -1,4 +1,6 @@
 export const AFFILIATE_SETTINGS_GROUP = 'affiliate'
+const GENERAL_SETTINGS_GROUP = 'general'
+const FEE_RECIPIENT_WALLET_KEY = 'fee_recipient_wallet'
 export const BUILDER_TAKER_FEE_BPS_KEY = 'builder_taker_fee_bps'
 export const BUILDER_MAKER_FEE_BPS_KEY = 'builder_maker_fee_bps'
 export const AFFILIATE_SHARE_BPS_KEY = 'affiliate_share_bps'
@@ -46,10 +48,11 @@ export function getAffiliateFeeSettings(settings?: SettingsGroups | null): Affil
 
 export function getAffiliateFeeSettingsUpdatedAt(settings?: SettingsGroups | null) {
   const affiliateSettings = settings?.[AFFILIATE_SETTINGS_GROUP]
+  const generalSettings = settings?.[GENERAL_SETTINGS_GROUP]
   const timestamps = [
+    generalSettings?.[FEE_RECIPIENT_WALLET_KEY]?.updated_at,
     affiliateSettings?.[BUILDER_TAKER_FEE_BPS_KEY]?.updated_at,
     affiliateSettings?.[BUILDER_MAKER_FEE_BPS_KEY]?.updated_at,
-    affiliateSettings?.[AFFILIATE_SHARE_BPS_KEY]?.updated_at,
   ].filter((value): value is string => Boolean(value))
 
   return timestamps.reduce<string | undefined>((latest, timestamp) => {

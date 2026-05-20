@@ -84,8 +84,9 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.updateSettings).not.toHaveBeenCalled()
   })
 
-  it('validates wallet fields', async () => {
+  it('ignores legacy fee wallet fields in general settings payloads', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
     const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
@@ -97,12 +98,25 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('fee_recipient_wallet', 'not-a-wallet')
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
-    expect(result.error).toContain('Fee recipient wallet')
-    expect(mocks.updateSettings).not.toHaveBeenCalled()
+    expect(result).toEqual({ error: null })
+
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
+    expect(savedPayload.some(entry => entry.key === 'fee_recipient_wallet')).toBe(false)
   })
 
   it('saves normalized SVG site settings for valid payloads', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.getSettings.mockResolvedValueOnce({
+      data: {
+        general: {
+          fee_recipient_wallet: {
+            value: '0x1111111111111111111111111111111111111111',
+            updated_at: '2026-05-01T00:00:00.000Z',
+          },
+        },
+      },
+      error: null,
+    })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
     const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
@@ -128,7 +142,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.encryptSecret).toHaveBeenCalledWith('openrouter-123')
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload).toHaveLength(27)
+    expect(savedPayload).toHaveLength(26)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
@@ -149,7 +163,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.find(entry => entry.key === 'global_announcement_link_url')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'global_announcement_disabled_on')?.value).toBe('[]')
     expect(savedPayload.find(entry => entry.key === 'site_custom_javascript_codes')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'fee_recipient_wallet')?.value).toBe('0x1111111111111111111111111111111111111111')
+    expect(savedPayload.some(entry => entry.key === 'fee_recipient_wallet')).toBe(false)
     expect(savedPayload.find(entry => entry.key === 'tos_pdf_path')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'lifi_integrator')?.value).toBe('kuest-fork')
     expect(savedPayload.find(entry => entry.key === 'lifi_api_key')?.value).toBe('enc.v1.lifi-123')
