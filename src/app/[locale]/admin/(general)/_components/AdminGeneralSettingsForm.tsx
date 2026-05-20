@@ -107,7 +107,6 @@ function AdminGeneralSettingsFormInner({
   const initialGlobalAnnouncementLinkUrl = initialGlobalAnnouncement.linkUrl
   const initialGlobalAnnouncementDisabledOn = initialGlobalAnnouncement.disabledOn
   const initialCustomJavascriptCodes = initialThemeSiteSettings.customJavascriptCodes
-  const initialFeeRecipientWallet = initialThemeSiteSettings.feeRecipientWallet
   const initialLiFiIntegrator = initialThemeSiteSettings.lifiIntegrator
   const initialLiFiApiKey = initialThemeSiteSettings.lifiApiKey
   const initialLiFiApiKeyConfigured = initialThemeSiteSettings.lifiApiKeyConfigured
@@ -145,7 +144,6 @@ function AdminGeneralSettingsFormInner({
   const [customJavascriptCodes, setCustomJavascriptCodes] = useState<CustomJavascriptCodeDraft[]>(
     () => initialCustomJavascriptCodes.map(code => createCustomJavascriptCodeDraft(nextCustomJavascriptCodeIdRef.current++, code)),
   )
-  const [feeRecipientWallet, setFeeRecipientWallet] = useState(initialFeeRecipientWallet)
   const [tosPdfPath, setTosPdfPath] = useState(initialTermsOfServicePdfPath)
   const [lifiIntegrator, setLifiIntegrator] = useState(initialLiFiIntegrator)
   const [lifiApiKey, setLifiApiKey] = useState(initialLiFiApiKey)
@@ -497,8 +495,6 @@ function AdminGeneralSettingsFormInner({
           isPending={isPending}
           openSections={openSections}
           onToggleSection={toggleSection}
-          feeRecipientWallet={feeRecipientWallet}
-          setFeeRecipientWallet={setFeeRecipientWallet}
         />
       </div>
 

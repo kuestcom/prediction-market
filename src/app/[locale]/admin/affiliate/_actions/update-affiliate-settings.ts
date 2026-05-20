@@ -11,6 +11,7 @@ import {
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
+import { normalizeFeeRecipientWalletAddress } from '@/lib/theme-settings'
 
 export interface ForkSettingsActionState {
   error: string | null
@@ -64,11 +65,21 @@ export async function updateForkSettingsAction(
   const builderTakerFeeBps = Math.round(parsed.data.builder_taker_fee_percent * 100)
   const builderMakerFeeBps = Math.round(parsed.data.builder_maker_fee_percent * 100)
   const affiliateShareBps = Math.round(parsed.data.affiliate_share_percent * 100)
+  const feeRecipientWalletRaw = formData.get('fee_recipient_wallet')
+  const feeRecipientWallet = normalizeFeeRecipientWalletAddress(
+    typeof feeRecipientWalletRaw === 'string' ? feeRecipientWalletRaw : null,
+    'Fee recipient wallet',
+  )
+
+  if (feeRecipientWallet.error) {
+    return { error: feeRecipientWallet.error }
+  }
 
   const { error } = await SettingsRepository.updateSettings([
     { group: AFFILIATE_SETTINGS_GROUP, key: BUILDER_TAKER_FEE_BPS_KEY, value: builderTakerFeeBps.toString() },
     { group: AFFILIATE_SETTINGS_GROUP, key: BUILDER_MAKER_FEE_BPS_KEY, value: builderMakerFeeBps.toString() },
     { group: AFFILIATE_SETTINGS_GROUP, key: AFFILIATE_SHARE_BPS_KEY, value: affiliateShareBps.toString() },
+    { group: 'general', key: 'fee_recipient_wallet', value: feeRecipientWallet.value ?? '' },
   ])
 
   if (error) {

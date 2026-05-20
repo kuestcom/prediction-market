@@ -1,4 +1,4 @@
-import HeaderDropdownUserMenuAuth from '@/components/HeaderDropdownUserMenuAuth'
+import AdminHeaderActions from '@/app/[locale]/admin/_components/AdminHeaderActions'
 import HeaderLogo from '@/components/HeaderLogo'
 
 export default async function AdminHeader() {
@@ -11,9 +11,7 @@ export default async function AdminHeader() {
         `}
       >
         <HeaderLogo labelSuffix="Admin" />
-        <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:gap-4">
-          <HeaderDropdownUserMenuAuth />
-        </div>
+        <AdminHeaderActions />
       </div>
     </header>
   )

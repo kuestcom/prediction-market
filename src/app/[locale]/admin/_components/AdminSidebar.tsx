@@ -24,7 +24,7 @@ export default function AdminSidebar() {
     { id: 'locales', label: t('Locales'), href: '/admin/locales' as Route, icon: LanguagesIcon },
     { id: 'categories', label: t('Categories'), href: '/admin/categories' as Route, icon: TagsIcon },
     { id: 'market-context', label: t('Market Context'), href: '/admin/market-context' as Route, icon: TextSelectIcon },
-    { id: 'affiliate', label: t('Affiliate'), href: '/admin/affiliate' as Route, icon: BadgePercentIcon },
+    { id: 'affiliate', label: t('Affiliate & Fees'), href: '/admin/affiliate' as Route, icon: BadgePercentIcon },
     { id: 'events', label: t('Events'), href: '/admin/events' as Route, icon: CalendarIcon },
     { id: 'users', label: t('Users'), href: '/admin/users' as Route, icon: UsersIcon },
   ]

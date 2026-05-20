@@ -223,7 +223,7 @@ function resolveLogoSvgOrDefault(value: string | null | undefined, sourceLabel: 
   return sanitizeThemeSiteLogoSvg(normalized, sourceLabel)
 }
 
-function normalizeFeeRecipientWalletAddress(value: string | null | undefined, sourceLabel: string) {
+export function normalizeFeeRecipientWalletAddress(value: string | null | undefined, sourceLabel: string) {
   const normalized = typeof value === 'string' ? value.trim() : ''
   if (!normalized) {
     return { value: ZERO_ADDRESS, error: null as string | null }

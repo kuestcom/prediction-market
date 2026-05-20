@@ -165,7 +165,6 @@ describe('adminGeneralSettingsForm', () => {
     expect(screen.getByRole('button', { name: /Brand identity/i })).toHaveAttribute('aria-expanded', 'false')
     expect(container.querySelector('input[name="site_name"]')).toBeTruthy()
     expect(container.querySelector('input[name="google_analytics_id"]')).toBeTruthy()
-    expect(container.querySelector('input[name="fee_recipient_wallet"]')).toBeTruthy()
     expect(container.querySelector('input[name="tos_pdf_path"]')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: /Brand identity/i }))
