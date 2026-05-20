@@ -80,10 +80,12 @@ function resolveActivityRowKey(activity: ActivityOrder) {
   ].join(':')
 }
 
-function getEventTokenIds(event: Event) {
+const ALL_ACTIVITY_MARKETS_VALUE = 'all'
+
+function getMarketTokenIds(markets: Event['markets']) {
   const tokenIds = new Set<string>()
 
-  for (const market of event.markets) {
+  for (const market of markets) {
     for (const outcome of market.outcomes) {
       if (outcome.token_id) {
         tokenIds.add(String(outcome.token_id))
@@ -265,6 +267,7 @@ function useRealtimeActivityRefresh({
 export default function EventActivity({ event }: EventActivityProps) {
   const t = useExtracted()
   const [minAmountFilter, setMinAmountFilter] = useState('none')
+  const [activityMarketFilter, setActivityMarketFilter] = useState(ALL_ACTIVITY_MARKETS_VALUE)
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const queryClient = useQueryClient()
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
@@ -272,9 +275,26 @@ export default function EventActivity({ event }: EventActivityProps) {
   const isSportsEvent = Boolean(event.sports_sport_slug?.trim())
   const isMultiMarket = event.markets.length > 1
 
-  const marketIds = useMemo(
+  const allMarketIds = useMemo(
     () => event.markets.map(market => market.condition_id).filter(Boolean),
     [event.markets],
+  )
+  const resolvedActivityMarketFilter = isMultiMarket && allMarketIds.includes(activityMarketFilter)
+    ? activityMarketFilter
+    : ALL_ACTIVITY_MARKETS_VALUE
+  const activityMarkets = useMemo(
+    () => {
+      if (resolvedActivityMarketFilter === ALL_ACTIVITY_MARKETS_VALUE) {
+        return event.markets
+      }
+
+      return event.markets.filter(market => market.condition_id === resolvedActivityMarketFilter)
+    },
+    [event.markets, resolvedActivityMarketFilter],
+  )
+  const marketIds = useMemo(
+    () => activityMarkets.map(market => market.condition_id).filter(Boolean),
+    [activityMarkets],
   )
   const activityMarketLabels = useMemo(
     () => buildActivityMarketLabelLookup(event.markets),
@@ -284,14 +304,14 @@ export default function EventActivity({ event }: EventActivityProps) {
   const hasMarkets = marketIds.length > 0
   const tokenIds = useMemo(
     () => {
-      return getEventTokenIds(event)
+      return getMarketTokenIds(activityMarkets)
     },
-    [event],
+    [activityMarkets],
   )
 
   const queryKey = useMemo(
-    () => ['event-activity', event.slug, marketKey, minAmountFilter],
-    [event.slug, marketKey, minAmountFilter],
+    () => ['event-activity', event.slug, marketKey, resolvedActivityMarketFilter, minAmountFilter],
+    [event.slug, marketKey, minAmountFilter, resolvedActivityMarketFilter],
   )
 
   const {
@@ -366,6 +386,11 @@ export default function EventActivity({ event }: EventActivityProps) {
     setMinAmountFilter(nextValue)
   }
 
+  function handleActivityMarketFilterChange(nextValue: string) {
+    setInfiniteScrollError(null)
+    setActivityMarketFilter(nextValue)
+  }
+
   if (!hasMarkets) {
     return (
       <div className="mt-2">
@@ -397,9 +422,25 @@ export default function EventActivity({ event }: EventActivityProps) {
 
   return (
     <div className="mt-2 grid gap-6">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-row items-center gap-2">
+        {isMultiMarket && (
+          <Select value={resolvedActivityMarketFilter} onValueChange={handleActivityMarketFilterChange}>
+            <SelectTrigger className="w-full sm:w-40 md:w-44 dark:bg-transparent">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_ACTIVITY_MARKETS_VALUE}>{t('All')}</SelectItem>
+              {event.markets.map(market => (
+                <SelectItem key={market.condition_id} value={market.condition_id}>
+                  {getMarketDisplayLabel(market)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         <Select value={minAmountFilter} onValueChange={handleMinAmountFilterChange}>
-          <SelectTrigger className="dark:bg-transparent">
+          <SelectTrigger className="w-full sm:w-auto dark:bg-transparent">
             <SelectValue placeholder={t('Min Amount:')} />
           </SelectTrigger>
           <SelectContent>
