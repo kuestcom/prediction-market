@@ -313,6 +313,9 @@ export default function EventActivity({ event }: EventActivityProps) {
     () => ['event-activity', event.slug, marketKey, resolvedActivityMarketFilter, minAmountFilter],
     [event.slug, marketKey, minAmountFilter, resolvedActivityMarketFilter],
   )
+  const minAmountFilterLabel = minAmountFilter === 'none'
+    ? t('Min amount')
+    : formatCurrency(Number.parseInt(minAmountFilter, 10) || 0, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
   const {
     status,
@@ -441,7 +444,9 @@ export default function EventActivity({ event }: EventActivityProps) {
 
         <Select value={minAmountFilter} onValueChange={handleMinAmountFilterChange}>
           <SelectTrigger className="w-full sm:w-auto dark:bg-transparent">
-            <SelectValue placeholder={t('Min Amount:')} />
+            <SelectValue asChild>
+              <span className="line-clamp-1">{minAmountFilterLabel}</span>
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">{t('None')}</SelectItem>
