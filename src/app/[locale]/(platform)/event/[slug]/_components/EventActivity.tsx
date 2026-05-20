@@ -26,6 +26,49 @@ interface EventActivityProps {
   event: Event
 }
 
+interface ActivityMarketLabelLookup {
+  byConditionId: Map<string, string>
+  bySlug: Map<string, string>
+}
+
+function getMarketDisplayLabel(market: Event['markets'][number]) {
+  return market.short_title?.trim() || market.title.trim() || market.slug
+}
+
+function buildActivityMarketLabelLookup(markets: Event['markets']) {
+  const byConditionId = new Map<string, string>()
+  const bySlug = new Map<string, string>()
+
+  for (const market of markets) {
+    const label = getMarketDisplayLabel(market)
+
+    if (market.condition_id) {
+      byConditionId.set(market.condition_id, label)
+    }
+    if (market.slug) {
+      bySlug.set(market.slug, label)
+    }
+  }
+
+  return {
+    byConditionId,
+    bySlug,
+  }
+}
+
+function resolveActivityMarketLabel(activity: ActivityOrder, lookup: ActivityMarketLabelLookup) {
+  const conditionId = activity.market.condition_id?.trim()
+  const slug = activity.market.slug?.trim()
+
+  return (
+    (conditionId ? lookup.byConditionId.get(conditionId) : undefined)
+    || (slug ? lookup.bySlug.get(slug) : undefined)
+    || activity.market.title.trim()
+    || slug
+    || ''
+  )
+}
+
 function resolveActivityRowKey(activity: ActivityOrder) {
   return [
     activity.id,
@@ -227,9 +270,14 @@ export default function EventActivity({ event }: EventActivityProps) {
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const normalizeOutcomeLabel = useOutcomeLabel()
   const isSportsEvent = Boolean(event.sports_sport_slug?.trim())
+  const isMultiMarket = event.markets.length > 1
 
   const marketIds = useMemo(
     () => event.markets.map(market => market.condition_id).filter(Boolean),
+    [event.markets],
+  )
+  const activityMarketLabels = useMemo(
+    () => buildActivityMarketLabelLookup(event.markets),
     [event.markets],
   )
   const marketKey = useMemo(() => marketIds.join(','), [marketIds])
@@ -412,6 +460,9 @@ export default function EventActivity({ event }: EventActivityProps) {
               const valueLabel = formatTotalValue(activity.total_value)
               const amountLabel = fromMicro(activity.amount)
               const outcomeColorClass = resolveEventActivityOutcomeColorClass(activity, isSportsEvent)
+              const marketLabel = isMultiMarket
+                ? resolveActivityMarketLabel(activity, activityMarketLabels)
+                : ''
               const rawUsername = activity.user.username
                 || activity.user.address
                 || 'trader'
@@ -461,11 +512,21 @@ export default function EventActivity({ event }: EventActivityProps) {
                         </span>
                         <span className={cn('font-semibold', outcomeColorClass)}>
                           {amountLabel}
-                          {' '}
                           {activity.outcome.text ? ` ${normalizeOutcomeLabel(activity.outcome.text)}` : ''}
                           {' '}
-                          {' '}
                         </span>
+                        {marketLabel && (
+                          <>
+                            <span className="text-foreground">
+                              {t('for')}
+                              {' '}
+                            </span>
+                            <span className="font-semibold text-foreground">
+                              {marketLabel}
+                              {' '}
+                            </span>
+                          </>
+                        )}
                         <span className="text-foreground">
                           {t('at')}
                           {' '}
