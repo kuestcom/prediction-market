@@ -197,7 +197,6 @@ export async function updateGeneralSettingsAction(
   const globalAnnouncementLinkUrlRaw = formData.get('global_announcement_link_url')
   const globalAnnouncementDisabledOnJsonRaw = formData.get('global_announcement_disabled_on_json')
   const customJavascriptCodesJsonRaw = formData.get('custom_javascript_codes_json')
-  const feeRecipientWalletRaw = formData.get('fee_recipient_wallet')
   const tosPdfPathRaw = formData.get('tos_pdf_path')
   const tosPdfFileRaw = formData.get('tos_pdf')
   const lifiIntegratorRaw = formData.get('lifi_integrator')
@@ -228,7 +227,6 @@ export async function updateGeneralSettingsAction(
     ? globalAnnouncementDisabledOnJsonRaw
     : ''
   const customJavascriptCodesJson = typeof customJavascriptCodesJsonRaw === 'string' ? customJavascriptCodesJsonRaw : ''
-  const feeRecipientWallet = typeof feeRecipientWalletRaw === 'string' ? feeRecipientWalletRaw : ''
   let tosPdfPath = typeof tosPdfPathRaw === 'string' ? tosPdfPathRaw : ''
   const lifiIntegrator = typeof lifiIntegratorRaw === 'string' ? lifiIntegratorRaw : ''
   const lifiApiKey = typeof lifiApiKeyRaw === 'string' ? lifiApiKeyRaw : ''
@@ -324,7 +322,7 @@ export async function updateGeneralSettingsAction(
     youtubeLink,
     supportUrl,
     customJavascriptCodesJson,
-    feeRecipientWallet,
+    feeRecipientWallet: '',
     lifiIntegrator,
     lifiApiKey,
   })
@@ -335,7 +333,6 @@ export async function updateGeneralSettingsAction(
 
   let encryptedLiFiApiKey = ''
   let encryptedOpenRouterApiKey = ''
-  let currentFeeRecipientWalletValue = ''
   try {
     const { data: allSettings, error: settingsError } = await SettingsRepository.getSettings()
     if (settingsError) {
@@ -344,7 +341,6 @@ export async function updateGeneralSettingsAction(
 
     const existingEncryptedLiFiApiKey = allSettings?.general?.lifi_api_key?.value ?? ''
     const existingEncryptedOpenRouterApiKey = allSettings?.ai?.openrouter_api_key?.value ?? ''
-    currentFeeRecipientWalletValue = allSettings?.general?.fee_recipient_wallet?.value ?? ''
     encryptedLiFiApiKey = validated.data.lifiApiKeyValue
       ? encryptSecret(validated.data.lifiApiKeyValue)
       : existingEncryptedLiFiApiKey
@@ -379,7 +375,6 @@ export async function updateGeneralSettingsAction(
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_LINK_URL_KEY, value: validatedGlobalAnnouncement.data.linkUrlValue },
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY, value: validatedGlobalAnnouncement.data.disabledOnValue },
     { group: 'general', key: 'site_custom_javascript_codes', value: validated.data.customJavascriptCodesValue },
-    { group: 'general', key: 'fee_recipient_wallet', value: currentFeeRecipientWalletValue },
     { group: 'general', key: TERMS_OF_SERVICE_PDF_PATH_KEY, value: tosPdfPath },
     { group: 'general', key: 'lifi_integrator', value: validated.data.lifiIntegratorValue },
     { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },

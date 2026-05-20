@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminAffiliateSettingsForm from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm'
@@ -58,17 +57,16 @@ describe('AdminAffiliateSettingsForm', () => {
     mocks.updateAction.mockReset()
   })
 
-  it('hides the deposit wallet button when the fee wallet field already has a value', () => {
+  it('defaults the fee wallet field to the deposit wallet when a legacy wallet is saved', () => {
     renderForm('0x2222222222222222222222222222222222222222')
 
+    const input = screen.getByLabelText(/Fee Wallet Address \(Polygon\)/i) as HTMLInputElement
+    expect(input.value).toBe(mocks.user.deposit_wallet_address)
     expect(screen.queryByRole('button', { name: /Add my Deposit Wallet/i })).toBeNull()
   })
 
-  it('fills the field with the deposit wallet and hides the button afterwards', async () => {
-    const user = userEvent.setup()
+  it('defaults an empty fee wallet field to the deposit wallet', () => {
     renderForm()
-
-    await user.click(screen.getByRole('button', { name: /Add my Deposit Wallet/i }))
 
     const input = screen.getByLabelText(/Fee Wallet Address \(Polygon\)/i) as HTMLInputElement
     expect(input.value).toBe(mocks.user.deposit_wallet_address)

@@ -12,10 +12,14 @@ function getErrorMessage(payload: unknown) {
     return null
   }
 
-  const maybeError = (payload as { error?: unknown }).error
-  return typeof maybeError === 'string' && maybeError.trim()
-    ? maybeError
-    : null
+  const { error, message } = payload as { error?: unknown, message?: unknown }
+  for (const value of [error, message]) {
+    if (typeof value === 'string' && value.trim()) {
+      return value
+    }
+  }
+
+  return null
 }
 
 export async function syncBuilderFeesForAdmin(user: {
@@ -40,18 +44,25 @@ export async function syncBuilderFeesForAdmin(user: {
     SYNC_BUILDER_FEES_PATH,
   )
 
-  const response = await fetch(`${relayerUrl}${SYNC_BUILDER_FEES_PATH}`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      KUEST_ADDRESS: user.address,
-      KUEST_API_KEY: tradingAuth.relayer.key,
-      KUEST_PASSPHRASE: tradingAuth.relayer.passphrase,
-      KUEST_TIMESTAMP: timestamp.toString(),
-      KUEST_SIGNATURE: signature,
-    },
-    signal: AbortSignal.timeout(SYNC_BUILDER_FEES_TIMEOUT_MS),
-  })
+  let response: Response
+  try {
+    response = await fetch(`${relayerUrl}${SYNC_BUILDER_FEES_PATH}`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        KUEST_ADDRESS: user.address,
+        KUEST_API_KEY: tradingAuth.relayer.key,
+        KUEST_PASSPHRASE: tradingAuth.relayer.passphrase,
+        KUEST_TIMESTAMP: timestamp.toString(),
+        KUEST_SIGNATURE: signature,
+      },
+      signal: AbortSignal.timeout(SYNC_BUILDER_FEES_TIMEOUT_MS),
+    })
+  }
+  catch (error) {
+    console.error('Failed to sync builder fees through relayer', error)
+    throw new Error(DEFAULT_ERROR_MESSAGE)
+  }
 
   const payload = await response.json().catch(() => null)
   if (!response.ok) {
