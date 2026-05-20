@@ -272,6 +272,10 @@ export async function updateForkSettingsAction(
     await syncBuilderFeesForAdmin({
       id: user.id,
       address: user.address,
+    }, {
+      feeRecipientWallet: depositWallet.value,
+      builderTakerFeeBps,
+      builderMakerFeeBps,
     })
   }
   catch (error) {

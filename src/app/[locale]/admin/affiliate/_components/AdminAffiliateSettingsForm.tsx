@@ -1,10 +1,10 @@
 'use client'
 
-import { InfoIcon } from 'lucide-react'
+import { InfoIcon, WalletIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useRouter } from 'next/navigation'
-import { useActionState, useEffect, useRef } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { updateForkSettingsAction } from '@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings'
 import { Button } from '@/components/ui/button'
@@ -94,7 +94,7 @@ export default function AdminAffiliateSettingsForm({
   const user = useUser()
   const { state, formAction, isPending } = useAffiliateSettingsForm()
   const depositWalletAddress = user?.deposit_wallet_address ?? null
-  const feeRecipientWallet = depositWalletAddress || initialFeeRecipientWallet
+  const [feeRecipientWallet, setFeeRecipientWallet] = useState(initialFeeRecipientWallet)
   const takerKuestFeeLabel = kuestFeeSettings?.takerFeeBps === null || kuestFeeSettings?.takerFeeBps === undefined
     ? null
     : formatBpsPercent(kuestFeeSettings.takerFeeBps)
@@ -105,6 +105,16 @@ export default function AdminAffiliateSettingsForm({
     ? t('Last fees updated {timestamp}', { timestamp: updatedAtLabel })
     : null
   const affiliateShareTooltip = t('Commission paid to your affiliates, deducted from your operator fee.')
+  const normalizedFeeRecipientWallet = feeRecipientWallet.trim().toLowerCase()
+  const normalizedDepositWallet = depositWalletAddress?.trim().toLowerCase() ?? null
+  const shouldShowDepositWalletButton = Boolean(normalizedDepositWallet)
+    && normalizedFeeRecipientWallet !== normalizedDepositWallet
+
+  function handleUseDepositWallet() {
+    if (depositWalletAddress) {
+      setFeeRecipientWallet(depositWalletAddress)
+    }
+  }
 
   return (
     <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
@@ -121,15 +131,30 @@ export default function AdminAffiliateSettingsForm({
           <Label htmlFor="fee_recipient_wallet">
             {t('Fee Wallet Address (Polygon)')}
           </Label>
-          <Input
-            id="fee_recipient_wallet"
-            name="fee_recipient_wallet"
-            maxLength={42}
-            value={feeRecipientWallet}
-            disabled={isPending}
-            readOnly
-            placeholder={t('0xabc')}
-          />
+          <div className="flex w-full items-stretch">
+            <Input
+              id="fee_recipient_wallet"
+              name="fee_recipient_wallet"
+              maxLength={42}
+              value={feeRecipientWallet}
+              disabled={isPending}
+              readOnly
+              placeholder={t('0xabc')}
+              className={shouldShowDepositWalletButton ? 'rounded-r-none border-r-0' : ''}
+            />
+            {shouldShowDepositWalletButton && (
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-l-none border-l-0 px-3"
+                disabled={isPending}
+                onClick={handleUseDepositWallet}
+              >
+                <WalletIcon className="size-4" aria-hidden />
+                {t('Use my deposit wallet')}
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

@@ -7,6 +7,12 @@ import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 const SYNC_BUILDER_FEES_PATH = '/set-builder-fees'
 const SYNC_BUILDER_FEES_TIMEOUT_MS = 330_000
 
+export interface SyncBuilderFeesPayload {
+  feeRecipientWallet: string
+  builderTakerFeeBps: number
+  builderMakerFeeBps: number
+}
+
 function getErrorMessage(payload: unknown) {
   if (!payload || typeof payload !== 'object') {
     return null
@@ -25,7 +31,7 @@ function getErrorMessage(payload: unknown) {
 export async function syncBuilderFeesForAdmin(user: {
   id: string
   address: string
-}) {
+}, payload: SyncBuilderFeesPayload) {
   const relayerUrl = process.env.RELAYER_URL
   if (!relayerUrl) {
     throw new Error(DEFAULT_ERROR_MESSAGE)
@@ -37,11 +43,13 @@ export async function syncBuilderFeesForAdmin(user: {
   }
 
   const timestamp = Math.floor(Date.now() / 1000)
+  const requestBody = JSON.stringify(payload)
   const signature = buildClobHmacSignature(
     tradingAuth.relayer.secret,
     timestamp,
     'POST',
     SYNC_BUILDER_FEES_PATH,
+    requestBody,
   )
 
   let response: Response
@@ -49,13 +57,15 @@ export async function syncBuilderFeesForAdmin(user: {
     response = await fetch(`${relayerUrl}${SYNC_BUILDER_FEES_PATH}`, {
       method: 'POST',
       headers: {
-        Accept: 'application/json',
-        KUEST_ADDRESS: user.address,
-        KUEST_API_KEY: tradingAuth.relayer.key,
-        KUEST_PASSPHRASE: tradingAuth.relayer.passphrase,
-        KUEST_TIMESTAMP: timestamp.toString(),
-        KUEST_SIGNATURE: signature,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'KUEST_ADDRESS': user.address,
+        'KUEST_API_KEY': tradingAuth.relayer.key,
+        'KUEST_PASSPHRASE': tradingAuth.relayer.passphrase,
+        'KUEST_TIMESTAMP': timestamp.toString(),
+        'KUEST_SIGNATURE': signature,
       },
+      body: requestBody,
       signal: AbortSignal.timeout(SYNC_BUILDER_FEES_TIMEOUT_MS),
     })
   }
@@ -64,8 +74,8 @@ export async function syncBuilderFeesForAdmin(user: {
     throw new Error(DEFAULT_ERROR_MESSAGE)
   }
 
-  const payload = await response.json().catch(() => null)
+  const responsePayload = await response.json().catch(() => null)
   if (!response.ok) {
-    throw new Error(getErrorMessage(payload) ?? DEFAULT_ERROR_MESSAGE)
+    throw new Error(getErrorMessage(responsePayload) ?? DEFAULT_ERROR_MESSAGE)
   }
 }

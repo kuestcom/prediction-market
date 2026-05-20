@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import * as React from 'react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminAffiliateSettingsForm from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm'
 
@@ -57,19 +58,44 @@ describe('AdminAffiliateSettingsForm', () => {
     mocks.updateAction.mockReset()
   })
 
-  it('defaults the fee wallet field to the deposit wallet when a legacy wallet is saved', () => {
+  it('shows the saved fee wallet and offers a shortcut to use the current deposit wallet', async () => {
     renderForm('0x2222222222222222222222222222222222222222')
 
     const input = screen.getByLabelText(/Fee Wallet Address \(Polygon\)/i) as HTMLInputElement
+    const button = screen.getByRole('button', { name: /Use my deposit wallet/i })
+    const user = userEvent.setup()
+
+    expect(input.value).toBe('0x2222222222222222222222222222222222222222')
+    expect(input).toHaveAttribute('readonly')
+
+    await user.click(button)
+
     expect(input.value).toBe(mocks.user.deposit_wallet_address)
-    expect(screen.queryByRole('button', { name: /Add my Deposit Wallet/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Use my deposit wallet/i })).toBeNull()
   })
 
-  it('defaults an empty fee wallet field to the deposit wallet', () => {
+  it('shows the shortcut when the fee wallet field is empty', async () => {
     renderForm()
 
     const input = screen.getByLabelText(/Fee Wallet Address \(Polygon\)/i) as HTMLInputElement
+    const button = screen.getByRole('button', { name: /Use my deposit wallet/i })
+    const user = userEvent.setup()
+
+    expect(input.value).toBe('')
+    expect(input).toHaveAttribute('readonly')
+
+    await user.click(button)
+
     expect(input.value).toBe(mocks.user.deposit_wallet_address)
-    expect(screen.queryByRole('button', { name: /Add my Deposit Wallet/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Use my deposit wallet/i })).toBeNull()
+  })
+
+  it('hides the shortcut when the fee wallet already matches the deposit wallet', () => {
+    renderForm(mocks.user.deposit_wallet_address)
+
+    const input = screen.getByLabelText(/Fee Wallet Address \(Polygon\)/i) as HTMLInputElement
+
+    expect(input.value).toBe(mocks.user.deposit_wallet_address)
+    expect(screen.queryByRole('button', { name: /Use my deposit wallet/i })).toBeNull()
   })
 })
