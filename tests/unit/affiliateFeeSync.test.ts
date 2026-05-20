@@ -16,6 +16,12 @@ vi.mock('@/lib/trading-auth/server', () => ({
 }))
 
 describe('syncBuilderFeesForAdmin', () => {
+  const payload = {
+    feeRecipientWallet: '0x1111111111111111111111111111111111111111',
+    builderTakerFeeBps: 250,
+    builderMakerFeeBps: 125,
+  }
+
   beforeEach(() => {
     vi.resetModules()
     vi.stubEnv('RELAYER_URL', 'https://relayer.test')
@@ -50,7 +56,7 @@ describe('syncBuilderFeesForAdmin', () => {
     await expect(syncBuilderFeesForAdmin({
       id: 'admin-1',
       address: '0x1111111111111111111111111111111111111111',
-    })).rejects.toThrow('builder taker fee exceeds cap')
+    }, payload)).rejects.toThrow('builder taker fee exceeds cap')
   })
 
   it('maps relayer transport failures to the default error', async () => {
@@ -62,7 +68,7 @@ describe('syncBuilderFeesForAdmin', () => {
     await expect(syncBuilderFeesForAdmin({
       id: 'admin-1',
       address: '0x1111111111111111111111111111111111111111',
-    })).rejects.toThrow(DEFAULT_ERROR_MESSAGE)
+    }, payload)).rejects.toThrow(DEFAULT_ERROR_MESSAGE)
     expect(errorSpy).toHaveBeenCalled()
 
     errorSpy.mockRestore()

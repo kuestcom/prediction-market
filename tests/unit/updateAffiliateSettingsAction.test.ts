@@ -105,6 +105,10 @@ describe('updateForkSettingsAction', () => {
     expect(mocks.syncBuilderFeesForAdmin).toHaveBeenCalledWith({
       id: 'admin-1',
       address: '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa',
+    }, {
+      feeRecipientWallet: '0x1111111111111111111111111111111111111111',
+      builderTakerFeeBps: 250,
+      builderMakerFeeBps: 125,
     })
     expect(mocks.touchSettings).toHaveBeenCalledTimes(1)
 
@@ -180,6 +184,10 @@ describe('updateForkSettingsAction', () => {
     expect(mocks.syncBuilderFeesForAdmin).toHaveBeenCalledWith({
       id: 'admin-1',
       address: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+    }, {
+      feeRecipientWallet: '0x2222222222222222222222222222222222222222',
+      builderTakerFeeBps: 250,
+      builderMakerFeeBps: 125,
     })
   })
 
