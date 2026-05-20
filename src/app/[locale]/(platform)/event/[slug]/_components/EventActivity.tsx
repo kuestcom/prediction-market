@@ -316,6 +316,12 @@ export default function EventActivity({ event }: EventActivityProps) {
   const minAmountFilterLabel = minAmountFilter === 'none'
     ? t('Min amount')
     : formatCurrency(Number.parseInt(minAmountFilter, 10) || 0, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  const isMinAmountFiltered = minAmountFilter !== 'none'
+  const selectedActivityMarket = activityMarkets[0]
+  const selectedActivityMarketLabel = resolvedActivityMarketFilter === ALL_ACTIVITY_MARKETS_VALUE
+    ? ''
+    : selectedActivityMarket ? getMarketDisplayLabel(selectedActivityMarket) : ''
+  const isMarketFiltered = selectedActivityMarketLabel.length > 0
 
   const {
     status,
@@ -392,6 +398,29 @@ export default function EventActivity({ event }: EventActivityProps) {
   function handleActivityMarketFilterChange(nextValue: string) {
     setInfiniteScrollError(null)
     setActivityMarketFilter(nextValue)
+  }
+
+  function resolveEmptyActivityMessage() {
+    if (isMarketFiltered && isMinAmountFiltered) {
+      return t('No activity found for {market} with minimum amount of {amount}.', {
+        amount: minAmountFilterLabel,
+        market: selectedActivityMarketLabel,
+      })
+    }
+
+    if (isMarketFiltered) {
+      return t('No trading activity yet for {market}.', {
+        market: selectedActivityMarketLabel,
+      })
+    }
+
+    if (isMinAmountFiltered) {
+      return t('No activity found with minimum amount of {amount}.', {
+        amount: minAmountFilterLabel,
+      })
+    }
+
+    return t('No trading activity yet for this event.')
   }
 
   if (!hasMarkets) {
@@ -482,15 +511,13 @@ export default function EventActivity({ event }: EventActivityProps) {
       {!loading && activities.length === 0 && (
         <div className="text-center">
           <div className="text-sm text-muted-foreground">
-            {minAmountFilter && minAmountFilter !== 'none'
-              ? t('No activity found with minimum amount of {amount}.', {
-                  amount: formatCurrency(Number.parseInt(minAmountFilter, 10) || 0, { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
-                })
-              : t('No trading activity yet for this event.')}
+            {resolveEmptyActivityMessage()}
           </div>
-          {minAmountFilter && minAmountFilter !== 'none' && (
+          {isMinAmountFiltered && (
             <div className="mt-2 text-xs text-muted-foreground">
-              {t('Try lowering the minimum amount filter to see more activity.')}
+              {isMarketFiltered
+                ? t('Try lowering the minimum amount filter or selecting another market.')
+                : t('Try lowering the minimum amount filter to see more activity.')}
             </div>
           )}
         </div>
