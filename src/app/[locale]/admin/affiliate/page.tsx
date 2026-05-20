@@ -9,7 +9,7 @@ import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes 
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getPublicAssetUrl } from '@/lib/storage'
-import { getThemeSiteSettingsFormState } from '@/lib/theme-settings'
+import { getFeeRecipientWalletFormValue } from '@/lib/theme-settings'
 
 interface AffiliateOverviewRow {
   affiliate_user_id: string
@@ -66,7 +66,7 @@ async function AdminAffiliateContent() {
     fetchKuestFeeSettings(),
   ])
   const affiliateFeeSettings = getAffiliateFeeSettings(allSettings)
-  const themeSiteSettings = getThemeSiteSettingsFormState(allSettings ?? undefined)
+  const initialFeeRecipientWallet = getFeeRecipientWalletFormValue(allSettings ?? undefined)
 
   const overview = (overviewData ?? []) as AffiliateOverviewRow[]
   const userIds = overview.map(row => row.affiliate_user_id)
@@ -150,7 +150,7 @@ async function AdminAffiliateContent() {
         builderTakerFeeBps={affiliateFeeSettings.builderTakerFeeBps}
         builderMakerFeeBps={affiliateFeeSettings.builderMakerFeeBps}
         affiliateShareBps={affiliateFeeSettings.affiliateShareBps}
-        initialFeeRecipientWallet={themeSiteSettings.feeRecipientWallet}
+        initialFeeRecipientWallet={initialFeeRecipientWallet}
         kuestFeeSettings={kuestFeeSettings}
         updatedAtLabel={updatedAtLabel}
         aggregate={aggregate}

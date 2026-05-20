@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   getCurrentUser: vi.fn(),
+  getSettings: vi.fn(),
   updateSettings: vi.fn(),
 }))
 
@@ -16,6 +17,7 @@ vi.mock('@/lib/db/queries/user', () => ({
 
 vi.mock('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
+    getSettings: (...args: any[]) => mocks.getSettings(...args),
     updateSettings: (...args: any[]) => mocks.updateSettings(...args),
   },
 }))
@@ -25,6 +27,7 @@ describe('updateForkSettingsAction', () => {
     vi.resetModules()
     mocks.revalidatePath.mockReset()
     mocks.getCurrentUser.mockReset()
+    mocks.getSettings.mockReset()
     mocks.updateSettings.mockReset()
   })
 
@@ -56,6 +59,7 @@ describe('updateForkSettingsAction', () => {
 
   it('saves affiliate fees and fee recipient wallet together', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.getSettings.mockResolvedValueOnce({ data: {}, error: null })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
     const { updateForkSettingsAction } = await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
@@ -78,5 +82,41 @@ describe('updateForkSettingsAction', () => {
       { group: 'general', key: 'fee_recipient_wallet', value: '0x1111111111111111111111111111111111111111' },
     ])
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/admin/affiliate')
+  })
+
+  it('only updates the wallet when fee values are unchanged', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.getSettings.mockResolvedValueOnce({
+      data: {
+        affiliate: {
+          builder_taker_fee_bps: { value: '250', updated_at: '2026-05-01T00:00:00.000Z' },
+          builder_maker_fee_bps: { value: '125', updated_at: '2026-05-01T00:00:00.000Z' },
+          affiliate_share_bps: { value: '1550', updated_at: '2026-05-01T00:00:00.000Z' },
+        },
+        general: {
+          fee_recipient_wallet: {
+            value: '0x1111111111111111111111111111111111111111',
+            updated_at: '2026-05-01T00:00:00.000Z',
+          },
+        },
+      },
+      error: null,
+    })
+    mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
+
+    const { updateForkSettingsAction } = await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
+    const formData = new FormData()
+    formData.set('builder_taker_fee_percent', '2.5')
+    formData.set('builder_maker_fee_percent', '1.25')
+    formData.set('affiliate_share_percent', '15.5')
+    formData.set('fee_recipient_wallet', '0x2222222222222222222222222222222222222222')
+
+    const result = await updateForkSettingsAction({ error: null }, formData)
+
+    expect(result).toEqual({ error: null })
+    expect(mocks.updateSettings).toHaveBeenCalledTimes(1)
+    expect(mocks.updateSettings.mock.calls[0][0]).toEqual([
+      { group: 'general', key: 'fee_recipient_wallet', value: '0x2222222222222222222222222222222222222222' },
+    ])
   })
 })

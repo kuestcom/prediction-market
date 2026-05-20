@@ -130,4 +130,18 @@ describe('theme settings runtime resolver', () => {
     expect(state.site.name).not.toBe('Legacy Theme Name')
     expect(state.site.description).not.toBe('Legacy Theme Description')
   })
+
+  it('reads the fee wallet directly without blanking it on unrelated invalid site settings', async () => {
+    const { getFeeRecipientWalletFormValue } = await import('@/lib/theme-settings')
+
+    expect(getFeeRecipientWalletFormValue({
+      general: {
+        site_support_url: { value: 'notaurl', updated_at: '2026-01-01T00:00:00.000Z' },
+        fee_recipient_wallet: {
+          value: '0x1111111111111111111111111111111111111111',
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+      },
+    })).toBe('0x1111111111111111111111111111111111111111')
+  })
 })

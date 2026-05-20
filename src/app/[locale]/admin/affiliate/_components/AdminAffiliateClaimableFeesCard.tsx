@@ -15,7 +15,6 @@ import { CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS } from '@/lib/contr
 import { baseUnitsToNumber } from '@/lib/data-api/fees'
 import { usdFormatter } from '@/lib/formatters'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
-import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import { buildClaimFeesCalls } from '@/lib/wallet/transactions'
@@ -81,7 +80,7 @@ export default function AdminAffiliateClaimableFeesCard({
     && connectedWalletAddress
     && normalizedFeeRecipientWalletLower === toLowerCaseAddress(connectedWalletAddress),
   )
-  const canUseSelectedWallet = canClaimWithDepositWallet || canClaimWithConnectedEoa
+  const requiresConnectedEoa = Boolean(normalizedFeeRecipientWallet && !canClaimWithDepositWallet)
 
   const refreshClaimable = useCallback(async () => {
     const requestId = ++requestIdRef.current
@@ -150,6 +149,12 @@ export default function AdminAffiliateClaimableFeesCard({
     return exchanges
   }, [mainClaimable, negRiskClaimable])
 
+  const hasClaimableBalance = claimableExchanges.length > 0
+  const isWrongConnectedWallet = Boolean(
+    requiresConnectedEoa
+    && connectedWalletAddress
+    && !canClaimWithConnectedEoa,
+  )
   const claimableValue = usdFormatter.format(baseUnitsToNumber(totalClaimable, 6))
   const connectWalletTooltip = normalizedFeeRecipientWallet
     ? t('You need to connect wallet {wallet} to withdraw.', {
@@ -163,19 +168,25 @@ export default function AdminAffiliateClaimableFeesCard({
       ? t('Refreshing...')
       : !normalizedFeeRecipientWallet
           ? null
-          : !canUseSelectedWallet
-              ? connectWalletTooltip
-              : claimableExchanges.length === 0
+          : isWrongConnectedWallet
+            ? connectWalletTooltip
+            : !hasClaimableBalance
                 ? t('No claimable fees found for this wallet.')
-                : !isConnected
-                    ? t('Connect wallet')
-                    : t('Claim fees')
+                : null
 
   const isButtonDisabled = isLoading
     || isClaiming
     || !normalizedFeeRecipientWallet
-    || !canUseSelectedWallet
-    || claimableExchanges.length === 0
+    || !hasClaimableBalance
+    || isWrongConnectedWallet
+
+  const buttonLabel = isClaiming
+    ? t('Claiming...')
+    : isLoading
+      ? t('Refreshing...')
+      : !isConnected
+          ? t('Connect wallet')
+          : t('Withdraw')
 
   async function submitDepositWalletClaim(exchanges: `0x${string}`[]) {
     if (!user?.address || !user.deposit_wallet_address) {
@@ -276,23 +287,23 @@ export default function AdminAffiliateClaimableFeesCard({
   return (
     <div className="rounded-lg bg-muted/40 p-4">
       <p className="text-xs text-muted-foreground uppercase">{t('Your Claimable fees')}</p>
-      <div className="mt-1 flex items-center gap-2">
+      <div className="mt-1 flex items-center justify-between gap-3">
         <p className="text-2xl font-semibold">{claimableValue}</p>
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="inline-flex">
               <Button
                 type="button"
-                variant="ghost"
-                size="icon"
-                className="size-8"
+                size="sm"
+                className="rounded-md disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
                 disabled={isButtonDisabled}
                 onClick={() => void handleClaim()}
-                aria-label={buttonTooltip ?? t('Claim fees')}
+                aria-label={buttonTooltip ?? buttonLabel}
               >
                 {isLoading || isClaiming
                   ? <Loader2Icon className="size-4 animate-spin" />
-                  : <ArrowDownToLineIcon className={cn('size-4', !buttonTooltip && 'text-muted-foreground')} />}
+                  : <ArrowDownToLineIcon className="size-4" />}
+                {buttonLabel}
               </Button>
             </span>
           </TooltipTrigger>

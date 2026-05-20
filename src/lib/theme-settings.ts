@@ -537,6 +537,17 @@ function getGeneralSettingsGroup(allSettings?: SettingsMap): SettingsGroup | und
   return allSettings?.[GENERAL_SETTINGS_GROUP]
 }
 
+export function getFeeRecipientWalletFormValue(allSettings?: SettingsMap): string {
+  const rawValue = getGeneralSettingsGroup(allSettings)?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value ?? null
+  const normalized = normalizeFeeRecipientWalletAddress(rawValue, 'Fee recipient wallet')
+
+  if (normalized.error) {
+    return typeof rawValue === 'string' ? rawValue.trim() : ''
+  }
+
+  return isZeroAddress(normalized.value) ? '' : (normalized.value ?? '')
+}
+
 function hasStoredThemeSettings(themeSettings?: SettingsGroup) {
   if (!themeSettings) {
     return false
@@ -667,9 +678,7 @@ export function getThemeSiteSettingsFormState(allSettings?: SettingsMap): ThemeS
       youtubeLink: normalized.data.youtubeLinkValue,
       supportUrl: normalized.data.supportUrlValue,
       customJavascriptCodes: normalized.data.customJavascriptCodes,
-      feeRecipientWallet: isZeroAddress(normalized.data.feeRecipientWalletValue)
-        ? ''
-        : normalized.data.feeRecipientWalletValue,
+      feeRecipientWallet: getFeeRecipientWalletFormValue(allSettings),
       lifiIntegrator,
       lifiApiKey: '',
       lifiApiKeyConfigured,

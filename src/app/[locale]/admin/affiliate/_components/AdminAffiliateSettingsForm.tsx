@@ -103,7 +103,7 @@ export default function AdminAffiliateSettingsForm({
     ? null
     : formatBpsPercent(kuestFeeSettings.makerFeeBps)
   const updatedAtTooltip = updatedAtLabel
-    ? t('Last updated {timestamp}', { timestamp: updatedAtLabel })
+    ? t('Last fees updated {timestamp}', { timestamp: updatedAtLabel })
     : null
   const affiliateShareTooltip = t('Commission paid to your affiliates, deducted from your operator fee.')
   const feeRecipientWalletTooltip = t('Transaction fees will be sent here. Using your deposit wallet avoids direct gas payments.')

@@ -128,6 +128,10 @@ export default function SettingsAffiliateFeeClaim() {
       await open()
       return
     }
+    if (!isConnected) {
+      await open()
+      return
+    }
     if (!depositWalletAddress) {
       openTradeRequirements()
       return
@@ -175,23 +179,14 @@ export default function SettingsAffiliateFeeClaim() {
         <div className="space-y-1">
           <h3 className="text-lg font-semibold">{t('Onchain fee claim')}</h3>
           <p className="text-sm text-muted-foreground">
-            {t('Claim your accrued fees from both exchanges in one action.')}
+            {t('Claim your accrued fees.')}
           </p>
           <p className="text-sm text-muted-foreground">
-            {t('Total claimable')}
-            :
-            {' '}
-            <span className="font-medium text-foreground">{formatCurrency(fromBaseUnits(totalClaimable))}</span>
-            {' '}
-            (
-            {t('Main')}
-            {' '}
-            {formatCurrency(fromBaseUnits(mainClaimable))}
-            {' • '}
-            {t('NegRisk')}
-            {' '}
-            {formatCurrency(fromBaseUnits(negRiskClaimable))}
-            )
+            <span className="font-medium text-foreground">
+              {t('Total claimable: {amount}', {
+                amount: formatCurrency(fromBaseUnits(totalClaimable)),
+              })}
+            </span>
           </p>
         </div>
         <Button

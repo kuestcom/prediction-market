@@ -7,6 +7,7 @@ import {
   AFFILIATE_SHARE_BPS_KEY,
   BUILDER_MAKER_FEE_BPS_KEY,
   BUILDER_TAKER_FEE_BPS_KEY,
+  getAffiliateFeeSettings,
 } from '@/lib/affiliate-fee-settings'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -75,12 +76,60 @@ export async function updateForkSettingsAction(
     return { error: feeRecipientWallet.error }
   }
 
-  const { error } = await SettingsRepository.updateSettings([
-    { group: AFFILIATE_SETTINGS_GROUP, key: BUILDER_TAKER_FEE_BPS_KEY, value: builderTakerFeeBps.toString() },
-    { group: AFFILIATE_SETTINGS_GROUP, key: BUILDER_MAKER_FEE_BPS_KEY, value: builderMakerFeeBps.toString() },
-    { group: AFFILIATE_SETTINGS_GROUP, key: AFFILIATE_SHARE_BPS_KEY, value: affiliateShareBps.toString() },
-    { group: 'general', key: 'fee_recipient_wallet', value: feeRecipientWallet.value ?? '' },
-  ])
+  const currentSettings = await SettingsRepository.getSettings()
+  if (currentSettings.error) {
+    return { error: DEFAULT_ERROR_MESSAGE }
+  }
+
+  const currentAffiliateFeeSettings = getAffiliateFeeSettings(currentSettings.data)
+  const currentFeeRecipientWalletRaw = currentSettings.data?.general?.fee_recipient_wallet?.value ?? null
+  const currentFeeRecipientWalletNormalized = normalizeFeeRecipientWalletAddress(
+    currentFeeRecipientWalletRaw,
+    'Fee recipient wallet',
+  )
+  const currentFeeRecipientWallet = currentFeeRecipientWalletNormalized.error
+    ? (typeof currentFeeRecipientWalletRaw === 'string' ? currentFeeRecipientWalletRaw.trim() : '')
+    : (currentFeeRecipientWalletNormalized.value ?? '')
+
+  const updates: Array<{ group: string, key: string, value: string }> = []
+
+  if (currentAffiliateFeeSettings.builderTakerFeeBps !== builderTakerFeeBps) {
+    updates.push({
+      group: AFFILIATE_SETTINGS_GROUP,
+      key: BUILDER_TAKER_FEE_BPS_KEY,
+      value: builderTakerFeeBps.toString(),
+    })
+  }
+
+  if (currentAffiliateFeeSettings.builderMakerFeeBps !== builderMakerFeeBps) {
+    updates.push({
+      group: AFFILIATE_SETTINGS_GROUP,
+      key: BUILDER_MAKER_FEE_BPS_KEY,
+      value: builderMakerFeeBps.toString(),
+    })
+  }
+
+  if (currentAffiliateFeeSettings.affiliateShareBps !== affiliateShareBps) {
+    updates.push({
+      group: AFFILIATE_SETTINGS_GROUP,
+      key: AFFILIATE_SHARE_BPS_KEY,
+      value: affiliateShareBps.toString(),
+    })
+  }
+
+  if (currentFeeRecipientWallet.toLowerCase() !== (feeRecipientWallet.value ?? '').toLowerCase()) {
+    updates.push({
+      group: 'general',
+      key: 'fee_recipient_wallet',
+      value: feeRecipientWallet.value ?? '',
+    })
+  }
+
+  if (updates.length === 0) {
+    return { error: null }
+  }
+
+  const { error } = await SettingsRepository.updateSettings(updates)
 
   if (error) {
     return { error: DEFAULT_ERROR_MESSAGE }

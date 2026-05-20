@@ -35,10 +35,10 @@ export default function AdminAffiliateContentClient({
   aggregate,
 }: AdminAffiliateContentClientProps) {
   const t = useExtracted()
-  const [feeRecipientWallet, setFeeRecipientWallet] = useState(initialFeeRecipientWallet)
+  const [draftFeeRecipientWallet, setDraftFeeRecipientWallet] = useState(initialFeeRecipientWallet)
 
   useEffect(() => {
-    setFeeRecipientWallet(initialFeeRecipientWallet)
+    setDraftFeeRecipientWallet(initialFeeRecipientWallet)
   }, [initialFeeRecipientWallet])
 
   return (
@@ -47,8 +47,8 @@ export default function AdminAffiliateContentClient({
         builderTakerFeeBps={builderTakerFeeBps}
         builderMakerFeeBps={builderMakerFeeBps}
         affiliateShareBps={affiliateShareBps}
-        feeRecipientWallet={feeRecipientWallet}
-        onFeeRecipientWalletChange={setFeeRecipientWallet}
+        feeRecipientWallet={draftFeeRecipientWallet}
+        onFeeRecipientWalletChange={setDraftFeeRecipientWallet}
         kuestFeeSettings={kuestFeeSettings}
         updatedAtLabel={updatedAtLabel}
       />
@@ -92,7 +92,7 @@ export default function AdminAffiliateContentClient({
               </Tooltip>
             </div>
           </div>
-          <AdminAffiliateClaimableFeesCard feeRecipientWallet={feeRecipientWallet} />
+          <AdminAffiliateClaimableFeesCard feeRecipientWallet={initialFeeRecipientWallet} />
         </div>
       </div>
     </section>
