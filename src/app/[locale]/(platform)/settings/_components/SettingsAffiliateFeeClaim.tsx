@@ -178,9 +178,9 @@ export default function SettingsAffiliateFeeClaim() {
     <div className="rounded-lg border p-4 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <h3 className="text-lg font-semibold">{t('Onchain fee claim')}</h3>
+          <h3 className="text-lg font-semibold">{t('Affiliate Commissions')}</h3>
           <p className="text-sm text-muted-foreground">
-            {t('Total claimable: {amount}', {
+            {t('{amount} available to claim', {
               amount: formatCurrency(fromBaseUnits(totalClaimable)),
             })}
           </p>

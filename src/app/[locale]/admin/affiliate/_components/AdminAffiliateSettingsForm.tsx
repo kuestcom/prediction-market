@@ -120,6 +120,43 @@ export default function AdminAffiliateSettingsForm({
       </div>
 
       <div className="grid gap-4">
+        <div className="grid gap-2">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="fee_recipient_wallet">
+              {t('Fee Wallet Address (Polygon)')}
+            </Label>
+            <AdminInfoTooltip content={feeRecipientWalletTooltip} />
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              id="fee_recipient_wallet"
+              name="fee_recipient_wallet"
+              maxLength={42}
+              value={feeRecipientWallet}
+              onChange={event => onFeeRecipientWalletChange(event.target.value)}
+              disabled={isPending}
+              placeholder={t('0xabc')}
+              className="sm:flex-1"
+            />
+            {shouldShowDepositWalletButton && (
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0"
+                disabled={isPending || !canUseDepositWallet}
+                onClick={() => {
+                  if (depositWalletAddress) {
+                    onFeeRecipientWalletChange(depositWalletAddress)
+                  }
+                }}
+              >
+                <WalletIcon className="size-4" />
+                {t('Add my Deposit Wallet')}
+              </Button>
+            )}
+          </div>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
             <Label htmlFor="builder_taker_fee_percent">{t('Taker fee (%)')}</Label>
@@ -159,66 +196,30 @@ export default function AdminAffiliateSettingsForm({
           </div>
         </div>
 
-        <div className="grid gap-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="affiliate_share_percent">{t('Affiliate share (%)')}</Label>
-            <AdminInfoTooltip content={affiliateShareTooltip} />
-          </div>
-          <Input
-            id="affiliate_share_percent"
-            name="affiliate_share_percent"
-            type="number"
-            step="0.5"
-            min="0"
-            max="100"
-            defaultValue={(affiliateShareBps / 100).toFixed(2)}
-            disabled={isPending}
-          />
-        </div>
-
-        <div className="grid gap-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="fee_recipient_wallet">
-              {t('Fee Wallet Address (Polygon)')}
-            </Label>
-            <AdminInfoTooltip content={feeRecipientWalletTooltip} />
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <div className="grid gap-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="affiliate_share_percent">{t('Affiliate share (%)')}</Label>
+              <AdminInfoTooltip content={affiliateShareTooltip} />
+            </div>
             <Input
-              id="fee_recipient_wallet"
-              name="fee_recipient_wallet"
-              maxLength={42}
-              value={feeRecipientWallet}
-              onChange={event => onFeeRecipientWalletChange(event.target.value)}
+              id="affiliate_share_percent"
+              name="affiliate_share_percent"
+              type="number"
+              step="0.5"
+              min="0"
+              max="100"
+              defaultValue={(affiliateShareBps / 100).toFixed(2)}
               disabled={isPending}
-              placeholder={t('0xabc')}
-              className="sm:flex-1"
             />
-            {shouldShowDepositWalletButton && (
-              <Button
-                type="button"
-                variant="outline"
-                className="shrink-0"
-                disabled={isPending || !canUseDepositWallet}
-                onClick={() => {
-                  if (depositWalletAddress) {
-                    onFeeRecipientWalletChange(depositWalletAddress)
-                  }
-                }}
-              >
-                <WalletIcon className="size-4" />
-                {t('Add my Deposit Wallet')}
-              </Button>
-            )}
           </div>
+          <Button type="submit" className="w-full sm:w-40" disabled={isPending}>
+            {isPending ? t('Saving...') : t('Save changes')}
+          </Button>
         </div>
       </div>
 
       {state.error && <InputError message={state.error} />}
-
-      <Button type="submit" className="ms-auto w-40" disabled={isPending}>
-        {isPending ? t('Saving...') : t('Save changes')}
-      </Button>
     </Form>
   )
 }

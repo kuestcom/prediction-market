@@ -173,7 +173,7 @@ export default function AdminAffiliateClaimableFeesCard({
           : isWrongConnectedWallet
             ? connectWalletTooltip
             : !hasMinimumClaimableBalance
-                ? t('Claim fees')
+                ? t('You need at least $1 to claim')
                 : null
 
   const isButtonDisabled = isLoading
@@ -256,7 +256,7 @@ export default function AdminAffiliateClaimableFeesCard({
     }
 
     if (!hasMinimumClaimableBalance || !claimableExchanges.length) {
-      toast.info(t('Claim fees'))
+      toast.info(t('You need at least $1 to claim'))
       return
     }
 
@@ -289,7 +289,7 @@ export default function AdminAffiliateClaimableFeesCard({
   return (
     <div className="rounded-lg bg-muted/40 p-4">
       <p className="text-xs text-muted-foreground uppercase">{t('Your Claimable fees')}</p>
-      <div className="mt-1 flex items-center justify-between gap-3">
+      <div className="mt-1 flex items-center gap-2">
         <p className="text-2xl font-semibold">{claimableValue}</p>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -298,7 +298,7 @@ export default function AdminAffiliateClaimableFeesCard({
                 type="button"
                 size="icon"
                 className="
-                  rounded-md bg-primary text-primary-foreground
+                  size-8 rounded-md bg-primary text-primary-foreground
                   hover:bg-primary/90
                   disabled:bg-primary disabled:text-primary-foreground disabled:opacity-100
                 "
@@ -307,8 +307,8 @@ export default function AdminAffiliateClaimableFeesCard({
                 aria-label={buttonTooltip ?? buttonAriaLabel}
               >
                 {isLoading || isClaiming
-                  ? <Loader2Icon className="size-4 animate-spin" />
-                  : <ArrowDownToLineIcon className="size-4" />}
+                  ? <Loader2Icon className="size-3.5 animate-spin" />
+                  : <ArrowDownToLineIcon className="size-3.5" />}
               </Button>
             </span>
           </TooltipTrigger>

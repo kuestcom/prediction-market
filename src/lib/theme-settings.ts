@@ -541,7 +541,7 @@ export function getFeeRecipientWalletFormValue(allSettings?: SettingsMap): strin
   const rawValue = getGeneralSettingsGroup(allSettings)?.[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value
 
   if (rawValue == null) {
-    return DEFAULT_FEE_RECEIVER_WALLET_ADDRESS
+    return ''
   }
 
   const normalized = normalizeFeeRecipientWalletAddress(rawValue, 'Fee recipient wallet')

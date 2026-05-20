@@ -145,14 +145,13 @@ describe('theme settings runtime resolver', () => {
     })).toBe('0x1111111111111111111111111111111111111111')
   })
 
-  it('keeps the default fee wallet when no fee recipient override is stored', async () => {
+  it('keeps the fee wallet empty when no fee recipient override is stored', async () => {
     const { getFeeRecipientWalletFormValue } = await import('@/lib/theme-settings')
-    const { DEFAULT_FEE_RECEIVER_WALLET_ADDRESS } = await import('@/lib/contracts')
 
     expect(getFeeRecipientWalletFormValue({
       general: {
         site_support_url: { value: 'https://kuest.com/support', updated_at: '2026-01-01T00:00:00.000Z' },
       },
-    })).toBe(DEFAULT_FEE_RECEIVER_WALLET_ADDRESS)
+    })).toBe('')
   })
 })
