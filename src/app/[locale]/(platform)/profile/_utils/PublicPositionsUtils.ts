@@ -515,6 +515,7 @@ export async function fetchLockedSharesByCondition(markets: MergeableMarket[]): 
     }
     catch (error) {
       console.error('Failed to fetch open orders for mergeable lock calculation.', error)
+      throw error
     }
   }))
 

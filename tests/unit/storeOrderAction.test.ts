@@ -162,7 +162,7 @@ describe('storeOrderAction', () => {
     })
   })
 
-  it('submits to CLOB, updates tags, and schedules local order creation', async () => {
+  it('submits to CLOB, updates tags, and persists order locally after clob success', async () => {
     process.env.CLOB_URL = 'https://clob.local'
     const proxy = address('01')
 
@@ -176,6 +176,7 @@ describe('storeOrderAction', () => {
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
       clob: { key: 'k', passphrase: 'p', secret: 's' },
     })
+    mocks.createOrder.mockResolvedValueOnce({ data: { id: 'local-1' }, error: null })
 
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({
@@ -204,7 +205,6 @@ describe('storeOrderAction', () => {
     expect(fetchMock).toHaveBeenCalled()
     expect(mocks.updateTag).toHaveBeenCalledTimes(2)
 
-    await new Promise(resolve => setTimeout(resolve, 0))
 
     expect(mocks.createOrder).toHaveBeenCalledWith(expect.objectContaining({
       clob_order_id: 'clob-123',
@@ -247,5 +247,43 @@ describe('storeOrderAction', () => {
     expect(result).toEqual({
       error: 'Something went wrong while processing your order. Please try again.',
     })
+  })
+
+  it('returns error when local persistence fails after clob accepts order', async () => {
+    process.env.CLOB_URL = 'https://clob.local'
+    const proxy = address('01')
+
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'user-1',
+      address: address('aa'),
+      proxy_wallet_address: proxy,
+      referred_by_user_id: null,
+      settings: { trading: { market_order_type: 'FAK' } },
+    })
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
+      clob: { key: 'k', passphrase: 'p', secret: 's' },
+    })
+    mocks.createOrder.mockResolvedValueOnce({ data: null, error: 'db down' })
+
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      status: 201,
+      statusText: 'Created',
+      ok: true,
+      json: async () => ({ orderId: 'clob-456' }),
+    })
+    globalThis.fetch = fetchMock as any
+
+    const { storeOrderAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
+    const result = await storeOrderAction(basePayload({
+      maker: proxy,
+      signer: proxy,
+      type: 'MARKET',
+    }))
+
+    expect(result).toEqual({
+      error: 'Something went wrong while processing your order. Please try again.',
+    })
+    expect(mocks.createOrder).toHaveBeenCalled()
+    expect(mocks.updateTag).not.toHaveBeenCalled()
   })
 })
