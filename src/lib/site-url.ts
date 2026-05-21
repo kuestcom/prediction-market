@@ -1,7 +1,7 @@
 const HAS_PROTOCOL_PATTERN = /^[a-z][a-z0-9+.-]*:\/\//i
 const LOCAL_HOST_PATTERN = /^(?:localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0)(?::\d+)?(?:\/|$)/i
 
-function normalizeSiteUrl(value) {
+function normalizeSiteUrl(value: string): string {
   if (typeof value !== 'string' || !value.trim()) {
     throw new Error('SITE_URL must be a non-empty string')
   }
@@ -27,25 +27,24 @@ function normalizeSiteUrl(value) {
   return `${parsed.protocol}//${parsed.host}${normalizedPath}${parsed.search}${parsed.hash}`
 }
 
-function resolveSiteUrl(env = process.env) {
-  const explicitSiteUrl = typeof env.SITE_URL === 'string' && env.SITE_URL.trim()
-    ? env.SITE_URL
-    : null
-  const vercelProductionUrl = typeof env.VERCEL_PROJECT_PRODUCTION_URL === 'string' && env.VERCEL_PROJECT_PRODUCTION_URL.trim()
-    ? env.VERCEL_PROJECT_PRODUCTION_URL
-    : null
-
-  if (explicitSiteUrl) {
-    return normalizeSiteUrl(explicitSiteUrl)
+function resolveSiteUrl(env: NodeJS.ProcessEnv = process.env): string {
+  if (typeof env.SITE_URL === 'string' && env.SITE_URL.trim()) {
+    return normalizeSiteUrl(env.SITE_URL)
   }
 
-  if (vercelProductionUrl) {
-    return normalizeSiteUrl(vercelProductionUrl)
+  if (
+    typeof env.VERCEL_PROJECT_PRODUCTION_URL === 'string'
+    && env.VERCEL_PROJECT_PRODUCTION_URL.trim()
+  ) {
+    return normalizeSiteUrl(env.VERCEL_PROJECT_PRODUCTION_URL)
   }
 
   return 'http://localhost:3000'
 }
 
-module.exports = {
+const siteUrlUtils = {
   resolveSiteUrl,
 }
+
+export { resolveSiteUrl }
+export default siteUrlUtils

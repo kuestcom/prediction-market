@@ -8,7 +8,7 @@ const config: KnipConfig = {
     'scripts/**',
     'src/components/ui/**',
     'src/lib/image/**',
-    'src/lib/site-url.js',
+    'src/lib/site-url.ts',
     'vitest.setup.ts',
   ],
   ignoreDependencies: [

@@ -43,7 +43,7 @@ async function loadScriptDependencies(): Promise<void> {
     import('node:fs'),
     import('node:path'),
     import('postgres'),
-    import('../src/lib/site-url.js'),
+    import('../src/lib/site-url'),
   ])
   const postgresImport = postgresModule as unknown as { default?: Postgres } & Postgres
   const siteUrlImport = siteUrlModule as unknown as {
@@ -57,7 +57,7 @@ async function loadScriptDependencies(): Promise<void> {
   const importedResolveSiteUrl = siteUrlImport.default?.resolveSiteUrl ?? siteUrlImport.resolveSiteUrl
 
   if (!importedResolveSiteUrl) {
-    throw new Error('Failed to load resolveSiteUrl from src/lib/site-url.js')
+    throw new Error('Failed to load resolveSiteUrl from src/lib/site-url.ts')
   }
 
   resolveSiteUrl = importedResolveSiteUrl
