@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+import { isAddress, zeroAddress } from 'viem'
 import SettingsSdkDownloadsContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkDownloadsContent'
-import { getAffiliateFeeSettings } from '@/lib/affiliate-fee-settings'
+import { addressToBuilderCode } from '@/lib/builder-code'
+import { DEFAULT_FEE_RECEIVER_WALLET_ADDRESS } from '@/lib/contracts'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { getBlockedCountriesFromSettings } from '@/lib/geoblock-settings'
@@ -33,17 +35,19 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
 
   const { data: allSettings } = await SettingsRepository.getSettings()
   const siteUrl = resolveSiteUrl(process.env)
-  const affiliateFeeSettings = getAffiliateFeeSettings(allSettings)
-  const feeReceiver = allSettings?.general?.fee_recipient_wallet?.value || ''
+  const feeReceiverSetting = allSettings?.general?.fee_recipient_wallet?.value
+  const feeReceiver
+    = feeReceiverSetting && isAddress(feeReceiverSetting) && feeReceiverSetting.toLowerCase() !== zeroAddress
+      ? feeReceiverSetting
+      : DEFAULT_FEE_RECEIVER_WALLET_ADDRESS
+  const builderCode = addressToBuilderCode(feeReceiver)
   const geoblock = getBlockedCountriesFromSettings(allSettings ?? undefined).length > 0
 
   function buildDownloadUrl(language: 'python' | 'rust' | 'typescript') {
     const url = new URL('/download', SDK_DOWNLOAD_URL)
     url.searchParams.set('language', language)
     url.searchParams.set('site_url', siteUrl)
-    url.searchParams.set('builder_taker_fee_bps', affiliateFeeSettings.builderTakerFeeBps.toString())
-    url.searchParams.set('builder_maker_fee_bps', affiliateFeeSettings.builderMakerFeeBps.toString())
-    url.searchParams.set('fee_receiver', feeReceiver)
+    url.searchParams.set('builder_code', builderCode)
     url.searchParams.set('geoblock', geoblock ? 'true' : 'false')
     return url.toString()
   }

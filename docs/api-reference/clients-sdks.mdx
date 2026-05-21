@@ -30,7 +30,7 @@ description: Official SDKs for interacting with Kuest CLOB services in Python, R
 </Cards>
 
 <Callout type="info">
-  Download personalized SDK packages from <a href="/settings/sdks">Settings → SDKs</a> to receive your site URL, fee settings, and geoblock behavior prefilled.
+  Download personalized SDK packages from <a href="/settings/sdks">Settings → SDKs</a> to receive your site URL, builder attribution, and geoblock behavior prefilled.
 </Callout>
 
 ## Python quickstart
@@ -82,4 +82,6 @@ Use <a href="/settings/sdks">Settings → SDKs</a> to download the TypeScript pa
 
 - Review [Authentication](/docs/api-reference/authentication) before placing orders.
 - Trading uses Deposit Wallet orders with signature type 3.
+- Personalized SDKs include the fork builder code automatically; do not add fee receiver or fee bps fields to order payloads.
+- Affiliate/referral setup is handled onchain by the app onboarding flow and is not an order payload field.
 - USDC is used as settlement collateral.
