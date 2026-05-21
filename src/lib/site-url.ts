@@ -27,7 +27,7 @@ function normalizeSiteUrl(value: string): string {
   return `${parsed.protocol}//${parsed.host}${normalizedPath}${parsed.search}${parsed.hash}`
 }
 
-function resolveSiteUrl(env: NodeJS.ProcessEnv = process.env): string {
+export default function resolveSiteUrl(env: NodeJS.ProcessEnv = process.env): string {
   if (typeof env.SITE_URL === 'string' && env.SITE_URL.trim()) {
     return normalizeSiteUrl(env.SITE_URL)
   }
@@ -41,5 +41,3 @@ function resolveSiteUrl(env: NodeJS.ProcessEnv = process.env): string {
 
   return 'http://localhost:3000'
 }
-
-export default resolveSiteUrl

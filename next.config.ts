@@ -2,11 +2,13 @@ import type { NextConfig } from 'next'
 import { withSentryConfig } from '@sentry/nextjs'
 import { createMDX } from 'fumadocs-mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
+import { resolveCommitSha } from '@/lib/git'
 import { getOptimizedImageHostPatterns } from '@/lib/image/image-optimization'
 import resolveSiteUrl from './src/lib/site-url'
 
 const siteUrl = resolveSiteUrl(process.env)
 const optimizedImageHostPatterns = getOptimizedImageHostPatterns(process.env)
+const commitSha = resolveCommitSha()
 
 const config: NextConfig = {
   output: process.env.VERCEL_ENV ? undefined : 'standalone',
@@ -80,6 +82,7 @@ const config: NextConfig = {
     ]
   },
   env: {
+    COMMIT_SHA: commitSha,
     IS_VERCEL: process.env.VERCEL_ENV ? 'true' : 'false',
     SITE_URL: siteUrl,
     SENTRY_DSN: process.env.SENTRY_DSN,

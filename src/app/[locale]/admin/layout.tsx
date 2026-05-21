@@ -26,6 +26,10 @@ export default async function AdminLayout({ params, children }: LayoutProps<'/[l
             {children}
           </div>
         </div>
+        <p className="fixed bottom-2 mt-4 text-sm text-muted-foreground">
+          v.
+          {process.env.COMMIT_SHA}
+        </p>
       </main>
     </AppKitProvider>
   )
