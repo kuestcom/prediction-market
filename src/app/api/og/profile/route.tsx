@@ -9,13 +9,12 @@ import { UserRepository } from '@/lib/db/queries/user'
 import { truncateAddress } from '@/lib/formatters'
 import { normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
-import siteUrlUtils from '@/lib/site-url'
+import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 const OG_IMAGE_WIDTH = 1200
 const OG_IMAGE_HEIGHT = 630
 const DATA_API_URL = process.env.DATA_URL ?? ''
-const { resolveSiteUrl } = siteUrlUtils
 
 interface ProfilePositionRow {
   title: string

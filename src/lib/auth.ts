@@ -12,7 +12,7 @@ import { isAdminWallet } from '@/lib/admin'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { db } from '@/lib/drizzle'
 import { reownProjectId } from '@/lib/reown-project-id'
-import siteUrlUtils from '@/lib/site-url'
+import resolveSiteUrl from '@/lib/site-url'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { DEFAULT_THEME_SITE_NAME } from '@/lib/theme-site-identity'
 import { ensureUserTradingAuthSecretFingerprint } from '@/lib/trading-auth/server'
@@ -26,7 +26,6 @@ const TRUST_DEVICE_COOKIE_MAX_AGE = 720 * 60 * 60
 const TWO_FACTOR_PENDING_MAX_AGE = 3 * 60
 const AFFILIATE_COOKIE_NAME = 'platform_affiliate'
 const AFFILIATE_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
-const { resolveSiteUrl } = siteUrlUtils
 const SITE_URL = resolveSiteUrl(process.env)
 const siteUrlObject = new URL(SITE_URL)
 const SIWE_DOMAIN = siteUrlObject.host

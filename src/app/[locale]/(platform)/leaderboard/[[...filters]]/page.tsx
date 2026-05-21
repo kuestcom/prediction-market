@@ -12,10 +12,8 @@ import {
   PERIOD_OPTIONS,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
-import siteUrlUtils from '@/lib/site-url'
+import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
-
-const { resolveSiteUrl } = siteUrlUtils
 
 function buildLocalizedPagePath(path: string, locale: SupportedLocale) {
   if (locale === DEFAULT_LOCALE) {

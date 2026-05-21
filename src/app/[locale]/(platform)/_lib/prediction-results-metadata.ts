@@ -1,8 +1,6 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
-import siteUrlUtils from '@/lib/site-url'
-
-const { resolveSiteUrl } = siteUrlUtils
+import resolveSiteUrl from '@/lib/site-url'
 
 export function buildLocalizedPagePath(path: string, locale: SupportedLocale) {
   if (locale === DEFAULT_LOCALE) {

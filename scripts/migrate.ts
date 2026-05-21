@@ -9,6 +9,7 @@ type Postgres = typeof import('postgres')
 type ResolveSiteUrl = (env?: NodeJS.ProcessEnv) => string
 type Sql = ReturnType<Postgres>
 type ReservedSql = Awaited<ReturnType<Sql['reserve']>>
+const SITE_URL_MODULE_PATH = '../src/lib/site-url.ts'
 
 let fs: NodeFs
 let path: NodePath
@@ -43,18 +44,18 @@ async function loadScriptDependencies(): Promise<void> {
     import('node:fs'),
     import('node:path'),
     import('postgres'),
-    import('../src/lib/site-url'),
+    import(SITE_URL_MODULE_PATH),
   ])
   const postgresImport = postgresModule as unknown as { default?: Postgres } & Postgres
   const siteUrlImport = siteUrlModule as unknown as {
-    default?: { resolveSiteUrl: ResolveSiteUrl }
+    default?: ResolveSiteUrl
     resolveSiteUrl?: ResolveSiteUrl
   }
 
   fs = fsModule
   path = pathModule
   postgres = postgresImport.default ?? postgresImport
-  const importedResolveSiteUrl = siteUrlImport.default?.resolveSiteUrl ?? siteUrlImport.resolveSiteUrl
+  const importedResolveSiteUrl = siteUrlImport.default ?? siteUrlImport.resolveSiteUrl
 
   if (!importedResolveSiteUrl) {
     throw new Error('Failed to load resolveSiteUrl from src/lib/site-url.ts')

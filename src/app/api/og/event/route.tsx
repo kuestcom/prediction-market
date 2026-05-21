@@ -10,10 +10,8 @@ import { EventRepository } from '@/lib/db/queries/event'
 import { formatCentsLabel, formatCompactCurrency, formatPercent } from '@/lib/formatters'
 import { resolveOutcomeButtonTheme } from '@/lib/outcome-theme'
 import { readResponseBodyWithLimit } from '@/lib/read-response-body-with-limit'
-import siteUrlUtils from '@/lib/site-url'
+import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
-
-const { resolveSiteUrl } = siteUrlUtils
 
 const IMAGE_WIDTH = 1200
 const IMAGE_HEIGHT = 630

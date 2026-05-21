@@ -14,13 +14,11 @@ import { openSauceOne } from '@/lib/fonts'
 import { loadGlobalAnnouncementSettings } from '@/lib/global-announcement-settings'
 import { IS_TEST_MODE } from '@/lib/network'
 import { resolvePwaThemeColors } from '@/lib/pwa-colors'
-import siteUrlUtils from '@/lib/site-url'
+import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 import { AppProviders } from '@/providers/AppProviders'
 import SiteIdentityProvider from '@/providers/SiteIdentityProvider'
 import '../globals.css'
-
-const { resolveSiteUrl } = siteUrlUtils
 
 export async function generateViewport(): Promise<Viewport> {
   const runtimeTheme = await loadRuntimeThemeState()

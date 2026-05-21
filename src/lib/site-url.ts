@@ -42,9 +42,4 @@ function resolveSiteUrl(env: NodeJS.ProcessEnv = process.env): string {
   return 'http://localhost:3000'
 }
 
-const siteUrlUtils = {
-  resolveSiteUrl,
-}
-
-export { resolveSiteUrl }
-export default siteUrlUtils
+export default resolveSiteUrl

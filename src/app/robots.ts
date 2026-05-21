@@ -1,7 +1,5 @@
 import type { MetadataRoute } from 'next'
-import siteUrlUtils from '@/lib/site-url'
-
-const { resolveSiteUrl } = siteUrlUtils
+import resolveSiteUrl from '@/lib/site-url'
 
 export default function robots(): MetadataRoute.Robots {
   const siteUrl = resolveSiteUrl(process.env)

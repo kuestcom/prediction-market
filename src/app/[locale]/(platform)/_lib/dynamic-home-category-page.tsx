@@ -17,10 +17,8 @@ import {
   findDynamicHomeSubcategoryBySlug,
   getMainTagSeoTitle,
 } from '@/lib/platform-routing'
-import siteUrlUtils from '@/lib/site-url'
+import resolveSiteUrl from '@/lib/site-url'
 import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
-
-const { resolveSiteUrl } = siteUrlUtils
 
 async function getMainTags(locale: SupportedLocale) {
   const { data: mainTags } = await loadPlatformMainTags(locale)

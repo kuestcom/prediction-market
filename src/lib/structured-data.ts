@@ -5,11 +5,9 @@ import type { Event } from '@/types'
 import { buildEventOgImageUrl } from '@/lib/event-open-graph'
 import { withLocalePrefix } from '@/lib/locale-path'
 import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
-import siteUrlUtils from '@/lib/site-url'
+import resolveSiteUrl from '@/lib/site-url'
 import { getSportsVerticalConfig, resolveSportsVerticalFromTags } from '@/lib/sports-vertical'
 import { getThemeSiteSameAs } from '@/lib/theme-site-identity'
-
-const { resolveSiteUrl } = siteUrlUtils
 
 export interface StructuredDataNode {
   [key: string]: unknown

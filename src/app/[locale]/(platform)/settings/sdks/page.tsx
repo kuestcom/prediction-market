@@ -6,9 +6,8 @@ import { getAffiliateFeeSettings } from '@/lib/affiliate-fee-settings'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { getBlockedCountriesFromSettings } from '@/lib/geoblock-settings'
-import siteUrlUtils from '@/lib/site-url'
+import resolveSiteUrl from '@/lib/site-url'
 
-const { resolveSiteUrl } = siteUrlUtils
 const SDK_DOWNLOAD_URL = process.env.SDK_DOWNLOAD_URL!
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/settings/sdks'>): Promise<Metadata> {

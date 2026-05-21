@@ -6,10 +6,8 @@ import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { loadEventPageShellData } from '@/lib/event-page-data'
 import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
-import siteUrlUtils from '@/lib/site-url'
+import resolveSiteUrl from '@/lib/site-url'
 import 'server-only'
-
-const { resolveSiteUrl } = siteUrlUtils
 
 interface BuildEventPageMetadataOptions {
   eventSlug: string

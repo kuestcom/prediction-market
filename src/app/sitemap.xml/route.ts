@@ -1,7 +1,5 @@
-import siteUrlUtils from '@/lib/site-url'
+import resolveSiteUrl from '@/lib/site-url'
 import { getSitemapIndexEntries } from '@/lib/sitemap'
-
-const { resolveSiteUrl } = siteUrlUtils
 
 const XML_CONTENT_TYPE = 'application/xml; charset=utf-8'
 

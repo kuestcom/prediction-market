@@ -18,7 +18,7 @@ import {
   validateGlobalAnnouncementInput,
 } from '@/lib/global-announcement-settings'
 import { reportOperatorDomainSnapshot } from '@/lib/operator-domain-register'
-import siteUrlUtils from '@/lib/site-url'
+import resolveSiteUrl from '@/lib/site-url'
 import { uploadPublicAsset } from '@/lib/storage'
 import { normalizeTermsOfServicePdfPath, TERMS_OF_SERVICE_PDF_PATH_KEY } from '@/lib/terms-of-service'
 import { validateThemeSiteSettingsInput } from '@/lib/theme-settings'
@@ -29,7 +29,6 @@ const MAX_PWA_ICON_FILE_SIZE = 2 * 1024 * 1024
 const ACCEPTED_PWA_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
 const MAX_TERMS_OF_SERVICE_PDF_FILE_SIZE = 2 * 1024 * 1024
 const GEOBLOCK_SYNC_URL = process.env.GEOBLOCK_URL!
-const { resolveSiteUrl } = siteUrlUtils
 
 export interface GeneralSettingsActionState {
   error: string | null

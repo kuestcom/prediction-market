@@ -3,7 +3,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { withLocalePrefix } from '@/lib/locale-path'
-import siteUrlUtils from '@/lib/site-url'
+import resolveSiteUrl from '@/lib/site-url'
 import {
   ACTIVE_EVENTS_SITEMAP_PREFIX,
   BASE_SITEMAP_ID,
@@ -15,8 +15,6 @@ import {
   getSitemapIds,
   PREDICTIONS_SITEMAP_PREFIX,
 } from '@/lib/sitemap'
-
-const { resolveSiteUrl } = siteUrlUtils
 
 const BASE_PATHS = [
   '/',

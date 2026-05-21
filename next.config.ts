@@ -3,9 +3,8 @@ import { withSentryConfig } from '@sentry/nextjs'
 import { createMDX } from 'fumadocs-mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
 import { getOptimizedImageHostPatterns } from '@/lib/image/image-optimization'
-import siteUrlUtils from './src/lib/site-url'
+import resolveSiteUrl from './src/lib/site-url'
 
-const { resolveSiteUrl } = siteUrlUtils
 const siteUrl = resolveSiteUrl(process.env)
 const optimizedImageHostPatterns = getOptimizedImageHostPatterns(process.env)
 
