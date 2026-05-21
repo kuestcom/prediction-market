@@ -142,17 +142,26 @@ async function applyMigrations(sql, isSupabase) {
 
   console.log(`Found ${migrationFiles.length} migration files`)
 
-  for (const file of migrationFiles) {
+  const appliedMigrationRows = await sql`SELECT version FROM migrations`
+  const appliedMigrationVersions = new Set(appliedMigrationRows.map(row => row.version))
+  const pendingMigrationFiles = migrationFiles.filter((file) => {
     const version = file.replace('.sql', '')
+    return !appliedMigrationVersions.has(version)
+  })
 
-    const result = await sql`
-      SELECT version FROM migrations WHERE version = ${version}
-    `
+  const skippedMigrationCount = migrationFiles.length - pendingMigrationFiles.length
 
-    if (result.length > 0) {
-      console.log(`⏭️ Skipping ${file} (already applied)`)
-      continue
-    }
+  if (skippedMigrationCount > 0) {
+    console.log(`⏭️ Skipping ${skippedMigrationCount} already applied migrations`)
+  }
+
+  if (pendingMigrationFiles.length === 0) {
+    console.log('No pending migrations')
+    return
+  }
+
+  for (const file of pendingMigrationFiles) {
+    const version = file.replace('.sql', '')
 
     console.log(`🔄 Applying ${file}`)
     const rawMigrationSql = fs.readFileSync(
