@@ -20,7 +20,7 @@
     "test:e2e": "npx playwright test",
     "test:unit": "vitest run",
     "prepare": "husky",
-    "db:push": "node scripts/migrate.js"
+    "db:push": "node scripts/migrate.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1044.0",

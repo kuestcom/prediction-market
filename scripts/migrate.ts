@@ -1,18 +1,73 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs')
-const path = require('node:path')
-const postgres = require('postgres')
-const { resolveSiteUrl } = require('../src/lib/site-url')
-
 const MIGRATION_LOCK_NAMESPACE = 20817
 const MIGRATION_LOCK_KEY = 1
 
-function escapeSqlLiteral(value) {
+type NodeFs = typeof import('node:fs')
+type NodePath = typeof import('node:path')
+type Postgres = typeof import('postgres')
+type ResolveSiteUrl = (env?: NodeJS.ProcessEnv) => string
+type Sql = ReturnType<Postgres>
+type ReservedSql = Awaited<ReturnType<Sql['reserve']>>
+
+let fs: NodeFs
+let path: NodePath
+let postgres: Postgres
+let resolveSiteUrl: ResolveSiteUrl
+
+interface SyncCronOptions {
+  jobName: string
+  schedule: string
+  endpointPath: string
+  siteUrl: string
+  cronSecret: string
+  timeoutMilliseconds?: number
+}
+
+interface MigrationRow {
+  version: string
+}
+
+interface CronExtensionCapabilitiesRow {
+  has_pg_cron: boolean
+  has_pg_net: boolean
+}
+
+interface CronExtensionCapabilities {
+  hasPgCron: boolean
+  hasPgNet: boolean
+}
+
+async function loadScriptDependencies(): Promise<void> {
+  const [fsModule, pathModule, postgresModule, siteUrlModule] = await Promise.all([
+    import('node:fs'),
+    import('node:path'),
+    import('postgres'),
+    import('../src/lib/site-url.js'),
+  ])
+  const postgresImport = postgresModule as unknown as { default?: Postgres } & Postgres
+  const siteUrlImport = siteUrlModule as unknown as {
+    default?: { resolveSiteUrl: ResolveSiteUrl }
+    resolveSiteUrl?: ResolveSiteUrl
+  }
+
+  fs = fsModule
+  path = pathModule
+  postgres = postgresImport.default ?? postgresImport
+  const importedResolveSiteUrl = siteUrlImport.default?.resolveSiteUrl ?? siteUrlImport.resolveSiteUrl
+
+  if (!importedResolveSiteUrl) {
+    throw new Error('Failed to load resolveSiteUrl from src/lib/site-url.js')
+  }
+
+  resolveSiteUrl = importedResolveSiteUrl
+}
+
+function escapeSqlLiteral(value: unknown): string {
   return String(value).replace(/'/g, '\'\'')
 }
 
-function joinSiteUrlPath(siteUrl, endpointPath) {
+function joinSiteUrlPath(siteUrl: string, endpointPath: string): string {
   const normalizedSiteUrl = String(siteUrl).trim().replace(/\/+$/, '')
   const normalizedEndpointPath = String(endpointPath).trim().replace(/^\/+/, '')
 
@@ -30,7 +85,7 @@ function buildSyncCronSql({
   siteUrl,
   cronSecret,
   timeoutMilliseconds = 20000,
-}) {
+}: SyncCronOptions): string {
   const endpointUrl = joinSiteUrlPath(siteUrl, endpointPath)
   const escapedJobName = escapeSqlLiteral(jobName)
   const escapedSchedule = escapeSqlLiteral(schedule)
@@ -65,7 +120,7 @@ function buildSyncCronSql({
   END $$;`
 }
 
-function resolveSupabaseMode(env = process.env) {
+function resolveSupabaseMode(env: NodeJS.ProcessEnv = process.env): boolean {
   const supabaseUrl = env.SUPABASE_URL?.trim()
   const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim()
 
@@ -81,7 +136,7 @@ function resolveSupabaseMode(env = process.env) {
   return true
 }
 
-function rewriteMigrationSqlForMode(migrationSql, isSupabase) {
+function rewriteMigrationSqlForMode(migrationSql: string, isSupabase: boolean): string {
   if (isSupabase) {
     return migrationSql
   }
@@ -91,7 +146,10 @@ function rewriteMigrationSqlForMode(migrationSql, isSupabase) {
     .replace(/\bTO\s+service_role\b/gi, 'TO CURRENT_USER')
 }
 
-async function withReservedTransaction(sql, fn) {
+async function withReservedTransaction<T>(
+  sql: ReservedSql,
+  fn: (tx: ReservedSql) => Promise<T>,
+): Promise<T> {
   await sql`BEGIN`
 
   try {
@@ -111,7 +169,7 @@ async function withReservedTransaction(sql, fn) {
   }
 }
 
-async function applyMigrations(sql, isSupabase) {
+async function applyMigrations(sql: ReservedSql, isSupabase: boolean): Promise<void> {
   console.log('Applying migrations...')
 
   console.log('Creating migrations tracking table...')
@@ -132,7 +190,7 @@ async function applyMigrations(sql, isSupabase) {
         END IF;
       END
     $$;
-  `, [], { simple: true })
+  `, []).simple()
   console.log('Migrations table ready')
 
   const migrationsDir = path.join(__dirname, '../src/lib/db/migrations')
@@ -142,7 +200,7 @@ async function applyMigrations(sql, isSupabase) {
 
   console.log(`Found ${migrationFiles.length} migration files`)
 
-  const appliedMigrationRows = await sql`SELECT version FROM migrations`
+  const appliedMigrationRows = await sql<MigrationRow[]>`SELECT version FROM migrations`
   const appliedMigrationVersions = new Set(appliedMigrationRows.map(row => row.version))
   const pendingMigrationFiles = migrationFiles.filter((file) => {
     const version = file.replace('.sql', '')
@@ -175,7 +233,7 @@ async function applyMigrations(sql, isSupabase) {
     }
 
     await withReservedTransaction(sql, async (tx) => {
-      await tx.unsafe(migrationSql, [], { simple: true })
+      await tx.unsafe(migrationSql, []).simple()
       await tx`INSERT INTO migrations (version) VALUES (${version})`
     })
 
@@ -185,7 +243,7 @@ async function applyMigrations(sql, isSupabase) {
   console.log('✅ All migrations applied successfully')
 }
 
-async function createCleanCronDetailsCron(sql) {
+async function createCleanCronDetailsCron(sql: ReservedSql): Promise<void> {
   console.log('Creating clean cron details job...')
   const sqlQuery = `
   DO $$
@@ -205,11 +263,11 @@ async function createCleanCronDetailsCron(sql) {
     PERFORM cron.schedule('clean-cron-details', '0 0 * * *', cmd);
   END $$;`
 
-  await sql.unsafe(sqlQuery, [], { simple: true })
+  await sql.unsafe(sqlQuery, []).simple()
   console.log('✅ Cron clean-cron-details created successfully')
 }
 
-async function createCleanJobsCron(sql) {
+async function createCleanJobsCron(sql: ReservedSql): Promise<void> {
   console.log('Creating clean-jobs cron job...')
   const sqlQuery = `
   DO $$
@@ -249,18 +307,22 @@ async function createCleanJobsCron(sql) {
     PERFORM cron.schedule('clean-jobs', '15 * * * *', cmd);
   END $$;`
 
-  await sql.unsafe(sqlQuery, [], { simple: true })
+  await sql.unsafe(sqlQuery, []).simple()
   console.log('✅ Cron clean-jobs created successfully')
 }
 
-async function createSyncCron(sql, options) {
+async function createSyncCron(sql: ReservedSql, options: SyncCronOptions): Promise<void> {
   const sqlQuery = buildSyncCronSql(options)
   console.log(`Creating ${options.jobName} cron job...`)
-  await sql.unsafe(sqlQuery, [], { simple: true })
+  await sql.unsafe(sqlQuery, []).simple()
   console.log(`✅ Cron ${options.jobName} created successfully`)
 }
 
-async function createSyncEventsCron(sql, siteUrl, cronSecret) {
+async function createSyncEventsCron(
+  sql: ReservedSql,
+  siteUrl: string,
+  cronSecret: string,
+): Promise<void> {
   await createSyncCron(sql, {
     jobName: 'sync-events',
     schedule: '2,11,20,29,38,47,56 * * * *',
@@ -270,7 +332,11 @@ async function createSyncEventsCron(sql, siteUrl, cronSecret) {
   })
 }
 
-async function createSyncVolumeCron(sql, siteUrl, cronSecret) {
+async function createSyncVolumeCron(
+  sql: ReservedSql,
+  siteUrl: string,
+  cronSecret: string,
+): Promise<void> {
   await createSyncCron(sql, {
     jobName: 'sync-volume',
     schedule: '*/10 * * * *',
@@ -281,7 +347,11 @@ async function createSyncVolumeCron(sql, siteUrl, cronSecret) {
   })
 }
 
-async function createSyncTranslationsCron(sql, siteUrl, cronSecret) {
+async function createSyncTranslationsCron(
+  sql: ReservedSql,
+  siteUrl: string,
+  cronSecret: string,
+): Promise<void> {
   await createSyncCron(sql, {
     jobName: 'sync-translations',
     schedule: '13,37 * * * *',
@@ -291,7 +361,11 @@ async function createSyncTranslationsCron(sql, siteUrl, cronSecret) {
   })
 }
 
-async function createSyncResolutionCron(sql, siteUrl, cronSecret) {
+async function createSyncResolutionCron(
+  sql: ReservedSql,
+  siteUrl: string,
+  cronSecret: string,
+): Promise<void> {
   await createSyncCron(sql, {
     jobName: 'sync-resolution',
     schedule: '5-55/10 * * * *',
@@ -301,7 +375,11 @@ async function createSyncResolutionCron(sql, siteUrl, cronSecret) {
   })
 }
 
-async function createSyncEventCreationsCron(sql, siteUrl, cronSecret) {
+async function createSyncEventCreationsCron(
+  sql: ReservedSql,
+  siteUrl: string,
+  cronSecret: string,
+): Promise<void> {
   await createSyncCron(sql, {
     jobName: 'sync-event-creations',
     schedule: '0,30 * * * *',
@@ -311,8 +389,8 @@ async function createSyncEventCreationsCron(sql, siteUrl, cronSecret) {
   })
 }
 
-async function resolveCronExtensionCapabilities(sql) {
-  const result = await sql`
+async function resolveCronExtensionCapabilities(sql: ReservedSql): Promise<CronExtensionCapabilities> {
+  const result = await sql<CronExtensionCapabilitiesRow[]>`
     SELECT
       EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') AS has_pg_cron,
       EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_net') AS has_pg_net
@@ -324,7 +402,11 @@ async function resolveCronExtensionCapabilities(sql) {
   }
 }
 
-async function configureSupabaseScheduler(sql, siteUrl, cronSecret) {
+async function configureSupabaseScheduler(
+  sql: ReservedSql,
+  siteUrl: string,
+  cronSecret: string,
+): Promise<void> {
   const { hasPgCron, hasPgNet } = await resolveCronExtensionCapabilities(sql)
 
   if (!hasPgCron) {
@@ -352,7 +434,7 @@ async function configureSupabaseScheduler(sql, siteUrl, cronSecret) {
   await createSyncVolumeCron(sql, siteUrl, cronSecret)
 }
 
-function resolveMigrationConnectionString() {
+function resolveMigrationConnectionString(): string | null {
   const migrationUrl = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL
 
   if (!migrationUrl) {
@@ -362,27 +444,29 @@ function resolveMigrationConnectionString() {
   return migrationUrl.replace('require', 'disable')
 }
 
-async function acquireMigrationLock(sql) {
+async function acquireMigrationLock(sql: ReservedSql): Promise<void> {
   await sql`SELECT pg_advisory_lock(${MIGRATION_LOCK_NAMESPACE}, ${MIGRATION_LOCK_KEY})`
 }
 
-async function releaseMigrationLock(sql) {
+async function releaseMigrationLock(sql: ReservedSql): Promise<void> {
   await sql`SELECT pg_advisory_unlock(${MIGRATION_LOCK_NAMESPACE}, ${MIGRATION_LOCK_KEY})`
 }
 
-async function run() {
+async function run(): Promise<void> {
   const connectionString = resolveMigrationConnectionString()
   if (!connectionString) {
     console.log('Skipping db:push because required env vars are missing: POSTGRES_URL_NON_POOLING or POSTGRES_URL')
     return
   }
 
+  await loadScriptDependencies()
+
   const sql = postgres(connectionString, {
     max: 1,
     connect_timeout: 30,
     idle_timeout: 5,
   })
-  let reserved = null
+  let reserved: ReservedSql | null = null
   let lockAcquired = false
 
   try {
