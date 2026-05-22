@@ -1,7 +1,10 @@
 # Security Policy
 
-**PLEASE DON'T DISCLOSE SECURITY-RELATED ISSUES PUBLICLY, [SEE BELOW](#reporting-a-vulnerability).**
+If you believe you’ve found a security vulnerability, please email security@kuest.com. Do not open a public issue.
 
-## Reporting a Vulnerability
+Include:
+- A description of the issue and potential impact
+- Steps to reproduce or a minimal proof of concept
+- Any relevant logs or environment details
 
-If you discover a security vulnerability within Kuest, please send an email to us at hello@kuest.com. All security vulnerabilities will be promptly addressed.
+We will acknowledge receipt, investigate, and provide guidance on next steps.
