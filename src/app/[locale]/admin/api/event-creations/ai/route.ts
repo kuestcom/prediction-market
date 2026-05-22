@@ -7,7 +7,7 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 import { hasEventCreationDateTemplateVariable } from '@/lib/event-creation'
 
-const GAMMA_MARKETS_ENDPOINT = 'https://gamma-api.polymarket.com/markets?limit=200&offset=0&active=true&closed=false'
+const GAMMA_MARKETS_ENDPOINT = 'https://gamma-api.polymarket.com/markets/keyset?limit=100&closed=false&order=createdAt&ascending=false'
 const RULES_SAMPLE_LIMIT = 8
 const RULES_SAMPLE_MAX_CHARS = 420
 const REQUEST_TIMEOUT_MS = 12000
@@ -393,8 +393,9 @@ async function fetchGammaRuleSamples(input: {
     throw new Error(`Gamma request failed: ${response.status}`)
   }
 
-  const payload = await response.json().catch(() => [])
-  const markets = Array.isArray(payload) ? payload as GammaMarket[] : []
+  const payload = await response.json().catch(() => null)
+  const marketsPayload = Array.isArray(payload) ? payload : payload?.markets
+  const markets = Array.isArray(marketsPayload) ? marketsPayload as GammaMarket[] : []
   const mainCategory = input.mainCategorySlug.trim().toLowerCase()
 
   function isMarketModeCompatible(market: GammaMarket) {

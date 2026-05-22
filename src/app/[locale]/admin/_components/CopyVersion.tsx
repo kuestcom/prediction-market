@@ -1,7 +1,9 @@
 'use client'
 
 import { CheckIcon, CopyIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 
 const COMMIT_SHA = process.env.COMMIT_SHA!
@@ -10,6 +12,7 @@ const IS_VERCEL = process.env.IS_VERCEL!
 
 export default function CopyVersion() {
   const [copied, setCopied] = useState(false)
+  const t = useExtracted()
 
   async function copyVersionPayload() {
     const payload = `{${[
@@ -24,8 +27,8 @@ export default function CopyVersion() {
       setCopied(true)
       window.setTimeout(setCopied, 2000, false)
     }
-    catch (error) {
-      console.error('Failed to copy version payload:', error)
+    catch {
+      toast.error(t('Failed to copy version'))
     }
   }
 
