@@ -10,6 +10,7 @@ import { usePublicClient, useSignTypedData, useWalletClient } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAppKit } from '@/hooks/useAppKit'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS } from '@/lib/contracts'
 import { baseUnitsToNumber } from '@/lib/data-api/fees'
@@ -57,6 +58,7 @@ export default function AdminAffiliateClaimableFeesCard({
 }: AdminAffiliateClaimableFeesCardProps) {
   const t = useExtracted()
   const { open } = useAppKit()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { signTypedDataAsync } = useSignTypedData()
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient()
@@ -264,8 +266,8 @@ export default function AdminAffiliateClaimableFeesCard({
     setIsClaiming(true)
     try {
       const submitted = canClaimWithDepositWallet
-        ? await submitDepositWalletClaim(claimableExchanges)
-        : await submitConnectedWalletClaim(claimableExchanges)
+        ? await runWithSignaturePrompt(() => submitDepositWalletClaim(claimableExchanges))
+        : await runWithSignaturePrompt(() => submitConnectedWalletClaim(claimableExchanges))
 
       if (submitted) {
         toast.success(t('Fee claim submitted successfully.'))

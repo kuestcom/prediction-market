@@ -9,6 +9,7 @@ import { usePublicClient, useSignTypedData } from 'wagmi'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { Button } from '@/components/ui/button'
 import { useAppKit } from '@/hooks/useAppKit'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS } from '@/lib/contracts'
 import { formatCurrency } from '@/lib/formatters'
@@ -43,6 +44,7 @@ export default function SettingsAffiliateFeeClaim() {
   const { signTypedDataAsync } = useSignTypedData()
   const publicClient = usePublicClient()
   const { open } = useAppKit()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { openTradeRequirements } = useTradingOnboarding()
   const user = useUser()
   const { isConnected } = useAppKitAccount()
@@ -159,7 +161,7 @@ export default function SettingsAffiliateFeeClaim() {
         return
       }
 
-      const submitted = await submitDepositWalletClaim(exchanges)
+      const submitted = await runWithSignaturePrompt(() => submitDepositWalletClaim(exchanges))
       if (submitted) {
         toast.success(t('Fee claim submitted successfully.'))
       }

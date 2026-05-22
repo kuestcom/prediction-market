@@ -9,9 +9,10 @@ import { createAppKit, useAppKitTheme } from '@reown/appkit/react'
 import { generateRandomString } from 'better-auth/crypto'
 import { useExtracted } from 'next-intl'
 import { useTheme } from 'next-themes'
-import { lazy, Suspense, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 import { WagmiProvider } from 'wagmi'
+import { SignaturePromptHost } from '@/components/SignaturePromptHost'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -26,11 +27,6 @@ let hasInitializedAppKit = false
 let appKitInstance: AppKit | null = null
 const appKitStateListeners = new Set<() => void>()
 const APPKIT_INIT_RETRY_DELAY_MS = 3000
-
-const SignaturePrompt = lazy(async () => {
-  const mod = await import('@/components/SignaturePrompt')
-  return { default: mod.SignaturePrompt }
-})
 
 function clearAppKitState() {
   if (!IS_BROWSER) {
@@ -329,11 +325,7 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
     <WagmiProvider config={wagmiConfig}>
       <AppKitContext value={appKitValue}>
         {children}
-        {hasHydrated && (
-          <Suspense fallback={null}>
-            <SignaturePrompt />
-          </Suspense>
-        )}
+        {hasHydrated && <SignaturePromptHost />}
         {canSyncTheme && <AppKitThemeSynchronizer themeMode={appKitThemeMode} />}
       </AppKitContext>
     </WagmiProvider>
