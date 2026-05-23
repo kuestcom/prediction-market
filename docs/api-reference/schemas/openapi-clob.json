@@ -2815,7 +2815,8 @@
             "enum": [
               "FOK",
               "FAK",
-              "GTC"
+              "GTC",
+              "GTD"
             ],
             "description": "Time-in-force policy for the order."
           },
@@ -3206,7 +3207,8 @@
             "enum": [
               "FOK",
               "FAK",
-              "GTC"
+              "GTC",
+              "GTD"
             ],
             "description": "Time-in-force policy recorded for the order."
           },
