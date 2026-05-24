@@ -10,8 +10,15 @@ interface SdkCard {
   id: string
   title: string
   description: string
-  href: string
   logoSrc: string
+  actions: SdkDownloadAction[]
+}
+
+interface SdkDownloadAction {
+  id: string
+  label: string
+  href: string
+  variant: 'default' | 'outline'
 }
 
 interface SettingsSdkDownloadsContentProps {
@@ -21,29 +28,29 @@ interface SettingsSdkDownloadsContentProps {
 }
 
 function useSdkDownloadState() {
-  const [loadingCardIds, setLoadingCardIds] = useState<Set<string>>(() => new Set())
+  const [loadingActionIds, setLoadingActionIds] = useState<Set<string>>(() => new Set())
 
-  function startLoading(cardId: string) {
-    setLoadingCardIds((current) => {
+  function startLoading(actionId: string) {
+    setLoadingActionIds((current) => {
       const next = new Set(current)
-      next.add(cardId)
+      next.add(actionId)
       return next
     })
   }
 
-  function stopLoading(cardId: string) {
-    setLoadingCardIds((current) => {
-      if (!current.has(cardId)) {
+  function stopLoading(actionId: string) {
+    setLoadingActionIds((current) => {
+      if (!current.has(actionId)) {
         return current
       }
 
       const next = new Set(current)
-      next.delete(cardId)
+      next.delete(actionId)
       return next
     })
   }
 
-  return { loadingCardIds, startLoading, stopLoading }
+  return { loadingActionIds, startLoading, stopLoading }
 }
 
 export default function SettingsSdkDownloadsContent({
@@ -52,13 +59,13 @@ export default function SettingsSdkDownloadsContent({
   generatingLabel,
 }: SettingsSdkDownloadsContentProps) {
   const t = useExtracted()
-  const { loadingCardIds, startLoading, stopLoading } = useSdkDownloadState()
+  const { loadingActionIds, startLoading, stopLoading } = useSdkDownloadState()
 
-  async function handleDownload(card: SdkCard) {
-    startLoading(card.id)
+  async function handleDownload(action: SdkDownloadAction) {
+    startLoading(action.id)
 
     try {
-      const response = await fetch(card.href)
+      const response = await fetch(action.href)
       if (!response.ok) {
         throw new Error(`SDK download failed with status ${response.status}`)
       }
@@ -68,7 +75,7 @@ export default function SettingsSdkDownloadsContent({
       const anchor = document.createElement('a')
 
       anchor.href = objectUrl
-      anchor.download = getFilenameFromResponse(response, card.id)
+      anchor.download = getFilenameFromResponse(response, action.id)
       document.body.appendChild(anchor)
       anchor.click()
       anchor.remove()
@@ -79,7 +86,7 @@ export default function SettingsSdkDownloadsContent({
       toast.error(t('An unexpected error occurred. Please try again.'))
     }
     finally {
-      stopLoading(card.id)
+      stopLoading(action.id)
     }
   }
 
@@ -108,17 +115,26 @@ export default function SettingsSdkDownloadsContent({
               <p className="max-w-72 text-sm text-muted-foreground">{card.description}</p>
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="w-full sm:w-fit"
-              disabled={loadingCardIds.has(card.id)}
-              onClick={() => handleDownload(card)}
-            >
-              <DownloadIcon className="size-4" />
-              {loadingCardIds.has(card.id) ? generatingLabel : downloadLabel}
-            </Button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {card.actions.map((action) => {
+                const isLoading = loadingActionIds.has(action.id)
+
+                return (
+                  <Button
+                    key={action.id}
+                    type="button"
+                    variant={action.variant}
+                    size="sm"
+                    className="w-full"
+                    disabled={isLoading}
+                    onClick={() => handleDownload(action)}
+                  >
+                    <DownloadIcon className="size-4" />
+                    {isLoading ? generatingLabel : `${downloadLabel} ${action.label}`}
+                  </Button>
+                )
+              })}
+            </div>
           </div>
         </div>
       ))}

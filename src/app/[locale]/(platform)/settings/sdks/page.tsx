@@ -43,12 +43,17 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
   const builderCode = addressToBuilderCode(feeReceiver)
   const geoblock = getBlockedCountriesFromSettings(allSettings ?? undefined).length > 0
 
-  function buildDownloadUrl(language: 'python' | 'rust' | 'typescript') {
+  function buildDownloadUrl(language: 'python' | 'rust' | 'typescript', sdk: 'clob' | 'relayer') {
     const url = new URL('/download', SDK_DOWNLOAD_URL)
+    url.searchParams.set('sdk', sdk)
     url.searchParams.set('language', language)
     url.searchParams.set('site_url', siteUrl)
-    url.searchParams.set('builder_code', builderCode)
-    url.searchParams.set('geoblock', geoblock ? 'true' : 'false')
+
+    if (sdk === 'clob') {
+      url.searchParams.set('builder_code', builderCode)
+      url.searchParams.set('geoblock', geoblock ? 'true' : 'false')
+    }
+
     return url.toString()
   }
 
@@ -57,7 +62,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">{t('SDK Downloads')}</h1>
         <p className="text-muted-foreground">
-          {t('Automate your edge on prediction markets with programmable trading bots')}
+          Download personalized SDK bundles for your site, split by language and use case.
         </p>
       </div>
 
@@ -69,23 +74,62 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
             {
               id: 'python-client',
               title: t('Python Client'),
-              description: t('SDK for building trading bots on Clob'),
-              href: buildDownloadUrl('python'),
+              description: 'CLOB and relayer bundles for Python bots and services.',
               logoSrc: '/images/sdks/python.svg',
+              actions: [
+                {
+                  id: 'python-clob',
+                  label: 'CLOB SDK',
+                  href: buildDownloadUrl('python', 'clob'),
+                  variant: 'default',
+                },
+                {
+                  id: 'python-relayer',
+                  label: 'Relayer SDK',
+                  href: buildDownloadUrl('python', 'relayer'),
+                  variant: 'outline',
+                },
+              ],
             },
             {
               id: 'rust-client',
               title: t('Rust Client'),
-              description: t('High-performance SDK for automated trading'),
-              href: buildDownloadUrl('rust'),
+              description: 'CLOB and relayer bundles for Rust services and automations.',
               logoSrc: '/images/sdks/rust.svg',
+              actions: [
+                {
+                  id: 'rust-clob',
+                  label: 'CLOB SDK',
+                  href: buildDownloadUrl('rust', 'clob'),
+                  variant: 'default',
+                },
+                {
+                  id: 'rust-relayer',
+                  label: 'Relayer SDK',
+                  href: buildDownloadUrl('rust', 'relayer'),
+                  variant: 'outline',
+                },
+              ],
             },
             {
               id: 'typescript-client',
               title: t('TypeScript Client'),
-              description: t('Build trading bots for web and Node.js'),
-              href: buildDownloadUrl('typescript'),
+              description: 'CLOB and relayer bundles for web apps, bots, and Node.js services.',
               logoSrc: '/images/sdks/typescript.svg',
+              actions: [
+                {
+                  id: 'typescript-clob',
+                  label: 'CLOB SDK',
+                  href: buildDownloadUrl('typescript', 'clob'),
+                  variant: 'default',
+                },
+                {
+                  id: 'typescript-relayer',
+                  label: 'Relayer SDK',
+                  href: buildDownloadUrl('typescript', 'relayer'),
+                  variant: 'outline',
+                },
+              ],
             },
           ]}
         />
