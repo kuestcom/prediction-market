@@ -62,7 +62,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">{t('SDK Downloads')}</h1>
         <p className="text-muted-foreground">
-          {t('Download personalized SDK bundles for your site, split by language and use case.')}
+          {t('Build trading bots and integrations with personalized SDK bundles. The CLOB client handles orderbook trading, while the Relayer client helps route and execute signed actions.')}
         </p>
       </div>
 
