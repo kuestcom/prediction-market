@@ -63,11 +63,7 @@ export function closeWebSocketWhenReady(
   close: (socket: WebSocket) => void = socket => socket.close(),
 ) {
   if (ws.readyState === WebSocket.CONNECTING) {
-    ws.addEventListener('open', () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        close(ws)
-      }
-    }, { once: true })
+    ws.close()
     return
   }
 
