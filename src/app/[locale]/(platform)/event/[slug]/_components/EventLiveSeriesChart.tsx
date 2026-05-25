@@ -132,8 +132,12 @@ function EventLiveSeriesChartContent({
   const persistedFallbackPrice = snapshotFallbackPrice ?? initialPersistedFallbackPrice
 
   const { data, status } = useLiveSeriesWebSocket({
+    activeWindowMinutes: config.active_window_minutes,
+    eventEndTimestamp: explicitEndTimestamp,
     topic: config.topic,
     eventType: config.event_type,
+    seriesSlug: config.series_slug,
+    startTimestamp,
     subscriptionSymbol,
     isLiveView,
     setBaselinePrice,

@@ -4,7 +4,7 @@ import type { Comment, User } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useReducer, useRef } from 'react'
 import { commentMetricsQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
-import { createWebSocketReconnectController } from '@/lib/websocket-reconnect'
+import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
 interface LiveCommentProfile {
   baseAddress?: string
@@ -348,15 +348,16 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       setStatus('offline')
       clearReconnect()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      if (ws) {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(buildSubscriptionPayload('unsubscribe'))
-        }
-        ws.removeEventListener('open', handleOpen)
-        ws.removeEventListener('message', handleMessage)
-        ws.removeEventListener('error', handleError)
-        ws.removeEventListener('close', handleClose)
-        ws.close()
+      const socket = ws
+      if (socket) {
+        socket.removeEventListener('open', handleOpen)
+        socket.removeEventListener('message', handleMessage)
+        socket.removeEventListener('error', handleError)
+        socket.removeEventListener('close', handleClose)
+        closeWebSocketWhenReady(socket, (currentSocket) => {
+          currentSocket.send(buildSubscriptionPayload('unsubscribe'))
+          currentSocket.close()
+        })
       }
     }
   }, [queryClient, shouldConnect, eventSlug, wsUrl])

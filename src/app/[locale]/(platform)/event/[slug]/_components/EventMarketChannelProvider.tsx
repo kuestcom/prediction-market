@@ -8,7 +8,7 @@ import type {
 import type { Market } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createWebSocketReconnectController } from '@/lib/websocket-reconnect'
+import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
 type MarketChannelStatus = 'connecting' | 'live' | 'offline'
 type MarketChannelListener = (payload: any) => void
@@ -348,12 +348,13 @@ function useMarketChannelConnection({
       isActive = false
       clearReconnect()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      if (ws) {
-        ws.removeEventListener('open', handleOpen)
-        ws.removeEventListener('message', handleMessage)
-        ws.removeEventListener('error', handleError)
-        ws.removeEventListener('close', handleClose)
-        ws.close()
+      const socket = ws
+      if (socket) {
+        socket.removeEventListener('open', handleOpen)
+        socket.removeEventListener('message', handleMessage)
+        socket.removeEventListener('error', handleError)
+        socket.removeEventListener('close', handleClose)
+        closeWebSocketWhenReady(socket)
       }
     }
   }, [hasMarketChannel, queryClient, tokenIds, tokenIdToConditionId, wsUrl])
