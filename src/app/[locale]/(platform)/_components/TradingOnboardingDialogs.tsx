@@ -12,7 +12,7 @@ import {
   ZapIcon,
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { checkUsernameAvailabilityAction } from '@/app/[locale]/(platform)/_actions/deposit-wallet'
 import { FundAccountDialog } from '@/app/[locale]/(platform)/_components/TradingDialogs'
 import { WalletFlow } from '@/app/[locale]/(platform)/_components/WalletFlow'
@@ -43,7 +43,13 @@ type OnboardingModal = 'username' | 'email' | 'enable' | 'enable-status' | 'appr
 type EnableTradingStep = 'idle' | 'enabling' | 'deploying' | 'completed'
 type ApprovalsStep = 'idle' | 'signing' | 'completed'
 type UsernameAvailabilityState = 'idle' | 'checking' | 'available' | 'taken' | 'error'
+type CheckedUsernameAvailabilityState = Exclude<UsernameAvailabilityState, 'idle'>
 type UsernameFormatErrorCode = 'too_short' | 'too_long' | 'invalid_characters' | 'starts_with_separator' | 'ends_with_separator'
+
+interface UsernameAvailabilityCheck {
+  username: string
+  state: CheckedUsernameAvailabilityState
+}
 
 interface TradingOnboardingDialogsProps {
   activeModal: OnboardingModal
@@ -175,6 +181,17 @@ function OnboardingDialogShell({
   )
 }
 
+interface UsernameDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  defaultValue: string
+  error: string | null
+  isSubmitting: boolean
+  onSubmit: (username: string, termsAccepted: boolean) => void
+}
+
+type UsernameDialogFormProps = Omit<UsernameDialogProps, 'onOpenChange'>
+
 function UsernameDialog({
   open,
   onOpenChange,
@@ -182,24 +199,57 @@ function UsernameDialog({
   error,
   isSubmitting,
   onSubmit,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  defaultValue: string
-  error: string | null
-  isSubmitting: boolean
-  onSubmit: (username: string, termsAccepted: boolean) => void
-}) {
+}: UsernameDialogProps) {
   const t = useExtracted()
-  const [username, setUsername] = useState(defaultValue)
-  const [hasEditedUsername, setHasEditedUsername] = useState(false)
+
+  return (
+    <OnboardingDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t('Choose a username')}
+      description={t('You can update this later.')}
+      dismissible={false}
+    >
+      <UsernameDialogForm
+        key={open ? 'open' : 'closed'}
+        open={open}
+        defaultValue={defaultValue}
+        error={error}
+        isSubmitting={isSubmitting}
+        onSubmit={onSubmit}
+      />
+    </OnboardingDialogShell>
+  )
+}
+
+function UsernameDialogForm({
+  open,
+  defaultValue,
+  error,
+  isSubmitting,
+  onSubmit,
+}: UsernameDialogFormProps) {
+  const t = useExtracted()
+  const [usernameInput, setUsernameInput] = useState<string | null>(null)
   const [termsAccepted, setTermsAccepted] = useState(false)
-  const [availabilityState, setAvailabilityState] = useState<UsernameAvailabilityState>('idle')
-  const [availabilityMessage, setAvailabilityMessage] = useState<string | null>(null)
-  const previousOpenRef = useRef(open)
+  const [availabilityCheck, setAvailabilityCheck] = useState<UsernameAvailabilityCheck | null>(null)
+  const username = usernameInput ?? defaultValue
   const trimmedUsername = username.trim()
   const localFormatErrorCode = resolveUsernameFormatErrorCode(trimmedUsername)
   const localFormatError = formatLocalUsernameFormatError(localFormatErrorCode)
+  const normalizedDefaultUsername = defaultValue.trim().toLowerCase()
+  const matchesDefaultUsername = (
+    normalizedDefaultUsername.length > 0
+    && trimmedUsername.toLowerCase() === normalizedDefaultUsername
+  )
+  const activeAvailabilityCheck = availabilityCheck?.username === trimmedUsername ? availabilityCheck : null
+  const availabilityState = resolveUsernameAvailabilityState({
+    activeAvailabilityCheck,
+    localFormatErrorCode,
+    matchesDefaultUsername,
+    trimmedUsername,
+  })
+  const availabilityMessage = formatUsernameAvailabilityMessage(availabilityState)
   const canSubmit = (
     !isSubmitting
     && termsAccepted
@@ -208,88 +258,37 @@ function UsernameDialog({
     && availabilityState !== 'taken'
   )
 
-  useEffect(() => {
-    const justOpened = open && !previousOpenRef.current
-    previousOpenRef.current = open
-
-    if (!justOpened) {
-      return
-    }
-
-    setHasEditedUsername(false)
-    setTermsAccepted(false)
-    setAvailabilityState('idle')
-    setAvailabilityMessage(null)
-    setUsername(defaultValue)
-  }, [defaultValue, open])
-
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-
-    if (hasEditedUsername) {
-      return
-    }
-
-    if (username !== defaultValue) {
-      setUsername(defaultValue)
-    }
-  }, [defaultValue, hasEditedUsername, open, username])
-
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-
-    if (localFormatError) {
-      setAvailabilityState('idle')
-      setAvailabilityMessage(null)
-      return
-    }
-
-    if (!trimmedUsername) {
-      setAvailabilityState('idle')
-      setAvailabilityMessage(null)
-      return
-    }
-
-    if (defaultValue && trimmedUsername.toLowerCase() === defaultValue.trim().toLowerCase()) {
-      setAvailabilityState('available')
-      setAvailabilityMessage(t('Username is available.'))
+  useEffect(function checkUsernameAvailability() {
+    if (!open || localFormatErrorCode || !trimmedUsername || matchesDefaultUsername) {
       return
     }
 
     let cancelled = false
+    const checkedUsername = trimmedUsername
     const timeoutId = window.setTimeout(() => {
-      setAvailabilityState('checking')
-      setAvailabilityMessage(t('Checking username availability...'))
+      setAvailabilityCheck({ username: checkedUsername, state: 'checking' })
 
-      checkUsernameAvailabilityAction({ username: trimmedUsername })
+      void checkUsernameAvailabilityAction({ username: checkedUsername })
         .then((result) => {
           if (cancelled) {
             return
           }
 
           if (result.available === true) {
-            setAvailabilityState('available')
-            setAvailabilityMessage(t('Username is available.'))
+            setAvailabilityCheck({ username: checkedUsername, state: 'available' })
             return
           }
 
           if (result.available === false || result.code === 'username_taken') {
-            setAvailabilityState('taken')
-            setAvailabilityMessage(t('That username is already taken.'))
+            setAvailabilityCheck({ username: checkedUsername, state: 'taken' })
             return
           }
 
-          setAvailabilityState('error')
-          setAvailabilityMessage(t('We could not check username availability. Try again.'))
+          setAvailabilityCheck({ username: checkedUsername, state: 'error' })
         })
         .catch(() => {
           if (!cancelled) {
-            setAvailabilityState('error')
-            setAvailabilityMessage(t('We could not check username availability. Try again.'))
+            setAvailabilityCheck({ username: checkedUsername, state: 'error' })
           }
         })
     }, 350)
@@ -298,7 +297,7 @@ function UsernameDialog({
       cancelled = true
       window.clearTimeout(timeoutId)
     }
-  }, [defaultValue, localFormatError, open, t, trimmedUsername])
+  }, [localFormatErrorCode, matchesDefaultUsername, open, trimmedUsername])
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -306,6 +305,11 @@ function UsernameDialog({
       return
     }
     onSubmit(trimmedUsername, termsAccepted)
+  }
+
+  function handleUsernameChange(value: string) {
+    setUsernameInput(value)
+    setAvailabilityCheck(null)
   }
 
   function formatLocalUsernameFormatError(code: UsernameFormatErrorCode | null) {
@@ -327,87 +331,110 @@ function UsernameDialog({
     return null
   }
 
+  function formatUsernameAvailabilityMessage(state: UsernameAvailabilityState) {
+    if (state === 'available') {
+      return t('Username is available.')
+    }
+    if (state === 'checking') {
+      return t('Checking username availability...')
+    }
+    if (state === 'taken') {
+      return t('That username is already taken.')
+    }
+    if (state === 'error') {
+      return t('We could not check username availability. Try again.')
+    }
+    return null
+  }
+
   return (
-    <OnboardingDialogShell
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t('Choose a username')}
-      description={t('You can update this later.')}
-      dismissible={false}
-    >
-      <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-        <div className="relative">
-          <AtSignIcon className={cn(`
-            pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground
-          `)}
-          />
-          <Input
-            value={username}
-            onChange={(event) => {
-              setHasEditedUsername(true)
-              setUsername(event.target.value)
-              setAvailabilityMessage(null)
-              setAvailabilityState('idle')
-            }}
-            placeholder={t('username')}
-            className="h-14 pl-12 text-lg"
-            maxLength={42}
-            disabled={isSubmitting}
-            autoFocus
-          />
-        </div>
+    <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+      <div className="relative">
+        <AtSignIcon className={cn(`
+          pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground
+        `)}
+        />
+        <Input
+          value={username}
+          onChange={event => handleUsernameChange(event.target.value)}
+          placeholder={t('username')}
+          className="h-14 pl-12 text-lg"
+          maxLength={42}
+          disabled={isSubmitting}
+          autoFocus
+        />
+      </div>
 
-        <label className="flex items-start gap-3 text-sm text-muted-foreground">
-          <Checkbox
-            checked={termsAccepted}
-            onCheckedChange={checked => setTermsAccepted(checked === true)}
-            disabled={isSubmitting}
-            className="mt-0.5"
-          />
-          <span>
-            {t('I agree to the')}
-            {' '}
-            <AppLink
-              href="/tos"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-primary hover:underline"
-            >
-              {t('terms of service')}
-            </AppLink>
-          </span>
-        </label>
+      <label className="flex items-start gap-3 text-sm text-muted-foreground">
+        <Checkbox
+          checked={termsAccepted}
+          onCheckedChange={checked => setTermsAccepted(checked === true)}
+          disabled={isSubmitting}
+          className="mt-0.5"
+        />
+        <span>
+          {t('I agree to the')}
+          {' '}
+          <AppLink
+            href="/tos"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-primary hover:underline"
+          >
+            {t('terms of service')}
+          </AppLink>
+        </span>
+      </label>
 
-        {error && <InputError message={error} />}
-        {!error && localFormatError && <InputError message={localFormatError} />}
-        {!error && !localFormatError && availabilityMessage && (
-          availabilityState === 'available'
+      {error && <InputError message={error} />}
+      {!error && localFormatError && <InputError message={localFormatError} />}
+      {!error && !localFormatError && availabilityMessage && (
+        availabilityState === 'available'
+          ? (
+              <p className="flex items-center gap-1.5 text-sm font-medium text-primary">
+                <CircleCheckIcon className="size-4" />
+                {availabilityMessage}
+              </p>
+            )
+          : availabilityState === 'checking'
             ? (
-                <p className="flex items-center gap-1.5 text-sm font-medium text-primary">
-                  <CircleCheckIcon className="size-4" />
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Loader2Icon className="size-4 animate-spin" />
                   {availabilityMessage}
                 </p>
               )
-            : availabilityState === 'checking'
-              ? (
-                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Loader2Icon className="size-4 animate-spin" />
-                    {availabilityMessage}
-                  </p>
-                )
-              : <InputError message={availabilityMessage} />
-        )}
+            : <InputError message={availabilityMessage} />
+      )}
 
-        <Button
-          type="submit"
-          className="h-12 w-full text-base"
-          disabled={!canSubmit}
-        >
-          {isSubmitting ? <Loader2Icon className="size-4 animate-spin" /> : t('Continue')}
-        </Button>
-      </form>
-    </OnboardingDialogShell>
+      <Button
+        type="submit"
+        className="h-12 w-full text-base"
+        disabled={!canSubmit}
+      >
+        {isSubmitting ? <Loader2Icon className="size-4 animate-spin" /> : t('Continue')}
+      </Button>
+    </form>
   )
+}
+
+function resolveUsernameAvailabilityState({
+  activeAvailabilityCheck,
+  localFormatErrorCode,
+  matchesDefaultUsername,
+  trimmedUsername,
+}: {
+  activeAvailabilityCheck: UsernameAvailabilityCheck | null
+  localFormatErrorCode: UsernameFormatErrorCode | null
+  matchesDefaultUsername: boolean
+  trimmedUsername: string
+}): UsernameAvailabilityState {
+  if (localFormatErrorCode || !trimmedUsername) {
+    return 'idle'
+  }
+  if (matchesDefaultUsername) {
+    return 'available'
+  }
+  return activeAvailabilityCheck?.state ?? 'idle'
 }
 
 function resolveUsernameFormatErrorCode(username: string): UsernameFormatErrorCode | null {
