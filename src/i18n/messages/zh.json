@@ -602,7 +602,7 @@
   "Ip26Qb": "个人资料设置",
   "jFYw+/": "管理你的账户资料和偏好设置。",
   "I+lMYp": "SDK 下载",
-  "Z0bShp": "",
+  "Z0bShp": "使用个性化 SDK 包构建交易机器人和集成。CLOB 客户端负责订单簿交易，Relayer 客户端帮助路由并执行已签名的操作。",
   "Y0Fy55": "Python 客户端",
   "tpwdRG": "适用于 Python 机器人和服务的 CLOB 与 relayer 包。",
   "oCneEN": "CLOB",
