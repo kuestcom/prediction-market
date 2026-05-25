@@ -602,7 +602,7 @@
   "Ip26Qb": "Paramètres du profil",
   "jFYw+/": "Gérez le profil et les préférences de votre compte.",
   "I+lMYp": "Téléchargements de SDK",
-  "AzRJCl": "Télécharge des bundles SDK personnalisés pour ton site, séparés par langue et cas d'utilisation.",
+  "AzRJCl": "Créez des bots de trading et des intégrations avec des bundles SDK personnalisés. Le client CLOB gère le trading sur le carnet d'ordres, tandis que le client Relayer aide à acheminer et exécuter des actions signées.",
   "Y0Fy55": "Client Python",
   "tpwdRG": "Bundles CLOB et relayer pour les bots et services Python.",
   "oCneEN": "CLOB",
