@@ -344,7 +344,7 @@ async function createSyncVolumeCron(
     endpointPath: '/api/sync/volume?limit=150',
     siteUrl,
     cronSecret,
-    timeoutMilliseconds: 20000,
+    timeoutMilliseconds: 60000,
   })
 }
 

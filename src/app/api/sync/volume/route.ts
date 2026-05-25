@@ -131,7 +131,7 @@ async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
     }
 
     try {
-      const responses = await fetchVolumeBatch(batch)
+      const responses = await fetchVolumeBatchWithFallback(batch)
       const responseMap = new Map<string, VolumeResponseItem>()
       for (const item of responses) {
         responseMap.set(item.condition_id, item)
@@ -424,6 +424,30 @@ async function fetchVolumeBatch(batch: VolumeWorkItem[]): Promise<VolumeResponse
   }
 
   return body as VolumeResponseItem[]
+}
+
+async function fetchVolumeBatchWithFallback(batch: VolumeWorkItem[]): Promise<VolumeResponseItem[]> {
+  try {
+    return await fetchVolumeBatch(batch)
+  }
+  catch (error: any) {
+    const message = error?.message ?? 'volume_batch_failed'
+    if (batch.length <= 1) {
+      return batch.map(workItem => ({
+        condition_id: workItem.conditionId,
+        status: 599,
+        error: message,
+      }))
+    }
+
+    const midpoint = Math.ceil(batch.length / 2)
+    const [leftResponses, rightResponses] = await Promise.all([
+      fetchVolumeBatchWithFallback(batch.slice(0, midpoint)),
+      fetchVolumeBatchWithFallback(batch.slice(midpoint)),
+    ])
+
+    return [...leftResponses, ...rightResponses]
+  }
 }
 
 async function updateMarketVolume(conditionId: string, totalVolume: string, volume24h: string) {
