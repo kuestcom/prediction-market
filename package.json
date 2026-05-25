@@ -80,7 +80,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",
-    "@eslint-react/eslint-plugin": "^5.7.5",
+    "@eslint-react/eslint-plugin": "^5.8.5",
     "@next/eslint-plugin-next": "16.2.6",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.2.4",
