@@ -186,6 +186,39 @@ import {
   shouldRetryFinalizeRequest,
 } from './admin-create-event-form-utils'
 
+function getCategorySlugKey(slug: string) {
+  return slug.trim().toLowerCase()
+}
+
+function buildCategorySlugSet(categories: CategoryItem[]) {
+  return new Set(
+    categories
+      .map(category => getCategorySlugKey(category.slug))
+      .filter(Boolean),
+  )
+}
+
+function mergeCategoryItems(primary: CategoryItem[], secondary: CategoryItem[]) {
+  const bySlug = new Map<string, CategoryItem>()
+
+  for (const item of [...primary, ...secondary]) {
+    const label = item.label.trim()
+    const slug = item.slug.trim()
+    const slugKey = getCategorySlugKey(slug)
+    if (!label || !slugKey || bySlug.has(slugKey)) {
+      continue
+    }
+
+    bySlug.set(slugKey, { label, slug })
+  }
+
+  return Array.from(bySlug.values())
+}
+
+function removeGeneratedCategoryItems(categories: CategoryItem[], generatedSlugs: Set<string>) {
+  return categories.filter(category => !generatedSlugs.has(getCategorySlugKey(category.slug)))
+}
+
 function useAdminCreateEventForm({
   sportsSlugCatalog,
   creationMode,
@@ -362,6 +395,7 @@ function useAdminCreateEventForm({
   const slugResetValueRef = useRef<string | null>(null)
   const eventEndDateInputRef = useRef<HTMLInputElement | null>(null)
   const sportsStartTimeInputRef = useRef<HTMLInputElement | null>(null)
+  const sportsGeneratedCategorySlugsRef = useRef<Set<string>>(new Set())
 
   const eventImagePreviewUrl = useMemo(
     () => (eventImageFile ? URL.createObjectURL(eventImageFile) : (storedAssets.eventImage?.publicUrl || null)),
@@ -616,6 +650,14 @@ function useAdminCreateEventForm({
 
     return chips
   }, [form.categories, selectedMainCategory])
+  const sportsGeneratedCategorySlugs = useMemo(
+    () => buildCategorySlugSet(sportsDerivedContent.categories),
+    [sportsDerivedContent.categories],
+  )
+  const sportsCustomCategoryChips = useMemo(
+    () => removeGeneratedCategoryItems(form.categories, sportsGeneratedCategorySlugs),
+    [form.categories, sportsGeneratedCategorySlugs],
+  )
   const scheduleDateValue = useMemo(
     () => normalizeDateTimeLocalValue(form.endDateIso),
     [form.endDateIso],
@@ -1817,9 +1859,14 @@ function useAdminCreateEventForm({
   }
 
   if (isSportsEvent) {
+    const previousGeneratedCategorySlugs = sportsGeneratedCategorySlugsRef.current
+    const mergedSportsCategories = mergeCategoryItems(
+      sportsDerivedContent.categories,
+      removeGeneratedCategoryItems(form.categories, previousGeneratedCategorySlugs),
+    )
     const shouldSyncSportsDerivedForm = form.slug !== sportsDerivedContent.eventSlug
       || form.marketMode !== 'multi_multiple'
-      || !areCategoryItemsEqual(form.categories, sportsDerivedContent.categories)
+      || !areCategoryItemsEqual(form.categories, mergedSportsCategories)
       || !areOptionItemsEqual(form.options, sportsDerivedContent.options)
       || form.binaryQuestion !== ''
       || form.binaryOutcomeYes !== 'Yes'
@@ -1829,7 +1876,10 @@ function useAdminCreateEventForm({
         ...prev,
         slug: sportsDerivedContent.eventSlug,
         marketMode: 'multi_multiple',
-        categories: sportsDerivedContent.categories,
+        categories: mergeCategoryItems(
+          sportsDerivedContent.categories,
+          removeGeneratedCategoryItems(prev.categories, previousGeneratedCategorySlugs),
+        ),
         options: sportsDerivedContent.options,
         binaryQuestion: '',
         binaryOutcomeYes: 'Yes',
@@ -1840,6 +1890,13 @@ function useAdminCreateEventForm({
     if (Object.keys(optionImageFiles).length > 0) {
       setOptionImageFiles({})
     }
+  }
+  else if (sportsGeneratedCategorySlugsRef.current.size > 0) {
+    sportsGeneratedCategorySlugsRef.current = new Set()
+  }
+
+  if (isSportsEvent && sportsGeneratedCategorySlugsRef.current !== sportsGeneratedCategorySlugs) {
+    sportsGeneratedCategorySlugsRef.current = sportsGeneratedCategorySlugs
   }
 
   const autoSlugFingerprint = `${creationMode}:${isSportsEvent ? 'sports' : 'default'}:${slugSuffix}:${sportsDerivedContent.eventSlug}:${form.title}`
@@ -2443,7 +2500,9 @@ function useAdminCreateEventForm({
           label: selectedMainCategory?.name || resolvedForm.mainCategorySlug,
           slug: resolvedForm.mainCategorySlug,
         },
-        ...(isSportsEvent ? sportsDerivedContent.categories : resolvedForm.categories),
+        ...(isSportsEvent
+          ? mergeCategoryItems(sportsDerivedContent.categories, resolvedForm.categories)
+          : resolvedForm.categories),
       ]
       return Array.from(new Map(
         base
@@ -4398,6 +4457,7 @@ function useAdminCreateEventForm({
     titleCategorySuggestions,
     filteredCategorySuggestions,
     selectedCategoryChips,
+    sportsCustomCategoryChips,
     scheduleDateValue,
     scheduleOccurrenceDate,
     recurrenceIntervalNumber,
@@ -4606,6 +4666,7 @@ export default function AdminCreateEventForm({
     optionShortNamePlaceholder,
     filteredCategorySuggestions,
     selectedCategoryChips,
+    sportsCustomCategoryChips,
     hasRecurringDeployHistory,
     automaticDeployAtDate,
     nextRecurringResolutionDate,
@@ -5232,6 +5293,67 @@ export default function AdminCreateEventForm({
                                     )}
                                   >
                                     <span>{item.label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="category-input">Custom categories</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="category-input"
+                            value={categoryQuery}
+                            onChange={event => setCategoryQuery(event.target.value)}
+                            placeholder="Add custom sports categories."
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault()
+                                addCategoryFromInput()
+                              }
+                            }}
+                          />
+                          <Button type="button" variant="outline" onClick={addCategoryFromInput}>Add</Button>
+                        </div>
+                      </div>
+
+                      {filteredCategorySuggestions.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {filteredCategorySuggestions.map(item => (
+                            <Button key={item.slug} type="button" size="sm" variant="outline" onClick={() => addCategory(item)}>
+                              {item.name}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label>
+                          Custom categories (
+                          {sportsCustomCategoryChips.length}
+                          )
+                        </Label>
+                        {sportsCustomCategoryChips.length === 0
+                          ? (
+                              <p className="text-sm text-muted-foreground">No custom categories selected.</p>
+                            )
+                          : (
+                              <div className="flex flex-wrap gap-2">
+                                {sportsCustomCategoryChips.map(item => (
+                                  <div
+                                    key={item.slug}
+                                    className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm"
+                                  >
+                                    <span>{item.label}</span>
+                                    <button
+                                      type="button"
+                                      className="text-muted-foreground hover:text-foreground"
+                                      onClick={() => removeCategory(item.slug)}
+                                      aria-label={`Remove ${item.label}`}
+                                    >
+                                      ×
+                                    </button>
                                   </div>
                                 ))}
                               </div>

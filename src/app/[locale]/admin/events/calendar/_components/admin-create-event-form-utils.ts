@@ -540,6 +540,10 @@ export function buildStepErrors(
         sports: args.sportsForm,
         hasTeamLogoByHostStatus: args.hasTeamLogoByHostStatus,
       }))
+
+      if (args.form.categories.length < MIN_SUB_CATEGORIES + 1) {
+        errors.push(`Add custom sports categories until the total is at least ${MIN_SUB_CATEGORIES + 1}.`)
+      }
     }
   }
 
