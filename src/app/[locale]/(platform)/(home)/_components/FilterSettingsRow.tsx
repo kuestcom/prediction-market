@@ -89,7 +89,7 @@ export default function FilterSettingsRow({
     <div
       className={cn(
         `
-          flex w-full max-w-full min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]
+          flex w-full max-w-full min-w-0 scrollbar-none flex-nowrap items-center gap-2 overflow-x-auto pb-1
           [&::-webkit-scrollbar]:hidden
         `,
         className,

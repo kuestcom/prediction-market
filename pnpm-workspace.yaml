@@ -1,8 +1,14 @@
 minimumReleaseAge: 1440
 shellEmulator: true
-trustPolicy: no-downgrade
-
 blockExoticSubdeps: true
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - '@noble/curves@1.8.0'
+  - '@noble/hashes@1.7.0'
+  - semver@6.3.1
+  - slow-redact@0.3.2
+  - tinyexec@1.2.2
+
 allowBuilds:
   '@parcel/watcher': false
   '@reown/appkit': true
