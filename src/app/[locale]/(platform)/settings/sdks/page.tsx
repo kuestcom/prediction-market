@@ -68,7 +68,6 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
 
       <div className="mx-auto w-full max-w-5xl lg:mx-0">
         <SettingsSdkDownloadsContent
-          downloadLabel={t('Download')}
           generatingLabel={t('Generating...')}
           cards={[
             {
@@ -79,13 +78,13 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
               actions: [
                 {
                   id: 'python-clob',
-                  label: t('CLOB SDK'),
+                  label: t('CLOB'),
                   href: buildDownloadUrl('python', 'clob'),
                   variant: 'default',
                 },
                 {
                   id: 'python-relayer',
-                  label: t('Relayer SDK'),
+                  label: t('Relayer'),
                   href: buildDownloadUrl('python', 'relayer'),
                   variant: 'outline',
                 },
@@ -99,13 +98,13 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
               actions: [
                 {
                   id: 'rust-clob',
-                  label: t('CLOB SDK'),
+                  label: t('CLOB'),
                   href: buildDownloadUrl('rust', 'clob'),
                   variant: 'default',
                 },
                 {
                   id: 'rust-relayer',
-                  label: t('Relayer SDK'),
+                  label: t('Relayer'),
                   href: buildDownloadUrl('rust', 'relayer'),
                   variant: 'outline',
                 },
@@ -119,13 +118,13 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
               actions: [
                 {
                   id: 'typescript-clob',
-                  label: t('CLOB SDK'),
+                  label: t('CLOB'),
                   href: buildDownloadUrl('typescript', 'clob'),
                   variant: 'default',
                 },
                 {
                   id: 'typescript-relayer',
-                  label: t('Relayer SDK'),
+                  label: t('Relayer'),
                   href: buildDownloadUrl('typescript', 'relayer'),
                   variant: 'outline',
                 },

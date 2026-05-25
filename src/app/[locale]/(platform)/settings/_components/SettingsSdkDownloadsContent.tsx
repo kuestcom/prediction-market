@@ -23,7 +23,6 @@ interface SdkDownloadAction {
 
 interface SettingsSdkDownloadsContentProps {
   cards: SdkCard[]
-  downloadLabel: string
   generatingLabel: string
 }
 
@@ -55,7 +54,6 @@ function useSdkDownloadState() {
 
 export default function SettingsSdkDownloadsContent({
   cards,
-  downloadLabel,
   generatingLabel,
 }: SettingsSdkDownloadsContentProps) {
   const t = useExtracted()
@@ -130,7 +128,7 @@ export default function SettingsSdkDownloadsContent({
                     onClick={() => handleDownload(action)}
                   >
                     <DownloadIcon className="size-4" />
-                    {isLoading ? generatingLabel : `${downloadLabel} ${action.label}`}
+                    {isLoading ? generatingLabel : action.label}
                   </Button>
                 )
               })}
