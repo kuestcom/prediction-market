@@ -1,4 +1,4 @@
-# Contributing to Kuest
+# Contributing Guide
 
 Thank you for your interest in contributing! We welcome all forms of contribution including bug reports, feature requests, documentation improvements, and code contributions.
 
@@ -6,25 +6,19 @@ Thank you for your interest in contributing! We welcome all forms of contributio
 
 ## Reporting Issues
 
-Before creating a new issue, please check if it already exists. When reporting bugs, include:
-
-- Clear description of the problem
-- Steps to reproduce
-- Expected vs actual behavior
-- Environment details (OS, browser, Node version)
-- Code examples or screenshots if relevant
+Before creating a new issue, please check if it already exists. When reporting bugs, please use the [Bug report option](https://github.com/kuestcom/prediction-market/issues/new?template=bug_report.yml).
 
 ---
 
 ## Feature Requests
 
-For new features, open an issue describing:
+For new features, [open a discussion](https://github.com/orgs/kuestcom/discussions) describing:
 
 - What problem the feature solves
 - How it should work
 - Examples or mockups if applicable
 
-Please check if a similar request already exists first.
+Please check if a similar request already exists.
 
 ---
 
@@ -64,10 +58,6 @@ For code contributions:
 10. Open a pull request with a clear description
 
 ---
-
-## Code of Conduct
-
-Be respectful and inclusive. Harassment and discrimination are not tolerated.
 
 ## License
 
