@@ -1,87 +1,604 @@
 ---
 title: Clients & SDKs
-description: Official SDKs for interacting with Kuest CLOB services in Python, Rust, and TypeScript
+description: SDKs for CLOB trading, relayer wallet actions, market discovery, and market maker workflows
 ---
 
-## Official SDKs
+Use the SDKs when you want your bot or integration to read markets, sign orders, place and cancel orders, deploy a deposit wallet, or route wallet actions such as approvals, splits, merges, redeems, and transfers.
+
+## SDK Families
 
 <Cards>
   <Card
-    title="Python SDK"
-    description="Typed CLOB client for Python bots and backend services."
+    title="CLOB client SDKs"
+    description="Use the CLOB clients for market data, L1/L2 authentication, order signing, limit and market orders, order management, and trade history."
   >
-    <div><code>pip install kuest-py-clob-client</code></div>
-    <a href="/settings/sdks">Download your personalized Python SDK</a>
+    <p>Available in TypeScript, Python, and Rust.</p>
+    <p>Packages: <code>@kuestcom/clob-client</code>, <code>kuest-py-clob-client</code>, and <code>kuest-client-sdk</code>.</p>
   </Card>
+
   <Card
-    title="Rust SDK"
-    description="Async Rust client with CLOB and optional module support."
+    title="Builder Relayer client SDKs"
+    description="Use the relayer clients for deposit wallet deployment and signed wallet batches that execute onchain actions without requiring users to hold gas."
   >
-    <div><code>cargo add kuest-client-sdk</code></div>
-    <a href="/settings/sdks">Download your personalized Rust SDK</a>
-  </Card>
-  <Card
-    title="TypeScript SDK"
-    description="Web and Node.js client for automated CLOB trading flows."
-  >
-    <div><code>npm install @kuestcom/clob-client</code></div>
-    <a href="/settings/sdks">Download your personalized TypeScript SDK</a>
+    <p>Available in TypeScript, Python, and Rust.</p>
+    <p>Packages: <code>@kuestcom/builder-relayer-client</code>, <code>kuest-py-builder-relayer-client</code>, and <code>kuest-builder-relayer-client</code>.</p>
   </Card>
 </Cards>
 
-<Callout type="info">
-  Download personalized SDK packages from <a href="/settings/sdks">Settings → SDKs</a> to receive your site URL, builder attribution, and geoblock behavior prefilled.
+<Callout type="info" title="Personalized downloads">
+  Download your SDK bundle from <a href="/settings/sdks">Settings / SDKs</a>. Choose CLOB when you need market data and order placement, or Builder Relayer when you need deposit wallet deployment and signed wallet actions.
 </Callout>
 
-## Python quickstart
+## When To Use Each Client
 
-Read-only usage:
+| Task | Client |
+| --- | --- |
+| Discover markets, read books, midpoints, spreads, and prices | CLOB client |
+| Create or derive API credentials | CLOB client |
+| Sign and post limit or market orders | CLOB client |
+| Cancel orders and read account trades | CLOB client |
+| Deploy a deposit wallet | Builder Relayer client |
+| Approve collateral or outcome tokens | Builder Relayer client |
+| Split collateral into outcome token inventory | Builder Relayer client or Rust CTF client |
+| Merge complete token sets back to collateral | Builder Relayer client or Rust CTF client |
+| Redeem resolved winning positions | Builder Relayer client or Rust CTF client |
 
-```python
-from py_clob_client.client import ClobClient
+## CLOB Quickstart
 
-client = ClobClient("https://clob.kuest.com")
-print(client.get_ok())
-print(client.get_server_time())
+The CLOB client can be public or authenticated. Public clients can read markets and prices. Authenticated clients need a signer, Deposit Wallet funder address, and L2 API credentials.
+
+### TypeScript
+
+```ts
+import { ClobClient, OrderType, Side, SignatureType } from '@kuestcom/clob-client'
+import { createWalletClient, http } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+import { polygonAmoy } from 'viem/chains'
+
+const host = 'https://clob.kuest.com'
+const chainId = 80002
+const tokenID = process.env.CLOB_TOKEN_ID!
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`)
+const signer = createWalletClient({
+  account,
+  chain: polygonAmoy,
+  transport: http(process.env.RPC_URL),
+})
+
+const bootstrap = new ClobClient(host, chainId, signer)
+const creds = await bootstrap.createOrDeriveApiKey()
+
+const client = new ClobClient(
+  host,
+  chainId,
+  signer,
+  creds,
+  SignatureType.DEPOSIT_WALLET,
+  process.env.DEPOSIT_WALLET!,
+)
+
+const book = await client.getOrderBook(tokenID)
+const midpoint = await client.getMidpoint(tokenID)
+const tickSize = await client.getTickSize(tokenID)
+const negRisk = await client.getNegRisk(tokenID)
+
+const order = await client.createAndPostOrder(
+  {
+    tokenID,
+    price: 0.42,
+    size: 5,
+    side: Side.BUY,
+  },
+  { tickSize, negRisk },
+  OrderType.GTC,
+  false,
+  true,
+)
+
+console.log({ bestBid: book.bids.at(-1), bestAsk: book.asks.at(-1), midpoint, order })
 ```
 
-Use <a href="/settings/sdks">Settings → SDKs</a> to download the Python package already prepared for your site.
+### Python
 
-## Rust quickstart
+```python
+import os
 
-Read-only usage:
+from py_clob_client.client import ClobClient
+from py_clob_client.clob_types import OrderArgs, OrderType, PartialCreateOrderOptions
+from py_clob_client.order_builder.constants import BUY, SELL
 
-```rust
-use kuest_client_sdk::clob::Client;
+HOST = "https://clob.kuest.com"
+CHAIN_ID = 80002
+TOKEN_ID = os.environ["CLOB_TOKEN_ID"]
+
+client = ClobClient(
+    HOST,
+    chain_id=CHAIN_ID,
+    key=os.environ["PRIVATE_KEY"],
+    signature_type=3,
+    funder=os.environ["DEPOSIT_WALLET"],
+)
+client.set_api_creds(client.create_or_derive_api_creds())
+
+tick_size = client.get_tick_size(TOKEN_ID)
+neg_risk = client.get_neg_risk(TOKEN_ID)
+book = client.get_order_book(TOKEN_ID)
+
+buy_order = client.create_order(
+    OrderArgs(token_id=TOKEN_ID, price=0.42, size=5, side=BUY),
+    options=PartialCreateOrderOptions(tick_size=tick_size, neg_risk=neg_risk),
+)
+sell_order = client.create_order(
+    OrderArgs(token_id=TOKEN_ID, price=0.48, size=5, side=SELL),
+    options=PartialCreateOrderOptions(tick_size=tick_size, neg_risk=neg_risk),
+)
+
+buy_response = client.post_order(buy_order, OrderType.GTC)
+sell_response = client.post_order(sell_order, OrderType.GTC)
+
+print({"book": book, "buy": buy_response, "sell": sell_response})
+```
+
+### Rust
+
+Enable the features you use:
+
+```toml
+[dependencies]
+kuest-client-sdk = { version = "2", features = ["clob"] }
+rust_decimal = "1"
+rust_decimal_macros = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+```rust,ignore
+use std::str::FromStr as _;
+
+use alloy::signers::Signer as _;
+use alloy::signers::local::LocalSigner;
+use kuest_client_sdk::clob::types::{OrderType, Side, SignatureType};
+use kuest_client_sdk::clob::{Client, Config};
+use kuest_client_sdk::types::{Address, U256};
+use kuest_client_sdk::AMOY;
+use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let client = Client::default();
-    println!("Ok: {}", client.ok().await?);
+async fn main() -> kuest_client_sdk::Result<()> {
+    let signer = LocalSigner::from_str(&std::env::var("PRIVATE_KEY")?)?
+        .with_chain_id(Some(AMOY));
+    let deposit_wallet = Address::from_str(&std::env::var("DEPOSIT_WALLET")?)?;
+    let token_id = U256::from_str(&std::env::var("CLOB_TOKEN_ID")?)?;
+
+    let client = Client::new("https://clob.kuest.com", Config::default())?
+        .authentication_builder(&signer)
+        .signature_type(SignatureType::DepositWallet)
+        .funder(deposit_wallet)
+        .authenticate()
+        .await?;
+
+    let limit = client
+        .limit_order()
+        .token_id(token_id)
+        .side(Side::Buy)
+        .price(dec!(0.42))
+        .size(Decimal::new(5, 0))
+        .order_type(OrderType::GTC)
+        .build()
+        .await?;
+
+    let signed = client.sign(&signer, limit).await?;
+    let posted = client.post_order(signed).await?;
+
+    println!("{posted:?}");
     Ok(())
 }
 ```
 
-Use <a href="/settings/sdks">Settings → SDKs</a> to download the Rust package already prepared for your site.
+## Relayer Quickstart
 
-## TypeScript quickstart
+The relayer client submits signed deposit wallet batches. Use it for onchain setup and inventory operations so the user does not need to hold gas.
 
-Read-only usage:
+Required environment:
 
-```ts
-import { ClobClient } from '@kuestcom/clob-client'
-
-const client = new ClobClient('https://clob.kuest.com')
-console.log(await client.getOk())
-console.log(await client.getServerTime())
+```bash
+RELAYER_URL=https://relayer.kuest.com
+KUEST_BUILDER_API_KEY=...
+KUEST_BUILDER_SECRET=...
+KUEST_BUILDER_PASSPHRASE=...
+PRIVATE_KEY=...
 ```
 
-Use <a href="/settings/sdks">Settings → SDKs</a> to download the TypeScript package already prepared for your site.
+### Deploy A Deposit Wallet And Split Inventory
 
-## Auth and wallet notes
+This TypeScript example deploys the expected deposit wallet, approves the CTF contract to spend collateral, and splits 100 collateral units into 100 YES and 100 NO tokens for a binary market.
 
-- Review [Authentication](/docs/api-reference/authentication) before placing orders.
-- Trading uses Deposit Wallet orders with signature type 3.
-- Personalized SDKs include the fork builder code automatically; do not add fee receiver or fee bps fields to order payloads.
-- Affiliate/referral setup is handled onchain by the app onboarding flow and is not an order payload field.
-- USDC is used as settlement collateral.
+```ts
+import { BuilderConfig } from '@kuestcom/builder-signing-sdk'
+import { RelayClient } from '@kuestcom/builder-relayer-client'
+import type { DepositWalletCall } from '@kuestcom/builder-relayer-client'
+import { createWalletClient, encodeFunctionData, erc20Abi, http, maxUint256, parseUnits } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+import { polygonAmoy } from 'viem/chains'
+
+const COLLATERAL_TOKEN = '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582'
+const CONDITIONAL_TOKENS = '0x4682048725865bf17067bd85fF518527A262A9C7'
+const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
+
+const conditionalTokensAbi = [
+  {
+    name: 'splitPosition',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'collateralToken', type: 'address' },
+      { name: 'parentCollectionId', type: 'bytes32' },
+      { name: 'conditionId', type: 'bytes32' },
+      { name: 'partition', type: 'uint256[]' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [],
+  },
+] as const
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`)
+const wallet = createWalletClient({
+  account,
+  chain: polygonAmoy,
+  transport: http(process.env.RPC_URL),
+})
+
+const builderConfig = new BuilderConfig({
+  localBuilderCreds: {
+    key: process.env.KUEST_BUILDER_API_KEY!,
+    secret: process.env.KUEST_BUILDER_SECRET!,
+    passphrase: process.env.KUEST_BUILDER_PASSPHRASE!,
+  },
+})
+
+const relayer = new RelayClient(process.env.RELAYER_URL!, 80002, wallet, builderConfig)
+const depositWallet = await relayer.deriveDepositWallet()
+
+if (!(await relayer.getDeployed(depositWallet))) {
+  await (await relayer.deployDepositWallet()).wait()
+}
+
+const conditionId = process.env.CONDITION_ID as `0x${string}`
+const amount = parseUnits('100', 6)
+
+const calls: DepositWalletCall[] = [
+  {
+    target: COLLATERAL_TOKEN,
+    value: '0',
+    data: encodeFunctionData({
+      abi: erc20Abi,
+      functionName: 'approve',
+      args: [CONDITIONAL_TOKENS, maxUint256],
+    }),
+  },
+  {
+    target: CONDITIONAL_TOKENS,
+    value: '0',
+    data: encodeFunctionData({
+      abi: conditionalTokensAbi,
+      functionName: 'splitPosition',
+      args: [COLLATERAL_TOKEN, ZERO_BYTES32, conditionId, [1n, 2n], amount],
+    }),
+  },
+]
+
+const deadline = Math.floor(Date.now() / 1000 + 300).toString()
+const response = await relayer.executeDepositWalletBatch(calls, depositWallet, deadline)
+const transaction = await response.wait()
+
+console.log({ depositWallet, transaction })
+```
+
+### Python Relayer Batch
+
+```python
+import os
+import time
+
+from eth_abi import encode
+from eth_utils import keccak, to_hex
+from py_builder_relayer_client.client import RelayClient
+from py_builder_relayer_client.models import DepositWalletCall
+from py_builder_signing_sdk.config import BuilderApiKeyCreds, BuilderConfig
+
+COLLATERAL_TOKEN = "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582"
+CONDITIONAL_TOKENS = "0x4682048725865bf17067bd85fF518527A262A9C7"
+ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000"
+MAX_UINT256 = 2**256 - 1
+
+
+def bytes32(value: str) -> bytes:
+    return bytes.fromhex(value.removeprefix("0x"))
+
+
+def calldata(signature: str, types: list[str], values: list) -> str:
+    selector = keccak(text=signature)[:4]
+    return to_hex(selector + encode(types, values))
+
+
+def usdc(value: int) -> int:
+    return value * 10**6
+
+
+builder_config = BuilderConfig(
+    local_builder_creds=BuilderApiKeyCreds(
+        key=os.environ["KUEST_BUILDER_API_KEY"],
+        secret=os.environ["KUEST_BUILDER_SECRET"],
+        passphrase=os.environ["KUEST_BUILDER_PASSPHRASE"],
+    )
+)
+
+client = RelayClient(
+    os.environ["RELAYER_URL"],
+    80002,
+    os.environ["PRIVATE_KEY"],
+    builder_config,
+)
+
+deposit_wallet = client.derive_deposit_wallet()
+if not client.get_deployed(deposit_wallet):
+    client.deploy_deposit_wallet().wait()
+
+condition_id = os.environ["CONDITION_ID"]
+calls = [
+    DepositWalletCall(
+        target=COLLATERAL_TOKEN,
+        value="0",
+        data=calldata(
+            "approve(address,uint256)",
+            ["address", "uint256"],
+            [CONDITIONAL_TOKENS, MAX_UINT256],
+        ),
+    ),
+    DepositWalletCall(
+        target=CONDITIONAL_TOKENS,
+        value="0",
+        data=calldata(
+            "splitPosition(address,bytes32,bytes32,uint256[],uint256)",
+            ["address", "bytes32", "bytes32", "uint256[]", "uint256"],
+            [COLLATERAL_TOKEN, bytes32(ZERO_BYTES32), bytes32(condition_id), [1, 2], usdc(100)],
+        ),
+    ),
+]
+
+deadline = str(int(time.time()) + 300)
+response = client.execute_deposit_wallet_batch(calls, deposit_wallet, deadline)
+print(response.wait())
+```
+
+## Build A Market Maker
+
+A market maker loop is usually:
+
+<Steps>
+  <Step>
+    Discover candidate markets from Gamma.
+  </Step>
+  <Step>
+    Filter for active, open, accepting-orders markets with valid CLOB token IDs.
+  </Step>
+  <Step>
+    Split collateral into YES and NO inventory before quoting a fresh binary market.
+  </Step>
+  <Step>
+    Read the current order book and choose a fair price from your model.
+  </Step>
+  <Step>
+    Post a ladder of post-only buy orders below fair value and sell orders above fair value.
+  </Step>
+  <Step>
+    Cancel or replace stale quotes when the book, fair price, risk limits, or inventory changes.
+  </Step>
+</Steps>
+
+<Callout type="warning" title="Avoid crossed quotes">
+  Always validate that your best buy price is lower than your best sell price before posting. A crossed ladder can fill immediately at a loss.
+</Callout>
+
+### Identify New Markets
+
+Use Gamma for market metadata and the CLOB client for live prices. In Rust, enable both `gamma` and `clob` features:
+
+```toml
+[dependencies]
+kuest-client-sdk = { version = "2", features = ["gamma", "clob", "ctf"] }
+alloy = { version = "2", features = ["providers", "signer-local"] }
+rust_decimal = "1"
+rust_decimal_macros = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+```rust,ignore
+use kuest_client_sdk::gamma::types::request::MarketsRequest;
+use kuest_client_sdk::gamma::Client as GammaClient;
+
+# async fn discover() -> kuest_client_sdk::Result<()> {
+let gamma = GammaClient::new("https://gamma-api.kuest.com")?;
+let markets = gamma
+    .markets(
+        &MarketsRequest::builder()
+            .closed(false)
+            .limit(100)
+            .build(),
+    )
+    .await?;
+
+let candidates: Vec<_> = markets
+    .into_iter()
+    .filter(|market| market.active.unwrap_or(false))
+    .filter(|market| market.accepting_orders.unwrap_or(false))
+    .filter(|market| market.clob_token_ids.as_ref().is_some_and(|ids| ids.len() >= 2))
+    .filter(|market| market.condition_id.is_some())
+    .collect();
+
+for market in candidates {
+    println!(
+        "{} {:?} {:?}",
+        market.slug.unwrap_or_default(),
+        market.condition_id,
+        market.clob_token_ids,
+    );
+}
+# Ok(())
+# }
+```
+
+### Split Initial Inventory
+
+For a binary market, splitting `100` collateral units creates `100` YES tokens and `100` NO tokens. You can run the split through the relayer as shown above, or use the Rust CTF client from `kuest-client-sdk` when your service wallet is funded for direct onchain transactions.
+
+```rust,ignore
+use std::str::FromStr as _;
+
+use alloy::primitives::{address, B256, U256};
+use alloy::providers::ProviderBuilder;
+use alloy::signers::Signer as _;
+use alloy::signers::local::LocalSigner;
+use kuest_client_sdk::ctf::types::SplitPositionRequest;
+use kuest_client_sdk::ctf::Client as CtfClient;
+use kuest_client_sdk::AMOY;
+
+const RPC_URL: &str = "https://rpc-amoy.polygon.technology";
+
+# async fn split_inventory(condition_id: B256) -> anyhow::Result<()> {
+let collateral_token = address!("41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582");
+let signer = LocalSigner::from_str(&std::env::var("PRIVATE_KEY")?)?
+    .with_chain_id(Some(AMOY));
+
+let provider = ProviderBuilder::new()
+    .wallet(signer)
+    .connect(RPC_URL)
+    .await?;
+
+let ctf = CtfClient::new(provider, AMOY)?;
+let split = SplitPositionRequest::for_binary_market(
+    collateral_token,
+    condition_id,
+    U256::from(100_000_000u64),
+);
+
+let receipt = ctf.split_position(&split).await?;
+println!("split tx: {}", receipt.transaction_hash);
+# Ok(())
+# }
+```
+
+### Post A Buy/Sell Ladder
+
+This example builds three post-only buys below your fair value and three sells above it. Use the YES token ID for a YES book. Repeat with the NO token ID if your strategy quotes both outcome books directly.
+
+```rust,ignore
+use std::str::FromStr as _;
+
+use alloy::signers::Signer as _;
+use alloy::signers::local::LocalSigner;
+use kuest_client_sdk::clob::types::{OrderType, Side, SignatureType};
+use kuest_client_sdk::clob::{Client as ClobClient, Config};
+use kuest_client_sdk::types::{Address, U256};
+use kuest_client_sdk::AMOY;
+use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
+
+#[derive(Clone, Copy)]
+struct Quote {
+    side: Side,
+    price: Decimal,
+    size: Decimal,
+}
+
+fn clamp_price(price: Decimal, tick: Decimal) -> Decimal {
+    price.max(tick).min(Decimal::ONE - tick)
+}
+
+fn ladder(fair: Decimal, half_spread: Decimal, step: Decimal, size: Decimal) -> Vec<Quote> {
+    let mut quotes = Vec::new();
+    for level in 0..3 {
+        let offset = half_spread + step * Decimal::from(level);
+        quotes.push(Quote {
+            side: Side::Buy,
+            price: clamp_price(fair - offset, step),
+            size,
+        });
+        quotes.push(Quote {
+            side: Side::Sell,
+            price: clamp_price(fair + offset, step),
+            size,
+        });
+    }
+    quotes
+}
+
+# async fn quote_ladder() -> kuest_client_sdk::Result<()> {
+let signer = LocalSigner::from_str(&std::env::var("PRIVATE_KEY")?)?
+    .with_chain_id(Some(AMOY));
+let deposit_wallet = Address::from_str(&std::env::var("DEPOSIT_WALLET")?)?;
+let token_id = U256::from_str(&std::env::var("YES_TOKEN_ID")?)?;
+
+let client = ClobClient::new("https://clob.kuest.com", Config::default())?
+    .authentication_builder(&signer)
+    .signature_type(SignatureType::DepositWallet)
+    .funder(deposit_wallet)
+    .authenticate()
+    .await?;
+
+let fair = dec!(0.55);
+let quotes = ladder(fair, dec!(0.015), dec!(0.005), Decimal::new(10, 0));
+
+let best_buy = quotes
+    .iter()
+    .filter(|quote| quote.side == Side::Buy)
+    .map(|quote| quote.price)
+    .max()
+    .unwrap();
+let best_sell = quotes
+    .iter()
+    .filter(|quote| quote.side == Side::Sell)
+    .map(|quote| quote.price)
+    .min()
+    .unwrap();
+assert!(best_buy < best_sell, "quote ladder is crossed");
+
+let mut signed_orders = Vec::new();
+for quote in quotes {
+    let order = client
+        .limit_order()
+        .token_id(token_id)
+        .side(quote.side)
+        .price(quote.price)
+        .size(quote.size)
+        .order_type(OrderType::GTC)
+        .post_only(true)
+        .build()
+        .await?;
+
+    signed_orders.push(client.sign(&signer, order).await?);
+}
+
+let responses = client.post_orders(signed_orders).await?;
+println!("posted {} quotes", responses.len());
+# Ok(())
+# }
+```
+
+For live operation, keep a small state table per market: condition ID, token IDs, current fair price, open order IDs, inventory, max exposure, last quote timestamp, and last observed book hash. Requote only when the fair price moves by at least one tick, the top of book changes enough to matter, or your inventory limits require skewing the ladder.
+
+## Authentication Notes
+
+- CLOB trading uses Deposit Wallet orders with signature type `3`.
+- The CLOB client derives L2 API credentials from your wallet signature and uses them for trading routes.
+- Relayer clients use builder-style auth headers named `KUEST_BUILDER_*`.
+- Downloaded bundles include defaults for the selected environment, so keep examples aligned with your bundle.
+- Do not put private keys, CLOB API secrets, relayer credentials, or builder credentials in browser-exposed code.
+
+## Related API Pages
+
+- [Authentication](/docs/api-reference/authentication)
+- [Gamma markets](/docs/api-reference/markets/gamma-list-markets)
+- [CLOB markets](/docs/api-reference/markets/list-markets)
+- [Market WebSocket](/docs/api-reference/wss/market)

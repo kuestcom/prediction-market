@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
+import { ArrowRightIcon, BookOpenIcon } from 'lucide-react'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { isAddress, zeroAddress } from 'viem'
 import SettingsSdkDownloadsContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkDownloadsContent'
+import { Button } from '@/components/ui/button'
+import { Link } from '@/i18n/navigation'
 import { addressToBuilderCode } from '@/lib/builder-code'
 import { DEFAULT_FEE_RECEIVER_WALLET_ADDRESS } from '@/lib/contracts'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -132,6 +135,32 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
             },
           ]}
         />
+      </div>
+
+      <div className="
+        mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-lg border bg-card p-4
+        sm:flex-row sm:items-center sm:justify-between sm:p-6
+        lg:mx-0
+      "
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <BookOpenIcon className="size-5" />
+          </div>
+          <div className="grid gap-1">
+            <h2 className="text-base font-semibold tracking-tight">{t('Need implementation examples?')}</h2>
+            <p className="max-w-3xl text-sm text-muted-foreground">
+              {t('Read the SDK documentation for CLOB trading, relayer wallet actions, and market maker workflows before downloading a bundle.')}
+            </p>
+          </div>
+        </div>
+
+        <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
+          <Link href="/docs/api-reference/clients-sdks">
+            {t('Open documentation')}
+            <ArrowRightIcon className="size-4" />
+          </Link>
+        </Button>
       </div>
     </section>
   )
