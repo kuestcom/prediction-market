@@ -192,6 +192,7 @@ function UsernameDialog({
 }) {
   const t = useExtracted()
   const [username, setUsername] = useState(defaultValue)
+  const [hasEditedUsername, setHasEditedUsername] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [availabilityState, setAvailabilityState] = useState<UsernameAvailabilityState>('idle')
   const [availabilityMessage, setAvailabilityMessage] = useState<string | null>(null)
@@ -205,6 +206,17 @@ function UsernameDialog({
     && !localFormatError
     && availabilityState !== 'taken'
   )
+
+  /* eslint-disable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-chain-state-updates, react/set-state-in-effect -- Sync the async username prefill into the field until the user starts editing. */
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+    if (!hasEditedUsername) {
+      setUsername(defaultValue)
+    }
+  }, [defaultValue, hasEditedUsername, open])
+  /* eslint-enable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-chain-state-updates, react/set-state-in-effect */
 
   /* eslint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react/set-state-in-effect -- Debounced username availability is derived from input and an async data-api response. */
   useEffect(() => {
@@ -315,6 +327,7 @@ function UsernameDialog({
           <Input
             value={username}
             onChange={(event) => {
+              setHasEditedUsername(true)
               setUsername(event.target.value)
               setAvailabilityMessage(null)
               setAvailabilityState('idle')

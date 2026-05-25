@@ -32,7 +32,11 @@ import {
   ensureCommunityToken,
   parseCommunityError,
 } from '@/lib/community-auth'
-import { updateCommunityProfile } from '@/lib/community-profile'
+import {
+  COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS,
+  fetchCommunityProfileByAddress,
+  updateCommunityProfile,
+} from '@/lib/community-profile'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import {
   COLLATERAL_TOKEN_ADDRESS,
@@ -348,6 +352,7 @@ function TradingOnboardingProviderContent({
   const [autoRedeemStep, setAutoRedeemStep] = useState<ApprovalsStep>('idle')
   const [requiresTradingAuthRefresh, setRequiresTradingAuthRefresh] = useState(false)
   const [shouldContinueTradingAuthPrompt, setShouldContinueTradingAuthPrompt] = useState(false)
+  const [communityUsernameHint, setCommunityUsernameHint] = useState('')
   const { signTypedDataAsync } = useSignTypedData()
   const { signMessageAsync } = useSignMessage()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
@@ -359,6 +364,48 @@ function TradingOnboardingProviderContent({
   const communityApiUrl = process.env.COMMUNITY_URL!
 
   const status = useOnboardingStatus(user, requiresTradingAuthRefresh)
+
+  useEffect(function preloadCommunityUsernameHint() {
+    if (!user?.address || !status.needsUsername || communityUsernameHint || activeModal !== 'username') {
+      return
+    }
+
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => {
+      controller.abort()
+    }, COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS)
+    let cancelled = false
+
+    fetchCommunityProfileByAddress({
+      communityApiUrl,
+      address: user.address,
+      signal: controller.signal,
+    })
+      .then((profile) => {
+        if (cancelled) {
+          return
+        }
+
+        const username = profile?.username?.trim()
+        if (username) {
+          setCommunityUsernameHint(username)
+        }
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) {
+          return
+        }
+        if (!cancelled) {
+          console.error('Failed to preload community username', error)
+        }
+      })
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+      controller.abort()
+    }
+  }, [activeModal, communityApiUrl, communityUsernameHint, status.needsUsername, user?.address])
 
   useDepositWalletPolling({
     userId: user?.id,
@@ -1255,7 +1302,7 @@ function TradingOnboardingProviderContent({
       <TradingOnboardingDialogs
         activeModal={activeModal}
         onModalOpenChange={handleModalOpenChange}
-        usernameDefaultValue={getUsernameDefaultValue(user)}
+        usernameDefaultValue={communityUsernameHint || getUsernameDefaultValue(user)}
         usernameError={usernameError}
         isUsernameSubmitting={isUsernameSubmitting}
         onUsernameSubmit={handleUsernameSubmit}
