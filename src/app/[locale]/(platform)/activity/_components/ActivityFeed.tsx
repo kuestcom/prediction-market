@@ -22,7 +22,7 @@ import { formatCurrency, formatSharePriceLabel, formatTimeAgo, toMicro } from '@
 import { POLYGON_SCAN_BASE } from '@/lib/network'
 import { buildPublicProfilePath, isDynamicHomeCategorySlug } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
-import { createWebSocketReconnectController } from '@/lib/websocket-reconnect'
+import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
 type LiveActivityPayload = DataApiActivity & {
   category?: string
@@ -450,15 +450,16 @@ function useLiveActivityStream({
       isActive = false
       clearReconnect()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      if (ws) {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(buildSubscriptionPayload('unsubscribe'))
-        }
-        ws.removeEventListener('open', handleOpen)
-        ws.removeEventListener('message', handleMessage)
-        ws.removeEventListener('error', handleError)
-        ws.removeEventListener('close', handleClose)
-        ws.close()
+      const socket = ws
+      if (socket) {
+        socket.removeEventListener('open', handleOpen)
+        socket.removeEventListener('message', handleMessage)
+        socket.removeEventListener('error', handleError)
+        socket.removeEventListener('close', handleClose)
+        closeWebSocketWhenReady(socket, (currentSocket) => {
+          currentSocket.send(buildSubscriptionPayload('unsubscribe'))
+          currentSocket.close()
+        })
       }
     }
   }, [allowedCreatorWallets, categoryValues, wsUrl])

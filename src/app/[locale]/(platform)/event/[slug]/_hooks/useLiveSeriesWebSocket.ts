@@ -1,6 +1,6 @@
 import type { DataPoint } from '@/types/PredictionChartTypes'
 import { useEffect, useState } from 'react'
-import { createWebSocketReconnectController } from '@/lib/websocket-reconnect'
+import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 import {
   extractLivePriceUpdates,
   isSnapshotMessage,
@@ -231,15 +231,16 @@ export function useLiveSeriesWebSocket({
       setStatus('offline')
       clearReconnect()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      if (ws) {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(buildSubscriptionPayload('unsubscribe'))
-        }
-        ws.removeEventListener('open', handleOpen)
-        ws.removeEventListener('message', handleMessage)
-        ws.removeEventListener('error', handleError)
-        ws.removeEventListener('close', handleClose)
-        ws.close()
+      const socket = ws
+      if (socket) {
+        socket.removeEventListener('open', handleOpen)
+        socket.removeEventListener('message', handleMessage)
+        socket.removeEventListener('error', handleError)
+        socket.removeEventListener('close', handleClose)
+        closeWebSocketWhenReady(socket, (currentSocket) => {
+          currentSocket.send(buildSubscriptionPayload('unsubscribe'))
+          currentSocket.close()
+        })
       }
     }
   }, [eventType, topic, isLiveView, wsUrl, subscriptionSymbol, setBaselinePrice])

@@ -57,3 +57,19 @@ export function createWebSocketReconnectController({
     scheduleReconnect,
   }
 }
+
+export function closeWebSocketWhenReady(
+  ws: WebSocket,
+  close: (socket: WebSocket) => void = socket => socket.close(),
+) {
+  if (ws.readyState === WebSocket.CONNECTING) {
+    ws.close()
+    return
+  }
+
+  if (ws.readyState !== WebSocket.OPEN) {
+    return
+  }
+
+  close(ws)
+}
