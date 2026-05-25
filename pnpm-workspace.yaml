@@ -1,0 +1,19 @@
+minimumReleaseAge: 1440
+shellEmulator: true
+trustPolicy: no-downgrade
+
+blockExoticSubdeps: true
+allowBuilds:
+  '@parcel/watcher': false
+  '@reown/appkit': true
+  '@sentry/cli': true
+  '@swc/core': true
+  bufferutil: false
+  esbuild: true
+  keccak: false
+  sharp: false
+  utf-8-validate: false
+
+overrides:
+  '@wagmi/connectors': 6.2.0
+  '@wagmi/core': 2.22.1

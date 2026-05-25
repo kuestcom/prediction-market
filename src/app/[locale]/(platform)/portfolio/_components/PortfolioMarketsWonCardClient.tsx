@@ -3,8 +3,6 @@
 import type { InfiniteData } from '@tanstack/react-query'
 import type { Route } from 'next'
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
-import { DialogTitle } from '@radix-ui/react-dialog'
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useQueryClient } from '@tanstack/react-query'
 import { BanknoteArrowDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -19,7 +17,7 @@ import EventIconImage from '@/components/EventIconImage'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -491,9 +489,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
       </Card>
 
       <DialogContent className="max-w-88 space-y-4 p-5 text-center sm:p-6">
-        <VisuallyHidden>
-          <DialogTitle>{t('You Won')}</DialogTitle>
-        </VisuallyHidden>
+        <DialogTitle className="sr-only">{t('You Won')}</DialogTitle>
 
         <div className="flex justify-center">
           <div className={cn(`

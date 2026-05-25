@@ -1,2 +1,2 @@
-npx knip --no-config-hints
-npx lint-staged
+pnpm exec knip --no-config-hints
+pnpm exec lint-staged

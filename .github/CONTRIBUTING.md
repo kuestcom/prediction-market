@@ -28,8 +28,8 @@ For code contributions:
 - Use English for branch names and commit subjects.
 - Review your own diff before opening the PR.
 - Rebase on the latest `main` before pushing. Do not merge `main` into your branch.
-- Run `npm run lint`, `npm test`, and `npm run build` before submitting.
-- If dependencies changed, include the updated `package-lock.json`.
+- Run `pnpm lint`, `pnpm test`, and `pnpm build` before submitting.
+- If dependencies changed, include the updated `pnpm-lock.json`.
 - Avoid unrelated refactors, drive-by fixes, or config/policy changes in the same PR.
 - Avoid commented-out code and unnecessary inline comments. Keep comments only when they explain non-obvious constraints or decisions.
 - If you use AI/LLM tools, use the highest reasoning mode available and full repository context/access when safe, then manually review and test the final diff before submitting. Examples: OpenAI/Codex `xhigh`; Claude extended thinking with the highest available thinking budget.
@@ -40,11 +40,11 @@ For code contributions:
 
 1. Fork and clone the repository
 2. Use Node.js 24.x (see `.nvmrc`)
-3. Install dependencies: `npm install`
+3. Install dependencies: `pnpm install`
 4. Create a branch using the appropriate prefix, for example `feat/name-in-english` or `fix/name-in-english`
 5. Make your changes
 6. Review your diff before opening the PR
-7. Run `npm run lint`, `npm test`, and `npm run build`
+7. Run `pnpm run lint`, `pnpm test`, and `pnpm run build`
 8. Rebase on the latest `main`
 9. Commit and push to your fork
 10. Open a pull request with a clear description
