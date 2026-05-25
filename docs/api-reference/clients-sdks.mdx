@@ -3,6 +3,9 @@ title: Clients & SDKs
 description: SDKs for CLOB trading, relayer wallet actions, market discovery, and market maker workflows
 ---
 
+import { Steps, Step } from 'fumadocs-ui/components/steps'
+import { DownloadIcon } from 'lucide-react'
+
 Use the SDKs when you want your bot or integration to read markets, sign orders, place and cancel orders, deploy a deposit wallet, or route wallet actions such as approvals, splits, merges, redeems, and transfers.
 
 ## SDK Families
@@ -13,7 +16,6 @@ Use the SDKs when you want your bot or integration to read markets, sign orders,
     description="Use the CLOB clients for market data, L1/L2 authentication, order signing, limit and market orders, order management, and trade history."
   >
     <p>Available in TypeScript, Python, and Rust.</p>
-    <p>Packages: <code>@kuestcom/clob-client</code>, <code>kuest-py-clob-client</code>, and <code>kuest-client-sdk</code>.</p>
   </Card>
 
   <Card
@@ -21,12 +23,11 @@ Use the SDKs when you want your bot or integration to read markets, sign orders,
     description="Use the relayer clients for deposit wallet deployment and signed wallet batches that execute onchain actions without requiring users to hold gas."
   >
     <p>Available in TypeScript, Python, and Rust.</p>
-    <p>Packages: <code>@kuestcom/builder-relayer-client</code>, <code>kuest-py-builder-relayer-client</code>, and <code>kuest-builder-relayer-client</code>.</p>
   </Card>
 </Cards>
 
-<Callout type="info" title="Personalized downloads">
-  Download your SDK bundle from <a href="/settings/sdks">Settings / SDKs</a>. Choose CLOB when you need market data and order placement, or Builder Relayer when you need deposit wallet deployment and signed wallet actions.
+<Callout type="info" title="Downloads" icon={<DownloadIcon className="size-4" />}>
+  Download your SDK bundle from <a href="/settings/sdks">Settings / SDKs</a>.
 </Callout>
 
 ## When To Use Each Client
@@ -39,9 +40,9 @@ Use the SDKs when you want your bot or integration to read markets, sign orders,
 | Cancel orders and read account trades | CLOB client |
 | Deploy a deposit wallet | Builder Relayer client |
 | Approve collateral or outcome tokens | Builder Relayer client |
-| Split collateral into outcome token inventory | Builder Relayer client or Rust CTF client |
-| Merge complete token sets back to collateral | Builder Relayer client or Rust CTF client |
-| Redeem resolved winning positions | Builder Relayer client or Rust CTF client |
+| Split collateral into outcome token inventory | Builder Relayer client or Rust CLOB client |
+| Merge complete token sets back to collateral | Builder Relayer client or Rust CLOB client |
+| Redeem resolved winning positions | Builder Relayer client or Rust CLOB client |
 
 ## CLOB Quickstart
 
@@ -152,7 +153,7 @@ rust_decimal_macros = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
-```rust,ignore
+```rust
 use std::str::FromStr as _;
 
 use alloy::signers::Signer as _;
@@ -414,46 +415,47 @@ rust_decimal_macros = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
-```rust,ignore
+```rust
 use kuest_client_sdk::gamma::types::request::MarketsRequest;
 use kuest_client_sdk::gamma::Client as GammaClient;
 
-# async fn discover() -> kuest_client_sdk::Result<()> {
-let gamma = GammaClient::new("https://gamma-api.kuest.com")?;
-let markets = gamma
-    .markets(
-        &MarketsRequest::builder()
-            .closed(false)
-            .limit(100)
-            .build(),
-    )
-    .await?;
+async fn discover() -> kuest_client_sdk::Result<()> {
+    let gamma = GammaClient::new("https://gamma-api.kuest.com")?;
+    let markets = gamma
+        .markets(
+            &MarketsRequest::builder()
+                .closed(false)
+                .limit(100)
+                .build(),
+        )
+        .await?;
 
-let candidates: Vec<_> = markets
-    .into_iter()
-    .filter(|market| market.active.unwrap_or(false))
-    .filter(|market| market.accepting_orders.unwrap_or(false))
-    .filter(|market| market.clob_token_ids.as_ref().is_some_and(|ids| ids.len() >= 2))
-    .filter(|market| market.condition_id.is_some())
-    .collect();
+    let candidates: Vec<_> = markets
+        .into_iter()
+        .filter(|market| market.active.unwrap_or(false))
+        .filter(|market| market.accepting_orders.unwrap_or(false))
+        .filter(|market| market.clob_token_ids.as_ref().is_some_and(|ids| ids.len() >= 2))
+        .filter(|market| market.condition_id.is_some())
+        .collect();
 
-for market in candidates {
-    println!(
-        "{} {:?} {:?}",
-        market.slug.unwrap_or_default(),
-        market.condition_id,
-        market.clob_token_ids,
-    );
+    for market in candidates {
+        println!(
+            "{} {:?} {:?}",
+            market.slug.unwrap_or_default(),
+            market.condition_id,
+            market.clob_token_ids,
+        );
+    }
+
+    Ok(())
 }
-# Ok(())
-# }
 ```
 
 ### Split Initial Inventory
 
-For a binary market, splitting `100` collateral units creates `100` YES tokens and `100` NO tokens. You can run the split through the relayer as shown above, or use the Rust CTF client from `kuest-client-sdk` when your service wallet is funded for direct onchain transactions.
+For a binary market, splitting `100` collateral units creates `100` YES tokens and `100` NO tokens. You can run the split through the relayer as shown above, or use the Rust CLOB client when your service wallet is funded for direct onchain transactions.
 
-```rust,ignore
+```rust
 use std::str::FromStr as _;
 
 use alloy::primitives::{address, B256, U256};
@@ -466,34 +468,35 @@ use kuest_client_sdk::AMOY;
 
 const RPC_URL: &str = "https://rpc-amoy.polygon.technology";
 
-# async fn split_inventory(condition_id: B256) -> anyhow::Result<()> {
-let collateral_token = address!("41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582");
-let signer = LocalSigner::from_str(&std::env::var("PRIVATE_KEY")?)?
-    .with_chain_id(Some(AMOY));
+async fn split_inventory(condition_id: B256) -> Result<(), Box<dyn std::error::Error>> {
+    let collateral_token = address!("41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582");
+    let signer = LocalSigner::from_str(&std::env::var("PRIVATE_KEY")?)?
+        .with_chain_id(Some(AMOY));
 
-let provider = ProviderBuilder::new()
-    .wallet(signer)
-    .connect(RPC_URL)
-    .await?;
+    let provider = ProviderBuilder::new()
+        .wallet(signer)
+        .connect(RPC_URL)
+        .await?;
 
-let ctf = CtfClient::new(provider, AMOY)?;
-let split = SplitPositionRequest::for_binary_market(
-    collateral_token,
-    condition_id,
-    U256::from(100_000_000u64),
-);
+    let ctf = CtfClient::new(provider, AMOY)?;
+    let split = SplitPositionRequest::for_binary_market(
+        collateral_token,
+        condition_id,
+        U256::from(100_000_000u64),
+    );
 
-let receipt = ctf.split_position(&split).await?;
-println!("split tx: {}", receipt.transaction_hash);
-# Ok(())
-# }
+    let receipt = ctf.split_position(&split).await?;
+    println!("split tx: {}", receipt.transaction_hash);
+
+    Ok(())
+}
 ```
 
 ### Post A Buy/Sell Ladder
 
 This example builds three post-only buys below your fair value and three sells above it. Use the YES token ID for a YES book. Repeat with the NO token ID if your strategy quotes both outcome books directly.
 
-```rust,ignore
+```rust
 use std::str::FromStr as _;
 
 use alloy::signers::Signer as _;
@@ -534,56 +537,57 @@ fn ladder(fair: Decimal, half_spread: Decimal, step: Decimal, size: Decimal) -> 
     quotes
 }
 
-# async fn quote_ladder() -> kuest_client_sdk::Result<()> {
-let signer = LocalSigner::from_str(&std::env::var("PRIVATE_KEY")?)?
-    .with_chain_id(Some(AMOY));
-let deposit_wallet = Address::from_str(&std::env::var("DEPOSIT_WALLET")?)?;
-let token_id = U256::from_str(&std::env::var("YES_TOKEN_ID")?)?;
+async fn quote_ladder() -> kuest_client_sdk::Result<()> {
+    let signer = LocalSigner::from_str(&std::env::var("PRIVATE_KEY")?)?
+        .with_chain_id(Some(AMOY));
+    let deposit_wallet = Address::from_str(&std::env::var("DEPOSIT_WALLET")?)?;
+    let token_id = U256::from_str(&std::env::var("YES_TOKEN_ID")?)?;
 
-let client = ClobClient::new("https://clob.kuest.com", Config::default())?
-    .authentication_builder(&signer)
-    .signature_type(SignatureType::DepositWallet)
-    .funder(deposit_wallet)
-    .authenticate()
-    .await?;
-
-let fair = dec!(0.55);
-let quotes = ladder(fair, dec!(0.015), dec!(0.005), Decimal::new(10, 0));
-
-let best_buy = quotes
-    .iter()
-    .filter(|quote| quote.side == Side::Buy)
-    .map(|quote| quote.price)
-    .max()
-    .unwrap();
-let best_sell = quotes
-    .iter()
-    .filter(|quote| quote.side == Side::Sell)
-    .map(|quote| quote.price)
-    .min()
-    .unwrap();
-assert!(best_buy < best_sell, "quote ladder is crossed");
-
-let mut signed_orders = Vec::new();
-for quote in quotes {
-    let order = client
-        .limit_order()
-        .token_id(token_id)
-        .side(quote.side)
-        .price(quote.price)
-        .size(quote.size)
-        .order_type(OrderType::GTC)
-        .post_only(true)
-        .build()
+    let client = ClobClient::new("https://clob.kuest.com", Config::default())?
+        .authentication_builder(&signer)
+        .signature_type(SignatureType::DepositWallet)
+        .funder(deposit_wallet)
+        .authenticate()
         .await?;
 
-    signed_orders.push(client.sign(&signer, order).await?);
-}
+    let fair = dec!(0.55);
+    let quotes = ladder(fair, dec!(0.015), dec!(0.005), Decimal::new(10, 0));
 
-let responses = client.post_orders(signed_orders).await?;
-println!("posted {} quotes", responses.len());
-# Ok(())
-# }
+    let best_buy = quotes
+        .iter()
+        .filter(|quote| quote.side == Side::Buy)
+        .map(|quote| quote.price)
+        .max()
+        .unwrap();
+    let best_sell = quotes
+        .iter()
+        .filter(|quote| quote.side == Side::Sell)
+        .map(|quote| quote.price)
+        .min()
+        .unwrap();
+    assert!(best_buy < best_sell, "quote ladder is crossed");
+
+    let mut signed_orders = Vec::new();
+    for quote in quotes {
+        let order = client
+            .limit_order()
+            .token_id(token_id)
+            .side(quote.side)
+            .price(quote.price)
+            .size(quote.size)
+            .order_type(OrderType::GTC)
+            .post_only(true)
+            .build()
+            .await?;
+
+        signed_orders.push(client.sign(&signer, order).await?);
+    }
+
+    let responses = client.post_orders(signed_orders).await?;
+    println!("posted {} quotes", responses.len());
+
+    Ok(())
+}
 ```
 
 For live operation, keep a small state table per market: condition ID, token IDs, current fair price, open order IDs, inventory, max exposure, last quote timestamp, and last observed book hash. Requote only when the fair price moves by at least one tick, the top of book changes enough to matter, or your inventory limits require skewing the ladder.

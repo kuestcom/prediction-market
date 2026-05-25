@@ -150,7 +150,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
           <div className="grid gap-1">
             <h2 className="text-base font-semibold tracking-tight">{t('Need implementation examples?')}</h2>
             <p className="max-w-3xl text-sm text-muted-foreground">
-              {t('Read the SDK documentation for CLOB trading, relayer wallet actions, and market maker workflows before downloading a bundle.')}
+              {t('Read the SDK documentation for CLOB trading, relayer wallet actions, and market maker workflows.')}
             </p>
           </div>
         </div>
