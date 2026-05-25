@@ -62,7 +62,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">{t('SDK Downloads')}</h1>
         <p className="text-muted-foreground">
-          Download personalized SDK bundles for your site, split by language and use case.
+          {t('Download personalized SDK bundles for your site, split by language and use case.')}
         </p>
       </div>
 
@@ -74,18 +74,18 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
             {
               id: 'python-client',
               title: t('Python Client'),
-              description: 'CLOB and relayer bundles for Python bots and services.',
+              description: t('CLOB and relayer bundles for Python bots and services.'),
               logoSrc: '/images/sdks/python.svg',
               actions: [
                 {
                   id: 'python-clob',
-                  label: 'CLOB SDK',
+                  label: t('CLOB SDK'),
                   href: buildDownloadUrl('python', 'clob'),
                   variant: 'default',
                 },
                 {
                   id: 'python-relayer',
-                  label: 'Relayer SDK',
+                  label: t('Relayer SDK'),
                   href: buildDownloadUrl('python', 'relayer'),
                   variant: 'outline',
                 },
@@ -94,18 +94,18 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
             {
               id: 'rust-client',
               title: t('Rust Client'),
-              description: 'CLOB and relayer bundles for Rust services and automations.',
+              description: t('CLOB and relayer bundles for Rust services and automations.'),
               logoSrc: '/images/sdks/rust.svg',
               actions: [
                 {
                   id: 'rust-clob',
-                  label: 'CLOB SDK',
+                  label: t('CLOB SDK'),
                   href: buildDownloadUrl('rust', 'clob'),
                   variant: 'default',
                 },
                 {
                   id: 'rust-relayer',
-                  label: 'Relayer SDK',
+                  label: t('Relayer SDK'),
                   href: buildDownloadUrl('rust', 'relayer'),
                   variant: 'outline',
                 },
@@ -114,18 +114,18 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
             {
               id: 'typescript-client',
               title: t('TypeScript Client'),
-              description: 'CLOB and relayer bundles for web apps, bots, and Node.js services.',
+              description: t('CLOB and relayer bundles for web apps, bots, and Node.js services.'),
               logoSrc: '/images/sdks/typescript.svg',
               actions: [
                 {
                   id: 'typescript-clob',
-                  label: 'CLOB SDK',
+                  label: t('CLOB SDK'),
                   href: buildDownloadUrl('typescript', 'clob'),
                   variant: 'default',
                 },
                 {
                   id: 'typescript-relayer',
-                  label: 'Relayer SDK',
+                  label: t('Relayer SDK'),
                   href: buildDownloadUrl('typescript', 'relayer'),
                   variant: 'outline',
                 },
