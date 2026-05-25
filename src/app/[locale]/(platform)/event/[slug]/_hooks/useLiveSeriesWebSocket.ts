@@ -207,11 +207,12 @@ export function useLiveSeriesWebSocket({
       if (!isActive || ws || document.hidden) {
         return
       }
-      ws = new WebSocket(resolvedWsUrl)
-      ws.addEventListener('open', handleOpen)
-      ws.addEventListener('message', handleMessage)
-      ws.addEventListener('error', handleError)
-      ws.addEventListener('close', handleClose)
+      const socket = new WebSocket(resolvedWsUrl)
+      socket.onopen = handleOpen
+      socket.onmessage = handleMessage
+      socket.onerror = handleError
+      socket.onclose = handleClose
+      ws = socket
     }
 
     reconnectController = createWebSocketReconnectController({
@@ -233,10 +234,10 @@ export function useLiveSeriesWebSocket({
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       const socket = ws
       if (socket) {
-        socket.removeEventListener('open', handleOpen)
-        socket.removeEventListener('message', handleMessage)
-        socket.removeEventListener('error', handleError)
-        socket.removeEventListener('close', handleClose)
+        socket.onopen = null
+        socket.onmessage = null
+        socket.onerror = null
+        socket.onclose = null
         closeWebSocketWhenReady(socket, (currentSocket) => {
           currentSocket.send(buildSubscriptionPayload('unsubscribe'))
           currentSocket.close()
