@@ -40,9 +40,9 @@ Use the SDKs when you want your bot or integration to read markets, sign orders,
 | Cancel orders and read account trades | CLOB client |
 | Deploy a deposit wallet | Builder Relayer client |
 | Approve collateral or outcome tokens | Builder Relayer client |
-| Split collateral into outcome token inventory | Builder Relayer client or Rust CLOB client |
-| Merge complete token sets back to collateral | Builder Relayer client or Rust CLOB client |
-| Redeem resolved winning positions | Builder Relayer client or Rust CLOB client |
+| Split collateral into outcome token inventory | Builder Relayer client or Rust CLOB SDK onchain CTF helpers |
+| Merge complete token sets back to collateral | Builder Relayer client or Rust CLOB SDK onchain CTF helpers |
+| Redeem resolved winning positions | Builder Relayer client or Rust CLOB SDK onchain CTF helpers |
 
 ## CLOB Quickstart
 
@@ -453,7 +453,7 @@ async fn discover() -> kuest_client_sdk::Result<()> {
 
 ### Split Initial Inventory
 
-For a binary market, splitting `100` collateral units creates `100` YES tokens and `100` NO tokens. You can run the split through the relayer as shown above, or use the Rust CLOB client when your service wallet is funded for direct onchain transactions.
+For a binary market, splitting `100` collateral units creates `100` YES tokens and `100` NO tokens. You can run the split through the relayer as shown above, or use the Rust CLOB SDK onchain CTF helpers when your service wallet is funded for direct onchain transactions.
 
 ```rust
 use std::str::FromStr as _;
