@@ -12,7 +12,7 @@ import {
   ZapIcon,
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { checkUsernameAvailabilityAction } from '@/app/[locale]/(platform)/_actions/deposit-wallet'
 import { FundAccountDialog } from '@/app/[locale]/(platform)/_components/TradingDialogs'
 import { WalletFlow } from '@/app/[locale]/(platform)/_components/WalletFlow'
@@ -196,6 +196,7 @@ function UsernameDialog({
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [availabilityState, setAvailabilityState] = useState<UsernameAvailabilityState>('idle')
   const [availabilityMessage, setAvailabilityMessage] = useState<string | null>(null)
+  const previousOpenRef = useRef(open)
   const trimmedUsername = username.trim()
   const localFormatErrorCode = resolveUsernameFormatErrorCode(trimmedUsername)
   const localFormatError = formatLocalUsernameFormatError(localFormatErrorCode)
@@ -207,18 +208,35 @@ function UsernameDialog({
     && availabilityState !== 'taken'
   )
 
-  /* eslint-disable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-chain-state-updates, react/set-state-in-effect -- Sync the async username prefill into the field until the user starts editing. */
+  useEffect(() => {
+    const justOpened = open && !previousOpenRef.current
+    previousOpenRef.current = open
+
+    if (!justOpened) {
+      return
+    }
+
+    setHasEditedUsername(false)
+    setTermsAccepted(false)
+    setAvailabilityState('idle')
+    setAvailabilityMessage(null)
+    setUsername(defaultValue)
+  }, [defaultValue, open])
+
   useEffect(() => {
     if (!open) {
       return
     }
-    if (!hasEditedUsername) {
+
+    if (hasEditedUsername) {
+      return
+    }
+
+    if (username !== defaultValue) {
       setUsername(defaultValue)
     }
-  }, [defaultValue, hasEditedUsername, open])
-  /* eslint-enable react-you-might-not-need-an-effect/no-event-handler, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-chain-state-updates, react/set-state-in-effect */
+  }, [defaultValue, hasEditedUsername, open, username])
 
-  /* eslint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react/set-state-in-effect -- Debounced username availability is derived from input and an async data-api response. */
   useEffect(() => {
     if (!open) {
       return
@@ -281,7 +299,6 @@ function UsernameDialog({
       window.clearTimeout(timeoutId)
     }
   }, [defaultValue, localFormatError, open, t, trimmedUsername])
-  /* eslint-enable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react/set-state-in-effect */
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

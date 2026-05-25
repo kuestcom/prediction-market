@@ -352,7 +352,10 @@ function TradingOnboardingProviderContent({
   const [autoRedeemStep, setAutoRedeemStep] = useState<ApprovalsStep>('idle')
   const [requiresTradingAuthRefresh, setRequiresTradingAuthRefresh] = useState(false)
   const [shouldContinueTradingAuthPrompt, setShouldContinueTradingAuthPrompt] = useState(false)
-  const [communityUsernameHint, setCommunityUsernameHint] = useState('')
+  const [communityUsernameHint, setCommunityUsernameHint] = useState<{
+    address: string
+    username: string
+  } | null>(null)
   const { signTypedDataAsync } = useSignTypedData()
   const { signMessageAsync } = useSignMessage()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
@@ -364,9 +367,16 @@ function TradingOnboardingProviderContent({
   const communityApiUrl = process.env.COMMUNITY_URL!
 
   const status = useOnboardingStatus(user, requiresTradingAuthRefresh)
+  const normalizedUserAddress = user?.address?.trim().toLowerCase() ?? ''
+  const hasMatchingCommunityUsernameHint = Boolean(
+    communityUsernameHint
+    && normalizedUserAddress
+    && communityUsernameHint.address.trim().toLowerCase() === normalizedUserAddress,
+  )
+  const communityUsernameHintForCurrentUser = hasMatchingCommunityUsernameHint ? communityUsernameHint : null
 
   useEffect(function preloadCommunityUsernameHint() {
-    if (!user?.address || !status.needsUsername || communityUsernameHint || activeModal !== 'username') {
+    if (!user?.address || !status.needsUsername || activeModal !== 'username' || hasMatchingCommunityUsernameHint) {
       return
     }
 
@@ -388,7 +398,10 @@ function TradingOnboardingProviderContent({
 
         const username = profile?.username?.trim()
         if (username) {
-          setCommunityUsernameHint(username)
+          setCommunityUsernameHint({
+            address: user.address,
+            username,
+          })
         }
       })
       .catch((error) => {
@@ -405,7 +418,7 @@ function TradingOnboardingProviderContent({
       window.clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [activeModal, communityApiUrl, communityUsernameHint, status.needsUsername, user?.address])
+  }, [activeModal, communityApiUrl, hasMatchingCommunityUsernameHint, status.needsUsername, user?.address])
 
   useDepositWalletPolling({
     userId: user?.id,
@@ -1302,7 +1315,7 @@ function TradingOnboardingProviderContent({
       <TradingOnboardingDialogs
         activeModal={activeModal}
         onModalOpenChange={handleModalOpenChange}
-        usernameDefaultValue={communityUsernameHint || getUsernameDefaultValue(user)}
+        usernameDefaultValue={communityUsernameHintForCurrentUser?.username ?? getUsernameDefaultValue(user)}
         usernameError={usernameError}
         isUsernameSubmitting={isUsernameSubmitting}
         onUsernameSubmit={handleUsernameSubmit}
