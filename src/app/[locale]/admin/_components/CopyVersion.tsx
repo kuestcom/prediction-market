@@ -229,6 +229,7 @@ export default function CopyVersion({ forkRepositoryUrl }: CopyVersionProps) {
         type="button"
         variant="ghost"
         size="sm"
+        className="group font-mono"
         title={copied ? 'Copied' : 'Copy version payload'}
         onClick={() => void copyVersionPayload()}
       >
@@ -236,7 +237,9 @@ export default function CopyVersion({ forkRepositoryUrl }: CopyVersionProps) {
         {COMMIT_SHA}
         {copied
           ? <CheckIcon className="text-yes" />
-          : <CopyIcon />}
+          : (
+              <CopyIcon className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+            )}
       </Button>
     </div>
   )
