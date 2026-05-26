@@ -149,12 +149,13 @@ async function syncClobCollateralBalanceAllowanceSignatureType3(user: {
   }
 
   const query = 'asset_type=COLLATERAL&signature_type=3'
-  const path = `/balance-allowance/update?${query}`
+  const path = '/balance-allowance/update'
+  const pathWithQuery = `${path}?${query}`
   const timestamp = Math.floor(Date.now() / 1000)
   const signature = buildClobHmacSignature(auth.clob.secret, timestamp, 'GET', path)
 
   try {
-    const response = await fetch(`${clobUrl}${path}`, {
+    const response = await fetch(`${clobUrl}${pathWithQuery}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json',

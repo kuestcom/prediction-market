@@ -179,7 +179,7 @@ async function fetchClobOpenOrders({
   const pathWithQuery = query ? `${path}?${query}` : path
   const url = `${CLOB_URL}${pathWithQuery}`
   const timestamp = Math.floor(Date.now() / 1000)
-  const signature = buildClobHmacSignature(auth.secret, timestamp, 'GET', pathWithQuery)
+  const signature = buildClobHmacSignature(auth.secret, timestamp, 'GET', path)
 
   const response = await fetch(url, {
     method: 'GET',

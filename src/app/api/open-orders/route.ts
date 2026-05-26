@@ -130,11 +130,12 @@ async function fetchClobOpenOrders({
   if (nextCursor) {
     params.set('next_cursor', nextCursor)
   }
-  const path = params.toString() ? `/data/orders?${params.toString()}` : '/data/orders'
+  const path = '/data/orders'
+  const pathWithQuery = params.toString() ? `${path}?${params.toString()}` : path
   const timestamp = Math.floor(Date.now() / 1000)
   const signature = buildClobHmacSignature(auth.secret, timestamp, 'GET', path)
 
-  const response = await fetch(`${CLOB_URL}${path}`, {
+  const response = await fetch(`${CLOB_URL}${pathWithQuery}`, {
     method: 'GET',
     headers: {
       Accept: 'application/json',

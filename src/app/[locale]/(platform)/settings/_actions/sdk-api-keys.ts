@@ -201,8 +201,9 @@ async function listApiKeyMetadata(
   address: string,
   credential: SdkApiKeyCredential,
 ) {
-  const path = '/auth/api-keys?metadata=true&includeRevoked=true'
-  const response = await fetch(`${target.baseUrl}${path}`, {
+  const path = '/auth/api-keys'
+  const pathWithQuery = `${path}?metadata=true&includeRevoked=true`
+  const response = await fetch(`${target.baseUrl}${pathWithQuery}`, {
     method: 'GET',
     headers: buildL2Headers(address, credential, path),
     cache: 'no-store',

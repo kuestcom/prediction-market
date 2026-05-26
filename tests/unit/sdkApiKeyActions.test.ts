@@ -291,13 +291,13 @@ describe('sdk api key actions', () => {
       'clob-secret',
       expect.any(Number),
       'GET',
-      '/auth/api-keys?metadata=true&includeRevoked=true',
+      '/auth/api-keys',
     )
     expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith(
       'relayer-secret',
       expect.any(Number),
       'GET',
-      '/auth/api-keys?metadata=true&includeRevoked=true',
+      '/auth/api-keys',
     )
   })
 
