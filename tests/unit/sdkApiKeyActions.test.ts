@@ -317,6 +317,28 @@ describe('sdk api key actions', () => {
     )
   })
 
+  it('fails nonce resolution when a configured service has no stored internal credential', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const fetchMock = vi.fn()
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
+      clob: makeCredential('clob'),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getNextSdkApiKeyNonceAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
+
+    await expect(getNextSdkApiKeyNonceAction({ address: userAddress })).resolves.toEqual({
+      error: 'Internal server error. Try again in a few moments.',
+      nonce: null,
+    })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(consoleError).toHaveBeenCalledWith(
+      'Failed to resolve next SDK API key nonce.',
+      expect.any(Error),
+    )
+  })
+
   it('does not expose backend error payload secrets in logs or returned errors', async () => {
     const fetchMock = vi.fn(async () => jsonResponse({
       error: 'backend included leaked_secret and leaked_passphrase',

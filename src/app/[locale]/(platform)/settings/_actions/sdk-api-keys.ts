@@ -218,20 +218,28 @@ async function listApiKeyMetadata(
 }
 
 async function resolveNextSdkApiKeyNonce(userId: string, address: string) {
-  const auth = await getUserTradingAuthSecrets(userId, { requireL2Context: false })
-  if (!auth) {
-    return '0'
-  }
-
   const targets = getSdkApiKeyTargets()
   if (!targets.length) {
     return '0'
   }
 
-  const queryableTargets = targets.flatMap((target) => {
+  const auth = await getUserTradingAuthSecrets(userId, { requireL2Context: false })
+  const targetsWithCredentials = targets.map((target) => {
     const credential = getTargetCredential(auth, target.service)
-    return credential ? [{ target, credential }] : []
+    return { target, credential }
   })
+
+  const missingCredentialServices = targetsWithCredentials.flatMap(({ target, credential }) => (
+    credential ? [] : [target.service]
+  ))
+  if (missingCredentialServices.length) {
+    throw new Error(`Unable to list API key metadata for: ${missingCredentialServices.join(', ')}`)
+  }
+
+  const queryableTargets = targetsWithCredentials.filter((entry): entry is {
+    target: SdkApiKeyTarget
+    credential: SdkApiKeyCredential
+  } => Boolean(entry.credential))
 
   const results = await Promise.allSettled(
     queryableTargets.map(({ target, credential }) => listApiKeyMetadata(target, address, credential)),
