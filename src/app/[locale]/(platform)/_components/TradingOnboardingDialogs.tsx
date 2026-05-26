@@ -609,17 +609,11 @@ function EnableTradingStatusDialog({
   const timeline = (
     <div className="mt-5 space-y-0">
       <TimelineStep
-        title={t('Deploy Wallet')}
-        description={t('Deploy a smart contract wallet to enable trading')}
-        complete={hasDeployedDepositWallet}
-        trailing={hasDeployedDepositWallet ? t('Done') : null}
-      />
-      <TimelineStep
         title={t('Enable Trading')}
         description={t('Sign a message to generate your API keys')}
         complete={hasTradingAuth}
         trailing={hasTradingAuth ? t('Done') : null}
-        action={!hasTradingAuth && hasDeployedDepositWallet
+        action={!hasTradingAuth
           ? {
               label: t('Sign'),
               loading: isSigning,
@@ -627,6 +621,12 @@ function EnableTradingStatusDialog({
             }
           : undefined}
         error={!hasTradingAuth ? error : null}
+      />
+      <TimelineStep
+        title={t('Deploy Wallet')}
+        description={t('Deploy a smart contract wallet to enable trading')}
+        complete={hasDeployedDepositWallet}
+        trailing={hasDeployedDepositWallet ? t('Done') : null}
       />
       <TimelineStep
         title={t('Approve Tokens')}

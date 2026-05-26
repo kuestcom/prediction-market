@@ -5,6 +5,7 @@ import type {
   SdkApiKeyActionResult,
   SdkApiKeyBundle,
   SdkApiKeyCredential,
+  SdkApiKeyNextNonceResult,
   SdkApiKeyRevokeResult,
   SdkApiKeyService,
 } from '@/lib/sdk-api-keys'
@@ -15,7 +16,7 @@ import { UserRepository } from '@/lib/db/queries/user'
 import { wallets } from '@/lib/db/schema/auth/tables'
 import { db } from '@/lib/drizzle'
 import { buildClobHmacSignature } from '@/lib/hmac'
-import { SDK_API_KEY_NONCE } from '@/lib/sdk-api-keys'
+import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 import {
   mapTradingAuthError,
   readTradingFlowErrorResponse,
@@ -26,7 +27,11 @@ const SdkApiKeySignatureSchema = z.object({
   address: z.string().refine(value => Boolean(normalizeAddress(value)), 'Invalid wallet address.'),
   signature: z.string().min(1),
   timestamp: z.string().regex(/^\d+$/),
-  nonce: z.literal(SDK_API_KEY_NONCE),
+  nonce: z.string().regex(/^\d+$/),
+})
+
+const SdkApiKeyNextNonceSchema = z.object({
+  address: z.string().refine(value => Boolean(normalizeAddress(value)), 'Invalid wallet address.'),
 })
 
 interface SdkApiKeyTarget {
@@ -36,6 +41,12 @@ interface SdkApiKeyTarget {
 
 interface ServiceFailure {
   service: SdkApiKeyService
+}
+
+interface ApiKeyMetadata {
+  key: string
+  nonce: string
+  status: string
 }
 
 function getSdkApiKeyTargets(): SdkApiKeyTarget[] {
@@ -53,6 +64,26 @@ function buildWalletHeaders(address: string, payload: SdkApiKeyActionPayload) {
     'KUEST_SIGNATURE': payload.signature,
     'KUEST_TIMESTAMP': payload.timestamp,
     'KUEST_NONCE': payload.nonce,
+  }
+}
+
+function buildL2Headers(address: string, credential: SdkApiKeyCredential, path: string) {
+  const method = 'GET'
+  const timestamp = Math.floor(Date.now() / 1000)
+  const signature = buildClobHmacSignature(
+    credential.secret,
+    timestamp,
+    method,
+    path,
+  )
+
+  return {
+    Accept: 'application/json',
+    KUEST_ADDRESS: address,
+    KUEST_API_KEY: credential.key,
+    KUEST_PASSPHRASE: credential.passphrase,
+    KUEST_TIMESTAMP: timestamp.toString(),
+    KUEST_SIGNATURE: signature,
   }
 }
 
@@ -102,6 +133,113 @@ function normalizeCredentialPayload(payload: Record<string, unknown>): SdkApiKey
     secret,
     passphrase,
   }
+}
+
+function normalizeApiKeyMetadata(payload: unknown): ApiKeyMetadata[] {
+  if (!Array.isArray(payload)) {
+    return []
+  }
+
+  return payload.flatMap((item) => {
+    if (!item || typeof item !== 'object') {
+      return []
+    }
+
+    const record = item as Record<string, unknown>
+    const key = typeof record.apiKey === 'string'
+      ? record.apiKey
+      : typeof record.api_key === 'string'
+        ? record.api_key
+        : typeof record.key === 'string'
+          ? record.key
+          : null
+    const nonce = typeof record.nonce === 'string'
+      ? record.nonce
+      : typeof record.nonce === 'number' && Number.isInteger(record.nonce)
+        ? record.nonce.toString()
+        : null
+    const status = typeof record.status === 'string' ? record.status : 'active'
+
+    if (!key || !nonce) {
+      return []
+    }
+
+    return [{ key, nonce, status }]
+  })
+}
+
+function getTargetCredential(
+  auth: Awaited<ReturnType<typeof getUserTradingAuthSecrets>>,
+  service: SdkApiKeyService,
+) {
+  return service === 'clob' ? auth?.clob : auth?.relayer
+}
+
+function nextNonceFromMetadata(keys: ApiKeyMetadata[]) {
+  let maxNonce: bigint | null = null
+
+  for (const key of keys) {
+    try {
+      const value = BigInt(key.nonce)
+      if (value < 0n) {
+        continue
+      }
+      if (maxNonce === null || value > maxNonce) {
+        maxNonce = value
+      }
+    }
+    catch {
+      continue
+    }
+  }
+
+  return maxNonce === null ? '0' : (maxNonce + 1n).toString()
+}
+
+async function listApiKeyMetadata(
+  target: SdkApiKeyTarget,
+  address: string,
+  credential: SdkApiKeyCredential,
+) {
+  const path = '/auth/api-keys?metadata=true&includeRevoked=true'
+  const response = await fetch(`${target.baseUrl}${path}`, {
+    method: 'GET',
+    headers: buildL2Headers(address, credential, path),
+    cache: 'no-store',
+    signal: AbortSignal.timeout(10_000),
+  })
+
+  const payload = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error('Unable to list API keys.')
+  }
+
+  return normalizeApiKeyMetadata(payload)
+}
+
+async function resolveNextSdkApiKeyNonce(userId: string, address: string) {
+  const auth = await getUserTradingAuthSecrets(userId, { requireL2Context: false })
+  if (!auth) {
+    return '0'
+  }
+
+  const targets = getSdkApiKeyTargets()
+  if (!targets.length) {
+    return '0'
+  }
+
+  const results = await Promise.allSettled(
+    targets.map(async (target) => {
+      const credential = getTargetCredential(auth, target.service)
+      if (!credential) {
+        return []
+      }
+      return listApiKeyMetadata(target, address, credential)
+    }),
+  )
+
+  const keys = results.flatMap(result => result.status === 'fulfilled' ? result.value : [])
+  return nextNonceFromMetadata(keys)
 }
 
 async function requestCredential(
@@ -219,7 +357,7 @@ async function runCredentialAction(
     }),
   )
 
-  const data: SdkApiKeyBundle = { nonce: SDK_API_KEY_NONCE, address }
+  const data: SdkApiKeyBundle = { nonce: parsed.data.nonce, address }
   const failures: ServiceFailure[] = []
 
   for (const [index, result] of results.entries()) {
@@ -250,6 +388,34 @@ export async function generateSdkApiKeyAction(input: z.input<typeof SdkApiKeySig
 
 export async function revealSdkApiKeyAction(input: z.input<typeof SdkApiKeySignatureSchema>): Promise<SdkApiKeyActionResult> {
   return runCredentialAction(input, '/auth/derive-api-key', 'GET')
+}
+
+export async function getNextSdkApiKeyNonceAction(input: z.input<typeof SdkApiKeyNextNonceSchema>): Promise<SdkApiKeyNextNonceResult> {
+  const parsed = SdkApiKeyNextNonceSchema.safeParse(input)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Invalid wallet address.', nonce: null }
+  }
+
+  const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
+  if (!user) {
+    return { error: 'Unauthenticated.', nonce: null }
+  }
+
+  const address = await resolveAuthorizedWalletAddress(user, parsed.data.address)
+  if (!address) {
+    return { error: 'Connect the wallet linked to this account before managing SDK keys.', nonce: null }
+  }
+
+  try {
+    return {
+      error: null,
+      nonce: await resolveNextSdkApiKeyNonce(user.id, address),
+    }
+  }
+  catch (error) {
+    console.error('Failed to resolve next SDK API key nonce.', error)
+    return { error: DEFAULT_ERROR_MESSAGE, nonce: null }
+  }
 }
 
 export async function revokeSdkApiKeyAction(input: z.input<typeof SdkApiKeySignatureSchema>): Promise<SdkApiKeyRevokeResult> {
@@ -309,7 +475,7 @@ export async function revokeSdkApiKeyAction(input: z.input<typeof SdkApiKeySigna
     error: null,
     warning: makePartialWarning(failures),
     data: {
-      nonce: SDK_API_KEY_NONCE,
+      nonce: parsed.data.nonce,
       revoked,
     },
   }

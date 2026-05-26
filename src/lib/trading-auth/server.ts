@@ -210,7 +210,10 @@ export async function ensureUserTradingAuthSecretFingerprint(userId: string, raw
   return result.settings
 }
 
-export async function getUserTradingAuthSecrets(userId: string): Promise<TradingAuthSecrets | null> {
+export async function getUserTradingAuthSecrets(
+  userId: string,
+  options: { requireL2Context?: boolean } = {},
+): Promise<TradingAuthSecrets | null> {
   const [row] = await db
     .select({ settings: users.settings })
     .from(users)
@@ -229,38 +232,40 @@ export async function getUserTradingAuthSecrets(userId: string): Promise<Trading
     return null
   }
 
-  const l2Validation = await validateL2AuthContext(settings)
-  if (l2Validation.contextsChanged) {
-    await withLockedUserSettings(userId, async ({ settings: lockedSettings, tx }) => {
-      const lockedTradingAuth = (lockedSettings as any)?.tradingAuth as TradingAuthSecretSettings | undefined
-      if (!lockedTradingAuth) {
-        return
-      }
+  if (options.requireL2Context !== false) {
+    const l2Validation = await validateL2AuthContext(settings)
+    if (l2Validation.contextsChanged) {
+      await withLockedUserSettings(userId, async ({ settings: lockedSettings, tx }) => {
+        const lockedTradingAuth = (lockedSettings as any)?.tradingAuth as TradingAuthSecretSettings | undefined
+        if (!lockedTradingAuth) {
+          return
+        }
 
-      const normalizedContexts = normalizeL2AuthContextRecords(lockedTradingAuth.l2Contexts)
-      const contextsChanged = JSON.stringify(lockedTradingAuth.l2Contexts ?? []) !== JSON.stringify(normalizedContexts)
-      if (!contextsChanged) {
-        return
-      }
+        const normalizedContexts = normalizeL2AuthContextRecords(lockedTradingAuth.l2Contexts)
+        const contextsChanged = JSON.stringify(lockedTradingAuth.l2Contexts ?? []) !== JSON.stringify(normalizedContexts)
+        if (!contextsChanged) {
+          return
+        }
 
-      const nextTradingAuth: TradingAuthSecretSettings = {
-        ...lockedTradingAuth,
-        l2Contexts: normalizedContexts,
-      }
-      const nextSettings = {
-        ...lockedSettings,
-        tradingAuth: nextTradingAuth,
-      }
+        const nextTradingAuth: TradingAuthSecretSettings = {
+          ...lockedTradingAuth,
+          l2Contexts: normalizedContexts,
+        }
+        const nextSettings = {
+          ...lockedSettings,
+          tradingAuth: nextTradingAuth,
+        }
 
-      await tx
-        .update(users)
-        .set({ settings: nextSettings })
-        .where(eq(users.id, userId))
-    })
-  }
+        await tx
+          .update(users)
+          .set({ settings: nextSettings })
+          .where(eq(users.id, userId))
+      })
+    }
 
-  if (!l2Validation.valid) {
-    return null
+    if (!l2Validation.valid) {
+      return null
+    }
   }
 
   return {

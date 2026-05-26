@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import { useAccount, useSignTypedData } from 'wagmi'
 import {
   generateSdkApiKeyAction,
+  getNextSdkApiKeyNonceAction,
   revokeSdkApiKeyAction,
 } from '@/app/[locale]/(platform)/settings/_actions/sdk-api-keys'
 import { Button } from '@/components/ui/button'
@@ -31,7 +32,6 @@ import {
   buildClobSdkEnvBlock,
   buildRelayerBuilderSdkEnvBlock,
   hasSdkApiKeyCredentials,
-  SDK_API_KEY_NONCE,
 } from '@/lib/sdk-api-keys'
 import {
   buildTradingAuthMessage,
@@ -70,7 +70,7 @@ export default function SettingsSdkApiKeysContent() {
     return true
   }
 
-  async function signSdkKeyRequest(): Promise<SdkApiKeyActionPayload | null> {
+  async function signSdkKeyRequest(nonce: string): Promise<SdkApiKeyActionPayload | null> {
     if (!normalizedConnectedAddress) {
       return null
     }
@@ -79,7 +79,7 @@ export default function SettingsSdkApiKeysContent() {
     const message = buildTradingAuthMessage({
       address: normalizedConnectedAddress,
       timestamp,
-      nonce: SDK_API_KEY_NONCE,
+      nonce,
     })
 
     const signature = await runWithSignaturePrompt(
@@ -99,7 +99,7 @@ export default function SettingsSdkApiKeysContent() {
       address: normalizedConnectedAddress,
       signature,
       timestamp,
-      nonce: SDK_API_KEY_NONCE,
+      nonce,
     }
   }
 
@@ -108,11 +108,21 @@ export default function SettingsSdkApiKeysContent() {
     if (!walletReady) {
       return
     }
+    const connectedAddress = normalizedConnectedAddress
+    if (!connectedAddress) {
+      return
+    }
 
     setPendingOperation('generate')
 
     try {
-      const signedPayload = await signSdkKeyRequest()
+      const nonceResult = await getNextSdkApiKeyNonceAction({ address: connectedAddress })
+      if (nonceResult.error || !nonceResult.nonce) {
+        toast.error(nonceResult.error ?? t('Unable to manage SDK key. Please try again.'))
+        return
+      }
+
+      const signedPayload = await signSdkKeyRequest(nonceResult.nonce)
       if (!signedPayload) {
         return
       }
@@ -153,7 +163,12 @@ export default function SettingsSdkApiKeysContent() {
     setPendingOperation('revoke')
 
     try {
-      const signedPayload = await signSdkKeyRequest()
+      if (!credentials?.nonce) {
+        toast.error(t('Unable to revoke SDK key. Please try again.'))
+        return
+      }
+
+      const signedPayload = await signSdkKeyRequest(credentials.nonce)
       if (!signedPayload) {
         return
       }

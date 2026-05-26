@@ -1,7 +1,3 @@
-export const SDK_API_KEY_NONCE = '100'
-
-type SdkApiKeyNonce = typeof SDK_API_KEY_NONCE
-
 export type SdkApiKeyService = 'clob' | 'relayer'
 
 export interface SdkApiKeyCredential {
@@ -11,7 +7,7 @@ export interface SdkApiKeyCredential {
 }
 
 export interface SdkApiKeyBundle {
-  nonce: SdkApiKeyNonce
+  nonce: string
   address: string
   clob?: SdkApiKeyCredential
   relayer?: SdkApiKeyCredential
@@ -21,7 +17,7 @@ export interface SdkApiKeyActionPayload {
   address: string
   signature: string
   timestamp: string
-  nonce: SdkApiKeyNonce
+  nonce: string
 }
 
 export interface SdkApiKeyActionResult {
@@ -34,9 +30,14 @@ export interface SdkApiKeyRevokeResult {
   error: string | null
   warning?: string | null
   data: {
-    nonce: SdkApiKeyNonce
+    nonce: string
     revoked: Partial<Record<SdkApiKeyService, boolean>>
   } | null
+}
+
+export interface SdkApiKeyNextNonceResult {
+  error: string | null
+  nonce: string | null
 }
 
 export function buildClobSdkEnvBlock(address: string, credential: SdkApiKeyCredential) {

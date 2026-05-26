@@ -764,7 +764,15 @@ function TradingOnboardingProviderContent({
       const result = await createDepositWalletAction()
 
       if (result.error || !result.data) {
-        setEnableTradingError(result.error ?? DEFAULT_ERROR_MESSAGE)
+        if (isTradingAuthRequiredError(result.error)) {
+          setRequiresTradingAuthRefresh(true)
+          setDismissedModal(null)
+          setActiveModal('enable-status')
+          setEnableTradingError(null)
+        }
+        else {
+          setEnableTradingError(result.error ?? DEFAULT_ERROR_MESSAGE)
+        }
         setEnableTradingStep('idle')
         return
       }
@@ -852,9 +860,15 @@ function TradingOnboardingProviderContent({
       })
       void refreshSessionUserState()
       setRequiresTradingAuthRefresh(false)
-      setEnableTradingStep('completed')
       setDismissedModal(null)
-      setActiveModal(status.hasTokenApprovals ? null : 'approve')
+      if (status.hasDeployedDepositWallet) {
+        setEnableTradingStep('completed')
+        setActiveModal(status.hasTokenApprovals ? null : 'approve')
+      }
+      else {
+        setEnableTradingStep('idle')
+        setActiveModal('enable')
+      }
     }
     catch (error) {
       if (error instanceof UserRejectedRequestError) {
@@ -873,6 +887,7 @@ function TradingOnboardingProviderContent({
     refreshSessionUserState,
     runWithSignaturePrompt,
     signTypedDataAsync,
+    status.hasDeployedDepositWallet,
     status.hasTokenApprovals,
     t,
     user?.address,

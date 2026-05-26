@@ -1,5 +1,6 @@
 'use server'
 
+import type { TradingAuthSecrets } from '@/lib/trading-auth/server'
 import type { DepositWalletStatus } from '@/types'
 import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
@@ -11,12 +12,15 @@ import { users } from '@/lib/db/schema/auth/tables'
 import { getDepositWalletAddress, isDepositWalletDeployed } from '@/lib/deposit-wallet'
 import { captureDepositWalletError, captureDepositWalletEvent } from '@/lib/deposit-wallet-observability'
 import { db } from '@/lib/drizzle'
+import { buildClobHmacSignature } from '@/lib/hmac'
 import {
   L2_AUTH_CONTEXT_COOKIE_NAME,
   L2_AUTH_CONTEXT_COOKIE_NAME_SECURE,
   L2_AUTH_CONTEXT_TTL_SECONDS,
 } from '@/lib/l2-auth-context'
+import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import {
+  getUserTradingAuthSecrets,
   markAutoRedeemApprovalCompleted,
   saveUserTradingAuthCredentials,
 } from '@/lib/trading-auth/server'
@@ -257,16 +261,18 @@ async function persistL2AuthCookie(l2AuthContextId: string) {
 async function submitWalletCreate({
   userAddress,
   depositWallet,
+  auth,
 }: {
   userAddress: string
   depositWallet: string
+  auth: NonNullable<TradingAuthSecrets['relayer']>
 }) {
   const relayerUrl = process.env.RELAYER_URL
   if (!relayerUrl) {
     throw new Error(DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE)
   }
 
-  const path = '/submit/wallet'
+  const path = '/submit'
   const body = JSON.stringify({
     type: 'WALLET-CREATE',
     from: userAddress,
@@ -277,6 +283,8 @@ async function submitWalletCreate({
     signatureParams: {},
     metadata: 'wallet_create',
   })
+  const timestamp = Math.floor(Date.now() / 1000)
+  const signature = buildClobHmacSignature(auth.secret, timestamp, 'POST', path, body)
   const startedAt = Date.now()
 
   const response = await fetch(`${relayerUrl}${path}`, {
@@ -284,6 +292,11 @@ async function submitWalletCreate({
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'KUEST_ADDRESS': userAddress,
+      'KUEST_API_KEY': auth.key,
+      'KUEST_PASSPHRASE': auth.passphrase,
+      'KUEST_TIMESTAMP': timestamp.toString(),
+      'KUEST_SIGNATURE': signature,
     },
     body,
     signal: AbortSignal.timeout(15_000),
@@ -542,9 +555,15 @@ export async function createDepositWalletAction(): Promise<EnableDepositWalletTr
       txHash = null
     }
     else {
+      const auth = await getUserTradingAuthSecrets(user.id)
+      if (!auth?.relayer) {
+        return { error: TRADING_AUTH_REQUIRED_ERROR, data: null }
+      }
+
       const submitResult = await submitWalletCreate({
         userAddress: user.address,
         depositWallet: depositWalletAddress,
+        auth: auth.relayer,
       })
       txHash = submitResult.txHash
       status = submitResult.state === 'STATE_CONFIRMED' || submitResult.state === 'STATE_MINED'
@@ -619,10 +638,6 @@ export async function enableTradingAuthAction(
   const parsed = TradingAuthSignatureSchema.safeParse(input)
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? 'Invalid signature.', data: null }
-  }
-
-  if (user.deposit_wallet_status !== 'deployed') {
-    return { error: 'Create your Deposit Wallet before enabling trading.', data: null }
   }
 
   const relayerUrl = process.env.RELAYER_URL

@@ -42,11 +42,6 @@ interface SubmitWalletTransactionResult {
 
 const WALLET_TX_POLL_ATTEMPTS = 45
 const WALLET_TX_POLL_DELAY_MS = 2_000
-const PUBLIC_WALLET_SUBMIT_METADATA = new Set([
-  'approve_tokens',
-  'auto_redeem_approval',
-  'claim_fees',
-])
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -260,9 +255,7 @@ export async function submitDepositWalletTransactionAction(
   }
 
   const auth = await getUserTradingAuthSecrets(user.id)
-  const canUsePublicWalletSubmit = typeof request.metadata === 'string'
-    && PUBLIC_WALLET_SUBMIT_METADATA.has(request.metadata)
-  if (!auth?.relayer && !canUsePublicWalletSubmit) {
+  if (!auth?.relayer) {
     return { error: TRADING_AUTH_REQUIRED_ERROR }
   }
 
@@ -294,12 +287,10 @@ export async function submitDepositWalletTransactionAction(
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 
-  const path = auth?.relayer ? '/submit' : '/submit/wallet'
+  const path = '/submit'
   const body = JSON.stringify(request)
-  const timestamp = auth?.relayer ? Math.floor(Date.now() / 1000) : null
-  const signature = auth?.relayer && timestamp !== null
-    ? buildClobHmacSignature(auth.relayer.secret, timestamp, 'POST', path, body)
-    : null
+  const timestamp = Math.floor(Date.now() / 1000)
+  const signature = buildClobHmacSignature(auth.relayer.secret, timestamp, 'POST', path, body)
   const startedAt = Date.now()
 
   try {
@@ -307,13 +298,11 @@ export async function submitDepositWalletTransactionAction(
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     }
-    if (auth?.relayer && timestamp !== null && signature) {
-      headers.KUEST_ADDRESS = user.address
-      headers.KUEST_API_KEY = auth.relayer.key
-      headers.KUEST_PASSPHRASE = auth.relayer.passphrase
-      headers.KUEST_TIMESTAMP = timestamp.toString()
-      headers.KUEST_SIGNATURE = signature
-    }
+    headers.KUEST_ADDRESS = user.address
+    headers.KUEST_API_KEY = auth.relayer.key
+    headers.KUEST_PASSPHRASE = auth.relayer.passphrase
+    headers.KUEST_TIMESTAMP = timestamp.toString()
+    headers.KUEST_SIGNATURE = signature
 
     const response = await fetch(`${relayerUrl}${path}`, {
       method: 'POST',

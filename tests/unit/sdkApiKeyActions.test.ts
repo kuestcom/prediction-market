@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { SDK_API_KEY_NONCE } from '@/lib/sdk-api-keys'
 
 const mocks = vi.hoisted(() => ({
   buildClobHmacSignature: vi.fn(() => 'l2-signature'),
@@ -29,11 +28,12 @@ vi.mock('@/lib/drizzle', () => ({
 
 const userAddress = '0x0000000000000000000000000000000000000001'
 const sessionAddress = '0x0000000000000000000000000000000000000002'
+const signedNonce = '7'
 const signedPayload = {
   address: userAddress,
   signature: '0xsignature',
   timestamp: '1710000000',
-  nonce: SDK_API_KEY_NONCE,
+  nonce: signedNonce,
 }
 
 function makeCredential(service: 'clob' | 'relayer') {
@@ -90,7 +90,7 @@ describe('sdk api key actions', () => {
       error: null,
       warning: null,
       data: {
-        nonce: SDK_API_KEY_NONCE,
+        nonce: signedNonce,
         address: userAddress,
         clob: makeCredential('clob'),
         relayer: makeCredential('relayer'),
@@ -106,7 +106,7 @@ describe('sdk api key actions', () => {
         KUEST_ADDRESS: userAddress,
         KUEST_SIGNATURE: signedPayload.signature,
         KUEST_TIMESTAMP: signedPayload.timestamp,
-        KUEST_NONCE: SDK_API_KEY_NONCE,
+        KUEST_NONCE: signedNonce,
       }),
     }))
     expect(fetchMock).toHaveBeenNthCalledWith(2, 'https://relayer.local/auth/api-key', expect.objectContaining({
@@ -131,7 +131,7 @@ describe('sdk api key actions', () => {
       error: null,
       warning: null,
       data: {
-        nonce: SDK_API_KEY_NONCE,
+        nonce: signedNonce,
         address: userAddress,
         clob: makeCredential('clob'),
         relayer: makeCredential('relayer'),
@@ -146,7 +146,7 @@ describe('sdk api key actions', () => {
     expect(mocks.dbLimit).toHaveBeenCalledOnce()
   })
 
-  it('reveals SDK credentials by deriving nonce 100 without request body secrets', async () => {
+  it('reveals SDK credentials by deriving the signed nonce without request body secrets', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('clob')))
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('relayer')))
@@ -158,7 +158,7 @@ describe('sdk api key actions', () => {
       error: null,
       warning: null,
       data: {
-        nonce: SDK_API_KEY_NONCE,
+        nonce: signedNonce,
         address: userAddress,
         clob: makeCredential('clob'),
         relayer: makeCredential('relayer'),
@@ -169,7 +169,7 @@ describe('sdk api key actions', () => {
       const init = call[1] as RequestInit
       expect(init.method).toBe('GET')
       expect(init.body).toBeUndefined()
-      expect(init.headers).toEqual(expect.objectContaining({ KUEST_NONCE: SDK_API_KEY_NONCE }))
+      expect(init.headers).toEqual(expect.objectContaining({ KUEST_NONCE: signedNonce }))
     }
   })
 
@@ -186,14 +186,14 @@ describe('sdk api key actions', () => {
       error: null,
       warning: 'Completed for the available service only. Failed service: RELAYER.',
       data: {
-        nonce: SDK_API_KEY_NONCE,
+        nonce: signedNonce,
         address: userAddress,
         clob: makeCredential('clob'),
       },
     })
   })
 
-  it('revokes the nonce 100 SDK key by deriving credentials and sending authenticated DELETEs', async () => {
+  it('revokes the signed nonce SDK key by deriving credentials and sending authenticated DELETEs', async () => {
     const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
       if (init.method === 'GET') {
         return jsonResponse(url.includes('clob') ? makeCredentialPayload('clob') : makeCredentialPayload('relayer'))
@@ -209,7 +209,7 @@ describe('sdk api key actions', () => {
       error: null,
       warning: null,
       data: {
-        nonce: SDK_API_KEY_NONCE,
+        nonce: signedNonce,
         revoked: {
           clob: true,
           relayer: true,
