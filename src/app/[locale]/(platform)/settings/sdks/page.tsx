@@ -3,6 +3,7 @@ import { ArrowRightIcon, BookOpenIcon } from 'lucide-react'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { isAddress, zeroAddress } from 'viem'
+import SettingsSdkApiKeysContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkApiKeysContent'
 import SettingsSdkDownloadsContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkDownloadsContent'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
@@ -136,6 +137,8 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
           ]}
         />
       </div>
+
+      <SettingsSdkApiKeysContent />
 
       <div className="
         mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-lg border bg-card p-4
