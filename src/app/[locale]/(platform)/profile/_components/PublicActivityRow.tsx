@@ -68,11 +68,17 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
                     containerClassName="size-full"
                   />
                 )
-              : (
-                  <div className="grid size-full place-items-center text-2xs text-muted-foreground">
-                    No image
-                  </div>
-                )}
+              : variant === 'redeem'
+                ? (
+                    <div className="grid size-full place-items-center text-primary/80">
+                      <CircleDollarSignIcon className="size-5" />
+                    </div>
+                  )
+                : (
+                    <div className="grid size-full place-items-center text-2xs text-muted-foreground">
+                      No image
+                    </div>
+                  )}
           </AppLink>
 
           <div className="min-w-0 flex-1 space-y-1">
