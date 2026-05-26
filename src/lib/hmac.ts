@@ -6,10 +6,7 @@ function replaceAll(s: string, search: string, replace: string) {
 }
 
 export function buildClobHmacSignature(secret: string, timestamp: number, method: string, requestPath: string, body?: string): string {
-  const normalizedPath = method === 'GET'
-    ? requestPath.split('?')[0]
-    : requestPath
-  let message = timestamp + method + normalizedPath
+  let message = timestamp + method + requestPath
   if (body !== undefined) {
     message += body
   }

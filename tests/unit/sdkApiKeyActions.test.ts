@@ -287,6 +287,18 @@ describe('sdk api key actions', () => {
         cache: 'no-store',
       }),
     )
+    expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith(
+      'clob-secret',
+      expect.any(Number),
+      'GET',
+      '/auth/api-keys?metadata=true&includeRevoked=true',
+    )
+    expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith(
+      'relayer-secret',
+      expect.any(Number),
+      'GET',
+      '/auth/api-keys?metadata=true&includeRevoked=true',
+    )
   })
 
   it('fails nonce resolution when one metadata service is unavailable', async () => {
