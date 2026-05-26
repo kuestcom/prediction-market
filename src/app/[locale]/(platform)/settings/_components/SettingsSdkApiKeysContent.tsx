@@ -205,7 +205,7 @@ export default function SettingsSdkApiKeysContent() {
   return (
     <>
       <section className="
-        mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-lg border bg-card p-4
+        mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-lg border bg-background p-4
         sm:flex-row sm:items-center sm:justify-between sm:p-6
         lg:mx-0
       "
@@ -262,7 +262,7 @@ export default function SettingsSdkApiKeysContent() {
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="sm:justify-start">
             <Button
               type="button"
               variant="destructive"
