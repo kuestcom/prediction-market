@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   buildClobHmacSignature: vi.fn(() => 'l2-signature'),
   dbLimit: vi.fn(),
   getCurrentUser: vi.fn(),
+  getUserTradingAuthSecrets: vi.fn(),
 }))
 
 vi.mock('@/lib/hmac', () => ({
@@ -24,6 +25,10 @@ vi.mock('@/lib/drizzle', () => ({
       }),
     }),
   },
+}))
+
+vi.mock('@/lib/trading-auth/server', () => ({
+  getUserTradingAuthSecrets: (...args: any[]) => mocks.getUserTradingAuthSecrets(...args),
 }))
 
 const userAddress = '0x0000000000000000000000000000000000000001'
@@ -69,6 +74,11 @@ describe('sdk api key actions', () => {
     mocks.dbLimit.mockResolvedValue([])
     mocks.getCurrentUser.mockReset()
     mocks.getCurrentUser.mockResolvedValue({ id: 'user-1', address: userAddress })
+    mocks.getUserTradingAuthSecrets.mockReset()
+    mocks.getUserTradingAuthSecrets.mockResolvedValue({
+      clob: makeCredential('clob'),
+      relayer: makeCredential('relayer'),
+    })
     process.env.CLOB_URL = 'https://clob.local'
     process.env.RELAYER_URL = 'https://relayer.local'
   })
@@ -236,6 +246,75 @@ describe('sdk api key actions', () => {
     }))
     expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith('clob-secret', expect.any(Number), 'DELETE', '/auth/api-key')
     expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith('relayer-secret', expect.any(Number), 'DELETE', '/auth/api-key')
+  })
+
+  it('resolves the next SDK key nonce from metadata across all services', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify([
+        { apiKey: 'clob-key-1', nonce: '100', status: 'active' },
+      ]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([
+        { apiKey: 'relayer-key-1', nonce: '102', status: 'active' },
+      ]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getNextSdkApiKeyNonceAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
+
+    await expect(getNextSdkApiKeyNonceAction({ address: userAddress })).resolves.toEqual({
+      error: null,
+      nonce: '103',
+    })
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://clob.local/auth/api-keys?metadata=true&includeRevoked=true',
+      expect.objectContaining({
+        method: 'GET',
+        cache: 'no-store',
+      }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://relayer.local/auth/api-keys?metadata=true&includeRevoked=true',
+      expect.objectContaining({
+        method: 'GET',
+        cache: 'no-store',
+      }),
+    )
+  })
+
+  it('fails nonce resolution when one metadata service is unavailable', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify([
+        { apiKey: 'clob-key-1', nonce: '100', status: 'active' },
+      ]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: 'temporarily unavailable' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getNextSdkApiKeyNonceAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
+
+    await expect(getNextSdkApiKeyNonceAction({ address: userAddress })).resolves.toEqual({
+      error: 'Internal server error. Try again in a few moments.',
+      nonce: null,
+    })
+
+    expect(consoleError).toHaveBeenCalledWith(
+      'Failed to resolve next SDK API key nonce.',
+      expect.any(Error),
+    )
   })
 
   it('does not expose backend error payload secrets in logs or returned errors', async () => {

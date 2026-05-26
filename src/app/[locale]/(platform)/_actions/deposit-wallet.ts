@@ -303,7 +303,15 @@ async function submitWalletCreate({
   })
 
   const { payload, rawError, contentType } = await readTradingFlowErrorResponse(response)
-  if (!response.ok || !payload || typeof payload.transactionID !== 'string') {
+  const transactionId = typeof payload?.transactionID === 'string'
+    ? payload.transactionID
+    : typeof payload?.transactionId === 'string'
+      ? payload.transactionId
+      : typeof payload?.id === 'string'
+        ? payload.id
+        : null
+
+  if (!response.ok || !payload || !transactionId) {
     const durationMs = Date.now() - startedAt
     console.error('Deposit Wallet create submit failed.', {
       status: response.status,
@@ -327,7 +335,7 @@ async function submitWalletCreate({
   }
 
   return {
-    transactionId: payload.transactionID as string,
+    transactionId,
     state: typeof payload.state === 'string' ? payload.state : null,
     txHash: typeof payload.transactionHash === 'string'
       ? payload.transactionHash

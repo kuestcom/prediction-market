@@ -228,15 +228,21 @@ async function resolveNextSdkApiKeyNonce(userId: string, address: string) {
     return '0'
   }
 
+  const queryableTargets = targets.flatMap((target) => {
+    const credential = getTargetCredential(auth, target.service)
+    return credential ? [{ target, credential }] : []
+  })
+
   const results = await Promise.allSettled(
-    targets.map(async (target) => {
-      const credential = getTargetCredential(auth, target.service)
-      if (!credential) {
-        return []
-      }
-      return listApiKeyMetadata(target, address, credential)
-    }),
+    queryableTargets.map(({ target, credential }) => listApiKeyMetadata(target, address, credential)),
   )
+
+  const failedServices = results.flatMap((result, index) => (
+    result.status === 'rejected' ? [queryableTargets[index]?.target.service ?? 'clob'] : []
+  ))
+  if (failedServices.length) {
+    throw new Error(`Unable to list API key metadata for: ${failedServices.join(', ')}`)
+  }
 
   const keys = results.flatMap(result => result.status === 'fulfilled' ? result.value : [])
   return nextNonceFromMetadata(keys)
