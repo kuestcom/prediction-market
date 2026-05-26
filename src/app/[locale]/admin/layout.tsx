@@ -12,9 +12,21 @@ export const metadata: Metadata = {
   title: 'Admin',
 }
 
+function getForkRepositoryUrl() {
+  const repoOwner = process.env.VERCEL_GIT_REPO_OWNER?.trim()
+  const repoSlug = process.env.VERCEL_GIT_REPO_SLUG?.trim()
+
+  if (!process.env.VERCEL_ENV || !repoOwner || !repoSlug) {
+    return null
+  }
+
+  return `https://github.com/${encodeURIComponent(repoOwner)}/${encodeURIComponent(repoSlug)}`
+}
+
 export default async function AdminLayout({ params, children }: LayoutProps<'/[locale]/admin'>) {
   const { locale } = await params
   setRequestLocale(locale)
+  const forkRepositoryUrl = getForkRepositoryUrl()
 
   return (
     <AppKitProvider>
@@ -27,7 +39,7 @@ export default async function AdminLayout({ params, children }: LayoutProps<'/[l
             {children}
           </div>
         </div>
-        <CopyVersion />
+        <CopyVersion forkRepositoryUrl={forkRepositoryUrl} />
       </main>
     </AppKitProvider>
   )

@@ -1,18 +1,203 @@
 'use client'
 
-import { CheckIcon, CopyIcon } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { CheckIcon, CopyIcon, TriangleAlertIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import Image from 'next/image'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
-const COMMIT_SHA = process.env.COMMIT_SHA!
-const SITE_URL = process.env.SITE_URL!
-const IS_VERCEL = process.env.IS_VERCEL!
+const COMMIT_SHA = process.env.COMMIT_SHA?.trim() || 'unknown'
+const NORMALIZED_COMMIT_SHA = COMMIT_SHA.toLowerCase()
+const SITE_URL = process.env.SITE_URL ?? 'unknown'
+const IS_VERCEL = process.env.IS_VERCEL ?? 'false'
+const UPSTREAM_COMMITS_URL = 'https://api.github.com/repos/kuestcom/prediction-market/commits?per_page=1'
+const GITHUB_SYNC_IMAGE_SRC = '/images/sync/github-sync.jpg'
+const UPSTREAM_COMMIT_QUERY_STALE_TIME_MS = 5 * 60 * 1000
+const UPSTREAM_COMMIT_WARNING_MIN_AGE_MS = 8 * 60 * 60 * 1000
 
-export default function CopyVersion() {
+interface GitHubCommitResponse {
+  commit?: {
+    author?: {
+      date?: unknown
+    }
+    committer?: {
+      date?: unknown
+    }
+  }
+  sha?: unknown
+}
+
+interface UpstreamCommit {
+  committedAtMs: number | null
+  sha: string
+}
+
+interface CopyVersionProps {
+  forkRepositoryUrl: string | null
+}
+
+interface ForkSyncWarningProps {
+  forkRepositoryUrl: string | null
+  upstreamCommitSha: string
+}
+
+function normalizeUpstreamCommitSha(sha: unknown) {
+  if (typeof sha !== 'string') {
+    return null
+  }
+
+  const trimmedSha = sha.trim()
+
+  if (!trimmedSha) {
+    return null
+  }
+
+  return trimmedSha.toLowerCase()
+}
+
+function parseCommitDateMs(date: unknown) {
+  if (typeof date !== 'string') {
+    return null
+  }
+
+  const timestamp = Date.parse(date)
+
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+async function fetchLatestUpstreamCommit({ signal }: { signal?: AbortSignal } = {}) {
+  const response = await fetch(UPSTREAM_COMMITS_URL, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+    },
+    signal,
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch latest upstream commit')
+  }
+
+  const commits: unknown = await response.json()
+
+  if (!Array.isArray(commits)) {
+    return null
+  }
+
+  const [latestCommit] = commits as GitHubCommitResponse[]
+  const sha = normalizeUpstreamCommitSha(latestCommit?.sha)
+
+  if (!sha) {
+    return null
+  }
+
+  return {
+    committedAtMs: parseCommitDateMs(latestCommit?.commit?.committer?.date)
+      ?? parseCommitDateMs(latestCommit?.commit?.author?.date),
+    sha,
+  } satisfies UpstreamCommit
+}
+
+function isUpstreamCommitOldEnough(upstreamCommit: UpstreamCommit) {
+  return upstreamCommit.committedAtMs !== null
+    && Date.now() - upstreamCommit.committedAtMs >= UPSTREAM_COMMIT_WARNING_MIN_AGE_MS
+}
+
+function shouldShowForkSyncWarning(upstreamCommit: UpstreamCommit | null | undefined): upstreamCommit is UpstreamCommit {
+  return Boolean(
+    upstreamCommit
+    && NORMALIZED_COMMIT_SHA !== 'unknown'
+    && !upstreamCommit.sha.startsWith(NORMALIZED_COMMIT_SHA)
+    && isUpstreamCommitOldEnough(upstreamCommit),
+  )
+}
+
+function ForkSyncWarning({ forkRepositoryUrl, upstreamCommitSha }: ForkSyncWarningProps) {
+  const t = useExtracted()
+  const title = t('Fork is behind upstream')
+  const syncForkLabel = t('Sync fork')
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          aria-label={title}
+          size="sm"
+          className="text-amber-500 dark:text-amber-400"
+        >
+          <TriangleAlertIcon aria-hidden />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="top"
+        align="start"
+        className="w-80 max-w-[calc(100vw-2rem)] p-3 text-left font-normal"
+      >
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">{title}</p>
+            <p className="text-xs text-muted-foreground">
+              {t('Your fork is not synced with the latest Kuest version. Open your project on GitHub and click')}
+              {' '}
+              {forkRepositoryUrl
+                ? (
+                    <Button
+                      asChild
+                      variant="link"
+                      size="sm"
+                      className="h-6 px-0 align-baseline text-xs font-bold"
+                    >
+                      <a href={forkRepositoryUrl} target="_blank" rel="noopener noreferrer">
+                        {syncForkLabel}
+                      </a>
+                    </Button>
+                  )
+                : <strong className="font-bold text-foreground">{syncForkLabel}</strong>}
+              .
+            </p>
+          </div>
+          <div className="overflow-hidden rounded-md border bg-muted">
+            <Image
+              src={GITHUB_SYNC_IMAGE_SRC}
+              width={544}
+              height={278}
+              sizes="320px"
+              alt={t('GitHub Sync fork button')}
+              className="size-full"
+            />
+          </div>
+          <dl className="
+            grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-sm bg-muted px-2 py-1.5 text-[11px] text-muted-foreground
+          "
+          >
+            <dt>{t('Current')}</dt>
+            <dd className="truncate text-right font-mono text-foreground">{COMMIT_SHA}</dd>
+            <dt>{t('Upstream')}</dt>
+            <dd className="truncate text-right font-mono text-foreground">{upstreamCommitSha.slice(0, COMMIT_SHA.length)}</dd>
+          </dl>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+export default function CopyVersion({ forkRepositoryUrl }: CopyVersionProps) {
   const [copied, setCopied] = useState(false)
   const t = useExtracted()
+  const latestUpstreamCommitQuery = useQuery({
+    queryKey: ['github-upstream-commit-sha', UPSTREAM_COMMITS_URL],
+    queryFn: fetchLatestUpstreamCommit,
+    retry: false,
+    staleTime: UPSTREAM_COMMIT_QUERY_STALE_TIME_MS,
+  })
+  const latestUpstreamCommit = latestUpstreamCommitQuery.data
+  const upstreamCommitForWarning = shouldShowForkSyncWarning(latestUpstreamCommit)
+    ? latestUpstreamCommit
+    : null
 
   async function copyVersionPayload() {
     const payload = `{${[
@@ -33,7 +218,13 @@ export default function CopyVersion() {
   }
 
   return (
-    <div className="bottom-2 mt-4 text-muted-foreground lg:fixed">
+    <div className="bottom-2 mt-4 flex items-center gap-1 text-muted-foreground lg:fixed">
+      {upstreamCommitForWarning && (
+        <ForkSyncWarning
+          forkRepositoryUrl={forkRepositoryUrl}
+          upstreamCommitSha={upstreamCommitForWarning.sha}
+        />
+      )}
       <Button
         type="button"
         variant="ghost"
