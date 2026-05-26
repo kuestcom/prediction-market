@@ -224,6 +224,10 @@ async function resolveNextSdkApiKeyNonce(userId: string, address: string) {
   }
 
   const auth = await getUserTradingAuthSecrets(userId, { requireL2Context: false })
+  if (!auth?.clob && !auth?.relayer) {
+    return '0'
+  }
+
   const targetsWithCredentials = targets.map((target) => {
     const credential = getTargetCredential(auth, target.service)
     return { target, credential }

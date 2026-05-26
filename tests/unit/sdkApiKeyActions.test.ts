@@ -317,6 +317,21 @@ describe('sdk api key actions', () => {
     )
   })
 
+  it('returns nonce zero when no internal API credentials are stored yet', async () => {
+    const fetchMock = vi.fn()
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce(null)
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getNextSdkApiKeyNonceAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
+
+    await expect(getNextSdkApiKeyNonceAction({ address: userAddress })).resolves.toEqual({
+      error: null,
+      nonce: '0',
+    })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('fails nonce resolution when a configured service has no stored internal credential', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     const fetchMock = vi.fn()
