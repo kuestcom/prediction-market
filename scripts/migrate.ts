@@ -339,9 +339,18 @@ async function createSyncVolumeCron(
   cronSecret: string,
 ): Promise<void> {
   await createSyncCron(sql, {
-    jobName: 'sync-volume',
+    jobName: 'sync-volume-enqueue',
     schedule: '*/10 * * * *',
-    endpointPath: '/api/sync/volume?limit=10',
+    endpointPath: '/api/sync/volume/enqueue',
+    siteUrl,
+    cronSecret,
+    timeoutMilliseconds: 10000,
+  })
+
+  await createSyncCron(sql, {
+    jobName: 'sync-volume',
+    schedule: '*/5 * * * *',
+    endpointPath: '/api/sync/volume',
     siteUrl,
     cronSecret,
     timeoutMilliseconds: 30000,

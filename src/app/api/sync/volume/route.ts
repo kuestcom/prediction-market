@@ -1,82 +1,119 @@
-import type { VolumeResponseItem, VolumeWorkItem } from '@/app/api/sync/volume/helpers'
-import { and, asc, eq, gt, inArray, lt, ne, notInArray, or, sql } from 'drizzle-orm'
+import type { VolumeJobRow, VolumeResponseItem } from '@/app/api/sync/volume/helpers'
+import { and, asc, eq, lte } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import {
-  chunkVolumeWork,
-  DEFAULT_VOLUME_SYNC_LIMIT,
-  hasReachedTimeLimit,
-  MAX_VOLUME_SYNC_LIMIT,
+  buildVolumeJobRetryAt,
   normalizeVolumeValue,
-  parseLimitParam,
-  SYNC_TIME_LIMIT_MS,
-  VOLUME_BATCH_SIZE,
-  VOLUME_REQUEST_TIMEOUT_MS,
+  parseVolumeJobPayload,
+  truncateVolumeJobError,
+  VOLUME_JOB_PROCESS_LIMIT,
+  VOLUME_JOB_REQUEST_TIMEOUT_MS,
+  VOLUME_SYNC_JOB_TYPE,
 } from '@/app/api/sync/volume/helpers'
 import { isCronAuthorized } from '@/lib/auth-cron'
 import { cacheTags } from '@/lib/cache-tags'
-import { events, markets, outcomes, subgraph_syncs } from '@/lib/db/schema'
+import { events, jobs, markets, outcomes } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
 
-export const maxDuration = 300
+export const maxDuration = 60
 
-const CLOB_URL = process.env.CLOB_URL!
-const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000
-const VOLUME_SYNC_SERVICE = 'volume_sync'
-const VOLUME_SYNC_SUBGRAPH = 'volume'
-const ZERO_VOLUME_PRIORITY_LIMIT = 50
-
-interface VolumeSyncStats {
-  scanned: number
+interface VolumeJobStats {
+  claimed: number
+  completed: number
   updated: number
   skipped: number
-  errors: { context: string, error: string }[]
-  timeLimitReached: boolean
-  nextCursor: string | null
-  wrappedAround: boolean
+  retried: number
+  failed: number
+  errors: { jobId: string, conditionId: string | null, error: string }[]
   updatedEventSlugs: string[]
 }
 
-interface OutcomeRow {
-  condition_id: string
-  token_id: string
+interface MarketVolumeTarget {
+  event_slug: string
+  is_active: boolean
+  is_resolved: boolean
+  volume: string
+  volume_24h: string
+}
+
+interface ProcessVolumeJobResult {
+  conditionId: string
+  eventSlug: string | null
+  status: 'updated' | 'skipped'
+  reason?: string
 }
 
 export async function GET(request: Request) {
-  const cronSecret = process.env.CRON_SECRET
   const authHeader = request.headers.get('authorization')
-  if (!isCronAuthorized(authHeader, cronSecret)) {
+  if (!isCronAuthorized(authHeader, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
   }
 
-  let lockAcquired = false
-
   try {
-    lockAcquired = await tryAcquireSyncLock()
-    if (!lockAcquired) {
-      return NextResponse.json({
-        success: false,
-        message: 'Sync already running',
-        skipped: true,
-      }, { status: 409 })
+    const pendingJobs = await loadPendingJobs(new Date(), VOLUME_JOB_PROCESS_LIMIT)
+    const stats: VolumeJobStats = {
+      claimed: 0,
+      completed: 0,
+      updated: 0,
+      skipped: 0,
+      retried: 0,
+      failed: 0,
+      errors: [],
+      updatedEventSlugs: [],
+    }
+    const updatedEventSlugs = new Set<string>()
+
+    for (const pendingJob of pendingJobs) {
+      const claimedJob = await claimJob(pendingJob, new Date())
+      if (!claimedJob) {
+        continue
+      }
+
+      stats.claimed++
+
+      try {
+        const result = await processClaimedJob(claimedJob)
+        await completeJob(claimedJob)
+        stats.completed++
+
+        if (result.status === 'updated') {
+          stats.updated++
+          if (result.eventSlug) {
+            updatedEventSlugs.add(result.eventSlug)
+          }
+        }
+        else {
+          stats.skipped++
+        }
+      }
+      catch (error) {
+        const payload = safeParseVolumeJobPayload(claimedJob)
+        const retryResult = await scheduleRetry(claimedJob, error)
+        if (retryResult.exhausted) {
+          stats.failed++
+        }
+        else {
+          stats.retried++
+        }
+
+        stats.errors.push({
+          jobId: claimedJob.id,
+          conditionId: payload?.conditionId ?? null,
+          error: truncateVolumeJobError(error),
+        })
+      }
     }
 
-    const stats = await syncMarketVolumes(request)
-    const syncFailed = hasFatalVolumeSyncErrors(stats.errors)
-    if (syncFailed) {
-      const errorMessage = summarizeVolumeSyncErrors(stats.errors)
-      await updateSyncStatus('error', errorMessage, stats.updated)
-      return NextResponse.json({ success: false, ...stats }, { status: 502 })
+    stats.updatedEventSlugs = Array.from(updatedEventSlugs)
+    if (stats.updated > 0) {
+      revalidateVolumeCaches(stats.updatedEventSlugs)
     }
 
-    await updateSyncStatus('completed', null, stats.updated, stats.nextCursor)
     return NextResponse.json({ success: true, ...stats })
   }
   catch (error: any) {
-    if (lockAcquired) {
-      await updateSyncStatus('error', error?.message ?? 'Unknown error')
-    }
-    console.error('volume-sync failed', error)
+    console.error('volume-job-worker failed', error)
     return NextResponse.json(
       { success: false, error: error?.message ?? 'Unknown error' },
       { status: 500 },
@@ -84,298 +121,213 @@ export async function GET(request: Request) {
   }
 }
 
-async function syncMarketVolumes(request: Request): Promise<VolumeSyncStats> {
-  const url = new URL(request.url)
-  const limit = parseLimitParam(
-    url.searchParams.get('limit'),
-    DEFAULT_VOLUME_SYNC_LIMIT,
-    MAX_VOLUME_SYNC_LIMIT,
-  )
-  const cursorOverride = normalizeCursorParam(url.searchParams.get('cursor'))
-  const currentCursor = cursorOverride ?? await getStoredCursor()
-  const startedAt = Date.now()
-
-  const worklist = await buildVolumeWorklist(limit, currentCursor)
-  const stats: VolumeSyncStats = {
-    scanned: worklist.scanned,
-    updated: 0,
-    skipped: worklist.skipped,
-    errors: [...worklist.errors],
-    timeLimitReached: false,
-    nextCursor: worklist.nextCursor,
-    wrappedAround: worklist.wrappedAround,
-    updatedEventSlugs: [],
+async function loadPendingJobs(now: Date, limit: number) {
+  if (limit <= 0) {
+    return []
   }
 
-  if (worklist.items.length === 0) {
-    return stats
-  }
-
-  const batches = chunkVolumeWork(worklist.items, VOLUME_BATCH_SIZE)
-  const updatedEventSlugs = new Set<string>()
-  let lastCompletedCursor = currentCursor
-
-  function markCursorItemAttempted(workItem: VolumeWorkItem) {
-    if (!workItem.advancesCursor) {
-      return
-    }
-
-    lastCompletedCursor = workItem.conditionId
-  }
-
-  for (const batch of batches) {
-    if (hasReachedTimeLimit(startedAt, Date.now(), SYNC_TIME_LIMIT_MS)) {
-      stats.timeLimitReached = true
-      stats.nextCursor = lastCompletedCursor
-      break
-    }
-
-    try {
-      const responses = await fetchVolumeBatchWithFallback(batch)
-      const responseMap = new Map<string, VolumeResponseItem>()
-      for (const item of responses) {
-        responseMap.set(item.condition_id, item)
-      }
-
-      for (const workItem of batch) {
-        const response = responseMap.get(workItem.conditionId)
-        if (!response) {
-          stats.errors.push({ context: `volume:${workItem.conditionId}`, error: 'missing_response' })
-          markCursorItemAttempted(workItem)
-          continue
-        }
-
-        if (response.status !== 200) {
-          stats.errors.push({
-            context: `volume:${workItem.conditionId}`,
-            error: response.error ?? `status_${response.status}`,
-          })
-          markCursorItemAttempted(workItem)
-          continue
-        }
-
-        if (response.volume == null) {
-          stats.errors.push({ context: `volume:${workItem.conditionId}`, error: 'missing_volume_value' })
-          markCursorItemAttempted(workItem)
-          continue
-        }
-
-        const totalVolume = normalizeVolumeValue(response.volume)
-        const volume24h = normalizeVolumeValue(response.volume_24h ?? '0')
-        const hasVolumeChanged
-          = normalizeComparableDecimal(totalVolume) !== normalizeComparableDecimal(workItem.previousTotalVolume)
-            || normalizeComparableDecimal(volume24h) !== normalizeComparableDecimal(workItem.previousVolume24h)
-
-        if (!hasVolumeChanged) {
-          stats.skipped++
-          markCursorItemAttempted(workItem)
-          continue
-        }
-
-        try {
-          await updateMarketVolume(workItem.conditionId, totalVolume, volume24h)
-          stats.updated++
-          updatedEventSlugs.add(workItem.eventSlug)
-          markCursorItemAttempted(workItem)
-        }
-        catch (error: any) {
-          stats.errors.push({
-            context: `update:${workItem.conditionId}`,
-            error: error?.message ?? 'failed_to_update_market',
-          })
-          markCursorItemAttempted(workItem)
-        }
-      }
-    }
-    catch (error: any) {
-      const firstId = batch[0]?.conditionId ?? 'unknown'
-      const lastId = batch.at(-1)?.conditionId ?? 'unknown'
-      const message = error?.message ?? 'volume_batch_failed'
-      stats.errors.push({
-        context: `batch:${firstId}-${lastId}`,
-        error: message,
-      })
-      stats.nextCursor = lastCompletedCursor
-      break
-    }
-  }
-
-  stats.updatedEventSlugs = Array.from(updatedEventSlugs)
-  if (stats.updated > 0) {
-    revalidateVolumeCaches(stats.updatedEventSlugs)
-  }
-
-  return stats
-}
-
-function normalizeCursorParam(value: string | null): string | null {
-  if (!value) {
-    return null
-  }
-
-  const trimmed = value.trim()
-  return trimmed || null
-}
-
-function hasFatalVolumeSyncErrors(errors: VolumeSyncStats['errors']): boolean {
-  return errors.some(error =>
-    error.context.startsWith('batch:')
-    || error.context.startsWith('update:'),
-  )
-}
-
-function summarizeVolumeSyncErrors(errors: VolumeSyncStats['errors']): string {
-  return errors
-    .slice(0, 5)
-    .map(error => `${error.context}:${error.error}`)
-    .join('; ')
-}
-
-async function buildVolumeWorklist(limit: number, cursor: string | null): Promise<{
-  items: VolumeWorkItem[]
-  scanned: number
-  skipped: number
-  errors: { context: string, error: string }[]
-  nextCursor: string | null
-  wrappedAround: boolean
-}> {
-  const priorityLimit = Math.min(Math.max(0, limit - 1), ZERO_VOLUME_PRIORITY_LIMIT)
-  const priorityRows = await fetchZeroVolumeMarketRows(priorityLimit)
-  let wrappedAround = false
-
-  const priorityConditionIds = priorityRows.map(market => market.condition_id)
-  const remainingLimit = Math.max(0, limit - priorityRows.length)
-  let cursorRows = remainingLimit > 0
-    ? await fetchMarketRows(remainingLimit, cursor, priorityConditionIds)
-    : []
-
-  if (cursorRows.length === 0 && cursor && remainingLimit > 0) {
-    cursorRows = await fetchMarketRows(remainingLimit, null, priorityConditionIds)
-    wrappedAround = true
-  }
-
-  const marketRows = [...priorityRows, ...cursorRows]
-  const nextCursor = cursorRows.at(-1)?.condition_id ?? cursor
-  const conditionIds = marketRows.map(market => market.condition_id)
-  const cursorConditionIds = new Set(cursorRows.map(market => market.condition_id))
-
-  let outcomesMap = new Map<string, string[]>()
-  if (conditionIds.length > 0) {
-    const outcomeRows = await db
-      .select({
-        condition_id: outcomes.condition_id,
-        token_id: outcomes.token_id,
-      })
-      .from(outcomes)
-      .where(inArray(outcomes.condition_id, conditionIds))
-
-    outcomesMap = buildOutcomeMap(outcomeRows)
-  }
-
-  const errors: { context: string, error: string }[] = []
-  let skipped = 0
-  const items: VolumeWorkItem[] = []
-
-  for (const market of marketRows) {
-    const tokens = outcomesMap.get(market.condition_id) ?? []
-    const uniqueTokens = Array.from(new Set(tokens))
-
-    if (uniqueTokens.length !== 2) {
-      skipped++
-      const errorCode = uniqueTokens.length === 0 ? 'missing_outcomes' : 'invalid_outcome_count'
-      errors.push({ context: `market:${market.condition_id}`, error: errorCode })
-      continue
-    }
-
-    items.push({
-      conditionId: market.condition_id,
-      eventSlug: market.event_slug,
-      tokenIds: [uniqueTokens[0], uniqueTokens[1]],
-      previousTotalVolume: market.volume ?? '0',
-      previousVolume24h: market.volume_24h ?? '0',
-      advancesCursor: cursorConditionIds.has(market.condition_id),
+  const rows = await db
+    .select({
+      id: jobs.id,
+      job_type: jobs.job_type,
+      dedupe_key: jobs.dedupe_key,
+      payload: jobs.payload,
+      status: jobs.status,
+      attempts: jobs.attempts,
+      max_attempts: jobs.max_attempts,
+      available_at: jobs.available_at,
     })
+    .from(jobs)
+    .where(and(
+      eq(jobs.job_type, VOLUME_SYNC_JOB_TYPE),
+      eq(jobs.status, 'pending'),
+      lte(jobs.available_at, now),
+    ))
+    .orderBy(asc(jobs.available_at), asc(jobs.updated_at))
+    .limit(limit)
+
+  return rows as VolumeJobRow[]
+}
+
+async function claimJob(job: VolumeJobRow, now: Date) {
+  const claimed = await db
+    .update(jobs)
+    .set({
+      status: 'processing',
+      reserved_at: now,
+      last_error: null,
+    })
+    .where(and(
+      eq(jobs.id, job.id),
+      eq(jobs.status, 'pending'),
+      lte(jobs.available_at, now),
+    ))
+    .returning({
+      id: jobs.id,
+      job_type: jobs.job_type,
+      dedupe_key: jobs.dedupe_key,
+      payload: jobs.payload,
+      status: jobs.status,
+      attempts: jobs.attempts,
+      max_attempts: jobs.max_attempts,
+      available_at: jobs.available_at,
+    })
+
+  return (claimed[0] as VolumeJobRow | undefined) ?? null
+}
+
+async function completeJob(job: VolumeJobRow) {
+  await db
+    .update(jobs)
+    .set({
+      status: 'completed',
+      attempts: (job.attempts ?? 0) + 1,
+      reserved_at: null,
+      last_error: null,
+      available_at: new Date(),
+    })
+    .where(eq(jobs.id, job.id))
+}
+
+async function scheduleRetry(job: VolumeJobRow, error: unknown) {
+  const attempts = (job.attempts ?? 0) + 1
+  const exhausted = attempts >= (job.max_attempts ?? 5)
+
+  await db
+    .update(jobs)
+    .set({
+      status: exhausted ? 'failed' : 'pending',
+      attempts,
+      available_at: exhausted ? new Date() : buildVolumeJobRetryAt(attempts),
+      reserved_at: null,
+      last_error: truncateVolumeJobError(error),
+    })
+    .where(eq(jobs.id, job.id))
+
+  return { exhausted }
+}
+
+async function processClaimedJob(job: VolumeJobRow): Promise<ProcessVolumeJobResult> {
+  const { conditionId } = parseVolumeJobPayload(job.payload, job.dedupe_key)
+  const market = await loadMarketVolumeTarget(conditionId)
+  if (!market) {
+    return { conditionId, eventSlug: null, status: 'skipped', reason: 'market_not_found' }
+  }
+
+  if (!market.is_active || market.is_resolved) {
+    return { conditionId, eventSlug: market.event_slug, status: 'skipped', reason: 'market_not_syncable' }
+  }
+
+  const tokenIds = await loadMarketOutcomeTokenIds(conditionId)
+  if (tokenIds.length !== 2) {
+    return { conditionId, eventSlug: market.event_slug, status: 'skipped', reason: 'invalid_outcome_count' }
+  }
+
+  const nextVolume = await fetchMarketVolume(conditionId, [tokenIds[0], tokenIds[1]])
+  const hasVolumeChanged
+    = normalizeComparableDecimal(nextVolume.totalVolume) !== normalizeComparableDecimal(market.volume)
+      || normalizeComparableDecimal(nextVolume.volume24h) !== normalizeComparableDecimal(market.volume_24h)
+
+  if (!hasVolumeChanged) {
+    return { conditionId, eventSlug: market.event_slug, status: 'skipped', reason: 'unchanged' }
+  }
+
+  await db
+    .update(markets)
+    .set({
+      volume: nextVolume.totalVolume,
+      volume_24h: nextVolume.volume24h,
+      updated_at: new Date(),
+    })
+    .where(eq(markets.condition_id, conditionId))
+
+  return { conditionId, eventSlug: market.event_slug, status: 'updated' }
+}
+
+async function loadMarketVolumeTarget(conditionId: string): Promise<MarketVolumeTarget | null> {
+  const rows = await db
+    .select({
+      event_slug: events.slug,
+      is_active: markets.is_active,
+      is_resolved: markets.is_resolved,
+      volume: markets.volume,
+      volume_24h: markets.volume_24h,
+    })
+    .from(markets)
+    .innerJoin(events, eq(events.id, markets.event_id))
+    .where(eq(markets.condition_id, conditionId))
+    .limit(1)
+
+  return (rows[0] as MarketVolumeTarget | undefined) ?? null
+}
+
+async function loadMarketOutcomeTokenIds(conditionId: string) {
+  const rows = await db
+    .select({
+      token_id: outcomes.token_id,
+    })
+    .from(outcomes)
+    .where(eq(outcomes.condition_id, conditionId))
+    .orderBy(asc(outcomes.outcome_index))
+
+  return Array.from(new Set(rows.map(row => row.token_id).filter(Boolean)))
+}
+
+async function fetchMarketVolume(conditionId: string, tokenIds: [string, string]) {
+  const clobUrl = process.env.CLOB_URL
+  if (!clobUrl) {
+    throw new Error('CLOB_URL is not configured.')
+  }
+
+  const response = await fetch(`${clobUrl}/data/volumes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      include_24h: true,
+      conditions: [{
+        condition_id: conditionId,
+        token_ids: tokenIds,
+      }],
+    }),
+    signal: AbortSignal.timeout(VOLUME_JOB_REQUEST_TIMEOUT_MS),
+  })
+
+  if (!response.ok) {
+    throw new Error(`CLOB volume request failed with status ${response.status}`)
+  }
+
+  const body = await response.json()
+  if (!Array.isArray(body)) {
+    throw new TypeError('Unexpected volume response shape')
+  }
+
+  const item = body.find(candidate => isVolumeResponseItem(candidate) && candidate.condition_id === conditionId)
+  if (!item || !isVolumeResponseItem(item)) {
+    throw new Error('missing_volume_response')
+  }
+
+  if (item.status !== 200) {
+    throw new Error(item.error ?? `status_${item.status}`)
+  }
+
+  if (item.volume == null) {
+    throw new Error('missing_volume_value')
   }
 
   return {
-    items,
-    scanned: marketRows.length,
-    skipped,
-    errors,
-    nextCursor,
-    wrappedAround,
+    totalVolume: normalizeVolumeValue(item.volume),
+    volume24h: normalizeVolumeValue(item.volume_24h ?? '0'),
   }
 }
 
-function buildBaseMarketPredicate(excludedConditionIds: string[] = []) {
-  const predicates = [
-    eq(markets.is_active, true),
-    eq(markets.is_resolved, false),
-  ]
-
-  if (excludedConditionIds.length > 0) {
-    predicates.push(notInArray(markets.condition_id, excludedConditionIds))
+function isVolumeResponseItem(value: unknown): value is VolumeResponseItem {
+  if (!value || typeof value !== 'object') {
+    return false
   }
 
-  return and(...predicates)
-}
-
-async function fetchZeroVolumeMarketRows(limit: number) {
-  if (limit <= 0) {
-    return []
-  }
-
-  const basePredicate = buildBaseMarketPredicate()
-
-  return db
-    .select({
-      condition_id: markets.condition_id,
-      event_slug: events.slug,
-      volume_24h: markets.volume_24h,
-      volume: markets.volume,
-    })
-    .from(markets)
-    .innerJoin(events, eq(events.id, markets.event_id))
-    .where(and(
-      basePredicate,
-      sql`${markets.volume} = 0`,
-    ))
-    .orderBy(asc(markets.condition_id))
-    .limit(limit)
-}
-
-async function fetchMarketRows(limit: number, cursor: string | null, excludedConditionIds: string[] = []) {
-  if (limit <= 0) {
-    return []
-  }
-
-  const basePredicate = buildBaseMarketPredicate(excludedConditionIds)
-  const predicate = cursor
-    ? and(basePredicate, gt(markets.condition_id, cursor))
-    : basePredicate
-
-  return db
-    .select({
-      condition_id: markets.condition_id,
-      event_slug: events.slug,
-      volume_24h: markets.volume_24h,
-      volume: markets.volume,
-    })
-    .from(markets)
-    .innerJoin(events, eq(events.id, markets.event_id))
-    .where(predicate)
-    .orderBy(asc(markets.condition_id))
-    .limit(limit)
-}
-
-function buildOutcomeMap(outcomes: OutcomeRow[]): Map<string, string[]> {
-  const map = new Map<string, string[]>()
-  for (const outcome of outcomes) {
-    const list = map.get(outcome.condition_id) ?? []
-    list.push(outcome.token_id)
-    map.set(outcome.condition_id, list)
-  }
-  return map
+  const candidate = value as Partial<VolumeResponseItem>
+  return typeof candidate.condition_id === 'string'
+    && typeof candidate.status === 'number'
 }
 
 function normalizeComparableDecimal(value: string) {
@@ -393,96 +345,13 @@ function normalizeComparableDecimal(value: string) {
   return normalized.startsWith('-') && base !== '0' ? `-${base}` : base
 }
 
-async function fetchVolumeBatch(batch: VolumeWorkItem[]): Promise<VolumeResponseItem[]> {
-  if (batch.length === 0) {
-    return []
-  }
-
-  const payload = {
-    include_24h: true,
-    conditions: batch.map(item => ({
-      condition_id: item.conditionId,
-      token_ids: item.tokenIds,
-    })),
-  }
-
-  const response = await fetch(`${CLOB_URL}/data/volumes`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(VOLUME_REQUEST_TIMEOUT_MS),
-  })
-
-  if (!response.ok) {
-    throw new Error(`CLOB volume request failed with status ${response.status}`)
-  }
-
-  const body = await response.json()
-  if (!Array.isArray(body)) {
-    throw new TypeError('Unexpected volume response shape')
-  }
-
-  return body as VolumeResponseItem[]
-}
-
-async function fetchVolumeBatchWithFallback(batch: VolumeWorkItem[]): Promise<VolumeResponseItem[]> {
+function safeParseVolumeJobPayload(job: VolumeJobRow) {
   try {
-    return await fetchVolumeBatch(batch)
+    return parseVolumeJobPayload(job.payload, job.dedupe_key)
   }
-  catch (error: any) {
-    if (!isVolumeBatchTimeoutError(error)) {
-      throw error
-    }
-
-    const message = error?.message ?? 'volume_batch_failed'
-    if (batch.length <= 1) {
-      return batch.map(workItem => ({
-        condition_id: workItem.conditionId,
-        status: 599,
-        error: message,
-      }))
-    }
-
-    const midpoint = Math.ceil(batch.length / 2)
-    const [leftResponses, rightResponses] = await Promise.all([
-      fetchVolumeBatchWithFallback(batch.slice(0, midpoint)),
-      fetchVolumeBatchWithFallback(batch.slice(midpoint)),
-    ])
-
-    return [...leftResponses, ...rightResponses]
+  catch {
+    return null
   }
-}
-
-function isVolumeBatchTimeoutError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') {
-    return false
-  }
-
-  const candidate = error as { name?: unknown, message?: unknown, code?: unknown, cause?: unknown }
-  if (candidate.name === 'TimeoutError') {
-    return true
-  }
-
-  if (typeof candidate.code === 'string' && candidate.code.toLowerCase().includes('timeout')) {
-    return true
-  }
-
-  if (typeof candidate.message === 'string' && /\btimeout\b|timed out/i.test(candidate.message)) {
-    return true
-  }
-
-  return candidate.cause !== error && isVolumeBatchTimeoutError(candidate.cause)
-}
-
-async function updateMarketVolume(conditionId: string, totalVolume: string, volume24h: string) {
-  await db
-    .update(markets)
-    .set({
-      volume: totalVolume,
-      volume_24h: volume24h,
-      updated_at: new Date(),
-    })
-    .where(eq(markets.condition_id, conditionId))
 }
 
 function revalidateVolumeCaches(eventSlugs: string[]) {
@@ -490,114 +359,5 @@ function revalidateVolumeCaches(eventSlugs: string[]) {
 
   for (const slug of eventSlugs) {
     revalidateTag(cacheTags.event(slug), 'max')
-  }
-}
-
-async function getStoredCursor(): Promise<string | null> {
-  const rows = await db
-    .select({
-      cursor_id: subgraph_syncs.cursor_id,
-    })
-    .from(subgraph_syncs)
-    .where(and(
-      eq(subgraph_syncs.service_name, VOLUME_SYNC_SERVICE),
-      eq(subgraph_syncs.subgraph_name, VOLUME_SYNC_SUBGRAPH),
-    ))
-    .limit(1)
-
-  if (rows.length === 0) {
-    throw new Error('Missing sync state row for volume_sync/volume. Run the latest database migrations.')
-  }
-
-  return rows[0]?.cursor_id ?? null
-}
-
-async function tryAcquireSyncLock(): Promise<boolean> {
-  const staleThreshold = new Date(Date.now() - SYNC_RUNNING_STALE_MS)
-  const runningPayload = {
-    service_name: VOLUME_SYNC_SERVICE,
-    subgraph_name: VOLUME_SYNC_SUBGRAPH,
-    status: 'running' as const,
-    error_message: null,
-  }
-
-  try {
-    const claimedRows = await db
-      .update(subgraph_syncs)
-      .set(runningPayload)
-      .where(and(
-        eq(subgraph_syncs.service_name, VOLUME_SYNC_SERVICE),
-        eq(subgraph_syncs.subgraph_name, VOLUME_SYNC_SUBGRAPH),
-        or(
-          ne(subgraph_syncs.status, 'running'),
-          lt(subgraph_syncs.updated_at, staleThreshold),
-        ),
-      ))
-      .returning({ id: subgraph_syncs.id })
-
-    if (claimedRows.length > 0) {
-      return true
-    }
-
-    const existingRows = await db
-      .select({ id: subgraph_syncs.id })
-      .from(subgraph_syncs)
-      .where(and(
-        eq(subgraph_syncs.service_name, VOLUME_SYNC_SERVICE),
-        eq(subgraph_syncs.subgraph_name, VOLUME_SYNC_SUBGRAPH),
-      ))
-      .limit(1)
-
-    if (existingRows.length > 0) {
-      return false
-    }
-
-    throw new Error('Missing sync state row for volume_sync/volume. Run the latest database migrations.')
-  }
-  catch (error: any) {
-    throw new Error(`Failed to claim sync lock: ${error?.message ?? String(error)}`)
-  }
-}
-
-async function updateSyncStatus(
-  status: 'running' | 'completed' | 'error',
-  errorMessage?: string | null,
-  totalProcessed?: number,
-  cursorId?: string | null,
-) {
-  const updateData: any = {
-    service_name: VOLUME_SYNC_SERVICE,
-    subgraph_name: VOLUME_SYNC_SUBGRAPH,
-    status,
-  }
-
-  if (errorMessage !== undefined) {
-    updateData.error_message = errorMessage
-  }
-
-  if (totalProcessed !== undefined) {
-    updateData.total_processed = totalProcessed
-  }
-
-  if (cursorId !== undefined) {
-    updateData.cursor_id = cursorId
-  }
-
-  try {
-    const updatedRows = await db
-      .update(subgraph_syncs)
-      .set(updateData)
-      .where(and(
-        eq(subgraph_syncs.service_name, VOLUME_SYNC_SERVICE),
-        eq(subgraph_syncs.subgraph_name, VOLUME_SYNC_SUBGRAPH),
-      ))
-      .returning({ id: subgraph_syncs.id })
-
-    if (updatedRows.length === 0) {
-      console.error('Failed to update sync status: missing sync state row for volume_sync/volume')
-    }
-  }
-  catch (error: any) {
-    console.error(`Failed to update sync status to ${status}:`, error)
   }
 }
