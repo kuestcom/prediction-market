@@ -20,6 +20,7 @@ export const maxDuration = 60
 
 interface VolumeJobStats {
   claimed: number
+  claimFailed: number
   completed: number
   updated: number
   skipped: number
@@ -67,14 +68,36 @@ export async function GET(request: Request) {
       skipped: 0,
       retried: 0,
       failed: 0,
+      claimFailed: 0,
       errors: [],
       updatedEventSlugs: [],
     }
     const updatedEventSlugs = new Set<string>()
     const claimStartedAt = new Date()
-    const claimedJobs = (await Promise.all(
+    const claimOutcomes = await Promise.allSettled(
       pendingJobs.map(pendingJob => claimJob(pendingJob, claimStartedAt)),
-    )).filter((job): job is VolumeJobRow => Boolean(job))
+    )
+    const claimedJobs: VolumeJobRow[] = []
+
+    for (let index = 0; index < claimOutcomes.length; index += 1) {
+      const outcome = claimOutcomes[index]
+      const pendingJob = pendingJobs[index]
+
+      if (outcome.status === 'fulfilled') {
+        if (outcome.value) {
+          claimedJobs.push(outcome.value)
+        }
+        continue
+      }
+
+      stats.claimFailed++
+      const payload = safeParseVolumeJobPayload(pendingJob)
+      stats.errors.push({
+        jobId: pendingJob.id,
+        conditionId: payload?.conditionId ?? null,
+        error: `claim_failed: ${truncateVolumeJobError(outcome.reason)}`,
+      })
+    }
 
     stats.claimed = claimedJobs.length
 
