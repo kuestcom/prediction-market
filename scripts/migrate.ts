@@ -373,7 +373,7 @@ async function createSyncTranslationsCron(
 
   await createSyncCron(sql, {
     jobName: 'sync-translations',
-    schedule: '5 * * * *',
+    schedule: '18 * * * *',
     endpointPath: '/api/sync/translations',
     siteUrl,
     cronSecret,

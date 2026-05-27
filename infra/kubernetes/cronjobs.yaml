@@ -65,10 +65,42 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: kuest-sync-event-creations
+  name: kuest-sync-event-creations-enqueue
   namespace: kuest
 spec:
   schedule: '0,30 * * * *'
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: trigger
+              image: curlimages/curl:8.12.1@sha256:94e9e444bcba979c2ea12e27ae39bee4cd10bc7041a472c4727a558e213744e6
+              command:
+                - sh
+                - -c
+                - >
+                  curl -fsS
+                  -H "Authorization: Bearer ${CRON_SECRET}"
+                  "${SITE_URL}/api/sync/event-creations/enqueue"
+              env:
+                - name: SITE_URL
+                  value: 'https://markets.example.com'
+                - name: CRON_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: kuest-app-secrets
+                      key: CRON_SECRET
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kuest-sync-event-creations
+  namespace: kuest
+spec:
+  schedule: '1,31 * * * *'
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
@@ -97,10 +129,42 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
+  name: kuest-sync-translations-enqueue
+  namespace: kuest
+spec:
+  schedule: '17 * * * *'
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: trigger
+              image: curlimages/curl:8.12.1@sha256:94e9e444bcba979c2ea12e27ae39bee4cd10bc7041a472c4727a558e213744e6
+              command:
+                - sh
+                - -c
+                - >
+                  curl -fsS
+                  -H "Authorization: Bearer ${CRON_SECRET}"
+                  "${SITE_URL}/api/sync/translations/enqueue"
+              env:
+                - name: SITE_URL
+                  value: 'https://markets.example.com'
+                - name: CRON_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: kuest-app-secrets
+                      key: CRON_SECRET
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
   name: kuest-sync-translations
   namespace: kuest
 spec:
-  schedule: '13,37 * * * *'
+  schedule: '18 * * * *'
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
@@ -129,10 +193,42 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
+  name: kuest-sync-volume-enqueue
+  namespace: kuest
+spec:
+  schedule: '*/10 * * * *'
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: trigger
+              image: curlimages/curl:8.12.1@sha256:94e9e444bcba979c2ea12e27ae39bee4cd10bc7041a472c4727a558e213744e6
+              command:
+                - sh
+                - -c
+                - >
+                  curl -fsS
+                  -H "Authorization: Bearer ${CRON_SECRET}"
+                  "${SITE_URL}/api/sync/volume/enqueue"
+              env:
+                - name: SITE_URL
+                  value: 'https://markets.example.com'
+                - name: CRON_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: kuest-app-secrets
+                      key: CRON_SECRET
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
   name: kuest-sync-volume
   namespace: kuest
 spec:
-  schedule: '16,46 * * * *'
+  schedule: '*/5 * * * *'
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
