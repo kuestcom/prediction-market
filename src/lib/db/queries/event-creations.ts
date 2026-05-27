@@ -559,7 +559,7 @@ export const EventCreationRepository = {
     availableAt: Date
   }): Promise<QueryResult<boolean>> {
     return runQuery(async () => {
-      await db
+      const rows = await db
         .insert(jobs)
         .values({
           job_type: 'deploy_event_creation',
@@ -577,9 +577,10 @@ export const EventCreationRepository = {
         .onConflictDoNothing({
           target: [jobs.job_type, jobs.dedupe_key],
         })
+        .returning({ id: jobs.id })
 
       return {
-        data: true,
+        data: rows.length > 0,
         error: null,
       }
     })

@@ -98,6 +98,33 @@ interface TagTranslationMetaRow {
   is_manual: boolean | null
 }
 
+interface TranslationMeta {
+  source_hash: string | null
+  is_manual: boolean
+}
+
+interface TranslationDiscoveryPage<TSource> {
+  rawCount: number
+  sourceRows: TSource[]
+}
+
+interface BuildTranslationJobRowInput<TSource> {
+  sourceRow: TSource
+  locale: NonDefaultLocale
+  dedupeKey: string
+  sourceHash: string
+  providerSignature: string
+  availableAt: string
+}
+
+interface TranslationDiscoveryConfig<TSource> {
+  loadSourcePage: (offset: number) => Promise<TranslationDiscoveryPage<TSource>>
+  loadTranslationMetaMap: (sourceRows: TSource[], locales: NonDefaultLocale[]) => Promise<Map<string, TranslationMeta>>
+  getSourceId: (sourceRow: TSource) => string | number
+  getSourceText: (sourceRow: TSource) => string
+  buildJobRow: (input: BuildTranslationJobRowInput<TSource>) => JobUpsertRow
+}
+
 interface TranslationEnqueueStats {
   enqueuedEventJobs: number
   enqueuedTagJobs: number
@@ -366,7 +393,7 @@ async function upsertJobs(rows: JobUpsertRow[]) {
       continue
     }
 
-    await db
+    const affectedRows = await db
       .insert(jobsTable)
       .values(rowsToUpsert.map(row => ({
         ...row,
@@ -385,15 +412,16 @@ async function upsertJobs(rows: JobUpsertRow[]) {
         },
         setWhere: sql`${jobsTable.status} NOT IN ('pending', 'processing')`,
       })
+      .returning({ id: jobsTable.id })
 
-    persistedRows += rowsToUpsert.length
+    persistedRows += affectedRows.length
   }
 
   return persistedRows
 }
 
-function buildEventTranslationMetaMap(rows: EventTranslationMetaRow[]) {
-  const map = new Map<string, { source_hash: string | null, is_manual: boolean }>()
+function buildEventTranslationMetaMap(rows: EventTranslationMetaRow[]): Map<string, TranslationMeta> {
+  const map = new Map<string, TranslationMeta>()
 
   for (const row of rows) {
     if (!isNonDefaultLocale(row.locale)) {
@@ -409,8 +437,8 @@ function buildEventTranslationMetaMap(rows: EventTranslationMetaRow[]) {
   return map
 }
 
-function buildTagTranslationMetaMap(rows: TagTranslationMetaRow[]) {
-  const map = new Map<string, { source_hash: string | null, is_manual: boolean }>()
+function buildTagTranslationMetaMap(rows: TagTranslationMetaRow[]): Map<string, TranslationMeta> {
+  const map = new Map<string, TranslationMeta>()
 
   for (const row of rows) {
     if (!isNonDefaultLocale(row.locale)) {
@@ -432,107 +460,13 @@ async function enqueueEventDiscoveryJobs(
   locales: NonDefaultLocale[],
   providerSignature: string,
 ): Promise<number> {
-  if (maxJobs <= 0 || locales.length === 0) {
-    return 0
-  }
-
-  let offset = 0
-  let enqueued = 0
-
-  while (enqueued < maxJobs && !isTimeLimitReached(startedAtMs)) {
-    const events = await db
-      .select({
-        id: eventsTable.id,
-        title: eventsTable.title,
-      })
-      .from(eventsTable)
-      .orderBy(asc(eventsTable.id))
-      .offset(offset)
-      .limit(DISCOVERY_SCAN_PAGE_SIZE)
-
-    const sourceRows = (events as EventSourceRow[])
-      .map(row => ({
-        id: row.id,
-        title: typeof row.title === 'string' ? row.title.trim() : '',
-      }))
-      .filter(row => row.title.length > 0)
-
-    if (!events.length) {
-      break
-    }
-
-    if (sourceRows.length > 0) {
-      const eventIds = sourceRows.map(row => row.id)
-      const translationRows = await db
-        .select({
-          event_id: eventTranslationsTable.event_id,
-          locale: eventTranslationsTable.locale,
-          source_hash: eventTranslationsTable.source_hash,
-          is_manual: eventTranslationsTable.is_manual,
-        })
-        .from(eventTranslationsTable)
-        .where(and(
-          inArray(eventTranslationsTable.event_id, eventIds),
-          inArray(eventTranslationsTable.locale, locales),
-        ))
-
-      const metaMap = buildEventTranslationMetaMap(translationRows as EventTranslationMetaRow[])
-      const availableAt = new Date().toISOString()
-      const rowsToUpsert: JobUpsertRow[] = []
-      let reachedJobLimit = false
-
-      for (const sourceRow of sourceRows) {
-        if (reachedJobLimit) {
-          break
-        }
-
-        const sourceHash = buildSourceHash(sourceRow.title)
-
-        for (const locale of locales) {
-          if (enqueued + rowsToUpsert.length >= maxJobs) {
-            reachedJobLimit = true
-            break
-          }
-
-          const key = `${sourceRow.id}:${locale}`
-          const existing = metaMap.get(key)
-          if (existing?.is_manual || existing?.source_hash === sourceHash) {
-            continue
-          }
-
-          rowsToUpsert.push({
-            job_type: EVENT_TITLE_TRANSLATION_JOB_TYPE,
-            dedupe_key: key,
-            payload: {
-              event_id: sourceRow.id,
-              locale,
-              source_title: sourceRow.title,
-              source_hash: sourceHash,
-              provider_signature: providerSignature,
-            },
-            status: 'pending',
-            attempts: 0,
-            max_attempts: DEFAULT_MAX_ATTEMPTS,
-            available_at: availableAt,
-            reserved_at: null,
-            last_error: null,
-          })
-        }
-      }
-
-      if (rowsToUpsert.length > 0) {
-        enqueued += await upsertJobs(rowsToUpsert)
-      }
-    }
-
-    if (events.length < DISCOVERY_SCAN_PAGE_SIZE) {
-      break
-    }
-
-    offset += events.length
-  }
-
-  return enqueued
+  return enqueueTranslationDiscoveryJobs(startedAtMs, maxJobs, locales, providerSignature, {
+    loadSourcePage: loadEventSourcePage,
+    loadTranslationMetaMap: loadEventTranslationMetaMap,
+    getSourceId: sourceRow => sourceRow.id,
+    getSourceText: sourceRow => sourceRow.title,
+    buildJobRow: buildEventTranslationJobRow,
+  })
 }
 
 async function enqueueTagDiscoveryJobs(
@@ -540,6 +474,22 @@ async function enqueueTagDiscoveryJobs(
   maxJobs: number,
   locales: NonDefaultLocale[],
   providerSignature: string,
+): Promise<number> {
+  return enqueueTranslationDiscoveryJobs(startedAtMs, maxJobs, locales, providerSignature, {
+    loadSourcePage: loadTagSourcePage,
+    loadTranslationMetaMap: loadTagTranslationMetaMap,
+    getSourceId: sourceRow => sourceRow.id,
+    getSourceText: sourceRow => sourceRow.name,
+    buildJobRow: buildTagTranslationJobRow,
+  })
+}
+
+async function enqueueTranslationDiscoveryJobs<TSource>(
+  startedAtMs: number,
+  maxJobs: number,
+  locales: NonDefaultLocale[],
+  providerSignature: string,
+  config: TranslationDiscoveryConfig<TSource>,
 ): Promise<number> {
   if (maxJobs <= 0 || locales.length === 0) {
     return 0
@@ -549,53 +499,24 @@ async function enqueueTagDiscoveryJobs(
   let enqueued = 0
 
   while (enqueued < maxJobs && !isTimeLimitReached(startedAtMs)) {
-    const tags = await db
-      .select({
-        id: tagsTable.id,
-        name: tagsTable.name,
-      })
-      .from(tagsTable)
-      .orderBy(asc(tagsTable.id))
-      .offset(offset)
-      .limit(DISCOVERY_SCAN_PAGE_SIZE)
-
-    const sourceRows = (tags as TagSourceRow[])
-      .map(row => ({
-        id: row.id,
-        name: typeof row.name === 'string' ? row.name.trim() : '',
-      }))
-      .filter(row => row.name.length > 0)
-
-    if (!tags.length) {
+    const page = await config.loadSourcePage(offset)
+    if (page.rawCount === 0) {
       break
     }
 
-    if (sourceRows.length > 0) {
-      const tagIds = sourceRows.map(row => row.id)
-      const translationRows = await db
-        .select({
-          tag_id: tagTranslationsTable.tag_id,
-          locale: tagTranslationsTable.locale,
-          source_hash: tagTranslationsTable.source_hash,
-          is_manual: tagTranslationsTable.is_manual,
-        })
-        .from(tagTranslationsTable)
-        .where(and(
-          inArray(tagTranslationsTable.tag_id, tagIds),
-          inArray(tagTranslationsTable.locale, locales),
-        ))
-
-      const metaMap = buildTagTranslationMetaMap(translationRows as TagTranslationMetaRow[])
+    if (page.sourceRows.length > 0) {
+      const metaMap = await config.loadTranslationMetaMap(page.sourceRows, locales)
       const availableAt = new Date().toISOString()
       const rowsToUpsert: JobUpsertRow[] = []
       let reachedJobLimit = false
 
-      for (const sourceRow of sourceRows) {
+      for (const sourceRow of page.sourceRows) {
         if (reachedJobLimit) {
           break
         }
 
-        const sourceHash = buildSourceHash(sourceRow.name)
+        const sourceText = config.getSourceText(sourceRow)
+        const sourceHash = buildSourceHash(sourceText)
 
         for (const locale of locales) {
           if (enqueued + rowsToUpsert.length >= maxJobs) {
@@ -603,29 +524,20 @@ async function enqueueTagDiscoveryJobs(
             break
           }
 
-          const key = `${sourceRow.id}:${locale}`
+          const key = `${config.getSourceId(sourceRow)}:${locale}`
           const existing = metaMap.get(key)
           if (existing?.is_manual || existing?.source_hash === sourceHash) {
             continue
           }
 
-          rowsToUpsert.push({
-            job_type: TAG_NAME_TRANSLATION_JOB_TYPE,
-            dedupe_key: key,
-            payload: {
-              tag_id: sourceRow.id,
-              locale,
-              source_name: sourceRow.name,
-              source_hash: sourceHash,
-              provider_signature: providerSignature,
-            },
-            status: 'pending',
-            attempts: 0,
-            max_attempts: DEFAULT_MAX_ATTEMPTS,
-            available_at: availableAt,
-            reserved_at: null,
-            last_error: null,
-          })
+          rowsToUpsert.push(config.buildJobRow({
+            sourceRow,
+            locale,
+            dedupeKey: key,
+            sourceHash,
+            providerSignature,
+            availableAt,
+          }))
         }
       }
 
@@ -634,14 +546,148 @@ async function enqueueTagDiscoveryJobs(
       }
     }
 
-    if (tags.length < DISCOVERY_SCAN_PAGE_SIZE) {
+    if (page.rawCount < DISCOVERY_SCAN_PAGE_SIZE) {
       break
     }
 
-    offset += tags.length
+    offset += page.rawCount
   }
 
   return enqueued
+}
+
+async function loadEventSourcePage(offset: number): Promise<TranslationDiscoveryPage<EventSourceRow>> {
+  const events = await db
+    .select({
+      id: eventsTable.id,
+      title: eventsTable.title,
+    })
+    .from(eventsTable)
+    .orderBy(asc(eventsTable.id))
+    .offset(offset)
+    .limit(DISCOVERY_SCAN_PAGE_SIZE)
+
+  return {
+    rawCount: events.length,
+    sourceRows: (events as EventSourceRow[])
+      .map(row => ({
+        id: row.id,
+        title: typeof row.title === 'string' ? row.title.trim() : '',
+      }))
+      .filter(row => row.title.length > 0),
+  }
+}
+
+async function loadTagSourcePage(offset: number): Promise<TranslationDiscoveryPage<TagSourceRow>> {
+  const tags = await db
+    .select({
+      id: tagsTable.id,
+      name: tagsTable.name,
+    })
+    .from(tagsTable)
+    .orderBy(asc(tagsTable.id))
+    .offset(offset)
+    .limit(DISCOVERY_SCAN_PAGE_SIZE)
+
+  return {
+    rawCount: tags.length,
+    sourceRows: (tags as TagSourceRow[])
+      .map(row => ({
+        id: row.id,
+        name: typeof row.name === 'string' ? row.name.trim() : '',
+      }))
+      .filter(row => row.name.length > 0),
+  }
+}
+
+async function loadEventTranslationMetaMap(sourceRows: EventSourceRow[], locales: NonDefaultLocale[]) {
+  const eventIds = sourceRows.map(row => row.id)
+  const translationRows = await db
+    .select({
+      event_id: eventTranslationsTable.event_id,
+      locale: eventTranslationsTable.locale,
+      source_hash: eventTranslationsTable.source_hash,
+      is_manual: eventTranslationsTable.is_manual,
+    })
+    .from(eventTranslationsTable)
+    .where(and(
+      inArray(eventTranslationsTable.event_id, eventIds),
+      inArray(eventTranslationsTable.locale, locales),
+    ))
+
+  return buildEventTranslationMetaMap(translationRows as EventTranslationMetaRow[])
+}
+
+async function loadTagTranslationMetaMap(sourceRows: TagSourceRow[], locales: NonDefaultLocale[]) {
+  const tagIds = sourceRows.map(row => row.id)
+  const translationRows = await db
+    .select({
+      tag_id: tagTranslationsTable.tag_id,
+      locale: tagTranslationsTable.locale,
+      source_hash: tagTranslationsTable.source_hash,
+      is_manual: tagTranslationsTable.is_manual,
+    })
+    .from(tagTranslationsTable)
+    .where(and(
+      inArray(tagTranslationsTable.tag_id, tagIds),
+      inArray(tagTranslationsTable.locale, locales),
+    ))
+
+  return buildTagTranslationMetaMap(translationRows as TagTranslationMetaRow[])
+}
+
+function buildEventTranslationJobRow({
+  sourceRow,
+  locale,
+  dedupeKey,
+  sourceHash,
+  providerSignature,
+  availableAt,
+}: BuildTranslationJobRowInput<EventSourceRow>): JobUpsertRow {
+  return {
+    job_type: EVENT_TITLE_TRANSLATION_JOB_TYPE,
+    dedupe_key: dedupeKey,
+    payload: {
+      event_id: sourceRow.id,
+      locale,
+      source_title: sourceRow.title,
+      source_hash: sourceHash,
+      provider_signature: providerSignature,
+    },
+    status: 'pending',
+    attempts: 0,
+    max_attempts: DEFAULT_MAX_ATTEMPTS,
+    available_at: availableAt,
+    reserved_at: null,
+    last_error: null,
+  }
+}
+
+function buildTagTranslationJobRow({
+  sourceRow,
+  locale,
+  dedupeKey,
+  sourceHash,
+  providerSignature,
+  availableAt,
+}: BuildTranslationJobRowInput<TagSourceRow>): JobUpsertRow {
+  return {
+    job_type: TAG_NAME_TRANSLATION_JOB_TYPE,
+    dedupe_key: dedupeKey,
+    payload: {
+      tag_id: sourceRow.id,
+      locale,
+      source_name: sourceRow.name,
+      source_hash: sourceHash,
+      provider_signature: providerSignature,
+    },
+    status: 'pending',
+    attempts: 0,
+    max_attempts: DEFAULT_MAX_ATTEMPTS,
+    available_at: availableAt,
+    reserved_at: null,
+    last_error: null,
+  }
 }
 
 async function enqueueMissingOrOutdatedTranslationJobs(

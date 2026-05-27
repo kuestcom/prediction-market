@@ -2,6 +2,7 @@ import { and, asc, eq, isNull, lt, or, sql } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import {
   buildVolumeJobDedupeKey,
+  buildVolumeJobDedupeKeySql,
   VOLUME_JOB_ENQUEUE_LIMIT,
   VOLUME_JOB_FAILED_REFRESH_INTERVAL_MS,
   VOLUME_JOB_MAX_ATTEMPTS,
@@ -66,7 +67,7 @@ async function loadVolumeJobCandidates(limit: number, refreshThreshold: Date, fa
     .from(markets)
     .leftJoin(jobs, and(
       eq(jobs.job_type, VOLUME_SYNC_JOB_TYPE),
-      eq(jobs.dedupe_key, markets.condition_id),
+      eq(jobs.dedupe_key, buildVolumeJobDedupeKeySql(markets.condition_id)),
     ))
     .where(and(
       eq(markets.is_active, true),
@@ -122,7 +123,7 @@ async function upsertVolumeJobs(
     return 0
   }
 
-  await db
+  const affectedRows = await db
     .insert(jobs)
     .values(rows)
     .onConflictDoUpdate({
@@ -141,6 +142,7 @@ async function upsertVolumeJobs(
         OR (${jobs.status} = 'failed' AND ${jobs.updated_at} < ${failedRefreshThreshold.toISOString()}::timestamptz)
       )`,
     })
+    .returning({ id: jobs.id })
 
-  return rows.length
+  return affectedRows.length
 }

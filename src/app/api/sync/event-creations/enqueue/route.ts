@@ -24,7 +24,9 @@ async function enqueueDueJobs(now: Date) {
     if (enqueueResult.error) {
       throw new Error(enqueueResult.error)
     }
-    enqueued += 1
+    if (enqueueResult.data) {
+      enqueued += 1
+    }
   }
 
   return {

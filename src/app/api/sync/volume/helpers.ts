@@ -1,3 +1,6 @@
+import type { SQLWrapper } from 'drizzle-orm'
+import { sql } from 'drizzle-orm'
+
 export const VOLUME_SYNC_JOB_TYPE = 'sync_market_volume'
 export const VOLUME_JOB_ENQUEUE_LIMIT = 100
 export const VOLUME_JOB_PROCESS_LIMIT = 10
@@ -57,6 +60,10 @@ export function buildVolumeJobDedupeKey(conditionId: string) {
   return conditionId
 }
 
+export function buildVolumeJobDedupeKeySql(conditionId: SQLWrapper) {
+  return sql<string>`${conditionId}`
+}
+
 export function parseVolumeJobPayload(payload: unknown, dedupeKey: string): VolumeJobPayload {
   if (payload && typeof payload === 'object') {
     const candidate = payload as Partial<VolumeJobPayload>
@@ -65,8 +72,9 @@ export function parseVolumeJobPayload(payload: unknown, dedupeKey: string): Volu
     }
   }
 
-  if (dedupeKey.trim()) {
-    return { conditionId: dedupeKey.trim() }
+  const fallbackConditionId = dedupeKey.trim()
+  if (fallbackConditionId) {
+    return { conditionId: fallbackConditionId }
   }
 
   throw new Error('Volume job payload is missing conditionId.')
