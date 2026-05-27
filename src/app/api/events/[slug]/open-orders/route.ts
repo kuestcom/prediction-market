@@ -24,12 +24,12 @@ interface ClobOpenOrder {
   outcome?: string
   maker_address: string
   owner?: string
+  order_type?: ClobOrderType
   price?: string
   side: 'BUY' | 'SELL'
   size_matched: string
   asset_id: string
   expiration?: string
-  type?: ClobOrderType
   created_at: string
   updated_at: string
 }
