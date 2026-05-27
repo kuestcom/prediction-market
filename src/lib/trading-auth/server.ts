@@ -232,7 +232,7 @@ export async function getUserTradingAuthSecrets(
     return null
   }
 
-  if (options.requireL2Context !== false) {
+  if (options.requireL2Context === true) {
     const l2Validation = await validateL2AuthContext(settings)
     if (l2Validation.contextsChanged) {
       await withLockedUserSettings(userId, async ({ settings: lockedSettings, tx }) => {
