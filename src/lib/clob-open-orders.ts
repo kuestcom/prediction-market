@@ -143,7 +143,7 @@ function clampClobNumber(value: number, min: number, max: number) {
 
 export function normalizeClobOpenOrdersResponse<TOrder>(result: unknown) {
   if (Array.isArray(result)) {
-    return { data: result as TOrder[], next_cursor: 'LTE=' }
+    return { data: result as TOrder[], next_cursor: '' }
   }
 
   if (result && typeof result === 'object') {
@@ -152,10 +152,10 @@ export function normalizeClobOpenOrdersResponse<TOrder>(result: unknown) {
       : []
     const next_cursor = typeof (result as { next_cursor?: unknown }).next_cursor === 'string'
       ? (result as { next_cursor: string }).next_cursor
-      : 'LTE='
+      : ''
 
     return { data, next_cursor }
   }
 
-  return { data: [] as TOrder[], next_cursor: 'LTE=' }
+  return { data: [] as TOrder[], next_cursor: '' }
 }

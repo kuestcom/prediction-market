@@ -26,6 +26,12 @@ interface PortfolioOpenOrdersListProps {
 
 type OpenTradeRequirements = ReturnType<typeof useTradingOnboarding>['openTradeRequirements']
 
+interface LoadMoreStateValue {
+  key: string
+  infiniteScrollError: string | null
+  isLoadingMore: boolean
+}
+
 function useOpenOrdersFilterState(userAddress: string) {
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -50,6 +56,27 @@ function useOpenOrdersFilterState(userAddress: string) {
     apiSearchFilters,
     apiSearchKey,
     openOrdersQueryKey,
+  }
+}
+
+function useLoadMoreState(loadMoreScopeKey: string) {
+  const [loadMoreState, setLoadMoreState] = useState<LoadMoreStateValue>({
+    key: loadMoreScopeKey,
+    infiniteScrollError: null,
+    isLoadingMore: false,
+  })
+  const scopedLoadMoreState = loadMoreState.key === loadMoreScopeKey
+    ? loadMoreState
+    : {
+        key: loadMoreScopeKey,
+        infiniteScrollError: null,
+        isLoadingMore: false,
+      }
+
+  return {
+    infiniteScrollError: scopedLoadMoreState.infiniteScrollError,
+    isLoadingMore: scopedLoadMoreState.isLoadingMore,
+    setLoadMoreState,
   }
 }
 
@@ -152,14 +179,54 @@ function useCancelAllOpenOrders({
   return { isCancellingAll, handleCancelAll }
 }
 
+function useLoadMoreOpenOrders({
+  fetchNextPage,
+  loadMoreErrorMessage,
+  loadMoreScopeKey,
+  setLoadMoreState,
+}: {
+  fetchNextPage: () => Promise<unknown>
+  loadMoreErrorMessage: string
+  loadMoreScopeKey: string
+  setLoadMoreState: (value: LoadMoreStateValue) => void
+}) {
+  return useCallback(() => {
+    setLoadMoreState({
+      key: loadMoreScopeKey,
+      infiniteScrollError: null,
+      isLoadingMore: true,
+    })
+
+    fetchNextPage()
+      .then(() => {
+        setLoadMoreState({
+          key: loadMoreScopeKey,
+          infiniteScrollError: null,
+          isLoadingMore: false,
+        })
+      })
+      .catch((error: any) => {
+        setLoadMoreState({
+          key: loadMoreScopeKey,
+          infiniteScrollError: error?.name === 'AbortError' ? null : error?.message || loadMoreErrorMessage,
+          isLoadingMore: false,
+        })
+      })
+  }, [fetchNextPage, loadMoreErrorMessage, loadMoreScopeKey, setLoadMoreState])
+}
+
 function useInfiniteScrollSentinel({
   hasNextPage,
+  infiniteScrollError,
   isFetchingNextPage,
-  fetchNextPage,
+  isLoadingMore,
+  loadMoreOpenOrders,
 }: {
   hasNextPage: boolean
+  infiniteScrollError: string | null
   isFetchingNextPage: boolean
-  fetchNextPage: () => Promise<unknown>
+  isLoadingMore: boolean
+  loadMoreOpenOrders: () => void
 }): { loadMoreRef: RefObject<HTMLDivElement | null> } {
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
 
@@ -170,8 +237,8 @@ function useInfiniteScrollSentinel({
 
     const observer = new IntersectionObserver((entries) => {
       const [entry] = entries
-      if (entry?.isIntersecting && !isFetchingNextPage) {
-        void fetchNextPage()
+      if (entry?.isIntersecting && !isFetchingNextPage && !isLoadingMore && !infiniteScrollError) {
+        loadMoreOpenOrders()
       }
     }, { rootMargin: '200px' })
 
@@ -179,7 +246,7 @@ function useInfiniteScrollSentinel({
     return function disconnectLoadMoreObserver() {
       observer.disconnect()
     }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
+  }, [hasNextPage, infiniteScrollError, isFetchingNextPage, isLoadingMore, loadMoreOpenOrders])
 
   return { loadMoreRef }
 }
@@ -223,6 +290,8 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
     apiSearchKey,
     openOrdersQueryKey,
   } = useOpenOrdersFilterState(userAddress)
+  const loadMoreScopeKey = `${userAddress}:${apiSearchKey}:${searchQuery}:${sortBy}`
+  const { infiniteScrollError, isLoadingMore, setLoadMoreState } = useLoadMoreState(loadMoreScopeKey)
 
   const {
     status,
@@ -263,10 +332,19 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
     openTradeRequirements,
   })
 
+  const loadMoreOpenOrders = useLoadMoreOpenOrders({
+    fetchNextPage,
+    loadMoreErrorMessage: t('Failed to load more open orders'),
+    loadMoreScopeKey,
+    setLoadMoreState,
+  })
+
   const { loadMoreRef } = useInfiniteScrollSentinel({
     hasNextPage,
+    infiniteScrollError,
     isFetchingNextPage,
-    fetchNextPage,
+    isLoadingMore,
+    loadMoreOpenOrders,
   })
 
   const emptyText = userAddress
@@ -302,7 +380,10 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
         isLoading={loading}
         emptyText={emptyText}
         isFetchingNextPage={isFetchingNextPage}
+        infiniteScrollError={infiniteScrollError}
+        isLoadingMore={isLoadingMore}
         loadMoreRef={loadMoreRef}
+        onRetryLoadMore={loadMoreOpenOrders}
       />
     </div>
   )

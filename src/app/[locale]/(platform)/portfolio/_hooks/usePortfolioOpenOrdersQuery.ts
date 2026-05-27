@@ -30,11 +30,11 @@ async function fetchOpenOrders({
   }
   const payload = await response.json()
   if (Array.isArray(payload)) {
-    return { data: payload, next_cursor: 'LTE=' }
+    return { data: payload, next_cursor: '' }
   }
   return {
     data: Array.isArray(payload?.data) ? payload.data : [],
-    next_cursor: typeof payload?.next_cursor === 'string' ? payload.next_cursor : 'LTE=',
+    next_cursor: typeof payload?.next_cursor === 'string' ? payload.next_cursor : '',
   }
 }
 

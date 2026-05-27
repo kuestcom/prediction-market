@@ -50,7 +50,7 @@ export async function GET(
     }
 
     if (!user) {
-      return NextResponse.json({ data: [], next_cursor: 'LTE=' })
+      return NextResponse.json({ data: [], next_cursor: '' })
     }
 
     if (!CLOB_URL) {
@@ -72,7 +72,7 @@ export async function GET(
 
     const { data: marketMetadata, error: marketError } = await EventRepository.getEventMarketMetadata(slug)
     if (marketError || !marketMetadata || marketMetadata.length === 0) {
-      return NextResponse.json({ data: [], next_cursor: 'LTE=' })
+      return NextResponse.json({ data: [], next_cursor: '' })
     }
 
     const targetMarkets = conditionId
@@ -80,14 +80,13 @@ export async function GET(
       : marketMetadata
 
     if (!targetMarkets.length) {
-      return NextResponse.json({ data: [], next_cursor: 'LTE=' })
+      return NextResponse.json({ data: [], next_cursor: '' })
     }
 
     const { marketMap, outcomeMap } = buildMarketLookups(targetMarkets)
 
     const { data: clobOrders, next_cursor } = await fetchClobOpenOrders({
       market: conditionId,
-      makerAddress: user.deposit_wallet_address ?? undefined,
       userAddress: user.address,
       auth: tradingAuth.clob,
       nextCursor,
@@ -148,13 +147,11 @@ function buildMarketLookups(markets: Array<{
 
 async function fetchClobOpenOrders({
   market,
-  makerAddress,
   auth,
   userAddress,
   nextCursor,
 }: {
   market?: string
-  makerAddress?: string
   auth: { key: string, secret: string, passphrase: string }
   userAddress: string
   nextCursor?: string
@@ -166,9 +163,6 @@ async function fetchClobOpenOrders({
   const searchParams = new URLSearchParams()
   if (market) {
     searchParams.set('market', market)
-  }
-  if (makerAddress) {
-    searchParams.set('maker_address', makerAddress)
   }
   if (nextCursor) {
     searchParams.set('next_cursor', nextCursor)

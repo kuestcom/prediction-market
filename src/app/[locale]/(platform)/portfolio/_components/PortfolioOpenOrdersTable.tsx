@@ -10,7 +10,10 @@ interface PortfolioOpenOrdersTableProps {
   isLoading: boolean
   emptyText: string
   isFetchingNextPage: boolean
+  infiniteScrollError: string | null
+  isLoadingMore: boolean
   loadMoreRef: RefObject<HTMLDivElement | null>
+  onRetryLoadMore: () => void
 }
 
 export default function PortfolioOpenOrdersTable({
@@ -18,7 +21,10 @@ export default function PortfolioOpenOrdersTable({
   isLoading,
   emptyText,
   isFetchingNextPage,
+  infiniteScrollError,
+  isLoadingMore,
   loadMoreRef,
+  onRetryLoadMore,
 }: PortfolioOpenOrdersTableProps) {
   const t = useExtracted()
   const hasOrders = orders.length > 0
@@ -53,10 +59,21 @@ export default function PortfolioOpenOrdersTable({
         {orders.map(order => (
           <PortfolioOpenOrdersRow key={order.id} order={order} />
         ))}
-        {isFetchingNextPage && (
+        {(isFetchingNextPage || isLoadingMore) && (
           <tr>
             <td colSpan={colSpan} className="py-3 text-center text-xs text-muted-foreground">
-              {t('Loading more...')}
+              {t('Loading more open orders...')}
+            </td>
+          </tr>
+        )}
+        {infiniteScrollError && (
+          <tr>
+            <td colSpan={colSpan} className="py-3 text-center text-xs text-destructive">
+              {infiniteScrollError}
+              {' '}
+              <button type="button" onClick={onRetryLoadMore} className="underline underline-offset-2">
+                {t('Retry')}
+              </button>
             </td>
           </tr>
         )}
