@@ -11,7 +11,6 @@ import { normalizeEventCreationAssetPayload } from '@/lib/event-creation'
 import { loadEventCreationSignersFromEnv } from '@/lib/event-creation-signers'
 import {
   assertSuccessfulTransactionReceipt,
-  buildEventCreationJobDedupeKey,
   buildEventCreationPreparePayload,
   computeNextRecurringSchedule,
   truncateEventCreationError,
@@ -386,28 +385,6 @@ async function prepareRequest(input: {
   return payload
 }
 
-async function enqueueDueJobs(now: Date) {
-  const dueResult = await EventCreationRepository.listDueScheduledDrafts(now)
-  if (dueResult.error || !dueResult.data) {
-    throw new Error(dueResult.error ?? 'Could not load due scheduled event creations.')
-  }
-
-  let enqueued = 0
-  for (const draft of dueResult.data) {
-    const enqueueResult = await EventCreationRepository.enqueueDeployJob({
-      draftId: draft.id,
-      dedupeKey: buildEventCreationJobDedupeKey(draft),
-      availableAt: now,
-    })
-    if (enqueueResult.error) {
-      throw new Error(enqueueResult.error)
-    }
-    enqueued += 1
-  }
-
-  return enqueued
-}
-
 async function loadPendingJobs(now: Date) {
   const rows = await db
     .select({
@@ -671,14 +648,23 @@ async function processClaimedJob(job: JobRow, defaultChainId: number) {
 
 async function runSync() {
   const now = new Date()
-  const marketConfig = await fetchMarketConfig()
-  const defaultChainId = typeof marketConfig.defaultChainId === 'number' ? marketConfig.defaultChainId : polygonAmoy.id
-  const enqueued = await enqueueDueJobs(now)
   const pendingJobs = await loadPendingJobs(now)
 
   let processed = 0
   let failed = 0
   const errors: Array<{ jobId: string, message: string }> = []
+
+  if (pendingJobs.length === 0) {
+    return {
+      success: true,
+      processed,
+      failed,
+      errors,
+    }
+  }
+
+  const marketConfig = await fetchMarketConfig()
+  const defaultChainId = typeof marketConfig.defaultChainId === 'number' ? marketConfig.defaultChainId : polygonAmoy.id
 
   for (const job of pendingJobs) {
     const claimed = await claimJob(job, now)
@@ -711,7 +697,6 @@ async function runSync() {
 
   return {
     success: true,
-    enqueued,
     processed,
     failed,
     errors,

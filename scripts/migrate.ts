@@ -401,8 +401,17 @@ async function createSyncEventCreationsCron(
   cronSecret: string,
 ): Promise<void> {
   await createSyncCron(sql, {
-    jobName: 'sync-event-creations',
+    jobName: 'sync-event-creations-enqueue',
     schedule: '0,30 * * * *',
+    endpointPath: '/api/sync/event-creations/enqueue',
+    siteUrl,
+    cronSecret,
+    timeoutMilliseconds: 10000,
+  })
+
+  await createSyncCron(sql, {
+    jobName: 'sync-event-creations',
+    schedule: '1,31 * * * *',
     endpointPath: '/api/sync/event-creations',
     siteUrl,
     cronSecret,
