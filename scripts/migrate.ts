@@ -363,11 +363,21 @@ async function createSyncTranslationsCron(
   cronSecret: string,
 ): Promise<void> {
   await createSyncCron(sql, {
+    jobName: 'sync-translations-enqueue',
+    schedule: '17 * * * *',
+    endpointPath: '/api/sync/translations/enqueue',
+    siteUrl,
+    cronSecret,
+    timeoutMilliseconds: 20000,
+  })
+
+  await createSyncCron(sql, {
     jobName: 'sync-translations',
-    schedule: '13,37 * * * *',
+    schedule: '5 * * * *',
     endpointPath: '/api/sync/translations',
     siteUrl,
     cronSecret,
+    timeoutMilliseconds: 30000,
   })
 }
 

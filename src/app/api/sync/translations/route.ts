@@ -1,6 +1,6 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { createHash } from 'node:crypto'
-import { and, asc, eq, inArray, like, lte, or, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, like, lte, or } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { loadAutomaticTranslationsEnabled, loadEnabledLocales } from '@/i18n/locale-settings'
 import { LOCALE_LABELS, NON_DEFAULT_LOCALES } from '@/i18n/locales'
@@ -16,14 +16,11 @@ import {
 } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
 
-export const maxDuration = 300
+export const maxDuration = 60
 
-const SYNC_TIME_LIMIT_MS = 250_000
-const JOB_BATCH_SIZE = 20
-const DISCOVERY_SCAN_PAGE_SIZE = 200
-const DISCOVERY_ENQUEUE_TARGET = 200
-const JOB_UPSERT_BATCH_SIZE = 200
-const DEFAULT_MAX_ATTEMPTS = 5
+const SYNC_TIME_LIMIT_MS = 55_000
+const JOB_BATCH_SIZE = 24
+const DEFAULT_MAX_ATTEMPTS = 2
 const EVENT_TITLE_TRANSLATION_JOB_TYPE = 'translate_event_title'
 const TAG_NAME_TRANSLATION_JOB_TYPE = 'translate_tag_name'
 const TRANSLATION_JOB_TYPES = [EVENT_TITLE_TRANSLATION_JOB_TYPE, TAG_NAME_TRANSLATION_JOB_TYPE] as const
@@ -62,25 +59,6 @@ interface JobIdentity {
   locale: string
 }
 
-interface JobUpsertRow {
-  job_type: TranslationJobType
-  dedupe_key: string
-  payload: EventTranslationJobPayload | TagTranslationJobPayload
-  status: 'pending'
-  attempts: number
-  max_attempts: number
-  available_at: string
-  reserved_at: null
-  last_error: null
-}
-
-interface ExistingDiscoveryJobRow {
-  job_type: string
-  dedupe_key: string
-  status: TranslationJobRow['status']
-  payload: unknown
-}
-
 interface EventSourceRow {
   id: string
   title: string
@@ -112,8 +90,6 @@ interface TranslationJobStats {
   failed: number
   skippedManual: number
   skippedUpToDate: number
-  enqueuedEventJobs: number
-  enqueuedTagJobs: number
   timeLimitReached: boolean
   errors: { jobType: string, targetId: string, locale: string, error: string }[]
 }
@@ -291,148 +267,8 @@ function isTimeLimitReached(startedAtMs: number) {
   return Date.now() - startedAtMs >= SYNC_TIME_LIMIT_MS
 }
 
-function buildJobConflictKey(jobType: string, dedupeKey: string) {
-  return `${jobType}:${dedupeKey}`
-}
-
-function getSourceHashFromUpsertPayload(payload: JobUpsertRow['payload']) {
-  return typeof payload.source_hash === 'string' ? payload.source_hash : null
-}
-
-function getProviderSignatureFromUpsertPayload(payload: JobUpsertRow['payload']) {
-  return typeof payload.provider_signature === 'string' ? payload.provider_signature : null
-}
-
-function getSourceHashFromStoredJobPayload(job: Pick<TranslationJobRow, 'job_type' | 'payload' | 'dedupe_key'>) {
-  try {
-    if (job.job_type === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
-      const parsed = parseEventJobPayload(job.payload, job.dedupe_key)
-      return parsed.source_hash ?? null
-    }
-
-    if (job.job_type === TAG_NAME_TRANSLATION_JOB_TYPE) {
-      const parsed = parseTagJobPayload(job.payload, job.dedupe_key)
-      return parsed.source_hash ?? null
-    }
-  }
-  catch {
-    // Treat malformed payload as unknown hash.
-  }
-
-  return null
-}
-
-function getProviderSignatureFromStoredJobPayload(job: Pick<TranslationJobRow, 'job_type' | 'payload' | 'dedupe_key'>) {
-  try {
-    if (job.job_type === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
-      const parsed = parseEventJobPayload(job.payload, job.dedupe_key)
-      return parsed.provider_signature ?? null
-    }
-
-    if (job.job_type === TAG_NAME_TRANSLATION_JOB_TYPE) {
-      const parsed = parseTagJobPayload(job.payload, job.dedupe_key)
-      return parsed.provider_signature ?? null
-    }
-  }
-  catch {
-    // Treat malformed payload as unknown provider signature.
-  }
-
-  return null
-}
-
 function buildProviderSignature(model: string | undefined) {
   return `openrouter:${model?.trim() || 'automatic'}`
-}
-
-function shouldUpsertDiscoveryRow(existing: ExistingDiscoveryJobRow | undefined, next: JobUpsertRow) {
-  if (!existing) {
-    return true
-  }
-
-  if (existing.status === 'pending' || existing.status === 'processing') {
-    return false
-  }
-
-  if (existing.status === 'completed') {
-    return true
-  }
-
-  if (existing.status === 'failed') {
-    const existingSourceHash = getSourceHashFromStoredJobPayload(existing)
-    const nextSourceHash = getSourceHashFromUpsertPayload(next.payload)
-
-    if (!existingSourceHash || !nextSourceHash) {
-      return true
-    }
-
-    if (existingSourceHash !== nextSourceHash) {
-      return true
-    }
-
-    return getProviderSignatureFromStoredJobPayload(existing) !== getProviderSignatureFromUpsertPayload(next.payload)
-  }
-
-  return true
-}
-
-async function upsertJobs(rows: JobUpsertRow[]) {
-  let persistedRows = 0
-
-  for (let index = 0; index < rows.length; index += JOB_UPSERT_BATCH_SIZE) {
-    const chunk = rows.slice(index, index + JOB_UPSERT_BATCH_SIZE)
-    const dedupeKeys = [...new Set(chunk.map(row => row.dedupe_key))]
-
-    const existingRows = await db
-      .select({
-        job_type: jobsTable.job_type,
-        dedupe_key: jobsTable.dedupe_key,
-        status: jobsTable.status,
-        payload: jobsTable.payload,
-      })
-      .from(jobsTable)
-      .where(and(
-        inArray(jobsTable.job_type, [...TRANSLATION_JOB_TYPES]),
-        inArray(jobsTable.dedupe_key, dedupeKeys),
-      ))
-
-    const existingMap = new Map<string, ExistingDiscoveryJobRow>()
-    for (const existing of existingRows as ExistingDiscoveryJobRow[]) {
-      existingMap.set(buildJobConflictKey(existing.job_type, existing.dedupe_key), existing)
-    }
-
-    const rowsToUpsert = chunk.filter((row) => {
-      const key = buildJobConflictKey(row.job_type, row.dedupe_key)
-      return shouldUpsertDiscoveryRow(existingMap.get(key), row)
-    })
-
-    if (rowsToUpsert.length === 0) {
-      continue
-    }
-
-    await db
-      .insert(jobsTable)
-      .values(rowsToUpsert.map(row => ({
-        ...row,
-        available_at: new Date(row.available_at),
-      })))
-      .onConflictDoUpdate({
-        target: [jobsTable.job_type, jobsTable.dedupe_key],
-        set: {
-          payload: sql`excluded.payload`,
-          status: sql`excluded.status`,
-          attempts: sql`excluded.attempts`,
-          max_attempts: sql`excluded.max_attempts`,
-          available_at: sql`excluded.available_at`,
-          reserved_at: sql`excluded.reserved_at`,
-          last_error: sql`excluded.last_error`,
-        },
-      })
-
-    persistedRows += rowsToUpsert.length
-  }
-
-  return persistedRows
 }
 
 function buildEventTranslationMetaMap(rows: EventTranslationMetaRow[]) {
@@ -467,251 +303,6 @@ function buildTagTranslationMetaMap(rows: TagTranslationMetaRow[]) {
   }
 
   return map
-}
-
-async function enqueueEventDiscoveryJobs(
-  startedAtMs: number,
-  maxJobs: number,
-  locales: NonDefaultLocale[],
-  providerSignature: string,
-): Promise<number> {
-  if (maxJobs <= 0) {
-    return 0
-  }
-  if (locales.length === 0) {
-    return 0
-  }
-
-  let offset = 0
-  let enqueued = 0
-
-  while (enqueued < maxJobs && !isTimeLimitReached(startedAtMs)) {
-    const events = await db
-      .select({
-        id: eventsTable.id,
-        title: eventsTable.title,
-      })
-      .from(eventsTable)
-      .orderBy(asc(eventsTable.id))
-      .offset(offset)
-      .limit(DISCOVERY_SCAN_PAGE_SIZE)
-
-    const sourceRows = (events as EventSourceRow[])
-      .map(row => ({
-        id: row.id,
-        title: typeof row.title === 'string' ? row.title.trim() : '',
-      }))
-      .filter(row => row.title.length > 0)
-
-    if (!events.length) {
-      break
-    }
-
-    if (sourceRows.length > 0) {
-      const eventIds = sourceRows.map(row => row.id)
-      const translationRows = await db
-        .select({
-          event_id: eventTranslationsTable.event_id,
-          locale: eventTranslationsTable.locale,
-          source_hash: eventTranslationsTable.source_hash,
-          is_manual: eventTranslationsTable.is_manual,
-        })
-        .from(eventTranslationsTable)
-        .where(and(
-          inArray(eventTranslationsTable.event_id, eventIds),
-          inArray(eventTranslationsTable.locale, locales),
-        ))
-
-      const metaMap = buildEventTranslationMetaMap(translationRows as EventTranslationMetaRow[])
-      const availableAt = new Date().toISOString()
-      const rowsToUpsert: JobUpsertRow[] = []
-      let reachedJobLimit = false
-
-      for (const sourceRow of sourceRows) {
-        if (reachedJobLimit) {
-          break
-        }
-
-        const sourceHash = buildSourceHash(sourceRow.title)
-
-        for (const locale of locales) {
-          if (enqueued + rowsToUpsert.length >= maxJobs) {
-            reachedJobLimit = true
-            break
-          }
-
-          const key = `${sourceRow.id}:${locale}`
-          const existing = metaMap.get(key)
-          if (existing?.is_manual) {
-            continue
-          }
-          if (existing?.source_hash === sourceHash) {
-            continue
-          }
-
-          rowsToUpsert.push({
-            job_type: EVENT_TITLE_TRANSLATION_JOB_TYPE,
-            dedupe_key: key,
-            payload: {
-              event_id: sourceRow.id,
-              locale,
-              source_title: sourceRow.title,
-              source_hash: sourceHash,
-              provider_signature: providerSignature,
-            },
-            status: 'pending',
-            attempts: 0,
-            max_attempts: DEFAULT_MAX_ATTEMPTS,
-            available_at: availableAt,
-            reserved_at: null,
-            last_error: null,
-          })
-        }
-      }
-
-      if (rowsToUpsert.length > 0) {
-        enqueued += await upsertJobs(rowsToUpsert)
-      }
-    }
-
-    if (events.length < DISCOVERY_SCAN_PAGE_SIZE) {
-      break
-    }
-
-    offset += events.length
-  }
-
-  return enqueued
-}
-
-async function enqueueTagDiscoveryJobs(
-  startedAtMs: number,
-  maxJobs: number,
-  locales: NonDefaultLocale[],
-  providerSignature: string,
-): Promise<number> {
-  if (maxJobs <= 0) {
-    return 0
-  }
-  if (locales.length === 0) {
-    return 0
-  }
-
-  let offset = 0
-  let enqueued = 0
-
-  while (enqueued < maxJobs && !isTimeLimitReached(startedAtMs)) {
-    const tags = await db
-      .select({
-        id: tagsTable.id,
-        name: tagsTable.name,
-      })
-      .from(tagsTable)
-      .orderBy(asc(tagsTable.id))
-      .offset(offset)
-      .limit(DISCOVERY_SCAN_PAGE_SIZE)
-
-    const sourceRows = (tags as TagSourceRow[])
-      .map(row => ({
-        id: row.id,
-        name: typeof row.name === 'string' ? row.name.trim() : '',
-      }))
-      .filter(row => row.name.length > 0)
-
-    if (!tags.length) {
-      break
-    }
-
-    if (sourceRows.length > 0) {
-      const tagIds = sourceRows.map(row => row.id)
-      const translationRows = await db
-        .select({
-          tag_id: tagTranslationsTable.tag_id,
-          locale: tagTranslationsTable.locale,
-          source_hash: tagTranslationsTable.source_hash,
-          is_manual: tagTranslationsTable.is_manual,
-        })
-        .from(tagTranslationsTable)
-        .where(and(
-          inArray(tagTranslationsTable.tag_id, tagIds),
-          inArray(tagTranslationsTable.locale, locales),
-        ))
-
-      const metaMap = buildTagTranslationMetaMap(translationRows as TagTranslationMetaRow[])
-      const availableAt = new Date().toISOString()
-      const rowsToUpsert: JobUpsertRow[] = []
-      let reachedJobLimit = false
-
-      for (const sourceRow of sourceRows) {
-        if (reachedJobLimit) {
-          break
-        }
-
-        const sourceHash = buildSourceHash(sourceRow.name)
-
-        for (const locale of locales) {
-          if (enqueued + rowsToUpsert.length >= maxJobs) {
-            reachedJobLimit = true
-            break
-          }
-
-          const key = `${sourceRow.id}:${locale}`
-          const existing = metaMap.get(key)
-          if (existing?.is_manual) {
-            continue
-          }
-          if (existing?.source_hash === sourceHash) {
-            continue
-          }
-
-          rowsToUpsert.push({
-            job_type: TAG_NAME_TRANSLATION_JOB_TYPE,
-            dedupe_key: key,
-            payload: {
-              tag_id: sourceRow.id,
-              locale,
-              source_name: sourceRow.name,
-              source_hash: sourceHash,
-              provider_signature: providerSignature,
-            },
-            status: 'pending',
-            attempts: 0,
-            max_attempts: DEFAULT_MAX_ATTEMPTS,
-            available_at: availableAt,
-            reserved_at: null,
-            last_error: null,
-          })
-        }
-      }
-
-      if (rowsToUpsert.length > 0) {
-        enqueued += await upsertJobs(rowsToUpsert)
-      }
-    }
-
-    if (tags.length < DISCOVERY_SCAN_PAGE_SIZE) {
-      break
-    }
-
-    offset += tags.length
-  }
-
-  return enqueued
-}
-
-async function enqueueMissingOrOutdatedTranslationJobs(
-  startedAtMs: number,
-  locales: NonDefaultLocale[],
-  providerSignature: string,
-) {
-  const perTypeTarget = Math.max(1, Math.floor(DISCOVERY_ENQUEUE_TARGET / 2))
-  const enqueuedEventJobs = await enqueueEventDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
-  const enqueuedTagJobs = await enqueueTagDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
-
-  return {
-    enqueuedEventJobs,
-    enqueuedTagJobs,
-  }
 }
 
 async function fetchCandidateJobs(nowIso: string, locales: NonDefaultLocale[]): Promise<TranslationJobRow[]> {
@@ -1293,8 +884,6 @@ export async function GET(request: Request) {
     failed: 0,
     skippedManual: 0,
     skippedUpToDate: 0,
-    enqueuedEventJobs: 0,
-    enqueuedTagJobs: 0,
     timeLimitReached: false,
     errors: [],
   }
@@ -1337,112 +926,89 @@ export async function GET(request: Request) {
 
     const startedAt = Date.now()
 
-    while (Date.now() - startedAt < SYNC_TIME_LIMIT_MS) {
-      const nowIso = new Date().toISOString()
-      const candidates = await fetchCandidateJobs(nowIso, enabledTranslationLocales)
+    const nowIso = new Date().toISOString()
+    const candidates = await fetchCandidateJobs(nowIso, enabledTranslationLocales)
+    const claimedJobs: ClaimedTranslationJob[] = []
 
-      if (!candidates.length) {
-        const discovery = await enqueueMissingOrOutdatedTranslationJobs(
-          startedAt,
-          enabledTranslationLocales,
-          providerSignature,
-        )
-        stats.enqueuedEventJobs += discovery.enqueuedEventJobs
-        stats.enqueuedTagJobs += discovery.enqueuedTagJobs
-
-        if ((discovery.enqueuedEventJobs + discovery.enqueuedTagJobs) === 0) {
-          break
-        }
-
-        continue
+    for (const candidate of candidates) {
+      if (Date.now() - startedAt >= SYNC_TIME_LIMIT_MS) {
+        stats.timeLimitReached = true
+        break
       }
 
-      const claimedJobs: ClaimedTranslationJob[] = []
+      stats.scanned += 1
 
-      for (const candidate of candidates) {
-        if (Date.now() - startedAt >= SYNC_TIME_LIMIT_MS) {
-          stats.timeLimitReached = true
-          break
-        }
-
-        stats.scanned += 1
-
-        let claimed: TranslationJobRow | null = null
-        let claimedIdentity: JobIdentity | null = null
-        const candidateIdentity = getJobIdentity(candidate)
-
-        try {
-          claimed = await claimJob(candidate, nowIso)
-          if (!claimed) {
-            continue
-          }
-
-          if (claimed.job_type === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
-            const payload = parseEventJobPayload(claimed.payload, claimed.dedupe_key)
-            const identity = {
-              targetId: payload.event_id,
-              locale: payload.locale,
-            }
-            claimedIdentity = identity
-
-            claimedJobs.push({
-              kind: EVENT_TITLE_TRANSLATION_JOB_TYPE,
-              claimed,
-              identity,
-              payload,
-            })
-            continue
-          }
-
-          if (claimed.job_type === TAG_NAME_TRANSLATION_JOB_TYPE) {
-            const payload = parseTagJobPayload(claimed.payload, claimed.dedupe_key)
-            const identity = {
-              targetId: String(payload.tag_id),
-              locale: payload.locale,
-            }
-            claimedIdentity = identity
-
-            claimedJobs.push({
-              kind: TAG_NAME_TRANSLATION_JOB_TYPE,
-              claimed,
-              identity,
-              payload,
-            })
-            continue
-          }
-
-          throw new Error(`Unsupported translation job type: ${claimed.job_type}`)
-        }
-        catch (error) {
-          const identity = claimedIdentity ?? (claimed ? getJobIdentity(claimed) : candidateIdentity)
-
-          if (!claimed) {
-            pushJobError(stats, candidate.job_type, identity, error)
-            stats.failed += 1
-            continue
-          }
-
-          await retryClaimedJob(claimed, identity, error, stats)
-        }
-      }
+      let claimed: TranslationJobRow | null = null
+      let claimedIdentity: JobIdentity | null = null
+      const candidateIdentity = getJobIdentity(candidate)
 
       try {
-        const pendingTranslations = await preparePendingTranslationJobs(claimedJobs, providerSignature, stats)
-        await processPendingTranslationJobs(
-          pendingTranslations,
-          openRouterSettings.model,
-          openRouterSettings.apiKey,
-          stats,
-        )
+        claimed = await claimJob(candidate, nowIso)
+        if (!claimed) {
+          continue
+        }
+
+        if (claimed.job_type === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
+          const payload = parseEventJobPayload(claimed.payload, claimed.dedupe_key)
+          const identity = {
+            targetId: payload.event_id,
+            locale: payload.locale,
+          }
+          claimedIdentity = identity
+
+          claimedJobs.push({
+            kind: EVENT_TITLE_TRANSLATION_JOB_TYPE,
+            claimed,
+            identity,
+            payload,
+          })
+          continue
+        }
+
+        if (claimed.job_type === TAG_NAME_TRANSLATION_JOB_TYPE) {
+          const payload = parseTagJobPayload(claimed.payload, claimed.dedupe_key)
+          const identity = {
+            targetId: String(payload.tag_id),
+            locale: payload.locale,
+          }
+          claimedIdentity = identity
+
+          claimedJobs.push({
+            kind: TAG_NAME_TRANSLATION_JOB_TYPE,
+            claimed,
+            identity,
+            payload,
+          })
+          continue
+        }
+
+        throw new Error(`Unsupported translation job type: ${claimed.job_type}`)
       }
       catch (error) {
-        for (const claimedJob of claimedJobs) {
-          await retryClaimedJob(claimedJob.claimed, claimedJob.identity, error, stats)
-        }
-      }
+        const identity = claimedIdentity ?? (claimed ? getJobIdentity(claimed) : candidateIdentity)
 
-      if (stats.timeLimitReached) {
-        break
+        if (!claimed) {
+          pushJobError(stats, candidate.job_type, identity, error)
+          stats.failed += 1
+          continue
+        }
+
+        await retryClaimedJob(claimed, identity, error, stats)
+      }
+    }
+
+    try {
+      const pendingTranslations = await preparePendingTranslationJobs(claimedJobs, providerSignature, stats)
+      await processPendingTranslationJobs(
+        pendingTranslations,
+        openRouterSettings.model,
+        openRouterSettings.apiKey,
+        stats,
+      )
+    }
+    catch (error) {
+      for (const claimedJob of claimedJobs) {
+        await retryClaimedJob(claimedJob.claimed, claimedJob.identity, error, stats)
       }
     }
 
