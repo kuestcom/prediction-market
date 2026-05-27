@@ -44,6 +44,14 @@ interface ProcessVolumeJobResult {
   reason?: string
 }
 
+interface VolumeJobOutcome {
+  jobId: string
+  conditionId: string | null
+  eventSlug: string | null
+  status: 'updated' | 'skipped' | 'retried' | 'failed'
+  error?: string
+}
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization')
   if (!isCronAuthorized(authHeader, process.env.CRON_SECRET)) {
@@ -63,46 +71,56 @@ export async function GET(request: Request) {
       updatedEventSlugs: [],
     }
     const updatedEventSlugs = new Set<string>()
+    const claimStartedAt = new Date()
+    const claimedJobs = (await Promise.all(
+      pendingJobs.map(pendingJob => claimJob(pendingJob, claimStartedAt)),
+    )).filter((job): job is VolumeJobRow => Boolean(job))
 
-    for (const pendingJob of pendingJobs) {
-      const claimedJob = await claimJob(pendingJob, new Date())
-      if (!claimedJob) {
+    stats.claimed = claimedJobs.length
+
+    const outcomes = await Promise.allSettled(
+      claimedJobs.map(job => processVolumeJob(job)),
+    )
+
+    for (const outcome of outcomes) {
+      if (outcome.status === 'rejected') {
+        stats.failed++
+        stats.errors.push({
+          jobId: 'unknown',
+          conditionId: null,
+          error: truncateVolumeJobError(outcome.reason),
+        })
         continue
       }
 
-      stats.claimed++
-
-      try {
-        const result = await processClaimedJob(claimedJob)
-        await completeJob(claimedJob)
+      const result = outcome.value
+      if (result.status === 'updated') {
         stats.completed++
-
-        if (result.status === 'updated') {
-          stats.updated++
-          if (result.eventSlug) {
-            updatedEventSlugs.add(result.eventSlug)
-          }
+        stats.updated++
+        if (result.eventSlug) {
+          updatedEventSlugs.add(result.eventSlug)
         }
-        else {
-          stats.skipped++
-        }
+        continue
       }
-      catch (error) {
-        const payload = safeParseVolumeJobPayload(claimedJob)
-        const retryResult = await scheduleRetry(claimedJob, error)
-        if (retryResult.exhausted) {
-          stats.failed++
-        }
-        else {
-          stats.retried++
-        }
 
-        stats.errors.push({
-          jobId: claimedJob.id,
-          conditionId: payload?.conditionId ?? null,
-          error: truncateVolumeJobError(error),
-        })
+      if (result.status === 'skipped') {
+        stats.completed++
+        stats.skipped++
+        continue
       }
+
+      if (result.status === 'failed') {
+        stats.failed++
+      }
+      else {
+        stats.retried++
+      }
+
+      stats.errors.push({
+        jobId: result.jobId,
+        conditionId: result.conditionId,
+        error: result.error ?? 'Unknown volume sync error',
+      })
     }
 
     stats.updatedEventSlugs = Array.from(updatedEventSlugs)
@@ -118,6 +136,44 @@ export async function GET(request: Request) {
       { success: false, error: error?.message ?? 'Unknown error' },
       { status: 500 },
     )
+  }
+}
+
+async function processVolumeJob(job: VolumeJobRow): Promise<VolumeJobOutcome> {
+  try {
+    const result = await processClaimedJob(job)
+    await completeJob(job)
+
+    return {
+      jobId: job.id,
+      conditionId: result.conditionId,
+      eventSlug: result.eventSlug,
+      status: result.status,
+    }
+  }
+  catch (error) {
+    const payload = safeParseVolumeJobPayload(job)
+    let retryResult: Awaited<ReturnType<typeof scheduleRetry>>
+    try {
+      retryResult = await scheduleRetry(job, error)
+    }
+    catch (retryError) {
+      return {
+        jobId: job.id,
+        conditionId: payload?.conditionId ?? null,
+        eventSlug: null,
+        status: 'failed',
+        error: `${truncateVolumeJobError(error)}; retry update failed: ${truncateVolumeJobError(retryError)}`,
+      }
+    }
+
+    return {
+      jobId: job.id,
+      conditionId: payload?.conditionId ?? null,
+      eventSlug: null,
+      status: retryResult.exhausted ? 'failed' : 'retried',
+      error: truncateVolumeJobError(error),
+    }
   }
 }
 
