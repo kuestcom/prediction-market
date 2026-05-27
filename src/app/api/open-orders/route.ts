@@ -42,7 +42,7 @@ export async function GET(request: Request) {
   try {
     const user = await UserRepository.getCurrentUser({ minimal: true })
     if (!user) {
-      return NextResponse.json({ data: [], next_cursor: 'LTE=' })
+      return NextResponse.json({ data: [], next_cursor: '' })
     }
 
     if (!CLOB_URL) {
@@ -64,7 +64,6 @@ export async function GET(request: Request) {
     const { data: clobOrders, next_cursor } = await fetchClobOpenOrders({
       auth: tradingAuth.clob,
       userAddress: user.address,
-      makerAddress: user.deposit_wallet_address as string,
       id: idFilter,
       market: marketFilter,
       assetId: assetIdFilter,
@@ -100,7 +99,6 @@ export async function GET(request: Request) {
 async function fetchClobOpenOrders({
   auth,
   userAddress,
-  makerAddress,
   id,
   market,
   assetId,
@@ -108,16 +106,12 @@ async function fetchClobOpenOrders({
 }: {
   auth: { key: string, secret: string, passphrase: string }
   userAddress: string
-  makerAddress?: string
   id?: string
   market?: string
   assetId?: string
   nextCursor?: string
 }): Promise<{ data: ClobOpenOrder[], next_cursor: string }> {
   const params = new URLSearchParams()
-  if (makerAddress) {
-    params.set('maker_address', makerAddress)
-  }
   if (id) {
     params.set('id', id)
   }

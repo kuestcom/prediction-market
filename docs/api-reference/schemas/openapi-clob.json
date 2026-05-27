@@ -395,7 +395,7 @@
             "name": "next_cursor",
             "in": "query",
             "required": false,
-            "description": "Base64-encoded offset for pagination. Use `MA==` to start; `LTE=` means no more pages.",
+            "description": "Base64-encoded offset for pagination. Use `MA==` to start; an empty response cursor means no more pages.",
             "schema": {
               "type": "string"
             }
@@ -426,7 +426,8 @@
                     },
                     "limit": {
                       "type": "integer",
-                      "description": "Page size used for the query."
+                      "description": "Page size used for the query.",
+                      "example": 100
                     },
                     "count": {
                       "type": "integer",

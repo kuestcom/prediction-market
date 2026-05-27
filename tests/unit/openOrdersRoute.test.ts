@@ -173,11 +173,11 @@ describe('open orders routes', () => {
           },
         },
       ],
-      next_cursor: 'LTE=',
+      next_cursor: '',
     })
 
     expect(mocks.fetch).toHaveBeenCalledWith(
-      'https://clob.local/data/orders?maker_address=0x0000000000000000000000000000000000000002&market=cond-1&next_cursor=cursor-1',
+      'https://clob.local/data/orders?market=cond-1&next_cursor=cursor-1',
       expect.objectContaining({
         method: 'GET',
       }),
@@ -274,11 +274,11 @@ describe('open orders routes', () => {
           },
         },
       ],
-      next_cursor: 'LTE=',
+      next_cursor: '',
     })
 
     expect(mocks.fetch).toHaveBeenCalledWith(
-      'https://clob.local/data/orders?market=cond-2&maker_address=0x0000000000000000000000000000000000000004&next_cursor=cursor-2',
+      'https://clob.local/data/orders?market=cond-2&next_cursor=cursor-2',
       expect.objectContaining({
         method: 'GET',
       }),
