@@ -1,5 +1,6 @@
 'use server'
 
+import { getExtracted } from 'next-intl/server'
 import { updateTag } from 'next/cache'
 import { z } from 'zod'
 import { cacheTags } from '@/lib/cache-tags'
@@ -39,74 +40,106 @@ const StoreOrderSchema = z.object({
 
 type StoreOrderInput = z.infer<typeof StoreOrderSchema>
 
-const DEFAULT_ERROR_MESSAGE = 'Something went wrong while processing your order. Please try again.'
 const CLOB_REQUEST_TIMEOUT_MS = 20_000
-const CLOB_ERROR_MESSAGES: Record<string, string> = {
-  'condition_paused': 'Trading is paused for this market.',
-  'system_paused': 'Trading is temporarily paused. Please try again shortly.',
-  'condition is not registered': 'Market is not active yet. Try again shortly.',
-  'token is not registered': 'Market is not active yet. Try again shortly.',
-  'owner_address_mismatch': 'Your trading session is out of sync. Reconnect and try again.',
-  'invalid_l2': 'Your trading session expired. Please sign in again.',
-  'user_banned': 'Your account is not allowed to trade right now.',
-  'internal_error': 'Trading is temporarily unavailable. Please try again shortly.',
-  'invalid order signature': 'Your order signature could not be verified. Please sign and try again.',
-  'order expired': 'This order expired. Refresh prices and submit again.',
-  'invalid expiration': 'This order expiration is invalid. Please refresh and try again.',
-  'order is invalid. duplicated. same order has already been placed, can\'t be placed again': 'This exact order was already submitted.',
-  'order couldn\'t be fully filled, fok orders are fully filled/killed': 'Not enough liquidity to fully fill this order right now.',
-  'the market is not yet ready to process new orders': 'This market is temporarily unavailable for trading. Please try again shortly.',
-  'order is invalid. size lower than the minimum': 'Order size is too small for this market.',
-  'order is invalid. price breaks minimum tick size rules': 'Order price is invalid for this market.',
-  'not enough balance / allowance': 'Insufficient available balance for this order.',
-  'on-chain precheck failed': 'We could not validate this order on-chain. Please try again.',
-  'on-chain settlement failed': 'This order could not be settled right now. Please try again.',
-  'could not insert order': 'Could not submit your order right now. Please try again.',
-  'could not run the execution': 'Could not execute your order right now. Please try again.',
-  'error delaying the order': 'Order processing is delayed right now. Please try again.',
-  'order match delayed due to market conditions': 'Order matching is delayed due to market conditions.',
+
+type ClobErrorMessageKey
+  = | 'default'
+    | 'conditionPaused'
+    | 'systemPaused'
+    | 'marketNotActive'
+    | 'tradingSessionOutOfSync'
+    | 'tradingSessionExpired'
+    | 'userBanned'
+    | 'tradingUnavailable'
+    | 'invalidOrderSignature'
+    | 'orderExpired'
+    | 'invalidExpiration'
+    | 'duplicateOrder'
+    | 'notEnoughLiquidity'
+    | 'marketUnavailable'
+    | 'orderSizeTooSmall'
+    | 'invalidPrice'
+    | 'insufficientBalance'
+    | 'onChainPrecheckFailed'
+    | 'onChainSettlementFailed'
+    | 'couldNotSubmit'
+    | 'couldNotExecute'
+    | 'orderDelayed'
+    | 'matchingDelayed'
+    | 'invalidExpirationRefreshPrices'
+    | 'staleMarketData'
+    | 'postOnlyLimitOrders'
+    | 'postOnlyWouldCross'
+    | 'invalidOrderSize'
+    | 'outdatedTradingSettings'
+    | 'orderExecutionFailed'
+
+const CLOB_ERROR_MESSAGES: Record<string, ClobErrorMessageKey> = {
+  'condition_paused': 'conditionPaused',
+  'system_paused': 'systemPaused',
+  'condition is not registered': 'marketNotActive',
+  'token is not registered': 'marketNotActive',
+  'owner_address_mismatch': 'tradingSessionOutOfSync',
+  'invalid_l2': 'tradingSessionExpired',
+  'user_banned': 'userBanned',
+  'internal_error': 'tradingUnavailable',
+  'invalid order signature': 'invalidOrderSignature',
+  'order expired': 'orderExpired',
+  'invalid expiration': 'invalidExpiration',
+  'order is invalid. duplicated. same order has already been placed, can\'t be placed again': 'duplicateOrder',
+  'order couldn\'t be fully filled, fok orders are fully filled/killed': 'notEnoughLiquidity',
+  'the market is not yet ready to process new orders': 'marketUnavailable',
+  'order is invalid. size lower than the minimum': 'orderSizeTooSmall',
+  'order is invalid. price breaks minimum tick size rules': 'invalidPrice',
+  'not enough balance / allowance': 'insufficientBalance',
+  'on-chain precheck failed': 'onChainPrecheckFailed',
+  'on-chain settlement failed': 'onChainSettlementFailed',
+  'could not insert order': 'couldNotSubmit',
+  'could not run the execution': 'couldNotExecute',
+  'error delaying the order': 'orderDelayed',
+  'order match delayed due to market conditions': 'matchingDelayed',
 }
 
-const CLOB_ERROR_PATTERNS: Array<{ pattern: RegExp, message: string }> = [
+const CLOB_ERROR_PATTERNS: Array<{ pattern: RegExp, messageKey: ClobErrorMessageKey }> = [
   {
     pattern: /\b(not enough (unlocked )?balance|insufficient unlocked (position|collateral)|insufficient unlocked)\b/i,
-    message: 'Insufficient available balance for this order.',
+    messageKey: 'insufficientBalance',
   },
   {
     pattern: /\b(order .* expired|expiration must be in the future|expiration must be non-negative|expiration is required)\b/i,
-    message: 'This order expiration is invalid. Refresh prices and try again.',
+    messageKey: 'invalidExpirationRefreshPrices',
   },
   {
     pattern: /\b(tokenid is required|conditionid is required|tokenid not found for conditionid lookup|maker is required|signer is required)\b/i,
-    message: 'Market data is out of date. Please refresh and try again.',
+    messageKey: 'staleMarketData',
   },
   {
     pattern: /\b(postonly requires gtc or gtd)\b/i,
-    message: 'Post-only is only available for limit orders.',
+    messageKey: 'postOnlyLimitOrders',
   },
   {
     pattern: /\b(postonly would cross the best (ask|bid))\b/i,
-    message: 'Post-only orders must not execute immediately. Adjust the price and try again.',
+    messageKey: 'postOnlyWouldCross',
   },
   {
     pattern: /\b(orderbook not ready|market is not yet ready|unable to derive price for postonly|unable to derive price for order)\b/i,
-    message: 'This market is temporarily unavailable for trading. Please try again shortly.',
+    messageKey: 'marketUnavailable',
   },
   {
     pattern: /\b(failed to verify signature|invalid signature for order)\b/i,
-    message: 'Your order signature could not be verified. Please sign and try again.',
+    messageKey: 'invalidOrderSignature',
   },
   {
     pattern: /\b(failed to check balances|makeramount must be positive|order quantity must be positive|makeramount and takeramount must be positive)\b/i,
-    message: 'Order size is invalid for this market.',
+    messageKey: 'invalidOrderSize',
   },
   {
     pattern: /\b(unsupported verifying contract|feeratebps must be >= exchangebasefeerate|feeratebps must be non-negative)\b/i,
-    message: 'Trading settings are out of date. Refresh and try again.',
+    messageKey: 'outdatedTradingSettings',
   },
   {
     pattern: /\b(transaction reverted|transport error|condition worker dropped response)\b/i,
-    message: 'Order execution failed. Please try again shortly.',
+    messageKey: 'orderExecutionFailed',
   },
 ]
 
@@ -126,13 +159,13 @@ function getStringField(payload: Record<string, unknown> | null, key: string) {
   return trimmed.length > 0 ? trimmed : null
 }
 
-function mapClobErrorMessage(rawError: string | null) {
+function mapClobErrorMessageKey(rawError: string | null): ClobErrorMessageKey {
   if (!rawError) {
-    return DEFAULT_ERROR_MESSAGE
+    return 'default'
   }
   const normalized = rawError.trim()
   if (!normalized) {
-    return DEFAULT_ERROR_MESSAGE
+    return 'default'
   }
 
   const lower = normalized.toLowerCase()
@@ -141,14 +174,84 @@ function mapClobErrorMessage(rawError: string | null) {
     return mapped
   }
 
-  for (const { pattern, message } of CLOB_ERROR_PATTERNS) {
+  for (const { pattern, messageKey } of CLOB_ERROR_PATTERNS) {
     if (pattern.test(lower)) {
-      return message
+      return messageKey
     }
   }
 
   console.error('Unmapped CLOB error message.', normalized)
-  return DEFAULT_ERROR_MESSAGE
+  return 'default'
+}
+
+async function mapClobErrorMessage(rawError: string | null) {
+  const messageKey = mapClobErrorMessageKey(rawError)
+  const t = await getExtracted()
+
+  switch (messageKey) {
+    case 'conditionPaused':
+      return t('Trading is paused for this market.')
+    case 'systemPaused':
+      return t('Trading is temporarily paused. Please try again shortly.')
+    case 'marketNotActive':
+      return t('Market is not active yet. Try again shortly.')
+    case 'tradingSessionOutOfSync':
+      return t('Your trading session is out of sync. Reconnect and try again.')
+    case 'tradingSessionExpired':
+      return t('Your trading session expired. Please sign in again.')
+    case 'userBanned':
+      return t('Your account is not allowed to trade right now.')
+    case 'tradingUnavailable':
+      return t('Trading is temporarily unavailable. Please try again shortly.')
+    case 'invalidOrderSignature':
+      return t('Your order signature could not be verified. Please sign and try again.')
+    case 'orderExpired':
+      return t('This order expired. Refresh prices and submit again.')
+    case 'invalidExpiration':
+      return t('This order expiration is invalid. Please refresh and try again.')
+    case 'duplicateOrder':
+      return t('This exact order was already submitted.')
+    case 'notEnoughLiquidity':
+      return t('Not enough liquidity to fully fill this order right now.')
+    case 'marketUnavailable':
+      return t('This market is temporarily unavailable for trading. Please try again shortly.')
+    case 'orderSizeTooSmall':
+      return t('Order size is too small for this market.')
+    case 'invalidPrice':
+      return t('Order price is invalid for this market.')
+    case 'insufficientBalance':
+      return t('Insufficient available balance for this order.')
+    case 'onChainPrecheckFailed':
+      return t('We could not validate this order on-chain. Please try again.')
+    case 'onChainSettlementFailed':
+      return t('This order could not be settled right now. Please try again.')
+    case 'couldNotSubmit':
+      return t('Could not submit your order right now. Please try again.')
+    case 'couldNotExecute':
+      return t('Could not execute your order right now. Please try again.')
+    case 'orderDelayed':
+      return t('Order processing is delayed right now. Please try again.')
+    case 'matchingDelayed':
+      return t('Order matching is delayed due to market conditions.')
+    case 'invalidExpirationRefreshPrices':
+      return t('This order expiration is invalid. Refresh prices and try again.')
+    case 'staleMarketData':
+      return t('Market data is out of date. Please refresh and try again.')
+    case 'postOnlyLimitOrders':
+      return t('Post-only is only available for limit orders.')
+    case 'postOnlyWouldCross':
+      return t('Post-only orders must not execute immediately. Adjust the price and try again.')
+    case 'invalidOrderSize':
+      return t('Order size is invalid for this market.')
+    case 'outdatedTradingSettings':
+      return t('Trading settings are out of date. Refresh and try again.')
+    case 'orderExecutionFailed':
+      return t('Order execution failed. Please try again shortly.')
+    case 'default':
+      return t('Something went wrong while processing your order. Please try again.')
+  }
+
+  return t('Something went wrong while processing your order. Please try again.')
 }
 
 async function readClobResponsePayload(response: {
@@ -289,7 +392,7 @@ export async function storeOrderAction(payload: StoreOrderInput) {
       const responseError = getStringField(clobStoreOrderResponseJson, 'error')
         ?? getStringField(clobStoreOrderResponseJson, 'errorMsg')
         ?? getStringField(clobStoreOrderResponseJson, 'message')
-      const humanMessage = mapClobErrorMessage(responseError)
+      const humanMessage = await mapClobErrorMessage(responseError)
       const message = `Status ${clobStoreOrderResponse.status} (${clobStoreOrderResponse.statusText})`
       console.error('Failed to send order to CLOB.', message, responseError ?? responseText)
       return { error: humanMessage }
@@ -297,21 +400,21 @@ export async function storeOrderAction(payload: StoreOrderInput) {
 
     if (!clobStoreOrderResponseJson) {
       console.error('Failed to send order to CLOB. Empty or invalid response payload.')
-      return { error: DEFAULT_ERROR_MESSAGE }
+      return { error: await mapClobErrorMessage(null) }
     }
 
     if (clobStoreOrderResponseJson?.success === false) {
       const responseError = getStringField(clobStoreOrderResponseJson, 'errorMsg')
         ?? getStringField(clobStoreOrderResponseJson, 'error')
         ?? getStringField(clobStoreOrderResponseJson, 'message')
-      return { error: mapClobErrorMessage(responseError) }
+      return { error: await mapClobErrorMessage(responseError) }
     }
 
     const clobOrderId = getStringField(clobStoreOrderResponseJson, 'orderID')
       ?? getStringField(clobStoreOrderResponseJson, 'orderId')
     if (!clobOrderId) {
       console.error('CLOB response did not include an order id.', clobStoreOrderResponseJson)
-      return { error: DEFAULT_ERROR_MESSAGE }
+      return { error: await mapClobErrorMessage(null) }
     }
 
     void OrderRepository.createOrder({
@@ -338,6 +441,6 @@ export async function storeOrderAction(payload: StoreOrderInput) {
   }
   catch (error) {
     console.error('Failed to create order.', error)
-    return { error: DEFAULT_ERROR_MESSAGE }
+    return { error: await mapClobErrorMessage(null) }
   }
 }
