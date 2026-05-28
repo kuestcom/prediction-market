@@ -6,6 +6,7 @@ const LOCAL_ORDER_FILL_STORAGE_KEY = 'header-local-order-fill-notifications-v1'
 const LOCAL_ORDER_FILL_NOTIFICATION_SOURCE = 'local_order_fill'
 const LOCAL_ORDER_FILL_NOTIFICATION_PREFIX = 'local-order-fill-'
 const LOCAL_ORDER_FILL_AVATAR = '/images/withdraw/chain/polygon.svg'
+const DESCRIPTION_SEGMENT_SEPARATOR = ' \u2022 '
 type LocalOrderFillAction = 'split' | 'merge' | 'buy' | 'sell'
 
 interface LocalOrderFillMetadata {
@@ -72,6 +73,40 @@ function dedupeNotificationsById(notifications: Notification[]) {
   return Array.from(map.values())
 }
 
+function normalizeDescriptionSegment(segment: string) {
+  return segment.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function dedupeAdjacentDescriptionSegments(description: string) {
+  const segments = description.split('\u2022')
+
+  if (segments.length < 2) {
+    return description
+  }
+
+  const dedupedSegments: string[] = []
+
+  segments.forEach((segment) => {
+    const trimmedSegment = segment.trim()
+    const previousSegment = dedupedSegments[dedupedSegments.length - 1]
+
+    if (!trimmedSegment) {
+      return
+    }
+
+    if (
+      previousSegment
+      && normalizeDescriptionSegment(previousSegment) === normalizeDescriptionSegment(trimmedSegment)
+    ) {
+      return
+    }
+
+    dedupedSegments.push(trimmedSegment)
+  })
+
+  return dedupedSegments.join(DESCRIPTION_SEGMENT_SEPARATOR)
+}
+
 function normalizeStoredLocalNotifications(raw: unknown): Notification[] {
   if (!Array.isArray(raw)) {
     return []
@@ -97,6 +132,7 @@ function normalizeStoredLocalNotifications(raw: unknown): Notification[] {
     return [
       {
         ...notification,
+        description: dedupeAdjacentDescriptionSegments(notification.description),
         user_avatar: notification.user_avatar?.trim() || LOCAL_ORDER_FILL_AVATAR,
         extra_info: undefined,
       },
@@ -174,7 +210,7 @@ function buildLocalOrderFillNotification({
     id: `${LOCAL_ORDER_FILL_NOTIFICATION_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     category: 'trade',
     title,
-    description,
+    description: dedupeAdjacentDescriptionSegments(description),
     created_at: createdAt,
     user_avatar: avatarUrl,
     link_type: normalizedEventPath ? 'event' : normalizedTxHash ? 'external' : 'none',
