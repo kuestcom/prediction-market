@@ -4,8 +4,10 @@ ALTER TABLE markets
 ALTER TABLE markets
   ADD COLUMN IF NOT EXISTS archived BOOLEAN NOT NULL DEFAULT FALSE;
 
-CREATE INDEX IF NOT EXISTS idx_markets_accepting_orders
-  ON markets (accepting_orders);
+CREATE INDEX IF NOT EXISTS idx_markets_event_accepting_orders_false
+  ON markets (event_id)
+  WHERE accepting_orders = FALSE;
 
-CREATE INDEX IF NOT EXISTS idx_markets_archived
-  ON markets (archived);
+CREATE INDEX IF NOT EXISTS idx_markets_event_archived_true
+  ON markets (event_id)
+  WHERE archived = TRUE;

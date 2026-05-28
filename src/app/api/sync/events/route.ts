@@ -128,6 +128,7 @@ interface ProcessEventResult {
 
 interface ProcessMarketDataResult {
   eventIdForStatusUpdate: string
+  eventIdsForHiddenSync: string[]
   marketChanged: boolean
   urlSetChanged: boolean
 }
@@ -587,7 +588,10 @@ async function processMarket(
     runtimeState,
   )
   const marketResult = await processMarketData(market, metadata, eventResult.eventId, timestamps)
-  const hiddenChanged = await syncEventHiddenFromArchivedMarkets(eventResult.eventId)
+  const hiddenChanges = await Promise.all(
+    marketResult.eventIdsForHiddenSync.map(eventId => syncEventHiddenFromArchivedMarkets(eventId)),
+  )
+  const hiddenChanged = hiddenChanges.some(Boolean)
   const changed = conditionChanged || eventResult.eventChanged || marketResult.marketChanged || hiddenChanged
 
   return {
@@ -620,11 +624,12 @@ async function fetchMetadata(metadataHash: string) {
 }
 
 async function syncEventHiddenFromArchivedMarkets(eventId: string): Promise<boolean> {
-  const [marketRows, eventRows] = await Promise.all([
+  const [archivedMarketRows, eventRows] = await Promise.all([
     db
-      .select({ archived: marketsTable.archived })
+      .select({ condition_id: marketsTable.condition_id })
       .from(marketsTable)
-      .where(eq(marketsTable.event_id, eventId)),
+      .where(and(eq(marketsTable.event_id, eventId), eq(marketsTable.archived, true)))
+      .limit(1),
     db
       .select({ is_hidden: eventsTable.is_hidden })
       .from(eventsTable)
@@ -632,7 +637,7 @@ async function syncEventHiddenFromArchivedMarkets(eventId: string): Promise<bool
       .limit(1),
   ])
 
-  const shouldHide = marketRows.some(row => row.archived === true)
+  const shouldHide = archivedMarketRows.length > 0
   const currentHidden = Boolean(eventRows[0]?.is_hidden)
 
   if (currentHidden === shouldHide) {
@@ -1075,6 +1080,12 @@ async function processMarketData(
     .where(eq(marketsTable.condition_id, market.id))
     .limit(1)
   const existingMarket = existingMarketRows[0]
+  const acceptingOrdersFlag = resolveMetadataStatusFlag(
+    metadata,
+    ['acceptingOrders', 'accepting_orders'],
+    true,
+  )
+  const archivedFlag = resolveMetadataStatusFlag(metadata, ['archived'], false)
 
   const marketAlreadyExists = Boolean(existingMarket)
   const eventIdForStatusUpdate = existingMarket?.event_id ?? eventId
@@ -1087,8 +1098,21 @@ async function processMarketData(
     || incomingUpdatedAtMs > existingUpdatedAtMs
     || existingMarket.event_id !== eventId
     || existingMarket.is_resolved !== market.resolved
-    || existingMarket.accepting_orders !== resolveMetadataStatusFlag(metadata, ['acceptingOrders', 'accepting_orders'], true)
-    || existingMarket.archived !== resolveMetadataStatusFlag(metadata, ['archived'], false)
+    || existingMarket.accepting_orders !== acceptingOrdersFlag
+    || existingMarket.archived !== archivedFlag
+
+  const eventIdsForHiddenSync = new Set<string>()
+  if (existingMarket) {
+    const archivedStateChanged = existingMarket.archived !== archivedFlag
+    const eventChanged = existingMarket.event_id !== eventId
+    if (archivedStateChanged || (eventChanged && (existingMarket.archived || archivedFlag))) {
+      eventIdsForHiddenSync.add(existingMarket.event_id)
+      eventIdsForHiddenSync.add(eventId)
+    }
+  }
+  else if (archivedFlag) {
+    eventIdsForHiddenSync.add(eventId)
+  }
 
   if (marketAlreadyExists) {
     console.log(`Market ${market.id} already exists, updating cached data...`)
@@ -1097,6 +1121,7 @@ async function processMarketData(
   if (!marketNeedsUpdate) {
     return {
       eventIdForStatusUpdate,
+      eventIdsForHiddenSync: [],
       marketChanged: false,
       urlSetChanged: false,
     }
@@ -1152,13 +1177,6 @@ async function processMarketData(
   const sportsAssets = await normalizeSportsTeamAssets(normalizedSportsTeams)
   const sportsTeams = sportsAssets.teams
   const sportsTeamLogoUrls = sportsAssets.logo_urls
-  const acceptingOrdersFlag = resolveMetadataStatusFlag(
-    metadata,
-    ['acceptingOrders', 'accepting_orders'],
-    true,
-  )
-  const archivedFlag = resolveMetadataStatusFlag(metadata, ['archived'], false)
-
   const normalizedMarketEndTime = normalizeTimestamp(metadata.end_time)
 
   const conditionUpdate: Record<string, any> = {}
@@ -1191,7 +1209,7 @@ async function processMarketData(
     condition_id: market.id,
     event_id: eventId,
     is_resolved: market.resolved,
-    is_active: !market.resolved,
+    is_active: !market.resolved && !archivedFlag,
     accepting_orders: acceptingOrdersFlag,
     archived: archivedFlag,
     title: String(metadata.name),
@@ -1255,6 +1273,7 @@ async function processMarketData(
 
   return {
     eventIdForStatusUpdate,
+    eventIdsForHiddenSync: Array.from(eventIdsForHiddenSync),
     marketChanged: true,
     urlSetChanged,
   }
