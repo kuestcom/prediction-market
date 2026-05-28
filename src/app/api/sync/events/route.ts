@@ -113,7 +113,7 @@ interface SyncRuntimeState {
 
 interface ProcessMarketResult {
   eventIdForStatusUpdate: string | null
-  eventIdForCacheInvalidation: string | null
+  eventIdsForCacheInvalidation: string[]
   changed: boolean
   listAffectingChange: boolean
   urlSetChanged: boolean
@@ -368,8 +368,10 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
         if (processResult.eventIdForStatusUpdate && processResult.changed) {
           eventIdsNeedingStatusUpdate.add(processResult.eventIdForStatusUpdate)
         }
-        if (processResult.eventIdForCacheInvalidation && processResult.changed) {
-          eventIdsNeedingCacheInvalidation.add(processResult.eventIdForCacheInvalidation)
+        if (processResult.changed) {
+          for (const eventId of processResult.eventIdsForCacheInvalidation) {
+            eventIdsNeedingCacheInvalidation.add(eventId)
+          }
         }
         if (processResult.listAffectingChange) {
           shouldInvalidateListCache = true
@@ -588,15 +590,29 @@ async function processMarket(
     runtimeState,
   )
   const marketResult = await processMarketData(market, metadata, eventResult.eventId, timestamps)
-  const hiddenChanges = await Promise.all(
-    marketResult.eventIdsForHiddenSync.map(eventId => syncEventHiddenFromArchivedMarkets(eventId)),
+  const hiddenSyncResults = await Promise.all(
+    marketResult.eventIdsForHiddenSync.map(async eventId => ({
+      eventId,
+      changed: await syncEventHiddenFromArchivedMarkets(eventId),
+    })),
   )
-  const hiddenChanged = hiddenChanges.some(Boolean)
+  const hiddenChangedEventIds = hiddenSyncResults
+    .filter(result => result.changed)
+    .map(result => result.eventId)
+  const hiddenChanged = hiddenChangedEventIds.length > 0
   const changed = conditionChanged || eventResult.eventChanged || marketResult.marketChanged || hiddenChanged
+  const eventIdsForCacheInvalidation = new Set<string>()
+
+  if (conditionChanged || eventResult.eventChanged || marketResult.marketChanged) {
+    eventIdsForCacheInvalidation.add(eventResult.eventId)
+  }
+  for (const eventId of hiddenChangedEventIds) {
+    eventIdsForCacheInvalidation.add(eventId)
+  }
 
   return {
     eventIdForStatusUpdate: changed ? marketResult.eventIdForStatusUpdate : null,
-    eventIdForCacheInvalidation: changed ? eventResult.eventId : null,
+    eventIdsForCacheInvalidation: changed ? Array.from(eventIdsForCacheInvalidation) : [],
     changed,
     listAffectingChange: eventResult.listAffectingChange || hiddenChanged,
     urlSetChanged: eventResult.urlSetChanged || marketResult.urlSetChanged,
