@@ -640,12 +640,11 @@ async function fetchMetadata(metadataHash: string) {
 }
 
 async function syncEventHiddenFromArchivedMarkets(eventId: string): Promise<boolean> {
-  const [archivedMarketRows, eventRows] = await Promise.all([
+  const [marketRows, eventRows] = await Promise.all([
     db
-      .select({ condition_id: marketsTable.condition_id })
+      .select({ metadata: marketsTable.metadata })
       .from(marketsTable)
-      .where(and(eq(marketsTable.event_id, eventId), eq(marketsTable.archived, true)))
-      .limit(1),
+      .where(eq(marketsTable.event_id, eventId)),
     db
       .select({ is_hidden: eventsTable.is_hidden })
       .from(eventsTable)
@@ -653,7 +652,9 @@ async function syncEventHiddenFromArchivedMarkets(eventId: string): Promise<bool
       .limit(1),
   ])
 
-  const shouldHide = archivedMarketRows.length > 0
+  const shouldHide = marketRows.some(row =>
+    resolveStoredMetadataStatusFlag(row.metadata, ['archived'], false),
+  )
   const currentHidden = Boolean(eventRows[0]?.is_hidden)
 
   if (currentHidden === shouldHide) {
@@ -1087,8 +1088,7 @@ async function processMarketData(
       condition_id: marketsTable.condition_id,
       event_id: marketsTable.event_id,
       is_resolved: marketsTable.is_resolved,
-      accepting_orders: marketsTable.accepting_orders,
-      archived: marketsTable.archived,
+      metadata: marketsTable.metadata,
       updated_at: marketsTable.updated_at,
       slug: marketsTable.slug,
     })
@@ -1102,6 +1102,12 @@ async function processMarketData(
     true,
   )
   const archivedFlag = resolveMetadataStatusFlag(metadata, ['archived'], false)
+  const existingAcceptingOrdersFlag = existingMarket
+    ? resolveStoredMetadataStatusFlag(existingMarket.metadata, ['acceptingOrders', 'accepting_orders'], true)
+    : true
+  const existingArchivedFlag = existingMarket
+    ? resolveStoredMetadataStatusFlag(existingMarket.metadata, ['archived'], false)
+    : false
 
   const marketAlreadyExists = Boolean(existingMarket)
   const eventIdForStatusUpdate = existingMarket?.event_id ?? eventId
@@ -1114,14 +1120,14 @@ async function processMarketData(
     || incomingUpdatedAtMs > existingUpdatedAtMs
     || existingMarket.event_id !== eventId
     || existingMarket.is_resolved !== market.resolved
-    || existingMarket.accepting_orders !== acceptingOrdersFlag
-    || existingMarket.archived !== archivedFlag
+    || existingAcceptingOrdersFlag !== acceptingOrdersFlag
+    || existingArchivedFlag !== archivedFlag
 
   const eventIdsForHiddenSync = new Set<string>()
   if (existingMarket) {
-    const archivedStateChanged = existingMarket.archived !== archivedFlag
+    const archivedStateChanged = existingArchivedFlag !== archivedFlag
     const eventChanged = existingMarket.event_id !== eventId
-    if (archivedStateChanged || (eventChanged && (existingMarket.archived || archivedFlag))) {
+    if (archivedStateChanged || (eventChanged && (existingArchivedFlag || archivedFlag))) {
       eventIdsForHiddenSync.add(existingMarket.event_id)
       eventIdsForHiddenSync.add(eventId)
     }
@@ -1226,8 +1232,6 @@ async function processMarketData(
     event_id: eventId,
     is_resolved: market.resolved,
     is_active: !market.resolved && !archivedFlag,
-    accepting_orders: acceptingOrdersFlag,
-    archived: archivedFlag,
     title: String(metadata.name),
     slug: String(metadata.slug),
     short_title: normalizeStringField(metadata.short_title),
@@ -2183,6 +2187,36 @@ function resolveMetadataStatusFlag(
   }
 
   return defaultValue
+}
+
+function parseStoredMarketMetadata(value: unknown): Record<string, any> | null {
+  if (!value) {
+    return null
+  }
+
+  if (typeof value === 'object') {
+    return value as Record<string, any>
+  }
+
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, any> : null
+  }
+  catch {
+    return null
+  }
+}
+
+function resolveStoredMetadataStatusFlag(
+  value: unknown,
+  keys: string[],
+  defaultValue: boolean,
+): boolean {
+  return resolveMetadataStatusFlag(parseStoredMarketMetadata(value), keys, defaultValue)
 }
 
 function hashStringToHex(value: string) {

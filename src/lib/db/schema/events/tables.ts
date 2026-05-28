@@ -269,8 +269,6 @@ export const markets = pgTable(
     icon_url: text(),
     is_active: boolean().default(true).notNull(),
     is_resolved: boolean().default(false).notNull(),
-    accepting_orders: boolean().default(true).notNull(),
-    archived: boolean().default(false).notNull(),
     metadata: text(),
     volume_24h: numeric({ precision: 20, scale: 6 }).default('0').notNull(),
     volume: numeric({ precision: 20, scale: 6 }).default('0').notNull(),

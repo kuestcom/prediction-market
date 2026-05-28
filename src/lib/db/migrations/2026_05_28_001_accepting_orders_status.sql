@@ -1,5 +1,4 @@
-ALTER TABLE markets
-  ADD COLUMN IF NOT EXISTS accepting_orders BOOLEAN NOT NULL DEFAULT TRUE;
-
-ALTER TABLE markets
-  ADD COLUMN IF NOT EXISTS archived BOOLEAN NOT NULL DEFAULT FALSE;
+-- Status flags are derived from markets.metadata at runtime.
+-- Keeping this migration as a no-op avoids blocking Vercel/Supabase deploys
+-- on large markets tables that cannot acquire ALTER TABLE locks quickly.
+SELECT 1;
