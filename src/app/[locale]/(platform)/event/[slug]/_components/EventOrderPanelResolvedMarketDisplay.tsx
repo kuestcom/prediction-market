@@ -1,10 +1,11 @@
 'use client'
 
-import { CheckIcon } from 'lucide-react'
+import { CheckIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { Button } from '@/components/ui/button'
 
 interface EventOrderPanelResolvedMarketDisplayProps {
+  variant?: 'resolved' | 'paused'
   resolvedOutcomeLabel: string | null
   isSingleMarket: boolean
   shouldShowResolvedSportsSubtitle: boolean
@@ -19,6 +20,7 @@ interface EventOrderPanelResolvedMarketDisplayProps {
 }
 
 export default function EventOrderPanelResolvedMarketDisplay({
+  variant = 'resolved',
   resolvedOutcomeLabel,
   isSingleMarket,
   shouldShowResolvedSportsSubtitle,
@@ -32,21 +34,29 @@ export default function EventOrderPanelResolvedMarketDisplay({
   onClaimWinnings,
 }: EventOrderPanelResolvedMarketDisplayProps) {
   const t = useExtracted()
+  const isPaused = variant === 'paused'
+  const StatusIcon = isPaused ? XIcon : CheckIcon
 
   return (
     <div className="flex flex-col items-center gap-3 px-2 py-4 text-center">
       <div className="flex size-10 items-center justify-center rounded-full bg-primary">
-        <CheckIcon className="size-7 text-background" strokeWidth={3} />
+        <StatusIcon className="size-7 text-background" strokeWidth={3} />
       </div>
       <div className="text-lg font-bold text-primary">
-        {t('Outcome:')}
-        {' '}
-        {resolvedOutcomeLabel}
+        {isPaused
+          ? t('Market Paused')
+          : (
+              <>
+                {t('Outcome:')}
+                {' '}
+                {resolvedOutcomeLabel}
+              </>
+            )}
       </div>
-      {((!isSingleMarket || shouldShowResolvedSportsSubtitle) && resolvedMarketTitle) && (
+      {!isPaused && ((!isSingleMarket || shouldShowResolvedSportsSubtitle) && resolvedMarketTitle) && (
         <div className="text-sm text-muted-foreground">{resolvedMarketTitle}</div>
       )}
-      {hasClaimableWinnings && (
+      {!isPaused && hasClaimableWinnings && (
         <div className="mt-2 w-full space-y-3 text-left">
           <div className="w-full border-t border-border" />
           <p className="text-center text-base font-semibold text-foreground">{t('Your Earnings')}</p>

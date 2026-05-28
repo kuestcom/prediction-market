@@ -587,13 +587,14 @@ async function processMarket(
     runtimeState,
   )
   const marketResult = await processMarketData(market, metadata, eventResult.eventId, timestamps)
-  const changed = conditionChanged || eventResult.eventChanged || marketResult.marketChanged
+  const hiddenChanged = await syncEventHiddenFromArchivedMarkets(eventResult.eventId)
+  const changed = conditionChanged || eventResult.eventChanged || marketResult.marketChanged || hiddenChanged
 
   return {
     eventIdForStatusUpdate: changed ? marketResult.eventIdForStatusUpdate : null,
     eventIdForCacheInvalidation: changed ? eventResult.eventId : null,
     changed,
-    listAffectingChange: eventResult.listAffectingChange,
+    listAffectingChange: eventResult.listAffectingChange || hiddenChanged,
     urlSetChanged: eventResult.urlSetChanged || marketResult.urlSetChanged,
   }
 }
@@ -616,6 +617,34 @@ async function fetchMetadata(metadataHash: string) {
   }
 
   return metadata
+}
+
+async function syncEventHiddenFromArchivedMarkets(eventId: string): Promise<boolean> {
+  const [marketRows, eventRows] = await Promise.all([
+    db
+      .select({ archived: marketsTable.archived })
+      .from(marketsTable)
+      .where(eq(marketsTable.event_id, eventId)),
+    db
+      .select({ is_hidden: eventsTable.is_hidden })
+      .from(eventsTable)
+      .where(eq(eventsTable.id, eventId))
+      .limit(1),
+  ])
+
+  const shouldHide = marketRows.some(row => row.archived === true)
+  const currentHidden = Boolean(eventRows[0]?.is_hidden)
+
+  if (currentHidden === shouldHide) {
+    return false
+  }
+
+  await db
+    .update(eventsTable)
+    .set({ is_hidden: shouldHide, updated_at: new Date() })
+    .where(eq(eventsTable.id, eventId))
+
+  return true
 }
 
 async function processCondition(market: SubgraphCondition, timestamps: MarketTimestamps): Promise<boolean> {
@@ -1037,6 +1066,8 @@ async function processMarketData(
       condition_id: marketsTable.condition_id,
       event_id: marketsTable.event_id,
       is_resolved: marketsTable.is_resolved,
+      accepting_orders: marketsTable.accepting_orders,
+      archived: marketsTable.archived,
       updated_at: marketsTable.updated_at,
       slug: marketsTable.slug,
     })
@@ -1056,6 +1087,8 @@ async function processMarketData(
     || incomingUpdatedAtMs > existingUpdatedAtMs
     || existingMarket.event_id !== eventId
     || existingMarket.is_resolved !== market.resolved
+    || existingMarket.accepting_orders !== resolveMetadataStatusFlag(metadata, ['acceptingOrders', 'accepting_orders'], true)
+    || existingMarket.archived !== resolveMetadataStatusFlag(metadata, ['archived'], false)
 
   if (marketAlreadyExists) {
     console.log(`Market ${market.id} already exists, updating cached data...`)
@@ -1119,6 +1152,12 @@ async function processMarketData(
   const sportsAssets = await normalizeSportsTeamAssets(normalizedSportsTeams)
   const sportsTeams = sportsAssets.teams
   const sportsTeamLogoUrls = sportsAssets.logo_urls
+  const acceptingOrdersFlag = resolveMetadataStatusFlag(
+    metadata,
+    ['acceptingOrders', 'accepting_orders'],
+    true,
+  )
+  const archivedFlag = resolveMetadataStatusFlag(metadata, ['archived'], false)
 
   const normalizedMarketEndTime = normalizeTimestamp(metadata.end_time)
 
@@ -1153,6 +1192,8 @@ async function processMarketData(
     event_id: eventId,
     is_resolved: market.resolved,
     is_active: !market.resolved,
+    accepting_orders: acceptingOrdersFlag,
+    archived: archivedFlag,
     title: String(metadata.name),
     slug: String(metadata.slug),
     short_title: normalizeStringField(metadata.short_title),
@@ -2079,6 +2120,34 @@ function normalizeOptionalBooleanField(value: unknown): boolean | null {
     return null
   }
   return null
+}
+
+function resolveMetadataStatusFlag(
+  metadata: any,
+  keys: string[],
+  defaultValue: boolean,
+): boolean {
+  const roots = [
+    metadata,
+    metadata?.sports?.market,
+    metadata?.event,
+    metadata?.sports?.event,
+  ]
+
+  for (const root of roots) {
+    if (!root || typeof root !== 'object') {
+      continue
+    }
+
+    for (const key of keys) {
+      const value = normalizeOptionalBooleanField((root as Record<string, unknown>)[key])
+      if (value !== null) {
+        return value
+      }
+    }
+  }
+
+  return defaultValue
 }
 
 function hashStringToHex(value: string) {

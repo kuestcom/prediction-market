@@ -108,6 +108,8 @@ export interface Market {
   icon_url: string
   is_active: boolean
   is_resolved: boolean
+  accepting_orders?: boolean
+  archived?: boolean
   block_number: number
   block_timestamp: string
   metadata?: any

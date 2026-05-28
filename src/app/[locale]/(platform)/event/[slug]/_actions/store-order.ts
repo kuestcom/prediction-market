@@ -55,6 +55,7 @@ const CLOB_ERROR_MESSAGES: Record<string, string> = {
   'invalid expiration': 'This order expiration is invalid. Please refresh and try again.',
   'order is invalid. duplicated. same order has already been placed, can\'t be placed again': 'This exact order was already submitted.',
   'order couldn\'t be fully filled, fok orders are fully filled/killed': 'Not enough liquidity to fully fill this order right now.',
+  'market not yet accepting orders': 'Trading is paused for this market.',
   'the market is not yet ready to process new orders': 'This market is temporarily unavailable for trading. Please try again shortly.',
   'order is invalid. size lower than the minimum': 'Order size is too small for this market.',
   'order is invalid. price breaks minimum tick size rules': 'Order price is invalid for this market.',
@@ -89,7 +90,7 @@ const CLOB_ERROR_PATTERNS: Array<{ pattern: RegExp, message: string }> = [
     message: 'Post-only orders must not execute immediately. Adjust the price and try again.',
   },
   {
-    pattern: /\b(orderbook not ready|market is not yet ready|unable to derive price for postonly|unable to derive price for order)\b/i,
+    pattern: /\b(orderbook not ready|market is not yet ready|market not yet accepting orders|unable to derive price for postonly|unable to derive price for order)\b/i,
     message: 'This market is temporarily unavailable for trading. Please try again shortly.',
   },
   {

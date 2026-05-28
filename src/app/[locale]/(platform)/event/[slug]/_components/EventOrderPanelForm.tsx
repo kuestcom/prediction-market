@@ -911,6 +911,8 @@ export default function EventOrderPanelForm({
     currentTimestamp,
     resolveDisplayOutcomeLabel,
   })
+  const isPausedMarket = Boolean(activeMarket && activeMarket.accepting_orders === false && !isResolvedMarket)
+  const isTradingDisabled = isResolvedMarket || isPausedMarket
   const orderDomain = useMemo(() => getExchangeEip712Domain(isNegRiskMarket), [isNegRiskMarket])
   const { positionsQuery, aggregatedPositionShares } = useEventOrderPanelPositions({
     makerAddress,
@@ -1718,10 +1720,10 @@ export default function EventOrderPanelForm({
         'rounded-xl border lg:w-85': !isMobile,
       }, 'w-full p-4 lg:shadow-xl/5')}
     >
-      {!isResolvedMarket && !isMobile && (
+      {!isTradingDisabled && !isMobile && (
         desktopMarketInfo ?? (!isSingleMarket ? <EventOrderPanelMarketInfo market={activeMarket} /> : null)
       )}
-      {!isResolvedMarket && isMobile && (
+      {!isTradingDisabled && isMobile && (
         mobileMarketInfo
         ?? (
           <EventOrderPanelMobileMarketInfo
@@ -1733,9 +1735,10 @@ export default function EventOrderPanelForm({
           />
         )
       )}
-      {isResolvedMarket
+      {isTradingDisabled
         ? (
             <EventOrderPanelResolvedMarketDisplay
+              variant={isPausedMarket ? 'paused' : 'resolved'}
               resolvedOutcomeLabel={resolvedOutcomeLabel}
               isSingleMarket={isSingleMarket}
               shouldShowResolvedSportsSubtitle={shouldShowResolvedSportsSubtitle}
