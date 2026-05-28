@@ -4,8 +4,10 @@ import { sql } from 'drizzle-orm'
 export const VOLUME_SYNC_JOB_TYPE = 'sync_market_volume'
 export const VOLUME_JOB_ENQUEUE_LIMIT = 100
 export const VOLUME_JOB_PROCESS_LIMIT = 10
+export const VOLUME_JOB_PROCESS_CONCURRENCY = 2
 export const VOLUME_JOB_MAX_ATTEMPTS = 8
 export const VOLUME_JOB_REQUEST_TIMEOUT_MS = 8_000
+export const VOLUME_JOB_PROCESSING_STALE_MS = 2 * 60 * 1000
 export const VOLUME_JOB_REFRESH_INTERVAL_MS = 10 * 60 * 1000
 export const VOLUME_JOB_FAILED_REFRESH_INTERVAL_MS = 60 * 60 * 1000
 
@@ -30,6 +32,7 @@ export interface VolumeJobRow {
   attempts: number
   max_attempts: number
   available_at: Date
+  reserved_at: Date | null
 }
 
 export function normalizeVolumeValue(value: unknown): string {

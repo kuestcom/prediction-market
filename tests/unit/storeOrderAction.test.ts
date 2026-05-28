@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   http: vi.fn(() => ({ transport: 'http' })),
   buildClobHmacSignature: vi.fn(() => 'sig'),
   getUserTradingAuthSecrets: vi.fn(),
+  getExtracted: vi.fn(),
   getCurrentUser: vi.fn(),
   createOrder: vi.fn(),
   fetch: vi.fn(),
@@ -17,6 +18,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('next/cache', () => ({
   updateTag: mocks.updateTag,
+}))
+
+vi.mock('next-intl/server', () => ({
+  getExtracted: (...args: any[]) => mocks.getExtracted(...args),
 }))
 
 vi.mock('viem', () => ({
@@ -53,6 +58,8 @@ describe('storeOrderAction', () => {
     mocks.http.mockClear()
     mocks.buildClobHmacSignature.mockReset()
     mocks.getUserTradingAuthSecrets.mockReset()
+    mocks.getExtracted.mockReset()
+    mocks.getExtracted.mockResolvedValue((message: string) => message)
     mocks.getCurrentUser.mockReset()
     mocks.createOrder.mockReset()
   })
@@ -137,9 +144,14 @@ describe('storeOrderAction', () => {
     expect(result?.error?.length).toBeGreaterThan(0)
   })
 
-  it('returns friendly error for SELL orders with insufficient shares', async () => {
+  it('returns translated friendly error for SELL orders with insufficient shares', async () => {
     process.env.CLOB_URL = 'https://clob.local'
     const depositWallet = address('01')
+    mocks.getExtracted.mockResolvedValueOnce((message: string) => (
+      message === 'Insufficient available balance for this order.'
+        ? 'Saldo disponible insuficiente para esta orden.'
+        : message
+    ))
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 'user-1',
       address: address('aa'),
@@ -169,7 +181,7 @@ describe('storeOrderAction', () => {
     }))
 
     expect(result).toEqual({
-      error: 'Insufficient available balance for this order.',
+      error: 'Saldo disponible insuficiente para esta orden.',
     })
   })
 

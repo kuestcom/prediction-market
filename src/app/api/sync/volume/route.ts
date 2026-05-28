@@ -1,12 +1,14 @@
 import type { VolumeJobRow, VolumeResponseItem } from '@/app/api/sync/volume/helpers'
-import { and, asc, eq, lte } from 'drizzle-orm'
+import { and, asc, eq, lte, or, sql } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import {
   buildVolumeJobRetryAt,
   normalizeVolumeValue,
   parseVolumeJobPayload,
   truncateVolumeJobError,
+  VOLUME_JOB_PROCESS_CONCURRENCY,
   VOLUME_JOB_PROCESS_LIMIT,
+  VOLUME_JOB_PROCESSING_STALE_MS,
   VOLUME_JOB_REQUEST_TIMEOUT_MS,
   VOLUME_SYNC_JOB_TYPE,
 } from '@/app/api/sync/volume/helpers'
@@ -18,12 +20,14 @@ export const maxDuration = 60
 
 interface VolumeJobStats {
   claimed: number
+  reclaimed: number
   claimFailed: number
   completed: number
   updated: number
   skipped: number
   retried: number
   failed: number
+  leaseLost: number
   errors: { jobId: string, conditionId: string | null, error: string }[]
   updatedEventSlugs: string[]
 }
@@ -47,7 +51,7 @@ interface VolumeJobOutcome {
   jobId: string
   conditionId: string | null
   eventSlug: string | null
-  status: 'updated' | 'skipped' | 'retried' | 'failed'
+  status: 'updated' | 'skipped' | 'retried' | 'failed' | 'lease_lost'
   error?: string
 }
 
@@ -58,14 +62,18 @@ export async function GET(request: Request) {
   }
 
   try {
-    const pendingJobs = await loadPendingJobs(new Date(), VOLUME_JOB_PROCESS_LIMIT)
+    const now = new Date()
+    const processingStaleThreshold = new Date(now.getTime() - VOLUME_JOB_PROCESSING_STALE_MS)
+    const claimableJobs = await loadClaimableJobs(now, processingStaleThreshold, VOLUME_JOB_PROCESS_LIMIT)
     const stats: VolumeJobStats = {
       claimed: 0,
+      reclaimed: 0,
       completed: 0,
       updated: 0,
       skipped: 0,
       retried: 0,
       failed: 0,
+      leaseLost: 0,
       claimFailed: 0,
       errors: [],
       updatedEventSlugs: [],
@@ -73,25 +81,28 @@ export async function GET(request: Request) {
     const updatedEventSlugs = new Set<string>()
     const claimStartedAt = new Date()
     const claimOutcomes = await Promise.allSettled(
-      pendingJobs.map(pendingJob => claimJob(pendingJob, claimStartedAt)),
+      claimableJobs.map(claimableJob => claimJob(claimableJob, claimStartedAt, processingStaleThreshold)),
     )
     const claimedJobs: VolumeJobRow[] = []
 
     for (let index = 0; index < claimOutcomes.length; index += 1) {
       const outcome = claimOutcomes[index]
-      const pendingJob = pendingJobs[index]
+      const claimableJob = claimableJobs[index]!
 
       if (outcome.status === 'fulfilled') {
         if (outcome.value) {
           claimedJobs.push(outcome.value)
+          if (claimableJob?.status === 'processing') {
+            stats.reclaimed++
+          }
         }
         continue
       }
 
       stats.claimFailed++
-      const payload = safeParseVolumeJobPayload(pendingJob)
+      const payload = safeParseVolumeJobPayload(claimableJob)
       stats.errors.push({
-        jobId: pendingJob.id,
+        jobId: claimableJob.id,
         conditionId: payload?.conditionId ?? null,
         error: `claim_failed: ${truncateVolumeJobError(outcome.reason)}`,
       })
@@ -99,8 +110,10 @@ export async function GET(request: Request) {
 
     stats.claimed = claimedJobs.length
 
-    const outcomes = await Promise.allSettled(
-      claimedJobs.map(job => processVolumeJob(job)),
+    const outcomes = await settleWithConcurrency(
+      claimedJobs,
+      VOLUME_JOB_PROCESS_CONCURRENCY,
+      processVolumeJob,
     )
 
     for (const outcome of outcomes) {
@@ -133,6 +146,9 @@ export async function GET(request: Request) {
       if (result.status === 'failed') {
         stats.failed++
       }
+      else if (result.status === 'lease_lost') {
+        stats.leaseLost++
+      }
       else {
         stats.retried++
       }
@@ -160,7 +176,16 @@ export async function GET(request: Request) {
 async function processVolumeJob(job: VolumeJobRow): Promise<VolumeJobOutcome> {
   try {
     const result = await processClaimedJob(job)
-    await completeJob(job)
+    const completed = await completeJob(job)
+    if (!completed) {
+      return {
+        jobId: job.id,
+        conditionId: result.conditionId,
+        eventSlug: result.eventSlug,
+        status: 'lease_lost',
+        error: 'lease_lost_after_success',
+      }
+    }
 
     return {
       jobId: job.id,
@@ -185,6 +210,16 @@ async function processVolumeJob(job: VolumeJobRow): Promise<VolumeJobOutcome> {
       }
     }
 
+    if (!retryResult.applied) {
+      return {
+        jobId: job.id,
+        conditionId: payload?.conditionId ?? null,
+        eventSlug: null,
+        status: 'lease_lost',
+        error: `lease_lost_after_error: ${truncateVolumeJobError(error)}`,
+      }
+    }
+
     return {
       jobId: job.id,
       conditionId: payload?.conditionId ?? null,
@@ -195,7 +230,7 @@ async function processVolumeJob(job: VolumeJobRow): Promise<VolumeJobOutcome> {
   }
 }
 
-async function loadPendingJobs(now: Date, limit: number) {
+async function loadClaimableJobs(now: Date, processingStaleThreshold: Date, limit: number) {
   if (limit <= 0) {
     return []
   }
@@ -210,20 +245,24 @@ async function loadPendingJobs(now: Date, limit: number) {
       attempts: jobs.attempts,
       max_attempts: jobs.max_attempts,
       available_at: jobs.available_at,
+      reserved_at: jobs.reserved_at,
     })
     .from(jobs)
     .where(and(
       eq(jobs.job_type, VOLUME_SYNC_JOB_TYPE),
-      eq(jobs.status, 'pending'),
-      lte(jobs.available_at, now),
+      buildClaimableJobStatusCondition(now, processingStaleThreshold),
     ))
-    .orderBy(asc(jobs.available_at), asc(jobs.updated_at))
+    .orderBy(
+      sql`CASE WHEN ${jobs.status} = 'processing' THEN 0 ELSE 1 END`,
+      asc(jobs.available_at),
+      asc(jobs.updated_at),
+    )
     .limit(limit)
 
   return rows as VolumeJobRow[]
 }
 
-async function claimJob(job: VolumeJobRow, now: Date) {
+async function claimJob(job: VolumeJobRow, now: Date, processingStaleThreshold: Date) {
   const claimed = await db
     .update(jobs)
     .set({
@@ -233,8 +272,7 @@ async function claimJob(job: VolumeJobRow, now: Date) {
     })
     .where(and(
       eq(jobs.id, job.id),
-      eq(jobs.status, 'pending'),
-      lte(jobs.available_at, now),
+      buildClaimableJobStatusCondition(now, processingStaleThreshold),
     ))
     .returning({
       id: jobs.id,
@@ -245,13 +283,18 @@ async function claimJob(job: VolumeJobRow, now: Date) {
       attempts: jobs.attempts,
       max_attempts: jobs.max_attempts,
       available_at: jobs.available_at,
+      reserved_at: jobs.reserved_at,
     })
 
   return (claimed[0] as VolumeJobRow | undefined) ?? null
 }
 
 async function completeJob(job: VolumeJobRow) {
-  await db
+  if (!job.reserved_at) {
+    return false
+  }
+
+  const completed = await db
     .update(jobs)
     .set({
       status: 'completed',
@@ -260,14 +303,21 @@ async function completeJob(job: VolumeJobRow) {
       last_error: null,
       available_at: new Date(),
     })
-    .where(eq(jobs.id, job.id))
+    .where(buildActiveLeaseCondition(job, job.reserved_at))
+    .returning({ id: jobs.id })
+
+  return completed.length > 0
 }
 
 async function scheduleRetry(job: VolumeJobRow, error: unknown) {
+  if (!job.reserved_at) {
+    return { exhausted: false, applied: false }
+  }
+
   const attempts = (job.attempts ?? 0) + 1
   const exhausted = attempts >= (job.max_attempts ?? 5)
 
-  await db
+  const retried = await db
     .update(jobs)
     .set({
       status: exhausted ? 'failed' : 'pending',
@@ -276,9 +326,10 @@ async function scheduleRetry(job: VolumeJobRow, error: unknown) {
       reserved_at: null,
       last_error: truncateVolumeJobError(error),
     })
-    .where(eq(jobs.id, job.id))
+    .where(buildActiveLeaseCondition(job, job.reserved_at))
+    .returning({ id: jobs.id })
 
-  return { exhausted }
+  return { exhausted, applied: retried.length > 0 }
 }
 
 async function processClaimedJob(job: VolumeJobRow): Promise<ProcessVolumeJobResult> {
@@ -426,4 +477,55 @@ function safeParseVolumeJobPayload(job: VolumeJobRow) {
   catch {
     return null
   }
+}
+
+function buildClaimableJobStatusCondition(now: Date, processingStaleThreshold: Date) {
+  return or(
+    and(
+      eq(jobs.status, 'pending'),
+      lte(jobs.available_at, now),
+    ),
+    and(
+      eq(jobs.status, 'processing'),
+      lte(jobs.reserved_at, processingStaleThreshold),
+    ),
+  )
+}
+
+function buildActiveLeaseCondition(job: VolumeJobRow, reservedAt: Date) {
+  return and(
+    eq(jobs.id, job.id),
+    eq(jobs.status, 'processing'),
+    eq(jobs.reserved_at, reservedAt),
+  )
+}
+
+async function settleWithConcurrency<T, TResult>(
+  items: T[],
+  concurrency: number,
+  task: (item: T) => Promise<TResult>,
+): Promise<Array<PromiseSettledResult<TResult>>> {
+  const results: Array<PromiseSettledResult<TResult>> = Array.from({ length: items.length })
+  const workerCount = Math.max(1, Math.min(concurrency, items.length))
+  let nextIndex = 0
+
+  async function runWorker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex
+      nextIndex += 1
+
+      try {
+        results[currentIndex] = {
+          status: 'fulfilled',
+          value: await task(items[currentIndex]!),
+        }
+      }
+      catch (reason) {
+        results[currentIndex] = { status: 'rejected', reason }
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: workerCount }, runWorker))
+  return results
 }
