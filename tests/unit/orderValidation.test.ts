@@ -16,8 +16,7 @@ function baseArgs(overrides: Partial<Parameters<typeof validateOrder>[0]> = {}) 
     limitShares: '10',
     availableBalance: 100,
     availableShares: 0,
-    limitExpirationEnabled: false,
-    limitExpirationOption: 'end-of-day' as const,
+    limitExpirationOption: 'never' as const,
     limitExpirationTimestamp: null,
     ...overrides,
   }
@@ -90,7 +89,6 @@ describe('validateOrder', () => {
   it('requires a valid custom expiration timestamp when enabled', () => {
     expect(validateOrder(baseArgs({
       isLimitOrder: true,
-      limitExpirationEnabled: true,
       limitExpirationOption: 'custom',
       limitExpirationTimestamp: null,
     }))).toEqual({ ok: false, reason: 'INVALID_LIMIT_EXPIRATION' })
@@ -100,14 +98,12 @@ describe('validateOrder', () => {
       const nowSeconds = Math.floor(Date.now() / 1000)
       expect(validateOrder(baseArgs({
         isLimitOrder: true,
-        limitExpirationEnabled: true,
         limitExpirationOption: 'custom',
         limitExpirationTimestamp: nowSeconds - 1,
       }))).toEqual({ ok: false, reason: 'INVALID_LIMIT_EXPIRATION' })
 
       expect(validateOrder(baseArgs({
         isLimitOrder: true,
-        limitExpirationEnabled: true,
         limitExpirationOption: 'custom',
         limitExpirationTimestamp: nowSeconds + 60,
       }))).toEqual({ ok: true })

@@ -1,7 +1,7 @@
 import type { RefObject } from 'react'
-import type { LimitExpirationOption } from '@/stores/useOrder'
+import type { LimitExpirationOption } from '@/lib/orders/expiration'
 import type { OrderSide } from '@/types'
-import { InfoIcon, TriangleAlertIcon } from 'lucide-react'
+import { ChevronDownIcon, InfoIcon, TriangleAlertIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
@@ -12,16 +12,14 @@ import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { NumberInput } from '@/components/ui/number-input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useBalance } from '@/hooks/useBalance'
 import { formatDisplayAmount, getAmountSizeClass, MAX_AMOUNT_INPUT, sanitizeNumericInput } from '@/lib/amount-input'
@@ -52,7 +50,6 @@ interface EventOrderPanelLimitControlsProps {
   side: OrderSide
   limitPrice: string
   limitShares: string
-  limitExpirationEnabled: boolean
   limitExpirationOption: LimitExpirationOption
   limitExpirationTimestamp: number | null
   isLimitOrder: boolean
@@ -63,7 +60,6 @@ interface EventOrderPanelLimitControlsProps {
   limitSharesRef?: RefObject<HTMLInputElement | null>
   onLimitPriceChange: (value: string) => void
   onLimitSharesChange: (value: string) => void
-  onLimitExpirationEnabledChange: (value: boolean) => void
   onLimitExpirationOptionChange: (value: LimitExpirationOption) => void
   onLimitExpirationTimestampChange: (value: number | null) => void
   onAmountUpdateFromLimit: (value: string) => void
@@ -124,7 +120,6 @@ export default function EventOrderPanelLimitControls({
   side,
   limitPrice,
   limitShares,
-  limitExpirationEnabled,
   limitExpirationOption,
   limitExpirationTimestamp,
   isLimitOrder,
@@ -135,7 +130,6 @@ export default function EventOrderPanelLimitControls({
   limitSharesRef,
   onLimitPriceChange,
   onLimitSharesChange,
-  onLimitExpirationEnabledChange,
   onLimitExpirationOptionChange,
   onLimitExpirationTimestampChange,
   onAmountUpdateFromLimit,
@@ -180,7 +174,29 @@ export default function EventOrderPanelLimitControls({
   const matchingSharesLabel = matchingShares && matchingShares > 0
     ? formatSharesLabel(matchingShares)
     : null
+  const [isExpirationMenuOpen, setIsExpirationMenuOpen] = useState(false)
   const { isExpirationModalOpen, setIsExpirationModalOpen, draftExpiration, setDraftExpiration, customExpirationLabel } = useExpirationModal(limitExpirationTimestamp, locale)
+  const expirationOptions = useMemo(() => [
+    { value: 'never' as const, label: t('Never') },
+    { value: '5m' as const, label: '5m' },
+    { value: '1h' as const, label: '1h' },
+    { value: '12h' as const, label: '12h' },
+    { value: '24h' as const, label: '24h' },
+    { value: 'end-of-day' as const, label: t('End of day') },
+    { value: 'custom' as const, label: t('Custom') },
+  ], [t])
+  const selectedExpirationLabel = useMemo(() => {
+    switch (limitExpirationOption) {
+      case 'never':
+        return t('Never')
+      case 'end-of-day':
+        return t('End of day')
+      case 'custom':
+        return customExpirationLabel ?? t('Custom')
+      default:
+        return limitExpirationOption
+    }
+  }, [customExpirationLabel, limitExpirationOption, t])
 
   function syncAmount(priceValue: number, sharesValue: number) {
     if (!isLimitOrder) {
@@ -257,7 +273,10 @@ export default function EventOrderPanelLimitControls({
 
   function resolveInitialDraftExpiration() {
     if (limitExpirationTimestamp) {
-      return new Date(limitExpirationTimestamp * 1000)
+      const currentExpiration = new Date(limitExpirationTimestamp * 1000)
+      if (currentExpiration.getTime() > Date.now()) {
+        return currentExpiration
+      }
     }
 
     return resolveDraftExpirationFromNow()
@@ -283,8 +302,20 @@ export default function EventOrderPanelLimitControls({
     }
 
     const timestampSeconds = Math.floor(draftExpiration.getTime() / 1000)
+    onLimitExpirationOptionChange('custom')
     onLimitExpirationTimestampChange(timestampSeconds)
     setIsExpirationModalOpen(false)
+  }
+
+  function handleExpirationOptionSelect(nextOption: LimitExpirationOption) {
+    setIsExpirationMenuOpen(false)
+
+    if (nextOption === 'custom') {
+      openExpirationModal()
+      return
+    }
+
+    onLimitExpirationOptionChange(nextOption)
   }
 
   return (
@@ -412,66 +443,46 @@ export default function EventOrderPanelLimitControls({
       <div className="my-4 border-b border-border" />
 
       <div className="mt-4 space-y-4">
-        <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
-          <span>{t('Set Expiration')}</span>
-          <Switch
-            checked={limitExpirationEnabled}
-            onCheckedChange={(checked) => {
-              onLimitExpirationEnabledChange(checked)
-              if (!checked) {
-                onLimitExpirationOptionChange('end-of-day')
-                onLimitExpirationTimestampChange(null)
-              }
-            }}
-          />
-        </div>
-
-        {limitExpirationEnabled && (
-          <div className="space-y-3">
-            <Select
-              value={limitExpirationOption}
-              onValueChange={(value) => {
-                const nextValue = value as LimitExpirationOption
-                onLimitExpirationOptionChange(nextValue)
-
-                if (nextValue === 'custom') {
-                  openExpirationModal()
-                }
-                else {
-                  onLimitExpirationTimestampChange(null)
-                }
-              }}
-            >
-              <SelectTrigger className="w-full justify-between bg-background text-sm font-medium">
-                <SelectValue placeholder={t('Select expiration')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="end-of-day">{t('End of Day')}</SelectItem>
-                <SelectItem value="custom">{t('Custom')}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {limitExpirationOption === 'custom' && (
-              <div className={cn(`
-                flex items-center justify-between rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground
-              `)}
+        <div className="flex items-center justify-between text-sm font-semibold text-muted-foreground">
+          <span>{t('Expires')}</span>
+          <DropdownMenu open={isExpirationMenuOpen} onOpenChange={setIsExpirationMenuOpen} modal={false}>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={cn(`
+                  group flex max-w-40 cursor-pointer items-center gap-1 bg-transparent text-sm font-semibold
+                  text-muted-foreground transition-colors duration-200
+                  focus:outline-none
+                  focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none
+                `, { 'text-foreground': isExpirationMenuOpen })}
+                aria-haspopup="menu"
+                aria-expanded={isExpirationMenuOpen}
               >
-                <div className="flex flex-col">
-                  <span className="font-semibold text-foreground">{t('Custom expiration')}</span>
-                  <span>{customExpirationLabel ?? t('Select a date and time to apply.')}</span>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  type="button"
-                  onClick={openExpirationModal}
-                >
-                  {t('Edit')}
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+                <span className="truncate text-right">{selectedExpirationLabel}</span>
+                <ChevronDownIcon
+                  className={cn(
+                    `size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180`,
+                    { 'text-foreground': isExpirationMenuOpen },
+                  )}
+                />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-fit" portalled={false}>
+              {expirationOptions.map(({ value, label }) => {
+                const isSelected = value === limitExpirationOption
+                return (
+                  <DropdownMenuItem
+                    key={value}
+                    className={cn('cursor-pointer', { 'font-semibold text-foreground': isSelected })}
+                    onSelect={() => handleExpirationOptionSelect(value)}
+                  >
+                    <span>{label}</span>
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <div className="mt-4 space-y-1">

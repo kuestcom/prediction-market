@@ -1,3 +1,4 @@
+import type { LimitExpirationOption } from '@/lib/orders/expiration'
 import type { Market, OrderSide, Outcome, User } from '@/types'
 import { ORDER_SIDE } from '@/lib/constants'
 
@@ -18,8 +19,6 @@ export type OrderValidationError
 
 export const MIN_LIMIT_ORDER_SHARES = 0.01
 
-type LimitExpirationOption = 'end-of-day' | 'custom'
-
 interface ValidateOrderArgs {
   isLoading: boolean
   isConnected: boolean
@@ -33,7 +32,6 @@ interface ValidateOrderArgs {
   limitShares: string
   availableBalance: number
   availableShares?: number
-  limitExpirationEnabled?: boolean
   limitExpirationOption?: LimitExpirationOption
   limitExpirationTimestamp?: number | null
 }
@@ -55,8 +53,7 @@ export function validateOrder({
   limitShares,
   availableBalance,
   availableShares = 0,
-  limitExpirationEnabled = false,
-  limitExpirationOption = 'end-of-day',
+  limitExpirationOption = 'never',
   limitExpirationTimestamp = null,
 }: ValidateOrderArgs): OrderValidationResult {
   const normalizedAvailableShares = Number.isFinite(availableShares) ? Math.max(0, availableShares) : 0
@@ -96,7 +93,7 @@ export function validateOrder({
       return { ok: false, reason: 'LIMIT_SHARES_TOO_LOW' }
     }
 
-    const hasCustomExpiration = limitExpirationEnabled && limitExpirationOption === 'custom'
+    const hasCustomExpiration = limitExpirationOption === 'custom'
     const customExpirationIsValid = typeof limitExpirationTimestamp === 'number'
       && Number.isFinite(limitExpirationTimestamp)
       && limitExpirationTimestamp > 0

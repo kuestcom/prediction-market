@@ -1,6 +1,7 @@
 'use client'
 
 import type { RefObject } from 'react'
+import type { LimitExpirationOption } from '@/lib/orders/expiration'
 import type { Event, Market, OrderSide, OrderType, Outcome } from '@/types'
 import { useEffect, useMemo, useRef } from 'react'
 import { create } from 'zustand'
@@ -12,8 +13,6 @@ import { resolveOutcomeUnitPrice } from '@/lib/market-pricing'
 const ORDER_TYPE_STORAGE_KEY = 'kuest:order-panel-type'
 
 type ConditionShares = Record<typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO, number>
-
-export type LimitExpirationOption = 'end-of-day' | 'custom'
 
 function normalizeConditionShareValue(value: number | undefined) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
@@ -89,7 +88,6 @@ interface OrderState {
   amount: string
   limitPrice: string
   limitShares: string
-  limitExpirationEnabled: boolean
   limitExpirationOption: LimitExpirationOption
   limitExpirationTimestamp: number | null
   isLoading: boolean
@@ -109,7 +107,6 @@ interface OrderState {
   setAmount: (amount: string) => void
   setLimitPrice: (price: string) => void
   setLimitShares: (shares: string) => void
-  setLimitExpirationEnabled: (enabled: boolean) => void
   setLimitExpirationOption: (option: LimitExpirationOption) => void
   setLimitExpirationTimestamp: (timestamp: number | null) => void
   setIsLoading: (loading: boolean) => void
@@ -127,8 +124,7 @@ export const useOrder = create<OrderState>()((set, _, store) => ({
   amount: '',
   limitPrice: '0.0',
   limitShares: '0',
-  limitExpirationEnabled: false,
-  limitExpirationOption: 'end-of-day',
+  limitExpirationOption: 'never',
   limitExpirationTimestamp: null,
   isLoading: false,
   isMobileOrderPanelOpen: false,
@@ -170,15 +166,13 @@ export const useOrder = create<OrderState>()((set, _, store) => ({
     amount: '',
     limitPrice: '0.0',
     limitShares: '0',
-    limitExpirationEnabled: false,
-    limitExpirationOption: 'end-of-day',
+    limitExpirationOption: 'never',
     limitExpirationTimestamp: null,
     side: state.side,
   })),
   setAmount: (amount: string) => set({ amount }),
   setLimitPrice: (price: string) => set({ limitPrice: price }),
   setLimitShares: (shares: string) => set({ limitShares: shares }),
-  setLimitExpirationEnabled: (enabled: boolean) => set({ limitExpirationEnabled: enabled }),
   setLimitExpirationOption: (option: LimitExpirationOption) => set({ limitExpirationOption: option }),
   setLimitExpirationTimestamp: (timestamp: number | null) => set({ limitExpirationTimestamp: timestamp }),
   setIsLoading: (loading: boolean) => set({ isLoading: loading }),

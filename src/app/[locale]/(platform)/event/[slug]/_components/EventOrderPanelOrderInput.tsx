@@ -4,7 +4,7 @@ import type { RefObject } from 'react'
 import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
 import type { useBalance } from '@/hooks/useBalance'
 import type { OUTCOME_INDEX } from '@/lib/constants'
-import type { LimitExpirationOption } from '@/stores/useOrder'
+import type { LimitExpirationOption } from '@/lib/orders/expiration'
 import { TriangleAlertIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import EventOrderPanelEarnings from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelEarnings'
@@ -51,7 +51,6 @@ interface EventOrderPanelOrderInputProps {
   showAmountTooLowWarning: boolean
   limitPrice: string
   limitShares: string
-  limitExpirationEnabled: boolean
   limitExpirationOption: LimitExpirationOption
   limitExpirationTimestamp: number | null
   limitMatchingShares: number | null
@@ -61,7 +60,6 @@ interface EventOrderPanelOrderInputProps {
   onAmountChange: (nextAmount: string) => void
   onLimitPriceChange: (nextLimitPrice: string) => void
   onLimitSharesChange: (nextLimitShares: string) => void
-  onLimitExpirationEnabledChange: (enabled: boolean) => void
   onLimitExpirationOptionChange: (option: LimitExpirationOption) => void
   onLimitExpirationTimestampChange: (timestamp: number | null) => void
   onAmountUpdateFromLimit: (amount: string) => void
@@ -104,7 +102,6 @@ export default function EventOrderPanelOrderInput({
   showAmountTooLowWarning,
   limitPrice,
   limitShares,
-  limitExpirationEnabled,
   limitExpirationOption,
   limitExpirationTimestamp,
   limitMatchingShares,
@@ -114,7 +111,6 @@ export default function EventOrderPanelOrderInput({
   onAmountChange,
   onLimitPriceChange,
   onLimitSharesChange,
-  onLimitExpirationEnabledChange,
   onLimitExpirationOptionChange,
   onLimitExpirationTimestampChange,
   onAmountUpdateFromLimit,
@@ -144,7 +140,6 @@ export default function EventOrderPanelOrderInput({
                 side={side}
                 limitPrice={limitPrice}
                 limitShares={limitShares}
-                limitExpirationEnabled={limitExpirationEnabled}
                 limitExpirationOption={limitExpirationOption}
                 limitExpirationTimestamp={limitExpirationTimestamp}
                 isLimitOrder={isLimitOrder}
@@ -155,7 +150,6 @@ export default function EventOrderPanelOrderInput({
                 limitSharesRef={limitSharesRef}
                 onLimitPriceChange={onLimitPriceChange}
                 onLimitSharesChange={onLimitSharesChange}
-                onLimitExpirationEnabledChange={onLimitExpirationEnabledChange}
                 onLimitExpirationOptionChange={onLimitExpirationOptionChange}
                 onLimitExpirationTimestampChange={onLimitExpirationTimestampChange}
                 onAmountUpdateFromLimit={onAmountUpdateFromLimit}
