@@ -9,6 +9,7 @@ import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
+import { cancelOrderAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/cancel-order'
 import { cancelAllOrdersAction } from '@/app/[locale]/(platform)/portfolio/_actions/cancel-all-orders'
 import { usePortfolioOpenOrdersQuery } from '@/app/[locale]/(platform)/portfolio/_hooks/usePortfolioOpenOrdersQuery'
 import { matchesOpenOrdersSearchQuery, resolveOpenOrdersSearchParams, sortOpenOrders } from '@/app/[locale]/(platform)/portfolio/_utils/PortfolioOpenOrdersUtils'
@@ -30,6 +31,30 @@ interface LoadMoreStateValue {
   key: string
   infiniteScrollError: string | null
   isLoadingMore: boolean
+}
+
+function useRemoveOpenOrdersFromCache({
+  queryClient,
+  openOrdersQueryKey,
+}: {
+  queryClient: QueryClient
+  openOrdersQueryKey: (string | undefined)[]
+}) {
+  return useCallback(function removeOrdersFromCache(orderIds: string[]) {
+    if (!orderIds.length) {
+      return
+    }
+
+    queryClient.setQueryData<InfiniteData<{ data: PortfolioUserOpenOrder[], next_cursor: string }>>(openOrdersQueryKey, current =>
+      removeOpenOrdersFromInfiniteData(current, orderIds))
+
+    updateQueryDataWhere<InfiniteData<{ data: UserOpenOrder[], next_cursor: string }>>(
+      queryClient,
+      ['user-open-orders'],
+      () => true,
+      current => removeOpenOrdersFromInfiniteData(current, orderIds),
+    )
+  }, [openOrdersQueryKey, queryClient])
 }
 
 function useOpenOrdersFilterState(userAddress: string) {
@@ -102,33 +127,17 @@ function useCancelAllOpenOrders({
   userAddress,
   orders,
   queryClient,
-  openOrdersQueryKey,
+  removeOrdersFromCache,
   openTradeRequirements,
 }: {
   userAddress: string
   orders: PortfolioUserOpenOrder[]
   queryClient: QueryClient
-  openOrdersQueryKey: (string | undefined)[]
+  removeOrdersFromCache: (orderIds: string[]) => void
   openTradeRequirements: OpenTradeRequirements
 }) {
   const t = useExtracted()
   const [isCancellingAll, setIsCancellingAll] = useState(false)
-
-  const removeOrdersFromCache = useCallback((orderIds: string[]) => {
-    if (!orderIds.length) {
-      return
-    }
-
-    queryClient.setQueryData<InfiniteData<{ data: PortfolioUserOpenOrder[], next_cursor: string }>>(openOrdersQueryKey, current =>
-      removeOpenOrdersFromInfiniteData(current, orderIds))
-
-    updateQueryDataWhere<InfiniteData<{ data: UserOpenOrder[], next_cursor: string }>>(
-      queryClient,
-      ['user-open-orders'],
-      () => true,
-      current => removeOpenOrdersFromInfiniteData(current, orderIds),
-    )
-  }, [openOrdersQueryKey, queryClient])
 
   const handleCancelAll = useCallback(async () => {
     if (isCancellingAll || !orders.length) {
@@ -177,6 +186,66 @@ function useCancelAllOpenOrders({
   }, [isCancellingAll, openTradeRequirements, orders.length, queryClient, removeOrdersFromCache, t, userAddress])
 
   return { isCancellingAll, handleCancelAll }
+}
+
+function useCancelOpenOrder({
+  userAddress,
+  queryClient,
+  removeOrdersFromCache,
+  openTradeRequirements,
+}: {
+  userAddress: string
+  queryClient: QueryClient
+  removeOrdersFromCache: (orderIds: string[]) => void
+  openTradeRequirements: OpenTradeRequirements
+}) {
+  const t = useExtracted()
+  const [pendingCancelIds, setPendingCancelIds] = useState<Set<string>>(() => new Set())
+
+  const handleCancelOrder = useCallback(async function handleCancelOrder(order: PortfolioUserOpenOrder) {
+    if (pendingCancelIds.has(order.id)) {
+      return
+    }
+
+    setPendingCancelIds((current) => {
+      const next = new Set(current)
+      next.add(order.id)
+      return next
+    })
+
+    try {
+      const response = await cancelOrderAction(order.id)
+      if (response?.error) {
+        throw new Error(response.error)
+      }
+
+      toast.success(t('Order cancelled'))
+
+      removeOrdersFromCache([order.id])
+      await queryClient.invalidateQueries({ queryKey: ['public-open-orders', userAddress] })
+      void queryClient.invalidateQueries({ queryKey: ['orderbook-summary'] })
+    }
+    catch (error: any) {
+      const message = typeof error?.message === 'string'
+        ? error.message
+        : t('Failed to cancel order.')
+      if (isTradingAuthRequiredError(message)) {
+        openTradeRequirements({ forceTradingAuth: true })
+      }
+      else {
+        toast.error(message)
+      }
+    }
+    finally {
+      setPendingCancelIds((current) => {
+        const next = new Set(current)
+        next.delete(order.id)
+        return next
+      })
+    }
+  }, [openTradeRequirements, pendingCancelIds, queryClient, removeOrdersFromCache, t, userAddress])
+
+  return { pendingCancelIds, handleCancelOrder }
 }
 
 function useLoadMoreOpenOrders({
@@ -323,12 +392,22 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
     && userAddress
     && user.deposit_wallet_address.toLowerCase() === userAddress.toLowerCase(),
   )
+  const removeOrdersFromCache = useRemoveOpenOrdersFromCache({
+    queryClient,
+    openOrdersQueryKey,
+  })
+  const { pendingCancelIds, handleCancelOrder } = useCancelOpenOrder({
+    userAddress,
+    queryClient,
+    removeOrdersFromCache,
+    openTradeRequirements,
+  })
 
   const { isCancellingAll, handleCancelAll } = useCancelAllOpenOrders({
     userAddress,
     orders,
     queryClient,
-    openOrdersQueryKey,
+    removeOrdersFromCache,
     openTradeRequirements,
   })
 
@@ -384,6 +463,8 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
         isLoadingMore={isLoadingMore}
         loadMoreRef={loadMoreRef}
         onRetryLoadMore={loadMoreOpenOrders}
+        onCancelOrder={handleCancelOrder}
+        pendingCancelIds={pendingCancelIds}
       />
     </div>
   )

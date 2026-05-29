@@ -19,9 +19,11 @@ import { cn } from '@/lib/utils'
 
 interface PortfolioOpenOrdersRowProps {
   order: PortfolioUserOpenOrder
+  onCancel: (order: PortfolioUserOpenOrder) => void
+  isCancelling: boolean
 }
 
-export default function PortfolioOpenOrdersRow({ order }: PortfolioOpenOrdersRowProps) {
+export default function PortfolioOpenOrdersRow({ order, onCancel, isCancelling }: PortfolioOpenOrdersRowProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const totalShares = getOrderTotalShares(order)
@@ -114,7 +116,12 @@ export default function PortfolioOpenOrdersRow({ order }: PortfolioOpenOrdersRow
                 type="button"
                 variant="outline"
                 size="sm"
-                aria-label={t('Cancel')}
+                aria-label={t('Cancel {side} order for {outcome}', {
+                  side: order.side === 'buy' ? t('Buy') : t('Sell'),
+                  outcome: outcomeText,
+                })}
+                disabled={isCancelling}
+                onClick={() => onCancel(order)}
               >
                 <XIcon className="size-4" />
               </Button>

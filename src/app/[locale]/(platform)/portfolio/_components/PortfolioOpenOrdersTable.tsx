@@ -14,6 +14,8 @@ interface PortfolioOpenOrdersTableProps {
   isLoadingMore: boolean
   loadMoreRef: RefObject<HTMLDivElement | null>
   onRetryLoadMore: () => void
+  onCancelOrder: (order: PortfolioUserOpenOrder) => void
+  pendingCancelIds: Set<string>
 }
 
 export default function PortfolioOpenOrdersTable({
@@ -25,6 +27,8 @@ export default function PortfolioOpenOrdersTable({
   isLoadingMore,
   loadMoreRef,
   onRetryLoadMore,
+  onCancelOrder,
+  pendingCancelIds,
 }: PortfolioOpenOrdersTableProps) {
   const t = useExtracted()
   const hasOrders = orders.length > 0
@@ -57,7 +61,12 @@ export default function PortfolioOpenOrdersTable({
     body = (
       <>
         {orders.map(order => (
-          <PortfolioOpenOrdersRow key={order.id} order={order} />
+          <PortfolioOpenOrdersRow
+            key={order.id}
+            order={order}
+            onCancel={onCancelOrder}
+            isCancelling={pendingCancelIds.has(order.id)}
+          />
         ))}
         {(isFetchingNextPage || isLoadingMore) && (
           <tr>
