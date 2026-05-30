@@ -23,7 +23,7 @@
     "db:push": "node scripts/migrate.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1044.0",
+    "@aws-sdk/client-s3": "3.1050.0",
     "@better-auth/drizzle-adapter": "1.6.10",
     "@better-auth/utils": "^0.4.0",
     "@bprogress/next": "3.2.12",
