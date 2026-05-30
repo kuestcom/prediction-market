@@ -12,7 +12,7 @@ trustPolicyExclude:
 
 allowBuilds:
   '@parcel/watcher': false
-  '@reown/appkit': true
+  '@reown/appkit': false
   '@sentry/cli': true
   '@swc/core': true
   bufferutil: false
