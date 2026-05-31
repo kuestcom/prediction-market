@@ -78,6 +78,8 @@ export const events = pgTable(
       .notNull()
       .default(false),
     livestream_url: text(),
+    additional_context: text(),
+    additional_context_updated_at: timestamp({ withTimezone: true }),
     show_market_icons: boolean()
       .default(true),
     enable_neg_risk: boolean()

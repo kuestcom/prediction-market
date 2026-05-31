@@ -9,6 +9,7 @@ export interface EventOrderPanelFormProps {
   event: Event
   initialMarket?: Market | null
   initialOutcome?: Outcome | null
+  className?: string
   desktopMarketInfo?: ReactNode
   mobileMarketInfo?: ReactNode
   primaryOutcomeIndex?: number | null

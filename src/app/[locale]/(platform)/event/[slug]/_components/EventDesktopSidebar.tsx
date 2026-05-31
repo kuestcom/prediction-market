@@ -41,6 +41,7 @@ export default function EventDesktopSidebar({
         <EventOrderPanelDesktop
           event={event}
           isMobile={false}
+          className="bg-card"
           initialMarket={initialMarket}
           initialOutcome={initialOutcome}
         />

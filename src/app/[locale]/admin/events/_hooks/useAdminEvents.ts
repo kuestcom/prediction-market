@@ -9,6 +9,8 @@ export interface AdminEventRow {
   status: Event['status']
   icon_url: string
   livestream_url: string | null
+  additional_context: string | null
+  additional_context_updated_at: string | null
   series_slug: string | null
   series_recurrence: string | null
   volume: number

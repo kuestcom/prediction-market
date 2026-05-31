@@ -7,6 +7,7 @@ import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { DataTable } from '@/app/[locale]/admin/_components/DataTable'
+import { updateEventAdditionalContextAction } from '@/app/[locale]/admin/events/_actions/update-event-additional-context'
 import { updateEventLivestreamUrlAction } from '@/app/[locale]/admin/events/_actions/update-event-livestream-url'
 import { updateEventSportsFinalStateAction } from '@/app/[locale]/admin/events/_actions/update-event-sports-final-state'
 import { updateEventSyncSettingsAction } from '@/app/[locale]/admin/events/_actions/update-event-sync-settings'
@@ -36,6 +37,7 @@ import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { cn } from '@/lib/utils'
@@ -157,6 +159,10 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
   const [livestreamUrlValue, setLivestreamUrlValue] = useState('')
   const [livestreamError, setLivestreamError] = useState<string | null>(null)
   const [isSavingLivestream, setIsSavingLivestream] = useState(false)
+  const [additionalContextEvent, setAdditionalContextEvent] = useState<AdminEventRow | null>(null)
+  const [additionalContextValue, setAdditionalContextValue] = useState('')
+  const [additionalContextError, setAdditionalContextError] = useState<string | null>(null)
+  const [isSavingAdditionalContext, setIsSavingAdditionalContext] = useState(false)
   const [sportsFinalEvent, setSportsFinalEvent] = useState<AdminEventRow | null>(null)
   const [sportsEndedValue, setSportsEndedValue] = useState(false)
   const [sportsScoreHomeValue, setSportsScoreHomeValue] = useState('')
@@ -263,6 +269,22 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     setLivestreamError(null)
   }, [])
 
+  const handleOpenAdditionalContextModal = useCallback((event: AdminEventRow) => {
+    setAdditionalContextEvent(event)
+    setAdditionalContextValue(event.additional_context ?? '')
+    setAdditionalContextError(null)
+  }, [])
+
+  const handleCloseAdditionalContextModal = useCallback(() => {
+    if (isSavingAdditionalContext) {
+      return
+    }
+
+    setAdditionalContextEvent(null)
+    setAdditionalContextValue('')
+    setAdditionalContextError(null)
+  }, [isSavingAdditionalContext])
+
   const handleCloseLivestreamModal = useCallback(() => {
     if (isSavingLivestream) {
       return
@@ -297,6 +319,42 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     setLivestreamError(result.error ?? t('Failed to update livestream URL'))
     setIsSavingLivestream(false)
   }, [livestreamEvent, livestreamUrlValue, queryClient, t])
+
+  const handleSaveAdditionalContext = useCallback(async () => {
+    if (!additionalContextEvent) {
+      return
+    }
+
+    setIsSavingAdditionalContext(true)
+    setAdditionalContextError(null)
+
+    const result = await updateEventAdditionalContextAction(additionalContextEvent.id, additionalContextValue)
+    if (result.success) {
+      toast.success(additionalContextValue.trim()
+        ? t({
+            id: 'adminEventsAdditionalContextUpdatedToast',
+            message: 'Additional context updated for {name}.',
+            values: { name: additionalContextEvent.title },
+          })
+        : t({
+            id: 'adminEventsAdditionalContextRemovedToast',
+            message: 'Additional context removed for {name}.',
+            values: { name: additionalContextEvent.title },
+          }))
+      void queryClient.invalidateQueries({ queryKey: ['admin-events'] })
+      setAdditionalContextEvent(null)
+      setAdditionalContextValue('')
+      setAdditionalContextError(null)
+      setIsSavingAdditionalContext(false)
+      return
+    }
+
+    setAdditionalContextError(result.error ?? t({
+      id: 'adminEventsAdditionalContextFailed',
+      message: 'Failed to update additional context',
+    }))
+    setIsSavingAdditionalContext(false)
+  }, [additionalContextEvent, additionalContextValue, queryClient, t])
 
   const handleOpenSportsFinalModal = useCallback((event: AdminEventRow) => {
     const parsedScore = parseSportsScoreParts(event.sports_score)
@@ -371,6 +429,7 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
 
   const columns = useAdminEventsColumns({
     onToggleHidden: handleToggleHidden,
+    onOpenAdditionalContextModal: handleOpenAdditionalContextModal,
     onOpenLivestreamModal: handleOpenLivestreamModal,
     onOpenSportsFinalModal: handleOpenSportsFinalModal,
     isUpdatingHidden: eventId => pendingHiddenId === eventId,
@@ -417,6 +476,13 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     handleOpenFilters,
     handleApplyFilters,
     handleClearFilters,
+    additionalContextEvent,
+    additionalContextValue,
+    setAdditionalContextValue,
+    additionalContextError,
+    isSavingAdditionalContext,
+    handleCloseAdditionalContextModal,
+    handleSaveAdditionalContext,
     livestreamEvent,
     livestreamUrlValue,
     setLivestreamUrlValue,
@@ -486,6 +552,13 @@ export default function AdminEventsTable({
     handleOpenFilters,
     handleApplyFilters,
     handleClearFilters,
+    additionalContextEvent,
+    additionalContextValue,
+    setAdditionalContextValue,
+    additionalContextError,
+    isSavingAdditionalContext,
+    handleCloseAdditionalContextModal,
+    handleSaveAdditionalContext,
     livestreamEvent,
     livestreamUrlValue,
     setLivestreamUrlValue,
@@ -688,6 +761,33 @@ export default function AdminEventsTable({
         )}
       </div>
       {livestreamError && <InputError message={livestreamError} />}
+    </div>
+  )
+
+  const additionalContextFormFields = (
+    <div className="grid gap-4 py-2">
+      <div className="grid gap-2">
+        <Label htmlFor="event-additional-context">
+          {t({ id: 'adminEventsAdditionalContextLabel', message: 'Additional Context' })}
+        </Label>
+        <Textarea
+          id="event-additional-context"
+          placeholder={t({
+            id: 'adminEventsAdditionalContextPlaceholder',
+            message: 'Write the additional context shown in Rules for this event.',
+          })}
+          value={additionalContextValue}
+          onChange={event => setAdditionalContextValue(event.target.value)}
+          disabled={isSavingAdditionalContext}
+          className="min-h-28"
+        />
+        {additionalContextEvent && (
+          <p className="text-sm text-muted-foreground">
+            {additionalContextEvent.title}
+          </p>
+        )}
+      </div>
+      {additionalContextError && <InputError message={additionalContextError} />}
     </div>
   )
 
@@ -898,6 +998,100 @@ export default function AdminEventsTable({
                     disabled={isSavingSettings}
                   >
                     {isSavingSettings ? t('Saving...') : t('Save')}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+
+      {isMobile
+        ? (
+            <Drawer
+              open={Boolean(additionalContextEvent)}
+              onOpenChange={(open) => {
+                if (open) {
+                  return
+                }
+                handleCloseAdditionalContextModal()
+              }}
+            >
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <div className="grid gap-4">
+                  <DrawerHeader className="space-y-2 p-0 text-left">
+                    <DrawerTitle>
+                      {t({ id: 'adminEventsAddAdditionalContext', message: 'Add Additional Context' })}
+                    </DrawerTitle>
+                    <DrawerDescription>
+                      {t({
+                        id: 'adminEventsAdditionalContextDescription',
+                        message: 'Configure the additional context shown in Rules for this event. Leave empty to remove it.',
+                      })}
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  {additionalContextFormFields}
+                  <DrawerFooter className="mt-2 p-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCloseAdditionalContextModal}
+                      disabled={isSavingAdditionalContext}
+                    >
+                      {t('Cancel')}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        void handleSaveAdditionalContext()
+                      }}
+                      disabled={isSavingAdditionalContext}
+                    >
+                      {isSavingAdditionalContext ? t('Saving...') : t('Save')}
+                    </Button>
+                  </DrawerFooter>
+                </div>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog
+              open={Boolean(additionalContextEvent)}
+              onOpenChange={(open) => {
+                if (open) {
+                  return
+                }
+                handleCloseAdditionalContextModal()
+              }}
+            >
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>
+                    {t({ id: 'adminEventsAddAdditionalContext', message: 'Add Additional Context' })}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {t({
+                      id: 'adminEventsAdditionalContextDescription',
+                      message: 'Configure the additional context shown in Rules for this event. Leave empty to remove it.',
+                    })}
+                  </DialogDescription>
+                </DialogHeader>
+                {additionalContextFormFields}
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCloseAdditionalContextModal}
+                    disabled={isSavingAdditionalContext}
+                  >
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      void handleSaveAdditionalContext()
+                    }}
+                    disabled={isSavingAdditionalContext}
+                  >
+                    {isSavingAdditionalContext ? t('Saving...') : t('Save')}
                   </Button>
                 </DialogFooter>
               </DialogContent>

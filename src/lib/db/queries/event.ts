@@ -1023,6 +1023,8 @@ function eventResource(
     creator: event.creator || '',
     icon_url: getPublicAssetUrl(event.icon_url),
     livestream_url: event.livestream_url ?? null,
+    additional_context: event.additional_context ?? null,
+    additional_context_updated_at: event.additional_context_updated_at?.toISOString?.() ?? null,
     show_market_icons: event.show_market_icons ?? true,
     enable_neg_risk: Boolean(event.enable_neg_risk),
     neg_risk_augmented: Boolean(event.neg_risk_augmented),
@@ -2122,6 +2124,8 @@ export const EventRepository = {
         icon_url: events.icon_url,
         is_hidden: events.is_hidden,
         livestream_url: events.livestream_url,
+        additional_context: events.additional_context,
+        additional_context_updated_at: events.additional_context_updated_at,
         series_slug: events.series_slug,
         series_recurrence: events.series_recurrence,
         end_date: events.end_date,
@@ -2347,6 +2351,8 @@ export const EventRepository = {
         status: (row.status ?? 'draft') as Event['status'],
         icon_url: getPublicAssetUrl(row.icon_url ?? null),
         livestream_url: row.livestream_url ?? null,
+        additional_context: row.additional_context ?? null,
+        additional_context_updated_at: row.additional_context_updated_at?.toISOString?.() ?? null,
         series_slug: row.series_slug ?? null,
         series_recurrence: row.series_recurrence ?? null,
         volume: volumeData?.volume ?? 0,
@@ -2439,6 +2445,49 @@ export const EventRepository = {
           id: updatedRow.id,
           slug: updatedRow.slug,
           livestream_url: updatedRow.livestream_url ?? null,
+        },
+        error: null,
+      }
+    })
+  },
+
+  async setEventAdditionalContext(
+    eventId: string,
+    additionalContext: string | null,
+    additionalContextUpdatedAt: Date | null,
+  ): Promise<QueryResult<{
+    id: string
+    slug: string
+    additional_context: string | null
+    additional_context_updated_at: string | null
+  }>> {
+    return runQuery(async () => {
+      const updatedRows = await db
+        .update(events)
+        .set({
+          additional_context: additionalContext,
+          additional_context_updated_at: additionalContextUpdatedAt,
+          updated_at: new Date(),
+        })
+        .where(eq(events.id, eventId))
+        .returning({
+          id: events.id,
+          slug: events.slug,
+          additional_context: events.additional_context,
+          additional_context_updated_at: events.additional_context_updated_at,
+        })
+
+      const updatedRow = updatedRows[0]
+      if (!updatedRow) {
+        return { data: null, error: 'Event not found.' }
+      }
+
+      return {
+        data: {
+          id: updatedRow.id,
+          slug: updatedRow.slug,
+          additional_context: updatedRow.additional_context ?? null,
+          additional_context_updated_at: updatedRow.additional_context_updated_at?.toISOString?.() ?? null,
         },
         error: null,
       }

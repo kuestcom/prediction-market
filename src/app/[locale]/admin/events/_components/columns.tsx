@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
-import { ArrowUpDownIcon, EyeIcon, EyeOffIcon, RadioIcon, RepeatIcon, TrophyIcon } from 'lucide-react'
+import { ArrowUpDownIcon, BadgeInfoIcon, EyeIcon, EyeOffIcon, RadioIcon, RepeatIcon, TrophyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 
 interface EventColumnOptions {
   onToggleHidden: (event: AdminEventRow, nextValue: boolean) => void
+  onOpenAdditionalContextModal: (event: AdminEventRow) => void
   onOpenLivestreamModal: (event: AdminEventRow) => void
   onOpenSportsFinalModal: (event: AdminEventRow) => void
   isUpdatingHidden: (eventId: string) => boolean
@@ -48,6 +49,7 @@ function formatSeriesRecurrenceLabel(value: string | null | undefined) {
 
 export function useAdminEventsColumns({
   onToggleHidden,
+  onOpenAdditionalContextModal,
   onOpenLivestreamModal,
   onOpenSportsFinalModal,
   isUpdatingHidden,
@@ -267,6 +269,30 @@ export function useAdminEventsColumns({
                 </TooltipTrigger>
                 <TooltipContent>
                   {event.livestream_url ? t('Edit livestream URL') : t('Add livestream URL')}
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {!shouldHideSportsAdminControls && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    onClick={() => onOpenAdditionalContextModal(event)}
+                    aria-label={t({ id: 'adminEventsAddAdditionalContext', message: 'Add Additional Context' })}
+                  >
+                    <BadgeInfoIcon
+                      className={`size-[18px] ${event.additional_context
+                        ? 'fill-primary/12 text-primary'
+                        : 'fill-muted-foreground/10 text-muted-foreground'}`}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {t({ id: 'adminEventsAddAdditionalContext', message: 'Add Additional Context' })}
                 </TooltipContent>
               </Tooltip>
             )}

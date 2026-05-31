@@ -732,6 +732,7 @@ export default function EventOrderPanelForm({
   isMobile,
   initialMarket = null,
   initialOutcome = null,
+  className,
   desktopMarketInfo,
   mobileMarketInfo,
   primaryOutcomeIndex = null,
@@ -1679,9 +1680,13 @@ export default function EventOrderPanelForm({
     <Form
       action={onSubmit}
       id="event-order-form"
-      className={cn({
-        'rounded-xl border lg:w-85': !isMobile,
-      }, 'w-full p-4 lg:shadow-xl/5')}
+      className={cn(
+        {
+          'rounded-xl border lg:w-85': !isMobile,
+        },
+        'w-full p-4 lg:shadow-xl/5',
+        className,
+      )}
     >
       {!isTradingDisabled && !isMobile && (
         desktopMarketInfo ?? (!isSingleMarket ? <EventOrderPanelMarketInfo market={activeMarket} /> : null)

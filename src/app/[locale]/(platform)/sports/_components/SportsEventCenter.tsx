@@ -1588,6 +1588,7 @@ export default function SportsEventCenter({
                   <EventOrderPanelForm
                     isMobile={false}
                     event={activeCard.event}
+                    className="bg-card"
                     oddsFormat={oddsFormat}
                     outcomeButtonStyleVariant="sports3d"
                     optimisticallyClaimedConditionIds={claimedConditionIds}

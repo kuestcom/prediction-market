@@ -1381,6 +1381,7 @@ export default function SportsGamesCenter({
                   <EventOrderPanelForm
                     isMobile={false}
                     event={activeTradeContext.card.event}
+                    className="bg-card"
                     oddsFormat={oddsFormat}
                     outcomeButtonStyleVariant="sports3d"
                     outcomeLabelOverrides={orderPanelOutcomeLabelOverrides}

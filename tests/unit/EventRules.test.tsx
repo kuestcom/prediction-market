@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('next-intl', () => ({
-  useExtracted: () => (message: string) => message,
+  useExtracted: () => (message: string | { message: string }) => typeof message === 'string' ? message : message.message,
   useLocale: () => mocks.useLocale(),
 }))
 
@@ -79,5 +79,26 @@ describe('eventRules', () => {
     expect(screen.getByText((_, node) => (
       node?.tagName === 'P' && node.textContent === 'Created At: Feb 5, 2026, 2:25 PM ET'
     ))).toBeInTheDocument()
+  })
+
+  it('renders the additional context block above the rules text', () => {
+    render(<EventRules event={createEvent({
+      additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
+      additional_context_updated_at: '2026-08-25T12:00:00.000Z',
+    })} mode="inline" />)
+
+    expect(screen.getByText('Additional context')).toBeInTheDocument()
+    expect(screen.getByText('Updated Aug 25')).toBeInTheDocument()
+    expect(screen.getByText('Abelardo de la Espriella has been added as an option to this market.')).toBeInTheDocument()
+  })
+
+  it('starts expanded in accordion mode when additional context exists', () => {
+    render(<EventRules event={createEvent({
+      additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
+      additional_context_updated_at: '2026-08-25T12:00:00.000Z',
+    })}
+    />)
+
+    expect(screen.getByRole('button', { name: 'Rules' })).toHaveAttribute('aria-expanded', 'true')
   })
 })
