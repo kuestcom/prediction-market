@@ -1,9 +1,9 @@
-import type { ClientRequest, IncomingMessage, RequestOptions } from 'node:http'
+import type { ClientRequest, RequestOptions as HttpRequestOptions, IncomingMessage } from 'node:http'
 import type { RequestOptions as HttpsRequestOptions } from 'node:https'
 import { Buffer } from 'node:buffer'
 import { lookup } from 'node:dns/promises'
-import http from 'node:http'
-import https from 'node:https'
+import * as http from 'node:http'
+import * as https from 'node:https'
 import { isIP } from 'node:net'
 import 'server-only'
 
@@ -44,7 +44,7 @@ function normalizeHostname(hostname: string) {
   return hostname.trim().toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '')
 }
 
-function parseIpv4Address(address: string) {
+function parseIpv4Address(address: string): [number, number, number, number] | null {
   const octets = address.split('.')
   if (octets.length !== 4) {
     return null
@@ -61,7 +61,7 @@ function parseIpv4Address(address: string) {
     return null
   }
 
-  return parsed
+  return [parsed[0]!, parsed[1]!, parsed[2]!, parsed[3]!]
 }
 
 function isPublicIpv4Address(address: string) {
@@ -127,9 +127,10 @@ function parseIpv6Address(address: string) {
     return null
   }
 
+  const compressedGroups = Array.from({ length: hasCompression ? missingGroups : 0 }).fill('0') as string[]
   const groups = [
     ...left,
-    ...Array.from({ length: hasCompression ? missingGroups : 0 }).fill('0'),
+    ...compressedGroups,
     ...right,
   ]
   if (groups.length !== 8) {
@@ -263,7 +264,15 @@ async function resolvePublicAddress(url: URL): Promise<ResolvedAddress | null> {
     return null
   }
 
-  return addresses[0] as ResolvedAddress
+  const firstAddress = addresses[0]
+  if (!firstAddress || (firstAddress.family !== 4 && firstAddress.family !== 6)) {
+    return null
+  }
+
+  return {
+    address: firstAddress.address,
+    family: firstAddress.family,
+  }
 }
 
 export async function validateOutboundImageUrl(rawUrl: string | null | undefined, options: Pick<SafeImageOptions, 'siteUrl'> = {}) {
@@ -356,7 +365,6 @@ function readIncomingMessageWithLimit(response: IncomingMessage, maxBytes: numbe
 }
 
 function requestImage(url: URL, address: string, timeoutMs: number, maxBytes: number) {
-  const transport = url.protocol === 'https:' ? https : http
   const port = url.port ? Number(url.port) : (url.protocol === 'https:' ? 443 : 80)
 
   return new Promise<ImageResponsePayload>((resolve, reject) => {
@@ -384,7 +392,7 @@ function requestImage(url: URL, address: string, timeoutMs: number, maxBytes: nu
       reject(error)
     }
 
-    const requestOptions: RequestOptions & HttpsRequestOptions = {
+    const requestOptions: HttpRequestOptions = {
       hostname: address,
       port,
       method: 'GET',
@@ -396,11 +404,7 @@ function requestImage(url: URL, address: string, timeoutMs: number, maxBytes: nu
       },
     }
 
-    if (url.protocol === 'https:') {
-      requestOptions.servername = url.hostname
-    }
-
-    request = transport.request(requestOptions, (response) => {
+    function handleResponse(response: IncomingMessage) {
       const statusCode = response.statusCode ?? 0
       const location = getHeaderValue(response.headers.location)
       const contentType = getHeaderValue(response.headers['content-type']).split(';')[0]?.trim().toLowerCase() ?? ''
@@ -414,7 +418,22 @@ function requestImage(url: URL, address: string, timeoutMs: number, maxBytes: nu
       readIncomingMessageWithLimit(response, maxBytes)
         .then(body => settleWithPayload({ body, contentType, location, statusCode }))
         .catch(fail)
-    })
+    }
+
+    if (url.protocol === 'https:') {
+      request = https.request({
+        ...requestOptions,
+        servername: url.hostname,
+      } satisfies HttpsRequestOptions, handleResponse)
+    }
+    else {
+      request = http.request(requestOptions, handleResponse)
+    }
+
+    if (!request) {
+      fail(new Error('Failed to create image request.'))
+      return
+    }
 
     request.on('error', fail)
     request.end()
