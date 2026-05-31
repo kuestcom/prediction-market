@@ -4,6 +4,7 @@ const config: KnipConfig = {
   ignore: [
     'docs.config.ts',
     'public/**/*',
+    'scripts/**',
     'src/components/ui/**',
   ],
   treatConfigHintsAsErrors: false,

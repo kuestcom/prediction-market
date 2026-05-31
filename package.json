@@ -1,5 +1,6 @@
 {
   "name": "kuest-prediction-market",
+  "type": "module",
   "private": true,
   "packageManager": "pnpm@11.5.0",
   "description": "Launch Your Own Decentralized Prediction Market in Minutes.",
