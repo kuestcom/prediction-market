@@ -5,6 +5,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
+ARG COMMIT_SHA=unknown
+ARG SITE_URL=http://localhost:3000
+ARG REOWN_APPKIT_PROJECT_ID=""
+
+ENV COMMIT_SHA=$COMMIT_SHA
+ENV SITE_URL=$SITE_URL
+ENV REOWN_APPKIT_PROJECT_ID=$REOWN_APPKIT_PROJECT_ID
+
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
