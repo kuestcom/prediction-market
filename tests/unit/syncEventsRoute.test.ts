@@ -70,6 +70,18 @@ describe('sync events route', () => {
     vi.restoreAllMocks()
   })
 
+  it('keeps an incoming additional context timestamp when only the timestamp field is present', async () => {
+    const { resolveAdditionalContextUpdatedAtIso } = await import('@/app/api/sync/events/route')
+
+    expect(resolveAdditionalContextUpdatedAtIso({
+      hasAdditionalContextField: false,
+      hasAdditionalContextTimeField: true,
+      additionalContext: null,
+      additionalContextUpdatedAtIso: '2026-08-25T12:00:00.000Z',
+      existingAdditionalContextUpdatedAtIso: '2026-08-24T12:00:00.000Z',
+    })).toBe('2026-08-25T12:00:00.000Z')
+  })
+
   it('hits the PnL subgraph and exits cleanly when no markets are returned', async () => {
     mocks.isCronAuthorized.mockReturnValue(true)
     mocks.loadAllowedMarketCreatorWallets.mockResolvedValue({

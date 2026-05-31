@@ -328,32 +328,43 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     setIsSavingAdditionalContext(true)
     setAdditionalContextError(null)
 
-    const result = await updateEventAdditionalContextAction(additionalContextEvent.id, additionalContextValue)
-    if (result.success) {
-      toast.success(additionalContextValue.trim()
-        ? t({
-            id: 'adminEventsAdditionalContextUpdatedToast',
-            message: 'Additional context updated for {name}.',
-            values: { name: additionalContextEvent.title },
-          })
-        : t({
-            id: 'adminEventsAdditionalContextRemovedToast',
-            message: 'Additional context removed for {name}.',
-            values: { name: additionalContextEvent.title },
-          }))
-      void queryClient.invalidateQueries({ queryKey: ['admin-events'] })
-      setAdditionalContextEvent(null)
-      setAdditionalContextValue('')
-      setAdditionalContextError(null)
-      setIsSavingAdditionalContext(false)
-      return
-    }
+    try {
+      const result = await updateEventAdditionalContextAction(additionalContextEvent.id, additionalContextValue)
+      if (result.success) {
+        toast.success(additionalContextValue.trim()
+          ? t({
+              id: 'adminEventsAdditionalContextUpdatedToast',
+              message: 'Additional context updated for {name}.',
+              values: { name: additionalContextEvent.title },
+            })
+          : t({
+              id: 'adminEventsAdditionalContextRemovedToast',
+              message: 'Additional context removed for {name}.',
+              values: { name: additionalContextEvent.title },
+            }))
+        void queryClient.invalidateQueries({ queryKey: ['admin-events'] })
+        setAdditionalContextEvent(null)
+        setAdditionalContextValue('')
+        setAdditionalContextError(null)
+        return
+      }
 
-    setAdditionalContextError(result.error ?? t({
-      id: 'adminEventsAdditionalContextFailed',
-      message: 'Failed to update additional context',
-    }))
-    setIsSavingAdditionalContext(false)
+      setAdditionalContextError(result.error ?? t({
+        id: 'adminEventsAdditionalContextFailed',
+        message: 'Failed to update additional context',
+      }))
+    }
+    catch (error) {
+      setAdditionalContextError(error instanceof Error && error.message
+        ? error.message
+        : t({
+            id: 'adminEventsAdditionalContextFailed',
+            message: 'Failed to update additional context',
+          }))
+    }
+    finally {
+      setIsSavingAdditionalContext(false)
+    }
   }, [additionalContextEvent, additionalContextValue, queryClient, t])
 
   const handleOpenSportsFinalModal = useCallback((event: AdminEventRow) => {

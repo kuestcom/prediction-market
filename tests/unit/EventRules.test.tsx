@@ -101,4 +101,20 @@ describe('eventRules', () => {
 
     expect(screen.getByRole('button', { name: 'Rules' })).toHaveAttribute('aria-expanded', 'true')
   })
+
+  it('re-syncs the accordion expansion when the event additional context changes', () => {
+    const { rerender } = render(<EventRules event={createEvent()} />)
+
+    expect(screen.getByRole('button', { name: 'Rules' })).toHaveAttribute('aria-expanded', 'false')
+
+    rerender(<EventRules event={createEvent({
+      id: 'event-2',
+      slug: 'event-2',
+      additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
+      additional_context_updated_at: '2026-08-25T12:00:00.000Z',
+    })}
+    />)
+
+    expect(screen.getByRole('button', { name: 'Rules' })).toHaveAttribute('aria-expanded', 'true')
+  })
 })

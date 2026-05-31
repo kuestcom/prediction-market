@@ -133,6 +133,32 @@ interface ProcessMarketDataResult {
   urlSetChanged: boolean
 }
 
+export function resolveAdditionalContextUpdatedAtIso(params: {
+  hasAdditionalContextField: boolean
+  hasAdditionalContextTimeField: boolean
+  additionalContext: string | null
+  additionalContextUpdatedAtIso: string | null
+  existingAdditionalContextUpdatedAtIso?: string | null
+}): string | null {
+  const {
+    hasAdditionalContextField,
+    hasAdditionalContextTimeField,
+    additionalContext,
+    additionalContextUpdatedAtIso,
+    existingAdditionalContextUpdatedAtIso = null,
+  } = params
+
+  if (hasAdditionalContextTimeField) {
+    return additionalContextUpdatedAtIso
+  }
+
+  if (hasAdditionalContextField) {
+    return additionalContext ? existingAdditionalContextUpdatedAtIso : null
+  }
+
+  return existingAdditionalContextUpdatedAtIso
+}
+
 const PNL_CONDITIONS_PAGE_QUERY = `
   query PnlConditionsPage($creators: [String!]!, $pageSize: Int!) {
     conditions(
@@ -824,6 +850,12 @@ async function processEvent(
   const additionalContextUpdatedAtIso = hasAdditionalContextTimeField
     ? normalizeTimestamp(eventData.additional_context_time ?? eventData.additional_context_updated_at)
     : null
+  const nextAdditionalContextUpdatedAtIso = resolveAdditionalContextUpdatedAtIso({
+    hasAdditionalContextField,
+    hasAdditionalContextTimeField,
+    additionalContext,
+    additionalContextUpdatedAtIso,
+  })
   const sportsEventId = normalizeStringField(sportsEventData?.event_id)
   const sportsEventSlug = normalizeStringField(sportsEventData?.slug)
   const sportsParentEventId = normalizeIntegerField(sportsEventData?.parent_event_id)
@@ -911,12 +943,16 @@ async function processEvent(
     }
     if (hasAdditionalContextField || hasAdditionalContextTimeField) {
       const existingAdditionalContextUpdatedAtIso = existingEvent.additional_context_updated_at?.toISOString() ?? null
-      const nextAdditionalContextUpdatedAtIso = additionalContext
-        ? (additionalContextUpdatedAtIso ?? existingAdditionalContextUpdatedAtIso)
-        : null
-      if (existingAdditionalContextUpdatedAtIso !== nextAdditionalContextUpdatedAtIso) {
-        updatePayload.additional_context_updated_at = nextAdditionalContextUpdatedAtIso
-          ? new Date(nextAdditionalContextUpdatedAtIso)
+      const mergedAdditionalContextUpdatedAtIso = resolveAdditionalContextUpdatedAtIso({
+        hasAdditionalContextField,
+        hasAdditionalContextTimeField,
+        additionalContext,
+        additionalContextUpdatedAtIso,
+        existingAdditionalContextUpdatedAtIso,
+      })
+      if (existingAdditionalContextUpdatedAtIso !== mergedAdditionalContextUpdatedAtIso) {
+        updatePayload.additional_context_updated_at = mergedAdditionalContextUpdatedAtIso
+          ? new Date(mergedAdditionalContextUpdatedAtIso)
           : null
         eventChanged = true
       }
@@ -1041,8 +1077,8 @@ async function processEvent(
     series_id: eventSeriesId ?? null,
     series_recurrence: eventSeriesRecurrence ?? null,
     additional_context: additionalContext ?? null,
-    additional_context_updated_at: additionalContext && additionalContextUpdatedAtIso
-      ? new Date(additionalContextUpdatedAtIso)
+    additional_context_updated_at: nextAdditionalContextUpdatedAtIso
+      ? new Date(nextAdditionalContextUpdatedAtIso)
       : null,
     rules: eventData.rules || null,
     start_date: sportsStartTime ? new Date(sportsStartTime) : null,
