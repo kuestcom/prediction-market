@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og'
 import OgImage from '@/app/api/og/_components/OgImage'
+import { fetchSafeOgImageDataUrl, normalizeOutboundImageUrl } from '@/lib/og-image-security'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 interface ShareCardPayload {
@@ -37,99 +38,6 @@ function normalizeOptionalText(value: unknown, maxLength = 120) {
     return ''
   }
   return trimmed.length > maxLength ? `${trimmed.slice(0, maxLength - 3)}...` : trimmed
-}
-
-function normalizeHostname(hostname: string) {
-  return hostname.trim().toLowerCase().replace(/^\[|\]$/g, '')
-}
-
-function isPrivateIpv4Hostname(hostname: string) {
-  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname)) {
-    return false
-  }
-
-  const octets = hostname.split('.').map(part => Number(part))
-  if (octets.some(octet => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
-    return false
-  }
-
-  const [first, second] = octets
-  return first === 0
-    || first === 10
-    || first === 127
-    || (first === 100 && second >= 64 && second <= 127)
-    || (first === 169 && second === 254)
-    || (first === 172 && second >= 16 && second <= 31)
-    || (first === 192 && second === 168)
-    || (first === 198 && (second === 18 || second === 19))
-}
-
-function isPrivateIpv6Hostname(hostname: string) {
-  if (!hostname.includes(':')) {
-    return false
-  }
-
-  const normalized = hostname.toLowerCase()
-  if (normalized === '::' || normalized === '::1') {
-    return true
-  }
-
-  if (normalized.startsWith('::ffff:')) {
-    return isPrivateIpv4Hostname(normalized.slice(7))
-  }
-
-  const firstHextet = (() => {
-    const [head] = normalized.split('::', 2)
-    if (!head) {
-      return '0'
-    }
-
-    return head.split(':')[0] || '0'
-  })()
-
-  return /^fc/i.test(firstHextet)
-    || /^fd/i.test(firstHextet)
-    || /^fe[89ab]/i.test(firstHextet)
-}
-
-function isDisallowedImageHostname(hostname: string) {
-  const normalized = normalizeHostname(hostname)
-  if (!normalized) {
-    return true
-  }
-
-  if (normalized === 'localhost' || normalized.endsWith('.localhost')) {
-    return true
-  }
-
-  if (!normalized.includes('.') && !normalized.includes(':')) {
-    return true
-  }
-
-  return isPrivateIpv4Hostname(normalized) || isPrivateIpv6Hostname(normalized)
-}
-
-function sanitizeImageUrl(rawUrl: string) {
-  const trimmed = rawUrl.trim()
-  if (!trimmed || trimmed.length > 2048) {
-    return ''
-  }
-  try {
-    const parsed = new URL(trimmed)
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return ''
-    }
-    if (parsed.username || parsed.password) {
-      return ''
-    }
-    if (isDisallowedImageHostname(parsed.hostname)) {
-      return ''
-    }
-    return parsed.toString()
-  }
-  catch {
-    return ''
-  }
 }
 
 function parsePayload(rawPayload: string | null): ShareCardPayload | null {
@@ -194,8 +102,8 @@ function normalizeSharePayload(parsed: Partial<ShareCardPayload>): ShareCardPayl
 
   const rawImageUrl = typeof parsed.imageUrl === 'string' ? parsed.imageUrl : ''
   const rawUserImage = typeof parsed.userImage === 'string' ? parsed.userImage : ''
-  const safeImageUrl = sanitizeImageUrl(rawImageUrl)
-  const safeUserImage = sanitizeImageUrl(rawUserImage)
+  const safeImageUrl = normalizeOutboundImageUrl(rawImageUrl)
+  const safeUserImage = normalizeOutboundImageUrl(rawUserImage)
   return {
     title,
     outcome,
@@ -222,9 +130,13 @@ export async function GET(request: Request) {
   const accent = variant === 'no' ? '#ef4444' : '#22c55e'
   const outcomeLabel = payload.outcome || (variant === 'no' ? 'No' : 'Yes')
   const runtimeTheme = await loadRuntimeThemeState()
-  const siteLogoSrc = runtimeTheme.site.logoUrl
+  const [siteLogoSrc, positionImageSrc, userImageSrc] = await Promise.all([
+    fetchSafeOgImageDataUrl(runtimeTheme.site.logoUrl),
+    fetchSafeOgImageDataUrl(payload.imageUrl),
+    fetchSafeOgImageDataUrl(payload.userImage),
+  ])
   const siteName = runtimeTheme.site.name
-  const hasUserBadge = Boolean(payload.userName || payload.userImage)
+  const hasUserBadge = Boolean(payload.userName || userImageSrc)
   const dividerDots = Array.from({ length: 32 })
   const horizontalDots = Array.from({ length: 40 })
 
@@ -255,9 +167,9 @@ export async function GET(request: Request) {
               color: '#e2e8f0',
             }}
           >
-            {payload.userImage && (
+            {userImageSrc && (
               <OgImage
-                src={payload.userImage}
+                src={userImageSrc}
                 alt=""
                 width={40}
                 height={40}
@@ -342,10 +254,10 @@ export async function GET(request: Request) {
                   border: '2px solid #e2e8f0',
                 }}
               >
-                {payload.imageUrl
+                {positionImageSrc
                   ? (
                       <OgImage
-                        src={payload.imageUrl}
+                        src={positionImageSrc}
                         alt=""
                         width={160}
                         height={160}

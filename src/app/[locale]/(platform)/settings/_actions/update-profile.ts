@@ -6,6 +6,7 @@ import sharp from 'sharp'
 import { z } from 'zod'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
+import { validateOutboundImageUrl } from '@/lib/og-image-security'
 import { uploadPublicAsset } from '@/lib/storage'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -94,6 +95,14 @@ export async function updateUserAction(formData: FormData): Promise<ActionState>
       })
 
       return { errors }
+    }
+
+    if (validated.data.avatar_url && !(await validateOutboundImageUrl(validated.data.avatar_url))) {
+      return {
+        errors: {
+          avatar_url: 'Avatar URL must point to a public HTTP(S) image host.',
+        },
+      }
     }
 
     const updateData: Record<string, unknown> = {

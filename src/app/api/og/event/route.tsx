@@ -1,6 +1,5 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
-import { Buffer } from 'node:buffer'
 import { ImageResponse } from 'next/og'
 import OgImage from '@/app/api/og/_components/OgImage'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
@@ -8,8 +7,8 @@ import { oklchToRenderableColor } from '@/lib/color'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
 import { formatCentsLabel, formatCompactCurrency, formatPercent } from '@/lib/formatters'
+import { fetchSafeOgImageDataUrl } from '@/lib/og-image-security'
 import { resolveOutcomeButtonTheme } from '@/lib/outcome-theme'
-import { readResponseBodyWithLimit } from '@/lib/read-response-body-with-limit'
 import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -18,18 +17,7 @@ const IMAGE_HEIGHT = 630
 const CHART_WIDTH = 598
 const CHART_HEIGHT = 120
 const MAX_CHART_POINTS = 28
-// Keep the OG inline image budget aligned with the current public asset size limit.
-const MAX_OG_REMOTE_IMAGE_BYTES = 2 * 1024 * 1024
-const SOCIAL_IMAGE_FETCH_TIMEOUT_MS = 1200
 const SOCIAL_HISTORY_FETCH_TIMEOUT_MS = 1500
-const IMAGE_DATA_URI_CONTENT_TYPES = new Set([
-  'image/gif',
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/svg+xml',
-  'image/webp',
-])
 const THEME_PRESET_PRIMARY_COLOR = {
   amber: 'oklch(0.881 0.168 94.237)',
   default: 'oklch(0.55 0.2 255)',
@@ -95,58 +83,6 @@ function resolveLocale(value: string | null): SupportedLocale {
     : DEFAULT_LOCALE
 }
 
-function sanitizeImageUrl(rawUrl: string | null | undefined, siteUrl: string) {
-  const trimmed = rawUrl?.trim()
-  if (!trimmed) {
-    return ''
-  }
-
-  try {
-    const parsed = new URL(trimmed, `${siteUrl}/`)
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return ''
-    }
-    return parsed.toString()
-  }
-  catch {
-    return ''
-  }
-}
-
-async function fetchImageDataUrl(url: string) {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-      },
-      next: {
-        revalidate: 900,
-      },
-      signal: AbortSignal.timeout(SOCIAL_IMAGE_FETCH_TIMEOUT_MS),
-    })
-
-    if (!response.ok) {
-      return ''
-    }
-
-    const contentType = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() ?? ''
-    if (!IMAGE_DATA_URI_CONTENT_TYPES.has(contentType)) {
-      return ''
-    }
-
-    const imageBytes = await readResponseBodyWithLimit(response, MAX_OG_REMOTE_IMAGE_BYTES)
-    if (!imageBytes || imageBytes.byteLength === 0) {
-      return ''
-    }
-
-    const base64 = Buffer.from(imageBytes).toString('base64')
-    return `data:${contentType};base64,${base64}`
-  }
-  catch {
-    return ''
-  }
-}
-
 function resolveFocusedMarket(event: Event, marketSlug: string) {
   const normalizedMarketSlug = marketSlug.trim().toLowerCase()
   if (normalizedMarketSlug) {
@@ -168,19 +104,20 @@ function resolveFocusedMarket(event: Event, marketSlug: string) {
 }
 
 async function resolveEventImage(event: Event, focusedMarket: EventMarket | null, siteUrl: string) {
-  const imageCandidate = [
+  const imageCandidates = [
     focusedMarket?.icon_url,
     event.icon_url,
     event.sports_team_logo_urls?.[0],
   ]
-    .map(candidate => sanitizeImageUrl(candidate, siteUrl))
-    .find(Boolean)
 
-  if (!imageCandidate) {
-    return ''
+  for (const imageCandidate of imageCandidates) {
+    const imageDataUrl = await fetchSafeOgImageDataUrl(imageCandidate, { siteUrl })
+    if (imageDataUrl) {
+      return imageDataUrl
+    }
   }
 
-  return fetchImageDataUrl(imageCandidate)
+  return ''
 }
 
 function resolveBinaryOutcome(market: EventMarket, outcomeIndex: number, fallbackIndex: number) {

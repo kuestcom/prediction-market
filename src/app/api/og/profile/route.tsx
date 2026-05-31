@@ -7,6 +7,7 @@ import {
 } from '@/lib/community-profile'
 import { UserRepository } from '@/lib/db/queries/user'
 import { truncateAddress } from '@/lib/formatters'
+import { fetchSafeOgImageDataUrl, normalizeOutboundImageUrl } from '@/lib/og-image-security'
 import { normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
 import resolveSiteUrl from '@/lib/site-url'
@@ -109,14 +110,14 @@ function resolvePositionIconUrl(rawIcon: unknown, siteUrl: string) {
   }
 
   if (icon.startsWith('/')) {
-    return new URL(icon, siteUrl).toString()
+    return normalizeOutboundImageUrl(icon, { siteUrl })
   }
 
   if (icon.startsWith('http://') || icon.startsWith('https://')) {
-    return icon
+    return normalizeOutboundImageUrl(icon)
   }
 
-  return `https://gateway.irys.xyz/${icon}`
+  return normalizeOutboundImageUrl(`https://gateway.irys.xyz/${icon}`)
 }
 
 function resolveProfileAvatarUrl(rawAvatar: unknown, siteUrl: string) {
@@ -126,11 +127,11 @@ function resolveProfileAvatarUrl(rawAvatar: unknown, siteUrl: string) {
   }
 
   if (avatar.startsWith('/')) {
-    return new URL(avatar, siteUrl).toString()
+    return normalizeOutboundImageUrl(avatar, { siteUrl })
   }
 
   if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-    return avatar
+    return normalizeOutboundImageUrl(avatar)
   }
 
   return ''
@@ -282,7 +283,7 @@ async function fetchProfilePositions(userAddress: string, siteUrl: string): Prom
       return []
     }
 
-    return payload
+    const positions = payload
       .map((entry) => {
         const raw = (entry ?? {}) as Record<string, unknown>
         const title = normalizeText(typeof raw.title === 'string' ? raw.title : 'Untitled market', 52) ?? 'Untitled market'
@@ -311,6 +312,11 @@ async function fetchProfilePositions(userAddress: string, siteUrl: string): Prom
       .filter(position => position.currentValue > 0 || position.tradeValue > 0)
       .sort((left, right) => right.currentValue - left.currentValue)
       .slice(0, 8)
+
+    return await Promise.all(positions.map(async position => ({
+      ...position,
+      iconUrl: await fetchSafeOgImageDataUrl(position.iconUrl),
+    })))
   }
   catch {
     return []
@@ -339,11 +345,13 @@ export async function GET(request: Request) {
     const displayName = profileUsername
       ?? (normalized.type === 'username' ? normalized.value : truncateAddress(normalized.value))
     const siteUrl = resolveSiteUrl(process.env)
-    const avatarUrl = resolveProfileAvatarUrl(profile?.image, siteUrl)
+    const avatarCandidate = resolveProfileAvatarUrl(profile?.image, siteUrl)
     const resolvedAddress = profile?.deposit_wallet_address
       ?? (normalized.type === 'address' ? normalized.value : null)
 
-    const [snapshot, positions] = await Promise.all([
+    const [siteLogoSrc, avatarUrl, snapshot, positions] = await Promise.all([
+      fetchSafeOgImageDataUrl(runtimeTheme.site.logoUrl),
+      fetchSafeOgImageDataUrl(avatarCandidate),
       fetchPortfolioSnapshot(resolvedAddress),
       resolvedAddress ? fetchProfilePositions(resolvedAddress, siteUrl) : Promise.resolve([]),
     ])
@@ -392,10 +400,10 @@ export async function GET(request: Request) {
                 gap: '10px',
               }}
             >
-              {runtimeTheme.site.logoUrl
+              {siteLogoSrc
                 ? (
                     <OgImage
-                      src={runtimeTheme.site.logoUrl}
+                      src={siteLogoSrc}
                       alt=""
                       width={36}
                       height={36}

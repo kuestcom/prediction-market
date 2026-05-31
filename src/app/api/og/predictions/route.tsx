@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og'
 import OgImage from '@/app/api/og/_components/OgImage'
 import { oklchToRenderableColor } from '@/lib/color'
+import { fetchSafeOgImageDataUrl } from '@/lib/og-image-security'
 import { humanizePredictionSearchSlug } from '@/lib/prediction-search'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -91,7 +92,7 @@ export async function GET(request: Request) {
     runtimeTheme.theme.presetId,
   )
   const siteName = normalizeText(runtimeTheme.site.name, 30) ?? 'Prediction Markets'
-  const siteLogoSrc = runtimeTheme.site.logoUrl?.trim() ?? ''
+  const siteLogoSrc = await fetchSafeOgImageDataUrl(runtimeTheme.site.logoUrl)
   const cards = [
     { left: 34, top: 18, width: 360, height: 238, opacity: 0.88 },
     { left: 416, top: 18, width: 240, height: 238, opacity: 0.76 },
