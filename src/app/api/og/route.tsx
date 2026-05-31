@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 import OgImage from '@/app/api/og/_components/OgImage'
 import { oklchToRenderableColor } from '@/lib/color'
-import { fetchSafeOgImageDataUrl } from '@/lib/og-image-security'
+import { resolveTrustedOgImageSource } from '@/lib/og-image-security'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 const OG_IMAGE_WIDTH = 1200
@@ -61,7 +61,7 @@ export async function GET() {
   const runtimeTheme = await loadRuntimeThemeState()
   const siteName = normalizeText(runtimeTheme.site.name, 24) ?? 'Prediction Market'
   const siteDescription = normalizeText(runtimeTheme.site.description, 74) ?? 'Trade live prediction markets in real time.'
-  const siteLogoSrc = await fetchSafeOgImageDataUrl(runtimeTheme.site.logoUrl)
+  const siteLogoSrc = await resolveTrustedOgImageSource(runtimeTheme.site.logoUrl)
   const primaryColor = resolveThemePrimaryColor(
     runtimeTheme.theme.light.primary ?? runtimeTheme.theme.dark.primary ?? null,
     runtimeTheme.theme.presetId,

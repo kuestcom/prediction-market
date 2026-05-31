@@ -11,6 +11,7 @@ const DEFAULT_MAX_IMAGE_BYTES = 2 * 1024 * 1024
 const DEFAULT_TIMEOUT_MS = 1200
 const DEFAULT_MAX_REDIRECTS = 3
 const MAX_URL_LENGTH = 2048
+const MAX_TRUSTED_DATA_URI_LENGTH = DEFAULT_MAX_IMAGE_BYTES * 2
 
 const IMAGE_DATA_URI_CONTENT_TYPES = new Set([
   'image/gif',
@@ -42,6 +43,21 @@ interface ImageResponsePayload {
 
 function normalizeHostname(hostname: string) {
   return hostname.trim().toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '')
+}
+
+function isTrustedImageDataUri(rawUrl: string) {
+  if (rawUrl.length > MAX_TRUSTED_DATA_URI_LENGTH) {
+    return false
+  }
+
+  const commaIndex = rawUrl.indexOf(',')
+  if (commaIndex === -1 || !rawUrl.toLowerCase().startsWith('data:')) {
+    return false
+  }
+
+  const metadata = rawUrl.slice('data:'.length, commaIndex).toLowerCase()
+  const contentType = metadata.split(';')[0]?.trim() ?? ''
+  return IMAGE_DATA_URI_CONTENT_TYPES.has(contentType)
 }
 
 function parseIpv4Address(address: string): [number, number, number, number] | null {
@@ -183,6 +199,7 @@ function isPublicIpv6Address(address: string) {
     || isIpv6InRange(parsed, '2002::', 16)
     || isIpv6InRange(parsed, 'fc00::', 7)
     || isIpv6InRange(parsed, 'fe80::', 10)
+    || isIpv6InRange(parsed, 'fec0::', 10)
     || isIpv6InRange(parsed, 'ff00::', 8)
   )
 }
@@ -485,4 +502,17 @@ export async function fetchSafeOgImageDataUrl(rawUrl: string | null | undefined,
   catch {
     return ''
   }
+}
+
+export async function resolveTrustedOgImageSource(rawUrl: string | null | undefined, options: SafeImageOptions = {}) {
+  const trimmed = rawUrl?.trim()
+  if (!trimmed) {
+    return ''
+  }
+
+  if (isTrustedImageDataUri(trimmed)) {
+    return trimmed
+  }
+
+  return fetchSafeOgImageDataUrl(trimmed, options)
 }

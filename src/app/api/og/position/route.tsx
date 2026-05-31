@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og'
 import OgImage from '@/app/api/og/_components/OgImage'
-import { fetchSafeOgImageDataUrl, normalizeOutboundImageUrl } from '@/lib/og-image-security'
+import { fetchSafeOgImageDataUrl, normalizeOutboundImageUrl, resolveTrustedOgImageSource } from '@/lib/og-image-security'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 interface ShareCardPayload {
@@ -131,7 +131,7 @@ export async function GET(request: Request) {
   const outcomeLabel = payload.outcome || (variant === 'no' ? 'No' : 'Yes')
   const runtimeTheme = await loadRuntimeThemeState()
   const [siteLogoSrc, positionImageSrc, userImageSrc] = await Promise.all([
-    fetchSafeOgImageDataUrl(runtimeTheme.site.logoUrl),
+    resolveTrustedOgImageSource(runtimeTheme.site.logoUrl),
     fetchSafeOgImageDataUrl(payload.imageUrl),
     fetchSafeOgImageDataUrl(payload.userImage),
   ])

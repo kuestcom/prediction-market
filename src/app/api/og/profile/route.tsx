@@ -7,7 +7,7 @@ import {
 } from '@/lib/community-profile'
 import { UserRepository } from '@/lib/db/queries/user'
 import { truncateAddress } from '@/lib/formatters'
-import { fetchSafeOgImageDataUrl, normalizeOutboundImageUrl } from '@/lib/og-image-security'
+import { fetchSafeOgImageDataUrl, normalizeOutboundImageUrl, resolveTrustedOgImageSource } from '@/lib/og-image-security'
 import { normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
 import resolveSiteUrl from '@/lib/site-url'
@@ -350,7 +350,7 @@ export async function GET(request: Request) {
       ?? (normalized.type === 'address' ? normalized.value : null)
 
     const [siteLogoSrc, avatarUrl, snapshot, positions] = await Promise.all([
-      fetchSafeOgImageDataUrl(runtimeTheme.site.logoUrl),
+      resolveTrustedOgImageSource(runtimeTheme.site.logoUrl),
       fetchSafeOgImageDataUrl(avatarCandidate),
       fetchPortfolioSnapshot(resolvedAddress),
       resolvedAddress ? fetchProfilePositions(resolvedAddress, siteUrl) : Promise.resolve([]),

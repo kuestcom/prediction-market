@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   isPublicIpAddress,
   normalizeOutboundImageUrl,
+  resolveTrustedOgImageSource,
   validateOutboundImageUrl,
 } from '@/lib/og-image-security'
 
@@ -49,8 +50,16 @@ describe('OG image security helpers', () => {
     expect(isPublicIpAddress('::1')).toBe(false)
     expect(isPublicIpAddress('fc00::1')).toBe(false)
     expect(isPublicIpAddress('fe80::1')).toBe(false)
+    expect(isPublicIpAddress('fec0::1')).toBe(false)
     expect(isPublicIpAddress('::ffff:127.0.0.1')).toBe(false)
     expect(isPublicIpAddress('::ffff:7f00:1')).toBe(false)
+  })
+
+  it('preserves trusted data image sources without outbound resolution', async () => {
+    const logo = 'data:image/svg+xml;utf8,%3Csvg%20viewBox%3D%220%200%201%201%22%2F%3E'
+
+    await expect(resolveTrustedOgImageSource(logo)).resolves.toBe(logo)
+    expect(lookupMock).not.toHaveBeenCalled()
   })
 
   it('rejects hostnames that resolve to a private address', async () => {

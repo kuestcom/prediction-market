@@ -15,7 +15,7 @@ import {
 import OgImage from '@/app/api/og/_components/OgImage'
 import { oklchToRenderableColor } from '@/lib/color'
 import { truncateAddress } from '@/lib/formatters'
-import { fetchSafeOgImageDataUrl } from '@/lib/og-image-security'
+import { resolveTrustedOgImageSource } from '@/lib/og-image-security'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 const OG_IMAGE_WIDTH = 1200
@@ -267,7 +267,7 @@ export async function GET(request: Request) {
       fetchLeaderboardRows({ category, period, order }),
     ])
     const siteName = normalizeText(runtimeTheme.site.name, 24) ?? 'Prediction Market'
-    const siteLogoSrc = await fetchSafeOgImageDataUrl(runtimeTheme.site.logoUrl)
+    const siteLogoSrc = await resolveTrustedOgImageSource(runtimeTheme.site.logoUrl)
     const primaryColor = resolveThemePrimaryColor(
       runtimeTheme.theme.light.primary ?? runtimeTheme.theme.dark.primary ?? null,
       runtimeTheme.theme.presetId,
