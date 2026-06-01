@@ -28,7 +28,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/build-push-action@f9f3042c3f8d1a6e1a6e8d0d7370e8f6c1d9c8c5 # v7.2.0
+      - uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
           context: .
           file: infra/docker/Dockerfile
