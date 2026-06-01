@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   cacheTag: vi.fn(),
@@ -13,11 +13,23 @@ vi.mock('@/lib/db/queries/settings', () => ({
   SettingsRepository: { getSettings: (...args: any[]) => mocks.getSettings(...args) },
 }))
 
+const originalPostgresUrl = process.env.POSTGRES_URL
+
 describe('theme settings runtime resolver', () => {
   beforeEach(() => {
     vi.resetModules()
     mocks.cacheTag.mockReset()
     mocks.getSettings.mockReset()
+    process.env.POSTGRES_URL = 'postgres://theme-settings-test'
+  })
+
+  afterEach(() => {
+    if (originalPostgresUrl == null) {
+      delete process.env.POSTGRES_URL
+      return
+    }
+
+    process.env.POSTGRES_URL = originalPostgresUrl
   })
 
   it('uses default fallback when DB read fails', async () => {
@@ -32,6 +44,16 @@ describe('theme settings runtime resolver', () => {
     expect(state.site.name).toBeTruthy()
     expect(state.site.description).toBeTruthy()
     expect(state.site.logoSvg).toContain('<svg')
+  })
+
+  it('uses uncached default fallback when database env is missing', async () => {
+    delete process.env.POSTGRES_URL
+
+    const { loadRuntimeThemeState } = await import('@/lib/theme-settings')
+    const state = await loadRuntimeThemeState()
+
+    expect(state.source).toBe('default')
+    expect(mocks.getSettings).not.toHaveBeenCalled()
   })
 
   it('uses settings theme when DB values are valid', async () => {
