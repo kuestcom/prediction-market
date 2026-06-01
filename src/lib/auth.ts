@@ -30,6 +30,19 @@ const SITE_URL = resolveSiteUrl(process.env)
 const siteUrlObject = new URL(SITE_URL)
 const SIWE_DOMAIN = siteUrlObject.host
 const SIWE_EMAIL_DOMAIN = siteUrlObject.hostname || 'kuest.com'
+const BUILD_ONLY_BETTER_AUTH_SECRET = 'runtime-env-only-build-placeholder-secret-32-chars-minimum'
+
+function resolveBetterAuthSecret() {
+  if (process.env.BETTER_AUTH_SECRET?.trim()) {
+    return process.env.BETTER_AUTH_SECRET
+  }
+
+  if (!process.env.POSTGRES_URL?.trim()) {
+    return BUILD_ONLY_BETTER_AUTH_SECRET
+  }
+
+  return undefined
+}
 
 function parseTimestampMs(value: unknown): number | null {
   if (value === null || value === undefined) {
@@ -155,7 +168,7 @@ export const auth = betterAuth({
   }),
   experimental: { joins: true },
   appName: DEFAULT_THEME_SITE_NAME,
-  secret: process.env.BETTER_AUTH_SECRET,
+  secret: resolveBetterAuthSecret(),
   baseURL: SITE_URL,
   advanced: {
     database: {

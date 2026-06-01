@@ -1,3 +1,4 @@
+import { unstable_rethrow } from 'next/navigation'
 import { NextResponse } from 'next/server'
 import { AFFILIATE_SHARE_BPS_KEY, getAffiliateFeeSettings } from '@/lib/affiliate-fee-settings'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
@@ -67,6 +68,7 @@ export async function GET() {
     })
   }
   catch (error) {
+    unstable_rethrow(error)
     console.error('Failed to load affiliate info', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

@@ -120,4 +120,5 @@ const withNextIntl = createNextIntlPlugin({
 
 export default withSentryConfig(withNextIntl(withMDX(config)), {
   telemetry: false,
+  silent: true,
 })

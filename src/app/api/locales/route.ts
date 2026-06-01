@@ -1,3 +1,4 @@
+import { unstable_rethrow } from 'next/navigation'
 import { NextResponse } from 'next/server'
 import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
@@ -10,6 +11,7 @@ export async function GET() {
     return NextResponse.json({ locales })
   }
   catch (error) {
+    unstable_rethrow(error)
     console.error('Failed to load locales', error)
     return NextResponse.json({ locales: [] }, { status: 500 })
   }
