@@ -31,6 +31,6 @@ export function hasPublicShellPrerenderEnv(env: NodeJS.ProcessEnv) {
 }
 
 export function resolvePublicShellPrerenderMode(env: NodeJS.ProcessEnv) {
-  const explicitMode = parseBooleanEnv(env.KUEST_PRERENDER_PUBLIC_SHELL)
+  const explicitMode = parseBooleanEnv(env.BUILD_PRERENDER_PUBLIC_SHELL)
   return explicitMode ?? hasPublicShellPrerenderEnv(env)
 }

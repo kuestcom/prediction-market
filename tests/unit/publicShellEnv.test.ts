@@ -39,14 +39,14 @@ describe('public shell env detection', () => {
 
   it('lets an explicit override force the build mode', () => {
     expect(resolvePublicShellPrerenderMode({
-      KUEST_PRERENDER_PUBLIC_SHELL: 'false',
+      BUILD_PRERENDER_PUBLIC_SHELL: 'false',
       POSTGRES_URL: 'postgres://user:pass@localhost:5432/app',
       REOWN_APPKIT_PROJECT_ID: 'project-id',
       SITE_URL: 'https://markets.example.com',
     } as NodeJS.ProcessEnv)).toBe(false)
 
     expect(resolvePublicShellPrerenderMode({
-      KUEST_PRERENDER_PUBLIC_SHELL: 'true',
+      BUILD_PRERENDER_PUBLIC_SHELL: 'true',
     } as NodeJS.ProcessEnv)).toBe(true)
   })
 })
