@@ -84,7 +84,7 @@ const config: NextConfig = {
   env: {
     COMMIT_SHA: commitSha,
     IS_VERCEL: process.env.VERCEL_ENV ? 'true' : 'false',
-    KUEST_BUILD_PRERENDER_PUBLIC_SHELL: shouldPrerenderPublicShell ? 'true' : 'false',
+    BUILD_PRERENDER_PUBLIC_SHELL: shouldPrerenderPublicShell ? 'true' : 'false',
     SENTRY_DSN: process.env.SENTRY_DSN,
     CREATE_MARKET_URL: process.env.CREATE_MARKET_URL ?? 'https://create-market.kuest.com',
     GAMMA_URL: process.env.GAMMA_URL ?? 'https://gamma-api.kuest.com',

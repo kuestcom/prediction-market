@@ -1,6 +1,6 @@
 import { connection } from 'next/server'
 
-const SHOULD_PRERENDER_PUBLIC_SHELL = process.env.KUEST_BUILD_PRERENDER_PUBLIC_SHELL === 'true'
+const SHOULD_PRERENDER_PUBLIC_SHELL = process.env.BUILD_PRERENDER_PUBLIC_SHELL === 'true'
 
 export function shouldPrerenderPublicShell() {
   return SHOULD_PRERENDER_PUBLIC_SHELL

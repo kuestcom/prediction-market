@@ -7,7 +7,7 @@ describe('static params helpers', () => {
   })
 
   it('returns placeholder params when public shell prerendering is enabled', async () => {
-    vi.stubEnv('KUEST_BUILD_PRERENDER_PUBLIC_SHELL', 'true')
+    vi.stubEnv('BUILD_PRERENDER_PUBLIC_SHELL', 'true')
     const { getPublicShellStaticParams } = await import('@/lib/static-params')
 
     expect(getPublicShellStaticParams({ slug: '__placeholder__' })).toEqual([
@@ -16,7 +16,7 @@ describe('static params helpers', () => {
   })
 
   it('still returns placeholder params when public shell prerendering is disabled', async () => {
-    vi.stubEnv('KUEST_BUILD_PRERENDER_PUBLIC_SHELL', 'false')
+    vi.stubEnv('BUILD_PRERENDER_PUBLIC_SHELL', 'false')
     const { getPublicShellStaticParams } = await import('@/lib/static-params')
 
     expect(getPublicShellStaticParams({ slug: '__placeholder__' })).toEqual([
@@ -25,7 +25,7 @@ describe('static params helpers', () => {
   })
 
   it('bypasses placeholder renders only in runtime-env builds', async () => {
-    vi.stubEnv('KUEST_BUILD_PRERENDER_PUBLIC_SHELL', 'false')
+    vi.stubEnv('BUILD_PRERENDER_PUBLIC_SHELL', 'false')
     const { shouldBypassPublicShellPlaceholder } = await import('@/lib/static-params')
 
     expect(shouldBypassPublicShellPlaceholder('__placeholder__')).toBe(true)
@@ -34,7 +34,7 @@ describe('static params helpers', () => {
   })
 
   it('keeps placeholder renders active in prerender builds', async () => {
-    vi.stubEnv('KUEST_BUILD_PRERENDER_PUBLIC_SHELL', 'true')
+    vi.stubEnv('BUILD_PRERENDER_PUBLIC_SHELL', 'true')
     const { shouldBypassPublicShellPlaceholder } = await import('@/lib/static-params')
 
     expect(shouldBypassPublicShellPlaceholder('__placeholder__')).toBe(false)

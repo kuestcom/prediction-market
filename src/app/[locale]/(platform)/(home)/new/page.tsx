@@ -1,13 +1,7 @@
-'use cache'
-
 import type { Metadata } from 'next'
+import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
-import { cacheLife } from 'next/cache'
-import HomeContent from '@/app/[locale]/(platform)/(home)/_components/HomeContent'
-import {
-  getHomeInitialCurrentTimestamp,
-  HOME_INITIAL_EVENTS_CACHE_LIFE,
-} from '@/app/[locale]/(platform)/(home)/_utils/homeInitialEventsCache'
+import HomeInitialContent from '@/app/[locale]/(platform)/(home)/_components/HomeInitialContent'
 import { getNewPageSeoTitle } from '@/lib/platform-routing'
 
 const MAIN_TAG_SLUG = 'new' as const
@@ -17,11 +11,9 @@ export const metadata: Metadata = {
 }
 
 export default async function NewPage({ params }: PageProps<'/[locale]/new'>) {
-  cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
-
   const { locale } = await params
-  setRequestLocale(locale)
-  const currentTimestamp = getHomeInitialCurrentTimestamp()
+  const resolvedLocale = locale as SupportedLocale
+  setRequestLocale(resolvedLocale)
 
-  return <HomeContent locale={locale} currentTimestamp={currentTimestamp} initialTag={MAIN_TAG_SLUG} />
+  return <HomeInitialContent locale={resolvedLocale} initialTag={MAIN_TAG_SLUG} />
 }
