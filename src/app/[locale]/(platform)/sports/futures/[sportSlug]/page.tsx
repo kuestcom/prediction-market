@@ -6,10 +6,10 @@ import { notFound } from 'next/navigation'
 import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
 import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sports-menu-routing'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
-  return [{ sportSlug: STATIC_PARAMS_PLACEHOLDER }]
+  return getPublicShellStaticParams({ sportSlug: STATIC_PARAMS_PLACEHOLDER })
 }
 
 export const metadata: Metadata = {
@@ -22,6 +22,9 @@ export default async function SportsFuturesBySportPage({
   const { locale, sportSlug } = await params
   setRequestLocale(locale)
   if (sportSlug === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(sportSlug)) {
+      return null
+    }
     notFound()
   }
 

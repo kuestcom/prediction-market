@@ -9,11 +9,11 @@ import { buildTranslatedEventFaqItems } from '@/lib/event-faq-server'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
 import { getEventRouteBySlug, loadEventPagePublicContentData } from '@/lib/event-page-data'
 import { resolveEventMarketPath } from '@/lib/events-routing'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateStaticParams() {
-  return [{ market: STATIC_PARAMS_PLACEHOLDER }]
+  return getPublicShellStaticParams({ market: STATIC_PARAMS_PLACEHOLDER })
 }
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/event/[slug]/[market]'>): Promise<Metadata> {
@@ -21,6 +21,9 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/event/[s
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale
   if (slug === STATIC_PARAMS_PLACEHOLDER || market === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug, market)) {
+      return {}
+    }
     notFound()
   }
   return await buildEventPageMetadata({
@@ -97,6 +100,9 @@ export default async function EventMarketPage({ params }: PageProps<'/[locale]/e
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale
   if (slug === STATIC_PARAMS_PLACEHOLDER || market === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug, market)) {
+      return null
+    }
     notFound()
   }
 

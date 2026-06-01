@@ -1,9 +1,12 @@
 import type { MetadataRoute } from 'next'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
+import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 import { resolvePwaThemeColors } from '@/lib/pwa-colors'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  await deferPublicShellPrerenderIfNeeded()
+
   const runtimeTheme = await loadRuntimeThemeState()
   const site = runtimeTheme.site
   const { lightSurface } = resolvePwaThemeColors(runtimeTheme.theme)

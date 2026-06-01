@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { fetchAffiliateSettingsFromAPI } from '@/lib/affiliate-data'
 import { maybeShowAffiliateToast } from '@/lib/affiliate-toast'
@@ -33,7 +34,6 @@ import {
   buildWebComponentCode,
   EMBED_SCRIPT_URL,
   normalizeEmbedBaseUrl,
-  requireEmbedValue,
 } from '@/lib/embed-widget'
 import { slugifySiteName } from '@/lib/slug'
 import { cn } from '@/lib/utils'
@@ -63,7 +63,6 @@ interface AffiliateSettingsState {
 
 type EmbedType = 'iframe' | 'web-component'
 
-const SITE_URL = normalizeEmbedBaseUrl(requireEmbedValue(process.env.SITE_URL, 'SITE_URL'))
 const IFRAME_HEIGHT_WITH_CHART = 400
 const IFRAME_HEIGHT_WITH_FILTERS = 440
 const IFRAME_HEIGHT_NO_CHART = 180
@@ -250,6 +249,7 @@ function EventChartEmbedDialogEditor({
 }: Pick<EventChartEmbedDialogProps, 'markets' | 'initialMarketId'>) {
   const t = useExtracted()
   const site = useSiteIdentity()
+  const { siteUrl } = usePublicRuntimeConfig()
   const user = useUser()
   const [editorState, setEditorState] = useState(() => createInitialEditorState(markets, initialMarketId))
   const affiliateCode = user?.affiliate_code?.trim() ?? ''
@@ -274,7 +274,7 @@ function EventChartEmbedDialogEditor({
       return 'market'
     }
   }, [site.name])
-  const embedBaseUrl = SITE_URL
+  const embedBaseUrl = useMemo(() => normalizeEmbedBaseUrl(siteUrl), [siteUrl])
   const embedElementName = `${siteSlug}-market-embed`
   const embedIframeTitle = `${siteSlug}-market-iframe`
 

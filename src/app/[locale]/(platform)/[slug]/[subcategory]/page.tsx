@@ -8,7 +8,7 @@ import {
   generateDynamicHomeSubcategoryStaticParams,
 } from '@/app/[locale]/(platform)/_lib/dynamic-home-category-page'
 import { isPlatformReservedRootSlug, normalizePublicProfileSlug } from '@/lib/platform-routing'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export const generateStaticParams = generateDynamicHomeSubcategoryStaticParams
 
@@ -24,6 +24,9 @@ async function generatePlatformSubcategoryMetadata({
   'use cache'
 
   if (slug === STATIC_PARAMS_PLACEHOLDER || subcategory === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug, subcategory)) {
+      return {}
+    }
     notFound()
   }
 
@@ -46,6 +49,9 @@ async function renderPlatformSubcategoryPage({
   'use cache'
 
   if (slug === STATIC_PARAMS_PLACEHOLDER || subcategory === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug, subcategory)) {
+      return null
+    }
     notFound()
   }
 

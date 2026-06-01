@@ -4,11 +4,11 @@ import { createMDX } from 'fumadocs-mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
 import { resolveCommitSha } from '@/lib/git'
 import { getOptimizedImageHostPatterns } from '@/lib/image/image-optimization'
-import resolveSiteUrl from './src/lib/site-url'
+import { resolvePublicShellPrerenderMode } from '@/lib/public-shell-env'
 
-const siteUrl = resolveSiteUrl(process.env)
 const optimizedImageHostPatterns = getOptimizedImageHostPatterns(process.env)
 const commitSha = resolveCommitSha()
+const shouldPrerenderPublicShell = resolvePublicShellPrerenderMode(process.env)
 
 const config: NextConfig = {
   output: process.env.VERCEL_ENV ? undefined : 'standalone',
@@ -84,9 +84,8 @@ const config: NextConfig = {
   env: {
     COMMIT_SHA: commitSha,
     IS_VERCEL: process.env.VERCEL_ENV ? 'true' : 'false',
-    SITE_URL: siteUrl,
+    KUEST_BUILD_PRERENDER_PUBLIC_SHELL: shouldPrerenderPublicShell ? 'true' : 'false',
     SENTRY_DSN: process.env.SENTRY_DSN,
-    REOWN_APPKIT_PROJECT_ID: process.env.REOWN_APPKIT_PROJECT_ID,
     CREATE_MARKET_URL: process.env.CREATE_MARKET_URL ?? 'https://create-market.kuest.com',
     GAMMA_URL: process.env.GAMMA_URL ?? 'https://gamma-api.kuest.com',
     GEOBLOCK_URL: process.env.GEOBLOCK_URL ?? 'https://geoblock.kuest.com',

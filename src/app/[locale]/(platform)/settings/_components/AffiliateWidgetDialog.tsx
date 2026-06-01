@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { fetchAffiliateSettingsFromAPI } from '@/lib/affiliate-data'
 import { maybeShowAffiliateToast } from '@/lib/affiliate-toast'
@@ -30,7 +31,6 @@ import {
   buildWebComponentCode,
   EMBED_SCRIPT_URL,
   normalizeEmbedBaseUrl,
-  requireEmbedValue,
 } from '@/lib/embed-widget'
 import { slugifySiteName } from '@/lib/slug'
 import { cn } from '@/lib/utils'
@@ -143,7 +143,6 @@ async function fetchCategoryMarkets(tag: string, locale: string, signal: AbortSi
     .slice(0, 80)
 }
 
-const SITE_URL = normalizeEmbedBaseUrl(requireEmbedValue(process.env.SITE_URL, 'SITE_URL'))
 const IFRAME_HEIGHT_WITH_CHART = 400
 const IFRAME_HEIGHT_WITH_FILTERS = 440
 const IFRAME_HEIGHT_NO_CHART = 180
@@ -256,6 +255,7 @@ function useCategoryMarkets({
 }
 
 function useEmbedCode({
+  embedBaseUrl,
   selectedCategory,
   locale,
   theme,
@@ -267,6 +267,7 @@ function useEmbedCode({
   embedIframeTitle,
   selectedMarketSlug,
 }: {
+  embedBaseUrl: string
   selectedCategory: string
   locale: string
   theme: EmbedTheme
@@ -288,14 +289,14 @@ function useEmbedCode({
   const iframeSrc = useMemo(
     () =>
       buildAffiliateIframeSrc(
-        SITE_URL,
+        embedBaseUrl,
         selectedCategory,
         locale,
         theme,
         features,
         affiliateCode,
       ),
-    [selectedCategory, locale, theme, features, affiliateCode],
+    [embedBaseUrl, selectedCategory, locale, theme, features, affiliateCode],
   )
   const previewSrc = useMemo(
     () =>
@@ -386,6 +387,7 @@ export default function AffiliateWidgetDialog({
   const t = useExtracted()
   const locale = useLocale()
   const site = useSiteIdentity()
+  const { siteUrl } = usePublicRuntimeConfig()
   const user = useUser()
   const affiliateCode = user?.affiliate_code?.trim() ?? ''
   const {
@@ -403,6 +405,7 @@ export default function AffiliateWidgetDialog({
   const { copied, setCopied } = useCopyFlashState()
   const { selectedCategory, setSelectedCategoryState } = useEmbedCategorySelection(categories)
   const siteSlug = useSiteSlug(site.name)
+  const embedBaseUrl = useMemo(() => normalizeEmbedBaseUrl(siteUrl), [siteUrl])
   const { affiliateSharePercent, builderTakerFeePercent } = useAffiliateFeeSettings(affiliateCode)
   const {
     data: currentMarkets = [],
@@ -433,6 +436,7 @@ export default function AffiliateWidgetDialog({
     iframeLines,
     webComponentLines,
   } = useEmbedCode({
+    embedBaseUrl,
     selectedCategory,
     locale,
     theme,

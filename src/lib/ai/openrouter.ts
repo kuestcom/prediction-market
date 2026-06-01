@@ -1,3 +1,4 @@
+import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeSiteName } from '@/lib/theme-settings'
 
 export interface OpenRouterMessage {
@@ -45,8 +46,8 @@ async function buildOpenRouterHeaders(apiKey: string) {
     'Authorization': `Bearer ${apiKey}`,
   }
 
-  if (process.env.SITE_URL) {
-    headers['HTTP-Referer'] = process.env.SITE_URL
+  if (process.env.SITE_URL?.trim() || process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim()) {
+    headers['HTTP-Referer'] = resolveSiteUrl(process.env)
   }
 
   const siteName = await loadRuntimeThemeSiteName()

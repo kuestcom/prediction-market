@@ -9,7 +9,7 @@ import {
 } from '@/app/[locale]/(platform)/_lib/dynamic-home-category-page'
 import { buildPublicProfileMetadata, PublicProfilePageContent } from '@/app/[locale]/(platform)/_lib/public-profile-page'
 import { isPlatformReservedRootSlug, normalizePublicProfileSlug } from '@/lib/platform-routing'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export const generateStaticParams = generateDynamicHomeCategoryStaticParams
 
@@ -21,6 +21,9 @@ async function generatePlatformSlugMetadata({
   slug: string
 }): Promise<Metadata> {
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug)) {
+      return {}
+    }
     notFound()
   }
 
@@ -47,6 +50,9 @@ async function renderPlatformSlugPage({
   slug: string
 }) {
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug)) {
+      return null
+    }
     notFound()
   }
 

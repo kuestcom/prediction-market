@@ -1,4 +1,5 @@
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
+import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 import { source } from '@/lib/source'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -220,6 +221,8 @@ function formatEndpoint({
 }
 
 export async function GET() {
+  await deferPublicShellPrerenderIfNeeded()
+
   const runtimeTheme = await loadRuntimeThemeState()
   const site = runtimeTheme.site
   const siteDescription = normalizeDescription(site.description) ?? 'Decentralized prediction markets.'

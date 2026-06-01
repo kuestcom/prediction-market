@@ -21,11 +21,11 @@ import { buildEventPageMetadata } from '@/lib/event-open-graph'
 import { getEventRouteBySlug, resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
 import { resolveEventBasePath, resolveEventMarketPath } from '@/lib/events-routing'
 import { resolveSportsEventMarketViewKey } from '@/lib/sports-event-slugs'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateStaticParams() {
-  return [{ market: STATIC_PARAMS_PLACEHOLDER }]
+  return getPublicShellStaticParams({ market: STATIC_PARAMS_PLACEHOLDER })
 }
 
 function isSameSportsGame(
@@ -53,6 +53,9 @@ export async function generateMetadata({
     || event === STATIC_PARAMS_PLACEHOLDER
     || market === STATIC_PARAMS_PLACEHOLDER
   ) {
+    if (shouldBypassPublicShellPlaceholder(sport, event, market)) {
+      return {}
+    }
     notFound()
   }
   const canonicalEventSlug = await resolveCanonicalEventSlugFromSportsPath(sport, event)
@@ -77,6 +80,9 @@ export default async function SportsEventMarketPage({
     || event === STATIC_PARAMS_PLACEHOLDER
     || market === STATIC_PARAMS_PLACEHOLDER
   ) {
+    if (shouldBypassPublicShellPlaceholder(sport, event, market)) {
+      return null
+    }
     notFound()
   }
 

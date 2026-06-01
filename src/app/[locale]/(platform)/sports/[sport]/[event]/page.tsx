@@ -5,10 +5,10 @@ import {
   generateSportsVerticalEventMetadata,
   renderSportsVerticalEventPage,
 } from '@/app/[locale]/(platform)/sports/_utils/sports-event-page'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { getPublicShellStaticParams, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
-  return [{ sport: STATIC_PARAMS_PLACEHOLDER, event: STATIC_PARAMS_PLACEHOLDER }]
+  return getPublicShellStaticParams({ sport: STATIC_PARAMS_PLACEHOLDER, event: STATIC_PARAMS_PLACEHOLDER })
 }
 
 export async function generateMetadata({

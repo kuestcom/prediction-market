@@ -2,6 +2,7 @@ import { ImageResponse } from 'next/og'
 import OgImage from '@/app/api/og/_components/OgImage'
 import { oklchToRenderableColor } from '@/lib/color'
 import { resolveTrustedOgImageSource } from '@/lib/og-image-security'
+import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 const OG_IMAGE_WIDTH = 1200
@@ -58,6 +59,8 @@ function resolveDescriptionFontSize(description: string) {
 }
 
 export async function GET() {
+  await deferPublicShellPrerenderIfNeeded()
+
   const runtimeTheme = await loadRuntimeThemeState()
   const siteName = normalizeText(runtimeTheme.site.name, 24) ?? 'Prediction Market'
   const siteDescription = normalizeText(runtimeTheme.site.description, 74) ?? 'Trade live prediction markets in real time.'

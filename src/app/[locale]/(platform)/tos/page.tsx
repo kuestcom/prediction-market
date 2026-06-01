@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { SettingsRepository } from '@/lib/db/queries/settings'
+import resolveSiteUrl from '@/lib/site-url'
 import { getTermsOfServicePdfUrl } from '@/lib/terms-of-service'
 import { getThemeSiteSettingsFormState, loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -27,7 +28,7 @@ export default async function TermsOfUsePage({ params }: PageProps<'/[locale]/to
   const siteSettings = getThemeSiteSettingsFormState(allSettings ?? undefined)
   const siteName = siteSettings.siteName
   const siteNameUpper = siteName.toUpperCase()
-  const siteUrl = (process.env.SITE_URL?.trim()?.replace(/\/$/, '') ?? '') || undefined
+  const siteUrl = resolveSiteUrl(process.env)
   const termsOfServicePdfUrl = getTermsOfServicePdfUrl(allSettings ?? undefined)
 
   if (termsOfServicePdfUrl) {

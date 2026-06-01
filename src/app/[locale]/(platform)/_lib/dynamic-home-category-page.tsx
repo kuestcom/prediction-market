@@ -18,7 +18,7 @@ import {
   getMainTagSeoTitle,
 } from '@/lib/platform-routing'
 import resolveSiteUrl from '@/lib/site-url'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 async function getMainTags(locale: SupportedLocale) {
   const { data: mainTags } = await loadPlatformMainTags(locale)
@@ -49,15 +49,18 @@ async function CachedDynamicHomeContent({
 }
 
 export async function generateDynamicHomeCategoryStaticParams() {
-  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
+  return getPublicShellStaticParams({ slug: STATIC_PARAMS_PLACEHOLDER })
 }
 
 export async function generateDynamicHomeSubcategoryStaticParams() {
-  return [{ slug: STATIC_PARAMS_PLACEHOLDER, subcategory: STATIC_PARAMS_PLACEHOLDER }]
+  return getPublicShellStaticParams({ slug: STATIC_PARAMS_PLACEHOLDER, subcategory: STATIC_PARAMS_PLACEHOLDER })
 }
 
 export async function buildDynamicHomeCategoryMetadata(locale: SupportedLocale, slug: string): Promise<Metadata> {
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug)) {
+      return {}
+    }
     notFound()
   }
 
@@ -101,6 +104,9 @@ export async function buildDynamicHomeSubcategoryMetadata(
   subcategory: string,
 ): Promise<Metadata> {
   if (slug === STATIC_PARAMS_PLACEHOLDER || subcategory === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug, subcategory)) {
+      return {}
+    }
     notFound()
   }
 
@@ -146,6 +152,9 @@ export async function DynamicHomeCategoryPageContent({
   slug: string
 }) {
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug)) {
+      return null
+    }
     notFound()
   }
 
@@ -167,6 +176,9 @@ export async function DynamicHomeSubcategoryPageContent({
   subcategory: string
 }) {
   if (slug === STATIC_PARAMS_PLACEHOLDER || subcategory === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug, subcategory)) {
+      return null
+    }
     notFound()
   }
 

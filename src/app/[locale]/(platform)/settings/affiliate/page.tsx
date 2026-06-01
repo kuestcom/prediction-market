@@ -9,6 +9,7 @@ import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { UserRepository } from '@/lib/db/queries/user'
+import resolveSiteUrl from '@/lib/site-url'
 import { getPublicAssetUrl } from '@/lib/storage'
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/settings/affiliate'>): Promise<Metadata> {
@@ -71,9 +72,7 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
   const commissionPercent = Number(affiliateFeeSettings.builderTakerFeeBps * affiliateFeeSettings.affiliateShareBps) / 1000000
 
   function resolveBaseUrl() {
-    const raw = process.env.SITE_URL!
-
-    return raw.startsWith('http') ? raw : `https://${raw}`
+    return resolveSiteUrl(process.env)
   }
 
   const affiliateData = affiliateCode

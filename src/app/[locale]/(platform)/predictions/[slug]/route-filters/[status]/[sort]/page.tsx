@@ -12,14 +12,14 @@ import {
   parsePredictionResultsSort,
   parsePredictionResultsStatus,
 } from '@/lib/prediction-results-filters'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
-  return [{
+  return getPublicShellStaticParams({
     slug: STATIC_PARAMS_PLACEHOLDER,
     sort: DEFAULT_PREDICTION_RESULTS_SORT,
     status: DEFAULT_PREDICTION_RESULTS_STATUS,
-  }]
+  })
 }
 
 interface PredictionResultsFilteredPageParams {
@@ -38,6 +38,10 @@ export async function generateMetadata({
   const resolvedLocale = locale as SupportedLocale
   setRequestLocale(resolvedLocale)
 
+  if (shouldBypassPublicShellPlaceholder(slug)) {
+    return {}
+  }
+
   return generatePredictionResultsMetadata({
     locale: resolvedLocale,
     slug,
@@ -54,6 +58,9 @@ export default async function PredictionResultsFilteredPage({
   setRequestLocale(resolvedLocale)
 
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug)) {
+      return null
+    }
     notFound()
   }
 

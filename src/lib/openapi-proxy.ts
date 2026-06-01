@@ -1,4 +1,5 @@
 import { OPENAPI_SERVER_URLS } from '@/lib/openapi-servers'
+import resolveSiteUrl from '@/lib/site-url'
 
 function toUrlOrigin(url: string): string | null {
   try {
@@ -22,6 +23,14 @@ function resolveCreatorHostname(siteUrl: string | undefined): string | null {
   catch {
     return null
   }
+}
+
+function resolveCreatorHostnameFromEnv(): string | null {
+  if (!process.env.SITE_URL?.trim() && !process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim()) {
+    return null
+  }
+
+  return resolveCreatorHostname(resolveSiteUrl(process.env))
 }
 
 const allowedOrigins = new Set(
@@ -58,9 +67,9 @@ async function proxy(request: Request): Promise<Response> {
 
   const gammaOrigin = toUrlOrigin(OPENAPI_SERVER_URLS.gamma ?? '')
   if (gammaOrigin && parsedUrl.origin === gammaOrigin) {
-    const creatorHostname = resolveCreatorHostname(process.env.SITE_URL)
+    const creatorHostname = resolveCreatorHostnameFromEnv()
     if (!creatorHostname) {
-      return toProxyError('[Proxy] SITE_URL environment variable is not configured.', 500)
+      return toProxyError('[Proxy] SITE_URL or VERCEL_PROJECT_PRODUCTION_URL environment variable is not configured.', 500)
     }
 
     // Force the creator scope for docs playground requests (immutable).

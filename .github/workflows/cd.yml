@@ -38,8 +38,6 @@ jobs:
             ghcr.io/kuestcom/prediction-market:${{ github.sha }}
           build-args: |
             COMMIT_SHA=${{ github.sha }}
-            SITE_URL=${{ vars.SITE_URL }}
-            REOWN_APPKIT_PROJECT_ID=${{ vars.REOWN_APPKIT_PROJECT_ID }}
 
       - name: Trigger deploy
         env:

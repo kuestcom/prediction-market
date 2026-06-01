@@ -8,10 +8,10 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 
 const COMMIT_SHA = process.env.COMMIT_SHA?.trim() || 'unknown'
 const NORMALIZED_COMMIT_SHA = COMMIT_SHA.toLowerCase()
-const SITE_URL = process.env.SITE_URL ?? 'unknown'
 const IS_VERCEL = process.env.IS_VERCEL ?? 'false'
 const UPSTREAM_COMMITS_URL = 'https://api.github.com/repos/kuestcom/prediction-market/commits?per_page=1'
 const GITHUB_SYNC_IMAGE_SRC = '/images/sync/github-sync.jpg'
@@ -188,6 +188,7 @@ function ForkSyncWarning({ forkRepositoryUrl, upstreamCommitSha }: ForkSyncWarni
 export default function CopyVersion({ forkRepositoryUrl }: CopyVersionProps) {
   const [copied, setCopied] = useState(false)
   const t = useExtracted()
+  const { siteUrl } = usePublicRuntimeConfig()
   const latestUpstreamCommitQuery = useQuery({
     queryKey: ['github-upstream-commit-sha', UPSTREAM_COMMITS_URL],
     queryFn: fetchLatestUpstreamCommit,
@@ -202,7 +203,7 @@ export default function CopyVersion({ forkRepositoryUrl }: CopyVersionProps) {
   async function copyVersionPayload() {
     const payload = `{${[
       COMMIT_SHA,
-      SITE_URL,
+      siteUrl,
       IS_VERCEL,
       new Date().toISOString(),
     ].join(';')}}`

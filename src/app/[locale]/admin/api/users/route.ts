@@ -4,6 +4,7 @@ import { isAdminWallet } from '@/lib/admin'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildPublicProfilePath, buildUsernameProfilePath } from '@/lib/platform-routing'
+import resolveSiteUrl from '@/lib/site-url'
 import { getPublicAssetUrl } from '@/lib/storage'
 
 export async function GET(request: NextRequest) {
@@ -57,10 +58,7 @@ export async function GET(request: NextRequest) {
       }]),
     )
 
-    const baseProfileUrl = (() => {
-      const raw = process.env.SITE_URL!
-      return raw.startsWith('http') ? raw : `https://${raw}`
-    })()
+    const baseProfileUrl = resolveSiteUrl(process.env)
 
     const transformedUsers = (data ?? []).map((user) => {
       const created = new Date(user.created_at)

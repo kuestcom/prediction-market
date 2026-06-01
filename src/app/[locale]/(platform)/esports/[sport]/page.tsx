@@ -4,16 +4,19 @@ import { notFound } from 'next/navigation'
 import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sports-menu-routing'
 import { redirect } from '@/i18n/navigation'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
-  return [{ sport: STATIC_PARAMS_PLACEHOLDER }]
+  return getPublicShellStaticParams({ sport: STATIC_PARAMS_PLACEHOLDER })
 }
 
 export default async function EsportsBySportRedirectPage({ params }: PageProps<'/[locale]/esports/[sport]'>) {
   const { locale, sport } = await params
   setRequestLocale(locale)
   if (sport === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(sport)) {
+      return null
+    }
     notFound()
   }
 

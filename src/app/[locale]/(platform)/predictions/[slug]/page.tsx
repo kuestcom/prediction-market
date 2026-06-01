@@ -10,16 +10,20 @@ import {
   DEFAULT_PREDICTION_RESULTS_SORT,
   DEFAULT_PREDICTION_RESULTS_STATUS,
 } from '@/lib/prediction-results-filters'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
-  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
+  return getPublicShellStaticParams({ slug: STATIC_PARAMS_PLACEHOLDER })
 }
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/predictions/[slug]'>): Promise<Metadata> {
   const { locale, slug } = await params
   const resolvedLocale = locale as SupportedLocale
   setRequestLocale(resolvedLocale)
+
+  if (shouldBypassPublicShellPlaceholder(slug)) {
+    return {}
+  }
 
   return generatePredictionResultsMetadata({
     locale: resolvedLocale,
@@ -35,6 +39,9 @@ export default async function PredictionResultsPage({
   setRequestLocale(resolvedLocale)
 
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug)) {
+      return null
+    }
     notFound()
   }
 

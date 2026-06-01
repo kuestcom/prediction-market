@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { bpsToPercent, getAffiliateFeeSettings, getAffiliateFeeSettingsUpdatedAt } from '@/lib/affiliate-fee-settings'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
+import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 
 interface AffiliateSettingsResponse {
   builderTakerFeePercent: number
@@ -12,6 +13,8 @@ interface AffiliateSettingsResponse {
 
 export async function GET() {
   try {
+    await deferPublicShellPrerenderIfNeeded()
+
     const { data: settings, error } = await SettingsRepository.getSettings()
 
     if (error || !settings) {

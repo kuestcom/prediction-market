@@ -1,8 +1,8 @@
 import { setRequestLocale } from 'next-intl/server'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { getPublicShellStaticParams, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
-  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
+  return getPublicShellStaticParams({ slug: STATIC_PARAMS_PLACEHOLDER })
 }
 
 export default async function EventLayout({ params, children }: LayoutProps<'/[locale]/event/[slug]'>) {

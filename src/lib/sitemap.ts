@@ -3,6 +3,7 @@ import { cacheTag } from 'next/cache'
 import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
+import { hasDatabaseEnv } from '@/lib/db/env'
 import { getSportsSlugResolverFromDb } from '@/lib/db/queries/sports-menu'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { event_sports, event_tags, events, markets, tags } from '@/lib/db/schema/events/tables'
@@ -246,6 +247,9 @@ async function getCategorySitemapEntries(): Promise<SitemapRouteEntry[]> {
 
   cacheTag(cacheTags.mainTags(DEFAULT_LOCALE))
   const fallbackDate = formatDateForSitemap(new Date())
+  if (!hasDatabaseEnv()) {
+    return []
+  }
 
   try {
     const { data: mainTags } = await TagRepository.getMainTags(DEFAULT_LOCALE)
@@ -274,6 +278,9 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
   'use cache'
 
   cacheTag(cacheTags.sitemap)
+  if (!hasDatabaseEnv()) {
+    return []
+  }
 
   try {
     const sportsSlugResolver = await getSportsSlugResolverFromDb()
@@ -347,6 +354,12 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
   'use cache'
 
   cacheTag(cacheTags.sitemap)
+  if (!hasDatabaseEnv()) {
+    return {
+      active: [],
+      closedByMonth: {},
+    }
+  }
 
   try {
     const sportsSlugResolver = await getSportsSlugResolverFromDb()
@@ -550,6 +563,10 @@ function chunkSitemapEntries(entries: SitemapRouteEntry[], chunkSize: number): S
 }
 
 async function resolveLocalizedSitemapChunkSize(): Promise<number> {
+  if (!hasDatabaseEnv()) {
+    return SITEMAP_URL_LIMIT
+  }
+
   const enabledLocales = await loadEnabledLocales()
   const localeCount = Math.max(enabledLocales.length, 1)
 

@@ -1,7 +1,11 @@
 import type { Metadata, Viewport } from 'next'
+import type { ReactNode } from 'react'
+import type { SupportedLocale } from '@/i18n/locales'
+import type { RuntimeThemeState } from '@/lib/theme-settings'
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+import { Suspense } from 'react'
 import CustomJavascriptCode from '@/components/CustomJavascriptCode'
 import GlobalAnnouncementBanner from '@/components/GlobalAnnouncementBanner'
 import PwaInstallStateSync from '@/components/PwaInstallStateSync'
@@ -13,14 +17,19 @@ import { routing } from '@/i18n/routing'
 import { openSauceOne } from '@/lib/fonts'
 import { loadGlobalAnnouncementSettings } from '@/lib/global-announcement-settings'
 import { IS_TEST_MODE } from '@/lib/network'
+import { getPublicRuntimeConfig } from '@/lib/public-runtime-config'
+import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
 import { resolvePwaThemeColors } from '@/lib/pwa-colors'
 import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 import { AppProviders } from '@/providers/AppProviders'
+import PublicRuntimeConfigProvider from '@/providers/PublicRuntimeConfigProvider'
 import SiteIdentityProvider from '@/providers/SiteIdentityProvider'
 import '../globals.css'
 
 export async function generateViewport(): Promise<Viewport> {
+  await deferPublicShellPrerenderIfNeeded()
+
   const runtimeTheme = await loadRuntimeThemeState()
   const { lightSurface, darkSurface } = resolvePwaThemeColors(runtimeTheme.theme)
 
@@ -33,6 +42,8 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  await deferPublicShellPrerenderIfNeeded()
+
   const runtimeTheme = await loadRuntimeThemeState()
   const site = runtimeTheme.site
   const siteUrl = resolveSiteUrl(process.env)
@@ -88,12 +99,20 @@ export async function generateStaticParams() {
   return [{ locale: 'en' }]
 }
 
-export default async function LocaleLayout({ params, children }: LayoutProps<'/[locale]'>) {
-  const { locale } = await params
+interface LocaleDocumentProps {
+  children: ReactNode
+  locale: SupportedLocale
+}
 
-  if (!hasLocale(routing.locales, locale)) {
-    notFound()
-  }
+interface LocaleRuntimeData {
+  globalAnnouncement: Awaited<ReturnType<typeof loadGlobalAnnouncementSettings>>
+  hasGlobalAnnouncement: boolean
+  publicRuntimeConfig: ReturnType<typeof getPublicRuntimeConfig>
+  runtimeTheme: RuntimeThemeState
+}
+
+async function loadLocaleRuntimeData(locale: SupportedLocale): Promise<LocaleRuntimeData> {
+  await deferPublicShellPrerenderIfNeeded()
 
   const enabledLocales = await loadEnabledLocales()
   if (!enabledLocales.includes(locale)) {
@@ -101,22 +120,52 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
   }
 
   const runtimeTheme = await loadRuntimeThemeState()
+  const publicRuntimeConfig = getPublicRuntimeConfig()
   const globalAnnouncement = await loadGlobalAnnouncementSettings()
   const hasGlobalAnnouncement = globalAnnouncement.message.trim().length > 0
 
   setRequestLocale(locale)
 
+  return {
+    globalAnnouncement,
+    hasGlobalAnnouncement,
+    publicRuntimeConfig,
+    runtimeTheme,
+  }
+}
+
+function ThemeDocumentState({
+  runtimeTheme,
+  syncRootPreset,
+}: {
+  runtimeTheme: RuntimeThemeState
+  syncRootPreset: boolean
+}) {
+  const setPresetScript = `document.documentElement.setAttribute('data-theme-preset',${JSON.stringify(runtimeTheme.theme.presetId)});`
+
   return (
-    <html
-      lang={locale}
-      className={openSauceOne.variable}
-      data-theme-preset={runtimeTheme.theme.presetId}
-      suppressHydrationWarning
-    >
-      <body className="flex min-h-screen flex-col font-sans">
-        <SiteStructuredData locale={locale} site={runtimeTheme.site} />
-        <PwaServiceWorker />
-        {runtimeTheme.theme.cssText && <style id="theme-vars" dangerouslySetInnerHTML={{ __html: runtimeTheme.theme.cssText }} />}
+    <>
+      {syncRootPreset && <script id="theme-preset-sync" dangerouslySetInnerHTML={{ __html: setPresetScript }} />}
+      {runtimeTheme.theme.cssText && <style id="theme-vars" dangerouslySetInnerHTML={{ __html: runtimeTheme.theme.cssText }} />}
+    </>
+  )
+}
+
+function LocaleBody({
+  children,
+  globalAnnouncement,
+  hasGlobalAnnouncement,
+  locale,
+  publicRuntimeConfig,
+  runtimeTheme,
+  syncRootPreset,
+}: LocaleDocumentProps & LocaleRuntimeData & { syncRootPreset: boolean }) {
+  return (
+    <body className="flex min-h-screen flex-col font-sans">
+      <ThemeDocumentState runtimeTheme={runtimeTheme} syncRootPreset={syncRootPreset} />
+      <SiteStructuredData locale={locale} site={runtimeTheme.site} />
+      <PwaServiceWorker />
+      <PublicRuntimeConfigProvider config={publicRuntimeConfig}>
         <SiteIdentityProvider site={runtimeTheme.site}>
           <NextIntlClientProvider locale={locale}>
             <AppProviders>
@@ -137,7 +186,72 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
             </AppProviders>
           </NextIntlClientProvider>
         </SiteIdentityProvider>
-      </body>
+      </PublicRuntimeConfigProvider>
+    </body>
+  )
+}
+
+async function PrerenderedLocaleDocument({ locale, children }: LocaleDocumentProps) {
+  const runtimeData = await loadLocaleRuntimeData(locale)
+
+  return (
+    <html
+      lang={locale}
+      className={openSauceOne.variable}
+      data-theme-preset={runtimeData.runtimeTheme.theme.presetId}
+      suppressHydrationWarning
+    >
+      <LocaleBody
+        {...runtimeData}
+        locale={locale}
+        syncRootPreset={false}
+      >
+        {children}
+      </LocaleBody>
     </html>
   )
+}
+
+async function RuntimeLocaleBody({ locale, children }: LocaleDocumentProps) {
+  const runtimeData = await loadLocaleRuntimeData(locale)
+
+  return (
+    <LocaleBody
+      {...runtimeData}
+      locale={locale}
+      syncRootPreset
+    >
+      {children}
+    </LocaleBody>
+  )
+}
+
+function RuntimeLocaleDocument({ locale, children }: LocaleDocumentProps) {
+  return (
+    <html
+      lang={locale}
+      className={openSauceOne.variable}
+      suppressHydrationWarning
+    >
+      <Suspense fallback={null}>
+        <RuntimeLocaleBody locale={locale}>
+          {children}
+        </RuntimeLocaleBody>
+      </Suspense>
+    </html>
+  )
+}
+
+export default async function LocaleLayout({ params, children }: LayoutProps<'/[locale]'>) {
+  const { locale } = await params
+
+  if (!hasLocale(routing.locales, locale)) {
+    notFound()
+  }
+
+  setRequestLocale(locale)
+
+  return shouldPrerenderPublicShell()
+    ? <PrerenderedLocaleDocument locale={locale}>{children}</PrerenderedLocaleDocument>
+    : <RuntimeLocaleDocument locale={locale}>{children}</RuntimeLocaleDocument>
 }

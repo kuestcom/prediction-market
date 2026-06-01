@@ -21,11 +21,16 @@ vi.mock('@reown/appkit/react', () => ({
 
 vi.mock('@/lib/appkit', () => ({
   __esModule: true,
-  projectId: 'test-project',
+  createAppKitWagmiAdapter: vi.fn(() => ({ wagmiConfig: {} })),
   defaultNetwork: { id: 1 },
   networks: [{ id: 1 }],
-  wagmiAdapter: {},
-  wagmiConfig: {},
+}))
+
+vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
+  usePublicRuntimeConfig: () => ({
+    reownAppKitProjectId: 'test-project',
+    siteUrl: 'https://markets.test',
+  }),
 }))
 
 vi.mock('wagmi', () => ({

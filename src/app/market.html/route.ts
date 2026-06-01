@@ -3,6 +3,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { EventRepository } from '@/lib/db/queries/event'
 import { EMBED_SCRIPT_URL, normalizeEmbedBaseUrl, requireEmbedValue } from '@/lib/embed-widget'
+import resolveSiteUrl from '@/lib/site-url'
 import { slugifySiteName } from '@/lib/slug'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
   const showFilters = showChart && features.has('filters')
   const navArrowColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(17, 24, 39, 0.9)'
 
-  const siteUrl = normalizeEmbedBaseUrl(requireEmbedValue(process.env.SITE_URL, 'SITE_URL'))
+  const siteUrl = normalizeEmbedBaseUrl(resolveSiteUrl(process.env))
   const scriptUrl = EMBED_SCRIPT_URL
   const runtimeTheme = await loadRuntimeThemeState()
   const siteName = requireEmbedValue(runtimeTheme.site.name, 'theme.site_name')

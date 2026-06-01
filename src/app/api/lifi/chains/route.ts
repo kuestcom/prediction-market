@@ -1,8 +1,11 @@
 import { getChains } from '@lifi/sdk'
 import { NextResponse } from 'next/server'
 import { ensureLiFiServerConfig } from '@/lib/lifi'
+import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 
 export async function GET() {
+  await deferPublicShellPrerenderIfNeeded()
+
   await ensureLiFiServerConfig()
 
   try {

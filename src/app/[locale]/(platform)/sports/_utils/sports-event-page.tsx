@@ -21,7 +21,7 @@ import { getEventRouteBySlug, resolveCanonicalEventSlugFromSportsPath } from '@/
 import { resolveEventBasePath, resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
 import { resolveSportsEventMarketViewKey } from '@/lib/sports-event-slugs'
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export interface SportsVerticalEventPageParams {
@@ -94,6 +94,10 @@ export async function generateSportsVerticalEventMetadata({
 }: SportsVerticalEventPageParams): Promise<Metadata> {
   setRequestLocale(locale)
 
+  if (shouldBypassPublicShellPlaceholder(sport, league, event)) {
+    return {}
+  }
+
   return await buildEventPageMetadata({
     eventSlug: await resolveCanonicalSportsEventSlug({ sport, league, event }),
     locale: locale as SupportedLocale,
@@ -108,6 +112,10 @@ export async function renderSportsVerticalEventPage({
   vertical,
 }: RenderSportsVerticalEventPageParams) {
   const resolvedLocale = locale as SupportedLocale
+  if (shouldBypassPublicShellPlaceholder(sport, league, event)) {
+    return null
+  }
+
   const canonicalEventSlug = await resolveCanonicalSportsEventSlug({ sport, league, event })
   const eventRoute = await getEventRouteBySlug(canonicalEventSlug)
   if (!eventRoute) {
@@ -190,6 +198,10 @@ export async function generateSportsVerticalEventMarketMetadata({
 }: SportsVerticalEventMarketPageParams): Promise<Metadata> {
   setRequestLocale(locale)
 
+  if (shouldBypassPublicShellPlaceholder(sport, league, event, market)) {
+    return {}
+  }
+
   return await buildEventPageMetadata({
     eventSlug: await resolveCanonicalSportsEventSlug({ sport, league, event }),
     locale: locale as SupportedLocale,
@@ -206,6 +218,10 @@ export async function renderSportsVerticalEventMarketPage({
   vertical,
 }: RenderSportsVerticalEventMarketPageParams) {
   const resolvedLocale = locale as SupportedLocale
+  if (shouldBypassPublicShellPlaceholder(sport, league, event, market)) {
+    return null
+  }
+
   const canonicalEventSlug = await resolveCanonicalSportsEventSlug({ sport, league, event })
   const eventRoute = await getEventRouteBySlug(canonicalEventSlug)
   if (!eventRoute) {

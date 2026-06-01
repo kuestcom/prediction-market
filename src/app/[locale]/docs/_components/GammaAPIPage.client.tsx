@@ -2,9 +2,10 @@
 
 import { Custom } from 'fumadocs-openapi/playground/client'
 import { defineClientConfig } from 'fumadocs-openapi/ui/client'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { OpenAPIPlaygroundResult } from '@/app/[locale]/docs/_components/OpenAPIPlaygroundResult'
 import { Input } from '@/components/ui/input'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 
 function resolveCreatorHostname(siteUrl: string | undefined): string {
   const raw = siteUrl?.trim()
@@ -20,10 +21,9 @@ function resolveCreatorHostname(siteUrl: string | undefined): string {
   }
 }
 
-const creatorHostname = resolveCreatorHostname(process.env.SITE_URL)
-
 function syncCreatorControllerValue(
   paramName: string,
+  creatorHostname: string,
   controller: ReturnType<typeof Custom.useController>,
 ) {
   if (paramName !== 'creator') {
@@ -36,14 +36,16 @@ function syncCreatorControllerValue(
 }
 
 function GammaParameterField({ fieldName, param }: { fieldName: (string | number)[], param: any }) {
+  const { siteUrl } = usePublicRuntimeConfig()
+  const creatorHostname = useMemo(() => resolveCreatorHostname(siteUrl), [siteUrl])
   const schema = param.schema ?? {}
   const controller = Custom.useController(fieldName, {
     defaultValue: param.name === 'creator' ? creatorHostname : schema.default,
   })
 
   useEffect(function syncFixedCreatorParameter() {
-    syncCreatorControllerValue(param.name, controller)
-  }, [controller, param.name])
+    syncCreatorControllerValue(param.name, creatorHostname, controller)
+  }, [controller, creatorHostname, param.name])
 
   const label = (
     <div className="flex items-center gap-1 text-xs font-medium">

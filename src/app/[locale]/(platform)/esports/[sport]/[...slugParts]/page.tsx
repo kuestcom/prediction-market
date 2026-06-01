@@ -9,10 +9,10 @@ import {
   renderSportsVerticalEventPage,
 } from '@/app/[locale]/(platform)/sports/_utils/sports-event-page'
 import { resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
-  return [{ sport: STATIC_PARAMS_PLACEHOLDER, slugParts: [STATIC_PARAMS_PLACEHOLDER] }]
+  return getPublicShellStaticParams({ sport: STATIC_PARAMS_PLACEHOLDER, slugParts: [STATIC_PARAMS_PLACEHOLDER] })
 }
 
 async function resolveLeagueEventPath(
@@ -42,6 +42,9 @@ export async function generateMetadata({
   const { locale, sport, slugParts } = await params
 
   if (sport === STATIC_PARAMS_PLACEHOLDER || slugParts.includes(STATIC_PARAMS_PLACEHOLDER)) {
+    if (shouldBypassPublicShellPlaceholder(sport, slugParts)) {
+      return {}
+    }
     notFound()
   }
 
@@ -91,6 +94,9 @@ export default async function EsportsSlugPartsPage({
   const { locale, sport, slugParts } = await params
 
   if (sport === STATIC_PARAMS_PLACEHOLDER || slugParts.includes(STATIC_PARAMS_PLACEHOLDER)) {
+    if (shouldBypassPublicShellPlaceholder(sport, slugParts)) {
+      return null
+    }
     notFound()
   }
 

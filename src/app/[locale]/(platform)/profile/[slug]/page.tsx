@@ -3,11 +3,11 @@ import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { buildPublicProfileMetadata, PublicProfilePageContent } from '@/app/[locale]/(platform)/_lib/public-profile-page'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { normalizeAddress } from '@/lib/wallet'
 
 export async function generateStaticParams() {
-  return [{ slug: STATIC_PARAMS_PLACEHOLDER }]
+  return getPublicShellStaticParams({ slug: STATIC_PARAMS_PLACEHOLDER })
 }
 
 function resolveProfileNamespaceSlug(slug: string) {
@@ -24,6 +24,9 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/profile/
   setRequestLocale(resolvedLocale)
 
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug)) {
+      return {}
+    }
     notFound()
   }
 
@@ -37,6 +40,9 @@ export default async function ProfileSlugPage({ params }: PageProps<'/[locale]/p
   const { locale, slug } = await params
   setRequestLocale(locale)
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(slug)) {
+      return null
+    }
     notFound()
   }
 

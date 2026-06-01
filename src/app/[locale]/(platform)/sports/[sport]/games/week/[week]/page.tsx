@@ -9,14 +9,14 @@ import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/s
 import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sports-menu-routing'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
-import { STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateStaticParams() {
-  return [{
+  return getPublicShellStaticParams({
     sport: STATIC_PARAMS_PLACEHOLDER,
     week: STATIC_PARAMS_PLACEHOLDER,
-  }]
+  })
 }
 
 async function resolveSportsSportContext(sport: string) {
@@ -57,6 +57,9 @@ export async function generateMetadata({
   setRequestLocale(locale)
 
   if (sport === STATIC_PARAMS_PLACEHOLDER || week === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(sport, week)) {
+      return {}
+    }
     notFound()
   }
 
@@ -92,6 +95,9 @@ export default async function SportsGamesBySportWeekPage({
   setRequestLocale(locale)
 
   if (sport === STATIC_PARAMS_PLACEHOLDER || week === STATIC_PARAMS_PLACEHOLDER) {
+    if (shouldBypassPublicShellPlaceholder(sport, week)) {
+      return null
+    }
     notFound()
   }
 

@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
+import { hasDatabaseEnv } from '@/lib/db/env'
 import { withLocalePrefix } from '@/lib/locale-path'
 import resolveSiteUrl from '@/lib/site-url'
 import {
@@ -39,7 +40,7 @@ export default async function sitemap({ id }: Props): Promise<MetadataRoute.Site
   const sitemapId = await id
   const siteUrl = resolveSiteUrl(process.env)
   const fallbackLastModified = formatDateForSitemap(new Date())
-  const enabledLocales = await loadEnabledLocales()
+  const enabledLocales = hasDatabaseEnv() ? await loadEnabledLocales() : [DEFAULT_LOCALE]
 
   return buildSitemapEntries(sitemapId, siteUrl, fallbackLastModified, enabledLocales)
 }
