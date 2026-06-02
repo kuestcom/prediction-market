@@ -9,9 +9,11 @@ import { useExtracted, useLocale } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { fetchAffiliateSettingsFromAPI } from '@/lib/affiliate-data'
@@ -385,6 +387,7 @@ export default function AffiliateWidgetDialog({
   categories,
 }: AffiliateWidgetDialogProps) {
   const t = useExtracted()
+  const isMobile = useIsMobile()
   const locale = useLocale()
   const site = useSiteIdentity()
   const { siteUrl } = usePublicRuntimeConfig()
@@ -477,6 +480,164 @@ export default function AffiliateWidgetDialog({
 
   const isLoadingCategory = isFetchingCategory
 
+  const embedBody = (
+    <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('THEME')}</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {(['light', 'dark'] as EmbedTheme[]).map(option => (
+              <button
+                key={option}
+                type="button"
+                className={cn(
+                  'h-10 rounded-md border px-3 text-sm font-semibold transition-colors',
+                  option === theme
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-muted text-muted-foreground hover:text-foreground',
+                )}
+                onClick={() => setTheme(option)}
+              >
+                {option === 'light' ? t('Light') : t('Dark')}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('Categories')}</Label>
+          <Select
+            value={selectedCategory}
+            onValueChange={handleSelectedCategoryChange}
+            disabled={categories.length === 0}
+          >
+            <SelectTrigger className={cn(`
+              w-full bg-transparent text-sm
+              hover:bg-transparent
+              dark:bg-transparent
+              dark:hover:bg-transparent
+            `)}
+            >
+              <SelectValue placeholder={t('Categories')} />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map(category => (
+                <SelectItem key={category.slug} value={category.slug}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('OPTIONS')}</Label>
+          <div className="rounded-md border border-border p-3">
+            <div className="flex flex-col gap-3 text-sm font-semibold text-foreground">
+              <label className="flex items-center justify-between gap-4">
+                <span>{t('Show Volume')}</span>
+                <Switch checked={showVolume} onCheckedChange={setShowVolume} />
+              </label>
+              <label className="flex items-center justify-between gap-4">
+                <span>{t('Show Chart')}</span>
+                <Switch checked={showChart} onCheckedChange={handleShowChartChange} />
+              </label>
+              {showChart
+                ? (
+                    <label className="flex items-center justify-between gap-4">
+                      <span>{t('Show Time Range Selector')}</span>
+                      <Switch checked={showTimeRange} onCheckedChange={setShowTimeRange} />
+                    </label>
+                  )
+                : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('EMBED CODE')}</Label>
+            <div className="flex items-center gap-2">
+              <Select value={embedType} onValueChange={value => setEmbedType(value as EmbedType)}>
+                <SelectTrigger size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="iframe">{t('Iframe')}</SelectItem>
+                  <SelectItem value="web-component">{t('Web component')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button type="button" size="sm" variant="outline" onClick={handleCopy} disabled={!canCopy}>
+                {copied ? <CheckIcon /> : <CopyIcon />}
+                {t('Copy')}
+              </Button>
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-md border border-border bg-muted/70 p-4">
+            {embedType === 'iframe'
+              ? (
+                  iframeSrc
+                    ? <EmbedCodePreview lines={iframeLines} />
+                    : <p className="text-sm text-muted-foreground">{t('No market available for this event')}</p>
+                )
+              : selectedMarket
+                ? (
+                    <EmbedCodePreview lines={webComponentLines} />
+                  )
+                : (
+                    <p className="text-sm text-muted-foreground">{t('No market available for this event')}</p>
+                  )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex h-full flex-col gap-3">
+        <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('PREVIEW')}</Label>
+        <div
+          className="relative flex flex-1 items-center justify-center overflow-hidden rounded-md bg-[#f7f7f9] p-2"
+          style={{ minHeight: `${iframeHeight}px` }}
+        >
+          {isLoadingCategory
+            ? (
+                <p className="text-sm text-muted-foreground">{t('Searching events...')}</p>
+              )
+            : previewSrc
+              ? (
+                  <iframe
+                    title={t('Embed preview')}
+                    src={previewSrc}
+                    style={{ height: `${iframeHeight}px` }}
+                    className="w-100 max-w-full border-0 bg-transparent"
+                  />
+                )
+              : (
+                  <p className="px-4 text-center text-sm text-muted-foreground">
+                    {categoryLoadFailed
+                      ? t('Unable to load widgets for this category. Please try again later.')
+                      : t('No market available for this event')}
+                  </p>
+                )}
+        </div>
+      </div>
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={handleDialogOpenChange}>
+        <DrawerContent className="max-h-[92vh] w-full overflow-y-auto bg-background px-4 pt-4 pb-6">
+          <div className="space-y-6">
+            <DrawerHeader className="p-0 text-center">
+              <DrawerTitle className="text-center text-2xl font-bold">{t('Embed')}</DrawerTitle>
+            </DrawerHeader>
+
+            {embedBody}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-4xl sm:max-w-4xl sm:p-8">
@@ -485,145 +646,7 @@ export default function AffiliateWidgetDialog({
             <DialogTitle className="text-center text-2xl font-bold">{t('Embed')}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('THEME')}</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['light', 'dark'] as EmbedTheme[]).map(option => (
-                    <button
-                      key={option}
-                      type="button"
-                      className={cn(
-                        'h-10 rounded-md border px-3 text-sm font-semibold transition-colors',
-                        option === theme
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border bg-muted text-muted-foreground hover:text-foreground',
-                      )}
-                      onClick={() => setTheme(option)}
-                    >
-                      {option === 'light' ? t('Light') : t('Dark')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('Categories')}</Label>
-                <Select
-                  value={selectedCategory}
-                  onValueChange={handleSelectedCategoryChange}
-                  disabled={categories.length === 0}
-                >
-                  <SelectTrigger className={cn(`
-                    w-full bg-transparent text-sm
-                    hover:bg-transparent
-                    dark:bg-transparent
-                    dark:hover:bg-transparent
-                  `)}
-                  >
-                    <SelectValue placeholder={t('Categories')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(category => (
-                      <SelectItem key={category.slug} value={category.slug}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-3">
-                <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('OPTIONS')}</Label>
-                <div className="rounded-md border border-border p-3">
-                  <div className="flex flex-col gap-3 text-sm font-semibold text-foreground">
-                    <label className="flex items-center justify-between gap-4">
-                      <span>{t('Show Volume')}</span>
-                      <Switch checked={showVolume} onCheckedChange={setShowVolume} />
-                    </label>
-                    <label className="flex items-center justify-between gap-4">
-                      <span>{t('Show Chart')}</span>
-                      <Switch checked={showChart} onCheckedChange={handleShowChartChange} />
-                    </label>
-                    {showChart
-                      ? (
-                          <label className="flex items-center justify-between gap-4">
-                            <span>{t('Show Time Range Selector')}</span>
-                            <Switch checked={showTimeRange} onCheckedChange={setShowTimeRange} />
-                          </label>
-                        )
-                      : null}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('EMBED CODE')}</Label>
-                  <div className="flex items-center gap-2">
-                    <Select value={embedType} onValueChange={value => setEmbedType(value as EmbedType)}>
-                      <SelectTrigger size="sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="iframe">{t('Iframe')}</SelectItem>
-                        <SelectItem value="web-component">{t('Web component')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button type="button" size="sm" variant="outline" onClick={handleCopy} disabled={!canCopy}>
-                      {copied ? <CheckIcon /> : <CopyIcon />}
-                      {t('Copy')}
-                    </Button>
-                  </div>
-                </div>
-                <div className="overflow-x-auto rounded-md border border-border bg-muted/70 p-4">
-                  {embedType === 'iframe'
-                    ? (
-                        iframeSrc
-                          ? <EmbedCodePreview lines={iframeLines} />
-                          : <p className="text-sm text-muted-foreground">{t('No market available for this event')}</p>
-                      )
-                    : selectedMarket
-                      ? (
-                          <EmbedCodePreview lines={webComponentLines} />
-                        )
-                      : (
-                          <p className="text-sm text-muted-foreground">{t('No market available for this event')}</p>
-                        )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex h-full flex-col gap-3">
-              <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('PREVIEW')}</Label>
-              <div
-                className="relative flex flex-1 items-center justify-center overflow-hidden rounded-md bg-[#f7f7f9] p-2"
-                style={{ minHeight: `${iframeHeight}px` }}
-              >
-                {isLoadingCategory
-                  ? (
-                      <p className="text-sm text-muted-foreground">{t('Searching events...')}</p>
-                    )
-                  : previewSrc
-                    ? (
-                        <iframe
-                          title={t('Embed preview')}
-                          src={previewSrc}
-                          style={{ height: `${iframeHeight}px` }}
-                          className="w-100 max-w-full border-0 bg-transparent"
-                        />
-                      )
-                    : (
-                        <p className="px-4 text-center text-sm text-muted-foreground">
-                          {categoryLoadFailed
-                            ? t('Unable to load widgets for this category. Please try again later.')
-                            : t('No market available for this event')}
-                        </p>
-                      )}
-              </div>
-            </div>
-          </div>
+          {embedBody}
         </div>
       </DialogContent>
     </Dialog>

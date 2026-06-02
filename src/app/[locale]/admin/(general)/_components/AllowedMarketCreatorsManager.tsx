@@ -15,8 +15,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import {
   DEMO_ALLOWED_MARKET_CREATOR_DISPLAY_NAME,
   isAdminAllowedMarketCreatorsResponse,
@@ -154,6 +163,7 @@ export default function AllowedMarketCreatorsManager({
   disabled = false,
 }: AllowedMarketCreatorsManagerProps) {
   const t = useExtracted()
+  const isMobile = useIsMobile()
   const {
     items,
     setItems,
@@ -270,6 +280,83 @@ export default function AllowedMarketCreatorsManager({
     void removeItem(item)
   }
 
+  function handleAddSourceDialogOpenChange(nextOpen: boolean) {
+    if (!isSubmitting) {
+      setDialogOpen(nextOpen)
+    }
+  }
+
+  function handleRemoveSourceDialogOpenChange(nextOpen: boolean) {
+    if (!isRemoving && !nextOpen) {
+      setItemPendingRemoval(null)
+    }
+  }
+
+  const addSourceFields = (
+    <div className="grid gap-4">
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant={dialogMode === 'site' ? 'default' : 'outline'}
+          className="flex-1"
+          onClick={() => setDialogMode('site')}
+          disabled={isSubmitting}
+        >
+          {t('Site URL')}
+        </Button>
+        <Button
+          type="button"
+          variant={dialogMode === 'wallet' ? 'default' : 'outline'}
+          className="flex-1"
+          onClick={() => setDialogMode('wallet')}
+          disabled={isSubmitting}
+        >
+          {t('Wallet + name')}
+        </Button>
+      </div>
+
+      {dialogMode === 'site'
+        ? (
+            <div className="grid gap-2">
+              <Label htmlFor="allowed-market-source-url">{t('Kuest site URL or domain')}</Label>
+              <Input
+                id="allowed-market-source-url"
+                value={siteUrl}
+                onChange={event => setSiteUrl(event.target.value)}
+                placeholder="site2.com"
+                disabled={isSubmitting}
+              />
+            </div>
+          )
+        : (
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="allowed-market-source-name">{t('Wallet name')}</Label>
+                <Input
+                  id="allowed-market-source-name"
+                  value={walletName}
+                  onChange={event => setWalletName(event.target.value)}
+                  placeholder="Site 2 creator"
+                  maxLength={80}
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="allowed-market-source-wallet">{t('Wallet address')}</Label>
+                <Input
+                  id="allowed-market-source-wallet"
+                  value={walletAddress}
+                  onChange={event => setWalletAddress(event.target.value)}
+                  placeholder="0xabc..."
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+          )}
+    </div>
+  )
+
   return (
     <>
       <div className="grid gap-3">
@@ -344,129 +431,111 @@ export default function AllowedMarketCreatorsManager({
               )}
       </div>
 
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={(nextOpen) => {
-          if (!isSubmitting) {
-            setDialogOpen(nextOpen)
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t('Add mirrored market source')}</DialogTitle>
-            <DialogDescription>
-              {t('Choose whether you want to add a Kuest site URL or a wallet with a display name.')}
-            </DialogDescription>
-          </DialogHeader>
+      {isMobile
+        ? (
+            <Drawer open={dialogOpen} onOpenChange={handleAddSourceDialogOpenChange}>
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <DrawerHeader className="space-y-2 p-0 text-left">
+                  <DrawerTitle>{t('Add mirrored market source')}</DrawerTitle>
+                  <DrawerDescription>
+                    {t('Choose whether you want to add a Kuest site URL or a wallet with a display name.')}
+                  </DrawerDescription>
+                </DrawerHeader>
 
-          <div className="grid gap-4">
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={dialogMode === 'site' ? 'default' : 'outline'}
-                className="flex-1"
-                onClick={() => setDialogMode('site')}
-                disabled={isSubmitting}
-              >
-                {t('Site URL')}
-              </Button>
-              <Button
-                type="button"
-                variant={dialogMode === 'wallet' ? 'default' : 'outline'}
-                className="flex-1"
-                onClick={() => setDialogMode('wallet')}
-                disabled={isSubmitting}
-              >
-                {t('Wallet + name')}
-              </Button>
-            </div>
+                <div className="py-4">{addSourceFields}</div>
 
-            {dialogMode === 'site'
-              ? (
-                  <div className="grid gap-2">
-                    <Label htmlFor="allowed-market-source-url">{t('Kuest site URL or domain')}</Label>
-                    <Input
-                      id="allowed-market-source-url"
-                      value={siteUrl}
-                      onChange={event => setSiteUrl(event.target.value)}
-                      placeholder="site2.com"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                )
-              : (
-                  <div className="grid gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="allowed-market-source-name">{t('Wallet name')}</Label>
-                      <Input
-                        id="allowed-market-source-name"
-                        value={walletName}
-                        onChange={event => setWalletName(event.target.value)}
-                        placeholder="Site 2 creator"
-                        maxLength={80}
-                        disabled={isSubmitting}
-                      />
-                    </div>
+                <DrawerFooter className="p-0">
+                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSubmitting}>
+                    {t('Cancel')}
+                  </Button>
+                  <Button type="button" onClick={() => void handleAddSource()} disabled={submitDisabled}>
+                    {isSubmitting && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                    {t('Add source')}
+                  </Button>
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog open={dialogOpen} onOpenChange={handleAddSourceDialogOpenChange}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{t('Add mirrored market source')}</DialogTitle>
+                  <DialogDescription>
+                    {t('Choose whether you want to add a Kuest site URL or a wallet with a display name.')}
+                  </DialogDescription>
+                </DialogHeader>
 
-                    <div className="grid gap-2">
-                      <Label htmlFor="allowed-market-source-wallet">{t('Wallet address')}</Label>
-                      <Input
-                        id="allowed-market-source-wallet"
-                        value={walletAddress}
-                        onChange={event => setWalletAddress(event.target.value)}
-                        placeholder="0xabc..."
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-                )}
-          </div>
+                {addSourceFields}
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSubmitting}>
-              {t('Cancel')}
-            </Button>
-            <Button type="button" onClick={() => void handleAddSource()} disabled={submitDisabled}>
-              {isSubmitting && <Loader2Icon className="mr-2 size-4 animate-spin" />}
-              {t('Add source')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSubmitting}>
+                    {t('Cancel')}
+                  </Button>
+                  <Button type="button" onClick={() => void handleAddSource()} disabled={submitDisabled}>
+                    {isSubmitting && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                    {t('Add source')}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
 
-      <Dialog
-        open={Boolean(itemPendingRemoval)}
-        onOpenChange={(nextOpen) => {
-          if (!isRemoving && !nextOpen) {
-            setItemPendingRemoval(null)
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t('Remove demo.kuest.com?')}</DialogTitle>
-            <DialogDescription>
-              {t('Are you sure? You will stop receiving mirrored markets from Polymarket.')}
-            </DialogDescription>
-          </DialogHeader>
+      {isMobile
+        ? (
+            <Drawer open={Boolean(itemPendingRemoval)} onOpenChange={handleRemoveSourceDialogOpenChange}>
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <DrawerHeader className="space-y-2 p-0 text-left">
+                  <DrawerTitle>{t('Remove demo.kuest.com?')}</DrawerTitle>
+                  <DrawerDescription>
+                    {t('Are you sure? You will stop receiving mirrored markets from Polymarket.')}
+                  </DrawerDescription>
+                </DrawerHeader>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setItemPendingRemoval(null)} disabled={isRemoving}>
-              {t('Cancel')}
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => itemPendingRemoval && void removeItem(itemPendingRemoval)}
-              disabled={isRemoving || !itemPendingRemoval}
-            >
-              {isRemoving && <Loader2Icon className="mr-2 size-4 animate-spin" />}
-              {t('Remove')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                <DrawerFooter className="mt-6 p-0">
+                  <Button type="button" variant="outline" onClick={() => setItemPendingRemoval(null)} disabled={isRemoving}>
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => itemPendingRemoval && void removeItem(itemPendingRemoval)}
+                    disabled={isRemoving || !itemPendingRemoval}
+                  >
+                    {isRemoving && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                    {t('Remove')}
+                  </Button>
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog open={Boolean(itemPendingRemoval)} onOpenChange={handleRemoveSourceDialogOpenChange}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{t('Remove demo.kuest.com?')}</DialogTitle>
+                  <DialogDescription>
+                    {t('Are you sure? You will stop receiving mirrored markets from Polymarket.')}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setItemPendingRemoval(null)} disabled={isRemoving}>
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => itemPendingRemoval && void removeItem(itemPendingRemoval)}
+                    disabled={isRemoving || !itemPendingRemoval}
+                  >
+                    {isRemoving && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                    {t('Remove')}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
     </>
   )
 }

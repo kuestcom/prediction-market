@@ -6,6 +6,8 @@ import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { buildUmaProposeUrl, buildUmaSettledUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
@@ -35,6 +37,7 @@ export default function EventMarketChance({
   showInReviewTag = false,
 }: EventMarketChanceProps) {
   const t = useExtracted()
+  const isMobile = useIsMobile()
   const siteIdentity = useSiteIdentity()
   const { isResolutionDialogOpen, setIsResolutionDialogOpen, umaDetailsUrl } = useResolutionDialog(market, siteIdentity.name)
   const chanceChangeColorClass = chanceMeta.isChanceChangePositive ? 'text-yes' : 'text-no'
@@ -44,6 +47,27 @@ export default function EventMarketChance({
   const baseClass = layout === 'mobile'
     ? 'text-lg font-medium'
     : 'text-3xl font-medium'
+
+  const resolutionContent = (
+    <>
+      <div className="mt-2">
+        <ResolutionTimelinePanel market={market} settledUrl={umaDetailsUrl} showLink={false} />
+      </div>
+      {umaDetailsUrl && (
+        <div className="mt-3 flex justify-end">
+          <a
+            href={umaDetailsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:underline"
+          >
+            <span>{t('View details')}</span>
+            <ExternalLinkIcon className="size-3.5" />
+          </a>
+        </div>
+      )}
+    </>
+  )
 
   return (
     <div
@@ -100,31 +124,31 @@ export default function EventMarketChance({
         </div>
       )}
 
-      {showInReviewTag && (
-        <Dialog open={isResolutionDialogOpen} onOpenChange={setIsResolutionDialogOpen}>
-          <DialogContent className="sm:max-w-lg sm:p-6">
-            <DialogHeader>
-              <DialogTitle className="text-center text-2xl font-bold">{t('Resolution')}</DialogTitle>
-            </DialogHeader>
-            <div className="mt-2">
-              <ResolutionTimelinePanel market={market} settledUrl={umaDetailsUrl} showLink={false} />
-            </div>
-            {umaDetailsUrl && (
-              <div className="mt-3 flex justify-end">
-                <a
-                  href={umaDetailsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:underline"
-                >
-                  <span>{t('View details')}</span>
-                  <ExternalLinkIcon className="size-3.5" />
-                </a>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
+      {showInReviewTag && isMobile
+        ? (
+            <Drawer open={isResolutionDialogOpen} onOpenChange={setIsResolutionDialogOpen}>
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <DrawerHeader className="space-y-3 text-center">
+                  <DrawerTitle className="text-center text-2xl font-bold">{t('Resolution')}</DrawerTitle>
+                </DrawerHeader>
+                {resolutionContent}
+              </DrawerContent>
+            </Drawer>
+          )
+        : null}
+
+      {showInReviewTag && !isMobile
+        ? (
+            <Dialog open={isResolutionDialogOpen} onOpenChange={setIsResolutionDialogOpen}>
+              <DialogContent className="sm:max-w-lg sm:p-6">
+                <DialogHeader>
+                  <DialogTitle className="text-center text-2xl font-bold">{t('Resolution')}</DialogTitle>
+                </DialogHeader>
+                {resolutionContent}
+              </DialogContent>
+            </Dialog>
+          )
+        : null}
     </div>
   )
 }

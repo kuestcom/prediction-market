@@ -25,8 +25,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { Textarea } from '@/components/ui/textarea'
 import { useAppKit } from '@/hooks/useAppKit'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import {
   buildClobSdkEnvBlock,
@@ -45,6 +54,7 @@ type SdkKeyOperation = 'generate' | 'revoke'
 
 export default function SettingsSdkApiKeysContent() {
   const t = useExtracted()
+  const isMobile = useIsMobile()
   const account = useAccount()
   const { open: openAppKit, isReady: isAppKitReady } = useAppKit()
   const { signTypedDataAsync } = useSignTypedData()
@@ -251,48 +261,95 @@ export default function SettingsSdkApiKeysContent() {
         </Button>
       </section>
 
-      <Dialog open={credentialsDialogOpen && hasCredentials} onOpenChange={handleCredentialsDialogOpenChange}>
-        <DialogContent className="bg-background sm:max-w-2xl">
-          <DialogHeader className="pr-8">
-            <DialogTitle>{t('SDK API key')}</DialogTitle>
-            <DialogDescription>
-              {t('Copy these credentials to your SDK environment.')}
-            </DialogDescription>
-          </DialogHeader>
+      {isMobile
+        ? (
+            <Drawer open={credentialsDialogOpen && hasCredentials} onOpenChange={handleCredentialsDialogOpenChange}>
+              <DrawerContent className="max-h-[90vh] w-full overflow-y-auto bg-background px-4 pt-4 pb-6">
+                <DrawerHeader className="space-y-2 p-0 text-left">
+                  <DrawerTitle>{t('SDK API key')}</DrawerTitle>
+                  <DrawerDescription>
+                    {t('Copy these credentials to your SDK environment.')}
+                  </DrawerDescription>
+                </DrawerHeader>
 
-          <div className="grid gap-4">
-            {credentials?.clob && (
-              <CredentialBlock
-                title={t('CLOB')}
-                value={buildClobSdkEnvBlock(credentials.address, credentials.clob)}
-                onCopy={value => handleCopy('CLOB', value)}
-              />
-            )}
-            {credentials?.relayer && (
-              <CredentialBlock
-                title={t('Relayer')}
-                value={buildRelayerBuilderSdkEnvBlock(credentials.relayer)}
-                onCopy={value => handleCopy('Relayer', value)}
-              />
-            )}
-          </div>
+                <div className="grid gap-4 py-4">
+                  {credentials?.clob && (
+                    <CredentialBlock
+                      title={t('CLOB')}
+                      value={buildClobSdkEnvBlock(credentials.address, credentials.clob)}
+                      onCopy={value => handleCopy('CLOB', value)}
+                    />
+                  )}
+                  {credentials?.relayer && (
+                    <CredentialBlock
+                      title={t('Relayer')}
+                      value={buildRelayerBuilderSdkEnvBlock(credentials.relayer)}
+                      onCopy={value => handleCopy('Relayer', value)}
+                    />
+                  )}
+                </div>
 
-          <DialogFooter className="sm:justify-start">
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={handleRevokeKey}
-              disabled={isPending}
-            >
-              {pendingOperation === 'revoke'
-                ? <Loader2Icon className="size-4 animate-spin" />
-                : <Trash2Icon className="size-4" />}
-              {t('Revoke')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                <DrawerFooter className="p-0">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleRevokeKey}
+                    disabled={isPending}
+                  >
+                    {pendingOperation === 'revoke'
+                      ? <Loader2Icon className="size-4 animate-spin" />
+                      : <Trash2Icon className="size-4" />}
+                    {t('Revoke')}
+                  </Button>
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog open={credentialsDialogOpen && hasCredentials} onOpenChange={handleCredentialsDialogOpenChange}>
+              <DialogContent className="bg-background sm:max-w-2xl">
+                <DialogHeader className="pr-8">
+                  <DialogTitle>{t('SDK API key')}</DialogTitle>
+                  <DialogDescription>
+                    {t('Copy these credentials to your SDK environment.')}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid gap-4">
+                  {credentials?.clob && (
+                    <CredentialBlock
+                      title={t('CLOB')}
+                      value={buildClobSdkEnvBlock(credentials.address, credentials.clob)}
+                      onCopy={value => handleCopy('CLOB', value)}
+                    />
+                  )}
+                  {credentials?.relayer && (
+                    <CredentialBlock
+                      title={t('Relayer')}
+                      value={buildRelayerBuilderSdkEnvBlock(credentials.relayer)}
+                      onCopy={value => handleCopy('Relayer', value)}
+                    />
+                  )}
+                </div>
+
+                <DialogFooter className="sm:justify-start">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleRevokeKey}
+                    disabled={isPending}
+                  >
+                    {pendingOperation === 'revoke'
+                      ? <Loader2Icon className="size-4 animate-spin" />
+                      : <Trash2Icon className="size-4" />}
+                    {t('Revoke')}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
     </>
   )
 }

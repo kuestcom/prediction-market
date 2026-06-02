@@ -15,6 +15,7 @@ interface EventLimitExpirationCalendarProps {
   value?: Date
   onChange?: (value: Date) => void
   title?: string
+  className?: string
   onCancel?: () => void
   onApply?: () => void
   cancelLabel?: string
@@ -48,6 +49,7 @@ export default function EventLimitExpirationCalendar({
   value,
   onChange,
   title,
+  className,
   onCancel,
   onApply,
   cancelLabel,
@@ -70,7 +72,7 @@ export default function EventLimitExpirationCalendar({
   }
 
   return (
-    <Card className="w-full max-w-md min-w-[320px] gap-0">
+    <Card className={cn('w-full max-w-md min-w-[320px] gap-0', className)}>
       {title && (
         <CardHeader className="pt-6 pb-4">
           <DialogTitle>{title}</DialogTitle>
@@ -92,7 +94,7 @@ export default function EventLimitExpirationCalendar({
           classNames={{ root: 'w-full' }}
         />
       </CardContent>
-      <CardFooter className="flex flex-col items-stretch gap-4 border-t py-4">
+      <CardFooter className="mt-12 flex flex-col items-stretch gap-4 border-t py-4 lg:mt-8">
         <div className="flex w-full flex-col gap-3">
           <Label htmlFor="expiration-time">{t('Expiration Time')}</Label>
           <div className="relative flex w-full items-center gap-2">

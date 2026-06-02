@@ -417,6 +417,38 @@ export default function AdminCategoriesTable() {
     </div>
   )
 
+  const translationFormFields = (
+    <div className="grid gap-4 py-4">
+      <div className="grid gap-2">
+        <Label htmlFor="translation-en">{t('English (source)')}</Label>
+        <Input
+          id="translation-en"
+          value={translationCategory?.name ?? ''}
+          readOnly
+          disabled
+        />
+      </div>
+
+      {NON_DEFAULT_LOCALES.map((locale) => {
+        const fieldId = `translation-${locale}`
+        return (
+          <div key={locale} className="grid gap-2">
+            <Label htmlFor={fieldId}>{LOCALE_LABELS[locale]}</Label>
+            <Input
+              id={fieldId}
+              value={translationValues[locale] ?? ''}
+              onChange={event => handleTranslationChange(locale, event.target.value)}
+              placeholder={t('Translation for {locale}', { locale: LOCALE_LABELS[locale] })}
+              disabled={isSavingTranslations}
+            />
+          </div>
+        )
+      })}
+
+      {translationError && <InputError message={translationError} />}
+    </div>
+  )
+
   return (
     <>
       <DataTable
@@ -445,77 +477,97 @@ export default function AdminCategoriesTable() {
         toolbarRightContent={sortMainCategoriesControl}
       />
 
-      <Dialog
-        open={Boolean(translationCategory)}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeTranslationsDialog()
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-xl">
-          <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              void handleSaveTranslations()
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>{t('Category translations')}</DialogTitle>
-              <DialogDescription>
-                {t('Update non-English labels for this category. English remains the value in the main category table.')}
-              </DialogDescription>
-            </DialogHeader>
+      {isMobile
+        ? (
+            <Drawer
+              open={Boolean(translationCategory)}
+              onOpenChange={(open) => {
+                if (!open) {
+                  closeTranslationsDialog()
+                }
+              }}
+            >
+              <DrawerContent className="max-h-[90vh] w-full overflow-y-auto bg-background px-4 pt-4 pb-6">
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void handleSaveTranslations()
+                  }}
+                >
+                  <DrawerHeader className="mt-4 space-y-2 p-0 text-left">
+                    <DrawerTitle>{t('Category translations')}</DrawerTitle>
+                    <DrawerDescription>
+                      {t('Update non-English labels for this category. English remains the value in the main category table.')}
+                    </DrawerDescription>
+                  </DrawerHeader>
 
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="translation-en">{t('English (source)')}</Label>
-                <Input
-                  id="translation-en"
-                  value={translationCategory?.name ?? ''}
-                  readOnly
-                  disabled
-                />
-              </div>
+                  {translationFormFields}
 
-              {NON_DEFAULT_LOCALES.map((locale) => {
-                const fieldId = `translation-${locale}`
-                return (
-                  <div key={locale} className="grid gap-2">
-                    <Label htmlFor={fieldId}>{LOCALE_LABELS[locale]}</Label>
-                    <Input
-                      id={fieldId}
-                      value={translationValues[locale] ?? ''}
-                      onChange={event => handleTranslationChange(locale, event.target.value)}
-                      placeholder={t('Translation for {locale}', { locale: LOCALE_LABELS[locale] })}
+                  <DrawerFooter className="mt-2 p-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={closeTranslationsDialog}
                       disabled={isSavingTranslations}
-                    />
-                  </div>
-                )
-              })}
+                    >
+                      {t('Cancel')}
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSavingTranslations}
+                    >
+                      {isSavingTranslations ? t('Saving...') : t('Save')}
+                    </Button>
+                  </DrawerFooter>
+                </form>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog
+              open={Boolean(translationCategory)}
+              onOpenChange={(open) => {
+                if (!open) {
+                  closeTranslationsDialog()
+                }
+              }}
+            >
+              <DialogContent className="sm:max-w-xl">
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void handleSaveTranslations()
+                  }}
+                >
+                  <DialogHeader>
+                    <DialogTitle>{t('Category translations')}</DialogTitle>
+                    <DialogDescription>
+                      {t('Update non-English labels for this category. English remains the value in the main category table.')}
+                    </DialogDescription>
+                  </DialogHeader>
 
-              {translationError && <InputError message={translationError} />}
-            </div>
+                  {translationFormFields}
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={closeTranslationsDialog}
-                disabled={isSavingTranslations}
-              >
-                {t('Cancel')}
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSavingTranslations}
-              >
-                {isSavingTranslations ? t('Saving...') : t('Save')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={closeTranslationsDialog}
+                      disabled={isSavingTranslations}
+                    >
+                      {t('Cancel')}
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSavingTranslations}
+                    >
+                      {isSavingTranslations ? t('Saving...') : t('Save')}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
 
       {isMobile
         ? (

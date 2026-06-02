@@ -18,7 +18,9 @@ import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
@@ -195,6 +197,7 @@ function useMarketsWonShareOnX({
 
 export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarketsWonCardClientProps) {
   const t = useExtracted()
+  const isMobile = useIsMobile()
   const { markets } = data
   const {
     isSubmitting,
@@ -395,216 +398,243 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     return null
   }
 
-  return (
-    <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
-      <Card className="relative z-0 w-full rounded-lg border bg-transparent">
-        <CardContent
-          className={cn(`
-            flex flex-nowrap items-center justify-between gap-2 p-3
-            sm:gap-4 sm:pl-4
-            md:gap-6 md:py-4 md:pr-4 md:pl-6
-          `)}
-        >
-          <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
-            <div className="relative isolate h-10 w-14 shrink-0 sm:ml-2 sm:h-12 sm:w-17">
-              {previewMarkets.map((market, index) => {
-                const stackClassByIndex = [
-                  'left-[-0.625rem] top-0 -rotate-[13deg] z-10 sm:left-[-0.875rem]',
-                  'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]',
-                  'right-[-0.625rem] top-[0.125rem] rotate-[19deg] z-30 sm:right-[-0.875rem]',
-                ] as const
-                const stackClass = previewMarkets.length <= 1
-                  ? 'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]'
-                  : stackClassByIndex[Math.min(index, 2)]
-                const showOverflowCount = index === 2 && previewExtraCount > 0
+  const claimTriggerButton = (
+    <Button
+      className="h-9 shrink-0 rounded-md px-3 text-xs sm:h-10 sm:px-7 sm:text-sm"
+      disabled={!hasClaimableMarkets}
+    >
+      <BanknoteArrowDownIcon className="size-4" />
+      {t('Claim')}
+    </Button>
+  )
 
-                return (
-                  <div
-                    key={market.conditionId}
-                    className={cn(`
-                      absolute size-9 overflow-hidden rounded-lg border-2 border-foreground bg-muted shadow-sm
-                      motion-safe:animate-in motion-safe:duration-300 motion-safe:fade-in-0 motion-safe:zoom-in-95
-                      motion-reduce:animate-none
-                      sm:size-11
-                      ${stackClass}
-                    `)}
-                    style={{ animationDelay: `${index * 55}ms` }}
-                  >
-                    {market?.imageUrl
-                      ? (
-                          <EventIconImage
-                            src={market.imageUrl}
-                            alt={market.title}
-                            sizes="(max-width: 640px) 36px, 44px"
-                            containerClassName="size-full"
-                          />
-                        )
-                      : (
-                          <div className="grid size-full place-items-center text-2xs text-muted-foreground">
-                            ?
-                          </div>
-                        )}
-                    {showOverflowCount && (
-                      <div
-                        className={cn(`
-                          absolute inset-0 grid place-items-center bg-black/40 text-xs font-bold text-white
-                          sm:text-sm
-                        `)}
-                      >
-                        +
-                        {previewExtraCount}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+  const claimCard = (
+    <Card className="relative z-0 w-full rounded-lg border bg-transparent">
+      <CardContent
+        className={cn(`
+          flex flex-nowrap items-center justify-between gap-2 p-3
+          sm:gap-4 sm:pl-4
+          md:gap-6 md:py-4 md:pr-4 md:pl-6
+        `)}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
+          <div className="relative isolate h-10 w-14 shrink-0 sm:ml-2 sm:h-12 sm:w-17">
+            {previewMarkets.map((market, index) => {
+              const stackClassByIndex = [
+                'left-[-0.625rem] top-0 -rotate-[13deg] z-10 sm:left-[-0.875rem]',
+                'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]',
+                'right-[-0.625rem] top-[0.125rem] rotate-[19deg] z-30 sm:right-[-0.875rem]',
+              ] as const
+              const stackClass = previewMarkets.length <= 1
+                ? 'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]'
+                : stackClassByIndex[Math.min(index, 2)]
+              const showOverflowCount = index === 2 && previewExtraCount > 0
 
-            <div className="min-w-0 flex-1 text-left sm:pl-2">
-              <p
-                className={cn(`
-                  inline-flex max-w-full items-center gap-1.5 text-sm font-semibold whitespace-nowrap
-                  text-muted-foreground
-                  sm:gap-2 sm:text-base
-                `)}
-              >
-                <span>{t('You won')}</span>
-                <span className="text-lg leading-none font-semibold text-foreground tabular-nums sm:text-2xl">
-                  {formatCurrency(visibleTotalProceeds)}
-                </span>
-              </p>
-            </div>
-          </div>
-
-          <DialogTrigger asChild>
-            <Button
-              className="h-9 shrink-0 rounded-md px-3 text-xs sm:h-10 sm:px-7 sm:text-sm"
-              disabled={!hasClaimableMarkets}
-            >
-              <BanknoteArrowDownIcon className="size-4" />
-              {t('Claim')}
-            </Button>
-          </DialogTrigger>
-        </CardContent>
-      </Card>
-
-      <DialogContent className="max-w-88 space-y-4 p-5 text-center sm:p-6">
-        <DialogTitle className="sr-only">{t('You Won')}</DialogTitle>
-
-        <div className="flex justify-center">
-          <div className={cn(`
-            pointer-events-none inline-flex items-center gap-2 text-2xl font-semibold text-foreground select-none
-          `)}
-          >
-            <SiteLogoIcon
-              logoSvg={site.logoSvg}
-              logoImageUrl={site.logoImageUrl}
-              alt={`${site.name} ${t('logo')}`}
-              className="size-8 text-current [&_svg]:size-8 [&_svg_*]:fill-current [&_svg_*]:stroke-current"
-              imageClassName="size-8 object-contain"
-              size={32}
-            />
-            <span>{siteName}</span>
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <p className="inline-flex items-center gap-2 text-foreground dark:text-white">
-            <span className="text-xl font-semibold">{t('You won')}</span>
-            <span className="text-3xl leading-none font-semibold tabular-nums">
-              {formatCurrency(visibleTotalProceeds)}
-            </span>
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {t('Great job predicting the future!')}
-          </p>
-        </div>
-
-        <div className="max-h-[min(40vh,12rem)] space-y-2 overflow-y-auto pr-1 text-left">
-          {visibleMarkets.map((market) => {
-            const href = market.eventSlug ? (`/event/${market.eventSlug}` as Route) : null
-            const itemClassName = [
-              'flex w-full items-center gap-3 rounded-md p-3 transition-colors',
-              href
-                ? 'hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none dark:hover:bg-muted/20'
-                : 'cursor-default',
-            ].join(' ')
-            const content = (
-              <>
-                <div className="relative size-12 overflow-hidden rounded-md">
-                  {market.imageUrl
+              return (
+                <div
+                  key={market.conditionId}
+                  className={cn(`
+                    absolute size-9 overflow-hidden rounded-lg border-2 border-foreground bg-muted shadow-sm
+                    motion-safe:animate-in motion-safe:duration-300 motion-safe:fade-in-0 motion-safe:zoom-in-95
+                    motion-reduce:animate-none
+                    sm:size-11
+                    ${stackClass}
+                  `)}
+                  style={{ animationDelay: `${index * 55}ms` }}
+                >
+                  {market?.imageUrl
                     ? (
                         <EventIconImage
                           src={market.imageUrl}
                           alt={market.title}
-                          sizes="48px"
+                          sizes="(max-width: 640px) 36px, 44px"
                           containerClassName="size-full"
                         />
                       )
                     : (
                         <div className="grid size-full place-items-center text-2xs text-muted-foreground">
-                          {t('No image')}
+                          ?
                         </div>
                       )}
+                  {showOverflowCount && (
+                    <div
+                      className={cn(`
+                        absolute inset-0 grid place-items-center bg-black/40 text-xs font-bold text-white
+                        sm:text-sm
+                      `)}
+                    >
+                      +
+                      {previewExtraCount}
+                    </div>
+                  )}
                 </div>
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-foreground">{market.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t('Invested')}
-                    {' '}
-                    {formatCurrency(market.invested)}
-                    {' '}
-                    •
-                    {' '}
-                    {t('Won')}
-                    {' '}
-                    {formatCurrency(market.proceeds)}
-                    {' '}
-                    (
-                    {formatSignedPercent(market.returnPercent, 0)}
+              )
+            })}
+          </div>
+
+          <div className="min-w-0 flex-1 text-left sm:pl-2">
+            <p
+              className={cn(`
+                inline-flex max-w-full items-center gap-1.5 text-sm font-semibold whitespace-nowrap
+                text-muted-foreground
+                sm:gap-2 sm:text-base
+              `)}
+            >
+              <span>{t('You won')}</span>
+              <span className="text-lg leading-none font-semibold text-foreground tabular-nums sm:text-2xl">
+                {formatCurrency(visibleTotalProceeds)}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {isMobile
+          ? <DrawerTrigger asChild>{claimTriggerButton}</DrawerTrigger>
+          : <DialogTrigger asChild>{claimTriggerButton}</DialogTrigger>}
+      </CardContent>
+    </Card>
+  )
+
+  const claimContent = (
+    <>
+      <div className="flex justify-center">
+        <div className={cn(`
+          pointer-events-none inline-flex items-center gap-2 text-2xl font-semibold text-foreground select-none
+        `)}
+        >
+          <SiteLogoIcon
+            logoSvg={site.logoSvg}
+            logoImageUrl={site.logoImageUrl}
+            alt={`${site.name} ${t('logo')}`}
+            className="size-8 text-current [&_svg]:size-8 [&_svg_*]:fill-current [&_svg_*]:stroke-current"
+            imageClassName="size-8 object-contain"
+            size={32}
+          />
+          <span>{siteName}</span>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <p className="inline-flex items-center gap-2 text-foreground dark:text-white">
+          <span className="text-xl font-semibold">{t('You won')}</span>
+          <span className="text-3xl leading-none font-semibold tabular-nums">
+            {formatCurrency(visibleTotalProceeds)}
+          </span>
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {t('Great job predicting the future!')}
+        </p>
+      </div>
+
+      <div className="max-h-[min(40vh,12rem)] space-y-2 overflow-y-auto pr-1 text-left">
+        {visibleMarkets.map((market) => {
+          const href = market.eventSlug ? (`/event/${market.eventSlug}` as Route) : null
+          const itemClassName = [
+            'flex w-full items-center gap-3 rounded-md p-3 transition-colors',
+            href
+              ? 'hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none dark:hover:bg-muted/20'
+              : 'cursor-default',
+          ].join(' ')
+          const content = (
+            <>
+              <div className="relative size-12 overflow-hidden rounded-md">
+                {market.imageUrl
+                  ? (
+                      <EventIconImage
+                        src={market.imageUrl}
+                        alt={market.title}
+                        sizes="48px"
+                        containerClassName="size-full"
+                      />
                     )
-                  </p>
+                  : (
+                      <div className="grid size-full place-items-center text-2xs text-muted-foreground">
+                        {t('No image')}
+                      </div>
+                    )}
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-foreground">{market.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('Invested')}
+                  {' '}
+                  {formatCurrency(market.invested)}
+                  {' '}
+                  •
+                  {' '}
+                  {t('Won')}
+                  {' '}
+                  {formatCurrency(market.proceeds)}
+                  {' '}
+                  (
+                  {formatSignedPercent(market.returnPercent, 0)}
+                  )
+                </p>
+              </div>
+            </>
+          )
+
+          return href
+            ? (
+                <AppLink intentPrefetch key={market.conditionId} href={href} className={itemClassName}>
+                  {content}
+                </AppLink>
+              )
+            : (
+                <div key={market.conditionId} className={itemClassName} aria-disabled="true">
+                  {content}
                 </div>
-              </>
-            )
+              )
+        })}
+      </div>
 
-            return href
-              ? (
-                  <AppLink intentPrefetch key={market.conditionId} href={href} className={itemClassName}>
-                    {content}
-                  </AppLink>
-                )
-              : (
-                  <div key={market.conditionId} className={itemClassName} aria-disabled="true">
-                    {content}
-                  </div>
-                )
-          })}
-        </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          className="h-10 flex-1"
+          onClick={handleShareOnX}
+          disabled={isSharingOnX}
+        >
+          <Image
+            src="/images/social/x.svg"
+            alt=""
+            width={14}
+            height={14}
+            className="size-3.5 dark:invert"
+            aria-hidden="true"
+          />
+          {isSharingOnX ? t('Opening...') : t('Share')}
+        </Button>
+        <Button className="h-10 flex-1" onClick={handleClaimAll} disabled={isSubmitting || !hasClaimableMarkets}>
+          {isSubmitting
+            ? t('Submitting...')
+            : `${t('Claim')} ${formatCurrency(visibleTotalProceeds)}`}
+        </Button>
+      </div>
+    </>
+  )
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            className="h-10 flex-1"
-            onClick={handleShareOnX}
-            disabled={isSharingOnX}
-          >
-            <Image
-              src="/images/social/x.svg"
-              alt=""
-              width={14}
-              height={14}
-              className="size-3.5 dark:invert"
-              aria-hidden="true"
-            />
-            {isSharingOnX ? t('Opening...') : t('Share')}
-          </Button>
-          <Button className="h-10 flex-1" onClick={handleClaimAll} disabled={isSubmitting || !hasClaimableMarkets}>
-            {isSubmitting
-              ? t('Submitting...')
-              : `${t('Claim')} ${formatCurrency(visibleTotalProceeds)}`}
-          </Button>
-        </div>
+  if (isMobile) {
+    return (
+      <Drawer open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
+        {claimCard}
+        <DrawerContent className="
+          max-h-[90vh] w-full space-y-4 overflow-y-auto bg-background px-5 pt-4 pb-5 text-center
+        "
+        >
+          <DrawerTitle className="sr-only">{t('You Won')}</DrawerTitle>
+          {claimContent}
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
+  return (
+    <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
+      {claimCard}
+      <DialogContent className="max-w-88 space-y-4 p-5 text-center sm:p-6">
+        <DialogTitle className="sr-only">{t('You Won')}</DialogTitle>
+        {claimContent}
       </DialogContent>
     </Dialog>
   )

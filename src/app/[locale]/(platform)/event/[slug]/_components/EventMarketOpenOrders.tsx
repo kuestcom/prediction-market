@@ -21,8 +21,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { MICRO_UNIT, OUTCOME_INDEX, tableHeaderClass } from '@/lib/constants'
 import { formatCurrency, formatSharePriceLabel, formatSharesLabel } from '@/lib/formatters'
@@ -526,6 +535,7 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
 export default function EventMarketOpenOrders({ market, eventSlug }: EventMarketOpenOrdersProps) {
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   const t = useExtracted()
+  const isMobile = useIsMobile()
   const user = useUser()
   const queryClient = useQueryClient()
   const { openTradeRequirements } = useTradingOnboarding()
@@ -732,39 +742,77 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
         </div>
       )}
 
-      <Dialog open={isCancelAllDialogOpen} onOpenChange={setIsCancelAllDialogOpen}>
-        <DialogContent className="max-w-sm bg-background sm:p-8">
-          <div className="space-y-6">
-            <DialogHeader className="space-y-3">
-              <DialogTitle className="text-center text-2xl font-bold">
-                {t('Are you sure?')}
-              </DialogTitle>
-              <DialogDescription className="text-center text-sm text-muted-foreground">
-                {t('Are you sure you want to cancel all open orders for this market?')}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-background sm:w-36"
-                onClick={() => setIsCancelAllDialogOpen(false)}
-              >
-                {t('Never mind')}
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                className="bg-destructive hover:bg-destructive sm:w-36"
-                onClick={handleCancelAllConfirm}
-                disabled={isCancellingAll}
-              >
-                {isCancellingAll ? t('Cancelling…') : t('Confirm')}
-              </Button>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {isMobile
+        ? (
+            <Drawer open={isCancelAllDialogOpen} onOpenChange={setIsCancelAllDialogOpen}>
+              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+                <div className="space-y-6">
+                  <DrawerHeader className="space-y-3 text-center">
+                    <DrawerTitle className="text-center text-2xl font-bold">
+                      {t('Are you sure?')}
+                    </DrawerTitle>
+                    <DrawerDescription className="text-center text-sm text-muted-foreground">
+                      {t('Are you sure you want to cancel all open orders for this market?')}
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <DrawerFooter className="flex flex-col gap-2 p-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="bg-background"
+                      onClick={() => setIsCancelAllDialogOpen(false)}
+                    >
+                      {t('Never mind')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="bg-destructive hover:bg-destructive"
+                      onClick={handleCancelAllConfirm}
+                      disabled={isCancellingAll}
+                    >
+                      {isCancellingAll ? t('Cancelling…') : t('Confirm')}
+                    </Button>
+                  </DrawerFooter>
+                </div>
+              </DrawerContent>
+            </Drawer>
+          )
+        : (
+            <Dialog open={isCancelAllDialogOpen} onOpenChange={setIsCancelAllDialogOpen}>
+              <DialogContent className="max-w-sm bg-background sm:p-8">
+                <div className="space-y-6">
+                  <DialogHeader className="space-y-3">
+                    <DialogTitle className="text-center text-2xl font-bold">
+                      {t('Are you sure?')}
+                    </DialogTitle>
+                    <DialogDescription className="text-center text-sm text-muted-foreground">
+                      {t('Are you sure you want to cancel all open orders for this market?')}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="bg-background sm:w-36"
+                      onClick={() => setIsCancelAllDialogOpen(false)}
+                    >
+                      {t('Never mind')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="bg-destructive hover:bg-destructive sm:w-36"
+                      onClick={handleCancelAllConfirm}
+                      disabled={isCancellingAll}
+                    >
+                      {isCancellingAll ? t('Cancelling…') : t('Confirm')}
+                    </Button>
+                  </DialogFooter>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
     </>
   )
 

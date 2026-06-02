@@ -12,12 +12,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { useAppKit } from '@/hooks/useAppKit'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { cn } from '@/lib/utils'
 import { useSignaturePrompt } from '@/stores/useSignaturePrompt'
 
 export function SignaturePrompt() {
   const t = useExtracted()
+  const isMobile = useIsMobile()
   const { isReady } = useAppKit()
   const open = useSignaturePrompt(state => state.open)
   const title = useSignaturePrompt(state => state.title)
@@ -37,6 +46,65 @@ export function SignaturePrompt() {
     if (!nextOpen) {
       forceHidePrompt()
     }
+  }
+
+  const content = (
+    <div className="mt-3 flex flex-col items-center gap-5">
+      <div className="relative size-32 overflow-hidden rounded-[28px] bg-background text-primary">
+        <div
+          className={cn(`
+            pointer-events-none absolute inset-0 animate-[spin_1400ms_linear_infinite]
+            bg-[conic-gradient(from_0deg,transparent_0deg,transparent_292deg,currentColor_315deg,currentColor_350deg,transparent_360deg)]
+          `)}
+        />
+        <div className="absolute inset-[3px] rounded-[23px] bg-background" />
+        <div className="relative flex size-full items-center justify-center">
+          <div className="flex size-[90%] items-center justify-center rounded-[24px] bg-background shadow-sm">
+            {isReady ? <SignatureWalletIcon /> : <WalletIcon className="size-16 text-primary" strokeWidth={1.8} />}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2 text-center">
+        <div className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
+          <Loader2Icon className="size-4 animate-spin text-primary" />
+          <span>{t('Waiting for approval')}</span>
+        </div>
+        <p className="max-w-64 text-sm/relaxed text-muted-foreground">
+          {resolvedDescription}
+        </p>
+      </div>
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={handleOpenChange}>
+        <DrawerContent
+          className={cn(`w-full border border-border/80 bg-background px-6 pt-4 pb-6 shadow-2xl`)}
+          onEscapeKeyDown={event => event.preventDefault()}
+          onInteractOutside={event => event.preventDefault()}
+        >
+          <DrawerClose
+            className={cn(`
+              absolute top-5 right-5 z-20 inline-flex size-9 items-center justify-center rounded-md p-2
+              text-muted-foreground/80 transition
+              hover:bg-muted hover:text-foreground
+              focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none
+            `)}
+            aria-label={t('Close')}
+          >
+            <XIcon className="size-4" aria-hidden="true" />
+          </DrawerClose>
+
+          <DrawerHeader className="items-center px-0 pb-0 text-center">
+            <DrawerTitle className="text-center text-xl font-bold">{resolvedTitle}</DrawerTitle>
+          </DrawerHeader>
+
+          {content}
+        </DrawerContent>
+      </Drawer>
+    )
   }
 
   return (
@@ -66,32 +134,7 @@ export function SignaturePrompt() {
           <DialogTitle className="text-center text-xl font-bold">{resolvedTitle}</DialogTitle>
         </DialogHeader>
 
-        <div className="mt-3 flex flex-col items-center gap-5">
-          <div className="relative size-32 overflow-hidden rounded-[28px] bg-background text-primary">
-            <div
-              className={cn(`
-                pointer-events-none absolute inset-0 animate-[spin_1400ms_linear_infinite]
-                bg-[conic-gradient(from_0deg,transparent_0deg,transparent_292deg,currentColor_315deg,currentColor_350deg,transparent_360deg)]
-              `)}
-            />
-            <div className="absolute inset-[3px] rounded-[23px] bg-background" />
-            <div className="relative flex size-full items-center justify-center">
-              <div className="flex size-[90%] items-center justify-center rounded-[24px] bg-background shadow-sm">
-                {isReady ? <SignatureWalletIcon /> : <WalletIcon className="size-16 text-primary" strokeWidth={1.8} />}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2 text-center">
-            <div className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
-              <Loader2Icon className="size-4 animate-spin text-primary" />
-              <span>{t('Waiting for approval')}</span>
-            </div>
-            <p className="max-w-64 text-sm/relaxed text-muted-foreground">
-              {resolvedDescription}
-            </p>
-          </div>
-        </div>
+        {content}
       </DialogContent>
     </Dialog>
   )
