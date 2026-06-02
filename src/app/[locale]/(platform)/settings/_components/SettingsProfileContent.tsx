@@ -263,7 +263,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
                 {t('Upload')}
               </Button>
               {errors?.image && <InputError message={errors.image} />}
-              <p className="text-xs text-muted-foreground">{t('Max 5MB, JPG/PNG/WEBP only')}</p>
+              <p className="text-xs text-muted-foreground">{t('MAX 2MB, JPG/PNG/WEBP only')}</p>
             </div>
           </div>
 
@@ -277,8 +277,8 @@ export default function SettingsProfileContent({ user }: { user: User }) {
             onChange={(e) => {
               const file = e.target.files?.[0]
               if (file) {
-                if (file.size > 5 * 1024 * 1024) {
-                  toast.error(t('File too big! Max 5MB.'))
+                if (file.size > 2 * 1024 * 1024) {
+                  toast.error(t('File too big! MAX 2MB.'))
                   e.target.value = ''
                   clearPreview()
                 }

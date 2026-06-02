@@ -9,7 +9,7 @@ import { UserRepository } from '@/lib/db/queries/user'
 import { validateOutboundImageUrl } from '@/lib/og-image-security'
 import { uploadPublicAsset } from '@/lib/storage'
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024
+const MAX_FILE_SIZE = 2 * 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 export interface ActionState {
