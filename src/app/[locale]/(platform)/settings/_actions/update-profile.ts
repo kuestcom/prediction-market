@@ -50,7 +50,7 @@ const UpdateUserSchema = z.object({
       }
 
       return file.size <= MAX_FILE_SIZE
-    }, { error: 'Image must be less than 5MB' })
+    }, { error: 'Image must be less than 2MB' })
     .refine((file) => {
       if (!file || file.size === 0) {
         return true
