@@ -3142,8 +3142,7 @@
           "sizeMatched",
           "assetId",
           "type",
-          "createdAt",
-          "updatedAt"
+          "createdAt"
         ],
         "properties": {
           "associateTrades": {
@@ -3214,10 +3213,6 @@
             "description": "Time-in-force policy recorded for the order."
           },
           "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
             "type": "string",
             "format": "date-time"
           }

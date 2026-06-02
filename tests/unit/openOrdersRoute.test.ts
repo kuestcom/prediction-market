@@ -135,7 +135,6 @@ describe('open orders routes', () => {
           expiration: '0',
           order_type: 'GTD',
           created_at: '2026-05-23T00:00:00.000Z',
-          updated_at: '2026-05-23T00:01:00.000Z',
         },
       ]),
     })
@@ -236,7 +235,6 @@ describe('open orders routes', () => {
           expiration: '0',
           order_type: 'GTD',
           created_at: '2026-05-23T00:00:00.000Z',
-          updated_at: '2026-05-23T00:01:00.000Z',
         },
       ]),
     })

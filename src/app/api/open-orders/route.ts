@@ -35,7 +35,6 @@ interface ClobOpenOrder {
   asset_id: string
   expiration?: string
   created_at: string
-  updated_at: string
 }
 
 export async function GET(request: Request) {
