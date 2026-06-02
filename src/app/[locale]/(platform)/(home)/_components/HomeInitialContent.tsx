@@ -5,56 +5,56 @@ import {
   getHomeInitialCurrentTimestamp,
   HOME_INITIAL_EVENTS_CACHE_LIFE,
 } from '@/app/[locale]/(platform)/(home)/_utils/homeInitialEventsCache'
+import { hasDatabaseEnv } from '@/lib/db/env'
 import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
 
 interface HomeInitialContentProps {
+  deferRuntimePrerender?: boolean
   initialMainTag?: string
   initialTag?: string
   locale: SupportedLocale
 }
 
-async function CachedHomeInitialContent({
+async function HomeInitialContentBody({
   initialMainTag,
   initialTag,
   locale,
 }: HomeInitialContentProps) {
+  const currentTimestamp = getHomeInitialCurrentTimestamp()
+
+  return (
+    <HomeContent
+      locale={locale}
+      currentTimestamp={currentTimestamp}
+      initialTag={initialTag}
+      initialMainTag={initialMainTag}
+    />
+  )
+}
+
+async function CachedHomeInitialContent(props: HomeInitialContentProps) {
   'use cache'
   cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
 
-  const currentTimestamp = getHomeInitialCurrentTimestamp()
-
-  return (
-    <HomeContent
-      locale={locale}
-      currentTimestamp={currentTimestamp}
-      initialTag={initialTag}
-      initialMainTag={initialMainTag}
-    />
-  )
+  return <HomeInitialContentBody {...props} />
 }
 
-async function RuntimeHomeInitialContent({
-  initialMainTag,
-  initialTag,
-  locale,
-}: HomeInitialContentProps) {
+async function RuntimeHomeInitialContent(props: HomeInitialContentProps) {
   await deferPublicShellPrerenderIfNeeded()
 
-  const currentTimestamp = getHomeInitialCurrentTimestamp()
-
-  return (
-    <HomeContent
-      locale={locale}
-      currentTimestamp={currentTimestamp}
-      initialTag={initialTag}
-      initialMainTag={initialMainTag}
-    />
-  )
+  return hasDatabaseEnv()
+    ? <CachedHomeInitialContent {...props} />
+    : <HomeInitialContentBody {...props} />
 }
 
-export default function HomeInitialContent(props: HomeInitialContentProps) {
-  if (shouldPrerenderPublicShell()) {
-    return <CachedHomeInitialContent {...props} />
+export default function HomeInitialContent({
+  deferRuntimePrerender = true,
+  ...props
+}: HomeInitialContentProps) {
+  if (shouldPrerenderPublicShell() || !deferRuntimePrerender) {
+    return hasDatabaseEnv()
+      ? <CachedHomeInitialContent {...props} />
+      : <HomeInitialContentBody {...props} />
   }
 
   return <RuntimeHomeInitialContent {...props} />

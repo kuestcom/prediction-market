@@ -117,9 +117,11 @@ export async function buildDynamicHomeSubcategoryMetadata(
 }
 
 export async function DynamicHomeCategoryPageContent({
+  deferHomeRuntimePrerender,
   locale,
   slug,
 }: {
+  deferHomeRuntimePrerender?: boolean
   locale: SupportedLocale
   slug: string
 }) {
@@ -135,14 +137,22 @@ export async function DynamicHomeCategoryPageContent({
     notFound()
   }
 
-  return <HomeInitialContent locale={locale} initialTag={category.slug} />
+  return (
+    <HomeInitialContent
+      locale={locale}
+      initialTag={category.slug}
+      deferRuntimePrerender={deferHomeRuntimePrerender}
+    />
+  )
 }
 
 export async function DynamicHomeSubcategoryPageContent({
+  deferHomeRuntimePrerender,
   locale,
   slug,
   subcategory,
 }: {
+  deferHomeRuntimePrerender?: boolean
   locale: SupportedLocale
   slug: string
   subcategory: string
@@ -169,6 +179,7 @@ export async function DynamicHomeSubcategoryPageContent({
       locale={locale}
       initialTag={resolvedSubcategory.subcategory.slug}
       initialMainTag={resolvedSubcategory.category.slug}
+      deferRuntimePrerender={deferHomeRuntimePrerender}
     />
   )
 }
