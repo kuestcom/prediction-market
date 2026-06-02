@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/dialog'
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
@@ -79,13 +78,14 @@ export function SignaturePrompt() {
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={handleOpenChange}>
+      <Drawer open={open} onOpenChange={handleOpenChange} dismissible={false}>
         <DrawerContent
           className={cn(`w-full border border-border/80 bg-background px-6 pt-4 pb-6 shadow-2xl`)}
           onEscapeKeyDown={event => event.preventDefault()}
           onInteractOutside={event => event.preventDefault()}
         >
-          <DrawerClose
+          <button
+            type="button"
             className={cn(`
               absolute top-5 right-5 z-20 inline-flex size-9 items-center justify-center rounded-md p-2
               text-muted-foreground/80 transition
@@ -93,9 +93,10 @@ export function SignaturePrompt() {
               focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none
             `)}
             aria-label={t('Close')}
+            onClick={() => handleOpenChange(false)}
           >
             <XIcon className="size-4" aria-hidden="true" />
-          </DrawerClose>
+          </button>
 
           <DrawerHeader className="items-center px-0 pb-0 text-center">
             <DrawerTitle className="text-center text-xl font-bold">{resolvedTitle}</DrawerTitle>
