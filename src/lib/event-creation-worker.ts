@@ -27,7 +27,7 @@ interface PreparePayloadOption {
   slug: string
 }
 
-export interface EventCreationPreparePayload {
+interface EventCreationPreparePayload {
   chainId: number
   creator: string
   title: string

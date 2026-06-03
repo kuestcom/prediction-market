@@ -17,7 +17,7 @@ export interface EventCreationAssetPayload {
   teamLogos: Partial<Record<'home' | 'away', EventCreationAssetRef>>
 }
 
-export interface EventCreationOccurrence {
+interface EventCreationOccurrence {
   id: string
   title: string
   startAt: string

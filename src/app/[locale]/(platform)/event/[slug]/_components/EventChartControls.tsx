@@ -28,7 +28,7 @@ export const defaultChartSettings = {
 }
 
 export type ChartSettings = typeof defaultChartSettings
-export type ChartSettingKey = keyof ChartSettings
+type ChartSettingKey = keyof ChartSettings
 
 interface EventChartControlsProps {
   timeRanges: TimeRange[]
