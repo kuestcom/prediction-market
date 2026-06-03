@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,6 +19,9 @@ jobs:
     name: Build ${{ matrix.platform }} image
     if: github.repository == 'kuestcom/prediction-market'
     runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -68,8 +70,10 @@ jobs:
 
       - name: Export image digest
         shell: bash
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
         run: |
-          digest="${{ steps.build.outputs.digest }}"
+          digest="$DIGEST"
           if [ -z "$digest" ]; then
             echo "docker build did not return a digest" >&2
             exit 1
@@ -89,6 +93,9 @@ jobs:
     needs: build-image
     if: github.repository == 'kuestcom/prediction-market'
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
