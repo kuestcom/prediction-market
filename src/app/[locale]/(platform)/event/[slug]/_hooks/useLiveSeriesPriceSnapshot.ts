@@ -45,6 +45,10 @@ interface LiveSeriesPriceSnapshotRequest {
 
 const liveSeriesPriceSnapshotStores = new Map<string, LiveSeriesPriceSnapshotStoreEntry>()
 const liveSeriesPriceStorageKeyPrefix = 'kuest-live-last-price'
+const EMPTY_LIVE_SERIES_PRICE_SNAPSHOT: LiveSeriesPriceSnapshotStoreSnapshot = {
+  referenceSnapshot: null,
+  persistedFallbackPrice: null,
+}
 
 function buildLiveSeriesPriceSnapshotStoreKey({
   seriesSlug,
@@ -94,10 +98,7 @@ function getLiveSeriesPriceSnapshotStoreEntry(storeKey: string) {
   }
 
   const nextEntry: LiveSeriesPriceSnapshotStoreEntry = {
-    snapshot: {
-      referenceSnapshot: null,
-      persistedFallbackPrice: null,
-    },
+    snapshot: EMPTY_LIVE_SERIES_PRICE_SNAPSHOT,
     inflightFetch: null,
     abortController: null,
     listeners: new Set(),
@@ -259,10 +260,7 @@ function getLiveSeriesPriceSnapshotSnapshot(request: LiveSeriesPriceSnapshotRequ
   const entry = liveSeriesPriceSnapshotStores.get(storeKey)
 
   if (!entry) {
-    return {
-      referenceSnapshot: null,
-      persistedFallbackPrice: null,
-    }
+    return EMPTY_LIVE_SERIES_PRICE_SNAPSHOT
   }
 
   return entry.snapshot
@@ -305,22 +303,18 @@ export function useLiveSeriesPriceSnapshot({
 
   const getSnapshot = useCallback(() => {
     if (!snapshotRequest) {
-      return {
-        referenceSnapshot: null,
-        persistedFallbackPrice: null,
-      }
+      return EMPTY_LIVE_SERIES_PRICE_SNAPSHOT
     }
 
     return getLiveSeriesPriceSnapshotSnapshot(snapshotRequest)
   }, [snapshotRequest])
 
+  const getServerSnapshot = useCallback(() => EMPTY_LIVE_SERIES_PRICE_SNAPSHOT, [])
+
   const referenceSnapshot = useSyncExternalStore(
     subscribe,
     getSnapshot,
-    () => ({
-      referenceSnapshot: null,
-      persistedFallbackPrice: null,
-    }),
+    getServerSnapshot,
   )
 
   const [baselinePrice, setBaselinePrice] = useState<number | null>(null)
