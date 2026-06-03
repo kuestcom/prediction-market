@@ -31,6 +31,7 @@ interface LiveSeriesPriceSnapshotStoreEntry {
   snapshot: LiveSeriesPriceSnapshotStoreSnapshot
   inflightFetch: Promise<void> | null
   abortController: AbortController | null
+  fetchToken: number
   listeners: Set<() => void>
 }
 
@@ -45,6 +46,7 @@ interface LiveSeriesPriceSnapshotRequest {
 
 const liveSeriesPriceSnapshotStores = new Map<string, LiveSeriesPriceSnapshotStoreEntry>()
 const liveSeriesPriceStorageKeyPrefix = 'kuest-live-last-price'
+const LIVE_SERIES_PRICE_SNAPSHOT_STORE_TTL_MS = 10 * 60 * 1000
 const EMPTY_LIVE_SERIES_PRICE_SNAPSHOT: LiveSeriesPriceSnapshotStoreSnapshot = {
   referenceSnapshot: null,
   persistedFallbackPrice: null,
@@ -101,10 +103,42 @@ function getLiveSeriesPriceSnapshotStoreEntry(storeKey: string) {
     snapshot: EMPTY_LIVE_SERIES_PRICE_SNAPSHOT,
     inflightFetch: null,
     abortController: null,
+    fetchToken: 0,
     listeners: new Set(),
   }
   liveSeriesPriceSnapshotStores.set(storeKey, nextEntry)
   return nextEntry
+}
+
+function pruneLiveSeriesPriceSnapshotStores() {
+  const nowMs = Date.now()
+
+  for (const [storeKey, entry] of liveSeriesPriceSnapshotStores.entries()) {
+    if (entry.listeners.size > 0) {
+      continue
+    }
+
+    if (entry.inflightFetch || entry.abortController) {
+      continue
+    }
+
+    const snapshot = entry.snapshot.referenceSnapshot
+    if (!snapshot) {
+      liveSeriesPriceSnapshotStores.delete(storeKey)
+      continue
+    }
+
+    const snapshotTimestamp = Math.max(
+      snapshot.latest_source_timestamp_ms ?? 0,
+      snapshot.event_window_end_ms ?? 0,
+      snapshot.event_window_start_ms ?? 0,
+      entry.snapshot.persistedFallbackPrice?.timestamp ?? 0,
+    )
+
+    if (snapshotTimestamp > 0 && nowMs - snapshotTimestamp > LIVE_SERIES_PRICE_SNAPSHOT_STORE_TTL_MS) {
+      liveSeriesPriceSnapshotStores.delete(storeKey)
+    }
+  }
 }
 
 function arePersistedFallbackPricesEqual(
@@ -147,6 +181,8 @@ function notifyLiveSeriesPriceSnapshotStore(storeKey: string) {
   for (const listener of entry.listeners) {
     listener()
   }
+
+  pruneLiveSeriesPriceSnapshotStores()
 }
 
 async function fetchLiveSeriesPriceSnapshot(
@@ -159,6 +195,8 @@ async function fetchLiveSeriesPriceSnapshot(
   }
 
   const controller = new AbortController()
+  const requestToken = entry.fetchToken + 1
+  entry.fetchToken = requestToken
   entry.abortController = controller
   entry.inflightFetch = (async function runLiveSeriesPriceSnapshotFetch() {
     try {
@@ -199,9 +237,11 @@ async function fetchLiveSeriesPriceSnapshot(
     catch {
     }
     finally {
-      entry.inflightFetch = null
-      entry.abortController = null
-      notifyLiveSeriesPriceSnapshotStore(storeKey)
+      if (entry.fetchToken === requestToken) {
+        entry.inflightFetch = null
+        entry.abortController = null
+        notifyLiveSeriesPriceSnapshotStore(storeKey)
+      }
     }
   })()
 
@@ -249,7 +289,11 @@ function subscribeToLiveSeriesPriceSnapshot(
   return function unsubscribeFromLiveSeriesPriceSnapshot() {
     entry.listeners.delete(onStoreChange)
     if (entry.listeners.size === 0 && entry.abortController) {
+      entry.fetchToken += 1
       entry.abortController.abort()
+      entry.inflightFetch = null
+      entry.abortController = null
+      pruneLiveSeriesPriceSnapshotStores()
     }
     window.removeEventListener('storage', handleStorage)
   }
