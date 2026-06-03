@@ -29,7 +29,7 @@ export default antfu({
   },
   settings: {
     'better-tailwindcss': {
-      tailwindConfig: './src/app/globals.css',
+      entryPoint: './src/app/globals.css',
     },
   },
 })
