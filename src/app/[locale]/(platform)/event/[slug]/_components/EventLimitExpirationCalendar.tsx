@@ -82,7 +82,7 @@ export default function EventLimitExpirationCalendar({
         <Calendar
           mode="single"
           selected={selectedDate}
-          fromDate={minDate}
+          startMonth={minDate}
           disabled={{ before: minDate }}
           onSelect={(nextDate) => {
             if (!nextDate) {
@@ -94,7 +94,7 @@ export default function EventLimitExpirationCalendar({
           classNames={{ root: 'w-full' }}
         />
       </CardContent>
-      <CardFooter className="mt-12 flex flex-col items-stretch gap-4 border-t py-4 lg:mt-8">
+      <CardFooter className="flex flex-col items-stretch gap-4 border-t py-4">
         <div className="flex w-full flex-col gap-3">
           <Label htmlFor="expiration-time">{t('Expiration Time')}</Label>
           <div className="relative flex w-full items-center gap-2">
