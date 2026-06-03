@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import EventCard from '@/app/[locale]/(platform)/(home)/_components/EventCard'
-import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   buildHomeSportsMoneylineModel: vi.fn(),

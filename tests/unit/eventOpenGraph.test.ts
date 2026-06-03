@@ -131,6 +131,7 @@ describe('event open graph helpers', () => {
         sports_league_slug: null,
         sports_event_slug: null,
         sports_section: null,
+        tags: [],
       },
     })
 

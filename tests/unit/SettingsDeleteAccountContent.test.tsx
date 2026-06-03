@@ -32,7 +32,7 @@ vi.mock('@/lib/logout', () => ({
   signOutAndRedirect: (args: { currentPathname: string }) => mocks.signOutAndRedirect(args),
 }))
 
-describe('SettingsDeleteAccountContent', () => {
+describe('settingsDeleteAccountContent', () => {
   beforeEach(() => {
     mocks.deleteAccountAction.mockReset()
     mocks.signOutAndRedirect.mockReset()
@@ -91,10 +91,12 @@ describe('SettingsDeleteAccountContent', () => {
 
   it('keeps dialog controls disabled while delete action is pending', async () => {
     const user = userEvent.setup()
-    let resolveDelete: ((value: {}) => void) | null = null
+    const pendingDelete: {
+      resolve?: (value: Record<string, never>) => void
+    } = {}
     mocks.deleteAccountAction.mockImplementationOnce(() => (
-      new Promise((resolve) => {
-        resolveDelete = resolve as (value: {}) => void
+      new Promise<Record<string, never>>((resolve) => {
+        pendingDelete.resolve = resolve
       })
     ))
 
@@ -109,7 +111,7 @@ describe('SettingsDeleteAccountContent', () => {
       expect(screen.getByRole('button', { name: 'Never mind' })).toBeDisabled()
     })
 
-    resolveDelete?.({})
+    pendingDelete.resolve?.({})
 
     await waitFor(() => {
       expect(mocks.signOutAndRedirect).toHaveBeenCalledWith({

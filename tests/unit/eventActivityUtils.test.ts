@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventActivityOutcomeColorClass } from '@/app/[locale]/(platform)/event/[slug]/_components/event-activity-utils'
+import { OUTCOME_INDEX } from '@/lib/constants'
 
 function createActivityOutcome(index: number, text: string) {
   return {

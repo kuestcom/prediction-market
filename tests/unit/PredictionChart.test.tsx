@@ -11,8 +11,12 @@ const series = [
 ]
 
 beforeAll(() => {
-  if (typeof SVGElement !== 'undefined' && typeof SVGElement.prototype.getComputedTextLength !== 'function') {
-    Object.defineProperty(SVGElement.prototype, 'getComputedTextLength', {
+  const svgElementPrototype = typeof SVGElement === 'undefined'
+    ? null
+    : SVGElement.prototype as SVGElement & { getComputedTextLength?: () => number }
+
+  if (svgElementPrototype && typeof svgElementPrototype.getComputedTextLength !== 'function') {
+    Object.defineProperty(svgElementPrototype, 'getComputedTextLength', {
       configurable: true,
       value() {
         return (this.textContent?.length ?? 0) * 8

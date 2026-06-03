@@ -34,7 +34,7 @@ function renderWalletSendForm(overrides: Partial<ComponentProps<typeof WalletSen
   )
 }
 
-describe('WalletSendForm', () => {
+describe('walletSendForm', () => {
   beforeEach(() => {
     mocks.useAppKitAccount.mockReturnValue({
       embeddedWalletInfo: undefined,

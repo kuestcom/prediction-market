@@ -54,6 +54,11 @@ describe('market pricing helpers', () => {
         question_id: 'question-1',
         outcome_slot_count: 2,
         resolved: false,
+        volume: 0,
+        open_interest: 0,
+        active_positions_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       },
     }
   }

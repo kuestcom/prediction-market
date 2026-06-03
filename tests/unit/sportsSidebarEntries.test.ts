@@ -1,9 +1,20 @@
+import type { SportsMenuGroupEntry } from '@/lib/sports-menu-types'
 import type { SportsMenuSidebarRow } from '@/lib/sports-sidebar-entries'
 import { describe, expect, it } from 'vitest'
 import {
   buildSportsSidebarEntries,
-
 } from '@/lib/sports-sidebar-entries'
+
+function isSportsMenuGroupEntry(entry: ReturnType<typeof buildSportsSidebarEntries>[number]): entry is SportsMenuGroupEntry {
+  return entry.type === 'group'
+}
+
+function findSportsMenuGroup(
+  entries: ReturnType<typeof buildSportsSidebarEntries>,
+  menuSlug: string,
+) {
+  return entries.filter(isSportsMenuGroupEntry).find(entry => entry.menuSlug === menuSlug)
+}
 
 function buildLinkRow(params: {
   id: string
@@ -269,9 +280,7 @@ describe('sports sidebar entries', () => {
       }),
     ]
 
-    const soccerGroup = buildSportsSidebarEntries(rows, 'sports').find(
-      entry => entry.type === 'group' && entry.menuSlug === 'soccer',
-    )
+    const soccerGroup = findSportsMenuGroup(buildSportsSidebarEntries(rows, 'sports'), 'soccer')
 
     expect(soccerGroup).toMatchObject({
       type: 'group',
@@ -391,8 +400,8 @@ describe('sports sidebar entries', () => {
     ]
 
     const entries = buildSportsSidebarEntries(rows, 'sports')
-    const cricketGroup = entries.find(entry => entry.type === 'group' && entry.menuSlug === 'cricket')
-    const basketballGroup = entries.find(entry => entry.type === 'group' && entry.menuSlug === 'basketball')
+    const cricketGroup = findSportsMenuGroup(entries, 'cricket')
+    const basketballGroup = findSportsMenuGroup(entries, 'basketball')
 
     expect(cricketGroup).toMatchObject({
       type: 'group',

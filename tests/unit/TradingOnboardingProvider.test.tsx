@@ -95,7 +95,7 @@ function createUser(overrides: Partial<User> = {}): User {
   }
 }
 
-describe('TradingOnboardingProvider', () => {
+describe('tradingOnboardingProvider', () => {
   beforeEach(() => {
     useUser.setState(null)
     mocks.dialogProps = null

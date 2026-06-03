@@ -1,6 +1,6 @@
 import type { AnchorHTMLAttributes } from 'react'
-import { createElement } from 'react'
 import { render, screen } from '@testing-library/react'
+import { createElement } from 'react'
 import CategorySidebar from '@/app/[locale]/(platform)/(home)/_components/CategorySidebar'
 
 vi.mock('next-intl', () => ({

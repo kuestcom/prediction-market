@@ -82,10 +82,15 @@ describe('eventRules', () => {
   })
 
   it('renders the additional context block above the rules text', () => {
-    render(<EventRules event={createEvent({
-      additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
-      additional_context_updated_at: '2026-08-25T12:00:00.000Z',
-    })} mode="inline" />)
+    render(
+      <EventRules
+        event={createEvent({
+          additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
+          additional_context_updated_at: '2026-08-25T12:00:00.000Z',
+        })}
+        mode="inline"
+      />,
+    )
 
     expect(screen.getByText('Additional context')).toBeInTheDocument()
     expect(screen.getByText('Updated Aug 25')).toBeInTheDocument()
@@ -93,11 +98,13 @@ describe('eventRules', () => {
   })
 
   it('starts expanded in accordion mode when additional context exists', () => {
-    render(<EventRules event={createEvent({
-      additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
-      additional_context_updated_at: '2026-08-25T12:00:00.000Z',
-    })}
-    />)
+    render(
+      <EventRules event={createEvent({
+        additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
+        additional_context_updated_at: '2026-08-25T12:00:00.000Z',
+      })}
+      />,
+    )
 
     expect(screen.getByRole('button', { name: 'Rules' })).toHaveAttribute('aria-expanded', 'true')
   })
@@ -107,13 +114,15 @@ describe('eventRules', () => {
 
     expect(screen.getByRole('button', { name: 'Rules' })).toHaveAttribute('aria-expanded', 'false')
 
-    rerender(<EventRules event={createEvent({
-      id: 'event-2',
-      slug: 'event-2',
-      additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
-      additional_context_updated_at: '2026-08-25T12:00:00.000Z',
-    })}
-    />)
+    rerender(
+      <EventRules event={createEvent({
+        id: 'event-2',
+        slug: 'event-2',
+        additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
+        additional_context_updated_at: '2026-08-25T12:00:00.000Z',
+      })}
+      />,
+    )
 
     expect(screen.getByRole('button', { name: 'Rules' })).toHaveAttribute('aria-expanded', 'true')
   })

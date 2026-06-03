@@ -162,8 +162,6 @@ describe('eventCardResolvedOutcome', () => {
         short_title: '340-359',
         title: '340-359',
         slug: 'lakers-spread-340-359',
-        resolution_source: null,
-        resolution_source_url: null,
       }],
     })).toBe(false)
   })

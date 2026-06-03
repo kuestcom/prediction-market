@@ -1,5 +1,5 @@
-import { createElement } from 'react'
 import { render, screen } from '@testing-library/react'
+import { createElement } from 'react'
 
 const mocks = vi.hoisted(() => ({
   useQuery: vi.fn(),

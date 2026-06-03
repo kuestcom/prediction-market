@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   COLLATERAL_APPROVAL_REUSE_AMOUNT,
-  MAX_ALLOWANCE,
   hasSufficientCollateralAllowance,
+  MAX_ALLOWANCE,
 } from '@/lib/wallet/transactions'
 
 describe('collateral approval reuse threshold', () => {

@@ -89,7 +89,7 @@ function createUser(overrides: Partial<User> = {}): User {
   }
 }
 
-describe('SettingsProfileContent', () => {
+describe('settingsProfileContent', () => {
   beforeEach(() => {
     mocks.clearCommunityAuth.mockReset()
     mocks.ensureCommunityToken.mockReset()

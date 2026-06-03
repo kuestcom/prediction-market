@@ -8,11 +8,11 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/hmac', () => ({
-  buildClobHmacSignature: (...args: any[]) => mocks.buildClobHmacSignature(...args),
+  buildClobHmacSignature: mocks.buildClobHmacSignature,
 }))
 
 vi.mock('@/lib/trading-auth/server', () => ({
-  getUserTradingAuthSecrets: (...args: any[]) => mocks.getUserTradingAuthSecrets(...args),
+  getUserTradingAuthSecrets: mocks.getUserTradingAuthSecrets,
 }))
 
 describe('syncBuilderFeesForAdmin', () => {

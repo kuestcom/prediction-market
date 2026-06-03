@@ -20,7 +20,7 @@ vi.mock('node:dns/promises', () => ({
 
 const lookupMock = vi.mocked(lookup)
 
-describe('OG image security helpers', () => {
+describe('oG image security helpers', () => {
   beforeEach(() => {
     lookupMock.mockReset()
   })
@@ -63,7 +63,7 @@ describe('OG image security helpers', () => {
   })
 
   it('rejects hostnames that resolve to a private address', async () => {
-    lookupMock.mockResolvedValue([
+    dnsMocks.lookup.mockResolvedValue([
       { address: '93.184.216.34', family: 4 },
       { address: '10.0.0.5', family: 4 },
     ])
@@ -72,7 +72,7 @@ describe('OG image security helpers', () => {
   })
 
   it('allows hostnames only when every resolved address is public', async () => {
-    lookupMock.mockResolvedValue([
+    dnsMocks.lookup.mockResolvedValue([
       { address: '93.184.216.34', family: 4 },
       { address: '2606:4700:4700::1111', family: 6 },
     ])

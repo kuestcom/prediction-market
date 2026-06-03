@@ -95,7 +95,7 @@ function resetOrderState() {
   })
 }
 
-describe('EventOrderStateSync', () => {
+describe('eventOrderStateSync', () => {
   beforeEach(() => {
     resetOrderState()
     mocks.searchParams = new URLSearchParams('side=BUY&orderType=MARKET&outcomeIndex=0&shares=10')

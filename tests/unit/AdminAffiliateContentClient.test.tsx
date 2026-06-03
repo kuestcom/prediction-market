@@ -10,7 +10,7 @@ vi.mock('next-intl', () => ({
 
 vi.mock('@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm', () => ({
   __esModule: true,
-  default: ({ initialFeeRecipientWallet }: any) => {
+  default: function AdminAffiliateSettingsFormMock({ initialFeeRecipientWallet }: any) {
     const [draftWallet, setDraftWallet] = React.useState(initialFeeRecipientWallet)
 
     return React.createElement(
@@ -34,7 +34,7 @@ vi.mock('@/app/[locale]/admin/affiliate/_components/AdminAffiliateClaimableFeesC
   ),
 }))
 
-describe('AdminAffiliateContentClient', () => {
+describe('adminAffiliateContentClient', () => {
   it('keeps the claim card bound to the saved wallet until refresh', async () => {
     const user = userEvent.setup()
     const props = {

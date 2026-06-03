@@ -72,7 +72,7 @@ function flushAnimationFrame() {
   })
 }
 
-describe('EventBackToTopButton', () => {
+describe('eventBackToTopButton', () => {
   beforeEach(() => {
     mocks.pathname = '/event/first-event'
     document.body.innerHTML = ''

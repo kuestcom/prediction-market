@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import * as React from 'react'
 import userEvent from '@testing-library/user-event'
+import * as React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminAffiliateSettingsForm from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm'
 
@@ -52,7 +52,7 @@ function renderForm(initialWallet = '') {
   )
 }
 
-describe('AdminAffiliateSettingsForm', () => {
+describe('adminAffiliateSettingsForm', () => {
   beforeEach(() => {
     mocks.refresh.mockReset()
     mocks.updateAction.mockReset()

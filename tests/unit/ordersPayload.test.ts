@@ -7,7 +7,7 @@ vi.mock('@/app/(platform)/event/[slug]/_actions/store-order', () => ({
 }))
 
 describe('buildOrderPayload money-safety defaults', () => {
-  const userAddress = '0x0000000000000000000000000000000000000001' as const
+  const makerAddress = '0x0000000000000000000000000000000000000001' as const
 
   afterEach(() => {
     vi.unstubAllEnvs()
@@ -15,7 +15,7 @@ describe('buildOrderPayload money-safety defaults', () => {
 
   it('keeps fee fields unsigned and normalizes expiration defensively', () => {
     const payload = buildOrderPayload({
-      userAddress,
+      makerAddress,
       outcome: { token_id: '1' } as any,
       side: ORDER_SIDE.BUY,
       orderType: ORDER_TYPE.MARKET,
@@ -29,7 +29,7 @@ describe('buildOrderPayload money-safety defaults', () => {
     expect(payload.expiration).toBe(0n)
 
     const payloadDefault = buildOrderPayload({
-      userAddress,
+      makerAddress,
       outcome: { token_id: '1' } as any,
       side: ORDER_SIDE.BUY,
       orderType: ORDER_TYPE.MARKET,
@@ -40,7 +40,7 @@ describe('buildOrderPayload money-safety defaults', () => {
     expect(payloadDefault.fee_rate_bps).toBe(0n)
 
     const payloadTrunc = buildOrderPayload({
-      userAddress,
+      makerAddress,
       outcome: { token_id: '1' } as any,
       side: ORDER_SIDE.BUY,
       orderType: ORDER_TYPE.MARKET,

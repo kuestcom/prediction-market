@@ -60,6 +60,7 @@ function buildDraft(overrides: Partial<EventCreationDraftRecord> = {}): EventCre
     recurrenceInterval: 1,
     recurrenceUntil: buildLocalDateTimeValue(2026, 5, 30, 23, 59),
     walletAddress: '0x1111111111111111111111111111111111111111',
+    imageUrl: null,
     updatedAt: buildLocalDateTimeValue(2026, 2, 22, 10),
     endDate: buildLocalDateTimeValue(2026, 2, 22, 12),
     mainCategorySlug: 'crypto',

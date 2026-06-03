@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import FilterSettingsRow from '@/app/[locale]/(platform)/(home)/_components/FilterSettingsRow'
 import { createDefaultFilters } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
+import FilterSettingsRow from '@/app/[locale]/(platform)/(home)/_components/FilterSettingsRow'
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
