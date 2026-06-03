@@ -1,11 +1,12 @@
 'use client'
 
 import type { Address, Hash } from 'viem'
+import type { SignerOption } from './admin-create-event-form-types'
 import type { ProposerWhitelistCreatorOption, ProposerWhitelistMutationResponse, ProposerWhitelistStatus, ProposerWhitelistStatusResponse } from '@/lib/proposer-whitelist'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { CheckCircle2Icon, CircleIcon, Loader2Icon, PlusIcon, UserCheckIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getAddress, isAddress } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
@@ -47,7 +48,12 @@ interface AdminProposersDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialCreatorAddress?: string | null
+  lockCreatorSelection?: boolean
   onStatusChange?: (status: ProposerWhitelistStatus) => void
+}
+
+interface EventCreationSignersResponse {
+  data?: SignerOption[]
 }
 
 function readApiError(payload: unknown) {
@@ -60,12 +66,28 @@ function readApiError(payload: unknown) {
 
 function mergeCreatorOptions(input: {
   creators: ProposerWhitelistCreatorOption[]
+  signers: SignerOption[]
   connectedAddress: Address | null
   connectedLabel: string
 }) {
   const byAddress = new Map<string, ProposerWhitelistCreatorOption>()
   for (const creator of input.creators) {
     byAddress.set(creator.address.toLowerCase(), creator)
+  }
+
+  for (const signer of input.signers) {
+    if (!isAddress(signer.address)) {
+      continue
+    }
+    const address = getAddress(signer.address) as Address
+    const key = address.toLowerCase()
+    const existing = byAddress.get(key)
+    byAddress.set(key, {
+      address,
+      displayName: signer.displayName || existing?.displayName || signer.shortAddress,
+      shortAddress: signer.shortAddress || existing?.shortAddress || shortenProposerWhitelistAddress(address),
+      hasServerSigner: true,
+    })
   }
 
   if (input.connectedAddress) {
@@ -82,19 +104,37 @@ function mergeCreatorOptions(input: {
   return [...byAddress.values()]
 }
 
-function isActionableCreator(input: {
-  creator: ProposerWhitelistCreatorOption
+function getLockedCreatorOption(input: {
+  creators: ProposerWhitelistCreatorOption[]
+  signers: SignerOption[]
+  initialCreatorAddress?: string | null
   connectedAddress: Address | null
+  connectedLabel: string
 }) {
-  if (input.creator.hasServerSigner) {
-    return true
+  if (!input.initialCreatorAddress || !isAddress(input.initialCreatorAddress)) {
+    return []
   }
 
-  if (!input.connectedAddress) {
-    return false
+  const merged = mergeCreatorOptions({
+    creators: input.creators,
+    signers: input.signers,
+    connectedAddress: input.connectedAddress,
+    connectedLabel: input.connectedLabel,
+  })
+  const lockedAddress = getAddress(input.initialCreatorAddress) as Address
+  const existing = merged.find(creator => creator.address.toLowerCase() === lockedAddress.toLowerCase())
+  if (existing) {
+    return [existing]
   }
 
-  return input.creator.address.toLowerCase() === input.connectedAddress.toLowerCase()
+  return [{
+    address: lockedAddress,
+    displayName: input.connectedAddress?.toLowerCase() === lockedAddress.toLowerCase()
+      ? input.connectedLabel
+      : shortenProposerWhitelistAddress(lockedAddress),
+    shortAddress: shortenProposerWhitelistAddress(lockedAddress),
+    hasServerSigner: input.signers.some(signer => isAddress(signer.address) && signer.address.toLowerCase() === lockedAddress.toLowerCase()),
+  } satisfies ProposerWhitelistCreatorOption]
 }
 
 function isMutationResponse(payload: unknown): payload is ProposerWhitelistMutationResponse {
@@ -127,6 +167,7 @@ export default function AdminProposersDialog({
   open,
   onOpenChange,
   initialCreatorAddress,
+  lockCreatorSelection = false,
   onStatusChange,
 }: AdminProposersDialogProps) {
   const t = useExtracted()
@@ -139,6 +180,7 @@ export default function AdminProposersDialog({
   const publicClient = usePublicClient()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const [creators, setCreators] = useState<ProposerWhitelistCreatorOption[]>([])
+  const [signers, setSigners] = useState<SignerOption[]>([])
   const [selectedCreator, setSelectedCreator] = useState<Address | null>(null)
   const [status, setStatus] = useState<ProposerWhitelistStatus | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -146,11 +188,24 @@ export default function AdminProposersDialog({
   const [addOpen, setAddOpen] = useState(false)
   const [walletInput, setWalletInput] = useState('')
 
-  const creatorOptions = useMemo(
-    () => mergeCreatorOptions({ creators, connectedAddress, connectedLabel: t('EOA wallet') })
-      .filter(creator => isActionableCreator({ creator, connectedAddress })),
-    [connectedAddress, creators, t],
-  )
+  const creatorOptions = useMemo(() => {
+    if (lockCreatorSelection) {
+      return getLockedCreatorOption({
+        creators,
+        signers,
+        initialCreatorAddress,
+        connectedAddress,
+        connectedLabel: t('EOA wallet'),
+      })
+    }
+
+    return mergeCreatorOptions({
+      creators,
+      signers,
+      connectedAddress,
+      connectedLabel: t('EOA wallet'),
+    })
+  }, [connectedAddress, creators, initialCreatorAddress, lockCreatorSelection, signers, t])
   const selectedOption = creatorOptions.find(item => selectedCreator && item.address.toLowerCase() === selectedCreator.toLowerCase()) ?? null
   const canUseConnectedWallet = Boolean(
     selectedCreator
@@ -158,6 +213,12 @@ export default function AdminProposersDialog({
     && selectedCreator.toLowerCase() === connectedAddress.toLowerCase(),
   )
   const canUseServerSigner = Boolean(status?.hasServerSigner || selectedOption?.hasServerSigner)
+  const isSwitchingCreator = Boolean(
+    isLoading
+    && selectedCreator
+    && status
+    && status.creator.toLowerCase() !== selectedCreator.toLowerCase(),
+  )
 
   function readDialogError(error: unknown) {
     const message = readProposerWhitelistError(error)
@@ -187,7 +248,30 @@ export default function AdminProposersDialog({
     return message
   }
 
-  const loadStatus = useCallback(async (creator: Address | null) => {
+  const loadSigners = useCallback(async () => {
+    try {
+      const response = await fetch('/admin/api/event-creations/signers', {
+        method: 'GET',
+        cache: 'no-store',
+      })
+      if (!response.ok) {
+        setSigners([])
+        return [] as SignerOption[]
+      }
+
+      const payload = await response.json().catch(() => null) as EventCreationSignersResponse | null
+      const nextSigners = Array.isArray(payload?.data) ? payload.data : []
+      setSigners(nextSigners)
+      return nextSigners
+    }
+    catch (error) {
+      console.error('Failed to load event creation signers for proposer whitelist dialog', error)
+      setSigners([])
+      return [] as SignerOption[]
+    }
+  }, [])
+
+  const loadStatus = useCallback(async (creator: Address | null, nextSigners: SignerOption[] = signers) => {
     setIsLoading(true)
     try {
       const query = creator ? `?creator=${encodeURIComponent(creator)}` : ''
@@ -208,36 +292,54 @@ export default function AdminProposersDialog({
         onStatusChange?.(nextPayload.status)
       }
 
+      const availableCreators = mergeCreatorOptions({
+        creators: nextPayload.creators,
+        signers: nextSigners,
+        connectedAddress,
+        connectedLabel: t('EOA wallet'),
+      })
       const preferred = getPreferredCreator({
         initialCreatorAddress,
         selectedCreator: creator,
         connectedAddress,
-        creators: nextPayload.creators,
+        creators: availableCreators,
       })
       setSelectedCreator(preferred)
     }
     catch (error) {
       console.error('Failed to load proposer whitelist', error)
+      setStatus(previous => creator && previous?.creator.toLowerCase() === creator.toLowerCase() ? previous : null)
       toast.error(error instanceof Error ? error.message : t('Could not load proposer whitelist.'))
     }
     finally {
       setIsLoading(false)
     }
-  }, [connectedAddress, initialCreatorAddress, onStatusChange, t])
+  }, [connectedAddress, initialCreatorAddress, onStatusChange, signers, t])
+
+  const bootstrapDialog = useEffectEvent(async () => {
+    const nextSigners = await loadSigners()
+    const preferred = getPreferredCreator({
+      initialCreatorAddress,
+      selectedCreator: null,
+      connectedAddress,
+      creators: mergeCreatorOptions({
+        creators: [],
+        signers: nextSigners,
+        connectedAddress,
+        connectedLabel: t('EOA wallet'),
+      }),
+    })
+    await loadStatus(preferred, nextSigners)
+  })
 
   /* eslint-disable react-you-might-not-need-an-effect/no-event-handler */
   useEffect(function loadOnOpen() {
     if (!open) {
       return
     }
-    const preferred = getPreferredCreator({
-      initialCreatorAddress,
-      selectedCreator: null,
-      connectedAddress,
-      creators: [],
-    })
-    void loadStatus(preferred)
-  }, [connectedAddress, initialCreatorAddress, loadStatus, open])
+
+    void bootstrapDialog()
+  }, [open])
   /* eslint-enable react-you-might-not-need-an-effect/no-event-handler */
 
   async function runServerMutation(action: 'create' | 'add' | 'remove', proposers: Address[]) {
@@ -362,7 +464,7 @@ export default function AdminProposersDialog({
       return
     }
 
-    if (proposers.length === 0) {
+    if (proposers.length === 0 && action !== 'create') {
       toast.error(t('Add at least one wallet.'))
       return
     }
@@ -399,7 +501,8 @@ export default function AdminProposersDialog({
     }
     const nextCreator = getAddress(value) as Address
     setSelectedCreator(nextCreator)
-    setStatus(null)
+    setAddOpen(false)
+    setWalletInput('')
     void loadStatus(nextCreator)
   }
 
@@ -442,7 +545,7 @@ export default function AdminProposersDialog({
             <Select
               value={selectedCreator ?? undefined}
               onValueChange={handleCreatorChange}
-              disabled={isLoading || isMutating}
+              disabled={isLoading || isMutating || lockCreatorSelection}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={isLoading ? t('Loading creators...') : t('Select creator')} />
@@ -460,98 +563,116 @@ export default function AdminProposersDialog({
             </Select>
           </div>
 
-          {status?.whitelistAddress && (
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between gap-2">
-                <Label>{t('Allowed proposers')}</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7"
-                  onClick={() => setAddOpen(previous => !previous)}
-                  disabled={isMutating}
-                >
-                  <PlusIcon className="size-3.5" />
-                  {t('Add')}
-                </Button>
+          <div className="relative">
+            {isSwitchingCreator && (
+              <div
+                className={cn(
+                  'absolute inset-0 z-10 flex items-center justify-center',
+                  'rounded-md bg-background/80 backdrop-blur-[1px]',
+                )}
+              >
+                <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2Icon className="size-4 animate-spin" />
+                  {t('Loading creators...')}
+                </div>
               </div>
+            )}
 
-              <div className="grid max-h-[280px] gap-2 overflow-y-auto rounded-md border p-2 pr-1">
-                {proposerRows.map(proposer => (
-                  <div
-                    key={proposer}
-                    className="flex items-center justify-between gap-2 rounded-sm bg-muted/25 px-2 py-1.5"
-                  >
-                    <span className="min-w-0 font-mono text-xs break-all text-muted-foreground">{proposer}</span>
+            <div className={cn('grid gap-4', isSwitchingCreator && 'pointer-events-none opacity-60')}>
+              {status?.whitelistAddress && (
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>{t('Allowed proposers')}</Label>
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 shrink-0 rounded-md"
-                      aria-label={t('Remove proposer')}
+                      variant="outline"
+                      size="sm"
+                      className="h-7"
+                      onClick={() => setAddOpen(previous => !previous)}
                       disabled={isMutating || actionDisabled}
-                      onClick={() => void mutate('remove', [proposer])}
                     >
-                      <XIcon className="size-3.5" />
+                      <PlusIcon className="size-3.5" />
+                      {t('Add')}
                     </Button>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {(!status?.whitelistAddress || addOpen) && (
-            <div className="grid gap-2">
-              <Label>{status?.whitelistAddress ? t('Add proposer wallets') : t('Initial proposer wallets')}</Label>
-              <Textarea
-                value={walletInput}
-                onChange={event => setWalletInput(event.target.value)}
-                placeholder="0x123..., 0xabc..."
-                className="min-h-20"
-                disabled={isMutating}
-              />
-              {!status?.whitelistAddress && (
-                <p className="text-xs text-muted-foreground">
-                  {t('The creator wallet is always included by the whitelist contract. Add only extra proposer wallets here.')}
+                  <div className="grid max-h-[280px] gap-2 overflow-y-auto rounded-md border p-2 pr-1">
+                    {proposerRows.map(proposer => (
+                      <div
+                        key={proposer}
+                        className="flex items-center justify-between gap-2 rounded-sm bg-muted/25 px-2 py-1.5"
+                      >
+                        <span className="min-w-0 font-mono text-xs break-all text-muted-foreground">{proposer}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 shrink-0 rounded-md"
+                          aria-label={t('Remove proposer')}
+                          disabled={isMutating || actionDisabled}
+                          onClick={() => void mutate('remove', [proposer])}
+                        >
+                          <XIcon className="size-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(!status?.whitelistAddress || addOpen) && (
+                <div className="grid gap-2">
+                  <Label>{status?.whitelistAddress ? t('Add proposer wallets') : t('Initial proposer wallets')}</Label>
+                  <Textarea
+                    value={walletInput}
+                    onChange={event => setWalletInput(event.target.value)}
+                    placeholder="0x123..., 0xabc..."
+                    className="min-h-20"
+                    disabled={isMutating}
+                  />
+                  {!status?.whitelistAddress && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('The creator wallet is always included by the whitelist contract. Add only extra proposer wallets here.')}
+                    </p>
+                  )}
+                  {!status?.whitelistAddress && canUseConnectedWallet && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('Creating a new whitelist requires two onchain transactions: deploy the whitelist, then register it.')}
+                    </p>
+                  )}
+                  {showAddYourWallet && (
+                    <button
+                      type="button"
+                      className="w-fit text-xs font-medium text-primary hover:opacity-80"
+                      onClick={() => setWalletInput(connectedAddress ?? '')}
+                    >
+                      {t('add my own wallet')}
+                    </button>
+                  )}
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => void mutate(status?.whitelistAddress ? 'add' : 'create', walletInput)}
+                      disabled={actionDisabled}
+                    >
+                      {isMutating
+                        ? <Loader2Icon className="size-4 animate-spin" />
+                        : status?.whitelistAddress
+                          ? <PlusIcon className="size-4" />
+                          : <CheckCircle2Icon className="size-4" />}
+                      {status?.whitelistAddress ? t('Add proposers') : t('Create whitelist')}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {!canUseConnectedWallet && !canUseServerSigner && selectedCreator && (
+                <p className="text-sm text-destructive">
+                  {t('Use the selected creator EOA or configure its private key in environment variables to update the whitelist.')}
                 </p>
               )}
-              {!status?.whitelistAddress && canUseConnectedWallet && (
-                <p className="text-xs text-muted-foreground">
-                  {t('Creating a new whitelist requires two onchain transactions: deploy the whitelist, then register it.')}
-                </p>
-              )}
-              {showAddYourWallet && (
-                <button
-                  type="button"
-                  className="w-fit text-xs font-medium text-primary hover:opacity-80"
-                  onClick={() => setWalletInput(connectedAddress ?? '')}
-                >
-                  {t('add my own wallet')}
-                </button>
-              )}
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  onClick={() => void mutate(status?.whitelistAddress ? 'add' : 'create', walletInput)}
-                  disabled={actionDisabled}
-                >
-                  {isMutating
-                    ? <Loader2Icon className="size-4 animate-spin" />
-                    : status?.whitelistAddress
-                      ? <PlusIcon className="size-4" />
-                      : <CheckCircle2Icon className="size-4" />}
-                  {status?.whitelistAddress ? t('Add proposers') : t('Create whitelist')}
-                </Button>
-              </div>
             </div>
-          )}
-
-          {!canUseConnectedWallet && !canUseServerSigner && selectedCreator && (
-            <p className="text-sm text-destructive">
-              {t('Use the selected creator EOA or configure its private key in prediction-market to update the whitelist.')}
-            </p>
-          )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

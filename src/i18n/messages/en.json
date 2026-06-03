@@ -980,7 +980,7 @@
   "kaeVdO": "The creator wallet is always included by the whitelist contract. Add only extra proposer wallets here.",
   "ntsRoM": "Creating a new whitelist requires two onchain transactions: deploy the whitelist, then register it.",
   "Uei2Lk": "add my own wallet",
-  "osp+Km": "Use the selected creator EOA or configure its private key in prediction-market to update the whitelist.",
+  "WMe3nE": "Use the selected creator EOA or configure its private key in environment variables to update the whitelist.",
   "+qMCrW": "Manage event visibility, inspect volume, and control how new synced events are deployed.",
   "vGhAxH": "Unauthenticated.",
   "TgfBJ4": "Invalid input.",

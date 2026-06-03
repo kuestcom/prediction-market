@@ -19,6 +19,7 @@ import {
   CREATOR_PROPOSER_WHITELIST_BYTECODE,
   CREATOR_PROPOSER_WHITELIST_REGISTRY_ABI,
 } from '@/lib/proposer-whitelist-contracts'
+import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 
 export const maxDuration = 120
@@ -182,35 +183,54 @@ export async function POST(request: Request) {
       hasServerSigner: true,
     })
     const txHashes: Hash[] = []
+    const chainId = defaultViemNetwork.id
 
     if (parsed.data.action === 'create') {
       if (!currentStatus.whitelistAddress) {
-        const deployHash = await walletClient.deployContract({
-          abi: CREATOR_PROPOSER_WHITELIST_ABI,
-          bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
-          args: [creator, proposers],
+        const deployHash = await sendWithEstimatedFeeRetry({
+          chainId,
+          client: publicClient,
+          send: overrides => walletClient.deployContract({
+            abi: CREATOR_PROPOSER_WHITELIST_ABI,
+            bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
+            args: [creator, proposers],
+            ...(overrides ?? {}),
+          }),
         })
         txHashes.push(deployHash)
         const deployReceipt = await waitForSuccess(publicClient, deployHash)
-        if (!deployReceipt.contractAddress || !isAddress(deployReceipt.contractAddress)) {
+        const whitelistAddress = deployReceipt.contractAddress
+        if (!whitelistAddress || !isAddress(whitelistAddress)) {
           throw new Error('Whitelist deployment did not return a contract address.')
         }
+        const normalizedWhitelistAddress = getAddress(whitelistAddress) as Address
 
-        const registerHash = await walletClient.writeContract({
-          address: registryAddress,
-          abi: CREATOR_PROPOSER_WHITELIST_REGISTRY_ABI,
-          functionName: 'registerWhitelist',
-          args: [getAddress(deployReceipt.contractAddress) as Address],
+        const registerHash = await sendWithEstimatedFeeRetry({
+          chainId,
+          client: publicClient,
+          send: overrides => walletClient.writeContract({
+            address: registryAddress,
+            abi: CREATOR_PROPOSER_WHITELIST_REGISTRY_ABI,
+            functionName: 'registerWhitelist',
+            args: [normalizedWhitelistAddress],
+            ...(overrides ?? {}),
+          }),
         })
         txHashes.push(registerHash)
         await waitForSuccess(publicClient, registerHash)
       }
       else if (proposers.length > 0) {
-        const addHash = await walletClient.writeContract({
-          address: currentStatus.whitelistAddress,
-          abi: CREATOR_PROPOSER_WHITELIST_ABI,
-          functionName: 'addProposers',
-          args: [proposers],
+        const existingWhitelistAddress = currentStatus.whitelistAddress
+        const addHash = await sendWithEstimatedFeeRetry({
+          chainId,
+          client: publicClient,
+          send: overrides => walletClient.writeContract({
+            address: existingWhitelistAddress,
+            abi: CREATOR_PROPOSER_WHITELIST_ABI,
+            functionName: 'addProposers',
+            args: [proposers],
+            ...(overrides ?? {}),
+          }),
         })
         txHashes.push(addHash)
         await waitForSuccess(publicClient, addHash)
@@ -220,12 +240,18 @@ export async function POST(request: Request) {
       if (!currentStatus.whitelistAddress) {
         return NextResponse.json({ error: 'Creator whitelist is not registered yet.' }, { status: 409 })
       }
+      const existingWhitelistAddress = currentStatus.whitelistAddress
 
-      const hash = await walletClient.writeContract({
-        address: currentStatus.whitelistAddress,
-        abi: CREATOR_PROPOSER_WHITELIST_ABI,
-        functionName: parsed.data.action === 'add' ? 'addProposers' : 'removeProposers',
-        args: [proposers],
+      const hash = await sendWithEstimatedFeeRetry({
+        chainId,
+        client: publicClient,
+        send: overrides => walletClient.writeContract({
+          address: existingWhitelistAddress,
+          abi: CREATOR_PROPOSER_WHITELIST_ABI,
+          functionName: parsed.data.action === 'add' ? 'addProposers' : 'removeProposers',
+          args: [proposers],
+          ...(overrides ?? {}),
+        }),
       })
       txHashes.push(hash)
       await waitForSuccess(publicClient, hash)

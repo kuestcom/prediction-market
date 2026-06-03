@@ -6390,6 +6390,7 @@ export default function AdminCreateEventForm({
         open={proposersDialogOpen}
         onOpenChange={setProposersDialogOpen}
         initialCreatorAddress={selectedCreatorAddress}
+        lockCreatorSelection
         onStatusChange={(nextStatus) => {
           if (!selectedCreatorAddress || nextStatus.creator.toLowerCase() !== selectedCreatorAddress.toLowerCase()) {
             return

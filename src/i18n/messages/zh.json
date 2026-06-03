@@ -980,7 +980,7 @@
   "kaeVdO": "Whitelist 合约始终会包含 creator wallet。这里只添加额外的 proposer wallets。",
   "ntsRoM": "创建新的 whitelist 需要两笔 onchain 交易：先部署 whitelist，再注册它。",
   "Uei2Lk": "添加我自己的钱包",
-  "osp+Km": "使用所选 creator 的 EOA，或在 prediction-market 中配置其 private key，以更新 whitelist。",
+  "WMe3nE": "请使用所选 creator 的 EOA，或在 environment variables 中配置其 private key，以更新 whitelist。",
   "+qMCrW": "管理事件可见性、查看成交量，并控制新同步事件的发布方式。",
   "vGhAxH": "未认证。",
   "TgfBJ4": "输入无效。",
