@@ -1,5 +1,6 @@
 'use client'
 
+import AdminHeaderBalances from '@/app/[locale]/admin/_components/AdminHeaderBalances'
 import HeaderDropdownUserMenuAuth from '@/components/HeaderDropdownUserMenuAuth'
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -11,6 +12,8 @@ export default function AdminHeaderActions() {
 
   return (
     <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:gap-4">
+      {user && !isMobile && <AdminHeaderBalances />}
+      {user && !isMobile && <div className="h-8 w-px bg-border/80" aria-hidden="true" />}
       {user && !isMobile && <HeaderPortfolio />}
       <HeaderDropdownUserMenuAuth />
     </div>
