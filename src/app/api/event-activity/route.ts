@@ -1,10 +1,6 @@
 import type { ActivityOrder } from '@/types'
 import { NextResponse } from 'next/server'
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
-import {
-  COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS,
-  fetchCommunityProfileByAddress,
-} from '@/lib/community-profile'
 import { DEFAULT_ERROR_MESSAGE, MICRO_UNIT } from '@/lib/constants'
 import { EVENT_ACTIVITY_PAGE_SIZE } from '@/lib/data-api/trades'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
@@ -13,7 +9,6 @@ import { getPublicAssetUrl } from '@/lib/storage'
 import { normalizeAddress } from '@/lib/wallet'
 
 const DATA_API_URL = process.env.DATA_URL!
-const COMMUNITY_API_URL = process.env.COMMUNITY_URL
 
 interface DataApiActivity {
   proxyWallet?: string
@@ -84,7 +79,6 @@ function storeHydratedProfile(
   profileLookup: Map<string, HydratedActivityProfile>,
   addresses: Array<string | null | undefined>,
   profile: HydratedActivityProfile,
-  preferExisting: boolean,
 ) {
   for (const address of addresses) {
     const normalized = normalizeAddress(address)?.toLowerCase()
@@ -93,59 +87,8 @@ function storeHydratedProfile(
     }
 
     const existing = profileLookup.get(normalized)
-    profileLookup.set(
-      normalized,
-      preferExisting ? mergeHydratedProfiles(existing ?? {}, profile) : mergeHydratedProfiles(profile, existing),
-    )
+    profileLookup.set(normalized, mergeHydratedProfiles(profile, existing))
   }
-}
-
-async function loadCommunityProfiles(addresses: string[]) {
-  if (!COMMUNITY_API_URL || addresses.length === 0) {
-    return new Map<string, HydratedActivityProfile>()
-  }
-
-  const results = await Promise.allSettled(
-    addresses.map(async (address) => {
-      const profile = await fetchCommunityProfileByAddress({
-        communityApiUrl: COMMUNITY_API_URL,
-        address,
-        signal: AbortSignal.timeout(COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS),
-      })
-
-      return { address, profile }
-    }),
-  )
-
-  const profileLookup = new Map<string, HydratedActivityProfile>()
-
-  results.forEach((result, index) => {
-    if (result.status === 'rejected') {
-      console.error('Failed to load activity community profile', {
-        address: addresses[index],
-        error: result.reason,
-      })
-      return
-    }
-
-    const profile = result.value.profile
-    if (!profile) {
-      return
-    }
-
-    storeHydratedProfile(
-      profileLookup,
-      [result.value.address, profile.address, profile.deposit_wallet_address],
-      {
-        username: profile.username?.trim() || undefined,
-        image: normalizeAvatarUrl(profile.avatar_url),
-        created_at: normalizeCreatedAt(profile.created_at),
-      },
-      false,
-    )
-  })
-
-  return profileLookup
 }
 
 export async function GET(request: Request) {
@@ -207,7 +150,7 @@ export async function GET(request: Request) {
       }
     })
 
-    const profileLookup = await loadCommunityProfiles(Array.from(addressSet))
+    const profileLookup = new Map<string, HydratedActivityProfile>()
 
     if (addressSet.size > 0) {
       const { data: profiles, error } = await UserRepository.getUsersByAddresses(Array.from(addressSet))
@@ -227,7 +170,6 @@ export async function GET(request: Request) {
           profileLookup,
           [normalizedAddress, normalizedDepositWallet],
           { username: profile.username, image: imageUrl, created_at: createdAt },
-          true,
         )
       }
     }
@@ -237,8 +179,8 @@ export async function GET(request: Request) {
       const matchedProfile = normalized ? profileLookup.get(normalized) : null
       const fallbackAddress = activity.user.address || activity.user.id
 
-      const username = matchedProfile?.username || activity.user.username || fallbackAddress || 'trader'
-      const image = normalizeAvatarUrl(matchedProfile?.image || activity.user.image)
+      const username = activity.user.username || matchedProfile?.username || fallbackAddress || 'trader'
+      const image = normalizeAvatarUrl(activity.user.image || matchedProfile?.image)
 
       return {
         ...activity,
