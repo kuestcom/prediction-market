@@ -959,6 +959,7 @@
   "CLn10+": "交易失败：{hash}",
   "UF9yoG": "请在钱包中使用所选 creator 的 EOA 签署此操作。",
   "S6VGoV": "更新 proposer whitelist 前，请将钱包切换到 {chain}。",
+  "gRC0tc": "钱包提供方返回了无效的交易哈希。",
   "FDwiVN": "Deploy proposer whitelist",
   "bNFVri": "第 1/2 笔交易：为此 creator 部署 whitelist 合约。",
   "RhNegi": "Whitelist 部署未返回合约地址。",

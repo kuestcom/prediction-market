@@ -959,6 +959,7 @@
   "CLn10+": "Transacción fallida: {hash}",
   "UF9yoG": "Usa la EOA del creator seleccionado en tu wallet para firmar esta acción.",
   "S6VGoV": "Cambia la wallet a {chain} antes de actualizar la whitelist de proposers.",
+  "gRC0tc": "El proveedor de la wallet devolvió un hash de transacción no válido.",
   "FDwiVN": "Deployar whitelist de proposers",
   "bNFVri": "Transacción 1 de 2: deploya el contrato de whitelist para este creator.",
   "RhNegi": "El deploy de la whitelist no devolvió una dirección de contrato.",

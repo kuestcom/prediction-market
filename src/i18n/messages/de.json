@@ -959,6 +959,7 @@
   "CLn10+": "Transaktion fehlgeschlagen: {hash}",
   "UF9yoG": "Verwenden Sie die EOA des ausgewählten Creators in Ihrer Wallet, um diese Aktion zu signieren.",
   "S6VGoV": "Wechseln Sie die Wallet zu {chain}, bevor Sie die Proposer-Whitelist aktualisieren.",
+  "gRC0tc": "Der Wallet-Provider hat einen ungültigen Transaktions-Hash zurückgegeben.",
   "FDwiVN": "Proposer-Whitelist deployen",
   "bNFVri": "Transaktion 1 von 2: deployt den Whitelist-Vertrag für diesen Creator.",
   "RhNegi": "Der Whitelist-Deploy hat keine Vertragsadresse zurückgegeben.",

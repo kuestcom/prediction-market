@@ -959,6 +959,7 @@
   "CLn10+": "Transaction échouée : {hash}",
   "UF9yoG": "Utilisez l'EOA du creator sélectionné dans votre wallet pour signer cette action.",
   "S6VGoV": "Basculez la wallet sur {chain} avant de mettre à jour la whitelist des proposers.",
+  "gRC0tc": "Le fournisseur de la wallet a renvoyé un hash de transaction invalide.",
   "FDwiVN": "Déployer la whitelist des proposers",
   "bNFVri": "Transaction 1 sur 2 : déploie le contrat de whitelist pour ce creator.",
   "RhNegi": "Le déploiement de la whitelist n'a pas retourné d'adresse de contrat.",
