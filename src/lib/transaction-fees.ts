@@ -3,8 +3,11 @@ import { parseGwei } from 'viem'
 import { AMOY_CHAIN_ID } from '@/lib/network'
 
 const MIN_AMOY_PRIORITY_FEE_WEI = parseGwei('25')
-const FEE_BUFFER_NUMERATOR = 12n
-const FEE_BUFFER_DENOMINATOR = 10n
+const FEE_ESCALATION_STEPS = [
+  { numerator: 15n, denominator: 10n },
+  { numerator: 2n, denominator: 1n },
+  { numerator: 3n, denominator: 1n },
+] as const
 
 export interface FeeOverrides {
   maxFeePerGas?: bigint
@@ -13,12 +16,12 @@ export interface FeeOverrides {
 
 type FeeEstimateClient = Pick<PublicClient, 'estimateFeesPerGas' | 'getGasPrice'>
 
-function applyFeeBuffer(value: bigint) {
+function multiplyFee(value: bigint, numerator: bigint, denominator: bigint) {
   if (value <= 0n) {
     return value
   }
 
-  return (value * FEE_BUFFER_NUMERATOR) / FEE_BUFFER_DENOMINATOR
+  return ((value * numerator) + denominator - 1n) / denominator
 }
 
 function getPriorityFloor(chainId: number) {
@@ -27,11 +30,6 @@ function getPriorityFloor(chainId: number) {
 
 function hasFeeOverrides(overrides: FeeOverrides | undefined): overrides is Required<FeeOverrides> | FeeOverrides {
   return Boolean(overrides?.maxFeePerGas || overrides?.maxPriorityFeePerGas)
-}
-
-function areFeeOverridesEqual(left: FeeOverrides | undefined, right: FeeOverrides | undefined) {
-  return left?.maxFeePerGas === right?.maxFeePerGas
-    && left?.maxPriorityFeePerGas === right?.maxPriorityFeePerGas
 }
 
 export function parseMinTipCapFromError(errorMessage: string): bigint | null {
@@ -48,8 +46,29 @@ export function parseMinTipCapFromError(errorMessage: string): bigint | null {
   }
 }
 
-export async function getFeeOverridesForChain(client: FeeEstimateClient, chainId: number): Promise<FeeOverrides> {
+function isUserRejectedFeeError(message: string) {
+  return /\b(?:user rejected|user denied|rejected the request)\b/i.test(message)
+}
+
+function isRetryableFeeError(message: string) {
+  return /\b(?:gas price below minimum|gas tip cap .*minimum needed|transaction underpriced|replacement transaction underpriced|max fee per gas less than block base fee|fee cap less than block base fee|wallet_transport_error|transport error|bad gateway|gateway timeout|timeout waiting for relay)\b/i.test(message)
+}
+
+export async function getFeeOverridesForChain(
+  client: FeeEstimateClient,
+  chainId: number,
+  attempt = 0,
+  minPriorityFeePerGas?: bigint | null,
+): Promise<FeeOverrides> {
   const priorityFloor = getPriorityFloor(chainId)
+  const step = FEE_ESCALATION_STEPS[Math.min(attempt, FEE_ESCALATION_STEPS.length - 1)]!
+  const priorityMinimum = (() => {
+    if (typeof minPriorityFeePerGas !== 'bigint' || minPriorityFeePerGas <= 0n) {
+      return priorityFloor
+    }
+
+    return minPriorityFeePerGas > priorityFloor ? minPriorityFeePerGas : priorityFloor
+  })()
 
   try {
     const estimated = await client.estimateFeesPerGas()
@@ -58,19 +77,21 @@ export async function getFeeOverridesForChain(client: FeeEstimateClient, chainId
       const maxPriorityFeePerGas = (() => {
         const value = estimated.maxPriorityFeePerGas ?? null
         if (!value) {
-          return priorityFloor > 0n ? priorityFloor : null
+          return priorityMinimum > 0n ? priorityMinimum : null
         }
-        return value < priorityFloor ? priorityFloor : value
+        return value < priorityMinimum ? priorityMinimum : value
       })()
 
       const maxFeePerGas = (() => {
         const estimatedBase = estimated.maxFeePerGas ?? (typeof estimated.gasPrice === 'bigint' ? estimated.gasPrice * 2n : null)
-        const bufferedBase = estimatedBase ? applyFeeBuffer(estimatedBase) : null
+        const bufferedBase = estimatedBase
+          ? multiplyFee(estimatedBase, step.numerator, step.denominator)
+          : null
         if (!maxPriorityFeePerGas) {
           return bufferedBase
         }
 
-        const bufferedPriority = applyFeeBuffer(maxPriorityFeePerGas)
+        const bufferedPriority = multiplyFee(maxPriorityFeePerGas, step.numerator, step.denominator)
         if (!bufferedBase || bufferedBase < bufferedPriority * 2n) {
           return bufferedPriority * 2n
         }
@@ -80,14 +101,14 @@ export async function getFeeOverridesForChain(client: FeeEstimateClient, chainId
       if (typeof maxFeePerGas === 'bigint' && typeof maxPriorityFeePerGas === 'bigint') {
         return {
           maxFeePerGas,
-          maxPriorityFeePerGas: applyFeeBuffer(maxPriorityFeePerGas),
+          maxPriorityFeePerGas: multiplyFee(maxPriorityFeePerGas, step.numerator, step.denominator),
         }
       }
     }
 
     if (typeof estimated.gasPrice === 'bigint') {
-      const gasPrice = estimated.gasPrice < priorityFloor ? priorityFloor : estimated.gasPrice
-      const maxPriorityFeePerGas = applyFeeBuffer(gasPrice)
+      const gasPrice = estimated.gasPrice < priorityMinimum ? priorityMinimum : estimated.gasPrice
+      const maxPriorityFeePerGas = multiplyFee(gasPrice, step.numerator, step.denominator)
       return {
         maxPriorityFeePerGas,
         maxFeePerGas: maxPriorityFeePerGas * 2n,
@@ -100,8 +121,8 @@ export async function getFeeOverridesForChain(client: FeeEstimateClient, chainId
 
   try {
     const gasPrice = await client.getGasPrice()
-    const nextGasPrice = gasPrice < priorityFloor ? priorityFloor : gasPrice
-    const maxPriorityFeePerGas = applyFeeBuffer(nextGasPrice)
+    const nextGasPrice = gasPrice < priorityMinimum ? priorityMinimum : gasPrice
+    const maxPriorityFeePerGas = multiplyFee(nextGasPrice, step.numerator, step.denominator)
     return {
       maxPriorityFeePerGas,
       maxFeePerGas: maxPriorityFeePerGas * 2n,
@@ -111,10 +132,11 @@ export async function getFeeOverridesForChain(client: FeeEstimateClient, chainId
     console.warn('Could not estimate fees with getGasPrice:', error)
   }
 
-  if (priorityFloor > 0n) {
+  if (priorityMinimum > 0n) {
+    const maxPriorityFeePerGas = multiplyFee(priorityMinimum, step.numerator, step.denominator)
     return {
-      maxPriorityFeePerGas: priorityFloor,
-      maxFeePerGas: priorityFloor * 2n,
+      maxPriorityFeePerGas,
+      maxFeePerGas: maxPriorityFeePerGas * 2n,
     }
   }
 
@@ -126,27 +148,33 @@ export async function sendWithEstimatedFeeRetry<T>(input: {
   client: FeeEstimateClient
   send: (overrides?: FeeOverrides) => Promise<T>
 }) {
-  const initialOverrides = await getFeeOverridesForChain(input.client, input.chainId)
+  let minTipFloor: bigint | null = null
+  let lastError: unknown = null
 
-  try {
-    return await input.send(hasFeeOverrides(initialOverrides) ? initialOverrides : undefined)
-  }
-  catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    const minTip = parseMinTipCapFromError(message)
-    if (minTip) {
-      const bufferedMinTip = applyFeeBuffer(minTip)
-      return input.send({
-        maxPriorityFeePerGas: bufferedMinTip,
-        maxFeePerGas: bufferedMinTip * 2n,
-      })
+  for (let attempt = 0; attempt < FEE_ESCALATION_STEPS.length; attempt += 1) {
+    const overrides = await getFeeOverridesForChain(input.client, input.chainId, attempt, minTipFloor)
+    try {
+      return await input.send(hasFeeOverrides(overrides) ? overrides : undefined)
     }
+    catch (error) {
+      lastError = error
+      const message = error instanceof Error ? error.message : String(error)
 
-    const retryOverrides = await getFeeOverridesForChain(input.client, input.chainId)
-    if (!hasFeeOverrides(retryOverrides) || areFeeOverridesEqual(initialOverrides, retryOverrides)) {
-      throw error
+      if (isUserRejectedFeeError(message)) {
+        throw error
+      }
+
+      const minTip = parseMinTipCapFromError(message)
+      if (minTip) {
+        minTipFloor = minTipFloor && minTipFloor > minTip ? minTipFloor : minTip
+        continue
+      }
+
+      if (!isRetryableFeeError(message)) {
+        throw error
+      }
     }
-
-    return input.send(retryOverrides)
   }
+
+  throw lastError
 }

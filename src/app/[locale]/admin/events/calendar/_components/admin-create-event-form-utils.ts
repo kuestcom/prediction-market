@@ -714,20 +714,6 @@ export function getChainLabel() {
   return IS_TEST_MODE ? 'Polygon Amoy' : 'Polygon'
 }
 
-export function parseMinTipCapFromError(errorMessage: string): bigint | null {
-  const match = errorMessage.match(/minimum needed\s+(\d+)/i)
-  if (!match?.[1]) {
-    return null
-  }
-
-  try {
-    return BigInt(match[1])
-  }
-  catch {
-    return null
-  }
-}
-
 export function isAlreadyInitializedError(message: string): boolean {
   return /already initialized/i.test(message)
 }

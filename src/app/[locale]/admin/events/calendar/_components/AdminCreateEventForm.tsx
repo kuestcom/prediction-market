@@ -118,11 +118,11 @@ import {
   slugifyEventCreationValue as slugify,
   slugifyEventCreationTemplate as slugifyTemplate,
 } from '@/lib/event-creation'
-import { AMOY_CHAIN_ID } from '@/lib/network'
 import {
   isProposerWhitelistStatusResponse,
   resolveProposerWhitelistAddress,
 } from '@/lib/proposer-whitelist'
+import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { cn } from '@/lib/utils'
 import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
@@ -144,7 +144,6 @@ import {
   GAS_ESTIMATE_BUFFER_DENOMINATOR,
   GAS_ESTIMATE_BUFFER_NUMERATOR,
   INITIALIZE_GAS_UNITS_ESTIMATE,
-  MIN_AMOY_PRIORITY_FEE_WEI,
   OPENROUTER_CHECK_TIMEOUT_MS,
   PREPARE_POLL_DELAY_MS,
   PREPARE_POLL_MAX_ATTEMPTS,
@@ -186,7 +185,6 @@ import {
   isPrepareAuthChallengeResponse,
   isSlugCheckResponse,
   mapSignatureFlowErrorForUser,
-  parseMinTipCapFromError,
   readApiError,
   readResponseBody,
   readResponseErrorMessage,
@@ -3029,78 +3027,6 @@ function useAdminCreateEventForm({
     return nextResult
   }, [preSignChecksFingerprint, runAllowedCreatorCheck, runContentCheck, runFundingCheck, runNativeGasCheck, runOpenRouterCheck, runProposerWhitelistCheck, runSlugCheck])
 
-  const getFeeOverridesForTx = useCallback(async (chainId: number) => {
-    if (!publicClient) {
-      return {}
-    }
-
-    const priorityFloor = chainId === AMOY_CHAIN_ID ? MIN_AMOY_PRIORITY_FEE_WEI : 0n
-
-    try {
-      const estimated = await publicClient.estimateFeesPerGas()
-      const hasEip1559Fees = typeof estimated.maxFeePerGas === 'bigint' || typeof estimated.maxPriorityFeePerGas === 'bigint'
-      if (hasEip1559Fees) {
-        const maxPriorityFeePerGas = (() => {
-          const value = estimated.maxPriorityFeePerGas ?? null
-          if (!value) {
-            return priorityFloor > 0n ? priorityFloor : null
-          }
-          if (value < priorityFloor) {
-            return priorityFloor
-          }
-          return value
-        })()
-
-        const maxFeePerGas = (() => {
-          const base = estimated.maxFeePerGas ?? (typeof estimated.gasPrice === 'bigint' ? estimated.gasPrice * 2n : null)
-          if (!maxPriorityFeePerGas) {
-            return base
-          }
-          if (!base || base <= maxPriorityFeePerGas) {
-            return maxPriorityFeePerGas * 2n
-          }
-          return base
-        })()
-
-        if (typeof maxFeePerGas === 'bigint' && typeof maxPriorityFeePerGas === 'bigint') {
-          return { maxFeePerGas, maxPriorityFeePerGas }
-        }
-      }
-
-      if (typeof estimated.gasPrice === 'bigint') {
-        const maxPriorityFeePerGas = estimated.gasPrice < priorityFloor ? priorityFloor : estimated.gasPrice
-        return {
-          maxPriorityFeePerGas,
-          maxFeePerGas: maxPriorityFeePerGas * 2n,
-        }
-      }
-    }
-    catch (error) {
-      console.warn('Could not estimate fees with estimateFeesPerGas:', error)
-    }
-
-    try {
-      const gasPrice = await publicClient.getGasPrice()
-      const maxPriorityFeePerGas = gasPrice < priorityFloor ? priorityFloor : gasPrice
-      return {
-        maxPriorityFeePerGas,
-        maxFeePerGas: maxPriorityFeePerGas * 2n,
-      }
-    }
-    catch (error) {
-      console.warn('Could not estimate fees with getGasPrice:', error)
-    }
-
-    if (priorityFloor > 0n) {
-      return {
-        maxPriorityFeePerGas: priorityFloor,
-        maxFeePerGas: priorityFloor * 2n,
-      }
-    }
-
-    return {}
-  }, [publicClient])
-
   const applyPreparedSignatureState = useCallback((input: {
     prepared: PrepareResponse
     confirmedTxs: PrepareFinalizeRequestTx[]
@@ -3859,7 +3785,13 @@ function useAdminCreateEventForm({
 
         let hash: string
         try {
-          hash = await sendWithRpcFallback()
+          hash = publicClient
+            ? await sendWithEstimatedFeeRetry({
+                chainId: preparedSignaturePlan.chainId,
+                client: publicClient,
+                send: sendWithRpcFallback,
+              })
+            : await sendWithRpcFallback()
         }
         catch (sendError) {
           const message = sendError instanceof Error ? sendError.message : String(sendError)
@@ -3877,24 +3809,7 @@ function useAdminCreateEventForm({
             continue
           }
 
-          const minTip = parseMinTipCapFromError(message)
-          if (minTip) {
-            hash = await sendWithRpcFallback({
-              maxPriorityFeePerGas: minTip,
-              maxFeePerGas: minTip * 2n,
-            })
-          }
-          else {
-            const feeOverrides = await getFeeOverridesForTx(preparedSignaturePlan.chainId)
-            const retryOverrides: {
-              maxFeePerGas?: bigint
-              maxPriorityFeePerGas?: bigint
-            } = feeOverrides
-            if (!retryOverrides.maxFeePerGas && !retryOverrides.maxPriorityFeePerGas) {
-              throw sendError
-            }
-            hash = await sendWithRpcFallback(retryOverrides)
-          }
+          throw sendError
         }
 
         setSignatureTxs(previous => previous.map((item, itemIndex) => {
@@ -3976,7 +3891,6 @@ function useAdminCreateEventForm({
   }, [
     eoaAddress,
     finalizeSignatureFlow,
-    getFeeOverridesForTx,
     persistConfirmedTxs,
     preparedSignaturePlan,
     publicClient,

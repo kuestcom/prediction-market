@@ -19,8 +19,8 @@ describe('transaction fees', () => {
     }, AMOY_CHAIN_ID)
 
     expect(overrides).toEqual({
-      maxPriorityFeePerGas: parseGwei('30'),
-      maxFeePerGas: parseGwei('60'),
+      maxPriorityFeePerGas: 37_500_000_000n,
+      maxFeePerGas: parseGwei('75'),
     })
   })
 
@@ -43,12 +43,30 @@ describe('transaction fees', () => {
 
     expect(hash).toBe('0xhash')
     expect(send).toHaveBeenNthCalledWith(1, {
-      maxPriorityFeePerGas: parseGwei('30'),
-      maxFeePerGas: parseGwei('60'),
+      maxPriorityFeePerGas: 37_500_000_000n,
+      maxFeePerGas: parseGwei('75'),
     })
     expect(send).toHaveBeenNthCalledWith(2, {
-      maxPriorityFeePerGas: parseGwei('30'),
-      maxFeePerGas: parseGwei('60'),
+      maxPriorityFeePerGas: parseGwei('50'),
+      maxFeePerGas: parseGwei('100'),
     })
+  })
+
+  it('does not retry after the user rejects the wallet prompt', async () => {
+    const send = vi.fn().mockRejectedValue(new Error('User rejected the request'))
+
+    await expect(sendWithEstimatedFeeRetry({
+      chainId: POLYGON_MAINNET_CHAIN_ID,
+      client: {
+        estimateFeesPerGas: vi.fn().mockResolvedValue({
+          maxFeePerGas: parseGwei('50'),
+          maxPriorityFeePerGas: parseGwei('25'),
+        }),
+        getGasPrice: vi.fn(),
+      },
+      send,
+    })).rejects.toThrow('User rejected the request')
+
+    expect(send).toHaveBeenCalledTimes(1)
   })
 })

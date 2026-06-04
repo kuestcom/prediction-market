@@ -29,7 +29,6 @@ export const CONTENT_CHECK_PROGRESS = [
   'checking outcomes consistency...',
   'checking final consistency...',
 ] as const
-export const MIN_AMOY_PRIORITY_FEE_WEI = parseGwei('25')
 export const FALLBACK_MAX_FEE_PER_GAS_WEI = parseGwei('30')
 export const APPROVE_GAS_UNITS_ESTIMATE = 70_000n
 export const INITIALIZE_GAS_UNITS_ESTIMATE = 700_000n
