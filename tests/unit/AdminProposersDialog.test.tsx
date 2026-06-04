@@ -216,6 +216,41 @@ describe('adminProposersDialog', () => {
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Proposer whitelist updated.')
   })
 
+  it('validates the AppKit provider network when social-wallet transport is used', async () => {
+    const user = userEvent.setup()
+    mocks.useAppKitAccount.mockReturnValue({ address: null })
+    mocks.useAppKitNetworkCore.mockReturnValue({ chainId: 80002 })
+    mocks.useUser.mockReturnValue({ address: CREATOR })
+    mocks.useWalletClient.mockReturnValue({
+      account: { address: EMBEDDED_ACCOUNT },
+      chain: { id: 1, name: 'Ethereum' },
+      sendTransaction: mocks.sendTransaction,
+      request: mocks.walletRequest,
+    })
+
+    render(
+      <AdminProposersDialog
+        open
+        onOpenChange={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create whitelist' })).toBeEnabled()
+    })
+
+    await user.type(screen.getByRole('textbox'), PROPOSER)
+    await user.click(screen.getByRole('button', { name: 'Create whitelist' }))
+
+    await waitFor(() => {
+      expect(mocks.walletRequest).toHaveBeenCalledTimes(2)
+    })
+
+    expect(mocks.sendTransaction).not.toHaveBeenCalled()
+    expect(mocks.toastError).not.toHaveBeenCalledWith('Switch wallet to Polygon Amoy before updating proposer whitelist.')
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Proposer whitelist updated.')
+  })
+
   it('keeps server-signer fallback available when only the stored user address matches the selected creator', async () => {
     const user = userEvent.setup()
 

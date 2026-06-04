@@ -251,9 +251,9 @@ export default function AdminProposersDialog({
     () => resolveProposerWhitelistAddress(appKitAddressRaw, user?.address, walletClient?.account?.address),
     [appKitAddressRaw, user?.address, walletClient?.account?.address],
   )
-  const connectedChainId = useMemo(
-    () => walletClient?.chain?.id ?? resolveChainId(appKitChainId),
-    [appKitChainId, walletClient?.chain?.id],
+  const appKitResolvedChainId = useMemo(
+    () => resolveChainId(appKitChainId),
+    [appKitChainId],
   )
   const [creators, setCreators] = useState<ProposerWhitelistCreatorOption[]>([])
   const [signers, setSigners] = useState<SignerOption[]>([])
@@ -292,6 +292,9 @@ export default function AdminProposersDialog({
     isRpcWalletProvider(walletProvider)
     || walletClientMatchesSelectedCreator,
   )
+  const connectedWalletTransportChainId = walletClientMatchesSelectedCreator
+    ? walletClient?.chain?.id ?? appKitResolvedChainId
+    : appKitResolvedChainId
   const canUseConnectedWallet = Boolean(
     selectedCreator
     && connectedWalletAddress
@@ -473,7 +476,7 @@ export default function AdminProposersDialog({
     if (!canUseConnectedWallet) {
       throw new Error(t('Use the selected creator EOA in your wallet to sign this action.'))
     }
-    if (connectedChainId && connectedChainId !== DEFAULT_CHAIN_ID) {
+    if (connectedWalletTransportChainId && connectedWalletTransportChainId !== DEFAULT_CHAIN_ID) {
       throw new Error(t('Switch wallet to {chain} before updating proposer whitelist.', { chain: defaultViemNetwork.name }))
     }
     const rpcProvider = isRpcWalletProvider(walletProvider)
@@ -490,6 +493,7 @@ export default function AdminProposersDialog({
       rpcProvider,
       walletClient,
       walletClientMatchesCreator,
+      chainId: connectedWalletTransportChainId ?? DEFAULT_CHAIN_ID,
     }
   }
 
@@ -581,7 +585,7 @@ export default function AdminProposersDialog({
     }
 
     return sendWithEstimatedFeeRetry({
-      chainId: connectedChainId ?? DEFAULT_CHAIN_ID,
+      chainId: connection.chainId,
       client: publicClient,
       send: sendWithRpcFallback,
     })
