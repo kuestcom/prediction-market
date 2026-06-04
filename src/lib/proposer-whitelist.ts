@@ -33,6 +33,11 @@ export interface ProposerWhitelistMutationResponse {
   txHashes: Hash[]
 }
 
+export interface ProposerWhitelistDeploymentResponse {
+  whitelistAddress: Address
+  txHashes: Hash[]
+}
+
 const GAS_FEE_TOO_LOW_PATTERNS = [
   'gas price below minimum',
   'transaction underpriced',

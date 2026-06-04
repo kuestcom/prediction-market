@@ -9,6 +9,7 @@ const EMBEDDED_ACCOUNT = getAddress('0x00000000000000000000000000000000000000bb'
 const REGISTRY = getAddress('0x00000000000000000000000000000000000000cc')
 const WHITELIST = getAddress('0x00000000000000000000000000000000000000dd')
 const PROPOSER = getAddress('0x00000000000000000000000000000000000000ee')
+const DEPLOYER = getAddress('0x00000000000000000000000000000000000000ff')
 
 const mocks = vi.hoisted(() => ({
   useAppKitAccount: vi.fn(),
@@ -136,12 +137,27 @@ describe('adminProposersDialog', () => {
         status: 'success',
       })
 
-    mocks.fetch.mockImplementation(async (input: RequestInfo | URL) => {
+    mocks.fetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
       if (url.includes('/admin/api/event-creations/signers')) {
         return {
           ok: true,
-          json: async () => ({ data: [] }),
+          json: async () => ({
+            data: [{
+              address: DEPLOYER,
+              displayName: 'Server deployer',
+              shortAddress: '0x0000...00FF',
+            }],
+          }),
+        }
+      }
+      if (url.endsWith('/admin/api/proposer-whitelists') && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            whitelistAddress: WHITELIST,
+            txHashes: ['0xdeploy'],
+          }),
         }
       }
       if (url.includes('/admin/api/proposer-whitelists')) {
@@ -191,19 +207,15 @@ describe('adminProposersDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Create whitelist' }))
 
     await waitFor(() => {
-      expect(mocks.walletRequest).toHaveBeenCalledTimes(2)
+      expect(mocks.walletRequest).toHaveBeenCalledTimes(1)
     })
 
+    expect(mocks.fetch).toHaveBeenCalledWith('/admin/api/proposer-whitelists', expect.objectContaining({
+      method: 'POST',
+      body: expect.stringContaining('"action":"deploy"'),
+    }))
     expect(mocks.sendTransaction).not.toHaveBeenCalled()
     expect(mocks.walletRequest).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      method: 'eth_sendTransaction',
-      params: [expect.objectContaining({
-        from: CREATOR,
-        data: expect.stringMatching(/^0x/i),
-        value: '0x0',
-      })],
-    }))
-    expect(mocks.walletRequest).toHaveBeenNthCalledWith(2, expect.objectContaining({
       method: 'eth_sendTransaction',
       params: [expect.objectContaining({
         from: CREATOR,
@@ -243,12 +255,71 @@ describe('adminProposersDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Create whitelist' }))
 
     await waitFor(() => {
-      expect(mocks.walletRequest).toHaveBeenCalledTimes(2)
+      expect(mocks.walletRequest).toHaveBeenCalledTimes(1)
     })
 
     expect(mocks.sendTransaction).not.toHaveBeenCalled()
     expect(mocks.toastError).not.toHaveBeenCalledWith('Switch wallet to Polygon Amoy before updating proposer whitelist.')
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Proposer whitelist updated.')
+  })
+
+  it('does not send whitelist deploy bytecode through an RPC-only social wallet without a server deployer', async () => {
+    const user = userEvent.setup()
+    mocks.useAppKitAccount.mockReturnValue({ address: null })
+    mocks.useUser.mockReturnValue({ address: CREATOR })
+    mocks.fetch.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/admin/api/event-creations/signers')) {
+        return {
+          ok: true,
+          json: async () => ({ data: [] }),
+        }
+      }
+      if (url.includes('/admin/api/proposer-whitelists')) {
+        return {
+          ok: true,
+          json: async () => ({
+            registryAddress: REGISTRY,
+            creators: [{
+              address: CREATOR,
+              displayName: 'EOA wallet',
+              shortAddress: '0x0000...00AA',
+              hasServerSigner: false,
+            }],
+            status: {
+              creator: CREATOR,
+              registryAddress: REGISTRY,
+              whitelistAddress: null,
+              proposers: [],
+              hasServerSigner: false,
+            },
+          }),
+        }
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    render(
+      <AdminProposersDialog
+        open
+        onOpenChange={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create whitelist' })).toBeEnabled()
+    })
+
+    await user.type(screen.getByRole('textbox'), PROPOSER)
+    await user.click(screen.getByRole('button', { name: 'Create whitelist' }))
+
+    await waitFor(() => {
+      expect(mocks.toastError).toHaveBeenCalledWith('Could not update proposer whitelist.')
+    })
+
+    expect(mocks.walletRequest).not.toHaveBeenCalled()
+    expect(mocks.sendTransaction).not.toHaveBeenCalled()
   })
 
   it('keeps server-signer fallback available when only the stored user address matches the selected creator', async () => {

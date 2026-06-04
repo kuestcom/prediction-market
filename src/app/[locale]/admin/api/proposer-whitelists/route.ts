@@ -26,7 +26,7 @@ import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 export const maxDuration = 120
 
 const mutateProposerWhitelistSchema = z.object({
-  action: z.enum(['create', 'add', 'remove']),
+  action: z.enum(['create', 'deploy', 'add', 'remove']),
   creator: z.string().trim().min(1),
   proposers: z.array(z.string().trim().min(1)).default([]),
 })
@@ -109,6 +109,14 @@ function getServerSigner(creator: Address) {
   return privateKeyToAccount(signer.privateKey)
 }
 
+function getServerDeployer() {
+  const signer = loadEventCreationSignersFromEnv()[0]
+  if (!signer) {
+    throw new Error('No server signer is configured to deploy proposer whitelist.')
+  }
+  return privateKeyToAccount(signer.privateKey)
+}
+
 async function waitForSuccess(publicClient: ReturnType<typeof createPublicClient>, hash: Hash) {
   const receipt = await publicClient.waitForTransactionReceipt({ hash })
   if (receipt.status !== 'success') {
@@ -162,13 +170,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: readProposerWhitelistError(error) }, { status: 400 })
     }
 
-    if (parsed.data.action !== 'create' && requestedProposers.length === 0) {
+    if (parsed.data.action !== 'create' && parsed.data.action !== 'deploy' && requestedProposers.length === 0) {
       return NextResponse.json({ error: 'At least one proposer wallet is required.' }, { status: 400 })
     }
 
     const registryAddress = getServerCreatorProposerWhitelistRegistryAddress()
     const proposers = omitCreatorFromProposerAddressList(creator, requestedProposers)
-    if (parsed.data.action !== 'create' && proposers.length === 0) {
+    if (parsed.data.action !== 'create' && parsed.data.action !== 'deploy' && proposers.length === 0) {
       const currentStatus = await readCreatorProposerWhitelistStatus({
         creator,
         registryAddress,
@@ -177,7 +185,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: currentStatus, txHashes: [] })
     }
 
-    const account = getServerSigner(creator)
+    const account = parsed.data.action === 'deploy'
+      ? getServerDeployer()
+      : getServerSigner(creator)
     const publicClient = createPublicClient({
       chain: defaultViemNetwork,
       transport: http(defaultViemRpcUrl),
@@ -188,13 +198,45 @@ export async function POST(request: Request) {
       transport: http(defaultViemRpcUrl),
     })
 
+    const hasCreatorServerSigner = buildSignerMap().has(creator.toLowerCase())
     const currentStatus = await readCreatorProposerWhitelistStatus({
       creator,
       registryAddress,
-      hasServerSigner: true,
+      hasServerSigner: parsed.data.action === 'deploy' ? hasCreatorServerSigner : true,
     })
     const txHashes: Hash[] = []
     const chainId = defaultViemNetwork.id
+
+    if (parsed.data.action === 'deploy') {
+      if (currentStatus.whitelistAddress) {
+        return NextResponse.json({
+          whitelistAddress: currentStatus.whitelistAddress,
+          txHashes,
+        })
+      }
+
+      const deployHash = await sendWithEstimatedFeeRetry({
+        chainId,
+        client: publicClient,
+        send: overrides => walletClient.deployContract({
+          abi: CREATOR_PROPOSER_WHITELIST_ABI,
+          bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
+          args: [creator, proposers],
+          ...(overrides ?? {}),
+        }),
+      })
+      txHashes.push(deployHash)
+      const deployReceipt = await waitForSuccess(publicClient, deployHash)
+      const whitelistAddress = deployReceipt.contractAddress
+      if (!whitelistAddress || !isAddress(whitelistAddress)) {
+        throw new Error('Whitelist deployment did not return a contract address.')
+      }
+
+      return NextResponse.json({
+        whitelistAddress: getAddress(whitelistAddress) as Address,
+        txHashes,
+      })
+    }
 
     if (parsed.data.action === 'create') {
       if (!currentStatus.whitelistAddress) {

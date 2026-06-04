@@ -2,7 +2,7 @@
 
 import type { Address, Hash, Hex } from 'viem'
 import type { SignerOption } from './admin-create-event-form-types'
-import type { ProposerWhitelistCreatorOption, ProposerWhitelistMutationResponse, ProposerWhitelistStatus, ProposerWhitelistStatusResponse } from '@/lib/proposer-whitelist'
+import type { ProposerWhitelistCreatorOption, ProposerWhitelistDeploymentResponse, ProposerWhitelistMutationResponse, ProposerWhitelistStatus, ProposerWhitelistStatusResponse } from '@/lib/proposer-whitelist'
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
 import { CheckCircle2Icon, CircleIcon, Loader2Icon, PlusIcon, UserCheckIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -172,6 +172,16 @@ function isMutationResponse(payload: unknown): payload is ProposerWhitelistMutat
   }
   const candidate = payload as Partial<ProposerWhitelistMutationResponse>
   return Boolean(candidate.status) && Array.isArray(candidate.txHashes)
+}
+
+function isDeploymentResponse(payload: unknown): payload is ProposerWhitelistDeploymentResponse {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+  const candidate = payload as Partial<ProposerWhitelistDeploymentResponse>
+  return typeof candidate.whitelistAddress === 'string'
+    && isAddress(candidate.whitelistAddress)
+    && Array.isArray(candidate.txHashes)
 }
 
 function getPreferredCreator(input: {
@@ -457,6 +467,30 @@ export default function AdminProposersDialog({
     return payload.txHashes
   }
 
+  async function runServerDeployment(proposers: Address[]) {
+    if (!selectedCreator) {
+      throw new Error(t('Select a creator wallet first.'))
+    }
+
+    const response = await fetch('/admin/api/proposer-whitelists', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'deploy',
+        creator: selectedCreator,
+        proposers,
+      }),
+    })
+    const payload = await response.json().catch(() => null) as unknown
+    const apiError = readApiError(payload)
+    if (!response.ok || apiError || !isDeploymentResponse(payload)) {
+      throw new Error(apiError || t('Could not update proposer whitelist ({status})', { status: String(response.status) }))
+    }
+    return getAddress(payload.whitelistAddress) as Address
+  }
+
   async function waitForWalletTx(hash: Hash) {
     const client = publicClient
     if (!client) {
@@ -595,22 +629,33 @@ export default function AdminProposersDialog({
     if (!selectedCreator || !status) {
       throw new Error(t('Select a creator wallet first.'))
     }
-    const deployHash = await sendWalletTransaction({
-      title: t('Deploy proposer whitelist'),
-      description: t('Transaction 1 of 2: deploy the whitelist contract for this creator.'),
-      account: selectedCreator,
-      data: encodeDeployData({
-        abi: CREATOR_PROPOSER_WHITELIST_ABI,
-        bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
-        args: [selectedCreator, proposers],
-      }),
-    })
-    const deployReceipt = await waitForWalletTx(deployHash)
-    const whitelistAddress = deployReceipt?.contractAddress && isAddress(deployReceipt.contractAddress)
-      ? getAddress(deployReceipt.contractAddress) as Address
-      : null
-    if (!whitelistAddress) {
-      throw new Error(t('Whitelist deployment did not return a contract address.'))
+    let whitelistAddress = status.whitelistAddress
+
+    if (!whitelistAddress && signers.length > 0) {
+      whitelistAddress = await runServerDeployment(proposers)
+    }
+    else if (!whitelistAddress) {
+      if (!walletClientMatchesSelectedCreator) {
+        throw new Error(t('Could not update proposer whitelist.'))
+      }
+
+      const deployHash = await sendWalletTransaction({
+        title: t('Deploy proposer whitelist'),
+        description: t('Transaction 1 of 2: deploy the whitelist contract for this creator.'),
+        account: selectedCreator,
+        data: encodeDeployData({
+          abi: CREATOR_PROPOSER_WHITELIST_ABI,
+          bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
+          args: [selectedCreator, proposers],
+        }),
+      })
+      const deployReceipt = await waitForWalletTx(deployHash)
+      whitelistAddress = deployReceipt?.contractAddress && isAddress(deployReceipt.contractAddress)
+        ? getAddress(deployReceipt.contractAddress) as Address
+        : null
+      if (!whitelistAddress) {
+        throw new Error(t('Whitelist deployment did not return a contract address.'))
+      }
     }
 
     const registerHash = await sendWalletTransaction({
