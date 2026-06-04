@@ -215,6 +215,10 @@ export default function AdminProposersDialog({
   const publicClient = usePublicClient()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const user = useUser()
+  const connectedWalletAddress = useMemo(
+    () => resolveProposerWhitelistAddress(appKitAddressRaw, walletClient?.account?.address),
+    [appKitAddressRaw, walletClient?.account?.address],
+  )
   const knownCreatorAddress = useMemo(
     () => resolveProposerWhitelistAddress(appKitAddressRaw, user?.address, walletClient?.account?.address),
     [appKitAddressRaw, user?.address, walletClient?.account?.address],
@@ -249,8 +253,8 @@ export default function AdminProposersDialog({
   const selectedOption = creatorOptions.find(item => selectedCreator && item.address.toLowerCase() === selectedCreator.toLowerCase()) ?? null
   const canUseConnectedWallet = Boolean(
     selectedCreator
-    && knownCreatorAddress
-    && selectedCreator.toLowerCase() === knownCreatorAddress.toLowerCase(),
+    && connectedWalletAddress
+    && selectedCreator.toLowerCase() === connectedWalletAddress.toLowerCase(),
   )
   const canUseServerSigner = Boolean(status?.hasServerSigner || selectedOption?.hasServerSigner)
   const isSwitchingCreator = Boolean(

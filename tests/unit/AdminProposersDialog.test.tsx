@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   waitForTransactionReceipt: vi.fn(),
   estimateFeesPerGas: vi.fn(),
   getGasPrice: vi.fn(),
+  fetch: vi.fn(),
 }))
 
 vi.mock('next-intl', () => ({
@@ -95,6 +96,7 @@ describe('adminProposersDialog', () => {
     mocks.runWithSignaturePrompt.mockReset()
     mocks.toastSuccess.mockReset()
     mocks.toastError.mockReset()
+    mocks.fetch.mockReset()
 
     mocks.useWalletClient.mockReturnValue({
       account: { address: EMBEDDED_ACCOUNT },
@@ -125,7 +127,7 @@ describe('adminProposersDialog', () => {
         status: 'success',
       })
 
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    mocks.fetch.mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.includes('/admin/api/event-creations/signers')) {
         return {
@@ -156,7 +158,8 @@ describe('adminProposersDialog', () => {
       }
 
       throw new Error(`Unexpected fetch: ${url}`)
-    }))
+    })
+    vi.stubGlobal('fetch', mocks.fetch)
   })
 
   it('uses the resolved AppKit EOA for whitelist creation even when walletClient account differs', async () => {
@@ -192,6 +195,91 @@ describe('adminProposersDialog', () => {
       value: 0n,
     }))
     expect(mocks.toastError).not.toHaveBeenCalledWith('Use the selected creator EOA in your wallet to sign this action.')
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Proposer whitelist updated.')
+  })
+
+  it('keeps server-signer fallback available when only the stored user address matches the selected creator', async () => {
+    const user = userEvent.setup()
+
+    mocks.useAppKitAccount.mockReturnValue({ address: null })
+    mocks.useUser.mockReturnValue({ address: CREATOR })
+    mocks.useWalletClient.mockReturnValue(null)
+    mocks.usePublicClient.mockReturnValue(null)
+    mocks.fetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.includes('/admin/api/event-creations/signers')) {
+        return {
+          ok: true,
+          json: async () => ({
+            data: [{
+              address: CREATOR,
+              displayName: 'Server signer',
+              shortAddress: '0x0000...00AA',
+            }],
+          }),
+        }
+      }
+      if (url.includes('/admin/api/proposer-whitelists?creator=')) {
+        return {
+          ok: true,
+          json: async () => ({
+            registryAddress: REGISTRY,
+            creators: [{
+              address: CREATOR,
+              displayName: 'Server signer',
+              shortAddress: '0x0000...00AA',
+              hasServerSigner: true,
+            }],
+            status: {
+              creator: CREATOR,
+              registryAddress: REGISTRY,
+              whitelistAddress: null,
+              proposers: [],
+              hasServerSigner: true,
+            },
+          }),
+        }
+      }
+      if (url.endsWith('/admin/api/proposer-whitelists') && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            status: {
+              creator: CREATOR,
+              registryAddress: REGISTRY,
+              whitelistAddress: WHITELIST,
+              proposers: [PROPOSER],
+              hasServerSigner: true,
+            },
+            txHashes: ['0xserver'],
+          }),
+        }
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    render(
+      <AdminProposersDialog
+        open
+        onOpenChange={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create whitelist' })).toBeEnabled()
+    })
+
+    await user.type(screen.getByRole('textbox'), PROPOSER)
+    await user.click(screen.getByRole('button', { name: 'Create whitelist' }))
+
+    await waitFor(() => {
+      expect(mocks.fetch).toHaveBeenCalledWith('/admin/api/proposer-whitelists', expect.objectContaining({
+        method: 'POST',
+      }))
+    })
+
+    expect(mocks.sendTransaction).not.toHaveBeenCalled()
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Proposer whitelist updated.')
   })
 })
