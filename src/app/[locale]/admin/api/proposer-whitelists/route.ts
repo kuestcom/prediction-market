@@ -10,6 +10,7 @@ import { loadEventCreationSignersFromEnv } from '@/lib/event-creation-signers'
 import {
   getServerCreatorProposerWhitelistRegistryAddress,
   normalizeProposerAddressList,
+  omitCreatorFromProposerAddressList,
   readCreatorProposerWhitelistStatus,
   readProposerWhitelistError,
   shortenProposerWhitelistAddress,
@@ -153,19 +154,29 @@ export async function POST(request: Request) {
     }
 
     const creator = getAddress(parsed.data.creator) as Address
-    let proposers: Address[]
+    let requestedProposers: Address[]
     try {
-      proposers = normalizeProposerAddressList(parsed.data.proposers)
+      requestedProposers = normalizeProposerAddressList(parsed.data.proposers)
     }
     catch (error) {
       return NextResponse.json({ error: readProposerWhitelistError(error) }, { status: 400 })
     }
 
-    if (parsed.data.action !== 'create' && proposers.length === 0) {
+    if (parsed.data.action !== 'create' && requestedProposers.length === 0) {
       return NextResponse.json({ error: 'At least one proposer wallet is required.' }, { status: 400 })
     }
 
     const registryAddress = getServerCreatorProposerWhitelistRegistryAddress()
+    const proposers = omitCreatorFromProposerAddressList(creator, requestedProposers)
+    if (parsed.data.action !== 'create' && proposers.length === 0) {
+      const currentStatus = await readCreatorProposerWhitelistStatus({
+        creator,
+        registryAddress,
+        hasServerSigner: buildSignerMap().has(creator.toLowerCase()),
+      })
+      return NextResponse.json({ status: currentStatus, txHashes: [] })
+    }
+
     const account = getServerSigner(creator)
     const publicClient = createPublicClient({
       chain: defaultViemNetwork,

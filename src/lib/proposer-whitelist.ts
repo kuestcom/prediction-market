@@ -85,6 +85,11 @@ export function normalizeProposerAddressList(value: string | string[]) {
   return [...deduped.values()]
 }
 
+export function omitCreatorFromProposerAddressList(creator: Address, proposers: Address[]) {
+  const creatorKey = creator.toLowerCase()
+  return proposers.filter(proposer => proposer.toLowerCase() !== creatorKey)
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }

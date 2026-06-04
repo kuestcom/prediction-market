@@ -12,6 +12,8 @@ const PROPOSER = getAddress('0x00000000000000000000000000000000000000ee')
 
 const mocks = vi.hoisted(() => ({
   useAppKitAccount: vi.fn(),
+  useAppKitNetworkCore: vi.fn(),
+  useAppKitProvider: vi.fn(),
   useWalletClient: vi.fn(),
   usePublicClient: vi.fn(),
   useUser: vi.fn(),
@@ -32,6 +34,8 @@ vi.mock('next-intl', () => ({
 
 vi.mock('@reown/appkit/react', () => ({
   useAppKitAccount: () => mocks.useAppKitAccount(),
+  useAppKitNetworkCore: () => mocks.useAppKitNetworkCore(),
+  useAppKitProvider: () => mocks.useAppKitProvider(),
 }))
 
 vi.mock('wagmi', () => ({
@@ -87,6 +91,8 @@ vi.mock('@/components/ui/textarea', () => ({
 describe('adminProposersDialog', () => {
   beforeEach(() => {
     mocks.useAppKitAccount.mockReturnValue({ address: CREATOR })
+    mocks.useAppKitNetworkCore.mockReturnValue({ chainId: 80002 })
+    mocks.useAppKitProvider.mockReturnValue({ walletProvider: { request: mocks.walletRequest } })
     mocks.useUser.mockReturnValue({ address: null })
     mocks.sendTransaction.mockReset()
     mocks.walletRequest.mockReset()
@@ -116,6 +122,9 @@ describe('adminProposersDialog', () => {
     })
     mocks.getGasPrice.mockResolvedValue(100n)
     mocks.sendTransaction
+      .mockResolvedValueOnce('0xdeploy')
+      .mockResolvedValueOnce('0xregister')
+    mocks.walletRequest
       .mockResolvedValueOnce('0xdeploy')
       .mockResolvedValueOnce('0xregister')
     mocks.waitForTransactionReceipt
@@ -162,8 +171,10 @@ describe('adminProposersDialog', () => {
     vi.stubGlobal('fetch', mocks.fetch)
   })
 
-  it('uses the resolved AppKit EOA for whitelist creation even when walletClient account differs', async () => {
+  it('uses the Better Auth EOA through the AppKit RPC provider when walletClient account differs', async () => {
     const user = userEvent.setup()
+    mocks.useAppKitAccount.mockReturnValue({ address: null })
+    mocks.useUser.mockReturnValue({ address: CREATOR })
 
     render(
       <AdminProposersDialog
@@ -180,19 +191,26 @@ describe('adminProposersDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Create whitelist' }))
 
     await waitFor(() => {
-      expect(mocks.sendTransaction).toHaveBeenCalledTimes(2)
+      expect(mocks.walletRequest).toHaveBeenCalledTimes(2)
     })
 
-    expect(mocks.sendTransaction).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      account: CREATOR,
-      data: expect.stringMatching(/^0x/i),
-      value: 0n,
+    expect(mocks.sendTransaction).not.toHaveBeenCalled()
+    expect(mocks.walletRequest).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      method: 'eth_sendTransaction',
+      params: [expect.objectContaining({
+        from: CREATOR,
+        data: expect.stringMatching(/^0x/i),
+        value: '0x0',
+      })],
     }))
-    expect(mocks.sendTransaction).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      account: CREATOR,
-      to: REGISTRY,
-      data: expect.stringMatching(/^0x/i),
-      value: 0n,
+    expect(mocks.walletRequest).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      method: 'eth_sendTransaction',
+      params: [expect.objectContaining({
+        from: CREATOR,
+        to: REGISTRY,
+        data: expect.stringMatching(/^0x/i),
+        value: '0x0',
+      })],
     }))
     expect(mocks.toastError).not.toHaveBeenCalledWith('Use the selected creator EOA in your wallet to sign this action.')
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Proposer whitelist updated.')
@@ -202,6 +220,7 @@ describe('adminProposersDialog', () => {
     const user = userEvent.setup()
 
     mocks.useAppKitAccount.mockReturnValue({ address: null })
+    mocks.useAppKitProvider.mockReturnValue({ walletProvider: null })
     mocks.useUser.mockReturnValue({ address: CREATOR })
     mocks.useWalletClient.mockReturnValue(null)
     mocks.usePublicClient.mockReturnValue(null)

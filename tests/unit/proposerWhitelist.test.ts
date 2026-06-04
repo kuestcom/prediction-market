@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { readProposerWhitelistError, resolveProposerWhitelistAddress } from '@/lib/proposer-whitelist'
+import {
+  omitCreatorFromProposerAddressList,
+  readProposerWhitelistError,
+  resolveProposerWhitelistAddress,
+} from '@/lib/proposer-whitelist'
 
 describe('readProposerWhitelistError', () => {
   it('maps underpriced gas errors to a compact user-facing message', () => {
@@ -27,5 +31,17 @@ describe('resolveProposerWhitelistAddress', () => {
 
   it('returns null when no valid address is provided', () => {
     expect(resolveProposerWhitelistAddress(undefined, null, 'invalid')).toBeNull()
+  })
+})
+
+describe('omitCreatorFromProposerAddressList', () => {
+  it('removes the creator EOA while preserving other proposer wallets', () => {
+    const creator = '0x00000000000000000000000000000000000000AA'
+    const proposer = '0x00000000000000000000000000000000000000BB'
+
+    expect(omitCreatorFromProposerAddressList(creator, [
+      '0x00000000000000000000000000000000000000aa',
+      proposer,
+    ])).toEqual([proposer])
   })
 })
