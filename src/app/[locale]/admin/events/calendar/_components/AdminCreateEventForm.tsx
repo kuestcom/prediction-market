@@ -121,6 +121,7 @@ import {
 import { AMOY_CHAIN_ID } from '@/lib/network'
 import {
   isProposerWhitelistStatusResponse,
+  resolveProposerWhitelistAddress,
 } from '@/lib/proposer-whitelist'
 import { cn } from '@/lib/utils'
 import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
@@ -272,13 +273,10 @@ function useAdminCreateEventForm({
   const initialRecurrenceInterval = initialDraftRecord?.recurrenceInterval
     ? String(initialDraftRecord.recurrenceInterval)
     : '1'
-  const eoaAddress = useMemo(() => {
-    const candidate = connectedAddress ?? user?.address ?? ''
-    if (!candidate || !isAddress(candidate)) {
-      return null
-    }
-    return getAddress(candidate)
-  }, [connectedAddress, user?.address])
+  const eoaAddress = useMemo(
+    () => resolveProposerWhitelistAddress(connectedAddress, user?.address),
+    [connectedAddress, user?.address],
+  )
   const eoaShortAddress = useMemo(
     () => (eoaAddress ? shortenAddress(eoaAddress) : ''),
     [eoaAddress],

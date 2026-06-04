@@ -32,8 +32,8 @@ import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import {
   isProposerWhitelistStatusResponse,
   normalizeProposerAddressList,
-
   readProposerWhitelistError,
+  resolveProposerWhitelistAddress,
   shortenProposerWhitelistAddress,
 } from '@/lib/proposer-whitelist'
 import {
@@ -43,6 +43,7 @@ import {
 } from '@/lib/proposer-whitelist-contracts'
 import { cn } from '@/lib/utils'
 import { defaultViemNetwork } from '@/lib/viem-network'
+import { useUser } from '@/stores/useUser'
 
 interface AdminProposersDialogProps {
   open: boolean
@@ -171,14 +172,19 @@ export default function AdminProposersDialog({
   onStatusChange,
 }: AdminProposersDialogProps) {
   const t = useExtracted()
-  const { address: connectedAddressRaw } = useAppKitAccount()
-  const connectedAddress = useMemo(
-    () => connectedAddressRaw && isAddress(connectedAddressRaw) ? getAddress(connectedAddressRaw) as Address : null,
-    [connectedAddressRaw],
-  )
+  const { address: appKitAddressRaw } = useAppKitAccount()
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
+  const user = useUser()
+  const connectedWalletAddress = useMemo(
+    () => resolveProposerWhitelistAddress(walletClient?.account?.address, appKitAddressRaw),
+    [appKitAddressRaw, walletClient?.account?.address],
+  )
+  const knownCreatorAddress = useMemo(
+    () => resolveProposerWhitelistAddress(walletClient?.account?.address, appKitAddressRaw, user?.address),
+    [appKitAddressRaw, user?.address, walletClient?.account?.address],
+  )
   const [creators, setCreators] = useState<ProposerWhitelistCreatorOption[]>([])
   const [signers, setSigners] = useState<SignerOption[]>([])
   const [selectedCreator, setSelectedCreator] = useState<Address | null>(null)
@@ -194,7 +200,7 @@ export default function AdminProposersDialog({
         creators,
         signers,
         initialCreatorAddress,
-        connectedAddress,
+        connectedAddress: knownCreatorAddress,
         connectedLabel: t('EOA wallet'),
       })
     }
@@ -202,15 +208,15 @@ export default function AdminProposersDialog({
     return mergeCreatorOptions({
       creators,
       signers,
-      connectedAddress,
+      connectedAddress: knownCreatorAddress,
       connectedLabel: t('EOA wallet'),
     })
-  }, [connectedAddress, creators, initialCreatorAddress, lockCreatorSelection, signers, t])
+  }, [creators, initialCreatorAddress, knownCreatorAddress, lockCreatorSelection, signers, t])
   const selectedOption = creatorOptions.find(item => selectedCreator && item.address.toLowerCase() === selectedCreator.toLowerCase()) ?? null
   const canUseConnectedWallet = Boolean(
     selectedCreator
-    && connectedAddress
-    && selectedCreator.toLowerCase() === connectedAddress.toLowerCase(),
+    && connectedWalletAddress
+    && selectedCreator.toLowerCase() === connectedWalletAddress.toLowerCase(),
   )
   const canUseServerSigner = Boolean(status?.hasServerSigner || selectedOption?.hasServerSigner)
   const isSwitchingCreator = Boolean(
@@ -295,13 +301,13 @@ export default function AdminProposersDialog({
       const availableCreators = mergeCreatorOptions({
         creators: nextPayload.creators,
         signers: nextSigners,
-        connectedAddress,
+        connectedAddress: knownCreatorAddress,
         connectedLabel: t('EOA wallet'),
       })
       const preferred = getPreferredCreator({
         initialCreatorAddress,
         selectedCreator: creator,
-        connectedAddress,
+        connectedAddress: knownCreatorAddress,
         creators: availableCreators,
       })
       setSelectedCreator(preferred)
@@ -314,18 +320,18 @@ export default function AdminProposersDialog({
     finally {
       setIsLoading(false)
     }
-  }, [connectedAddress, initialCreatorAddress, onStatusChange, signers, t])
+  }, [initialCreatorAddress, knownCreatorAddress, onStatusChange, signers, t])
 
   const bootstrapDialog = useEffectEvent(async () => {
     const nextSigners = await loadSigners()
     const preferred = getPreferredCreator({
       initialCreatorAddress,
       selectedCreator: null,
-      connectedAddress,
+      connectedAddress: knownCreatorAddress,
       creators: mergeCreatorOptions({
         creators: [],
         signers: nextSigners,
-        connectedAddress,
+        connectedAddress: knownCreatorAddress,
         connectedLabel: t('EOA wallet'),
       }),
     })
@@ -508,9 +514,9 @@ export default function AdminProposersDialog({
 
   const proposerRows = status?.proposers ?? []
   const connectedAddressAlreadyListed = Boolean(
-    connectedAddress && proposerRows.some(proposer => proposer.toLowerCase() === connectedAddress.toLowerCase()),
+    knownCreatorAddress && proposerRows.some(proposer => proposer.toLowerCase() === knownCreatorAddress.toLowerCase()),
   )
-  const showAddYourWallet = Boolean((!status?.whitelistAddress || addOpen) && connectedAddress && !connectedAddressAlreadyListed && !walletInput.trim())
+  const showAddYourWallet = Boolean((!status?.whitelistAddress || addOpen) && knownCreatorAddress && !connectedAddressAlreadyListed && !walletInput.trim())
   const actionDisabled = isLoading || isMutating || !selectedCreator || !status || (!canUseConnectedWallet && !canUseServerSigner)
 
   return (
@@ -644,7 +650,7 @@ export default function AdminProposersDialog({
                     <button
                       type="button"
                       className="w-fit text-xs font-medium text-primary hover:opacity-80"
-                      onClick={() => setWalletInput(connectedAddress ?? '')}
+                      onClick={() => setWalletInput(knownCreatorAddress ?? '')}
                     >
                       {t('add my own wallet')}
                     </button>

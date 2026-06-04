@@ -53,6 +53,18 @@ export function shortenProposerWhitelistAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
+export function resolveProposerWhitelistAddress(...candidates: Array<string | null | undefined>): Address | null {
+  for (const candidate of candidates) {
+    if (!candidate || !isAddress(candidate)) {
+      continue
+    }
+
+    return getAddress(candidate) as Address
+  }
+
+  return null
+}
+
 export function normalizeProposerAddressList(value: string | string[]) {
   const values = Array.isArray(value)
     ? value
