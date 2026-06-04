@@ -228,6 +228,41 @@ describe('adminProposersDialog', () => {
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Proposer whitelist updated.')
   })
 
+  it('keeps matching wallet deployment even when a server deployer exists', async () => {
+    const user = userEvent.setup()
+    mocks.useWalletClient.mockReturnValue({
+      account: { address: CREATOR },
+      chain: { id: 80002, name: 'Polygon Amoy' },
+      sendTransaction: mocks.sendTransaction,
+      request: mocks.walletRequest,
+    })
+
+    render(
+      <AdminProposersDialog
+        open
+        onOpenChange={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create whitelist' })).toBeEnabled()
+    })
+
+    await user.type(screen.getByRole('textbox'), PROPOSER)
+    await user.click(screen.getByRole('button', { name: 'Create whitelist' }))
+
+    await waitFor(() => {
+      expect(mocks.sendTransaction).toHaveBeenCalledTimes(2)
+    })
+
+    expect(mocks.fetch).not.toHaveBeenCalledWith('/admin/api/proposer-whitelists', expect.objectContaining({
+      method: 'POST',
+      body: expect.stringContaining('"action":"deploy"'),
+    }))
+    expect(mocks.walletRequest).not.toHaveBeenCalled()
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Proposer whitelist updated.')
+  })
+
   it('validates the AppKit provider network when social-wallet transport is used', async () => {
     const user = userEvent.setup()
     mocks.useAppKitAccount.mockReturnValue({ address: null })

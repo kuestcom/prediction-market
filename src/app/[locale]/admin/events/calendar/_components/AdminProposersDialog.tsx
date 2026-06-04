@@ -631,30 +631,31 @@ export default function AdminProposersDialog({
     }
     let whitelistAddress = status.whitelistAddress
 
-    if (!whitelistAddress && signers.length > 0) {
-      whitelistAddress = await runServerDeployment(proposers)
-    }
-    else if (!whitelistAddress) {
-      if (!walletClientMatchesSelectedCreator) {
-        throw new Error(t('Could not update proposer whitelist.'))
+    if (!whitelistAddress) {
+      if (walletClientMatchesSelectedCreator) {
+        const deployHash = await sendWalletTransaction({
+          title: t('Deploy proposer whitelist'),
+          description: t('Transaction 1 of 2: deploy the whitelist contract for this creator.'),
+          account: selectedCreator,
+          data: encodeDeployData({
+            abi: CREATOR_PROPOSER_WHITELIST_ABI,
+            bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
+            args: [selectedCreator, proposers],
+          }),
+        })
+        const deployReceipt = await waitForWalletTx(deployHash)
+        whitelistAddress = deployReceipt?.contractAddress && isAddress(deployReceipt.contractAddress)
+          ? getAddress(deployReceipt.contractAddress) as Address
+          : null
+        if (!whitelistAddress) {
+          throw new Error(t('Whitelist deployment did not return a contract address.'))
+        }
       }
-
-      const deployHash = await sendWalletTransaction({
-        title: t('Deploy proposer whitelist'),
-        description: t('Transaction 1 of 2: deploy the whitelist contract for this creator.'),
-        account: selectedCreator,
-        data: encodeDeployData({
-          abi: CREATOR_PROPOSER_WHITELIST_ABI,
-          bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
-          args: [selectedCreator, proposers],
-        }),
-      })
-      const deployReceipt = await waitForWalletTx(deployHash)
-      whitelistAddress = deployReceipt?.contractAddress && isAddress(deployReceipt.contractAddress)
-        ? getAddress(deployReceipt.contractAddress) as Address
-        : null
-      if (!whitelistAddress) {
-        throw new Error(t('Whitelist deployment did not return a contract address.'))
+      else if (signers.length > 0) {
+        whitelistAddress = await runServerDeployment(proposers)
+      }
+      else {
+        throw new Error(t('Could not update proposer whitelist.'))
       }
     }
 
