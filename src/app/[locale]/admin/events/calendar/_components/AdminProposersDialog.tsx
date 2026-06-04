@@ -283,10 +283,14 @@ export default function AdminProposersDialog({
     })
   }, [creators, initialCreatorAddress, knownCreatorAddress, lockCreatorSelection, signers, t])
   const selectedOption = creatorOptions.find(item => selectedCreator && item.address.toLowerCase() === selectedCreator.toLowerCase()) ?? null
+  const walletClientMatchesSelectedCreator = Boolean(
+    selectedCreator
+    && walletClient
+    && isSameAddress(walletClient.account?.address, selectedCreator),
+  )
   const hasConnectedWalletTransport = Boolean(
     isRpcWalletProvider(walletProvider)
-    || isRpcWalletProvider(walletClient)
-    || (selectedCreator && walletClient && isSameAddress(walletClient.account?.address, selectedCreator)),
+    || walletClientMatchesSelectedCreator,
   )
   const canUseConnectedWallet = Boolean(
     selectedCreator
@@ -474,13 +478,10 @@ export default function AdminProposersDialog({
     }
     const rpcProvider = isRpcWalletProvider(walletProvider)
       ? walletProvider
-      : isRpcWalletProvider(walletClient)
+      : walletClientMatchesSelectedCreator && isRpcWalletProvider(walletClient)
         ? walletClient
         : null
-    const walletClientMatchesCreator = Boolean(
-      walletClient
-      && isSameAddress(walletClient.account?.address, selectedCreator),
-    )
+    const walletClientMatchesCreator = walletClientMatchesSelectedCreator
     if (!walletClientMatchesCreator && !rpcProvider) {
       throw new Error(t('Wallet connection is not ready. Please try again.'))
     }
