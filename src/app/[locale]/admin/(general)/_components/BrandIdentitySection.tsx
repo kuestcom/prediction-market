@@ -2,7 +2,7 @@
 
 import type { Dispatch, SetStateAction } from 'react'
 import type { ThemeSiteLogoMode } from '@/lib/theme-site-identity'
-import { ImageUp } from 'lucide-react'
+import { ImageUp, Palette } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { Input } from '@/components/ui/input'
@@ -79,7 +79,12 @@ function BrandIdentitySection({
       value="brand-identity"
       isOpen={openSections.includes('brand-identity')}
       onToggle={onToggleSection}
-      header={<h3 className="text-base font-medium">{t('Brand identity')}</h3>}
+      header={(
+        <h3 className="flex items-center gap-2 text-base font-medium">
+          <Palette className="size-4 text-muted-foreground" />
+          {t('Brand identity')}
+        </h3>
+      )}
     >
       <div className="grid gap-6">
         <div className="grid gap-6 md:grid-cols-[11rem_1fr]">

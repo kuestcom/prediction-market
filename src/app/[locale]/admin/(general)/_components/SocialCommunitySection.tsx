@@ -1,6 +1,7 @@
 'use client'
 
 import type { Dispatch, SetStateAction } from 'react'
+import { Users } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -56,7 +57,12 @@ function SocialCommunitySection({
       value="community-analytics"
       isOpen={openSections.includes('community-analytics')}
       onToggle={onToggleSection}
-      header={<h3 className="text-base font-medium">{t('Social & Community')}</h3>}
+      header={(
+        <h3 className="flex items-center gap-2 text-base font-medium">
+          <Users className="size-4 text-muted-foreground" />
+          {t('Social & Community')}
+        </h3>
+      )}
     >
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">

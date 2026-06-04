@@ -1,7 +1,7 @@
 'use client'
 
 import type { CustomJavascriptCodeConfig, CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
-import { RefreshCwIcon } from 'lucide-react'
+import { PlugIcon, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -107,7 +107,12 @@ function IntegrationsSection({
       value="integrations"
       isOpen={openSections.includes('integrations')}
       onToggle={onToggleSection}
-      header={<h3 className="text-base font-medium">{t('Integrations')}</h3>}
+      header={(
+        <h3 className="flex items-center gap-2 text-base font-medium">
+          <PlugIcon className="size-4 text-muted-foreground" />
+          {t('Integrations')}
+        </h3>
+      )}
     >
       <div className="grid gap-6">
         <div className="grid gap-2">

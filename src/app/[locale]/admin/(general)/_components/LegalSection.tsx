@@ -1,7 +1,7 @@
 'use client'
 
 import type { Dispatch, SetStateAction } from 'react'
-import { SearchIcon, XIcon } from 'lucide-react'
+import { SearchIcon, ShieldIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -148,7 +148,12 @@ function LegalSection({
       value="legal"
       isOpen={openSections.includes('legal')}
       onToggle={onToggleSection}
-      header={<h3 className="text-base font-medium">{t('Legal & Geoblocking')}</h3>}
+      header={(
+        <h3 className="flex items-center gap-2 text-base font-medium">
+          <ShieldIcon className="size-4 text-muted-foreground" />
+          {t('Legal & Geoblocking')}
+        </h3>
+      )}
     >
       <div className="grid gap-4">
         <div className="grid gap-2">

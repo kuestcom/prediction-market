@@ -1,6 +1,7 @@
 'use client'
 
 import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
+import { Megaphone } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -48,7 +49,12 @@ function GlobalAnnouncementSection({
       value="global-announcement"
       isOpen={openSections.includes('global-announcement')}
       onToggle={onToggleSection}
-      header={<h3 className="text-base font-medium">{t('Global announcement banner')}</h3>}
+      header={(
+        <h3 className="flex items-center gap-2 text-base font-medium">
+          <Megaphone className="size-4 text-muted-foreground" />
+          {t('Global announcement banner')}
+        </h3>
+      )}
     >
       <div className="grid gap-4">
         <div className="grid gap-2">
