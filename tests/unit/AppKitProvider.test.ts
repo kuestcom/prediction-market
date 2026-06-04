@@ -126,6 +126,10 @@ describe('appKitProvider SSR guard', () => {
 
     await waitFor(() => {
       expect(mocks.createAppKit).toHaveBeenCalledTimes(1)
+      expect(mocks.createAppKit).toHaveBeenCalledWith(expect.objectContaining({
+        defaultNetwork: { id: 1 },
+        networks: [{ id: 1 }],
+      }))
       expect(mocks.setThemeMode).toHaveBeenCalledWith('dark')
       expect(screen.getByTestId('ready')).toHaveTextContent('yes')
       expect(latestValue?.isReady).toBe(true)

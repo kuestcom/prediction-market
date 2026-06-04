@@ -337,6 +337,88 @@ describe('adminProposersDialog', () => {
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Proposer whitelist updated.')
   })
 
+  it('uses the server signer for whitelist creation even when a matching wallet is connected', async () => {
+    const user = userEvent.setup()
+
+    mocks.fetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.includes('/admin/api/event-creations/signers')) {
+        return {
+          ok: true,
+          json: async () => ({
+            data: [{
+              address: CREATOR,
+              displayName: 'Server signer',
+              shortAddress: '0x0000...00AA',
+            }],
+          }),
+        }
+      }
+      if (url.includes('/admin/api/proposer-whitelists?creator=')) {
+        return {
+          ok: true,
+          json: async () => ({
+            registryAddress: REGISTRY,
+            creators: [{
+              address: CREATOR,
+              displayName: 'Server signer',
+              shortAddress: '0x0000...00AA',
+              hasServerSigner: true,
+            }],
+            status: {
+              creator: CREATOR,
+              registryAddress: REGISTRY,
+              whitelistAddress: null,
+              proposers: [],
+              hasServerSigner: true,
+            },
+          }),
+        }
+      }
+      if (url.endsWith('/admin/api/proposer-whitelists') && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            status: {
+              creator: CREATOR,
+              registryAddress: REGISTRY,
+              whitelistAddress: WHITELIST,
+              proposers: [PROPOSER],
+              hasServerSigner: true,
+            },
+            txHashes: ['0xserver'],
+          }),
+        }
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    render(
+      <AdminProposersDialog
+        open
+        onOpenChange={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create whitelist' })).toBeEnabled()
+    })
+
+    await user.type(screen.getByRole('textbox'), PROPOSER)
+    await user.click(screen.getByRole('button', { name: 'Create whitelist' }))
+
+    await waitFor(() => {
+      expect(mocks.fetch).toHaveBeenCalledWith('/admin/api/proposer-whitelists', expect.objectContaining({
+        method: 'POST',
+      }))
+    })
+
+    expect(mocks.walletRequest).not.toHaveBeenCalled()
+    expect(mocks.sendTransaction).not.toHaveBeenCalled()
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Proposer whitelist updated.')
+  })
+
   it('does not treat a mismatched walletClient request method as creator wallet transport', async () => {
     const user = userEvent.setup()
 

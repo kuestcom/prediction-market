@@ -157,6 +157,14 @@ export function readProposerWhitelistError(error: unknown) {
     return 'Wallet signature was rejected.'
   }
 
+  if (
+    lower.includes('invalid string length')
+    || lower.includes('request was aborted')
+    || lower.includes('unknown rpc error')
+  ) {
+    return 'Could not update proposer whitelist.'
+  }
+
   if (lower.includes('notcreator') || lower.includes('not creator')) {
     return 'Only the selected creator wallet can update this whitelist.'
   }

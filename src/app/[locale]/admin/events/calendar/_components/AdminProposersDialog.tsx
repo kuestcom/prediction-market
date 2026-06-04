@@ -676,7 +676,7 @@ export default function AdminProposersDialog({
 
     setIsMutating(true)
     try {
-      if (canUseServerSigner && !canUseConnectedWallet) {
+      if (canUseServerSigner && (action === 'create' || !canUseConnectedWallet)) {
         await runServerMutation(action, proposers)
       }
       else if (action === 'create') {

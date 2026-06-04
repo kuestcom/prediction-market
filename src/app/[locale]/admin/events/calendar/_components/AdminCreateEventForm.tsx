@@ -19,6 +19,7 @@ import type {
   NativeGasCheckState,
   OpenRouterCheckState,
   OptionItem,
+  PendingRequestItem,
   PrepareFinalizeRequestTx,
   PreparePayloadBody,
   PrepareResponse,
@@ -193,6 +194,43 @@ import {
   shouldRetryFinalizeRequest,
 } from './admin-create-event-form-utils'
 import AdminProposersDialog from './AdminProposersDialog'
+
+interface LoadedSignaturePlan {
+  pending: PendingRequestItem
+  prepared: PrepareResponse
+  signatureTxs: SignatureExecutionTx[]
+}
+
+function buildSignatureExecutionTxs(
+  prepared: PrepareResponse,
+  confirmedTxs: PrepareFinalizeRequestTx[],
+): SignatureExecutionTx[] {
+  const confirmedById = new Map(confirmedTxs.map(item => [item.id, item.hash]))
+  return prepared.txPlan.map((planned) => {
+    const hash = confirmedById.get(planned.id)
+    return {
+      ...planned,
+      status: hash ? 'success' : 'idle',
+      hash: hash ?? undefined,
+    }
+  })
+}
+
+function buildLoadedSignaturePlan(pending: PendingRequestItem): LoadedSignaturePlan | null {
+  if (!pending.prepared) {
+    return null
+  }
+
+  return {
+    pending,
+    prepared: pending.prepared,
+    signatureTxs: buildSignatureExecutionTxs(pending.prepared, pending.txs),
+  }
+}
+
+function isFinalizationPendingStatus(status: string) {
+  return status === 'finalized' || status === 'finalize_running' || status === 'finalize_in_progress'
+}
 
 function getCategorySlugKey(slug: string) {
   return slug.trim().toLowerCase()
@@ -3032,15 +3070,7 @@ function useAdminCreateEventForm({
     confirmedTxs: PrepareFinalizeRequestTx[]
     errorMessage?: string | null
   }) => {
-    const confirmedById = new Map(input.confirmedTxs.map(item => [item.id, item.hash]))
-    const txs: SignatureExecutionTx[] = input.prepared.txPlan.map((planned) => {
-      const hash = confirmedById.get(planned.id)
-      return {
-        ...planned,
-        status: hash ? 'success' : 'idle',
-        hash: hash ?? undefined,
-      }
-    })
+    const txs = buildSignatureExecutionTxs(input.prepared, input.confirmedTxs)
 
     skipNextSignatureResetRef.current = true
     setTargetChainId(input.prepared.chainId)
@@ -3049,6 +3079,7 @@ function useAdminCreateEventForm({
     setSignatureFlowDone(false)
     setSignatureFlowError(typeof input.errorMessage === 'string' ? input.errorMessage : '')
     setAuthChallengeExpiresAtMs(null)
+    return txs
   }, [])
 
   const fetchPendingSignatureRequest = useCallback(async (options?: {
@@ -3187,11 +3218,12 @@ function useAdminCreateEventForm({
     requestId?: string
   }) => {
     if (!eoaAddress) {
-      return false
+      return null
     }
 
     const silent = Boolean(options?.silent)
     setIsLoadingPendingRequest(true)
+    let loadedPlan: LoadedSignaturePlan | null = null
 
     try {
       const pending = await fetchPendingSignatureRequest({
@@ -3200,11 +3232,11 @@ function useAdminCreateEventForm({
       })
 
       if (!pending) {
-        return false
+        return null
       }
 
       if (options?.expectedPayloadHash && pending.payloadHash.toLowerCase() !== options.expectedPayloadHash.toLowerCase()) {
-        return false
+        return null
       }
 
       setPendingWorkflowRequestId(pending.requestId)
@@ -3214,14 +3246,19 @@ function useAdminCreateEventForm({
         if (!isAddress(pending.prepared.creator) || getAddress(pending.prepared.creator) !== eoaAddress) {
           setPendingWorkflowRequestId(null)
           setPendingWorkflowStatus(null)
-          return false
+          return null
         }
 
-        applyPreparedSignatureState({
+        const loadedSignatureTxs = applyPreparedSignatureState({
           prepared: pending.prepared,
           confirmedTxs: pending.txs,
           errorMessage: pending.errorMessage,
         })
+        loadedPlan = {
+          pending,
+          prepared: pending.prepared,
+          signatureTxs: loadedSignatureTxs,
+        }
         if (pending.status === 'finalized') {
           setSignatureFlowDone(true)
         }
@@ -3231,22 +3268,24 @@ function useAdminCreateEventForm({
       }
 
       if (pending.status === 'prepare_running') {
-        await pollPendingPreparation({
+        const preparedPending = await pollPendingPreparation({
           requestId: pending.requestId,
           chainId: pending.chainId,
           expectedPayloadHash: options?.expectedPayloadHash,
         })
+        loadedPlan = buildLoadedSignaturePlan(preparedPending)
       }
       else if (pending.status === 'finalize_running') {
-        await pollPendingFinalization({
+        const finalizedPending = await pollPendingFinalization({
           requestId: pending.requestId,
           chainId: pending.chainId,
         })
+        loadedPlan = buildLoadedSignaturePlan(finalizedPending)
       }
       else if (!pending.prepared) {
         setPendingWorkflowRequestId(null)
         setPendingWorkflowStatus(null)
-        return false
+        return null
       }
       else if (pending.status !== 'finalized' && pending.status !== 'finalize_in_progress') {
         setPendingWorkflowRequestId(null)
@@ -3256,7 +3295,7 @@ function useAdminCreateEventForm({
       if (!silent) {
         toast.success('Recovered pending signature progress from server.')
       }
-      return true
+      return loadedPlan
     }
     catch (error) {
       console.error('Error loading pending signature plan:', error)
@@ -3266,7 +3305,7 @@ function useAdminCreateEventForm({
         const message = error instanceof Error ? error.message : 'Could not recover pending signature progress.'
         toast.error(message)
       }
-      return false
+      return null
     }
     finally {
       setIsLoadingPendingRequest(false)
@@ -3302,13 +3341,6 @@ function useAdminCreateEventForm({
       throw new Error(apiError || `Could not persist confirmed tx hashes (${response.status})`)
     }
   }, [eoaAddress])
-
-  const resumeAnyPendingSignaturePlan = useCallback(() => {
-    void loadPendingSignaturePlan({
-      silent: false,
-      chainId: targetChainId,
-    })
-  }, [loadPendingSignaturePlan, targetChainId])
 
   const generateRulesWithAi = useCallback(async () => {
     setIsGeneratingRules(true)
@@ -3507,6 +3539,7 @@ function useAdminCreateEventForm({
       else {
         toast.success(`Auth completed. Prepared ${txCount} signature request${txCount > 1 ? 's' : ''}.`)
       }
+      return buildLoadedSignaturePlan(preparedPending)
     }
     catch (error) {
       console.error('Error preparing signature plan:', error)
@@ -3520,7 +3553,7 @@ function useAdminCreateEventForm({
           expectedPayloadHash: currentPayloadHash || undefined,
         })
         if (resumed) {
-          return
+          return resumed
         }
       }
 
@@ -3553,8 +3586,13 @@ function useAdminCreateEventForm({
     walletClient,
   ])
 
-  const finalizeSignatureFlow = useCallback(async (completedTxsInput?: PrepareFinalizeRequestTx[]) => {
-    if (!preparedSignaturePlan) {
+  const finalizeSignatureFlow = useCallback(async (
+    completedTxsInput?: PrepareFinalizeRequestTx[],
+    preparedInput?: PrepareResponse,
+  ) => {
+    const activePreparedSignaturePlan = preparedInput ?? preparedSignaturePlan
+
+    if (!activePreparedSignaturePlan) {
       throw new Error('Prepare signatures first.')
     }
     if (!eoaAddress) {
@@ -3580,7 +3618,7 @@ function useAdminCreateEventForm({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            requestId: preparedSignaturePlan.requestId,
+            requestId: activePreparedSignaturePlan.requestId,
             creator: eoaAddress,
             txs: completedTxs,
           }),
@@ -3588,7 +3626,7 @@ function useAdminCreateEventForm({
 
         const { payload: responsePayload, text: responseText } = await readResponseBody(response)
         if (response.ok && isFinalizeResponse(responsePayload)) {
-          if (responsePayload.requestId !== preparedSignaturePlan.requestId) {
+          if (responsePayload.requestId !== activePreparedSignaturePlan.requestId) {
             throw new Error('Finalize response requestId mismatch.')
           }
 
@@ -3608,7 +3646,7 @@ function useAdminCreateEventForm({
             setPendingWorkflowStatus(responsePayload.status)
             await pollPendingFinalization({
               requestId: responsePayload.requestId,
-              chainId: preparedSignaturePlan.chainId,
+              chainId: activePreparedSignaturePlan.chainId,
             })
             return
           }
@@ -3630,8 +3668,14 @@ function useAdminCreateEventForm({
     }
   }, [eoaAddress, pollPendingFinalization, preparedSignaturePlan, signatureTxs])
 
-  const executeSignatureFlow = useCallback(async () => {
-    if (!preparedSignaturePlan) {
+  const executeSignatureFlow = useCallback(async (input?: {
+    prepared: PrepareResponse
+    signatureTxs: SignatureExecutionTx[]
+  }) => {
+    const activePreparedSignaturePlan = input?.prepared ?? preparedSignaturePlan
+    const activeSignatureTxs = input?.signatureTxs ?? signatureTxs
+
+    if (!activePreparedSignaturePlan) {
       throw new Error('Prepare signatures first.')
     }
     if (!eoaAddress) {
@@ -3646,8 +3690,15 @@ function useAdminCreateEventForm({
     const senderAddress = eoaAddress
     const activeWalletClient = walletClient
 
-    if (activeWalletClient.chain?.id && activeWalletClient.chain.id !== preparedSignaturePlan.chainId) {
+    if (activeWalletClient.chain?.id && activeWalletClient.chain.id !== activePreparedSignaturePlan.chainId) {
       throw new Error(`Switch wallet to ${getChainLabel()} before signing.`)
+    }
+
+    if (input) {
+      skipNextSignatureResetRef.current = true
+      setTargetChainId(activePreparedSignaturePlan.chainId)
+      setPreparedSignaturePlan(activePreparedSignaturePlan)
+      setSignatureTxs(activeSignatureTxs)
     }
 
     setIsExecutingSignatures(true)
@@ -3656,21 +3707,21 @@ function useAdminCreateEventForm({
 
     try {
       const completedById = new Map<string, string>()
-      for (let index = 0; index < preparedSignaturePlan.txPlan.length; index += 1) {
-        const planned = preparedSignaturePlan.txPlan[index]
-        const existing = signatureTxs[index]
+      for (let index = 0; index < activePreparedSignaturePlan.txPlan.length; index += 1) {
+        const planned = activePreparedSignaturePlan.txPlan[index]
+        const existing = activeSignatureTxs[index]
         if (existing?.status === 'success' && existing.hash) {
           completedById.set(planned.id, existing.hash)
         }
       }
 
-      for (let index = 0; index < preparedSignaturePlan.txPlan.length; index += 1) {
-        const existingTx = signatureTxs[index]
+      for (let index = 0; index < activePreparedSignaturePlan.txPlan.length; index += 1) {
+        const existingTx = activeSignatureTxs[index]
         if (existingTx?.status === 'success') {
           continue
         }
 
-        const tx = preparedSignaturePlan.txPlan[index]
+        const tx = activePreparedSignaturePlan.txPlan[index]
         if (!isAddress(tx.to)) {
           throw new Error(`Invalid tx target for ${tx.id}.`)
         }
@@ -3710,7 +3761,7 @@ function useAdminCreateEventForm({
           completedById.set(tx.id, existingTx.hash)
           const completedTxs = Array.from(completedById.entries()).map(([id, hash]) => ({ id, hash }))
           try {
-            await persistConfirmedTxs(preparedSignaturePlan.requestId, completedTxs)
+            await persistConfirmedTxs(activePreparedSignaturePlan.requestId, completedTxs)
           }
           catch (persistError) {
             console.error('Could not persist previously confirmed tx hashes:', persistError)
@@ -3787,7 +3838,7 @@ function useAdminCreateEventForm({
         try {
           hash = publicClient
             ? await sendWithEstimatedFeeRetry({
-                chainId: preparedSignaturePlan.chainId,
+                chainId: activePreparedSignaturePlan.chainId,
                 client: publicClient,
                 send: sendWithRpcFallback,
               })
@@ -3843,7 +3894,7 @@ function useAdminCreateEventForm({
           hash: confirmedHash,
         }))
         try {
-          await persistConfirmedTxs(preparedSignaturePlan.requestId, completedTxs)
+          await persistConfirmedTxs(activePreparedSignaturePlan.requestId, completedTxs)
         }
         catch (persistError) {
           console.error('Could not persist confirmed tx hashes:', persistError)
@@ -3853,14 +3904,14 @@ function useAdminCreateEventForm({
       const completedTxs = Array.from(completedById.entries()).map(([id, hash]) => ({ id, hash }))
       if (completedTxs.length > 0) {
         try {
-          await persistConfirmedTxs(preparedSignaturePlan.requestId, completedTxs)
+          await persistConfirmedTxs(activePreparedSignaturePlan.requestId, completedTxs)
         }
         catch (persistError) {
           console.error('Could not persist confirmed tx hashes before finalize:', persistError)
         }
       }
 
-      await finalizeSignatureFlow(completedTxs)
+      await finalizeSignatureFlow(completedTxs, activePreparedSignaturePlan)
     }
     catch (error) {
       console.error('Error executing signature flow:', error)
@@ -4205,9 +4256,21 @@ function useAdminCreateEventForm({
             expectedPayloadHash: payloadHash,
           })
           if (resumed) {
+            if (!isFinalizationPendingStatus(resumed.pending.status)) {
+              await executeSignatureFlow({
+                prepared: resumed.prepared,
+                signatureTxs: resumed.signatureTxs,
+              })
+            }
             return
           }
-          await prepareSignaturePlan()
+          const prepared = await prepareSignaturePlan()
+          if (prepared && !isFinalizationPendingStatus(prepared.pending.status)) {
+            await executeSignatureFlow({
+              prepared: prepared.prepared,
+              signatureTxs: prepared.signatureTxs,
+            })
+          }
           return
         }
         await executeSignatureFlow()
@@ -4534,7 +4597,6 @@ function useAdminCreateEventForm({
     bypassIssue,
     goToIssueStep,
     togglePreSignCheck,
-    resumeAnyPendingSignaturePlan,
     continueFromFinalPreview,
     generateRulesWithAi,
     addCurrentWalletToAllowedCreators,
@@ -4744,7 +4806,6 @@ export default function AdminCreateEventForm({
     bypassIssue,
     goToIssueStep,
     togglePreSignCheck,
-    resumeAnyPendingSignaturePlan,
     continueFromFinalPreview,
     generateRulesWithAi,
     addCurrentWalletToAllowedCreators,
@@ -7189,25 +7250,6 @@ export default function AdminCreateEventForm({
                           {pendingWorkflowRequestId}
                         </p>
                       )}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7"
-                        onClick={resumeAnyPendingSignaturePlan}
-                        disabled={isLoadingPendingRequest || isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow}
-                      >
-                        {isLoadingPendingRequest
-                          ? (
-                              <>
-                                <Loader2Icon className="mr-2 size-3.5 animate-spin" />
-                                Loading pending...
-                              </>
-                            )
-                          : (
-                              'Resume pending plan'
-                            )}
-                      </Button>
                     </div>
                   )}
             </div>

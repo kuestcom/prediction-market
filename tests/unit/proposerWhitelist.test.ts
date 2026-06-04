@@ -17,6 +17,13 @@ describe('readProposerWhitelistError', () => {
     expect(readProposerWhitelistError('User rejected the request'))
       .toBe('Wallet signature was rejected.')
   })
+
+  it('compacts oversized embedded-wallet RPC errors', () => {
+    expect(readProposerWhitelistError('An unknown RPC error occurred. Details: Request was aborted Version: viem@2.48.11'))
+      .toBe('Could not update proposer whitelist.')
+    expect(readProposerWhitelistError(new Error('Error: invalid string length')))
+      .toBe('Could not update proposer whitelist.')
+  })
 })
 
 describe('resolveProposerWhitelistAddress', () => {
