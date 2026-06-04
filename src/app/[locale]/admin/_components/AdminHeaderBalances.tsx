@@ -3,14 +3,14 @@
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQuery } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
-import { formatUnits, getAddress, isAddress } from 'viem'
-import { usePublicClient } from 'wagmi'
+import { createPublicClient, formatUnits, getAddress, http, isAddress } from 'viem'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
 import { resolveProposerWhitelistAddress } from '@/lib/proposer-whitelist'
+import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
 
 const ADMIN_POL_BALANCE_QUERY_KEY = 'admin-eoa-pol-balance'
@@ -30,7 +30,14 @@ export default function AdminHeaderBalances() {
   const t = useExtracted()
   const user = useUser()
   const { address: connectedAddress } = useAppKitAccount()
-  const publicClient = usePublicClient()
+  const publicClientRef = useRef<ReturnType<typeof createPublicClient> | null>(null)
+  if (publicClientRef.current === null && typeof window !== 'undefined') {
+    publicClientRef.current = createPublicClient({
+      chain: defaultViemNetwork,
+      transport: http(defaultViemRpcUrl),
+    })
+  }
+  const publicClient = publicClientRef.current
   const eoaAddress = useMemo(
     () => resolveProposerWhitelistAddress(connectedAddress, user?.address),
     [connectedAddress, user?.address],

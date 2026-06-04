@@ -5,11 +5,12 @@ import AdminHeaderBalances from '@/app/[locale]/admin/_components/AdminHeaderBal
 const mocks = vi.hoisted(() => ({
   useAppKitAccount: vi.fn(),
   useBalance: vi.fn(),
-  usePublicClient: vi.fn(),
   useQuery: vi.fn(),
   useUser: vi.fn(),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
+  createPublicClient: vi.fn(),
+  http: vi.fn(),
 }))
 
 vi.mock('next-intl', () => ({
@@ -22,10 +23,6 @@ vi.mock('@reown/appkit/react', () => ({
 
 vi.mock('@/hooks/useBalance', () => ({
   useBalance: (options: unknown) => mocks.useBalance(options),
-}))
-
-vi.mock('wagmi', () => ({
-  usePublicClient: () => mocks.usePublicClient(),
 }))
 
 vi.mock('@tanstack/react-query', () => ({
@@ -43,6 +40,20 @@ vi.mock('sonner', () => ({
   },
 }))
 
+vi.mock('@/lib/viem-network', () => ({
+  defaultViemNetwork: { id: 137, name: 'Polygon' },
+  defaultViemRpcUrl: 'https://rpc.example.test',
+}))
+
+vi.mock('viem', async () => {
+  const actual = await vi.importActual<typeof import('viem')>('viem')
+  return {
+    ...actual,
+    createPublicClient: (...args: unknown[]) => mocks.createPublicClient(...args),
+    http: (...args: unknown[]) => mocks.http(...args),
+  }
+})
+
 describe('adminHeaderBalances', () => {
   beforeEach(() => {
     mocks.useAppKitAccount.mockReturnValue({
@@ -55,13 +66,16 @@ describe('adminHeaderBalances', () => {
       balance: { raw: 42.5 },
       isLoadingBalance: false,
     })
-    mocks.usePublicClient.mockReturnValue({
+    mocks.createPublicClient.mockReturnValue({
       getBalance: vi.fn(),
     })
+    mocks.http.mockReturnValue('http-transport')
     mocks.useQuery.mockReturnValue({
       data: 1.2345,
       isLoading: false,
     })
+    mocks.createPublicClient.mockClear()
+    mocks.http.mockClear()
     mocks.toastSuccess.mockReset()
     mocks.toastError.mockReset()
 
@@ -85,6 +99,16 @@ describe('adminHeaderBalances', () => {
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('0x00000000000000000000000000000000000000AA')
       expect(mocks.toastSuccess).toHaveBeenCalledWith('EOA wallet copied.')
+    })
+  })
+
+  it('creates a fixed public client for the app chain', () => {
+    render(<AdminHeaderBalances />)
+
+    expect(mocks.http).toHaveBeenCalledWith('https://rpc.example.test')
+    expect(mocks.createPublicClient).toHaveBeenCalledWith({
+      chain: { id: 137, name: 'Polygon' },
+      transport: 'http-transport',
     })
   })
 })
