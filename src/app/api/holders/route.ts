@@ -111,16 +111,14 @@ export async function GET(request: Request) {
           .map(key => profileLookup.get(key))
           .find(Boolean)
 
-        const hydratedImage = normalizeAvatarUrl(matchedProfile?.image ?? holder.user.image)
-
         return {
           ...holder,
           user: {
             ...holder.user,
             id: matchedProfile?.id ?? holder.user.id,
-            username: matchedProfile?.username || holder.user.username,
+            username: holder.user.username || matchedProfile?.username,
             deposit_wallet_address: matchedProfile?.deposit_wallet_address ?? holder.user.deposit_wallet_address,
-            image: hydratedImage,
+            image: normalizeAvatarUrl(holder.user.image || matchedProfile?.image),
             created_at: matchedProfile?.created_at ?? holder.user.created_at,
           },
         }
