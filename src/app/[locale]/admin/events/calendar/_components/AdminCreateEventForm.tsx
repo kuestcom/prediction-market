@@ -3787,6 +3787,7 @@ function useAdminCreateEventForm({
     if (!activeWalletClient) {
       throw new Error('Wallet connection is not ready. Please try again.')
     }
+    const walletExecutionClient = activeWalletClient
 
     if (connection.chainId && connection.chainId !== activePreparedSignaturePlan.chainId) {
       throw new Error(`Switch wallet to ${getChainLabel()} before signing.`)
@@ -3882,9 +3883,9 @@ function useAdminCreateEventForm({
           maxFeePerGas?: bigint
           maxPriorityFeePerGas?: bigint
         }) {
-          return activeWalletClient.sendTransaction({
+          return walletExecutionClient.sendTransaction({
             account: senderAddress,
-            chain: activeWalletClient.chain,
+            chain: walletExecutionClient.chain,
             to: toAddress,
             data: tx.data as `0x${string}`,
             value: BigInt(tx.value || '0'),
