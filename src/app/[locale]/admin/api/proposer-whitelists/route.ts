@@ -10,7 +10,6 @@ import { loadEventCreationSignersFromEnv } from '@/lib/event-creation-signers'
 import {
   getServerCreatorProposerWhitelistRegistryAddress,
   normalizeProposerAddressList,
-  omitCreatorFromProposerAddressList,
   readCreatorProposerWhitelistStatus,
   readProposerWhitelistError,
   shortenProposerWhitelistAddress,
@@ -175,17 +174,7 @@ export async function POST(request: Request) {
     }
 
     const registryAddress = getServerCreatorProposerWhitelistRegistryAddress()
-    const proposers = parsed.data.action === 'add'
-      ? omitCreatorFromProposerAddressList(creator, requestedProposers)
-      : requestedProposers
-    if (parsed.data.action === 'add' && proposers.length === 0) {
-      const currentStatus = await readCreatorProposerWhitelistStatus({
-        creator,
-        registryAddress,
-        hasServerSigner: buildSignerMap().has(creator.toLowerCase()),
-      })
-      return NextResponse.json({ status: currentStatus, txHashes: [] })
-    }
+    const proposers = requestedProposers
 
     const account = parsed.data.action === 'deploy'
       ? getServerDeployer()

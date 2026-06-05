@@ -32,7 +32,6 @@ import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import {
   isProposerWhitelistStatusResponse,
   normalizeProposerAddressList,
-  omitCreatorFromProposerAddressList,
   readProposerWhitelistError,
   resolveProposerWhitelistAddress,
   shortenProposerWhitelistAddress,
@@ -400,6 +399,9 @@ export default function AdminProposersDialog({
     }
     if (message === 'Embedded wallet provider rejected this RPC method.') {
       return t('Embedded wallet provider rejected this RPC method.')
+    }
+    if (message === 'Embedded wallet could not process this transaction payload.') {
+      return t('Embedded wallet could not process this transaction payload.')
     }
 
     return message
@@ -857,16 +859,7 @@ export default function AdminProposersDialog({
       return
     }
 
-    const proposers = action === 'add'
-      ? omitCreatorFromProposerAddressList(selectedCreator, requestedProposers)
-      : requestedProposers
-
-    if (proposers.length === 0 && action === 'add') {
-      setWalletInput('')
-      setAddOpen(false)
-      toast.success(t('Proposer whitelist updated.'))
-      return
-    }
+    const proposers = requestedProposers
 
     setIsMutating(true)
     try {
@@ -1032,7 +1025,7 @@ export default function AdminProposersDialog({
                   />
                   {!status?.whitelistAddress && (
                     <p className="text-xs text-muted-foreground">
-                      {t('The creator wallet is always included by the whitelist contract. Add only extra proposer wallets here.')}
+                      {t('The creator wallet is added by default on creation. You can remove or add it again later.')}
                     </p>
                   )}
                   {!status?.whitelistAddress && canUseConnectedWallet && (

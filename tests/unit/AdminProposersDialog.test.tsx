@@ -380,6 +380,84 @@ describe('adminProposersDialog', () => {
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Proposer whitelist updated.')
   })
 
+  it('sends an add transaction when re-adding the creator EOA after removal', async () => {
+    const user = userEvent.setup()
+    mocks.walletRequest.mockReset()
+    mocks.walletRequest.mockImplementation(async (args: { method: string }) => {
+      if (args.method === 'eth_chainId') {
+        return '0x13882'
+      }
+      if (args.method === 'eth_sendTransaction') {
+        return '0xadd'
+      }
+      throw new Error(`Unexpected wallet request: ${args.method}`)
+    })
+
+    mocks.fetch.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/admin/api/event-creations/signers')) {
+        return {
+          ok: true,
+          json: async () => ({ data: [] }),
+        }
+      }
+      if (url.includes('/admin/api/proposer-whitelists')) {
+        return {
+          ok: true,
+          json: async () => ({
+            registryAddress: REGISTRY,
+            creators: [{
+              address: CREATOR,
+              displayName: 'EOA wallet',
+              shortAddress: '0x0000...00AA',
+              hasServerSigner: false,
+            }],
+            status: {
+              creator: CREATOR,
+              registryAddress: REGISTRY,
+              whitelistAddress: WHITELIST,
+              proposers: [],
+              hasServerSigner: false,
+            },
+          }),
+        }
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    render(
+      <AdminProposersDialog
+        open
+        onOpenChange={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Add proposers' })).toBeEnabled()
+    })
+
+    await user.type(screen.getByRole('textbox'), CREATOR)
+    await user.click(screen.getByRole('button', { name: 'Add proposers' }))
+
+    await waitFor(() => {
+      expect(mocks.walletRequest).toHaveBeenCalledWith(expect.objectContaining({
+        method: 'eth_sendTransaction',
+        params: [expect.objectContaining({
+          from: CREATOR,
+          to: WHITELIST,
+          data: expect.stringContaining('0666419d'),
+          value: '0x0',
+        })],
+      }))
+    })
+
+    expect(mocks.fetch).not.toHaveBeenCalledWith('/admin/api/proposer-whitelists', expect.objectContaining({
+      method: 'POST',
+    }))
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Proposer whitelist updated.')
+  })
+
   it('keeps server-signer fallback available when only the stored user address matches the selected creator', async () => {
     const user = userEvent.setup()
 
