@@ -80,7 +80,7 @@
     "viem": "2.48.11",
     "wagmi": "2.19.5",
     "zod": "4.4.3",
-    "zustand": "5.0.13"
+    "zustand": "5.0.14"
   },
   "devDependencies": {
     "@antfu/eslint-config": "9.0.0",
