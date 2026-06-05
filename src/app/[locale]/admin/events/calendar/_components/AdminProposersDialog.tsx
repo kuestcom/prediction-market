@@ -108,7 +108,21 @@ function isEmbeddedWalletProvider(value: unknown): value is RpcWalletProvider {
     return false
   }
 
-  return (value as { constructor?: { name?: string } }).constructor?.name === 'W3mFrameProvider'
+  const candidate = value as {
+    connectEmail?: unknown
+    connectSocial?: unknown
+    getEmail?: unknown
+    switchNetwork?: unknown
+    constructor?: { name?: string }
+  }
+
+  return candidate.constructor?.name === 'W3mFrameProvider'
+    || (
+      typeof candidate.connectEmail === 'function'
+      && typeof candidate.connectSocial === 'function'
+      && typeof candidate.getEmail === 'function'
+      && typeof candidate.switchNetwork === 'function'
+    )
 }
 
 function resolveChainId(value: number | string | undefined) {
@@ -838,7 +852,7 @@ export default function AdminProposersDialog({
       return
     }
 
-    if (requestedProposers.length === 0) {
+    if (requestedProposers.length === 0 && action !== 'create') {
       toast.error(t('Add at least one wallet.'))
       return
     }

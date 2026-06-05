@@ -125,7 +125,7 @@ import {
 } from '@/lib/proposer-whitelist'
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { cn } from '@/lib/utils'
-import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
+import { defaultViemNetwork, defaultViemRpcUrl, resolveViemNetworkByChainId } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
 import {
   APPROVE_GAS_UNITS_ESTIMATE,
@@ -250,7 +250,21 @@ function isEmbeddedWalletProvider(value: unknown): value is RpcWalletProvider {
     return false
   }
 
-  return (value as { constructor?: { name?: string } }).constructor?.name === 'W3mFrameProvider'
+  const candidate = value as {
+    connectEmail?: unknown
+    connectSocial?: unknown
+    getEmail?: unknown
+    switchNetwork?: unknown
+    constructor?: { name?: string }
+  }
+
+  return candidate.constructor?.name === 'W3mFrameProvider'
+    || (
+      typeof candidate.connectEmail === 'function'
+      && typeof candidate.connectSocial === 'function'
+      && typeof candidate.getEmail === 'function'
+      && typeof candidate.switchNetwork === 'function'
+    )
 }
 
 function resolveChainId(value: number | string | undefined) {
@@ -3409,7 +3423,7 @@ function useAdminCreateEventForm({
       rpcProvider,
       walletClient,
       walletClientMatchesAddress,
-      chainId: connectedWalletTransportChainId ?? DEFAULT_CREATE_EVENT_CHAIN_ID,
+      chainId: connectedWalletTransportChainId ?? null,
     }
   }, [
     connectedWalletTransportChainId,
@@ -3471,20 +3485,20 @@ function useAdminCreateEventForm({
 
     try {
       const connection = getConnectedWalletConnection()
+      const payload = buildPreparePayload()
+      const payloadNetwork = resolveViemNetworkByChainId(payload.chainId)
       const activeWalletClient = connection.walletClientMatchesAddress && connection.walletClient
         ? connection.walletClient
         : connection.rpcProvider
           ? createWalletClient({
               account: eoaAddress,
-              chain: defaultViemNetwork,
               transport: custom(connection.rpcProvider),
+              ...(payloadNetwork ? { chain: payloadNetwork } : {}),
             })
           : null
       if (!activeWalletClient) {
         throw new Error('Wallet connection is not ready. Please try again.')
       }
-
-      const payload = buildPreparePayload()
       const payloadJson = JSON.stringify(payload)
       const payloadHash = keccak256(stringToHex(payloadJson))
       currentPayloadHash = payloadHash
@@ -3518,7 +3532,7 @@ function useAdminCreateEventForm({
         throw new Error('Invalid verifying contract in auth challenge response.')
       }
       if (connection.chainId && connection.chainId !== authPayload.chainId) {
-        throw new Error(`Switch wallet to ${getChainLabel()} before signing auth.`)
+        throw new Error(`Switch wallet to ${getChainLabel(authPayload.chainId)} before signing auth.`)
       }
       setAuthChallengeExpiresAtMs(authPayload.expiresAt)
       setSignatureNowMs(Date.now())
@@ -3774,13 +3788,14 @@ function useAdminCreateEventForm({
     const chainPublicClient = publicClient
     const connection = getConnectedWalletConnection()
     const senderAddress = eoaAddress
+    const preparedNetwork = resolveViemNetworkByChainId(activePreparedSignaturePlan.chainId)
     const activeWalletClient = connection.walletClientMatchesAddress && connection.walletClient
       ? connection.walletClient
       : connection.rpcProvider
         ? createWalletClient({
             account: senderAddress,
-            chain: defaultViemNetwork,
             transport: custom(connection.rpcProvider),
+            ...(preparedNetwork ? { chain: preparedNetwork } : {}),
           })
         : null
     if (!activeWalletClient) {
@@ -3788,7 +3803,7 @@ function useAdminCreateEventForm({
     }
 
     if (connection.chainId && connection.chainId !== activePreparedSignaturePlan.chainId) {
-      throw new Error(`Switch wallet to ${getChainLabel()} before signing.`)
+      throw new Error(`Switch wallet to ${getChainLabel(activePreparedSignaturePlan.chainId)} before signing.`)
     }
 
     if (input) {
@@ -3922,8 +3937,8 @@ function useAdminCreateEventForm({
 
           const rpcWalletClient = createWalletClient({
             account: senderAddress,
-            chain: defaultViemNetwork,
             transport: custom(rpcProvider),
+            ...(preparedNetwork ? { chain: preparedNetwork } : {}),
           })
 
           if (isEmbeddedWallet) {
@@ -3955,7 +3970,7 @@ function useAdminCreateEventForm({
           const rpcHash = await runWithSignaturePrompt(
             () => rpcWalletClient.sendTransaction({
               account: senderAddress,
-              chain: defaultViemNetwork,
+              chain: preparedNetwork ?? undefined,
               to: toAddress,
               data: tx.data as `0x${string}`,
               value: BigInt(tx.value || '0'),

@@ -34,7 +34,7 @@ import { toHex } from 'viem'
 import { buildAdminSportsStepErrors, isSportsMainCategory } from '@/lib/admin-sports-create'
 import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import { slugifyEventCreationValue as slugify } from '@/lib/event-creation'
-import { IS_TEST_MODE, POLYGON_SCAN_BASE } from '@/lib/network'
+import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID, POLYGON_SCAN_BASE } from '@/lib/network'
 import { MIN_SUB_CATEGORIES, TITLE_CATEGORY_MIN_LENGTH } from './admin-create-event-form-constants'
 
 export function readApiError(payload: unknown): string | null {
@@ -710,7 +710,15 @@ export function getExplorerTxBase() {
   return `${POLYGON_SCAN_BASE}/tx/`
 }
 
-export function getChainLabel() {
+export function getChainLabel(chainId?: number | null) {
+  if (chainId === AMOY_CHAIN_ID) {
+    return 'Polygon Amoy'
+  }
+
+  if (chainId === POLYGON_MAINNET_CHAIN_ID) {
+    return 'Polygon'
+  }
+
   return IS_TEST_MODE ? 'Polygon Amoy' : 'Polygon'
 }
 

@@ -170,7 +170,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: readProposerWhitelistError(error) }, { status: 400 })
     }
 
-    if (requestedProposers.length === 0) {
+    if (requestedProposers.length === 0 && parsed.data.action !== 'create' && parsed.data.action !== 'deploy') {
       return NextResponse.json({ error: 'At least one proposer wallet is required.' }, { status: 400 })
     }
 
