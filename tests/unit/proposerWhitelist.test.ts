@@ -22,7 +22,7 @@ describe('readProposerWhitelistError', () => {
     expect(readProposerWhitelistError('An unknown RPC error occurred. Details: Request was aborted Version: viem@2.48.11'))
       .toBe('Could not update proposer whitelist.')
     expect(readProposerWhitelistError(new Error('Error: invalid string length')))
-      .toBe('Could not update proposer whitelist.')
+      .toBe('Embedded wallet could not process this transaction payload.')
   })
 })
 
