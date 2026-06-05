@@ -3773,6 +3773,7 @@ function useAdminCreateEventForm({
     if (!publicClient) {
       throw new Error('Public client not available.')
     }
+    const chainPublicClient = publicClient
     const connection = getConnectedWalletConnection()
     const senderAddress = eoaAddress
     const activeWalletClient = connection.walletClientMatchesAddress && connection.walletClient
@@ -3787,7 +3788,6 @@ function useAdminCreateEventForm({
     if (!activeWalletClient) {
       throw new Error('Wallet connection is not ready. Please try again.')
     }
-    const walletExecutionClient = activeWalletClient
 
     if (connection.chainId && connection.chainId !== activePreparedSignaturePlan.chainId) {
       throw new Error(`Switch wallet to ${getChainLabel()} before signing.`)
@@ -3841,7 +3841,7 @@ function useAdminCreateEventForm({
             }
           }))
 
-          const existingReceipt = await publicClient.waitForTransactionReceipt({
+          const existingReceipt = await chainPublicClient.waitForTransactionReceipt({
             hash: existingTx.hash as `0x${string}`,
           })
           if (existingReceipt.status !== 'success') {
@@ -3883,9 +3883,13 @@ function useAdminCreateEventForm({
           maxFeePerGas?: bigint
           maxPriorityFeePerGas?: bigint
         }) {
-          return walletExecutionClient.sendTransaction({
+          if (!connection.walletClient || !connection.walletClientMatchesAddress) {
+            throw new Error('Wallet connection is not ready. Please try again.')
+          }
+
+          return connection.walletClient.sendTransaction({
             account: senderAddress,
-            chain: walletExecutionClient.chain,
+            chain: connection.walletClient.chain,
             to: toAddress,
             data: tx.data as `0x${string}`,
             value: BigInt(tx.value || '0'),
@@ -3895,7 +3899,7 @@ function useAdminCreateEventForm({
 
         async function estimateEmbeddedGas() {
           try {
-            const estimatedGas = await publicClient.estimateGas({
+            const estimatedGas = await chainPublicClient.estimateGas({
               account: senderAddress,
               to: toAddress,
               data: tx.data as `0x${string}`,
@@ -3916,11 +3920,12 @@ function useAdminCreateEventForm({
           if (!connection.rpcProvider) {
             throw new Error('Wallet connection is not ready. Please try again.')
           }
+          const rpcProvider = connection.rpcProvider
 
           const rpcWalletClient = createWalletClient({
             account: senderAddress,
             chain: defaultViemNetwork,
-            transport: custom(connection.rpcProvider),
+            transport: custom(rpcProvider),
           })
 
           if (isEmbeddedWallet) {
@@ -3934,7 +3939,7 @@ function useAdminCreateEventForm({
               ...(overrides ?? {}),
             })
             const rpcHash = await runWithSignaturePrompt(
-              () => connection.rpcProvider.request({
+              () => rpcProvider.request({
                 method: 'eth_sendTransaction',
                 params: [txRequest],
               }),
@@ -4003,7 +4008,7 @@ function useAdminCreateEventForm({
             ? await sendWithRpcFallback()
             : await sendWithEstimatedFeeRetry({
                 chainId: activePreparedSignaturePlan.chainId,
-                client: publicClient,
+                client: chainPublicClient,
                 send: sendWithRpcFallback,
               })
         }
@@ -4037,7 +4042,7 @@ function useAdminCreateEventForm({
           }
         }))
 
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` })
+        const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` })
         if (receipt.status !== 'success') {
           throw new Error(`Transaction ${tx.id} failed on-chain.`)
         }
