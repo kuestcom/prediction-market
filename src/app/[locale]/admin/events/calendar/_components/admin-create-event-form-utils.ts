@@ -727,6 +727,7 @@ export function buildRpcTransactionRequest(params: {
   to: `0x${string}`
   data: `0x${string}`
   value?: bigint
+  gas?: bigint
   maxFeePerGas?: bigint
   maxPriorityFeePerGas?: bigint
 }) {
@@ -735,6 +736,7 @@ export function buildRpcTransactionRequest(params: {
     to: `0x${string}`
     data: `0x${string}`
     value: Hex
+    gas?: Hex
     maxFeePerGas?: Hex
     maxPriorityFeePerGas?: Hex
   } = {
@@ -742,6 +744,10 @@ export function buildRpcTransactionRequest(params: {
     to: params.to,
     data: params.data,
     value: toHex(params.value ?? 0n),
+  }
+
+  if (typeof params.gas === 'bigint') {
+    request.gas = toHex(params.gas)
   }
 
   if (typeof params.maxFeePerGas === 'bigint') {

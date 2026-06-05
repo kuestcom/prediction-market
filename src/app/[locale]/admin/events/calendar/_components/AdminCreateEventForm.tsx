@@ -41,7 +41,8 @@ import type {
 import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import type { EventCreationAssetPayload, EventCreationRecurrenceUnit } from '@/lib/event-creation'
 import type { ProposerWhitelistStatus } from '@/lib/proposer-whitelist'
-import { useAppKitAccount } from '@reown/appkit/react'
+import { W3mFrameProvider } from '@reown/appkit-wallet'
+import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -64,7 +65,7 @@ import {
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { createPublicClient, formatUnits, getAddress, http, isAddress, keccak256, stringToHex } from 'viem'
+import { createPublicClient, createWalletClient, custom, formatUnits, getAddress, http, isAddress, keccak256, stringToHex } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
 import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
@@ -201,6 +202,13 @@ interface LoadedSignaturePlan {
   signatureTxs: SignatureExecutionTx[]
 }
 
+interface RpcWalletProvider {
+  request: (args: {
+    method: string
+    params?: unknown[] | object
+  }) => Promise<unknown>
+}
+
 function buildSignatureExecutionTxs(
   prepared: PrepareResponse,
   confirmedTxs: PrepareFinalizeRequestTx[],
@@ -230,6 +238,36 @@ function buildLoadedSignaturePlan(pending: PendingRequestItem): LoadedSignatureP
 
 function isFinalizationPendingStatus(status: string) {
   return status === 'finalized' || status === 'finalize_running' || status === 'finalize_in_progress'
+}
+
+function isRpcWalletProvider(value: unknown): value is RpcWalletProvider {
+  return Boolean(value)
+    && typeof value === 'object'
+    && typeof (value as { request?: unknown }).request === 'function'
+}
+
+function isEmbeddedWalletProvider(value: unknown): value is W3mFrameProvider & RpcWalletProvider {
+  if (!isRpcWalletProvider(value)) {
+    return false
+  }
+
+  return value instanceof W3mFrameProvider
+    || (value as { constructor?: { name?: string } }).constructor?.name === 'W3mFrameProvider'
+}
+
+function resolveChainId(value: number | string | undefined) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
+function isSameAddress(first?: string | null, second?: string | null) {
+  return Boolean(first && second && first.toLowerCase() === second.toLowerCase())
 }
 
 function getCategorySlugKey(slug: string) {
@@ -291,7 +329,10 @@ function useAdminCreateEventForm({
   serverAssetPayload: EventCreationAssetPayload | null
 }) {
   const router = useRouter()
-  const { address: connectedAddress } = useAppKitAccount()
+  const appKitAccount = useAppKitAccount({ namespace: 'eip155' })
+  const { address: connectedAddress } = appKitAccount
+  const { walletProvider, walletProviderType } = useAppKitProvider<RpcWalletProvider>('eip155')
+  const { chainId: appKitChainId } = useAppKitNetworkCore()
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
@@ -316,6 +357,14 @@ function useAdminCreateEventForm({
   const eoaShortAddress = useMemo(
     () => (eoaAddress ? shortenAddress(eoaAddress) : ''),
     [eoaAddress],
+  )
+  const isEmbeddedWallet = Boolean(appKitAccount.embeddedWalletInfo)
+    || walletProviderType === 'AUTH'
+    || isEmbeddedWalletProvider(walletProvider)
+  const connectedWalletTransportChainId = resolveChainId(appKitChainId)
+  const walletClientMatchesConnectedAddress = Boolean(
+    walletClient?.account?.address
+    && isSameAddress(walletClient.account.address, eoaAddress),
   )
 
   const [currentStep, setCurrentStep] = useState(1)
@@ -3342,6 +3391,36 @@ function useAdminCreateEventForm({
     }
   }, [eoaAddress])
 
+  const getConnectedWalletConnection = useCallback(() => {
+    if (!eoaAddress) {
+      throw new Error('Connect wallet first.')
+    }
+
+    const rpcProvider = isRpcWalletProvider(walletProvider)
+      ? walletProvider
+      : walletClientMatchesConnectedAddress && isRpcWalletProvider(walletClient)
+        ? walletClient
+        : null
+    const walletClientMatchesAddress = walletClientMatchesConnectedAddress
+
+    if (!walletClientMatchesAddress && !rpcProvider) {
+      throw new Error('Wallet connection is not ready. Please try again.')
+    }
+
+    return {
+      rpcProvider,
+      walletClient,
+      walletClientMatchesAddress,
+      chainId: connectedWalletTransportChainId ?? DEFAULT_CREATE_EVENT_CHAIN_ID,
+    }
+  }, [
+    connectedWalletTransportChainId,
+    eoaAddress,
+    walletClient,
+    walletClientMatchesConnectedAddress,
+    walletProvider,
+  ])
+
   const generateRulesWithAi = useCallback(async () => {
     setIsGeneratingRules(true)
     try {
@@ -3383,9 +3462,6 @@ function useAdminCreateEventForm({
     if (!eoaAddress) {
       throw new Error('Connect wallet first.')
     }
-    if (!walletClient) {
-      throw new Error('Wallet client not available.')
-    }
 
     setIsPreparingSignaturePlan(true)
     setIsSigningAuth(true)
@@ -3396,7 +3472,20 @@ function useAdminCreateEventForm({
     let currentPayloadChainId: number | null = null
 
     try {
-      const activeWalletClient = walletClient
+      const connection = getConnectedWalletConnection()
+      const activeWalletClient = connection.walletClientMatchesAddress && connection.walletClient
+        ? connection.walletClient
+        : connection.rpcProvider
+          ? createWalletClient({
+              account: eoaAddress,
+              chain: defaultViemNetwork,
+              transport: custom(connection.rpcProvider),
+            })
+          : null
+      if (!activeWalletClient) {
+        throw new Error('Wallet connection is not ready. Please try again.')
+      }
+
       const payload = buildPreparePayload()
       const payloadJson = JSON.stringify(payload)
       const payloadHash = keccak256(stringToHex(payloadJson))
@@ -3430,7 +3519,7 @@ function useAdminCreateEventForm({
       if (!isAddress(authPayload.domain.verifyingContract)) {
         throw new Error('Invalid verifying contract in auth challenge response.')
       }
-      if (activeWalletClient.chain?.id && activeWalletClient.chain.id !== authPayload.chainId) {
+      if (connection.chainId && connection.chainId !== authPayload.chainId) {
         throw new Error(`Switch wallet to ${getChainLabel()} before signing auth.`)
       }
       setAuthChallengeExpiresAtMs(authPayload.expiresAt)
@@ -3574,6 +3663,7 @@ function useAdminCreateEventForm({
     eoaAddress,
     eventImageFile,
     form.options,
+    getConnectedWalletConnection,
     isSportsEvent,
     storedAssets.eventImage,
     storedAssets.optionImages,
@@ -3583,7 +3673,6 @@ function useAdminCreateEventForm({
     pollPendingPreparation,
     runWithSignaturePrompt,
     teamLogoFiles,
-    walletClient,
   ])
 
   const finalizeSignatureFlow = useCallback(async (
@@ -3681,16 +3770,25 @@ function useAdminCreateEventForm({
     if (!eoaAddress) {
       throw new Error('Connect wallet first.')
     }
-    if (!walletClient) {
-      throw new Error('Wallet client not available.')
-    }
     if (!publicClient) {
       throw new Error('Public client not available.')
     }
+    const connection = getConnectedWalletConnection()
     const senderAddress = eoaAddress
-    const activeWalletClient = walletClient
+    const activeWalletClient = connection.walletClientMatchesAddress && connection.walletClient
+      ? connection.walletClient
+      : connection.rpcProvider
+        ? createWalletClient({
+            account: senderAddress,
+            chain: defaultViemNetwork,
+            transport: custom(connection.rpcProvider),
+          })
+        : null
+    if (!activeWalletClient) {
+      throw new Error('Wallet connection is not ready. Please try again.')
+    }
 
-    if (activeWalletClient.chain?.id && activeWalletClient.chain.id !== activePreparedSignaturePlan.chainId) {
+    if (connection.chainId && connection.chainId !== activePreparedSignaturePlan.chainId) {
       throw new Error(`Switch wallet to ${getChainLabel()} before signing.`)
     }
 
@@ -3794,10 +3892,94 @@ function useAdminCreateEventForm({
           })
         }
 
+        async function estimateEmbeddedGas() {
+          try {
+            const estimatedGas = await publicClient.estimateGas({
+              account: senderAddress,
+              to: toAddress,
+              data: tx.data as `0x${string}`,
+              value: BigInt(tx.value || '0'),
+            })
+
+            return (estimatedGas * 12n) / 10n
+          }
+          catch {
+            return undefined
+          }
+        }
+
+        async function sendRpc(overrides?: {
+          maxFeePerGas?: bigint
+          maxPriorityFeePerGas?: bigint
+        }) {
+          if (!connection.rpcProvider) {
+            throw new Error('Wallet connection is not ready. Please try again.')
+          }
+
+          const rpcWalletClient = createWalletClient({
+            account: senderAddress,
+            chain: defaultViemNetwork,
+            transport: custom(connection.rpcProvider),
+          })
+
+          if (isEmbeddedWallet) {
+            const gas = await estimateEmbeddedGas()
+            const txRequest = buildRpcTransactionRequest({
+              from: senderAddress,
+              to: toAddress,
+              data: tx.data as `0x${string}`,
+              value: BigInt(tx.value || '0'),
+              gas,
+              ...(overrides ?? {}),
+            })
+            const rpcHash = await runWithSignaturePrompt(
+              () => connection.rpcProvider.request({
+                method: 'eth_sendTransaction',
+                params: [txRequest],
+              }),
+              {
+                title: 'Confirm transaction',
+                description: 'Open your wallet and approve the transaction to continue.',
+              },
+            )
+            if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
+              throw new Error('Wallet provider returned an invalid transaction hash.')
+            }
+            return rpcHash
+          }
+
+          const rpcHash = await runWithSignaturePrompt(
+            () => rpcWalletClient.sendTransaction({
+              account: senderAddress,
+              chain: defaultViemNetwork,
+              to: toAddress,
+              data: tx.data as `0x${string}`,
+              value: BigInt(tx.value || '0'),
+              ...(overrides ?? {}),
+            }),
+            {
+              title: 'Confirm transaction',
+              description: 'Open your wallet and approve the transaction to continue.',
+            },
+          )
+          if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
+            throw new Error('Wallet provider returned an invalid transaction hash.')
+          }
+          return rpcHash
+        }
+
         async function sendWithRpcFallback(overrides?: {
           maxFeePerGas?: bigint
           maxPriorityFeePerGas?: bigint
         }) {
+          if (isEmbeddedWallet) {
+            return await sendRpc(overrides)
+          }
+
+          if (!connection.walletClientMatchesAddress) {
+            return await sendRpc(overrides)
+          }
+
           try {
             return await runWithSignaturePrompt(() => send(overrides), {
               title: 'Confirm transaction',
@@ -3810,39 +3992,19 @@ function useAdminCreateEventForm({
               throw sendError
             }
 
-            const txRequest = buildRpcTransactionRequest({
-              from: senderAddress,
-              to: toAddress,
-              data: tx.data as `0x${string}`,
-              value: BigInt(tx.value || '0'),
-              ...(overrides ?? {}),
-            })
-            const rpcHash = await runWithSignaturePrompt(
-              () => activeWalletClient.request({
-                method: 'eth_sendTransaction',
-                params: [txRequest],
-              }) as Promise<unknown>,
-              {
-                title: 'Confirm transaction',
-                description: 'Open your wallet and approve the transaction to continue.',
-              },
-            )
-            if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
-              throw new Error('Wallet provider returned an invalid transaction hash.')
-            }
-            return rpcHash
+            return await sendRpc(overrides)
           }
         }
 
         let hash: string
         try {
-          hash = publicClient
-            ? await sendWithEstimatedFeeRetry({
+          hash = isEmbeddedWallet
+            ? await sendWithRpcFallback()
+            : await sendWithEstimatedFeeRetry({
                 chainId: activePreparedSignaturePlan.chainId,
                 client: publicClient,
                 send: sendWithRpcFallback,
               })
-            : await sendWithRpcFallback()
         }
         catch (sendError) {
           const message = sendError instanceof Error ? sendError.message : String(sendError)
@@ -3942,12 +4104,13 @@ function useAdminCreateEventForm({
   }, [
     eoaAddress,
     finalizeSignatureFlow,
+    getConnectedWalletConnection,
+    isEmbeddedWallet,
     persistConfirmedTxs,
     preparedSignaturePlan,
     publicClient,
     runWithSignaturePrompt,
     signatureTxs,
-    walletClient,
   ])
 
   const copyWalletAddress = useCallback(async () => {

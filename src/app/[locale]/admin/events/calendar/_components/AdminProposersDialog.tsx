@@ -2,13 +2,14 @@
 
 import type { Address, Hash, Hex } from 'viem'
 import type { SignerOption } from './admin-create-event-form-types'
-import type { ProposerWhitelistCreatorOption, ProposerWhitelistDeploymentResponse, ProposerWhitelistMutationResponse, ProposerWhitelistStatus, ProposerWhitelistStatusResponse } from '@/lib/proposer-whitelist'
+import type { ProposerWhitelistCreatorOption, ProposerWhitelistMutationResponse, ProposerWhitelistStatus, ProposerWhitelistStatusResponse } from '@/lib/proposer-whitelist'
+import { W3mFrameProvider } from '@reown/appkit-wallet'
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
 import { CheckCircle2Icon, CircleIcon, Loader2Icon, PlusIcon, UserCheckIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { encodeDeployData, encodeFunctionData, getAddress, isAddress, toHex } from 'viem'
+import { createWalletClient, custom, encodeDeployData, encodeFunctionData, getAddress, getCreate2Address, isAddress, toHex } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import {
@@ -64,10 +65,49 @@ interface RpcWalletProvider {
   request: (args: { method: string, params?: unknown[] }) => Promise<unknown>
 }
 
+const SINGLETON_FACTORY_ADDRESS = '0xce0042B868300000d44A59004Da54A005ffdcf9f' as Address
+const SINGLETON_FACTORY_SALT = '0x184d69ab00000000000000000000000000000000000000000000000000000000' as Hex
+
+const SINGLETON_FACTORY_ABI = [
+  {
+    type: 'function',
+    name: 'deploy',
+    inputs: [
+      {
+        name: '_initCode',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
+      {
+        name: '_salt',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
+    outputs: [
+      {
+        name: 'createdContract',
+        type: 'address',
+        internalType: 'address payable',
+      },
+    ],
+    stateMutability: 'nonpayable',
+  },
+] as const
+
 function isRpcWalletProvider(value: unknown): value is RpcWalletProvider {
   return Boolean(value)
     && typeof value === 'object'
     && typeof (value as { request?: unknown }).request === 'function'
+}
+
+function isEmbeddedWalletProvider(value: unknown): value is W3mFrameProvider & RpcWalletProvider {
+  if (!isRpcWalletProvider(value)) {
+    return false
+  }
+
+  return value instanceof W3mFrameProvider
+    || (value as { constructor?: { name?: string } }).constructor?.name === 'W3mFrameProvider'
 }
 
 function resolveChainId(value: number | string | undefined) {
@@ -83,6 +123,48 @@ function resolveChainId(value: number | string | undefined) {
 
 function isSameAddress(first?: string | null, second?: string | null) {
   return Boolean(first && second && first.toLowerCase() === second.toLowerCase())
+}
+
+function buildRpcWalletTransactionRequest(params: {
+  from: Address
+  data: Hex
+  to?: Address
+  value?: bigint
+  gas?: bigint
+  maxFeePerGas?: bigint
+  maxPriorityFeePerGas?: bigint
+}) {
+  const request: {
+    from: Address
+    data: Hex
+    to?: Address
+    value: Hex
+    gas?: Hex
+    maxFeePerGas?: Hex
+    maxPriorityFeePerGas?: Hex
+  } = {
+    from: params.from,
+    data: params.data,
+    value: toHex(params.value ?? 0n),
+  }
+
+  if (params.to) {
+    request.to = params.to
+  }
+
+  if (typeof params.gas === 'bigint') {
+    request.gas = toHex(params.gas)
+  }
+
+  if (typeof params.maxFeePerGas === 'bigint') {
+    request.maxFeePerGas = toHex(params.maxFeePerGas)
+  }
+
+  if (typeof params.maxPriorityFeePerGas === 'bigint') {
+    request.maxPriorityFeePerGas = toHex(params.maxPriorityFeePerGas)
+  }
+
+  return request
 }
 
 function readApiError(payload: unknown) {
@@ -174,16 +256,6 @@ function isMutationResponse(payload: unknown): payload is ProposerWhitelistMutat
   return Boolean(candidate.status) && Array.isArray(candidate.txHashes)
 }
 
-function isDeploymentResponse(payload: unknown): payload is ProposerWhitelistDeploymentResponse {
-  if (!payload || typeof payload !== 'object') {
-    return false
-  }
-  const candidate = payload as Partial<ProposerWhitelistDeploymentResponse>
-  return typeof candidate.whitelistAddress === 'string'
-    && isAddress(candidate.whitelistAddress)
-    && Array.isArray(candidate.txHashes)
-}
-
 function getPreferredCreator(input: {
   initialCreatorAddress?: string | null
   selectedCreator: Address | null
@@ -202,42 +274,6 @@ function getPreferredCreator(input: {
   return input.creators[0]?.address ?? null
 }
 
-function buildRpcWalletTransactionRequest(params: {
-  from: `0x${string}`
-  data: `0x${string}`
-  to?: `0x${string}`
-  value?: bigint
-  maxFeePerGas?: bigint
-  maxPriorityFeePerGas?: bigint
-}) {
-  const request: {
-    from: `0x${string}`
-    data: `0x${string}`
-    to?: `0x${string}`
-    value: Hex
-    maxFeePerGas?: Hex
-    maxPriorityFeePerGas?: Hex
-  } = {
-    from: params.from,
-    data: params.data,
-    value: toHex(params.value ?? 0n),
-  }
-
-  if (params.to) {
-    request.to = params.to
-  }
-
-  if (typeof params.maxFeePerGas === 'bigint') {
-    request.maxFeePerGas = toHex(params.maxFeePerGas)
-  }
-
-  if (typeof params.maxPriorityFeePerGas === 'bigint') {
-    request.maxPriorityFeePerGas = toHex(params.maxPriorityFeePerGas)
-  }
-
-  return request
-}
-
 export default function AdminProposersDialog({
   open,
   onOpenChange,
@@ -246,8 +282,12 @@ export default function AdminProposersDialog({
   onStatusChange,
 }: AdminProposersDialogProps) {
   const t = useExtracted()
-  const { address: appKitAddressRaw } = useAppKitAccount({ namespace: 'eip155' })
-  const { walletProvider } = useAppKitProvider<RpcWalletProvider>('eip155')
+  const appKitAccount = useAppKitAccount({ namespace: 'eip155' })
+  const { address: appKitAddressRaw } = appKitAccount
+  const { walletProvider, walletProviderType } = useAppKitProvider<RpcWalletProvider>('eip155')
+  const isEmbeddedWallet = Boolean(appKitAccount.embeddedWalletInfo)
+    || walletProviderType === 'AUTH'
+    || isEmbeddedWalletProvider(walletProvider)
   const { chainId: appKitChainId } = useAppKitNetworkCore()
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient()
@@ -342,6 +382,9 @@ export default function AdminProposersDialog({
     }
     if (message === 'Could not update proposer whitelist.') {
       return t('Could not update proposer whitelist.')
+    }
+    if (message === 'Embedded wallet provider rejected this RPC method.') {
+      return t('Embedded wallet provider rejected this RPC method.')
     }
 
     return message
@@ -467,30 +510,6 @@ export default function AdminProposersDialog({
     return payload.txHashes
   }
 
-  async function runServerDeployment(proposers: Address[]) {
-    if (!selectedCreator) {
-      throw new Error(t('Select a creator wallet first.'))
-    }
-
-    const response = await fetch('/admin/api/proposer-whitelists', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'deploy',
-        creator: selectedCreator,
-        proposers,
-      }),
-    })
-    const payload = await response.json().catch(() => null) as unknown
-    const apiError = readApiError(payload)
-    if (!response.ok || apiError || !isDeploymentResponse(payload)) {
-      throw new Error(apiError || t('Could not update proposer whitelist ({status})', { status: String(response.status) }))
-    }
-    return getAddress(payload.whitelistAddress) as Address
-  }
-
   async function waitForWalletTx(hash: Hash) {
     const client = publicClient
     if (!client) {
@@ -540,6 +559,29 @@ export default function AdminProposersDialog({
     value?: bigint
   }) {
     const connection = getConnectedWalletConnection()
+    const canUseWalletClient = Boolean(
+      connection.walletClient && (connection.walletClientMatchesCreator || isEmbeddedWallet),
+    )
+
+    async function estimateEmbeddedGas() {
+      if (!publicClient || !input.to) {
+        return undefined
+      }
+
+      try {
+        const estimatedGas = await publicClient.estimateGas({
+          account: input.account,
+          to: input.to,
+          data: input.data,
+          value: input.value ?? 0n,
+        })
+
+        return (estimatedGas * 12n) / 10n
+      }
+      catch {
+        return undefined
+      }
+    }
 
     function sendWithWalletClient(overrides?: {
       maxFeePerGas?: bigint
@@ -567,17 +609,46 @@ export default function AdminProposersDialog({
         throw new Error(t('Wallet connection is not ready. Please try again.'))
       }
 
-      const txRequest = buildRpcWalletTransactionRequest({
-        from: input.account,
-        to: input.to,
-        data: input.data,
-        value: input.value ?? 0n,
-        ...(overrides ?? {}),
+      const rpcWalletClient = createWalletClient({
+        account: input.account,
+        chain: defaultViemNetwork,
+        transport: custom(connection.rpcProvider),
       })
+
+      if (isEmbeddedWallet) {
+        const gas = await estimateEmbeddedGas()
+        const txRequest = buildRpcWalletTransactionRequest({
+          from: input.account,
+          to: input.to,
+          data: input.data,
+          value: input.value ?? 0n,
+          gas,
+          ...(overrides ?? {}),
+        })
+        const rpcHash = await runWithSignaturePrompt(
+          () => connection.rpcProvider.request({
+            method: 'eth_sendTransaction',
+            params: [txRequest],
+          }),
+          {
+            title: input.title,
+            description: input.description,
+          },
+        )
+        if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
+          throw new Error(t('Wallet provider returned an invalid transaction hash.'))
+        }
+        return rpcHash as Hash
+      }
+
       const rpcHash = await runWithSignaturePrompt(
-        () => connection.rpcProvider!.request({
-          method: 'eth_sendTransaction',
-          params: [txRequest],
+        () => rpcWalletClient.sendTransaction({
+          account: input.account,
+          chain: defaultViemNetwork,
+          to: input.to,
+          data: input.data,
+          value: input.value ?? 0n,
+          ...(overrides ?? {}),
         }),
         {
           title: input.title,
@@ -594,7 +665,11 @@ export default function AdminProposersDialog({
       maxFeePerGas?: bigint
       maxPriorityFeePerGas?: bigint
     }) {
-      if (!connection.walletClientMatchesCreator) {
+      if (isEmbeddedWallet) {
+        return await sendRpc(overrides)
+      }
+
+      if (!canUseWalletClient) {
         return await sendRpc(overrides)
       }
 
@@ -618,11 +693,60 @@ export default function AdminProposersDialog({
       return sendWithRpcFallback()
     }
 
+    if (isEmbeddedWallet) {
+      return sendRpc()
+    }
+
     return sendWithEstimatedFeeRetry({
       chainId: connection.chainId,
       client: publicClient,
       send: sendWithRpcFallback,
     })
+  }
+
+  async function deployWalletWhitelist(hasPendingProposers: boolean) {
+    if (!selectedCreator) {
+      throw new Error(t('Select a creator wallet first.'))
+    }
+    const deployData = encodeDeployData({
+      abi: CREATOR_PROPOSER_WHITELIST_ABI,
+      bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
+      args: [selectedCreator, []],
+    })
+    const whitelistAddress = getCreate2Address({
+      from: SINGLETON_FACTORY_ADDRESS,
+      salt: SINGLETON_FACTORY_SALT,
+      bytecode: deployData,
+    }) as Address
+
+    if (publicClient) {
+      const existingCode = await publicClient.getCode({ address: whitelistAddress })
+      if (existingCode && existingCode !== '0x') {
+        return {
+          hash: null,
+          whitelistAddress,
+        }
+      }
+    }
+
+    const hash = await sendWalletTransaction({
+      title: t('Deploy proposer whitelist'),
+      description: hasPendingProposers
+        ? t('Transaction 1 of 3: deploy the whitelist contract for this creator.')
+        : t('Transaction 1 of 2: deploy the whitelist contract for this creator.'),
+      account: selectedCreator,
+      to: SINGLETON_FACTORY_ADDRESS,
+      data: encodeFunctionData({
+        abi: SINGLETON_FACTORY_ABI,
+        functionName: 'deploy',
+        args: [deployData, SINGLETON_FACTORY_SALT],
+      }),
+    })
+
+    return {
+      hash,
+      whitelistAddress,
+    }
   }
 
   async function runWalletCreate(proposers: Address[]) {
@@ -632,36 +756,42 @@ export default function AdminProposersDialog({
     let whitelistAddress = status.whitelistAddress
 
     if (!whitelistAddress) {
-      if (walletClientMatchesSelectedCreator) {
-        const deployHash = await sendWalletTransaction({
-          title: t('Deploy proposer whitelist'),
-          description: t('Transaction 1 of 2: deploy the whitelist contract for this creator.'),
-          account: selectedCreator,
-          data: encodeDeployData({
-            abi: CREATOR_PROPOSER_WHITELIST_ABI,
-            bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
-            args: [selectedCreator, proposers],
-          }),
-        })
-        const deployReceipt = await waitForWalletTx(deployHash)
-        whitelistAddress = deployReceipt?.contractAddress && isAddress(deployReceipt.contractAddress)
-          ? getAddress(deployReceipt.contractAddress) as Address
-          : null
-        if (!whitelistAddress) {
-          throw new Error(t('Whitelist deployment did not return a contract address.'))
+      const deployment = await deployWalletWhitelist(proposers.length > 0)
+      const deployReceipt = deployment.hash ? await waitForWalletTx(deployment.hash) : null
+      whitelistAddress = deployReceipt?.contractAddress && isAddress(deployReceipt.contractAddress)
+        ? getAddress(deployReceipt.contractAddress) as Address
+        : deployment.whitelistAddress ?? null
+      if (whitelistAddress && publicClient) {
+        const code = await publicClient.getCode({ address: whitelistAddress })
+        if (!code || code === '0x') {
+          throw new Error(t('Could not update proposer whitelist.'))
         }
       }
-      else if (signers.length > 0) {
-        whitelistAddress = await runServerDeployment(proposers)
-      }
-      else {
+      if (!whitelistAddress) {
         throw new Error(t('Could not update proposer whitelist.'))
       }
     }
 
+    if (proposers.length > 0) {
+      const addHash = await sendWalletTransaction({
+        title: t('Add proposers'),
+        description: t('Transaction 2 of 3: add proposer wallets to the whitelist.'),
+        account: selectedCreator,
+        to: whitelistAddress,
+        data: encodeFunctionData({
+          abi: CREATOR_PROPOSER_WHITELIST_ABI,
+          functionName: 'addProposers',
+          args: [proposers],
+        }),
+      })
+      await waitForWalletTx(addHash)
+    }
+
     const registerHash = await sendWalletTransaction({
       title: t('Register proposer whitelist'),
-      description: t('Transaction 2 of 2: register this whitelist in the registry.'),
+      description: proposers.length > 0
+        ? t('Transaction 3 of 3: register this whitelist in the registry.')
+        : t('Transaction 2 of 2: register this whitelist in the registry.'),
       account: selectedCreator,
       to: status.registryAddress,
       data: encodeFunctionData({
@@ -706,12 +836,14 @@ export default function AdminProposersDialog({
       return
     }
 
-    if (requestedProposers.length === 0 && action !== 'create') {
+    if (requestedProposers.length === 0) {
       toast.error(t('Add at least one wallet.'))
       return
     }
 
-    const proposers = omitCreatorFromProposerAddressList(selectedCreator, requestedProposers)
+    const proposers = action === 'create'
+      ? requestedProposers
+      : omitCreatorFromProposerAddressList(selectedCreator, requestedProposers)
 
     if (proposers.length === 0 && action !== 'create') {
       setWalletInput('')

@@ -170,12 +170,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: readProposerWhitelistError(error) }, { status: 400 })
     }
 
-    if (parsed.data.action !== 'create' && parsed.data.action !== 'deploy' && requestedProposers.length === 0) {
+    if (requestedProposers.length === 0) {
       return NextResponse.json({ error: 'At least one proposer wallet is required.' }, { status: 400 })
     }
 
     const registryAddress = getServerCreatorProposerWhitelistRegistryAddress()
-    const proposers = omitCreatorFromProposerAddressList(creator, requestedProposers)
+    const proposers = parsed.data.action === 'create' || parsed.data.action === 'deploy'
+      ? requestedProposers
+      : omitCreatorFromProposerAddressList(creator, requestedProposers)
     if (parsed.data.action !== 'create' && parsed.data.action !== 'deploy' && proposers.length === 0) {
       const currentStatus = await readCreatorProposerWhitelistStatus({
         creator,
