@@ -175,10 +175,10 @@ export async function POST(request: Request) {
     }
 
     const registryAddress = getServerCreatorProposerWhitelistRegistryAddress()
-    const proposers = parsed.data.action === 'create' || parsed.data.action === 'deploy'
-      ? requestedProposers
-      : omitCreatorFromProposerAddressList(creator, requestedProposers)
-    if (parsed.data.action !== 'create' && parsed.data.action !== 'deploy' && proposers.length === 0) {
+    const proposers = parsed.data.action === 'add'
+      ? omitCreatorFromProposerAddressList(creator, requestedProposers)
+      : requestedProposers
+    if (parsed.data.action === 'add' && proposers.length === 0) {
       const currentStatus = await readCreatorProposerWhitelistStatus({
         creator,
         registryAddress,

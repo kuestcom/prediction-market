@@ -62,7 +62,10 @@ interface EventCreationSignersResponse {
 }
 
 interface RpcWalletProvider {
-  request: (args: { method: string, params?: unknown[] }) => Promise<unknown>
+  request: (args: {
+    method: string
+    params?: unknown[] | object
+  }) => Promise<unknown>
 }
 
 const SINGLETON_FACTORY_ADDRESS = '0xce0042B868300000d44A59004Da54A005ffdcf9f' as Address
@@ -608,11 +611,12 @@ export default function AdminProposersDialog({
       if (!connection.rpcProvider) {
         throw new Error(t('Wallet connection is not ready. Please try again.'))
       }
+      const rpcProvider = connection.rpcProvider
 
       const rpcWalletClient = createWalletClient({
         account: input.account,
         chain: defaultViemNetwork,
-        transport: custom(connection.rpcProvider),
+        transport: custom(rpcProvider),
       })
 
       if (isEmbeddedWallet) {
@@ -626,7 +630,7 @@ export default function AdminProposersDialog({
           ...(overrides ?? {}),
         })
         const rpcHash = await runWithSignaturePrompt(
-          () => connection.rpcProvider.request({
+          () => rpcProvider.request({
             method: 'eth_sendTransaction',
             params: [txRequest],
           }),
@@ -841,11 +845,11 @@ export default function AdminProposersDialog({
       return
     }
 
-    const proposers = action === 'create'
-      ? requestedProposers
-      : omitCreatorFromProposerAddressList(selectedCreator, requestedProposers)
+    const proposers = action === 'add'
+      ? omitCreatorFromProposerAddressList(selectedCreator, requestedProposers)
+      : requestedProposers
 
-    if (proposers.length === 0 && action !== 'create') {
+    if (proposers.length === 0 && action === 'add') {
       setWalletInput('')
       setAddOpen(false)
       toast.success(t('Proposer whitelist updated.'))
@@ -890,6 +894,7 @@ export default function AdminProposersDialog({
   }
 
   const proposerRows = status?.proposers ?? []
+  const hasAllowedProposers = proposerRows.length > 0
   const connectedAddressAlreadyListed = Boolean(
     knownCreatorAddress && proposerRows.some(proposer => proposer.toLowerCase() === knownCreatorAddress.toLowerCase()),
   )
@@ -962,7 +967,7 @@ export default function AdminProposersDialog({
             )}
 
             <div className={cn('grid gap-4', isSwitchingCreator && 'pointer-events-none opacity-60')}>
-              {status?.whitelistAddress && (
+              {status?.whitelistAddress && hasAllowedProposers && (
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label>{t('Allowed proposers')}</Label>
@@ -1003,7 +1008,7 @@ export default function AdminProposersDialog({
                 </div>
               )}
 
-              {(!status?.whitelistAddress || addOpen) && (
+              {(!status?.whitelistAddress || addOpen || !hasAllowedProposers) && (
                 <div className="grid gap-2">
                   <Label>{status?.whitelistAddress ? t('Add proposer wallets') : t('Initial proposer wallets')}</Label>
                   <Textarea
