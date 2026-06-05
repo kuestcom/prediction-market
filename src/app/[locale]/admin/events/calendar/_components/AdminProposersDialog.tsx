@@ -3,7 +3,6 @@
 import type { Address, Hash, Hex } from 'viem'
 import type { SignerOption } from './admin-create-event-form-types'
 import type { ProposerWhitelistCreatorOption, ProposerWhitelistMutationResponse, ProposerWhitelistStatus, ProposerWhitelistStatusResponse } from '@/lib/proposer-whitelist'
-import { W3mFrameProvider } from '@reown/appkit-wallet'
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
 import { CheckCircle2Icon, CircleIcon, Loader2Icon, PlusIcon, UserCheckIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -104,13 +103,12 @@ function isRpcWalletProvider(value: unknown): value is RpcWalletProvider {
     && typeof (value as { request?: unknown }).request === 'function'
 }
 
-function isEmbeddedWalletProvider(value: unknown): value is W3mFrameProvider & RpcWalletProvider {
+function isEmbeddedWalletProvider(value: unknown): value is RpcWalletProvider {
   if (!isRpcWalletProvider(value)) {
     return false
   }
 
-  return value instanceof W3mFrameProvider
-    || (value as { constructor?: { name?: string } }).constructor?.name === 'W3mFrameProvider'
+  return (value as { constructor?: { name?: string } }).constructor?.name === 'W3mFrameProvider'
 }
 
 function resolveChainId(value: number | string | undefined) {

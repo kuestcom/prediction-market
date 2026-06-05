@@ -41,7 +41,6 @@ import type {
 import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import type { EventCreationAssetPayload, EventCreationRecurrenceUnit } from '@/lib/event-creation'
 import type { ProposerWhitelistStatus } from '@/lib/proposer-whitelist'
-import { W3mFrameProvider } from '@reown/appkit-wallet'
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
 import {
   ArrowLeftIcon,
@@ -246,13 +245,12 @@ function isRpcWalletProvider(value: unknown): value is RpcWalletProvider {
     && typeof (value as { request?: unknown }).request === 'function'
 }
 
-function isEmbeddedWalletProvider(value: unknown): value is W3mFrameProvider & RpcWalletProvider {
+function isEmbeddedWalletProvider(value: unknown): value is RpcWalletProvider {
   if (!isRpcWalletProvider(value)) {
     return false
   }
 
-  return value instanceof W3mFrameProvider
-    || (value as { constructor?: { name?: string } }).constructor?.name === 'W3mFrameProvider'
+  return (value as { constructor?: { name?: string } }).constructor?.name === 'W3mFrameProvider'
 }
 
 function resolveChainId(value: number | string | undefined) {
