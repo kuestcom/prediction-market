@@ -753,6 +753,55 @@ function TradingOnboardingProviderContent({
     }
   }, [isEmailSubmitting, refreshSessionUserState, shouldContinueTradingAuthPrompt, status, isEventRoute])
 
+  const enableTradingAuthForCurrentUser = useCallback(async () => {
+    if (!user?.address) {
+      throw new Error(DEFAULT_ERROR_MESSAGE)
+    }
+
+    const timestamp = Math.floor(Date.now() / 1000).toString()
+    const message = buildTradingAuthMessage({
+      address: user.address as `0x${string}`,
+      timestamp,
+    })
+    const signature = await runWithSignaturePrompt(() => signTypedDataAsync({
+      domain: getTradingAuthDomain(),
+      types: TRADING_AUTH_TYPES,
+      primaryType: TRADING_AUTH_PRIMARY_TYPE,
+      message,
+    }))
+
+    const result = await enableTradingAuthAction({
+      signature,
+      timestamp,
+      nonce: message.nonce.toString(),
+    })
+
+    if (result.error || !result.data) {
+      throw new Error(result.error ?? DEFAULT_ERROR_MESSAGE)
+    }
+    const data = result.data
+
+    useUser.setState((previous) => {
+      if (!previous) {
+        return previous
+      }
+      return {
+        ...previous,
+        settings: mergeUserSettings(previous, {
+          tradingAuth: data.tradingAuth,
+        }),
+      }
+    })
+    void refreshSessionUserState()
+    setRequiresTradingAuthRefresh(false)
+    setDismissedModal(null)
+  }, [
+    refreshSessionUserState,
+    runWithSignaturePrompt,
+    signTypedDataAsync,
+    user?.address,
+  ])
+
   const handleCreateDepositWallet = useCallback(async () => {
     if (!user?.address || enableTradingStep === 'enabling') {
       return
@@ -761,18 +810,16 @@ function TradingOnboardingProviderContent({
 
     try {
       setEnableTradingStep('enabling')
-      const result = await createDepositWalletAction()
+      let result = await createDepositWalletAction()
+
+      if (result.error && isTradingAuthRequiredError(result.error)) {
+        await enableTradingAuthForCurrentUser()
+        setActiveModal('enable')
+        result = await createDepositWalletAction()
+      }
 
       if (result.error || !result.data) {
-        if (isTradingAuthRequiredError(result.error)) {
-          setRequiresTradingAuthRefresh(true)
-          setDismissedModal(null)
-          setActiveModal('enable-status')
-          setEnableTradingError(null)
-        }
-        else {
-          setEnableTradingError(result.error ?? DEFAULT_ERROR_MESSAGE)
-        }
+        setEnableTradingError(result.error ?? DEFAULT_ERROR_MESSAGE)
         setEnableTradingStep('idle')
         return
       }
@@ -799,7 +846,10 @@ function TradingOnboardingProviderContent({
       }
     }
     catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof UserRejectedRequestError) {
+        setEnableTradingError(t('You rejected the signature request.'))
+      }
+      else if (error instanceof Error) {
         setEnableTradingError(error.message || DEFAULT_ERROR_MESSAGE)
       }
       else {
@@ -808,9 +858,11 @@ function TradingOnboardingProviderContent({
       setEnableTradingStep('idle')
     }
   }, [
+    enableTradingAuthForCurrentUser,
     enableTradingStep,
     refreshSessionUserState,
     status.hasTokenApprovals,
+    t,
     user?.address,
   ])
 
@@ -822,45 +874,7 @@ function TradingOnboardingProviderContent({
 
     try {
       setEnableTradingStep('enabling')
-      const timestamp = Math.floor(Date.now() / 1000).toString()
-      const message = buildTradingAuthMessage({
-        address: user.address as `0x${string}`,
-        timestamp,
-      })
-      const signature = await runWithSignaturePrompt(() => signTypedDataAsync({
-        domain: getTradingAuthDomain(),
-        types: TRADING_AUTH_TYPES,
-        primaryType: TRADING_AUTH_PRIMARY_TYPE,
-        message,
-      }))
-
-      const result = await enableTradingAuthAction({
-        signature,
-        timestamp,
-        nonce: message.nonce.toString(),
-      })
-
-      if (result.error || !result.data) {
-        setEnableTradingError(result.error ?? DEFAULT_ERROR_MESSAGE)
-        setEnableTradingStep('idle')
-        return
-      }
-      const data = result.data
-
-      useUser.setState((previous) => {
-        if (!previous) {
-          return previous
-        }
-        return {
-          ...previous,
-          settings: mergeUserSettings(previous, {
-            tradingAuth: data.tradingAuth,
-          }),
-        }
-      })
-      void refreshSessionUserState()
-      setRequiresTradingAuthRefresh(false)
-      setDismissedModal(null)
+      await enableTradingAuthForCurrentUser()
       if (status.hasDeployedDepositWallet) {
         setEnableTradingStep('completed')
         setActiveModal(status.hasTokenApprovals ? null : 'approve')
@@ -883,10 +897,8 @@ function TradingOnboardingProviderContent({
       setEnableTradingStep('idle')
     }
   }, [
+    enableTradingAuthForCurrentUser,
     enableTradingStep,
-    refreshSessionUserState,
-    runWithSignaturePrompt,
-    signTypedDataAsync,
     status.hasDeployedDepositWallet,
     status.hasTokenApprovals,
     t,

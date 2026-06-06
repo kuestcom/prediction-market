@@ -1,13 +1,16 @@
 import type { User } from '@/types'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { useUser } from '@/stores/useUser'
 
 const mocks = vi.hoisted(() => ({
+  createDepositWalletAction: vi.fn(),
   dialogProps: null as any,
+  enableTradingAuthAction: vi.fn(),
   getSession: vi.fn().mockResolvedValue({ data: { user: null } }),
   openAppKit: vi.fn(),
+  signTypedDataAsync: vi.fn(),
   usePathname: vi.fn(() => '/'),
 }))
 
@@ -24,7 +27,7 @@ vi.mock('wagmi', () => ({
     signMessageAsync: vi.fn(),
   }),
   useSignTypedData: () => ({
-    signTypedDataAsync: vi.fn(),
+    signTypedDataAsync: mocks.signTypedDataAsync,
   }),
 }))
 
@@ -34,8 +37,8 @@ vi.mock('@/app/[locale]/(platform)/_actions/approve-tokens', () => ({
 
 vi.mock('@/app/[locale]/(platform)/_actions/deposit-wallet', () => ({
   checkUsernameAvailabilityAction: vi.fn(),
-  createDepositWalletAction: vi.fn(),
-  enableTradingAuthAction: vi.fn(),
+  createDepositWalletAction: mocks.createDepositWalletAction,
+  enableTradingAuthAction: mocks.enableTradingAuthAction,
   markAutoRedeemApprovalCompletedAction: vi.fn(),
   updateOnboardingEmailAction: vi.fn(),
   updateOnboardingUsernameAction: vi.fn(),
@@ -98,9 +101,12 @@ function createUser(overrides: Partial<User> = {}): User {
 describe('tradingOnboardingProvider', () => {
   beforeEach(() => {
     useUser.setState(null)
+    mocks.createDepositWalletAction.mockReset()
     mocks.dialogProps = null
+    mocks.enableTradingAuthAction.mockReset()
     mocks.getSession.mockClear()
     mocks.openAppKit.mockClear()
+    mocks.signTypedDataAsync.mockReset()
     mocks.usePathname.mockReturnValue('/')
   })
 
@@ -135,5 +141,56 @@ describe('tradingOnboardingProvider', () => {
       expect(screen.getByTestId('active-modal')).toHaveTextContent('username')
     })
     expect(mocks.dialogProps.usernameDefaultValue).toBe('')
+  })
+
+  it('keeps the initial enable trading flow inside the large modal when trading auth is missing', async () => {
+    const depositWalletAddress = '0xbc040c5a56d757986475005f8cde8e41fe3e2486'
+    mocks.signTypedDataAsync.mockResolvedValue('0xsignature')
+    mocks.enableTradingAuthAction.mockResolvedValue({
+      error: null,
+      data: {
+        tradingAuth: {
+          relayer: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z' },
+          clob: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z' },
+        },
+      },
+    })
+    mocks.createDepositWalletAction
+      .mockResolvedValueOnce({ error: 'Enable trading to continue.', data: null })
+      .mockResolvedValueOnce({
+        error: null,
+        data: {
+          deposit_wallet_address: depositWalletAddress,
+          deposit_wallet_signature: null,
+          deposit_wallet_signed_at: null,
+          deposit_wallet_status: 'deploying',
+          deposit_wallet_tx_hash: '0xtx',
+        },
+      })
+
+    useUser.setState(createUser({
+      email: 'user@example.com',
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <div />
+      </TradingOnboardingProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('active-modal')).toHaveTextContent('enable')
+    })
+
+    await act(async () => {
+      await mocks.dialogProps.onCreateDepositWallet()
+    })
+
+    expect(mocks.signTypedDataAsync).toHaveBeenCalledTimes(1)
+    expect(mocks.enableTradingAuthAction).toHaveBeenCalledTimes(1)
+    expect(mocks.createDepositWalletAction).toHaveBeenCalledTimes(2)
+    expect(screen.getByTestId('active-modal')).toHaveTextContent('enable')
+    expect(screen.getByTestId('active-modal')).not.toHaveTextContent('enable-status')
   })
 })
