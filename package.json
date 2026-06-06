@@ -24,9 +24,9 @@
     "db:push": "node scripts/migrate.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1056.0",
+    "@aws-sdk/client-s3": "3.1057.0",
     "@better-auth/drizzle-adapter": "1.6.14",
-    "@better-auth/utils": "0.4.0",
+    "@better-auth/utils": "0.4.1",
     "@bprogress/next": "3.2.12",
     "@daypicker/react": "10.0.1",
     "@fullcalendar/core": "6.1.20",
@@ -40,7 +40,7 @@
     "@reown/appkit": "1.8.20",
     "@reown/appkit-adapter-wagmi": "1.8.20",
     "@reown/appkit-siwe": "1.8.20",
-    "@sentry/nextjs": "10.54.0",
+    "@sentry/nextjs": "10.55.0",
     "@supabase/supabase-js": "2.106.2",
     "@tanstack/react-query": "5.100.14",
     "@tanstack/react-table": "8.21.3",
@@ -77,10 +77,10 @@
     "sonner": "2.0.7",
     "tailwind-merge": "3.6.0",
     "vaul": "1.1.2",
-    "viem": "2.48.11",
+    "viem": "2.51.3",
     "wagmi": "2.19.5",
     "zod": "4.4.3",
-    "zustand": "5.0.13"
+    "zustand": "5.0.14"
   },
   "devDependencies": {
     "@antfu/eslint-config": "9.0.0",

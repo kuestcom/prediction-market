@@ -441,7 +441,12 @@ describe('adminProposersDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Add proposers' }))
 
     await waitFor(() => {
-      expect(mocks.walletRequest).toHaveBeenCalledWith(expect.objectContaining({
+      const sendCall = mocks.walletRequest.mock.calls.find(([request]) =>
+        request && typeof request === 'object' && (request as { method?: string }).method === 'eth_sendTransaction',
+      )
+
+      expect(sendCall).toBeDefined()
+      expect(sendCall?.[0]).toEqual(expect.objectContaining({
         method: 'eth_sendTransaction',
         params: [expect.objectContaining({
           from: CREATOR,
