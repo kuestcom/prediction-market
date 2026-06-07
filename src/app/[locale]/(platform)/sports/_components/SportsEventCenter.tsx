@@ -1663,6 +1663,7 @@ export default function SportsEventCenter({
                       event={activeCard.event}
                       className="bg-card"
                       oddsFormat={oddsFormat}
+                      optimisticallyClaimedConditionIds={claimedConditionIds}
                       initialMarket={pageAboutMarket}
                       initialOutcome={pageAboutOutcome}
                     />
