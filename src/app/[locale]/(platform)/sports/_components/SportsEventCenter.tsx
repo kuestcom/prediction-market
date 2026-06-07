@@ -62,6 +62,7 @@ import {
   resolveButtonOverlayStyle,
   resolveButtonStyle,
   resolveSelectedButton,
+  resolveSelectedMarket,
   SportsGameDetailsPanel,
   SportsGameGraph,
   SportsOrderPanelMarketInfo,
@@ -310,7 +311,47 @@ export default function SportsEventCenter({
     orderMarketConditionId,
     orderOutcomeIndex,
   })
-  const pageAboutMarket = activeTradeHeaderContext?.market ?? activeTradeContext?.market ?? null
+  const pageAboutMarket = useMemo(() => {
+    if (activeTradeHeaderContext?.market) {
+      return activeTradeHeaderContext.market
+    }
+
+    if (activeTradeContext?.market) {
+      return activeTradeContext.market
+    }
+
+    const candidateKeys = [
+      openSectionKey ? selectedButtonBySection[openSectionKey] : null,
+      openAuxiliaryConditionId ? selectedAuxiliaryButtonByConditionId[openAuxiliaryConditionId] : null,
+      marketSlugToButtonKey,
+      selectedButtonBySection.moneyline,
+      selectedButtonBySection.spread,
+      selectedButtonBySection.total,
+      selectedButtonBySection.btts,
+      moneylineButtonKey,
+      null,
+    ]
+
+    for (const buttonKey of candidateKeys) {
+      const market = resolveSelectedMarket(activeCard, buttonKey)
+      if (market) {
+        return market
+      }
+    }
+
+    return null
+  }, [
+    activeCard,
+    activeTradeContext?.market,
+    activeTradeHeaderContext?.market,
+    marketSlugToButtonKey,
+    moneylineButtonKey,
+    openAuxiliaryConditionId,
+    openSectionKey,
+    selectedAuxiliaryButtonByConditionId,
+    selectedButtonBySection,
+  ])
+  const pageAboutOutcome = pageAboutMarket?.outcomes[0] ?? null
 
   const activeTradeContextButtonKey = activeTradeContext?.button.key ?? null
 
@@ -1614,11 +1655,32 @@ export default function SportsEventCenter({
                   />
                 </div>
               )
-            : (
-                <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
-                  Select a market to trade.
-                </div>
-              )}
+            : pageAboutMarket
+              ? (
+                  <div className="grid gap-6">
+                    <EventOrderPanelForm
+                      isMobile={false}
+                      event={activeCard.event}
+                      className="bg-card"
+                      oddsFormat={oddsFormat}
+                      initialMarket={pageAboutMarket}
+                      initialOutcome={pageAboutOutcome}
+                    />
+                    <EventOrderPanelTermsDisclaimer />
+                    <SportsEventRelatedGames
+                      cards={relatedCards}
+                      sportSlug={sportSlug}
+                      sportLabel={sportLabel}
+                      locale={locale}
+                      vertical={vertical}
+                    />
+                  </div>
+                )
+              : (
+                  <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+                    Select a market to trade.
+                  </div>
+                )}
         </aside>
       </div>
 
