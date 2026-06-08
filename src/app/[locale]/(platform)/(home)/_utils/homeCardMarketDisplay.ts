@@ -33,13 +33,23 @@ export function resolveHomeCardBinaryOutcome(
   outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
 ): HomeCardBinaryOutcome {
   const matchingOutcome = market.outcomes.find(outcome => outcome.outcome_index === outcomeIndex)
+  if (matchingOutcome) {
+    return {
+      outcome_index: matchingOutcome.outcome_index,
+      outcome_text: matchingOutcome.outcome_text?.trim() || FALLBACK_BINARY_OUTCOME_LABELS[outcomeIndex],
+    }
+  }
+
   const positionalOutcome = market.outcomes[outcomeIndex]
-  const outcomeText = matchingOutcome?.outcome_text?.trim()
-    || positionalOutcome?.outcome_text?.trim()
-    || FALLBACK_BINARY_OUTCOME_LABELS[outcomeIndex]
+  if (positionalOutcome) {
+    return {
+      outcome_index: positionalOutcome.outcome_index,
+      outcome_text: positionalOutcome.outcome_text?.trim() || FALLBACK_BINARY_OUTCOME_LABELS[outcomeIndex],
+    }
+  }
 
   return {
     outcome_index: outcomeIndex,
-    outcome_text: outcomeText,
+    outcome_text: FALLBACK_BINARY_OUTCOME_LABELS[outcomeIndex],
   }
 }

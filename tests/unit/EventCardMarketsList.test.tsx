@@ -114,4 +114,46 @@ describe('eventCardMarketsList', () => {
       '/event/highest-temperature-sao-paulo/highest-temperature-in-sao-paulo-on-june-9?outcomeIndex=1',
     ]))
   })
+
+  it('preserves positional outcome indices when falling back to existing outcome rows', () => {
+    render(
+      <EventCardMarketsList
+        event={EVENT}
+        markets={[
+          {
+            condition_id: 'market-1',
+            slug: 'indexed-outcomes',
+            title: 'Indexed outcomes',
+            short_title: 'Indexed outcomes',
+            volume: 10,
+            volume_24h: 0,
+            outcomes: [
+              {
+                outcome_index: 4,
+                outcome_text: 'Hotter',
+              },
+              {
+                outcome_index: 7,
+                outcome_text: 'Cooler',
+              },
+            ],
+            condition: {
+              volume: 10,
+              resolved: false,
+            },
+          },
+        ] as any}
+        isResolvedEvent={false}
+        getDisplayChance={() => 64}
+        resolvedOutcomeIndexByConditionId={{}}
+      />,
+    )
+
+    expect(screen.getByText('Hotter')).toBeInTheDocument()
+    expect(screen.getByText('Cooler')).toBeInTheDocument()
+    expect(screen.getAllByRole('link').map(link => link.getAttribute('href'))).toEqual(expect.arrayContaining([
+      '/event/highest-temperature-sao-paulo/indexed-outcomes?outcomeIndex=4',
+      '/event/highest-temperature-sao-paulo/indexed-outcomes?outcomeIndex=7',
+    ]))
+  })
 })

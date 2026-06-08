@@ -88,7 +88,7 @@ export default function EventCardSingleMarketActions({
         <AppLink
           intentPrefetch
           href={resolveEventOutcomePath(event, {
-            outcomeIndex: OUTCOME_INDEX.YES,
+            outcomeIndex: yesOutcome.outcome_index,
           })}
         >
           <span className="truncate">{normalizeOutcomeLabel(yesOutcome.outcome_text) ?? yesOutcome.outcome_text}</span>
@@ -102,7 +102,7 @@ export default function EventCardSingleMarketActions({
         <AppLink
           intentPrefetch
           href={resolveEventOutcomePath(event, {
-            outcomeIndex: OUTCOME_INDEX.NO,
+            outcomeIndex: noOutcome.outcome_index,
           })}
         >
           <span className="truncate">{normalizeOutcomeLabel(noOutcome.outcome_text) ?? noOutcome.outcome_text}</span>
