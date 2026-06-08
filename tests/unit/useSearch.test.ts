@@ -118,7 +118,7 @@ describe('useSearch', () => {
     expect(result.current.showResults).toBe(true)
   })
 
-  it('requests events with the combined status filter so resolved results are included', async () => {
+  it('requests events with the combined status filter and dropdown limit so resolved results are included', async () => {
     const { result } = renderHook(() => useSearch())
 
     act(() => {
@@ -130,9 +130,14 @@ describe('useSearch', () => {
       await Promise.resolve()
     })
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/api/events?search=resolved&status=all'),
-    )
+    const eventsRequestUrl = fetchMock.mock.calls
+      .map(([input]) => typeof input === 'string' ? input : input.toString())
+      .find(url => url.includes('/api/events'))
+    const eventsRequest = new URL(eventsRequestUrl!, 'http://localhost')
+
+    expect(eventsRequest.searchParams.get('search')).toBe('resolved')
+    expect(eventsRequest.searchParams.get('status')).toBe('all')
+    expect(eventsRequest.searchParams.get('limit')).toBe('5')
     expect(result.current.results.events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

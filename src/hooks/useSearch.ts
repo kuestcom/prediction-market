@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { sortSearchResultEvents } from '@/lib/event-search-results'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 
+const SEARCH_EVENTS_LIMIT = 5
+
 interface UseSearch {
   query: string
   results: SearchResultItems
@@ -46,6 +48,7 @@ export function useSearch(): UseSearch {
       const params = new URLSearchParams({
         search: searchQuery,
         status: 'all',
+        limit: SEARCH_EVENTS_LIMIT.toString(),
       })
       const response = await fetch(`/api/events?${params.toString()}`)
       if (response.ok) {
