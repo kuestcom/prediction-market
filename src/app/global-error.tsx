@@ -3,9 +3,14 @@
 import * as Sentry from '@sentry/nextjs'
 import NextError from 'next/error'
 import { useEffect } from 'react'
+import { isNextNotFoundError } from '@/lib/next-http-fallback'
 
 function useSentryCapture(error: Error & { digest?: string }) {
   useEffect(function captureExceptionEffect() {
+    if (isNextNotFoundError(error)) {
+      return
+    }
+
     Sentry.captureException(error)
   }, [error])
 }
