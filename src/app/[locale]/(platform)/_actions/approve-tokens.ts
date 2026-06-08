@@ -408,15 +408,6 @@ export async function submitDepositWalletTransactionAction(
       autoRedeem = await markAutoRedeemApprovalCompleted(user.id)
     }
 
-    captureDepositWalletEvent('Deposit Wallet submit accepted', {
-      operation: 'wallet_submit',
-      userAddress: user.address,
-      depositWallet: user.deposit_wallet_address,
-      txHash,
-      durationMs: Date.now() - startedAt,
-      metadata: request.metadata,
-    })
-
     return { error: null, approvals, autoRedeem, txHash }
   }
   catch (error) {
