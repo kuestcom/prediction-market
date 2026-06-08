@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { useSearch } from '@/hooks/useSearch'
 
 describe('useSearch', () => {
-  const fetchMock = vi.fn((input: RequestInfo | URL) => {
+  const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input.toString()
 
     if (url.includes('/api/events')) {
@@ -166,5 +166,46 @@ describe('useSearch', () => {
       'newer-resolved-event',
       'older-resolved-event',
     ])
+  })
+
+  it('aborts in-flight event and profile searches when the query changes', async () => {
+    fetchMock.mockImplementation((_input: RequestInfo | URL, init?: RequestInit) => {
+      const signal = init?.signal
+
+      return new Promise((resolve, reject) => {
+        if (signal?.aborted) {
+          reject(new DOMException('Aborted', 'AbortError'))
+          return
+        }
+
+        signal?.addEventListener('abort', () => {
+          reject(new DOMException('Aborted', 'AbortError'))
+        }, { once: true })
+      }) as Promise<Response>
+    })
+
+    const { result } = renderHook(() => useSearch())
+
+    act(() => {
+      result.current.handleQueryChange('brazil')
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(300)
+      await Promise.resolve()
+    })
+
+    const initialSignals = fetchMock.mock.calls
+      .map(([, init]) => init?.signal)
+      .filter((signal): signal is AbortSignal => Boolean(signal))
+
+    expect(initialSignals).toHaveLength(2)
+    expect(initialSignals.every(signal => signal.aborted)).toBe(false)
+
+    act(() => {
+      result.current.handleQueryChange('trump')
+    })
+
+    expect(initialSignals.every(signal => signal.aborted)).toBe(true)
   })
 })
