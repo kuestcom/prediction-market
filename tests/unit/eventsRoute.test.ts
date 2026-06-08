@@ -42,6 +42,20 @@ describe('events route', () => {
     expect(mocks.listHomeEventsPage).not.toHaveBeenCalled()
   })
 
+  it('skips current user lookup when bookmark state is explicitly excluded', async () => {
+    mocks.listEvents.mockResolvedValueOnce({ data: [], error: null })
+
+    const response = await GET(new Request('https://example.com/api/events?search=brazil&status=all&includeBookmarkState=false&locale=en'))
+
+    expect(response.status).toBe(200)
+    expect(mocks.getCurrentUser).not.toHaveBeenCalled()
+    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
+      search: 'brazil',
+      status: 'all',
+      userId: undefined,
+    }))
+  })
+
   it('forwards mainTag to the events repository', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
     mocks.listEvents.mockResolvedValueOnce({ data: [], error: null })

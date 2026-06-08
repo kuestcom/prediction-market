@@ -53,6 +53,7 @@ export function useSearch(): UseSearch {
         search: searchQuery,
         status: 'all',
         limit: SEARCH_EVENTS_LIMIT.toString(),
+        includeBookmarkState: 'false',
       })
       const response = await fetch(`/api/events?${params.toString()}`, { signal })
       if (response.ok) {

@@ -138,6 +138,7 @@ describe('useSearch', () => {
     expect(eventsRequest.searchParams.get('search')).toBe('resolved')
     expect(eventsRequest.searchParams.get('status')).toBe('all')
     expect(eventsRequest.searchParams.get('limit')).toBe('5')
+    expect(eventsRequest.searchParams.get('includeBookmarkState')).toBe('false')
     expect(result.current.results.events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

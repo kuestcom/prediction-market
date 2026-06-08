@@ -13,6 +13,7 @@ export async function GET(request: Request) {
   const mainTag = searchParams.get('mainTag') || ''
   const search = searchParams.get('search') || ''
   const bookmarked = searchParams.get('bookmarked') === 'true'
+  const includeBookmarkState = searchParams.get('includeBookmarkState') !== 'false'
   const frequency = searchParams.get('frequency') || 'all'
   const hideSports = searchParams.get('hideSports') === 'true'
   const hideCrypto = searchParams.get('hideCrypto') === 'true'
@@ -52,7 +53,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Invalid sports section filter.' }, { status: 400 })
   }
 
-  const user = await UserRepository.getCurrentUser({ minimal: true })
+  const shouldResolveCurrentUser = bookmarked || includeBookmarkState
+  const user = shouldResolveCurrentUser
+    ? await UserRepository.getCurrentUser({ minimal: true })
+    : null
   const userId = user?.id
 
   try {
