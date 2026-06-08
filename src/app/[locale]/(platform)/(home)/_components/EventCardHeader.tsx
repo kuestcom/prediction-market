@@ -1,5 +1,9 @@
 import type { Event, Market } from '@/types'
 import { useExtracted } from 'next-intl'
+import {
+  formatHomeCardChanceLabel,
+  resolveHomeCardBinaryOutcome,
+} from '@/app/[locale]/(platform)/(home)/_utils/homeCardMarketDisplay'
 import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
@@ -17,7 +21,7 @@ interface EventCardHeaderProps {
   title: string
   isSingleMarket: boolean
   primaryMarket?: Market
-  roundedPrimaryDisplayChance: number
+  roundedPrimaryDisplayChance: number | null
 }
 
 export default function EventCardHeader({
@@ -30,20 +34,22 @@ export default function EventCardHeader({
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const isResolvedEvent = isEventResolvedLike(event)
-  const yesOutcome = primaryMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES) ?? primaryMarket?.outcomes[0]
-  const noOutcome = primaryMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO) ?? primaryMarket?.outcomes[1]
+  const yesOutcome = primaryMarket ? resolveHomeCardBinaryOutcome(primaryMarket, OUTCOME_INDEX.YES) : null
+  const noOutcome = primaryMarket ? resolveHomeCardBinaryOutcome(primaryMarket, OUTCOME_INDEX.NO) : null
   const outcomeLabels = new Set([
     normalizeOutcomeText(yesOutcome?.outcome_text),
     normalizeOutcomeText(noOutcome?.outcome_text),
   ])
   const hasStandardYesNoOutcomes = outcomeLabels.has('yes') && outcomeLabels.has('no')
+  const hasPrimaryDisplayChance = roundedPrimaryDisplayChance != null
   const isTiedChance = roundedPrimaryDisplayChance === 50
-  const leadingOutcomeLabel = roundedPrimaryDisplayChance > 50
+  const leadingOutcomeLabel = hasPrimaryDisplayChance && roundedPrimaryDisplayChance > 50
     ? yesOutcome?.outcome_text
     : noOutcome?.outcome_text
-  const chanceFooterLabel = !hasStandardYesNoOutcomes && !isTiedChance
+  const chanceFooterLabel = hasPrimaryDisplayChance && !hasStandardYesNoOutcomes && !isTiedChance
     ? (normalizeOutcomeLabel(leadingOutcomeLabel) || t('chance'))
     : t('chance')
+  const primaryChanceLabel = formatHomeCardChanceLabel(roundedPrimaryDisplayChance)
   const eventHref = resolveEventPagePath(event)
   const isSportsEvent = Boolean(event.sports_event_id || event.sports_sport_slug || event.sports_event_slug)
 
@@ -99,23 +105,25 @@ export default function EventCardHeader({
                 strokeWidth="5"
                 strokeLinecap="round"
                 className={
-                  cn(`transition-all duration-300 ${
-                    roundedPrimaryDisplayChance < 40
-                      ? 'text-no'
-                      : roundedPrimaryDisplayChance === 50
-                        ? 'text-slate-400'
-                        : 'text-yes'
-                  }`)
+                  cn(
+                    'transition-all duration-300',
+                    hasPrimaryDisplayChance
+                      ? roundedPrimaryDisplayChance < 40
+                        ? 'text-no'
+                        : roundedPrimaryDisplayChance === 50
+                          ? 'text-slate-400'
+                          : 'text-yes'
+                      : 'text-slate-400',
+                  )
                 }
-                strokeDasharray={`${(roundedPrimaryDisplayChance / 100) * 94.25} 94.25`}
+                strokeDasharray={`${((roundedPrimaryDisplayChance ?? 0) / 100) * 94.25} 94.25`}
                 strokeDashoffset="0"
               />
             </svg>
 
             <div className="absolute inset-0 flex items-center justify-center pt-4">
               <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                {roundedPrimaryDisplayChance}
-                %
+                {primaryChanceLabel}
               </span>
             </div>
           </div>

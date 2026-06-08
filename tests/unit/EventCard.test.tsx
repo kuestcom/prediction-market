@@ -5,6 +5,7 @@ import EventCard from '@/app/[locale]/(platform)/(home)/_components/EventCard'
 const mocks = vi.hoisted(() => ({
   buildHomeSportsMoneylineModel: vi.fn(),
   dynamicSportsCard: vi.fn(),
+  singleMarketActions: vi.fn(),
   useXTrackerTweetCount: vi.fn(),
 }))
 
@@ -29,7 +30,10 @@ vi.mock('@/app/[locale]/(platform)/(home)/_components/EventCardMarketsList', () 
 }))
 
 vi.mock('@/app/[locale]/(platform)/(home)/_components/EventCardSingleMarketActions', () => ({
-  default: () => <div data-testid="event-card-single-market-actions" />,
+  default: (props: any) => {
+    mocks.singleMarketActions(props)
+    return <div data-testid="event-card-single-market-actions" />
+  },
 }))
 
 vi.mock('@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome', () => ({
@@ -88,6 +92,7 @@ describe('eventCard', () => {
   beforeEach(() => {
     mocks.buildHomeSportsMoneylineModel.mockReset()
     mocks.dynamicSportsCard.mockReset()
+    mocks.singleMarketActions.mockReset()
     mocks.useXTrackerTweetCount.mockReset()
     mocks.useXTrackerTweetCount.mockReturnValue({ data: null })
   })
@@ -102,6 +107,43 @@ describe('eventCard', () => {
     expect(screen.getByTestId('event-card-single-market-actions')).toBeInTheDocument()
     expect(screen.queryByTestId('sports-moneyline-card')).not.toBeInTheDocument()
     expect(mocks.dynamicSportsCard).not.toHaveBeenCalled()
+  })
+
+  it('uses standard Yes and No action labels when a binary market has no outcome rows', () => {
+    mocks.buildHomeSportsMoneylineModel.mockReturnValue(null)
+
+    render(
+      <EventCard
+        event={{
+          ...EVENT,
+          volume: 0,
+          markets: [
+            {
+              ...EVENT.markets[0],
+              volume: 0,
+              volume_24h: 0,
+              outcomes: [],
+              condition: {
+                resolved: false,
+                volume: 0,
+              },
+            },
+          ],
+        } as any}
+      />,
+    )
+
+    expect(screen.getByTestId('event-card-single-market-actions')).toBeInTheDocument()
+    expect(mocks.singleMarketActions).toHaveBeenCalledWith(expect.objectContaining({
+      yesOutcome: expect.objectContaining({
+        outcome_index: 0,
+        outcome_text: 'Yes',
+      }),
+      noOutcome: expect.objectContaining({
+        outcome_index: 1,
+        outcome_text: 'No',
+      }),
+    }))
   })
 
   it('renders the sports moneyline branch through the dynamic component boundary', () => {

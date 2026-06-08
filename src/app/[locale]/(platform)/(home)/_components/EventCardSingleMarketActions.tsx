@@ -1,4 +1,5 @@
-import type { Market, Outcome } from '@/types'
+import type { HomeCardBinaryOutcome } from '@/app/[locale]/(platform)/(home)/_utils/homeCardMarketDisplay'
+import type { Market } from '@/types'
 import { CheckIcon, XIcon } from 'lucide-react'
 import { resolveBinaryOutcomeByIndex } from '@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome'
 import AppLink from '@/components/AppLink'
@@ -15,8 +16,8 @@ interface EventCardSingleMarketActionsProps {
     sports_league_slug?: string | null
     sports_event_slug?: string | null
   }
-  yesOutcome: Outcome
-  noOutcome: Outcome
+  yesOutcome: HomeCardBinaryOutcome
+  noOutcome: HomeCardBinaryOutcome
   primaryMarket: Market | undefined
   isResolvedEvent: boolean
   resolvedOutcomeIndexByConditionId: Partial<Record<string, typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO>>

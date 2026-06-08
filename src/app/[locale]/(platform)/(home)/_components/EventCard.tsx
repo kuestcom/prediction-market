@@ -12,6 +12,10 @@ import {
   resolveEventCardResolvedOutcomeIndex,
   shouldUseResolvedXTracker,
 } from '@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome'
+import {
+  hasHomeCardMarketChance,
+  resolveHomeCardBinaryOutcome,
+} from '@/app/[locale]/(platform)/(home)/_utils/homeCardMarketDisplay'
 import { useXTrackerTweetCount } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useXTrackerTweetCount'
 import { Card, CardContent } from '@/components/ui/card'
 import { OUTCOME_INDEX } from '@/lib/constants'
@@ -30,16 +34,6 @@ const EventCardSportsMoneyline = dynamic<EventCardSportsMoneylineProps>(
 
 function isMarketResolved(market: Market) {
   return Boolean(market.is_resolved || market.condition?.resolved)
-}
-
-function resolveBinaryOutcome(market: Market | undefined, outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO) {
-  if (!market) {
-    return null
-  }
-
-  return market.outcomes.find(outcome => outcome.outcome_index === outcomeIndex)
-    ?? market.outcomes[outcomeIndex]
-    ?? null
 }
 
 function useCanUseXTrackerResolvedOutcomes(event: EventCardProps['event']) {
@@ -109,8 +103,8 @@ export default function EventCard({
   const cardTitle = shouldUsePrimaryMarketTitle
     ? (primaryMarket?.question || primaryMarket?.short_title || primaryMarket?.title || event.title)
     : event.title
-  const yesOutcome = resolveBinaryOutcome(primaryMarket, OUTCOME_INDEX.YES)
-  const noOutcome = resolveBinaryOutcome(primaryMarket, OUTCOME_INDEX.NO)
+  const yesOutcome = primaryMarket ? resolveHomeCardBinaryOutcome(primaryMarket, OUTCOME_INDEX.YES) : null
+  const noOutcome = primaryMarket ? resolveHomeCardBinaryOutcome(primaryMarket, OUTCOME_INDEX.NO) : null
   const shouldShowNewBadge = shouldShowEventNewBadge(event, currentTimestamp)
   const shouldShowLiveBadge = !isResolvedEvent && Boolean(event.has_live_chart)
   const chanceByMarket = buildChanceByMarket(event.markets, priceOverridesByMarket)
@@ -128,8 +122,12 @@ export default function EventCard({
     return chanceByMarket[marketId] ?? 0
   }
 
-  const primaryDisplayChance = primaryMarket ? getDisplayChance(primaryMarket.condition_id) : 0
-  const roundedPrimaryDisplayChance = Math.round(primaryDisplayChance)
+  const primaryDisplayChance = primaryMarket && hasHomeCardMarketChance(primaryMarket)
+    ? getDisplayChance(primaryMarket.condition_id)
+    : null
+  const roundedPrimaryDisplayChance = primaryDisplayChance == null
+    ? null
+    : Math.round(primaryDisplayChance)
   const endedLabel = !isResolvedEvent || !isSingleMarket || !event.resolved_at
     ? null
     : (() => {
