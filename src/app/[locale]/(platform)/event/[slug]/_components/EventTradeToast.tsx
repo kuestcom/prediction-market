@@ -16,7 +16,7 @@ export default function EventTradeToast({ title, marketImage, marketTitle, child
           src={marketImage}
           alt={marketTitle || title}
           sizes="40px"
-          containerClassName="size-10 rounded-sm"
+          containerClassName="size-10 rounded-sm shrink-0"
         />
       )}
       <div>
