@@ -408,6 +408,7 @@ function useAdminCreateEventForm({
   const [slugValidationState, setSlugValidationState] = useState<SlugValidationState>('idle')
   const [slugCheckError, setSlugCheckError] = useState('')
   const [resolutionType, setResolutionType] = useState<ResolutionType>('dro_moov2')
+  const [resolutionTypeTouched, setResolutionTypeTouched] = useState(false)
   const [requiredRewardUsdc, setRequiredRewardUsdc] = useState(FALLBACK_REQUIRED_USDC)
   const [targetChainId, setTargetChainId] = useState<number>(DEFAULT_CREATE_EVENT_CHAIN_ID)
   const [eoaUsdcBalance, setEoaUsdcBalance] = useState(0)
@@ -449,6 +450,7 @@ function useAdminCreateEventForm({
   const [preparedSignaturePlan, setPreparedSignaturePlan] = useState<PrepareResponse | null>(null)
   const [signatureTxs, setSignatureTxs] = useState<SignatureExecutionTx[]>([])
   const handleResolutionTypeChange = useCallback((nextResolutionType: ResolutionType) => {
+    setResolutionTypeTouched(true)
     setResolutionType(nextResolutionType)
     setFundingCheckState('idle')
     setPreparedSignaturePlan(null)
@@ -2994,14 +2996,19 @@ function useAdminCreateEventForm({
       }
 
       const payload: MarketConfigResponse = await response.json()
-      if (payload.defaultResolutionType === 'dro_moov2' || payload.defaultResolutionType === 'uma_moov2') {
-        setResolutionType(current => current || payload.defaultResolutionType as ResolutionType)
+      const serverDefaultResolutionType: ResolutionType
+        = payload.defaultResolutionType === 'dro_moov2' || payload.defaultResolutionType === 'uma_moov2'
+          ? payload.defaultResolutionType
+          : 'dro_moov2'
+      const effectiveResolutionType = resolutionTypeTouched ? resolutionType : serverDefaultResolutionType
+      if (!resolutionTypeTouched && resolutionType !== serverDefaultResolutionType) {
+        setResolutionType(serverDefaultResolutionType)
       }
       const directFee = form.marketMode === 'multi_unique'
         ? payload.directNegRiskQuestionFeeUsdc
         : payload.directNormalMarketFeeUsdc
       const required = Number(
-        resolutionType === 'dro_moov2'
+        effectiveResolutionType === 'dro_moov2'
           ? directFee ?? payload.requiredCreatorFundingUsdc ?? FALLBACK_REQUIRED_USDC
           : payload.requiredCreatorFundingUsdc ?? FALLBACK_REQUIRED_USDC,
       )
@@ -3052,7 +3059,7 @@ function useAdminCreateEventForm({
       setFundingCheckError('Could not validate USDC balance right now.')
       return false
     }
-  }, [eoaAddress, form.marketMode, marketCount, resolutionType])
+  }, [eoaAddress, form.marketMode, marketCount, resolutionType, resolutionTypeTouched])
 
   const runNativeGasCheck = useCallback(async () => {
     setNativeGasCheckState('checking')
