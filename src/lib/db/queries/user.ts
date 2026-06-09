@@ -13,6 +13,15 @@ import { db } from '@/lib/drizzle'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { normalizeAddress } from '@/lib/wallet'
 
+function sanitizeUserSearchTerm(search: string) {
+  return search
+    .trim()
+    .replace(/[,()]/g, ' ')
+    .replace(/['"]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 export const UserRepository = {
   async getProfileByUsernameOrDepositWalletAddress(username: string) {
     return await runQuery(async () => {
@@ -257,12 +266,7 @@ export const UserRepository = {
 
       let whereCondition
       if (search && search.trim()) {
-        const searchTerm = search.trim()
-        const sanitizedSearchTerm = searchTerm
-          .replace(/[,()]/g, ' ')
-          .replace(/['"]/g, '')
-          .replace(/\s+/g, ' ')
-          .trim()
+        const sanitizedSearchTerm = sanitizeUserSearchTerm(search)
 
         if (sanitizedSearchTerm) {
           const usernameCondition = ilike(users.username, `%${sanitizedSearchTerm}%`)
@@ -336,6 +340,44 @@ export const UserRepository = {
     }
 
     return { data: data.users, error: null, count: data.count }
+  },
+
+  async searchPublicProfiles(params: {
+    limit?: number
+    search: string
+  }) {
+    'use cache'
+
+    const { data, error } = await runQuery(async () => {
+      const sanitizedSearchTerm = sanitizeUserSearchTerm(params.search)
+
+      if (!sanitizedSearchTerm) {
+        return { data: [], error: null }
+      }
+
+      const limit = Math.min(Math.max(params.limit ?? 10, 1), 100)
+      const rows = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          address: users.address,
+          deposit_wallet_address: users.deposit_wallet_address,
+          created_at: users.created_at,
+          image: users.image,
+        })
+        .from(users)
+        .where(ilike(users.username, `%${sanitizedSearchTerm}%`))
+        .orderBy(asc(users.username), asc(users.address))
+        .limit(limit)
+
+      return { data: rows, error: null }
+    })
+
+    if (!data || error) {
+      return { data: null, error: error || DEFAULT_ERROR_MESSAGE }
+    }
+
+    return { data, error: null }
   },
 
   async getUsersByIds(ids: string[]) {

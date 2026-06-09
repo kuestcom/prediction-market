@@ -14,12 +14,9 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { data, error } = await UserRepository.listUsers({
+    const { data, error } = await UserRepository.searchPublicProfiles({
       search: query,
       limit: 10,
-      sortBy: 'username',
-      sortOrder: 'asc',
-      searchByUsernameOnly: true,
     })
 
     if (error) {
