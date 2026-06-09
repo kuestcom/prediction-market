@@ -17,6 +17,10 @@ import {
 
 type SignTypedDataFn = (args: SignTypedDataParameters) => Promise<string>
 
+const DEPOSIT_WALLET_NONCE_MISMATCH_ATTEMPTS = 3
+const DEPOSIT_WALLET_NONCE_MISMATCH_BACKOFF_MS = 350
+const DEPOSIT_WALLET_NONCE_MISMATCH_JITTER_MS = 200
+
 export interface SignAndSubmitDepositWalletCallsResult {
   error: string | null
   code?: string
@@ -38,6 +42,16 @@ export interface SignAndSubmitDepositWalletCallItemsResult<T> extends SignAndSub
   failedItems: T[]
   partialFailure: boolean
   failure?: SignAndSubmitDepositWalletCallsResult
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function depositWalletNonceMismatchBackoffMs(attempt: number) {
+  const backoff = DEPOSIT_WALLET_NONCE_MISMATCH_BACKOFF_MS * 2 ** Math.max(0, attempt - 1)
+  const jitter = Math.floor(Math.random() * DEPOSIT_WALLET_NONCE_MISMATCH_JITTER_MS)
+  return backoff + jitter
 }
 
 export class DepositWalletCallItemsSplitFallbackError<T> extends Error {
@@ -72,7 +86,7 @@ export async function signAndSubmitDepositWalletCalls({
     return { error: DEFAULT_ERROR_MESSAGE, code: 'empty_wallet_calls' }
   }
 
-  async function attempt(): Promise<SignAndSubmitDepositWalletCallsResult> {
+  async function submitWithFreshSignature(): Promise<SignAndSubmitDepositWalletCallsResult> {
     const nonceResult = await getDepositWalletNonceAction()
     if (nonceResult.error || !nonceResult.nonce) {
       return {
@@ -106,12 +120,20 @@ export async function signAndSubmitDepositWalletCalls({
     return await submitDepositWalletTransactionAction(payload)
   }
 
-  const first = await attempt()
-  if (first.code !== 'wallet_nonce_mismatch') {
-    return first
+  let lastNonceMismatch: SignAndSubmitDepositWalletCallsResult | null = null
+  for (let attempt = 1; attempt <= DEPOSIT_WALLET_NONCE_MISMATCH_ATTEMPTS; attempt += 1) {
+    const result = await submitWithFreshSignature()
+    if (result.code !== 'wallet_nonce_mismatch') {
+      return result
+    }
+
+    lastNonceMismatch = result
+    if (attempt < DEPOSIT_WALLET_NONCE_MISMATCH_ATTEMPTS) {
+      await sleep(depositWalletNonceMismatchBackoffMs(attempt))
+    }
   }
 
-  return await attempt()
+  return lastNonceMismatch ?? { error: DEFAULT_ERROR_MESSAGE }
 }
 
 function shouldSplitDepositWalletCallFailure(result: SignAndSubmitDepositWalletCallsResult) {
