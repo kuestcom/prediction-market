@@ -22,6 +22,11 @@ function sanitizeUserSearchTerm(search: string) {
     .trim()
 }
 
+function buildUsernameSearchCondition(searchTerm: string) {
+  const loweredUsername = sql<string>`LOWER(${users.username})`
+  return ilike(loweredUsername, `%${searchTerm.toLowerCase()}%`)
+}
+
 export const UserRepository = {
   async getProfileByUsernameOrDepositWalletAddress(username: string) {
     return await runQuery(async () => {
@@ -269,7 +274,7 @@ export const UserRepository = {
         const sanitizedSearchTerm = sanitizeUserSearchTerm(search)
 
         if (sanitizedSearchTerm) {
-          const usernameCondition = ilike(users.username, `%${sanitizedSearchTerm}%`)
+          const usernameCondition = buildUsernameSearchCondition(sanitizedSearchTerm)
           whereCondition = searchByUsernameOnly
             ? usernameCondition
             : or(
@@ -366,7 +371,7 @@ export const UserRepository = {
           image: users.image,
         })
         .from(users)
-        .where(ilike(users.username, `%${sanitizedSearchTerm}%`))
+        .where(buildUsernameSearchCondition(sanitizedSearchTerm))
         .orderBy(asc(users.username), asc(users.address))
         .limit(limit)
 
