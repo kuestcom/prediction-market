@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import { isDirectResolutionMarket } from '@/lib/direct-resolution'
 import { buildUmaProposeUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 
@@ -215,8 +216,8 @@ function useResolutionTimeline(market: Event['markets'][number], siteName: strin
     [market, nowMs],
   )
   const disputeUrl = useMemo(
-    () => buildUmaProposeUrl(market.condition, siteName),
-    [market.condition, siteName],
+    () => (isDirectResolutionMarket(market) ? null : buildUmaProposeUrl(market.condition, siteName)),
+    [market, siteName],
   )
 
   return { timeline, disputeUrl }

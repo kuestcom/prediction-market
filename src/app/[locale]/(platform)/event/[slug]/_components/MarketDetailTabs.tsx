@@ -10,6 +10,7 @@ import { RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo } from 'react'
 import ConnectionStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/ConnectionStatusIndicator'
+import DirectResolutionButton from '@/app/[locale]/(platform)/event/[slug]/_components/DirectResolutionButton'
 import { useMarketChannelStatus } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventMarketHistory from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketHistory'
 import EventMarketOpenOrders from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketOpenOrders'
@@ -26,6 +27,7 @@ import { Button } from '@/components/ui/button'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData } from '@/lib/data-api/user'
+import { isDirectResolutionMarket } from '@/lib/direct-resolution'
 import { buildUmaProposeUrl, buildUmaSettledUrl } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
@@ -179,12 +181,12 @@ export default function MarketDetailTabs({
   }, [controlledTab, visibleTabs])
 
   const proposeUrl = useMemo(
-    () => buildUmaProposeUrl(market.condition, siteName),
-    [market.condition, siteName],
+    () => (isDirectResolutionMarket(market) ? null : buildUmaProposeUrl(market.condition, siteName)),
+    [market, siteName],
   )
   const settledUrl = useMemo(
-    () => buildUmaSettledUrl(market.condition, siteName) ?? buildUmaProposeUrl(market.condition, siteName),
-    [market.condition, siteName],
+    () => (isDirectResolutionMarket(market) ? null : buildUmaSettledUrl(market.condition, siteName) ?? buildUmaProposeUrl(market.condition, siteName)),
+    [market, siteName],
   )
 
   useEffect(function syncSelectedMarketDetailTab() {
@@ -301,31 +303,39 @@ export default function MarketDetailTabs({
               className="min-w-0 flex-1"
             />
             {!isMarketResolved(market) && (
-              proposeUrl
+              isDirectResolutionMarket(market)
                 ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0"
-                      asChild
+                    <DirectResolutionButton
+                      market={market}
+                      event={event}
                       onClick={event => event.stopPropagation()}
-                    >
-                      <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
+                    />
+                  )
+                : proposeUrl
+                  ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        asChild
+                        onClick={event => event.stopPropagation()}
+                      >
+                        <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
+                          {t('Propose resolution')}
+                        </a>
+                      </Button>
+                    )
+                  : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        disabled
+                        onClick={event => event.stopPropagation()}
+                      >
                         {t('Propose resolution')}
-                      </a>
-                    </Button>
-                  )
-                : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0"
-                      disabled
-                      onClick={event => event.stopPropagation()}
-                    >
-                      {t('Propose resolution')}
-                    </Button>
-                  )
+                      </Button>
+                    )
             )}
           </div>
         )}

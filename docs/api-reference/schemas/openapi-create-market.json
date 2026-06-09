@@ -64,11 +64,11 @@
                     137
                   ],
                   "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
-                  "umaAdapter": "0x08Ce1f626Ef319fAB728F8b4cE3D8875C2C9Ce66",
+                  "umaAdapter": "0x53C979C9818fC24d1fc5FFc3618bd289a8b10111",
                   "ctfExchange": "0x4bB1871fdaE80331ce5fF87547b8ff886D1695a5",
-                  "negRiskOperator": "0x6538FC1837Ffb577f9f02355E2dBd73410E66D9",
+                  "negRiskOperator": "0xe13B5F29dCF6Ee81C659D839de30047F65541036",
                   "negRiskCtfExchange": "0xef02d1Ea5B42432C4E99C2785d1a4020d2F2bB31",
-                  "negRiskUmaAdapter": "0xD6fa9B2bE6E345Ee357658Fd980d48f1bEF2D1B7",
+                  "negRiskUmaAdapter": "0x54e82621460F19a5eFe49f0562A8F16D107F767a",
                   "rewardUsdc": "5",
                   "proposalBondUsdc": "500",
                   "livenessSeconds": 7200,
@@ -83,11 +83,11 @@
                     {
                       "chainId": 80002,
                       "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
-                      "umaAdapter": "0x08Ce1f626Ef319fAB728F8b4cE3D8875C2C9Ce66",
+                      "umaAdapter": "0x53C979C9818fC24d1fc5FFc3618bd289a8b10111",
                       "ctfExchange": "0x4bB1871fdaE80331ce5fF87547b8ff886D1695a5",
-                      "negRiskOperator": "0x6538FC1837Ffb577f9f02355E2dBd73410E66D9",
+                      "negRiskOperator": "0xe13B5F29dCF6Ee81C659D839de30047F65541036",
                       "negRiskCtfExchange": "0xef02d1Ea5B42432C4E99C2785d1a4020d2F2bB31",
-                      "negRiskUmaAdapter": "0xD6fa9B2bE6E345Ee357658Fd980d48f1bEF2D1B7"
+                      "negRiskUmaAdapter": "0x54e82621460F19a5eFe49f0562A8F16D107F767a"
                     }
                   ]
                 }
@@ -253,12 +253,12 @@
                       "id": "approve-usdc",
                       "to": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
                       "value": "0",
-                      "data": "0x095ea7b300000000000000000000000008ce1f626ef319fab728f8b4ce3d8875c2c9ce6600000000000000000000000000000000000000000000000000000000004c4b40",
-                      "description": "Approve 5 USDC for UMA rewards"
+                      "data": "0x095ea7b30000000000000000000000000abed29135dff44bc6a6443dfbe3b6a2081c9918c00000000000000000000000000000000000000000000000000000000004c4b40",
+                      "description": "Approve 5 USDC for direct resolution fee"
                     },
                     {
                       "id": "initialize-market-1",
-                      "to": "0x08Ce1f626Ef319fAB728F8b4cE3D8875C2C9Ce66",
+                      "to": "0x53C979C9818fC24d1fc5FFc3618bd289a8b10111",
                       "value": "0",
                       "data": "0x1f7a6ad6...",
                       "description": "Initialize market \"Will BTC close above $110k on March 31, 2028?\"",

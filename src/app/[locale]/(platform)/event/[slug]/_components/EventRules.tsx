@@ -10,14 +10,20 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import {
+  NEGRISK_UMA_CTF_ADAPTER_DRO_ADDRESS,
+  NEGRISK_UMA_CTF_ADAPTER_V4_ADDRESS,
   UMA_CTF_ADAPTER_ADDRESS,
+  UMA_CTF_ADAPTER_DRO_ADDRESS,
   UMA_CTF_ADAPTER_POLYMARKET_ADDRESS,
+  UMA_CTF_ADAPTER_V4_ADDRESS,
   UMA_NEG_RISK_ADAPTER_ADDRESS,
   UMA_NEG_RISK_ADAPTER_POLYMARKET_ADDRESS,
 } from '@/lib/contracts'
+import { isDirectResolutionMarket } from '@/lib/direct-resolution'
 import { resolveUmaProposeTarget } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 import { normalizeAddress } from '@/lib/wallet'
+import DirectResolutionButton from './DirectResolutionButton'
 
 interface EventRulesProps {
   event: Event
@@ -40,6 +46,10 @@ const UMA_RESOLVER_ADDRESS_SET = new Set(
     UMA_NEG_RISK_ADAPTER_POLYMARKET_ADDRESS,
     UMA_CTF_ADAPTER_ADDRESS,
     UMA_NEG_RISK_ADAPTER_ADDRESS,
+    UMA_CTF_ADAPTER_V4_ADDRESS,
+    NEGRISK_UMA_CTF_ADAPTER_V4_ADDRESS,
+    UMA_CTF_ADAPTER_DRO_ADDRESS,
+    NEGRISK_UMA_CTF_ADAPTER_DRO_ADDRESS,
   ].map(address => address.toLowerCase()),
 )
 const RULES_URL_REGEX = /((?:https?:\/\/|www\.)[^\s<>"']+)/g
@@ -271,10 +281,13 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
   }
 
   const primaryMarket = event.markets[0]
-  const proposeTarget = resolveUmaProposeTarget(primaryMarket?.condition, siteIdentity.name)
+  const isDirectResolver = primaryMarket ? isDirectResolutionMarket(primaryMarket) : false
+  const proposeTarget = isDirectResolver ? null : resolveUmaProposeTarget(primaryMarket?.condition, siteIdentity.name)
   const resolverAddress = proposeTarget?.isMirror
     ? primaryMarket?.resolver
-    : primaryMarket?.condition?.oracle
+    : isDirectResolver
+      ? primaryMarket?.resolver ?? primaryMarket?.condition?.oracle
+      : primaryMarket?.condition?.oracle
   const resolverGradient = getResolverGradient(resolverAddress)
   const proposeUrl = proposeTarget?.url ?? null
   const resolutionSourceUrl = (() => {
@@ -345,19 +358,21 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
       <div className={cn(hasResolutionSourceUrl ? 'flex items-center' : 'flex items-center justify-between')}>
         {resolverDetails}
         {!hasResolutionSourceUrl && (
-          proposeUrl
-            ? (
-                <Button variant="outline" size="sm" asChild>
-                  <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
+          isDirectResolver && primaryMarket
+            ? <DirectResolutionButton market={primaryMarket} event={event} />
+            : proposeUrl
+              ? (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
+                      {t('Propose resolution')}
+                    </a>
+                  </Button>
+                )
+              : (
+                  <Button variant="outline" size="sm" disabled>
                     {t('Propose resolution')}
-                  </a>
-                </Button>
-              )
-            : (
-                <Button variant="outline" size="sm" disabled>
-                  {t('Propose resolution')}
-                </Button>
-              )
+                  </Button>
+                )
         )}
       </div>
     </div>
