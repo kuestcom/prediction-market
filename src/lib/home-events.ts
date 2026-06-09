@@ -10,6 +10,7 @@ interface HomeEventVisibilityOptions {
 }
 
 export const HOME_EVENTS_PAGE_SIZE = 32
+const UTC_DAY_MS = 24 * 60 * 60 * 1000
 
 interface HomeVisibleEventTagCandidate {
   slug?: string | null
@@ -84,6 +85,12 @@ function isOverdueUnresolved<T extends HomeVisibleEventCandidate>(event: T, nowM
   return !isEventResolvedLike(event) && Number.isFinite(endTimestamp) && endTimestamp < nowMs
 }
 
+function isSameUtcDay(leftTimestamp: number, rightTimestamp: number) {
+  return Number.isFinite(leftTimestamp)
+    && Number.isFinite(rightTimestamp)
+    && Math.floor(leftTimestamp / UTC_DAY_MS) === Math.floor(rightTimestamp / UTC_DAY_MS)
+}
+
 function isPreferredSeriesEvent<T extends HomeVisibleEventCandidate>(candidate: T, current: T, nowMs: number) {
   const candidateEnd = toTimestamp(candidate.end_date)
   const currentEnd = toTimestamp(current.end_date)
@@ -115,6 +122,14 @@ function isPreferredSeriesEvent<T extends HomeVisibleEventCandidate>(candidate: 
   }
 
   if (candidateHasFutureEnd !== currentHasFutureEnd) {
+    if (candidateHasFutureEnd && currentOverdueUnresolved && isSameUtcDay(currentEnd, nowMs)) {
+      return false
+    }
+
+    if (currentHasFutureEnd && candidateOverdueUnresolved && isSameUtcDay(candidateEnd, nowMs)) {
+      return true
+    }
+
     return candidateHasFutureEnd
   }
 

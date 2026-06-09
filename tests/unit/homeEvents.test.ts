@@ -166,4 +166,35 @@ describe('home-events', () => {
       },
     )).toEqual([currentEvent])
   })
+
+  it('keeps the same-day overdue unresolved series event over the next occurrence', () => {
+    const todayEvent = {
+      id: 'today-event',
+      slug: 'highest-temperature-in-sao-paulo-on-june-9-2026',
+      series_slug: 'sao-paulo-daily-weather',
+      status: 'active' as const,
+      end_date: '2026-06-09T12:00:00.000Z',
+      created_at: '2026-06-08T16:20:05.000Z',
+      updated_at: '2026-06-09T12:15:01.833Z',
+      markets: [{ is_resolved: false, condition: { resolved: false } }],
+    }
+    const tomorrowEvent = {
+      id: 'tomorrow-event',
+      slug: 'highest-temperature-in-sao-paulo-on-june-10-2026',
+      series_slug: 'sao-paulo-daily-weather',
+      status: 'active' as const,
+      end_date: '2026-06-10T12:00:00.000Z',
+      created_at: '2026-06-09T03:59:21.000Z',
+      updated_at: '2026-06-09T12:15:01.867Z',
+      markets: [{ is_resolved: false, condition: { resolved: false } }],
+    }
+
+    expect(filterHomeEvents(
+      [tomorrowEvent, todayEvent],
+      {
+        currentTimestamp: Date.parse('2026-06-09T12:30:00.000Z'),
+        status: 'active',
+      },
+    )).toEqual([todayEvent])
+  })
 })
