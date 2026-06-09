@@ -449,7 +449,21 @@ function useAdminCreateEventForm({
   const [pendingWorkflowStatus, setPendingWorkflowStatus] = useState<string | null>(null)
   const [preparedSignaturePlan, setPreparedSignaturePlan] = useState<PrepareResponse | null>(null)
   const [signatureTxs, setSignatureTxs] = useState<SignatureExecutionTx[]>([])
+  const resolutionSelectionRef = useRef<{ resolutionType: ResolutionType, touched: boolean }>({
+    resolutionType: 'dro_moov2',
+    touched: false,
+  })
+  useEffect(() => {
+    resolutionSelectionRef.current = {
+      resolutionType,
+      touched: resolutionTypeTouched,
+    }
+  }, [resolutionType, resolutionTypeTouched])
   const handleResolutionTypeChange = useCallback((nextResolutionType: ResolutionType) => {
+    resolutionSelectionRef.current = {
+      resolutionType: nextResolutionType,
+      touched: true,
+    }
     setResolutionTypeTouched(true)
     setResolutionType(nextResolutionType)
     setFundingCheckState('idle')
@@ -2982,6 +2996,7 @@ function useAdminCreateEventForm({
   }, [selectedCreatorAddress, t])
 
   const runFundingCheck = useCallback(async () => {
+    const resolutionSelectionAtStart = resolutionSelectionRef.current
     setFundingCheckState('checking')
     setFundingCheckError('')
 
@@ -3000,8 +3015,22 @@ function useAdminCreateEventForm({
         = payload.defaultResolutionType === 'dro_moov2' || payload.defaultResolutionType === 'uma_moov2'
           ? payload.defaultResolutionType
           : 'dro_moov2'
-      const effectiveResolutionType = resolutionTypeTouched ? resolutionType : serverDefaultResolutionType
-      if (!resolutionTypeTouched && resolutionType !== serverDefaultResolutionType) {
+      const resolutionSelectionChanged
+        = resolutionSelectionRef.current.resolutionType !== resolutionSelectionAtStart.resolutionType
+          || resolutionSelectionRef.current.touched !== resolutionSelectionAtStart.touched
+      if (resolutionSelectionChanged) {
+        setFundingCheckState('idle')
+        return false
+      }
+
+      const effectiveResolutionType = resolutionSelectionAtStart.touched
+        ? resolutionSelectionAtStart.resolutionType
+        : serverDefaultResolutionType
+      if (!resolutionSelectionAtStart.touched && resolutionSelectionAtStart.resolutionType !== serverDefaultResolutionType) {
+        resolutionSelectionRef.current = {
+          resolutionType: serverDefaultResolutionType,
+          touched: false,
+        }
         setResolutionType(serverDefaultResolutionType)
       }
       const directFee = form.marketMode === 'multi_unique'
@@ -3059,7 +3088,7 @@ function useAdminCreateEventForm({
       setFundingCheckError('Could not validate USDC balance right now.')
       return false
     }
-  }, [eoaAddress, form.marketMode, marketCount, resolutionType, resolutionTypeTouched])
+  }, [eoaAddress, form.marketMode, marketCount])
 
   const runNativeGasCheck = useCallback(async () => {
     setNativeGasCheckState('checking')
