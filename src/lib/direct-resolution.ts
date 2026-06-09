@@ -137,8 +137,8 @@ export function getDirectResolutionAdapterAddress(market: Event['markets'][numbe
   const metadata = parseMarketMetadata(market)
   const candidates = [
     readMetadataString(metadata, 'resolution_adapter_address'),
-    market.neg_risk ? NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS : DRO_CTF_ADAPTER_V4_ADDRESS,
     market.condition?.oracle,
+    market.neg_risk ? NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS : DRO_CTF_ADAPTER_V4_ADDRESS,
   ]
   for (const candidate of candidates) {
     const normalized = normalizeAddress(candidate)
