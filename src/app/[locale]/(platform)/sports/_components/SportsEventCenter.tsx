@@ -45,6 +45,7 @@ import {
   headerIconButtonClass,
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
 import {
+  formatSportsEventStartLabels,
   normalizeLivestreamUrl,
   parseSportsScore,
   resolveMoneylineButtonGridClass,
@@ -468,12 +469,11 @@ export default function SportsEventCenter({
         ? Date.parse(heroCard.event.start_date)
         : Number.NaN
   const startTimestamp = Number.isFinite(parsedStartTimestamp) ? parsedStartTimestamp : null
-  const timeLabel = startTimestamp !== null
-    ? new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' }).format(startTimestamp)
-    : 'TBD'
-  const dayLabel = startTimestamp !== null
-    ? new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric', timeZone: 'UTC' }).format(startTimestamp)
-    : 'Date TBD'
+  const startLabels = startTimestamp !== null
+    ? formatSportsEventStartLabels(startTimestamp, locale)
+    : null
+  const timeLabel = startLabels?.timeLabel ?? 'TBD'
+  const dayLabel = startLabels?.dayLabel ?? 'Date TBD'
 
   const team1 = heroCard.teams[0] ?? null
   const team2 = heroCard.teams[1] ?? null

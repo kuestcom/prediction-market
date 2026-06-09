@@ -101,6 +101,7 @@ describe('eventCardSportsMoneyline', () => {
 
     expect(container.querySelectorAll('[class~=\"bg-primary\"]')).toHaveLength(1)
     expect(container.querySelectorAll('[class~=\"bg-primary/60\"]')).toHaveLength(1)
+    expect(screen.getByText('Sat 7:00 PM ET')).toBeInTheDocument()
     expect(mocks.eventBookmark).toHaveBeenCalledWith(expect.objectContaining({
       refreshStatusOnMount: false,
     }))

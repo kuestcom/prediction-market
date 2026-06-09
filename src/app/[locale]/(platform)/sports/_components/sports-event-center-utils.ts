@@ -15,6 +15,9 @@ import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { resolveOutcomeSelectionPriceCents } from '@/lib/market-pricing'
 import { ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 
+const SPORTS_EVENT_DISPLAY_TIME_ZONE = 'America/New_York'
+const SPORTS_EVENT_DISPLAY_TIME_ZONE_LABEL = 'ET'
+
 function resolveInitialOddsFormat(): OddsFormat {
   if (typeof window === 'undefined') {
     return 'price'
@@ -23,6 +26,25 @@ function resolveInitialOddsFormat(): OddsFormat {
   const storedOddsFormat = window.localStorage.getItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY)
   const matchedOption = ODDS_FORMAT_OPTIONS.find(option => option.value === storedOddsFormat)
   return matchedOption?.value ?? 'price'
+}
+
+export function formatSportsEventStartLabels(timestamp: number, locale: string) {
+  const date = new Date(timestamp)
+  const timeLabel = new Intl.DateTimeFormat(locale, {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: SPORTS_EVENT_DISPLAY_TIME_ZONE,
+  }).format(date)
+  const dayLabel = new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    day: 'numeric',
+    timeZone: SPORTS_EVENT_DISPLAY_TIME_ZONE,
+  }).format(date)
+
+  return {
+    timeLabel: `${timeLabel} ${SPORTS_EVENT_DISPLAY_TIME_ZONE_LABEL}`,
+    dayLabel,
+  }
 }
 
 export function subscribeToOddsFormatStorage(listener: () => void) {
