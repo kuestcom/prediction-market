@@ -3,9 +3,9 @@ import type { Event } from '@/types'
 import { isAddress, stringToHex } from 'viem'
 import {
   DIRECT_RESOLUTION_ORACLE_ADDRESS,
+  DRO_CTF_ADAPTER_V4_ADDRESS,
+  NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS,
   NEGRISK_OPERATOR_DRO_ADDRESS,
-  NEGRISK_UMA_CTF_ADAPTER_DRO_ADDRESS,
-  UMA_CTF_ADAPTER_DRO_ADDRESS,
 } from '@/lib/contracts'
 import { normalizeAddress } from '@/lib/wallet'
 
@@ -14,7 +14,7 @@ export type DirectResolutionOutcome = 'yes' | 'no' | 'unknown'
 
 export const YES_OR_NO_IDENTIFIER = stringToHex('YES_OR_NO_QUERY', { size: 32 }) as Hex
 
-export const UMA_CTF_ADAPTER_QUESTION_ABI = [
+export const CTF_ADAPTER_QUESTION_ABI = [
   {
     type: 'function',
     name: 'getQuestion',
@@ -79,9 +79,9 @@ export const DIRECT_RESOLUTION_ORACLE_ABI = [
 const DIRECT_RESOLUTION_ADDRESSES = new Set(
   [
     DIRECT_RESOLUTION_ORACLE_ADDRESS,
-    UMA_CTF_ADAPTER_DRO_ADDRESS,
+    DRO_CTF_ADAPTER_V4_ADDRESS,
     NEGRISK_OPERATOR_DRO_ADDRESS,
-    NEGRISK_UMA_CTF_ADAPTER_DRO_ADDRESS,
+    NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS,
   ].map(address => address.toLowerCase()),
 )
 
@@ -137,7 +137,7 @@ export function getDirectResolutionAdapterAddress(market: Event['markets'][numbe
   const metadata = parseMarketMetadata(market)
   const candidates = [
     readMetadataString(metadata, 'resolution_adapter_address'),
-    market.neg_risk ? NEGRISK_UMA_CTF_ADAPTER_DRO_ADDRESS : UMA_CTF_ADAPTER_DRO_ADDRESS,
+    market.neg_risk ? NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS : DRO_CTF_ADAPTER_V4_ADDRESS,
     market.condition?.oracle,
   ]
   for (const candidate of candidates) {

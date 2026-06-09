@@ -10,10 +10,10 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import {
-  NEGRISK_UMA_CTF_ADAPTER_DRO_ADDRESS,
+  DRO_CTF_ADAPTER_V4_ADDRESS,
+  NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS,
   NEGRISK_UMA_CTF_ADAPTER_V4_ADDRESS,
   UMA_CTF_ADAPTER_ADDRESS,
-  UMA_CTF_ADAPTER_DRO_ADDRESS,
   UMA_CTF_ADAPTER_POLYMARKET_ADDRESS,
   UMA_CTF_ADAPTER_V4_ADDRESS,
   UMA_NEG_RISK_ADAPTER_ADDRESS,
@@ -48,8 +48,8 @@ const UMA_RESOLVER_ADDRESS_SET = new Set(
     UMA_NEG_RISK_ADAPTER_ADDRESS,
     UMA_CTF_ADAPTER_V4_ADDRESS,
     NEGRISK_UMA_CTF_ADAPTER_V4_ADDRESS,
-    UMA_CTF_ADAPTER_DRO_ADDRESS,
-    NEGRISK_UMA_CTF_ADAPTER_DRO_ADDRESS,
+    DRO_CTF_ADAPTER_V4_ADDRESS,
+    NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS,
   ].map(address => address.toLowerCase()),
 )
 const RULES_URL_REGEX = /((?:https?:\/\/|www\.)[^\s<>"']+)/g

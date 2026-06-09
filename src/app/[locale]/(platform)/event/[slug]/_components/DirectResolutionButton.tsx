@@ -23,6 +23,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import {
+  CTF_ADAPTER_QUESTION_ABI,
   DIRECT_RESOLUTION_ORACLE_ABI,
 
   getDirectResolutionAdapterAddress,
@@ -31,7 +32,6 @@ import {
   getDirectResolutionPrice,
   getDirectResolutionQuestionIds,
   isDirectResolutionMarket,
-  UMA_CTF_ADAPTER_QUESTION_ABI,
   YES_OR_NO_IDENTIFIER,
 } from '@/lib/direct-resolution'
 import { readCreatorProposerWhitelistStatus } from '@/lib/proposer-whitelist'
@@ -224,7 +224,7 @@ export default function DirectResolutionButton({
     try {
       const question = normalizeQuestionData(await publicClient.readContract({
         address: adapterAddress,
-        abi: UMA_CTF_ADAPTER_QUESTION_ABI,
+        abi: CTF_ADAPTER_QUESTION_ABI,
         functionName: 'getQuestion',
         args: [adapterQuestionId],
       }))
