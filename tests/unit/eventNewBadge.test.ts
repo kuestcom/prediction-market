@@ -6,6 +6,7 @@ function buildEvent(overrides: Partial<Parameters<typeof shouldShowEventNewBadge
     status: 'active',
     series_recurrence: null,
     created_at: new Date(0).toISOString(),
+    volume: 100,
     markets: [{ created_at: new Date(0).toISOString() }],
     ...overrides,
   }
@@ -59,5 +60,15 @@ describe('shouldShowEventNewBadge', () => {
     })
 
     expect(shouldShowEventNewBadge(event, 24 * 60 * 60 * 1000)).toBe(true)
+  })
+
+  it('shows NEW for active zero-volume events', () => {
+    const event = buildEvent({
+      volume: 0,
+      created_at: new Date(0).toISOString(),
+      markets: [{ created_at: new Date(0).toISOString() }],
+    })
+
+    expect(shouldShowEventNewBadge(event, null)).toBe(true)
   })
 })

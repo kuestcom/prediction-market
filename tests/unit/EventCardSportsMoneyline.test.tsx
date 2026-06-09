@@ -35,6 +35,10 @@ vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark', () =
   },
 }))
 
+vi.mock('@/components/ui/new-badge', () => ({
+  NewBadge: () => <span data-testid="new-badge">New</span>,
+}))
+
 vi.mock('@/lib/events-routing', () => ({
   resolveEventOutcomePath: (_event: unknown, payload: { conditionId: string, outcomeIndex: number }) =>
     `/event/${payload.conditionId}/${payload.outcomeIndex}`,
@@ -182,5 +186,64 @@ describe('eventCardSportsMoneyline', () => {
     expect(screen.queryByText('ARS')).not.toBeInTheDocument()
     expect(screen.queryByText('CHE')).not.toBeInTheDocument()
     expect(screen.queryByTestId('event-bookmark')).not.toBeInTheDocument()
+  })
+
+  it('shows the new badge instead of volume for active zero-volume sports cards', () => {
+    const event = {
+      status: 'active',
+      volume: 0,
+      created_at: '2026-03-01T00:00:00.000Z',
+      series_recurrence: null,
+      sports_sport_slug: 'soccer',
+      markets: [
+        {
+          condition_id: 'match-winner-condition',
+          slug: 'arsenal-vs-chelsea-match-winner',
+          created_at: '2026-03-01T00:00:00.000Z',
+        },
+      ],
+    } as any
+
+    const model = {
+      team1: {
+        name: 'Arsenal',
+        abbreviation: 'ARS',
+        color: null,
+        logoUrl: null,
+        hostStatus: 'home',
+      },
+      team2: {
+        name: 'Chelsea',
+        abbreviation: 'CHE',
+        color: null,
+        logoUrl: null,
+        hostStatus: 'away',
+      },
+      team1Button: {
+        conditionId: 'match-winner-condition',
+        outcomeIndex: 0,
+        label: 'ARS',
+        tone: 'team1',
+        color: null,
+      },
+      team2Button: {
+        conditionId: 'match-winner-condition',
+        outcomeIndex: 1,
+        label: 'CHE',
+        tone: 'team2',
+        color: null,
+      },
+    } as any
+
+    render(
+      <EventCardSportsMoneyline
+        event={event}
+        model={model}
+        getDisplayChance={() => 50}
+      />,
+    )
+
+    expect(screen.getByTestId('new-badge')).toBeInTheDocument()
+    expect(screen.queryByText('$0 Vol.')).not.toBeInTheDocument()
   })
 })

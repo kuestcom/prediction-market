@@ -8,7 +8,7 @@ const EVENT_NEW_BADGE_WINDOW_MS_DEFAULT = 24 * MS_IN_HOUR
 const EVENT_NEW_BADGE_WINDOW_MS_DAILY = 2 * MS_IN_HOUR
 const EVENT_NEW_BADGE_WINDOW_MS_SUB_HOURLY = 10 * MS_IN_MINUTE
 
-type EventNewBadgeInput = Pick<Event, 'status' | 'series_recurrence' | 'created_at'> & {
+type EventNewBadgeInput = Pick<Event, 'status' | 'series_recurrence' | 'created_at' | 'volume'> & {
   markets: Array<Pick<Event['markets'][number], 'created_at'>>
 }
 
@@ -94,11 +94,15 @@ function getNewBadgeWindowMs(seriesRecurrence: string | null | undefined): numbe
 }
 
 export function shouldShowEventNewBadge(event: EventNewBadgeInput, currentTime: number | null) {
-  if (currentTime == null) {
+  if (event.status !== 'active') {
     return false
   }
 
-  if (event.status !== 'active') {
+  if (Number(event.volume) === 0) {
+    return true
+  }
+
+  if (currentTime == null) {
     return false
   }
 

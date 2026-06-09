@@ -7,7 +7,9 @@ import Image from 'next/image'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import AppLink from '@/components/AppLink'
 import { Card, CardContent } from '@/components/ui/card'
+import { NewBadge } from '@/components/ui/new-badge'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
+import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
 import { resolveEventOutcomePath } from '@/lib/events-routing'
 import { formatDate, formatVolume } from '@/lib/formatters'
 import { isEventResolvedLike } from '@/lib/home-events'
@@ -207,6 +209,7 @@ export default function EventCardSportsMoneyline({
   const isResolvedEvent = isEventResolvedLike(event)
   const sportsCompetitionLabel = resolveSportsCompetitionLabel(event)
   const startTimeLabel = formatSportsStartTime(event.sports_start_time ?? event.start_date, currentTimestamp)
+  const shouldShowNewBadge = shouldShowEventNewBadge(event, currentTimestamp ?? null)
   const endedLabel = isResolvedEvent && event.resolved_at
     ? (() => {
         const resolvedDate = new Date(event.resolved_at)
@@ -377,11 +380,15 @@ export default function EventCardSportsMoneyline({
 
         <div className="relative flex w-full items-center justify-between gap-2 text-xs text-muted-foreground">
           <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap">
-            <span>
-              {formatVolume(event.volume)}
-              {' '}
-              Vol.
-            </span>
+            {shouldShowNewBadge
+              ? <NewBadge />
+              : (
+                  <span>
+                    {formatVolume(event.volume)}
+                    {' '}
+                    Vol.
+                  </span>
+                )}
             {isResolvedEvent
               ? (
                   sportsCompetitionLabel
