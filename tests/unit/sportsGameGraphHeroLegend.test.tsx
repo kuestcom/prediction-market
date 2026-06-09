@@ -1,7 +1,10 @@
 import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-constants'
-import { useSportsGameGraphHeroLegend } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/useSportsGameGraph'
+import {
+  useSportsGameGraphHeroLegend,
+  useSportsGameGraphSeries,
+} from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/useSportsGameGraph'
 
 const chartSeries = [
   { key: 'chiefs', name: 'Chiefs', color: '#f4c400' },
@@ -81,5 +84,91 @@ describe('sportsGameGraphHeroLegend', () => {
     expect((entry?.left ?? 0) + (entry?.width ?? 0)).toBeLessThanOrEqual(
       860 - 46 - SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT.rightInsetPx,
     )
+  })
+})
+
+describe('sportsGameGraphSeries', () => {
+  it('scopes selected moneyline graphs to both outcomes of the selected market', () => {
+    const card = {
+      id: 'event-1',
+      teams: [
+        { name: '99DIVINE', abbreviation: '99D', color: null, logoUrl: null, record: null, hostStatus: 'home' },
+        { name: 'ENTER FORCE.36', abbreviation: 'EF36', color: null, logoUrl: null, record: null, hostStatus: 'away' },
+      ],
+      detailMarkets: [
+        {
+          condition_id: 'match-winner',
+          outcomes: [
+            { outcome_index: 0, outcome_text: '99DIVINE', token_id: 'match-99d-token' },
+            { outcome_index: 1, outcome_text: 'ENTER FORCE.36', token_id: 'match-ef36-token' },
+          ],
+        },
+        {
+          condition_id: 'game-1-winner',
+          outcomes: [
+            { outcome_index: 0, outcome_text: '99DIVINE', token_id: 'game1-99d-token' },
+            { outcome_index: 1, outcome_text: 'ENTER FORCE.36', token_id: 'game1-ef36-token' },
+          ],
+        },
+        {
+          condition_id: 'game-2-winner',
+          outcomes: [
+            { outcome_index: 0, outcome_text: '99DIVINE', token_id: 'game2-99d-token' },
+            { outcome_index: 1, outcome_text: 'ENTER FORCE.36', token_id: 'game2-ef36-token' },
+          ],
+        },
+      ],
+      buttons: [
+        {
+          key: 'match-winner:0',
+          conditionId: 'match-winner',
+          outcomeIndex: 0,
+          label: '99D',
+          color: null,
+          marketType: 'moneyline',
+          tone: 'team1',
+        },
+        {
+          key: 'match-winner:1',
+          conditionId: 'match-winner',
+          outcomeIndex: 1,
+          label: 'EF36',
+          color: null,
+          marketType: 'moneyline',
+          tone: 'team2',
+        },
+        {
+          key: 'game-1-winner:0',
+          conditionId: 'game-1-winner',
+          outcomeIndex: 0,
+          label: '99D',
+          color: null,
+          marketType: 'moneyline',
+          tone: 'team1',
+        },
+        {
+          key: 'game-2-winner:0',
+          conditionId: 'game-2-winner',
+          outcomeIndex: 0,
+          label: '99D',
+          color: null,
+          marketType: 'moneyline',
+          tone: 'team1',
+        },
+      ],
+    } as any
+
+    const { result } = renderHook(() => useSportsGameGraphSeries({
+      card,
+      selectedConditionId: 'match-winner',
+      isSecondaryMarketGraph: false,
+      isSportsEventHeroVariant: false,
+    }))
+
+    expect(result.current.chartSeries.map(series => series.name)).toEqual(['99DIVINE', 'ENTER FORCE.36'])
+    expect(result.current.marketTargets).toEqual([
+      { conditionId: 'match-winner:0', tokenId: 'match-99d-token' },
+      { conditionId: 'match-winner:1', tokenId: 'match-ef36-token' },
+    ])
   })
 })

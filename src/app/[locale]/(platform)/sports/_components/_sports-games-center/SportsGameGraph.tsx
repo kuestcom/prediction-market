@@ -126,6 +126,7 @@ export default function SportsGameGraph({
     isSecondaryMarketGraph,
     isSportsEventHeroVariant,
   })
+  const shouldPairOutcomeHistory = isSecondaryMarketGraph || Boolean(selectedConditionId)
 
   const { chartData, latestSnapshot, leadingGapStart } = useSportsGameGraphHistory({
     card,
@@ -133,7 +134,7 @@ export default function SportsGameGraph({
     activeTimeRange,
     chartSeries,
     graphSeriesTargets,
-    isSecondaryMarketGraph,
+    shouldPairOutcomeHistory,
   })
 
   const {

@@ -97,7 +97,6 @@ export function useSportsGameGraphSeries({
     () => {
       if (
         selectedConditionId
-        && isSecondaryMarketGraph
       ) {
         const selectedMarket = card.detailMarkets.find(
           market => market.condition_id === selectedConditionId,
@@ -120,7 +119,7 @@ export function useSportsGameGraphSeries({
                 tokenId: outcome.token_id ?? null,
                 market: selectedMarket,
                 outcomeIndex: outcome.outcome_index,
-                name: relatedButton?.label ?? fallbackLabel,
+                name: relatedButton ? resolveGraphSeriesName(card, relatedButton, selectedMarket) : fallbackLabel,
                 color: resolveGraphSeriesColor(card, relatedButton, fallbackColors[index % fallbackColors.length]!),
               }
             })
@@ -254,14 +253,14 @@ export function useSportsGameGraphHistory({
   activeTimeRange,
   chartSeries,
   graphSeriesTargets,
-  isSecondaryMarketGraph,
+  shouldPairOutcomeHistory,
 }: {
   card: SportsGamesCard
   marketTargets: Array<{ conditionId: string, tokenId: string }>
   activeTimeRange: (typeof TIME_RANGES)[number]
   chartSeries: Array<{ key: string, name: string, color: string }>
   graphSeriesTargets: SportsGraphSeriesTarget[]
-  isSecondaryMarketGraph: boolean
+  shouldPairOutcomeHistory: boolean
 }) {
   const { normalizedHistory } = useEventPriceHistory({
     eventId: card.id,
@@ -294,7 +293,7 @@ export function useSportsGameGraphHistory({
   }, [chartSeries, normalizedHistory])
 
   const pairedHistoryChartData = useMemo<DataPoint[]>(() => {
-    if (!isSecondaryMarketGraph || chartSeries.length !== 2) {
+    if (!shouldPairOutcomeHistory || chartSeries.length !== 2) {
       return historyChartData
     }
 
@@ -321,7 +320,7 @@ export function useSportsGameGraphHistory({
         return nextPoint
       })
       .filter((point): point is DataPoint => point !== null)
-  }, [chartSeries, historyChartData, isSecondaryMarketGraph])
+  }, [chartSeries, historyChartData, shouldPairOutcomeHistory])
 
   const fallbackChartData = useMemo<DataPoint[]>(() => {
     if (graphSeriesTargets.length === 0) {
